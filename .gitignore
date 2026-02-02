@@ -1,0 +1,22 @@
+# Documentation and reference files
+*.pdf
+*.xls
+*.xlsx
+*.doc
+*.docx
+
+# Build artifacts
+dist/
+build/
+.netlify/
+
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
