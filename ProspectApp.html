@@ -122,14 +122,54 @@
                 
                 <h2>Client Details</h2>
                 <div class="grid-2">
-                    <div><label class="label">First Name</label><input type="text" id="firstName" placeholder="John" autocomplete="given-name"></div>
-                    <div><label class="label">Last Name</label><input type="text" id="lastName" placeholder="Smith" autocomplete="family-name"></div>
+                    <div><label class="label">Title</label><select id="title"><option value="">Select</option><option value="Mr.">Mr.</option><option value="Mrs.">Mrs.</option><option value="Ms.">Ms.</option><option value="Dr.">Dr.</option></select></div>
+                    <div><label class="label">Suffix</label><input type="text" id="suffix" placeholder="Jr., Sr., III"></div>
                 </div>
+                <div class="grid-2">
+                    <div><label class="label">First Name</label><input type="text" id="firstName" placeholder="John" autocomplete="given-name"></div>
+                    <div><label class="label">Middle Name</label><input type="text" id="middleName" placeholder="M"></div>
+                </div>
+                <label class="label">Last Name</label><input type="text" id="lastName" placeholder="Smith" autocomplete="family-name">
                 <div class="grid-2">
                     <div><label class="label">Phone</label><input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="tel"></div>
                     <div><label class="label">DOB</label><input type="date" id="dob"></div>
                 </div>
+                <div class="grid-2">
+                    <div><label class="label">Work Phone</label><input type="tel" id="workPhone" placeholder="(555) 123-4567"></div>
+                    <div><label class="label">Sex</label><select id="sex"><option value="">Select</option><option value="M">Male</option><option value="F">Female</option></select></div>
+                </div>
                 <label class="label">Email</label><input type="email" id="email" placeholder="john@example.com" autocomplete="email">
+                <label class="label">Work Email</label><input type="email" id="workEmail" placeholder="john@work.com">
+                <div class="grid-2">
+                    <div><label class="label">Marital Status</label><select id="maritalStatus"><option value="">Select</option><option value="Single">Single</option><option value="Married">Married</option><option value="Divorced">Divorced</option><option value="Widowed">Widowed</option></select></div>
+                    <div><label class="label">Home Owner</label><select id="homeOwner"><option value="">Select</option><option value="Y">Yes</option><option value="N">No</option></select></div>
+                </div>
+                <div class="grid-2">
+                    <div><label class="label">Occupation</label><input type="text" id="occupation" placeholder="Accountant"></div>
+                    <div><label class="label">Employer</label><input type="text" id="employer" placeholder="Company Name"></div>
+                </div>
+                <label class="label">Social Security #</label><input type="text" id="ssn" placeholder="XXX-XX-XXXX" maxlength="11">
+            </div>
+            
+            <div class="card">
+                <h2>Business Details (Optional)</h2>
+                <div class="grid-2">
+                    <div><label class="label">Business Type</label><select id="businessType"><option value="">Select</option><option value="Corporation">Corporation</option><option value="LLC">LLC</option><option value="Partnership">Partnership</option><option value="Sole Proprietor">Sole Proprietor</option></select></div>
+                    <div><label class="label">Business Name</label><input type="text" id="businessName" placeholder="Company Inc"></div>
+                </div>
+                <label class="label">DBA Name</label><input type="text" id="businessDBA" placeholder="Doing Business As">
+            </div>
+            
+            <div class="card">
+                <h2>Client Categorization</h2>
+                <div class="grid-2">
+                    <div><label class="label">Client Type</label><select id="clientType"><option value="">Select</option><option value="Customer">Customer</option><option value="Prospect">Prospect</option></select></div>
+                    <div><label class="label">Client Source</label><select id="clientSource"><option value="">Select</option><option value="Referral">Referral</option><option value="Website">Website</option><option value="Cold Call">Cold Call</option><option value="Walk-in">Walk-in</option><option value="Other">Other</option></select></div>
+                </div>
+                <div class="grid-2">
+                    <div><label class="label">Customer Type</label><select id="customerType"><option value="">Select</option><option value="Personal">Personal</option><option value="Commercial">Commercial</option></select></div>
+                    <div><label class="label">Client Status</label><select id="clientStatus"><option value="">Select</option><option value="Active">Active</option><option value="Inactive">Inactive</option><option value="Pending">Pending</option></select></div>
+                </div>
             </div>
             
             <div class="card">
@@ -145,6 +185,36 @@
                 </div>
                 <label class="label">Violations / Notes</label>
                 <textarea id="violations" rows="3" placeholder="Speeding 2023, Accident 2021..."></textarea>
+            </div>
+            
+            <div class="card">
+                <h2>Second Driver (Optional)</h2>
+                <div class="grid-2">
+                    <div><label class="label">Title</label><select id="title2"><option value="">Select</option><option value="Mr.">Mr.</option><option value="Mrs.">Mrs.</option><option value="Ms.">Ms.</option><option value="Dr.">Dr.</option></select></div>
+                    <div><label class="label">Suffix</label><input type="text" id="suffix2" placeholder="Jr., Sr., III"></div>
+                </div>
+                <div class="grid-2">
+                    <div><label class="label">First Name</label><input type="text" id="firstName2" placeholder="Jane"></div>
+                    <div><label class="label">Middle Name</label><input type="text" id="middleName2" placeholder="M"></div>
+                </div>
+                <label class="label">Last Name</label><input type="text" id="lastName2" placeholder="Smith">
+                <div class="grid-2">
+                    <div><label class="label">DOB</label><input type="date" id="dob2"></div>
+                    <div><label class="label">Sex</label><select id="sex2"><option value="">Select</option><option value="M">Male</option><option value="F">Female</option></select></div>
+                </div>
+                <div class="grid-2">
+                    <div><label class="label">Marital Status</label><select id="maritalStatus2"><option value="">Select</option><option value="Single">Single</option><option value="Married">Married</option><option value="Divorced">Divorced</option><option value="Widowed">Widowed</option></select></div>
+                    <div><label class="label">Relationship</label><select id="relationship2"><option value="">Select</option><option value="Spouse">Spouse</option><option value="Child">Child</option><option value="Parent">Parent</option><option value="Other">Other</option></select></div>
+                </div>
+                <div class="grid-2">
+                    <div><label class="label">License #</label><input type="text" id="dlNum2" style="text-transform:uppercase;font-family:monospace"></div>
+                    <div><label class="label">State</label><input type="text" id="dlState2" value="WA"></div>
+                </div>
+                <div class="grid-2">
+                    <div><label class="label">Occupation</label><input type="text" id="occupation2" placeholder="Teacher"></div>
+                    <div><label class="label">Employer</label><input type="text" id="employer2" placeholder="Company Name"></div>
+                </div>
+                <label class="label">Social Security #</label><input type="text" id="ssn2" placeholder="XXX-XX-XXXX" maxlength="11">
             </div>
         </div>
 
@@ -271,6 +341,10 @@
                 });
                 // Phone format
                 document.getElementById('phone').addEventListener('input', this.fmtPhone);
+                document.getElementById('workPhone').addEventListener('input', this.fmtPhone);
+                // SSN format
+                document.getElementById('ssn').addEventListener('input', this.fmtSSN);
+                document.getElementById('ssn2').addEventListener('input', this.fmtSSN);
             },
 
             handleType() {
@@ -360,6 +434,11 @@
                 e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
             },
 
+            fmtSSN(e) {
+                let x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,2})(\d{0,4})/);
+                e.target.value = !x[2] ? x[1] : x[1] + '-' + x[2] + (x[3] ? '-' + x[3] : '');
+            },
+
             openZillow() {
                 const a = `${this.data.addrStreet} ${this.data.addrCity} ${this.data.addrState} ${this.data.addrZip}`;
                 window.open(`https://www.zillow.com/homes/${encodeURIComponent(a)}_rb/`);
@@ -367,25 +446,69 @@
 
             // === NOTES & EXPORT ===
             getNotes() {
-                return `
-CLIENT: ${this.data.firstName} ${this.data.lastName}
-DOB: ${this.data.dob}
+                let notes = `CLIENT: ${this.data.title || ''} ${this.data.firstName} ${this.data.middleName || ''} ${this.data.lastName} ${this.data.suffix || ''}
+DOB: ${this.data.dob} | Sex: ${this.data.sex || ''} | Marital: ${this.data.maritalStatus || ''}
+Phone: ${this.data.phone} | Work: ${this.data.workPhone || ''}
+Email: ${this.data.email} | Work Email: ${this.data.workEmail || ''}
 DL: ${this.data.dlNum} (${this.data.dlState})
+SSN: ${this.data.ssn || 'N/A'}
+Occupation: ${this.data.occupation || ''} | Employer: ${this.data.employer || ''}
+Home Owner: ${this.data.homeOwner || ''}
 Prior: ${this.data.priorCarrier} (Exp: ${this.data.priorExp})
-Notes: ${this.data.violations || 'None'}
+Notes: ${this.data.violations || 'None'}`;
+
+                // Business Info
+                if (this.data.businessName || this.data.businessType) {
+                    notes += `
+
+BUSINESS: ${this.data.businessType || ''} - ${this.data.businessName || ''}
+DBA: ${this.data.businessDBA || ''}`;
+                }
+
+                // Client Classification
+                if (this.data.clientType || this.data.clientSource) {
+                    notes += `
+
+CLIENT INFO:
+Type: ${this.data.clientType || ''} | Source: ${this.data.clientSource || ''}
+Customer Type: ${this.data.customerType || ''} | Status: ${this.data.clientStatus || ''}`;
+                }
+
+                // Second Driver
+                if (this.data.firstName2 || this.data.lastName2) {
+                    notes += `
+
+SECOND DRIVER: ${this.data.title2 || ''} ${this.data.firstName2 || ''} ${this.data.middleName2 || ''} ${this.data.lastName2 || ''} ${this.data.suffix2 || ''}
+DOB: ${this.data.dob2 || ''} | Sex: ${this.data.sex2 || ''} | Marital: ${this.data.maritalStatus2 || ''}
+Relationship: ${this.data.relationship2 || ''}
+DL: ${this.data.dlNum2 || ''} (${this.data.dlState2 || ''})
+SSN: ${this.data.ssn2 || 'N/A'}
+Occupation: ${this.data.occupation2 || ''} | Employer: ${this.data.employer2 || ''}`;
+                }
+
+                // Auto Info
+                if (this.data.vehDesc || this.data.vin) {
+                    notes += `
 
 AUTO:
 ${this.data.vehDesc || ''}
 VIN: ${this.data.vin}
-Use: ${this.data.use} / ${this.data.miles}mi
+Use: ${this.data.use} / ${this.data.miles}mi`;
+                }
+
+                // Home Info
+                if (this.data.addrStreet) {
+                    notes += `
 
 HOME:
 ${this.data.addrStreet}, ${this.data.addrCity}
 Built: ${this.data.yrBuilt} (${this.data.sqFt}sqft)
 Roof: ${this.data.roofMat} (${this.data.roofYr})
 Updates: Heat ${this.data.heatYr} / Plumb ${this.data.plumbYr}
-Hazards: ${this.data.hazards || 'None'}
-                `.trim();
+Hazards: ${this.data.hazards || 'None'}`;
+                }
+
+                return notes.trim();
             },
 
             copyNotes() {
@@ -394,15 +517,33 @@ Hazards: ${this.data.hazards || 'None'}
             },
 
             exportCSV() {
-                // EZLynx Specific Headers
-                const h = ["First Name","Last Name","Address Line 1","City","State Code","Zip Code","Mobile Phone","Email","Date of Birth","Notes"];
+                // EZLynx Specific Headers - expanded with new fields
+                const h = ["First Name","Middle Name","Last Name","Title","Suffix","Address Line 1","City","State Code","Zip Code",
+                           "Mobile Phone","Work Phone","Email","Work Email","Date of Birth","Sex","Marital Status",
+                           "SSN","Occupation","Employer","Home Owner","DL Number","DL State",
+                           "Business Type","Business Name","Business DBA",
+                           "Client Type","Client Source","Customer Type","Client Status",
+                           "Second First Name","Second Middle Name","Second Last Name","Second Title","Second Suffix",
+                           "Second DOB","Second Sex","Second Marital Status","Second Relationship",
+                           "Second SSN","Second Occupation","Second Employer","Second DL Number","Second DL State",
+                           "Notes"];
                 
                 // Collapse notes into one line for the CSV "Notes" column
                 const flatNotes = this.getNotes().replace(/\n/g, ' | ');
                 
                 const row = [
-                    this.data.firstName, this.data.lastName, this.data.addrStreet, this.data.addrCity, this.data.addrState, this.data.addrZip,
-                    this.data.phone, this.data.email, this.data.dob, flatNotes
+                    this.data.firstName, this.data.middleName, this.data.lastName, this.data.title, this.data.suffix,
+                    this.data.addrStreet, this.data.addrCity, this.data.addrState, this.data.addrZip,
+                    this.data.phone, this.data.workPhone, this.data.email, this.data.workEmail, 
+                    this.data.dob, this.data.sex, this.data.maritalStatus,
+                    this.data.ssn, this.data.occupation, this.data.employer, this.data.homeOwner,
+                    this.data.dlNum, this.data.dlState,
+                    this.data.businessType, this.data.businessName, this.data.businessDBA,
+                    this.data.clientType, this.data.clientSource, this.data.customerType, this.data.clientStatus,
+                    this.data.firstName2, this.data.middleName2, this.data.lastName2, this.data.title2, this.data.suffix2,
+                    this.data.dob2, this.data.sex2, this.data.maritalStatus2, this.data.relationship2,
+                    this.data.ssn2, this.data.occupation2, this.data.employer2, this.data.dlNum2, this.data.dlState2,
+                    flatNotes
                 ].map(v => `"${v||''}"`).join(',');
 
                 const csv = h.join(',') + "\n" + row;
@@ -416,17 +557,80 @@ Hazards: ${this.data.hazards || 'None'}
             },
 
             exportCMSMTF() {
-                // HawkSoft CMSMTF Tagged Format
+                // HawkSoft CMSMTF Tagged Format - comprehensive mapping
                 const fields = [
-                    { tag: 'NAM', value: `${this.data.firstName || ''} ${this.data.lastName || ''}`.trim() },
+                    // Business fields
+                    { tag: 'BusinessType', value: this.data.businessType },
+                    { tag: 'BusinessName', value: this.data.businessName },
+                    { tag: 'Business DBA Name', value: this.data.businessDBA },
+                    
+                    // Primary client info
+                    { tag: 'FirstName', value: this.data.firstName },
+                    { tag: 'MiddleName', value: this.data.middleName },
+                    { tag: 'LastName', value: this.data.lastName },
+                    { tag: 'NAM', value: `${this.data.firstName || ''} ${this.data.middleName || ''} ${this.data.lastName || ''}`.trim() },
+                    
+                    // Address
                     { tag: 'ADD', value: this.data.addrStreet },
                     { tag: 'CTY', value: this.data.addrCity },
                     { tag: 'STA', value: this.data.addrState },
                     { tag: 'ZIP', value: this.data.addrZip },
+                    
+                    // Client categorization
+                    { tag: 'ClientType', value: this.data.clientType },
+                    { tag: 'ClientSource', value: this.data.clientSource },
+                    { tag: 'CustomerType', value: this.data.customerType },
+                    { tag: 'ClientStatus', value: this.data.clientStatus },
+                    
+                    // Contact info
                     { tag: 'PHN', value: this.data.phone ? this.data.phone.replace(/\D/g, '') : '' },
+                    { tag: 'HomePhone', value: this.data.phone ? this.data.phone.replace(/\D/g, '') : '' },
+                    { tag: 'WorkPhone', value: this.data.workPhone ? this.data.workPhone.replace(/\D/g, '') : '' },
                     { tag: 'EML', value: this.data.email },
+                    { tag: 'HomeEmail', value: this.data.email },
+                    { tag: 'WorkEmail', value: this.data.workEmail },
+                    
+                    // Primary client personal info
+                    { tag: 'Title', value: this.data.title },
+                    { tag: 'Suffix', value: this.data.suffix },
+                    { tag: 'Date of Birth', value: this.data.dob },
+                    { tag: 'Sex', value: this.data.sex },
+                    { tag: 'MaritalStatus', value: this.data.maritalStatus },
+                    { tag: 'SocialSecurityNumber', value: this.data.ssn },
+                    { tag: 'Occupation', value: this.data.occupation },
+                    { tag: 'Employer', value: this.data.employer },
+                    { tag: 'DriversLicenseNumber', value: this.data.dlNum },
+                    { tag: 'DriversLicenseState', value: this.data.dlState },
+                    { tag: 'HomeOwner?', value: this.data.homeOwner },
+                    
+                    // Second driver info
+                    { tag: 'FirstName2', value: this.data.firstName2 },
+                    { tag: 'MiddleName2', value: this.data.middleName2 },
+                    { tag: 'LastName2', value: this.data.lastName2 },
+                    { tag: 'Title2', value: this.data.title2 },
+                    { tag: 'Suffix2', value: this.data.suffix2 },
+                    { tag: 'Date of Birth2', value: this.data.dob2 },
+                    { tag: 'Sex2', value: this.data.sex2 },
+                    { tag: 'MaritalStatus2', value: this.data.maritalStatus2 },
+                    { tag: 'Relationship2', value: this.data.relationship2 },
+                    { tag: 'SocialSecurityNumber2', value: this.data.ssn2 },
+                    { tag: 'Occupation2', value: this.data.occupation2 },
+                    { tag: 'Employer2', value: this.data.employer2 },
+                    { tag: 'DriversLicenseNumber2', value: this.data.dlNum2 },
+                    { tag: 'DriversLicenseState2', value: this.data.dlState2 },
+                    
+                    // Vehicle info
                     { tag: 'VIN', value: this.data.vin },
-                    { tag: 'VEH', value: this.data.vehDesc }
+                    { tag: 'VEH', value: this.data.vehDesc },
+                    
+                    // Property info
+                    { tag: 'PropertyAddress', value: this.data.addrStreet },
+                    { tag: 'PropertyCity', value: this.data.addrCity },
+                    { tag: 'PropertyState', value: this.data.addrState },
+                    { tag: 'PropertyZip', value: this.data.addrZip },
+                    
+                    // Additional notes
+                    { tag: 'Comments', value: this.data.violations }
                 ];
 
                 // Only include fields with data
