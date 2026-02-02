@@ -446,7 +446,10 @@
 
             // === NOTES & EXPORT ===
             getNotes() {
-                let notes = `CLIENT: ${this.data.title || ''} ${this.data.firstName} ${this.data.middleName || ''} ${this.data.lastName} ${this.data.suffix || ''}
+                const primaryName = [this.data.title, this.data.firstName, this.data.middleName, this.data.lastName, this.data.suffix]
+                    .filter(x => x && x.trim())
+                    .join(' ');
+                let notes = `CLIENT: ${primaryName}
 DOB: ${this.data.dob} | Sex: ${this.data.sex || ''} | Marital: ${this.data.maritalStatus || ''}
 Phone: ${this.data.phone} | Work: ${this.data.workPhone || ''}
 Email: ${this.data.email} | Work Email: ${this.data.workEmail || ''}
@@ -476,9 +479,12 @@ Customer Type: ${this.data.customerType || ''} | Status: ${this.data.clientStatu
 
                 // Second Driver
                 if (this.data.firstName2 || this.data.lastName2) {
+                    const secondName = [this.data.title2, this.data.firstName2, this.data.middleName2, this.data.lastName2, this.data.suffix2]
+                        .filter(x => x && x.trim())
+                        .join(' ');
                     notes += `
 
-SECOND DRIVER: ${this.data.title2 || ''} ${this.data.firstName2 || ''} ${this.data.middleName2 || ''} ${this.data.lastName2 || ''} ${this.data.suffix2 || ''}
+SECOND DRIVER: ${secondName}
 DOB: ${this.data.dob2 || ''} | Sex: ${this.data.sex2 || ''} | Marital: ${this.data.maritalStatus2 || ''}
 Relationship: ${this.data.relationship2 || ''}
 DL: ${this.data.dlNum2 || ''} (${this.data.dlState2 || ''})
@@ -568,7 +574,7 @@ Hazards: ${this.data.hazards || 'None'}`;
                     { tag: 'FirstName', value: this.data.firstName },
                     { tag: 'MiddleName', value: this.data.middleName },
                     { tag: 'LastName', value: this.data.lastName },
-                    { tag: 'NAM', value: `${this.data.firstName || ''} ${this.data.middleName || ''} ${this.data.lastName || ''}`.trim() },
+                    { tag: 'NAM', value: [this.data.firstName, this.data.middleName, this.data.lastName].filter(x => x && x.trim()).join(' ') },
                     
                     // Address
                     { tag: 'ADD', value: this.data.addrStreet },
