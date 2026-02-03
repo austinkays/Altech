@@ -70,7 +70,7 @@ git push origin my-feature-branch
 
 ```
 Altech/
-├── ProspectApp.html    # Main application file
+├── index.html          # Main application file
 ├── README.md           # Documentation
 ├── package.json        # Dependencies
 └── netlify.toml        # Deployment config

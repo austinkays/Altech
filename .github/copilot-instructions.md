@@ -8,7 +8,7 @@
 ## Architecture at a Glance
 
 ### The Stack
-- **Frontend**: Single self-contained `ProspectApp.html` (1229 lines) - vanilla JavaScript, no build step
+- **Frontend**: Single self-contained `index.html` (1229 lines) - vanilla JavaScript, no build step
 - **Storage**: LocalStorage only (browser-based, key `altech_v6`)
 - **Styling**: CSS3 with Apple design system (SF Pro font, iOS-style components)
 - **Deployment**: Static hosting (Netlify/Vercel/GitHub Pages)
@@ -39,7 +39,7 @@ The `qType` radio button (in Step 1) triggers `App.handleType()` which:
 ## Code Structure & Key Objects
 
 ### Main App Object (`const App = {}`)
-Located at [ProspectApp.html#L676](ProspectApp.html#L676). Core methods:
+Located at [index.html#L676](index.html#L676). Core methods:
 
 | Method | Purpose | Side Effects |
 |--------|---------|--------------|
@@ -78,7 +78,7 @@ Located at [ProspectApp.html#L676](ProspectApp.html#L676). Core methods:
 ## Export System Deep Dive
 
 ### CMSMTF Format (HawkSoft)
-**File:** [ProspectApp.html#L926](ProspectApp.html#L926-L1018)
+**File:** [index.html#L926](index.html#L926-L1018)
 
 HawkSoft expects **tagged format** with system variable names and `=` operator:
 ```
@@ -98,7 +98,7 @@ C1 = 50/100  (custom field: liability limits)
 **Validation in code:** See [FIELD_MAPPING_UPDATE.md](FIELD_MAPPING_UPDATE.md) for complete field→variable mapping.
 
 ### XML Export (EZLynx) - DETAILED ARCHITECTURE
-**File:** [ProspectApp.html#L1020](ProspectApp.html#L1020-L1207)
+**File:** [index.html#L1020](index.html#L1020-L1207)
 
 Generates EZLynx-compatible XML with ACORD-like structure. **Critical validation before export:**
 - `firstName` & `lastName` (present & non-empty)
@@ -190,7 +190,7 @@ The [Resources/HawkSoft Export to EZLynx SAMPLE.xml](Resources/HawkSoft Export t
 **Future Enhancement:** Expand to support multiple drivers/vehicles with proper id mapping.
 
 ### CSV Export
-**File:** [ProspectApp.html#L904](ProspectApp.html#L904-L923)
+**File:** [index.html#L904](index.html#L904-L923)
 
 Simple 10-column format: First, Last, Address, City, State, Zip, Phone, Email, DOB, Notes (flattened with `|` separators).
 
@@ -449,10 +449,10 @@ console.log(streetMatch?.[1], streetMatch?.[2]);  // "408", "nw 116th st"
 
 | Task | File & Line |
 |------|-------------|
-| Add new form field | [ProspectApp.html](ProspectApp.html#L138-L650) - find appropriate `<div class="card">`, add `<input id="newField">` |
+| Add new form field | [index.html](index.html#L138-L650) - find appropriate `<div class="card">`, add `<input id="newField">` |
 | Add new export destination | Create new `export*()` method in App object, add button to Step 4 |
-| Change workflow steps | Modify `workflows` object ([ProspectApp.html#L682](ProspectApp.html#L682)) |
-| Update styling | Edit `:root` CSS variables and component selectors ([ProspectApp.html#L12](ProspectApp.html#L12-L120)) |
+| Change workflow steps | Modify `workflows` object ([index.html#L682](index.html#L682)) |
+| Update styling | Edit `:root` CSS variables and component selectors ([index.html#L12](index.html#L12-L120)) |
 | Fix field mapping | See [FIELD_MAPPING_UPDATE.md](FIELD_MAPPING_UPDATE.md) for current variable names |
 | Test HawkSoft export | Download CMSMTF, import via HawkSoft → Utilities → Import → HawkSoft Data Importer |
 | Test EZLynx export | Download XML, import via EZLynx → Applicants → Import → HawkSoft |
@@ -478,7 +478,7 @@ console.log(streetMatch?.[1], streetMatch?.[2]);  // "408", "nw 116th st"
   - Each vehicle gets `id="vin_1"`, `id="vin_2"`, etc.
   - Export to all three formats (CMSMTF, XML, CSV) with proper indexing
   - Time estimate: 3-4 days
-  - Files affected: ProspectApp.html (form UI + export functions)
+  - Files affected: index.html (form UI + export functions)
 
 **2. Backend API Layer for EZLynx QAS Integration**
 - **Current:** Client-side only; no direct QAS API calls possible
@@ -507,7 +507,7 @@ console.log(streetMatch?.[1], streetMatch?.[2]);  // "408", "nw 116th st"
   - Add state-specific coverage blocks for WA, OR, CA (most common)
   - Generate VehicleAssignments with driver-to-vehicle mappings
 - **Time estimate:** 2-3 days
-- **Files affected:** ProspectApp.html exportXML() method
+- **Files affected:** index.html exportXML() method
 
 ### 🔒 Security & Reliability Improvements (Priority 2)
 

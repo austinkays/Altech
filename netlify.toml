@@ -4,7 +4,7 @@
 
 [[redirects]]
   from = "/*"
-  to = "/ProspectApp.html"
+  to = "/index.html"
   status = 200
 
 [build.environment]
@@ -20,7 +20,7 @@
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
 
 [[headers]]
-  for = "/ProspectApp.html"
+  for = "/index.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 

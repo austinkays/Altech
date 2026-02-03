@@ -154,7 +154,7 @@ vercel --prod
 
 ### Add Google Analytics
 1. Get tracking ID from [analytics.google.com](https://analytics.google.com)
-2. Add to ProspectApp.html before `</head>`:
+2. Add to index.html before `</head>`:
 ```html
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
 <script>
@@ -176,7 +176,7 @@ vercel --prod
 
 ### "Page Not Found" Error
 - Check your `netlify.toml` or `vercel.json` redirect rules
-- Verify the main file is `ProspectApp.html`
+- Verify the main file is `index.html`
 
 ### "Cannot Read Property" Errors
 - Check browser console for JavaScript errors

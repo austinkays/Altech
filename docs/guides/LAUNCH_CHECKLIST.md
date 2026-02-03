@@ -165,7 +165,7 @@ vercel --prod
 ### Can't Deploy
 1. Verify all files are committed to Git
 2. Check deployment platform logs
-3. Verify `ProspectApp.html` is in root directory
+3. Verify `index.html` is in root directory
 4. Check `netlify.toml` or `vercel.json` syntax
 
 ---

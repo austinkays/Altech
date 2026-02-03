@@ -51,7 +51,7 @@ Send them the URL from Step 1. They can:
 
 ## Step 4: Customize (Optional)
 
-Edit `ProspectApp.html` to change:
+Edit `index.html` to change:
 - Line 9: App name/title
 - Line 50-60: Logo colors
 - Anywhere: Company name
@@ -70,7 +70,7 @@ Your site will auto-update! 🚀
 ## Troubleshooting
 
 **Q: I see a 404 error**
-- Make sure `ProspectApp.html` is in the root directory
+- Make sure `index.html` is in the root directory
 - Check your deployment platform's redirect settings
 
 **Q: Form won't submit**
