@@ -643,8 +643,8 @@
                 </div>
             </div>
 
-            <div class="card" style="border: 1px solid rgba(255, 107, 107, 0.3); background: rgba(255, 107, 107, 0.03);">
-                <h3 style="color: #FF6B6B;">📧 Email to Agent</h3>
+            <div class="card">
+                <h3>📧 Email to Agent</h3>
                 <p class="section-subtitle">Send selected quotes in your preferred format</p>
                 <div style="display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:flex-end; margin-bottom:12px;">
                     <div>
@@ -1413,7 +1413,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
             },
 
             getQuoteTitle(data) {
-                const name = `${data.lastName || 'Unknown'}, ${data.firstName || ''}`.trim();
+                const lastName = data.lastName?.trim();
+                const firstName = data.firstName?.trim();
+                const name = lastName ? `${lastName}, ${firstName || ''}`.trim() : (firstName || `Draft - ${new Date().toLocaleDateString()}`);
                 const type = (data.qType || 'quote').toUpperCase();
                 return `${name} • ${type}`;
             },
@@ -1613,14 +1615,14 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
             async emailSelectedQuotes(event) {
                 const agentEmail = document.getElementById('agentEmail')?.value;
                 if (!agentEmail) {
-                    alert('⚠️ Please select an agent');
+                    this.toast('⚠️ Please select an agent');
                     return;
                 }
 
                 // Check if any quotes selected
                 const selectedIds = this.getSelectedQuoteIds();
                 if (selectedIds.length === 0) {
-                    alert('⚠️ Please select at least one quote to email');
+                    this.toast('⚠️ Please select at least one quote to email');
                     return;
                 }
 
@@ -1661,7 +1663,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     }
 
                     if (errors.length) {
-                        alert('⚠️ Some XML exports were skipped. Please check required fields.');
+                        this.toast('⚠️ Some XML exports were skipped');
                     }
 
                     // Generate ZIP blob
@@ -1688,7 +1690,14 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                         body: JSON.stringify(payload)
                     });
 
-                    const result = await response.json();
+                    let result;
+                    try {
+                        const text = await response.text();
+                        result = text ? JSON.parse(text) : {};
+                    } catch (parseError) {
+                        console.error('Failed to parse response:', parseError);
+                        throw new Error('Server returned invalid response. Please try again.');
+                    }
 
                     if (response.ok) {
                         // Success!
@@ -1699,10 +1708,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                         }, 2000);
                         this.toast(`📧 ${formatLabel} emailed to agent`);
                     } else {
-                        throw new Error(result.error || 'Failed to send email');
+                        throw new Error(result.error || `Server error (${response.status})`);
                     }
                 } catch (error) {
-                    alert('❌ Error sending email: ' + error.message);
+                    console.error('Email error:', error);
+                    this.toast('❌ Error: ' + error.message);
                     const btn = event?.target || document.querySelector('[onclick="App.emailSelectedQuotes()"]');
                     if (btn) {
                         btn.disabled = false;
