@@ -1678,12 +1678,12 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                         const folder = zip.folder(quoteName);
 
                         if (emailFormat === 'pdf') {
-                            const pdfBlob = (await this.buildPDF(quote.data)).blob;
-                            folder.file('Summary.pdf', pdfBlob);
+                            const pdfResult = this.buildPDF(quote.data);
+                            folder.file(pdfResult.filename, pdfResult.blob);
                         } else {
                             const xmlResult = this.buildXML(quote.data);
                             if (xmlResult.ok) {
-                                folder.file('EZLynx.xml', xmlResult.content);
+                                folder.file(xmlResult.filename, xmlResult.content);
                             } else {
                                 errors.push(`${quoteName}: ${xmlResult.error.replace('⚠️ ', '')}`);
                             }
