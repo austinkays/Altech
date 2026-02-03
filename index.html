@@ -120,6 +120,15 @@
         .toast.show { opacity: 1; }
         .hint { font-size: 14px; color: var(--text-secondary); background: var(--bg-input); padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; line-height: 1.4; }
         .divider { height: 1px; background: var(--border); margin: 24px 0; }
+        .quote-list { display: flex; flex-direction: column; gap: 10px; }
+        .quote-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg-input); border: 1px solid var(--border); border-radius: 12px; padding: 12px; gap: 10px; }
+        .quote-info { flex: 1; }
+        .quote-title { font-weight: 600; font-size: 15px; }
+        .quote-meta { font-size: 12px; color: var(--text-secondary); }
+        .quote-actions { display: flex; gap: 8px; }
+        .quote-actions button { padding: 8px 10px; font-size: 12px; border-radius: 8px; }
+        .quote-checkbox { width: auto; margin: 0 8px 0 0; }
+        .btn-tertiary { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
     </style>
 </head>
 <body>
@@ -618,16 +627,76 @@
             </div>
 
             <div class="card">
-                <h3>Option 1: HawkSoft Import</h3>
+                <h3>Quote Library</h3>
+                <p class="section-subtitle">Save multiple drafts and batch export when ready</p>
+                <div style="display:flex; gap:12px; margin-bottom:12px;">
+                    <button class="btn-secondary" style="flex:1" onclick="App.saveQuote()">💾 Save Draft</button>
+                    <button class="btn-tertiary" style="flex:1" onclick="App.startNewDraft()">➕ New Draft</button>
+                </div>
+                <div style="display:flex; gap:12px; margin-bottom:12px;">
+                    <button class="btn-primary" style="flex:1; background:#6f42c1" onclick="App.exportSelectedZip()">📦 Download ZIP (Selected)</button>
+                    <button class="btn-tertiary" style="flex:1" onclick="App.clearAllDrafts()">🧹 Clear Drafts</button>
+                </div>
+                <div id="quoteList" class="quote-list"></div>
+                <div class="hint" style="margin-top:12px">
+                    Select drafts to include in the ZIP. Use Load to resume any draft.
+                </div>
+            </div>
+
+            <div class="card" style="border: 2px solid #FF6B6B; background: rgba(255, 107, 107, 0.03);">
+                <h3 style="color: #FF6B6B;">📧 Email to Agent (Fastest)</h3>
+                <p class="section-subtitle">Send quote ZIP directly to your team</p>
+                <div style="display:grid; grid-template-columns: 1fr auto; gap:12px; align-items:flex-end; margin-bottom:12px;">
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">Send to Agent</label>
+                        <select id="agentEmail" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; background:white;">
+                            <option value="">-- Select agent --</option>
+                            <option value="Austin@altechinsurance.com">Austin</option>
+                            <option value="Evan@altechinsurance.com">Evan</option>
+                            <option value="Kathleen@altechinsurance.com">Kathleen</option>
+                            <option value="Neil@altechinsurance.com">Neil</option>
+                            <option value="Hollie@altechinsurance.com">Hollie</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" onclick="App.emailSelectedQuotes()" style="background: #FF6B6B; padding: 10px 16px; white-space:nowrap;">Send ZIP</button>
+                </div>
+                <div class="hint" style="margin-top:12px;">
+                    Email selected quotes (or current) as a ZIP file directly to an agent's inbox. Fastest way to get leads to your team!
+                </div>
+            </div>
+
+            <div class="card" style="border: 2px solid var(--apple-blue); background: rgba(0, 122, 255, 0.03);">
+                <h3 style="color: var(--apple-blue);">⭐ Option 1: EZLynx XML Import (Recommended)</h3>
+                <p class="section-subtitle">Complete XML file - all fields ready for instant quoting</p>
+                <button class="btn-primary" onclick="App.exportXML()" style="width:100%; background:var(--apple-blue); font-size: 16px; padding: 14px;">📥 Download EZLynx XML File</button>
+                <div class="hint" style="margin-top:12px">
+                    Import to EZLynx using Applicants → Import → HawkSoft. All data auto-populates for immediate quoting.
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Option 2: Summary Document (PDF / TXT)</h3>
+                <p class="section-subtitle">Clean, readable reference copy for review or sharing</p>
+                <div style="display:flex; gap:12px;">
+                    <button class="btn-primary" onclick="App.exportPDF()" style="width:100%; background:#FF8C00">📄 Download PDF Summary</button>
+                    <button class="btn-secondary" onclick="App.exportText()" style="width:100%;">📝 Download Text Summary</button>
+                </div>
+                <div class="hint" style="margin-top:12px">
+                    Nicely formatted PDF or plain-text summary with all application details.
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Option 3: HawkSoft Import</h3>
                 <p class="section-subtitle">Includes all 30 custom fields mapped correctly</p>
-                <button class="btn-primary" onclick="App.exportCMSMTF()" style="width:100%">📥 Download HawkSoft File (.cmsmtf)</button>
+                <button class="btn-primary" onclick="App.exportCMSMTF()" style="width:100%; background:#6c757d">📥 Download HawkSoft File (.cmsmtf)</button>
                 <div class="hint" style="margin-top:12px">
                     Drag and drop this file directly into HawkSoft to create a new client with all custom fields populated.
                 </div>
             </div>
 
             <div class="card">
-                <h3>Option 2: EZLynx CSV Import</h3>
+                <h3>Option 4: EZLynx CSV Import</h3>
                 <p class="section-subtitle">Standard CSV format for EZLynx Sales Center</p>
                 <button class="btn-primary" onclick="App.exportCSV()" style="width:100%; background:var(--success)">📥 Download CSV File</button>
                 <div class="hint" style="margin-top:12px">
@@ -636,7 +705,7 @@
             </div>
 
             <div class="card">
-                <h3>Option 3: Copy to Clipboard</h3>
+                <h3>Option 5: Copy to Clipboard</h3>
                 <p class="section-subtitle">For pasting into notes or remarks</p>
                 <button class="btn-secondary" onclick="App.copyNotes()" style="width:100%; color:var(--apple-blue); border-color:var(--apple-blue)">
                     📋 Copy All Information
@@ -663,11 +732,15 @@
 
     <div id="toast" class="toast">Message</div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         const App = {
             data: {},
             step: 0,
             flow: [],
+            storageKey: 'altech_v6',
+            quotesKey: 'altech_v6_quotes',
             
             workflows: {
                 home: ['step-1', 'step-2', 'step-3', 'step-4'],
@@ -685,6 +758,7 @@
             init() {
                 this.load();
                 this.handleType(); // Set initial flow
+                this.renderQuoteList();
                 
                 // Auto-save listeners
                 document.querySelectorAll('input, select, textarea').forEach(el => {
@@ -752,7 +826,7 @@
             save(e) {
                 const k = e.target.id || e.target.name;
                 this.data[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-                localStorage.setItem('altech_v6', JSON.stringify(this.data));
+                localStorage.setItem(this.storageKey, JSON.stringify(this.data));
                 
                 const ind = document.getElementById('saveIndicator');
                 ind.style.opacity = 1;
@@ -760,24 +834,28 @@
             },
 
             load() {
-                const s = localStorage.getItem('altech_v6');
-                if(s) {
-                    this.data = JSON.parse(s);
-                    Object.keys(this.data).forEach(k => {
-                        const el = document.getElementById(k);
-                        if(el) {
-                            if(el.type === 'checkbox') {
-                                el.checked = this.data[k];
-                            } else {
-                                el.value = this.data[k];
-                            }
+                const s = localStorage.getItem(this.storageKey);
+                if(s) this.applyData(JSON.parse(s));
+            },
+
+            applyData(data) {
+                this.data = data || {};
+                Object.keys(this.data).forEach(k => {
+                    const el = document.getElementById(k);
+                    if(el) {
+                        if(el.type === 'checkbox') {
+                            el.checked = this.data[k];
+                        } else {
+                            el.value = this.data[k];
                         }
-                        if(k === 'qType') {
-                            const r = document.querySelector(`input[name="qType"][value="${this.data[k]}"]`);
-                            if(r) r.checked = true;
-                        }
-                    });
-                }
+                    }
+                    if(k === 'qType') {
+                        const r = document.querySelector(`input[name="qType"][value="${this.data[k]}"]`);
+                        if(r) r.checked = true;
+                    }
+                });
+                this.checkUpdates();
+                this.handleType();
             },
 
             // === PROGRESSIVE DISCLOSURE ===
@@ -820,71 +898,75 @@
             },
 
             // === NOTES & EXPORT ===
-            getNotes() {
+            getNotesForData(data) {
                 return `
 === CLIENT INFORMATION ===
-Name: ${this.data.firstName || ''} ${this.data.lastName || ''}
-Email: ${this.data.email || ''}
-Phone: ${this.data.phone || ''}
-DOB: ${this.data.dob || ''}
-Marital Status: ${this.data.maritalStatus || ''}
-Education: ${this.data.education || ''}
-Industry: ${this.data.industry || ''}
+Name: ${data.firstName || ''} ${data.lastName || ''}
+Email: ${data.email || ''}
+Phone: ${data.phone || ''}
+DOB: ${data.dob || ''}
+Marital Status: ${data.maritalStatus || ''}
+Education: ${data.education || ''}
+Industry: ${data.industry || ''}
 
 === PROPERTY DETAILS ===
-Address: ${this.data.addrStreet || ''}, ${this.data.addrCity || ''}, ${this.data.addrState || ''} ${this.data.addrZip || ''}
-Dwelling Type: ${this.data.dwellingType || ''} (${this.data.dwellingUsage || ''})
-Year Built: ${this.data.yrBuilt || ''} | Square Feet: ${this.data.sqFt || ''}
-Stories: ${this.data.numStories || ''} | Bathrooms: ${this.data.fullBaths || ''}
-Construction: ${this.data.constructionStyle || ''} | Walls: ${this.data.exteriorWalls || ''}
-Foundation: ${this.data.foundation || ''}
-Roof: ${this.data.roofType || ''} (${this.data.roofShape || ''}) - Updated: ${this.data.roofYr || ''}
-Heating: ${this.data.heatingType || ''} (Updated: ${this.data.heatYr || ''})
-Cooling: ${this.data.cooling || ''}
-Plumbing Updated: ${this.data.plumbYr || ''}
-Electrical Updated: ${this.data.elecYr || ''}
+Address: ${data.addrStreet || ''}, ${data.addrCity || ''}, ${data.addrState || ''} ${data.addrZip || ''}
+Dwelling Type: ${data.dwellingType || ''} (${data.dwellingUsage || ''})
+Year Built: ${data.yrBuilt || ''} | Square Feet: ${data.sqFt || ''}
+Stories: ${data.numStories || ''} | Bathrooms: ${data.fullBaths || ''}
+Construction: ${data.constructionStyle || ''} | Walls: ${data.exteriorWalls || ''}
+Foundation: ${data.foundation || ''}
+Roof: ${data.roofType || ''} (${data.roofShape || ''}) - Updated: ${data.roofYr || ''}
+Heating: ${data.heatingType || ''} (Updated: ${data.heatYr || ''})
+Cooling: ${data.cooling || ''}
+Plumbing Updated: ${data.plumbYr || ''}
+Electrical Updated: ${data.elecYr || ''}
 
 === SAFETY & SYSTEMS ===
-Fire Station: ${this.data.fireStationDist || ''} miles | Hydrant: ${this.data.fireHydrantFeet || ''} feet
-Protection Class: ${this.data.protectionClass || ''}
-Burglar Alarm: ${this.data.burglarAlarm || ''}
-Fire Alarm: ${this.data.fireAlarm || ''}
-Sprinklers: ${this.data.sprinklers || ''}
+Fire Station: ${data.fireStationDist || ''} miles | Hydrant: ${data.fireHydrantFeet || ''} feet
+Protection Class: ${data.protectionClass || ''}
+Burglar Alarm: ${data.burglarAlarm || ''}
+Fire Alarm: ${data.fireAlarm || ''}
+Sprinklers: ${data.sprinklers || ''}
 
 === RISK FACTORS ===
-Pool: ${this.data.pool || 'No'}
-Trampoline: ${this.data.trampoline || 'No'}
-Wood Stove: ${this.data.woodStove || 'No'}
-Dog: ${this.data.dogInfo || 'None'}
-Business on Property: ${this.data.businessOnProperty || 'No'}
+Pool: ${data.pool || 'No'}
+Trampoline: ${data.trampoline || 'No'}
+Wood Stove: ${data.woodStove || 'No'}
+Dog: ${data.dogInfo || 'None'}
+Business on Property: ${data.businessOnProperty || 'No'}
 
 === AUTO INFORMATION ===
-Vehicle: ${this.data.vehDesc || ''}
-VIN: ${this.data.vin || ''}
-Driver's License: ${this.data.dlNum || ''} (${this.data.dlState || ''})
-Usage: ${this.data.use || ''} | Annual Miles: ${this.data.miles || ''}
-Commute Distance: ${this.data.commuteDist || ''} miles
-Ride Sharing: ${this.data.rideSharing || 'No'}
-Telematics: ${this.data.telematics || ''}
+Vehicle: ${data.vehDesc || ''}
+VIN: ${data.vin || ''}
+Driver's License: ${data.dlNum || ''} (${data.dlState || ''})
+Usage: ${data.use || ''} | Annual Miles: ${data.miles || ''}
+Commute Distance: ${data.commuteDist || ''} miles
+Ride Sharing: ${data.rideSharing || 'No'}
+Telematics: ${data.telematics || ''}
 
 === INSURANCE HISTORY ===
-Current Liability: ${this.data.liabilityLimits || ''}
-Deductibles: Home ${this.data.homeDeductible || ''} / Auto ${this.data.autoDeductible || ''}
-Prior Carrier: ${this.data.priorCarrier || ''} (${this.data.priorYears || ''} years)
-Prior Expiration: ${this.data.priorExp || ''}
-Accidents: ${this.data.accidents || 'None'}
-Violations: ${this.data.violations || 'None'}
-Student GPA: ${this.data.studentGPA || 'N/A'}
+Current Liability: ${data.liabilityLimits || ''}
+Deductibles: Home ${data.homeDeductible || ''} / Auto ${data.autoDeductible || ''}
+Prior Carrier: ${data.priorCarrier || ''} (${data.priorYears || ''} years)
+Prior Expiration: ${data.priorExp || ''}
+Accidents: ${data.accidents || 'None'}
+Violations: ${data.violations || 'None'}
+Student GPA: ${data.studentGPA || 'N/A'}
 
 === ADDITIONAL INFO ===
-Mortgagee: ${this.data.mortgagee || ''}
-Additional Insureds: ${this.data.additionalInsureds || 'None'}
-Purchase Date: ${this.data.purchaseDate || ''}
-Kitchen/Bath Quality: ${this.data.kitchenQuality || ''}
-Best Contact Time: ${this.data.contactTime || ''}
-Referral Source: ${this.data.referralSource || ''}
-TCPA Consent: ${this.data.tcpaConsent ? 'Yes' : 'No'}
+Mortgagee: ${data.mortgagee || ''}
+Additional Insureds: ${data.additionalInsureds || 'None'}
+Purchase Date: ${data.purchaseDate || ''}
+Kitchen/Bath Quality: ${data.kitchenQuality || ''}
+Best Contact Time: ${data.contactTime || ''}
+Referral Source: ${data.referralSource || ''}
+TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 `.trim();
+            },
+
+            getNotes() {
+                return this.getNotesForData(this.data);
             },
 
             copyNotes() {
@@ -892,120 +974,438 @@ TCPA Consent: ${this.data.tcpaConsent ? 'Yes' : 'No'}
                 this.toast('📋 Copied to Clipboard!');
             },
 
-            exportCSV() {
-                // EZLynx Specific Headers
-                const h = ["First Name","Last Name","Address Line 1","City","State Code","Zip Code","Mobile Phone","Email","Date of Birth","Notes"];
-                
-                // Collapse notes into one line for the CSV "Notes" column
-                const flatNotes = this.getNotes().replace(/\n/g, ' | ');
-                
-                const row = [
-                    this.data.firstName, this.data.lastName, this.data.addrStreet, this.data.addrCity, this.data.addrState, this.data.addrZip,
-                    this.data.phone, this.data.email, this.data.dob, flatNotes
-                ].map(v => `"${v||''}"`).join(',');
+            exportPDF() {
+                const result = this.buildPDF(this.data);
+                this.downloadBlob(result.blob, result.filename);
+                this.toast('✓ PDF downloaded successfully');
+            },
 
-                const csv = h.join(',') + "\n" + row;
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Lead_${this.data.lastName || 'Export'}.csv`;
-                a.click();
+            exportText() {
+                const result = this.buildText(this.data);
+                this.downloadFile(result.content, result.filename, result.mime);
+                this.toast('📝 Text summary downloaded');
+            },
+
+            buildPDF(data) {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                doc.setFontSize(18);
+                doc.setTextColor(0, 122, 255);
+                doc.text('Insurance Application Summary', 105, 20, { align: 'center' });
+                
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(10);
+                let y = 35;
+                
+                const addSection = (title, fields) => {
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(title, 15, y);
+                    y += 7;
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+                    
+                    fields.forEach(([label, value]) => {
+                        if (value) {
+                            if (y > 280) {
+                                doc.addPage();
+                                y = 20;
+                            }
+                            const text = `${label}: ${value}`;
+                            const lines = doc.splitTextToSize(text, 180);
+                            doc.text(lines, 20, y);
+                            y += (lines.length * 5);
+                        }
+                    });
+                    y += 5;
+                };
+                
+                addSection('Personal Information', [
+                    ['Name', `${data.firstName || ''} ${data.lastName || ''}`],
+                    ['Date of Birth', data.dob || ''],
+                    ['Email', data.email || ''],
+                    ['Phone', data.phone || ''],
+                    ['Marital Status', data.maritalStatus || ''],
+                    ['Education', data.education || ''],
+                    ['Industry', data.industry || ''],
+                    ['Quote Type', data.qType || '']
+                ]);
+                
+                if (data.qType === 'home' || data.qType === 'both') {
+                    addSection('Property Information', [
+                        ['Address', `${data.addrStreet || ''}, ${data.addrCity || ''}, ${data.addrState || ''} ${data.addrZip || ''}`],
+                        ['Year Built', data.yrBuilt || ''],
+                        ['Square Footage', data.sqFt || ''],
+                        ['Stories', data.numStories || ''],
+                        ['Bathrooms', data.fullBaths || ''],
+                        ['Dwelling Type', data.dwellingType || ''],
+                        ['Dwelling Usage', data.dwellingUsage || ''],
+                        ['Construction Style', data.constructionStyle || ''],
+                        ['Exterior Walls', data.exteriorWalls || ''],
+                        ['Foundation', data.foundation || ''],
+                        ['Roof Type', data.roofType || ''],
+                        ['Roof Year', data.roofYr || ''],
+                        ['Roof Shape', data.roofShape || '']
+                    ]);
+                    
+                    addSection('Home Systems & Safety', [
+                        ['Heating Type', data.heatingType || ''],
+                        ['Heating Year', data.heatYr || ''],
+                        ['Cooling', data.cooling || ''],
+                        ['Plumbing Year', data.plumbYr || ''],
+                        ['Electrical Year', data.elecYr || ''],
+                        ['Fire Station Distance', data.fireStationDist || ''],
+                        ['Fire Hydrant Distance', data.fireHydrantFeet || ''],
+                        ['Protection Class', data.protectionClass || ''],
+                        ['Burglar Alarm', data.burglarAlarm || ''],
+                        ['Fire Alarm', data.fireAlarm || ''],
+                        ['Sprinklers', data.sprinklers || '']
+                    ]);
+                }
+                
+                addSection('Risk Factors', [
+                    ['Pool', data.pool || ''],
+                    ['Trampoline', data.trampoline || ''],
+                    ['Wood Stove', data.woodStove || ''],
+                    ['Dogs', data.dogInfo || ''],
+                    ['Business on Property', data.businessOnProperty || '']
+                ]);
+                
+                if (data.qType === 'auto' || data.qType === 'both') {
+                    addSection('Vehicle Information', [
+                        ['VIN', data.vin || ''],
+                        ['Vehicle', data.vehDesc || ''],
+                        ['License Number', data.dlNum || ''],
+                        ['License State', data.dlState || ''],
+                        ['Vehicle Use', data.use || ''],
+                        ['Annual Miles', data.miles || ''],
+                        ['Commute Distance', data.commuteDist || ''],
+                        ['Ridesharing', data.rideSharing || ''],
+                        ['Telematics', data.telematics || '']
+                    ]);
+                }
+                
+                addSection('Coverage & History', [
+                    ['Liability Limits', data.liabilityLimits || ''],
+                    ['Home Deductible', data.homeDeductible || ''],
+                    ['Auto Deductible', data.autoDeductible || ''],
+                    ['Prior Carrier', data.priorCarrier || ''],
+                    ['Prior Years', data.priorYears || ''],
+                    ['Prior Expiration', data.priorExp || ''],
+                    ['Accidents', data.accidents || ''],
+                    ['Violations', data.violations || ''],
+                    ['Student GPA', data.studentGPA || '']
+                ]);
+                
+                addSection('Additional Information', [
+                    ['Mortgagee', data.mortgagee || ''],
+                    ['Additional Insureds', data.additionalInsureds || ''],
+                    ['Best Contact Time', data.contactTime || ''],
+                    ['Referral Source', data.referralSource || ''],
+                    ['TCPA Consent', data.tcpaConsent ? 'Yes' : 'No']
+                ]);
+                
+                const fileName = `Insurance_Application_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.pdf`;
+                return { blob: doc.output('blob'), filename: fileName };
+            },
+
+            buildText(data) {
+                const content = this.getNotesForData(data);
+                const fileName = `Insurance_Application_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.txt`;
+                return { content, filename: fileName, mime: 'text/plain;charset=utf-8' };
+            },
+
+            exportCSV() {
+                const result = this.buildCSV(this.data);
+                this.downloadFile(result.content, result.filename, result.mime);
                 this.toast('📥 CSV Generated!');
             },
 
+            buildCSV(data) {
+                const h = ["First Name","Last Name","Address Line 1","City","State Code","Zip Code","Mobile Phone","Email","Date of Birth","Notes"];
+                const flatNotes = this.getNotesForData(data).replace(/\n/g, ' | ');
+                const row = [
+                    data.firstName, data.lastName, data.addrStreet, data.addrCity, data.addrState, data.addrZip,
+                    data.phone, data.email, data.dob, flatNotes
+                ].map(v => `"${v||''}"`).join(',');
+
+                const csv = h.join(',') + "\n" + row;
+                return { content: csv, filename: `Lead_${data.lastName || 'Export'}.csv`, mime: 'text/csv' };
+            },
+
             exportCMSMTF() {
-                // HawkSoft CMSMTF Tagged Format with Custom Fields (L1-L10, C1-C10, R1-R10)
+                const result = this.buildCMSMTF(this.data);
+                this.downloadFile(result.content, result.filename, result.mime);
+                this.toast('📥 HawkSoft File Generated!');
+            },
+
+            buildCMSMTF(data) {
                 const fields = [
-                    // Basic Info
-                    { tag: 'NAM', value: `${this.data.firstName || ''} ${this.data.lastName || ''}`.trim() },
-                    { tag: 'ADD', value: this.data.addrStreet },
-                    { tag: 'CTY', value: this.data.addrCity },
-                    { tag: 'STA', value: this.data.addrState },
-                    { tag: 'ZIP', value: this.data.addrZip },
-                    { tag: 'PHN', value: this.data.phone ? this.data.phone.replace(/\D/g, '') : '' },
-                    { tag: 'EML', value: this.data.email },
-                    { tag: 'DOB', value: this.data.dob },
-                    
-                    // Property & Liability (L1-L10)
-                    { tag: 'L1', value: this.data.roofYr }, // Year Roof Updated
-                    { tag: 'L2', value: this.data.roofType }, // Roof Material
-                    { tag: 'L3', value: this.data.heatingType }, // Heating Type
-                    { tag: 'L4', value: this.data.heatYr }, // Year Heating Updated
-                    { tag: 'L5', value: this.data.plumbYr }, // Year Plumbing Updated
-                    { tag: 'L6', value: this.data.elecYr }, // Year Electrical Updated
-                    { tag: 'L7', value: this.data.pool }, // Swimming Pool
-                    { tag: 'L8', value: this.data.dogInfo }, // Dog Info
-                    { tag: 'L9', value: this.data.kitchenQuality }, // Kitchen/Bath Quality
-                    { tag: 'L10', value: this.data.burglarAlarm }, // Security System
-                    
-                    // Auto & Driver Risk (C1-C10)
-                    { tag: 'C1', value: this.data.liabilityLimits }, // Current Liability Limits
-                    { tag: 'C2', value: this.data.priorCarrier }, // Prior Carrier Name
-                    { tag: 'C3', value: this.data.priorYears }, // Years with Prior Carrier
-                    { tag: 'C4', value: this.data.accidents }, // Accidents in last 5 years
-                    { tag: 'C5', value: this.data.violations }, // Violations in last 3 years
-                    { tag: 'C6', value: this.data.miles }, // Annual Mileage
-                    { tag: 'C7', value: this.data.commuteDist }, // Commute Distance
-                    { tag: 'C8', value: this.data.rideSharing }, // Ride Sharing
-                    { tag: 'C9', value: this.data.telematics }, // Telematics
-                    { tag: 'C10', value: this.data.studentGPA }, // Student GPA
-                    
-                    // Admin & Underwriting (R1-R10)
-                    { tag: 'R1', value: `Home: ${this.data.homeDeductible || ''} / Auto: ${this.data.autoDeductible || ''}` }, // Current Deductibles
-                    { tag: 'R2', value: this.data.trampoline }, // Trampoline
-                    { tag: 'R3', value: this.data.woodStove }, // Wood Stove
-                    { tag: 'R4', value: this.data.businessOnProperty }, // Business on Property
-                    { tag: 'R5', value: this.data.purchaseDate }, // Home Purchase Date
-                    { tag: 'R6', value: this.data.mortgagee }, // Mortgagee/Lender
-                    { tag: 'R7', value: this.data.additionalInsureds }, // Additional Insureds
-                    { tag: 'R8', value: this.data.contactTime }, // Best Time to Contact
-                    { tag: 'R9', value: this.data.referralSource }, // Referral Source
-                    { tag: 'R10', value: this.data.tcpaConsent ? 'Yes - Consented' : 'No' }, // TCPA Consent
-                    
-                    // Additional Property Details
-                    { tag: 'DWELLING_TYPE', value: this.data.dwellingType },
-                    { tag: 'DWELLING_USAGE', value: this.data.dwellingUsage },
-                    { tag: 'YEAR_BUILT', value: this.data.yrBuilt },
-                    { tag: 'SQ_FT', value: this.data.sqFt },
-                    { tag: 'STORIES', value: this.data.numStories },
-                    { tag: 'BATHROOMS', value: this.data.fullBaths },
-                    { tag: 'CONSTRUCTION', value: this.data.constructionStyle },
-                    { tag: 'EXTERIOR_WALLS', value: this.data.exteriorWalls },
-                    { tag: 'FOUNDATION', value: this.data.foundation },
-                    { tag: 'ROOF_SHAPE', value: this.data.roofShape },
-                    { tag: 'COOLING', value: this.data.cooling },
-                    { tag: 'FIRE_ALARM', value: this.data.fireAlarm },
-                    { tag: 'SPRINKLERS', value: this.data.sprinklers },
-                    { tag: 'PROTECTION_CLASS', value: this.data.protectionClass },
-                    
-                    // Auto Details
-                    { tag: 'VIN', value: this.data.vin },
-                    { tag: 'VEH', value: this.data.vehDesc },
-                    { tag: 'DL_NUM', value: this.data.dlNum },
-                    { tag: 'DL_STATE', value: this.data.dlState },
-                    { tag: 'VEHICLE_USE', value: this.data.use },
-                    
-                    // Demographics
-                    { tag: 'MARITAL_STATUS', value: this.data.maritalStatus },
-                    { tag: 'EDUCATION', value: this.data.education },
-                    { tag: 'INDUSTRY', value: this.data.industry }
+                    { tag: 'NAM', value: `${data.firstName || ''} ${data.lastName || ''}`.trim() },
+                    { tag: 'ADD', value: data.addrStreet },
+                    { tag: 'CTY', value: data.addrCity },
+                    { tag: 'STA', value: data.addrState },
+                    { tag: 'ZIP', value: data.addrZip },
+                    { tag: 'PHN', value: data.phone ? data.phone.replace(/\D/g, '') : '' },
+                    { tag: 'EML', value: data.email },
+                    { tag: 'DOB', value: data.dob },
+                    { tag: 'L1', value: data.roofYr },
+                    { tag: 'L2', value: data.roofType },
+                    { tag: 'L3', value: data.heatingType },
+                    { tag: 'L4', value: data.heatYr },
+                    { tag: 'L5', value: data.plumbYr },
+                    { tag: 'L6', value: data.elecYr },
+                    { tag: 'L7', value: data.pool },
+                    { tag: 'L8', value: data.dogInfo },
+                    { tag: 'L9', value: data.kitchenQuality },
+                    { tag: 'L10', value: data.burglarAlarm },
+                    { tag: 'C1', value: data.liabilityLimits },
+                    { tag: 'C2', value: data.priorCarrier },
+                    { tag: 'C3', value: data.priorYears },
+                    { tag: 'C4', value: data.accidents },
+                    { tag: 'C5', value: data.violations },
+                    { tag: 'C6', value: data.miles },
+                    { tag: 'C7', value: data.commuteDist },
+                    { tag: 'C8', value: data.rideSharing },
+                    { tag: 'C9', value: data.telematics },
+                    { tag: 'C10', value: data.studentGPA },
+                    { tag: 'R1', value: `Home: ${data.homeDeductible || ''} / Auto: ${data.autoDeductible || ''}` },
+                    { tag: 'R2', value: data.trampoline },
+                    { tag: 'R3', value: data.woodStove },
+                    { tag: 'R4', value: data.businessOnProperty },
+                    { tag: 'R5', value: data.purchaseDate },
+                    { tag: 'R6', value: data.mortgagee },
+                    { tag: 'R7', value: data.additionalInsureds },
+                    { tag: 'R8', value: data.contactTime },
+                    { tag: 'R9', value: data.referralSource },
+                    { tag: 'R10', value: data.tcpaConsent ? 'Yes - Consented' : 'No' },
+                    { tag: 'DWELLING_TYPE', value: data.dwellingType },
+                    { tag: 'DWELLING_USAGE', value: data.dwellingUsage },
+                    { tag: 'YEAR_BUILT', value: data.yrBuilt },
+                    { tag: 'SQ_FT', value: data.sqFt },
+                    { tag: 'STORIES', value: data.numStories },
+                    { tag: 'BATHROOMS', value: data.fullBaths },
+                    { tag: 'CONSTRUCTION', value: data.constructionStyle },
+                    { tag: 'EXTERIOR_WALLS', value: data.exteriorWalls },
+                    { tag: 'FOUNDATION', value: data.foundation },
+                    { tag: 'ROOF_SHAPE', value: data.roofShape },
+                    { tag: 'COOLING', value: data.cooling },
+                    { tag: 'FIRE_ALARM', value: data.fireAlarm },
+                    { tag: 'SPRINKLERS', value: data.sprinklers },
+                    { tag: 'PROTECTION_CLASS', value: data.protectionClass },
+                    { tag: 'VIN', value: data.vin },
+                    { tag: 'VEH', value: data.vehDesc },
+                    { tag: 'DL_NUM', value: data.dlNum },
+                    { tag: 'DL_STATE', value: data.dlState },
+                    { tag: 'VEHICLE_USE', value: data.use },
+                    { tag: 'MARITAL_STATUS', value: data.maritalStatus },
+                    { tag: 'EDUCATION', value: data.education },
+                    { tag: 'INDUSTRY', value: data.industry }
                 ];
 
-                // Only include fields with data
                 const content = fields
                     .filter(f => f.value && f.value.toString().trim() !== '')
                     .map(f => `[${f.tag}]${f.value}`)
                     .join('\n');
 
-                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Lead_${this.data.lastName || 'Export'}.cmsmtf`;
-                a.click();
-                URL.revokeObjectURL(url);
-                this.toast('📥 HawkSoft File Generated!');
+                return { content, filename: `Lead_${data.lastName || 'Export'}.cmsmtf`, mime: 'text/plain;charset=utf-8' };
+            },
+
+            exportXML() {
+                const result = this.buildXML(this.data);
+                if (!result.ok) {
+                    this.toast(result.error);
+                    return;
+                }
+                this.downloadFile(result.content, result.filename, result.mime);
+                this.toast('📥 EZLynx XML File Generated!');
+            },
+
+            buildXML(data) {
+                const escapeXML = (str) => {
+                    if (!str) return '';
+                    return String(str)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&apos;');
+                };
+
+                const normalizeDate = (dateStr) => {
+                    if (!dateStr) return '';
+                    const d = new Date(dateStr);
+                    if (Number.isNaN(d.getTime())) return '';
+                    const year = d.getUTCFullYear();
+                    const currentYear = new Date().getUTCFullYear();
+                    if (year < 1900 || year > currentYear) return '';
+                    return d.toISOString().split('T')[0];
+                };
+
+                const parseVehicle = (desc) => {
+                    const match = desc?.match(/(\d{4})\s+([A-Z]+)\s+(.+)/i);
+                    return {
+                        year: match?.[1] || '',
+                        make: match?.[2] || '',
+                        model: match?.[3]?.trim() || ''
+                    };
+                };
+
+                const state = (data.addrState || '').trim().toUpperCase();
+                const dob = normalizeDate(data.dob);
+                if (!data.firstName || !data.lastName) {
+                    return { ok: false, error: '⚠️ First and last name are required for EZLynx XML.' };
+                }
+                if (!state || !/^[A-Z]{2}$/.test(state)) {
+                    return { ok: false, error: '⚠️ A valid 2-letter state is required for EZLynx XML.' };
+                }
+                if (!dob) {
+                    return { ok: false, error: '⚠️ A valid DOB is required for EZLynx XML.' };
+                }
+
+                const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
+                const { year, make, model } = parseVehicle(data.vehDesc);
+                const streetRaw = (data.addrStreet || '').trim();
+                const streetMatch = streetRaw.match(/^(\d+)\s+(.*)$/);
+                const streetNumber = streetMatch?.[1] || '';
+                const streetName = streetMatch?.[2] || streetRaw;
+
+                let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+                xml += '<EZAUTO xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200">\n';
+
+                xml += '  <Applicant>\n';
+                xml += '    <ApplicantType>Applicant</ApplicantType>\n';
+                xml += '    <PersonalInfo>\n';
+                xml += '      <Name>\n';
+                xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
+                xml += '        <MiddleName></MiddleName>\n';
+                xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
+                xml += '      </Name>\n';
+                xml += `      <DOB>${dob}</DOB>\n`;
+                if (data.maritalStatus) {
+                    xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
+                }
+                xml += '      <Relation>Insured</Relation>\n';
+                xml += '    </PersonalInfo>\n';
+                xml += '    <Address>\n';
+                xml += '      <AddressCode>StreetAddress</AddressCode>\n';
+                xml += '      <Addr1>\n';
+                xml += `        <StreetName>${escapeXML(streetName)}</StreetName>\n`;
+                xml += `        <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
+                xml += '      </Addr1>\n';
+                xml += `      <City>${escapeXML(data.addrCity)}</City>\n`;
+                xml += `      <StateCode>${escapeXML(state)}</StateCode>\n`;
+                xml += `      <Zip5>${escapeXML(data.addrZip)}</Zip5>\n`;
+                if (phone) {
+                    xml += '      <Phone id="1">\n';
+                    xml += '        <PhoneType>Mobile</PhoneType>\n';
+                    xml += `        <PhoneNumber>${escapeXML(phone)}</PhoneNumber>\n`;
+                    xml += '        <Extension></Extension>\n';
+                    xml += '      </Phone>\n';
+                }
+                if (data.email) {
+                    xml += `      <Email>${escapeXML(data.email)}</Email>\n`;
+                }
+                xml += '    </Address>\n';
+                xml += '  </Applicant>\n';
+
+                if (data.priorCarrier || data.priorYears || data.priorExp) {
+                    xml += '  <PriorPolicyInfo>\n';
+                    if (data.priorCarrier) {
+                        xml += `    <PriorCarrier>${escapeXML(data.priorCarrier)}</PriorCarrier>\n`;
+                    }
+                    if (data.priorExp) {
+                        xml += `    <Expiration>${normalizeDate(data.priorExp)}</Expiration>\n`;
+                    }
+                    if (data.priorYears) {
+                        xml += '    <YearsWithPriorCarrier>\n';
+                        xml += `      <Years>${escapeXML(data.priorYears)}</Years>\n`;
+                        xml += '    </YearsWithPriorCarrier>\n';
+                    }
+                    xml += '  </PriorPolicyInfo>\n';
+                }
+
+                xml += '  <Drivers>\n';
+                xml += '    <Driver id="1">\n';
+                xml += '      <Name>\n';
+                xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
+                xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
+                xml += '      </Name>\n';
+                xml += `      <DOB>${dob}</DOB>\n`;
+                if (data.dlNum) {
+                    xml += `      <DLNumber>${escapeXML(data.dlNum)}</DLNumber>\n`;
+                }
+                if (data.dlState) {
+                    xml += `      <DLState>${escapeXML(data.dlState)}</DLState>\n`;
+                }
+                if (data.maritalStatus) {
+                    xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
+                }
+                xml += '      <Relation>Insured</Relation>\n';
+                xml += '      <GoodStudent>No</GoodStudent>\n';
+                xml += '      <MATDriver>No</MATDriver>\n';
+                xml += '      <Rated>Rated</Rated>\n';
+                xml += '    </Driver>\n';
+                xml += '  </Drivers>\n';
+
+                if (data.vin || data.vehDesc) {
+                    xml += '  <Vehicles>\n';
+                    xml += '    <Vehicle id="1">\n';
+                    xml += '      <UseVinLookup>Yes</UseVinLookup>\n';
+                    if (year) {
+                        xml += `      <Year>${escapeXML(year)}</Year>\n`;
+                    }
+                    if (data.vin) {
+                        xml += `      <Vin>${escapeXML(data.vin)}</Vin>\n`;
+                    }
+                    if (make) {
+                        xml += `      <Make>${escapeXML(make)}</Make>\n`;
+                    }
+                    if (model) {
+                        xml += `      <Model>${escapeXML(model)}</Model>\n`;
+                    }
+                    xml += '      <Anti-Theft>None</Anti-Theft>\n';
+                    xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
+                    xml += '    </Vehicle>\n';
+                    xml += '  </Vehicles>\n';
+
+                    if (data.miles) {
+                        xml += '  <VehiclesUse>\n';
+                        xml += '    <VehicleUse id="1">\n';
+                        xml += `      <AnnualMiles>${escapeXML(data.miles)}</AnnualMiles>\n`;
+                        xml += '    </VehicleUse>\n';
+                        xml += '  </VehiclesUse>\n';
+                    }
+                }
+
+                if (data.liabilityLimits || data.autoDeductible) {
+                    xml += '  <Coverages>\n';
+                    if (data.liabilityLimits) {
+                        xml += '    <GeneralCoverage>\n';
+                        xml += `      <BI>${escapeXML(data.liabilityLimits)}</BI>\n`;
+                        xml += '    </GeneralCoverage>\n';
+                    }
+                    if (data.autoDeductible) {
+                        xml += '    <VehicleCoverage id="1">\n';
+                        xml += `      <CollisionDeductible>${escapeXML(data.autoDeductible)}</CollisionDeductible>\n`;
+                        xml += '    </VehicleCoverage>\n';
+                    }
+                    xml += '  </Coverages>\n';
+                }
+
+                xml += '</EZAUTO>\n';
+
+                return {
+                    ok: true,
+                    content: xml,
+                    filename: `${data.lastName || 'Lead'}_EZLynx.xml`,
+                    mime: 'application/xml;charset=utf-8'
+                };
             },
 
             toast(msg) {
@@ -1014,11 +1414,326 @@ TCPA Consent: ${this.data.tcpaConsent ? 'Yes' : 'No'}
                 t.classList.add('show');
                 setTimeout(() => t.classList.remove('show'), 2500);
             },
+
+            downloadFile(content, filename, mime) {
+                const blob = new Blob([content], { type: mime });
+                this.downloadBlob(blob, filename);
+            },
+
+            downloadBlob(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            },
+
+            getQuotes() {
+                return JSON.parse(localStorage.getItem(this.quotesKey) || '[]');
+            },
+
+            saveQuotes(quotes) {
+                localStorage.setItem(this.quotesKey, JSON.stringify(quotes));
+            },
+
+            getQuoteTitle(data) {
+                const name = `${data.lastName || 'Unknown'}, ${data.firstName || ''}`.trim();
+                const type = (data.qType || 'quote').toUpperCase();
+                return `${name} • ${type}`;
+            },
+
+            getQuoteMeta(quote) {
+                const updated = new Date(quote.updatedAt).toLocaleString();
+                return `Updated ${updated}`;
+            },
+
+            saveQuote() {
+                const snapshot = JSON.parse(JSON.stringify(this.data || {}));
+                const quotes = this.getQuotes();
+                const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+                const title = this.getQuoteTitle(snapshot);
+                quotes.unshift({ id, title, data: snapshot, updatedAt: new Date().toISOString() });
+                this.saveQuotes(quotes);
+                this.renderQuoteList();
+                this.toast('✅ Draft saved to library');
+            },
+
+            loadQuote(id) {
+                const quote = this.getQuotes().find(q => q.id === id);
+                if (!quote) return;
+                this.applyData(quote.data);
+                localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+                this.toast('✅ Draft loaded');
+            },
+
+            deleteQuote(id) {
+                const quotes = this.getQuotes().filter(q => q.id !== id);
+                this.saveQuotes(quotes);
+                this.renderQuoteList();
+                this.toast('🗑️ Draft removed');
+            },
+
+            renameQuote(id) {
+                const quotes = this.getQuotes();
+                const quote = quotes.find(q => q.id === id);
+                if (!quote) return;
+                const next = prompt('Rename draft', quote.title);
+                if (next === null) return;
+                quote.title = next.trim() || quote.title;
+                quote.updatedAt = new Date().toISOString();
+                this.saveQuotes(quotes);
+                this.renderQuoteList();
+            },
+
+            startNewDraft() {
+                if (!confirm('Start a new draft? Current form will be cleared.')) return;
+                localStorage.removeItem(this.storageKey);
+                location.reload();
+            },
+
+            clearAllDrafts() {
+                if (!confirm('Clear all saved drafts?')) return;
+                localStorage.removeItem(this.quotesKey);
+                this.renderQuoteList();
+                this.toast('🧹 Drafts cleared');
+            },
+
+            renderQuoteList() {
+                const list = document.getElementById('quoteList');
+                if (!list) return;
+                list.innerHTML = '';
+                const quotes = this.getQuotes();
+                if (!quotes.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'hint';
+                    empty.textContent = 'No drafts saved yet. Click “Save Draft” to create one.';
+                    list.appendChild(empty);
+                    return;
+                }
+                quotes.forEach(q => {
+                    const row = document.createElement('div');
+                    row.className = 'quote-row';
+
+                    const left = document.createElement('div');
+                    left.style.display = 'flex';
+                    left.style.alignItems = 'center';
+
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.className = 'quote-checkbox';
+                    cb.dataset.id = q.id;
+
+                    const info = document.createElement('div');
+                    info.className = 'quote-info';
+                    const title = document.createElement('div');
+                    title.className = 'quote-title';
+                    title.textContent = q.title;
+                    const meta = document.createElement('div');
+                    meta.className = 'quote-meta';
+                    meta.textContent = this.getQuoteMeta(q);
+                    info.appendChild(title);
+                    info.appendChild(meta);
+
+                    left.appendChild(cb);
+                    left.appendChild(info);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'quote-actions';
+
+                    const loadBtn = document.createElement('button');
+                    loadBtn.className = 'btn-secondary';
+                    loadBtn.textContent = 'Load';
+                    loadBtn.onclick = () => this.loadQuote(q.id);
+
+                    const renameBtn = document.createElement('button');
+                    renameBtn.className = 'btn-tertiary';
+                    renameBtn.textContent = 'Rename';
+                    renameBtn.onclick = () => this.renameQuote(q.id);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn-tertiary';
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.onclick = () => this.deleteQuote(q.id);
+
+                    actions.appendChild(loadBtn);
+                    actions.appendChild(renameBtn);
+                    actions.appendChild(deleteBtn);
+
+                    row.appendChild(left);
+                    row.appendChild(actions);
+                    list.appendChild(row);
+                });
+            },
+
+            getSelectedQuoteIds() {
+                return Array.from(document.querySelectorAll('.quote-checkbox:checked'))
+                    .map(cb => cb.dataset.id);
+            },
+
+            sanitizeFilename(name) {
+                return name.replace(/[^a-z0-9\-_. ]/gi, '').replace(/\s+/g, '_').slice(0, 80) || 'quote';
+            },
+
+            async exportSelectedZip() {
+                if (!window.JSZip) {
+                    this.toast('⚠️ ZIP export unavailable.');
+                    return;
+                }
+                const ids = this.getSelectedQuoteIds();
+                if (!ids.length) {
+                    this.toast('⚠️ Select drafts to export.');
+                    return;
+                }
+                const quotes = this.getQuotes().filter(q => ids.includes(q.id));
+                const zip = new JSZip();
+                const errors = [];
+
+                for (const q of quotes) {
+                    const folderName = this.sanitizeFilename(q.title);
+                    const folder = zip.folder(folderName);
+
+                    const csv = this.buildCSV(q.data);
+                    folder.file(csv.filename, csv.content);
+
+                    const cms = this.buildCMSMTF(q.data);
+                    folder.file(cms.filename, cms.content);
+
+                    const xml = this.buildXML(q.data);
+                    if (xml.ok) {
+                        folder.file(xml.filename, xml.content);
+                    } else {
+                        errors.push(`${q.title}: ${xml.error.replace('⚠️ ', '')}`);
+                    }
+
+                    const pdf = this.buildPDF(q.data);
+                    folder.file(pdf.filename, pdf.blob);
+                }
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const zipName = `Altech_Quotes_${new Date().toISOString().split('T')[0]}.zip`;
+                this.downloadBlob(zipBlob, zipName);
+
+                if (errors.length) {
+                    this.toast('⚠️ Some XML exports were skipped.');
+                    console.warn('ZIP export warnings:', errors);
+                } else {
+                    this.toast('📦 ZIP downloaded');
+                }
+            },
             
             reset() {
                 if(confirm("Delete all data and start over?")) {
-                    localStorage.removeItem('altech_v6');
+                    localStorage.removeItem(this.storageKey);
                     location.reload();
+                }
+            },
+
+            blobToBase64(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const base64 = reader.result.split(',')[1]; // Remove data:application/zip;base64, prefix
+                        resolve(base64);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            },
+
+            async emailSelectedQuotes(event) {
+                const agentEmail = document.getElementById('agentEmail')?.value;
+                if (!agentEmail) {
+                    alert('⚠️ Please select an agent');
+                    return;
+                }
+
+                // Check if any quotes selected
+                const selectedIds = this.getSelectedQuoteIds();
+                if (selectedIds.length === 0) {
+                    alert('⚠️ Please select at least one quote to email');
+                    return;
+                }
+
+                try {
+                    // Show loading state
+                    const btn = event?.target || document.querySelector('[onclick="App.emailSelectedQuotes()"]');
+                    const originalText = btn.textContent;
+                    btn.disabled = true;
+                    btn.textContent = '⏳ Preparing email...';
+
+                    if (!window.JSZip) {
+                        throw new Error('ZIP library not available');
+                    }
+
+                    // Generate ZIP in memory
+                    const zip = new JSZip();
+                    for (const quoteId of selectedIds) {
+                        const quote = this.getQuotes().find(q => q.id === quoteId);
+                        if (!quote) continue;
+
+                        const quoteName = this.sanitizeFilename(this.getQuoteTitle(quote.data));
+                        const folder = zip.folder(quoteName);
+
+                        // Add all export formats
+                        const pdfBlob = (await this.buildPDF(quote.data)).blob;
+                        folder.file('Summary.pdf', pdfBlob);
+
+                        const csvData = this.buildCSV(quote.data);
+                        folder.file('Export.csv', csvData.content);
+
+                        const cmsmtfData = this.buildCMSMTF(quote.data);
+                        folder.file('HawkSoft.cmsmtf', cmsmtfData.content);
+
+                        const xmlResult = this.buildXML(quote.data);
+                        if (xmlResult.ok) {
+                            folder.file('EZLynx.xml', xmlResult.content);
+                        }
+                    }
+
+                    // Generate ZIP blob
+                    const zipBlob = await zip.generateAsync({ type: 'blob' });
+                    const base64Zip = await this.blobToBase64(zipBlob);
+
+                    // Prepare email payload
+                    const payload = {
+                        base64Zip,
+                        zipName: `Altech_Quotes_${new Date().toISOString().split('T')[0]}.zip`,
+                        agentEmail,
+                        senderEmail: document.getElementById('email')?.value || 'unknown@domain.com',
+                        senderName: [
+                            document.getElementById('firstName')?.value,
+                            document.getElementById('lastName')?.value
+                        ].filter(Boolean).join(' ') || 'Lead Submission'
+                    };
+
+                    // Call Vercel function
+                    const response = await fetch('/api/send-quotes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // Success!
+                        btn.textContent = '✅ Email sent!';
+                        setTimeout(() => {
+                            btn.disabled = false;
+                            btn.textContent = originalText;
+                        }, 2000);
+                        this.toast('📧 Quote(s) emailed to agent');
+                    } else {
+                        throw new Error(result.error || 'Failed to send email');
+                    }
+                } catch (error) {
+                    alert('❌ Error sending email: ' + error.message);
+                    const btn = event?.target || document.querySelector('[onclick="App.emailSelectedQuotes()"]');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'Send ZIP';
+                    }
                 }
             }
         };
