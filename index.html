@@ -636,7 +636,16 @@
             </div>
 
             <div class="card">
-                <h3>Option 3: Copy to Clipboard</h3>
+                <h3>Option 3: EZLynx XML Import</h3>
+                <p class="section-subtitle">XML format for EZLynx API integration</p>
+                <button class="btn-primary" onclick="App.exportXML()" style="width:100%; background:#FF9500">📥 Download XML File</button>
+                <div class="hint" style="margin-top:12px">
+                    XML format compatible with EZLynx API for applicant data import.
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Option 4: Copy to Clipboard</h3>
                 <p class="section-subtitle">For pasting into notes or remarks</p>
                 <button class="btn-secondary" onclick="App.copyNotes()" style="width:100%; color:var(--apple-blue); border-color:var(--apple-blue)">
                     📋 Copy All Information
@@ -912,6 +921,135 @@ TCPA Consent: ${this.data.tcpaConsent ? 'Yes' : 'No'}
                 a.download = `Lead_${this.data.lastName || 'Export'}.csv`;
                 a.click();
                 this.toast('📥 CSV Generated!');
+            },
+
+            exportXML() {
+                // EZLynx XML format for applicant data
+                const escapeXml = (str) => {
+                    if (!str) return '';
+                    return String(str)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&apos;');
+                };
+
+                const createEntry = (key, value) => {
+                    if (!value) return '';
+                    return `        <DictionaryEntry>
+            <Key xsi:type="xsd:string">${escapeXml(key)}</Key>
+            <Value xsi:type="xsd:string">${escapeXml(value)}</Value>
+        </DictionaryEntry>\n`;
+                };
+
+                // Collect notes for the Notes field
+                const flatNotes = this.getNotes().replace(/\n/g, ' | ');
+
+                let xml = `<?xml version="1.0"?>
+<EventCallbackNotification xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Name>ApplicantCreated</Name>
+    <Entity>Applicant</Entity>
+    <EntityId>${escapeXml(this.data.lastName + '_' + Date.now())}</EntityId>
+    <EventData>
+`;
+
+                // Add all available fields
+                xml += createEntry('FirstName', this.data.firstName);
+                xml += createEntry('LastName', this.data.lastName);
+                xml += createEntry('Email', this.data.email);
+                xml += createEntry('Phone', this.data.phone);
+                xml += createEntry('DateOfBirth', this.data.dob);
+                xml += createEntry('AddressLine1', this.data.addrStreet);
+                xml += createEntry('City', this.data.addrCity);
+                xml += createEntry('StateCode', this.data.addrState);
+                xml += createEntry('ZipCode', this.data.addrZip);
+                xml += createEntry('MaritalStatus', this.data.maritalStatus);
+                xml += createEntry('Education', this.data.education);
+                xml += createEntry('Industry', this.data.industry);
+                
+                // Property Information
+                xml += createEntry('PropertyPurchaseDate', this.data.purchaseDate);
+                xml += createEntry('DwellingType', this.data.dwellingType);
+                xml += createEntry('DwellingUsage', this.data.dwellingUsage);
+                xml += createEntry('YearBuilt', this.data.yrBuilt);
+                xml += createEntry('SquareFootage', this.data.sqFt);
+                xml += createEntry('NumStories', this.data.numStories);
+                xml += createEntry('FullBaths', this.data.fullBaths);
+                xml += createEntry('ConstructionStyle', this.data.constructionStyle);
+                xml += createEntry('ExteriorWalls', this.data.exteriorWalls);
+                xml += createEntry('Foundation', this.data.foundation);
+                xml += createEntry('KitchenQuality', this.data.kitchenQuality);
+                
+                // Roof and Systems
+                xml += createEntry('RoofType', this.data.roofType);
+                xml += createEntry('RoofShape', this.data.roofShape);
+                xml += createEntry('RoofYear', this.data.roofYr);
+                xml += createEntry('HeatingType', this.data.heatingType);
+                xml += createEntry('HeatingYear', this.data.heatYr);
+                xml += createEntry('CoolingType', this.data.cooling);
+                xml += createEntry('PlumbingYear', this.data.plumbYr);
+                xml += createEntry('ElectricalYear', this.data.elecYr);
+                
+                // Safety and Security
+                xml += createEntry('FireStationDistance', this.data.fireStationDist);
+                xml += createEntry('FireHydrantDistance', this.data.fireHydrantFeet);
+                xml += createEntry('ProtectionClass', this.data.protectionClass);
+                xml += createEntry('BurglarAlarm', this.data.burglarAlarm);
+                xml += createEntry('FireAlarm', this.data.fireAlarm);
+                xml += createEntry('Sprinklers', this.data.sprinklers);
+                
+                // Risk Factors
+                xml += createEntry('Pool', this.data.pool);
+                xml += createEntry('Trampoline', this.data.trampoline);
+                xml += createEntry('WoodStove', this.data.woodStove);
+                xml += createEntry('DogInfo', this.data.dogInfo);
+                xml += createEntry('BusinessOnProperty', this.data.businessOnProperty);
+                
+                // Auto and Driver Information
+                xml += createEntry('DriverLicenseNumber', this.data.dlNum);
+                xml += createEntry('DriverLicenseState', this.data.dlState);
+                xml += createEntry('VIN', this.data.vin);
+                xml += createEntry('VehicleDescription', this.data.vehDesc);
+                xml += createEntry('VehicleUse', this.data.use);
+                xml += createEntry('AnnualMiles', this.data.miles);
+                xml += createEntry('CommuteDistance', this.data.commuteDist);
+                xml += createEntry('RideSharing', this.data.rideSharing);
+                xml += createEntry('Telematics', this.data.telematics);
+                
+                // Insurance History
+                xml += createEntry('LiabilityLimits', this.data.liabilityLimits);
+                xml += createEntry('HomeDeductible', this.data.homeDeductible);
+                xml += createEntry('AutoDeductible', this.data.autoDeductible);
+                xml += createEntry('PriorCarrier', this.data.priorCarrier);
+                xml += createEntry('PriorYears', this.data.priorYears);
+                xml += createEntry('PriorExpiration', this.data.priorExp);
+                xml += createEntry('Accidents', this.data.accidents);
+                xml += createEntry('Violations', this.data.violations);
+                xml += createEntry('StudentGPA', this.data.studentGPA);
+                
+                // Additional Information
+                xml += createEntry('Mortgagee', this.data.mortgagee);
+                xml += createEntry('AdditionalInsureds', this.data.additionalInsureds);
+                xml += createEntry('PreferredContactTime', this.data.contactTime);
+                xml += createEntry('ReferralSource', this.data.referralSource);
+                xml += createEntry('TCPAConsent', this.data.tcpaConsent ? 'Yes' : 'No');
+                xml += createEntry('QuoteType', this.data.qType);
+                xml += createEntry('OccupancyType', this.data.occupancyType);
+                
+                // Notes field with all information
+                xml += createEntry('Notes', flatNotes);
+
+                xml += `    </EventData>
+</EventCallbackNotification>`;
+
+                const blob = new Blob([xml], { type: 'application/xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Lead_${this.data.lastName || 'Export'}.xml`;
+                a.click();
+                this.toast('📥 XML Generated!');
             },
 
             exportCMSMTF() {
