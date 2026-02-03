@@ -83,7 +83,7 @@ Form data is organized with prefixed field mappings:
 1. **Auto-save**: All form inputs automatically save to localStorage on change
 2. **Progress Tracking**: Visual progress bar and step indicators
 3. **Dynamic Forms**: Show/hide sections based on insurance type selection
-4. **Data Export**: Generate Excel data for import into insurance systems
+4. **Data Export**: Generate CSV and CMSMTF (HawkSoft tagged) files using native Blob API for import into insurance systems
 5. **Mobile Optimization**: Full-screen mobile app experience with safe area support
 
 ## Development Guidelines
@@ -91,7 +91,7 @@ Form data is organized with prefixed field mappings:
 ### Making Changes
 
 1. **Single File Application**: All code is in `index.html` - avoid splitting unless absolutely necessary
-2. **Minimal Dependencies**: Do not add external libraries or frameworks
+2. **Minimal Dependencies**: Do not add external libraries or frameworks (use native APIs like Blob, URL.createObjectURL)
 3. **Backward Compatibility**: Ensure changes work on modern mobile browsers (iOS Safari, Chrome, etc.)
 4. **Testing**: Test on mobile viewports and verify localStorage persistence
 5. **Performance**: Keep the application lightweight and fast-loading
@@ -100,8 +100,9 @@ Form data is organized with prefixed field mappings:
 
 - **New Form Fields**: Add to appropriate step section with proper data binding
 - **New Steps**: Update `workflows` object and `stepTitles` mapping
-- **New Field Mappings**: Add to the tags array in the data export function
+- **New Field Mappings**: Add to the tags array in the CSV and CMSMTF export functions
 - **New Styles**: Add to the existing `<style>` block using CSS variables
+- **New Export Formats**: Use native Blob API and URL.createObjectURL for client-side file generation
 
 ### Data Privacy
 
@@ -125,8 +126,9 @@ Form data is organized with prefixed field mappings:
 - Verify all form inputs save correctly to localStorage
 - Check multi-step navigation works in all workflows
 - Ensure responsive design works across device sizes
-- Validate data export generates correct Excel format
+- Validate data export generates correct CSV and CMSMTF format files
 - Test safe area insets on devices with notches
+- Verify file downloads work correctly on mobile browsers
 
 ## File Management
 
