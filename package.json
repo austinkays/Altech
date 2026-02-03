@@ -1,0 +1,29 @@
+{
+  "name": "altech-field-lead",
+  "version": "1.0.0",
+  "description": "Mobile-first field intake wizard for insurance lead collection",
+  "main": "ProspectApp.html",
+  "scripts": {
+    "start": "npx serve . -p 8000",
+    "dev": "npx serve . -p 8000",
+    "deploy:netlify": "netlify deploy --prod",
+    "deploy:vercel": "vercel --prod"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/austinkays/Altech.git"
+  },
+  "keywords": [
+    "insurance",
+    "lead-capture",
+    "hawksoft",
+    "mobile-first",
+    "pwa"
+  ],
+  "author": "Austin Kays",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/austinkays/Altech/issues"
+  },
+  "homepage": "https://github.com/austinkays/Altech#readme"
+}

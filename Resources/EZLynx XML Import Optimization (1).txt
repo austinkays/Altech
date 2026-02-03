@@ -1,0 +1,442 @@
+﻿Architectural Analysis of EZLynx Interoperability Protocols: Optimizing XML Schema for Custom Rating Application Exports
+1. Introduction: The Imperative of High-Fidelity Data Exchange in InsurTech
+The modern insurance ecosystem is characterized by a fragmented landscape of independent software vendors (ISVs), legacy mainframes, and emerging cloud-native applications. At the nexus of this ecosystem sits the Comparative Rater—a critical piece of infrastructure that aggregates pricing logic from hundreds of insurance carriers to provide real-time quotes to agents. EZLynx, as a market-dominant comparative rating platform, serves as a primary hub for this data exchange. For independent agencies and custom application developers, the ability to inject data programmatically into the EZLynx Rating Engine is not merely a convenience; it is a strategic necessity that dictates operational velocity and data accuracy.
+The core challenge addressed in this report is the identification of the most comprehensive XML import format for EZLynx, specifically for the purpose of exporting rating data from a custom application. The inquiry juxtaposes "generic" formats against "vendor-specific" implementations (such as those utilized by The Agency Advantage). This distinction is pivotal. A "generic" format implies a standardized, agnostic schema designed for broad compatibility, whereas a "vendor-specific" format suggests a tailored integration optimized for a particular Agency Management System (AMS).
+Our exhaustive analysis of the EZLynx ecosystem, supported by technical documentation and integration behaviors, reveals a definitive hierarchy of data fidelity. While flat-file formats like CSV serve low-fidelity use cases such as bulk lead importing 1, they fundamentally lack the dimensionality required for accurate risk rating. The rating process necessitates a deep, hierarchical data structure capable of modeling complex relationships—multi-vehicle households, driver-vehicle assignments, split-limit coverages, and detailed underwriting questions.
+The evidence points unequivocally to the EZLynx Connect Rating API XML, which adheres to the ACORD XML 1.x (Property & Casualty) standard, as the most comprehensive format available.3 Our research confirms that even so-called "vendor-specific" exports, such as those from The Agency Advantage, are in reality specific configurations of this underlying ACORD XML standard.4 Therefore, specifically targeting the generic ACORD XML implementation via the EZLynx Connect Web Services layer offers the highest fidelity for custom application exports, bypassing the limitations inherent in mimicking legacy vendor idiosyncrasies.
+This report serves as a comprehensive architectural guide. It will dissect the comparative advantages of various ingestion vectors, provide a granular analysis of the ACORD XML schema required by EZLynx, and detail the authentication and payload structures necessary to build a robust, production-grade export engine.
+________________
+2. The Architecture of Insurance Data Ingestion
+To understand why the ACORD XML format is superior, one must first analyze the alternative data ingestion vectors within the EZLynx platform. EZLynx supports multiple methods for data entry, each optimized for a specific phase of the customer lifecycle: Marketing, Quoting, and Policy Management.
+2.1 The Flat-File Limitation: CSV and Lead Imports
+For agencies focused on high-volume lead acquisition, EZLynx offers a Sales Center import feature that utilizes Comma Separated Values (CSV) files.2 This method allows for the bulk upload of prospect data, typically sourced from lead vendors or marketing lists.
+The structure of these CSV files is inherently flat. Required fields generally include First Name, Last Name, Address Line 1, City, State, and Zip Code.2 While efficient for populating a Customer Relationship Management (CRM) database with basic contact information, the CSV format suffers from severe structural deficiencies when applied to rating.
+Dimensionality Collapse: Insurance rating data is inherently multidimensional. A single household (the policy applicant) acts as the root node. Attached to this root are multiple distinct entities:
+* Drivers: Individuals with unique characteristics (age, license number, accident history).
+* Vehicles: Assets with specific risk profiles (VIN, garaging address, annual mileage).
+* Coverages: Financial instruments attached to vehicles (Comprehensive, Collision, Liability).
+In a relational database or an XML tree, these relationships are maintained through nesting or foreign keys. In a flat CSV, representing a household with three cars and four drivers requires either denormalization (repeating the applicant data for every vehicle-driver combination) or arbitrary column limits (e.g., Driver1_Name, Driver2_Name). Both approaches result in data loss or rigidity. For instance, if a custom app captures nuanced underwriting data—such as a driver’s defensive driving course completion date or a vehicle’s anti-theft device type—a standard CSV import template will likely discard this information because there is no column mapped to receive it.1
+Furthermore, EZLynx documentation explicitly notes that the standard import feature "allows for one import at a time using a PDF or XML file" for personal lines customers, distinguishing it from the bulk capabilities of the Sales Center.1 This indicates that high-fidelity imports are designed to be transactional and individual, reflecting the complexity of the data being transferred.
+2.2 Legacy Document Parsing: PDF and AL3
+Before the widespread adoption of RESTful APIs and XML web services, the insurance industry relied heavily on "forms-based" data transfer.
+The PDF Bridge: A common integration method described in legacy documentation involves the EZLynx Printer. In this workflow, an agent using an external system (like The Agency Advantage) completes an ACORD 80 (Homeowner) or ACORD 90 (Auto) application and "prints" it to a virtual EZLynx driver.4 This driver converts the visual document into data. While this was revolutionary in the early 2000s, it is fundamentally a "screen scraping" or Optical Character Recognition (OCR) approach. It is brittle; a slight misalignment in the form or an unexpected character set can cause the data validation to fail. For a modern custom app, relying on generating PDFs for ingestion is an architectural dead end due to its lack of error feedback mechanisms and processing latency.
+The AL3 Standard: ACORD AL3 is a fixed-width, EDI-style flat file format that has been the backbone of carrier-to-agency downloads for decades. Snippets mention AL3 in the context of downloading policy information back into management systems.6 However, AL3 is notoriously difficult to parse and generate due to its cryptic compression and lack of human readability. More importantly, modern real-time rating interfaces—including the EZLynx Rating Engine—have largely standardized on XML for inbound requests (uploads to the rater), leaving AL3 primarily for outbound synchronization (downloads from the carrier).
+2.3 The Gold Standard: EZLynx Connect Rating API (XML)
+The most robust, "comprehensive" method for injecting rating data is the EZLynx Connect Rating API. This interface is built specifically to handle the "rate, bind, issue" workflow programmatically.3
+Characteristics of the Connect XML:
+1. Based on ACORD XML 1.x: The API utilizes the ACORD XML standard for Property & Casualty. This is an industry-standard definition that provides tags for virtually every conceivable insurance data point.3
+2. Web Service Wrapped: The XML is not just a file sitting on a disk; it is the payload of an HTTP request (typically SOAP or RESTful wrapping). This allows for immediate feedback. If the XML is missing a mandatory field (e.g., StateProvCd), the API returns an error instantly, allowing the custom app to prompt the user for correction.8
+3. Cross-Reference Keys (XrefKey): The API supports the use of XrefKey, allowing the external system to tag the EZLynx applicant with its own internal ID. This ensures that subsequent updates (re-quoting next year) modify the same record rather than creating a duplicate.3
+Conclusion on Format Selection:
+To answer the user's query: The Generic ACORD XML format utilized by the EZLynx Connect Rating API is the most comprehensive. It supports the full depth of underwriting data required for accurate rates, allows for real-time validation, and supports bidirectional synchronization via keys. "Vendor-specific" formats are effectively subsets or pre-configured instances of this standard.
+________________
+3. Comparative Deep Dive: Generic vs. Specific Vendor Formats
+The user specifically requested a comparison between "generic" and "specific vendor" formats. A prominent example of a specific vendor integration found in the research is The Agency Advantage. Analyzing how this vendor integrates with EZLynx provides critical insight into how a custom app should—and should not—be architected.
+3.1 Case Study: The Agency Advantage Integration
+The Agency Advantage (TAA) is an Agency Management System that has offered integration with EZLynx for many years. The documentation for TAA details an "EZLynx Import" feature designed to transfer quote information.4
+The Workflow:
+1. The user enters customer information into EZLynx and generates a quote.
+2. If the policy is not written immediately, the user clicks an "Export" button in EZLynx.
+3. The user selects "ACORD XML format" from the export options.
+4. The file is saved locally to a specific directory, typically C:\aausr.5
+5. The TAA software scans this file or the user manually imports it to populate the prospect record in the AMS.
+The Reverse Integration (App to EZLynx): The documentation also describes moving data from TAA to EZLynx using the "EZLynx printer" method or an XML export.4 When exporting from TAA to EZLynx for re-marketing, the system creates a file that EZLynx consumes. Crucially, the documentation explicitly identifies this file as an ACORD XML format.5
+Analysis of "Specificity":
+What makes this "vendor specific"? It is not the schema of the XML, which remains standard ACORD. Rather, it is the configuration of the metadata.
+* Producer Codes: The XML likely contains specific <Producer> and <AgencyId> tags that match the TAA user's credentials.3
+* File Path Dependence: The integration relies on a hardcoded file path (C:\aausr), which is a specific constraint of the TAA software, not the EZLynx platform itself.5
+* Sign-on Headers: The XML authentication block (<SignonRq>) would be populated with the specific Service Provider Name (SPName) assigned to The Agency Advantage by EZLynx.3
+3.2 The "Generic" EZLynx Connect Approach
+In contrast, the "Generic" approach usually refers to utilizing the EZLynx Connect platform. This is the official API gateway for third-party integrators (like custom app developers).3
+Advantages of the Generic Approach:
+1. No "Middleman" Constraints: The generic API allows your custom app to define its own SPName (Service Provider Name) and CustLoginId. You are not masquerading as another vendor (like TAA), which avoids potential licensing or configuration conflicts.3
+2. Full Schema Access: Vendor integrations are often "black boxes" that map only the fields the vendor thought were important. By using the generic Connect API documentation, your custom app can map any supported ACORD field. If EZLynx supports a niche field like "Wood Burning Stove Date of Installation" (a common Homeowners underwriting question), you can map it in the generic XML. A vendor implementation might have skipped that field.
+3. Future Proofing: The Connect API is actively maintained and versioned (api-supported-versions: 1).3 Legacy vendor file exports may rely on older, deprecated behaviors.
+3.3 Strategic Decision for Custom App Export
+For a custom application, mimicking a specific vendor (like The Agency Advantage) is strongly discouraged. It creates a fragility where your application's export could break if EZLynx changes how it handles that specific vendor's files. Furthermore, you would be limited to the subset of data that vendor chose to support.
+Verdict: The Generic ACORD XML schema, as defined by the EZLynx Connect Rating API documentation, is the superior choice. It provides the superset of functionality and ensures the custom app is recognized as a distinct, authorized entity within the EZLynx ecosystem.
+________________
+4. Technical Specification: The ACORD XML 1.x Schema
+Having established that the ACORD XML format via the Connect API is the target, this section provides the detailed structural specification required to build the export. The EZLynx implementation is based on the ACORD P&C XML Standard, specifically appearing to align with version 1.x (likely 1.14 or similar, typically denoted simply as "1.1" or "1.0" in the <ClientApp> version tags of the samples).3
+Unlike the newer ACORD 2.0 standard, which uses complex namespaces (xmlns="http://www.ACORD.org/standards/PC_Surety/ACORD1/xml/"), the examples retrieved from EZLynx's API documentation often show a namespace-less or simplified root structure.3 This is a critical implementation detail: using an incorrect namespace will cause the XML parser on the EZLynx server to reject the entire payload.
+4.1 The Root Envelope
+The XML document must start with the <ACORD> root element. This element contains two primary children:
+1. <SignonRq>: The Sign-On Request, handling authentication.
+2. <InsuranceSvcRq>: The Insurance Service Request, handling the business data.
+
+
+XML
+
+
+
+
+<ACORD>
+   <SignonRq>
+       </SignonRq>
+   <InsuranceSvcRq>
+       </InsuranceSvcRq>
+</ACORD>
+
+3
+________________
+4.2 The Authentication Layer (SignonRq)
+The SignonRq block is the gatekeeper. It tells EZLynx who is sending the data and validates their permission to access the system.
+Critical Fields and Business Logic:
+* SignonPswd: This container holds the credentials.
+   * CustId: The Customer ID block.
+      * CustLoginId: The username of the user in EZLynx (e.g., agent@agency.com or an API user like api_webservice_tester).3
+      * SPName: The Service Provider Name. For a custom app, this will be assigned by EZLynx during the API onboarding process (e.g., com.yourcompany). In samples, we see com.webcetera.3
+   * CustPswd: The password block.
+      * Pswd: The actual password or API token.
+      * EncryptionTypeCd: Usually set to NONE if the transport layer (HTTPS) provides the security, though EZLynx may support hashed values.
+* ClientDt: The client-side date of the request (e.g., 2023-11-02).
+* CustLangPref: Language preference, typically English.
+* ClientApp: Identification of the software sending the request.
+   * Org: Organization name (e.g., Webcetera or your Custom App).
+   * Name: Application name (e.g., EZLynx or CustomRater).
+   * Version: Application version (e.g., 1.1).
+XML Snippet - Authentication:
+
+
+XML
+
+
+
+
+<SignonRq>
+   <SignonPswd>
+       <CustId>
+           <CustLoginId>api_webservice_tester</CustLoginId>
+           <SPName>com.webcetera</SPName>
+       </CustId>
+       <CustPswd>
+           <Pswd>YOUR_SECURE_PASSWORD</Pswd>
+           <EncryptionTypeCd>NONE</EncryptionTypeCd>
+       </CustPswd>
+   </SignonPswd>
+   <ClientDt>2023-11-02</ClientDt>
+   <CustLangPref>English</CustLangPref>
+   <ClientApp>
+       <Org>CustomAppDev</Org>
+       <Name>RatingIntegrator</Name>
+       <Version>1.0</Version>
+   </ClientApp>
+</SignonRq>
+
+3
+Security Note: When using the Connect Web Services, authentication may alternatively use an OAuth 2.0 flow (Bearer Token). In that scenario, the XML payload might still require a SignonRq for legacy compatibility, or the authentication is handled entirely in the HTTP Header (Authorization: Bearer <access_token>). Snippet 3 explicitly mentions generating an access_token via a POST to {{EzLynxIdentityUrl}}connect/token and including it as a Bearer token. However, the XML payload examples also show the SignonRq block, suggesting a "belt and suspenders" approach or support for legacy SOAP-based endpoints where the header is less flexible. For a new custom app, implementing the Bearer Token in the HTTP header is mandatory 3, while the SignonRq inside the XML might be simplified or redundant depending on the specific endpoint version.
+________________
+4.3 The Payload Layer (InsuranceSvcRq)
+This section contains the actual risk data. The structure varies depending on the Line of Business (LOB). The most common and complex LOB for rating is Personal Auto. The corresponding request element is <PersAutoPolicyQuoteInqRq> (Personal Auto Policy Quote Inquiry Request).
+4.3.1 Request Metadata
+Every transaction needs unique identification to prevent replay attacks and allow for debugging.
+* RqUID: A Universally Unique Identifier (UUID) for the overall service request.
+* TransactionRequestDt: Precise timestamp of the transaction.
+* CurCd: Currency Code (e.g., USD or USAD in some ACORD implementations).
+4.3.2 Producer and Agency Linking
+To ensure the quote appears in the correct agent's dashboard, the XML must link the data to an Agency ID.
+* Producer/ItemIdInfo/AgencyId: This is the EZLynx Agency ID (e.g., 0000000 in samples).3
+XML Snippet - Metadata:
+
+
+XML
+
+
+
+
+<InsuranceSvcRq>
+   <RqUID>62e79901-83d4-4eaa-b6f6-110223145027</RqUID>
+   <PersAutoPolicyQuoteInqRq>
+       <RqUID>06c79901-3d4a-4b42-8a43-110223145027</RqUID>
+       <TransactionRequestDt>2023-11-02T14:50:27</TransactionRequestDt>
+       <CurCd>USD</CurCd>
+       <Producer>
+           <ItemIdInfo>
+               <AgencyId>YOUR_AGENCY_ID</AgencyId>
+           </ItemIdInfo>
+       </Producer>
+
+3
+4.3.3 The Applicant (GeneralPartyInfo)
+This block defines the primary insured. It is critical for credit scoring (insurance score) which heavily influences the rate.
+* NameInfo: Surname and Given Name.
+* TaxIdentity: Social Security Number (SSN). This is often required for an accurate rate.
+   * TaxIdTypeCd: Usually SSN.
+   * TaxId: The number itself.
+* Addr: The mailing address.
+   * Addr1, City, StateProvCd (State Code, e.g., TX), PostalCode (Zip).
+Data Integrity Warning: The StateProvCd must match the rating state. Mismatches here (e.g., a Texas zip code with OK as the state) will cause carrier rating engines to error out immediately.
+4.3.4 The Line of Business (PersAutoLineBusiness)
+This is the container for the risk objects: Vehicles and Drivers. The relationships between these objects are defined here.
+A. Personal Vehicles (PersVeh):
+Each vehicle is a PersVeh element. It must contain:
+* Manufacturer, Model, ModelYear: Basic description.
+* VehIdentificationNumber (VIN): The most critical field. Most modern raters (and EZLynx) will ignore the manual Make/Model text if a valid VIN is provided, as they will "VIN explode" (decode) the VIN to get precise safety features and engine specifications.
+* UseCd: Usage code. Common values are Pleasure, Commute, Business. This drives the mileage rating factor.
+* Garaging Address (Location link): If the vehicle is garaged at a different location than the mailing address, a LocationRef attribute links it to a separate <Location> element defined elsewhere in the XML.
+B. Vehicle Coverages (Coverage):
+Coverages are nested inside the PersVeh element to which they apply. This allows for split limits or different deductibles per car (e.g., an old truck might have Liability only, while a new sedan has Full Coverage).
+* CoverageCd: The code for the coverage type.
+   * BI: Bodily Injury.
+   * PD: Property Damage.
+   * COMP / OTC: Comprehensive (Other Than Collision).
+   * COLL: Collision.
+   * RREIM: Rental Reimbursement.3
+   * UMPD: Uninsured Motorist Property Damage.3
+* Limit vs. Deductible:
+   * Limit: Used for Liability (BI, PD). Contains FormatInteger/Amt (Amount) and LimitAppliesToCd (e.g., PerAcc for Per Accident, PerPers for Per Person).
+   * Deductible: Used for Physical Damage (COMP, COLL). Contains FormatInteger/Amt (e.g., 500, 1000).
+Detailed Insight on Coverage Codes: Snippet 3 provides a rare glimpse into specific EZLynx coverage codes. For example, Rental Reimbursement is RREIM. Note that DeductibleAppliesToCd is used to specify logic like PerDay (for rental) vs PerClaim.
+XML Snippet - Vehicle & Coverage:
+
+
+XML
+
+
+
+
+<PersVeh>
+   <Manufacturer>Ford</Manufacturer>
+   <Model>F-150</Model>
+   <ModelYear>2022</ModelYear>
+   <VehIdentificationNumber>1F...</VehIdentificationNumber>
+   
+   <Coverage>
+       <CoverageCd>COMP</CoverageCd>
+       <Deductible>
+           <FormatInteger>
+               <Amt>500</Amt>
+           </FormatInteger>
+       </Deductible>
+   </Coverage>
+   
+   <Coverage>
+       <CoverageCd>RREIM</CoverageCd>
+       <Limit>
+           <FormatInteger>
+               <Amt>30</Amt> </FormatInteger>
+           <LimitAppliesToCd>PerDay</LimitAppliesToCd>
+       </Limit>
+   </Coverage>
+</PersVeh>
+
+C. Personal Drivers (PersDriver):
+Drivers are defined with PersDriver elements.
+* GeneralPartyInfo: Name, Gender, Birthdate (BirthDt).
+* DriverInfo:
+   * License: LicensePermitNumber and StateProvCd. This is mandatory for running Motor Vehicle Reports (MVR).
+   * MaritalStatusCd: M (Married), S (Single), D (Divorced).
+   * DriverRelationshipToApplicantCd: IN (Insured), SP (Spouse), CH (Child).
+* PersDriverInfo: Can contain usage data (percentage of use on vehicle X).
+Driver-Vehicle Assignment:
+In the ACORD 1.x standard, establishing which driver drives which car is often done via VehPrincipallyDrivenRef on the PersVeh element, pointing to the id of a PersDriver.
+________________
+5. Implementation Strategy for Custom Application Developers
+Building the XML structure is only half the battle. Successfully integrating with EZLynx requires adhering to protocol behaviors and handling the operational nuances of the Connect API.
+5.1 The XrefKey Synchronization Mechanism
+A common pitfall in custom app integration is creating duplicate records. Every time a user edits a quote in the custom app and re-sends it to EZLynx, there is a risk of creating a new applicant instead of updating the existing one.
+The Solution: The XrefKey (Cross-Reference Key).
+The EZLynx Applicant API allows you to pass a xrefKey parameter (typically in the URL or header, though logically linked to the applicant data). This key should be the unique ID of the customer in your custom application.
+* First Post: You send the XML with xrefKey=12345. EZLynx creates Applicant EZ-999 and links it to 12345.
+* Second Post: You send updated XML with xrefKey=12345. EZLynx looks up 12345, finds EZ-999, and updates that record instead of creating EZ-1000.3
+This mechanism is crucial for maintaining a "Single Source of Truth" across distributed systems.
+5.2 Error Handling and The "404" Trap
+Snippet 8 highlights a scenario where users encounter 404 Errors when attempting to hit EZLynx WCF services. This typically indicates a mismatch between the service endpoint and the protocol being used.
+* Cause: EZLynx has evolved from SOAP-based WCF services (legacy) to RESTful Web Services (Connect API). A 404 often means the developer is trying to POST a SOAP envelope to a REST endpoint, or vice versa.
+* Resolution: Ensure you are using the correct Base URL provided in the Connect documentation (often https://api.ezlynx.com or similar) and that the endpoint resource (e.g., /api/v1/applicants) matches the documentation exactly.
+* Validation Errors: If the XML is malformed (e.g., missing a closing tag or an invalid enum value like MaritalStatusCd="Happy" instead of "M"), the API will typically return a 400 Bad Request with a response body detailing the schema violation. The custom app must be capable of parsing this response to show user-friendly error messages (e.g., "Invalid Marital Status").
+5.3 Security and Encryption
+Given that the XML payload contains high-sensitivity Personally Identifiable Information (PII) like SSNs and Driver's License numbers, security is paramount.
+* Transport Security: All XML exports must be transmitted over HTTPS (TLS 1.2+).
+* Authentication: Use the Bearer Token (OAuth) method described in snippet.3 This involves a separate authentication call to retrieve a temporary token, which is then passed in the header of the XML data transmission. This is far more secure than embedding a static password in the <SignonPswd> block of the XML file itself.
+________________
+6. Table: Comparison of Import Formats
+The following table summarizes the capabilities of the different EZLynx import formats, reinforcing why ACORD XML is the required standard for comprehensive rating integration.
+Feature
+	CSV (Sales Center)
+	PDF/AL3 (Legacy)
+	ACORD XML (Connect API)
+	Primary Use Case
+	Bulk Lead Marketing
+	Carrier Downloads / Legacy
+	Real-Time Rating / App Export
+	Data Structure
+	Flat (Columns)
+	Fixed Width / Unstructured
+	Hierarchical (Tree)
+	Multi-Vehicle Support
+	Poor (Requires multiple rows or rigid columns)
+	Variable (Depends on parsing)
+	Excellent (Native Lists)
+	Underwriting Depth
+	Low (Basic Contact Info)
+	Medium (Form based)
+	High (Full Risk Profile)
+	Validation Feedback
+	Batch Report (Delayed)
+	None / Visual Check
+	Real-Time API Response
+	Coverage Specifics
+	General (e.g., "Full Coverage")
+	Derived from text
+	Granular (Limits/Deductibles)
+	Bi-Directional Sync
+	No
+	One-Way (Carrier -> AMS)
+	Yes (via XrefKey)
+	________________
+7. Conclusion
+For the development of a custom application aiming to export rating data to EZLynx, the path is clear. While "vendor-specific" formats like that of The Agency Advantage exist, they are merely specific configurations of the industry-standard ACORD XML. Relying on them introduces unnecessary constraints and dependencies on legacy workflows.
+The most comprehensive, robust, and future-proof format is the EZLynx Connect Rating API XML (ACORD 1.x). This schema supports the infinite nesting required for complex risk modeling, granular coverage definitions, and precise driver-vehicle assignments. By implementing this format, wrapping it in the standard <ACORD> envelope with a valid <SignonRq> authentication block, and utilizing the XrefKey for record synchronization, developers can achieve a seamless, high-fidelity integration that empowers agents with accurate, real-time quotes.
+Developers are advised to strictly follow the ACORD P&C XML schema documentation, paying particular attention to the separation of Limits (Liability) and Deductibles (Physical Damage), and to ensure their authentication logic (Bearer Tokens) is decoupled from the data payload for maximum security and maintainability.
+________________
+8. Reference Appendix: Comprehensive XML Structure
+Note: This sample represents the "Golden Path" structure for a Personal Auto rating request. It integrates authentication, metadata, and the risk payload.
+
+
+XML
+
+
+
+
+<ACORD>
+   <SignonRq>
+       <SignonPswd>
+           <CustId>
+               <CustLoginId>[EzLynxUsername]</CustLoginId>
+               <SPName>com.webcetera</SPName>
+           </CustId>
+           <CustPswd>
+               <Pswd></Pswd>
+               <EncryptionTypeCd>NONE</EncryptionTypeCd>
+           </CustPswd>
+       </SignonPswd>
+       <ClientDt>2024-05-21T12:00:00</ClientDt>
+       <ClientApp>
+           <Org></Org>
+           <Name>EZLynxIntegrator</Name>
+           <Version>1.1</Version>
+       </ClientApp>
+   </SignonRq>
+
+   <InsuranceSvcRq>
+       <RqUID>12345678-ABCD-1234-EF00-1234567890AB</RqUID>
+       
+       <PersAutoPolicyQuoteInqRq>
+           <RqUID>12345678-ABCD-1234-EF00-1234567890AB</RqUID>
+           <TransactionRequestDt>2024-05-21T12:00:00</TransactionRequestDt>
+           <CurCd>USD</CurCd>
+           
+           <Producer>
+               <ItemIdInfo>
+                   <AgencyId></AgencyId>
+               </ItemIdInfo>
+           </Producer>
+
+           <GeneralPartyInfo>
+               <NameInfo>
+                   <PersonName>
+                       <GivenName>Jane</GivenName>
+                       <Surname>Doe</Surname>
+                   </PersonName>
+                   <TaxIdentity>
+                       <TaxIdTypeCd>SSN</TaxIdTypeCd>
+                       <TaxId>000-00-0000</TaxId>
+                   </TaxIdentity>
+               </NameInfo>
+               <Addr>
+                   <Addr1>123 Innovation Drive</Addr1>
+                   <City>Austin</City>
+                   <StateProvCd>TX</StateProvCd>
+                   <PostalCode>78759</PostalCode>
+               </Addr>
+               <Communications>
+                   <PhoneInfo>
+                       <PhoneTypeCd>Cell</PhoneTypeCd>
+                       <PhoneNumber>555-123-4567</PhoneNumber>
+                   </PhoneInfo>
+                   <EmailInfo>
+                       <EmailAddr>jane.doe@example.com</EmailAddr>
+                   </EmailInfo>
+               </Communications>
+           </GeneralPartyInfo>
+
+           <PersAutoLineBusiness>
+               
+               <PersDriver id="D1">
+                   <GeneralPartyInfo>
+                       <NameInfo>
+                           <PersonName>
+                               <GivenName>Jane</GivenName>
+                               <Surname>Doe</Surname>
+                           </PersonName>
+                       </NameInfo>
+                   </GeneralPartyInfo>
+                   <DriverInfo>
+                       <License>
+                           <LicensePermitNumber>TX98765432</LicensePermitNumber>
+                           <StateProvCd>TX</StateProvCd>
+                       </License>
+                       <MaritalStatusCd>M</MaritalStatusCd>
+                       <RelToInsuredCd>IN</RelToInsuredCd> <BirthDt>1985-05-21</BirthDt>
+                   </DriverInfo>
+               </PersDriver>
+
+               <PersVeh id="V1">
+                   <Manufacturer>Toyota</Manufacturer>
+                   <Model>Camry</Model>
+                   <ModelYear>2023</ModelYear>
+                   <VehIdentificationNumber>4T1...</VehIdentificationNumber>
+                   <VehUseCd>Commute</VehUseCd>
+                   
+                   <Coverage>
+                       <CoverageCd>BI</CoverageCd>
+                       <Limit>
+                           <FormatInteger>
+                               <Amt>100000</Amt>
+                           </FormatInteger>
+                           <LimitAppliesToCd>PerPers</LimitAppliesToCd>
+                       </Limit>
+                       <Limit>
+                           <FormatInteger>
+                               <Amt>300000</Amt>
+                           </FormatInteger>
+                           <LimitAppliesToCd>PerAcc</LimitAppliesToCd>
+                       </Limit>
+                   </Coverage>
+
+                   <Coverage>
+                       <CoverageCd>COMP</CoverageCd>
+                       <Deductible>
+                           <FormatInteger>
+                               <Amt>500</Amt>
+                           </FormatInteger>
+                       </Deductible>
+                   </Coverage>
+
+                   <Coverage>
+                       <CoverageCd>RREIM</CoverageCd>
+                       <Limit>
+                           <FormatInteger>
+                               <Amt>30</Amt>
+                           </FormatInteger>
+                           <LimitAppliesToCd>PerDay</LimitAppliesToCd>
+                       </Limit>
+                   </Coverage>
+               </PersVeh>
+               
+           </PersAutoLineBusiness>
+       </PersAutoPolicyQuoteInqRq>
+   </InsuranceSvcRq>
+</ACORD>
+
+Works cited
+1. Import Personal Customer Accounts - EZLynx, accessed February 2, 2026, https://ezlynxsupport.freshdesk.com/support/solutions/articles/8000096725-importing-a-personal-lines-customer-from-another-management-system
+2. EZLynx Lead Import Guide - Sales Center, accessed February 2, 2026, https://ezlynxsupport.freshdesk.com/support/solutions/articles/8000067997-sales-center-how-to-import-and-manage-leads
+3. Connect Web Services API - Postman, accessed February 2, 2026, https://documenter.getpostman.com/view/7956984/2s9YBxac8Q
+4. Advantage Information Systems - Support Article, accessed February 2, 2026, http://www.agencyadvantage.net/docs/comparative%20raters/ezlynx.aspx
+5. Support Article - The Agency Advantage, accessed February 2, 2026, http://www.agencyadvantage.net/docs/comparative%20raters/EZLynx%20Import.htm
+6. Import and Export Features | HawkSoft, accessed February 2, 2026, https://www.hawksoft.com/agency-management-system/tour/import-export/
+7. Software Solutions for Insurance Carriers, MGAs, and Agencies, accessed February 2, 2026, https://winsurtech.com/
+8. .net - WCF SOAP Request without documentation - Stack Overflow, accessed February 2, 2026, https://stackoverflow.com/questions/59956944/wcf-soap-request-without-documentation
+9. EZLynx for Enterprise Insurance | Scalable Solutions for Agencies, accessed February 2, 2026, https://www.ezlynx.com/solutions/enterprise/

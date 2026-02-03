@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230066cc' width='100' height='100'/><text y='70' x='50' text-anchor='middle' font-size='60' fill='white'>AL</text></svg>">
+    <title>Altech Field Lead</title>
+    <style>
+        /* === APPLE-INSPIRED THEME === */
+        :root {
+            --apple-blue: #007AFF;
+            --apple-blue-hover: #0051D5;
+            --apple-gray: #8E8E93;
+            --success: #34C759;
+            --danger: #FF3B30;
+            --bg: #F2F2F7;
+            --bg-card: #FFFFFF;
+            --bg-input: #F2F2F7;
+            --text: #000000;
+            --text-secondary: #8E8E93;
+            --border: #E5E5EA;
+            --shadow: rgba(0, 0, 0, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overscroll-behavior-y: none;
+            font-weight: 400;
+        }
+
+        /* === HEADER === */
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: calc(env(safe-area-inset-top) + 16px) 20px 16px;
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 22px; }
+        .logo-icon { width: 40px; height: 40px; background: var(--apple-blue); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; }
+        .save-indicator { font-size: 13px; color: var(--success); opacity: 0; transition: opacity 0.3s; font-weight: 500; }
+        .step-title { font-size: 14px; color: var(--text-secondary); font-weight: 600; text-align: center; margin-bottom: 8px; }
+        
+        .progress-track { height: 3px; background: var(--border); border-radius: 1.5px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--apple-blue); width: 0%; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* === MAIN === */
+        main { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 120px; -webkit-overflow-scrolling: touch; }
+        .hidden { display: none !important; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px var(--shadow); }
+        h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+        h3 { font-size: 17px; font-weight: 600; margin: 24px 0 12px; color: var(--text); }
+        .section-subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; font-weight: 400; }
+        
+        /* === INPUTS === */
+        input, select, textarea {
+            width: 100%; padding: 16px; font-size: 17px !important; 
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 12px; 
+            color: var(--text); margin-bottom: 12px; transition: all 0.2s;
+            font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus { 
+            outline: none; 
+            border-color: var(--apple-blue); 
+            background: var(--bg-card);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+        .label { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+        
+        /* === RADIO CARDS === */
+        .radio-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .radio-card input { display: none; }
+        .radio-card-content {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg-input); padding: 20px 8px; border-radius: 14px; border: 2px solid var(--border);
+            cursor: pointer; transition: all 0.2s;
+            font-size: 14px; font-weight: 600; color: var(--text);
+        }
+        .radio-card input:checked + .radio-card-content { 
+            border-color: var(--apple-blue); 
+            background: rgba(0, 122, 255, 0.08);
+            color: var(--apple-blue);
+        }
+        .radio-card-content:active { transform: scale(0.97); }
+
+        /* === FOOTER === */
+        footer {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+            display: flex; gap: 12px; z-index: 100;
+        }
+        .btn { flex: 1; padding: 16px; border-radius: 12px; font-weight: 600; font-size: 17px; border: none; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: var(--apple-blue); color: white; box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3); }
+        .btn-primary:active { background: var(--apple-blue-hover); transform: scale(0.98); }
+        .btn-secondary { background: transparent; color: var(--apple-blue); border: 1px solid var(--border); }
+        .btn-secondary:active { background: var(--bg-input); }
+        .btn-secondary:disabled { opacity: 0.4; }
+
+        /* === UTILS === */
+        .toast {
+            position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+            background: var(--text); color: white; padding: 12px 24px; border-radius: 24px;
+            font-weight: 600; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 200;
+            font-size: 15px;
+        }
+        .toast.show { opacity: 1; }
+        .hint { font-size: 14px; color: var(--text-secondary); background: var(--bg-input); padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; line-height: 1.4; }
+        .divider { height: 1px; background: var(--border); margin: 24px 0; }
+        .quote-list { display: flex; flex-direction: column; gap: 10px; }
+        .quote-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg-input); border: 1px solid var(--border); border-radius: 12px; padding: 12px; gap: 10px; }
+        .quote-info { flex: 1; }
+        .quote-title { font-weight: 600; font-size: 15px; }
+        .quote-meta { font-size: 12px; color: var(--text-secondary); }
+        .quote-actions { display: flex; gap: 8px; }
+        .quote-actions button { padding: 8px 10px; font-size: 12px; border-radius: 8px; }
+        .quote-checkbox { width: auto; margin: 0 8px 0 0; }
+        .btn-tertiary { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-top">
+            <div class="logo"><div class="logo-icon">🏠</div> Insurance Intake</div>
+            <div id="saveIndicator" class="save-indicator">✓ Saved</div>
+        </div>
+        <div id="stepTitle" class="step-title">Step 1 of 4: Client Information</div>
+        <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
+    </header>
+
+    <main id="mainContainer">
+        <!-- STEP 1: CLIENT INFORMATION -->
+        <div id="step-1" class="step">
+            <div class="card">
+                <h2>About You</h2>
+                <p class="section-subtitle">Let's start with your basic information</p>
+                
+                <div class="grid-2">
+                    <div><label class="label">First Name</label><input type="text" id="firstName" placeholder="John" autocomplete="given-name"></div>
+                    <div><label class="label">Last Name</label><input type="text" id="lastName" placeholder="Smith" autocomplete="family-name"></div>
+                </div>
+                
+                <label class="label">Email Address</label>
+                <input type="email" id="email" placeholder="john@example.com" autocomplete="email">
+                
+                <div class="grid-2">
+                    <div><label class="label">Phone Number</label><input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="tel"></div>
+                    <div><label class="label">Date of Birth</label><input type="date" id="dob"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Demographics</h2>
+                <p class="section-subtitle">This helps us find the best coverage options</p>
+                
+                <label class="label">Marital Status</label>
+                <select id="maritalStatus">
+                    <option value="">Select...</option>
+                    <option value="Single">Single</option>
+                    <option value="Married">Married</option>
+                    <option value="Domestic Partner">Domestic Partner</option>
+                    <option value="Widowed">Widowed</option>
+                    <option value="Separated">Separated</option>
+                    <option value="Divorced">Divorced</option>
+                </select>
+                
+                <label class="label">Education Level</label>
+                <select id="education">
+                    <option value="">Select...</option>
+                    <option value="No High School Diploma">No High School Diploma</option>
+                    <option value="High School Diploma">High School Diploma</option>
+                    <option value="Some College - No Degree">Some College - No Degree</option>
+                    <option value="Vocational/Technical Degree">Vocational/Technical Degree</option>
+                    <option value="Associates Degree">Associates Degree</option>
+                    <option value="Bachelors">Bachelors</option>
+                    <option value="Masters">Masters</option>
+                    <option value="Phd">PhD</option>
+                    <option value="Medical Degree">Medical Degree</option>
+                    <option value="Law Degree">Law Degree</option>
+                </select>
+                
+                <label class="label">Industry / Occupation</label>
+                <select id="industry">
+                    <option value="">Select...</option>
+                    <option value="Homemaker/House person">Homemaker/House person</option>
+                    <option value="Retired">Retired</option>
+                    <option value="Disabled">Disabled</option>
+                    <option value="Unemployed">Unemployed</option>
+                    <option value="Student">Student</option>
+                    <option value="Agriculture/Forestry/Fishing">Agriculture/Forestry/Fishing</option>
+                    <option value="Art/Design/Media">Art/Design/Media</option>
+                    <option value="Banking/Finance/Real Estate">Banking/Finance/Real Estate</option>
+                    <option value="Business/Sales/Office">Business/Sales/Office</option>
+                    <option value="Construction/Energy Trades">Construction/Energy Trades</option>
+                    <option value="Education/Library">Education/Library</option>
+                    <option value="Engineer/Architect/Science/Math">Engineer/Architect/Science/Math</option>
+                    <option value="Government/Military">Government/Military</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Legal/Law Enforcement/Security">Legal/Law Enforcement/Security</option>
+                    <option value="Maintenance/Repair/Housekeeping">Maintenance/Repair/Housekeeping</option>
+                    <option value="Manufacturing/Production">Manufacturing/Production</option>
+                    <option value="Medical/Social Services/Religion">Medical/Social Services/Religion</option>
+                    <option value="Personal Care/Service">Personal Care/Service</option>
+                    <option value="Restaurant/Hotel Services">Restaurant/Hotel Services</option>
+                    <option value="Sports/Recreation">Sports/Recreation</option>
+                    <option value="Travel/Transportation/Warehousing">Travel/Transportation/Warehousing</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div class="card">
+                <h2>Coverage Type</h2>
+                <p class="section-subtitle">What are you looking to insure?</p>
+                
+                <div class="radio-grid">
+                    <label class="radio-card"><input type="radio" name="qType" value="home" onchange="App.handleType()">
+                        <div class="radio-card-content"><span style="font-size:32px">🏠</span><span style="margin-top:8px">HOME</span></div></label>
+                    <label class="radio-card"><input type="radio" name="qType" value="auto" onchange="App.handleType()">
+                        <div class="radio-card-content"><span style="font-size:32px">🚗</span><span style="margin-top:8px">AUTO</span></div></label>
+                    <label class="radio-card"><input type="radio" name="qType" value="both" checked onchange="App.handleType()">
+                        <div class="radio-card-content"><span style="font-size:32px">🎯</span><span style="margin-top:8px">BOTH</span></div></label>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: PROPERTY DETAILS -->
+        <div id="step-2" class="step hidden">
+            <div class="card">
+                <h2>Property Location</h2>
+                <p class="section-subtitle">Where is the property located?</p>
+                
+                <label class="label">Street Address</label>
+                <input type="text" id="addrStreet" placeholder="123 Main St" autocomplete="address-line1">
+                
+                <div class="grid-2">
+                    <div><label class="label">City</label><input type="text" id="addrCity" placeholder="Vancouver"></div>
+                    <div><label class="label">State</label><input type="text" id="addrState" value="WA"></div>
+                </div>
+                <div class="grid-2">
+                    <div><label class="label">Zip Code</label><input type="tel" id="addrZip" placeholder="98686"></div>
+                    <button class="btn-secondary" onclick="App.openZillow()" style="padding:14px; margin-bottom:12px">🔍 View on Zillow</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Home Basics</h2>
+                <p class="section-subtitle">Tell us about your property</p>
+                
+                <label class="label">Dwelling Usage</label>
+                <select id="dwellingUsage">
+                    <option value="">Select...</option>
+                    <option value="Primary">Primary</option>
+                    <option value="Secondary">Secondary</option>
+                    <option value="Seasonal">Seasonal</option>
+                    <option value="Rental">Rental</option>
+                    <option value="Vacant">Vacant</option>
+                </select>
+                
+                <label class="label">Occupancy Type</label>
+                <select id="occupancyType">
+                    <option value="">Select...</option>
+                    <option value="Owner Occupied">Owner Occupied</option>
+                    <option value="Tenant Occupied">Tenant Occupied</option>
+                </select>
+                
+                <label class="label">Dwelling Type</label>
+                <select id="dwellingType">
+                    <option value="">Select...</option>
+                    <option value="Single Family">Single Family</option>
+                    <option value="Condo">Condo</option>
+                    <option value="Townhome">Townhome</option>
+                    <option value="Row House">Row House</option>
+                    <option value="Duplex">Duplex</option>
+                    <option value="Triplex">Triplex</option>
+                    <option value="Fourplex">Fourplex</option>
+                </select>
+                
+                <div class="grid-2">
+                    <div><label class="label">Number of Stories</label><input type="number" id="numStories" min="1" max="5" value="1"></div>
+                    <div><label class="label">Full Bathrooms</label><input type="number" id="fullBaths" min="1" max="10" value="2"></div>
+                </div>
+                
+                <div class="grid-2">
+                    <div><label class="label">Square Footage</label><input type="tel" id="sqFt" placeholder="2000"></div>
+                    <div><label class="label">Year Built</label><input type="tel" id="yrBuilt" placeholder="1990" oninput="App.checkUpdates()"></div>
+                </div>
+                
+                <label class="label">Home Purchase Date</label>
+                <input type="date" id="purchaseDate">
+            </div>
+
+            <div class="card">
+                <h2>Construction Details</h2>
+                <p class="section-subtitle">Construction and materials</p>
+                
+                <label class="label">Construction Style</label>
+                <select id="constructionStyle">
+                    <option value="">Select...</option>
+                    <option value="Frame">Frame</option>
+                    <option value="Masonry Veneer">Masonry Veneer</option>
+                    <option value="Masonry">Masonry</option>
+                    <option value="Stucco">Stucco</option>
+                    <option value="Log">Log</option>
+                    <option value="Adobe">Adobe</option>
+                </select>
+                
+                <label class="label">Exterior Walls</label>
+                <select id="exteriorWalls">
+                    <option value="">Select...</option>
+                    <option value="Vinyl Siding">Vinyl Siding</option>
+                    <option value="Wood Siding">Wood Siding</option>
+                    <option value="Brick">Brick</option>
+                    <option value="Stucco">Stucco</option>
+                    <option value="Fiber Cement">Fiber Cement</option>
+                    <option value="Aluminum">Aluminum</option>
+                </select>
+                
+                <label class="label">Foundation Type</label>
+                <select id="foundation">
+                    <option value="">Select...</option>
+                    <option value="Slab">Slab</option>
+                    <option value="Crawlspace">Crawlspace</option>
+                    <option value="Basement (Finished)">Basement (Finished)</option>
+                    <option value="Basement (Unfinished)">Basement (Unfinished)</option>
+                    <option value="Pier/Pile">Pier/Pile</option>
+                </select>
+                
+                <label class="label">Kitchen/Bath Quality</label>
+                <select id="kitchenQuality">
+                    <option value="">Select...</option>
+                    <option value="Builder's Grade">Builder's Grade</option>
+                    <option value="Semi-Custom">Semi-Custom</option>
+                    <option value="Custom">Custom</option>
+                </select>
+            </div>
+
+            <div class="card">
+                <h2>Roof Information</h2>
+                <p class="section-subtitle">Roof specifications</p>
+                
+                <div class="grid-2">
+                    <div><label class="label">Roof Type</label>
+                        <select id="roofType">
+                            <option value="">Select...</option>
+                            <option value="Asphalt/Composite Shingle">Asphalt/Composite Shingle</option>
+                            <option value="Architectural Shingle">Architectural Shingle</option>
+                            <option value="Metal">Metal</option>
+                            <option value="Clay Tile">Clay Tile</option>
+                            <option value="Concrete Tile">Concrete Tile</option>
+                            <option value="Wood Shake">Wood Shake</option>
+                            <option value="Slate">Slate</option>
+                            <option value="Tar & Gravel">Tar & Gravel</option>
+                        </select>
+                    </div>
+                    <div><label class="label">Roof Shape</label>
+                        <select id="roofShape">
+                            <option value="">Select...</option>
+                            <option value="Gable">Gable</option>
+                            <option value="Hip">Hip</option>
+                            <option value="Flat">Flat</option>
+                            <option value="Gambrel">Gambrel</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <label class="label">Year Roof Updated</label>
+                <input type="tel" id="roofYr" placeholder="2015">
+            </div>
+
+            <div id="updatesCard" class="card hidden">
+                <h2>System Updates</h2>
+                <p class="section-subtitle">When were these systems last updated? (Home built before 2000)</p>
+                
+                <div class="grid-2">
+                    <div><label class="label">Heating Updated (Year)</label><input type="tel" id="heatYr" placeholder="2010"></div>
+                    <div><label class="label">Plumbing Updated (Year)</label><input type="tel" id="plumbYr" placeholder="2010"></div>
+                </div>
+                <label class="label">Electrical Updated (Year)</label>
+                <input type="tel" id="elecYr" placeholder="2010">
+            </div>
+
+            <div class="card">
+                <h2>Systems & Utilities</h2>
+                <p class="section-subtitle">Heating and cooling systems</p>
+                
+                <label class="label">Heating Type</label>
+                <select id="heatingType">
+                    <option value="">Select...</option>
+                    <option value="Forced Air - Gas">Forced Air - Gas</option>
+                    <option value="Forced Air - Electric">Forced Air - Electric</option>
+                    <option value="Heat Pump">Heat Pump</option>
+                    <option value="Boiler (Steam/Water)">Boiler (Steam/Water)</option>
+                    <option value="Electric Baseboard">Electric Baseboard</option>
+                    <option value="Oil/Kerosene">Oil/Kerosene</option>
+                </select>
+                
+                <label class="label">Cooling System</label>
+                <select id="cooling">
+                    <option value="">Select...</option>
+                    <option value="Central Air">Central Air</option>
+                    <option value="Window Units">Window Units</option>
+                    <option value="None">None</option>
+                </select>
+            </div>
+
+            <div class="card">
+                <h2>Safety & Location</h2>
+                <p class="section-subtitle">Fire protection and security</p>
+                
+                <div class="grid-3">
+                    <div><label class="label">Distance to Fire Station (Miles)</label><input type="number" id="fireStationDist" step="0.1" placeholder="2.5"></div>
+                    <div><label class="label">Feet to Fire Hydrant</label><input type="number" id="fireHydrantFeet" placeholder="500"></div>
+                    <div><label class="label">Protection Class (1-10)</label><input type="number" id="protectionClass" min="1" max="10" placeholder="5"></div>
+                </div>
+                
+                <label class="label">Burglar Alarm</label>
+                <select id="burglarAlarm">
+                    <option value="">Select...</option>
+                    <option value="None">None</option>
+                    <option value="Local">Local Only</option>
+                    <option value="Monitored">Monitored</option>
+                </select>
+                
+                <label class="label">Fire Alarm</label>
+                <select id="fireAlarm">
+                    <option value="">Select...</option>
+                    <option value="None">None</option>
+                    <option value="Local">Local Only</option>
+                    <option value="Monitored">Monitored</option>
+                </select>
+                
+                <label class="label">Sprinkler System</label>
+                <select id="sprinklers">
+                    <option value="">Select...</option>
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- STEP 3: RISK & AUTO DETAILS -->
+        <div id="step-3" class="step hidden">
+            <div class="card">
+                <h2>Liability & Risk Factors</h2>
+                <p class="section-subtitle">Important underwriting information</p>
+                
+                <label class="label">Swimming Pool</label>
+                <select id="pool">
+                    <option value="">Select...</option>
+                    <option value="No">No</option>
+                    <option value="Yes - Fenced">Yes - Fenced</option>
+                    <option value="Yes - Not Fenced">Yes - Not Fenced</option>
+                </select>
+                
+                <label class="label">Trampoline</label>
+                <select id="trampoline">
+                    <option value="">Select...</option>
+                    <option value="No">No</option>
+                    <option value="Yes - With Net Enclosure">Yes - With Net Enclosure</option>
+                    <option value="Yes - No Net">Yes - No Net</option>
+                </select>
+                
+                <label class="label">Wood Stove</label>
+                <select id="woodStove">
+                    <option value="">Select...</option>
+                    <option value="No">No</option>
+                    <option value="Yes - Primary Heat">Yes - Primary Heat</option>
+                    <option value="Yes - Secondary Heat">Yes - Secondary Heat</option>
+                </select>
+                
+                <label class="label">Dog on Property</label>
+                <input type="text" id="dogInfo" placeholder="Breed and any bite history">
+                
+                <label class="label">Business Operated on Property</label>
+                <select id="businessOnProperty">
+                    <option value="">Select...</option>
+                    <option value="No">No</option>
+                    <option value="Yes - Daycare">Yes - Daycare</option>
+                    <option value="Yes - Inventory Storage">Yes - Inventory Storage</option>
+                    <option value="Yes - Other">Yes - Other</option>
+                </select>
+            </div>
+
+            <div id="autoCard" class="card">
+                <h2>Auto & Driver Information</h2>
+                <p class="section-subtitle">Vehicle and driving history</p>
+                
+                <label class="label">Driver's License Number</label>
+                <div class="grid-2">
+                    <input type="text" id="dlNum" style="text-transform:uppercase;font-family:monospace" placeholder="License #">
+                    <input type="text" id="dlState" value="WA" placeholder="State">
+                </div>
+                
+                <label class="label">VIN (17 Characters)</label>
+                <input type="text" id="vin" maxlength="17" style="text-transform:uppercase;font-family:monospace" placeholder="1HG..." oninput="App.decodeVin(this)">
+                <div id="vinResult" style="color:var(--success); font-size:13px; margin:-10px 0 16px 0; min-height:18px"></div>
+                
+                <label class="label">Vehicle Description</label>
+                <input type="text" id="vehDesc" placeholder="Year Make Model">
+                
+                <div class="grid-2">
+                    <div><label class="label">Primary Use</label>
+                        <select id="use">
+                            <option value="Commute">Commute</option>
+                            <option value="Pleasure">Pleasure</option>
+                            <option value="Business">Business</option>
+                        </select>
+                    </div>
+                    <div><label class="label">Annual Mileage</label><input type="tel" id="miles" value="12000"></div>
+                </div>
+                
+                <label class="label">Commute Distance (One Way, Miles)</label>
+                <input type="number" id="commuteDist" placeholder="10">
+                
+                <label class="label">Ride Sharing (Uber/Lyft)</label>
+                <select id="rideSharing">
+                    <option value="">Select...</option>
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                </select>
+                
+                <label class="label">Willing to Use Telematics for Discount?</label>
+                <select id="telematics">
+                    <option value="">Select...</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    <option value="Maybe">Maybe</option>
+                </select>
+            </div>
+
+            <div id="autoCard2" class="card">
+                <h2>Insurance History</h2>
+                <p class="section-subtitle">Current and prior coverage</p>
+                
+                <label class="label">Current Liability Limits</label>
+                <select id="liabilityLimits">
+                    <option value="">Select...</option>
+                    <option value="25/50">25/50</option>
+                    <option value="50/100">50/100</option>
+                    <option value="100/300">100/300</option>
+                    <option value="250/500">250/500</option>
+                    <option value="500/500">500/500</option>
+                </select>
+                
+                <label class="label">Current Deductibles (Home / Auto)</label>
+                <div class="grid-2">
+                    <input type="text" id="homeDeductible" placeholder="$1000">
+                    <input type="text" id="autoDeductible" placeholder="$500">
+                </div>
+                
+                <label class="label">Prior Insurance Carrier</label>
+                <input type="text" id="priorCarrier" placeholder="Current Carrier">
+                
+                <label class="label">Years with Prior Carrier</label>
+                <input type="number" id="priorYears" placeholder="3">
+                
+                <label class="label">Prior Policy Expiration</label>
+                <input type="date" id="priorExp">
+                
+                <label class="label">Accidents in Last 5 Years</label>
+                <textarea id="accidents" rows="2" placeholder="Date and brief description"></textarea>
+                
+                <label class="label">Violations in Last 3 Years</label>
+                <textarea id="violations" rows="2" placeholder="Date and type"></textarea>
+                
+                <label class="label">Student GPA (if driver under 25)</label>
+                <input type="number" id="studentGPA" step="0.1" min="0" max="4.0" placeholder="3.5">
+            </div>
+
+            <div class="card">
+                <h2>Additional Information</h2>
+                <p class="section-subtitle">Final details</p>
+                
+                <label class="label">Mortgagee / Lender Name</label>
+                <input type="text" id="mortgagee" placeholder="Bank or lender name">
+                
+                <label class="label">Additional Insureds (Trusts/LLCs)</label>
+                <input type="text" id="additionalInsureds" placeholder="If applicable">
+                
+                <label class="label">Best Time to Contact</label>
+                <select id="contactTime">
+                    <option value="">Select...</option>
+                    <option value="Morning">Morning (8am-12pm)</option>
+                    <option value="Afternoon">Afternoon (12pm-5pm)</option>
+                    <option value="Evening">Evening (5pm-8pm)</option>
+                </select>
+                
+                <label class="label">How Did You Hear About Us?</label>
+                <select id="referralSource">
+                    <option value="">Select...</option>
+                    <option value="Google Search">Google Search</option>
+                    <option value="Friend/Family Referral">Friend/Family Referral</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Realtor">Realtor</option>
+                    <option value="Other">Other</option>
+                </select>
+                
+                <div style="margin-top:20px; padding:16px; background:var(--bg-input); border-radius:12px;">
+                    <label style="display:flex; align-items:center; font-size:15px; color:var(--text); cursor:pointer;">
+                        <input type="checkbox" id="tcpaConsent" style="width:auto; margin-right:12px; margin-bottom:0;">
+                        <span>I agree to receive texts and calls regarding my insurance quote</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: REVIEW & EXPORT -->
+        <div id="step-4" class="step hidden">
+            <div class="card">
+                <h2>✓ Application Complete</h2>
+                <p class="section-subtitle">Choose how you'd like to export this information</p>
+            </div>
+
+            <div class="card">
+                <h3>Quote Library</h3>
+                <p class="section-subtitle">Save multiple drafts and batch export when ready</p>
+                <div style="display:flex; gap:12px; margin-bottom:12px;">
+                    <button class="btn-secondary" style="flex:1" onclick="App.saveQuote()">💾 Save Draft</button>
+                    <button class="btn-tertiary" style="flex:1" onclick="App.startNewDraft()">➕ New Draft</button>
+                </div>
+                <div style="display:flex; gap:12px; margin-bottom:12px;">
+                    <button class="btn-primary" style="flex:1; background:#6f42c1" onclick="App.exportSelectedZip()">📦 Download ZIP (Selected)</button>
+                    <button class="btn-tertiary" style="flex:1" onclick="App.clearAllDrafts()">🧹 Clear Drafts</button>
+                </div>
+                <div id="quoteList" class="quote-list"></div>
+                <div class="hint" style="margin-top:12px">
+                    Select drafts to include in the ZIP. Use Load to resume any draft.
+                </div>
+            </div>
+
+            <div class="card" style="border: 2px solid #FF6B6B; background: rgba(255, 107, 107, 0.03);">
+                <h3 style="color: #FF6B6B;">📧 Email to Agent (Fastest)</h3>
+                <p class="section-subtitle">Send quote ZIP directly to your team</p>
+                <div style="display:grid; grid-template-columns: 1fr auto; gap:12px; align-items:flex-end; margin-bottom:12px;">
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">Send to Agent</label>
+                        <select id="agentEmail" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; background:white;">
+                            <option value="">-- Select agent --</option>
+                            <option value="Austin@altechinsurance.com">Austin</option>
+                            <option value="Evan@altechinsurance.com">Evan</option>
+                            <option value="Kathleen@altechinsurance.com">Kathleen</option>
+                            <option value="Neil@altechinsurance.com">Neil</option>
+                            <option value="Hollie@altechinsurance.com">Hollie</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" onclick="App.emailSelectedQuotes()" style="background: #FF6B6B; padding: 10px 16px; white-space:nowrap;">Send ZIP</button>
+                </div>
+                <div class="hint" style="margin-top:12px;">
+                    Email selected quotes (or current) as a ZIP file directly to an agent's inbox. Fastest way to get leads to your team!
+                </div>
+            </div>
+
+            <div class="card" style="border: 2px solid var(--apple-blue); background: rgba(0, 122, 255, 0.03);">
+                <h3 style="color: var(--apple-blue);">⭐ Option 1: EZLynx XML Import (Recommended)</h3>
+                <p class="section-subtitle">Complete XML file - all fields ready for instant quoting</p>
+                <button class="btn-primary" onclick="App.exportXML()" style="width:100%; background:var(--apple-blue); font-size: 16px; padding: 14px;">📥 Download EZLynx XML File</button>
+                <div class="hint" style="margin-top:12px">
+                    Import to EZLynx using Applicants → Import → HawkSoft. All data auto-populates for immediate quoting.
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Option 2: Summary Document (PDF / TXT)</h3>
+                <p class="section-subtitle">Clean, readable reference copy for review or sharing</p>
+                <div style="display:flex; gap:12px;">
+                    <button class="btn-primary" onclick="App.exportPDF()" style="width:100%; background:#FF8C00">📄 Download PDF Summary</button>
+                    <button class="btn-secondary" onclick="App.exportText()" style="width:100%;">📝 Download Text Summary</button>
+                </div>
+                <div class="hint" style="margin-top:12px">
+                    Nicely formatted PDF or plain-text summary with all application details.
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Option 3: HawkSoft Import</h3>
+                <p class="section-subtitle">Includes all 30 custom fields mapped correctly</p>
+                <button class="btn-primary" onclick="App.exportCMSMTF()" style="width:100%; background:#6c757d">📥 Download HawkSoft File (.cmsmtf)</button>
+                <div class="hint" style="margin-top:12px">
+                    Drag and drop this file directly into HawkSoft to create a new client with all custom fields populated.
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Option 4: EZLynx CSV Import</h3>
+                <p class="section-subtitle">Standard CSV format for EZLynx Sales Center</p>
+                <button class="btn-primary" onclick="App.exportCSV()" style="width:100%; background:var(--success)">📥 Download CSV File</button>
+                <div class="hint" style="margin-top:12px">
+                    Upload to EZLynx Sales Center to create name and address records.
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Option 5: Copy to Clipboard</h3>
+                <p class="section-subtitle">For pasting into notes or remarks</p>
+                <button class="btn-secondary" onclick="App.copyNotes()" style="width:100%; color:var(--apple-blue); border-color:var(--apple-blue)">
+                    📋 Copy All Information
+                </button>
+                <div class="hint" style="margin-top:12px">
+                    Copies all information in a formatted text block for pasting into notes fields.
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="card" style="border-color:var(--danger); background:rgba(255, 59, 48, 0.05)">
+                <button onclick="App.reset()" style="background:none; border:none; color:var(--danger); width:100%; font-weight:700; font-size:17px; padding:16px; cursor:pointer">
+                    🗑️ Clear All Data & Start New
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <button id="btnBack" class="btn btn-secondary" onclick="App.prev()">Back</button>
+        <button id="btnNext" class="btn btn-primary" onclick="App.next()">Next</button>
+    </footer>
+
+    <div id="toast" class="toast">Message</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        const App = {
+            data: {},
+            step: 0,
+            flow: [],
+            storageKey: 'altech_v6',
+            quotesKey: 'altech_v6_quotes',
+            
+            workflows: {
+                home: ['step-1', 'step-2', 'step-3', 'step-4'],
+                auto: ['step-1', 'step-3', 'step-4'],
+                both: ['step-1', 'step-2', 'step-3', 'step-4']
+            },
+
+            stepTitles: {
+                'step-1': 'Step 1 of 4: Client Information',
+                'step-2': 'Step 2 of 4: Property Details',
+                'step-3': 'Step 3 of 4: Risk & Auto Details',
+                'step-4': 'Step 4 of 4: Review & Export'
+            },
+
+            init() {
+                this.load();
+                this.handleType(); // Set initial flow
+                this.renderQuoteList();
+                
+                // Auto-save listeners
+                document.querySelectorAll('input, select, textarea').forEach(el => {
+                    el.addEventListener('input', (e) => this.save(e));
+                    el.addEventListener('change', (e) => this.save(e));
+                });
+                // Phone format
+                document.getElementById('phone').addEventListener('input', this.fmtPhone);
+            },
+
+            handleType() {
+                const t = document.querySelector('input[name="qType"]:checked').value;
+                this.flow = this.workflows[t];
+                
+                // Show/hide auto-specific cards based on type
+                const autoCards = document.querySelectorAll('#autoCard, #autoCard2');
+                autoCards.forEach(card => {
+                    card.style.display = (t === 'auto' || t === 'both') ? 'block' : 'none';
+                });
+                
+                // Reset step if out of bounds
+                if (this.step >= this.flow.length) this.step = 0;
+                this.updateUI();
+                this.save({ target: document.querySelector('input[name="qType"]:checked') });
+            },
+
+            updateUI() {
+                document.querySelectorAll('.step').forEach(e => e.classList.add('hidden'));
+                const curId = this.flow[this.step];
+                document.getElementById(curId).classList.remove('hidden');
+                
+                // Update step title
+                const stepTitle = document.getElementById('stepTitle');
+                const totalSteps = this.flow.length;
+                const currentStep = this.step + 1;
+                const stepName = ['Client Information', 'Property Details', 'Risk & Auto Details', 'Review & Export'][this.flow.indexOf(curId)];
+                stepTitle.textContent = `Step ${currentStep} of ${totalSteps}: ${stepName}`;
+                
+                // Progress
+                const pct = ((this.step + 1) / this.flow.length) * 100;
+                document.getElementById('progressBar').style.width = pct + '%';
+                
+                // Buttons
+                const back = document.getElementById('btnBack');
+                const next = document.getElementById('btnNext');
+                back.disabled = this.step === 0;
+                next.textContent = this.step === this.flow.length - 1 ? 'Finish' : 'Next';
+                
+                document.getElementById('mainContainer').scrollTo(0,0);
+            },
+
+            next() {
+                if (this.step < this.flow.length - 1) {
+                    this.step++;
+                    this.updateUI();
+                }
+            },
+            prev() {
+                if (this.step > 0) {
+                    this.step--;
+                    this.updateUI();
+                }
+            },
+
+            save(e) {
+                const k = e.target.id || e.target.name;
+                this.data[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+                
+                const ind = document.getElementById('saveIndicator');
+                ind.style.opacity = 1;
+                setTimeout(() => ind.style.opacity = 0, 1500);
+            },
+
+            load() {
+                const s = localStorage.getItem(this.storageKey);
+                if(s) this.applyData(JSON.parse(s));
+            },
+
+            applyData(data) {
+                this.data = data || {};
+                Object.keys(this.data).forEach(k => {
+                    const el = document.getElementById(k);
+                    if(el) {
+                        if(el.type === 'checkbox') {
+                            el.checked = this.data[k];
+                        } else {
+                            el.value = this.data[k];
+                        }
+                    }
+                    if(k === 'qType') {
+                        const r = document.querySelector(`input[name="qType"][value="${this.data[k]}"]`);
+                        if(r) r.checked = true;
+                    }
+                });
+                this.checkUpdates();
+                this.handleType();
+            },
+
+            // === PROGRESSIVE DISCLOSURE ===
+            checkUpdates() {
+                const yrBuilt = document.getElementById('yrBuilt').value;
+                const updatesCard = document.getElementById('updatesCard');
+                
+                if(yrBuilt && parseInt(yrBuilt) < 2000) {
+                    updatesCard.classList.remove('hidden');
+                } else {
+                    updatesCard.classList.add('hidden');
+                }
+            },
+
+            // === FEATURES ===
+            async decodeVin(el) {
+                const v = el.value.toUpperCase();
+                if(v.length === 17) {
+                    try {
+                        document.getElementById('vinResult').innerText = "🔍 Decoding...";
+                        const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${v}?format=json`);
+                        const d = await r.json();
+                        const r1 = d.Results[0];
+                        const desc = `${r1.ModelYear} ${r1.Make} ${r1.Model}`;
+                        document.getElementById('vehDesc').value = desc;
+                        document.getElementById('vinResult').innerText = "✓ " + desc;
+                        this.data.vehDesc = desc; // Force save
+                    } catch(e) { document.getElementById('vinResult').innerText = "⚠️ Decode Error"; }
+                }
+            },
+
+            fmtPhone(e) {
+                let x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/);
+                e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
+            },
+
+            openZillow() {
+                const a = `${this.data.addrStreet || ''} ${this.data.addrCity || ''} ${this.data.addrState || ''} ${this.data.addrZip || ''}`;
+                window.open(`https://www.zillow.com/homes/${encodeURIComponent(a)}_rb/`);
+            },
+
+            // === NOTES & EXPORT ===
+            getNotesForData(data) {
+                return `
+=== CLIENT INFORMATION ===
+Name: ${data.firstName || ''} ${data.lastName || ''}
+Email: ${data.email || ''}
+Phone: ${data.phone || ''}
+DOB: ${data.dob || ''}
+Marital Status: ${data.maritalStatus || ''}
+Education: ${data.education || ''}
+Industry: ${data.industry || ''}
+
+=== PROPERTY DETAILS ===
+Address: ${data.addrStreet || ''}, ${data.addrCity || ''}, ${data.addrState || ''} ${data.addrZip || ''}
+Dwelling Type: ${data.dwellingType || ''} (${data.dwellingUsage || ''})
+Year Built: ${data.yrBuilt || ''} | Square Feet: ${data.sqFt || ''}
+Stories: ${data.numStories || ''} | Bathrooms: ${data.fullBaths || ''}
+Construction: ${data.constructionStyle || ''} | Walls: ${data.exteriorWalls || ''}
+Foundation: ${data.foundation || ''}
+Roof: ${data.roofType || ''} (${data.roofShape || ''}) - Updated: ${data.roofYr || ''}
+Heating: ${data.heatingType || ''} (Updated: ${data.heatYr || ''})
+Cooling: ${data.cooling || ''}
+Plumbing Updated: ${data.plumbYr || ''}
+Electrical Updated: ${data.elecYr || ''}
+
+=== SAFETY & SYSTEMS ===
+Fire Station: ${data.fireStationDist || ''} miles | Hydrant: ${data.fireHydrantFeet || ''} feet
+Protection Class: ${data.protectionClass || ''}
+Burglar Alarm: ${data.burglarAlarm || ''}
+Fire Alarm: ${data.fireAlarm || ''}
+Sprinklers: ${data.sprinklers || ''}
+
+=== RISK FACTORS ===
+Pool: ${data.pool || 'No'}
+Trampoline: ${data.trampoline || 'No'}
+Wood Stove: ${data.woodStove || 'No'}
+Dog: ${data.dogInfo || 'None'}
+Business on Property: ${data.businessOnProperty || 'No'}
+
+=== AUTO INFORMATION ===
+Vehicle: ${data.vehDesc || ''}
+VIN: ${data.vin || ''}
+Driver's License: ${data.dlNum || ''} (${data.dlState || ''})
+Usage: ${data.use || ''} | Annual Miles: ${data.miles || ''}
+Commute Distance: ${data.commuteDist || ''} miles
+Ride Sharing: ${data.rideSharing || 'No'}
+Telematics: ${data.telematics || ''}
+
+=== INSURANCE HISTORY ===
+Current Liability: ${data.liabilityLimits || ''}
+Deductibles: Home ${data.homeDeductible || ''} / Auto ${data.autoDeductible || ''}
+Prior Carrier: ${data.priorCarrier || ''} (${data.priorYears || ''} years)
+Prior Expiration: ${data.priorExp || ''}
+Accidents: ${data.accidents || 'None'}
+Violations: ${data.violations || 'None'}
+Student GPA: ${data.studentGPA || 'N/A'}
+
+=== ADDITIONAL INFO ===
+Mortgagee: ${data.mortgagee || ''}
+Additional Insureds: ${data.additionalInsureds || 'None'}
+Purchase Date: ${data.purchaseDate || ''}
+Kitchen/Bath Quality: ${data.kitchenQuality || ''}
+Best Contact Time: ${data.contactTime || ''}
+Referral Source: ${data.referralSource || ''}
+TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
+                `.trim();
+            },
+
+            getNotes() {
+                return this.getNotesForData(this.data);
+            },
+
+            copyNotes() {
+                navigator.clipboard.writeText(this.getNotes());
+                this.toast('📋 Copied to Clipboard!');
+            },
+
+            exportPDF() {
+                const result = this.buildPDF(this.data);
+                this.downloadBlob(result.blob, result.filename);
+                this.toast('✓ PDF downloaded successfully');
+            },
+
+            exportText() {
+                const result = this.buildText(this.data);
+                this.downloadFile(result.content, result.filename, result.mime);
+                this.toast('📝 Text summary downloaded');
+            },
+
+            buildPDF(data) {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                doc.setFontSize(18);
+                doc.setTextColor(0, 122, 255);
+                doc.text('Insurance Application Summary', 105, 20, { align: 'center' });
+                
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(10);
+                let y = 35;
+                
+                const addSection = (title, fields) => {
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(title, 15, y);
+                    y += 7;
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+                    
+                    fields.forEach(([label, value]) => {
+                        if (value) {
+                            if (y > 280) {
+                                doc.addPage();
+                                y = 20;
+                            }
+                            const text = `${label}: ${value}`;
+                            const lines = doc.splitTextToSize(text, 180);
+                            doc.text(lines, 20, y);
+                            y += (lines.length * 5);
+                        }
+                    });
+                    y += 5;
+                };
+                
+                addSection('Personal Information', [
+                    ['Name', `${data.firstName || ''} ${data.lastName || ''}`],
+                    ['Date of Birth', data.dob || ''],
+                    ['Email', data.email || ''],
+                    ['Phone', data.phone || ''],
+                    ['Marital Status', data.maritalStatus || ''],
+                    ['Education', data.education || ''],
+                    ['Industry', data.industry || ''],
+                    ['Quote Type', data.qType || '']
+                ]);
+                
+                if (data.qType === 'home' || data.qType === 'both') {
+                    addSection('Property Information', [
+                        ['Address', `${data.addrStreet || ''}, ${data.addrCity || ''}, ${data.addrState || ''} ${data.addrZip || ''}`],
+                        ['Year Built', data.yrBuilt || ''],
+                        ['Square Footage', data.sqFt || ''],
+                        ['Stories', data.numStories || ''],
+                        ['Bathrooms', data.fullBaths || ''],
+                        ['Dwelling Type', data.dwellingType || ''],
+                        ['Dwelling Usage', data.dwellingUsage || ''],
+                        ['Construction Style', data.constructionStyle || ''],
+                        ['Exterior Walls', data.exteriorWalls || ''],
+                        ['Foundation', data.foundation || ''],
+                        ['Roof Type', data.roofType || ''],
+                        ['Roof Year', data.roofYr || ''],
+                        ['Roof Shape', data.roofShape || '']
+                    ]);
+                    
+                    addSection('Home Systems & Safety', [
+                        ['Heating Type', data.heatingType || ''],
+                        ['Heating Year', data.heatYr || ''],
+                        ['Cooling', data.cooling || ''],
+                        ['Plumbing Year', data.plumbYr || ''],
+                        ['Electrical Year', data.elecYr || ''],
+                        ['Fire Station Distance', data.fireStationDist || ''],
+                        ['Fire Hydrant Distance', data.fireHydrantFeet || ''],
+                        ['Protection Class', data.protectionClass || ''],
+                        ['Burglar Alarm', data.burglarAlarm || ''],
+                        ['Fire Alarm', data.fireAlarm || ''],
+                        ['Sprinklers', data.sprinklers || '']
+                    ]);
+                }
+                
+                addSection('Risk Factors', [
+                    ['Pool', data.pool || ''],
+                    ['Trampoline', data.trampoline || ''],
+                    ['Wood Stove', data.woodStove || ''],
+                    ['Dogs', data.dogInfo || ''],
+                    ['Business on Property', data.businessOnProperty || '']
+                ]);
+                
+                if (data.qType === 'auto' || data.qType === 'both') {
+                    addSection('Vehicle Information', [
+                        ['VIN', data.vin || ''],
+                        ['Vehicle', data.vehDesc || ''],
+                        ['License Number', data.dlNum || ''],
+                        ['License State', data.dlState || ''],
+                        ['Vehicle Use', data.use || ''],
+                        ['Annual Miles', data.miles || ''],
+                        ['Commute Distance', data.commuteDist || ''],
+                        ['Ridesharing', data.rideSharing || ''],
+                        ['Telematics', data.telematics || '']
+                    ]);
+                }
+                
+                addSection('Coverage & History', [
+                    ['Liability Limits', data.liabilityLimits || ''],
+                    ['Home Deductible', data.homeDeductible || ''],
+                    ['Auto Deductible', data.autoDeductible || ''],
+                    ['Prior Carrier', data.priorCarrier || ''],
+                    ['Prior Years', data.priorYears || ''],
+                    ['Prior Expiration', data.priorExp || ''],
+                    ['Accidents', data.accidents || ''],
+                    ['Violations', data.violations || ''],
+                    ['Student GPA', data.studentGPA || '']
+                ]);
+                
+                addSection('Additional Information', [
+                    ['Mortgagee', data.mortgagee || ''],
+                    ['Additional Insureds', data.additionalInsureds || ''],
+                    ['Best Contact Time', data.contactTime || ''],
+                    ['Referral Source', data.referralSource || ''],
+                    ['TCPA Consent', data.tcpaConsent ? 'Yes' : 'No']
+                ]);
+                
+                const fileName = `Insurance_Application_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.pdf`;
+                return { blob: doc.output('blob'), filename: fileName };
+            },
+
+            buildText(data) {
+                const content = this.getNotesForData(data);
+                const fileName = `Insurance_Application_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.txt`;
+                return { content, filename: fileName, mime: 'text/plain;charset=utf-8' };
+            },
+
+            exportCSV() {
+                const result = this.buildCSV(this.data);
+                this.downloadFile(result.content, result.filename, result.mime);
+                this.toast('📥 CSV Generated!');
+            },
+
+            buildCSV(data) {
+                const h = ["First Name","Last Name","Address Line 1","City","State Code","Zip Code","Mobile Phone","Email","Date of Birth","Notes"];
+                const flatNotes = this.getNotesForData(data).replace(/\n/g, ' | ');
+                const row = [
+                    data.firstName, data.lastName, data.addrStreet, data.addrCity, data.addrState, data.addrZip,
+                    data.phone, data.email, data.dob, flatNotes
+                ].map(v => `"${v||''}"`).join(',');
+
+                const csv = h.join(',') + "\n" + row;
+                return { content: csv, filename: `Lead_${data.lastName || 'Export'}.csv`, mime: 'text/csv' };
+            },
+
+            exportCMSMTF() {
+                const result = this.buildCMSMTF(this.data);
+                this.downloadFile(result.content, result.filename, result.mime);
+                this.toast('📥 HawkSoft File Generated!');
+            },
+
+            buildCMSMTF(data) {
+                const fields = [
+                    { tag: 'NAM', value: `${data.firstName || ''} ${data.lastName || ''}`.trim() },
+                    { tag: 'ADD', value: data.addrStreet },
+                    { tag: 'CTY', value: data.addrCity },
+                    { tag: 'STA', value: data.addrState },
+                    { tag: 'ZIP', value: data.addrZip },
+                    { tag: 'PHN', value: data.phone ? data.phone.replace(/\D/g, '') : '' },
+                    { tag: 'EML', value: data.email },
+                    { tag: 'DOB', value: data.dob },
+                    { tag: 'L1', value: data.roofYr },
+                    { tag: 'L2', value: data.roofType },
+                    { tag: 'L3', value: data.heatingType },
+                    { tag: 'L4', value: data.heatYr },
+                    { tag: 'L5', value: data.plumbYr },
+                    { tag: 'L6', value: data.elecYr },
+                    { tag: 'L7', value: data.pool },
+                    { tag: 'L8', value: data.dogInfo },
+                    { tag: 'L9', value: data.kitchenQuality },
+                    { tag: 'L10', value: data.burglarAlarm },
+                    { tag: 'C1', value: data.liabilityLimits },
+                    { tag: 'C2', value: data.priorCarrier },
+                    { tag: 'C3', value: data.priorYears },
+                    { tag: 'C4', value: data.accidents },
+                    { tag: 'C5', value: data.violations },
+                    { tag: 'C6', value: data.miles },
+                    { tag: 'C7', value: data.commuteDist },
+                    { tag: 'C8', value: data.rideSharing },
+                    { tag: 'C9', value: data.telematics },
+                    { tag: 'C10', value: data.studentGPA },
+                    { tag: 'R1', value: `Home: ${data.homeDeductible || ''} / Auto: ${data.autoDeductible || ''}` },
+                    { tag: 'R2', value: data.trampoline },
+                    { tag: 'R3', value: data.woodStove },
+                    { tag: 'R4', value: data.businessOnProperty },
+                    { tag: 'R5', value: data.purchaseDate },
+                    { tag: 'R6', value: data.mortgagee },
+                    { tag: 'R7', value: data.additionalInsureds },
+                    { tag: 'R8', value: data.contactTime },
+                    { tag: 'R9', value: data.referralSource },
+                    { tag: 'R10', value: data.tcpaConsent ? 'Yes - Consented' : 'No' },
+                    { tag: 'DWELLING_TYPE', value: data.dwellingType },
+                    { tag: 'DWELLING_USAGE', value: data.dwellingUsage },
+                    { tag: 'YEAR_BUILT', value: data.yrBuilt },
+                    { tag: 'SQ_FT', value: data.sqFt },
+                    { tag: 'STORIES', value: data.numStories },
+                    { tag: 'BATHROOMS', value: data.fullBaths },
+                    { tag: 'CONSTRUCTION', value: data.constructionStyle },
+                    { tag: 'EXTERIOR_WALLS', value: data.exteriorWalls },
+                    { tag: 'FOUNDATION', value: data.foundation },
+                    { tag: 'ROOF_SHAPE', value: data.roofShape },
+                    { tag: 'COOLING', value: data.cooling },
+                    { tag: 'FIRE_ALARM', value: data.fireAlarm },
+                    { tag: 'SPRINKLERS', value: data.sprinklers },
+                    { tag: 'PROTECTION_CLASS', value: data.protectionClass },
+                    { tag: 'VIN', value: data.vin },
+                    { tag: 'VEH', value: data.vehDesc },
+                    { tag: 'DL_NUM', value: data.dlNum },
+                    { tag: 'DL_STATE', value: data.dlState },
+                    { tag: 'VEHICLE_USE', value: data.use },
+                    { tag: 'MARITAL_STATUS', value: data.maritalStatus },
+                    { tag: 'EDUCATION', value: data.education },
+                    { tag: 'INDUSTRY', value: data.industry }
+                ];
+
+                const content = fields
+                    .filter(f => f.value && f.value.toString().trim() !== '')
+                    .map(f => `[${f.tag}]${f.value}`)
+                    .join('\n');
+
+                return { content, filename: `Lead_${data.lastName || 'Export'}.cmsmtf`, mime: 'text/plain;charset=utf-8' };
+            },
+
+            exportXML() {
+                const result = this.buildXML(this.data);
+                if (!result.ok) {
+                    this.toast(result.error);
+                    return;
+                }
+                this.downloadFile(result.content, result.filename, result.mime);
+                this.toast('📥 EZLynx XML File Generated!');
+            },
+
+            buildXML(data) {
+                const escapeXML = (str) => {
+                    if (!str) return '';
+                    return String(str)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&apos;');
+                };
+
+                const normalizeDate = (dateStr) => {
+                    if (!dateStr) return '';
+                    const d = new Date(dateStr);
+                    if (Number.isNaN(d.getTime())) return '';
+                    const year = d.getUTCFullYear();
+                    const currentYear = new Date().getUTCFullYear();
+                    if (year < 1900 || year > currentYear) return '';
+                    return d.toISOString().split('T')[0];
+                };
+
+                const parseVehicle = (desc) => {
+                    const match = desc?.match(/(\d{4})\s+([A-Z]+)\s+(.+)/i);
+                    return {
+                        year: match?.[1] || '',
+                        make: match?.[2] || '',
+                        model: match?.[3]?.trim() || ''
+                    };
+                };
+
+                const state = (data.addrState || '').trim().toUpperCase();
+                const dob = normalizeDate(data.dob);
+                if (!data.firstName || !data.lastName) {
+                    return { ok: false, error: '⚠️ First and last name are required for EZLynx XML.' };
+                }
+                if (!state || !/^[A-Z]{2}$/.test(state)) {
+                    return { ok: false, error: '⚠️ A valid 2-letter state is required for EZLynx XML.' };
+                }
+                if (!dob) {
+                    return { ok: false, error: '⚠️ A valid DOB is required for EZLynx XML.' };
+                }
+
+                const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
+                const { year, make, model } = parseVehicle(data.vehDesc);
+                const streetRaw = (data.addrStreet || '').trim();
+                const streetMatch = streetRaw.match(/^(\d+)\s+(.*)$/);
+                const streetNumber = streetMatch?.[1] || '';
+                const streetName = streetMatch?.[2] || streetRaw;
+
+                let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+                xml += '<EZAUTO xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200">\n';
+
+                xml += '  <Applicant>\n';
+                xml += '    <ApplicantType>Applicant</ApplicantType>\n';
+                xml += '    <PersonalInfo>\n';
+                xml += '      <Name>\n';
+                xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
+                xml += '        <MiddleName></MiddleName>\n';
+                xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
+                xml += '      </Name>\n';
+                xml += `      <DOB>${dob}</DOB>\n`;
+                if (data.maritalStatus) {
+                    xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
+                }
+                xml += '      <Relation>Insured</Relation>\n';
+                xml += '    </PersonalInfo>\n';
+                xml += '    <Address>\n';
+                xml += '      <AddressCode>StreetAddress</AddressCode>\n';
+                xml += '      <Addr1>\n';
+                xml += `        <StreetName>${escapeXML(streetName)}</StreetName>\n`;
+                xml += `        <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
+                xml += '      </Addr1>\n';
+                xml += `      <City>${escapeXML(data.addrCity)}</City>\n`;
+                xml += `      <StateCode>${escapeXML(state)}</StateCode>\n`;
+                xml += `      <Zip5>${escapeXML(data.addrZip)}</Zip5>\n`;
+                if (phone) {
+                    xml += '      <Phone id="1">\n';
+                    xml += '        <PhoneType>Mobile</PhoneType>\n';
+                    xml += `        <PhoneNumber>${escapeXML(phone)}</PhoneNumber>\n`;
+                    xml += '        <Extension></Extension>\n';
+                    xml += '      </Phone>\n';
+                }
+                if (data.email) {
+                    xml += `      <Email>${escapeXML(data.email)}</Email>\n`;
+                }
+                xml += '    </Address>\n';
+                xml += '  </Applicant>\n';
+
+                if (data.priorCarrier || data.priorYears || data.priorExp) {
+                    xml += '  <PriorPolicyInfo>\n';
+                    if (data.priorCarrier) {
+                        xml += `    <PriorCarrier>${escapeXML(data.priorCarrier)}</PriorCarrier>\n`;
+                    }
+                    if (data.priorExp) {
+                        xml += `    <Expiration>${normalizeDate(data.priorExp)}</Expiration>\n`;
+                    }
+                    if (data.priorYears) {
+                        xml += '    <YearsWithPriorCarrier>\n';
+                        xml += `      <Years>${escapeXML(data.priorYears)}</Years>\n`;
+                        xml += '    </YearsWithPriorCarrier>\n';
+                    }
+                    xml += '  </PriorPolicyInfo>\n';
+                }
+
+                xml += '  <Drivers>\n';
+                xml += '    <Driver id="1">\n';
+                xml += '      <Name>\n';
+                xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
+                xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
+                xml += '      </Name>\n';
+                xml += `      <DOB>${dob}</DOB>\n`;
+                if (data.dlNum) {
+                    xml += `      <DLNumber>${escapeXML(data.dlNum)}</DLNumber>\n`;
+                }
+                if (data.dlState) {
+                    xml += `      <DLState>${escapeXML(data.dlState)}</DLState>\n`;
+                }
+                if (data.maritalStatus) {
+                    xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
+                }
+                xml += '      <Relation>Insured</Relation>\n';
+                xml += '      <GoodStudent>No</GoodStudent>\n';
+                xml += '      <MATDriver>No</MATDriver>\n';
+                xml += '      <Rated>Rated</Rated>\n';
+                xml += '    </Driver>\n';
+                xml += '  </Drivers>\n';
+
+                if (data.vin || data.vehDesc) {
+                    xml += '  <Vehicles>\n';
+                    xml += '    <Vehicle id="1">\n';
+                    xml += '      <UseVinLookup>Yes</UseVinLookup>\n';
+                    if (year) {
+                        xml += `      <Year>${escapeXML(year)}</Year>\n`;
+                    }
+                    if (data.vin) {
+                        xml += `      <Vin>${escapeXML(data.vin)}</Vin>\n`;
+                    }
+                    if (make) {
+                        xml += `      <Make>${escapeXML(make)}</Make>\n`;
+                    }
+                    if (model) {
+                        xml += `      <Model>${escapeXML(model)}</Model>\n`;
+                    }
+                    xml += '      <Anti-Theft>None</Anti-Theft>\n';
+                    xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
+                    xml += '    </Vehicle>\n';
+                    xml += '  </Vehicles>\n';
+
+                    if (data.miles) {
+                        xml += '  <VehiclesUse>\n';
+                        xml += '    <VehicleUse id="1">\n';
+                        xml += `      <AnnualMiles>${escapeXML(data.miles)}</AnnualMiles>\n`;
+                        xml += '    </VehicleUse>\n';
+                        xml += '  </VehiclesUse>\n';
+                    }
+                }
+
+                if (data.liabilityLimits || data.autoDeductible) {
+                    xml += '  <Coverages>\n';
+                    if (data.liabilityLimits) {
+                        xml += '    <GeneralCoverage>\n';
+                        xml += `      <BI>${escapeXML(data.liabilityLimits)}</BI>\n`;
+                        xml += '    </GeneralCoverage>\n';
+                    }
+                    if (data.autoDeductible) {
+                        xml += '    <VehicleCoverage id="1">\n';
+                        xml += `      <CollisionDeductible>${escapeXML(data.autoDeductible)}</CollisionDeductible>\n`;
+                        xml += '    </VehicleCoverage>\n';
+                    }
+                    xml += '  </Coverages>\n';
+                }
+
+                xml += '</EZAUTO>\n';
+
+                return {
+                    ok: true,
+                    content: xml,
+                    filename: `${data.lastName || 'Lead'}_EZLynx.xml`,
+                    mime: 'application/xml;charset=utf-8'
+                };
+            },
+
+            toast(msg) {
+                const t = document.getElementById('toast');
+                t.innerText = msg;
+                t.classList.add('show');
+                setTimeout(() => t.classList.remove('show'), 2500);
+            },
+
+            downloadFile(content, filename, mime) {
+                const blob = new Blob([content], { type: mime });
+                this.downloadBlob(blob, filename);
+            },
+
+            downloadBlob(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            },
+
+            getQuotes() {
+                return JSON.parse(localStorage.getItem(this.quotesKey) || '[]');
+            },
+
+            saveQuotes(quotes) {
+                localStorage.setItem(this.quotesKey, JSON.stringify(quotes));
+            },
+
+            getQuoteTitle(data) {
+                const name = `${data.lastName || 'Unknown'}, ${data.firstName || ''}`.trim();
+                const type = (data.qType || 'quote').toUpperCase();
+                return `${name} • ${type}`;
+            },
+
+            getQuoteMeta(quote) {
+                const updated = new Date(quote.updatedAt).toLocaleString();
+                return `Updated ${updated}`;
+            },
+
+            saveQuote() {
+                const snapshot = JSON.parse(JSON.stringify(this.data || {}));
+                const quotes = this.getQuotes();
+                const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+                const title = this.getQuoteTitle(snapshot);
+                quotes.unshift({ id, title, data: snapshot, updatedAt: new Date().toISOString() });
+                this.saveQuotes(quotes);
+                this.renderQuoteList();
+                this.toast('✅ Draft saved to library');
+            },
+
+            loadQuote(id) {
+                const quote = this.getQuotes().find(q => q.id === id);
+                if (!quote) return;
+                this.applyData(quote.data);
+                localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+                this.toast('✅ Draft loaded');
+            },
+
+            deleteQuote(id) {
+                const quotes = this.getQuotes().filter(q => q.id !== id);
+                this.saveQuotes(quotes);
+                this.renderQuoteList();
+                this.toast('🗑️ Draft removed');
+            },
+
+            renameQuote(id) {
+                const quotes = this.getQuotes();
+                const quote = quotes.find(q => q.id === id);
+                if (!quote) return;
+                const next = prompt('Rename draft', quote.title);
+                if (next === null) return;
+                quote.title = next.trim() || quote.title;
+                quote.updatedAt = new Date().toISOString();
+                this.saveQuotes(quotes);
+                this.renderQuoteList();
+            },
+
+            startNewDraft() {
+                if (!confirm('Start a new draft? Current form will be cleared.')) return;
+                localStorage.removeItem(this.storageKey);
+                location.reload();
+            },
+
+            clearAllDrafts() {
+                if (!confirm('Clear all saved drafts?')) return;
+                localStorage.removeItem(this.quotesKey);
+                this.renderQuoteList();
+                this.toast('🧹 Drafts cleared');
+            },
+
+            renderQuoteList() {
+                const list = document.getElementById('quoteList');
+                if (!list) return;
+                list.innerHTML = '';
+                const quotes = this.getQuotes();
+                if (!quotes.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'hint';
+                    empty.textContent = 'No drafts saved yet. Click “Save Draft” to create one.';
+                    list.appendChild(empty);
+                    return;
+                }
+                quotes.forEach(q => {
+                    const row = document.createElement('div');
+                    row.className = 'quote-row';
+
+                    const left = document.createElement('div');
+                    left.style.display = 'flex';
+                    left.style.alignItems = 'center';
+
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.className = 'quote-checkbox';
+                    cb.dataset.id = q.id;
+
+                    const info = document.createElement('div');
+                    info.className = 'quote-info';
+                    const title = document.createElement('div');
+                    title.className = 'quote-title';
+                    title.textContent = q.title;
+                    const meta = document.createElement('div');
+                    meta.className = 'quote-meta';
+                    meta.textContent = this.getQuoteMeta(q);
+                    info.appendChild(title);
+                    info.appendChild(meta);
+
+                    left.appendChild(cb);
+                    left.appendChild(info);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'quote-actions';
+
+                    const loadBtn = document.createElement('button');
+                    loadBtn.className = 'btn-secondary';
+                    loadBtn.textContent = 'Load';
+                    loadBtn.onclick = () => this.loadQuote(q.id);
+
+                    const renameBtn = document.createElement('button');
+                    renameBtn.className = 'btn-tertiary';
+                    renameBtn.textContent = 'Rename';
+                    renameBtn.onclick = () => this.renameQuote(q.id);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn-tertiary';
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.onclick = () => this.deleteQuote(q.id);
+
+                    actions.appendChild(loadBtn);
+                    actions.appendChild(renameBtn);
+                    actions.appendChild(deleteBtn);
+
+                    row.appendChild(left);
+                    row.appendChild(actions);
+                    list.appendChild(row);
+                });
+            },
+
+            getSelectedQuoteIds() {
+                return Array.from(document.querySelectorAll('.quote-checkbox:checked'))
+                    .map(cb => cb.dataset.id);
+            },
+
+            sanitizeFilename(name) {
+                return name.replace(/[^a-z0-9\-_. ]/gi, '').replace(/\s+/g, '_').slice(0, 80) || 'quote';
+            },
+
+            async exportSelectedZip() {
+                if (!window.JSZip) {
+                    this.toast('⚠️ ZIP export unavailable.');
+                    return;
+                }
+                const ids = this.getSelectedQuoteIds();
+                if (!ids.length) {
+                    this.toast('⚠️ Select drafts to export.');
+                    return;
+                }
+                const quotes = this.getQuotes().filter(q => ids.includes(q.id));
+                const zip = new JSZip();
+                const errors = [];
+
+                for (const q of quotes) {
+                    const folderName = this.sanitizeFilename(q.title);
+                    const folder = zip.folder(folderName);
+
+                    const csv = this.buildCSV(q.data);
+                    folder.file(csv.filename, csv.content);
+
+                    const cms = this.buildCMSMTF(q.data);
+                    folder.file(cms.filename, cms.content);
+
+                    const xml = this.buildXML(q.data);
+                    if (xml.ok) {
+                        folder.file(xml.filename, xml.content);
+                    } else {
+                        errors.push(`${q.title}: ${xml.error.replace('⚠️ ', '')}`);
+                    }
+
+                    const pdf = this.buildPDF(q.data);
+                    folder.file(pdf.filename, pdf.blob);
+                }
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const zipName = `Altech_Quotes_${new Date().toISOString().split('T')[0]}.zip`;
+                this.downloadBlob(zipBlob, zipName);
+
+                if (errors.length) {
+                    this.toast('⚠️ Some XML exports were skipped.');
+                    console.warn('ZIP export warnings:', errors);
+                } else {
+                    this.toast('📦 ZIP downloaded');
+                }
+            },
+            
+            reset() {
+                if(confirm("Delete all data and start over?")) {
+                    localStorage.removeItem(this.storageKey);
+                    location.reload();
+                }
+            },
+
+            blobToBase64(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const base64 = reader.result.split(',')[1]; // Remove data:application/zip;base64, prefix
+                        resolve(base64);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            },
+
+            async emailSelectedQuotes(event) {
+                const agentEmail = document.getElementById('agentEmail')?.value;
+                if (!agentEmail) {
+                    alert('⚠️ Please select an agent');
+                    return;
+                }
+
+                // Check if any quotes selected
+                const selectedIds = this.getSelectedQuoteIds();
+                if (selectedIds.length === 0) {
+                    alert('⚠️ Please select at least one quote to email');
+                    return;
+                }
+
+                try {
+                    // Show loading state
+                    const btn = event?.target || document.querySelector('[onclick="App.emailSelectedQuotes()"]');
+                    const originalText = btn.textContent;
+                    btn.disabled = true;
+                    btn.textContent = '⏳ Preparing email...';
+
+                    if (!window.JSZip) {
+                        throw new Error('ZIP library not available');
+                    }
+
+                    // Generate ZIP in memory
+                    const zip = new JSZip();
+                    for (const quoteId of selectedIds) {
+                        const quote = this.getQuotes().find(q => q.id === quoteId);
+                        if (!quote) continue;
+
+                        const quoteName = this.sanitizeFilename(this.getQuoteTitle(quote.data));
+                        const folder = zip.folder(quoteName);
+
+                        // Add all export formats
+                        const pdfBlob = (await this.buildPDF(quote.data)).blob;
+                        folder.file('Summary.pdf', pdfBlob);
+
+                        const csvData = this.buildCSV(quote.data);
+                        folder.file('Export.csv', csvData.content);
+
+                        const cmsmtfData = this.buildCMSMTF(quote.data);
+                        folder.file('HawkSoft.cmsmtf', cmsmtfData.content);
+
+                        const xmlResult = this.buildXML(quote.data);
+                        if (xmlResult.ok) {
+                            folder.file('EZLynx.xml', xmlResult.content);
+                        }
+                    }
+
+                    // Generate ZIP blob
+                    const zipBlob = await zip.generateAsync({ type: 'blob' });
+                    const base64Zip = await this.blobToBase64(zipBlob);
+
+                    // Prepare email payload
+                    const payload = {
+                        base64Zip,
+                        zipName: `Altech_Quotes_${new Date().toISOString().split('T')[0]}.zip`,
+                        agentEmail,
+                        senderEmail: document.getElementById('email')?.value || 'unknown@domain.com',
+                        senderName: [
+                            document.getElementById('firstName')?.value,
+                            document.getElementById('lastName')?.value
+                        ].filter(Boolean).join(' ') || 'Lead Submission'
+                    };
+
+                    // Call Vercel function
+                    const response = await fetch('/api/send-quotes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // Success!
+                        btn.textContent = '✅ Email sent!';
+                        setTimeout(() => {
+                            btn.disabled = false;
+                            btn.textContent = originalText;
+                        }, 2000);
+                        this.toast('📧 Quote(s) emailed to agent');
+                    } else {
+                        throw new Error(result.error || 'Failed to send email');
+                    }
+                } catch (error) {
+                    alert('❌ Error sending email: ' + error.message);
+                    const btn = event?.target || document.querySelector('[onclick="App.emailSelectedQuotes()"]');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'Send ZIP';
+                    }
+                }
+            }
+        };
+
+        window.onload = () => App.init();
+    </script>
+</body>
+</html>
