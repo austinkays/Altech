@@ -1440,7 +1440,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const filtered = quotes.filter(q => q.id !== autoId);
                 
                 // Add current data as auto-selected draft at top
-                const title = this.getQuoteTitle(snapshot);
+                const baseTitle = this.getQuoteTitle(snapshot);
+                const title = `${baseTitle} (Current Draft)`;
                 filtered.unshift({ id: autoId, title, data: snapshot, updatedAt: new Date().toISOString() });
                 this.saveQuotes(filtered);
                 this.renderQuoteList();
