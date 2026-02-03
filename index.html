@@ -1661,7 +1661,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     const btn = event?.target || document.querySelector('[onclick="App.emailSelectedQuotes()"]');
                     const originalText = btn.textContent;
                     btn.disabled = true;
-                    btn.textContent = '⏳ Preparing email...';
+                    btn.textContent = '⏳ Preparing...';
 
                     if (!window.JSZip) {
                         throw new Error('ZIP library not available');
@@ -1694,50 +1694,33 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                         this.toast('⚠️ Some XML exports were skipped');
                     }
 
-                    // Generate ZIP blob
+                    // Generate and download ZIP blob
                     const zipBlob = await zip.generateAsync({ type: 'blob' });
-                    const base64Zip = await this.blobToBase64(zipBlob);
-
-                    // Prepare email payload
                     const formatLabel = emailFormat === 'pdf' ? 'PDF' : 'XML';
-                    const payload = {
-                        base64Zip,
-                        zipName: `Altech_Quotes_${formatLabel}_${new Date().toISOString().split('T')[0]}.zip`,
-                        agentEmail,
-                        senderEmail: document.getElementById('email')?.value || 'unknown@domain.com',
-                        senderName: [
-                            document.getElementById('firstName')?.value,
-                            document.getElementById('lastName')?.value
-                        ].filter(Boolean).join(' ') || 'Lead Submission'
-                    };
+                    const zipName = `Altech_Quotes_${formatLabel}_${new Date().toISOString().split('T')[0]}.zip`;
+                    this.downloadBlob(zipBlob, zipName);
 
-                    // Call Vercel function
-                    const response = await fetch('/api/send-quotes', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+                    // Prepare mailto link
+                    const senderName = [
+                        document.getElementById('firstName')?.value,
+                        document.getElementById('lastName')?.value
+                    ].filter(Boolean).join(' ') || 'Insurance Lead';
+                    
+                    const subject = encodeURIComponent(`Insurance Quote - ${senderName}`);
+                    const body = encodeURIComponent(
+                        `Hi,\n\nPlease find the attached insurance quote file (${zipName}).\n\nThe file has been downloaded to your device. Please attach it to this email before sending.\n\nThank you,\n${senderName}`
+                    );
+                    
+                    const mailtoLink = `mailto:${agentEmail}?subject=${subject}&body=${body}`;
+                    window.location.href = mailtoLink;
 
-                    let result;
-                    try {
-                        const text = await response.text();
-                        result = text ? JSON.parse(text) : {};
-                    } catch (parseError) {
-                        console.error('Failed to parse response:', parseError);
-                        throw new Error('Server returned invalid response. Please try again.');
-                    }
-
-                    if (response.ok) {
-                        // Success!
-                        btn.textContent = '✅ Email sent!';
-                        setTimeout(() => {
-                            btn.disabled = false;
-                            btn.textContent = originalText;
-                        }, 2000);
-                        this.toast(`📧 ${formatLabel} emailed to agent`);
-                    } else {
-                        throw new Error(result.error || `Server error (${response.status})`);
-                    }
+                    // Reset button
+                    btn.textContent = '✅ Opening email...';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                    }, 2000);
+                    this.toast('📧 Email app opened - attach downloaded file');
                 } catch (error) {
                     console.error('Email error:', error);
                     this.toast('❌ Error: ' + error.message);
