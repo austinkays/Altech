@@ -950,7 +950,7 @@ TCPA Consent: ${this.data.tcpaConsent ? 'Yes' : 'No'}
 <EventCallbackNotification xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <Name>ApplicantCreated</Name>
     <Entity>Applicant</Entity>
-    <EntityId>${escapeXml(this.data.lastName + '_' + Date.now())}</EntityId>
+    <EntityId>${escapeXml((this.data.lastName || 'Lead') + '_' + Date.now())}</EntityId>
     <EventData>
 `;
 
