@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "ProspectApp.html",
+      "src": "index.html",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/ProspectApp.html"
+      "dest": "/index.html"
     }
   ],
   "headers": [
