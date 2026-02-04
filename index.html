@@ -751,6 +751,22 @@
                 <div id="scanResults"></div>
                 <button class="btn btn-primary" style="margin-top:12px;" onclick="App.applyExtractedData()">Apply to Form</button>
             </div>
+
+            <div class="card">
+                <h3>📄 Document Intelligence (Phase 7)</h3>
+                <p class="section-subtitle">Analyze tax docs, deeds, or declarations to extract structured data.</p>
+
+                <div class="scan-actions">
+                    <button class="btn btn-secondary" onclick="App.openDocIntelPicker()">Upload Documents</button>
+                    <button class="btn btn-primary" onclick="App.analyzeDocuments()">Analyze Documents</button>
+                    <button class="btn btn-tertiary" onclick="App.clearDocIntel()">Clear</button>
+                    <input id="docIntelInput" type="file" accept="image/*,application/pdf" multiple class="hidden" />
+                </div>
+
+                <div id="docIntelPreview" class="scan-preview"></div>
+                <div id="docIntelStatus" class="hint hidden"></div>
+                <div id="docIntelResults"></div>
+            </div>
         </div>
 
         <!-- STEP 1: CLIENT INFORMATION -->
@@ -1539,12 +1555,15 @@
             flow: [],
             storageKey: 'altech_v6',
             quotesKey: 'altech_v6_quotes',
+            docIntelKey: 'altech_v6_docintel',
             scanFiles: [],
             extractedData: null,
             encryptionEnabled: true, // Toggle encryption on/off
             drivers: [], // Array of driver objects
             vehicles: [], // Array of vehicle objects
             selectedQuoteIds: new Set(),
+            docIntelFiles: [],
+            docIntelResults: null,
             mapApiKey: null,
             mapPreviewCache: {},
             mapPreviewTimer: null,
@@ -1576,6 +1595,7 @@
                 }
                 
                 await this.load();
+                await this.loadDocIntelResults();
                 await this.loadDriversVehicles(); // Load multi-driver/vehicle data
                 this.handleType(); // Set initial flow
                 await this.renderQuoteList();
@@ -1583,6 +1603,11 @@
                 const scanInput = document.getElementById('policyScanInput');
                 if (scanInput) {
                     scanInput.addEventListener('change', (e) => this.handleScanFiles(e));
+                }
+
+                const docIntelInput = document.getElementById('docIntelInput');
+                if (docIntelInput) {
+                    docIntelInput.addEventListener('change', (e) => this.handleDocIntelFiles(e));
                 }
                 
                 // Auto-save listeners
@@ -1724,6 +1749,11 @@
                 if (input) input.click();
             },
 
+            openDocIntelPicker() {
+                const input = document.getElementById('docIntelInput');
+                if (input) input.click();
+            },
+
             clearScan() {
                 this.scanFiles = [];
                 this.extractedData = null;
@@ -1740,6 +1770,23 @@
                 if (input) input.value = '';
             },
 
+            clearDocIntel() {
+                this.docIntelFiles = [];
+                this.docIntelResults = null;
+                localStorage.removeItem(this.docIntelKey);
+                const preview = document.getElementById('docIntelPreview');
+                if (preview) preview.innerHTML = '';
+                const results = document.getElementById('docIntelResults');
+                if (results) results.innerHTML = '';
+                const status = document.getElementById('docIntelStatus');
+                if (status) {
+                    status.classList.add('hidden');
+                    status.textContent = '';
+                }
+                const input = document.getElementById('docIntelInput');
+                if (input) input.value = '';
+            },
+
             async handleScanFiles(e) {
                 const files = Array.from(e.target.files || []);
                 if (!files.length) return;
@@ -1748,8 +1795,37 @@
                 await this.processScan();
             },
 
+            async handleDocIntelFiles(e) {
+                const files = Array.from(e.target.files || []);
+                if (!files.length) return;
+                this.docIntelFiles = files;
+                await this.renderDocIntelPreview(files);
+            },
+
             async renderScanPreview(files) {
                 const preview = document.getElementById('scanPreview');
+                if (!preview) return;
+                preview.innerHTML = '';
+
+                for (const file of files) {
+                    if (file.type.startsWith('image/')) {
+                        const url = URL.createObjectURL(file);
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.className = 'scan-thumb';
+                        img.onload = () => URL.revokeObjectURL(url);
+                        preview.appendChild(img);
+                    } else {
+                        const chip = document.createElement('div');
+                        chip.className = 'hint';
+                        chip.textContent = `PDF: ${file.name}`;
+                        preview.appendChild(chip);
+                    }
+                }
+            },
+
+            async renderDocIntelPreview(files) {
+                const preview = document.getElementById('docIntelPreview');
                 if (!preview) return;
                 preview.innerHTML = '';
 
@@ -1847,6 +1923,106 @@
                     }
                 } catch (err) {
                     if (status) status.textContent = '⚠️ ' + err.message;
+                }
+            },
+
+            async analyzeDocuments() {
+                const files = this.docIntelFiles.length ? this.docIntelFiles : this.scanFiles;
+                if (!files.length) {
+                    this.toast('⚠️ Upload documents first.');
+                    return;
+                }
+
+                const status = document.getElementById('docIntelStatus');
+                if (status) {
+                    status.classList.remove('hidden');
+                    status.textContent = '⏳ Analyzing documents...';
+                }
+
+                try {
+                    const inlineData = [];
+                    for (const file of files) {
+                        inlineData.push(await this.fileToInlineData(file));
+                    }
+
+                    const response = await fetch('/api/document-intel.js', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ files: inlineData })
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json().catch(() => ({}));
+                        throw new Error(err?.error || 'Unable to analyze documents');
+                    }
+
+                    const result = await response.json();
+                    this.docIntelResults = result;
+                    await this.saveDocIntelResults(result);
+                    this.renderDocIntelResults(result);
+
+                    if (status) {
+                        status.textContent = '✅ Document analysis complete.';
+                    }
+                } catch (err) {
+                    if (status) status.textContent = '⚠️ ' + err.message;
+                }
+            },
+
+            renderDocIntelResults(result) {
+                const container = document.getElementById('docIntelResults');
+                if (!container) return;
+                container.innerHTML = '';
+
+                if (!result) return;
+
+                const summary = document.createElement('div');
+                summary.className = 'hint';
+                summary.textContent = result.summary || 'Document analysis complete.';
+                container.appendChild(summary);
+
+                const docs = result.documents || [];
+                docs.forEach(doc => {
+                    const card = document.createElement('div');
+                    card.className = 'scan-field';
+
+                    const title = document.createElement('label');
+                    title.className = 'label';
+                    title.textContent = doc.title || doc.type || 'Document';
+
+                    const detail = document.createElement('div');
+                    detail.className = 'hint';
+                    detail.textContent = doc.details || doc.notes || 'No details extracted.';
+
+                    card.appendChild(title);
+                    card.appendChild(detail);
+                    container.appendChild(card);
+                });
+            },
+
+            async saveDocIntelResults(result) {
+                if (!result) return;
+                if (this.encryptionEnabled) {
+                    const encrypted = await CryptoHelper.encrypt(result);
+                    localStorage.setItem(this.docIntelKey, encrypted);
+                } else {
+                    localStorage.setItem(this.docIntelKey, JSON.stringify(result));
+                }
+            },
+
+            async loadDocIntelResults() {
+                const stored = localStorage.getItem(this.docIntelKey);
+                if (!stored) return;
+
+                if (this.encryptionEnabled) {
+                    const decrypted = await CryptoHelper.decrypt(stored);
+                    if (decrypted) this.docIntelResults = decrypted;
+                } else {
+                    this.docIntelResults = JSON.parse(stored);
+                }
+
+                if (this.docIntelResults) {
+                    this.renderDocIntelResults(this.docIntelResults);
                 }
             },
 
