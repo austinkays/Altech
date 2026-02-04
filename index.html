@@ -883,11 +883,11 @@
                             🗺️ County GIS
                         </button>
                     </div>
-                    <button class="btn-primary" onclick="App.smartAutoFill()" style="margin-top: 12px; width: 100%; font-size: 14px; padding: 12px;" id="smartFillBtn">
-                        🤖 Smart Auto-Fill (AI-Powered)
+                    <button class="btn-primary" onclick="App.openPropertyResearch()" style="margin-top: 12px; width: 100%; font-size: 14px; padding: 12px;" id="smartFillBtn">
+                        🔍 Open Property Research Tools
                     </button>
                     <p style="font-size: 11px; color: var(--text-secondary); margin-top: 6px; text-align: center;">
-                        Automatically pulls data from Zillow, Redfin, County GIS, and satellite imagery
+                        Opens Zillow, County GIS, and maps to research the property. Use these tools to find and verify details.
                     </p>
                 </div>
             </div>
@@ -2501,6 +2501,26 @@
             openZillow() {
                 const a = `${this.data.addrStreet || ''} ${this.data.addrCity || ''} ${this.data.addrState || ''} ${this.data.addrZip || ''}`;
                 window.open(`https://www.zillow.com/homes/${encodeURIComponent(a)}_rb/`);
+            },
+
+            openPropertyResearch() {
+                const address = this.data.addrStreet || '';
+                const city = this.data.addrCity || '';
+                const state = this.data.addrState || '';
+                const zip = this.data.addrZip || '';
+                
+                if (!address || !city || !state) {
+                    alert('Please enter a complete address (street, city, and state) first.');
+                    return;
+                }
+                
+                // Open research tools in new tabs/windows
+                const addr = `${address} ${city} ${state} ${zip}`.trim();
+                const zillowUrl = `https://www.zillow.com/homes/${encodeURIComponent(addr)}_rb/`;
+                window.open(zillowUrl, 'zillow');
+                
+                // Also trigger GIS if available
+                setTimeout(() => this.openGIS(), 500);
             },
 
             async smartAutoFill() {
