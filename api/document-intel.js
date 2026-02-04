@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${apiKey}`;
     const prompt = `You are an insurance document analyst. Extract structured fields from each document.
 Return ONLY JSON with this shape:
 {
