@@ -1323,7 +1323,7 @@
                 
                 // Try fetching from server endpoint first (Vercel production)
                 try {
-                    const res = await fetch('/api/places-config');
+                    const res = await fetch('/api/places-config.js');
                     if (res.ok) {
                         const data = await res.json();
                         apiKey = data.apiKey;
@@ -1806,7 +1806,7 @@
                         inlineData.push(await this.fileToInlineData(file));
                     }
 
-                    const response = await fetch('/api/policy-scan', {
+                    const response = await fetch('/api/policy-scan.js', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ files: inlineData })
@@ -2523,7 +2523,7 @@
                     btn.innerHTML = '🔄 Analyzing property...';
                     
                     // Call smart extraction API
-                    const response = await fetch('/api/smart-extract', {
+                    const response = await fetch('/api/smart-extract.js', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ address, city, state, zip })
