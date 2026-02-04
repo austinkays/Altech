@@ -2691,7 +2691,7 @@
                 container.innerHTML = this.drivers.map((driver, index) => {
                     const isPrimary = index === 0;
                     const relationshipLabel = driver.relationship
-                        ? (driver.relationship === 'Self' && isPrimary ? '• SELF' : (driver.relationship !== 'Self' ? `• ${driver.relationship}` : ''))
+                        ? (driver.relationship === 'Self' && isPrimary ? '• Self' : (driver.relationship !== 'Self' ? `• ${driver.relationship}` : ''))
                         : '';
 
                     return `
@@ -2725,7 +2725,7 @@
                             <div>
                                 <label class="label">Relationship</label>
                                 <select onchange="App.updateDriver('${driver.id}', 'relationship', this.value)">
-                                    <option value="Self" ${driver.relationship === 'Self' ? 'selected' : ''}>🙋 Self${isPrimary ? ' (Primary)' : ''}</option>
+                                    ${isPrimary ? `<option value="Self" ${driver.relationship === 'Self' ? 'selected' : ''}>🙋 Self (Primary)</option>` : ''}
                                     <option value="Spouse" ${driver.relationship === 'Spouse' ? 'selected' : ''}>💑 Spouse/Partner</option>
                                     <option value="Child" ${driver.relationship === 'Child' ? 'selected' : ''}>👶 Child</option>
                                     <option value="Parent" ${driver.relationship === 'Parent' ? 'selected' : ''}>👵 Parent</option>
@@ -2733,6 +2733,11 @@
                                 </select>
                             </div>
                         </div>
+
+                        <label class="label">Occupation</label>
+                        <input type="text" value="${driver.occupation || ''}" 
+                            onchange="App.updateDriver('${driver.id}', 'occupation', this.value)" 
+                            placeholder="Occupation">
                         
                         <label class="label">Driver's License</label>
                         <div class="export-row" style="margin-bottom:10px; align-items:center;">
