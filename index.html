@@ -883,11 +883,11 @@
                             🗺️ County GIS
                         </button>
                     </div>
-                    <button class="btn-primary" onclick="App.openPropertyResearch()" style="margin-top: 12px; width: 100%; font-size: 14px; padding: 12px;" id="smartFillBtn">
-                        🔍 Open Property Research Tools
+                    <button class="btn-primary" onclick="App.smartAutoFill()" style="margin-top: 12px; width: 100%; font-size: 14px; padding: 12px;" id="smartFillBtn">
+                        🛡️ Scan for Hazards (AI-Powered)
                     </button>
                     <p style="font-size: 11px; color: var(--text-secondary); margin-top: 6px; text-align: center;">
-                        Opens Zillow, County GIS, and maps to research the property. Use these tools to find and verify details.
+                        Uses satellite imagery to detect pools, trampolines, and other property features. AI-powered analysis.
                     </p>
                 </div>
             </div>
@@ -2556,7 +2556,7 @@
                 try {
                     // Update button to show loading
                     btn.disabled = true;
-                    btn.innerHTML = '🔄 Analyzing property...';
+                    btn.innerHTML = '🔄 Analyzing satellite imagery...';
                     
                     // Call smart extraction API
                     const response = await fetch('/api/smart-extract.js', {
@@ -2566,33 +2566,188 @@
                     });
                     
                     if (!response.ok) {
-                        throw new Error('Failed to extract property data');
+                        throw new Error('Failed to analyze property');
                     }
                     
                     const result = await response.json();
                     
                     if (!result.success) {
-                        throw new Error(result.error || 'Extraction failed');
+                        throw new Error(result.error || 'Analysis failed');
                     }
                     
                     // Reset button
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                     
-                    // Show preview modal with satellite image
+                    // Show elegant hazard detection popup
                     const fullAddress = `${address}, ${city}, ${state} ${zip || ''}`.trim();
-                    this.showDataPreview(result.data, result.sources, result.conflicts, result.satelliteImage, fullAddress);
+                    this.showHazardDetectionPopup(result.data, result.satelliteImage, fullAddress);
                     
                 } catch (error) {
                     console.error('Smart auto-fill error:', error);
                     btn.innerHTML = '❌ Failed';
-                    alert('Failed to extract property data. Please try manual entry or check individual sources (Zillow/GIS buttons).');
+                    alert('Failed to analyze property satellite image.\n\nTry:\n- Manually entering details\n- Using Zillow or GIS lookup\n- Checking County property records');
                     
                     setTimeout(() => {
                         btn.innerHTML = originalText;
                         btn.disabled = false;
                     }, 3000);
                 }
+            },
+
+            showHazardDetectionPopup(detections, satelliteImage, address) {
+                // Extract hazard information
+                const hazards = {
+                    pool: detections.pool === 'yes',
+                    trampoline: detections.trampoline === 'yes',
+                    deck: detections.deck === 'yes',
+                    roofType: detections.roofType && detections.roofType !== 'unknown' ? detections.roofType : null,
+                    numStories: detections.numStories && detections.numStories !== 'unknown' ? detections.numStories : null,
+                    garageSpaces: detections.garageSpaces && detections.garageSpaces !== 'unknown' ? detections.garageSpaces : null,
+                };
+                
+                // Count detected hazards
+                const hazardCount = [hazards.pool, hazards.trampoline, hazards.deck].filter(Boolean).length;
+                
+                // Create elegant popup
+                const modalHTML = `
+                    <div class="modal-overlay" id="hazardDetectionModal">
+                        <div class="modal-content" style="max-width: 600px;">
+                            <div class="modal-header">
+                                <h2>🛡️ Property Analysis Complete</h2>
+                                <p style="font-size: 13px; color: var(--text-secondary); margin: 8px 0 0 0;">
+                                    ${address}
+                                </p>
+                            </div>
+                            
+                            <div class="modal-body">
+                                ${satelliteImage ? `
+                                    <div style="margin-bottom: 20px;">
+                                        <p style="font-size: 12px; font-weight: 600; margin: 0 0 8px 0;">🛰️ Satellite Image</p>
+                                        <img 
+                                            src="data:image/png;base64,${satelliteImage}" 
+                                            style="width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border); cursor: pointer;"
+                                            onclick="App.viewSatelliteFullscreen(this.src)"
+                                            title="Click to view fullscreen"
+                                        >
+                                        <p style="font-size: 11px; color: var(--text-secondary); margin: 6px 0 0 0; text-align: center;">Tap to view fullscreen</p>
+                                    </div>
+                                ` : ''}
+                                
+                                <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                                    <p style="font-size: 12px; font-weight: 600; margin: 0 0 12px 0; color: var(--text);">Hazards Detected ${hazardCount > 0 ? `(${hazardCount})` : ''}</p>
+                                    
+                                    <div style="display: grid; gap: 8px;">
+                                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                            <input type="checkbox" id="hazard_pool" ${hazards.pool ? 'checked' : ''} style="cursor: pointer;">
+                                            <span style="font-size: 14px;">🏊 Pool ${hazards.pool ? '✓ Detected' : '(Not detected)'}</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                            <input type="checkbox" id="hazard_trampoline" ${hazards.trampoline ? 'checked' : ''} style="cursor: pointer;">
+                                            <span style="font-size: 14px;">🎪 Trampoline ${hazards.trampoline ? '✓ Detected' : '(Not detected)'}</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                            <input type="checkbox" id="hazard_deck" ${hazards.deck ? 'checked' : ''} style="cursor: pointer;">
+                                            <span style="font-size: 14px;">🛋️ Deck/Patio ${hazards.deck ? '✓ Detected' : '(Not detected)'}</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px;">
+                                    <p style="font-size: 12px; font-weight: 600; margin: 0 0 12px 0; color: var(--text);">Property Details</p>
+                                    
+                                    <div style="display: grid; gap: 8px;">
+                                        ${hazards.numStories ? `
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span style="font-size: 14px;">📊 Stories:</span>
+                                                <span style="font-size: 14px; font-weight: 600;">${hazards.numStories}</span>
+                                            </div>
+                                        ` : ''}
+                                        ${hazards.roofType ? `
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span style="font-size: 14px;">🏠 Roof Type:</span>
+                                                <span style="font-size: 14px; font-weight: 600;">${hazards.roofType}</span>
+                                            </div>
+                                        ` : ''}
+                                        ${hazards.garageSpaces ? `
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span style="font-size: 14px;">🚗 Garage Spaces:</span>
+                                                <span style="font-size: 14px; font-weight: 600;">${hazards.garageSpaces}</span>
+                                            </div>
+                                        ` : ''}
+                                        ${!hazards.numStories && !hazards.roofType && !hazards.garageSpaces ? `
+                                            <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">No additional details detected in satellite image.</p>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="modal-footer">
+                                <button class="btn-secondary" onclick="App.closeHazardModal()">Cancel</button>
+                                <button class="btn-primary" onclick="App.applyHazardDetections()">✅ Apply to Form</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Remove existing modal if present
+                const existing = document.getElementById('hazardDetectionModal');
+                if (existing) existing.remove();
+                
+                // Add to page
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                
+                // Show modal
+                setTimeout(() => {
+                    document.getElementById('hazardDetectionModal').classList.add('active');
+                }, 10);
+                
+                // Store for later use
+                this.detectedHazards = hazards;
+            },
+
+            closeHazardModal() {
+                const modal = document.getElementById('hazardDetectionModal');
+                if (modal) {
+                    modal.classList.remove('active');
+                    setTimeout(() => modal.remove(), 300);
+                }
+            },
+
+            applyHazardDetections() {
+                // Get user-confirmed hazards from checkboxes
+                const pool = document.getElementById('hazard_pool')?.checked || false;
+                const trampoline = document.getElementById('hazard_trampoline')?.checked || false;
+                const deck = document.getElementById('hazard_deck')?.checked || false;
+                
+                // Apply to form
+                if (pool) {
+                    this.data.hasPool = 'yes';
+                    const poolEl = document.getElementById('hasPool');
+                    if (poolEl) poolEl.value = 'yes';
+                }
+                
+                if (trampoline) {
+                    this.data.hasTrampoline = 'yes';
+                    const trampolineEl = document.getElementById('hasTrampoline');
+                    if (trampolineEl) trampolineEl.value = 'yes';
+                }
+                
+                if (deck) {
+                    this.data.hasDeck = 'yes';
+                    const deckEl = document.getElementById('hasDeck');
+                    if (deckEl) deckEl.value = 'yes';
+                }
+                
+                // Save to localStorage
+                this.save({ target: { id: 'hasPool', value: pool ? 'yes' : '' } });
+                
+                // Show confirmation
+                const hazardList = [pool ? '🏊 Pool' : null, trampoline ? '🎪 Trampoline' : null, deck ? '🛋️ Deck' : null].filter(Boolean);
+                alert(`✅ Applied to form:\n\n${hazardList.length > 0 ? hazardList.join('\n') : 'No hazards selected'}`);
+                
+                // Close modal
+                this.closeHazardModal();
             },
 
             showDataPreview(data, sources, conflicts = {}, satelliteImage = null, address = '') {
