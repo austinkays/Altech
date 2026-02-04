@@ -1,5 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
 /**
  * Phase 4: Multimodal Vision Processing
  * 
@@ -12,10 +10,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
  * - Foundation inspection images
  * 
  * Temperature: 0.2 (strict interpretation, minimal hallucination)
- * Model: gemini-2.0-flash-001 (vision-capable)
+ * Model: gemini-2.0-flash-exp (vision-capable)
+ * 
+ * Uses REST API directly (no SDK dependencies needed)
  */
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 /**
  * Process a single property image (base64 or URL)
@@ -419,8 +420,6 @@ async function processDriverLicense(options) {
   console.log(`[DL Scan] Processing image: ${normalizedMimeType}, data length: ${base64Data.length}`);
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-001' });
-
     const prompt = `You are extracting data from a US driver's license image.
 Return ONLY JSON with this schema:
 {
@@ -441,13 +440,19 @@ Rules:
 - Use 2-letter state code
 - If the image is not readable or not a driver's license, set confidence to 0`;
 
-    const response = await model.generateContent({
+    const requestBody = {
       contents: [
         {
-          role: 'user',
           parts: [
-            { inlineData: { mimeType: normalizedMimeType, data: base64Data } },
-            { text: prompt }
+            {
+              text: prompt
+            },
+            {
+              inline_data: {
+                mime_type: normalizedMimeType,
+                data: base64Data
+              }
+            }
           ]
         }
       ],
@@ -457,32 +462,30 @@ Rules:
         topP: 0.8,
         topK: 10
       }
+    };
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
     });
 
-    console.log('[DL Scan] Raw API response structure:', JSON.stringify(response, null, 2).substring(0, 500));
-
-    // Handle different response structures from Gemini API
-    let responseText;
-    if (response?.response?.text) {
-      // New SDK format: response.response.text()
-      responseText = typeof response.response.text === 'function' 
-        ? await response.response.text() 
-        : response.response.text;
-    } else if (response?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      // Alternative format: candidates array
-      responseText = response.candidates[0].content.parts[0].text;
-    } else if (response?.content?.parts?.[0]?.text) {
-      // Old format: direct content.parts
-      responseText = response.content.parts[0].text;
-    } else {
-      console.error('[DL Scan] Unexpected response structure:', JSON.stringify(response, null, 2));
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[DL Scan] API error:', response.status, errorData);
       return {
         success: false,
-        error: 'Unexpected API response format. Please contact support.',
-        data: {},
-        debugInfo: 'Response structure mismatch'
+        error: `API error (${response.status}): ${errorData.error?.message || 'Unknown error'}`,
+        data: {}
       };
     }
+
+    const data = await response.json();
+    console.log('[DL Scan] Raw API response:', JSON.stringify(data).substring(0, 500));
+
+    const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!responseText) {
       console.error('[DL Scan] Empty response text from Gemini API');
