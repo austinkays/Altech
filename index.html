@@ -5139,9 +5139,13 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
             buildCSV(data) {
                 const h = this.getCSVHeaders();
                 const flatNotes = this.getNotesForData(data).replace(/\n/g, ' | ');
+                const driversSummary = (data.drivers || []).map((d, i) => {
+                    const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
+                    return `Driver ${i + 1}: ${name || 'Unknown'} (${d.occupation || 'N/A'})`;
+                }).join(' | ');
                 const row = [
                     data.firstName, data.lastName, data.addrStreet, data.addrCity, data.addrState, data.addrZip,
-                    data.phone, data.email, data.dob, flatNotes, data.qType
+                    data.phone, data.email, data.dob, flatNotes, data.qType, driversSummary
                 ].map(v => `"${v||''}"`).join(',');
 
                 const csv = h.join(',') + "\n" + row;
@@ -5149,13 +5153,13 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
             },
 
             getCSVHeaders() {
-                return ["First Name","Last Name","Address Line 1","City","State Code","Zip Code","Mobile Phone","Email","Date of Birth","Notes","Quote Type"];
+                return ["First Name","Last Name","Address Line 1","City","State Code","Zip Code","Mobile Phone","Email","Date of Birth","Notes","Quote Type","Drivers/Occupations"];
             },
 
             downloadCSVTemplate() {
                 const headers = this.getCSVHeaders();
                 const sample = [
-                    'Jane','Doe','123 Main St','Seattle','WA','98101','2065551212','jane@example.com','1985-05-12','Follow up','home'
+                    'Jane','Doe','123 Main St','Seattle','WA','98101','2065551212','jane@example.com','1985-05-12','Follow up','home','Driver 1: Jane Doe (Engineer)'
                 ].map(v => `"${v}"`).join(',');
                 const content = `${headers.join(',')}\n${sample}`;
                 this.downloadFile(content, 'Altech_Batch_Template.csv', 'text/csv');
