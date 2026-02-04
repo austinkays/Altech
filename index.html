@@ -731,6 +731,7 @@
     <main id="mainContainer">
         <!-- STEP 0: POLICY SCAN -->
         <div id="step-0" class="step">
+            <div id="scanCoverage" class="hint" style="margin-bottom:12px;">Scan coverage: 0/0 fields applied</div>
             <div class="card">
                 <h2>📸 Scan Policy</h2>
                 <p class="section-subtitle">Take photos or upload PDFs of existing policies. AI will extract data to auto-fill the form below. Review extracted data before applying.</p>
@@ -1619,6 +1620,7 @@
                 await this.loadDocIntelResults();
                 await this.loadDriversVehicles(); // Load multi-driver/vehicle data
                 this.handleType(); // Set initial flow
+                this.updateScanCoverage();
                 await this.renderQuoteList();
 
                 const scanInput = document.getElementById('policyScanInput');
@@ -1942,6 +1944,7 @@
                 }
 
                 this.saveDriversVehicles();
+                this.updateScanCoverage();
                 this.toast('✅ Driver license applied');
             },
 
@@ -2266,6 +2269,7 @@
                 };
 
                 this.save({ target: { id: 'docIntel', value: JSON.stringify(this.data.docIntel) } });
+                this.updateScanCoverage();
                 this.toast('✅ Document data applied');
             },
 
@@ -2292,7 +2296,24 @@
 
                 if (this.docIntelResults) {
                     this.renderDocIntelResults(this.docIntelResults);
+                    this.updateScanCoverage();
                 }
+            },
+
+            updateScanCoverage() {
+                const el = document.getElementById('scanCoverage');
+                if (!el) return;
+
+                const fields = [
+                    'firstName','lastName','dob','addrStreet','addrCity','addrState','addrZip',
+                    'email','phone','yrBuilt','sqFt','roofType','mortgagee'
+                ];
+
+                const filled = fields.filter(k => (this.data?.[k] || '').toString().trim().length > 0).length;
+                const total = fields.length;
+                const percent = Math.round((filled / total) * 100);
+
+                el.textContent = `Scan coverage: ${filled}/${total} fields applied (${percent}%)`;
             },
 
             renderExtractionReview(result) {
@@ -4713,6 +4734,7 @@
                 
                 if (fieldsUpdated.length > 0) {
                     alert(`✅ Applied ${fieldsUpdated.length} fields!\n\n${fieldsUpdated.join('\n')}`);
+                    this.updateScanCoverage();
                 }
             },
 
