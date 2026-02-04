@@ -1316,27 +1316,47 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
-        // Load Google Places API dynamically with key from server (optional - form works without it)
+        // Load Google Places API dynamically with key from server or environment (optional - form works without it)
         (async function loadPlacesAPI() {
             try {
-                const res = await fetch('/api/places-config');
-                if (!res.ok) {
-                    console.warn('Places API not configured, address autocomplete disabled');
-                    return;
+                let apiKey = null;
+                
+                // Try fetching from server endpoint first (Vercel production)
+                try {
+                    const res = await fetch('/api/places-config');
+                    if (res.ok) {
+                        const data = await res.json();
+                        apiKey = data.apiKey;
+                    }
+                } catch (e) {
+                    // Server endpoint not available, try alternative methods
                 }
-                const { apiKey } = await res.json();
+                
+                // If no key from server, try checking window for injected key
+                if (!apiKey && window.__PLACES_API_KEY__) {
+                    apiKey = window.__PLACES_API_KEY__;
+                }
+                
+                // If still no key, check if it was passed as query parameter (local dev)
+                if (!apiKey && window.location.search) {
+                    const params = new URLSearchParams(window.location.search);
+                    apiKey = params.get('placesKey');
+                }
+                
                 if (!apiKey) {
-                    console.warn('No API key returned, address autocomplete disabled');
+                    console.info('ℹ️ Google Places API not configured - address autocomplete disabled. For local dev, set PLACES_API_KEY env var or add ?placesKey=... to URL');
                     return;
                 }
+                
                 const script = document.createElement('script');
                 script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initPlaces`;
                 script.async = true;
                 script.defer = true;
-                script.onerror = () => console.warn('Places API script failed to load');
+                script.onerror = () => console.warn('⚠️ Places API script failed to load - address autocomplete disabled');
                 document.head.appendChild(script);
+                console.info('✓ Places API loaded');
             } catch (err) {
-                console.warn('Places API not available:', err.message);
+                console.warn('ℹ️ Places API not available:', err.message);
             }
         })();
     </script>
