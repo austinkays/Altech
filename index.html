@@ -2798,7 +2798,7 @@
             async processDriverLicenseImage(imageFile) {
                 if (!imageFile) return null;
 
-                // Convert HEIC/HEIF to JPEG for iOS compatibility
+                // Always resize and compress images for Vercel 4.5MB limit
                 const convertedFile = await this.convertImageToJPEG(imageFile);
 
                 const reader = new FileReader();
@@ -2806,6 +2806,21 @@
                     reader.onload = async (e) => {
                         const base64Data = e.target.result.split(',')[1];
                         const mimeType = convertedFile.type || 'image/jpeg';
+                        
+                        // Check base64 size (33% larger than raw file)
+                        const base64SizeKB = (base64Data.length * 0.75 / 1024).toFixed(1);
+                        const base64SizeMB = (base64Data.length * 0.75 / 1024 / 1024).toFixed(2);
+                        console.log(`[DL Scan] Base64 size: ${base64SizeKB}KB (${base64SizeMB}MB)`);
+                        
+                        // Reject if payload would exceed 4MB (safer than 4.5MB limit)
+                        if (base64Data.length * 0.75 > 4000000) {
+                            console.error(`[DL Scan] Base64 too large: ${base64SizeMB}MB exceeds 4MB limit`);
+                            return resolve({
+                                success: false,
+                                error: 'Image still too large after compression. Try cropping closer or use a different camera. (Error 413)',
+                                errorCode: 413
+                            });
+                        }
 
                         console.log(`[DL Scan] Uploading image: ${convertedFile.type}, size: ${(convertedFile.size / 1024).toFixed(1)}KB`);
 
@@ -2867,13 +2882,9 @@
             },
 
             async convertImageToJPEG(file) {
-                // If already JPEG or PNG, return as-is
-                if (file.type === 'image/jpeg' || file.type === 'image/png') {
-                    return file;
-                }
-
-                // For HEIC/HEIF or unknown types, convert to JPEG using Canvas
-                console.log(`[Image Convert] Converting ${file.type || 'unknown format'} to JPEG...`);
+                // Always resize and compress all images to stay under Vercel's 4.5MB limit
+                // Modern phones take 5-10MB+ photos that exceed the limit
+                console.log(`[Image Convert] Processing ${file.type || 'unknown'}: ${(file.size / 1024).toFixed(1)}KB`);
 
                 return new Promise((resolve) => {
                     const reader = new FileReader();
@@ -2884,10 +2895,10 @@
                             const canvas = document.createElement('canvas');
                             const ctx = canvas.getContext('2d');
                             
-                            // Limit max dimensions to reduce file size for Vercel (4.5MB payload limit)
-                            // Driver licenses need ~1024px max for good OCR
-                            const MAX_WIDTH = 1024;
-                            const MAX_HEIGHT = 1024;
+                            // Aggressive compression for Vercel 4.5MB payload limit
+                            // 800px is plenty for driver license OCR
+                            const MAX_WIDTH = 800;
+                            const MAX_HEIGHT = 800;
                             let width = img.width;
                             let height = img.height;
 
@@ -2901,27 +2912,40 @@
                             canvas.height = height;
                             ctx.drawImage(img, 0, 0, width, height);
 
-                            // Convert to JPEG blob with aggressive compression
-                            // 0.75 quality balances OCR readability with file size
+                            // Try quality 0.65 first (very aggressive compression)
                             canvas.toBlob((blob) => {
                                 if (blob) {
                                     const sizeKB = (blob.size / 1024).toFixed(1);
                                     const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
-                                    console.log(`[Image Convert] Success: ${sizeKB}KB (${sizeMB}MB)`);
+                                    const originalMB = (file.size / 1024 / 1024).toFixed(2);
+                                    console.log(`[Image Convert] ${originalMB}MB → ${sizeMB}MB (${sizeKB}KB)`);
                                     
-                                    // Warn if still too large (base64 encoding adds ~33% overhead)
-                                    if (blob.size > 3000000) { // 3MB threshold (becomes ~4MB base64)
-                                        console.warn('[Image Convert] Warning: Image may be too large for API (>3MB)');
+                                    // If still too large, try even smaller
+                                    if (blob.size > 2500000) { // 2.5MB raw → ~3.3MB base64
+                                        console.log('[Image Convert] Still large, reducing to 600px...');
+                                        canvas.width = width * 0.75;
+                                        canvas.height = height * 0.75;
+                                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                        
+                                        canvas.toBlob((smallerBlob) => {
+                                            if (smallerBlob) {
+                                                console.log(`[Image Convert] Final: ${(smallerBlob.size / 1024).toFixed(1)}KB`);
+                                                const convertedFile = new File([smallerBlob], 'converted.jpg', { type: 'image/jpeg' });
+                                                resolve(convertedFile);
+                                            } else {
+                                                const convertedFile = new File([blob], 'converted.jpg', { type: 'image/jpeg' });
+                                                resolve(convertedFile);
+                                            }
+                                        }, 'image/jpeg', 0.6);
+                                    } else {
+                                        const convertedFile = new File([blob], 'converted.jpg', { type: 'image/jpeg' });
+                                        resolve(convertedFile);
                                     }
-                                    
-                                    // Create a new File object from blob
-                                    const convertedFile = new File([blob], 'converted.jpg', { type: 'image/jpeg' });
-                                    resolve(convertedFile);
                                 } else {
                                     console.warn('[Image Convert] Failed, using original');
                                     resolve(file);
                                 }
-                            }, 'image/jpeg', 0.75);
+                            }, 'image/jpeg', 0.65);
                         };
                         img.onerror = () => {
                             console.warn('[Image Convert] Image load failed, using original');
