@@ -2194,9 +2194,26 @@
                 window.open(`https://earth.google.com/web/search/${encodeURIComponent(address)}`, '_blank');
             },
 
-            openStreetView() {
+            async openStreetView() {
                 const address = this.getFullAddress();
                 if (!address) return;
+
+                try {
+                    const apiKey = await this.ensureMapApiKey();
+                    if (apiKey) {
+                        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+                        const res = await fetch(geocodeUrl);
+                        if (res.ok) {
+                            const data = await res.json();
+                            const loc = data?.results?.[0]?.geometry?.location;
+                            if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+                                window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${loc.lat},${loc.lng}`, '_blank');
+                                return;
+                            }
+                        }
+                    }
+                } catch (e) {}
+
                 window.open(`https://www.google.com/maps/@?api=1&map_action=pano&query=${encodeURIComponent(address)}`, '_blank');
             },
 
@@ -2277,10 +2294,16 @@
                     return;
                 }
                 
-                container.innerHTML = this.drivers.map((driver, index) => `
+                container.innerHTML = this.drivers.map((driver, index) => {
+                    const isPrimary = index === 0;
+                    const relationshipLabel = driver.relationship
+                        ? (driver.relationship === 'Self' && isPrimary ? '• SELF' : (driver.relationship !== 'Self' ? `• ${driver.relationship}` : ''))
+                        : '';
+
+                    return `
                     <div class="driver-vehicle-card">
                         <div class="driver-vehicle-header">
-                            <h3>👤 Driver ${index + 1} ${driver.relationship ? `• ${driver.relationship}` : ''}</h3>
+                            <h3>👤 Driver ${index + 1} ${relationshipLabel}</h3>
                             <button class="remove-btn" onclick="App.removeDriver('${driver.id}')" title="Remove driver">×</button>
                         </div>
                         
@@ -2308,7 +2331,7 @@
                             <div>
                                 <label class="label">Relationship</label>
                                 <select onchange="App.updateDriver('${driver.id}', 'relationship', this.value)">
-                                    <option value="Self" ${driver.relationship === 'Self' ? 'selected' : ''}>🙋 Self (Primary)</option>
+                                    <option value="Self" ${driver.relationship === 'Self' ? 'selected' : ''}>🙋 Self${isPrimary ? ' (Primary)' : ''}</option>
                                     <option value="Spouse" ${driver.relationship === 'Spouse' ? 'selected' : ''}>💑 Spouse/Partner</option>
                                     <option value="Child" ${driver.relationship === 'Child' ? 'selected' : ''}>👶 Child</option>
                                     <option value="Parent" ${driver.relationship === 'Parent' ? 'selected' : ''}>👵 Parent</option>
@@ -2328,7 +2351,8 @@
                                 placeholder="State" maxlength="2" style="text-transform:uppercase">
                         </div>
                     </div>
-                `).join('');
+                `;
+                }).join('');
             },
 
             addVehicle() {
