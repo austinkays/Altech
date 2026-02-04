@@ -383,6 +383,94 @@ Return JSON:
 }
 
 /**
+ * Process a driver's license image
+ * Extracts name, DOB, license number/state, and address
+ */
+async function processDriverLicense(options) {
+  const { base64Data, mimeType } = options;
+
+  if (!base64Data) {
+    return {
+      success: false,
+      error: 'No image data provided',
+      data: {}
+    };
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-001' });
+
+    const prompt = `You are extracting data from a US driver's license image.
+Return ONLY JSON with this schema:
+{
+  "firstName": "",
+  "lastName": "",
+  "dob": "YYYY-MM-DD",
+  "licenseNumber": "",
+  "licenseState": "",
+  "addressLine1": "",
+  "city": "",
+  "state": "",
+  "zip": "",
+  "confidence": 0-100
+}
+Rules:
+- If a field is missing, use empty string
+- Normalize DOB to YYYY-MM-DD
+- Use 2-letter state code`;
+
+    const response = await model.generateContent({
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64Data } },
+            { text: prompt }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 300
+      }
+    });
+
+    const responseText = response.content.parts[0].text;
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return {
+        success: false,
+        error: 'Unable to parse license data',
+        data: {}
+      };
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    return {
+      success: true,
+      data: {
+        firstName: parsed.firstName || '',
+        lastName: parsed.lastName || '',
+        dob: parsed.dob || '',
+        licenseNumber: parsed.licenseNumber || '',
+        licenseState: parsed.licenseState || parsed.state || '',
+        addressLine1: parsed.addressLine1 || '',
+        city: parsed.city || '',
+        state: parsed.state || '',
+        zip: parsed.zip || ''
+      },
+      confidence: parsed.confidence || 80
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      data: {}
+    };
+  }
+}
+
+/**
  * Batch process multiple images/documents
  * 
  * @param {Array} items - Array of {base64Data, type, ...options}
@@ -523,6 +611,13 @@ export default async function handler(req, res) {
           lat: lat || '0',
           lng: lng || '0',
           county: county || 'unknown'
+        });
+        break;
+
+      case 'scanDriverLicense':
+        result = await processDriverLicense({
+          base64Data,
+          mimeType: mimeType || 'image/jpeg'
         });
         break;
 

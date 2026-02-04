@@ -2602,6 +2602,78 @@
                 }
             },
 
+            openDriverLicensePicker(driverId) {
+                const input = document.getElementById(`dlScan_${driverId}`);
+                if (input) input.click();
+            },
+
+            async handleDriverLicenseFile(driverId, file) {
+                if (!file) return;
+                const result = await this.processDriverLicenseImage(file);
+                if (!result?.success) {
+                    this.toast('⚠️ Unable to read driver license.');
+                    return;
+                }
+
+                const driver = this.drivers.find(d => d.id === driverId);
+                if (!driver) return;
+
+                const data = result.data || {};
+
+                if (!driver.firstName && data.firstName) driver.firstName = data.firstName;
+                if (!driver.lastName && data.lastName) driver.lastName = data.lastName;
+                if (!driver.dob && data.dob) driver.dob = data.dob;
+                if (!driver.dlNum && data.licenseNumber) driver.dlNum = data.licenseNumber;
+                if (!driver.dlState && data.licenseState) driver.dlState = data.licenseState;
+
+                const setFieldIfEmpty = (id, value) => {
+                    if (!value) return;
+                    const el = document.getElementById(id);
+                    if (!el || el.value) return;
+                    el.value = value;
+                    this.save({ target: { id, value } });
+                };
+
+                setFieldIfEmpty('addrStreet', data.addressLine1);
+                setFieldIfEmpty('addrCity', data.city);
+                setFieldIfEmpty('addrState', data.state);
+                setFieldIfEmpty('addrZip', data.zip);
+
+                this.saveDriversVehicles();
+                this.renderDrivers();
+                this.toast('✅ License data captured');
+            },
+
+            async processDriverLicenseImage(imageFile) {
+                if (!imageFile) return null;
+
+                const reader = new FileReader();
+                return new Promise((resolve) => {
+                    reader.onload = async (e) => {
+                        const base64Data = e.target.result.split(',')[1];
+
+                        try {
+                            const response = await fetch('/api/vision-processor.js', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    action: 'scanDriverLicense',
+                                    base64Data,
+                                    mimeType: imageFile.type || 'image/jpeg'
+                                })
+                            });
+
+                            const result = await response.json();
+                            resolve(result);
+                        } catch (error) {
+                            console.error('Driver license scan error:', error);
+                            resolve({ success: false, error: error.message });
+                        }
+                    };
+                    reader.readAsDataURL(imageFile);
+                });
+            },
+
             renderDrivers() {
                 const container = document.getElementById('driversList');
                 if (!container) return;
@@ -2658,6 +2730,10 @@
                         </div>
                         
                         <label class="label">Driver's License</label>
+                        <div class="export-row" style="margin-bottom:10px;">
+                            <button class="btn btn-tertiary" onclick="App.openDriverLicensePicker('${driver.id}')">📸 Scan Driver's License</button>
+                            <input id="dlScan_${driver.id}" type="file" accept="image/*" class="hidden" onchange="App.handleDriverLicenseFile('${driver.id}', this.files[0])" />
+                        </div>
                         <div class="grid-2">
                             <input type="text" value="${driver.dlNum || ''}" 
                                 onchange="App.updateDriver('${driver.id}', 'dlNum', this.value)" 
