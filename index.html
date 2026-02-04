@@ -122,6 +122,13 @@
             gap: 8px;
             margin-bottom: 8px;
         }
+        .quote-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 6px;
+            accent-color: var(--apple-blue);
+            cursor: pointer;
+        }
         .quote-name { font-weight: 600; font-size: 14px; color: var(--text); }
         .quote-star {
             font-size: 18px;
@@ -1280,7 +1287,15 @@
                             </div>
                             <div class="export-row">
                                 <button class="btn btn-secondary" onclick="App.exportSelectedZip()">📦 Download ZIP (Selected)</button>
+                                <button class="btn btn-tertiary" onclick="App.exportAllZip()">📦 Export All ZIP</button>
+                            </div>
+                            <div class="export-row">
+                                <button class="btn btn-tertiary" onclick="App.selectAllQuotes()">✅ Select All</button>
+                                <button class="btn btn-tertiary" onclick="App.clearQuoteSelection()">✖ Clear Selection</button>
                                 <button class="btn btn-tertiary" onclick="App.clearAllDrafts()">🧹 Clear Drafts</button>
+                            </div>
+                            <div class="export-row">
+                                <input id="quoteSearch" class="quote-search-input" type="text" placeholder="Search drafts" oninput="App.filterQuotes(this.value)">
                             </div>
                             <div id="quoteList" class="quote-list"></div>
                             <div class="hint">Select drafts to include in the ZIP. Use Load to resume any draft.</div>
@@ -1289,9 +1304,14 @@
                         <div class="divider"></div>
 
                         <div>
-                            <h4 style="font-size:15px; font-weight:600; margin-bottom:8px;">� Export Options</h4>
-                            <p class="section-subtitle">Download selected quotes in your preferred format</p>
-                            <div class="hint">Select one or more drafts above, then click "Download ZIP" to get all exports in a single file.</div>
+                            <h4 style="font-size:15px; font-weight:600; margin-bottom:8px;">Batch Import (CSV)</h4>
+                            <p class="section-subtitle">Upload a spreadsheet to create multiple drafts at once</p>
+                            <div class="export-row">
+                                <button class="btn btn-secondary" onclick="App.downloadCSVTemplate()">📄 Download CSV Template</button>
+                                <button class="btn btn-tertiary" onclick="App.openBatchImport()">⬆️ Import CSV</button>
+                                <input id="batchCsvInput" type="file" accept=".csv" class="hidden" onchange="App.handleBatchImport(this.files[0])" />
+                            </div>
+                            <div class="hint">Required columns: First Name, Last Name, Address Line 1, City, State Code, Zip Code.</div>
                         </div>
                     </div>
                 </details>
@@ -1524,6 +1544,7 @@
             encryptionEnabled: true, // Toggle encryption on/off
             drivers: [], // Array of driver objects
             vehicles: [], // Array of vehicle objects
+            selectedQuoteIds: new Set(),
             mapApiKey: null,
             mapPreviewCache: {},
             mapPreviewTimer: null,
@@ -4500,6 +4521,7 @@ Student GPA: ${data.studentGPA || 'N/A'}
 === ADDITIONAL INFO ===
 Mortgagee: ${data.mortgagee || ''}
 Additional Insureds: ${data.additionalInsureds || 'None'}
+Import Notes: ${data.importNotes || ''}
 Purchase Date: ${data.purchaseDate || ''}
 Kitchen/Bath Quality: ${data.kitchenQuality || ''}
 Best Contact Time: ${data.contactTime || ''}
@@ -4702,15 +4724,165 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
             },
 
             buildCSV(data) {
-                const h = ["First Name","Last Name","Address Line 1","City","State Code","Zip Code","Mobile Phone","Email","Date of Birth","Notes"];
+                const h = this.getCSVHeaders();
                 const flatNotes = this.getNotesForData(data).replace(/\n/g, ' | ');
                 const row = [
                     data.firstName, data.lastName, data.addrStreet, data.addrCity, data.addrState, data.addrZip,
-                    data.phone, data.email, data.dob, flatNotes
+                    data.phone, data.email, data.dob, flatNotes, data.qType
                 ].map(v => `"${v||''}"`).join(',');
 
                 const csv = h.join(',') + "\n" + row;
                 return { content: csv, filename: `Lead_${data.lastName || 'Export'}.csv`, mime: 'text/csv' };
+            },
+
+            getCSVHeaders() {
+                return ["First Name","Last Name","Address Line 1","City","State Code","Zip Code","Mobile Phone","Email","Date of Birth","Notes","Quote Type"];
+            },
+
+            downloadCSVTemplate() {
+                const headers = this.getCSVHeaders();
+                const sample = [
+                    'Jane','Doe','123 Main St','Seattle','WA','98101','2065551212','jane@example.com','1985-05-12','Follow up','home'
+                ].map(v => `"${v}"`).join(',');
+                const content = `${headers.join(',')}\n${sample}`;
+                this.downloadFile(content, 'Altech_Batch_Template.csv', 'text/csv');
+                this.toast('📄 CSV template downloaded');
+            },
+
+            openBatchImport() {
+                const input = document.getElementById('batchCsvInput');
+                if (!input) return;
+                input.value = '';
+                input.click();
+            },
+
+            async handleBatchImport(file) {
+                if (!file) return;
+                const text = await file.text();
+                const parsed = this.parseCSV(text);
+                if (!parsed || !parsed.rows.length) {
+                    this.toast('⚠️ CSV has no rows.');
+                    return;
+                }
+
+                const quotes = await this.getQuotes();
+                const errors = [];
+                let created = 0;
+
+                parsed.rows.forEach((row, index) => {
+                    const data = this.mapCsvRowToData(parsed.headers, row);
+                    if (!data.addrStreet || !data.addrCity || !data.addrState) {
+                        errors.push(`Row ${index + 2}: Missing address fields`);
+                        return;
+                    }
+
+                    const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+                    const title = this.getQuoteTitle(data);
+                    quotes.unshift({
+                        id,
+                        title,
+                        data,
+                        updatedAt: new Date().toISOString(),
+                        starred: false,
+                        isDuplicate: false
+                    });
+                    created += 1;
+                });
+
+                await this.saveQuotes(quotes);
+                await this.renderQuoteList();
+
+                if (created) {
+                    this.toast(`✅ Imported ${created} draft${created > 1 ? 's' : ''}`);
+                }
+                if (errors.length) {
+                    console.warn('Batch import warnings:', errors);
+                    this.toast('⚠️ Some rows were skipped.');
+                }
+            },
+
+            parseCSV(text) {
+                if (!text) return { headers: [], rows: [] };
+                const rows = [];
+                let cur = '';
+                let row = [];
+                let inQuotes = false;
+
+                for (let i = 0; i < text.length; i++) {
+                    const ch = text[i];
+                    const next = text[i + 1];
+
+                    if (ch === '"') {
+                        if (inQuotes && next === '"') {
+                            cur += '"';
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                        continue;
+                    }
+
+                    if (ch === ',' && !inQuotes) {
+                        row.push(cur);
+                        cur = '';
+                        continue;
+                    }
+
+                    if ((ch === '\n' || ch === '\r') && !inQuotes) {
+                        if (ch === '\r' && next === '\n') i++;
+                        row.push(cur);
+                        cur = '';
+                        if (row.some(cell => cell.trim().length)) {
+                            rows.push(row);
+                        }
+                        row = [];
+                        continue;
+                    }
+
+                    cur += ch;
+                }
+
+                if (cur.length || row.length) {
+                    row.push(cur);
+                    if (row.some(cell => cell.trim().length)) {
+                        rows.push(row);
+                    }
+                }
+
+                const headers = (rows.shift() || []).map(h => h.trim());
+                return { headers, rows };
+            },
+
+            mapCsvRowToData(headers, row) {
+                const data = {};
+                headers.forEach((header, i) => {
+                    const key = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const value = (row[i] || '').trim();
+
+                    const map = {
+                        firstname: 'firstName',
+                        lastname: 'lastName',
+                        addressline1: 'addrStreet',
+                        city: 'addrCity',
+                        statecode: 'addrState',
+                        zipcode: 'addrZip',
+                        mobilephone: 'phone',
+                        email: 'email',
+                        dateofbirth: 'dob',
+                        notes: 'importNotes',
+                        quotetype: 'qType'
+                    };
+
+                    const field = map[key];
+                    if (field) data[field] = value;
+                });
+
+                if (data.addrState) data.addrState = data.addrState.toUpperCase();
+                if (data.qType) {
+                    const qt = data.qType.toLowerCase();
+                    if (['home','auto','both'].includes(qt)) data.qType = qt;
+                }
+                return data;
             },
 
             exportCMSMTF() {
@@ -5051,6 +5223,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const title = `${baseTitle} (Current Draft)`;
                 filtered.unshift({ id: autoId, title, data: snapshot, updatedAt: new Date().toISOString() });
                 await this.saveQuotes(filtered);
+                this.selectedQuoteIds.add(autoId);
                 await this.renderQuoteList();
                 
                 // Auto-select the current draft
@@ -5112,6 +5285,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const quotes = await this.getQuotes();
                 const filtered = quotes.filter(q => q.id !== id);
                 await this.saveQuotes(filtered);
+                this.selectedQuoteIds.delete(id);
                 await this.renderQuoteList();
                 this.toast('🗑️ Draft removed');
             },
@@ -5137,6 +5311,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
             clearAllDrafts() {
                 if (!confirm('Clear all saved drafts?')) return;
                 localStorage.removeItem(this.quotesKey);
+                this.selectedQuoteIds.clear();
                 this.renderQuoteList();
                 this.toast('🧹 Drafts cleared');
             },
@@ -5157,11 +5332,25 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     const row = document.createElement('div');
                     row.className = 'quote-card';
                     row.setAttribute('data-quote-id', q.id);
-                    row.setAttribute('data-search-text', `${q.title} ${this.getQuoteMeta(q)}`);
+                    const addr = `${q.data.addrStreet || ''} ${q.data.addrCity || ''} ${q.data.addrState || ''}`.trim();
+                    row.setAttribute('data-search-text', `${q.title} ${addr} ${this.getQuoteMeta(q)}`);
 
                     // Header with name and star
                     const header = document.createElement('div');
                     header.className = 'quote-card-header';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'quote-checkbox';
+                    checkbox.dataset.id = q.id;
+                    checkbox.checked = this.selectedQuoteIds.has(q.id);
+                    checkbox.onchange = () => {
+                        if (checkbox.checked) {
+                            this.selectedQuoteIds.add(q.id);
+                        } else {
+                            this.selectedQuoteIds.delete(q.id);
+                        }
+                    };
                     
                     const nameSpan = document.createElement('span');
                     nameSpan.className = 'quote-name';
@@ -5180,6 +5369,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     
                     header.appendChild(nameSpan);
                     header.appendChild(starBtn);
+                    header.prepend(checkbox);
 
                     // Stats
                     const stats = document.createElement('div');
@@ -5224,6 +5414,20 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     const text = (card.getAttribute('data-search-text') || '').toLowerCase();
                     card.style.display = text.includes(term) ? '' : 'none';
                 });
+            },
+
+            selectAllQuotes() {
+                this.getQuotes().then(quotes => {
+                    this.selectedQuoteIds = new Set(quotes.map(q => q.id));
+                    this.renderQuoteList();
+                    this.toast('✅ All drafts selected');
+                });
+            },
+
+            clearQuoteSelection() {
+                this.selectedQuoteIds.clear();
+                this.renderQuoteList();
+                this.toast('✖ Selection cleared');
             },
             
             async toggleQuoteStar(quoteId) {
@@ -5340,6 +5544,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
             },
 
             getSelectedQuoteIds() {
+                if (this.selectedQuoteIds && this.selectedQuoteIds.size) {
+                    return Array.from(this.selectedQuoteIds);
+                }
                 return Array.from(document.querySelectorAll('.quote-checkbox:checked'))
                     .map(cb => cb.dataset.id);
             },
@@ -5373,6 +5580,12 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                         errors.push(`${q.title}: ${xml.error.replace('⚠️ ', '')}`);
                     }
 
+                    const cmsmtf = this.buildCMSMTF(q.data);
+                    folder.file(cmsmtf.filename, cmsmtf.content);
+
+                    const csv = this.buildCSV(q.data);
+                    folder.file(csv.filename, csv.content);
+
                     const pdf = await this.buildPDF(q.data);
                     folder.file(pdf.filename, pdf.blob);
                 }
@@ -5387,6 +5600,17 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 } else {
                     this.toast('📦 ZIP downloaded');
                 }
+            },
+
+            async exportAllZip() {
+                const quotes = await this.getQuotes();
+                if (!quotes.length) {
+                    this.toast('⚠️ No drafts to export.');
+                    return;
+                }
+                this.selectedQuoteIds = new Set(quotes.map(q => q.id));
+                await this.renderQuoteList();
+                await this.exportSelectedZip();
             },
             
             reset() {
