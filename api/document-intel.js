@@ -29,10 +29,24 @@ export default async function handler(req, res) {
     }
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    const prompt = `You are an insurance document analyst. Extract a concise summary per document.
+    const prompt = `You are an insurance document analyst. Extract structured fields from each document.
 Return ONLY JSON with this shape:
 {
   "summary": "...",
+  "fields": {
+    "yearBuilt": "",
+    "assessedValue": "",
+    "ownerName": "",
+    "policyNumber": "",
+    "effectiveDate": "",
+    "expirationDate": "",
+    "mortgagee": "",
+    "addressLine1": "",
+    "city": "",
+    "state": "",
+    "zip": "",
+    "source": "doc-intel"
+  },
   "documents": [
     {"title":"Tax Document","type":"tax","details":"key fields extracted"}
   ]
@@ -78,6 +92,7 @@ If unsure, return best-effort details.`;
     return res.status(200).json({
       success: true,
       summary: parsed.summary || 'Document analysis complete.',
+      fields: parsed.fields || {},
       documents: parsed.documents || []
     });
   } catch (error) {

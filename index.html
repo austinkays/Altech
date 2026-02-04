@@ -759,6 +759,7 @@
                 <div class="scan-actions">
                     <button class="btn btn-secondary" onclick="App.openDocIntelPicker()">Upload Documents</button>
                     <button class="btn btn-primary" onclick="App.analyzeDocuments()">Analyze Documents</button>
+                    <button class="btn btn-secondary" onclick="App.applyDocIntelToForm()">Apply to Form</button>
                     <button class="btn btn-tertiary" onclick="App.clearDocIntel()">Clear</button>
                     <input id="docIntelInput" type="file" accept="image/*,application/pdf" multiple class="hidden" />
                 </div>
@@ -1976,6 +1977,14 @@
 
                 if (!result) return;
 
+                const warnings = this.getDocIntelWarnings(result);
+                if (warnings.length) {
+                    const warn = document.createElement('div');
+                    warn.className = 'hint';
+                    warn.textContent = '⚠️ ' + warnings.join(' | ');
+                    container.appendChild(warn);
+                }
+
                 const summary = document.createElement('div');
                 summary.className = 'hint';
                 summary.textContent = result.summary || 'Document analysis complete.';
@@ -1998,6 +2007,68 @@
                     card.appendChild(detail);
                     container.appendChild(card);
                 });
+            },
+
+            getDocIntelWarnings(result) {
+                const warnings = [];
+                const fields = result?.fields || {};
+                if (fields.yearBuilt && this.data.yrBuilt) {
+                    const diff = Math.abs(parseInt(fields.yearBuilt, 10) - parseInt(this.data.yrBuilt, 10));
+                    if (!Number.isNaN(diff) && diff >= 2) {
+                        warnings.push(`Year built mismatch (${fields.yearBuilt} vs ${this.data.yrBuilt})`);
+                    }
+                }
+                if (!fields.ownerName && (fields.deedBook || fields.apn)) {
+                    warnings.push('Owner name missing from document extraction');
+                }
+                if (fields.assessedValue && !this.data.propertyValue) {
+                    warnings.push('Assessed value found — consider setting property value');
+                }
+                return warnings;
+            },
+
+            applyDocIntelToForm() {
+                if (!this.docIntelResults) {
+                    this.toast('⚠️ Run document analysis first.');
+                    return;
+                }
+                const fields = this.docIntelResults.fields || {};
+
+                const setIfEmpty = (id, value) => {
+                    if (!value) return;
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    if (!el.value) {
+                        el.value = value;
+                        this.data[id] = value;
+                    }
+                };
+
+                setIfEmpty('yrBuilt', fields.yearBuilt);
+                setIfEmpty('addrStreet', fields.addressLine1);
+                setIfEmpty('addrCity', fields.city);
+                setIfEmpty('addrState', fields.state);
+                setIfEmpty('addrZip', fields.zip);
+                setIfEmpty('mortgagee', fields.mortgagee);
+                setIfEmpty('purchaseDate', fields.purchaseDate);
+
+                if (fields.assessedValue && !this.data.propertyValue) {
+                    this.data.propertyValue = fields.assessedValue;
+                }
+
+                this.data.docIntel = {
+                    source: fields.source || 'Document Intelligence',
+                    yearBuilt: fields.yearBuilt || '',
+                    assessedValue: fields.assessedValue || '',
+                    ownerName: fields.ownerName || '',
+                    policyNumber: fields.policyNumber || '',
+                    effectiveDate: fields.effectiveDate || '',
+                    expirationDate: fields.expirationDate || '',
+                    mortgagee: fields.mortgagee || ''
+                };
+
+                this.save({ target: { id: 'docIntel', value: JSON.stringify(this.data.docIntel) } });
+                this.toast('✅ Document data applied');
             },
 
             async saveDocIntelResults(result) {
@@ -4703,6 +4774,15 @@ Kitchen/Bath Quality: ${data.kitchenQuality || ''}
 Best Contact Time: ${data.contactTime || ''}
 Referral Source: ${data.referralSource || ''}
 TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
+
+=== DOCUMENT INTELLIGENCE ===
+Year Built (Doc): ${data.docIntel?.yearBuilt || ''}
+Assessed Value (Doc): ${data.docIntel?.assessedValue || ''}
+Owner Name (Doc): ${data.docIntel?.ownerName || ''}
+Policy Number (Doc): ${data.docIntel?.policyNumber || ''}
+Effective Date (Doc): ${data.docIntel?.effectiveDate || ''}
+Expiration Date (Doc): ${data.docIntel?.expirationDate || ''}
+Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 `.trim();
             },
 
