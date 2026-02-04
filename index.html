@@ -1974,13 +1974,30 @@
             },
 
             async optimizeImage(file) {
+                console.log(`[Image Optimize] Processing ${file.type || 'unknown'}: ${(file.size / 1024).toFixed(1)}KB`);
+                
                 const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
                 const canvas = document.createElement('canvas');
-                canvas.width = bitmap.width;
-                canvas.height = bitmap.height;
+                
+                // Resize to avoid 413 payload errors (same as driver license scan)
+                // Policy docs can be much larger than licenses, use 1200px max
+                const MAX_WIDTH = 1200;
+                const MAX_HEIGHT = 1200;
+                let width = bitmap.width;
+                let height = bitmap.height;
+                
+                if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                    const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+                    width = Math.floor(width * ratio);
+                    height = Math.floor(height * ratio);
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(bitmap, 0, 0);
+                ctx.drawImage(bitmap, 0, 0, width, height);
 
+                // Apply contrast enhancement for better OCR
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imageData.data;
                 const contrast = 1.1;
@@ -1993,8 +2010,32 @@
                 }
 
                 ctx.putImageData(imageData, 0, 0);
-                const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
-                return blob || file;
+                
+                // Use 0.85 quality (better than driver license since docs need clarity)
+                const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+                
+                if (blob) {
+                    const originalMB = (file.size / 1024 / 1024).toFixed(2);
+                    const finalMB = (blob.size / 1024 / 1024).toFixed(2);
+                    console.log(`[Image Optimize] ${originalMB}MB → ${finalMB}MB`);
+                    
+                    // If still too large, reduce further
+                    if (blob.size > 2500000) {
+                        console.log('[Image Optimize] Still large, reducing to 800px...');
+                        canvas.width = width * 0.67;
+                        canvas.height = height * 0.67;
+                        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                        
+                        const smallerBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+                        if (smallerBlob) {
+                            console.log(`[Image Optimize] Final: ${(smallerBlob.size / 1024).toFixed(1)}KB`);
+                            return smallerBlob;
+                        }
+                    }
+                    return blob;
+                }
+                
+                return file;
             },
 
             async fileToInlineData(file) {
@@ -2005,6 +2046,19 @@
                     reader.onload = () => {
                         const result = reader.result;
                         const base64 = result.split(',')[1];
+                        
+                        // Check size to avoid 413 errors (base64 is ~33% larger than file)
+                        const estimatedSizeKB = (base64.length * 0.75 / 1024).toFixed(1);
+                        const estimatedSizeMB = (base64.length * 0.75 / 1024 / 1024).toFixed(2);
+                        
+                        if (base64.length * 0.75 > 4000000) {
+                            console.error(`[File Convert] Too large: ${estimatedSizeMB}MB exceeds 4MB limit`);
+                            reject(new Error(`File too large (${estimatedSizeMB}MB). Please use a smaller image or crop the document.`));
+                            return;
+                        }
+                        
+                        console.log(`[File Convert] ${file.name}: ${estimatedSizeKB}KB`);
+                        
                         resolve({
                             mimeType: blob.type || file.type || 'application/octet-stream',
                             data: base64
