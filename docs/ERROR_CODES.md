@@ -20,11 +20,12 @@
 - **311** - Invalid data structure (parsed but not an object)
 - **312** - Low confidence (<30%) - image quality too poor or not a license
 
-### Network/Runtime Errors (320-322, 399)
+### Network/Runtime Errors (320-322, 399, 999)
 - **320** - API key format error or authentication failed
 - **321** - Rate limit exceeded (quota/throttling)
 - **322** - Network/fetch error (timeout, connection failed)
 - **399** - Unknown error (catch-all for unexpected errors)
+- **999** - Client-side exception (JavaScript error in browser)
 
 ## How to Use Error Codes
 
@@ -85,6 +86,15 @@ Example API response with error:
 1. Wait 60 seconds and try again
 2. Check if multiple users hitting same API key
 3. Consider upgrading API quota
+
+### Error 999
+**Symptom:** "Client error" with JavaScript exception  
+**Cause:** Error in browser before reaching API  
+**Solutions:**
+1. Check browser console for full error details
+2. Try refreshing the page
+3. Clear browser cache and reload
+4. Try a different browser (Chrome recommended)
 
 ## Adding New Error Codes
 

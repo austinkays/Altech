@@ -2820,14 +2820,36 @@
                                 })
                             });
 
-                            const result = await response.json();
-                            if (!result.success) {
-                                console.error('[DL Scan] API Error:', result.error);
+                            console.log(`[DL Scan] Response status: ${response.status} ${response.statusText}`);
+
+                            if (!response.ok) {
+                                console.error(`[DL Scan] HTTP error: ${response.status}`);
+                                const errorText = await response.text();
+                                console.error('[DL Scan] Error response:', errorText);
+                                return resolve({ 
+                                    success: false, 
+                                    error: `Network error (${response.status}): ${response.statusText}`,
+                                    errorCode: response.status
+                                });
                             }
+
+                            const result = await response.json();
+                            console.log('[DL Scan] API result:', result);
+                            
+                            if (!result.success) {
+                                console.error('[DL Scan] API Error:', result.error, 'Code:', result.errorCode);
+                            } else {
+                                console.log('[DL Scan] Success! Confidence:', result.confidence);
+                            }
+                            
                             resolve(result);
                         } catch (error) {
-                            console.error('Driver license scan error:', error);
-                            resolve({ success: false, error: error.message });
+                            console.error('[DL Scan] Exception:', error);
+                            resolve({ 
+                                success: false, 
+                                error: `Client error: ${error.message} (Error 999)`,
+                                errorCode: 999
+                            });
                         }
                     };
                     reader.readAsDataURL(convertedFile);
