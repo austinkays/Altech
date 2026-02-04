@@ -5,20 +5,20 @@ Welcome! This guide will get you from zero to deployed in 5 minutes.
 ## Step 1: Choose Your Deployment Method
 
 ### 🟢 Super Easy (Recommended for beginners)
-**Netlify One-Click Deploy**
-1. Go to: https://app.netlify.com/start
-2. Click "Import from Git"
+**Vercel Deploy**
+1. Go to: https://vercel.com
+2. Click "New Project"
 3. Choose GitHub → Select "Altech" repository
-4. Click "Deploy site"
+4. Click "Deploy"
 5. ✅ Done! Your app is live!
 
 ### 🟡 Medium (Command line)
 ```bash
-# Install Netlify CLI
-npm install -g netlify-cli
+# Install Vercel CLI
+npm install -g vercel
 
 # Deploy
-netlify deploy --prod
+vercel --prod
 ```
 
 ### 🔴 Manual (GitHub Pages - Free but slower)

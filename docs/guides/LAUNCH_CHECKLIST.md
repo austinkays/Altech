@@ -12,7 +12,6 @@ Use this checklist to ensure your app is ready for launch!
 - [x] LICENSE - MIT License
 - [x] .gitignore - Proper ignore rules
 - [x] package.json - Project metadata
-- [x] netlify.toml - Netlify config
 - [x] vercel.json - Vercel config
 - [x] .env.example - Environment template
 
@@ -25,8 +24,7 @@ Use this checklist to ensure your app is ready for launch!
 
 ### 🚀 Ready to Deploy
 - [ ] **Choose deployment platform:**
-  - [ ] Netlify (recommended)
-  - [ ] Vercel
+  - [ ] Vercel (recommended)
   - [ ] GitHub Pages
   - [ ] Firebase Hosting
 
@@ -57,27 +55,14 @@ Use this checklist to ensure your app is ready for launch!
 
 ## 🚀 Launch Steps
 
-### Option A: Deploy to Netlify (5 minutes)
-```bash
-# Option 1: One-click (easiest)
-# Go to: https://app.netlify.com/start
-# Connect GitHub → Select Altech → Deploy
-
-# Option 2: CLI
-npm install -g netlify-cli
-netlify login
-netlify init
-netlify deploy --prod
-```
-
-### Option B: Deploy to Vercel (5 minutes)
+### Option A: Deploy to Vercel (5 minutes)
 ```bash
 npm install -g vercel
 vercel login
 vercel --prod
 ```
 
-### Option C: GitHub Pages (10 minutes)
+### Option B: GitHub Pages (10 minutes)
 1. Go to: https://github.com/austinkays/Altech/settings/pages
 2. Source: `main` branch, `/ (root)` folder
 3. Save and wait 2 minutes
@@ -166,7 +151,7 @@ vercel --prod
 1. Verify all files are committed to Git
 2. Check deployment platform logs
 3. Verify `index.html` is in root directory
-4. Check `netlify.toml` or `vercel.json` syntax
+4. Check `vercel.json` syntax
 
 ---
 
@@ -183,9 +168,9 @@ vercel --prod
 
 **If you've checked all the boxes above, you're ready to deploy!**
 
-Run this command to deploy to Netlify:
+Run this command to deploy to Vercel:
 ```bash
-netlify deploy --prod
+vercel --prod
 ```
 
 **Or follow the QUICKSTART.md guide for step-by-step instructions.**

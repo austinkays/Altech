@@ -374,7 +374,7 @@ function selectQASTemplate(formData) {
    - If you hire external dev: $5k-$15k estimate
 
 4. **Hosting** (if we need a backend server)
-   - Currently your app is static HTML (free on Netlify)
+   - Currently your app is static HTML (free on Vercel)
    - If we need backend for API calls: ~$5-20/month
 
 ---

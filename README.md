@@ -2,14 +2,13 @@
 
 > Mobile-first field intake wizard for insurance lead collection and HawkSoft integration
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/austinkays/Altech)
-
 ## 🚀 Quick Start
 
-### Option 1: Deploy to Netlify (Recommended)
-1. Click the "Deploy to Netlify" button above
-2. Connect your GitHub account
-3. Your app will be live in ~30 seconds!
+### Option 1: Deploy to Vercel (Recommended)
+1. Go to [vercel.com](https://vercel.com)
+2. Sign up/login with GitHub
+3. Click "New Project" and select this repo
+4. Click "Deploy" — live in ~1 minute
 
 ### Option 2: Local Development
 ```bash
@@ -48,7 +47,7 @@ npx serve .
 - **Frontend**: Vanilla JavaScript (no dependencies!)
 - **Storage**: LocalStorage API
 - **Styling**: CSS3 with CSS variables
-- **Deployment**: Static hosting (Netlify/Vercel/GitHub Pages)
+- **Deployment**: Static hosting (Vercel/GitHub Pages)
 
 ## 📦 Project Structure
 
@@ -57,7 +56,6 @@ Altech/
 ├── index.html             # Main application (self-contained)
 ├── README.md              # This file
 ├── package.json           # NPM scripts for local dev
-├── netlify.toml           # Netlify deployment config
 ├── vercel.json            # Vercel deployment config
 ├── docs/                  # Documentation
 │   ├── guides/            # User guides and quickstarts
@@ -68,15 +66,6 @@ Altech/
 ```
 
 ## 🚢 Deployment
-
-### Netlify
-```bash
-# Install Netlify CLI
-npm install -g netlify-cli
-
-# Deploy
-netlify deploy --prod
-```
 
 ### Vercel
 ```bash

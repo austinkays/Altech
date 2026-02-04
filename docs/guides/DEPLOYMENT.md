@@ -8,39 +8,7 @@ This guide will help you deploy your Altech Field Lead app to production.
 - Git installed locally
 - Your code committed to GitHub
 
-## Option 1: Netlify (Easiest - Recommended)
-
-### Method A: One-Click Deploy
-1. Click the "Deploy to Netlify" button in the README
-2. Authorize Netlify to access your GitHub account
-3. Select your repository
-4. Click "Deploy site"
-5. Your app is live! 🎉
-
-### Method B: CLI Deploy
-```bash
-# Install Netlify CLI
-npm install -g netlify-cli
-
-# Login to Netlify
-netlify login
-
-# Initialize site
-netlify init
-
-# Deploy
-netlify deploy --prod
-```
-
-### Custom Domain (Optional)
-1. Go to Netlify Dashboard → Domain settings
-2. Add your custom domain
-3. Update DNS records as instructed
-4. Enable HTTPS (automatic)
-
----
-
-## Option 2: Vercel
+## Option 1: Vercel (Recommended)
 
 ### Method A: GitHub Integration
 1. Go to [vercel.com](https://vercel.com)
@@ -64,7 +32,7 @@ vercel --prod
 
 ---
 
-## Option 3: GitHub Pages (Free)
+## Option 2: GitHub Pages (Free)
 
 1. Go to your repository on GitHub
 2. Click **Settings** → **Pages**
@@ -78,7 +46,7 @@ vercel --prod
 
 ---
 
-## Option 4: Firebase Hosting
+## Option 3: Firebase Hosting
 
 ```bash
 # Install Firebase CLI
@@ -143,8 +111,6 @@ git push origin main
 
 # Most platforms auto-deploy on push!
 # Or manually deploy:
-netlify deploy --prod
-# or
 vercel --prod
 ```
 
@@ -175,7 +141,7 @@ vercel --prod
 ## Troubleshooting
 
 ### "Page Not Found" Error
-- Check your `netlify.toml` or `vercel.json` redirect rules
+- Check your `vercel.json` redirect rules
 - Verify the main file is `index.html`
 
 ### "Cannot Read Property" Errors

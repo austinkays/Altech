@@ -130,6 +130,8 @@
         .quote-actions button { padding: 8px 10px; font-size: 12px; border-radius: 8px; }
         .quote-checkbox { width: auto; margin: 0 8px 0 0; }
         .btn-tertiary { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
+        .icon-btn { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+        .icon-btn svg { width: 16px; height: 16px; }
     </style>
 </head>
 <body>
@@ -628,53 +630,7 @@
             </div>
 
             <div class="card">
-                <h3>Quote Library</h3>
-                <p class="section-subtitle">Save multiple drafts and batch export when ready</p>
-                <div style="display:flex; gap:12px; margin-bottom:12px;">
-                    <button class="btn-secondary" style="flex:1" onclick="App.saveQuote()">💾 Save Draft</button>
-                    <button class="btn-tertiary" style="flex:1" onclick="App.startNewDraft()">➕ New Draft</button>
-                </div>
-                <div style="display:flex; gap:12px; margin-bottom:12px;">
-                    <button class="btn-primary" style="flex:1; background:#6f42c1" onclick="App.exportSelectedZip()">📦 Download ZIP (Selected)</button>
-                    <button class="btn-tertiary" style="flex:1" onclick="App.clearAllDrafts()">🧹 Clear Drafts</button>
-                </div>
-                <div id="quoteList" class="quote-list"></div>
-                <div class="hint" style="margin-top:12px">
-                    Select drafts to include in the ZIP. Use Load to resume any draft.
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>📧 Email to Agent</h3>
-                <p class="section-subtitle">Send selected quotes in your preferred format</p>
-                <div style="display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:flex-end; margin-bottom:12px;">
-                    <div>
-                        <label style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">Send to Agent</label>
-                        <select id="agentEmail" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:white;">
-                            <option value="">-- Select agent --</option>
-                            <option value="Austin@altechinsurance.com">Austin</option>
-                            <option value="Evan@altechinsurance.com">Evan</option>
-                            <option value="Kathleen@altechinsurance.com">Kathleen</option>
-                            <option value="Neil@altechinsurance.com">Neil</option>
-                            <option value="Hollie@altechinsurance.com">Hollie</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">Email Format</label>
-                        <select id="emailFormat" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:white;">
-                            <option value="xml">EZLynx XML</option>
-                            <option value="pdf">PDF Summary</option>
-                        </select>
-                    </div>
-                    <button class="btn-primary" onclick="App.emailSelectedQuotes()" style="background: #FF6B6B; padding: 10px 16px; white-space:nowrap;">Send Email</button>
-                </div>
-                <div class="hint" style="margin-top:12px;">
-                    Selected quotes are zipped and emailed in the chosen format.
-                </div>
-            </div>
-
-            <div class="card" style="border: 1px solid rgba(0, 122, 255, 0.35); background: rgba(0, 122, 255, 0.03);">
-                <h3 style="color: var(--apple-blue);">⭐ Option 1: EZLynx XML Import</h3>
+                <h3 style="color: var(--apple-blue);">EZLynx XML (Recommended)</h3>
                 <p class="section-subtitle">Complete XML file ready for instant quoting</p>
                 <button class="btn-primary" onclick="App.exportXML()" style="width:100%; background:var(--apple-blue); font-size: 16px; padding: 14px;">📥 Download EZLynx XML File</button>
                 <div class="hint" style="margin-top:12px">
@@ -683,7 +639,7 @@
             </div>
 
             <div class="card">
-                <h3>Option 2: PDF Summary</h3>
+                <h3>PDF Summary</h3>
                 <p class="section-subtitle">Clean, readable reference copy for review or sharing</p>
                 <button class="btn-primary" onclick="App.exportPDF()" style="width:100%; background:#FF8C00">📄 Download PDF Summary</button>
                 <div class="hint" style="margin-top:12px">
@@ -692,6 +648,59 @@
             </div>
 
             <div class="divider"></div>
+
+            <div class="card" style="background: rgba(0, 0, 0, 0.02);">
+                <h3>More Options</h3>
+                <p class="section-subtitle">Batch exports and email tools for teams</p>
+
+                <div style="margin-top:12px;">
+                    <h4 style="font-size:15px; font-weight:600; margin-bottom:8px;">Quote Library</h4>
+                    <p class="section-subtitle" style="margin-bottom:12px;">Save multiple drafts and batch export when ready</p>
+                    <div style="display:flex; gap:12px; margin-bottom:12px;">
+                        <button class="btn-secondary" style="flex:1" onclick="App.saveQuote()">💾 Save Draft</button>
+                        <button class="btn-tertiary" style="flex:1" onclick="App.startNewDraft()">➕ New Draft</button>
+                    </div>
+                    <div style="display:flex; gap:12px; margin-bottom:12px;">
+                        <button class="btn-primary" style="flex:1; background:#6f42c1" onclick="App.exportSelectedZip()">📦 Download ZIP (Selected)</button>
+                        <button class="btn-tertiary" style="flex:1" onclick="App.clearAllDrafts()">🧹 Clear Drafts</button>
+                    </div>
+                    <div id="quoteList" class="quote-list"></div>
+                    <div class="hint" style="margin-top:12px">
+                        Select drafts to include in the ZIP. Use Load to resume any draft.
+                    </div>
+                </div>
+
+                <div class="divider" style="margin:20px 0;"></div>
+
+                <div>
+                    <h4 style="font-size:15px; font-weight:600; margin-bottom:8px;">📧 Email to Agent</h4>
+                    <p class="section-subtitle">Send selected quotes in your preferred format</p>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:flex-end; margin-bottom:12px;">
+                        <div>
+                            <label style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">Send to Agent</label>
+                            <select id="agentEmail" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:white;">
+                                <option value="">-- Select agent --</option>
+                                <option value="Austin@altechinsurance.com">Austin</option>
+                                <option value="Evan@altechinsurance.com">Evan</option>
+                                <option value="Kathleen@altechinsurance.com">Kathleen</option>
+                                <option value="Neil@altechinsurance.com">Neil</option>
+                                <option value="Hollie@altechinsurance.com">Hollie</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">Email Format</label>
+                            <select id="emailFormat" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:white;">
+                                <option value="xml">EZLynx XML</option>
+                                <option value="pdf">PDF Summary</option>
+                            </select>
+                        </div>
+                        <button class="btn-primary" onclick="App.emailSelectedQuotes()" style="background: #FF6B6B; padding: 10px 16px; white-space:nowrap;">Send Email</button>
+                    </div>
+                    <div class="hint" style="margin-top:12px;">
+                        Selected quotes are zipped and emailed in the chosen format.
+                    </div>
+                </div>
+            </div>
 
             <div class="card" style="border-color:var(--danger); background:rgba(255, 59, 48, 0.05)">
                 <button onclick="App.reset()" style="background:none; border:none; color:var(--danger); width:100%; font-weight:700; font-size:17px; padding:16px; cursor:pointer">
@@ -710,6 +719,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBHrj-3yva2XvG0bD6pw0KqNtvFr6SJWeY&libraries=places&callback=initPlaces" async defer></script>
     <script>
         const App = {
             data: {},
@@ -743,6 +753,70 @@
                 });
                 // Phone format
                 document.getElementById('phone').addEventListener('input', this.fmtPhone);
+            },
+
+            initPlaces() {
+                const streetInput = document.getElementById('addrStreet');
+                if (!streetInput || !window.google?.maps?.places) return;
+
+                let sessionToken = new google.maps.places.AutocompleteSessionToken();
+                const autocomplete = new google.maps.places.Autocomplete(streetInput, {
+                    types: ['address'],
+                    componentRestrictions: { country: 'us' },
+                    fields: ['address_components', 'formatted_address'],
+                    sessionToken
+                });
+
+                const refreshSessionToken = () => {
+                    sessionToken = new google.maps.places.AutocompleteSessionToken();
+                    autocomplete.setOptions({ sessionToken });
+                };
+
+                streetInput.addEventListener('focus', () => refreshSessionToken());
+
+                autocomplete.addListener('place_changed', () => {
+                    const place = autocomplete.getPlace();
+                    if (!place || !place.address_components) {
+                        this.toast('⚠️ Address not found. Try a different entry.');
+                        return;
+                    }
+
+                    const parts = {
+                        street_number: '',
+                        route: '',
+                        locality: '',
+                        postal_town: '',
+                        administrative_area_level_1: '',
+                        postal_code: ''
+                    };
+
+                    place.address_components.forEach((component) => {
+                        const type = component.types?.[0];
+                        if (type && Object.prototype.hasOwnProperty.call(parts, type)) {
+                            parts[type] = component.short_name || component.long_name || '';
+                        }
+                    });
+
+                    const street = [parts.street_number, parts.route].filter(Boolean).join(' ').trim();
+                    const city = parts.locality || parts.postal_town || '';
+                    const state = parts.administrative_area_level_1 || '';
+                    const zip = parts.postal_code || '';
+
+                    this.setFieldValue('addrStreet', street || place.formatted_address || '');
+                    this.setFieldValue('addrCity', city);
+                    this.setFieldValue('addrState', state);
+                    this.setFieldValue('addrZip', zip);
+
+                    refreshSessionToken();
+                });
+            },
+
+            setFieldValue(id, value) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.value = value || '';
+                this.data[id] = el.value;
+                localStorage.setItem(this.storageKey, JSON.stringify(this.data));
             },
 
             handleType() {
@@ -1547,18 +1621,24 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     actions.className = 'quote-actions';
 
                     const loadBtn = document.createElement('button');
-                    loadBtn.className = 'btn-secondary';
-                    loadBtn.textContent = 'Load';
+                    loadBtn.className = 'btn-secondary icon-btn';
+                    loadBtn.title = 'Load';
+                    loadBtn.setAttribute('aria-label', 'Load draft');
+                    loadBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v9m0 0l3-3m-3 3l-3-3m-6 6.75a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 17.25v-1.5"/></svg>';
                     loadBtn.onclick = () => this.loadQuote(q.id);
 
                     const renameBtn = document.createElement('button');
-                    renameBtn.className = 'btn-tertiary';
-                    renameBtn.textContent = 'Rename';
+                    renameBtn.className = 'btn-tertiary icon-btn';
+                    renameBtn.title = 'Rename';
+                    renameBtn.setAttribute('aria-label', 'Rename draft');
+                    renameBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487a2.25 2.25 0 013.182 3.182L8.25 19.463 4.5 20.25l.787-3.75L16.862 4.487z"/></svg>';
                     renameBtn.onclick = () => this.renameQuote(q.id);
 
                     const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'btn-tertiary';
-                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.className = 'btn-tertiary icon-btn';
+                    deleteBtn.title = 'Delete';
+                    deleteBtn.setAttribute('aria-label', 'Delete draft');
+                    deleteBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>';
                     deleteBtn.onclick = () => this.deleteQuote(q.id);
 
                     actions.appendChild(loadBtn);
@@ -1757,6 +1837,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 }
             }
         };
+        window.initPlaces = () => App.initPlaces();
 
         window.onload = () => App.init();
     </script>

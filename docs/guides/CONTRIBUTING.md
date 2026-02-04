@@ -73,7 +73,7 @@ Altech/
 ├── index.html          # Main application file
 ├── README.md           # Documentation
 ├── package.json        # Dependencies
-└── netlify.toml        # Deployment config
+└── vercel.json         # Deployment config
 ```
 
 ## Commit Messages

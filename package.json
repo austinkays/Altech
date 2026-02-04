@@ -6,7 +6,6 @@
   "scripts": {
     "start": "npx serve . -p 8000",
     "dev": "npx serve . -p 8000",
-    "deploy:netlify": "netlify deploy --prod",
     "deploy:vercel": "vercel --prod"
   },
   "repository": {

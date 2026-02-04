@@ -11,7 +11,7 @@
 - **Frontend**: Single self-contained `index.html` (1229 lines) - vanilla JavaScript, no build step
 - **Storage**: LocalStorage only (browser-based, key `altech_v6`)
 - **Styling**: CSS3 with Apple design system (SF Pro font, iOS-style components)
-- **Deployment**: Static hosting (Netlify/Vercel/GitHub Pages)
+- **Deployment**: Static hosting (Vercel/GitHub Pages)
 
 ### Data Flow: Form → Multiple Exports
 ```
@@ -234,7 +234,7 @@ python3 -m http.server 8000
 - **VIN decode:** Fill VIN field, check console for NHTSA API calls
 
 ### Deployment
-See [README.md](../README.md#-deployment) for Netlify/Vercel/GitHub Pages commands.
+See [README.md](../README.md#-deployment) for Vercel/GitHub Pages commands.
 
 ## Troubleshooting Guide
 
