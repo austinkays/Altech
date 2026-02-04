@@ -43,11 +43,32 @@ export default async function handler(req, res) {
     
     console.log(`[Smart Extract] Image retrieved: ${buffer.byteLength} bytes`);
     
-    // Call Gemini
+    // Call Gemini Vision API
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    console.log(`[Smart Extract] Calling Gemini...`);
+    console.log(`[Smart Extract] Calling Gemini Vision API...`);
     
-    const prompt = `Analyze satellite image for: ${fullAddress}\n\nDetect:\n- Pool (blue water)\n- Trampoline (circular/rect structure)\n- Roof type (shingles/metal/tile/flat)\n- Stories (1, 1.5, 2, 2.5, 3, 3+)\n- Garage (count spaces)\n- Deck/patio\n- Trees\n\nReturn ONLY JSON:\n{"pool":"yes|no|unknown","trampoline":"yes|no|unknown","roofType":"type|unknown","numStories":"count|unknown","garageSpaces":"count|unknown","deck":"yes|no|unknown","notes":"Satellite only. Verify with public records."}`;
+    const prompt = `Analyze this satellite image for property at: ${fullAddress}
+
+Detect and identify:
+- Pool (visible blue water feature)
+- Trampoline (circular or rectangular structure in yard)
+- Roof type (asphalt shingles, metal, tile, flat, or unknown)
+- Number of stories (1, 1.5, 2, 2.5, 3, or 3+)
+- Garage spaces (count visible garage doors: 0, 1, 2, 3+)
+- Deck or patio (wooden deck or concrete patio visible)
+- Tree coverage (minimal, moderate, heavy)
+
+Return ONLY valid JSON with this structure:
+{
+  "pool": "yes|no|unknown",
+  "trampoline": "yes|no|unknown",
+  "roofType": "asphalt|metal|tile|flat|unknown",
+  "numStories": "1|1.5|2|2.5|3|3+|unknown",
+  "garageSpaces": "0|1|2|3+|unknown",
+  "deck": "yes|no|unknown",
+  "treeCoverage": "minimal|moderate|heavy|unknown",
+  "notes": "Brief observations"
+}`;
     
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
@@ -56,27 +77,32 @@ export default async function handler(req, res) {
         contents: [{
           parts: [
             { text: prompt },
-            { inlineData: { mimeType: 'image/png', data: base64 } }
+            { inline_data: { mime_type: 'image/png', data: base64 } }
           ]
         }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
-      }),
-      timeout: 30000
+        generationConfig: { 
+          temperature: 0.1, 
+          maxOutputTokens: 512 
+        }
+      })
     });
     
     if (!geminiRes.ok) {
-      console.error(`[Smart Extract] Gemini error: ${geminiRes.status}`);
+      const errorText = await geminiRes.text().catch(() => 'Unknown error');
+      console.error(`[Smart Extract] Gemini error ${geminiRes.status}:`, errorText);
       return res.status(200).json({
         success: false,
         data: {},
         satelliteImage: base64,
-        notes: 'AI analysis failed. Image shown for manual review.'
+        notes: `AI analysis failed (${geminiRes.status}). Image shown for manual review.`,
+        error: errorText
       });
     }
     
     const result = await geminiRes.json();
+    console.log(`[Smart Extract] Gemini response:`, JSON.stringify(result).substring(0, 300));
+    
     const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    console.log(`[Smart Extract] Gemini response length: ${text.length}`);
     
     const jsonMatch = text.match(/\{[^{}]*\}/);
     if (!jsonMatch) {
