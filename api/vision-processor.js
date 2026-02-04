@@ -10,13 +10,14 @@
  * - Foundation inspection images
  * 
  * Temperature: 0.2 (strict interpretation, minimal hallucination)
- * Model: gemini-2.0-flash-exp (vision-capable)
+ * Model: gemini-1.5-flash (vision-capable, stable)
  * 
  * Uses REST API directly (no SDK dependencies needed)
  */
 
 const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 /**
  * Process a single property image (base64 or URL)
@@ -419,9 +420,18 @@ async function processDriverLicense(options) {
 
   console.log(`[DL Scan] Processing image: ${normalizedMimeType}, data length: ${base64Data.length}`);
 
+  // Verify API key is present
+  if (!GEMINI_API_KEY) {
+    console.error('[DL Scan] GOOGLE_API_KEY not configured');
+    return {
+      success: false,
+      error: 'API key not configured. Please contact support.',
+      data: {}
+    };
+  }
+
   try {
-    const prompt = `You are extracting data from a US driver's license image.
-Return ONLY JSON with this schema:
+    const prompt = `Extract data from this US driver's license image and return ONLY valid JSON with this exact structure:
 {
   "firstName": "",
   "lastName": "",
@@ -432,13 +442,15 @@ Return ONLY JSON with this schema:
   "city": "",
   "state": "",
   "zip": "",
-  "confidence": 0-100
+  "confidence": 50
 }
+
 Rules:
-- If a field is missing, use empty string
-- Normalize DOB to YYYY-MM-DD
-- Use 2-letter state code
-- If the image is not readable or not a driver's license, set confidence to 0`;
+- Use empty string for any missing fields
+- Format DOB as YYYY-MM-DD
+- Use 2-letter state codes
+- Set confidence 0-100 based on image quality
+- Return only the JSON object, no other text`;
 
     const requestBody = {
       contents: [
@@ -457,10 +469,8 @@ Rules:
         }
       ],
       generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 300,
-        topP: 0.8,
-        topK: 10
+        temperature: 0.1,
+        maxOutputTokens: 500
       }
     };
 
@@ -483,9 +493,44 @@ Rules:
     }
 
     const data = await response.json();
-    console.log('[DL Scan] Raw API response:', JSON.stringify(data).substring(0, 500));
+    console.log('[DL Scan] Full API response:', JSON.stringify(data, null, 2));
 
-    const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    // Check for API-level errors in the response
+    if (data.error) {
+      console.error('[DL Scan] API returned error:', data.error);
+      return {
+        success: false,
+        error: `Vision API error: ${data.error.message || 'Unknown error'}`,
+        data: {},
+        apiError: data.error
+      };
+    }
+
+    // Check if candidates were blocked
+    if (!data.candidates || data.candidates.length === 0) {
+      console.error('[DL Scan] No candidates in response. Prompt feedback:', data.promptFeedback);
+      return {
+        success: false,
+        error: 'Image could not be processed. It may be blocked by safety filters or unreadable.',
+        data: {},
+        promptFeedback: data.promptFeedback
+      };
+    }
+
+    const candidate = data.candidates[0];
+    
+    // Check finish reason
+    if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+      console.error('[DL Scan] Unusual finish reason:', candidate.finishReason);
+      return {
+        success: false,
+        error: `Processing stopped: ${candidate.finishReason}. Please try a different image.`,
+        data: {},
+        finishReason: candidate.finishReason
+      };
+    }
+
+    const responseText = candidate?.content?.parts?.[0]?.text;
 
     if (!responseText) {
       console.error('[DL Scan] Empty response text from Gemini API');
