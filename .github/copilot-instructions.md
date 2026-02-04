@@ -68,7 +68,7 @@ One form data object powers three completely different formats:
 **CMSMTF** (HawkSoft):
 - Format: `gen_sFirstName = John` (plain text, `=` separator, no escaping needed)
 - Custom fields: `L1-L10` (property), `C1-C10` (auto), `R1-R10` (admin)
-- Mapping reference: [docs/archive/FIELD_MAPPING_UPDATE.md](docs/archive/FIELD_MAPPING_UPDATE.md)
+- Mapping reference: [docs/archive/FIELD_MAPPING_UPDATE.md](../docs/archive/FIELD_MAPPING_UPDATE.md)
 
 **XML** (EZLynx):
 - Strict validation: requires `firstName`, `lastName`, `state` (2 chars), `dob` (YYYY-MM-DD)
@@ -115,7 +115,7 @@ npm run test:watch   # TDD mode
 npm run test:coverage # Coverage report
 ```
 
-**Test file:** [tests/app.test.js](tests/app.test.js) — loads `index.html` into JSDOM, mocks localStorage, verifies export logic.
+**Test file:** [tests/app.test.js](../tests/app.test.js) — loads `index.html` into JSDOM, mocks localStorage, verifies export logic.
 
 **Before Deployment Checklist:**
 - [ ] `npm test` passes all tests
@@ -137,7 +137,7 @@ vercel --prod  # Requires vercel.json + environment variables
 - `GOOGLE_PLACES_API_KEY` — address autocomplete (optional; form works without it)
 - `SENDGRID_API_KEY` — email export (currently disabled from UI)
 
-See [docs/guides/ENVIRONMENT_SETUP.md](docs/guides/ENVIRONMENT_SETUP.md).
+See [docs/guides/ENVIRONMENT_SETUP.md](../docs/guides/ENVIRONMENT_SETUP.md).
 
 ---
 
@@ -147,11 +147,11 @@ See [docs/guides/ENVIRONMENT_SETUP.md](docs/guides/ENVIRONMENT_SETUP.md).
 |------|----------|---------|
 | **Add form field** | `index.html` step div | `<input id="fieldName">` auto-syncs via save/load |
 | **Add to exports** | `exportCMSMTF()`, `exportXML()`, `exportPDF()` (~L2200–2600) | Include in each; validate required fields |
-| **Change workflow order** | [index.html#L1511](index.html#L1511) | Edit `workflows` object; test all 3 qTypes |
+| **Change workflow order** | [index.html](../index.html) | Edit `workflows` object; test all 3 qTypes |
 | **Add validation** | Export methods | `if (!this.data.field) { alert(...); return; }` |
-| **Modify styling** | [index.html#L12–120](index.html#L12-L120) | Use CSS variables (`:root`), no hardcoded colors |
+| **Modify styling** | [index.html](../index.html) | Use CSS variables (`:root`), no hardcoded colors |
 | **Debug data** | DevTools console | `JSON.parse(localStorage.getItem('altech_v6'))` |
-| **Field mapping (CMSMTF)** | [docs/archive/FIELD_MAPPING_UPDATE.md](docs/archive/FIELD_MAPPING_UPDATE.md) | Maps field → HawkSoft variable |
+| **Field mapping (CMSMTF)** | [docs/archive/FIELD_MAPPING_UPDATE.md](../docs/archive/FIELD_MAPPING_UPDATE.md) | Maps field → HawkSoft variable |
 
 ---
 
@@ -264,7 +264,7 @@ const streetName = match?.[2] || '';    // "nw 116th st"
 ## Full Documentation Reference
 
 For exhaustive architecture details, multi-vehicle enhancements, field mappings, and future enhancements, see:
-**[.github/copilot-instructions-clean.md](.github/copilot-instructions-clean.md)** (comprehensive walkthrough)
+**[.github/copilot-instructions-clean.md](copilot-instructions-clean.md)** (comprehensive walkthrough)
 
 This file focuses on the essentials for immediate productivity. The clean version has detailed XML structure, CMSMTF mapping tables, and enhancement roadmap.
 
