@@ -395,7 +395,8 @@ async function processDriverLicense(options) {
     console.error('[DL Scan] No base64 data provided');
     return {
       success: false,
-      error: 'No image data provided',
+      error: 'No image data provided (Error 301)',
+      errorCode: 301,
       data: {}
     };
   }
@@ -413,7 +414,8 @@ async function processDriverLicense(options) {
     console.error('[DL Scan] Base64 data too short, likely invalid');
     return {
       success: false,
-      error: 'Image data appears to be invalid or corrupted',
+      error: 'Image data appears to be invalid or corrupted (Error 302)',
+      errorCode: 302,
       data: {}
     };
   }
@@ -425,7 +427,8 @@ async function processDriverLicense(options) {
     console.error('[DL Scan] GOOGLE_API_KEY not configured');
     return {
       success: false,
-      error: 'API key not configured. Please contact support.',
+      error: 'API key not configured. Please contact support. (Error 303)',
+      errorCode: 303,
       data: {}
     };
   }
@@ -487,7 +490,9 @@ Rules:
       console.error('[DL Scan] API error:', response.status, errorData);
       return {
         success: false,
-        error: `API error (${response.status}): ${errorData.error?.message || 'Unknown error'}`,
+        error: `API error (${response.status}): ${errorData.error?.message || 'Unknown error'} (Error 304)`,
+        errorCode: 304,
+        httpStatus: response.status,
         data: {}
       };
     }
@@ -500,7 +505,8 @@ Rules:
       console.error('[DL Scan] API returned error:', data.error);
       return {
         success: false,
-        error: `Vision API error: ${data.error.message || 'Unknown error'}`,
+        error: `Vision API error: ${data.error.message || 'Unknown error'} (Error 305)`,
+        errorCode: 305,
         data: {},
         apiError: data.error
       };
@@ -511,7 +517,8 @@ Rules:
       console.error('[DL Scan] No candidates in response. Prompt feedback:', data.promptFeedback);
       return {
         success: false,
-        error: 'Image could not be processed. It may be blocked by safety filters or unreadable.',
+        error: 'Image could not be processed. It may be blocked by safety filters or unreadable. (Error 306)',
+        errorCode: 306,
         data: {},
         promptFeedback: data.promptFeedback
       };
@@ -524,7 +531,8 @@ Rules:
       console.error('[DL Scan] Unusual finish reason:', candidate.finishReason);
       return {
         success: false,
-        error: `Processing stopped: ${candidate.finishReason}. Please try a different image.`,
+        error: `Processing stopped: ${candidate.finishReason}. Please try a different image. (Error 307)`,
+        errorCode: 307,
         data: {},
         finishReason: candidate.finishReason
       };
@@ -536,7 +544,8 @@ Rules:
       console.error('[DL Scan] Empty response text from Gemini API');
       return {
         success: false,
-        error: 'No response from vision API. The image may be unreadable.',
+        error: 'No response from vision API. The image may be unreadable. (Error 308)',
+        errorCode: 308,
         data: {}
       };
     }
@@ -549,7 +558,8 @@ Rules:
       console.error('[DL Scan] No JSON found in response:', responseText);
       return {
         success: false,
-        error: 'Unable to parse license data. The image may be blurry or not a driver\'s license.',
+        error: 'Unable to parse license data. The image may be blurry or not a driver\'s license. (Error 309)',
+        errorCode: 309,
         data: {},
         rawResponse: responseText.substring(0, 500)
       };
@@ -563,7 +573,8 @@ Rules:
       console.error('[DL Scan] Failed JSON string:', jsonMatch[0].substring(0, 500));
       return {
         success: false,
-        error: 'Failed to parse API response. Please try again.',
+        error: 'Failed to parse API response. Please try again. (Error 310)',
+        errorCode: 310,
         data: {},
         rawResponse: jsonMatch[0].substring(0, 500)
       };
@@ -574,7 +585,8 @@ Rules:
       console.error('[DL Scan] Parsed data is not an object:', parsed);
       return {
         success: false,
-        error: 'Invalid data format from API. Please try again.',
+        error: 'Invalid data format from API. Please try again. (Error 311)',
+        errorCode: 311,
         data: {}
       };
     }
@@ -585,7 +597,8 @@ Rules:
       console.warn('[DL Scan] Low confidence response:', confidence);
       return {
         success: false,
-        error: 'Image quality too low or document not recognized. Please try again with better lighting.',
+        error: 'Image quality too low or document not recognized. Please try again with better lighting. (Error 312)',
+        errorCode: 312,
         data: parsed,
         confidence: confidence
       };
@@ -616,17 +629,23 @@ Rules:
     
     // Provide more specific error messages
     let errorMessage = 'Vision API error. Please try again.';
+    let errorCode = 399;
+    
     if (error.message.includes('API key')) {
       errorMessage = 'API key error. Please check that GOOGLE_API_KEY is configured correctly.';
+      errorCode = 320;
     } else if (error.message.includes('quota') || error.message.includes('limit')) {
       errorMessage = 'API rate limit reached. Please try again in a moment.';
+      errorCode = 321;
     } else if (error.message.includes('network') || error.message.includes('fetch')) {
       errorMessage = 'Network error. Please check your connection and try again.';
+      errorCode = 322;
     }
     
     return {
       success: false,
-      error: errorMessage,
+      error: `${errorMessage} (Error ${errorCode})`,
+      errorCode: errorCode,
       data: {},
       errorDetails: error.message
     };
