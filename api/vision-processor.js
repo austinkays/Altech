@@ -10,13 +10,13 @@
  * - Foundation inspection images
  * 
  * Temperature: 0.2 (strict interpretation, minimal hallucination)
- * Model: gemini-1.5-flash (vision-capable, stable)
+ * Model: gemini-1.5-flash-latest (vision-capable, stable)
  * 
  * Uses REST API directly (no SDK dependencies needed)
  */
 
 const GEMINI_API_KEY = process.env.GOOGLE_API_KEY;
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL = 'gemini-1.5-flash-latest';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 /**
