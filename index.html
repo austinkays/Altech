@@ -729,61 +729,33 @@
     </header>
 
     <main id="mainContainer">
-        <!-- STEP 0: POLICY SCAN -->
+        <!-- STEP 0: QUICK START -->
         <div id="step-0" class="step">
-            <div id="scanCoverage" class="hint" style="margin-bottom:12px;">Scan coverage: 0/0 fields applied</div>
             <div class="card">
-                <h2>📸 Scan Policy</h2>
-                <p class="section-subtitle">Take photos or upload PDFs of existing policies. AI will extract data to auto-fill the form below. Review extracted data before applying.</p>
+                <h2>🚀 Quick Start</h2>
+                <p class="section-subtitle">Upload a policy document or driver license to auto-fill the form, or skip to start manually.</p>
 
                 <div class="scan-actions">
-                    <button class="btn btn-primary" onclick="App.openScanPicker()">Scan Policy</button>
-                    <button class="btn btn-secondary" onclick="App.clearScan()">Clear Scan</button>
+                    <button class="btn btn-primary" onclick="App.openScanPicker()">📸 Upload Policy Document</button>
+                    <button class="btn btn-primary" onclick="App.openInitialDriverLicensePicker()">🪪 Upload Driver License</button>
                     <input id="policyScanInput" type="file" accept="image/*,application/pdf" capture="environment" multiple class="hidden" />
-                </div>
-
-                <div id="scanPreview" class="scan-preview"></div>
-                <div id="scanStatus" class="hint hidden"></div>
-            </div>
-
-            <div class="card">
-                <h2>🪪 Driver License Scan</h2>
-                <p class="section-subtitle">Scan a driver license to pre-fill the applicant, address, and driver info before starting the form.</p>
-
-                <div class="scan-actions">
-                    <button class="btn btn-primary" onclick="App.openInitialDriverLicensePicker()">Scan Driver License</button>
-                    <button class="btn btn-tertiary" onclick="App.clearInitialDriverLicenseScan()">Clear</button>
                     <input id="initialDlScanInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="App.handleInitialDriverLicenseFile(this.files[0])" />
-                </div>
-
-                <div id="initialDlPreview" class="scan-preview"></div>
-                <div id="initialDlStatus" class="hint hidden"></div>
-                <div id="initialDlResults"></div>
-                <button class="btn btn-secondary" style="margin-top:12px;" onclick="App.applyInitialDriverLicense()">Apply to Form</button>
-            </div>
-
-            <div class="card">
-                <h3>Review Extracted Data</h3>
-                <p class="section-subtitle">Verify and edit before applying to the form.</p>
-                <div id="scanResults"></div>
-                <button class="btn btn-primary" style="margin-top:12px;" onclick="App.applyExtractedData()">Apply to Form</button>
-            </div>
-
-            <div class="card">
-                <h3>📄 Document Intelligence (Phase 7)</h3>
-                <p class="section-subtitle">Analyze tax docs, deeds, or declarations to extract structured data.</p>
-
-                <div class="scan-actions">
-                    <button class="btn btn-secondary" onclick="App.openDocIntelPicker()">Upload Documents</button>
-                    <button class="btn btn-primary" onclick="App.analyzeDocuments()">Analyze Documents</button>
-                    <button class="btn btn-secondary" onclick="App.applyDocIntelToForm()">Apply to Form</button>
-                    <button class="btn btn-tertiary" onclick="App.clearDocIntel()">Clear</button>
                     <input id="docIntelInput" type="file" accept="image/*,application/pdf" multiple class="hidden" />
                 </div>
 
+                <div id="scanPreview" class="scan-preview"></div>
+                <div id="initialDlPreview" class="scan-preview"></div>
                 <div id="docIntelPreview" class="scan-preview"></div>
+                
+                <div id="scanStatus" class="hint hidden"></div>
+                <div id="initialDlStatus" class="hint hidden"></div>
                 <div id="docIntelStatus" class="hint hidden"></div>
+                
+                <div id="scanResults"></div>
+                <div id="initialDlResults"></div>
                 <div id="docIntelResults"></div>
+                
+                <div id="scanCoverage" class="hint" style="margin-top:12px; display:none;">Scan coverage: 0/0 fields applied</div>
             </div>
         </div>
 
@@ -3286,7 +3258,7 @@
                 // This allows Phase 2 to access the same county websites
                 const countyMappings = {
                     'WA': {
-                        'Vancouver': 'https://www.clark.wa.gov/GIS/',
+                        'Vancouver': 'https://gisapps.clark.wa.gov/applications/propertyinformation/',
                         'Seattle': 'https://gis.kingcounty.gov/',
                         'Tacoma': 'https://gis.piercecountywa.gov/',
                         'Spokane': 'https://www.spokanecounty.org/government/assessor/'
@@ -4795,12 +4767,12 @@
                 // Washington State County GIS mapping
                 const waCountyGIS = {
                     // Clark County - County Assessor GIS
-                    'vancouver': 'https://www.clark.wa.gov/GIS/',
-                    'camas': 'https://www.clark.wa.gov/GIS/',
-                    'battle ground': 'https://www.clark.wa.gov/GIS/',
-                    'ridgefield': 'https://www.clark.wa.gov/GIS/',
-                    'la center': 'https://www.clark.wa.gov/GIS/',
-                    'washougal': 'https://www.clark.wa.gov/GIS/',
+                    'vancouver': 'https://gisapps.clark.wa.gov/applications/propertyinformation/',
+                    'camas': 'https://gisapps.clark.wa.gov/applications/propertyinformation/',
+                    'battle ground': 'https://gisapps.clark.wa.gov/applications/propertyinformation/',
+                    'ridgefield': 'https://gisapps.clark.wa.gov/applications/propertyinformation/',
+                    'la center': 'https://gisapps.clark.wa.gov/applications/propertyinformation/',
+                    'washougal': 'https://gisapps.clark.wa.gov/applications/propertyinformation/',
                     
                     // King County
                     'seattle': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
