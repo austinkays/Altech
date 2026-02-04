@@ -2552,24 +2552,43 @@
                 
                 const btn = document.getElementById('smartFillBtn');
                 const originalText = btn.innerHTML;
+                const county = this.getCountyFromCity(city, state);
                 
                 try {
-                    // Update button to show loading
+                    // PHASE 1: Try ArcGIS API first (Official County Data)
                     btn.disabled = true;
+                    btn.innerHTML = '🔄 Querying official county records...';
+                    
+                    const arcgisResponse = await fetch(`/api/arcgis-consumer.js?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}`);
+                    
+                    if (arcgisResponse.ok) {
+                        const arcgisData = await arcgisResponse.json();
+                        
+                        if (arcgisData.success && arcgisData.parcelData) {
+                            // Phase 1 Success: Got official parcel data
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                            
+                            // Show parcel data confirmation popup
+                            this.showParcelDataPopup(arcgisData.parcelData, address, city, state);
+                            return;
+                        }
+                    }
+                    
+                    // PHASE 1 FALLBACK: ArcGIS API unavailable, try satellite hazard detection
                     btn.innerHTML = '🔄 Analyzing satellite imagery...';
                     
-                    // Call smart extraction API
-                    const response = await fetch('/api/smart-extract.js', {
+                    const hazardResponse = await fetch('/api/smart-extract.js', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ address, city, state, zip })
                     });
                     
-                    if (!response.ok) {
+                    if (!hazardResponse.ok) {
                         throw new Error('Failed to analyze property');
                     }
                     
-                    const result = await response.json();
+                    const result = await hazardResponse.json();
                     
                     if (!result.success) {
                         throw new Error(result.error || 'Analysis failed');
@@ -2586,13 +2605,174 @@
                 } catch (error) {
                     console.error('Smart auto-fill error:', error);
                     btn.innerHTML = '❌ Failed';
-                    alert('Failed to analyze property satellite image.\n\nTry:\n- Manually entering details\n- Using Zillow or GIS lookup\n- Checking County property records');
+                    alert('Failed to retrieve property data.\n\nTry:\n- Manually entering details\n- Using Zillow or GIS lookup\n- Checking County property records');
                     
                     setTimeout(() => {
                         btn.innerHTML = originalText;
                         btn.disabled = false;
                     }, 3000);
                 }
+            },
+
+            showParcelDataPopup(parcelData, address, city, state) {
+                // Display official county parcel data in confirmation popup
+                const modal = document.createElement('div');
+                modal.id = 'parcelDataModal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0; left: 0;
+                    width: 100%; height: 100%;
+                    background: rgba(0, 0, 0, 0.6);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                `;
+                
+                const content = document.createElement('div');
+                content.style.cssText = `
+                    background: white;
+                    border-radius: 12px;
+                    padding: 24px;
+                    max-width: 500px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                    font-family: system-ui, sans-serif;
+                `;
+                
+                const title = document.createElement('h2');
+                title.textContent = '✓ Official County Parcel Data Found';
+                title.style.cssText = 'margin: 0 0 16px 0; color: #28a745;';
+                
+                const addressLine = document.createElement('p');
+                addressLine.style.cssText = 'color: #666; margin: 8px 0; font-size: 14px;';
+                addressLine.textContent = `${address}, ${city}, ${state} • Parcel: ${parcelData.parcelId}`;
+                
+                const grid = document.createElement('div');
+                grid.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0;';
+                
+                const fields = [
+                    { label: 'Year Built', value: parcelData.yearBuilt || 'N/A' },
+                    { label: 'Lot Size', value: parcelData.lotSizeAcres > 0 ? `${parcelData.lotSizeAcres.toFixed(2)} acres` : 'N/A' },
+                    { label: 'Total Sq Ft', value: parcelData.totalSqft > 0 ? parcelData.totalSqft.toLocaleString() : 'N/A' },
+                    { label: 'Stories', value: parcelData.stories > 0 ? parcelData.stories : 'N/A' },
+                    { label: 'Garage Sq Ft', value: parcelData.garageSqft > 0 ? parcelData.garageSqft.toLocaleString() : 'N/A' },
+                    { label: 'Land Use', value: parcelData.landUse || 'N/A' }
+                ];
+                
+                fields.forEach(field => {
+                    const box = document.createElement('div');
+                    box.style.cssText = 'background: #f5f5f5; padding: 12px; border-radius: 6px;';
+                    
+                    const label = document.createElement('div');
+                    label.style.cssText = 'font-size: 12px; color: #999; text-transform: uppercase; margin-bottom: 4px;';
+                    label.textContent = field.label;
+                    
+                    const value = document.createElement('div');
+                    value.style.cssText = 'font-size: 16px; font-weight: 600; color: #333;';
+                    value.textContent = field.value;
+                    
+                    box.appendChild(label);
+                    box.appendChild(value);
+                    grid.appendChild(box);
+                });
+                
+                const buttonBox = document.createElement('div');
+                buttonBox.style.cssText = 'display: flex; gap: 12px; margin-top: 20px;';
+                
+                const useBtn = document.createElement('button');
+                useBtn.textContent = '✓ Use This Data';
+                useBtn.style.cssText = `
+                    flex: 1;
+                    padding: 12px;
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    font-size: 14px;
+                `;
+                useBtn.onclick = () => {
+                    this.applyParcelData(parcelData);
+                    this.closeParcelModal();
+                };
+                
+                const skipBtn = document.createElement('button');
+                skipBtn.textContent = '✗ Skip';
+                skipBtn.style.cssText = `
+                    flex: 1;
+                    padding: 12px;
+                    background: #6c757d;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    font-size: 14px;
+                `;
+                skipBtn.onclick = () => this.closeParcelModal();
+                
+                buttonBox.appendChild(useBtn);
+                buttonBox.appendChild(skipBtn);
+                
+                content.appendChild(title);
+                content.appendChild(addressLine);
+                content.appendChild(grid);
+                content.appendChild(buttonBox);
+                modal.appendChild(content);
+                
+                modal.onclick = (e) => {
+                    if (e.target === modal) this.closeParcelModal();
+                };
+                
+                document.body.appendChild(modal);
+            },
+
+            closeParcelModal() {
+                const modal = document.getElementById('parcelDataModal');
+                if (modal) {
+                    modal.style.opacity = '0';
+                    modal.style.transition = 'opacity 0.3s ease';
+                    setTimeout(() => modal.remove(), 300);
+                }
+            },
+
+            applyParcelData(parcelData) {
+                // Auto-fill form fields from official county parcel data
+                if (parcelData.yearBuilt) {
+                    document.getElementById('yearBuilt').value = parcelData.yearBuilt;
+                    this.data.yearBuilt = parcelData.yearBuilt;
+                }
+                
+                if (parcelData.stories > 0) {
+                    document.getElementById('numStories').value = parcelData.stories;
+                    this.data.numStories = parcelData.stories;
+                }
+                
+                if (parcelData.garageSqft > 0) {
+                    // Estimate garage spaces (1 space ≈ 180 sq ft)
+                    const garageSpaces = Math.round(parcelData.garageSqft / 180);
+                    document.getElementById('garageSpaces').value = garageSpaces;
+                    this.data.garageSpaces = garageSpaces;
+                }
+                
+                if (parcelData.lotSizeAcres > 0) {
+                    document.getElementById('lotSize').value = parcelData.lotSizeAcres.toFixed(2);
+                    this.data.lotSize = parcelData.lotSizeAcres.toFixed(2);
+                }
+                
+                if (parcelData.totalSqft > 0) {
+                    document.getElementById('squareFeet').value = parcelData.totalSqft;
+                    this.data.squareFeet = parcelData.totalSqft;
+                }
+                
+                // Save changes
+                localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+                
+                // Show success toast
+                this.showSaveIndicator();
             },
 
             showHazardDetectionPopup(detections, satelliteImage, address) {
