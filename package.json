@@ -6,6 +6,9 @@
   "scripts": {
     "start": "npx serve . -p 8000",
     "dev": "npx serve . -p 8000",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "deploy:vercel": "vercel --prod"
   },
   "repository": {
@@ -24,5 +27,9 @@
   "bugs": {
     "url": "https://github.com/austinkays/Altech/issues"
   },
-  "homepage": "https://github.com/austinkays/Altech#readme"
+  "homepage": "https://github.com/austinkays/Altech#readme",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jsdom": "^23.2.0"
+  }
 }

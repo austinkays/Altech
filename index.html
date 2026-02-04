@@ -7,6 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230066cc' width='100' height='100'/><text y='70' x='50' text-anchor='middle' font-size='60' fill='white'>AL</text></svg>">
     <title>Altech Field Lead</title>
+    <script src="validation.js"></script>
     <style>
         /* === APPLE-INSPIRED THEME === */
         :root {
@@ -79,6 +80,342 @@
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
         
+        /* === QUOTE LIBRARY SEARCH === */
+        .quote-search-container { margin-bottom: 16px; }
+        .quote-search-input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 15px;
+            background: var(--bg-input);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .quote-search-input:focus {
+            outline: none;
+            border-color: var(--apple-blue);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+        .quote-card {
+            background: var(--bg-card);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .quote-card:hover {
+            border-color: var(--apple-blue);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.1);
+        }
+        .quote-card.starred {
+            border-color: var(--apple-blue);
+            background: rgba(0, 122, 255, 0.02);
+        }
+        .quote-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .quote-name { font-weight: 600; font-size: 14px; color: var(--text); }
+        .quote-star {
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+        .quote-star:hover { transform: scale(1.2); }
+        .quote-stats {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        .quote-stat-item { display: inline-block; margin-right: 12px; }
+        .quote-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .quote-action-btn {
+            flex: 1;
+            min-width: 60px;
+            padding: 8px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--bg-input);
+            color: var(--apple-blue);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .quote-action-btn:hover {
+            background: rgba(0, 122, 255, 0.1);
+            border-color: var(--apple-blue);
+        }
+        .quote-action-btn.delete {
+            color: #ff3b30;
+            border-color: #ff3b30;
+        }
+        .quote-action-btn.delete:hover { background: rgba(255, 59, 48, 0.1); }
+        
+        /* === UTILITY BUTTONS === */
+        .utility-buttons { display: flex; gap: 8px; margin-top: 8px; }
+        .btn-utility {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            background: var(--bg-card);
+            color: var(--apple-blue);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .btn-utility:hover {
+            background: rgba(0, 122, 255, 0.05);
+            border-color: var(--apple-blue);
+            transform: translateY(-1px);
+        }
+        .btn-utility:active {
+            transform: translateY(0);
+        }
+        .btn-utility:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        /* === FORM ENHANCEMENTS === */
+        .collapsible-section {
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+        }
+        .collapsible-section.hidden {
+            display: none;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .field-hint {
+            font-size: 12px;
+            color: #ff9500;
+            margin-top: 4px;
+            padding: 6px 8px;
+            background: rgba(255, 149, 0, 0.08);
+            border-radius: 6px;
+            border-left: 3px solid #ff9500;
+            display: none;
+        }
+        .field-hint.show { display: block; }
+        .field-error {
+            color: #ff3b30;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        .btn-same-as-above {
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--bg-input);
+            color: var(--apple-blue);
+            border: 1.5px dashed var(--apple-blue);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+            width: 100%;
+            text-align: center;
+        }
+        .btn-same-as-above:hover {
+            background: rgba(0, 122, 255, 0.08);
+        }
+        .btn-same-as-above:active {
+            transform: scale(0.98);
+        }
+        
+        /* === DATA PREVIEW MODAL === */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 10000;
+            backdrop-filter: blur(4px);
+        }
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .satellite-section {
+            background: var(--bg-input);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .satellite-thumbnail {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid var(--border);
+        }
+        .satellite-thumbnail:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+            border-color: var(--apple-blue);
+        }
+        .satellite-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+        .satellite-links {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .satellite-links a {
+            font-size: 11px;
+            padding: 6px 12px;
+            background: var(--apple-blue);
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .satellite-links a:hover {
+            opacity: 0.8;
+        }
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .data-item {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: var(--bg-input);
+            border-radius: 8px;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .data-item.conflict {
+            border-color: var(--warning);
+            background: rgba(255, 149, 0, 0.05);
+        }
+        .data-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .data-item-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .data-source {
+            font-size: 11px;
+            color: var(--apple-blue);
+            background: rgba(0, 122, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .conflict-badge {
+            font-size: 11px;
+            color: var(--warning);
+            background: rgba(255, 149, 0, 0.15);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .data-value-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .data-value-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .data-value-option input[type="radio"] {
+            width: auto;
+            margin: 0;
+        }
+        .data-value-option label {
+            flex: 1;
+            font-size: 15px;
+            color: var(--text);
+            margin: 0;
+            cursor: pointer;
+        }
+        .data-value-option .source-tag {
+            font-size: 10px;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .data-value input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            font-size: 15px;
+            margin: 0;
+        }
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+        }
+        .modal-footer button {
+            flex: 1;
+        }
+        
         /* === RADIO CARDS === */
         .radio-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .radio-card input { display: none; }
@@ -121,17 +458,256 @@
         .toast.show { opacity: 1; }
         .hint { font-size: 14px; color: var(--text-secondary); background: var(--bg-input); padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; line-height: 1.4; }
         .divider { height: 1px; background: var(--border); margin: 24px 0; }
-        .quote-list { display: flex; flex-direction: column; gap: 10px; }
-        .quote-row { display: flex; align-items: center; justify-content: space-between; background: white; border: none; border-radius: 10px; padding: 14px; gap: 10px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06); }
-        .quote-info { flex: 1; }
-        .quote-title { font-weight: 600; font-size: 15px; }
-        .quote-meta { font-size: 12px; color: var(--text-secondary); }
-        .quote-actions { display: flex; gap: 8px; }
-        .quote-actions button { padding: 8px 10px; font-size: 12px; border-radius: 8px; }
-        .quote-checkbox { width: auto; margin: 0 8px 0 0; }
+        
+        /* === QUOTE CARDS (Beautiful Modern Design) === */
+        .quote-list { display: flex; flex-direction: column; gap: 12px; }
+        .quote-card { 
+            background: white; 
+            border-radius: 16px; 
+            padding: 16px; 
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+        .quote-card:hover { 
+            box-shadow: 0 4px 20px rgba(0, 122, 255, 0.12);
+            border-color: rgba(0, 122, 255, 0.3);
+        }
+        .quote-card.starred {
+            background: linear-gradient(135deg, #FFF9E6 0%, #FFFFFF 100%);
+            border-color: #FFD60A;
+        }
+        .quote-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .quote-name {
+            font-weight: 600;
+            font-size: 17px;
+            color: var(--text);
+        }
+        .quote-star {
+            background: transparent;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px;
+            transition: transform 0.2s;
+        }
+        .quote-star:hover { transform: scale(1.2); }
+        .quote-star:active { transform: scale(0.9); }
+        .quote-stats {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .quote-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-home { background: rgba(52, 199, 89, 0.12); color: #1C7C34; }
+        .badge-auto { background: rgba(0, 122, 255, 0.12); color: #0066CC; }
+        .badge-both { background: rgba(175, 82, 222, 0.12); color: #7C3AAB; }
+        .badge-duplicate {
+            background: rgba(255, 149, 0, 0.15);
+            color: #B24A00;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .quote-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .quote-action-btn {
+            flex: 1;
+            min-width: 80px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quote-action-btn:hover {
+            background: var(--bg-input);
+            border-color: var(--apple-blue);
+        }
+        .quote-action-btn:active { transform: scale(0.96); }
+        
+        /* === DRIVER/VEHICLE CARDS === */
+        .driver-vehicle-card {
+            background: linear-gradient(135deg, #F8FAFF 0%, #FFFFFF 100%);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s;
+        }
+        .driver-vehicle-card:hover {
+            border-color: var(--apple-blue);
+            box-shadow: 0 4px 16px rgba(0, 122, 255, 0.08);
+        }
+        .driver-vehicle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .driver-vehicle-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--apple-blue);
+            font-weight: 700;
+        }
+        .remove-btn {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(255, 59, 48, 0.3);
+            border-radius: 10px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .remove-btn:hover {
+            background: rgba(255, 59, 48, 0.2);
+            transform: rotate(90deg);
+        }
+        
         .btn-tertiary { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
         .icon-btn { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
         .icon-btn svg { width: 16px; height: 16px; }
+        
+        /* === DUPLICATE WARNING MODAL === */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            animation: fadeIn 0.2s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .modal-icon {
+            font-size: 32px;
+        }
+        .modal-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0;
+        }
+        .modal-body {
+            margin-bottom: 24px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .modal-btn-primary {
+            background: var(--apple-blue);
+            color: white;
+        }
+        .modal-btn-secondary {
+            background: var(--bg-input);
+            color: var(--text);
+        }
+        .scan-actions { display: flex; flex-direction: column; gap: 10px; }
+        .scan-preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin-top: 12px; }
+        .scan-thumb { width: 100%; height: 90px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); }
+        .scan-row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .scan-field { display: grid; grid-template-columns: 1fr; gap: 6px; }
+        .confidence-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 8px; border-radius: 999px; background: rgba(0,0,0,0.04); }
+        .confidence-low { background: rgba(255, 149, 0, 0.15); color: #B24A00; }
+        .confidence-high { background: rgba(52, 199, 89, 0.15); color: #1C7C34; }
+        .btn-full { width: 100%; }
+
+        /* === MAP PREVIEWS === */
+        .map-preview-card { background: linear-gradient(180deg, #F9FBFF 0%, #FFFFFF 100%); }
+        .map-previews { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        .map-preview-item { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .map-preview-label { font-weight: 600; color: var(--text); margin-bottom: 8px; }
+        .map-preview-img { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-input); cursor: pointer; }
+        .map-preview-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        @media (min-width: 720px) {
+            .map-previews { grid-template-columns: 1fr 1fr; }
+            .map-preview-img { height: 200px; }
+        }
+        .export-card { border: 1px solid var(--border); background: var(--bg-card); }
+        .export-stack { display: flex; flex-direction: column; gap: 12px; }
+        .export-row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .export-summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; }
+        details.export-details summary { list-style: none; }
+        details.export-details summary::-webkit-details-marker { display: none; }
+        details.export-details[open] .export-summary::after { content: "–"; }
+        details.export-details .export-summary::after { content: "+"; font-weight: 700; }
+        @media (min-width: 720px) {
+            .export-row { grid-template-columns: 1fr 1fr; }
+            .export-row-3 { grid-template-columns: 1fr 1fr auto; align-items: end; }
+        }
     </style>
 </head>
 <body>
@@ -146,6 +722,30 @@
     </header>
 
     <main id="mainContainer">
+        <!-- STEP 0: POLICY SCAN -->
+        <div id="step-0" class="step">
+            <div class="card">
+                <h2>📸 Scan Policy</h2>
+                <p class="section-subtitle">Take photos or upload PDFs of existing policies. AI will extract data to auto-fill the form below. Review extracted data before applying.</p>
+
+                <div class="scan-actions">
+                    <button class="btn btn-primary" onclick="App.openScanPicker()">Scan Policy</button>
+                    <button class="btn btn-secondary" onclick="App.clearScan()">Clear Scan</button>
+                    <input id="policyScanInput" type="file" accept="image/*,application/pdf" capture="environment" multiple class="hidden" />
+                </div>
+
+                <div id="scanPreview" class="scan-preview"></div>
+                <div id="scanStatus" class="hint hidden"></div>
+            </div>
+
+            <div class="card">
+                <h3>Review Extracted Data</h3>
+                <p class="section-subtitle">Verify and edit before applying to the form.</p>
+                <div id="scanResults"></div>
+                <button class="btn btn-primary" style="margin-top:12px;" onclick="App.applyExtractedData()">Apply to Form</button>
+            </div>
+        </div>
+
         <!-- STEP 1: CLIENT INFORMATION -->
         <div id="step-1" class="step">
             <div class="card">
@@ -225,39 +825,94 @@
                     <option value="Other">Other</option>
                 </select>
             </div>
+        </div>
 
+        <!-- STEP 2: COVERAGE TYPE -->
+        <div id="step-2" class="step hidden">
             <div class="card">
-                <h2>Coverage Type</h2>
-                <p class="section-subtitle">What are you looking to insure?</p>
+                <h2>What would you like to insure?</h2>
+                <p class="section-subtitle">Select the coverage type(s) you need</p>
                 
                 <div class="radio-grid">
                     <label class="radio-card"><input type="radio" name="qType" value="home" onchange="App.handleType()">
-                        <div class="radio-card-content"><span style="font-size:32px">🏠</span><span style="margin-top:8px">HOME</span></div></label>
+                        <div class="radio-card-content">
+                            <span style="font-size:48px">🏠</span>
+                            <span style="margin-top:12px; font-size:16px; font-weight:600">HOME</span>
+                            <span style="font-size:13px; color:var(--text-secondary); margin-top:4px">Property insurance</span>
+                        </div>
+                    </label>
                     <label class="radio-card"><input type="radio" name="qType" value="auto" onchange="App.handleType()">
-                        <div class="radio-card-content"><span style="font-size:32px">🚗</span><span style="margin-top:8px">AUTO</span></div></label>
+                        <div class="radio-card-content">
+                            <span style="font-size:48px">🚗</span>
+                            <span style="margin-top:12px; font-size:16px; font-weight:600">AUTO</span>
+                            <span style="font-size:13px; color:var(--text-secondary); margin-top:4px">Vehicle insurance</span>
+                        </div>
+                    </label>
                     <label class="radio-card"><input type="radio" name="qType" value="both" checked onchange="App.handleType()">
-                        <div class="radio-card-content"><span style="font-size:32px">🎯</span><span style="margin-top:8px">BOTH</span></div></label>
+                        <div class="radio-card-content">
+                            <span style="font-size:48px">🎯</span>
+                            <span style="margin-top:12px; font-size:16px; font-weight:600">BOTH</span>
+                            <span style="font-size:13px; color:var(--text-secondary); margin-top:4px">Home + Auto bundle</span>
+                        </div>
+                    </label>
                 </div>
             </div>
         </div>
 
-        <!-- STEP 2: PROPERTY DETAILS -->
-        <div id="step-2" class="step hidden">
+        <!-- STEP 3: PROPERTY DETAILS -->
+        <div id="step-3" class="step hidden">
             <div class="card">
                 <h2>Property Location</h2>
                 <p class="section-subtitle">Where is the property located?</p>
                 
                 <label class="label">Street Address</label>
-                <input type="text" id="addrStreet" placeholder="123 Main St" autocomplete="address-line1">
+                <input type="text" id="addrStreet" placeholder="123 Main St" autocomplete="off">
                 
                 <div class="grid-2">
-                    <div><label class="label">City</label><input type="text" id="addrCity" placeholder="Vancouver"></div>
-                    <div><label class="label">State</label><input type="text" id="addrState" value="WA"></div>
+                    <div><label class="label">City</label><input type="text" id="addrCity" placeholder="Vancouver" autocomplete="off"></div>
+                    <div><label class="label">State</label><input type="text" id="addrState" value="WA" autocomplete="off"></div>
                 </div>
-                <div class="grid-2">
-                    <div><label class="label">Zip Code</label><input type="tel" id="addrZip" placeholder="98686"></div>
-                    <button class="btn-secondary" onclick="App.openZillow()" style="padding:14px; margin-bottom:12px">🔍 View on Zillow</button>
+                <div>
+                    <label class="label">Zip Code</label>
+                    <input type="tel" id="addrZip" placeholder="98686">
+                    <div class="utility-buttons">
+                        <button class="btn-utility" onclick="App.openZillow()" title="Search this address on Zillow">
+                            🔍 Zillow
+                        </button>
+                        <button class="btn-utility" onclick="App.openGIS()" title="Open county GIS/assessor page" id="gisBtn">
+                            🗺️ County GIS
+                        </button>
+                    </div>
+                    <button class="btn-primary" onclick="App.smartAutoFill()" style="margin-top: 12px; width: 100%; font-size: 14px; padding: 12px;" id="smartFillBtn">
+                        🤖 Smart Auto-Fill (AI-Powered)
+                    </button>
+                    <p style="font-size: 11px; color: var(--text-secondary); margin-top: 6px; text-align: center;">
+                        Automatically pulls data from Zillow, Redfin, County GIS, and satellite imagery
+                    </p>
                 </div>
+            </div>
+
+            <div class="card map-preview-card">
+                <h2>Property Views</h2>
+                <p class="section-subtitle">A friendly preview of the home from the street and above</p>
+                <div class="map-previews">
+                    <div class="map-preview-item">
+                        <div class="map-preview-label">Street View</div>
+                        <img id="streetViewImg" class="map-preview-img" alt="Street View preview" />
+                        <div class="map-preview-actions">
+                            <button class="btn-utility" onclick="App.openStreetView()">🚶 Open Street View</button>
+                        </div>
+                    </div>
+                    <div class="map-preview-item">
+                        <div class="map-preview-label">Satellite View</div>
+                        <img id="satelliteViewImg" class="map-preview-img" alt="Satellite preview" />
+                        <div class="map-preview-actions">
+                            <button class="btn-utility" onclick="App.openGoogleMaps()">🗺️ Open Maps</button>
+                            <button class="btn-utility" onclick="App.openGoogleEarth()">🛰️ Open Earth</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="mapPreviewHint" class="hint">Enter an address to load previews.</div>
             </div>
 
             <div class="card">
@@ -456,99 +1111,67 @@
             </div>
         </div>
 
-        <!-- STEP 3: RISK & AUTO DETAILS -->
-        <div id="step-3" class="step hidden">
+        <!-- STEP 4: VEHICLE & DRIVER INFO -->
+        <div id="step-4" class="step hidden">
             <div class="card">
-                <h2>Liability & Risk Factors</h2>
-                <p class="section-subtitle">Important underwriting information</p>
+                <h2>Drivers</h2>
+                <p class="section-subtitle">Add all household drivers (you can add more later)</p>
+                
+                <div id="driversList"></div>
+                
+                <button class="btn btn-secondary" style="margin-top: 12px;" onclick="App.addDriver()">+ Add Driver</button>
+            </div>
+
+            <div class="card">
+                <h2>Vehicles</h2>
+                <p class="section-subtitle">Add all vehicles to insure</p>
+                
+                <div id="vehiclesList"></div>
+                
+                <button class="btn btn-secondary" style="margin-top: 12px;" onclick="App.addVehicle()">+ Add Vehicle</button>
+            </div>
+        </div>
+
+        <!-- STEP 5: RISK FACTORS & ADDITIONAL INFO -->
+        <div id="step-5" class="step hidden">
+            <div class="card">
+                <h2>Risk Factors</h2>
+                <p class="section-subtitle">Help us understand potential risk factors</p>
                 
                 <label class="label">Swimming Pool</label>
                 <select id="pool">
                     <option value="">Select...</option>
-                    <option value="No">No</option>
-                    <option value="Yes - Fenced">Yes - Fenced</option>
-                    <option value="Yes - Not Fenced">Yes - Not Fenced</option>
+                    <option value="None">None</option>
+                    <option value="Above Ground">Above Ground</option>
+                    <option value="In Ground">In Ground</option>
+                    <option value="In Ground with Slide">In Ground with Slide</option>
                 </select>
                 
                 <label class="label">Trampoline</label>
                 <select id="trampoline">
                     <option value="">Select...</option>
-                    <option value="No">No</option>
-                    <option value="Yes - With Net Enclosure">Yes - With Net Enclosure</option>
-                    <option value="Yes - No Net">Yes - No Net</option>
+                    <option value="None">None</option>
+                    <option value="Yes">Yes</option>
+                    <option value="Yes with Safety Net">Yes with Safety Net</option>
                 </select>
                 
-                <label class="label">Wood Stove</label>
+                <label class="label">Wood Burning Stove</label>
                 <select id="woodStove">
                     <option value="">Select...</option>
-                    <option value="No">No</option>
-                    <option value="Yes - Primary Heat">Yes - Primary Heat</option>
-                    <option value="Yes - Secondary Heat">Yes - Secondary Heat</option>
-                </select>
-                
-                <label class="label">Dog on Property</label>
-                <input type="text" id="dogInfo" placeholder="Breed and any bite history">
-                
-                <label class="label">Business Operated on Property</label>
-                <select id="businessOnProperty">
-                    <option value="">Select...</option>
-                    <option value="No">No</option>
-                    <option value="Yes - Daycare">Yes - Daycare</option>
-                    <option value="Yes - Inventory Storage">Yes - Inventory Storage</option>
-                    <option value="Yes - Other">Yes - Other</option>
-                </select>
-            </div>
-
-            <div id="autoCard" class="card">
-                <h2>Auto & Driver Information</h2>
-                <p class="section-subtitle">Vehicle and driving history</p>
-                
-                <label class="label">Driver's License Number</label>
-                <div class="grid-2">
-                    <input type="text" id="dlNum" style="text-transform:uppercase;font-family:monospace" placeholder="License #">
-                    <input type="text" id="dlState" value="WA" placeholder="State">
-                </div>
-                
-                <label class="label">VIN (17 Characters)</label>
-                <input type="text" id="vin" maxlength="17" style="text-transform:uppercase;font-family:monospace" placeholder="1HG..." oninput="App.decodeVin(this)">
-                <div id="vinResult" style="color:var(--success); font-size:13px; margin:-10px 0 16px 0; min-height:18px"></div>
-                
-                <label class="label">Vehicle Description</label>
-                <input type="text" id="vehDesc" placeholder="Year Make Model">
-                
-                <div class="grid-2">
-                    <div><label class="label">Primary Use</label>
-                        <select id="use">
-                            <option value="Commute">Commute</option>
-                            <option value="Pleasure">Pleasure</option>
-                            <option value="Business">Business</option>
-                        </select>
-                    </div>
-                    <div><label class="label">Annual Mileage</label><input type="tel" id="miles" value="12000"></div>
-                </div>
-                
-                <label class="label">Commute Distance (One Way, Miles)</label>
-                <input type="number" id="commuteDist" placeholder="10">
-                
-                <label class="label">Ride Sharing (Uber/Lyft)</label>
-                <select id="rideSharing">
-                    <option value="">Select...</option>
-                    <option value="No">No</option>
+                    <option value="None">None</option>
                     <option value="Yes">Yes</option>
                 </select>
                 
-                <label class="label">Willing to Use Telematics for Discount?</label>
-                <select id="telematics">
-                    <option value="">Select...</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                    <option value="Maybe">Maybe</option>
-                </select>
+                <label class="label">Dogs / Pets</label>
+                <textarea id="dogInfo" placeholder="Breed, age, behavior history (if applicable)" rows="2"></textarea>
+                
+                <label class="label">Business on Property</label>
+                <textarea id="businessOnProperty" placeholder="Describe any business operations" rows="2"></textarea>
             </div>
 
-            <div id="autoCard2" class="card">
+            <div class="card">
                 <h2>Insurance History</h2>
-                <p class="section-subtitle">Current and prior coverage</p>
+                <p class="section-subtitle">Your current and prior coverage</p>
                 
                 <label class="label">Current Liability Limits</label>
                 <select id="liabilityLimits">
@@ -560,88 +1183,81 @@
                     <option value="500/500">500/500</option>
                 </select>
                 
-                <label class="label">Current Deductibles (Home / Auto)</label>
                 <div class="grid-2">
-                    <input type="text" id="homeDeductible" placeholder="$1000">
-                    <input type="text" id="autoDeductible" placeholder="$500">
+                    <div><label class="label">Home Deductible</label><input type="text" id="homeDeductible" placeholder="$1000"></div>
+                    <div><label class="label">Auto Deductible</label><input type="text" id="autoDeductible" placeholder="$500"></div>
                 </div>
                 
                 <label class="label">Prior Insurance Carrier</label>
-                <input type="text" id="priorCarrier" placeholder="Current Carrier">
+                <input type="text" id="priorCarrier" placeholder="e.g., State Farm">
                 
-                <label class="label">Years with Prior Carrier</label>
-                <input type="number" id="priorYears" placeholder="3">
+                <div class="grid-2">
+                    <div><label class="label">Years with Prior Carrier</label><input type="number" id="priorYears" placeholder="5"></div>
+                    <div><label class="label">Prior Policy Expiration</label><input type="date" id="priorExp"></div>
+                </div>
                 
-                <label class="label">Prior Policy Expiration</label>
-                <input type="date" id="priorExp">
+                <label class="label">Accidents (Last 5 Years)</label>
+                <textarea id="accidents" placeholder="Date, description, claim amount" rows="2"></textarea>
                 
-                <label class="label">Accidents in Last 5 Years</label>
-                <textarea id="accidents" rows="2" placeholder="Date and brief description"></textarea>
+                <label class="label">Violations / Tickets (Last 3 Years)</label>
+                <textarea id="violations" placeholder="Date, type of violation" rows="2"></textarea>
                 
-                <label class="label">Violations in Last 3 Years</label>
-                <textarea id="violations" rows="2" placeholder="Date and type"></textarea>
-                
-                <label class="label">Student GPA (if driver under 25)</label>
-                <input type="number" id="studentGPA" step="0.1" min="0" max="4.0" placeholder="3.5">
+                <label class="label">Student GPA (if applicable)</label>
+                <input type="text" id="studentGPA" placeholder="3.5">
             </div>
 
             <div class="card">
                 <h2>Additional Information</h2>
-                <p class="section-subtitle">Final details</p>
+                <p class="section-subtitle">Help us serve you better</p>
                 
-                <label class="label">Mortgagee / Lender Name</label>
-                <input type="text" id="mortgagee" placeholder="Bank or lender name">
+                <label class="label">Mortgagee / Lienholder</label>
+                <input type="text" id="mortgagee" placeholder="Bank name and address">
                 
-                <label class="label">Additional Insureds (Trusts/LLCs)</label>
-                <input type="text" id="additionalInsureds" placeholder="If applicable">
+                <label class="label">Additional Insured Parties</label>
+                <textarea id="additionalInsureds" placeholder="Names and relationships" rows="2"></textarea>
                 
                 <label class="label">Best Time to Contact</label>
-                <select id="contactTime">
-                    <option value="">Select...</option>
-                    <option value="Morning">Morning (8am-12pm)</option>
-                    <option value="Afternoon">Afternoon (12pm-5pm)</option>
-                    <option value="Evening">Evening (5pm-8pm)</option>
-                </select>
+                <input type="text" id="contactTime" placeholder="Morning, afternoon, evening">
                 
-                <label class="label">How Did You Hear About Us?</label>
+                <label class="label">How did you hear about us?</label>
                 <select id="referralSource">
                     <option value="">Select...</option>
                     <option value="Google Search">Google Search</option>
-                    <option value="Friend/Family Referral">Friend/Family Referral</option>
                     <option value="Social Media">Social Media</option>
-                    <option value="Realtor">Realtor</option>
+                    <option value="Referral">Referral from Friend/Family</option>
+                    <option value="Advertisement">Advertisement</option>
                     <option value="Other">Other</option>
                 </select>
                 
-                <div style="margin-top:20px; padding:16px; background:var(--bg-input); border-radius:12px;">
-                    <label style="display:flex; align-items:center; font-size:15px; color:var(--text); cursor:pointer;">
-                        <input type="checkbox" id="tcpaConsent" style="width:auto; margin-right:12px; margin-bottom:0;">
-                        <span>I agree to receive texts and calls regarding my insurance quote</span>
+                <div style="margin-top:20px;">
+                    <label style="display:flex; align-items:start; gap:10px; cursor:pointer;">
+                        <input type="checkbox" id="tcpaConsent" style="margin-top:4px;">
+                        <span style="font-size:13px; color:var(--text-secondary); line-height:1.4;">I consent to receive communications via phone, text, and email regarding insurance quotes and services.</span>
                     </label>
                 </div>
             </div>
         </div>
 
-        <!-- STEP 4: REVIEW & EXPORT -->
-        <div id="step-4" class="step hidden">
+        <!-- STEP 6: REVIEW & EXPORT -->
+        <div id="step-6" class="step hidden">
             <div class="card">
                 <h2>✓ Application Complete</h2>
                 <p class="section-subtitle">Choose how you'd like to export this information</p>
             </div>
 
-            <div class="card">
-                <h3 style="color: var(--apple-blue);">EZLynx XML (Recommended)</h3>
+            <div class="card export-card">
+                <h3>EZLynx XML (Recommended)</h3>
                 <p class="section-subtitle">Complete XML file ready for instant quoting</p>
-                <button class="btn-primary" onclick="App.exportXML()" style="width:100%; background:var(--apple-blue); font-size: 16px; padding: 14px;">📥 Download EZLynx XML File</button>
+                <button class="btn btn-primary btn-full" onclick="App.exportXML()">📥 Download EZLynx XML File</button>
                 <div class="hint" style="margin-top:12px">
                     Import to EZLynx using Applicants → Import → HawkSoft. All data auto-populates for immediate quoting.
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card export-card">
                 <h3>PDF Summary</h3>
                 <p class="section-subtitle">Clean, readable reference copy for review or sharing</p>
-                <button class="btn-primary" onclick="App.exportPDF()" style="width:100%; background:#FF8C00">📄 Download PDF Summary</button>
+                <button class="btn btn-secondary btn-full" onclick="App.exportPDF()">📄 Download PDF Summary</button>
                 <div class="hint" style="margin-top:12px">
                     Nicely formatted PDF showing all application details.
                 </div>
@@ -649,66 +1265,46 @@
 
             <div class="divider"></div>
 
-            <div class="card" style="background: rgba(0, 0, 0, 0.02);">
-                <h3>More Options</h3>
-                <p class="section-subtitle">Batch exports and email tools for teams</p>
-
-                <div style="margin-top:12px;">
-                    <h4 style="font-size:15px; font-weight:600; margin-bottom:8px;">Quote Library</h4>
-                    <p class="section-subtitle" style="margin-bottom:12px;">Save multiple drafts and batch export when ready</p>
-                    <div style="display:flex; gap:12px; margin-bottom:12px;">
-                        <button class="btn-secondary" style="flex:1" onclick="App.saveQuote()">💾 Save Draft</button>
-                        <button class="btn-tertiary" style="flex:1" onclick="App.startNewDraft()">➕ New Draft</button>
-                    </div>
-                    <div style="display:flex; gap:12px; margin-bottom:12px;">
-                        <button class="btn-primary" style="flex:1; background:#6f42c1" onclick="App.exportSelectedZip()">📦 Download ZIP (Selected)</button>
-                        <button class="btn-tertiary" style="flex:1" onclick="App.clearAllDrafts()">🧹 Clear Drafts</button>
-                    </div>
-                    <div id="quoteList" class="quote-list"></div>
-                    <div class="hint" style="margin-top:12px">
-                        Select drafts to include in the ZIP. Use Load to resume any draft.
-                    </div>
-                </div>
-
-                <div class="divider" style="margin:20px 0;"></div>
-
-                <div>
-                    <h4 style="font-size:15px; font-weight:600; margin-bottom:8px;">📧 Email to Agent</h4>
-                    <p class="section-subtitle">Send selected quotes in your preferred format</p>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr auto; gap:12px; align-items:flex-end; margin-bottom:12px;">
+            <div class="card export-card">
+                <details class="export-details">
+                    <summary class="export-summary">
+                        <span>More Options</span>
+                    </summary>
+                    <div class="export-stack" style="margin-top:12px;">
                         <div>
-                            <label style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">Send to Agent</label>
-                            <select id="agentEmail" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:white;">
-                                <option value="">-- Select agent --</option>
-                                <option value="Austin@altechinsurance.com">Austin</option>
-                                <option value="Evan@altechinsurance.com">Evan</option>
-                                <option value="Kathleen@altechinsurance.com">Kathleen</option>
-                                <option value="Neil@altechinsurance.com">Neil</option>
-                                <option value="Hollie@altechinsurance.com">Hollie</option>
-                            </select>
+                            <h4 style="font-size:15px; font-weight:600; margin-bottom:8px;">Quote Library</h4>
+                            <p class="section-subtitle">Save multiple drafts and batch export when ready</p>
+                            <div class="export-row">
+                                <button class="btn btn-secondary" onclick="App.saveQuote()">💾 Save Draft</button>
+                                <button class="btn btn-tertiary" onclick="App.startNewDraft()">➕ New Draft</button>
+                            </div>
+                            <div class="export-row">
+                                <button class="btn btn-secondary" onclick="App.exportSelectedZip()">📦 Download ZIP (Selected)</button>
+                                <button class="btn btn-tertiary" onclick="App.clearAllDrafts()">🧹 Clear Drafts</button>
+                            </div>
+                            <div id="quoteList" class="quote-list"></div>
+                            <div class="hint">Select drafts to include in the ZIP. Use Load to resume any draft.</div>
                         </div>
+
+                        <div class="divider"></div>
+
                         <div>
-                            <label style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">Email Format</label>
-                            <select id="emailFormat" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:10px; font-size:14px; background:white;">
-                                <option value="xml">EZLynx XML</option>
-                                <option value="pdf">PDF Summary</option>
-                            </select>
+                            <h4 style="font-size:15px; font-weight:600; margin-bottom:8px;">� Export Options</h4>
+                            <p class="section-subtitle">Download selected quotes in your preferred format</p>
+                            <div class="hint">Select one or more drafts above, then click "Download ZIP" to get all exports in a single file.</div>
                         </div>
-                        <button class="btn-primary" onclick="App.emailSelectedQuotes()" style="background: #FF6B6B; padding: 10px 16px; white-space:nowrap;">Send Email</button>
                     </div>
-                    <div class="hint" style="margin-top:12px;">
-                        Selected quotes are zipped and emailed in the chosen format.
-                    </div>
-                </div>
+                </details>
             </div>
 
-            <div class="card" style="border-color:var(--danger); background:rgba(255, 59, 48, 0.05)">
-                <button onclick="App.reset()" style="background:none; border:none; color:var(--danger); width:100%; font-weight:700; font-size:17px; padding:16px; cursor:pointer">
-                    🗑️ Clear All Data & Start New
-                </button>
+            <div class="card export-card">
+                <button class="btn btn-tertiary btn-full" onclick="App.reset()">🗑️ Clear All Data & Start New</button>
             </div>
         </div>
     </main>
+
+    <!-- Data Preview Modal Container -->
+    <div id="modalContainer"></div>
 
     <footer>
         <button id="btnBack" class="btn btn-secondary" onclick="App.prev()">Back</button>
@@ -719,40 +1315,297 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBHrj-3yva2XvG0bD6pw0KqNtvFr6SJWeY&libraries=places&callback=initPlaces" async defer></script>
     <script>
+        // Load Google Places API dynamically with key from server (optional - form works without it)
+        (async function loadPlacesAPI() {
+            try {
+                const res = await fetch('/api/places-config');
+                if (!res.ok) {
+                    console.warn('Places API not configured, address autocomplete disabled');
+                    return;
+                }
+                const { apiKey } = await res.json();
+                if (!apiKey) {
+                    console.warn('No API key returned, address autocomplete disabled');
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initPlaces`;
+                script.async = true;
+                script.defer = true;
+                script.onerror = () => console.warn('Places API script failed to load');
+                document.head.appendChild(script);
+            } catch (err) {
+                console.warn('Places API not available:', err.message);
+            }
+        })();
+    </script>
+    <script>
+        // 🔒 Encryption Utilities (AES-256-GCM via Web Crypto API)
+        const CryptoHelper = {
+            userPIN: null, // Set by user for extra protection
+            
+            async promptForPIN() {
+                // Check if PIN is stored (hashed)
+                const storedHash = localStorage.getItem('altech_pin_hash');
+                
+                if (storedHash) {
+                    // User has PIN set - verify it
+                    const pin = prompt('Enter your PIN to access encrypted data:');
+                    if (!pin) return null;
+                    
+                    const hash = await this.hashPIN(pin);
+                    if (hash !== storedHash) {
+                        alert('❌ Incorrect PIN. Data cannot be decrypted.');
+                        return null;
+                    }
+                    this.userPIN = pin;
+                    return pin;
+                } else {
+                    // First time - ask if they want to set a PIN
+                    const wantsPIN = confirm('🔐 Would you like to set a PIN for extra security? (You can skip this)');
+                    if (!wantsPIN) return 'no-pin';
+                    
+                    const pin = prompt('Create a 4-8 digit PIN (REMEMBER THIS - cannot be recovered):');
+                    if (!pin || pin.length < 4) {
+                        alert('PIN must be at least 4 digits');
+                        return null;
+                    }
+                    
+                    const hash = await this.hashPIN(pin);
+                    localStorage.setItem('altech_pin_hash', hash);
+                    this.userPIN = pin;
+                    return pin;
+                }
+            },
+            
+            async hashPIN(pin) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(pin + 'altech_salt_2026');
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            },
+
+            async getEncryptionKey() {
+                // Generate or retrieve encryption key (now with optional PIN)
+                const fingerprint = await this.getDeviceFingerprint();
+                
+                // If PIN is set, include it in key derivation
+                const keySource = this.userPIN ? `${fingerprint}:${this.userPIN}` : fingerprint;
+                
+                const keyMaterial = await crypto.subtle.importKey(
+                    'raw',
+                    new TextEncoder().encode(keySource),
+                    { name: 'PBKDF2' },
+                    false,
+                    ['deriveKey']
+                );
+                
+                const salt = new TextEncoder().encode('altech_v6_salt_2026');
+                return await crypto.subtle.deriveKey(
+                    {
+                        name: 'PBKDF2',
+                        salt,
+                        iterations: 100000,
+                        hash: 'SHA-256'
+                    },
+                    keyMaterial,
+                    { name: 'AES-GCM', length: 256 },
+                    false,
+                    ['encrypt', 'decrypt']
+                );
+            },
+
+            async getDeviceFingerprint() {
+                // Create semi-persistent device fingerprint
+                // Combines browser info + stored UUID
+                let uuid = localStorage.getItem('altech_device_uuid');
+                if (!uuid) {
+                    uuid = this.generateUUID();
+                    localStorage.setItem('altech_device_uuid', uuid);
+                }
+                
+                const browserInfo = `${navigator.userAgent}|${screen.width}x${screen.height}|${navigator.language}`;
+                return `${uuid}:${browserInfo}`;
+            },
+
+            generateUUID() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            },
+
+            async encrypt(data) {
+                try {
+                    const key = await this.getEncryptionKey();
+                    const iv = crypto.getRandomValues(new Uint8Array(12)); // GCM standard IV
+                    const encodedData = new TextEncoder().encode(JSON.stringify(data));
+                    
+                    const encrypted = await crypto.subtle.encrypt(
+                        { name: 'AES-GCM', iv },
+                        key,
+                        encodedData
+                    );
+                    
+                    // Combine IV + encrypted data for storage
+                    const combined = new Uint8Array(iv.length + encrypted.byteLength);
+                    combined.set(iv, 0);
+                    combined.set(new Uint8Array(encrypted), iv.length);
+                    
+                    // Convert to base64 for localStorage
+                    return btoa(String.fromCharCode(...combined));
+                } catch (error) {
+                    console.error('Encryption failed:', error);
+                    // Fallback: store unencrypted (backwards compatible)
+                    return JSON.stringify(data);
+                }
+            },
+
+            async decrypt(encryptedData) {
+                try {
+                    // Try decrypting first
+                    const key = await this.getEncryptionKey();
+                    const combined = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
+                    
+                    const iv = combined.slice(0, 12);
+                    const data = combined.slice(12);
+                    
+                    const decrypted = await crypto.subtle.decrypt(
+                        { name: 'AES-GCM', iv },
+                        key,
+                        data
+                    );
+                    
+                    const decoded = new TextDecoder().decode(decrypted);
+                    return JSON.parse(decoded);
+                } catch (error) {
+                    // Fallback: try parsing as plain JSON (backwards compatible)
+                    try {
+                        return JSON.parse(encryptedData);
+                    } catch (e) {
+                        console.error('Decryption failed:', error);
+                        return null;
+                    }
+                }
+            }
+        };
+
         const App = {
             data: {},
             step: 0,
             flow: [],
             storageKey: 'altech_v6',
             quotesKey: 'altech_v6_quotes',
+            scanFiles: [],
+            extractedData: null,
+            encryptionEnabled: true, // Toggle encryption on/off
+            drivers: [], // Array of driver objects
+            vehicles: [], // Array of vehicle objects
+            mapApiKey: null,
+            mapPreviewCache: {},
+            mapPreviewTimer: null,
             
             workflows: {
-                home: ['step-1', 'step-2', 'step-3', 'step-4'],
-                auto: ['step-1', 'step-3', 'step-4'],
-                both: ['step-1', 'step-2', 'step-3', 'step-4']
+                home: ['step-0', 'step-1', 'step-2', 'step-3', 'step-5', 'step-6'],
+                auto: ['step-0', 'step-1', 'step-2', 'step-4', 'step-5', 'step-6'],
+                both: ['step-0', 'step-1', 'step-2', 'step-3', 'step-4', 'step-5', 'step-6']
             },
 
             stepTitles: {
-                'step-1': 'Step 1 of 4: Client Information',
-                'step-2': 'Step 2 of 4: Property Details',
-                'step-3': 'Step 3 of 4: Risk & Auto Details',
-                'step-4': 'Step 4 of 4: Review & Export'
+                'step-0': 'Policy Scan',
+                'step-1': 'Personal Information',
+                'step-2': 'Coverage Type',
+                'step-3': 'Property Details',
+                'step-4': 'Vehicle & Driver Info',
+                'step-5': 'Risk Factors & Additional Info',
+                'step-6': 'Review & Export'
             },
 
-            init() {
-                this.load();
+            async init() {
+                // Prompt for PIN if encryption enabled and PIN is set
+                if (this.encryptionEnabled) {
+                    const pin = await CryptoHelper.promptForPIN();
+                    if (pin === null) {
+                        alert('Cannot access encrypted data without PIN. Please refresh and try again.');
+                        return;
+                    }
+                }
+                
+                await this.load();
+                await this.loadDriversVehicles(); // Load multi-driver/vehicle data
                 this.handleType(); // Set initial flow
-                this.renderQuoteList();
+                await this.renderQuoteList();
+
+                const scanInput = document.getElementById('policyScanInput');
+                if (scanInput) {
+                    scanInput.addEventListener('change', (e) => this.handleScanFiles(e));
+                }
                 
                 // Auto-save listeners
                 document.querySelectorAll('input, select, textarea').forEach(el => {
                     el.addEventListener('input', (e) => this.save(e));
                     el.addEventListener('change', (e) => this.save(e));
+                    
+                    // Real-time validation on blur
+                    el.addEventListener('blur', (e) => {
+                        if (typeof Validation === 'undefined') return;
+                        const id = e.target.id;
+                        
+                        // Field-specific validation
+                        let result;
+                        switch(id) {
+                            case 'email':
+                                result = Validation.email(e.target.value);
+                                break;
+                            case 'phone':
+                                result = Validation.phone(e.target.value);
+                                break;
+                            case 'dob':
+                                result = Validation.dob(e.target.value);
+                                break;
+                            case 'addrState':
+                                result = Validation.stateCode(e.target.value);
+                                break;
+                            case 'addrZip':
+                                result = Validation.zipCode(e.target.value);
+                                break;
+                            case 'yrBuilt':
+                            case 'roofYr':
+                            case 'heatYr':
+                                result = Validation.year(e.target.value, 'Year');
+                                break;
+                            case 'firstName':
+                            case 'lastName':
+                                result = Validation.required(e.target.value, e.target.previousElementSibling?.textContent || 'This field');
+                                break;
+                        }
+                        
+                        if (result) {
+                            if (result.valid) {
+                                Validation.clearError(id);
+                            } else {
+                                Validation.showError(id, result.message);
+                            }
+                        }
+                    });
                 });
                 // Phone format
                 document.getElementById('phone').addEventListener('input', this.fmtPhone);
+
+                // Map previews: update when address fields change
+                ['addrStreet', 'addrCity', 'addrState', 'addrZip'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.addEventListener('input', () => this.scheduleMapPreviewUpdate());
+                        el.addEventListener('change', () => this.scheduleMapPreviewUpdate());
+                    }
+                });
+
+                // Initial preview render if address already exists
+                this.updateMapPreviews();
             },
 
             initPlaces() {
@@ -807,6 +1660,8 @@
                     this.setFieldValue('addrState', state);
                     this.setFieldValue('addrZip', zip);
 
+                    this.scheduleMapPreviewUpdate();
+
                     refreshSessionToken();
                 });
             },
@@ -817,17 +1672,219 @@
                 el.value = value || '';
                 this.data[id] = el.value;
                 localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+
+                if (id === 'vin') {
+                    this.decodeVin(el);
+                }
+            },
+
+            openScanPicker() {
+                const input = document.getElementById('policyScanInput');
+                if (input) input.click();
+            },
+
+            clearScan() {
+                this.scanFiles = [];
+                this.extractedData = null;
+                const preview = document.getElementById('scanPreview');
+                if (preview) preview.innerHTML = '';
+                const results = document.getElementById('scanResults');
+                if (results) results.innerHTML = '';
+                const status = document.getElementById('scanStatus');
+                if (status) {
+                    status.classList.add('hidden');
+                    status.textContent = '';
+                }
+                const input = document.getElementById('policyScanInput');
+                if (input) input.value = '';
+            },
+
+            async handleScanFiles(e) {
+                const files = Array.from(e.target.files || []);
+                if (!files.length) return;
+                this.scanFiles = files;
+                await this.renderScanPreview(files);
+                await this.processScan();
+            },
+
+            async renderScanPreview(files) {
+                const preview = document.getElementById('scanPreview');
+                if (!preview) return;
+                preview.innerHTML = '';
+
+                for (const file of files) {
+                    if (file.type.startsWith('image/')) {
+                        const url = URL.createObjectURL(file);
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.className = 'scan-thumb';
+                        img.onload = () => URL.revokeObjectURL(url);
+                        preview.appendChild(img);
+                    } else {
+                        const chip = document.createElement('div');
+                        chip.className = 'hint';
+                        chip.textContent = `PDF: ${file.name}`;
+                        preview.appendChild(chip);
+                    }
+                }
+            },
+
+            async optimizeImage(file) {
+                const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+                const canvas = document.createElement('canvas');
+                canvas.width = bitmap.width;
+                canvas.height = bitmap.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(bitmap, 0, 0);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                const contrast = 1.1;
+                const intercept = 128 * (1 - contrast);
+
+                for (let i = 0; i < data.length; i += 4) {
+                    data[i] = data[i] * contrast + intercept;
+                    data[i + 1] = data[i + 1] * contrast + intercept;
+                    data[i + 2] = data[i + 2] * contrast + intercept;
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+                const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+                return blob || file;
+            },
+
+            async fileToInlineData(file) {
+                const reader = new FileReader();
+                const blob = file.type.startsWith('image/') ? await this.optimizeImage(file) : file;
+
+                return new Promise((resolve, reject) => {
+                    reader.onload = () => {
+                        const result = reader.result;
+                        const base64 = result.split(',')[1];
+                        resolve({
+                            mimeType: blob.type || file.type || 'application/octet-stream',
+                            data: base64
+                        });
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            },
+
+            async processScan() {
+                if (!this.scanFiles.length) return;
+
+                const status = document.getElementById('scanStatus');
+                if (status) {
+                    status.classList.remove('hidden');
+                    status.textContent = '⏳ Extracting policy data...';
+                }
+
+                try {
+                    const inlineData = [];
+                    for (const file of this.scanFiles) {
+                        inlineData.push(await this.fileToInlineData(file));
+                    }
+
+                    const response = await fetch('/api/policy-scan', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ files: inlineData })
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json().catch(() => ({}));
+                        throw new Error(err?.error || 'Unable to extract policy data');
+                    }
+
+                    const result = await response.json();
+                    this.extractedData = result;
+                    this.renderExtractionReview(result);
+
+                    if (status) {
+                        status.textContent = '✅ Extraction complete. Review below.';
+                    }
+                } catch (err) {
+                    if (status) status.textContent = '⚠️ ' + err.message;
+                }
+            },
+
+            renderExtractionReview(result) {
+                const results = document.getElementById('scanResults');
+                if (!results) return;
+                results.innerHTML = '';
+
+                const fields = result?.fields || {};
+                const confidence = result?.confidence || {};
+                const issues = result?.quality_issues || [];
+
+                if (issues.length) {
+                    const warn = document.createElement('div');
+                    warn.className = 'hint';
+                    warn.textContent = '⚠️ ' + issues.join(' | ');
+                    results.appendChild(warn);
+                }
+
+                const renderField = (id, label, value) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'scan-field';
+
+                    const labelEl = document.createElement('label');
+                    labelEl.className = 'label';
+                    labelEl.textContent = label;
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = value || '';
+                    input.dataset.field = id;
+
+                    const conf = typeof confidence[id] === 'number' ? confidence[id] : null;
+                    if (conf !== null) {
+                        const pill = document.createElement('span');
+                        pill.className = 'confidence-pill ' + (conf < 0.6 ? 'confidence-low' : 'confidence-high');
+                        pill.textContent = `${Math.round(conf * 100)}% confidence`;
+                        wrapper.appendChild(pill);
+                    }
+
+                    wrapper.appendChild(labelEl);
+                    wrapper.appendChild(input);
+                    results.appendChild(wrapper);
+                };
+
+                renderField('firstName', 'First Name', fields.firstName);
+                renderField('lastName', 'Last Name', fields.lastName);
+                renderField('dob', 'Date of Birth', fields.dob);
+                renderField('phone', 'Phone', fields.phone);
+                renderField('email', 'Email', fields.email);
+                renderField('addrStreet', 'Street Address', fields.addrStreet);
+                renderField('addrCity', 'City', fields.addrCity);
+                renderField('addrState', 'State', fields.addrState);
+                renderField('addrZip', 'ZIP', fields.addrZip);
+                renderField('vin', 'VIN', fields.vin);
+                renderField('vehDesc', 'Vehicle Description', fields.vehDesc);
+                renderField('liabilityLimits', 'Liability Limits', fields.liabilityLimits);
+                renderField('homeDeductible', 'Home Deductible', fields.homeDeductible);
+                renderField('autoDeductible', 'Auto Deductible', fields.autoDeductible);
+                renderField('priorCarrier', 'Prior Carrier', fields.priorCarrier);
+                renderField('priorExp', 'Prior Expiration', fields.priorExp);
+            },
+
+            applyExtractedData() {
+                const results = document.getElementById('scanResults');
+                if (!results) return;
+                const inputs = results.querySelectorAll('input[data-field]');
+                inputs.forEach((input) => this.setFieldValue(input.dataset.field, input.value));
+                this.toast('✅ Extracted data applied');
             },
 
             handleType() {
-                const t = document.querySelector('input[name="qType"]:checked').value;
+                const t = document.querySelector('input[name="qType"]:checked')?.value || 'both';
                 this.flow = this.workflows[t];
                 
-                // Show/hide auto-specific cards based on type
-                const autoCards = document.querySelectorAll('#autoCard, #autoCard2');
-                autoCards.forEach(card => {
-                    card.style.display = (t === 'auto' || t === 'both') ? 'block' : 'none';
-                });
+                // Move to next step automatically after selection
+                if (this.step === 2) {
+                    this.step++;
+                }
                 
                 // Reset step if out of bounds
                 if (this.step >= this.flow.length) this.step = 0;
@@ -840,8 +1897,28 @@
                 const curId = this.flow[this.step];
                 document.getElementById(curId).classList.remove('hidden');
                 
-                // Auto-select current data when landing on export page
+                // Render drivers/vehicles when landing on step 4
                 if (curId === 'step-4') {
+                    this.renderDrivers();
+                    this.renderVehicles();
+                    
+                    // Auto-add primary applicant as first driver if empty
+                    if (this.drivers.length === 0 && this.data.firstName) {
+                        this.drivers.push({
+                            id: `driver_${Date.now()}`,
+                            firstName: this.data.firstName || '',
+                            lastName: this.data.lastName || '',
+                            dob: this.data.dob || '',
+                            dlNum: '',
+                            dlState: 'WA',
+                            relationship: 'Self'
+                        });
+                        this.renderDrivers();
+                    }
+                }
+                
+                // Auto-select current data when landing on export page
+                if (curId === 'step-6') {
                     this.autoSaveCurrentQuote();
                 }
                 
@@ -849,7 +1926,7 @@
                 const stepTitle = document.getElementById('stepTitle');
                 const totalSteps = this.flow.length;
                 const currentStep = this.step + 1;
-                const stepName = ['Client Information', 'Property Details', 'Risk & Auto Details', 'Review & Export'][this.flow.indexOf(curId)];
+                const stepName = this.stepTitles[curId] || 'Step';
                 stepTitle.textContent = `Step ${currentStep} of ${totalSteps}: ${stepName}`;
                 
                 // Progress
@@ -866,6 +1943,39 @@
             },
 
             next() {
+                // Validate current step before proceeding
+                const curStepId = this.flow[this.step];
+                const stepNumber = parseInt(curStepId.split('-')[1]);
+                
+                if (typeof Validation !== 'undefined') {
+                    const errors = Validation.validateStep(stepNumber);
+                    
+                    // Clear all previous errors
+                    document.querySelectorAll('.validation-error').forEach(e => e.remove());
+                    document.querySelectorAll('input, select, textarea').forEach(el => {
+                        el.style.borderColor = '';
+                        el.style.background = '';
+                    });
+                    
+                    // Show new errors
+                    if (errors.length > 0) {
+                        errors.forEach(err => {
+                            if (err.field) {
+                                Validation.showError(err.field, err.message);
+                            }
+                        });
+                        
+                        // Scroll to first error
+                        const firstError = document.querySelector('.validation-error');
+                        if (firstError) {
+                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        
+                        this.toast('⚠️ Please fix validation errors before continuing');
+                        return; // Don't proceed
+                    }
+                }
+                
                 if (this.step < this.flow.length - 1) {
                     this.step++;
                     this.updateUI();
@@ -878,19 +1988,36 @@
                 }
             },
 
-            save(e) {
+            async save(e) {
                 const k = e.target.id || e.target.name;
                 this.data[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-                localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+                
+                // Encrypt before storing
+                if (this.encryptionEnabled) {
+                    const encrypted = await CryptoHelper.encrypt(this.data);
+                    localStorage.setItem(this.storageKey, encrypted);
+                } else {
+                    localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+                }
                 
                 const ind = document.getElementById('saveIndicator');
                 ind.style.opacity = 1;
                 setTimeout(() => ind.style.opacity = 0, 1500);
             },
 
-            load() {
+            async load() {
                 const s = localStorage.getItem(this.storageKey);
-                if(s) this.applyData(JSON.parse(s));
+                if (!s) return;
+                
+                // Try decrypting first
+                if (this.encryptionEnabled) {
+                    const decrypted = await CryptoHelper.decrypt(s);
+                    if (decrypted) {
+                        this.applyData(decrypted);
+                    }
+                } else {
+                    this.applyData(JSON.parse(s));
+                }
             },
 
             applyData(data) {
@@ -947,9 +2074,911 @@
                 e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
             },
 
+            // === MAP PREVIEWS (Street View + Satellite) ===
+            async ensureMapApiKey() {
+                if (this.mapApiKey) return this.mapApiKey;
+                try {
+                    const res = await fetch('/api/places-config');
+                    if (!res.ok) return null;
+                    const { apiKey } = await res.json();
+                    this.mapApiKey = apiKey || null;
+                    return this.mapApiKey;
+                } catch (e) {
+                    return null;
+                }
+            },
+
+            getFullAddress(data = this.data) {
+                const parts = [data.addrStreet, data.addrCity, data.addrState, data.addrZip].filter(Boolean);
+                return parts.join(', ').trim();
+            },
+
+            getMapUrls(address) {
+                if (!address || !this.mapApiKey) return null;
+                const encoded = encodeURIComponent(address);
+                const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=640x360&location=${encoded}&fov=80&pitch=0&key=${this.mapApiKey}`;
+                const satelliteUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${encoded}&zoom=19&size=640x360&maptype=satellite&key=${this.mapApiKey}`;
+                return { streetViewUrl, satelliteUrl };
+            },
+
+            async updateMapPreviews() {
+                const hint = document.getElementById('mapPreviewHint');
+                const streetImg = document.getElementById('streetViewImg');
+                const satImg = document.getElementById('satelliteViewImg');
+                if (!streetImg || !satImg) return;
+
+                streetImg.onclick = () => this.openStreetView();
+                satImg.onclick = () => this.openGoogleMaps();
+
+                const address = this.getFullAddress();
+                if (!address) {
+                    if (hint) hint.textContent = 'Enter an address to load previews.';
+                    streetImg.removeAttribute('src');
+                    satImg.removeAttribute('src');
+                    return;
+                }
+
+                const apiKey = await this.ensureMapApiKey();
+                if (!apiKey) {
+                    if (hint) hint.textContent = 'Map previews unavailable (API key not configured).';
+                    return;
+                }
+
+                const cached = this.mapPreviewCache[address];
+                if (cached) {
+                    streetImg.src = cached.streetViewUrl;
+                    satImg.src = cached.satelliteUrl;
+                    if (hint) hint.textContent = ' '; 
+                    return;
+                }
+
+                const urls = this.getMapUrls(address);
+                if (!urls) return;
+
+                this.mapPreviewCache[address] = urls;
+                streetImg.src = urls.streetViewUrl;
+                satImg.src = urls.satelliteUrl;
+                if (hint) hint.textContent = ' '; 
+            },
+
+            scheduleMapPreviewUpdate() {
+                clearTimeout(this.mapPreviewTimer);
+                this.mapPreviewTimer = setTimeout(() => this.updateMapPreviews(), 450);
+            },
+
+            openGoogleMaps() {
+                const address = this.getFullAddress();
+                if (!address) return;
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+            },
+
+            openGoogleEarth() {
+                const address = this.getFullAddress();
+                if (!address) return;
+                window.open(`https://earth.google.com/web/search/${encodeURIComponent(address)}`, '_blank');
+            },
+
+            openStreetView() {
+                const address = this.getFullAddress();
+                if (!address) return;
+                window.open(`https://www.google.com/maps/@?api=1&map_action=pano&query=${encodeURIComponent(address)}`, '_blank');
+            },
+
+            async fetchImageDataUrl(url) {
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) return null;
+                    const buffer = await res.arrayBuffer();
+                    const bytes = new Uint8Array(buffer);
+                    const base64 = btoa(String.fromCharCode(...bytes));
+                    const contentType = res.headers.get('content-type') || 'image/jpeg';
+                    const format = contentType.includes('png') ? 'PNG' : 'JPEG';
+                    return { dataUrl: `data:${contentType};base64,${base64}`, format };
+                } catch (e) {
+                    return null;
+                }
+            },
+
+            async getMapImages(address) {
+                const apiKey = await this.ensureMapApiKey();
+                if (!apiKey || !address) return null;
+                const urls = this.getMapUrls(address);
+                if (!urls) return null;
+
+                const cacheKey = `${address}::data`;
+                if (this.mapPreviewCache[cacheKey]) return this.mapPreviewCache[cacheKey];
+
+                const [street, sat] = await Promise.all([
+                    this.fetchImageDataUrl(urls.streetViewUrl),
+                    this.fetchImageDataUrl(urls.satelliteUrl)
+                ]);
+
+                const result = {
+                    streetView: street,
+                    satellite: sat
+                };
+                this.mapPreviewCache[cacheKey] = result;
+                return result;
+            },
+
+            // === MULTIPLE DRIVERS/VEHICLES ===
+            addDriver() {
+                const id = `driver_${Date.now()}`;
+                const driver = {
+                    id,
+                    firstName: '',
+                    lastName: '',
+                    dob: '',
+                    dlNum: '',
+                    dlState: 'WA',
+                    relationship: 'Self'
+                };
+                this.drivers.push(driver);
+                this.renderDrivers();
+                this.saveDriversVehicles();
+            },
+
+            removeDriver(id) {
+                this.drivers = this.drivers.filter(d => d.id !== id);
+                this.renderDrivers();
+                this.saveDriversVehicles();
+            },
+
+            updateDriver(id, field, value) {
+                const driver = this.drivers.find(d => d.id === id);
+                if (driver) {
+                    driver[field] = value;
+                    this.saveDriversVehicles();
+                }
+            },
+
+            renderDrivers() {
+                const container = document.getElementById('driversList');
+                if (!container) return;
+                
+                if (this.drivers.length === 0) {
+                    container.innerHTML = '<div class="hint">👤 No drivers added yet. Click "+ Add Driver" below to get started.</div>';
+                    return;
+                }
+                
+                container.innerHTML = this.drivers.map((driver, index) => `
+                    <div class="driver-vehicle-card">
+                        <div class="driver-vehicle-header">
+                            <h3>👤 Driver ${index + 1} ${driver.relationship ? `• ${driver.relationship}` : ''}</h3>
+                            <button class="remove-btn" onclick="App.removeDriver('${driver.id}')" title="Remove driver">×</button>
+                        </div>
+                        
+                        <div class="grid-2">
+                            <div>
+                                <label class="label">First Name</label>
+                                <input type="text" value="${driver.firstName || ''}" 
+                                    onchange="App.updateDriver('${driver.id}', 'firstName', this.value)" 
+                                    placeholder="First name">
+                            </div>
+                            <div>
+                                <label class="label">Last Name</label>
+                                <input type="text" value="${driver.lastName || ''}" 
+                                    onchange="App.updateDriver('${driver.id}', 'lastName', this.value)" 
+                                    placeholder="Last name">
+                            </div>
+                        </div>
+                        
+                        <div class="grid-2">
+                            <div>
+                                <label class="label">Date of Birth</label>
+                                <input type="date" value="${driver.dob || ''}" 
+                                    onchange="App.updateDriver('${driver.id}', 'dob', this.value)">
+                            </div>
+                            <div>
+                                <label class="label">Relationship</label>
+                                <select onchange="App.updateDriver('${driver.id}', 'relationship', this.value)">
+                                    <option value="Self" ${driver.relationship === 'Self' ? 'selected' : ''}>🙋 Self (Primary)</option>
+                                    <option value="Spouse" ${driver.relationship === 'Spouse' ? 'selected' : ''}>💑 Spouse/Partner</option>
+                                    <option value="Child" ${driver.relationship === 'Child' ? 'selected' : ''}>👶 Child</option>
+                                    <option value="Parent" ${driver.relationship === 'Parent' ? 'selected' : ''}>👵 Parent</option>
+                                    <option value="Other" ${driver.relationship === 'Other' ? 'selected' : ''}>👥 Other Household Member</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <label class="label">Driver's License</label>
+                        <div class="grid-2">
+                            <input type="text" value="${driver.dlNum || ''}" 
+                                onchange="App.updateDriver('${driver.id}', 'dlNum', this.value)" 
+                                style="text-transform:uppercase;font-family:monospace" 
+                                placeholder="License #">
+                            <input type="text" value="${driver.dlState || 'WA'}" 
+                                onchange="App.updateDriver('${driver.id}', 'dlState', this.value)" 
+                                placeholder="State" maxlength="2" style="text-transform:uppercase">
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            addVehicle() {
+                const id = `vehicle_${Date.now()}`;
+                const vehicle = {
+                    id,
+                    vin: '',
+                    year: '',
+                    make: '',
+                    model: '',
+                    use: 'Commute',
+                    miles: '12000',
+                    primaryDriver: ''
+                };
+                this.vehicles.push(vehicle);
+                this.renderVehicles();
+                this.saveDriversVehicles();
+            },
+
+            removeVehicle(id) {
+                this.vehicles = this.vehicles.filter(v => v.id !== id);
+                this.renderVehicles();
+                this.saveDriversVehicles();
+            },
+
+            updateVehicle(id, field, value) {
+                const vehicle = this.vehicles.find(v => v.id === id);
+                if (vehicle) {
+                    vehicle[field] = value;
+                    this.saveDriversVehicles();
+                }
+            },
+
+            async decodeVehicleVin(id, vin) {
+                const vehicle = this.vehicles.find(v => v.id === id);
+                if (!vehicle) return;
+                
+                const vinUpper = vin.toUpperCase();
+                vehicle.vin = vinUpper;
+                
+                if (vinUpper.length === 17) {
+                    try {
+                        const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vinUpper}?format=json`);
+                        const d = await r.json();
+                        const r1 = d.Results[0];
+                        
+                        vehicle.year = r1.ModelYear || '';
+                        vehicle.make = r1.Make || '';
+                        vehicle.model = r1.Model || '';
+                        
+                        this.renderVehicles();
+                        this.saveDriversVehicles();
+                    } catch(e) {
+                        console.error('VIN decode error:', e);
+                    }
+                }
+            },
+
+            renderVehicles() {
+                const container = document.getElementById('vehiclesList');
+                if (!container) return;
+                
+                if (this.vehicles.length === 0) {
+                    container.innerHTML = '<div class="hint">🚗 No vehicles added yet. Click "+ Add Vehicle" below to get started.</div>';
+                    return;
+                }
+                
+                const driverOptions = this.drivers.map(d => 
+                    `<option value="${d.id}">${d.firstName} ${d.lastName}</option>`
+                ).join('');
+                
+                container.innerHTML = this.vehicles.map((vehicle, index) => `
+                    <div class="driver-vehicle-card">
+                        <div class="driver-vehicle-header">
+                            <h3>🚗 Vehicle ${index + 1} ${vehicle.year && vehicle.make ? `• ${vehicle.year} ${vehicle.make}` : ''}</h3>
+                            <button class="remove-btn" onclick="App.removeVehicle('${vehicle.id}')" title="Remove vehicle">×</button>
+                        </div>
+                        
+                        <label class="label">VIN (17 Characters) - Auto-fills year/make/model</label>
+                        <input type="text" maxlength="17" value="${vehicle.vin || ''}" 
+                            onchange="App.decodeVehicleVin('${vehicle.id}', this.value)" 
+                            style="text-transform:uppercase;font-family:monospace" 
+                            placeholder="1HG...">
+                        
+                        <div class="grid-2" style="grid-template-columns: 80px 1fr 1fr;">
+                            <div>
+                                <label class="label">Year</label>
+                                <input type="text" value="${vehicle.year || ''}" 
+                                    onchange="App.updateVehicle('${vehicle.id}', 'year', this.value)" 
+                                    placeholder="2020">
+                            </div>
+                            <div>
+                                <label class="label">Make</label>
+                                <input type="text" value="${vehicle.make || ''}" 
+                                    onchange="App.updateVehicle('${vehicle.id}', 'make', this.value)" 
+                                    placeholder="Honda">
+                            </div>
+                            <div>
+                                <label class="label">Model</label>
+                                <input type="text" value="${vehicle.model || ''}" 
+                                    onchange="App.updateVehicle('${vehicle.id}', 'model', this.value)" 
+                                    placeholder="Civic">
+                            </div>
+                        </div>
+                        
+                        <div class="grid-2">
+                            <div>
+                                <label class="label">Primary Use</label>
+                                <select onchange="App.updateVehicle('${vehicle.id}', 'use', this.value)">
+                                    <option value="Commute" ${vehicle.use === 'Commute' ? 'selected' : ''}>🏢 Commute</option>
+                                    <option value="Pleasure" ${vehicle.use === 'Pleasure' ? 'selected' : ''}>🌴 Pleasure</option>
+                                    <option value="Business" ${vehicle.use === 'Business' ? 'selected' : ''}>💼 Business</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label">Annual Mileage</label>
+                                <input type="number" value="${vehicle.miles || '12000'}" 
+                                    onchange="App.updateVehicle('${vehicle.id}', 'miles', this.value)" 
+                                    placeholder="12000">
+                            </div>
+                        </div>
+                        
+                        <label class="label">Primary Driver</label>
+                        <select onchange="App.updateVehicle('${vehicle.id}', 'primaryDriver', this.value)">
+                            <option value="">Select driver...</option>
+                            ${driverOptions}
+                        </select>
+                    </div>
+                `).join('');
+            },
+
+            async saveDriversVehicles() {
+                this.data.drivers = this.drivers;
+                this.data.vehicles = this.vehicles;
+                
+                // Encrypt and save
+                if (this.encryptionEnabled) {
+                    const encrypted = await CryptoHelper.encrypt(this.data);
+                    localStorage.setItem(this.storageKey, encrypted);
+                } else {
+                    localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+                }
+            },
+
+            async loadDriversVehicles() {
+                if (this.data.drivers && Array.isArray(this.data.drivers)) {
+                    this.drivers = this.data.drivers;
+                } else {
+                    // Migrate old single driver/vehicle to new format
+                    if (this.data.dlNum || this.data.vin) {
+                        this.drivers = [{
+                            id: `driver_${Date.now()}`,
+                            firstName: this.data.firstName || '',
+                            lastName: this.data.lastName || '',
+                            dob: this.data.dob || '',
+                            dlNum: this.data.dlNum || '',
+                            dlState: this.data.dlState || 'WA',
+                            relationship: 'Self'
+                        }];
+                    }
+                }
+                
+                if (this.data.vehicles && Array.isArray(this.data.vehicles)) {
+                    this.vehicles = this.data.vehicles;
+                } else {
+                    // Migrate old single vehicle
+                    if (this.data.vin || this.data.vehDesc) {
+                        const parts = (this.data.vehDesc || '').match(/(\d{4})\s+(.+?)\s+(.+)/);
+                        this.vehicles = [{
+                            id: `vehicle_${Date.now()}`,
+                            vin: this.data.vin || '',
+                            year: parts ? parts[1] : '',
+                            make: parts ? parts[2] : '',
+                            model: parts ? parts[3] : '',
+                            use: this.data.use || 'Commute',
+                            miles: this.data.miles || '12000',
+                            primaryDriver: ''
+                        }];
+                    }
+                }
+                
+                this.renderDrivers();
+                this.renderVehicles();
+            },
+
             openZillow() {
                 const a = `${this.data.addrStreet || ''} ${this.data.addrCity || ''} ${this.data.addrState || ''} ${this.data.addrZip || ''}`;
                 window.open(`https://www.zillow.com/homes/${encodeURIComponent(a)}_rb/`);
+            },
+
+            async smartAutoFill() {
+                const address = this.data.addrStreet || '';
+                const city = this.data.addrCity || '';
+                const state = this.data.addrState || '';
+                const zip = this.data.addrZip || '';
+                
+                if (!address || !city || !state) {
+                    alert('Please enter a complete address (street, city, and state) first.');
+                    return;
+                }
+                
+                const btn = document.getElementById('smartFillBtn');
+                const originalText = btn.innerHTML;
+                
+                try {
+                    // Update button to show loading
+                    btn.disabled = true;
+                    btn.innerHTML = '🔄 Analyzing property...';
+                    
+                    // Call smart extraction API
+                    const response = await fetch('/api/smart-extract', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ address, city, state, zip })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to extract property data');
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (!result.success) {
+                        throw new Error(result.error || 'Extraction failed');
+                    }
+                    
+                    // Reset button
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    
+                    // Show preview modal with satellite image
+                    const fullAddress = `${address}, ${city}, ${state} ${zip || ''}`.trim();
+                    this.showDataPreview(result.data, result.sources, result.conflicts, result.satelliteImage, fullAddress);
+                    
+                } catch (error) {
+                    console.error('Smart auto-fill error:', error);
+                    btn.innerHTML = '❌ Failed';
+                    alert('Failed to extract property data. Please try manual entry or check individual sources (Zillow/GIS buttons).');
+                    
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }, 3000);
+                }
+            },
+
+            showDataPreview(data, sources, conflicts = {}, satelliteImage = null, address = '') {
+                // Create modal HTML
+                const modalHTML = `
+                    <div class="modal-overlay" id="dataPreviewModal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2>📋 Review Extracted Data</h2>
+                                <p style="font-size: 13px; color: var(--text-secondary); margin: 8px 0 0 0;">
+                                    Review and edit before applying to form
+                                </p>
+                            </div>
+                            <div class="modal-body" id="dataPreviewBody">
+                                ${satelliteImage ? this.renderSatelliteSection(satelliteImage, address) : ''}
+                                ${this.renderDataItems(data, conflicts)}
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn-secondary" onclick="App.closeDataPreview()">Cancel</button>
+                                <button class="btn-primary" onclick="App.applyPreviewData()">✅ Apply Selected Data</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Remove existing modal if present
+                const existing = document.getElementById('dataPreviewModal');
+                if (existing) existing.remove();
+                
+                // Add to page
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                
+                // Show modal
+                setTimeout(() => {
+                    document.getElementById('dataPreviewModal').classList.add('active');
+                }, 10);
+                
+                // Store data for later use
+                this.previewData = data;
+                this.previewConflicts = conflicts;
+                this.previewAddress = address;
+            },
+
+            renderSatelliteSection(satelliteImage, address) {
+                const googleMapsUrl = `https://maps.google.com/maps?q=${encodeURIComponent(address)}`;
+                const googleEarthUrl = `https://earth.google.com/web/search/${encodeURIComponent(address)}`;
+                
+                return `
+                    <div class="satellite-section">
+                        <p style="font-size: 12px; font-weight: 600; margin: 0 0 8px 0; color: var(--text);">🛰️ Satellite View</p>
+                        <img 
+                            src="data:image/png;base64,${satelliteImage}" 
+                            class="satellite-thumbnail" 
+                            onclick="App.viewSatelliteFullscreen(this.src)"
+                            title="Click to view fullscreen"
+                        >
+                        <p class="satellite-label">Tap to view fullscreen</p>
+                        <div class="satellite-links">
+                            <a href="${googleMapsUrl}" target="_blank">📍 Google Maps</a>
+                            <a href="${googleEarthUrl}" target="_blank">🌍 Google Earth</a>
+                        </div>
+                    </div>
+                `;
+            },
+
+            viewSatelliteFullscreen(imageSrc) {
+                const modal = `
+                    <div class="modal-overlay" id="fullscreenImageModal" style="display: flex;">
+                        <div style="position: relative; max-width: 90%; max-height: 90%; display: flex; align-items: center; justify-content: center;">
+                            <img src="${imageSrc}" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+                            <button onclick="document.getElementById('fullscreenImageModal').remove()" 
+                                    style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer;">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modal);
+                document.getElementById('fullscreenImageModal').classList.add('active');
+            },
+
+            renderDataItems(data, conflicts) {
+                const fieldLabels = {
+                    yrBuilt: 'Year Built',
+                    sqFt: 'Square Footage',
+                    numStories: 'Number of Stories',
+                    fullBaths: 'Full Bathrooms',
+                    dwellingType: 'Dwelling Type',
+                    dwellingUsage: 'Dwelling Usage',
+                    constructionStyle: 'Construction Style',
+                    exteriorWalls: 'Exterior Walls',
+                    roofType: 'Roof Type',
+                    roofYr: 'Roof Year',
+                    roofShape: 'Roof Shape',
+                    heatingType: 'Heating Type',
+                    foundation: 'Foundation Type',
+                    pool: 'Pool',
+                    trampoline: 'Trampoline',
+                    fireplace: 'Fireplace',
+                    garageSpaces: 'Garage Spaces',
+                    lotSize: 'Lot Size'
+                };
+                
+                let html = '';
+                
+                for (const [key, label] of Object.entries(fieldLabels)) {
+                    const value = data[key];
+                    const conflict = conflicts?.[key];
+                    
+                    if (!value && !conflict) continue;
+                    
+                    const hasConflict = conflict && conflict.length > 1;
+                    
+                    html += `
+                        <div class="data-item ${hasConflict ? 'conflict' : ''}">
+                            <div class="data-item-header">
+                                <span class="data-item-label">${label}</span>
+                                ${hasConflict ? '<span class="conflict-badge">⚠️ Conflict</span>' : ''}
+                            </div>
+                            <div class="data-value-group">
+                    `;
+                    
+                    if (hasConflict) {
+                        // Show all conflicting values with radio buttons
+                        conflict.forEach((option, idx) => {
+                            const checked = idx === 0 ? 'checked' : '';
+                            html += `
+                                <div class="data-value-option">
+                                    <input type="radio" name="field_${key}" value="${option.value}" id="${key}_${idx}" ${checked}>
+                                    <label for="${key}_${idx}">${option.value}</label>
+                                    <span class="source-tag">${option.source}</span>
+                                </div>
+                            `;
+                        });
+                        // Add manual edit option
+                        html += `
+                            <div class="data-value-option">
+                                <input type="radio" name="field_${key}" value="custom" id="${key}_custom">
+                                <input type="text" id="${key}_custom_value" placeholder="Enter custom value" 
+                                       onclick="document.getElementById('${key}_custom').checked = true">
+                            </div>
+                        `;
+                    } else {
+                        // Single value - show as editable input
+                        const source = data[key + '_source'] || 'AI';
+                        html += `
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="text" class="data-value" id="field_${key}" value="${value}">
+                                <span class="data-source">${source}</span>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                return html || '<p style="text-align: center; color: var(--text-secondary);">No data extracted</p>';
+            },
+
+            closeDataPreview() {
+                const modal = document.getElementById('dataPreviewModal');
+                if (modal) {
+                    modal.classList.remove('active');
+                    setTimeout(() => modal.remove(), 300);
+                }
+            },
+
+            applyPreviewData() {
+                const fieldsUpdated = [];
+                
+                // Get all data items
+                const dataItems = document.querySelectorAll('.data-item');
+                
+                dataItems.forEach(item => {
+                    const label = item.querySelector('.data-item-label').textContent;
+                    const isConflict = item.classList.contains('conflict');
+                    
+                    if (isConflict) {
+                        // Get selected radio button value
+                        const radios = item.querySelectorAll('input[type="radio"]');
+                        const selected = Array.from(radios).find(r => r.checked);
+                        
+                        if (selected) {
+                            const fieldKey = selected.name.replace('field_', '');
+                            let value;
+                            
+                            if (selected.value === 'custom') {
+                                value = document.getElementById(fieldKey + '_custom_value').value;
+                            } else {
+                                value = selected.value;
+                            }
+                            
+                            if (value) {
+                                this.setFieldValue(fieldKey, value);
+                                fieldsUpdated.push(label);
+                            }
+                        }
+                    } else {
+                        // Get input value directly
+                        const input = item.querySelector('.data-value');
+                        if (input && input.value) {
+                            const fieldKey = input.id.replace('field_', '');
+                            this.setFieldValue(fieldKey, input.value);
+                            fieldsUpdated.push(label);
+                        }
+                    }
+                });
+                
+                this.closeDataPreview();
+                
+                if (fieldsUpdated.length > 0) {
+                    alert(`✅ Applied ${fieldsUpdated.length} fields!\n\n${fieldsUpdated.join('\n')}`);
+                }
+            },
+
+            openGIS() {
+                const address = this.data.addrStreet || '';
+                const city = (this.data.addrCity || '').toLowerCase();
+                const state = (this.data.addrState || '').toUpperCase();
+                const zip = this.data.addrZip || '';
+                
+                if (!address || !city || !state) {
+                    alert('Please enter a complete address (street, city, and state) first.');
+                    return;
+                }
+                
+                // Washington State County GIS mapping
+                const waCountyGIS = {
+                    // Clark County
+                    'vancouver': 'https://gis.clark.wa.gov/applications/assessor/',
+                    'camas': 'https://gis.clark.wa.gov/applications/assessor/',
+                    'battle ground': 'https://gis.clark.wa.gov/applications/assessor/',
+                    'ridgefield': 'https://gis.clark.wa.gov/applications/assessor/',
+                    'la center': 'https://gis.clark.wa.gov/applications/assessor/',
+                    'washougal': 'https://gis.clark.wa.gov/applications/assessor/',
+                    
+                    // King County
+                    'seattle': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
+                    'bellevue': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
+                    'redmond': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
+                    'kent': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
+                    'renton': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
+                    'federal way': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
+                    'kirkland': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
+                    'auburn': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
+                    'sammamish': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
+                    'bothell': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
+                    
+                    // Pierce County
+                    'tacoma': 'https://atip.piercecountywa.gov/app/parcel-search',
+                    'lakewood': 'https://atip.piercecountywa.gov/app/parcel-search',
+                    'puyallup': 'https://atip.piercecountywa.gov/app/parcel-search',
+                    'bonney lake': 'https://atip.piercecountywa.gov/app/parcel-search',
+                    'university place': 'https://atip.piercecountywa.gov/app/parcel-search',
+                    
+                    // Snohomish County
+                    'everett': 'https://scopi.snoco.org/',
+                    'marysville': 'https://scopi.snoco.org/',
+                    'lynnwood': 'https://scopi.snoco.org/',
+                    'edmonds': 'https://scopi.snoco.org/',
+                    'mountlake terrace': 'https://scopi.snoco.org/',
+                    
+                    // Spokane County
+                    'spokane': 'https://mapgis.spokanecounty.org/SCGIS2/Parcel/',
+                    'spokane valley': 'https://mapgis.spokanecounty.org/SCGIS2/Parcel/',
+                    
+                    // Kitsap County
+                    'bremerton': 'https://psearch.kitsapgov.com/psearch/',
+                    'silverdale': 'https://psearch.kitsapgov.com/psearch/',
+                    'poulsbo': 'https://psearch.kitsapgov.com/psearch/',
+                    
+                    // Thurston County
+                    'olympia': 'https://taxlot.co.thurston.wa.us/',
+                    'lacey': 'https://taxlot.co.thurston.wa.us/',
+                    'tumwater': 'https://taxlot.co.thurston.wa.us/',
+                    
+                    // Whatcom County
+                    'bellingham': 'https://www.whatcomcounty.us/1476/Online-Property-Search',
+                    
+                    // Yakima County
+                    'yakima': 'https://www.co.yakima.wa.us/497/Property-Information-Public-Inquiry',
+                    
+                    // Cowlitz County
+                    'longview': 'https://cowlitzassessor.us/',
+                    'kelso': 'https://cowlitzassessor.us/',
+                };
+                
+                // Oregon County GIS mapping
+                const orCountyGIS = {
+                    // Multnomah County
+                    'portland': 'https://www.portlandmaps.com/',
+                    'gresham': 'https://www.portlandmaps.com/',
+                    'troutdale': 'https://www.portlandmaps.com/',
+                    'wood village': 'https://www.portlandmaps.com/',
+                    'fairview': 'https://www.portlandmaps.com/',
+                    
+                    // Washington County
+                    'beaverton': 'https://www.washingtoncountyor.gov/propertysearch',
+                    'hillsboro': 'https://www.washingtoncountyor.gov/propertysearch',
+                    'tigard': 'https://www.washingtoncountyor.gov/propertysearch',
+                    'tualatin': 'https://www.washingtoncountyor.gov/propertysearch',
+                    'lake oswego': 'https://www.washingtoncountyor.gov/propertysearch',
+                    'west linn': 'https://www.washingtoncountyor.gov/propertysearch',
+                    'sherwood': 'https://www.washingtoncountyor.gov/propertysearch',
+                    'forest grove': 'https://www.washingtoncountyor.gov/propertysearch',
+                    'cornelius': 'https://www.washingtoncountyor.gov/propertysearch',
+                    
+                    // Clackamas County
+                    'oregon city': 'https://ormap.clackamas.us/',
+                    'milwaukie': 'https://ormap.clackamas.us/',
+                    'happy valley': 'https://ormap.clackamas.us/',
+                    'wilsonville': 'https://ormap.clackamas.us/',
+                    'canby': 'https://ormap.clackamas.us/',
+                    'sandy': 'https://ormap.clackamas.us/',
+                    'estacada': 'https://ormap.clackamas.us/',
+                    
+                    // Lane County
+                    'eugene': 'https://apps.lanecounty.org/PropertyAccountInformation/',
+                    'springfield': 'https://apps.lanecounty.org/PropertyAccountInformation/',
+                    'cottage grove': 'https://apps.lanecounty.org/PropertyAccountInformation/',
+                    'creswell': 'https://apps.lanecounty.org/PropertyAccountInformation/',
+                    'veneta': 'https://apps.lanecounty.org/PropertyAccountInformation/',
+                    
+                    // Marion County
+                    'salem': 'https://apps.co.marion.or.us/PropertySearch/',
+                    'keizer': 'https://apps.co.marion.or.us/PropertySearch/',
+                    'woodburn': 'https://apps.co.marion.or.us/PropertySearch/',
+                    'silverton': 'https://apps.co.marion.or.us/PropertySearch/',
+                    
+                    // Deschutes County
+                    'bend': 'https://dial.deschutes.org/',
+                    'redmond': 'https://dial.deschutes.org/',
+                    'sisters': 'https://dial.deschutes.org/',
+                    'la pine': 'https://dial.deschutes.org/',
+                    
+                    // Jackson County
+                    'medford': 'https://jacksoncountyor.org/assessor/GIS',
+                    'ashland': 'https://jacksoncountyor.org/assessor/GIS',
+                    'central point': 'https://jacksoncountyor.org/assessor/GIS',
+                    'phoenix': 'https://jacksoncountyor.org/assessor/GIS',
+                    'talent': 'https://jacksoncountyor.org/assessor/GIS',
+                    
+                    // Linn County
+                    'albany': 'https://www.linncountyassessor.com/',
+                    'lebanon': 'https://www.linncountyassessor.com/',
+                    'sweet home': 'https://www.linncountyassessor.com/',
+                    
+                    // Douglas County
+                    'roseburg': 'https://apps.co.douglas.or.us/onlineservices/PropertyViewer/',
+                    'sutherlin': 'https://apps.co.douglas.or.us/onlineservices/PropertyViewer/',
+                    'winston': 'https://apps.co.douglas.or.us/onlineservices/PropertyViewer/',
+                };
+                
+                // Arizona County GIS mapping
+                const azCountyGIS = {
+                    // Maricopa County
+                    'phoenix': 'https://mcassessor.maricopa.gov/',
+                    'mesa': 'https://mcassessor.maricopa.gov/',
+                    'chandler': 'https://mcassessor.maricopa.gov/',
+                    'scottsdale': 'https://mcassessor.maricopa.gov/',
+                    'glendale': 'https://mcassessor.maricopa.gov/',
+                    'tempe': 'https://mcassessor.maricopa.gov/',
+                    'peoria': 'https://mcassessor.maricopa.gov/',
+                    'surprise': 'https://mcassessor.maricopa.gov/',
+                    'gilbert': 'https://mcassessor.maricopa.gov/',
+                    'avondale': 'https://mcassessor.maricopa.gov/',
+                    'goodyear': 'https://mcassessor.maricopa.gov/',
+                    'buckeye': 'https://mcassessor.maricopa.gov/',
+                    'el mirage': 'https://mcassessor.maricopa.gov/',
+                    'queen creek': 'https://mcassessor.maricopa.gov/',
+                    'cave creek': 'https://mcassessor.maricopa.gov/',
+                    'fountain hills': 'https://mcassessor.maricopa.gov/',
+                    'paradise valley': 'https://mcassessor.maricopa.gov/',
+                    
+                    // Pima County
+                    'tucson': 'https://www.asr.pima.gov/assessor/',
+                    'oro valley': 'https://www.asr.pima.gov/assessor/',
+                    'marana': 'https://www.asr.pima.gov/assessor/',
+                    'sahuarita': 'https://www.asr.pima.gov/assessor/',
+                    
+                    // Pinal County
+                    'casa grande': 'https://gis.pinalcountyaz.gov/parcelviewer/',
+                    'apache junction': 'https://gis.pinalcountyaz.gov/parcelviewer/',
+                    'coolidge': 'https://gis.pinalcountyaz.gov/parcelviewer/',
+                    'eloy': 'https://gis.pinalcountyaz.gov/parcelviewer/',
+                    'florence': 'https://gis.pinalcountyaz.gov/parcelviewer/',
+                    'maricopa': 'https://gis.pinalcountyaz.gov/parcelviewer/',
+                    
+                    // Yavapai County
+                    'prescott': 'https://gis.yavapaiaz.gov/Html5Viewer/index.html',
+                    'prescott valley': 'https://gis.yavapaiaz.gov/Html5Viewer/index.html',
+                    'chino valley': 'https://gis.yavapaiaz.gov/Html5Viewer/index.html',
+                    'cottonwood': 'https://gis.yavapaiaz.gov/Html5Viewer/index.html',
+                    'sedona': 'https://gis.yavapaiaz.gov/Html5Viewer/index.html',
+                    
+                    // Coconino County
+                    'flagstaff': 'https://www.coconino.az.gov/1302/GIS-Maps-Data',
+                    'williams': 'https://www.coconino.az.gov/1302/GIS-Maps-Data',
+                    
+                    // Mohave County
+                    'lake havasu city': 'https://gis.mohave.gov/Html5Viewer/Index.html',
+                    'kingman': 'https://gis.mohave.gov/Html5Viewer/Index.html',
+                    'bullhead city': 'https://gis.mohave.gov/Html5Viewer/Index.html',
+                    
+                    // Yuma County
+                    'yuma': 'https://www.yumacountyaz.gov/government/assessor',
+                    'san luis': 'https://www.yumacountyaz.gov/government/assessor',
+                    'somerton': 'https://www.yumacountyaz.gov/government/assessor',
+                };
+                
+                // Check if we have a direct GIS link for this city
+                if (state === 'WA' && waCountyGIS[city]) {
+                    window.open(waCountyGIS[city], '_blank');
+                    return;
+                }
+                
+                if (state === 'OR' && orCountyGIS[city]) {
+                    window.open(orCountyGIS[city], '_blank');
+                    return;
+                }
+                
+                if (state === 'AZ' && azCountyGIS[city]) {
+                    window.open(azCountyGIS[city], '_blank');
+                    return;
+                }
+                
+                // Fallback: Try to open general county assessor search
+                const searchAddress = encodeURIComponent(`${address} ${city} ${state} ${zip}`);
+                
+                if (state === 'WA') {
+                    window.open(`https://www.dor.wa.gov/find-taxes-rates/property-tax/county-assessors`, '_blank');
+                } else if (state === 'OR') {
+                    window.open(`https://www.oregon.gov/dor/forms/pages/county-assessor.aspx`, '_blank');
+                } else if (state === 'AZ') {
+                    window.open(`https://azdor.gov/property-appraisal/county-assessors-information`, '_blank');
+                } else {
+                    // Generic Google search for county GIS
+                    window.open(`https://www.google.com/search?q=${city}+${state}+county+gis+assessor+property+search`, '_blank');
+                }
             },
 
             // === NOTES & EXPORT ===
@@ -1029,8 +3058,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 this.toast('📋 Copied to Clipboard!');
             },
 
-            exportPDF() {
-                const result = this.buildPDF(this.data);
+            async exportPDF() {
+                const result = await this.buildPDF(this.data);
                 this.downloadBlob(result.blob, result.filename);
                 this.toast('✓ PDF downloaded successfully');
             },
@@ -1041,17 +3070,49 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 this.toast('📝 Text summary downloaded');
             },
 
-            buildPDF(data) {
+            async buildPDF(data) {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
+                const address = this.getFullAddress(data);
+                const mapImages = await this.getMapImages(address);
+
+                // Banner image (Street View)
+                let y = 20;
+                if (mapImages?.streetView?.dataUrl) {
+                    const bannerHeight = 65;
+                    doc.addImage(mapImages.streetView.dataUrl, mapImages.streetView.format, 10, 10, 190, bannerHeight);
+                    y = 85;
+                }
+
                 doc.setFontSize(18);
                 doc.setTextColor(0, 122, 255);
-                doc.text('Insurance Application Summary', 105, 20, { align: 'center' });
+                doc.text('Insurance Application Summary', 105, y - 12, { align: 'center' });
+
+                // Satellite thumbnail near header
+                if (mapImages?.satellite?.dataUrl) {
+                    doc.setFontSize(9);
+                    doc.setTextColor(60, 60, 60);
+                    doc.text('Satellite View', 150, y - 18);
+                    doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, 150, y - 15, 45, 45);
+                    doc.setTextColor(0, 0, 0);
+                    const mapAddress = this.getFullAddress(data);
+                    if (mapAddress) {
+                        doc.setFontSize(8);
+                        doc.setTextColor(0, 122, 255);
+                        doc.textWithLink('Open in Maps', 150, y + 32, {
+                            url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddress)}`
+                        });
+                        doc.textWithLink('Open in Earth', 150, y + 38, {
+                            url: `https://earth.google.com/web/search/${encodeURIComponent(mapAddress)}`
+                        });
+                        doc.setTextColor(0, 0, 0);
+                    }
+                }
                 
                 doc.setTextColor(0, 0, 0);
                 doc.setFontSize(10);
-                let y = 35;
+                
                 
                 const addSection = (title, fields) => {
                     if (y > 270) {
@@ -1484,12 +3545,25 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 URL.revokeObjectURL(url);
             },
 
-            getQuotes() {
-                return JSON.parse(localStorage.getItem(this.quotesKey) || '[]');
+            async getQuotes() {
+                const encrypted = localStorage.getItem(this.quotesKey);
+                if (!encrypted) return [];
+                
+                if (this.encryptionEnabled) {
+                    const decrypted = await CryptoHelper.decrypt(encrypted);
+                    return decrypted || [];
+                } else {
+                    return JSON.parse(encrypted);
+                }
             },
 
-            saveQuotes(quotes) {
-                localStorage.setItem(this.quotesKey, JSON.stringify(quotes));
+            async saveQuotes(quotes) {
+                if (this.encryptionEnabled) {
+                    const encrypted = await CryptoHelper.encrypt(quotes);
+                    localStorage.setItem(this.quotesKey, encrypted);
+                } else {
+                    localStorage.setItem(this.quotesKey, JSON.stringify(quotes));
+                }
             },
 
             getQuoteTitle(data) {
@@ -1505,9 +3579,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 return `Updated ${updated}`;
             },
 
-            autoSaveCurrentQuote() {
+            async autoSaveCurrentQuote() {
                 const snapshot = JSON.parse(JSON.stringify(this.data || {}));
-                const quotes = this.getQuotes();
+                const quotes = await this.getQuotes();
                 const autoId = 'current_draft';
                 
                 // Remove any existing auto-saved draft
@@ -1517,8 +3591,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const baseTitle = this.getQuoteTitle(snapshot);
                 const title = `${baseTitle} (Current Draft)`;
                 filtered.unshift({ id: autoId, title, data: snapshot, updatedAt: new Date().toISOString() });
-                this.saveQuotes(filtered);
-                this.renderQuoteList();
+                await this.saveQuotes(filtered);
+                await this.renderQuoteList();
                 
                 // Auto-select the current draft
                 setTimeout(() => {
@@ -1527,42 +3601,72 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 }, 50);
             },
 
-            saveQuote() {
+            async saveQuote() {
                 const snapshot = JSON.parse(JSON.stringify(this.data || {}));
-                const quotes = this.getQuotes();
+                const quotes = await this.getQuotes();
+                
+                // Check for duplicates based on address
+                const address = `${snapshot.addrStreet || ''} ${snapshot.addrCity || ''} ${snapshot.addrState || ''}`.trim().toLowerCase();
+                const duplicates = quotes.filter(q => {
+                    const qAddr = `${q.data.addrStreet || ''} ${q.data.addrCity || ''} ${q.data.addrState || ''}`.trim().toLowerCase();
+                    return qAddr && address && qAddr === address;
+                });
+                
+                // Show duplicate warning modal if found
+                if (duplicates.length > 0) {
+                    const confirmed = await this.showDuplicateWarning(duplicates);
+                    if (!confirmed) return; // User canceled
+                }
+                
                 const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
                 const title = this.getQuoteTitle(snapshot);
-                quotes.unshift({ id, title, data: snapshot, updatedAt: new Date().toISOString() });
-                this.saveQuotes(quotes);
-                this.renderQuoteList();
+                quotes.unshift({ 
+                    id, 
+                    title, 
+                    data: snapshot, 
+                    updatedAt: new Date().toISOString(),
+                    starred: false,
+                    isDuplicate: duplicates.length > 0
+                });
+                await this.saveQuotes(quotes);
+                await this.renderQuoteList();
                 this.toast('✅ Draft saved to library');
             },
 
-            loadQuote(id) {
-                const quote = this.getQuotes().find(q => q.id === id);
+            async loadQuote(id) {
+                const quotes = await this.getQuotes();
+                const quote = quotes.find(q => q.id === id);
                 if (!quote) return;
                 this.applyData(quote.data);
-                localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+                
+                // Save loaded data with encryption
+                if (this.encryptionEnabled) {
+                    const encrypted = await CryptoHelper.encrypt(this.data);
+                    localStorage.setItem(this.storageKey, encrypted);
+                } else {
+                    localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+                }
                 this.toast('✅ Draft loaded');
             },
 
-            deleteQuote(id) {
-                const quotes = this.getQuotes().filter(q => q.id !== id);
-                this.saveQuotes(quotes);
-                this.renderQuoteList();
+            async deleteQuote(id) {
+                const quotes = await this.getQuotes();
+                const filtered = quotes.filter(q => q.id !== id);
+                await this.saveQuotes(filtered);
+                await this.renderQuoteList();
                 this.toast('🗑️ Draft removed');
             },
 
-            renameQuote(id) {
-                const quotes = this.getQuotes();
+            async renameQuote(id) {
+                const quotes = await this.getQuotes();
                 const quote = quotes.find(q => q.id === id);
                 if (!quote) return;
                 const next = prompt('Rename draft', quote.title);
                 if (next === null) return;
                 quote.title = next.trim() || quote.title;
                 quote.updatedAt = new Date().toISOString();
-                this.saveQuotes(quotes);
-                this.renderQuoteList();
+                await this.saveQuotes(quotes);
+                await this.renderQuoteList();
             },
 
             startNewDraft() {
@@ -1578,11 +3682,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 this.toast('🧹 Drafts cleared');
             },
 
-            renderQuoteList() {
+            async renderQuoteList() {
                 const list = document.getElementById('quoteList');
                 if (!list) return;
                 list.innerHTML = '';
-                const quotes = this.getQuotes();
+                const quotes = await this.getQuotes();
                 if (!quotes.length) {
                     const empty = document.createElement('div');
                     empty.className = 'hint';
@@ -1592,63 +3696,188 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 }
                 quotes.forEach(q => {
                     const row = document.createElement('div');
-                    row.className = 'quote-row';
+                    row.className = 'quote-card';
+                    row.setAttribute('data-quote-id', q.id);
+                    row.setAttribute('data-search-text', `${q.title} ${this.getQuoteMeta(q)}`);
 
-                    const left = document.createElement('div');
-                    left.style.display = 'flex';
-                    left.style.alignItems = 'center';
+                    // Header with name and star
+                    const header = document.createElement('div');
+                    header.className = 'quote-card-header';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'quote-name';
+                    nameSpan.textContent = q.title;
+                    
+                    const starBtn = document.createElement('button');
+                    starBtn.className = 'quote-star';
+                    starBtn.textContent = q.starred ? '⭐' : '☆';
+                    starBtn.title = q.starred ? 'Remove from favorites' : 'Add to favorites';
+                    starBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        this.toggleQuoteStar(q.id);
+                    };
+                    
+                    if (q.starred) row.classList.add('starred');
+                    
+                    header.appendChild(nameSpan);
+                    header.appendChild(starBtn);
 
-                    const cb = document.createElement('input');
-                    cb.type = 'checkbox';
-                    cb.className = 'quote-checkbox';
-                    cb.dataset.id = q.id;
+                    // Stats
+                    const stats = document.createElement('div');
+                    stats.className = 'quote-stats';
+                    const statsText = this.getQuoteStats(q);
+                    stats.innerHTML = statsText;
 
-                    const info = document.createElement('div');
-                    info.className = 'quote-info';
-                    const title = document.createElement('div');
-                    title.className = 'quote-title';
-                    title.textContent = q.title;
-                    const meta = document.createElement('div');
-                    meta.className = 'quote-meta';
-                    meta.textContent = this.getQuoteMeta(q);
-                    info.appendChild(title);
-                    info.appendChild(meta);
-
-                    left.appendChild(cb);
-                    left.appendChild(info);
-
+                    // Actions
                     const actions = document.createElement('div');
                     actions.className = 'quote-actions';
 
                     const loadBtn = document.createElement('button');
-                    loadBtn.className = 'btn-secondary icon-btn';
-                    loadBtn.title = 'Load';
-                    loadBtn.setAttribute('aria-label', 'Load draft');
-                    loadBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v9m0 0l3-3m-3 3l-3-3m-6 6.75a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 17.25v-1.5"/></svg>';
+                    loadBtn.className = 'quote-action-btn';
+                    loadBtn.textContent = '📥 Load';
                     loadBtn.onclick = () => this.loadQuote(q.id);
 
-                    const renameBtn = document.createElement('button');
-                    renameBtn.className = 'btn-tertiary icon-btn';
-                    renameBtn.title = 'Rename';
-                    renameBtn.setAttribute('aria-label', 'Rename draft');
-                    renameBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487a2.25 2.25 0 013.182 3.182L8.25 19.463 4.5 20.25l.787-3.75L16.862 4.487z"/></svg>';
-                    renameBtn.onclick = () => this.renameQuote(q.id);
+                    const dupBtn = document.createElement('button');
+                    dupBtn.className = 'quote-action-btn';
+                    dupBtn.textContent = '📋 Copy';
+                    dupBtn.onclick = () => this.duplicateQuote(q.id);
 
                     const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'btn-tertiary icon-btn';
-                    deleteBtn.title = 'Delete';
-                    deleteBtn.setAttribute('aria-label', 'Delete draft');
-                    deleteBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>';
+                    deleteBtn.className = 'quote-action-btn delete';
+                    deleteBtn.textContent = '🗑️ Delete';
                     deleteBtn.onclick = () => this.deleteQuote(q.id);
 
                     actions.appendChild(loadBtn);
-                    actions.appendChild(renameBtn);
+                    actions.appendChild(dupBtn);
                     actions.appendChild(deleteBtn);
 
-                    row.appendChild(left);
+                    row.appendChild(header);
+                    row.appendChild(stats);
                     row.appendChild(actions);
                     list.appendChild(row);
                 });
+            },
+
+            filterQuotes(searchTerm) {
+                const term = (searchTerm || '').toLowerCase();
+                const cards = document.querySelectorAll('[data-quote-id]');
+                cards.forEach(card => {
+                    const text = (card.getAttribute('data-search-text') || '').toLowerCase();
+                    card.style.display = text.includes(term) ? '' : 'none';
+                });
+            },
+            
+            async toggleQuoteStar(quoteId) {
+                const quotes = await this.getQuotes();
+                const quote = quotes.find(q => q.id === quoteId);
+                if (!quote) return;
+                quote.starred = !quote.starred;
+                quote.updatedAt = new Date().toISOString();
+                await this.saveQuotes(quotes);
+                await this.renderQuoteList();
+                this.toast(quote.starred ? '⭐ Added to favorites' : '☆ Removed from favorites');
+            },
+            
+            showDuplicateWarning(duplicates) {
+                return new Promise((resolve) => {
+                    const modal = document.createElement('div');
+                    modal.className = 'modal-overlay';
+                    modal.onclick = (e) => {
+                        if (e.target === modal) {
+                            modal.remove();
+                            resolve(false);
+                        }
+                    };
+                    
+                    modal.innerHTML = `
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <span class="modal-icon">⚠️</span>
+                                <h2 class="modal-title">Possible Duplicate</h2>
+                            </div>
+                            <div class="modal-body">
+                                <p>We found ${duplicates.length} similar quote(s) for this address:</p>
+                                <ul style="margin: 12px 0; padding-left: 20px;">
+                                    ${duplicates.map(d => `<li><strong>${d.title}</strong> - ${new Date(d.updatedAt).toLocaleDateString()}</li>`).join('')}
+                                </ul>
+                                <p>Do you want to save this as a new quote anyway?</p>
+                            </div>
+                            <div class="modal-actions">
+                                <button class="modal-btn modal-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+                                <button class="modal-btn modal-btn-primary" onclick="this.closest('.modal-overlay').setAttribute('data-confirmed', 'true'); this.closest('.modal-overlay').remove();">Save Anyway</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(modal);
+                    
+                    modal.addEventListener('remove', () => {
+                        resolve(modal.getAttribute('data-confirmed') === 'true');
+                    });
+                });
+            },
+            
+            duplicateQuote(quoteId) {
+                const quote = this.getQuotes().find(q => q.id === quoteId);
+                if (!quote) return;
+                
+                // Check for duplicate addresses
+                const copiedAddr = `${quote.data.addrStreet || ''} ${quote.data.addrCity || ''}`.trim();
+                const hasDuplicate = this.getQuotes().some(q => q.id !== quoteId && 
+                    `${q.data.addrStreet || ''} ${q.data.addrCity || ''}`.trim() === copiedAddr && 
+                    copiedAddr);
+                
+                if (hasDuplicate && !confirm('⚠️ A quote with this address already exists. Continue copying?')) {
+                    return;
+                }
+                
+                // Copy property data, clear personal info
+                const newData = JSON.parse(JSON.stringify(quote.data));
+                newData.firstName = '';
+                newData.lastName = '';
+                newData.email = '';
+                newData.phone = '';
+                newData.dob = '';
+                
+                this.data = newData;
+                this.save();
+                this.updateUI();
+                this.renderQuoteList();
+                this.toast('📋 Draft copied! (personal info cleared)');
+            },
+            
+            getQuoteStats(q) {
+                const d = q.data || {};
+                    const badges = [];
+                
+                    // Coverage type badge
+                    if (d.qType) {
+                        const typeClass = d.qType === 'home' ? 'badge-home' : (d.qType === 'auto' ? 'badge-auto' : 'badge-both');
+                        badges.push(`<span class="quote-badge ${typeClass}">${d.qType.toUpperCase()}</span>`);
+                    }
+                
+                    // Duplicate indicator
+                    if (q.isDuplicate) {
+                        badges.push(`<span class="quote-badge badge-duplicate">⚠️ DUPLICATE</span>`);
+                    }
+                
+                    // Multi-driver/vehicle badges
+                    if (d.drivers && d.drivers.length > 0) {
+                        badges.push(`<span class="quote-badge" style="background: rgba(142, 142, 147, 0.12); color: #636366;">👤 ${d.drivers.length} driver${d.drivers.length > 1 ? 's' : ''}</span>`);
+                    }
+                    if (d.vehicles && d.vehicles.length > 0) {
+                        badges.push(`<span class="quote-badge" style="background: rgba(142, 142, 147, 0.12); color: #636366;">🚗 ${d.vehicles.length} vehicle${d.vehicles.length > 1 ? 's' : ''}</span>`);
+                    }
+                
+                    // Property/location info
+                    const details = [];
+                    if (d.addrCity && d.addrState) details.push(`📍 ${d.addrCity}, ${d.addrState}`);
+                    if (d.yrBuilt) details.push(`🏠 ${d.yrBuilt}`);
+                
+                const updatedTime = new Date(q.updatedAt || q.timestamp).toLocaleDateString();
+                    details.push(`🕐 ${updatedTime}`);
+                
+                    return badges.join('') + '<br><span style="font-size: 12px; color: var(--text-secondary);">' + details.join(' • ') + '</span>';
             },
 
             getSelectedQuoteIds() {
@@ -1670,7 +3899,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     this.toast('⚠️ Select drafts to export.');
                     return;
                 }
-                const quotes = this.getQuotes().filter(q => ids.includes(q.id));
+                const quotes = (await this.getQuotes()).filter(q => ids.includes(q.id));
                 const zip = new JSZip();
                 const errors = [];
 
@@ -1685,7 +3914,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                         errors.push(`${q.title}: ${xml.error.replace('⚠️ ', '')}`);
                     }
 
-                    const pdf = this.buildPDF(q.data);
+                    const pdf = await this.buildPDF(q.data);
                     folder.file(pdf.filename, pdf.blob);
                 }
 
@@ -1718,123 +3947,6 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     reader.onerror = reject;
                     reader.readAsDataURL(blob);
                 });
-            },
-
-            async emailSelectedQuotes(event) {
-                const agentEmail = document.getElementById('agentEmail')?.value;
-                if (!agentEmail) {
-                    this.toast('⚠️ Please select an agent');
-                    return;
-                }
-
-                // Check if any quotes selected
-                const selectedIds = this.getSelectedQuoteIds();
-                if (selectedIds.length === 0) {
-                    this.toast('⚠️ Please select at least one quote to email');
-                    return;
-                }
-
-                const emailFormat = document.getElementById('emailFormat')?.value || 'xml';
-
-                try {
-                    // Show loading state
-                    const btn = event?.target || document.querySelector('[onclick="App.emailSelectedQuotes()"]');
-                    const originalText = btn.textContent;
-                    btn.disabled = true;
-                    btn.textContent = '⏳ Preparing...';
-
-                    const senderName = [
-                        document.getElementById('firstName')?.value,
-                        document.getElementById('lastName')?.value
-                    ].filter(Boolean).join(' ') || 'Insurance Lead';
-
-                    let downloadedFileName;
-
-                    // If only one quote selected, download single file instead of ZIP
-                    if (selectedIds.length === 1) {
-                        const quote = this.getQuotes().find(q => q.id === selectedIds[0]);
-                        if (!quote) {
-                            throw new Error('Quote not found');
-                        }
-
-                        if (emailFormat === 'pdf') {
-                            const pdfResult = this.buildPDF(quote.data);
-                            this.downloadBlob(pdfResult.blob, pdfResult.filename);
-                            downloadedFileName = pdfResult.filename;
-                        } else {
-                            const xmlResult = this.buildXML(quote.data);
-                            if (!xmlResult.ok) {
-                                throw new Error(xmlResult.error);
-                            }
-                            const xmlBlob = new Blob([xmlResult.content], { type: 'application/xml' });
-                            this.downloadBlob(xmlBlob, xmlResult.filename);
-                            downloadedFileName = xmlResult.filename;
-                        }
-                    } else {
-                        // Multiple quotes - create ZIP
-                        if (!window.JSZip) {
-                            throw new Error('ZIP library not available');
-                        }
-
-                        const zip = new JSZip();
-                        const errors = [];
-                        
-                        for (const quoteId of selectedIds) {
-                            const quote = this.getQuotes().find(q => q.id === quoteId);
-                            if (!quote) continue;
-
-                            const quoteName = this.sanitizeFilename(this.getQuoteTitle(quote.data));
-                            const folder = zip.folder(quoteName);
-
-                            if (emailFormat === 'pdf') {
-                                const pdfResult = this.buildPDF(quote.data);
-                                folder.file(pdfResult.filename, pdfResult.blob);
-                            } else {
-                                const xmlResult = this.buildXML(quote.data);
-                                if (xmlResult.ok) {
-                                    folder.file(xmlResult.filename, xmlResult.content);
-                                } else {
-                                    errors.push(`${quoteName}: ${xmlResult.error.replace('⚠️ ', '')}`);
-                                }
-                            }
-                        }
-
-                        if (errors.length) {
-                            this.toast('⚠️ Some XML exports were skipped');
-                        }
-
-                        // Generate and download ZIP
-                        const zipBlob = await zip.generateAsync({ type: 'blob' });
-                        const formatLabel = emailFormat === 'pdf' ? 'PDF' : 'XML';
-                        downloadedFileName = `Altech_Quotes_${formatLabel}_${new Date().toISOString().split('T')[0]}.zip`;
-                        this.downloadBlob(zipBlob, downloadedFileName);
-                    }
-
-                    // Prepare mailto link
-                    const subject = encodeURIComponent(`Insurance Quote - ${senderName}`);
-                    const body = encodeURIComponent(
-                        `Hi,\n\nPlease find the attached insurance quote file (${downloadedFileName}).\n\nThe file has been downloaded to your device. Please attach it to this email before sending.\n\nThank you,\n${senderName}`
-                    );
-                    
-                    const mailtoLink = `mailto:${agentEmail}?subject=${subject}&body=${body}`;
-                    window.location.href = mailtoLink;
-
-                    // Reset button
-                    btn.textContent = '✅ Opening email...';
-                    setTimeout(() => {
-                        btn.disabled = false;
-                        btn.textContent = originalText;
-                    }, 2000);
-                    this.toast('📧 Email app opened - attach downloaded file');
-                } catch (error) {
-                    console.error('Email error:', error);
-                    this.toast('❌ Error: ' + error.message);
-                    const btn = event?.target || document.querySelector('[onclick="App.emailSelectedQuotes()"]');
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.textContent = 'Send Email';
-                    }
-                }
             }
         };
         window.initPlaces = () => App.initPlaces();
