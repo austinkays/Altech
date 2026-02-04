@@ -2575,7 +2575,27 @@
                         }
                     }
                     
-                    // PHASE 1 FALLBACK: ArcGIS API unavailable, try satellite hazard detection
+                    // PHASE 2: Try Headless Browser scraping (for non-API counties)
+                    btn.innerHTML = '🔄 Accessing county database...';
+                    
+                    const gisUrl = this.getGISUrlForCounty(city, state);
+                    const browserResponse = await fetch(`/api/headless-browser.js?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}&gisUrl=${encodeURIComponent(gisUrl || '')}`);
+                    
+                    if (browserResponse.ok) {
+                        const browserData = await browserResponse.json();
+                        
+                        if (browserData.success && browserData.parcelData) {
+                            // Phase 2 Success: Got scraped parcel data
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                            
+                            // Show parcel data with confidence indicator
+                            this.showParcelDataPopup(browserData.parcelData, address, city, state, browserData.confidence || 0.85);
+                            return;
+                        }
+                    }
+                    
+                    // PHASE 2 FALLBACK: Browser scraping unavailable, try satellite hazard detection
                     btn.innerHTML = '🔄 Analyzing satellite imagery...';
                     
                     const hazardResponse = await fetch('/api/smart-extract.js', {
@@ -2614,8 +2634,35 @@
                 }
             },
 
-            showParcelDataPopup(parcelData, address, city, state) {
+            getGISUrlForCounty(city, state) {
+                // Returns the GIS URL for browser fallback (from existing openGIS() method)
+                // This allows Phase 2 to access the same county websites
+                const countyMappings = {
+                    'WA': {
+                        'Vancouver': 'https://www.clark.wa.gov/GIS/',
+                        'Seattle': 'https://gis.kingcounty.gov/',
+                        'Tacoma': 'https://gis.piercecountywa.gov/',
+                        'Spokane': 'https://www.spokanecounty.org/government/assessor/'
+                    },
+                    'OR': {
+                        'Portland': 'https://ggis.multco.us/',
+                        'Salem': 'https://www.marionco.us/assessor/',
+                        'Eugene': 'https://www.lanecountygov.org/'
+                    },
+                    'AZ': {
+                        'Phoenix': 'https://gis.maricopa.gov/',
+                        'Tucson': 'https://www.pimacountyassessor.com/'
+                    }
+                };
+                
+                const stateMap = countyMappings[state];
+                return stateMap ? stateMap[city] || '' : '';
+            },
+
+            showParcelDataPopup(parcelData, address, city, state, confidence = 1.0) {
                 // Display official county parcel data in confirmation popup
+                // confidence: 1.0 = ArcGIS API (official), 0.85 = headless browser scraping
+                
                 const modal = document.createElement('div');
                 modal.id = 'parcelDataModal';
                 modal.style.cssText = `
@@ -2642,12 +2689,22 @@
                 `;
                 
                 const title = document.createElement('h2');
-                title.textContent = '✓ Official County Parcel Data Found';
+                const dataSource = confidence === 1.0 ? 'Official County Parcel Data' : 'Extracted County Data (Browser)';
+                title.textContent = `✓ ${dataSource} Found`;
                 title.style.cssText = 'margin: 0 0 16px 0; color: #28a745;';
                 
                 const addressLine = document.createElement('p');
                 addressLine.style.cssText = 'color: #666; margin: 8px 0; font-size: 14px;';
                 addressLine.textContent = `${address}, ${city}, ${state} • Parcel: ${parcelData.parcelId}`;
+                
+                // Add confidence indicator for browser-scraped data
+                if (confidence < 1.0) {
+                    const confidenceNote = document.createElement('p');
+                    confidenceNote.style.cssText = 'background: #fff3cd; border-left: 4px solid #ffc107; padding: 8px 12px; margin: 12px 0; font-size: 12px; color: #856404; border-radius: 3px;';
+                    const percent = Math.round(confidence * 100);
+                    confidenceNote.textContent = `⚠ Data extracted from county website (${percent}% confidence). Please review before submitting.`;
+                    content.appendChild(confidenceNote);
+                }
                 
                 const grid = document.createElement('div');
                 grid.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0;';
