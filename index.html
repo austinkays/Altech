@@ -2826,6 +2826,16 @@
                                 console.error(`[DL Scan] HTTP error: ${response.status}`);
                                 const errorText = await response.text();
                                 console.error('[DL Scan] Error response:', errorText);
+                                
+                                // Handle payload too large error specifically
+                                if (response.status === 413) {
+                                    return resolve({ 
+                                        success: false, 
+                                        error: 'Image too large. Please try again with a smaller photo or crop closer to the license. (Error 413)',
+                                        errorCode: 413
+                                    });
+                                }
+                                
                                 return resolve({ 
                                     success: false, 
                                     error: `Network error (${response.status}): ${response.statusText}`,
@@ -2874,9 +2884,10 @@
                             const canvas = document.createElement('canvas');
                             const ctx = canvas.getContext('2d');
                             
-                            // Limit max dimensions to reduce file size
-                            const MAX_WIDTH = 1920;
-                            const MAX_HEIGHT = 1920;
+                            // Limit max dimensions to reduce file size for Vercel (4.5MB payload limit)
+                            // Driver licenses need ~1024px max for good OCR
+                            const MAX_WIDTH = 1024;
+                            const MAX_HEIGHT = 1024;
                             let width = img.width;
                             let height = img.height;
 
@@ -2890,10 +2901,19 @@
                             canvas.height = height;
                             ctx.drawImage(img, 0, 0, width, height);
 
-                            // Convert to JPEG blob
+                            // Convert to JPEG blob with aggressive compression
+                            // 0.75 quality balances OCR readability with file size
                             canvas.toBlob((blob) => {
                                 if (blob) {
-                                    console.log(`[Image Convert] Success: ${(blob.size / 1024).toFixed(1)}KB`);
+                                    const sizeKB = (blob.size / 1024).toFixed(1);
+                                    const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
+                                    console.log(`[Image Convert] Success: ${sizeKB}KB (${sizeMB}MB)`);
+                                    
+                                    // Warn if still too large (base64 encoding adds ~33% overhead)
+                                    if (blob.size > 3000000) { // 3MB threshold (becomes ~4MB base64)
+                                        console.warn('[Image Convert] Warning: Image may be too large for API (>3MB)');
+                                    }
+                                    
                                     // Create a new File object from blob
                                     const convertedFile = new File([blob], 'converted.jpg', { type: 'image/jpeg' });
                                     resolve(convertedFile);
@@ -2901,7 +2921,7 @@
                                     console.warn('[Image Convert] Failed, using original');
                                     resolve(file);
                                 }
-                            }, 'image/jpeg', 0.85);
+                            }, 'image/jpeg', 0.75);
                         };
                         img.onerror = () => {
                             console.warn('[Image Convert] Image load failed, using original');

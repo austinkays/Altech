@@ -20,10 +20,11 @@
 - **311** - Invalid data structure (parsed but not an object)
 - **312** - Low confidence (<30%) - image quality too poor or not a license
 
-### Network/Runtime Errors (320-322, 399, 999)
+### Network/Runtime Errors (320-322, 413, 399, 999)
 - **320** - API key format error or authentication failed
 - **321** - Rate limit exceeded (quota/throttling)
 - **322** - Network/fetch error (timeout, connection failed)
+- **413** - Image payload too large (exceeds Vercel 4.5MB limit) - try with smaller photo or crop closer
 - **399** - Unknown error (catch-all for unexpected errors)
 - **999** - Client-side exception (JavaScript error in browser)
 
