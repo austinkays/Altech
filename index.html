@@ -2098,14 +2098,30 @@
             async ensureMapApiKey() {
                 if (this.mapApiKey) return this.mapApiKey;
                 try {
-                    const res = await fetch('/api/places-config.js');
-                    if (!res.ok) return null;
-                    const { apiKey } = await res.json();
-                    this.mapApiKey = apiKey || null;
-                    return this.mapApiKey;
-                } catch (e) {
-                    return null;
-                }
+                    // Try fetching from Vercel serverless function first
+                    let res = await fetch('/api/places-config.js');
+                    if (res.ok) {
+                        const { apiKey } = await res.json();
+                        if (apiKey) {
+                            this.mapApiKey = apiKey;
+                            return this.mapApiKey;
+                        }
+                    }
+                } catch (e) {}
+                
+                try {
+                    // Fallback: fetch from JSON config file (for local dev)
+                    const res = await fetch('/api/config.json');
+                    if (res.ok) {
+                        const { apiKey } = await res.json();
+                        if (apiKey) {
+                            this.mapApiKey = apiKey;
+                            return this.mapApiKey;
+                        }
+                    }
+                } catch (e) {}
+                
+                return null;
             },
 
             getFullAddress(data = this.data) {
@@ -2808,13 +2824,13 @@
                 
                 // Washington State County GIS mapping
                 const waCountyGIS = {
-                    // Clark County
-                    'vancouver': 'https://gis.clark.wa.gov/applications/assessor/',
-                    'camas': 'https://gis.clark.wa.gov/applications/assessor/',
-                    'battle ground': 'https://gis.clark.wa.gov/applications/assessor/',
-                    'ridgefield': 'https://gis.clark.wa.gov/applications/assessor/',
-                    'la center': 'https://gis.clark.wa.gov/applications/assessor/',
-                    'washougal': 'https://gis.clark.wa.gov/applications/assessor/',
+                    // Clark County - updated to use Zillow as fallback for assessor data
+                    'vancouver': 'https://www.zillow.com/homes/clark_county_wa/',
+                    'camas': 'https://www.zillow.com/homes/clark_county_wa/',
+                    'battle ground': 'https://www.zillow.com/homes/clark_county_wa/',
+                    'ridgefield': 'https://www.zillow.com/homes/clark_county_wa/',
+                    'la center': 'https://www.zillow.com/homes/clark_county_wa/',
+                    'washougal': 'https://www.zillow.com/homes/clark_county_wa/',
                     
                     // King County
                     'seattle': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
