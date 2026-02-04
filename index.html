@@ -1663,52 +1663,77 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     btn.disabled = true;
                     btn.textContent = '⏳ Preparing...';
 
-                    if (!window.JSZip) {
-                        throw new Error('ZIP library not available');
-                    }
-
-                    // Generate ZIP in memory
-                    const zip = new JSZip();
-                    const errors = [];
-                    for (const quoteId of selectedIds) {
-                        const quote = this.getQuotes().find(q => q.id === quoteId);
-                        if (!quote) continue;
-
-                        const quoteName = this.sanitizeFilename(this.getQuoteTitle(quote.data));
-                        const folder = zip.folder(quoteName);
-
-                        if (emailFormat === 'pdf') {
-                            const pdfResult = this.buildPDF(quote.data);
-                            folder.file(pdfResult.filename, pdfResult.blob);
-                        } else {
-                            const xmlResult = this.buildXML(quote.data);
-                            if (xmlResult.ok) {
-                                folder.file(xmlResult.filename, xmlResult.content);
-                            } else {
-                                errors.push(`${quoteName}: ${xmlResult.error.replace('⚠️ ', '')}`);
-                            }
-                        }
-                    }
-
-                    if (errors.length) {
-                        this.toast('⚠️ Some XML exports were skipped');
-                    }
-
-                    // Generate and download ZIP blob
-                    const zipBlob = await zip.generateAsync({ type: 'blob' });
-                    const formatLabel = emailFormat === 'pdf' ? 'PDF' : 'XML';
-                    const zipName = `Altech_Quotes_${formatLabel}_${new Date().toISOString().split('T')[0]}.zip`;
-                    this.downloadBlob(zipBlob, zipName);
-
-                    // Prepare mailto link
                     const senderName = [
                         document.getElementById('firstName')?.value,
                         document.getElementById('lastName')?.value
                     ].filter(Boolean).join(' ') || 'Insurance Lead';
-                    
+
+                    let downloadedFileName;
+
+                    // If only one quote selected, download single file instead of ZIP
+                    if (selectedIds.length === 1) {
+                        const quote = this.getQuotes().find(q => q.id === selectedIds[0]);
+                        if (!quote) {
+                            throw new Error('Quote not found');
+                        }
+
+                        if (emailFormat === 'pdf') {
+                            const pdfResult = this.buildPDF(quote.data);
+                            this.downloadBlob(pdfResult.blob, pdfResult.filename);
+                            downloadedFileName = pdfResult.filename;
+                        } else {
+                            const xmlResult = this.buildXML(quote.data);
+                            if (!xmlResult.ok) {
+                                throw new Error(xmlResult.error);
+                            }
+                            const xmlBlob = new Blob([xmlResult.content], { type: 'application/xml' });
+                            this.downloadBlob(xmlBlob, xmlResult.filename);
+                            downloadedFileName = xmlResult.filename;
+                        }
+                    } else {
+                        // Multiple quotes - create ZIP
+                        if (!window.JSZip) {
+                            throw new Error('ZIP library not available');
+                        }
+
+                        const zip = new JSZip();
+                        const errors = [];
+                        
+                        for (const quoteId of selectedIds) {
+                            const quote = this.getQuotes().find(q => q.id === quoteId);
+                            if (!quote) continue;
+
+                            const quoteName = this.sanitizeFilename(this.getQuoteTitle(quote.data));
+                            const folder = zip.folder(quoteName);
+
+                            if (emailFormat === 'pdf') {
+                                const pdfResult = this.buildPDF(quote.data);
+                                folder.file(pdfResult.filename, pdfResult.blob);
+                            } else {
+                                const xmlResult = this.buildXML(quote.data);
+                                if (xmlResult.ok) {
+                                    folder.file(xmlResult.filename, xmlResult.content);
+                                } else {
+                                    errors.push(`${quoteName}: ${xmlResult.error.replace('⚠️ ', '')}`);
+                                }
+                            }
+                        }
+
+                        if (errors.length) {
+                            this.toast('⚠️ Some XML exports were skipped');
+                        }
+
+                        // Generate and download ZIP
+                        const zipBlob = await zip.generateAsync({ type: 'blob' });
+                        const formatLabel = emailFormat === 'pdf' ? 'PDF' : 'XML';
+                        downloadedFileName = `Altech_Quotes_${formatLabel}_${new Date().toISOString().split('T')[0]}.zip`;
+                        this.downloadBlob(zipBlob, downloadedFileName);
+                    }
+
+                    // Prepare mailto link
                     const subject = encodeURIComponent(`Insurance Quote - ${senderName}`);
                     const body = encodeURIComponent(
-                        `Hi,\n\nPlease find the attached insurance quote file (${zipName}).\n\nThe file has been downloaded to your device. Please attach it to this email before sending.\n\nThank you,\n${senderName}`
+                        `Hi,\n\nPlease find the attached insurance quote file (${downloadedFileName}).\n\nThe file has been downloaded to your device. Please attach it to this email before sending.\n\nThank you,\n${senderName}`
                     );
                     
                     const mailtoLink = `mailto:${agentEmail}?subject=${subject}&body=${body}`;
