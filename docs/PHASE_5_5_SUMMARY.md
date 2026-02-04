@@ -345,6 +345,49 @@ Before moving to Phase 6, verify:
 **Next Step**: Phase 5.5 (Enhanced Testing Infrastructure) - 2-3 days
 **After That**: Phases 6-10 (Batch Processing → Launch) - 4 weeks
 
+---
+
+## Additional Roadmap: Intelligent Intake Upgrades
+
+These phases extend the timeline with AI-first intake improvements. Labels use **A–D** to avoid conflict with existing Phase numbering.
+
+### Phase A: Data Pipeline (Server-Side Property Fetch)
+
+**Objective:** Move GIS scraping/API calls to serverless to avoid CORS and improve reliability.
+
+**Deliverables:**
+- `POST /api/fetch-property-data`
+- Standardize address formatting
+- ArcGIS REST primary + Playwright fallback
+- Clean JSON output (`year_built`, `sq_ft`, `roof_type`, `zoning`)
+
+### Phase B: Magic Fill (Auto-Populate Form)
+
+**Objective:** Reduce manual entry by 50% using server data.
+
+**Deliverables:**
+- “✨ Auto-Fill Property Details” button in Property step
+- Populate dwelling type, stories, sqft, year built
+- Permit audit: set system updates from remodel year
+
+### Phase C: Underwriter Assistant (Risk Logic)
+
+**Objective:** Flag likely declinations before submission.
+
+**Deliverables:**
+- Roof age warning banner (20+ years, no update year)
+- Hazard overlay flags (WUI/Wildfire/Flood)
+- Risk prompts in Step 5
+
+### Phase D: Speed Tools (AI Vision)
+
+**Objective:** Reduce data entry errors in drivers + risk factors.
+
+**Deliverables:**
+- Driver’s license scanner (Gemini Vision)
+- Satellite hazard detection (pool, trampoline, detached structures)
+- Auto-check risk factors based on AI detection
+
 **What's Done**:
 ✅ Documented remaining phases (6-10)
 ✅ Created testing roadmap
