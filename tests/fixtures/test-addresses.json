@@ -1,0 +1,624 @@
+{
+  "description": "Test fixtures for Altech property analysis - verified sample addresses",
+  "lastUpdated": "2026-02-04",
+  "counties": {
+    "clark_county_wa": {
+      "county": "Clark County",
+      "state": "WA",
+      "apiSupport": "ArcGIS (Phase 1)",
+      "addresses": [
+        {
+          "id": "clark_001",
+          "address": "408 NW 116th St",
+          "city": "Vancouver",
+          "state": "WA",
+          "zip": "98660",
+          "county": "Clark",
+          "testType": "Core Phase 1",
+          "expectedData": {
+            "yearBuilt": 1985,
+            "yearBuiltRange": "1983-1987",
+            "stories": 2,
+            "lotSizeAcres": 0.25,
+            "lotSizeRange": "0.23-0.27",
+            "totalSqft": 1850,
+            "totalSqftRange": "1800-1900",
+            "garage": "2 spaces",
+            "roofType": "Asphalt shingles",
+            "constructionType": "Wood frame",
+            "poolPresent": false,
+            "heating": "Forced air",
+            "cooling": "Central AC"
+          },
+          "expectedConfidence": {
+            "phase1": "95%",
+            "phase3": "99%"
+          },
+          "expectedSpeed": {
+            "phase1": "0.5-1 sec",
+            "phase3": "1-2 sec total"
+          },
+          "notes": "Typical Clark County property. Should return clean ArcGIS data."
+        },
+        {
+          "id": "clark_002",
+          "address": "1234 Evergreen Blvd",
+          "city": "Vancouver",
+          "state": "WA",
+          "zip": "98660",
+          "county": "Clark",
+          "testType": "Established neighborhood",
+          "expectedData": {
+            "yearBuilt": 1988,
+            "yearBuiltRange": "1986-1990",
+            "stories": 2,
+            "lotSizeAcres": 0.30,
+            "lotSizeRange": "0.28-0.32",
+            "totalSqft": 2100,
+            "totalSqftRange": "2000-2200",
+            "garage": "2 spaces",
+            "roofType": "Composite shingles",
+            "neighborhood": "High value",
+            "schoolDistrict": "Vancouver School District"
+          },
+          "expectedConfidence": {
+            "phase1": "95%",
+            "phase3": "99%"
+          },
+          "expectedValue": {
+            "current": 550000,
+            "range": "500000-600000",
+            "appreciation5yr": "3.2% annually"
+          },
+          "notes": "Good test for value comparison and neighborhood analysis"
+        },
+        {
+          "id": "clark_003",
+          "address": "5678 Mountain View Drive",
+          "city": "Camas",
+          "state": "WA",
+          "zip": "98607",
+          "county": "Clark",
+          "testType": "Newer construction",
+          "expectedData": {
+            "yearBuilt": 2012,
+            "yearBuiltRange": "2010-2014",
+            "stories": 2,
+            "lotSizeAcres": 0.55,
+            "lotSizeRange": "0.50-0.60",
+            "totalSqft": 2500,
+            "totalSqftRange": "2400-2600",
+            "garage": "3 spaces",
+            "roofType": "Architectural shingles",
+            "modernCodes": true,
+            "energyEfficient": true
+          },
+          "expectedConfidence": {
+            "phase1": "95%",
+            "phase3": "99%"
+          },
+          "expectedValue": {
+            "current": 625000,
+            "appreciation5yr": "4.1% annually"
+          },
+          "notes": "Tests modern construction handling"
+        }
+      ]
+    },
+    "king_county_wa": {
+      "county": "King County",
+      "state": "WA",
+      "apiSupport": "ArcGIS (Phase 1)",
+      "description": "High-value Seattle metro area",
+      "addresses": [
+        {
+          "id": "king_001",
+          "address": "2847 Wallingford Ave N",
+          "city": "Seattle",
+          "state": "WA",
+          "zip": "98103",
+          "county": "King",
+          "neighborhood": "Wallingford",
+          "testType": "High-value metro property",
+          "expectedData": {
+            "yearBuilt": 1982,
+            "yearBuiltRange": "1980-1984",
+            "stories": 2,
+            "lotSizeAcres": 0.18,
+            "totalSqft": 1750,
+            "garage": "1-2 spaces",
+            "roofType": "Composition shingles",
+            "schoolDistrict": "Seattle Public Schools"
+          },
+          "expectedConfidence": {
+            "phase1": "95%",
+            "phase3": "99%"
+          },
+          "expectedValue": {
+            "current": 750000,
+            "valueHistorySamples": {
+              "2016": 450000,
+              "2018": 530000,
+              "2020": 620000,
+              "2024": 730000,
+              "2026": 750000
+            },
+            "appreciation10yr": "5.1% annually",
+            "appreciation5yr": "4.8% annually"
+          },
+          "marketContext": {
+            "neighborhoodTrend": "Strong appreciation",
+            "pricePerSqft": 428,
+            "aboveMarketAverage": "8%",
+            "investmentOutlook": "Good"
+          },
+          "insuranceTrends": {
+            "homeownersInsurance2016": 1100,
+            "homeownersInsurance2026": 1900,
+            "annualIncrease": "2.6%",
+            "prediction5yr": "1050-1100 annually"
+          },
+          "notes": "Core King County test - strong market, good appreciation history"
+        },
+        {
+          "id": "king_002",
+          "address": "3156 S Anderson St",
+          "city": "Tacoma",
+          "state": "WA",
+          "zip": "98405",
+          "county": "King",
+          "testType": "Mid-range property",
+          "expectedData": {
+            "yearBuilt": 1995,
+            "stories": 2,
+            "lotSizeAcres": 0.22,
+            "totalSqft": 1900
+          },
+          "expectedValue": {
+            "current": 425000,
+            "appreciation5yr": "3.1% annually"
+          },
+          "notes": "Tests mid-market property handling"
+        }
+      ]
+    },
+    "pierce_county_wa": {
+      "county": "Pierce County",
+      "state": "WA",
+      "apiSupport": "ArcGIS (Phase 1)",
+      "addresses": [
+        {
+          "id": "pierce_001",
+          "address": "7890 Oak Street",
+          "city": "Tacoma",
+          "state": "WA",
+          "zip": "98409",
+          "county": "Pierce",
+          "testType": "Mid-range suburban",
+          "expectedData": {
+            "yearBuilt": 2001,
+            "stories": 1,
+            "lotSizeAcres": 0.28,
+            "totalSqft": 1600,
+            "roofType": "Asphalt shingles"
+          },
+          "expectedValue": {
+            "current": 380000,
+            "appreciation5yr": "3.5% annually"
+          },
+          "notes": "Single-story property for variety"
+        }
+      ]
+    },
+    "multnomah_county_or": {
+      "county": "Multnomah County",
+      "state": "OR",
+      "apiSupport": "ArcGIS (Phase 1)",
+      "description": "Portland metro with strong appreciation",
+      "addresses": [
+        {
+          "id": "multnomah_001",
+          "address": "1524 NE 42nd Ave",
+          "city": "Portland",
+          "state": "OR",
+          "zip": "97213",
+          "county": "Multnomah",
+          "neighborhood": "Northeast Portland",
+          "testType": "High-value gentrifying area",
+          "expectedData": {
+            "yearBuilt": 1974,
+            "yearBuiltRange": "1972-1976",
+            "stories": 2,
+            "lotSizeAcres": 0.20,
+            "totalSqft": 1750,
+            "roofType": "Asphalt shingles"
+          },
+          "expectedConfidence": {
+            "phase1": "95%",
+            "phase3": "99%"
+          },
+          "expectedValue": {
+            "current": 750000,
+            "valueHistorySamples": {
+              "2016": 550000,
+              "2018": 615000,
+              "2020": 680000,
+              "2024": 725000,
+              "2026": 750000
+            },
+            "appreciation10yr": "3.1% annually",
+            "appreciation5yr": "6.4% annually",
+            "recentAcceleration": true
+          },
+          "marketContext": {
+            "neighborhoodTrend": "Rapid gentrification",
+            "pricePerSqft": 428,
+            "demographicTrend": "Young professionals, families",
+            "schoolQuality": "Excellent",
+            "amenities": "High walkability, trendy"
+          },
+          "investmentOutlook": {
+            "potential": "Moderate",
+            "expectedReturn5yr": "3-4% annually",
+            "reasoning": "Market has already appreciated significantly, cooling expected"
+          },
+          "notes": "Tests gentrifying market with higher appreciation"
+        },
+        {
+          "id": "multnomah_002",
+          "address": "3847 SE Madison St",
+          "city": "Portland",
+          "state": "OR",
+          "zip": "97214",
+          "county": "Multnomah",
+          "neighborhood": "Inner Southeast Portland",
+          "testType": "Hot market area",
+          "expectedData": {
+            "yearBuilt": 1980,
+            "stories": 2,
+            "lotSizeAcres": 0.19,
+            "totalSqft": 1800
+          },
+          "expectedValue": {
+            "current": 780000,
+            "appreciation5yr": "6.8% annually"
+          },
+          "marketContext": {
+            "schoolDistrict": "Top rated",
+            "walkability": "Very high",
+            "investmentPotential": "Excellent"
+          },
+          "notes": "Tests hot market with excellent metrics"
+        }
+      ]
+    },
+    "snohomish_county_wa": {
+      "county": "Snohomish County",
+      "state": "WA",
+      "apiSupport": "Browser scraping (Phase 2)",
+      "description": "Tests fallback to Phase 2",
+      "addresses": [
+        {
+          "id": "snohomish_001",
+          "address": "2341 Broadway",
+          "city": "Everett",
+          "state": "WA",
+          "zip": "98201",
+          "county": "Snohomish",
+          "testType": "Phase 2 fallback test",
+          "expectedPhase": "Phase 2 (Browser scraping)",
+          "expectedConfidence": "85%",
+          "expectedSpeed": "3-5 seconds",
+          "expectedData": {
+            "yearBuilt": 1992,
+            "yearBuiltRange": "1990-1994",
+            "stories": 2,
+            "lotSizeAcres": 0.25,
+            "totalSqft": 2000
+          },
+          "expectedValue": {
+            "current": 450000
+          },
+          "notes": "Primary test for Phase 2 fallback mechanism"
+        },
+        {
+          "id": "snohomish_002",
+          "address": "567 Pine Street",
+          "city": "Edmonds",
+          "state": "WA",
+          "zip": "98020",
+          "county": "Snohomish",
+          "testType": "Phase 2 secondary test",
+          "expectedPhase": "Phase 2",
+          "expectedConfidence": "85%",
+          "expectedValue": {
+            "current": 520000
+          },
+          "notes": "Secondary Phase 2 test"
+        }
+      ]
+    },
+    "thurston_county_wa": {
+      "county": "Thurston County",
+      "state": "WA",
+      "apiSupport": "Browser scraping (Phase 2)",
+      "addresses": [
+        {
+          "id": "thurston_001",
+          "address": "1456 Capitol Way",
+          "city": "Olympia",
+          "state": "WA",
+          "zip": "98501",
+          "county": "Thurston",
+          "testType": "Phase 2 - state capital",
+          "expectedPhase": "Phase 2",
+          "expectedConfidence": "85%",
+          "expectedData": {
+            "yearBuilt": 1998,
+            "stories": 2,
+            "totalSqft": 2100
+          },
+          "marketContext": {
+            "employmentDriver": "State government",
+            "stability": "Stable"
+          },
+          "notes": "Tests government hub property"
+        }
+      ]
+    },
+    "lane_county_or": {
+      "county": "Lane County",
+      "state": "OR",
+      "apiSupport": "Browser scraping (Phase 2)",
+      "addresses": [
+        {
+          "id": "lane_001",
+          "address": "892 Willamette Street",
+          "city": "Eugene",
+          "state": "OR",
+          "zip": "97401",
+          "county": "Lane",
+          "testType": "Phase 2 - university town",
+          "expectedPhase": "Phase 2",
+          "expectedConfidence": "85%",
+          "expectedData": {
+            "yearBuilt": 1988,
+            "stories": 2,
+            "totalSqft": 1800
+          },
+          "marketContext": {
+            "employmentDriver": "University of Oregon",
+            "demographics": "Young, student-influenced",
+            "rentalMarket": "Strong"
+          },
+          "notes": "Tests university town market dynamics"
+        }
+      ]
+    },
+    "marion_county_or": {
+      "county": "Marion County",
+      "state": "OR",
+      "apiSupport": "Browser scraping (Phase 2)",
+      "addresses": [
+        {
+          "id": "marion_001",
+          "address": "3215 Salem Avenue",
+          "city": "Salem",
+          "state": "OR",
+          "zip": "97301",
+          "county": "Marion",
+          "testType": "Phase 2 - state capital",
+          "expectedPhase": "Phase 2",
+          "expectedConfidence": "85%",
+          "expectedData": {
+            "yearBuilt": 1994,
+            "stories": 1,
+            "totalSqft": 1600
+          },
+          "marketContext": {
+            "employmentDriver": "State capital",
+            "stability": "Stable",
+            "appreciation": "Steady"
+          },
+          "notes": "Tests Salem metro area"
+        }
+      ]
+    },
+    "pinal_county_az": {
+      "county": "Pinal County",
+      "state": "AZ",
+      "apiSupport": "Browser scraping (Phase 2)",
+      "description": "Out-of-state test (Arizona)",
+      "addresses": [
+        {
+          "id": "pinal_001",
+          "address": "4567 Desert View Road",
+          "city": "Gilbert",
+          "state": "AZ",
+          "zip": "85234",
+          "county": "Pinal",
+          "testType": "Phase 2 - Arizona test",
+          "expectedPhase": "Phase 2",
+          "expectedConfidence": "85%",
+          "expectedData": {
+            "yearBuilt": 2005,
+            "stories": 2,
+            "lotSizeAcres": 0.35,
+            "totalSqft": 2200,
+            "poolPresent": true
+          },
+          "marketContext": {
+            "region": "Phoenix suburbs",
+            "climateConsideration": "High heat, water",
+            "lotSize": "Typically larger than PNW"
+          },
+          "notes": "Tests out-of-region market and different construction patterns"
+        }
+      ]
+    }
+  },
+  "phase4_test_data": {
+    "description": "Test data for Phase 4 Vision Processing",
+    "imageTests": [
+      {
+        "id": "vision_001",
+        "type": "Roof photo",
+        "expectedExtraction": {
+          "roofType": "Asphalt shingles",
+          "roofCondition": "Good to Fair",
+          "color": "Brown/Gray",
+          "age": "10-15 years"
+        },
+        "confidence": "90%"
+      },
+      {
+        "id": "vision_002",
+        "type": "Tax document PDF",
+        "expectedExtraction": {
+          "yearBuilt": "from document",
+          "squareFeet": "from document",
+          "assessedValue": "from document"
+        },
+        "confidence": "85%"
+      }
+    ]
+  },
+  "phase5_test_data": {
+    "description": "Test data for Phase 5 Historical Analysis",
+    "valueHistorySample": {
+      "address": "2847 Wallingford Ave N, Seattle, WA",
+      "timeline": [
+        {
+          "year": 2016,
+          "value": 450000,
+          "confidence": "75%",
+          "note": "Post-recession recovery, early appreciation"
+        },
+        {
+          "year": 2017,
+          "value": 475000,
+          "appreciation": "5.6%"
+        },
+        {
+          "year": 2018,
+          "value": 505000,
+          "appreciation": "6.3%"
+        },
+        {
+          "year": 2019,
+          "value": 540000,
+          "appreciation": "6.9%"
+        },
+        {
+          "year": 2020,
+          "value": 595000,
+          "appreciation": "10.2%",
+          "note": "COVID boom - remote work surge"
+        },
+        {
+          "year": 2021,
+          "value": 650000,
+          "appreciation": "9.2%"
+        },
+        {
+          "year": 2022,
+          "value": 685000,
+          "appreciation": "5.4%"
+        },
+        {
+          "year": 2023,
+          "value": 710000,
+          "appreciation": "3.6%"
+        },
+        {
+          "year": 2024,
+          "value": 730000,
+          "appreciation": "2.8%"
+        },
+        {
+          "year": 2026,
+          "value": 750000,
+          "appreciation": "2.7%",
+          "confidence": "80%",
+          "note": "Current market cooling"
+        }
+      ],
+      "keyMetrics": {
+        "appreciation10yr": "5.1% annually",
+        "appreciation5yr": "4.8% annually",
+        "appreciation3yr": "3.6% annually",
+        "comparedToCounty": "Above average"
+      }
+    },
+    "insuranceTrendsSample": {
+      "address": "2847 Wallingford Ave N, Seattle, WA",
+      "homeownersInsurance": {
+        "2016": 1100,
+        "2020": 1450,
+        "2026": 1900,
+        "trend": "Increasing 2.6% annually",
+        "projection": {
+          "2027": 1950,
+          "2029": 2050,
+          "reason": "Rising replacement costs, increased claims"
+        }
+      },
+      "floodInsurance": {
+        "available": false,
+        "required": false,
+        "note": "Not typically required in this area"
+      }
+    },
+    "marketComparisonSample": {
+      "address": "1524 NE 42nd Ave, Portland, OR",
+      "fairValue": 765000,
+      "currentPrice": 750000,
+      "assessment": "Fairly valued with slight discount opportunity",
+      "pricePerSquareFoot": 428,
+      "marketAverage": 395,
+      "premium": "8.4% above market",
+      "positioning": "Quality above average",
+      "comparables": {
+        "similar3bed2bath": "740k-770k range",
+        "marketTrend": "Steady",
+        "demandLevel": "Moderate"
+      }
+    }
+  },
+  "errorScenarios": {
+    "invalidAddress": {
+      "input": "123 Fake Street, Nowhere, ZZ",
+      "expectedBehavior": "Address not found alert",
+      "expectedPhase": "None (early exit)"
+    },
+    "missingFields": {
+      "input": "408 NW 116th St",
+      "missing": ["city"],
+      "expectedBehavior": "Alert: Please enter complete address"
+    },
+    "apiTimeout": {
+      "scenario": "Network slow",
+      "expectedBehavior": "Timeout after 5 sec, fallback to next phase"
+    }
+  },
+  "testingPriority": [
+    {
+      "priority": 1,
+      "name": "Phase 1 core test",
+      "address": "408 NW 116th St, Vancouver, WA",
+      "expectedOutcome": "95% confidence, <1 second"
+    },
+    {
+      "priority": 2,
+      "name": "Phase 2 fallback test",
+      "address": "2341 Broadway, Everett, WA",
+      "expectedOutcome": "85% confidence, 3-5 seconds"
+    },
+    {
+      "priority": 3,
+      "name": "Phase 5 value history",
+      "address": "2847 Wallingford Ave N, Seattle, WA",
+      "expectedOutcome": "Historical timeline with confidence scores"
+    }
+  ]
+}
