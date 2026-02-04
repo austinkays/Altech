@@ -2098,7 +2098,7 @@
             async ensureMapApiKey() {
                 if (this.mapApiKey) return this.mapApiKey;
                 try {
-                    const res = await fetch('/api/places-config');
+                    const res = await fetch('/api/places-config.js');
                     if (!res.ok) return null;
                     const { apiKey } = await res.json();
                     this.mapApiKey = apiKey || null;
