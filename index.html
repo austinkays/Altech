@@ -1990,6 +1990,48 @@
                 summary.textContent = result.summary || 'Document analysis complete.';
                 container.appendChild(summary);
 
+                const fields = result.fields || {};
+                const fieldsCard = document.createElement('div');
+                fieldsCard.className = 'scan-field';
+
+                const fieldsTitle = document.createElement('label');
+                fieldsTitle.className = 'label';
+                fieldsTitle.textContent = 'Review Extracted Fields';
+                fieldsCard.appendChild(fieldsTitle);
+
+                const fieldList = document.createElement('div');
+                fieldList.className = 'grid-2';
+
+                const renderInput = (labelText, key, placeholder = '') => {
+                    const wrap = document.createElement('div');
+                    const label = document.createElement('label');
+                    label.className = 'label';
+                    label.textContent = labelText;
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = fields[key] || '';
+                    input.placeholder = placeholder;
+                    input.oninput = (e) => this.updateDocIntelField(key, e.target.value);
+                    wrap.appendChild(label);
+                    wrap.appendChild(input);
+                    fieldList.appendChild(wrap);
+                };
+
+                renderInput('Owner Name', 'ownerName', 'John Doe');
+                renderInput('Policy Number', 'policyNumber', 'ABC123');
+                renderInput('Effective Date', 'effectiveDate', 'YYYY-MM-DD');
+                renderInput('Expiration Date', 'expirationDate', 'YYYY-MM-DD');
+                renderInput('Year Built', 'yearBuilt', '1999');
+                renderInput('Assessed Value', 'assessedValue', '450000');
+                renderInput('Mortgagee', 'mortgagee', 'Lender Name');
+                renderInput('Address Line 1', 'addressLine1', '123 Main St');
+                renderInput('City', 'city', 'Seattle');
+                renderInput('State', 'state', 'WA');
+                renderInput('Zip', 'zip', '98101');
+
+                fieldsCard.appendChild(fieldList);
+                container.appendChild(fieldsCard);
+
                 const docs = result.documents || [];
                 docs.forEach(doc => {
                     const card = document.createElement('div');
@@ -2007,6 +2049,13 @@
                     card.appendChild(detail);
                     container.appendChild(card);
                 });
+            },
+
+            async updateDocIntelField(key, value) {
+                if (!this.docIntelResults) return;
+                if (!this.docIntelResults.fields) this.docIntelResults.fields = {};
+                this.docIntelResults.fields[key] = value;
+                await this.saveDocIntelResults(this.docIntelResults);
             },
 
             getDocIntelWarnings(result) {
