@@ -2626,7 +2626,15 @@
                         return;
                     }
                     
-                    // PHASE 3 FALLBACK: No official data available, try satellite hazard detection
+                    // PHASE 4: Try Vision Processing (Images, PDFs, Aerial analysis)
+                    // This is the enrichment layer - adds visual/document data to the form
+                    btn.innerHTML = '👁️ Analyzing visual data...';
+                    
+                    // For now, this is a placeholder for future integration
+                    // Vision processing would happen here if user uploads images/PDFs
+                    // Example: await this.processVisionData(address, city, state);
+                    
+                    // FALLBACK: No official data available, try satellite hazard detection
                     btn.innerHTML = '🔄 Analyzing satellite imagery...';
                     
                     const hazardResponse = await fetch('/api/smart-extract.js', {
@@ -3039,6 +3047,282 @@
                 
                 // Close modal
                 this.closeHazardModal();
+            },
+
+            // Phase 4: Vision Processing Methods
+            
+            async processVisionImage(imageFile) {
+                /**
+                 * Process a property image (roof, foundation, exterior, etc.)
+                 * Sends base64-encoded image to vision-processor.js
+                 */
+                if (!imageFile) return null;
+                
+                const reader = new FileReader();
+                return new Promise((resolve) => {
+                    reader.onload = async (e) => {
+                        const base64Data = e.target.result.split(',')[1];
+                        
+                        try {
+                            const response = await fetch('/api/vision-processor.js', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    action: 'processImage',
+                                    base64Data: base64Data,
+                                    mimeType: imageFile.type || 'image/jpeg',
+                                    imageType: 'property',
+                                    county: this.getCountyFromCity(this.data.addrCity, this.data.addrState)
+                                })
+                            });
+                            
+                            const result = await response.json();
+                            resolve(result);
+                        } catch (error) {
+                            console.error('Vision image processing error:', error);
+                            resolve({ success: false, error: error.message });
+                        }
+                    };
+                    reader.readAsDataURL(imageFile);
+                });
+            },
+
+            async processVisionPDF(pdfFile, documentType = 'tax_summary') {
+                /**
+                 * Process a property document PDF (tax summary, assessment, etc.)
+                 * Sends base64-encoded PDF to vision-processor.js
+                 */
+                if (!pdfFile) return null;
+                
+                const reader = new FileReader();
+                return new Promise((resolve) => {
+                    reader.onload = async (e) => {
+                        const base64Data = e.target.result.split(',')[1];
+                        
+                        try {
+                            const response = await fetch('/api/vision-processor.js', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    action: 'processPDF',
+                                    base64Data: base64Data,
+                                    documentType: documentType,
+                                    county: this.getCountyFromCity(this.data.addrCity, this.data.addrState)
+                                })
+                            });
+                            
+                            const result = await response.json();
+                            resolve(result);
+                        } catch (error) {
+                            console.error('Vision PDF processing error:', error);
+                            resolve({ success: false, error: error.message });
+                        }
+                    };
+                    reader.readAsDataURL(pdfFile);
+                });
+            },
+
+            async analyzeAerialImage(lat, lng) {
+                /**
+                 * Analyze satellite/aerial image for hazard assessment
+                 * Uses Google Satellite imagery for flood, wildfire, wind hazards
+                 */
+                if (!lat || !lng) return null;
+                
+                try {
+                    // Get satellite image first (using existing Google Maps API)
+                    const imageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=18&size=640x640&maptype=satellite&key=${process.env.GOOGLE_API_KEY}`;
+                    
+                    // Fetch image and convert to base64
+                    const imageResponse = await fetch(imageUrl);
+                    const blob = await imageResponse.blob();
+                    const reader = new FileReader();
+                    
+                    return new Promise((resolve) => {
+                        reader.onload = async (e) => {
+                            const base64Data = e.target.result.split(',')[1];
+                            
+                            try {
+                                const response = await fetch('/api/vision-processor.js', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        action: 'analyzeAerial',
+                                        base64Data: base64Data,
+                                        lat: lat,
+                                        lng: lng,
+                                        county: this.getCountyFromCity(this.data.addrCity, this.data.addrState)
+                                    })
+                                });
+                                
+                                const result = await response.json();
+                                resolve(result);
+                            } catch (error) {
+                                console.error('Aerial analysis error:', error);
+                                resolve({ success: false, error: error.message, hazards: [] });
+                            }
+                        };
+                        reader.readAsDataURL(blob);
+                    });
+                } catch (error) {
+                    console.error('Aerial image retrieval error:', error);
+                    return { success: false, error: error.message, hazards: [] };
+                }
+            },
+
+            async consolidateVisionData(visionResults) {
+                /**
+                 * Consolidate results from multiple vision processing calls
+                 * Returns standardized property data
+                 */
+                if (!visionResults) return null;
+                
+                try {
+                    const response = await fetch('/api/vision-processor.js', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'consolidate',
+                            visionResults: visionResults
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    return result;
+                } catch (error) {
+                    console.error('Vision data consolidation error:', error);
+                    return null;
+                }
+            },
+
+            showVisionResultsPopup(visionData, imageType) {
+                /**
+                 * Display vision processing results in popup
+                 * Allows user to confirm and apply extracted data
+                 */
+                if (!visionData || !visionData.success) {
+                    alert('❌ Vision processing failed. Please try again.');
+                    return;
+                }
+                
+                const modal = document.createElement('div');
+                modal.id = 'visionResultsModal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0; left: 0;
+                    width: 100%; height: 100%;
+                    background: rgba(0, 0, 0, 0.6);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                `;
+                
+                const content = document.createElement('div');
+                content.style.cssText = `
+                    background: white;
+                    border-radius: 12px;
+                    padding: 24px;
+                    max-width: 500px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                    font-family: system-ui, sans-serif;
+                `;
+                
+                const title = document.createElement('h2');
+                title.textContent = `👁️ Vision Analysis Results (${imageType})`;
+                title.style.cssText = 'margin: 0 0 16px 0; color: #007AFF;';
+                
+                const dataDiv = document.createElement('div');
+                dataDiv.style.cssText = 'background: #f5f5f5; border-radius: 8px; padding: 16px; margin-bottom: 16px;';
+                
+                let dataHTML = '<p style="margin: 0; font-size: 14px;">';
+                const rawData = visionData.rawData || {};
+                
+                for (const [key, value] of Object.entries(rawData)) {
+                    if (value && value !== 'N/A' && value !== '') {
+                        dataHTML += `<strong>${key}:</strong> ${value}<br>`;
+                    }
+                }
+                
+                dataHTML += '</p>';
+                dataDiv.innerHTML = dataHTML;
+                
+                const confirmDiv = document.createElement('div');
+                confirmDiv.style.cssText = 'display: flex; gap: 8px; margin-top: 16px;';
+                
+                const cancelBtn = document.createElement('button');
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.style.cssText = `
+                    flex: 1;
+                    padding: 12px;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    background: white;
+                    color: #333;
+                    cursor: pointer;
+                    font-weight: 500;
+                `;
+                cancelBtn.onclick = () => modal.remove();
+                
+                const applyBtn = document.createElement('button');
+                applyBtn.textContent = '✅ Apply Data';
+                applyBtn.style.cssText = `
+                    flex: 1;
+                    padding: 12px;
+                    border: none;
+                    border-radius: 8px;
+                    background: #007AFF;
+                    color: white;
+                    cursor: pointer;
+                    font-weight: 500;
+                `;
+                applyBtn.onclick = () => {
+                    this.applyVisionData(rawData);
+                    modal.remove();
+                };
+                
+                confirmDiv.appendChild(cancelBtn);
+                confirmDiv.appendChild(applyBtn);
+                
+                content.appendChild(title);
+                content.appendChild(dataDiv);
+                content.appendChild(confirmDiv);
+                modal.appendChild(content);
+                document.body.appendChild(modal);
+            },
+
+            applyVisionData(data) {
+                /**
+                 * Apply vision-extracted data to form fields
+                 */
+                const fieldMappings = {
+                    'year_built': 'yearBuilt',
+                    'yearBuilt': 'yearBuilt',
+                    'roof_type': 'roofType',
+                    'roofType': 'roofType',
+                    'stories': 'numStories',
+                    'garage_spaces': 'numGarages',
+                    'garageSpaces': 'numGarages',
+                    'lot_size': 'lotSize',
+                    'lotSize': 'lotSize',
+                    'total_sqft': 'totalSqft',
+                    'totalSqft': 'totalSqft'
+                };
+                
+                for (const [visionKey, formKey] of Object.entries(fieldMappings)) {
+                    if (data[visionKey]) {
+                        const formElement = document.getElementById(formKey);
+                        if (formElement) {
+                            formElement.value = data[visionKey];
+                            this.data[formKey] = data[visionKey];
+                            this.save({ target: { id: formKey, value: data[visionKey] } });
+                        }
+                    }
+                }
+                
+                alert(`✅ Applied vision data to form`);
             },
 
             showDataPreview(data, sources, conflicts = {}, satelliteImage = null, address = '') {
