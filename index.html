@@ -4902,6 +4902,9 @@ Commute Distance: ${data.commuteDist || ''} miles
 Ride Sharing: ${data.rideSharing || 'No'}
 Telematics: ${data.telematics || ''}
 
+=== DRIVERS ===
+${(data.drivers || []).map((d, i) => `Driver ${i + 1}: ${[d.firstName, d.lastName].filter(Boolean).join(' ')} | Relationship: ${d.relationship || ''} | Occupation: ${d.occupation || ''} | DOB: ${d.dob || ''} | DL: ${d.dlNum || ''} (${d.dlState || ''})`).join('\n')}
+
 === INSURANCE HISTORY ===
 Current Liability: ${data.liabilityLimits || ''}
 Deductibles: Home ${data.homeDeductible || ''} / Auto ${data.autoDeductible || ''}
