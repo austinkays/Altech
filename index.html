@@ -2811,6 +2811,49 @@
                 }
             },
 
+            getCountyFromCity(city, state) {
+                // Map city to county for display and reference
+                const cityToCounty = {
+                    'WA': {
+                        'vancouver': 'Clark', 'camas': 'Clark', 'battle ground': 'Clark', 'ridgefield': 'Clark', 'la center': 'Clark', 'washougal': 'Clark',
+                        'seattle': 'King', 'bellevue': 'King', 'redmond': 'King', 'kent': 'King', 'renton': 'King', 'federal way': 'King', 'kirkland': 'King', 'auburn': 'King', 'sammamish': 'King', 'bothell': 'King',
+                        'tacoma': 'Pierce', 'lakewood': 'Pierce', 'puyallup': 'Pierce', 'bonney lake': 'Pierce', 'university place': 'Pierce',
+                        'everett': 'Snohomish', 'marysville': 'Snohomish', 'lynnwood': 'Snohomish', 'edmonds': 'Snohomish', 'mountlake terrace': 'Snohomish',
+                        'spokane': 'Spokane', 'spokane valley': 'Spokane',
+                        'bremerton': 'Kitsap', 'silverdale': 'Kitsap', 'poulsbo': 'Kitsap',
+                        'olympia': 'Thurston', 'lacey': 'Thurston', 'tumwater': 'Thurston',
+                        'bellingham': 'Whatcom',
+                        'yakima': 'Yakima',
+                        'longview': 'Cowlitz', 'kelso': 'Cowlitz',
+                    },
+                    'OR': {
+                        'portland': 'Multnomah', 'gresham': 'Multnomah', 'troutdale': 'Multnomah', 'wood village': 'Multnomah', 'fairview': 'Multnomah',
+                        'beaverton': 'Washington', 'hillsboro': 'Washington', 'tigard': 'Washington', 'tualatin': 'Washington', 'lake oswego': 'Washington', 'west linn': 'Washington', 'sherwood': 'Washington', 'forest grove': 'Washington', 'cornelius': 'Washington',
+                        'oregon city': 'Clackamas', 'milwaukie': 'Clackamas', 'happy valley': 'Clackamas', 'wilsonville': 'Clackamas', 'canby': 'Clackamas', 'sandy': 'Clackamas', 'estacada': 'Clackamas',
+                        'eugene': 'Lane', 'springfield': 'Lane', 'cottage grove': 'Lane', 'creswell': 'Lane', 'veneta': 'Lane',
+                        'salem': 'Marion', 'keizer': 'Marion', 'woodburn': 'Marion', 'silverton': 'Marion',
+                        'bend': 'Deschutes', 'redmond': 'Deschutes', 'sisters': 'Deschutes', 'la pine': 'Deschutes',
+                        'medford': 'Jackson', 'ashland': 'Jackson', 'central point': 'Jackson', 'phoenix': 'Jackson', 'talent': 'Jackson',
+                        'albany': 'Linn', 'lebanon': 'Linn', 'sweet home': 'Linn',
+                        'roseburg': 'Douglas', 'sutherlin': 'Douglas', 'winston': 'Douglas',
+                    },
+                    'AZ': {
+                        'phoenix': 'Maricopa', 'mesa': 'Maricopa', 'chandler': 'Maricopa', 'scottsdale': 'Maricopa', 'glendale': 'Maricopa', 'tempe': 'Maricopa', 'peoria': 'Maricopa', 'surprise': 'Maricopa', 'gilbert': 'Maricopa', 'avondale': 'Maricopa', 'goodyear': 'Maricopa', 'buckeye': 'Maricopa', 'el mirage': 'Maricopa', 'queen creek': 'Maricopa', 'cave creek': 'Maricopa', 'fountain hills': 'Maricopa', 'paradise valley': 'Maricopa',
+                        'tucson': 'Pima', 'oro valley': 'Pima', 'marana': 'Pima', 'sahuarita': 'Pima',
+                        'casa grande': 'Pinal', 'apache junction': 'Pinal', 'coolidge': 'Pinal', 'eloy': 'Pinal', 'florence': 'Pinal', 'maricopa': 'Pinal',
+                        'prescott': 'Yavapai', 'prescott valley': 'Yavapai', 'chino valley': 'Yavapai', 'cottonwood': 'Yavapai', 'sedona': 'Yavapai',
+                        'flagstaff': 'Coconino', 'williams': 'Coconino',
+                        'lake havasu city': 'Mohave', 'kingman': 'Mohave', 'bullhead city': 'Mohave',
+                        'yuma': 'Yuma', 'san luis': 'Yuma', 'somerton': 'Yuma',
+                    }
+                };
+                
+                if (cityToCounty[state] && cityToCounty[state][city]) {
+                    return cityToCounty[state][city];
+                }
+                return null;
+            },
+
             openGIS() {
                 const address = this.data.addrStreet || '';
                 const city = (this.data.addrCity || '').toLowerCase();
@@ -3022,8 +3065,26 @@
                     return;
                 }
                 
+                // Detect county and show it to user
+                const county = this.getCountyFromCity(city, state);
+                
                 // Fallback: Try to open general county assessor search
                 const searchAddress = encodeURIComponent(`${address} ${city} ${state} ${zip}`);
+                let message = '';
+                
+                if (county) {
+                    message = `📍 County Detected: ${county} County, ${state}\n\nOpening county assessor search...`;
+                    console.log(`County detected: ${county} County, ${state}`);
+                } else {
+                    message = `📍 City/County: ${city}, ${state}\n\nOpening general assessor search...`;
+                }
+                
+                // Show notification
+                const toast = document.createElement('div');
+                toast.textContent = message.split('\n')[0];
+                toast.style.cssText = 'position:fixed;top:80px;right:20px;background:#007AFF;color:white;padding:12px 20px;border-radius:8px;font-size:14px;z-index:9999;';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
                 
                 if (state === 'WA') {
                     window.open(`https://www.dor.wa.gov/find-taxes-rates/property-tax/county-assessors`, '_blank');
