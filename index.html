@@ -746,6 +746,22 @@
             </div>
 
             <div class="card">
+                <h2>🪪 Driver License Scan</h2>
+                <p class="section-subtitle">Scan a driver license to pre-fill the applicant, address, and driver info before starting the form.</p>
+
+                <div class="scan-actions">
+                    <button class="btn btn-primary" onclick="App.openInitialDriverLicensePicker()">Scan Driver License</button>
+                    <button class="btn btn-tertiary" onclick="App.clearInitialDriverLicenseScan()">Clear</button>
+                    <input id="initialDlScanInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="App.handleInitialDriverLicenseFile(this.files[0])" />
+                </div>
+
+                <div id="initialDlPreview" class="scan-preview"></div>
+                <div id="initialDlStatus" class="hint hidden"></div>
+                <div id="initialDlResults"></div>
+                <button class="btn btn-secondary" style="margin-top:12px;" onclick="App.applyInitialDriverLicense()">Apply to Form</button>
+            </div>
+
+            <div class="card">
                 <h3>Review Extracted Data</h3>
                 <p class="section-subtitle">Verify and edit before applying to the form.</p>
                 <div id="scanResults"></div>
@@ -1565,6 +1581,7 @@
             selectedQuoteIds: new Set(),
             docIntelFiles: [],
             docIntelResults: null,
+            initialDlScan: null,
             mapApiKey: null,
             mapPreviewCache: {},
             mapPreviewTimer: null,
@@ -1604,6 +1621,11 @@
                 const scanInput = document.getElementById('policyScanInput');
                 if (scanInput) {
                     scanInput.addEventListener('change', (e) => this.handleScanFiles(e));
+                }
+
+                const initialDlInput = document.getElementById('initialDlScanInput');
+                if (initialDlInput) {
+                    initialDlInput.addEventListener('change', (e) => this.handleInitialDriverLicenseFile(e.target.files[0]));
                 }
 
                 const docIntelInput = document.getElementById('docIntelInput');
@@ -1750,6 +1772,11 @@
                 if (input) input.click();
             },
 
+            openInitialDriverLicensePicker() {
+                const input = document.getElementById('initialDlScanInput');
+                if (input) input.click();
+            },
+
             openDocIntelPicker() {
                 const input = document.getElementById('docIntelInput');
                 if (input) input.click();
@@ -1768,6 +1795,21 @@
                     status.textContent = '';
                 }
                 const input = document.getElementById('policyScanInput');
+                if (input) input.value = '';
+            },
+
+            clearInitialDriverLicenseScan() {
+                this.initialDlScan = null;
+                const preview = document.getElementById('initialDlPreview');
+                if (preview) preview.innerHTML = '';
+                const results = document.getElementById('initialDlResults');
+                if (results) results.innerHTML = '';
+                const status = document.getElementById('initialDlStatus');
+                if (status) {
+                    status.classList.add('hidden');
+                    status.textContent = '';
+                }
+                const input = document.getElementById('initialDlScanInput');
                 if (input) input.value = '';
             },
 
@@ -1794,6 +1836,110 @@
                 this.scanFiles = files;
                 await this.renderScanPreview(files);
                 await this.processScan();
+            },
+
+            async handleInitialDriverLicenseFile(file) {
+                if (!file) return;
+                const status = document.getElementById('initialDlStatus');
+                if (status) {
+                    status.classList.remove('hidden');
+                    status.textContent = '⏳ Scanning driver license...';
+                }
+
+                const preview = document.getElementById('initialDlPreview');
+                if (preview) {
+                    preview.innerHTML = '';
+                    const img = document.createElement('img');
+                    img.className = 'scan-thumb';
+                    img.src = URL.createObjectURL(file);
+                    img.onload = () => URL.revokeObjectURL(img.src);
+                    preview.appendChild(img);
+                }
+
+                const result = await this.processDriverLicenseImage(file);
+                if (!result?.success) {
+                    if (status) status.textContent = '⚠️ Unable to read driver license.';
+                    return;
+                }
+
+                this.initialDlScan = result;
+                this.renderInitialDriverLicenseResults(result);
+
+                if (status) {
+                    status.textContent = `✅ Scan complete (${result.confidence || 'N/A'}% confidence)`;
+                }
+            },
+
+            renderInitialDriverLicenseResults(result) {
+                const container = document.getElementById('initialDlResults');
+                if (!container) return;
+                container.innerHTML = '';
+
+                const fields = result?.data || {};
+                const lines = [
+                    ['Name', [fields.firstName, fields.lastName].filter(Boolean).join(' ')],
+                    ['DOB', fields.dob],
+                    ['DL', `${fields.licenseNumber || ''} ${fields.licenseState ? `(${fields.licenseState})` : ''}`.trim()],
+                    ['Address', [fields.addressLine1, fields.city, fields.state, fields.zip].filter(Boolean).join(', ')]
+                ];
+
+                lines.forEach(([label, value]) => {
+                    if (!value) return;
+                    const row = document.createElement('div');
+                    row.className = 'scan-field';
+                    row.innerHTML = `<label class=\"label\">${label}</label><div class=\"hint\">${value}</div>`;
+                    container.appendChild(row);
+                });
+            },
+
+            applyInitialDriverLicense() {
+                if (!this.initialDlScan?.data) {
+                    this.toast('⚠️ Scan a driver license first.');
+                    return;
+                }
+
+                const fields = this.initialDlScan.data;
+
+                const setIfEmpty = (id, value) => {
+                    if (!value) return;
+                    const el = document.getElementById(id);
+                    if (!el || el.value) return;
+                    el.value = value;
+                    this.save({ target: { id, value } });
+                };
+
+                setIfEmpty('firstName', fields.firstName);
+                setIfEmpty('lastName', fields.lastName);
+                setIfEmpty('dob', fields.dob);
+                setIfEmpty('addrStreet', fields.addressLine1);
+                setIfEmpty('addrCity', fields.city);
+                setIfEmpty('addrState', fields.state);
+                setIfEmpty('addrZip', fields.zip);
+
+                if (this.drivers.length === 0) {
+                    this.drivers.push({
+                        id: `driver_${Date.now()}`,
+                        firstName: fields.firstName || '',
+                        lastName: fields.lastName || '',
+                        dob: fields.dob || '',
+                        dlNum: fields.licenseNumber || '',
+                        dlState: fields.licenseState || fields.state || 'WA',
+                        relationship: 'Self',
+                        occupation: ''
+                    });
+                } else {
+                    const primary = this.drivers[0];
+                    if (primary) {
+                        if (!primary.firstName) primary.firstName = fields.firstName || '';
+                        if (!primary.lastName) primary.lastName = fields.lastName || '';
+                        if (!primary.dob) primary.dob = fields.dob || '';
+                        if (!primary.dlNum) primary.dlNum = fields.licenseNumber || '';
+                        if (!primary.dlState) primary.dlState = fields.licenseState || fields.state || 'WA';
+                    }
+                }
+
+                this.saveDriversVehicles();
+                this.toast('✅ Driver license applied');
             },
 
             async handleDocIntelFiles(e) {
