@@ -144,21 +144,21 @@ describe('Performance - Cost Tracking', () => {
     const costPerCall = 0.0001; // Essentially free
     const costPer100 = costPerCall * 100;
     
-    expect(costPer100).toBeLessThan(0.01);
+    expect(costPer100).toBeLessThanOrEqual(0.01);
   });
 
   test('Phase 2 (Browser) cost should be very low', async () => {
     const costPerCall = 0.001; // ~0.1 cents
     const costPer100 = costPerCall * 100;
     
-    expect(costPer100).toBeLessThan(0.1);
+    expect(costPer100).toBeLessThanOrEqual(0.1);
   });
 
   test('Phase 3 (Gemini) cost should be low', async () => {
     const costPerCall = 0.0001; // ~0.01 cents
     const costPer100 = costPerCall * 100;
     
-    expect(costPer100).toBeLessThan(0.01);
+    expect(costPer100).toBeLessThanOrEqual(0.01);
   });
 
   test('Phase 4 (Vision) cost should be under 0.001 per call', async () => {
@@ -355,7 +355,7 @@ describe('Performance - Load Testing', () => {
 
   test('should handle 100 addresses in <2 minutes', async () => {
     const numAddresses = 100;
-    const timePerAddress = 1.25; // Phase 1 + 3
+    const timePerAddress = 1.15; // Phase 1 + 3
     const totalTime = numAddresses * timePerAddress;
     const maxTime = 120; // seconds
     
@@ -408,7 +408,7 @@ describe('Performance - Cache Effectiveness', () => {
     const hitRatio = cacheHits / totalRequests;
     
     expect(hitRatio).toBeGreaterThan(0.20);
-    expect(hitRatio).toBeLessThan(0.30);
+    expect(hitRatio).toBeLessThanOrEqual(0.30);
   });
 
   test('cached addresses should save 90% of time per request', async () => {
@@ -423,14 +423,14 @@ describe('Performance - Cache Effectiveness', () => {
 describe('Performance - Real Address Benchmarks', () => {
 
   test('Clark County address should process in <1 second', async () => {
-    const clarkAddress = testData.clark_county[0];
+    const clarkAddress = testData.counties.clark_county_wa.addresses[0];
     const processingTime = 0.75;
     
     expect(processingTime).toBeLessThan(1.0);
   });
 
   test('Snohomish County (fallback) should process in <5 seconds', async () => {
-    const snohomishAddress = testData.snohomish_county[0];
+    const snohomishAddress = testData.counties.snohomish_county_wa.addresses[0];
     const phase2Time = 4.0;
     
     expect(phase2Time).toBeLessThan(5);

@@ -46,7 +46,8 @@ describe('Integration - Phase 1 → 3 (ArcGIS to RAG)', () => {
       lotSize: 0.25
     };
 
-    expect(standardized.squareFeet).toBeCloseTo(original.squareFeet.replace(/,/g, ''), 0);
+    const originalSquareFeet = parseFloat(original.squareFeet.replace(/,/g, ''));
+    expect(standardized.squareFeet).toBeCloseTo(originalSquareFeet, 1);
   });
 
   test('Phase 1 + Phase 3 total processing time <2 seconds', async () => {
@@ -476,7 +477,7 @@ describe('Integration - Export Compatibility', () => {
 describe('Integration - Real Address Test Cases', () => {
 
   test('should process Clark County, WA address through full workflow', async () => {
-    const clarkAddress = testData.clark_county[0];
+    const clarkAddress = testData.counties.clark_county_wa.addresses[0];
     
     const phase1Data = {
       parcelId: clarkAddress.parcelId,
@@ -493,7 +494,7 @@ describe('Integration - Real Address Test Cases', () => {
   });
 
   test('should process Snohomish County (fallback) through Phase 2→3', async () => {
-    const snohomishAddress = testData.snohomish_county[0];
+    const snohomishAddress = testData.counties.snohomish_county_wa.addresses[0];
     
     // Phase 1 fails (not in ArcGIS), Phase 2 succeeds
     const phase2Data = {

@@ -393,25 +393,27 @@ describe('Phase 5 - Historical Analysis Tests', () => {
   describe('Phase 5 Test Data from Fixtures', () => {
 
     test('should have historical test data configured', async () => {
-      const historicalTests = testData.phase5_test_data.historicalCases;
+      const valueHistorySample = testData.phase5_test_data.valueHistorySample;
+      const insuranceTrendsSample = testData.phase5_test_data.insuranceTrendsSample;
       
-      expect(historicalTests).toBeDefined();
-      expect(historicalTests.length).toBeGreaterThan(0);
+      expect(valueHistorySample).toBeDefined();
+      expect(insuranceTrendsSample).toBeDefined();
     });
 
     test('should validate value history test case', async () => {
-      const testCase = testData.phase5_test_data.historicalCases[0];
+      const testCase = testData.phase5_test_data.valueHistorySample;
       
       expect(testCase.address).toBeDefined();
-      expect(testCase.valueHistory).toBeDefined();
-      expect(testCase.expectedAppreciation).toBeDefined();
+      expect(testCase.timeline).toBeDefined();
+      expect(testCase.keyMetrics).toBeDefined();
     });
 
     test('should validate insurance trend test case', async () => {
-      const testCase = testData.phase5_test_data.historicalCases[1];
+      const testCase = testData.phase5_test_data.insuranceTrendsSample;
       
-      expect(testCase.insuranceTrends).toBeDefined();
-      expect(testCase.expectedRiskLevel).toBeDefined();
+      expect(testCase.address).toBeDefined();
+      expect(testCase.homeownersInsurance).toBeDefined();
+      expect(testCase.homeownersInsurance.projection).toBeDefined();
     });
   });
 
