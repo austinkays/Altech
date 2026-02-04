@@ -115,7 +115,35 @@ npm run test:watch   # TDD mode
 npm run test:coverage # Coverage report
 ```
 
-**Test file:** [tests/app.test.js](https://github.com/austinkays/Altech/blob/main/tests/app.test.js) — loads `index.html` into JSDOM, mocks localStorage, verifies export logic.
+**Test structure:** 8 test suites, 268 tests total (all passing)
+- `app.test.js` — Core form logic, exports, localStorage (loads index.html into JSDOM)
+- `phase1.test.js` — ArcGIS API tests (95% confidence validation)
+- `phase2.test.js` — Headless browser fallback tests
+- `phase3.test.js` — RAG standardization tests
+- `phase4.test.js` — Vision processing tests
+- `phase5.test.js` — Historical analysis tests
+- `integration.test.js` — Multi-phase workflow tests
+- `performance.test.js` — P1+P3 <2s, P1-P5 <10s benchmarks
+
+**Critical test pattern** (all tests follow this):
+```javascript
+// Mock DOM environment
+const { JSDOM } = require('jsdom');
+const html = fs.readFileSync('index.html', 'utf8');
+dom = new JSDOM(html, { runScripts: 'dangerously' });
+
+// Mock localStorage
+window.localStorage = {
+  data: {},
+  getItem(key) { return this.data[key] || null; },
+  setItem(key, val) { this.data[key] = val; }
+};
+
+// Test exports
+const xmlOutput = App.exportXML();
+expect(xmlOutput).toContain('xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200"');
+```
+
 
 **Before Deployment Checklist:**
 - [ ] `npm test` passes all tests
@@ -251,13 +279,52 @@ const streetName = match?.[2] || '';    // "nw 116th st"
 
 ---
 
-## API Endpoints
+## API Endpoints & 5-Phase Data Extraction
 
-| Endpoint | Method | Purpose | Env Var | Status |
-|----------|--------|---------|---------|--------|
-| `/api/policy-scan.js` | POST | AI policy scanning (Google Gemini) | `GOOGLE_API_KEY` | ✅ Active |
-| `/api/places-config.js` | GET | Address autocomplete config | `GOOGLE_PLACES_API_KEY` | ✅ Active (optional) |
-| `/api/send-quotes.js` | POST | Email ZIP via SendGrid | `SENDGRID_API_KEY` | ⚠️ Disabled (UI removed) |
+The system uses a progressive enhancement strategy for property data extraction:
+
+**Phase 1: ArcGIS County APIs** (Primary) — 95% confidence, <1s
+- `/api/arcgis-consumer.js` — Direct county assessor API queries
+- Supports: Clark, King, Pierce (WA), Multnomah (OR)
+- Returns: parcel ID, year built, sqft, lot size, garage, roof type
+- Fallback: If county API unavailable → Phase 2
+
+**Phase 2: Headless Browser** (Fallback) — 85% confidence
+- `/api/headless-browser.js` — Scrapes county assessor websites
+- Uses Puppeteer for JavaScript-rendered sites
+- Handles: Login forms, AJAX pagination, dynamic content
+
+**Phase 3: RAG Standardization** (Enhancement) — 99% confidence, <1s
+- `/api/rag-interpreter.js` — Standardizes mixed-source data
+- Uses retrieval-augmented generation for field mapping
+- Normalizes: "2 car garage" → "2 spaces", "Comp shingle" → "Asphalt shingles"
+
+**Phase 4: Vision Processing** (AI) — Policy scan, driver license
+- `/api/vision-processor.js` — Google Gemini for document OCR
+- `/api/policy-scan.js` — Extract insurance fields from policy images
+- `/api/document-intel.js` — Azure Document Intelligence integration
+
+**Phase 5: Historical Analysis** (Advanced) — 10+ years property history
+- `/api/historical-analyzer.js` — Multi-year parcel data trends
+- Detects: Recent construction, claims history, ownership changes
+
+**Supporting APIs:**
+- `/api/smart-extract.js` — Satellite imagery analysis (pools, trampolines)
+- `/api/places-config.js` — Google Places autocomplete config
+- `/api/send-quotes.js` — SendGrid email ZIP export (UI disabled)
+- `/api/_security.js` — Rate limiting, security headers, CORS
+
+**API Security Pattern** (all endpoints):
+```javascript
+// All APIs wrapped with security middleware
+export default securityMiddleware(async (req, res) => {
+  // Rate limiting (100 req/min per IP)
+  // Security headers: X-Frame-Options, HSTS, CSP
+  // CORS restricted to allowedOrigins
+  // Max body size: 20MB
+  // No PII logged to console
+});
+```
 
 ---
 

@@ -390,12 +390,33 @@ async function processDriverLicense(options) {
   const { base64Data, mimeType } = options;
 
   if (!base64Data) {
+    console.error('[DL Scan] No base64 data provided');
     return {
       success: false,
       error: 'No image data provided',
       data: {}
     };
   }
+
+  // Validate and normalize MIME type
+  const validMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  const normalizedMimeType = mimeType?.toLowerCase() || 'image/jpeg';
+  
+  if (!validMimeTypes.includes(normalizedMimeType)) {
+    console.warn(`[DL Scan] Unsupported MIME type: ${mimeType}, using image/jpeg`);
+  }
+
+  // Validate base64 data
+  if (base64Data.length < 100) {
+    console.error('[DL Scan] Base64 data too short, likely invalid');
+    return {
+      success: false,
+      error: 'Image data appears to be invalid or corrupted',
+      data: {}
+    };
+  }
+
+  console.log(`[DL Scan] Processing image: ${normalizedMimeType}, data length: ${base64Data.length}`);
 
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-001' });
@@ -417,35 +438,65 @@ Return ONLY JSON with this schema:
 Rules:
 - If a field is missing, use empty string
 - Normalize DOB to YYYY-MM-DD
-- Use 2-letter state code`;
+- Use 2-letter state code
+- If the image is not readable or not a driver's license, set confidence to 0`;
 
     const response = await model.generateContent({
       contents: [
         {
           role: 'user',
           parts: [
-            { inlineData: { mimeType: mimeType || 'image/jpeg', data: base64Data } },
+            { inlineData: { mimeType: normalizedMimeType, data: base64Data } },
             { text: prompt }
           ]
         }
       ],
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 300
+        maxOutputTokens: 300,
+        topP: 0.8,
+        topK: 10
       }
     });
 
-    const responseText = response.content.parts[0].text;
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    const responseText = response?.content?.parts?.[0]?.text;
+    if (!responseText) {
+      console.error('[DL Scan] Empty response from Gemini API');
       return {
         success: false,
-        error: 'Unable to parse license data',
+        error: 'No response from vision API. The image may be unreadable.',
         data: {}
       };
     }
 
+    console.log('[DL Scan] Gemini response:', responseText.substring(0, 200));
+
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('[DL Scan] No JSON found in response:', responseText);
+      return {
+        success: false,
+        error: 'Unable to parse license data. The image may be blurry or not a driver\'s license.',
+        data: {},
+        rawResponse: responseText
+      };
+    }
+
     const parsed = JSON.parse(jsonMatch[0]);
+    
+    // Check if confidence is too low
+    if (parsed.confidence < 30) {
+      console.warn('[DL Scan] Low confidence response:', parsed.confidence);
+      return {
+        success: false,
+        error: 'Image quality too low or document not recognized. Please try again with better lighting.',
+        data: parsed,
+        confidence: parsed.confidence
+      };
+    }
+
+    console.log('[DL Scan] Success! Extracted:', Object.keys(parsed).filter(k => parsed[k]).join(', '));
+
     return {
       success: true,
       data: {
@@ -462,10 +513,12 @@ Rules:
       confidence: parsed.confidence || 80
     };
   } catch (error) {
+    console.error('[DL Scan] Error:', error.message, error.stack);
     return {
       success: false,
-      error: error.message,
-      data: {}
+      error: `Vision API error: ${error.message}. Please check that GOOGLE_API_KEY is configured correctly.`,
+      data: {},
+      errorDetails: error.toString()
     };
   }
 }

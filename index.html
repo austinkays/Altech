@@ -1835,7 +1835,9 @@
 
                 const result = await this.processDriverLicenseImage(file);
                 if (!result?.success) {
-                    if (status) status.textContent = '⚠️ Unable to read driver license.';
+                    const errorMsg = result?.error || 'Unable to read driver license';
+                    if (status) status.textContent = `⚠️ ${errorMsg}`;
+                    console.error('[DL Scan] Failed:', result);
                     return;
                 }
 
@@ -2755,7 +2757,9 @@
                 const result = await this.processDriverLicenseImage(file);
                 if (!result?.success) {
                     URL.revokeObjectURL(previewUrl);
-                    this.toast('⚠️ Unable to read driver license.');
+                    const errorMsg = result?.error || 'Unable to read driver license';
+                    this.toast(`⚠️ ${errorMsg}`);
+                    console.error('[DL Scan] Failed:', result);
                     return;
                 }
 
@@ -2794,10 +2798,16 @@
             async processDriverLicenseImage(imageFile) {
                 if (!imageFile) return null;
 
+                // Convert HEIC/HEIF to JPEG for iOS compatibility
+                const convertedFile = await this.convertImageToJPEG(imageFile);
+
                 const reader = new FileReader();
                 return new Promise((resolve) => {
                     reader.onload = async (e) => {
                         const base64Data = e.target.result.split(',')[1];
+                        const mimeType = convertedFile.type || 'image/jpeg';
+
+                        console.log(`[DL Scan] Uploading image: ${convertedFile.type}, size: ${(convertedFile.size / 1024).toFixed(1)}KB`);
 
                         try {
                             const response = await fetch('/api/vision-processor.js', {
@@ -2806,18 +2816,82 @@
                                 body: JSON.stringify({
                                     action: 'scanDriverLicense',
                                     base64Data,
-                                    mimeType: imageFile.type || 'image/jpeg'
+                                    mimeType
                                 })
                             });
 
                             const result = await response.json();
+                            if (!result.success) {
+                                console.error('[DL Scan] API Error:', result.error);
+                            }
                             resolve(result);
                         } catch (error) {
                             console.error('Driver license scan error:', error);
                             resolve({ success: false, error: error.message });
                         }
                     };
-                    reader.readAsDataURL(imageFile);
+                    reader.readAsDataURL(convertedFile);
+                });
+            },
+
+            async convertImageToJPEG(file) {
+                // If already JPEG or PNG, return as-is
+                if (file.type === 'image/jpeg' || file.type === 'image/png') {
+                    return file;
+                }
+
+                // For HEIC/HEIF or unknown types, convert to JPEG using Canvas
+                console.log(`[Image Convert] Converting ${file.type || 'unknown format'} to JPEG...`);
+
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            // Create canvas and draw image
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            // Limit max dimensions to reduce file size
+                            const MAX_WIDTH = 1920;
+                            const MAX_HEIGHT = 1920;
+                            let width = img.width;
+                            let height = img.height;
+
+                            if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                                const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+                                width = width * ratio;
+                                height = height * ratio;
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            // Convert to JPEG blob
+                            canvas.toBlob((blob) => {
+                                if (blob) {
+                                    console.log(`[Image Convert] Success: ${(blob.size / 1024).toFixed(1)}KB`);
+                                    // Create a new File object from blob
+                                    const convertedFile = new File([blob], 'converted.jpg', { type: 'image/jpeg' });
+                                    resolve(convertedFile);
+                                } else {
+                                    console.warn('[Image Convert] Failed, using original');
+                                    resolve(file);
+                                }
+                            }, 'image/jpeg', 0.85);
+                        };
+                        img.onerror = () => {
+                            console.warn('[Image Convert] Image load failed, using original');
+                            resolve(file);
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.onerror = () => {
+                        console.warn('[Image Convert] File read failed, using original');
+                        resolve(file);
+                    };
+                    reader.readAsDataURL(file);
                 });
             },
 
