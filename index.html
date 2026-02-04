@@ -2609,14 +2609,19 @@
 
             async handleDriverLicenseFile(driverId, file) {
                 if (!file) return;
+                const previewUrl = URL.createObjectURL(file);
                 const result = await this.processDriverLicenseImage(file);
                 if (!result?.success) {
+                    URL.revokeObjectURL(previewUrl);
                     this.toast('⚠️ Unable to read driver license.');
                     return;
                 }
 
                 const driver = this.drivers.find(d => d.id === driverId);
                 if (!driver) return;
+
+                driver.dlScanPreview = previewUrl;
+                driver.dlScanConfidence = result.confidence || '';
 
                 const data = result.data || {};
 
@@ -2730,9 +2735,11 @@
                         </div>
                         
                         <label class="label">Driver's License</label>
-                        <div class="export-row" style="margin-bottom:10px;">
+                        <div class="export-row" style="margin-bottom:10px; align-items:center;">
                             <button class="btn btn-tertiary" onclick="App.openDriverLicensePicker('${driver.id}')">📸 Scan Driver's License</button>
                             <input id="dlScan_${driver.id}" type="file" accept="image/*" class="hidden" onchange="App.handleDriverLicenseFile('${driver.id}', this.files[0])" />
+                            ${driver.dlScanPreview ? `<img src="${driver.dlScanPreview}" alt="DL preview" style="width:48px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" />` : ''}
+                            ${driver.dlScanConfidence ? `<span class="hint" style="margin:0; padding:6px 10px;">${driver.dlScanConfidence}% confidence</span>` : ''}
                         </div>
                         <div class="grid-2">
                             <input type="text" value="${driver.dlNum || ''}" 
@@ -2906,6 +2913,15 @@
                             relationship: 'Self'
                         }];
                     }
+                }
+
+                // Cleanup any stale object URLs in stored drivers
+                if (Array.isArray(this.drivers)) {
+                    this.drivers.forEach(d => {
+                        if (d.dlScanPreview && d.dlScanPreview.startsWith('blob:')) {
+                            d.dlScanPreview = '';
+                        }
+                    });
                 }
                 
                 if (this.data.vehicles && Array.isArray(this.data.vehicles)) {
