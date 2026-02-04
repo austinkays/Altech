@@ -5077,6 +5077,14 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     ['Dogs', data.dogInfo || ''],
                     ['Business on Property', data.businessOnProperty || '']
                 ]);
+
+                if (data.drivers && data.drivers.length) {
+                    const driverLines = data.drivers.map((d, i) => {
+                        const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
+                        return `Driver ${i + 1}: ${name || 'Unknown'} | Relationship: ${d.relationship || ''} | Occupation: ${d.occupation || ''} | DOB: ${d.dob || ''} | DL: ${d.dlNum || ''} (${d.dlState || ''})`;
+                    }).join('\n');
+                    addSection('Drivers', [['Drivers', driverLines]]);
+                }
                 
                 if (data.qType === 'auto' || data.qType === 'both') {
                     addSection('Vehicle Information', [
