@@ -459,9 +459,33 @@ Rules:
       }
     });
 
-    const responseText = response?.content?.parts?.[0]?.text;
+    console.log('[DL Scan] Raw API response structure:', JSON.stringify(response, null, 2).substring(0, 500));
+
+    // Handle different response structures from Gemini API
+    let responseText;
+    if (response?.response?.text) {
+      // New SDK format: response.response.text()
+      responseText = typeof response.response.text === 'function' 
+        ? await response.response.text() 
+        : response.response.text;
+    } else if (response?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      // Alternative format: candidates array
+      responseText = response.candidates[0].content.parts[0].text;
+    } else if (response?.content?.parts?.[0]?.text) {
+      // Old format: direct content.parts
+      responseText = response.content.parts[0].text;
+    } else {
+      console.error('[DL Scan] Unexpected response structure:', JSON.stringify(response, null, 2));
+      return {
+        success: false,
+        error: 'Unexpected API response format. Please contact support.',
+        data: {},
+        debugInfo: 'Response structure mismatch'
+      };
+    }
+
     if (!responseText) {
-      console.error('[DL Scan] Empty response from Gemini API');
+      console.error('[DL Scan] Empty response text from Gemini API');
       return {
         success: false,
         error: 'No response from vision API. The image may be unreadable.',
@@ -469,8 +493,9 @@ Rules:
       };
     }
 
-    console.log('[DL Scan] Gemini response:', responseText.substring(0, 200));
+    console.log('[DL Scan] Gemini response text:', responseText.substring(0, 200));
 
+    // Try to extract JSON from response
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error('[DL Scan] No JSON found in response:', responseText);
@@ -478,20 +503,43 @@ Rules:
         success: false,
         error: 'Unable to parse license data. The image may be blurry or not a driver\'s license.',
         data: {},
-        rawResponse: responseText
+        rawResponse: responseText.substring(0, 500)
       };
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (parseError) {
+      console.error('[DL Scan] JSON parse error:', parseError.message);
+      console.error('[DL Scan] Failed JSON string:', jsonMatch[0].substring(0, 500));
+      return {
+        success: false,
+        error: 'Failed to parse API response. Please try again.',
+        data: {},
+        rawResponse: jsonMatch[0].substring(0, 500)
+      };
+    }
+    
+    // Validate parsed data has expected fields
+    if (!parsed || typeof parsed !== 'object') {
+      console.error('[DL Scan] Parsed data is not an object:', parsed);
+      return {
+        success: false,
+        error: 'Invalid data format from API. Please try again.',
+        data: {}
+      };
+    }
     
     // Check if confidence is too low
-    if (parsed.confidence < 30) {
-      console.warn('[DL Scan] Low confidence response:', parsed.confidence);
+    const confidence = parseInt(parsed.confidence) || 0;
+    if (confidence < 30) {
+      console.warn('[DL Scan] Low confidence response:', confidence);
       return {
         success: false,
         error: 'Image quality too low or document not recognized. Please try again with better lighting.',
         data: parsed,
-        confidence: parsed.confidence
+        confidence: confidence
       };
     }
 
@@ -510,15 +558,29 @@ Rules:
         state: parsed.state || '',
         zip: parsed.zip || ''
       },
-      confidence: parsed.confidence || 80
+      confidence: confidence
     };
   } catch (error) {
-    console.error('[DL Scan] Error:', error.message, error.stack);
+    console.error('[DL Scan] Error:', error.message);
+    if (error.stack) {
+      console.error('[DL Scan] Stack trace:', error.stack.substring(0, 500));
+    }
+    
+    // Provide more specific error messages
+    let errorMessage = 'Vision API error. Please try again.';
+    if (error.message.includes('API key')) {
+      errorMessage = 'API key error. Please check that GOOGLE_API_KEY is configured correctly.';
+    } else if (error.message.includes('quota') || error.message.includes('limit')) {
+      errorMessage = 'API rate limit reached. Please try again in a moment.';
+    } else if (error.message.includes('network') || error.message.includes('fetch')) {
+      errorMessage = 'Network error. Please check your connection and try again.';
+    }
+    
     return {
       success: false,
-      error: `Vision API error: ${error.message}. Please check that GOOGLE_API_KEY is configured correctly.`,
+      error: errorMessage,
       data: {},
-      errorDetails: error.toString()
+      errorDetails: error.message
     };
   }
 }
