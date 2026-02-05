@@ -571,15 +571,6 @@ async function searchSOSEntity(businessName, ubi, state) {
 
     console.log('[SOS Lookup] Using fallback mock data due to error');
     return mockData;
-
-  } catch (fallbackError) {
-    console.error('[SOS Lookup] Fallback error:', fallbackError);
-    return {
-      success: false,
-      available: false,
-      error: fallbackError.message,
-      reason: 'Failed to retrieve Secretary of State information'
-    };
   }
 }
 
@@ -939,15 +930,6 @@ async function searchOSHAInspections(businessName, city, state) {
 
     console.log('[OSHA Lookup] Using fallback mock data due to error');
     return mockData;
-
-  } catch (fallbackError) {
-    console.error('[OSHA Lookup] Fallback error:', fallbackError);
-    return {
-      success: false,
-      available: false,
-      error: fallbackError.message,
-      reason: 'Failed to retrieve OSHA inspection data'
-    };
   }
 }
 
