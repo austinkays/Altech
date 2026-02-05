@@ -780,6 +780,13 @@
                     <div><label class="label">Phone Number</label><input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="tel"></div>
                     <div><label class="label">Date of Birth</label><input type="date" id="dob"></div>
                 </div>
+                
+                <label class="label">Gender</label>
+                <select id="gender">
+                    <option value="">Select...</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                </select>
             </div>
         </div>
 
@@ -1844,11 +1851,8 @@
                 this.initialDlScan = result;
                 this.renderInitialDriverLicenseResults(result);
 
-                // Auto-apply the scanned data to form fields
-                this.applyInitialDriverLicense();
-
                 if (status) {
-                    status.textContent = `✅ Scan complete (${result.confidence || 'N/A'}% confidence)`;
+                    status.textContent = `✅ Scan complete (${result.confidence || 'N/A'}% confidence) - Review below`;
                 }
             },
 
@@ -1858,41 +1862,97 @@
                 container.innerHTML = '';
 
                 const fields = result?.data || {};
-                const lines = [
-                    ['Name', [fields.firstName, fields.lastName].filter(Boolean).join(' ')],
-                    ['DOB', fields.dob],
-                    ['DL', `${fields.licenseNumber || ''} ${fields.licenseState ? `(${fields.licenseState})` : ''}`.trim()],
-                    ['Address', [fields.addressLine1, fields.city, fields.state, fields.zip].filter(Boolean).join(', ')]
-                ];
+                const confidence = result?.confidence || 0;
 
-                lines.forEach(([label, value]) => {
-                    if (!value) return;
-                    const row = document.createElement('div');
-                    row.className = 'scan-field';
-                    row.innerHTML = `<label class=\"label\">${label}</label><div class=\"hint\">${value}</div>`;
-                    container.appendChild(row);
-                });
+                const renderField = (id, label, value) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'scan-field';
+
+                    const labelEl = document.createElement('label');
+                    labelEl.className = 'label';
+                    labelEl.textContent = label;
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = value || '';
+                    input.dataset.field = id;
+
+                    wrapper.appendChild(labelEl);
+                    wrapper.appendChild(input);
+                    container.appendChild(wrapper);
+                };
+
+                // Render editable fields
+                renderField('firstName', 'First Name', fields.firstName);
+                renderField('lastName', 'Last Name', fields.lastName);
+                renderField('dob', 'Date of Birth', fields.dob);
+                renderField('gender', 'Gender (M/F)', fields.gender);
+                renderField('licenseNumber', 'License Number', fields.licenseNumber);
+                renderField('licenseState', 'License State', fields.licenseState);
+                renderField('addressLine1', 'Street Address', fields.addressLine1);
+                renderField('city', 'City', fields.city);
+                renderField('state', 'State', fields.state);
+                renderField('zip', 'ZIP', fields.zip);
+
+                // Add confidence indicator
+                if (confidence) {
+                    const confDiv = document.createElement('div');
+                    confDiv.className = 'hint';
+                    confDiv.textContent = `Overall Confidence: ${confidence}%`;
+                    container.appendChild(confDiv);
+                }
+
+                // Add action buttons
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'scan-actions';
+                actionsDiv.style.marginTop = '16px';
+
+                const approveBtn = document.createElement('button');
+                approveBtn.className = 'btn btn-primary';
+                approveBtn.textContent = '✅ Approve & Auto-Fill';
+                approveBtn.onclick = () => this.applyInitialDriverLicense();
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'btn';
+                cancelBtn.textContent = '❌ Cancel Scan';
+                cancelBtn.onclick = () => this.clearInitialDriverLicenseScan();
+
+                const editHint = document.createElement('div');
+                editHint.className = 'hint';
+                editHint.style.marginTop = '8px';
+                editHint.textContent = '💡 Edit any fields above before approving, or cancel to start over.';
+
+                actionsDiv.appendChild(approveBtn);
+                actionsDiv.appendChild(cancelBtn);
+                container.appendChild(actionsDiv);
+                container.appendChild(editHint);
             },
 
             applyInitialDriverLicense() {
-                if (!this.initialDlScan?.data) {
-                    this.toast('⚠️ Scan a driver license first.');
-                    return;
-                }
+                const container = document.getElementById('initialDlResults');
+                if (!container) return;
 
-                const fields = this.initialDlScan.data;
+                // Get values from editable inputs
+                const inputs = container.querySelectorAll('input[data-field]');
+                const fields = {};
+                inputs.forEach(input => {
+                    fields[input.dataset.field] = input.value;
+                });
 
+                let appliedCount = 0;
                 const setIfEmpty = (id, value) => {
                     if (!value) return;
                     const el = document.getElementById(id);
                     if (!el || el.value) return;
                     el.value = value;
                     this.save({ target: { id, value } });
+                    appliedCount++;
                 };
 
                 setIfEmpty('firstName', fields.firstName);
                 setIfEmpty('lastName', fields.lastName);
                 setIfEmpty('dob', fields.dob);
+                setIfEmpty('gender', fields.gender);
                 setIfEmpty('addrStreet', fields.addressLine1);
                 setIfEmpty('addrCity', fields.city);
                 setIfEmpty('addrState', fields.state);
@@ -1904,6 +1964,7 @@
                         firstName: fields.firstName || '',
                         lastName: fields.lastName || '',
                         dob: fields.dob || '',
+                        gender: fields.gender || '',
                         dlNum: fields.licenseNumber || '',
                         dlState: fields.licenseState || fields.state || 'WA',
                         relationship: 'Self',
@@ -1915,14 +1976,22 @@
                         if (!primary.firstName) primary.firstName = fields.firstName || '';
                         if (!primary.lastName) primary.lastName = fields.lastName || '';
                         if (!primary.dob) primary.dob = fields.dob || '';
+                        if (!primary.gender) primary.gender = fields.gender || '';
                         if (!primary.dlNum) primary.dlNum = fields.licenseNumber || '';
                         if (!primary.dlState) primary.dlState = fields.licenseState || fields.state || 'WA';
                     }
                 }
 
+                // Clear the review UI after applying
+                container.innerHTML = '';
+                const status = document.getElementById('initialDlStatus');
+                if (status) {
+                    status.textContent = `✅ ${appliedCount} field(s) applied to form`;
+                }
+
                 this.saveDriversVehicles();
                 this.updateScanCoverage();
-                this.toast('✅ Driver license applied');
+                this.toast('✅ Driver license data applied to form');
             },
 
             async handleDocIntelFiles(e) {

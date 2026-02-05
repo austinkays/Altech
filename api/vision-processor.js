@@ -439,6 +439,7 @@ async function processDriverLicense(options) {
   "firstName": "",
   "lastName": "",
   "dob": "YYYY-MM-DD",
+  "gender": "",
   "licenseNumber": "",
   "licenseState": "",
   "addressLine1": "",
@@ -451,6 +452,7 @@ async function processDriverLicense(options) {
 Rules:
 - Use empty string for any missing fields
 - Format DOB as YYYY-MM-DD
+- Gender should be "M", "F", or "" if not visible
 - Use 2-letter state codes
 - Set confidence 0-100 based on image quality
 - Return only the JSON object, no other text`;
