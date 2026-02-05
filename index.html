@@ -924,6 +924,20 @@
                     <span class="tool-status ready">✓ Ready</span>
                 </div>
 
+                <!-- Commercial Prospect Investigator -->
+                <div class="tool-card" onclick="App.openTool('prospect')">
+                    <span class="tool-icon">🔍</span>
+                    <h3 class="tool-title">Prospect Investigator</h3>
+                    <p class="tool-description">Deep-dive intelligence on commercial prospects with public records lookup.</p>
+                    <ul class="tool-features">
+                        <li>WA L&I contractor license verification</li>
+                        <li>Business entity & ownership records</li>
+                        <li>OSHA violations & safety history</li>
+                        <li>Business classification & activities</li>
+                    </ul>
+                    <span class="tool-status ready">✓ Ready</span>
+                </div>
+
                 <!-- COI Compliance Tracker -->
                 <div class="tool-card coming-soon">
                     <span class="tool-icon">🔍</span>
@@ -7020,6 +7034,13 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
 
                     // Initialize COI with agency defaults
                     COI.init();
+                } else if (toolName === 'prospect') {
+                    const tool = document.getElementById('prospectTool');
+                    tool.classList.add('active');
+                    tool.style.display = 'block';
+
+                    // Initialize Prospect Investigator
+                    ProspectInvestigator.init();
                 }
 
                 // Scroll to top
@@ -7183,6 +7204,283 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     // TODO: Populate form fields
                     console.log('COI draft loaded', data);
                 }
+            }
+        };
+
+        // Prospect Investigator Object
+        const ProspectInvestigator = {
+            currentData: null,
+
+            init() {
+                // Set default state to WA
+                document.getElementById('prospectState').value = 'WA';
+                console.log('Prospect Investigator initialized');
+            },
+
+            async search() {
+                const businessName = document.getElementById('prospectBusinessName').value.trim();
+                const ubi = document.getElementById('prospectUBI').value.trim();
+                const city = document.getElementById('prospectCity').value.trim();
+                const state = document.getElementById('prospectState').value;
+
+                if (!businessName) {
+                    alert('Please enter a business name to search');
+                    return;
+                }
+
+                // Show loading, hide results
+                document.getElementById('prospectLoading').style.display = 'block';
+                document.getElementById('prospectResults').style.display = 'none';
+
+                try {
+                    // Run all searches in parallel
+                    const [liData, sosData, oshaData] = await Promise.all([
+                        this.searchLI(businessName, ubi, state),
+                        this.searchSOS(businessName, ubi, state),
+                        this.searchOSHA(businessName, city, state)
+                    ]);
+
+                    // Store combined data
+                    this.currentData = {
+                        businessName,
+                        ubi,
+                        city,
+                        state,
+                        li: liData,
+                        sos: sosData,
+                        osha: oshaData,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    // Display results
+                    this.displayResults();
+
+                } catch (error) {
+                    console.error('Search error:', error);
+                    alert('Error searching business records. Please try again.');
+                } finally {
+                    document.getElementById('prospectLoading').style.display = 'none';
+                }
+            },
+
+            async searchLI(businessName, ubi, state) {
+                if (state !== 'WA') {
+                    return { available: false, reason: 'L&I data only available for Washington state' };
+                }
+
+                try {
+                    // Call WA L&I contractor lookup API
+                    const response = await fetch(`/api/li-lookup?name=${encodeURIComponent(businessName)}&ubi=${encodeURIComponent(ubi)}`);
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.error('L&I search error:', error);
+                    return { error: 'Failed to search L&I records', available: false };
+                }
+            },
+
+            async searchSOS(businessName, ubi, state) {
+                try {
+                    // Call Secretary of State business entity search
+                    const response = await fetch(`/api/sos-lookup?name=${encodeURIComponent(businessName)}&ubi=${encodeURIComponent(ubi)}&state=${state}`);
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.error('SOS search error:', error);
+                    return { error: 'Failed to search Secretary of State records', available: false };
+                }
+            },
+
+            async searchOSHA(businessName, city, state) {
+                try {
+                    // Call OSHA inspection database
+                    const response = await fetch(`/api/osha-lookup?name=${encodeURIComponent(businessName)}&city=${encodeURIComponent(city)}&state=${state}`);
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.error('OSHA search error:', error);
+                    return { error: 'Failed to search OSHA records', available: false };
+                }
+            },
+
+            displayResults() {
+                const data = this.currentData;
+
+                // Business Summary
+                document.getElementById('businessSummary').innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 14px;">
+                        <div><strong>Business Name:</strong> ${data.businessName}</div>
+                        <div><strong>UBI:</strong> ${data.ubi || 'Not provided'}</div>
+                        <div><strong>Location:</strong> ${data.city ? data.city + ', ' : ''}${data.state}</div>
+                        <div><strong>Report Date:</strong> ${new Date(data.timestamp).toLocaleDateString()}</div>
+                    </div>
+                `;
+
+                // L&I Contractor Info
+                if (data.li.available) {
+                    document.getElementById('liContractorInfo').innerHTML = this.formatLIData(data.li);
+                } else {
+                    document.getElementById('liContractorInfo').innerHTML = `
+                        <p style="color: var(--text-secondary); font-style: italic;">${data.li.reason || 'No L&I contractor license found'}</p>
+                    `;
+                }
+
+                // Secretary of State
+                if (data.sos.available) {
+                    document.getElementById('sosBusinessInfo').innerHTML = this.formatSOSData(data.sos);
+                } else {
+                    document.getElementById('sosBusinessInfo').innerHTML = `
+                        <p style="color: var(--text-secondary); font-style: italic;">No business entity records found</p>
+                    `;
+                }
+
+                // OSHA Violations
+                if (data.osha.inspections && data.osha.inspections.length > 0) {
+                    document.getElementById('oshaViolations').innerHTML = this.formatOSHAData(data.osha);
+                } else {
+                    document.getElementById('oshaViolations').innerHTML = `
+                        <p style="color: green;">✓ No OSHA violations found in public records</p>
+                    `;
+                }
+
+                // Risk Classification
+                document.getElementById('riskClassification').innerHTML = this.formatRiskClassification(data);
+
+                // Show results
+                document.getElementById('prospectResults').style.display = 'block';
+            },
+
+            formatLIData(liData) {
+                // Format L&I contractor license data
+                return `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+                        <div><strong>License Number:</strong> ${liData.licenseNumber || 'N/A'}</div>
+                        <div><strong>Status:</strong> <span style="color: ${liData.status === 'Active' ? 'green' : 'orange'};">${liData.status || 'Unknown'}</span></div>
+                        <div><strong>Classification:</strong> ${liData.classification || 'N/A'}</div>
+                        <div><strong>Expiration:</strong> ${liData.expiration || 'N/A'}</div>
+                        <div><strong>Bonded:</strong> ${liData.bonded ? 'Yes' : 'No'}</div>
+                        <div><strong>Bond Amount:</strong> ${liData.bondAmount || 'N/A'}</div>
+                    </div>
+                    ${liData.violations && liData.violations.length > 0 ? `
+                        <div style="margin-top: 16px; padding: 12px; background: #fff3cd; border-radius: 4px;">
+                            <strong>⚠️ L&I Violations:</strong>
+                            <ul style="margin: 8px 0 0 20px;">
+                                ${liData.violations.map(v => `<li>${v}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+            },
+
+            formatSOSData(sosData) {
+                // Format Secretary of State business entity data
+                return `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+                        <div><strong>Entity Type:</strong> ${sosData.entityType || 'N/A'}</div>
+                        <div><strong>Status:</strong> <span style="color: ${sosData.status === 'Active' ? 'green' : 'orange'};">${sosData.status || 'Unknown'}</span></div>
+                        <div><strong>Formation Date:</strong> ${sosData.formationDate || 'N/A'}</div>
+                        <div><strong>State of Formation:</strong> ${sosData.stateOfFormation || 'N/A'}</div>
+                        <div><strong>Registered Agent:</strong> ${sosData.registeredAgent || 'N/A'}</div>
+                        <div><strong>Principal Office:</strong> ${sosData.principalOffice || 'N/A'}</div>
+                    </div>
+                    ${sosData.officers && sosData.officers.length > 0 ? `
+                        <div style="margin-top: 16px;">
+                            <strong>Officers/Owners:</strong>
+                            <ul style="margin: 8px 0 0 20px;">
+                                ${sosData.officers.map(o => `<li>${o.name} - ${o.title}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+            },
+
+            formatOSHAData(oshaData) {
+                // Format OSHA inspection history
+                return `
+                    <div style="color: orange; font-weight: bold; margin-bottom: 12px;">
+                        ⚠️ ${oshaData.inspections.length} OSHA inspection(s) found
+                    </div>
+                    ${oshaData.inspections.map(inspection => `
+                        <div style="border-left: 3px solid orange; padding-left: 12px; margin-bottom: 16px;">
+                            <div style="font-weight: bold;">${inspection.date} - ${inspection.type}</div>
+                            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+                                Violations: ${inspection.violations || 0} (${inspection.serious || 0} serious)
+                            </div>
+                            ${inspection.penalty ? `<div style="font-size: 13px; margin-top: 4px;">Penalty: $${inspection.penalty.toLocaleString()}</div>` : ''}
+                        </div>
+                    `).join('')}
+                `;
+            },
+
+            formatRiskClassification(data) {
+                // Calculate risk score based on available data
+                let riskScore = 0;
+                let factors = [];
+
+                if (data.li.violations && data.li.violations.length > 0) {
+                    riskScore += 20;
+                    factors.push('L&I violations on record');
+                }
+
+                if (data.osha.inspections && data.osha.inspections.length > 0) {
+                    riskScore += data.osha.inspections.length * 10;
+                    factors.push(`${data.osha.inspections.length} OSHA inspection(s)`);
+                }
+
+                if (data.sos.status && data.sos.status !== 'Active') {
+                    riskScore += 30;
+                    factors.push('Business entity not in active status');
+                }
+
+                const riskLevel = riskScore === 0 ? 'Low' : riskScore < 30 ? 'Moderate' : 'High';
+                const riskColor = riskLevel === 'Low' ? 'green' : riskLevel === 'Moderate' ? 'orange' : 'red';
+
+                return `
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <div style="font-size: 48px; color: ${riskColor};">
+                            ${riskLevel === 'Low' ? '✓' : riskLevel === 'Moderate' ? '⚠️' : '🚨'}
+                        </div>
+                        <div>
+                            <div style="font-size: 24px; font-weight: bold; color: ${riskColor};">${riskLevel} Risk</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Risk Score: ${riskScore}/100</div>
+                        </div>
+                    </div>
+                    ${factors.length > 0 ? `
+                        <div style="margin-top: 16px;">
+                            <strong>Risk Factors:</strong>
+                            <ul style="margin: 8px 0 0 20px;">
+                                ${factors.map(f => `<li>${f}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : '<p style="color: green;">No significant risk factors identified</p>'}
+                    <div style="margin-top: 16px; padding: 12px; background: #f8f9fa; border-radius: 4px; font-size: 12px;">
+                        <strong>Suggested Action:</strong> ${this.getSuggestedAction(riskLevel)}
+                    </div>
+                `;
+            },
+
+            getSuggestedAction(riskLevel) {
+                switch (riskLevel) {
+                    case 'Low':
+                        return 'Standard underwriting process. Request current insurance declarations and loss runs.';
+                    case 'Moderate':
+                        return 'Enhanced review recommended. Request detailed loss history, safety program documentation, and consider higher premiums or coverage restrictions.';
+                    case 'High':
+                        return 'Thorough underwriting required. Consider declination or require extensive risk mitigation measures before binding coverage.';
+                    default:
+                        return 'Review available information and proceed accordingly.';
+                }
+            },
+
+            exportReport() {
+                if (!this.currentData) {
+                    alert('Please run a search first');
+                    return;
+                }
+
+                // For now, print the report
+                // TODO: Generate PDF with formatted report
+                window.print();
             }
         };
 
@@ -7472,6 +7770,102 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 <div style="font-size: 6px; text-align: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #000; color: #666;">
                     ACORD 25 (2016/03) © 1988-2015 ACORD CORPORATION. All rights reserved.
                 </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- PROSPECT INVESTIGATOR TOOL CONTAINER -->
+    <div id="prospectTool" class="plugin-container">
+        <header>
+            <div class="header-top">
+                <div class="logo"><div class="logo-icon">🔍</div> Prospect Investigator</div>
+                <button class="btn-utility" onclick="ProspectInvestigator.exportReport()" style="font-size: 14px; padding: 8px 16px;">
+                    📄 Export Report
+                </button>
+            </div>
+            <div class="step-title">Commercial Business Intelligence & Public Records</div>
+            <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
+        </header>
+
+        <main style="padding: 20px; padding-bottom: 60px;">
+
+            <!-- SEARCH SECTION -->
+            <div class="card">
+                <h2>🔎 Search Business</h2>
+                <p class="section-subtitle">Lookup by business name, UBI number, or contractor registration</p>
+
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Business Name</label>
+                        <input type="text" id="prospectBusinessName" placeholder="e.g., ABC Construction LLC">
+                    </div>
+                    <div>
+                        <label class="label">UBI Number (Optional)</label>
+                        <input type="text" id="prospectUBI" placeholder="e.g., 123-456-789">
+                    </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 16px;">
+                    <div>
+                        <label class="label">City</label>
+                        <input type="text" id="prospectCity" placeholder="e.g., Seattle">
+                    </div>
+                    <div>
+                        <label class="label">State</label>
+                        <select id="prospectState">
+                            <option value="WA">Washington</option>
+                            <option value="OR">Oregon</option>
+                            <option value="AZ">Arizona</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn-primary" onclick="ProspectInvestigator.search()" style="margin-top: 20px; width: 100%;">
+                    🔍 Run Full Investigation
+                </button>
+            </div>
+
+            <!-- LOADING INDICATOR -->
+            <div id="prospectLoading" style="display: none; text-align: center; padding: 40px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                <h3>Investigating Business Records...</h3>
+                <p style="color: var(--text-secondary);">Searching WA L&I, Secretary of State, OSHA, and other public databases</p>
+            </div>
+
+            <!-- RESULTS SECTION -->
+            <div id="prospectResults" style="display: none;">
+
+                <!-- BUSINESS SUMMARY -->
+                <div class="card">
+                    <h2>🏢 Business Summary</h2>
+                    <div id="businessSummary"></div>
+                </div>
+
+                <!-- L&I CONTRACTOR INFO -->
+                <div class="card">
+                    <h2>🔨 WA L&I Contractor License</h2>
+                    <div id="liContractorInfo"></div>
+                </div>
+
+                <!-- SECRETARY OF STATE -->
+                <div class="card">
+                    <h2>📋 Business Entity Records</h2>
+                    <div id="sosBusinessInfo"></div>
+                </div>
+
+                <!-- OSHA VIOLATIONS -->
+                <div class="card">
+                    <h2>⚠️ OSHA Inspection History</h2>
+                    <div id="oshaViolations"></div>
+                </div>
+
+                <!-- BUSINESS CLASSIFICATION -->
+                <div class="card">
+                    <h2>📊 Risk Classification</h2>
+                    <div id="riskClassification"></div>
+                </div>
+
             </div>
 
         </main>
