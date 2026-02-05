@@ -121,7 +121,7 @@ Return JSON:
       ],
       generationConfig: {
         temperature: 0.3,
-        maxOutputTokens: 1500
+        maxOutputTokens: 2048
       }
     });
 
@@ -271,7 +271,7 @@ Return JSON:
       ],
       generationConfig: {
         temperature: 0.3,
-        maxOutputTokens: 1500
+        maxOutputTokens: 2048
       }
     });
 
@@ -417,7 +417,7 @@ Return JSON:
       ],
       generationConfig: {
         temperature: 0.3,
-        maxOutputTokens: 1500
+        maxOutputTokens: 2048
       }
     });
 
@@ -561,7 +561,7 @@ Return JSON:
       ],
       generationConfig: {
         temperature: 0.3,
-        maxOutputTokens: 2000
+        maxOutputTokens: 2048
       }
     });
 

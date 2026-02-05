@@ -82,7 +82,7 @@ Return ONLY valid JSON with this structure:
         }],
         generationConfig: { 
           temperature: 0.1, 
-          maxOutputTokens: 512 
+          maxOutputTokens: 2048 
         }
       })
     });

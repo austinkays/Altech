@@ -98,7 +98,7 @@ Return JSON with extracted values and confidence (0-100).`;
       ],
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 500
+        maxOutputTokens: 2048
       }
     });
 
@@ -225,7 +225,7 @@ Return JSON with:
       ],
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 1000
+        maxOutputTokens: 2048
       }
     });
 
@@ -348,7 +348,7 @@ Return JSON:
       ],
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 600
+        maxOutputTokens: 2048
       }
     });
 
@@ -473,7 +473,7 @@ Rules:
       ],
       generationConfig: {
         temperature: 0.1,
-        maxOutputTokens: 500
+        maxOutputTokens: 2048
       }
     };
 

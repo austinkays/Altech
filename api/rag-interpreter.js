@@ -111,7 +111,7 @@ async function interpretParcelData(rawParcelData, countyName) {
         generationConfig: {
           temperature: 0.3, // Low temperature for consistent, predictable output
           topP: 0.95,
-          maxOutputTokens: 500
+          maxOutputTokens: 2048
         }
       }),
       timeout: 30000
