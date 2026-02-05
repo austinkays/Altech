@@ -2405,14 +2405,54 @@
                 renderField('autoDeductible', 'Auto Deductible', fields.autoDeductible);
                 renderField('priorCarrier', 'Prior Carrier', fields.priorCarrier);
                 renderField('priorExp', 'Prior Expiration', fields.priorExp);
+
+                // Add action buttons
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'scan-actions';
+                actionsDiv.style.marginTop = '16px';
+
+                const approveBtn = document.createElement('button');
+                approveBtn.className = 'btn btn-primary';
+                approveBtn.textContent = '✅ Approve & Auto-Fill';
+                approveBtn.onclick = () => this.applyExtractedData();
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'btn';
+                cancelBtn.textContent = '❌ Cancel Scan';
+                cancelBtn.onclick = () => this.clearScan();
+
+                const editHint = document.createElement('div');
+                editHint.className = 'hint';
+                editHint.style.marginTop = '8px';
+                editHint.textContent = '💡 Edit any fields above before approving, or cancel to start over.';
+
+                actionsDiv.appendChild(approveBtn);
+                actionsDiv.appendChild(cancelBtn);
+                results.appendChild(actionsDiv);
+                results.appendChild(editHint);
             },
 
             applyExtractedData() {
                 const results = document.getElementById('scanResults');
                 if (!results) return;
                 const inputs = results.querySelectorAll('input[data-field]');
-                inputs.forEach((input) => this.setFieldValue(input.dataset.field, input.value));
-                this.toast('✅ Extracted data applied');
+                let appliedCount = 0;
+                inputs.forEach((input) => {
+                    if (input.value) {
+                        this.setFieldValue(input.dataset.field, input.value);
+                        appliedCount++;
+                    }
+                });
+                
+                // Clear the review UI after applying
+                results.innerHTML = '';
+                const status = document.getElementById('scanStatus');
+                if (status) {
+                    status.textContent = `✅ ${appliedCount} field(s) applied to form`;
+                }
+                
+                this.updateScanCoverage();
+                this.toast('✅ Policy data applied to form');
             },
 
             handleType() {
