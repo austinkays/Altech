@@ -174,24 +174,35 @@ async function queryEndpoint(latitude, longitude, config, countyName) {
       f: 'json'
     });
 
-    const response = await fetch(`${url}?${params}`, {
+    const fullUrl = `${url}?${params}`;
+    console.log(`[ArcGIS Consumer] Querying: ${fullUrl.substring(0, 200)}...`);
+
+    const response = await fetch(fullUrl, {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
     });
 
+    console.log(`[ArcGIS Consumer] Response status: ${response.status}`);
+
     if (!response.ok) {
+      console.error(`[ArcGIS Consumer] HTTP error ${response.status}`);
       return { success: false, error: `HTTP ${response.status}`, county: countyName };
     }
 
     const data = await response.json();
+    console.log(`[ArcGIS Consumer] Response data:`, JSON.stringify(data).substring(0, 300));
 
     if (data.error) {
+      console.error(`[ArcGIS Consumer] API error:`, data.error.message);
       return { success: false, error: data.error.message, county: countyName };
     }
 
     if (!data.features || data.features.length === 0) {
+      console.warn(`[ArcGIS Consumer] No features found. Response:`, data);
       return { success: false, error: 'No parcel found at location', county: countyName };
     }
+
+    console.log(`[ArcGIS Consumer] Found ${data.features.length} parcel(s)`);
 
     // Normalize first result to common format
     const parcel = data.features[0];
@@ -204,6 +215,7 @@ async function queryEndpoint(latitude, longitude, config, countyName) {
       rawResponse: parcel.attributes
     };
   } catch (error) {
+    console.error(`[ArcGIS Consumer] Exception in queryEndpoint:`, error);
     return { success: false, error: error.message, county: countyName };
   }
 }
