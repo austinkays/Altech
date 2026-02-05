@@ -123,26 +123,35 @@ const COUNTY_TO_STATE = {
  * Implements hybrid approach: Try individual county first, fall back to state aggregator
  */
 async function queryByLocation(latitude, longitude, countyName, state) {
+  console.log(`[ArcGIS Consumer] Querying parcel at ${latitude}, ${longitude} in ${countyName} County, ${state}`);
+
   // Priority 1: Try individual county configuration (rich data)
   const countyConfig = COUNTY_ARCGIS_CONFIG[countyName];
   if (countyConfig) {
+    console.log(`[ArcGIS Consumer] Trying individual county API for ${countyName}`);
     const result = await queryEndpoint(latitude, longitude, countyConfig, countyName);
+    console.log(`[ArcGIS Consumer] Individual county API result:`, result.success ? 'SUCCESS' : `FAILED: ${result.error}`);
     if (result.success) {
       return result;
     }
+  } else {
+    console.log(`[ArcGIS Consumer] No individual county config found for ${countyName}`);
   }
 
   // Priority 2: Fall back to state aggregator (broader coverage)
   const stateCode = state || COUNTY_TO_STATE[countyName];
   if (stateCode && STATE_AGGREGATORS[stateCode]) {
     const stateConfig = STATE_AGGREGATORS[stateCode];
+    console.log(`[ArcGIS Consumer] Trying state aggregator for ${stateCode}`);
     const result = await queryEndpoint(latitude, longitude, stateConfig, countyName);
+    console.log(`[ArcGIS Consumer] State aggregator result:`, result.success ? 'SUCCESS' : `FAILED: ${result.error}`);
     if (result.success) {
       result.source = `${stateConfig.name} (State Aggregator)`;
       return result;
     }
   }
 
+  console.error(`[ArcGIS Consumer] All methods failed for ${countyName} County`);
   return { success: false, error: 'County not configured for API access', county: countyName };
 }
 
@@ -205,9 +214,12 @@ async function queryEndpoint(latitude, longitude, config, countyName) {
  */
 async function queryByAddress(address, city, state, countyName) {
   try {
+    console.log(`[ArcGIS Consumer] Geocoding address: ${address}, ${city}, ${state}`);
+
     // Step 1: Geocode address to lat/lng using Google Maps API
     const googleApiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
     if (!googleApiKey) {
+      console.error('[ArcGIS Consumer] Google API key not configured');
       return { success: false, error: 'Google API key not configured' };
     }
 
@@ -218,14 +230,17 @@ async function queryByAddress(address, city, state, countyName) {
     const geocodeData = await geocodeResponse.json();
 
     if (geocodeData.results.length === 0) {
+      console.error('[ArcGIS Consumer] Address not found by Google Geocoding');
       return { success: false, error: 'Address not found', address: fullAddress };
     }
 
     const location = geocodeData.results[0].geometry.location;
+    console.log(`[ArcGIS Consumer] Geocoded to: ${location.lat}, ${location.lng}`);
 
     // Step 2: Query parcel data at that location (pass state for aggregator fallback)
     return await queryByLocation(location.lat, location.lng, countyName, state);
   } catch (error) {
+    console.error('[ArcGIS Consumer] Error in queryByAddress:', error);
     return { success: false, error: error.message };
   }
 }
