@@ -2,8 +2,9 @@
 
 **Mobile-first, AI-powered insurance intake form** with document scanning, auto-fill, multi-driver support, and exports to HawkSoft + EZLynx.
 
-**Status:** ✅ **Production Ready** (February 4, 2026)  
-**Tests:** 268/268 passing | **Code:** 6,227 lines | **APIs:** 11 endpoints
+**Status:** ✅ **Production Ready** (February 5, 2026)  
+**Tests:** 268/268 passing | **Code:** 6,227 lines | **APIs:** 11 endpoints  
+**Latest:** Advanced approval workflows + gender extraction + enhanced policy scanning
 
 ---
 
@@ -44,9 +45,11 @@ npm run test:coverage # Coverage report
 - **Phase 4:** Vision processing (policies, DL, satellite images)
 - **Phase 5:** Historical property analysis (10+ years)
 
-### 📸 AI Document Scanning
-- **Policy scanning** → Extract property/coverage data via Gemini Vision
-- **Driver license scanning** → Personal + driver data auto-fill (Step 0 + Step 4)
+### 📸 AI Document Scanning (NEW: Approval Workflows)
+- **Policy scanning** → Extract property/coverage data via Gemini Vision with **approval workflow**
+- **Driver license scanning** → Personal + gender + driver data auto-fill with **editable review**
+- **Gender extraction** → Auto-detect from license for insurance rating
+- **Multi-carrier support** → State Farm, Allstate, Progressive, GEICO, Farmers, etc.
 - **Document intelligence** → Extract insurance fields from property docs
 - **Satellite analysis** → Detect pools, trampolines, roof type
 
@@ -98,7 +101,35 @@ npm run test:coverage # Coverage report
 
 ---
 
-## 🌍 Browser Support
+## � What's New (v1.2.0 - Feb 5, 2026)
+
+### Approval Workflows ✅
+- **Review before applying**: Both driver license and policy scans now show editable review screens
+- **Edit AI extractions**: Modify fields before auto-filling the form
+- **Cancel or approve**: Three-button workflow (Review → Edit → Approve/Cancel)
+
+### Gender Extraction ✅
+- **Auto-detect gender** from driver licenses (M/F)
+- **Insurance rating factor**: Gender affects auto insurance premiums
+- **Form integration**: Gender dropdown in "About You" section
+
+### Enhanced Policy Scanning ✅
+- **Multi-carrier support**: Handles varied formats from State Farm, Allstate, Progressive, GEICO, Farmers, etc.
+- **Smart field detection**: Distinguishes agent info from insured info
+- **Multi-page handling**: Processes complete policy documents
+
+### Bug Fixes ✅
+- Fixed 413 errors (payload too large) with aggressive image compression
+- Fixed 404 errors (updated to gemini-2.5-flash model)
+- Fixed 403 errors (environment variable naming)
+- Fixed 307 errors (increased token limits to 2048)
+- Fixed JSON schema validation errors
+
+See [CHANGELOG.md](CHANGELOG.md) for full version history.
+
+---
+
+## �🌍 Browser Support
 
 ✅ Chrome/Edge | ✅ Firefox | ✅ Safari | ✅ Mobile (iOS/Android)
 
@@ -112,7 +143,8 @@ Altech/
 ├── package.json
 ├── jest.config.js
 ├── vercel.json
-├── PRODUCTION_DEPLOYMENT.md  # Deployment checklist
+├── CHANGELOG.md            # Version history & release notes
+├── SESSION_LOG_2026-02-05.md  # Today's work log
 ├── api/                    # 11 serverless functions
 │   ├── policy-scan.js      # Policy document scanning
 │   ├── vision-processor.js # DL scan + satellite analysis
@@ -120,19 +152,24 @@ Altech/
 │   ├── arcgis-consumer.js  # County parcel API
 │   ├── headless-browser.js # Website scraping
 │   ├── rag-interpreter.js  # RAG standardization
+│   ├── smart-extract.js    # Satellite hazard detection
 │   ├── places-config.js    # Address autocomplete
-│   ├── smart-extract.js    # Property analysis
+│   ├── historical-analyzer.js # 10+ year property history
 │   ├── _security.js        # Security headers
 │   └── send-quotes.js      # Email (disabled)
 ├── docs/
 │   ├── guides/             # User + deployment guides
 │   ├── technical/          # Architecture docs
-│   └── archive/            # Previous versions
+│   └── archive/            # Previous versions + session logs
 ├── tests/
 │   ├── app.test.js         # Core tests
 │   ├── phase1.test.js      # ArcGIS tests
 │   ├── phase2.test.js      # Browser scraping tests
-│   └── ...                 # Phase 3-5 tests
+│   ├── phase3.test.js      # RAG tests
+│   ├── phase4.test.js      # Vision tests
+│   ├── phase5.test.js      # Historical tests
+│   ├── integration.test.js # Multi-phase workflows
+│   └── performance.test.js # Benchmarks
 └── Resources/              # Sample files, references
 ```
 
