@@ -6,7 +6,7 @@ The Prospect Investigator tool uses the Socrata Open Data API to fetch WA L&I co
 
 ## Your Credentials
 
-**API Key (App Token):** `jina0tch4fpsn7v1dwy3tzwk`
+**API Key (App Token):** `W6r9WmhDxx16bq7hKsimDvb71`
 
 **API Key Secret:** `2zb3i7a1cvpuooldeeic9mxnrczdhyr80v5x7n2t4focpcgz5q`
 

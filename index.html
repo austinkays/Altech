@@ -7264,18 +7264,29 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
             },
 
             async searchLI(businessName, ubi, state) {
-                if (state !== 'WA') {
-                    return { available: false, reason: 'L&I data only available for Washington state' };
-                }
-
-                try {
-                    // Call consolidated prospect lookup API with type=li
-                    const response = await fetch(`/api/prospect-lookup?type=li&name=${encodeURIComponent(businessName)}&ubi=${encodeURIComponent(ubi)}`);
-                    const data = await response.json();
-                    return data;
-                } catch (error) {
-                    console.error('L&I search error:', error);
-                    return { error: 'Failed to search L&I records', available: false };
+                // Handle contractor licensing based on state
+                if (state === 'WA') {
+                    // Washington L&I
+                    try {
+                        const response = await fetch(`/api/prospect-lookup?type=li&name=${encodeURIComponent(businessName)}&ubi=${encodeURIComponent(ubi)}`);
+                        const data = await response.json();
+                        return data;
+                    } catch (error) {
+                        console.error('L&I search error:', error);
+                        return { error: 'Failed to search L&I records', available: false };
+                    }
+                } else if (state === 'OR') {
+                    // Oregon CCB
+                    try {
+                        const response = await fetch(`/api/prospect-lookup?type=or-ccb&name=${encodeURIComponent(businessName)}&license=${encodeURIComponent(ubi)}`);
+                        const data = await response.json();
+                        return data;
+                    } catch (error) {
+                        console.error('OR CCB search error:', error);
+                        return { error: 'Failed to search OR CCB records', available: false };
+                    }
+                } else {
+                    return { available: false, reason: 'Contractor licensing data only available for WA and OR states' };
                 }
             },
 
@@ -7944,8 +7955,8 @@ This data is ready to paste into your quoting system.
                         <input type="text" id="prospectBusinessName" placeholder="e.g., ABC Construction LLC">
                     </div>
                     <div>
-                        <label class="label">UBI Number (Optional)</label>
-                        <input type="text" id="prospectUBI" placeholder="e.g., 123-456-789">
+                        <label class="label">UBI / CCB# (Optional)</label>
+                        <input type="text" id="prospectUBI" placeholder="e.g., 123-456-789 or CCB#">
                     </div>
                 </div>
 
