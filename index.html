@@ -7432,15 +7432,21 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     <div style="color: orange; font-weight: bold; margin-bottom: 12px;">
                         ⚠️ ${oshaData.inspections.length} OSHA inspection(s) found
                     </div>
-                    ${oshaData.inspections.map(inspection => `
-                        <div style="border-left: 3px solid orange; padding-left: 12px; margin-bottom: 16px;">
-                            <div style="font-weight: bold;">${inspection.date} - ${inspection.type}</div>
-                            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-                                Violations: ${inspection.violations || 0} (${inspection.serious || 0} serious)
+                    ${oshaData.inspections.map(inspection => {
+                        const violations = inspection.violations || [];
+                        const seriousCount = violations.filter(v => v.violationType === 'Serious').length;
+                        const totalPenalty = violations.reduce((sum, v) => sum + (v.currentPenalty || 0), 0);
+
+                        return `
+                            <div style="border-left: 3px solid orange; padding-left: 12px; margin-bottom: 16px;">
+                                <div style="font-weight: bold;">${inspection.inspectionDate || 'N/A'} - ${inspection.inspectionType || 'Unknown'}</div>
+                                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+                                    Violations: ${violations.length} (${seriousCount} serious)
+                                </div>
+                                ${totalPenalty > 0 ? `<div style="font-size: 13px; margin-top: 4px;">Penalty: $${totalPenalty.toLocaleString()}</div>` : ''}
                             </div>
-                            ${inspection.penalty ? `<div style="font-size: 13px; margin-top: 4px;">Penalty: $${inspection.penalty.toLocaleString()}</div>` : ''}
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 `;
             },
 
