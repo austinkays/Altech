@@ -30,43 +30,76 @@
  * This prompt tells Gemini to interpret and extract from official data,
  * never to invent or guess.
  */
-const RAG_PROMPT_TEMPLATE = `You are a property data standardization expert. 
-You will receive raw parcel data from a county assessor's office.
-Your job is to interpret this raw data and extract key fields in a standardized format.
+const RAG_PROMPT_TEMPLATE = `You are a property data standardization expert for insurance applications.
+You will receive raw parcel data from a county assessor's office with potentially inconsistent codes and abbreviations.
+Your job is to interpret this raw data and map it to standardized insurance form fields.
 
 CRITICAL RULES:
 1. ONLY use data provided below. NEVER invent or guess.
-2. If a field is missing or unclear, return "N/A" - do NOT estimate.
-3. Standardize all values (dates, numbers, text).
-4. Handle common variations (e.g., "1 story" → 1, "asphalt roof" → asphalt).
-5. Clean up typos and formatting inconsistencies.
-6. Return JSON format ONLY.
+2. If a field is missing or unclear, return "Unknown" - do NOT estimate.
+3. Interpret county codes and abbreviations (e.g., "COMP" → "Asphalt Shingle", "FRC" → "Forced Air")
+4. Map values to EXACT options from the form field lists below
+5. Handle common variations and typos
+6. Return JSON format ONLY (no markdown, no code blocks)
 
 RAW DATA FROM COUNTY:
 {{RAW_DATA}}
 
-STANDARDIZATION RULES:
-- Year built: YYYY format, must be 1800-2026, else "N/A"
-- Stories: Integer 1-5, else "N/A"
-- Lot size: Decimal acres, must be positive, else "N/A"
-- Total sq ft: Integer > 0, else "N/A"
-- Garage spaces: Integer 0-5, else "N/A"
-- Roof type: One of [asphalt, metal, tile, slate, wood, composition, flat, "N/A"]
-- Land use: Text description, max 50 chars, else "N/A"
-- Parcel ID: Clean alphanumeric, else "N/A"
+FORM FIELD OPTIONS (map to these EXACT values):
 
-RETURN THIS JSON (valid JSON only, no markdown):
+Foundation Type: ["Slab", "Crawl Space", "Basement", "Pier", "Combination", "Unknown"]
+- Common codes: SLAB/SLB → Slab, CRAW/CRWL → Crawl Space, BSMT/BASE → Basement, PIER/POST → Pier
+
+Roof Type: ["Asphalt Shingle", "Metal", "Tile", "Wood Shake", "Slate", "Flat", "Other", "Unknown"]
+- Common codes: ASPH/COMP/ASPHALT → Asphalt Shingle, MTL/METAL → Metal, TILE/CLY → Tile, SHAK/WOOD → Wood Shake
+
+Heating Type: ["Forced Air", "Electric Baseboard", "Heat Pump", "Hot Water", "Steam", "Gravity", "Other", "Unknown"]
+- Common codes: FRC/FA/GAS → Forced Air, ELEC/EB → Electric Baseboard, HP/HEATPUMP → Heat Pump, HW/HOT WATER → Hot Water
+
+Construction Style: ["Frame", "Masonry", "Brick Veneer", "Stone", "Stucco", "Log", "Adobe", "Metal", "Other", "Unknown"]
+- Common codes: FRM/FRAME/WOOD → Frame, MSNRY/BRK → Masonry, BRKV → Brick Veneer, STUC → Stucco
+
+Garage Type: ["Attached", "Detached", "Built-in", "Carport", "None", "Unknown"]
+- Common codes: ATT/ATTG → Attached, DET/DETG → Detached, BLTIN → Built-in, CRPT → Carport
+
+STANDARDIZATION RULES:
+- yearBuilt: YYYY integer, 1800-2026, else 0
+- stories: Integer 1-5, else 0
+- lotSizeAcres: Decimal > 0, else 0
+- totalSqft: Integer > 0, else 0
+- basementSqft: Integer >= 0, else 0
+- garageSqft: Integer >= 0, else 0
+- garageSpaces: Integer 0-5 (calculate from sqft if needed: 1 space ≈ 180-200 sqft), else 0
+- bedrooms: Integer 0-10, else 0
+- bathrooms: Decimal 0-10 (e.g., 2.5), else 0
+- foundationType: Map code → EXACT option from list above, else "Unknown"
+- roofType: Map code → EXACT option from list above, else "Unknown"
+- heatingType: Map code → EXACT option from list above, else "Unknown"
+- constructionStyle: Map code → EXACT option from list above, else "Unknown"
+- garageType: Map code → EXACT option from list above, else "Unknown"
+- parcelId: Clean alphanumeric string
+- landUse: Text description
+
+RETURN THIS EXACT JSON STRUCTURE (valid JSON only, no markdown):
 {
-  "parcelId": "standardized-parcel-id",
-  "yearBuilt": 1985,
-  "stories": 2,
-  "lotSizeAcres": 0.25,
-  "totalSqft": 1850,
-  "garageSpaces": 2,
-  "roofType": "asphalt",
+  "parcelId": "string",
+  "yearBuilt": 0,
+  "stories": 0,
+  "lotSizeAcres": 0.0,
+  "totalSqft": 0,
+  "basementSqft": 0,
+  "garageSqft": 0,
+  "garageSpaces": 0,
+  "bedrooms": 0,
+  "bathrooms": 0.0,
+  "foundationType": "Slab",
+  "roofType": "Asphalt Shingle",
+  "heatingType": "Forced Air",
+  "constructionStyle": "Frame",
+  "garageType": "Attached",
   "landUse": "Residential Single Family",
-  "interpretation_notes": "Brief note if any corrections were made",
-  "data_quality": "complete | partial | minimal"
+  "interpretation_notes": "Brief note about any code interpretations made",
+  "data_quality": "complete"
 }`;
 
 /**
@@ -153,7 +186,7 @@ async function interpretParcelData(rawParcelData, countyName) {
     const interpretedData = JSON.parse(jsonMatch[0]);
 
     // Validate output structure
-    const requiredFields = ['parcelId', 'yearBuilt', 'stories', 'lotSizeAcres', 'totalSqft', 'garageSpaces', 'roofType', 'landUse'];
+    const requiredFields = ['parcelId', 'yearBuilt', 'stories', 'lotSizeAcres', 'totalSqft', 'garageSpaces'];
     const hasAllFields = requiredFields.every(field => field in interpretedData);
 
     if (!hasAllFields) {
@@ -165,15 +198,23 @@ async function interpretParcelData(rawParcelData, countyName) {
       };
     }
 
-    // Clean up numeric types
+    // Clean up numeric types and preserve all fields
     const cleaned = {
       parcelId: String(interpretedData.parcelId || 'N/A'),
       yearBuilt: parseInt(interpretedData.yearBuilt) || 0,
       stories: parseInt(interpretedData.stories) || 0,
       lotSizeAcres: parseFloat(interpretedData.lotSizeAcres) || 0,
       totalSqft: parseInt(interpretedData.totalSqft) || 0,
+      basementSqft: parseInt(interpretedData.basementSqft) || 0,
+      garageSqft: parseInt(interpretedData.garageSqft) || 0,
       garageSpaces: parseInt(interpretedData.garageSpaces) || 0,
-      roofType: String(interpretedData.roofType || 'N/A'),
+      bedrooms: parseInt(interpretedData.bedrooms) || 0,
+      bathrooms: parseFloat(interpretedData.bathrooms) || 0,
+      foundationType: String(interpretedData.foundationType || 'Unknown'),
+      roofType: String(interpretedData.roofType || 'Unknown'),
+      heatingType: String(interpretedData.heatingType || 'Unknown'),
+      constructionStyle: String(interpretedData.constructionStyle || 'Unknown'),
+      garageType: String(interpretedData.garageType || 'Unknown'),
       landUse: String(interpretedData.landUse || 'N/A'),
       countyName: countyName,
       interpretation_notes: interpretedData.interpretation_notes || '',

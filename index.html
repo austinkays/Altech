@@ -3671,10 +3671,16 @@
                 
                 const fields = [
                     { label: 'Year Built', value: parcelData.yearBuilt || 'N/A' },
-                    { label: 'Lot Size', value: parcelData.lotSizeAcres > 0 ? `${parcelData.lotSizeAcres.toFixed(2)} acres` : 'N/A' },
-                    { label: 'Total Sq Ft', value: parcelData.totalSqft > 0 ? parcelData.totalSqft.toLocaleString() : 'N/A' },
                     { label: 'Stories', value: parcelData.stories > 0 ? parcelData.stories : 'N/A' },
-                    { label: 'Garage Sq Ft', value: parcelData.garageSqft > 0 ? parcelData.garageSqft.toLocaleString() : 'N/A' },
+                    { label: 'Total Sq Ft', value: parcelData.totalSqft > 0 ? parcelData.totalSqft.toLocaleString() : 'N/A' },
+                    { label: 'Lot Size', value: parcelData.lotSizeAcres > 0 ? `${parcelData.lotSizeAcres.toFixed(2)} acres` : 'N/A' },
+                    { label: 'Bedrooms', value: parcelData.bedrooms > 0 ? parcelData.bedrooms : 'N/A' },
+                    { label: 'Bathrooms', value: parcelData.bathrooms > 0 ? parcelData.bathrooms : 'N/A' },
+                    { label: 'Garage Spaces', value: parcelData.garageSpaces > 0 ? parcelData.garageSpaces : (parcelData.garageSqft > 0 ? `${Math.round(parcelData.garageSqft / 180)} (est.)` : 'N/A') },
+                    { label: 'Foundation', value: parcelData.foundationType || 'N/A' },
+                    { label: 'Roof Type', value: parcelData.roofType || 'N/A' },
+                    { label: 'Heating Type', value: parcelData.heatingType || 'N/A' },
+                    { label: 'Construction', value: parcelData.constructionStyle || 'N/A' },
                     { label: 'Land Use', value: parcelData.landUse || 'N/A' }
                 ];
                 
@@ -3758,38 +3764,123 @@
 
             applyParcelData(parcelData) {
                 // Auto-fill form fields from official county parcel data
-                if (parcelData.yearBuilt) {
-                    document.getElementById('yearBuilt').value = parcelData.yearBuilt;
-                    this.data.yearBuilt = parcelData.yearBuilt;
+                let fieldsApplied = 0;
+
+                // Basic property info
+                if (parcelData.yearBuilt && parcelData.yearBuilt > 0) {
+                    const field = document.getElementById('yrBuilt');
+                    if (field) { field.value = parcelData.yearBuilt; this.data.yrBuilt = parcelData.yearBuilt; fieldsApplied++; }
                 }
-                
-                if (parcelData.stories > 0) {
-                    document.getElementById('numStories').value = parcelData.stories;
-                    this.data.numStories = parcelData.stories;
+
+                if (parcelData.stories && parcelData.stories > 0) {
+                    const field = document.getElementById('numStories');
+                    if (field) { field.value = parcelData.stories; this.data.numStories = parcelData.stories; fieldsApplied++; }
                 }
-                
-                if (parcelData.garageSqft > 0) {
+
+                if (parcelData.totalSqft && parcelData.totalSqft > 0) {
+                    const field = document.getElementById('sqFt');
+                    if (field) { field.value = parcelData.totalSqft; this.data.sqFt = parcelData.totalSqft; fieldsApplied++; }
+                }
+
+                if (parcelData.lotSizeAcres && parcelData.lotSizeAcres > 0) {
+                    const field = document.getElementById('lotSize');
+                    if (field) { field.value = parcelData.lotSizeAcres.toFixed(2); this.data.lotSize = parcelData.lotSizeAcres.toFixed(2); fieldsApplied++; }
+                }
+
+                // Garage info
+                if (parcelData.garageSpaces && parcelData.garageSpaces > 0) {
+                    const field = document.getElementById('garageSpaces');
+                    if (field) { field.value = parcelData.garageSpaces; this.data.garageSpaces = parcelData.garageSpaces; fieldsApplied++; }
+                } else if (parcelData.garageSqft && parcelData.garageSqft > 0) {
                     // Estimate garage spaces (1 space ≈ 180 sq ft)
                     const garageSpaces = Math.round(parcelData.garageSqft / 180);
-                    document.getElementById('garageSpaces').value = garageSpaces;
-                    this.data.garageSpaces = garageSpaces;
+                    const field = document.getElementById('garageSpaces');
+                    if (field) { field.value = garageSpaces; this.data.garageSpaces = garageSpaces; fieldsApplied++; }
                 }
-                
-                if (parcelData.lotSizeAcres > 0) {
-                    document.getElementById('lotSize').value = parcelData.lotSizeAcres.toFixed(2);
-                    this.data.lotSize = parcelData.lotSizeAcres.toFixed(2);
+
+                // NEW: Bedrooms
+                if (parcelData.bedrooms && parcelData.bedrooms > 0) {
+                    const field = document.getElementById('bedrooms');
+                    if (field) { field.value = parcelData.bedrooms; this.data.bedrooms = parcelData.bedrooms; fieldsApplied++; }
                 }
-                
-                if (parcelData.totalSqft > 0) {
-                    document.getElementById('squareFeet').value = parcelData.totalSqft;
-                    this.data.squareFeet = parcelData.totalSqft;
+
+                // NEW: Bathrooms
+                if (parcelData.bathrooms && parcelData.bathrooms > 0) {
+                    const field = document.getElementById('fullBaths');
+                    if (field) {
+                        // Split into full and half baths (e.g., 2.5 → 2 full, 1 half)
+                        const fullBaths = Math.floor(parcelData.bathrooms);
+                        const halfBaths = (parcelData.bathrooms % 1) >= 0.5 ? 1 : 0;
+                        field.value = fullBaths;
+                        this.data.fullBaths = fullBaths;
+                        fieldsApplied++;
+
+                        const halfField = document.getElementById('halfBaths');
+                        if (halfField && halfBaths > 0) {
+                            halfField.value = halfBaths;
+                            this.data.halfBaths = halfBaths;
+                        }
+                    }
                 }
-                
+
+                // NEW: Foundation Type
+                if (parcelData.foundationType && parcelData.foundationType !== 'Unknown') {
+                    const field = document.getElementById('foundation');
+                    if (field) {
+                        // Try to match to existing select options
+                        const options = Array.from(field.options).map(opt => opt.value);
+                        if (options.includes(parcelData.foundationType)) {
+                            field.value = parcelData.foundationType;
+                            this.data.foundation = parcelData.foundationType;
+                            fieldsApplied++;
+                        }
+                    }
+                }
+
+                // NEW: Roof Type
+                if (parcelData.roofType && parcelData.roofType !== 'Unknown') {
+                    const field = document.getElementById('roofType');
+                    if (field) {
+                        const options = Array.from(field.options).map(opt => opt.value);
+                        if (options.includes(parcelData.roofType)) {
+                            field.value = parcelData.roofType;
+                            this.data.roofType = parcelData.roofType;
+                            fieldsApplied++;
+                        }
+                    }
+                }
+
+                // NEW: Heating Type
+                if (parcelData.heatingType && parcelData.heatingType !== 'Unknown') {
+                    const field = document.getElementById('heatingType');
+                    if (field) {
+                        const options = Array.from(field.options).map(opt => opt.value);
+                        if (options.includes(parcelData.heatingType)) {
+                            field.value = parcelData.heatingType;
+                            this.data.heatingType = parcelData.heatingType;
+                            fieldsApplied++;
+                        }
+                    }
+                }
+
+                // NEW: Construction Style
+                if (parcelData.constructionStyle && parcelData.constructionStyle !== 'Unknown') {
+                    const field = document.getElementById('constructionStyle');
+                    if (field) {
+                        const options = Array.from(field.options).map(opt => opt.value);
+                        if (options.includes(parcelData.constructionStyle)) {
+                            field.value = parcelData.constructionStyle;
+                            this.data.constructionStyle = parcelData.constructionStyle;
+                            fieldsApplied++;
+                        }
+                    }
+                }
+
                 // Save changes
-                localStorage.setItem(this.storageKey, JSON.stringify(this.data));
-                
-                // Show success toast
-                this.showSaveIndicator();
+                this.save();
+
+                // Show success toast with count
+                this.toast(`✅ Auto-filled ${fieldsApplied} field${fieldsApplied !== 1 ? 's' : ''} from county data`);
             },
 
             showHazardDetectionPopup(detections, satelliteImage, address) {
