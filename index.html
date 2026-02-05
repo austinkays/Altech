@@ -5515,16 +5515,9 @@
                 }
 
                 if (state === 'OR' && orCountyGIS[cityLower]) {
-                    let url = orCountyGIS[cityLower];
-
-                    // Special handling for Portland Maps - use search with address
-                    if (url.includes('portlandmaps.com')) {
-                        // Portland Maps requires property ID, so use search instead
-                        // Format: https://www.portlandmaps.com/search.html?query=4015%20N%20Albina%20Ave
-                        url = `https://www.portlandmaps.com/search.html?query=${encodeURIComponent(address)}`;
-                    }
-
-                    window.open(url, '_blank');
+                    // Portland Maps doesn't support URL-based search, just open homepage
+                    // User can enter address in the search box at top of page
+                    window.open(orCountyGIS[cityLower], '_blank');
                     return;
                 }
 
