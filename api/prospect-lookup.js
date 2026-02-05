@@ -91,7 +91,7 @@ async function fetchLIPrincipals(ubiNumber) {
     const cleanUbi = ubiNumber.replace(/-/g, '');
 
     const params = new URLSearchParams();
-    params.append('$where', `ubi_number='${cleanUbi}' OR ubi_number='${ubiNumber}'`);
+    params.append('$where', `ubi='${cleanUbi}' OR ubi='${ubiNumber}'`);
     params.append('$limit', '10');
 
     const apiUrl = `${baseUrl}?${params.toString()}`;
@@ -115,7 +115,7 @@ async function fetchLIPrincipals(ubiNumber) {
 
     // Extract unique names
     const names = principals
-      .map(p => p.principal_name || p.name)
+      .map(p => p.principalname)
       .filter(name => name && name.trim())
       .filter((name, index, self) => self.indexOf(name) === index); // Remove duplicates
 
@@ -143,13 +143,13 @@ async function searchLIContractor(businessName, ubi) {
     if (ubi) {
       // Clean UBI format (remove dashes if present)
       const cleanUbi = ubi.replace(/-/g, '');
-      params.append('$where', `ubi_number='${cleanUbi}' OR ubi_number='${ubi}'`);
+      params.append('$where', `ubi='${cleanUbi}' OR ubi='${ubi}'`);
     } else {
       // Search by business name (case-insensitive, partial match)
-      params.append('$where', `upper(business_name) LIKE upper('%${businessName}%')`);
+      params.append('$where', `upper(businessname) LIKE upper('%${businessName}%')`);
     }
     params.append('$limit', '10'); // Limit results
-    params.append('$order', 'expiration_date DESC'); // Most recent first
+    params.append('$order', 'licenseexpirationdate DESC'); // Most recent first
 
     const apiUrl = `${baseUrl}?${params.toString()}`;
     console.log('[L&I Lookup] API URL:', apiUrl);
@@ -185,31 +185,36 @@ async function searchLIContractor(businessName, ubi) {
 
     // Fetch principal/owner names from secondary dataset if we have UBI
     let ownerNames = [];
-    if (contractor.ubi_number) {
-      ownerNames = await fetchLIPrincipals(contractor.ubi_number);
+    if (contractor.ubi) {
+      ownerNames = await fetchLIPrincipals(contractor.ubi);
+    }
+
+    // Add primary principal if available
+    if (contractor.primaryprincipalname && !ownerNames.includes(contractor.primaryprincipalname)) {
+      ownerNames.unshift(contractor.primaryprincipalname);
     }
 
     // Transform Socrata data to our standard format
     const contractorData = {
-      licenseNumber: contractor.license_number || contractor.registration_number || 'Not found',
-      businessName: contractor.business_name || businessName,
-      ubi: contractor.ubi_number || ubi || '',
-      status: contractor.license_status || 'Unknown',
-      licenseType: contractor.license_type || 'General Contractor',
-      classifications: contractor.specialty_name ? [contractor.specialty_name] : ['General Contractor'],
-      expirationDate: contractor.expiration_date ? contractor.expiration_date.split('T')[0] : '',
-      bondAmount: contractor.bond_amount ? `$${contractor.bond_amount}` : '$12,000',
-      registrationDate: contractor.registration_date ? contractor.registration_date.split('T')[0] : '',
+      licenseNumber: contractor.contractorlicensenumber || 'Not found',
+      businessName: contractor.businessname || businessName,
+      ubi: contractor.ubi || ubi || '',
+      status: contractor.contractorlicensestatus || 'Unknown',
+      licenseType: contractor.contractorlicensetypecodedesc || 'General Contractor',
+      classifications: contractor.specialtycode1desc ? [contractor.specialtycode1desc] : ['General Contractor'],
+      expirationDate: contractor.licenseexpirationdate ? contractor.licenseexpirationdate.split('T')[0] : '',
+      bondAmount: '', // Bond amount not in this dataset
+      registrationDate: contractor.licenseeffectivedate ? contractor.licenseeffectivedate.split('T')[0] : '',
       address: {
-        street: contractor.address_line_1 || '',
+        street: contractor.address1 || '',
         city: contractor.city || '',
         state: contractor.state || 'WA',
-        zip: contractor.zip_code || ''
+        zip: contractor.zip || ''
       },
       violations: [], // Violations would need separate dataset
-      bondStatus: contractor.license_status === 'Active' ? 'Current' : 'Unknown',
+      bondStatus: contractor.contractorlicensestatus && contractor.contractorlicensestatus.toLowerCase().includes('active') ? 'Current' : 'Unknown',
       insuranceStatus: 'Current', // Would need verification from separate source
-      owners: ownerNames // Include owner names from principal dataset
+      owners: ownerNames // Include owner names
     };
 
     return {
