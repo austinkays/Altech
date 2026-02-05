@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       default:
         return res.status(400).json({
           success: false,
-          error: `Invalid type: ${type}. Must be "li", "sos", or "osha"`
+          error: `Invalid type: ${type}. Must be "li", "sos", "or-ccb", or "osha"`
         });
     }
 
