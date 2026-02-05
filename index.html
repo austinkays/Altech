@@ -880,6 +880,17 @@
                 border: none !important;
             }
             .acord-legal { background: white; border: none; }
+
+            /* Hide interactive elements in Prospect Investigator during print */
+            #investigationLinks { display: none !important; }
+            .card:has(#investigationLinks) { display: none !important; }
+            .card:has(button[onclick*="copyToQuote"]) { display: none !important; }
+            button { display: none !important; }
+
+            /* Prevent blank pages */
+            .card { page-break-inside: avoid; }
+            h2, h3 { page-break-after: avoid; }
+
             @page { margin: 0.25in; size: letter; }
         }
     </style>
