@@ -7346,6 +7346,9 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 // Risk Classification
                 document.getElementById('riskClassification').innerHTML = this.formatRiskClassification(data);
 
+                // Investigation Links
+                document.getElementById('investigationLinks').innerHTML = this.formatInvestigationLinks(data);
+
                 // Show results
                 document.getElementById('prospectResults').style.display = 'block';
             },
@@ -7470,6 +7473,146 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     default:
                         return 'Review available information and proceed accordingly.';
                 }
+            },
+
+            formatInvestigationLinks(data) {
+                const { businessName, ubi, city, state } = data;
+                const links = [];
+
+                // WA L&I Verify Profile (if WA and has UBI)
+                if (state === 'WA' && ubi) {
+                    links.push({
+                        icon: '🔨',
+                        title: 'WA L&I License Details',
+                        description: 'Full contractor profile with bond, license, and violations',
+                        url: `https://secure.lni.wa.gov/verify/Detail.aspx?UBI=${encodeURIComponent(ubi)}`,
+                        color: '#0066cc'
+                    });
+                }
+
+                // Secretary of State Business Records
+                const sosLinks = {
+                    'WA': {
+                        url: 'https://ccfs.sos.wa.gov/#/Home/Search',
+                        title: 'WA SOS Business Search'
+                    },
+                    'OR': {
+                        url: 'https://sos.oregon.gov/business/pages/find.aspx',
+                        title: 'OR SOS Business Search'
+                    },
+                    'AZ': {
+                        url: 'https://ecorp.azcc.gov/BusinessSearch',
+                        title: 'AZ Corporation Commission Search'
+                    }
+                };
+
+                if (sosLinks[state]) {
+                    links.push({
+                        icon: '📋',
+                        title: sosLinks[state].title,
+                        description: `Search for ${businessName} in${state} business registry`,
+                        url: sosLinks[state].url,
+                        color: '#28a745'
+                    });
+                }
+
+                // OSHA Direct Search
+                links.push({
+                    icon: '⚠️',
+                    title: 'OSHA Enforcement Database',
+                    description: 'Search federal workplace safety violations and inspections',
+                    url: `https://www.osha.gov/pls/imis/establishment.html`,
+                    color: '#dc3545'
+                });
+
+                // Clark County Property Search (if WA and near Vancouver)
+                if (state === 'WA' && (city && (city.toLowerCase().includes('vancouver') || city.toLowerCase().includes('clark')))) {
+                    links.push({
+                        icon: '🏠',
+                        title: 'Clark County Property Records',
+                        description: 'Search building details, square footage, and construction type',
+                        url: 'https://www.clark.wa.gov/treasurer/property-tax-search',
+                        color: '#6f42c1'
+                    });
+                }
+
+                // Generate HTML
+                return `
+                    <div style="display: grid; gap: 12px;">
+                        ${links.map(link => `
+                            <a href="${link.url}" target="_blank" rel="noopener noreferrer"
+                               style="display: flex; align-items: center; gap: 12px; padding: 12px;
+                                      background: white; border: 1px solid #dee2e6; border-radius: 6px;
+                                      text-decoration: none; color: inherit; transition: all 0.2s;"
+                               onmouseover="this.style.borderColor='${link.color}'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';"
+                               onmouseout="this.style.borderColor='#dee2e6'; this.style.boxShadow='none';">
+                                <div style="font-size: 32px;">${link.icon}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: ${link.color}; margin-bottom: 2px;">
+                                        ${link.title} →
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-secondary);">
+                                        ${link.description}
+                                    </div>
+                                </div>
+                            </a>
+                        `).join('')}
+                    </div>
+                `;
+            },
+
+            copyToQuote() {
+                if (!this.currentData) {
+                    alert('Please run a search first');
+                    return;
+                }
+
+                const data = this.currentData;
+
+                // Format data for quoting workflow
+                // TODO: Customize this format based on actual commercial quoting needs
+                const quoteData = `
+COMMERCIAL PROSPECT INVESTIGATION
+Generated: ${new Date(data.timestamp).toLocaleDateString()}
+
+BUSINESS INFORMATION:
+Business Name: ${data.businessName}
+UBI: ${data.ubi || 'N/A'}
+Location: ${data.city || 'N/A'}, ${data.state}
+
+L&I LICENSE:
+${data.li.contractor ? `
+License #: ${data.li.contractor.licenseNumber || 'N/A'}
+Status: ${data.li.contractor.status || 'N/A'}
+Type: ${data.li.contractor.licenseType || 'N/A'}
+Expiration: ${data.li.contractor.expirationDate || 'N/A'}
+${data.li.contractor.owners && data.li.contractor.owners.length > 0 ? `Owners: ${data.li.contractor.owners.join(', ')}` : ''}
+` : 'Not Available'}
+
+BUSINESS ENTITY:
+${data.sos.entity ? ` Entity Type: ${data.sos.entity.entityType || 'N/A'}
+Status: ${data.sos.entity.status || 'N/A'}
+Formation Date: ${data.sos.entity.formationDate || 'N/A'}
+` : 'Not Available'}
+
+OSHA HISTORY:
+${data.osha.summary ? `
+Total Inspections: ${data.osha.summary.totalInspections || 0}
+Serious Violations: ${data.osha.summary.seriousViolations || 0}
+Total Penalties: $${(data.osha.summary.totalPenalties || 0).toLocaleString()}
+` : 'No violations found'}
+
+---
+This data is ready to paste into your quoting system.
+                `.trim();
+
+                // Copy to clipboard
+                navigator.clipboard.writeText(quoteData).then(() => {
+                    alert('✅ Investigation data copied to clipboard!\n\nYou can now paste this into your quoting system.');
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    alert('Failed to copy to clipboard');
+                });
             },
 
             exportReport() {
@@ -7864,6 +8007,35 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 <div class="card">
                     <h2>📊 Risk Classification</h2>
                     <div id="riskClassification"></div>
+                </div>
+
+                <!-- INVESTIGATION LINKS -->
+                <div class="card">
+                    <h2>🔗 Investigation Links</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 13px;">
+                        Open official records in new tabs for detailed manual review
+                    </p>
+                    <div id="investigationLinks"></div>
+                </div>
+
+                <!-- EXPORT ACTIONS -->
+                <div class="card" style="background: #f8f9fa; border: 2px dashed #dee2e6;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h3 style="margin: 0 0 4px 0; font-size: 16px;">📋 Export Options</h3>
+                            <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">
+                                Export this investigation report for your workflow
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 12px;">
+                            <button class="btn-secondary" onclick="ProspectInvestigator.copyToQuote()" style="font-size: 14px;">
+                                📋 Copy to Quote
+                            </button>
+                            <button class="btn-utility" onclick="ProspectInvestigator.exportReport()" style="font-size: 14px;">
+                                🖨️ Print Report
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
             </div>

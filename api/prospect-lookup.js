@@ -83,58 +83,138 @@ async function handleLILookup(query) {
   return await searchLIContractor(name, ubi);
 }
 
+// Helper function to fetch principal/owner names from L&I dataset
+async function fetchLIPrincipals(ubiNumber) {
+  try {
+    // Dataset: 4xk5-x9j6 (L&I Principal Names)
+    const baseUrl = 'https://data.wa.gov/resource/4xk5-x9j6.json';
+    const cleanUbi = ubiNumber.replace(/-/g, '');
+
+    const params = new URLSearchParams();
+    params.append('$where', `ubi_number='${cleanUbi}' OR ubi_number='${ubiNumber}'`);
+    params.append('$limit', '10');
+
+    const apiUrl = `${baseUrl}?${params.toString()}`;
+
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Altech-Insurance-Platform/1.0'
+      }
+    });
+
+    if (!response.ok) {
+      console.error(`[L&I Principals] API returned ${response.status}`);
+      return [];
+    }
+
+    const principals = await response.json();
+    console.log(`[L&I Principals] Found ${principals.length} principal(s)`);
+
+    // Extract unique names
+    const names = principals
+      .map(p => p.principal_name || p.name)
+      .filter(name => name && name.trim())
+      .filter((name, index, self) => self.indexOf(name) === index); // Remove duplicates
+
+    return names;
+
+  } catch (error) {
+    console.error('[L&I Principals] Error fetching principals:', error);
+    return [];
+  }
+}
+
 async function searchLIContractor(businessName, ubi) {
   try {
     const searchParam = ubi || businessName;
     const searchType = ubi ? 'ubi' : 'name';
 
-    console.log(`[L&I Lookup] Querying by ${searchType}: ${searchParam}`);
+    console.log(`[L&I Lookup] Querying Socrata API by ${searchType}: ${searchParam}`);
 
-    const searchUrl = 'https://secure.lni.wa.gov/verify/Results.aspx';
-    const searchPayload = new URLSearchParams();
+    // Use Socrata Open Data API (SODA) for WA L&I data
+    // Dataset: m8qx-ubtq (L&I Contractor Data)
+    const baseUrl = 'https://data.wa.gov/resource/m8qx-ubtq.json';
 
+    // Build query parameters
+    const params = new URLSearchParams();
     if (ubi) {
-      searchPayload.append('SearchBy', 'UBI');
-      searchPayload.append('UBI', ubi);
+      // Clean UBI format (remove dashes if present)
+      const cleanUbi = ubi.replace(/-/g, '');
+      params.append('$where', `ubi_number='${cleanUbi}' OR ubi_number='${ubi}'`);
     } else {
-      searchPayload.append('SearchBy', 'Name');
-      searchPayload.append('ContractorName', businessName);
+      // Search by business name (case-insensitive, partial match)
+      params.append('$where', `upper(business_name) LIKE upper('%${businessName}%')`);
     }
+    params.append('$limit', '10'); // Limit results
+    params.append('$order', 'expiration_date DESC'); // Most recent first
 
-    searchPayload.append('Lookup', 'Lookup');
+    const apiUrl = `${baseUrl}?${params.toString()}`;
+    console.log('[L&I Lookup] API URL:', apiUrl);
 
-    console.log('[L&I Lookup] Performing search...');
-    const response = await fetch(searchUrl, {
-      method: 'POST',
+    const response = await fetch(apiUrl, {
+      method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'text/html,application/xhtml+xml'
-      },
-      body: searchPayload.toString()
+        'Accept': 'application/json',
+        'User-Agent': 'Altech-Insurance-Platform/1.0'
+        // Note: Add 'X-App-Token': 'your_token_here' for production to avoid rate limiting
+      }
     });
 
     if (!response.ok) {
-      console.error(`[L&I Lookup] HTTP ${response.status}`);
-      throw new Error(`L&I site returned ${response.status}`);
+      console.error(`[L&I Lookup] Socrata API returned ${response.status}`);
+      throw new Error(`Socrata API returned ${response.status}`);
     }
 
-    const html = await response.text();
-    const contractorData = parseLIHTML(html, businessName, ubi);
+    const data = await response.json();
+    console.log(`[L&I Lookup] Found ${data.length} result(s)`);
 
-    if (!contractorData) {
+    if (!data || data.length === 0) {
       return {
         success: false,
         available: true,
-        source: 'WA Department of Labor & Industries',
+        source: 'WA Department of Labor & Industries (Socrata API)',
         error: 'No contractor license found for the provided search criteria'
       };
     }
 
+    // Get the first (most relevant) result
+    const contractor = data[0];
+
+    // Fetch principal/owner names from secondary dataset if we have UBI
+    let ownerNames = [];
+    if (contractor.ubi_number) {
+      ownerNames = await fetchLIPrincipals(contractor.ubi_number);
+    }
+
+    // Transform Socrata data to our standard format
+    const contractorData = {
+      licenseNumber: contractor.license_number || contractor.registration_number || 'Not found',
+      businessName: contractor.business_name || businessName,
+      ubi: contractor.ubi_number || ubi || '',
+      status: contractor.license_status || 'Unknown',
+      licenseType: contractor.license_type || 'General Contractor',
+      classifications: contractor.specialty_name ? [contractor.specialty_name] : ['General Contractor'],
+      expirationDate: contractor.expiration_date ? contractor.expiration_date.split('T')[0] : '',
+      bondAmount: contractor.bond_amount ? `$${contractor.bond_amount}` : '$12,000',
+      registrationDate: contractor.registration_date ? contractor.registration_date.split('T')[0] : '',
+      address: {
+        street: contractor.address_line_1 || '',
+        city: contractor.city || '',
+        state: contractor.state || 'WA',
+        zip: contractor.zip_code || ''
+      },
+      violations: [], // Violations would need separate dataset
+      bondStatus: contractor.license_status === 'Active' ? 'Current' : 'Unknown',
+      insuranceStatus: 'Current', // Would need verification from separate source
+      owners: ownerNames // Include owner names from principal dataset
+    };
+
     return {
       success: true,
       available: true,
-      source: 'WA Department of Labor & Industries',
+      source: 'WA Department of Labor & Industries (Socrata API)',
       contractor: contractorData
     };
 
@@ -174,92 +254,6 @@ async function searchLIContractor(businessName, ubi) {
 
     console.log('[L&I Lookup] Using fallback mock data due to error');
     return mockData;
-
-  } catch (fallbackError) {
-    console.error('[L&I Lookup] Fallback error:', fallbackError);
-    return {
-      success: false,
-      available: false,
-      error: fallbackError.message,
-      reason: 'Failed to retrieve L&I contractor information'
-    };
-  }
-}
-
-function parseLIHTML(html, businessName, ubi) {
-  try {
-    if (html.includes('No records found') || html.includes('no exact matches')) {
-      return null;
-    }
-
-    const licenseMatch = html.match(/License\s*Number:?\s*<\/[^>]+>\s*([A-Z0-9]+)/i) ||
-                         html.match(/Registration\s*Number:?\s*<\/[^>]+>\s*([A-Z0-9]+)/i);
-    const licenseNumber = licenseMatch ? licenseMatch[1].trim() : '';
-
-    const ubiMatch = html.match(/UBI:?\s*<\/[^>]+>\s*(\d{3}-\d{3}-\d{3})/i);
-    const extractedUBI = ubiMatch ? ubiMatch[1].trim() : (ubi || '');
-
-    const nameMatch = html.match(/Business\s*Name:?\s*<\/[^>]+>\s*([^<]+)/i) ||
-                      html.match(/Contractor\s*Name:?\s*<\/[^>]+>\s*([^<]+)/i);
-    const extractedName = nameMatch ? nameMatch[1].trim() : businessName;
-
-    const statusMatch = html.match(/Status:?\s*<\/[^>]+>\s*([^<]+)/i);
-    const status = statusMatch ? statusMatch[1].trim() : 'Unknown';
-
-    const expMatch = html.match(/Expir(?:ation|es):?\s*<\/[^>]+>\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
-    const expirationDate = expMatch ? expMatch[1].trim() : '';
-
-    const bondMatch = html.match(/Bond:?\s*<\/[^>]+>\s*\$?([\d,]+)/i);
-    const bondAmount = bondMatch ? `$${bondMatch[1].trim()}` : '';
-
-    const classifications = [];
-    const classRegex = /Classification:?\s*<\/[^>]+>\s*([^<]+)/gi;
-    let classMatch;
-    while ((classMatch = classRegex.exec(html)) !== null) {
-      classifications.push(classMatch[1].trim());
-    }
-
-    if (classifications.length === 0) {
-      const typeMatch = html.match(/Type:?\s*<\/[^>]+>\s*([^<]+)/i);
-      if (typeMatch) {
-        classifications.push(typeMatch[1].trim());
-      }
-    }
-
-    const addressMatch = html.match(/Address:?\s*<\/[^>]+>\s*([^<]+(?:<br[^>]*>[^<]+)*)/i);
-    let address = {};
-    if (addressMatch) {
-      const addressText = addressMatch[1].replace(/<br[^>]*>/gi, ', ').trim();
-      const parts = addressText.split(',').map(p => p.trim());
-      if (parts.length >= 3) {
-        address = {
-          street: parts[0],
-          city: parts[1],
-          state: parts[2].split(' ')[0],
-          zip: parts[2].split(' ')[1] || ''
-        };
-      }
-    }
-
-    return {
-      licenseNumber: licenseNumber || 'Not found',
-      businessName: extractedName,
-      ubi: extractedUBI,
-      status: status,
-      licenseType: classifications[0] || 'General Contractor',
-      classifications: classifications.length > 0 ? classifications : ['General Contractor'],
-      expirationDate: expirationDate,
-      bondAmount: bondAmount || '$12,000',
-      registrationDate: '',
-      address: address,
-      violations: [],
-      bondStatus: status.toLowerCase().includes('active') ? 'Current' : 'Unknown',
-      insuranceStatus: 'Current'
-    };
-
-  } catch (parseError) {
-    console.error('[L&I Lookup] HTML parsing error:', parseError);
-    return null;
   }
 }
 
