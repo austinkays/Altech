@@ -5260,6 +5260,9 @@
 
             getCountyFromCity(city, state) {
                 // Map city to county for display and reference
+                // Normalize city to lowercase for lookup
+                const cityLower = (city || '').toLowerCase().trim();
+
                 const cityToCounty = {
                     'WA': {
                         'vancouver': 'Clark', 'camas': 'Clark', 'battle ground': 'Clark', 'ridgefield': 'Clark', 'la center': 'Clark', 'washougal': 'Clark',
@@ -5294,9 +5297,9 @@
                         'yuma': 'Yuma', 'san luis': 'Yuma', 'somerton': 'Yuma',
                     }
                 };
-                
-                if (cityToCounty[state] && cityToCounty[state][city]) {
-                    return cityToCounty[state][city];
+
+                if (cityToCounty[state] && cityToCounty[state][cityLower]) {
+                    return cityToCounty[state][cityLower];
                 }
                 return null;
             },
