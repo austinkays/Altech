@@ -70,8 +70,7 @@ export default async function handler(req, res) {
             autoDeductible: { type: 'string' },
             priorCarrier: { type: 'string' },
             priorExp: { type: 'string' }
-          },
-          additionalProperties: false
+          }
         },
         confidence: {
           type: 'object',
@@ -92,16 +91,14 @@ export default async function handler(req, res) {
             autoDeductible: { type: 'number' },
             priorCarrier: { type: 'number' },
             priorExp: { type: 'number' }
-          },
-          additionalProperties: false
+          }
         },
         quality_issues: {
           type: 'array',
           items: { type: 'string' }
         }
       },
-      required: ['fields'],
-      additionalProperties: false
+      required: ['fields']
     };
 
     const systemInstruction = {
