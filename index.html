@@ -5504,15 +5504,18 @@
                     'san luis': 'https://www.yumacountyaz.gov/government/assessor',
                     'somerton': 'https://www.yumacountyaz.gov/government/assessor',
                 };
-                
+
+                // Normalize city to lowercase for lookup (user might type "Portland" but key is "portland")
+                const cityLower = (city || '').toLowerCase().trim();
+
                 // Check if we have a direct GIS link for this city
-                if (state === 'WA' && waCountyGIS[city]) {
-                    window.open(waCountyGIS[city], '_blank');
+                if (state === 'WA' && waCountyGIS[cityLower]) {
+                    window.open(waCountyGIS[cityLower], '_blank');
                     return;
                 }
-                
-                if (state === 'OR' && orCountyGIS[city]) {
-                    let url = orCountyGIS[city];
+
+                if (state === 'OR' && orCountyGIS[cityLower]) {
+                    let url = orCountyGIS[cityLower];
 
                     // Special handling for Portland Maps - use search with address
                     if (url.includes('portlandmaps.com')) {
@@ -5524,9 +5527,9 @@
                     window.open(url, '_blank');
                     return;
                 }
-                
-                if (state === 'AZ' && azCountyGIS[city]) {
-                    window.open(azCountyGIS[city], '_blank');
+
+                if (state === 'AZ' && azCountyGIS[cityLower]) {
+                    window.open(azCountyGIS[cityLower], '_blank');
                     return;
                 }
                 
