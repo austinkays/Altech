@@ -715,9 +715,148 @@
             .export-row { grid-template-columns: 1fr 1fr; }
             .export-row-3 { grid-template-columns: 1fr 1fr auto; align-items: end; }
         }
+
+        /* LANDING PAGE & PLUGIN ARCHITECTURE */
+        .landing-page { min-height: 100vh; display: flex; flex-direction: column; }
+        .landing-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px 20px 80px; text-align: center; }
+        .landing-header h1 { font-size: 42px; margin: 0 0 12px 0; font-weight: 700; }
+        .landing-header p { font-size: 18px; opacity: 0.95; margin: 0; font-weight: 400; }
+        .tools-container { max-width: 1200px; margin: -40px auto 60px; padding: 0 20px; width: 100%; }
+        .tools-grid { display: grid; gap: 24px; grid-template-columns: 1fr; }
+        @media (min-width: 768px) { .tools-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .tools-grid { grid-template-columns: repeat(3, 1fr); } }
+
+        .tool-card { background: white; border-radius: 16px; padding: 32px; box-shadow: 0 4px 6px rgba(0,0,0,0.07), 0 10px 20px rgba(0,0,0,0.06); transition: all 0.3s ease; cursor: pointer; border: 2px solid transparent; }
+        .tool-card:hover { transform: translateY(-4px); box-shadow: 0 8px 12px rgba(0,0,0,0.1), 0 16px 32px rgba(0,0,0,0.08); border-color: #667eea; }
+        .tool-card.coming-soon { opacity: 0.6; cursor: not-allowed; }
+        .tool-card.coming-soon:hover { transform: none; border-color: transparent; }
+
+        .tool-icon { font-size: 48px; margin-bottom: 16px; display: block; }
+        .tool-title { font-size: 22px; font-weight: 700; margin: 0 0 8px 0; color: #1a1a1a; }
+        .tool-description { font-size: 15px; color: #666; margin: 0 0 20px 0; line-height: 1.5; }
+        .tool-features { list-style: none; padding: 0; margin: 0 0 20px 0; }
+        .tool-features li { font-size: 13px; color: #888; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+        .tool-features li:last-child { border-bottom: none; }
+        .tool-features li::before { content: "✓"; color: #667eea; margin-right: 8px; font-weight: 700; }
+
+        .tool-status { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 12px; }
+        .tool-status.ready { background: #d4edda; color: #155724; }
+        .tool-status.soon { background: #fff3cd; color: #856404; }
+
+        .back-to-home { position: fixed; top: 20px; left: 20px; background: rgba(255,255,255,0.95); padding: 12px 20px; border-radius: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; z-index: 1000; border: 1px solid rgba(0,0,0,0.05); font-weight: 600; color: #667eea; transition: all 0.2s; }
+        .back-to-home:hover { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-2px); }
+
+        .plugin-container { display: none; }
+        .plugin-container.active { display: block; }
     </style>
 </head>
 <body>
+
+    <!-- LANDING PAGE -->
+    <div id="landingPage" class="landing-page">
+        <div class="landing-header">
+            <h1>🏠 Altech Insurance Tools</h1>
+            <p>Modern insurance tools powered by AI</p>
+        </div>
+
+        <div class="tools-container">
+            <div class="tools-grid">
+
+                <!-- Personal Lines Quoting Tool -->
+                <div class="tool-card" onclick="App.openTool('quoting')">
+                    <span class="tool-icon">📋</span>
+                    <h3 class="tool-title">Personal Lines Quoting</h3>
+                    <p class="tool-description">AI-powered insurance intake for Home & Auto policies with multi-format exports.</p>
+                    <ul class="tool-features">
+                        <li>Document scanning (policy, driver license)</li>
+                        <li>Multi-driver & multi-vehicle support</li>
+                        <li>GIS property auto-fill (15+ fields)</li>
+                        <li>Export to EZLynx, HawkSoft, PDF, CSV</li>
+                    </ul>
+                    <span class="tool-status ready">✓ Ready</span>
+                </div>
+
+                <!-- COI Generator -->
+                <div class="tool-card coming-soon">
+                    <span class="tool-icon">📄</span>
+                    <h3 class="tool-title">COI Generator</h3>
+                    <p class="tool-description">Instant ACORD 25 Certificates of Insurance for contractors and businesses.</p>
+                    <ul class="tool-features">
+                        <li>Generate COIs in under 3 minutes</li>
+                        <li>Add additional insureds</li>
+                        <li>Custom endorsements (CG 20 10, CG 20 37)</li>
+                        <li>Save certificate templates</li>
+                    </ul>
+                    <span class="tool-status soon">Coming Soon</span>
+                </div>
+
+                <!-- COI Compliance Tracker -->
+                <div class="tool-card coming-soon">
+                    <span class="tool-icon">🔍</span>
+                    <h3 class="tool-title">COI Compliance Tracker</h3>
+                    <p class="tool-description">Automated subcontractor certificate tracking and compliance verification.</p>
+                    <ul class="tool-features">
+                        <li>Auto-extract COI data from PDFs</li>
+                        <li>Flag missing endorsements</li>
+                        <li>Expiration reminders</li>
+                        <li>Compliance dashboard</li>
+                    </ul>
+                    <span class="tool-status soon">Coming Soon</span>
+                </div>
+
+                <!-- Expiry Reminder System -->
+                <div class="tool-card coming-soon">
+                    <span class="tool-icon">🔔</span>
+                    <h3 class="tool-title">Expiry Reminders</h3>
+                    <p class="tool-description">Automated policy renewal reminders to prevent coverage lapses.</p>
+                    <ul class="tool-features">
+                        <li>45/30/15-day reminder sequence</li>
+                        <li>Email & SMS notifications</li>
+                        <li>Track renewal status</li>
+                        <li>Prevent coverage gaps</li>
+                    </ul>
+                    <span class="tool-status soon">Coming Soon</span>
+                </div>
+
+                <!-- Premium Calculator -->
+                <div class="tool-card coming-soon">
+                    <span class="tool-icon">💰</span>
+                    <h3 class="tool-title">Premium Estimator</h3>
+                    <p class="tool-description">Predictive premium modeling with real-time feedback on operational changes.</p>
+                    <ul class="tool-features">
+                        <li>Real-time premium estimates</li>
+                        <li>Impact of revenue/payroll changes</li>
+                        <li>Audit surprise prevention</li>
+                        <li>Historical data analysis</li>
+                    </ul>
+                    <span class="tool-status soon">Coming Soon</span>
+                </div>
+
+                <!-- Policy Language Simplifier -->
+                <div class="tool-card coming-soon">
+                    <span class="tool-icon">💬</span>
+                    <h3 class="tool-title">Policy Q&A Assistant</h3>
+                    <p class="tool-description">AI-powered policy language simplification with plain-English answers.</p>
+                    <ul class="tool-features">
+                        <li>Ask questions about your policy</li>
+                        <li>Plain-English explanations</li>
+                        <li>Cite specific policy sections</li>
+                        <li>Coverage verification</li>
+                    </ul>
+                    <span class="tool-status soon">Coming Soon</span>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- BACK TO HOME BUTTON (hidden by default) -->
+    <div id="backToHome" class="back-to-home" onclick="App.goHome()" style="display:none;">
+        ← Back to Tools
+    </div>
+
+    <!-- QUOTING TOOL CONTAINER -->
+    <div id="quotingTool" class="plugin-container">
 
     <header>
         <div class="header-top">
@@ -6706,11 +6845,58 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     reader.onerror = reject;
                     reader.readAsDataURL(blob);
                 });
+            },
+
+            // PLUGIN NAVIGATION
+            openTool(toolName) {
+                // Hide landing page
+                document.getElementById('landingPage').style.display = 'none';
+
+                // Show back button
+                document.getElementById('backToHome').style.display = 'block';
+
+                // Show the selected tool
+                if (toolName === 'quoting') {
+                    const tool = document.getElementById('quotingTool');
+                    tool.classList.add('active');
+                    tool.style.display = 'block';
+
+                    // Initialize if first time opening
+                    if (!this.initialized) {
+                        this.init();
+                    }
+                }
+
+                // Scroll to top
+                window.scrollTo(0, 0);
+            },
+
+            goHome() {
+                // Hide all tools
+                document.querySelectorAll('.plugin-container').forEach(tool => {
+                    tool.classList.remove('active');
+                    tool.style.display = 'none';
+                });
+
+                // Hide back button
+                document.getElementById('backToHome').style.display = 'none';
+
+                // Show landing page
+                document.getElementById('landingPage').style.display = 'flex';
+
+                // Scroll to top
+                window.scrollTo(0, 0);
             }
         };
         window.initPlaces = () => App.initPlaces();
 
-        window.onload = () => App.init();
+        window.onload = () => {
+            // Don't auto-init the quoting tool anymore
+            // It will init when user clicks the card
+        };
     </script>
+
+    </div> <!-- End quotingTool container -->
+
 </body>
 </html>
