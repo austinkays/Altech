@@ -106,17 +106,32 @@ export default async function handler(req, res) {
       parts: [
         {
           text:
-            'You are an insurance policy ingestion assistant. Extract key policy details and map them to the provided schema. ' +
+            'You are an expert insurance policy document analyzer trained on policies from all major carriers (State Farm, Allstate, Progressive, GEICO, Farmers, etc.). ' +
+            'Your job is to extract structured data from ANY policy format, regardless of layout, carrier, or document quality. ' +
+            'You understand insurance terminology and can recognize the same information presented in different ways. ' +
             'Return only JSON that matches the schema. If data is missing, return empty strings. ' +
-            'Provide confidence scores between 0 and 1 for each field you populate.'
+            'Provide confidence scores between 0 and 1 for each field you populate based on clarity and certainty.'
         }
       ]
     };
 
     const userPrompt =
-      'Extract policyholder information, address, VIN, vehicle description, limits, deductibles, and prior carrier data. ' +
-      'Recognize labels like Named Insured, Policyholder, Coverage Limits, Deductibles, Effective Date, Expiration Date. ' +
-      'Normalize dates to YYYY-MM-DD when possible. If a photo is blurry or incomplete, add a short note in quality_issues.';
+      'Analyze these insurance policy document(s) and extract the following information:\n\n' +
+      '**POLICYHOLDER/INSURED:** First name, last name, date of birth, phone, email\n' +
+      '**ADDRESS:** Street address, city, state, ZIP (this is the insured\'s address, NOT the agency address)\n' +
+      '**VEHICLES:** VIN number(s) and vehicle description (year/make/model)\n' +
+      '**COVERAGE DETAILS:** Liability limits (e.g., 100/300/100), home deductible, auto deductible\n' +
+      '**PRIOR INSURANCE:** Previous carrier name and expiration/effective date\n\n' +
+      'IMPORTANT NOTES:\n' +
+      '- Different carriers use different labels: "Named Insured", "Policyholder", "Insured", "Primary Insured" all mean the same thing\n' +
+      '- Ignore agent/agency information - we only want the INSURED\'s info\n' +
+      '- Coverage labels vary: "BI/PD", "Bodily Injury/Property Damage", "Liability Limits" all refer to liability coverage\n' +
+      '- Look for the declarations page (dec page) which has the most complete information\n' +
+      '- Multi-page policies: extract from ALL pages provided\n' +
+      '- Normalize dates to YYYY-MM-DD format when possible\n' +
+      '- If image quality is poor or data is unclear, note it in quality_issues\n\n' +
+      'Return structured JSON with the extracted fields.';
+
 
     const parts = [{ text: userPrompt }].concat(
       files.map((file) => ({
