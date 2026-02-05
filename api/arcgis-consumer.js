@@ -112,7 +112,7 @@ async function queryByLocation(latitude, longitude, countyName) {
 async function queryByAddress(address, city, state, countyName) {
   try {
     // Step 1: Geocode address to lat/lng using Google Maps API
-    const googleApiKey = process.env.GOOGLE_API_KEY;
+    const googleApiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
     if (!googleApiKey) {
       return { success: false, error: 'Google API key not configured' };
     }

@@ -14,16 +14,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No documents provided' });
     }
 
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
 
     if (!apiKey) {
       return res.status(200).json({
         success: true,
-        summary: 'Document intake ready. Set GOOGLE_API_KEY to enable AI extraction.',
+        summary: 'Document intake ready. Set NEXT_PUBLIC_GOOGLE_API_KEY to enable AI extraction.',
         documents: files.map((f, idx) => ({
           title: `Document ${idx + 1}`,
           type: f?.mimeType || 'unknown',
-          details: 'AI extraction not enabled (missing GOOGLE_API_KEY).'
+          details: 'AI extraction not enabled (missing NEXT_PUBLIC_GOOGLE_API_KEY).'
         }))
       });
     }

@@ -39,9 +39,9 @@ export default async function handler(req, res) {
       return;
     }
 
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
     if (!apiKey) {
-      res.status(500).json({ error: 'GOOGLE_API_KEY not configured' });
+      res.status(500).json({ error: 'NEXT_PUBLIC_GOOGLE_API_KEY not configured' });
       return;
     }
 
