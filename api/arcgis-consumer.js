@@ -72,13 +72,86 @@ const COUNTY_ARCGIS_CONFIG = {
 };
 
 /**
+ * State-Level Aggregators (Fallback for all counties in state)
+ * These cover 90+ counties with 3 endpoints
+ */
+const STATE_AGGREGATORS = {
+  'WA': {
+    name: 'Washington State Parcels',
+    baseUrl: 'https://services.arcgis.com/jsu8Pl9v95EonZ7L/arcgis/rest/services/Washington_Parcels/FeatureServer',
+    queryService: 0,
+    fields: ['OBJECTID', 'PARCEL_ID', 'PARCEL_NUMBER', 'COUNTY_NAME', 'OWNER_NAME', 'YEAR_BUILT', 'TOTAL_SQ_FT', 'LOT_ACRES', 'LAND_USE', 'ASSESSED_VALUE'],
+    searchField: 'PARCEL_ID',
+    coverage: 39 // 39 WA counties
+  },
+  'OR': {
+    name: 'Oregon ORMAP Tax Lots',
+    baseUrl: 'https://gis.odf.oregon.gov/ags1/rest/services/WebMercator/TaxlotsDisplay/MapServer',
+    queryService: 0,
+    fields: ['OBJECTID', 'TAXLOT', 'COUNTY', 'TOWNSHIP', 'RANGE', 'SECTION', 'MAP_TAXLOT'],
+    searchField: 'TAXLOT',
+    coverage: 36 // 36 OR counties
+  },
+  'AZ': {
+    name: 'Arizona Counties',
+    baseUrl: 'https://azgeo.az.gov/arcgis/rest/services/asld/Counties/MapServer',
+    queryService: 0,
+    fields: ['OBJECTID', 'COUNTY_NAME', 'FIPS_CODE', 'AREA_SQ_MI'],
+    searchField: 'COUNTY_NAME',
+    coverage: 15 // 15 AZ counties
+  }
+};
+
+/**
+ * Map of which state each county belongs to (for fallback logic)
+ */
+const COUNTY_TO_STATE = {
+  // Washington counties not individually configured
+  'Thurston': 'WA', 'Whatcom': 'WA', 'Yakima': 'WA', 'Kitsap': 'WA', 'Cowlitz': 'WA',
+  'Skagit': 'WA', 'Benton': 'WA', 'Franklin': 'WA', 'Walla Walla': 'WA', 'Chelan': 'WA',
+  // Oregon counties not individually configured
+  'Clackamas': 'OR', 'Lane': 'OR', 'Marion': 'OR', 'Deschutes': 'OR', 'Jackson': 'OR',
+  'Linn': 'OR', 'Douglas': 'OR', 'Yamhill': 'OR', 'Polk': 'OR', 'Josephine': 'OR',
+  // Arizona counties
+  'Maricopa': 'AZ', 'Pima': 'AZ', 'Pinal': 'AZ', 'Yavapai': 'AZ', 'Coconino': 'AZ',
+  'Mohave': 'AZ', 'Yuma': 'AZ', 'Apache': 'AZ', 'Navajo': 'AZ', 'Cochise': 'AZ'
+};
+
+/**
  * Query ArcGIS Feature Service by location (lat/lng)
  * Returns property parcel data if found
+ * Implements hybrid approach: Try individual county first, fall back to state aggregator
  */
-async function queryByLocation(latitude, longitude, countyName) {
-  const config = COUNTY_ARCGIS_CONFIG[countyName];
+async function queryByLocation(latitude, longitude, countyName, state) {
+  // Priority 1: Try individual county configuration (rich data)
+  const countyConfig = COUNTY_ARCGIS_CONFIG[countyName];
+  if (countyConfig) {
+    const result = await queryEndpoint(latitude, longitude, countyConfig, countyName);
+    if (result.success) {
+      return result;
+    }
+  }
+
+  // Priority 2: Fall back to state aggregator (broader coverage)
+  const stateCode = state || COUNTY_TO_STATE[countyName];
+  if (stateCode && STATE_AGGREGATORS[stateCode]) {
+    const stateConfig = STATE_AGGREGATORS[stateCode];
+    const result = await queryEndpoint(latitude, longitude, stateConfig, countyName);
+    if (result.success) {
+      result.source = `${stateConfig.name} (State Aggregator)`;
+      return result;
+    }
+  }
+
+  return { success: false, error: 'County not configured for API access', county: countyName };
+}
+
+/**
+ * Query a specific endpoint configuration
+ */
+async function queryEndpoint(latitude, longitude, config, countyName) {
   if (!config) {
-    return { success: false, error: 'County not configured for API access', county: countyName };
+    return { success: false, error: 'No configuration provided' };
   }
 
   try {
@@ -150,8 +223,8 @@ async function queryByAddress(address, city, state, countyName) {
 
     const location = geocodeData.results[0].geometry.location;
 
-    // Step 2: Query parcel data at that location
-    return await queryByLocation(location.lat, location.lng, countyName);
+    // Step 2: Query parcel data at that location (pass state for aggregator fallback)
+    return await queryByLocation(location.lat, location.lng, countyName, state);
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -167,25 +240,25 @@ function normalizeParcelData(parcel, countyName) {
 
   const normalized = {
     countyName,
-    // Parcel ID - handle different county field names
-    parcelId: attrs.PARCEL_NUMBER || attrs.PARCELID || attrs.ACCOUNT_NUMBER || attrs.PARCEL_NUMBER_ALTERNATE || attrs.PARCEL_ID || attrs.PID_NUM || attrs.TLID || 'N/A',
+    // Parcel ID - handle different county field names + state aggregators
+    parcelId: attrs.PARCEL_NUMBER || attrs.PARCELID || attrs.ACCOUNT_NUMBER || attrs.PARCEL_NUMBER_ALTERNATE || attrs.PARCEL_ID || attrs.PID_NUM || attrs.TLID || attrs.TAXLOT || attrs.MAP_TAXLOT || 'N/A',
 
     // Owner name
     ownerName: attrs.OWNER_NAME || attrs.owner_name || 'N/A',
 
     // Land use
-    landUse: attrs.LAND_USE_CODE || attrs.USE1_DESC || attrs.LAND_USE_STANDARD || attrs.prop_use_desc || attrs.LANDUSE || 'N/A',
+    landUse: attrs.LAND_USE_CODE || attrs.USE1_DESC || attrs.LAND_USE_STANDARD || attrs.prop_use_desc || attrs.LANDUSE || attrs.LAND_USE || 'N/A',
 
-    // Lot size (acres)
-    lotSizeAcres: parseFloat(attrs.TOTAL_LAND_AREA_ACRES || attrs.LOT_SIZE_ACRES || attrs.acreage || attrs.A_T_ACRES || 0) || 0,
+    // Lot size (acres) - state aggregators use LOT_ACRES
+    lotSizeAcres: parseFloat(attrs.TOTAL_LAND_AREA_ACRES || attrs.LOT_SIZE_ACRES || attrs.acreage || attrs.A_T_ACRES || attrs.LOT_ACRES || 0) || 0,
 
-    // Year built
-    yearBuilt: parseInt(attrs.YEAR_BUILT || attrs.YEARBUILT || attrs.InspectionYear || 0) || 0,
+    // Year built - state aggregators may have different field names
+    yearBuilt: parseInt(attrs.YEAR_BUILT || attrs.YEARBUILT || attrs.InspectionYear || attrs.YR_BUILT || 0) || 0,
 
-    // Area calculations
+    // Area calculations - state aggregators use TOTAL_SQ_FT
     basementSqft: parseFloat(attrs.BASEMENT_AREA || attrs.BASEMENT_SQFT || 0) || 0,
     mainFloorSqft: parseFloat(attrs.MAIN_FLOOR_AREA || attrs.UPPER_FLOOR_AREA || 0) || 0,
-    totalSqft: parseFloat(attrs.TOT_SQFT || attrs.TOTAL_LIVING_AREA || attrs.BLDG_SQFT || attrs.BLDGSQFT || 0) || 0,
+    totalSqft: parseFloat(attrs.TOT_SQFT || attrs.TOTAL_LIVING_AREA || attrs.BLDG_SQFT || attrs.BLDGSQFT || attrs.TOTAL_SQ_FT || attrs.SQFT_GROSS || 0) || 0,
     garageSqft: parseFloat(attrs.GARAGE_SQFT || attrs.GARAGE || 0) || 0,
 
     // Garage type
@@ -212,8 +285,11 @@ function normalizeParcelData(parcel, countyName) {
     // Site city
     siteCity: attrs.site_city || attrs.SITECITY || '',
 
-    // Assessed value (Washington County OR has this)
-    assessedValue: parseFloat(attrs.ASSESSVAL || 0) || 0,
+    // Assessed value (Washington County OR + state aggregators)
+    assessedValue: parseFloat(attrs.ASSESSVAL || attrs.ASSESSED_VALUE || 0) || 0,
+
+    // County name (state aggregators include this)
+    aggregatorCounty: attrs.COUNTY_NAME || attrs.COUNTY || '',
 
     // Coordinates
     latitude: geometry.y || attrs.LATITUDE || 0,
