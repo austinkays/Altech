@@ -748,6 +748,24 @@
 
         .plugin-container { display: none; }
         .plugin-container.active { display: block; }
+
+        /* === PRINT STYLES FOR COI === */
+        @media print {
+            body { background: white; }
+            header, .back-to-home { display: none !important; }
+            #coiTool main { padding: 0 !important; }
+            .card { page-break-inside: avoid; border: 1px solid #000; margin-bottom: 0; box-shadow: none; }
+            h2, h3 { font-size: 14px; }
+            input, select, textarea {
+                border: none;
+                border-bottom: 1px solid #000;
+                background: transparent;
+                padding: 2px 4px;
+                font-size: 11px;
+            }
+            .label { font-size: 9px; color: #000; }
+            .section-subtitle { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -777,7 +795,7 @@
                 </div>
 
                 <!-- COI Generator -->
-                <div class="tool-card coming-soon">
+                <div class="tool-card" onclick="App.openTool('coi')">
                     <span class="tool-icon">📄</span>
                     <h3 class="tool-title">COI Generator</h3>
                     <p class="tool-description">Instant ACORD 25 Certificates of Insurance for contractors and businesses.</p>
@@ -787,7 +805,7 @@
                         <li>Custom endorsements (CG 20 10, CG 20 37)</li>
                         <li>Save certificate templates</li>
                     </ul>
-                    <span class="tool-status soon">Coming Soon</span>
+                    <span class="tool-status ready">✓ Ready</span>
                 </div>
 
                 <!-- COI Compliance Tracker -->
@@ -6879,6 +6897,10 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     if (!this.initialized) {
                         this.init();
                     }
+                } else if (toolName === 'coi') {
+                    const tool = document.getElementById('coiTool');
+                    tool.classList.add('active');
+                    tool.style.display = 'block';
                 }
 
                 // Scroll to top
@@ -6904,6 +6926,98 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
         };
         window.initPlaces = () => App.initPlaces();
 
+        // COI Generator Object
+        const COI = {
+            printCOI() {
+                window.print();
+            },
+
+            // Collect all form data
+            getData() {
+                return {
+                    producer: {
+                        name: document.getElementById('coiProducerName').value,
+                        phone: document.getElementById('coiProducerPhone').value,
+                        fax: document.getElementById('coiProducerFax').value,
+                        email: document.getElementById('coiProducerEmail').value,
+                        address: document.getElementById('coiProducerAddress').value,
+                        city: document.getElementById('coiProducerCity').value,
+                        state: document.getElementById('coiProducerState').value,
+                        zip: document.getElementById('coiProducerZip').value
+                    },
+                    insured: {
+                        name: document.getElementById('coiInsuredName').value,
+                        address: document.getElementById('coiInsuredAddress').value,
+                        city: document.getElementById('coiInsuredCity').value,
+                        state: document.getElementById('coiInsuredState').value,
+                        zip: document.getElementById('coiInsuredZip').value
+                    },
+                    insurers: {
+                        a: { name: document.getElementById('coiInsurerA').value, naic: document.getElementById('coiInsurerANaic').value },
+                        b: { name: document.getElementById('coiInsurerB').value, naic: document.getElementById('coiInsurerBNaic').value },
+                        c: { name: document.getElementById('coiInsurerC').value, naic: document.getElementById('coiInsurerCNaic').value },
+                        d: { name: document.getElementById('coiInsurerD').value, naic: document.getElementById('coiInsurerDNaic').value }
+                    },
+                    gl: {
+                        policy: document.getElementById('coiGlPolicy').value,
+                        effective: document.getElementById('coiGlEffective').value,
+                        expiration: document.getElementById('coiGlExpiration').value,
+                        occurrence: document.getElementById('coiGlOccurrence').value,
+                        aggregate: document.getElementById('coiGlAggregate').value
+                    },
+                    auto: {
+                        policy: document.getElementById('coiAutoPolicy').value,
+                        effective: document.getElementById('coiAutoEffective').value,
+                        expiration: document.getElementById('coiAutoExpiration').value,
+                        csl: document.getElementById('coiAutoCsl').value,
+                        type: document.getElementById('coiAutoType').value
+                    },
+                    umbrella: {
+                        policy: document.getElementById('coiUmbrellaPolicy').value,
+                        effective: document.getElementById('coiUmbrellaEffective').value,
+                        expiration: document.getElementById('coiUmbrellaExpiration').value,
+                        occurrence: document.getElementById('coiUmbrellaOccurrence').value,
+                        aggregate: document.getElementById('coiUmbrellaAggregate').value
+                    },
+                    wc: {
+                        policy: document.getElementById('coiWcPolicy').value,
+                        effective: document.getElementById('coiWcEffective').value,
+                        expiration: document.getElementById('coiWcExpiration').value,
+                        accident: document.getElementById('coiWcAccident').value,
+                        disease: document.getElementById('coiWcDisease').value
+                    },
+                    holder: {
+                        name: document.getElementById('coiHolderName').value,
+                        address: document.getElementById('coiHolderAddress').value,
+                        city: document.getElementById('coiHolderCity').value,
+                        state: document.getElementById('coiHolderState').value,
+                        zip: document.getElementById('coiHolderZip').value
+                    },
+                    description: document.getElementById('coiDescription').value,
+                    additionalInsured: document.getElementById('coiAdditionalInsured').value,
+                    endorsements: document.getElementById('coiEndorsements').value,
+                    waiver: document.getElementById('coiWaiver').value
+                };
+            },
+
+            // Save to localStorage
+            save() {
+                const data = this.getData();
+                localStorage.setItem('altech_coi_draft', JSON.stringify(data));
+                console.log('COI draft saved');
+            },
+
+            // Load from localStorage
+            load() {
+                const saved = localStorage.getItem('altech_coi_draft');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    // TODO: Populate form fields
+                    console.log('COI draft loaded', data);
+                }
+            }
+        };
+
         window.onload = () => {
             // Don't auto-init the quoting tool anymore
             // It will init when user clicks the card
@@ -6911,6 +7025,303 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
     </script>
 
     </div> <!-- End quotingTool container -->
+
+    <!-- COI GENERATOR TOOL CONTAINER -->
+    <div id="coiTool" class="plugin-container">
+        <header>
+            <div class="header-top">
+                <div class="logo"><div class="logo-icon">📄</div> COI Generator</div>
+                <button class="btn-utility" onclick="COI.printCOI()" style="font-size: 14px; padding: 8px 16px;">
+                    🖨️ Print/Save PDF
+                </button>
+            </div>
+            <div class="step-title">ACORD 25 Certificate of Insurance</div>
+            <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
+        </header>
+
+        <main style="padding: 20px; padding-bottom: 60px;">
+
+            <!-- PRODUCER INFO -->
+            <div class="card">
+                <h2>Producer / Agency Information</h2>
+                <p class="section-subtitle">Your agency details</p>
+
+                <label class="label">Agency Name</label>
+                <input type="text" id="coiProducerName" placeholder="Altech Insurance Agency">
+
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Phone</label>
+                        <input type="tel" id="coiProducerPhone" placeholder="(555) 123-4567">
+                    </div>
+                    <div>
+                        <label class="label">Fax</label>
+                        <input type="tel" id="coiProducerFax" placeholder="(555) 123-4568">
+                    </div>
+                </div>
+
+                <label class="label">Email</label>
+                <input type="email" id="coiProducerEmail" placeholder="agent@altechinsurance.com">
+
+                <label class="label">Address</label>
+                <input type="text" id="coiProducerAddress" placeholder="123 Main St">
+
+                <div class="grid-3">
+                    <div>
+                        <label class="label">City</label>
+                        <input type="text" id="coiProducerCity" placeholder="Portland">
+                    </div>
+                    <div>
+                        <label class="label">State</label>
+                        <input type="text" id="coiProducerState" placeholder="OR">
+                    </div>
+                    <div>
+                        <label class="label">ZIP</label>
+                        <input type="text" id="coiProducerZip" placeholder="97201">
+                    </div>
+                </div>
+            </div>
+
+            <!-- INSURED INFO -->
+            <div class="card">
+                <h2>Insured Information</h2>
+                <p class="section-subtitle">The policyholder requesting the certificate</p>
+
+                <label class="label">Insured Name</label>
+                <input type="text" id="coiInsuredName" placeholder="ABC Construction Company">
+
+                <label class="label">Address</label>
+                <input type="text" id="coiInsuredAddress" placeholder="456 Oak Avenue">
+
+                <div class="grid-3">
+                    <div>
+                        <label class="label">City</label>
+                        <input type="text" id="coiInsuredCity" placeholder="Vancouver">
+                    </div>
+                    <div>
+                        <label class="label">State</label>
+                        <input type="text" id="coiInsuredState" placeholder="WA">
+                    </div>
+                    <div>
+                        <label class="label">ZIP</label>
+                        <input type="text" id="coiInsuredZip" placeholder="98660">
+                    </div>
+                </div>
+            </div>
+
+            <!-- INSURANCE COMPANIES -->
+            <div class="card">
+                <h2>Insurance Companies</h2>
+                <p class="section-subtitle">Carriers providing coverage</p>
+
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Insurer A (General Liability)</label>
+                        <input type="text" id="coiInsurerA" placeholder="State Farm">
+                    </div>
+                    <div>
+                        <label class="label">NAIC #</label>
+                        <input type="text" id="coiInsurerANaic" placeholder="25151">
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Insurer B (Auto Liability)</label>
+                        <input type="text" id="coiInsurerB" placeholder="Progressive">
+                    </div>
+                    <div>
+                        <label class="label">NAIC #</label>
+                        <input type="text" id="coiInsurerBNaic" placeholder="24260">
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Insurer C (Workers Comp)</label>
+                        <input type="text" id="coiInsurerC" placeholder="Liberty Mutual">
+                    </div>
+                    <div>
+                        <label class="label">NAIC #</label>
+                        <input type="text" id="coiInsurerCNaic" placeholder="23035">
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Insurer D (Umbrella/Excess)</label>
+                        <input type="text" id="coiInsurerD" placeholder="Travelers">
+                    </div>
+                    <div>
+                        <label class="label">NAIC #</label>
+                        <input type="text" id="coiInsurerDNaic" placeholder="25674">
+                    </div>
+                </div>
+            </div>
+
+            <!-- COVERAGES -->
+            <div class="card">
+                <h2>Coverage Details</h2>
+                <p class="section-subtitle">Policy information and limits</p>
+
+                <h3>🛡️ Commercial General Liability</h3>
+                <div class="grid-3">
+                    <div>
+                        <label class="label">Policy Number</label>
+                        <input type="text" id="coiGlPolicy" placeholder="GL-123456">
+                    </div>
+                    <div>
+                        <label class="label">Effective Date</label>
+                        <input type="date" id="coiGlEffective">
+                    </div>
+                    <div>
+                        <label class="label">Expiration Date</label>
+                        <input type="date" id="coiGlExpiration">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Each Occurrence Limit</label>
+                        <input type="text" id="coiGlOccurrence" placeholder="$1,000,000">
+                    </div>
+                    <div>
+                        <label class="label">General Aggregate</label>
+                        <input type="text" id="coiGlAggregate" placeholder="$2,000,000">
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 24px;">🚗 Automobile Liability</h3>
+                <div class="grid-3">
+                    <div>
+                        <label class="label">Policy Number</label>
+                        <input type="text" id="coiAutoPolicy" placeholder="AUTO-123456">
+                    </div>
+                    <div>
+                        <label class="label">Effective Date</label>
+                        <input type="date" id="coiAutoEffective">
+                    </div>
+                    <div>
+                        <label class="label">Expiration Date</label>
+                        <input type="date" id="coiAutoExpiration">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Combined Single Limit</label>
+                        <input type="text" id="coiAutoCsl" placeholder="$1,000,000">
+                    </div>
+                    <div>
+                        <label class="label">Coverage Type</label>
+                        <select id="coiAutoType">
+                            <option value="Any Auto">Any Auto</option>
+                            <option value="All Owned Autos">All Owned Autos</option>
+                            <option value="Scheduled Autos">Scheduled Autos</option>
+                            <option value="Hired Autos">Hired Autos</option>
+                            <option value="Non-Owned Autos">Non-Owned Autos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 24px;">☂️ Umbrella/Excess Liability</h3>
+                <div class="grid-3">
+                    <div>
+                        <label class="label">Policy Number</label>
+                        <input type="text" id="coiUmbrellaPolicy" placeholder="UMB-123456">
+                    </div>
+                    <div>
+                        <label class="label">Effective Date</label>
+                        <input type="date" id="coiUmbrellaEffective">
+                    </div>
+                    <div>
+                        <label class="label">Expiration Date</label>
+                        <input type="date" id="coiUmbrellaExpiration">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Each Occurrence Limit</label>
+                        <input type="text" id="coiUmbrellaOccurrence" placeholder="$5,000,000">
+                    </div>
+                    <div>
+                        <label class="label">Aggregate</label>
+                        <input type="text" id="coiUmbrellaAggregate" placeholder="$5,000,000">
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 24px;">👷 Workers Compensation</h3>
+                <div class="grid-3">
+                    <div>
+                        <label class="label">Policy Number</label>
+                        <input type="text" id="coiWcPolicy" placeholder="WC-123456">
+                    </div>
+                    <div>
+                        <label class="label">Effective Date</label>
+                        <input type="date" id="coiWcEffective">
+                    </div>
+                    <div>
+                        <label class="label">Expiration Date</label>
+                        <input type="date" id="coiWcExpiration">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Each Accident</label>
+                        <input type="text" id="coiWcAccident" placeholder="$1,000,000">
+                    </div>
+                    <div>
+                        <label class="label">Disease - Policy Limit</label>
+                        <input type="text" id="coiWcDisease" placeholder="$1,000,000">
+                    </div>
+                </div>
+            </div>
+
+            <!-- CERTIFICATE HOLDER -->
+            <div class="card">
+                <h2>Certificate Holder</h2>
+                <p class="section-subtitle">Who is requesting this certificate?</p>
+
+                <label class="label">Certificate Holder Name</label>
+                <input type="text" id="coiHolderName" placeholder="XYZ Property Management LLC">
+
+                <label class="label">Address</label>
+                <input type="text" id="coiHolderAddress" placeholder="789 Business Parkway">
+
+                <div class="grid-3">
+                    <div>
+                        <label class="label">City</label>
+                        <input type="text" id="coiHolderCity" placeholder="Portland">
+                    </div>
+                    <div>
+                        <label class="label">State</label>
+                        <input type="text" id="coiHolderState" placeholder="OR">
+                    </div>
+                    <div>
+                        <label class="label">ZIP</label>
+                        <input type="text" id="coiHolderZip" placeholder="97209">
+                    </div>
+                </div>
+            </div>
+
+            <!-- DESCRIPTION & ENDORSEMENTS -->
+            <div class="card">
+                <h2>Description of Operations / Additional Insured</h2>
+                <p class="section-subtitle">Details about the work and additional insureds</p>
+
+                <label class="label">Description of Operations</label>
+                <textarea id="coiDescription" rows="3" placeholder="General contracting work at 789 Business Parkway, Portland, OR 97209"></textarea>
+
+                <label class="label">Additional Insured</label>
+                <input type="text" id="coiAdditionalInsured" placeholder="XYZ Property Management LLC is named as additional insured">
+
+                <label class="label">Endorsements (e.g., CG 20 10, CG 20 37)</label>
+                <input type="text" id="coiEndorsements" placeholder="CG 20 10 04 13, CG 20 37 04 13">
+
+                <label class="label">Waiver of Subrogation</label>
+                <input type="text" id="coiWaiver" placeholder="Waiver of subrogation in favor of certificate holder where required by contract">
+            </div>
+
+        </main>
+    </div>
 
 </body>
 </html>
