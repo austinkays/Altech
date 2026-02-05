@@ -5503,7 +5503,16 @@
                 }
                 
                 if (state === 'OR' && orCountyGIS[city]) {
-                    window.open(orCountyGIS[city], '_blank');
+                    let url = orCountyGIS[city];
+
+                    // Special handling for Portland Maps - add address search
+                    if (url.includes('portlandmaps.com')) {
+                        // Format: https://www.portlandmaps.com/detail/property/4015-N-ALBINA-AVE/
+                        const formattedAddress = address.toUpperCase().replace(/\s+/g, '-');
+                        url = `https://www.portlandmaps.com/detail/property/${encodeURIComponent(formattedAddress)}/`;
+                    }
+
+                    window.open(url, '_blank');
                     return;
                 }
                 
