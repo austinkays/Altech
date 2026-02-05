@@ -3600,13 +3600,16 @@
                     btn.innerHTML = '🔄 Querying official county records...';
                     
                     const arcgisResponse = await fetch(`/api/arcgis-consumer?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}`);
-                    
+
                     if (arcgisResponse.ok) {
                         const arcgisData = await arcgisResponse.json();
-                        
+
                         if (arcgisData.success && arcgisData.parcelData) {
                             rawParcelData = arcgisData.parcelData;
                             dataSource = 'phase1-arcgis';
+                        } else {
+                            // Log the actual error from Phase 1
+                            console.warn('Phase 1 (ArcGIS API) failed:', arcgisData.error || 'Unknown error', arcgisData);
                         }
                     }
                     
@@ -3619,10 +3622,13 @@
                         
                         if (browserResponse.ok) {
                             const browserData = await browserResponse.json();
-                            
+
                             if (browserData.success && browserData.parcelData) {
                                 rawParcelData = browserData.parcelData;
                                 dataSource = 'phase2-browser';
+                            } else {
+                                // Log the actual error from Phase 2
+                                console.warn('Phase 2 (Headless Browser) failed:', browserData.error || 'Unknown error', browserData);
                             }
                         }
                     }
