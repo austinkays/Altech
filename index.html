@@ -1844,6 +1844,9 @@
                 this.initialDlScan = result;
                 this.renderInitialDriverLicenseResults(result);
 
+                // Auto-apply the scanned data to form fields
+                this.applyInitialDriverLicense();
+
                 if (status) {
                     status.textContent = `✅ Scan complete (${result.confidence || 'N/A'}% confidence)`;
                 }
