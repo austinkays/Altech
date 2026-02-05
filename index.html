@@ -7366,20 +7366,34 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
 
             formatLIData(liData) {
                 // Format L&I contractor license data
+                const contractor = liData.contractor || liData;
+                const classifications = contractor.classifications || [contractor.licenseType] || [];
+                const owners = contractor.owners || [];
+
                 return `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
-                        <div><strong>License Number:</strong> ${liData.licenseNumber || 'N/A'}</div>
-                        <div><strong>Status:</strong> <span style="color: ${liData.status === 'Active' ? 'green' : 'orange'};">${liData.status || 'Unknown'}</span></div>
-                        <div><strong>Classification:</strong> ${liData.classification || 'N/A'}</div>
-                        <div><strong>Expiration:</strong> ${liData.expiration || 'N/A'}</div>
-                        <div><strong>Bonded:</strong> ${liData.bonded ? 'Yes' : 'No'}</div>
-                        <div><strong>Bond Amount:</strong> ${liData.bondAmount || 'N/A'}</div>
+                        <div><strong>License Number:</strong> ${contractor.licenseNumber || 'N/A'}</div>
+                        <div><strong>Status:</strong> <span style="color: ${contractor.status?.toLowerCase().includes('active') ? 'green' : 'orange'};">${contractor.status || 'Unknown'}</span></div>
+                        <div><strong>Business Name:</strong> ${contractor.businessName || 'N/A'}</div>
+                        <div><strong>UBI:</strong> ${contractor.ubi || contractor.ccbNumber || 'N/A'}</div>
+                        <div style="grid-column: 1 / -1;"><strong>License Type:</strong> ${contractor.licenseType || 'General Contractor'}</div>
+                        ${classifications.length > 0 ? `<div style="grid-column: 1 / -1;"><strong>Classifications:</strong> ${classifications.join(', ')}</div>` : ''}
+                        ${owners.length > 0 ? `<div style="grid-column: 1 / -1;"><strong>Owners/Principals:</strong> ${owners.join(', ')}</div>` : ''}
+                        <div><strong>Expiration:</strong> ${contractor.expirationDate || 'N/A'}</div>
+                        <div><strong>Registration Date:</strong> ${contractor.registrationDate || 'N/A'}</div>
+                        ${contractor.bondAmount ? `<div><strong>Bond Amount:</strong> ${contractor.bondAmount}</div>` : ''}
+                        ${contractor.bondCompany ? `<div><strong>Bond Company:</strong> ${contractor.bondCompany}</div>` : ''}
+                        ${contractor.insuranceCompany ? `<div><strong>Insurance Company:</strong> ${contractor.insuranceCompany}</div>` : ''}
+                        ${contractor.insuranceAmount ? `<div><strong>Insurance Amount:</strong> ${contractor.insuranceAmount}</div>` : ''}
+                        ${contractor.rmi ? `<div style="grid-column: 1 / -1;"><strong>Responsible Managing Individual:</strong> ${contractor.rmi}</div>` : ''}
+                        ${contractor.phone ? `<div><strong>Phone:</strong> ${contractor.phone}</div>` : ''}
+                        ${contractor.address ? `<div style="grid-column: 1 / -1;"><strong>Address:</strong> ${contractor.address.street ? contractor.address.street + ', ' : ''}${contractor.address.city || ''} ${contractor.address.state || ''} ${contractor.address.zip || ''}</div>` : ''}
                     </div>
-                    ${liData.violations && liData.violations.length > 0 ? `
+                    ${contractor.violations && contractor.violations.length > 0 ? `
                         <div style="margin-top: 16px; padding: 12px; background: #fff3cd; border-radius: 4px;">
-                            <strong>⚠️ L&I Violations:</strong>
+                            <strong>⚠️ Violations:</strong>
                             <ul style="margin: 8px 0 0 20px;">
-                                ${liData.violations.map(v => `<li>${v}</li>`).join('')}
+                                ${contractor.violations.map(v => `<li>${v}</li>`).join('')}
                             </ul>
                         </div>
                     ` : ''}
@@ -7388,20 +7402,24 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
 
             formatSOSData(sosData) {
                 // Format Secretary of State business entity data
+                const entity = sosData.entity || sosData;
                 return `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
-                        <div><strong>Entity Type:</strong> ${sosData.entityType || 'N/A'}</div>
-                        <div><strong>Status:</strong> <span style="color: ${sosData.status === 'Active' ? 'green' : 'orange'};">${sosData.status || 'Unknown'}</span></div>
-                        <div><strong>Formation Date:</strong> ${sosData.formationDate || 'N/A'}</div>
-                        <div><strong>State of Formation:</strong> ${sosData.stateOfFormation || 'N/A'}</div>
-                        <div><strong>Registered Agent:</strong> ${sosData.registeredAgent || 'N/A'}</div>
-                        <div><strong>Principal Office:</strong> ${sosData.principalOffice || 'N/A'}</div>
+                        <div><strong>UBI/Entity Number:</strong> ${entity.ubi || 'N/A'}</div>
+                        <div><strong>Business Name:</strong> ${entity.businessName || 'N/A'}</div>
+                        <div><strong>Entity Type:</strong> ${entity.entityType || 'N/A'}</div>
+                        <div><strong>Status:</strong> <span style="color: ${entity.status?.toLowerCase().includes('active') ? 'green' : 'orange'};">${entity.status || 'Unknown'}</span></div>
+                        <div><strong>Formation Date:</strong> ${entity.formationDate || 'N/A'}</div>
+                        <div><strong>Jurisdiction:</strong> ${entity.jurisdiction || 'N/A'}</div>
+                        ${entity.businessActivity ? `<div style="grid-column: 1 / -1;"><strong>Business Activity:</strong> ${entity.businessActivity}</div>` : ''}
+                        ${entity.registeredAgent?.name ? `<div style="grid-column: 1 / -1;"><strong>Registered Agent:</strong> ${entity.registeredAgent.name}</div>` : ''}
+                        ${entity.principalOffice?.street ? `<div style="grid-column: 1 / -1;"><strong>Principal Office:</strong> ${entity.principalOffice.street}, ${entity.principalOffice.city || ''} ${entity.principalOffice.state || ''} ${entity.principalOffice.zip || ''}</div>` : ''}
                     </div>
-                    ${sosData.officers && sosData.officers.length > 0 ? `
+                    ${entity.officers && entity.officers.length > 0 ? `
                         <div style="margin-top: 16px;">
                             <strong>Officers/Owners:</strong>
                             <ul style="margin: 8px 0 0 20px;">
-                                ${sosData.officers.map(o => `<li>${o.name} - ${o.title}</li>`).join('')}
+                                ${entity.officers.map(o => `<li>${o.name || 'Unknown'} - ${o.title || 'Officer'}</li>`).join('')}
                             </ul>
                         </div>
                     ` : ''}
@@ -7431,17 +7449,22 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 let riskScore = 0;
                 let factors = [];
 
-                if (data.li.violations && data.li.violations.length > 0) {
+                // Check L&I violations (nested under contractor)
+                const contractor = data.li.contractor || data.li;
+                if (contractor.violations && contractor.violations.length > 0) {
                     riskScore += 20;
                     factors.push('L&I violations on record');
                 }
 
+                // Check OSHA inspections
                 if (data.osha.inspections && data.osha.inspections.length > 0) {
                     riskScore += data.osha.inspections.length * 10;
                     factors.push(`${data.osha.inspections.length} OSHA inspection(s)`);
                 }
 
-                if (data.sos.status && data.sos.status !== 'Active') {
+                // Check business entity status (nested under entity)
+                const entity = data.sos.entity || data.sos;
+                if (entity.status && !entity.status.toLowerCase().includes('active')) {
                     riskScore += 30;
                     factors.push('Business entity not in active status');
                 }
