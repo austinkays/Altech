@@ -100,7 +100,8 @@ async function fetchLIPrincipals(ubiNumber) {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'Altech-Insurance-Platform/1.0'
+        'User-Agent': 'Altech-Insurance-Platform/1.0',
+        'X-App-Token': process.env.SOCRATA_APP_TOKEN || ''
       }
     });
 
@@ -157,8 +158,8 @@ async function searchLIContractor(businessName, ubi) {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'Altech-Insurance-Platform/1.0'
-        // Note: Add 'X-App-Token': 'your_token_here' for production to avoid rate limiting
+        'User-Agent': 'Altech-Insurance-Platform/1.0',
+        'X-App-Token': process.env.SOCRATA_APP_TOKEN || ''
       }
     });
 
