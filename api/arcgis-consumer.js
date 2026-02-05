@@ -43,10 +43,10 @@ const COUNTY_ARCGIS_CONFIG = {
   },
   'Multnomah': {
     state: 'OR',
-    baseUrl: 'https://ggis.multco.us/arcgis/rest/services/public/Assessor/MapServer',
+    baseUrl: 'https://www.portlandmaps.com/arcgis/rest/services/Public/Taxlots/MapServer',
     queryService: 0,
-    fields: ['OBJECTID', 'ACCOUNT_NUMBER', 'OWNER_NAME', 'LAND_USE_STANDARD', 'LOT_SIZE_ACRES', 'YEAR_BUILT', 'TOTAL_LIVING_AREA', 'GARAGE_SQFT', 'STORIES'],
-    searchField: 'ACCOUNT_NUMBER'
+    fields: ['OBJECTID', 'STATE_ID', 'OWNER1', 'OWNER2', 'OWNER3', 'SITEADDR', 'SITECITY', 'SITEZIP', 'YEARBUILT', 'BLDGSQFT', 'BEDROOMS', 'FLOORS', 'LANDUSE', 'PRPCD_DESC', 'A_T_ACRES', 'TOTALVAL1', 'COUNTY'],
+    searchField: 'STATE_ID'
   },
   'Snohomish': {
     state: 'WA',
@@ -268,13 +268,18 @@ function normalizeParcelData(parcel, countyName) {
   const normalized = {
     countyName,
     // Parcel ID - handle different county field names + state aggregators
-    parcelId: attrs.PARCEL_NUMBER || attrs.PARCELID || attrs.ACCOUNT_NUMBER || attrs.PARCEL_NUMBER_ALTERNATE || attrs.PARCEL_ID || attrs.PID_NUM || attrs.TLID || attrs.TAXLOT || attrs.MAP_TAXLOT || 'N/A',
+    parcelId: attrs.STATE_ID || attrs.PARCEL_NUMBER || attrs.PARCELID || attrs.ACCOUNT_NUMBER || attrs.PARCEL_NUMBER_ALTERNATE || attrs.PARCEL_ID || attrs.PID_NUM || attrs.TLID || attrs.TAXLOT || attrs.MAP_TAXLOT || 'N/A',
 
-    // Owner name
-    ownerName: attrs.OWNER_NAME || attrs.owner_name || 'N/A',
+    // Owner name - handle multiple owner fields (Portland Maps uses OWNER1, OWNER2, OWNER3)
+    ownerName: (() => {
+      if (attrs.OWNER1 || attrs.OWNER2 || attrs.OWNER3) {
+        return [attrs.OWNER1, attrs.OWNER2, attrs.OWNER3].filter(Boolean).join(', ');
+      }
+      return attrs.OWNER_NAME || attrs.owner_name || 'N/A';
+    })(),
 
     // Land use
-    landUse: attrs.LAND_USE_CODE || attrs.USE1_DESC || attrs.LAND_USE_STANDARD || attrs.prop_use_desc || attrs.LANDUSE || attrs.LAND_USE || 'N/A',
+    landUse: attrs.LAND_USE_CODE || attrs.USE1_DESC || attrs.LAND_USE_STANDARD || attrs.PRPCD_DESC || attrs.prop_use_desc || attrs.LANDUSE || attrs.LAND_USE || 'N/A',
 
     // Lot size (acres) - state aggregators use LOT_ACRES
     lotSizeAcres: parseFloat(attrs.TOTAL_LAND_AREA_ACRES || attrs.LOT_SIZE_ACRES || attrs.acreage || attrs.A_T_ACRES || attrs.LOT_ACRES || 0) || 0,
@@ -291,8 +296,8 @@ function normalizeParcelData(parcel, countyName) {
     // Garage type
     garageType: attrs.GARAGE_TYPE || 'N/A',
 
-    // Stories
-    stories: parseInt(attrs.STORIES || 0) || 0,
+    // Stories (Portland Maps uses FLOORS)
+    stories: parseInt(attrs.STORIES || attrs.FLOORS || 0) || 0,
 
     // Roof type
     roofType: attrs.ROOF_TYPE || 'N/A',
@@ -312,8 +317,8 @@ function normalizeParcelData(parcel, countyName) {
     // Site city
     siteCity: attrs.site_city || attrs.SITECITY || '',
 
-    // Assessed value (Washington County OR + state aggregators)
-    assessedValue: parseFloat(attrs.ASSESSVAL || attrs.ASSESSED_VALUE || 0) || 0,
+    // Assessed value (Washington County OR + state aggregators + Portland Maps TOTALVAL1)
+    assessedValue: parseFloat(attrs.ASSESSVAL || attrs.ASSESSED_VALUE || attrs.TOTALVAL1 || 0) || 0,
 
     // County name (state aggregators include this)
     aggregatorCounty: attrs.COUNTY_NAME || attrs.COUNTY || '',
