@@ -1,0 +1,53 @@
+================================================================================
+PROJECT: TRI-STATE GIS DATA INTEGRATION (WA, OR, AZ)
+TARGET: 104 COUNTIES TOTAL
+================================================================================
+
+1. ARCHITECTURAL OVERVIEW
+--------------------------
+Most targeted counties utilize Esri ArcGIS REST API. Instead of building 104 
+separate scrapers, the developer should implement a standardized "ArcGIS 
+Consumer" function that accepts a Base URL and a Layer ID.
+
+2. STATE-LEVEL AGGREGATORS (High Priority)
+------------------------------------------
+These hubs host aggregated county data and should be the primary data source.
+
+A. WASHINGTON (WA) - 39 Counties
+   - Portal: https://geo.wa.gov/
+   - Primary Parcel Feed: https://services.arcgis.com/jsu8Pl9v95EonZ7L/arcgis/rest/services/Washington_Parcels/FeatureServer
+   - Note: Aggregates most county parcel data into a single searchable layer.
+
+B. OREGON (OR) - 36 Counties
+   - Portal: https://geohub.oregon.gov/
+   - ORMAP (Tax Lots): https://gis.odf.oregon.gov/ags1/rest/services/WebMercator/TaxlotsDisplay/MapServer
+   - Note: ORMAP is the gold standard for standardized Oregon land data.
+
+C. ARIZONA (AZ) - 15 Counties
+   - Portal: https://azgeo-open-data-agic.hub.arcgis.com/
+   - Counties Layer: https://azgeo.az.gov/arcgis/rest/services/asld/Counties/MapServer
+
+3. TOP COUNTY DIRECT ENDPOINTS (Standardized REST)
+---------------------------------------------------
+Use these if state-level granularity is insufficient.
+
+- CLARK COUNTY, WA: https://gis.clark.wa.gov/arcgisfed/rest/services
+- KING COUNTY, WA: https://services1.arcgis.com/gw9ic9zQXvkhSgdt/arcgis/rest/services
+- PIERCE COUNTY, WA: https://services3.arcgis.com/GV66o4966lT6tS7k/arcgis/rest/services
+- MULTNOMAH COUNTY, OR: https://services.arcgis.com/V76Z9S2SsaY99ayP/arcgis/rest/services
+- WASHINGTON COUNTY, OR: https://gispub.co.washington.or.us/server/rest/services
+- MARICOPA COUNTY, AZ: https://gis.maricopa.gov/arcgis/rest/services
+- PIMA COUNTY, AZ: https://services1.arcgis.com/79S9fT7yOnH8NByI/arcgis/rest/services
+
+4. DEVELOPER QUERY REQUIREMENTS
+-------------------------------
+To pull data into the app programmatically, use the following parameters:
+- Format: f=json OR f=geojson
+- Query: where=1=1 (To bypass filters)
+- Fields: outFields=* (To capture all attributes: Owner, APN, Value, etc.)
+- Geometry: outSR=4326 (Ensures WGS84 coordinates for mobile/web mapping)
+- Pagination: Use `resultOffset` and `resultRecordCount` for large datasets.
+
+================================================================================
+END OF DOCUMENT
+================================================================================

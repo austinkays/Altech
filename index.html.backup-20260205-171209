@@ -715,282 +715,9 @@
             .export-row { grid-template-columns: 1fr 1fr; }
             .export-row-3 { grid-template-columns: 1fr 1fr auto; align-items: end; }
         }
-
-        /* LANDING PAGE & PLUGIN ARCHITECTURE */
-        .landing-page { min-height: 100vh; display: flex; flex-direction: column; }
-        .landing-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px 20px 80px; text-align: center; }
-        .landing-header h1 { font-size: 42px; margin: 0 0 12px 0; font-weight: 700; }
-        .landing-header p { font-size: 18px; opacity: 0.95; margin: 0; font-weight: 400; }
-        .tools-container { max-width: 1200px; margin: -40px auto 60px; padding: 0 20px; width: 100%; }
-        .tools-grid { display: grid; gap: 24px; grid-template-columns: 1fr; }
-        @media (min-width: 768px) { .tools-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1024px) { .tools-grid { grid-template-columns: repeat(3, 1fr); } }
-
-        .tool-card { background: white; border-radius: 16px; padding: 32px; box-shadow: 0 4px 6px rgba(0,0,0,0.07), 0 10px 20px rgba(0,0,0,0.06); transition: all 0.3s ease; cursor: pointer; border: 2px solid transparent; }
-        .tool-card:hover { transform: translateY(-4px); box-shadow: 0 8px 12px rgba(0,0,0,0.1), 0 16px 32px rgba(0,0,0,0.08); border-color: #667eea; }
-        .tool-card.coming-soon { opacity: 0.6; cursor: not-allowed; }
-        .tool-card.coming-soon:hover { transform: none; border-color: transparent; }
-
-        .tool-icon { font-size: 48px; margin-bottom: 16px; display: block; }
-        .tool-title { font-size: 22px; font-weight: 700; margin: 0 0 8px 0; color: #1a1a1a; }
-        .tool-description { font-size: 15px; color: #666; margin: 0 0 20px 0; line-height: 1.5; }
-        .tool-features { list-style: none; padding: 0; margin: 0 0 20px 0; }
-        .tool-features li { font-size: 13px; color: #888; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
-        .tool-features li:last-child { border-bottom: none; }
-        .tool-features li::before { content: "✓"; color: #667eea; margin-right: 8px; font-weight: 700; }
-
-        .tool-status { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 12px; }
-        .tool-status.ready { background: #d4edda; color: #155724; }
-        .tool-status.soon { background: #fff3cd; color: #856404; }
-
-        .back-to-home { position: fixed; top: 20px; left: 20px; background: rgba(255,255,255,0.95); padding: 12px 20px; border-radius: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; z-index: 1000; border: 1px solid rgba(0,0,0,0.05); font-weight: 600; color: #667eea; transition: all 0.2s; }
-        .back-to-home:hover { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-2px); }
-
-        .plugin-container { display: none; }
-        .plugin-container.active { display: block; }
-
-        /* === ACORD 25 FORM STYLES === */
-        #acord25-form {
-            max-width: 8.5in;
-            margin: 20px auto;
-            background: white;
-            padding: 0.5in;
-            font-family: Arial, sans-serif;
-            font-size: 9pt;
-            line-height: 1.2;
-        }
-
-        .acord-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 5px;
-        }
-
-        .acord-logo { font-size: 24px; font-weight: bold; }
-        .acord-title { font-size: 14px; font-weight: bold; text-align: center; flex: 1; }
-        .acord-date { font-size: 9px; text-align: right; }
-
-        .acord-row { display: flex; gap: 10px; margin-bottom: 8px; }
-        .acord-col { flex: 1; }
-        .acord-col-2 { flex: 2; }
-        .acord-col-3 { flex: 3; }
-
-        .acord-box {
-            border: 1px solid #000;
-            padding: 4px;
-            min-height: 60px;
-        }
-
-        .acord-label {
-            font-size: 7px;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #333;
-            display: block;
-            margin-bottom: 2px;
-        }
-
-        .acord-input {
-            width: 100%;
-            border: none;
-            border-bottom: 1px dotted #999;
-            padding: 2px 0;
-            font-size: 9pt;
-            font-family: Arial, sans-serif;
-            background: transparent;
-        }
-
-        .acord-input:focus {
-            outline: none;
-            border-bottom: 1px solid #007AFF;
-        }
-
-        .acord-textarea {
-            width: 100%;
-            border: 1px solid #ddd;
-            padding: 4px;
-            font-size: 9pt;
-            font-family: Arial, sans-serif;
-            min-height: 80px;
-            resize: vertical;
-        }
-
-        .acord-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
-        }
-
-        .acord-table th,
-        .acord-table td {
-            border: 1px solid #000;
-            padding: 4px;
-            font-size: 8px;
-            vertical-align: top;
-        }
-
-        .acord-table th {
-            background: #f0f0f0;
-            font-weight: bold;
-            text-align: left;
-        }
-
-        .acord-checkbox {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            margin-right: 10px;
-        }
-
-        .acord-checkbox input[type="checkbox"] {
-            width: 12px;
-            height: 12px;
-        }
-
-        .acord-legal {
-            font-size: 6px;
-            line-height: 1.3;
-            margin: 10px 0;
-            padding: 8px;
-            background: #f9f9f9;
-            border: 1px solid #ddd;
-        }
-
-        .acord-signature {
-            margin-top: 20px;
-            padding-top: 10px;
-            border-top: 1px solid #000;
-        }
-
-        /* === PRINT STYLES FOR ACORD 25 === */
-        @media print {
-            body { background: white; margin: 0; }
-            header, .back-to-home, #backToHome { display: none !important; }
-            #acord25-form {
-                margin: 0;
-                padding: 0.25in;
-                max-width: none;
-                width: 8.5in;
-            }
-            .acord-input, .acord-textarea {
-                border-bottom: none !important;
-                border: none !important;
-            }
-            .acord-legal { background: white; border: none; }
-            @page { margin: 0.25in; size: letter; }
-        }
     </style>
 </head>
 <body>
-
-    <!-- LANDING PAGE -->
-    <div id="landingPage" class="landing-page">
-        <div class="landing-header">
-            <h1>🏠 Altech Insurance Tools</h1>
-            <p>Modern insurance tools powered by AI</p>
-        </div>
-
-        <div class="tools-container">
-            <div class="tools-grid">
-
-                <!-- Personal Lines Quoting Tool -->
-                <div class="tool-card" onclick="App.openTool('quoting')">
-                    <span class="tool-icon">📋</span>
-                    <h3 class="tool-title">Personal Lines Quoting</h3>
-                    <p class="tool-description">AI-powered insurance intake for Home & Auto policies with multi-format exports.</p>
-                    <ul class="tool-features">
-                        <li>Document scanning (policy, driver license)</li>
-                        <li>Multi-driver & multi-vehicle support</li>
-                        <li>GIS property auto-fill (15+ fields)</li>
-                        <li>Export to EZLynx, HawkSoft, PDF, CSV</li>
-                    </ul>
-                    <span class="tool-status ready">✓ Ready</span>
-                </div>
-
-                <!-- COI Generator -->
-                <div class="tool-card" onclick="App.openTool('coi')">
-                    <span class="tool-icon">📄</span>
-                    <h3 class="tool-title">COI Generator</h3>
-                    <p class="tool-description">Instant ACORD 25 Certificates of Insurance for contractors and businesses.</p>
-                    <ul class="tool-features">
-                        <li>Generate COIs in under 3 minutes</li>
-                        <li>Add additional insureds</li>
-                        <li>Custom endorsements (CG 20 10, CG 20 37)</li>
-                        <li>Save certificate templates</li>
-                    </ul>
-                    <span class="tool-status ready">✓ Ready</span>
-                </div>
-
-                <!-- COI Compliance Tracker -->
-                <div class="tool-card coming-soon">
-                    <span class="tool-icon">🔍</span>
-                    <h3 class="tool-title">COI Compliance Tracker</h3>
-                    <p class="tool-description">Automated subcontractor certificate tracking and compliance verification.</p>
-                    <ul class="tool-features">
-                        <li>Auto-extract COI data from PDFs</li>
-                        <li>Flag missing endorsements</li>
-                        <li>Expiration reminders</li>
-                        <li>Compliance dashboard</li>
-                    </ul>
-                    <span class="tool-status soon">Coming Soon</span>
-                </div>
-
-                <!-- Expiry Reminder System -->
-                <div class="tool-card coming-soon">
-                    <span class="tool-icon">🔔</span>
-                    <h3 class="tool-title">Expiry Reminders</h3>
-                    <p class="tool-description">Automated policy renewal reminders to prevent coverage lapses.</p>
-                    <ul class="tool-features">
-                        <li>45/30/15-day reminder sequence</li>
-                        <li>Email & SMS notifications</li>
-                        <li>Track renewal status</li>
-                        <li>Prevent coverage gaps</li>
-                    </ul>
-                    <span class="tool-status soon">Coming Soon</span>
-                </div>
-
-                <!-- Premium Calculator -->
-                <div class="tool-card coming-soon">
-                    <span class="tool-icon">💰</span>
-                    <h3 class="tool-title">Premium Estimator</h3>
-                    <p class="tool-description">Predictive premium modeling with real-time feedback on operational changes.</p>
-                    <ul class="tool-features">
-                        <li>Real-time premium estimates</li>
-                        <li>Impact of revenue/payroll changes</li>
-                        <li>Audit surprise prevention</li>
-                        <li>Historical data analysis</li>
-                    </ul>
-                    <span class="tool-status soon">Coming Soon</span>
-                </div>
-
-                <!-- Policy Language Simplifier -->
-                <div class="tool-card coming-soon">
-                    <span class="tool-icon">💬</span>
-                    <h3 class="tool-title">Policy Q&A Assistant</h3>
-                    <p class="tool-description">AI-powered policy language simplification with plain-English answers.</p>
-                    <ul class="tool-features">
-                        <li>Ask questions about your policy</li>
-                        <li>Plain-English explanations</li>
-                        <li>Cite specific policy sections</li>
-                        <li>Coverage verification</li>
-                    </ul>
-                    <span class="tool-status soon">Coming Soon</span>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <!-- BACK TO HOME BUTTON (hidden by default) -->
-    <div id="backToHome" class="back-to-home" onclick="App.goHome()" style="display:none;">
-        ← Back to Tools
-    </div>
-
-    <!-- QUOTING TOOL CONTAINER -->
-    <div id="quotingTool" class="plugin-container">
 
     <header>
         <div class="header-top">
@@ -1180,10 +907,10 @@
                         </button>
                     </div>
                     <button class="btn-primary" onclick="App.smartAutoFill()" style="margin-top: 12px; width: 100%; font-size: 14px; padding: 12px;" id="smartFillBtn">
-                        🛡️ Scan for Hazards (AI-Powered) <span style="background: #ff9800; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 6px; font-weight: 600;">BETA</span>
+                        🛡️ Scan for Hazards (AI-Powered)
                     </button>
                     <p style="font-size: 11px; color: var(--text-secondary); margin-top: 6px; text-align: center;">
-                        Uses satellite imagery to detect pools, trampolines, and other property features. AI-powered analysis. <span style="color: #ff9800;">Beta: Best results in Multnomah County, OR.</span>
+                        Uses satellite imagery to detect pools, trampolines, and other property features. AI-powered analysis.
                     </p>
                 </div>
             </div>
@@ -3455,23 +3182,11 @@
                             </div>
                         </div>
 
-                        <div class="grid-2">
-                            <div>
-                                <label class="label">Gender</label>
-                                <select onchange="App.updateDriver('${driver.id}', 'gender', this.value)">
-                                    <option value="">Select...</option>
-                                    <option value="M" ${driver.gender === 'M' ? 'selected' : ''}>Male</option>
-                                    <option value="F" ${driver.gender === 'F' ? 'selected' : ''}>Female</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="label">Occupation</label>
-                                <input type="text" value="${driver.occupation || ''}"
-                                    onchange="App.updateDriver('${driver.id}', 'occupation', this.value)"
-                                    placeholder="Occupation">
-                            </div>
-                        </div>
-
+                        <label class="label">Occupation</label>
+                        <input type="text" value="${driver.occupation || ''}" 
+                            onchange="App.updateDriver('${driver.id}', 'occupation', this.value)" 
+                            placeholder="Occupation">
+                        
                         <label class="label">Driver's License</label>
                         <div class="export-row" style="margin-bottom:10px; align-items:center;">
                             <button class="btn btn-tertiary" onclick="App.openDriverLicensePicker('${driver.id}')">📸 Scan Driver's License</button>
@@ -3733,17 +3448,14 @@
                     btn.disabled = true;
                     btn.innerHTML = '🔄 Querying official county records...';
                     
-                    const arcgisResponse = await fetch(`/api/arcgis-consumer?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}`);
-
+                    const arcgisResponse = await fetch(`/api/arcgis-consumer.js?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}`);
+                    
                     if (arcgisResponse.ok) {
                         const arcgisData = await arcgisResponse.json();
-
+                        
                         if (arcgisData.success && arcgisData.parcelData) {
                             rawParcelData = arcgisData.parcelData;
                             dataSource = 'phase1-arcgis';
-                        } else {
-                            // Log the actual error from Phase 1
-                            console.warn('Phase 1 (ArcGIS API) failed:', arcgisData.error || 'Unknown error', arcgisData);
                         }
                     }
                     
@@ -3752,17 +3464,14 @@
                         btn.innerHTML = '🔄 Accessing county database...';
                         
                         const gisUrl = this.getGISUrlForCounty(city, state);
-                        const browserResponse = await fetch(`/api/headless-browser?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}&gisUrl=${encodeURIComponent(gisUrl || '')}`);
+                        const browserResponse = await fetch(`/api/headless-browser.js?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}&gisUrl=${encodeURIComponent(gisUrl || '')}`);
                         
                         if (browserResponse.ok) {
                             const browserData = await browserResponse.json();
-
+                            
                             if (browserData.success && browserData.parcelData) {
                                 rawParcelData = browserData.parcelData;
                                 dataSource = 'phase2-browser';
-                            } else {
-                                // Log the actual error from Phase 2
-                                console.warn('Phase 2 (Headless Browser) failed:', browserData.error || 'Unknown error', browserData);
                             }
                         }
                     }
@@ -3771,7 +3480,7 @@
                     if (rawParcelData) {
                         btn.innerHTML = '🧠 Standardizing property data...';
                         
-                        const ragResponse = await fetch('/api/rag-interpreter', {
+                        const ragResponse = await fetch('/api/rag-interpreter.js', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -3950,16 +3659,10 @@
                 
                 const fields = [
                     { label: 'Year Built', value: parcelData.yearBuilt || 'N/A' },
-                    { label: 'Stories', value: parcelData.stories > 0 ? parcelData.stories : 'N/A' },
-                    { label: 'Total Sq Ft', value: parcelData.totalSqft > 0 ? parcelData.totalSqft.toLocaleString() : 'N/A' },
                     { label: 'Lot Size', value: parcelData.lotSizeAcres > 0 ? `${parcelData.lotSizeAcres.toFixed(2)} acres` : 'N/A' },
-                    { label: 'Bedrooms', value: parcelData.bedrooms > 0 ? parcelData.bedrooms : 'N/A' },
-                    { label: 'Bathrooms', value: parcelData.bathrooms > 0 ? parcelData.bathrooms : 'N/A' },
-                    { label: 'Garage Spaces', value: parcelData.garageSpaces > 0 ? parcelData.garageSpaces : (parcelData.garageSqft > 0 ? `${Math.round(parcelData.garageSqft / 180)} (est.)` : 'N/A') },
-                    { label: 'Foundation', value: parcelData.foundationType || 'N/A' },
-                    { label: 'Roof Type', value: parcelData.roofType || 'N/A' },
-                    { label: 'Heating Type', value: parcelData.heatingType || 'N/A' },
-                    { label: 'Construction', value: parcelData.constructionStyle || 'N/A' },
+                    { label: 'Total Sq Ft', value: parcelData.totalSqft > 0 ? parcelData.totalSqft.toLocaleString() : 'N/A' },
+                    { label: 'Stories', value: parcelData.stories > 0 ? parcelData.stories : 'N/A' },
+                    { label: 'Garage Sq Ft', value: parcelData.garageSqft > 0 ? parcelData.garageSqft.toLocaleString() : 'N/A' },
                     { label: 'Land Use', value: parcelData.landUse || 'N/A' }
                 ];
                 
@@ -4043,123 +3746,38 @@
 
             applyParcelData(parcelData) {
                 // Auto-fill form fields from official county parcel data
-                let fieldsApplied = 0;
-
-                // Basic property info
-                if (parcelData.yearBuilt && parcelData.yearBuilt > 0) {
-                    const field = document.getElementById('yrBuilt');
-                    if (field) { field.value = parcelData.yearBuilt; this.data.yrBuilt = parcelData.yearBuilt; fieldsApplied++; }
+                if (parcelData.yearBuilt) {
+                    document.getElementById('yearBuilt').value = parcelData.yearBuilt;
+                    this.data.yearBuilt = parcelData.yearBuilt;
                 }
-
-                if (parcelData.stories && parcelData.stories > 0) {
-                    const field = document.getElementById('numStories');
-                    if (field) { field.value = parcelData.stories; this.data.numStories = parcelData.stories; fieldsApplied++; }
+                
+                if (parcelData.stories > 0) {
+                    document.getElementById('numStories').value = parcelData.stories;
+                    this.data.numStories = parcelData.stories;
                 }
-
-                if (parcelData.totalSqft && parcelData.totalSqft > 0) {
-                    const field = document.getElementById('sqFt');
-                    if (field) { field.value = parcelData.totalSqft; this.data.sqFt = parcelData.totalSqft; fieldsApplied++; }
-                }
-
-                if (parcelData.lotSizeAcres && parcelData.lotSizeAcres > 0) {
-                    const field = document.getElementById('lotSize');
-                    if (field) { field.value = parcelData.lotSizeAcres.toFixed(2); this.data.lotSize = parcelData.lotSizeAcres.toFixed(2); fieldsApplied++; }
-                }
-
-                // Garage info
-                if (parcelData.garageSpaces && parcelData.garageSpaces > 0) {
-                    const field = document.getElementById('garageSpaces');
-                    if (field) { field.value = parcelData.garageSpaces; this.data.garageSpaces = parcelData.garageSpaces; fieldsApplied++; }
-                } else if (parcelData.garageSqft && parcelData.garageSqft > 0) {
+                
+                if (parcelData.garageSqft > 0) {
                     // Estimate garage spaces (1 space ≈ 180 sq ft)
                     const garageSpaces = Math.round(parcelData.garageSqft / 180);
-                    const field = document.getElementById('garageSpaces');
-                    if (field) { field.value = garageSpaces; this.data.garageSpaces = garageSpaces; fieldsApplied++; }
+                    document.getElementById('garageSpaces').value = garageSpaces;
+                    this.data.garageSpaces = garageSpaces;
                 }
-
-                // NEW: Bedrooms
-                if (parcelData.bedrooms && parcelData.bedrooms > 0) {
-                    const field = document.getElementById('bedrooms');
-                    if (field) { field.value = parcelData.bedrooms; this.data.bedrooms = parcelData.bedrooms; fieldsApplied++; }
+                
+                if (parcelData.lotSizeAcres > 0) {
+                    document.getElementById('lotSize').value = parcelData.lotSizeAcres.toFixed(2);
+                    this.data.lotSize = parcelData.lotSizeAcres.toFixed(2);
                 }
-
-                // NEW: Bathrooms
-                if (parcelData.bathrooms && parcelData.bathrooms > 0) {
-                    const field = document.getElementById('fullBaths');
-                    if (field) {
-                        // Split into full and half baths (e.g., 2.5 → 2 full, 1 half)
-                        const fullBaths = Math.floor(parcelData.bathrooms);
-                        const halfBaths = (parcelData.bathrooms % 1) >= 0.5 ? 1 : 0;
-                        field.value = fullBaths;
-                        this.data.fullBaths = fullBaths;
-                        fieldsApplied++;
-
-                        const halfField = document.getElementById('halfBaths');
-                        if (halfField && halfBaths > 0) {
-                            halfField.value = halfBaths;
-                            this.data.halfBaths = halfBaths;
-                        }
-                    }
+                
+                if (parcelData.totalSqft > 0) {
+                    document.getElementById('squareFeet').value = parcelData.totalSqft;
+                    this.data.squareFeet = parcelData.totalSqft;
                 }
-
-                // NEW: Foundation Type
-                if (parcelData.foundationType && parcelData.foundationType !== 'Unknown') {
-                    const field = document.getElementById('foundation');
-                    if (field) {
-                        // Try to match to existing select options
-                        const options = Array.from(field.options).map(opt => opt.value);
-                        if (options.includes(parcelData.foundationType)) {
-                            field.value = parcelData.foundationType;
-                            this.data.foundation = parcelData.foundationType;
-                            fieldsApplied++;
-                        }
-                    }
-                }
-
-                // NEW: Roof Type
-                if (parcelData.roofType && parcelData.roofType !== 'Unknown') {
-                    const field = document.getElementById('roofType');
-                    if (field) {
-                        const options = Array.from(field.options).map(opt => opt.value);
-                        if (options.includes(parcelData.roofType)) {
-                            field.value = parcelData.roofType;
-                            this.data.roofType = parcelData.roofType;
-                            fieldsApplied++;
-                        }
-                    }
-                }
-
-                // NEW: Heating Type
-                if (parcelData.heatingType && parcelData.heatingType !== 'Unknown') {
-                    const field = document.getElementById('heatingType');
-                    if (field) {
-                        const options = Array.from(field.options).map(opt => opt.value);
-                        if (options.includes(parcelData.heatingType)) {
-                            field.value = parcelData.heatingType;
-                            this.data.heatingType = parcelData.heatingType;
-                            fieldsApplied++;
-                        }
-                    }
-                }
-
-                // NEW: Construction Style
-                if (parcelData.constructionStyle && parcelData.constructionStyle !== 'Unknown') {
-                    const field = document.getElementById('constructionStyle');
-                    if (field) {
-                        const options = Array.from(field.options).map(opt => opt.value);
-                        if (options.includes(parcelData.constructionStyle)) {
-                            field.value = parcelData.constructionStyle;
-                            this.data.constructionStyle = parcelData.constructionStyle;
-                            fieldsApplied++;
-                        }
-                    }
-                }
-
+                
                 // Save changes
-                this.save();
-
-                // Show success toast with count
-                this.toast(`✅ Auto-filled ${fieldsApplied} field${fieldsApplied !== 1 ? 's' : ''} from county data`);
+                localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+                
+                // Show success toast
+                this.showSaveIndicator();
             },
 
             showHazardDetectionPopup(detections, satelliteImage, address) {
@@ -5400,9 +5018,6 @@
 
             getCountyFromCity(city, state) {
                 // Map city to county for display and reference
-                // Normalize city to lowercase for lookup
-                const cityLower = (city || '').toLowerCase().trim();
-
                 const cityToCounty = {
                     'WA': {
                         'vancouver': 'Clark', 'camas': 'Clark', 'battle ground': 'Clark', 'ridgefield': 'Clark', 'la center': 'Clark', 'washougal': 'Clark',
@@ -5437,9 +5052,9 @@
                         'yuma': 'Yuma', 'san luis': 'Yuma', 'somerton': 'Yuma',
                     }
                 };
-
-                if (cityToCounty[state] && cityToCounty[state][cityLower]) {
-                    return cityToCounty[state][cityLower];
+                
+                if (cityToCounty[state] && cityToCounty[state][city]) {
+                    return cityToCounty[state][city];
                 }
                 return null;
             },
@@ -5638,25 +5253,20 @@
                     'san luis': 'https://www.yumacountyaz.gov/government/assessor',
                     'somerton': 'https://www.yumacountyaz.gov/government/assessor',
                 };
-
-                // Normalize city to lowercase for lookup (user might type "Portland" but key is "portland")
-                const cityLower = (city || '').toLowerCase().trim();
-
+                
                 // Check if we have a direct GIS link for this city
-                if (state === 'WA' && waCountyGIS[cityLower]) {
-                    window.open(waCountyGIS[cityLower], '_blank');
+                if (state === 'WA' && waCountyGIS[city]) {
+                    window.open(waCountyGIS[city], '_blank');
                     return;
                 }
-
-                if (state === 'OR' && orCountyGIS[cityLower]) {
-                    // Portland Maps doesn't support URL-based search, just open homepage
-                    // User can enter address in the search box at top of page
-                    window.open(orCountyGIS[cityLower], '_blank');
+                
+                if (state === 'OR' && orCountyGIS[city]) {
+                    window.open(orCountyGIS[city], '_blank');
                     return;
                 }
-
-                if (state === 'AZ' && azCountyGIS[cityLower]) {
-                    window.open(azCountyGIS[cityLower], '_blank');
+                
+                if (state === 'AZ' && azCountyGIS[city]) {
+                    window.open(azCountyGIS[city], '_blank');
                     return;
                 }
                 
@@ -5926,27 +5536,17 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 }
                 
                 if (data.qType === 'auto' || data.qType === 'both') {
-                    if (data.vehicles && data.vehicles.length) {
-                        // Use vehicles array
-                        const vehicleLines = data.vehicles.map((v, i) => {
-                            const vehDesc = [v.year, v.make, v.model].filter(Boolean).join(' ');
-                            return `Vehicle ${i + 1}: ${vehDesc || 'Unknown'} | VIN: ${v.vin || ''} | Use: ${v.use || ''} | Miles: ${v.miles || ''} | Primary Driver: ${v.primaryDriver || ''}`;
-                        }).join('\n');
-                        addSection('Vehicles', [['Vehicles', vehicleLines]]);
-                    } else {
-                        // Fallback to flat fields
-                        addSection('Vehicle Information', [
-                            ['VIN', data.vin || ''],
-                            ['Vehicle', data.vehDesc || ''],
-                            ['License Number', data.dlNum || ''],
-                            ['License State', data.dlState || ''],
-                            ['Vehicle Use', data.use || ''],
-                            ['Annual Miles', data.miles || ''],
-                            ['Commute Distance', data.commuteDist || ''],
-                            ['Ridesharing', data.rideSharing || ''],
-                            ['Telematics', data.telematics || '']
-                        ]);
-                    }
+                    addSection('Vehicle Information', [
+                        ['VIN', data.vin || ''],
+                        ['Vehicle', data.vehDesc || ''],
+                        ['License Number', data.dlNum || ''],
+                        ['License State', data.dlState || ''],
+                        ['Vehicle Use', data.use || ''],
+                        ['Annual Miles', data.miles || ''],
+                        ['Commute Distance', data.commuteDist || ''],
+                        ['Ridesharing', data.rideSharing || ''],
+                        ['Telematics', data.telematics || '']
+                    ]);
                 }
                 
                 addSection('Coverage & History', [
@@ -6260,21 +5860,20 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     return d.toISOString().split('T')[0];
                 };
 
-                // Use arrays if available, otherwise fall back to flat fields
-                const drivers = (data.drivers && data.drivers.length > 0) ? data.drivers : null;
-                const vehicles = (data.vehicles && data.vehicles.length > 0) ? data.vehicles : null;
+                const parseVehicle = (desc) => {
+                    const match = desc?.match(/(\d{4})\s+([A-Z]+)\s+(.+)/i);
+                    return {
+                        year: match?.[1] || '',
+                        make: match?.[2] || '',
+                        model: match?.[3]?.trim() || ''
+                    };
+                };
 
-                // Get primary applicant info (use first driver if array exists, otherwise use flat fields)
-                const primaryDriver = drivers ? drivers[0] : data;
-                const firstName = primaryDriver.firstName || data.firstName || '';
-                const lastName = primaryDriver.lastName || data.lastName || '';
-                const dob = normalizeDate(primaryDriver.dob || data.dob);
-
-                // Validation
-                if (!firstName || !lastName) {
+                const state = (data.addrState || '').trim().toUpperCase();
+                const dob = normalizeDate(data.dob);
+                if (!data.firstName || !data.lastName) {
                     return { ok: false, error: '⚠️ First and last name are required for EZLynx XML.' };
                 }
-                const state = (data.addrState || '').trim().toUpperCase();
                 if (!state || !/^[A-Z]{2}$/.test(state)) {
                     return { ok: false, error: '⚠️ A valid 2-letter state is required for EZLynx XML.' };
                 }
@@ -6283,6 +5882,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 }
 
                 const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
+                const { year, make, model } = parseVehicle(data.vehDesc);
                 const streetRaw = (data.addrStreet || '').trim();
                 const streetMatch = streetRaw.match(/^(\d+)\s+(.*)$/);
                 const streetNumber = streetMatch?.[1] || '';
@@ -6291,14 +5891,13 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
                 xml += '<EZAUTO xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200">\n';
 
-                // Applicant section (primary contact info)
                 xml += '  <Applicant>\n';
                 xml += '    <ApplicantType>Applicant</ApplicantType>\n';
                 xml += '    <PersonalInfo>\n';
                 xml += '      <Name>\n';
-                xml += `        <FirstName>${escapeXML(firstName)}</FirstName>\n`;
+                xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
                 xml += '        <MiddleName></MiddleName>\n';
-                xml += `        <LastName>${escapeXML(lastName)}</LastName>\n`;
+                xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
                 xml += '      </Name>\n';
                 xml += `      <DOB>${dob}</DOB>\n`;
                 if (data.maritalStatus) {
@@ -6328,7 +5927,6 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 xml += '    </Address>\n';
                 xml += '  </Applicant>\n';
 
-                // Prior Policy Info
                 if (data.priorCarrier || data.priorYears || data.priorExp) {
                     xml += '  <PriorPolicyInfo>\n';
                     if (data.priorCarrier) {
@@ -6345,150 +5943,59 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     xml += '  </PriorPolicyInfo>\n';
                 }
 
-                // Drivers section - iterate over drivers array or use flat fields
                 xml += '  <Drivers>\n';
-                if (drivers) {
-                    // Use drivers array
-                    drivers.forEach((driver, index) => {
-                        const driverDob = normalizeDate(driver.dob);
-                        const driverId = index + 1;
-                        const isFirstDriver = index === 0;
-
-                        xml += `    <Driver id="${driverId}">\n`;
-                        xml += '      <Name>\n';
-                        xml += `        <FirstName>${escapeXML(driver.firstName || '')}</FirstName>\n`;
-                        xml += `        <LastName>${escapeXML(driver.lastName || '')}</LastName>\n`;
-                        xml += '      </Name>\n';
-                        if (driverDob) {
-                            xml += `      <DOB>${driverDob}</DOB>\n`;
-                        }
-                        if (driver.gender || data.gender) {
-                            xml += `      <Gender>${escapeXML(driver.gender || data.gender)}</Gender>\n`;
-                        }
-                        if (driver.dlNum) {
-                            xml += `      <DLNumber>${escapeXML(driver.dlNum)}</DLNumber>\n`;
-                        }
-                        if (driver.dlState) {
-                            xml += `      <DLState>${escapeXML(driver.dlState)}</DLState>\n`;
-                        }
-                        if (driver.relationship || data.maritalStatus) {
-                            const relation = isFirstDriver ? 'Insured' : (driver.relationship || 'Other');
-                            xml += `      <Relation>${escapeXML(relation)}</Relation>\n`;
-                        } else {
-                            xml += `      <Relation>${isFirstDriver ? 'Insured' : 'Other'}</Relation>\n`;
-                        }
-                        if (data.maritalStatus) {
-                            xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
-                        }
-                        xml += '      <GoodStudent>No</GoodStudent>\n';
-                        xml += '      <MATDriver>No</MATDriver>\n';
-                        xml += '      <Rated>Rated</Rated>\n';
-                        xml += '    </Driver>\n';
-                    });
-                } else {
-                    // Fallback to flat fields for backward compatibility
-                    xml += '    <Driver id="1">\n';
-                    xml += '      <Name>\n';
-                    xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
-                    xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
-                    xml += '      </Name>\n';
-                    xml += `      <DOB>${dob}</DOB>\n`;
-                    if (data.gender) {
-                        xml += `      <Gender>${escapeXML(data.gender)}</Gender>\n`;
-                    }
-                    if (data.dlNum) {
-                        xml += `      <DLNumber>${escapeXML(data.dlNum)}</DLNumber>\n`;
-                    }
-                    if (data.dlState) {
-                        xml += `      <DLState>${escapeXML(data.dlState)}</DLState>\n`;
-                    }
-                    if (data.maritalStatus) {
-                        xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
-                    }
-                    xml += '      <Relation>Insured</Relation>\n';
-                    xml += '      <GoodStudent>No</GoodStudent>\n';
-                    xml += '      <MATDriver>No</MATDriver>\n';
-                    xml += '      <Rated>Rated</Rated>\n';
-                    xml += '    </Driver>\n';
+                xml += '    <Driver id="1">\n';
+                xml += '      <Name>\n';
+                xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
+                xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
+                xml += '      </Name>\n';
+                xml += `      <DOB>${dob}</DOB>\n`;
+                if (data.dlNum) {
+                    xml += `      <DLNumber>${escapeXML(data.dlNum)}</DLNumber>\n`;
                 }
+                if (data.dlState) {
+                    xml += `      <DLState>${escapeXML(data.dlState)}</DLState>\n`;
+                }
+                if (data.maritalStatus) {
+                    xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
+                }
+                xml += '      <Relation>Insured</Relation>\n';
+                xml += '      <GoodStudent>No</GoodStudent>\n';
+                xml += '      <MATDriver>No</MATDriver>\n';
+                xml += '      <Rated>Rated</Rated>\n';
+                xml += '    </Driver>\n';
                 xml += '  </Drivers>\n';
 
-                // Vehicles section - iterate over vehicles array or use flat fields
-                if (vehicles || data.vin || data.vehDesc) {
+                if (data.vin || data.vehDesc) {
                     xml += '  <Vehicles>\n';
-                    if (vehicles) {
-                        // Use vehicles array
-                        vehicles.forEach((vehicle, index) => {
-                            const vehicleId = index + 1;
-                            xml += `    <Vehicle id="${vehicleId}">\n`;
-                            xml += '      <UseVinLookup>Yes</UseVinLookup>\n';
-                            if (vehicle.year) {
-                                xml += `      <Year>${escapeXML(vehicle.year)}</Year>\n`;
-                            }
-                            if (vehicle.vin) {
-                                xml += `      <Vin>${escapeXML(vehicle.vin)}</Vin>\n`;
-                            }
-                            if (vehicle.make) {
-                                xml += `      <Make>${escapeXML(vehicle.make)}</Make>\n`;
-                            }
-                            if (vehicle.model) {
-                                xml += `      <Model>${escapeXML(vehicle.model)}</Model>\n`;
-                            }
-                            xml += '      <Anti-Theft>None</Anti-Theft>\n';
-                            xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
-                            xml += '    </Vehicle>\n';
-                        });
-                    } else {
-                        // Fallback to flat fields
-                        const parseVehicle = (desc) => {
-                            const match = desc?.match(/(\d{4})\s+([A-Z]+)\s+(.+)/i);
-                            return {
-                                year: match?.[1] || '',
-                                make: match?.[2] || '',
-                                model: match?.[3]?.trim() || ''
-                            };
-                        };
-                        const { year, make, model } = parseVehicle(data.vehDesc);
-
-                        xml += '    <Vehicle id="1">\n';
-                        xml += '      <UseVinLookup>Yes</UseVinLookup>\n';
-                        if (year) {
-                            xml += `      <Year>${escapeXML(year)}</Year>\n`;
-                        }
-                        if (data.vin) {
-                            xml += `      <Vin>${escapeXML(data.vin)}</Vin>\n`;
-                        }
-                        if (make) {
-                            xml += `      <Make>${escapeXML(make)}</Make>\n`;
-                        }
-                        if (model) {
-                            xml += `      <Model>${escapeXML(model)}</Model>\n`;
-                        }
-                        xml += '      <Anti-Theft>None</Anti-Theft>\n';
-                        xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
-                        xml += '    </Vehicle>\n';
+                    xml += '    <Vehicle id="1">\n';
+                    xml += '      <UseVinLookup>Yes</UseVinLookup>\n';
+                    if (year) {
+                        xml += `      <Year>${escapeXML(year)}</Year>\n`;
                     }
+                    if (data.vin) {
+                        xml += `      <Vin>${escapeXML(data.vin)}</Vin>\n`;
+                    }
+                    if (make) {
+                        xml += `      <Make>${escapeXML(make)}</Make>\n`;
+                    }
+                    if (model) {
+                        xml += `      <Model>${escapeXML(model)}</Model>\n`;
+                    }
+                    xml += '      <Anti-Theft>None</Anti-Theft>\n';
+                    xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
+                    xml += '    </Vehicle>\n';
                     xml += '  </Vehicles>\n';
 
-                    // VehiclesUse section - mileage per vehicle
-                    xml += '  <VehiclesUse>\n';
-                    if (vehicles) {
-                        vehicles.forEach((vehicle, index) => {
-                            const vehicleId = index + 1;
-                            const miles = vehicle.miles || '12000';
-                            xml += `    <VehicleUse id="${vehicleId}">\n`;
-                            xml += `      <AnnualMiles>${escapeXML(miles)}</AnnualMiles>\n`;
-                            xml += '    </VehicleUse>\n';
-                        });
-                    } else if (data.miles) {
+                    if (data.miles) {
+                        xml += '  <VehiclesUse>\n';
                         xml += '    <VehicleUse id="1">\n';
                         xml += `      <AnnualMiles>${escapeXML(data.miles)}</AnnualMiles>\n`;
                         xml += '    </VehicleUse>\n';
+                        xml += '  </VehiclesUse>\n';
                     }
-                    xml += '  </VehiclesUse>\n';
                 }
 
-                // Coverages section
                 if (data.liabilityLimits || data.autoDeductible) {
                     xml += '  <Coverages>\n';
                     if (data.liabilityLimits) {
@@ -6497,13 +6004,9 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         xml += '    </GeneralCoverage>\n';
                     }
                     if (data.autoDeductible) {
-                        // Add vehicle coverage for each vehicle
-                        const vehicleCount = vehicles ? vehicles.length : 1;
-                        for (let i = 1; i <= vehicleCount; i++) {
-                            xml += `    <VehicleCoverage id="${i}">\n`;
-                            xml += `      <CollisionDeductible>${escapeXML(data.autoDeductible)}</CollisionDeductible>\n`;
-                            xml += '    </VehicleCoverage>\n';
-                        }
+                        xml += '    <VehicleCoverage id="1">\n';
+                        xml += `      <CollisionDeductible>${escapeXML(data.autoDeductible)}</CollisionDeductible>\n`;
+                        xml += '    </VehicleCoverage>\n';
                     }
                     xml += '  </Coverages>\n';
                 }
@@ -6513,7 +6016,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 return {
                     ok: true,
                     content: xml,
-                    filename: `${lastName || 'Lead'}_EZLynx.xml`,
+                    filename: `${data.lastName || 'Lead'}_EZLynx.xml`,
                     mime: 'application/xml;charset=utf-8'
                 };
             },
@@ -6993,489 +6496,11 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     reader.onerror = reject;
                     reader.readAsDataURL(blob);
                 });
-            },
-
-            // PLUGIN NAVIGATION
-            openTool(toolName) {
-                // Hide landing page
-                document.getElementById('landingPage').style.display = 'none';
-
-                // Show back button
-                document.getElementById('backToHome').style.display = 'block';
-
-                // Show the selected tool
-                if (toolName === 'quoting') {
-                    const tool = document.getElementById('quotingTool');
-                    tool.classList.add('active');
-                    tool.style.display = 'block';
-
-                    // Initialize if first time opening
-                    if (!this.initialized) {
-                        this.init();
-                    }
-                } else if (toolName === 'coi') {
-                    const tool = document.getElementById('coiTool');
-                    tool.classList.add('active');
-                    tool.style.display = 'block';
-
-                    // Initialize COI with agency defaults
-                    COI.init();
-                }
-
-                // Scroll to top
-                window.scrollTo(0, 0);
-            },
-
-            goHome() {
-                // Hide all tools
-                document.querySelectorAll('.plugin-container').forEach(tool => {
-                    tool.classList.remove('active');
-                    tool.style.display = 'none';
-                });
-
-                // Hide back button
-                document.getElementById('backToHome').style.display = 'none';
-
-                // Show landing page
-                document.getElementById('landingPage').style.display = 'flex';
-
-                // Scroll to top
-                window.scrollTo(0, 0);
             }
         };
         window.initPlaces = () => App.initPlaces();
 
-        // COI Generator Object
-        const COI = {
-            // Default agency information (from Altech Insurance Agency)
-            agencyDefaults: {
-                name: 'Altech Insurance Agency',
-                phone: '(360) 573-3080',
-                fax: '(360) 573-7750',
-                email: 'austin@altechinsurance.com',
-                address: '7813 NE 13th Ave',
-                city: 'Vancouver',
-                state: 'WA',
-                zip: '98665'
-            },
-
-            init() {
-                // Auto-fill agency information
-                document.getElementById('coiProducerName').value = this.agencyDefaults.name;
-                document.getElementById('coiProducerPhone').value = this.agencyDefaults.phone;
-                document.getElementById('coiProducerFax').value = this.agencyDefaults.fax;
-                document.getElementById('coiProducerEmail').value = this.agencyDefaults.email;
-                document.getElementById('coiProducerAddress').value = this.agencyDefaults.address;
-                document.getElementById('coiProducerCity').value = this.agencyDefaults.city;
-                document.getElementById('coiProducerState').value = this.agencyDefaults.state;
-                document.getElementById('coiProducerZip').value = this.agencyDefaults.zip;
-
-                // Set today's date
-                const today = new Date().toISOString().split('T')[0];
-                document.getElementById('coiDate').value = today;
-
-                // Generate certificate number (format: 00017905-0 5)
-                const certNumber = this.generateCertNumber();
-                document.getElementById('coiCertNumber').value = certNumber;
-
-                // Set revision to 0 by default
-                document.getElementById('coiRevNumber').value = '0';
-
-                // Try to load any saved draft
-                this.load();
-
-                console.log('COI Generator initialized with agency defaults');
-            },
-
-            generateCertNumber() {
-                // Generate certificate number in format: 00017905-0 5
-                // First 8 digits are sequential, last 2 are random/revision identifiers
-                const timestamp = Date.now().toString().slice(-8);
-                const suffix = Math.floor(Math.random() * 10);
-                const revision = Math.floor(Math.random() * 10);
-                return `${timestamp}-${suffix} ${revision}`;
-            },
-
-            printCOI() {
-                window.print();
-            },
-
-            // Collect all form data
-            getData() {
-                return {
-                    producer: {
-                        name: document.getElementById('coiProducerName').value,
-                        phone: document.getElementById('coiProducerPhone').value,
-                        fax: document.getElementById('coiProducerFax').value,
-                        email: document.getElementById('coiProducerEmail').value,
-                        address: document.getElementById('coiProducerAddress').value,
-                        city: document.getElementById('coiProducerCity').value,
-                        state: document.getElementById('coiProducerState').value,
-                        zip: document.getElementById('coiProducerZip').value
-                    },
-                    insured: {
-                        name: document.getElementById('coiInsuredName').value,
-                        address: document.getElementById('coiInsuredAddress').value,
-                        city: document.getElementById('coiInsuredCity').value,
-                        state: document.getElementById('coiInsuredState').value,
-                        zip: document.getElementById('coiInsuredZip').value
-                    },
-                    insurers: {
-                        a: { name: document.getElementById('coiInsurerA').value, naic: document.getElementById('coiInsurerANaic').value },
-                        b: { name: document.getElementById('coiInsurerB').value, naic: document.getElementById('coiInsurerBNaic').value },
-                        c: { name: document.getElementById('coiInsurerC').value, naic: document.getElementById('coiInsurerCNaic').value },
-                        d: { name: document.getElementById('coiInsurerD').value, naic: document.getElementById('coiInsurerDNaic').value }
-                    },
-                    gl: {
-                        policy: document.getElementById('coiGlPolicy').value,
-                        effective: document.getElementById('coiGlEffective').value,
-                        expiration: document.getElementById('coiGlExpiration').value,
-                        occurrence: document.getElementById('coiGlOccurrence').value,
-                        aggregate: document.getElementById('coiGlAggregate').value
-                    },
-                    auto: {
-                        policy: document.getElementById('coiAutoPolicy').value,
-                        effective: document.getElementById('coiAutoEffective').value,
-                        expiration: document.getElementById('coiAutoExpiration').value,
-                        csl: document.getElementById('coiAutoCsl').value,
-                        type: document.getElementById('coiAutoType').value
-                    },
-                    umbrella: {
-                        policy: document.getElementById('coiUmbrellaPolicy').value,
-                        effective: document.getElementById('coiUmbrellaEffective').value,
-                        expiration: document.getElementById('coiUmbrellaExpiration').value,
-                        occurrence: document.getElementById('coiUmbrellaOccurrence').value,
-                        aggregate: document.getElementById('coiUmbrellaAggregate').value
-                    },
-                    wc: {
-                        policy: document.getElementById('coiWcPolicy').value,
-                        effective: document.getElementById('coiWcEffective').value,
-                        expiration: document.getElementById('coiWcExpiration').value,
-                        accident: document.getElementById('coiWcAccident').value,
-                        disease: document.getElementById('coiWcDisease').value
-                    },
-                    holder: {
-                        name: document.getElementById('coiHolderName').value,
-                        address: document.getElementById('coiHolderAddress').value,
-                        city: document.getElementById('coiHolderCity').value,
-                        state: document.getElementById('coiHolderState').value,
-                        zip: document.getElementById('coiHolderZip').value
-                    },
-                    description: document.getElementById('coiDescription').value,
-                    additionalInsured: document.getElementById('coiAdditionalInsured').value,
-                    endorsements: document.getElementById('coiEndorsements').value,
-                    waiver: document.getElementById('coiWaiver').value
-                };
-            },
-
-            // Save to localStorage
-            save() {
-                const data = this.getData();
-                localStorage.setItem('altech_coi_draft', JSON.stringify(data));
-                console.log('COI draft saved');
-            },
-
-            // Load from localStorage
-            load() {
-                const saved = localStorage.getItem('altech_coi_draft');
-                if (saved) {
-                    const data = JSON.parse(saved);
-                    // TODO: Populate form fields
-                    console.log('COI draft loaded', data);
-                }
-            }
-        };
-
-        window.onload = () => {
-            // Don't auto-init the quoting tool anymore
-            // It will init when user clicks the card
-        };
+        window.onload = () => App.init();
     </script>
-
-    </div> <!-- End quotingTool container -->
-
-    <!-- COI GENERATOR TOOL CONTAINER -->
-    <div id="coiTool" class="plugin-container">
-        <header>
-            <div class="header-top">
-                <div class="logo"><div class="logo-icon">📄</div> COI Generator</div>
-                <button class="btn-utility" onclick="COI.printCOI()" style="font-size: 14px; padding: 8px 16px;">
-                    🖨️ Print/Save PDF
-                </button>
-            </div>
-            <div class="step-title">ACORD 25 Certificate of Insurance</div>
-            <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
-        </header>
-
-        <main style="padding: 20px; padding-bottom: 60px;">
-
-            <div id="acord25-form">
-                <!-- ACORD 25 HEADER -->
-                <div class="acord-header">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="background: #003366; color: white; padding: 8px 16px; font-weight: bold; font-size: 10px; border-radius: 3px;">ACORD</div>
-                        <div style="font-size: 16px; font-weight: bold;">CERTIFICATE OF LIABILITY INSURANCE</div>
-                    </div>
-                    <div style="text-align: right; font-size: 8px; margin-top: 4px;">
-                        <div style="font-weight: bold;">DATE (MM/DD/YYYY)</div>
-                        <input type="date" id="coiDate" class="acord-input" style="width: 120px;">
-                    </div>
-                </div>
-
-                <!-- TWO COLUMN LAYOUT: PRODUCER/INSURED ON LEFT, INSURERS ON RIGHT -->
-                <div class="acord-two-column">
-                    <!-- LEFT COLUMN -->
-                    <div class="acord-column-left">
-                        <!-- PRODUCER BOX -->
-                        <div class="acord-box">
-                            <div class="acord-box-label">PRODUCER</div>
-                            <input type="text" id="coiProducerName" class="acord-input" placeholder="Agency Name" style="font-weight: bold; font-size: 10px;">
-                            <input type="text" id="coiProducerAddress" class="acord-input" placeholder="Address">
-                            <div style="display: flex; gap: 8px;">
-                                <input type="text" id="coiProducerCity" class="acord-input" placeholder="City" style="flex: 2;">
-                                <input type="text" id="coiProducerState" class="acord-input" placeholder="ST" style="width: 40px;">
-                                <input type="text" id="coiProducerZip" class="acord-input" placeholder="ZIP" style="width: 80px;">
-                            </div>
-                            <div style="display: grid; grid-template-columns: auto 1fr; gap: 4px; font-size: 7px; margin-top: 4px;">
-                                <span style="font-weight: bold;">PHONE (A/C, No, Ext):</span>
-                                <input type="tel" id="coiProducerPhone" class="acord-input" style="font-size: 8px;">
-                                <span style="font-weight: bold;">FAX (A/C, No):</span>
-                                <input type="tel" id="coiProducerFax" class="acord-input" style="font-size: 8px;">
-                                <span style="font-weight: bold;">E-MAIL ADDRESS:</span>
-                                <input type="email" id="coiProducerEmail" class="acord-input" style="font-size: 8px;">
-                            </div>
-                        </div>
-
-                        <!-- INSURED BOX -->
-                        <div class="acord-box" style="margin-top: 8px;">
-                            <div class="acord-box-label">INSURED</div>
-                            <input type="text" id="coiInsuredName" class="acord-input" placeholder="Insured Name" style="font-weight: bold; font-size: 10px;">
-                            <input type="text" id="coiInsuredAddress" class="acord-input" placeholder="Address">
-                            <div style="display: flex; gap: 8px;">
-                                <input type="text" id="coiInsuredCity" class="acord-input" placeholder="City" style="flex: 2;">
-                                <input type="text" id="coiInsuredState" class="acord-input" placeholder="ST" style="width: 40px;">
-                                <input type="text" id="coiInsuredZip" class="acord-input" placeholder="ZIP" style="width: 80px;">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- RIGHT COLUMN - INSURERS -->
-                    <div class="acord-column-right">
-                        <div style="font-size: 7px; font-weight: bold; margin-bottom: 4px;">INSURERS AFFORDING COVERAGE</div>
-                        <table class="acord-table" style="font-size: 7px;">
-                            <tr>
-                                <td style="width: 30px; font-weight: bold;">INSURER A:</td>
-                                <td><input type="text" id="coiInsurerA" class="acord-input" placeholder="Insurer Name"></td>
-                                <td style="width: 80px;">
-                                    <span style="font-weight: bold;">NAIC #</span>
-                                    <input type="text" id="coiInsurerANaic" class="acord-input" placeholder="12345" style="width: 60px;">
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="font-weight: bold;">INSURER B:</td>
-                                <td><input type="text" id="coiInsurerB" class="acord-input"></td>
-                                <td><input type="text" id="coiInsurerBNaic" class="acord-input" placeholder="12345" style="width: 60px;"></td>
-                            </tr>
-                            <tr>
-                                <td style="font-weight: bold;">INSURER C:</td>
-                                <td><input type="text" id="coiInsurerC" class="acord-input"></td>
-                                <td><input type="text" id="coiInsurerCNaic" class="acord-input" placeholder="12345" style="width: 60px;"></td>
-                            </tr>
-                            <tr>
-                                <td style="font-weight: bold;">INSURER D:</td>
-                                <td><input type="text" id="coiInsurerD" class="acord-input"></td>
-                                <td><input type="text" id="coiInsurerDNaic" class="acord-input" placeholder="12345" style="width: 60px;"></td>
-                            </tr>
-                            <tr>
-                                <td style="font-weight: bold;">INSURER E:</td>
-                                <td><input type="text" id="coiInsurerE" class="acord-input"></td>
-                                <td><input type="text" id="coiInsurerENaic" class="acord-input" placeholder="12345" style="width: 60px;"></td>
-                            </tr>
-                            <tr>
-                                <td style="font-weight: bold;">INSURER F:</td>
-                                <td><input type="text" id="coiInsurerF" class="acord-input"></td>
-                                <td><input type="text" id="coiInsurerFNaic" class="acord-input" placeholder="12345" style="width: 60px;"></td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- CERTIFICATE NUMBER AND REVISION -->
-                <div style="display: flex; gap: 20px; margin: 10px 0; font-size: 7px;">
-                    <div style="flex: 1;">
-                        <span style="font-weight: bold;">CERTIFICATE NUMBER:</span>
-                        <input type="text" id="coiCertNumber" class="acord-input" placeholder="00000000-0 0" style="width: 150px; margin-left: 8px;">
-                    </div>
-                    <div style="flex: 1;">
-                        <span style="font-weight: bold;">REVISION NUMBER:</span>
-                        <input type="text" id="coiRevNumber" class="acord-input" placeholder="0" style="width: 40px; margin-left: 8px;">
-                    </div>
-                </div>
-
-                <!-- THIS IS TO CERTIFY NOTICE -->
-                <div style="background: #f0f0f0; padding: 6px; font-size: 6px; border: 1px solid #000; margin: 10px 0;">
-                    THIS IS TO CERTIFY THAT THE POLICIES OF INSURANCE LISTED BELOW HAVE BEEN ISSUED TO THE INSURED NAMED ABOVE FOR THE POLICY PERIOD
-                    INDICATED. NOTWITHSTANDING ANY REQUIREMENT, TERM OR CONDITION OF ANY CONTRACT OR OTHER DOCUMENT WITH RESPECT TO WHICH THIS
-                    CERTIFICATE MAY BE ISSUED OR MAY PERTAIN, THE INSURANCE AFFORDED BY THE POLICIES DESCRIBED HEREIN IS SUBJECT TO ALL THE TERMS,
-                    EXCLUSIONS AND CONDITIONS OF SUCH POLICIES. LIMITS SHOWN MAY HAVE BEEN REDUCED BY PAID CLAIMS.
-                </div>
-
-                <!-- COVERAGE TABLE -->
-                <table class="acord-table">
-                    <thead>
-                        <tr style="font-size: 6px; font-weight: bold; background: #e0e0e0;">
-                            <th style="width: 15px;">INSR LTR</th>
-                            <th style="width: 120px;">TYPE OF INSURANCE</th>
-                            <th style="width: 30px;">ADDL INSD</th>
-                            <th style="width: 30px;">SUBR WVD</th>
-                            <th style="width: 100px;">POLICY NUMBER</th>
-                            <th style="width: 70px;">POLICY EFF (MM/DD/YYYY)</th>
-                            <th style="width: 70px;">POLICY EXP (MM/DD/YYYY)</th>
-                            <th>LIMITS</th>
-                        </tr>
-                    </thead>
-                    <tbody style="font-size: 7px;">
-                        <!-- GENERAL LIABILITY ROW -->
-                        <tr>
-                            <td><input type="text" class="acord-input" value="A" style="width: 15px; text-align: center;"></td>
-                            <td>
-                                <div style="font-weight: bold;">COMMERCIAL GENERAL LIABILITY</div>
-                                <div style="display: flex; gap: 8px; margin-top: 2px;">
-                                    <label><input type="checkbox" id="coiGlClaimsMade"> CLAIMS-MADE</label>
-                                    <label><input type="checkbox" id="coiGlOccur" checked> OCCUR</label>
-                                </div>
-                            </td>
-                            <td><input type="checkbox" id="coiGlAddl"></td>
-                            <td><input type="checkbox" id="coiGlSubr"></td>
-                            <td><input type="text" id="coiGlPolicy" class="acord-input"></td>
-                            <td><input type="date" id="coiGlEffective" class="acord-input"></td>
-                            <td><input type="date" id="coiGlExpiration" class="acord-input"></td>
-                            <td style="font-size: 7px;">
-                                <div>EACH OCCURRENCE <input type="text" id="coiGlOccurrence" class="acord-input" style="width: 100px; margin-left: 4px;" placeholder="$1,000,000"></div>
-                                <div>DAMAGE TO RENTED PREMISES <input type="text" id="coiGlRented" class="acord-input" style="width: 100px; margin-left: 4px;" placeholder="$300,000"></div>
-                                <div>MED EXP (Any one person) <input type="text" id="coiGlMed" class="acord-input" style="width: 100px; margin-left: 4px;" placeholder="$10,000"></div>
-                                <div>PERSONAL & ADV INJURY <input type="text" id="coiGlPersonal" class="acord-input" style="width: 100px; margin-left: 4px;" placeholder="$1,000,000"></div>
-                                <div>GENERAL AGGREGATE <input type="text" id="coiGlAggregate" class="acord-input" style="width: 100px; margin-left: 4px;" placeholder="$2,000,000"></div>
-                                <div>PRODUCTS - COMP/OP AGG <input type="text" id="coiGlProducts" class="acord-input" style="width: 100px; margin-left: 4px;" placeholder="$2,000,000"></div>
-                            </td>
-                        </tr>
-
-                        <!-- AUTOMOBILE LIABILITY ROW -->
-                        <tr>
-                            <td><input type="text" class="acord-input" value="B" style="width: 15px; text-align: center;"></td>
-                            <td>
-                                <div style="font-weight: bold;">AUTOMOBILE LIABILITY</div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 2px;">
-                                    <label><input type="checkbox" id="coiAutoAny" checked> ANY AUTO</label>
-                                    <label><input type="checkbox" id="coiAutoOwned"> OWNED<br>AUTOS ONLY</label>
-                                    <label><input type="checkbox" id="coiAutoScheduled"> SCHEDULED<br>AUTOS</label>
-                                    <label><input type="checkbox" id="coiAutoHired"> HIRED AUTOS<br>ONLY</label>
-                                    <label><input type="checkbox" id="coiAutoNonOwned"> NON-OWNED<br>AUTOS ONLY</label>
-                                </div>
-                            </td>
-                            <td><input type="checkbox" id="coiAutoAddl"></td>
-                            <td><input type="checkbox" id="coiAutoSubr"></td>
-                            <td><input type="text" id="coiAutoPolicy" class="acord-input"></td>
-                            <td><input type="date" id="coiAutoEffective" class="acord-input"></td>
-                            <td><input type="date" id="coiAutoExpiration" class="acord-input"></td>
-                            <td style="font-size: 7px;">
-                                <div>COMBINED SINGLE LIMIT <input type="text" id="coiAutoCsl" class="acord-input" style="width: 100px; margin-left: 4px;" placeholder="$1,000,000"></div>
-                                <div>BODILY INJURY (Per person) <input type="text" id="coiAutoBodyPerson" class="acord-input" style="width: 100px; margin-left: 4px;"></div>
-                                <div>BODILY INJURY (Per accident) <input type="text" id="coiAutoBodyAccident" class="acord-input" style="width: 100px; margin-left: 4px;"></div>
-                                <div>PROPERTY DAMAGE <input type="text" id="coiAutoProp" class="acord-input" style="width: 100px; margin-left: 4px;"></div>
-                            </td>
-                        </tr>
-
-                        <!-- UMBRELLA LIABILITY ROW -->
-                        <tr>
-                            <td><input type="text" class="acord-input" value="D" style="width: 15px; text-align: center;"></td>
-                            <td>
-                                <div style="font-weight: bold;">UMBRELLA LIAB</div>
-                                <div style="font-weight: bold; margin-top: 2px;">EXCESS LIAB</div>
-                                <div style="display: flex; gap: 8px; margin-top: 2px;">
-                                    <label><input type="checkbox" id="coiUmbClaims"> CLAIMS-MADE</label>
-                                    <label><input type="checkbox" id="coiUmbOccur" checked> OCCUR</label>
-                                </div>
-                                <div style="font-size: 6px; margin-top: 2px;">DED <input type="text" id="coiUmbDed" class="acord-input" style="width: 60px;"> RETENTION <input type="text" id="coiUmbRet" class="acord-input" style="width: 60px;"></div>
-                            </td>
-                            <td><input type="checkbox" id="coiUmbAddl"></td>
-                            <td><input type="checkbox" id="coiUmbSubr"></td>
-                            <td><input type="text" id="coiUmbrellaPolicy" class="acord-input"></td>
-                            <td><input type="date" id="coiUmbrellaEffective" class="acord-input"></td>
-                            <td><input type="date" id="coiUmbrellaExpiration" class="acord-input"></td>
-                            <td style="font-size: 7px;">
-                                <div>EACH OCCURRENCE <input type="text" id="coiUmbrellaOccurrence" class="acord-input" style="width: 100px; margin-left: 4px;" placeholder="$5,000,000"></div>
-                                <div>AGGREGATE <input type="text" id="coiUmbrellaAggregate" class="acord-input" style="width: 100px; margin-left: 4px;" placeholder="$5,000,000"></div>
-                            </td>
-                        </tr>
-
-                        <!-- WORKERS COMPENSATION ROW -->
-                        <tr>
-                            <td><input type="text" class="acord-input" value="C" style="width: 15px; text-align: center;"></td>
-                            <td>
-                                <div style="font-weight: bold;">WORKERS COMPENSATION<br>AND EMPLOYERS' LIABILITY</div>
-                                <div style="font-size: 6px; margin-top: 2px;">
-                                    ANY PROPRIETOR/PARTNER/EXECUTIVE<br>
-                                    OFFICER/MEMBER EXCLUDED? <label><input type="checkbox" id="coiWcExcl"> Y/N</label>
-                                </div>
-                                <div style="font-size: 6px; margin-top: 2px;">
-                                    If yes, describe under<br>DESCRIPTION OF OPERATIONS below
-                                </div>
-                            </td>
-                            <td></td>
-                            <td><input type="checkbox" id="coiWcSubr"></td>
-                            <td><input type="text" id="coiWcPolicy" class="acord-input"></td>
-                            <td><input type="date" id="coiWcEffective" class="acord-input"></td>
-                            <td><input type="date" id="coiWcExpiration" class="acord-input"></td>
-                            <td style="font-size: 7px;">
-                                <div>X STATUTORY LIMITS</div>
-                                <div>E.L. EACH ACCIDENT <input type="text" id="coiWcAccident" class="acord-input" style="width: 100px; margin-left: 4px;" placeholder="$1,000,000"></div>
-                                <div>E.L. DISEASE - EA EMPLOYEE <input type="text" id="coiWcEmployee" class="acord-input" style="width: 100px; margin-left: 4px;" placeholder="$1,000,000"></div>
-                                <div>E.L. DISEASE - POLICY LIMIT <input type="text" id="coiWcDisease" class="acord-input" style="width: 100px; margin-left: 4px;" placeholder="$1,000,000"></div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <!-- DESCRIPTION OF OPERATIONS / LOCATIONS / VEHICLES -->
-                <div class="acord-box" style="margin-top: 10px;">
-                    <div class="acord-box-label" style="font-size: 7px;">DESCRIPTION OF OPERATIONS / LOCATIONS / VEHICLES (ACORD 101, Additional Remarks Schedule, may be attached if more space is required)</div>
-                    <textarea id="coiDescription" class="acord-input" rows="4" placeholder="General contracting work. Certificate holder is named as additional insured as required by written contract.&#10;&#10;Endorsements: CG 20 10 04 13, CG 20 37 04 13&#10;&#10;Waiver of subrogation in favor of certificate holder where required by contract." style="width: 100%; font-size: 8px;"></textarea>
-                </div>
-
-                <!-- CERTIFICATE HOLDER -->
-                <div class="acord-box" style="margin-top: 10px;">
-                    <div class="acord-box-label">CERTIFICATE HOLDER</div>
-                    <input type="text" id="coiHolderName" class="acord-input" placeholder="Certificate Holder Name" style="font-weight: bold; font-size: 10px;">
-                    <input type="text" id="coiHolderAddress" class="acord-input" placeholder="Address">
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" id="coiHolderCity" class="acord-input" placeholder="City" style="flex: 2;">
-                        <input type="text" id="coiHolderState" class="acord-input" placeholder="ST" style="width: 40px;">
-                        <input type="text" id="coiHolderZip" class="acord-input" placeholder="ZIP" style="width: 80px;">
-                    </div>
-
-                    <div style="margin-top: 20px; padding-top: 10px; border-top: 1px solid #ccc;">
-                        <div style="font-size: 7px; font-weight: bold; margin-bottom: 4px;">CANCELLATION</div>
-                        <div class="acord-legal">
-                            SHOULD ANY OF THE ABOVE DESCRIBED POLICIES BE CANCELLED BEFORE THE EXPIRATION DATE THEREOF, NOTICE WILL BE DELIVERED IN ACCORDANCE WITH THE POLICY PROVISIONS.
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 20px; text-align: right; font-size: 8px;">
-                        <div style="font-weight: bold; margin-bottom: 4px;">AUTHORIZED REPRESENTATIVE</div>
-                        <div style="border-bottom: 1px solid #000; width: 200px; display: inline-block; margin-bottom: 4px;"></div>
-                        <div>(Signature)</div>
-                    </div>
-                </div>
-
-                <!-- ACORD 25 FOOTER -->
-                <div style="font-size: 6px; text-align: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #000; color: #666;">
-                    ACORD 25 (2016/03) © 1988-2015 ACORD CORPORATION. All rights reserved.
-                </div>
-            </div>
-
-        </main>
-    </div>
-
 </body>
 </html>
