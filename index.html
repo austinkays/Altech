@@ -3599,7 +3599,7 @@
                     btn.disabled = true;
                     btn.innerHTML = '🔄 Querying official county records...';
                     
-                    const arcgisResponse = await fetch(`/api/arcgis-consumer.js?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}`);
+                    const arcgisResponse = await fetch(`/api/arcgis-consumer?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}`);
                     
                     if (arcgisResponse.ok) {
                         const arcgisData = await arcgisResponse.json();
@@ -3615,7 +3615,7 @@
                         btn.innerHTML = '🔄 Accessing county database...';
                         
                         const gisUrl = this.getGISUrlForCounty(city, state);
-                        const browserResponse = await fetch(`/api/headless-browser.js?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}&gisUrl=${encodeURIComponent(gisUrl || '')}`);
+                        const browserResponse = await fetch(`/api/headless-browser?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}&gisUrl=${encodeURIComponent(gisUrl || '')}`);
                         
                         if (browserResponse.ok) {
                             const browserData = await browserResponse.json();
@@ -3631,7 +3631,7 @@
                     if (rawParcelData) {
                         btn.innerHTML = '🧠 Standardizing property data...';
                         
-                        const ragResponse = await fetch('/api/rag-interpreter.js', {
+                        const ragResponse = await fetch('/api/rag-interpreter', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
