@@ -6901,6 +6901,9 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     const tool = document.getElementById('coiTool');
                     tool.classList.add('active');
                     tool.style.display = 'block';
+
+                    // Initialize COI with agency defaults
+                    COI.init();
                 }
 
                 // Scroll to top
@@ -6928,6 +6931,35 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
 
         // COI Generator Object
         const COI = {
+            // Default agency information (customize this!)
+            agencyDefaults: {
+                name: 'Altech Insurance Agency',
+                phone: '(555) 123-4567',
+                fax: '(555) 123-4568',
+                email: 'agent@altechinsurance.com',
+                address: '123 Main Street',
+                city: 'Portland',
+                state: 'OR',
+                zip: '97201'
+            },
+
+            init() {
+                // Auto-fill agency information
+                document.getElementById('coiProducerName').value = this.agencyDefaults.name;
+                document.getElementById('coiProducerPhone').value = this.agencyDefaults.phone;
+                document.getElementById('coiProducerFax').value = this.agencyDefaults.fax;
+                document.getElementById('coiProducerEmail').value = this.agencyDefaults.email;
+                document.getElementById('coiProducerAddress').value = this.agencyDefaults.address;
+                document.getElementById('coiProducerCity').value = this.agencyDefaults.city;
+                document.getElementById('coiProducerState').value = this.agencyDefaults.state;
+                document.getElementById('coiProducerZip').value = this.agencyDefaults.zip;
+
+                // Try to load any saved draft
+                this.load();
+
+                console.log('COI Generator initialized with agency defaults');
+            },
+
             printCOI() {
                 window.print();
             },
