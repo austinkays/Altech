@@ -47,6 +47,27 @@ const COUNTY_ARCGIS_CONFIG = {
     queryService: 0,
     fields: ['OBJECTID', 'ACCOUNT_NUMBER', 'OWNER_NAME', 'LAND_USE_STANDARD', 'LOT_SIZE_ACRES', 'YEAR_BUILT', 'TOTAL_LIVING_AREA', 'GARAGE_SQFT', 'STORIES'],
     searchField: 'ACCOUNT_NUMBER'
+  },
+  'Snohomish': {
+    state: 'WA',
+    baseUrl: 'https://gis.snoco.org/arcgis/rest/services/Landbase/Parcels/MapServer',
+    queryService: 0,
+    fields: ['OBJECTID', 'PARCEL_ID', 'OWNER_NAME', 'SITE_ADDR', 'YEAR_BUILT', 'BLDG_SQFT', 'BEDROOMS', 'BATHS', 'GARAGE', 'STORIES', 'ROOF_TYPE', 'FOUNDATION'],
+    searchField: 'PARCEL_ID'
+  },
+  'Spokane': {
+    state: 'WA',
+    baseUrl: 'https://gismo.spokanecounty.org/arcgis/rest/services/SCOUT/PropertyLookup/MapServer',
+    queryService: 0,
+    fields: ['OBJECTID', 'PID_NUM', 'site_address', 'site_city', 'owner_name', 'prop_use_desc', 'acreage', 'InspectionYear'],
+    searchField: 'PID_NUM'
+  },
+  'Washington': {
+    state: 'OR',
+    baseUrl: 'https://services2.arcgis.com/McQ0OlIABe29rJJy/arcgis/rest/services/Taxlots_(Public)/FeatureServer',
+    queryService: 3,
+    fields: ['OBJECTID', 'TLID', 'PRIMACCNUM', 'SITEADDR', 'SITECITY', 'BLDGSQFT', 'A_T_ACRES', 'YEARBUILT', 'LANDUSE', 'ASSESSVAL'],
+    searchField: 'TLID'
   }
 };
 
@@ -146,18 +167,55 @@ function normalizeParcelData(parcel, countyName) {
 
   const normalized = {
     countyName,
-    parcelId: attrs.PARCEL_NUMBER || attrs.PARCELID || attrs.ACCOUNT_NUMBER || attrs.PARCEL_NUMBER_ALTERNATE || 'N/A',
-    ownerName: attrs.OWNER_NAME || 'N/A',
-    landUse: attrs.LAND_USE_CODE || attrs.USE1_DESC || attrs.LAND_USE_STANDARD || 'N/A',
-    lotSizeAcres: parseFloat(attrs.TOTAL_LAND_AREA_ACRES || attrs.LOT_SIZE_ACRES || 0) || 0,
-    yearBuilt: parseInt(attrs.YEAR_BUILT || 0) || 0,
+    // Parcel ID - handle different county field names
+    parcelId: attrs.PARCEL_NUMBER || attrs.PARCELID || attrs.ACCOUNT_NUMBER || attrs.PARCEL_NUMBER_ALTERNATE || attrs.PARCEL_ID || attrs.PID_NUM || attrs.TLID || 'N/A',
+
+    // Owner name
+    ownerName: attrs.OWNER_NAME || attrs.owner_name || 'N/A',
+
+    // Land use
+    landUse: attrs.LAND_USE_CODE || attrs.USE1_DESC || attrs.LAND_USE_STANDARD || attrs.prop_use_desc || attrs.LANDUSE || 'N/A',
+
+    // Lot size (acres)
+    lotSizeAcres: parseFloat(attrs.TOTAL_LAND_AREA_ACRES || attrs.LOT_SIZE_ACRES || attrs.acreage || attrs.A_T_ACRES || 0) || 0,
+
+    // Year built
+    yearBuilt: parseInt(attrs.YEAR_BUILT || attrs.YEARBUILT || attrs.InspectionYear || 0) || 0,
+
+    // Area calculations
     basementSqft: parseFloat(attrs.BASEMENT_AREA || attrs.BASEMENT_SQFT || 0) || 0,
     mainFloorSqft: parseFloat(attrs.MAIN_FLOOR_AREA || attrs.UPPER_FLOOR_AREA || 0) || 0,
-    totalSqft: parseFloat(attrs.TOT_SQFT || attrs.TOTAL_LIVING_AREA || 0) || 0,
-    garageSqft: parseFloat(attrs.GARAGE_SQFT || 0) || 0,
+    totalSqft: parseFloat(attrs.TOT_SQFT || attrs.TOTAL_LIVING_AREA || attrs.BLDG_SQFT || attrs.BLDGSQFT || 0) || 0,
+    garageSqft: parseFloat(attrs.GARAGE_SQFT || attrs.GARAGE || 0) || 0,
+
+    // Garage type
     garageType: attrs.GARAGE_TYPE || 'N/A',
+
+    // Stories
     stories: parseInt(attrs.STORIES || 0) || 0,
+
+    // Roof type
     roofType: attrs.ROOF_TYPE || 'N/A',
+
+    // Foundation type (Snohomish has this!)
+    foundationType: attrs.FOUNDATION || 'Unknown',
+
+    // Bedrooms (Snohomish has this!)
+    bedrooms: parseInt(attrs.BEDROOMS || 0) || 0,
+
+    // Bathrooms (Snohomish has this!)
+    bathrooms: parseFloat(attrs.BATHS || attrs.BATHROOMS || 0) || 0,
+
+    // Site address (for some counties)
+    siteAddress: attrs.SITE_ADDR || attrs.site_address || attrs.SITEADDR || '',
+
+    // Site city
+    siteCity: attrs.site_city || attrs.SITECITY || '',
+
+    // Assessed value (Washington County OR has this)
+    assessedValue: parseFloat(attrs.ASSESSVAL || 0) || 0,
+
+    // Coordinates
     latitude: geometry.y || attrs.LATITUDE || 0,
     longitude: geometry.x || attrs.LONGITUDE || 0
   };
