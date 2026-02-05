@@ -22,10 +22,10 @@
 const COUNTY_ARCGIS_CONFIG = {
   'Clark': {
     state: 'WA',
-    baseUrl: 'https://arcgis.clark.wa.gov/arcgis/rest/services/Assessor/Parcels/MapServer',
-    queryService: 0, // Layer index for parcel search
-    fields: ['OBJECTID', 'PARCEL_NUMBER', 'OWNER_NAME', 'LAND_USE_CODE', 'TOTAL_LAND_AREA_ACRES', 'YEAR_BUILT', 'BASEMENT_AREA', 'MAIN_FLOOR_AREA', 'UPPER_FLOOR_AREA', 'GARAGE_TYPE'],
-    searchField: 'PARCEL_NUMBER'
+    baseUrl: 'https://services.arcgis.com/jsIt88o09Q0r1j8h/arcgis/rest/services/Current_Parcels/FeatureServer',
+    queryService: 0,
+    fields: ['OBJECTID', 'PARCEL_ID_NR', 'ORIG_PARCEL_ID', 'COUNTY_NM', 'SITUS_ADDRESS', 'SUB_ADDRESS', 'SITUS_CITY_NM', 'SITUS_ZIP_NR', 'LANDUSE_CD', 'VALUE_LAND', 'VALUE_BLDG', 'DATA_LINK'],
+    searchField: 'PARCEL_ID_NR'
   },
   'King': {
     state: 'WA',
@@ -77,11 +77,11 @@ const COUNTY_ARCGIS_CONFIG = {
  */
 const STATE_AGGREGATORS = {
   'WA': {
-    name: 'Washington State Parcels',
-    baseUrl: 'https://services.arcgis.com/jsu8Pl9v95EonZ7L/arcgis/rest/services/Washington_Parcels/FeatureServer',
+    name: 'Washington State Current Parcels',
+    baseUrl: 'https://services.arcgis.com/jsIt88o09Q0r1j8h/arcgis/rest/services/Current_Parcels/FeatureServer',
     queryService: 0,
-    fields: ['OBJECTID', 'PARCEL_ID', 'PARCEL_NUMBER', 'COUNTY_NAME', 'OWNER_NAME', 'YEAR_BUILT', 'TOTAL_SQ_FT', 'LOT_ACRES', 'LAND_USE', 'ASSESSED_VALUE'],
-    searchField: 'PARCEL_ID',
+    fields: ['OBJECTID', 'PARCEL_ID_NR', 'ORIG_PARCEL_ID', 'COUNTY_NM', 'SITUS_ADDRESS', 'SUB_ADDRESS', 'SITUS_CITY_NM', 'SITUS_ZIP_NR', 'LANDUSE_CD', 'VALUE_LAND', 'VALUE_BLDG', 'DATA_LINK'],
+    searchField: 'PARCEL_ID_NR',
     coverage: 39 // 39 WA counties
   },
   'OR': {
@@ -267,8 +267,8 @@ function normalizeParcelData(parcel, countyName) {
 
   const normalized = {
     countyName,
-    // Parcel ID - handle different county field names + state aggregators
-    parcelId: attrs.STATE_ID || attrs.PARCEL_NUMBER || attrs.PARCELID || attrs.ACCOUNT_NUMBER || attrs.PARCEL_NUMBER_ALTERNATE || attrs.PARCEL_ID || attrs.PID_NUM || attrs.TLID || attrs.TAXLOT || attrs.MAP_TAXLOT || 'N/A',
+    // Parcel ID - handle different county field names + state aggregators + WA State (PARCEL_ID_NR)
+    parcelId: attrs.STATE_ID || attrs.PARCEL_ID_NR || attrs.ORIG_PARCEL_ID || attrs.PARCEL_NUMBER || attrs.PARCELID || attrs.ACCOUNT_NUMBER || attrs.PARCEL_NUMBER_ALTERNATE || attrs.PARCEL_ID || attrs.PID_NUM || attrs.TLID || attrs.TAXLOT || attrs.MAP_TAXLOT || 'N/A',
 
     // Owner name - handle multiple owner fields (Portland Maps uses OWNER1, OWNER2, OWNER3)
     ownerName: (() => {
@@ -278,8 +278,8 @@ function normalizeParcelData(parcel, countyName) {
       return attrs.OWNER_NAME || attrs.owner_name || 'N/A';
     })(),
 
-    // Land use
-    landUse: attrs.LAND_USE_CODE || attrs.USE1_DESC || attrs.LAND_USE_STANDARD || attrs.PRPCD_DESC || attrs.prop_use_desc || attrs.LANDUSE || attrs.LAND_USE || 'N/A',
+    // Land use (WA State uses LANDUSE_CD)
+    landUse: attrs.LAND_USE_CODE || attrs.USE1_DESC || attrs.LAND_USE_STANDARD || attrs.PRPCD_DESC || attrs.prop_use_desc || attrs.LANDUSE || attrs.LAND_USE || attrs.LANDUSE_CD || 'N/A',
 
     // Lot size (acres) - state aggregators use LOT_ACRES
     lotSizeAcres: parseFloat(attrs.TOTAL_LAND_AREA_ACRES || attrs.LOT_SIZE_ACRES || attrs.acreage || attrs.A_T_ACRES || attrs.LOT_ACRES || 0) || 0,
@@ -311,17 +311,24 @@ function normalizeParcelData(parcel, countyName) {
     // Bathrooms (Snohomish has this!)
     bathrooms: parseFloat(attrs.BATHS || attrs.BATHROOMS || 0) || 0,
 
-    // Site address (for some counties)
-    siteAddress: attrs.SITE_ADDR || attrs.site_address || attrs.SITEADDR || '',
+    // Site address (for some counties, WA State uses SITUS_ADDRESS)
+    siteAddress: attrs.SITE_ADDR || attrs.site_address || attrs.SITEADDR || attrs.SITUS_ADDRESS || '',
 
-    // Site city
-    siteCity: attrs.site_city || attrs.SITECITY || '',
+    // Site city (WA State uses SITUS_CITY_NM)
+    siteCity: attrs.site_city || attrs.SITECITY || attrs.SITUS_CITY_NM || '',
 
-    // Assessed value (Washington County OR + state aggregators + Portland Maps TOTALVAL1)
-    assessedValue: parseFloat(attrs.ASSESSVAL || attrs.ASSESSED_VALUE || attrs.TOTALVAL1 || 0) || 0,
+    // Assessed value (WA State uses VALUE_LAND + VALUE_BLDG, Portland Maps uses TOTALVAL1)
+    assessedValue: (() => {
+      // If WA State fields exist, add them together
+      if (attrs.VALUE_LAND !== undefined || attrs.VALUE_BLDG !== undefined) {
+        return (parseFloat(attrs.VALUE_LAND || 0) + parseFloat(attrs.VALUE_BLDG || 0)) || 0;
+      }
+      // Otherwise use other standard fields
+      return parseFloat(attrs.ASSESSVAL || attrs.ASSESSED_VALUE || attrs.TOTALVAL1 || 0) || 0;
+    })(),
 
-    // County name (state aggregators include this)
-    aggregatorCounty: attrs.COUNTY_NAME || attrs.COUNTY || '',
+    // County name (state aggregators include this, WA State uses COUNTY_NM)
+    aggregatorCounty: attrs.COUNTY_NAME || attrs.COUNTY || attrs.COUNTY_NM || '',
 
     // Coordinates
     latitude: geometry.y || attrs.LATITUDE || 0,
