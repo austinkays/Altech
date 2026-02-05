@@ -3182,11 +3182,23 @@
                             </div>
                         </div>
 
-                        <label class="label">Occupation</label>
-                        <input type="text" value="${driver.occupation || ''}" 
-                            onchange="App.updateDriver('${driver.id}', 'occupation', this.value)" 
-                            placeholder="Occupation">
-                        
+                        <div class="grid-2">
+                            <div>
+                                <label class="label">Gender</label>
+                                <select onchange="App.updateDriver('${driver.id}', 'gender', this.value)">
+                                    <option value="">Select...</option>
+                                    <option value="M" ${driver.gender === 'M' ? 'selected' : ''}>Male</option>
+                                    <option value="F" ${driver.gender === 'F' ? 'selected' : ''}>Female</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label">Occupation</label>
+                                <input type="text" value="${driver.occupation || ''}"
+                                    onchange="App.updateDriver('${driver.id}', 'occupation', this.value)"
+                                    placeholder="Occupation">
+                            </div>
+                        </div>
+
                         <label class="label">Driver's License</label>
                         <div class="export-row" style="margin-bottom:10px; align-items:center;">
                             <button class="btn btn-tertiary" onclick="App.openDriverLicensePicker('${driver.id}')">📸 Scan Driver's License</button>
@@ -5536,17 +5548,27 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 }
                 
                 if (data.qType === 'auto' || data.qType === 'both') {
-                    addSection('Vehicle Information', [
-                        ['VIN', data.vin || ''],
-                        ['Vehicle', data.vehDesc || ''],
-                        ['License Number', data.dlNum || ''],
-                        ['License State', data.dlState || ''],
-                        ['Vehicle Use', data.use || ''],
-                        ['Annual Miles', data.miles || ''],
-                        ['Commute Distance', data.commuteDist || ''],
-                        ['Ridesharing', data.rideSharing || ''],
-                        ['Telematics', data.telematics || '']
-                    ]);
+                    if (data.vehicles && data.vehicles.length) {
+                        // Use vehicles array
+                        const vehicleLines = data.vehicles.map((v, i) => {
+                            const vehDesc = [v.year, v.make, v.model].filter(Boolean).join(' ');
+                            return `Vehicle ${i + 1}: ${vehDesc || 'Unknown'} | VIN: ${v.vin || ''} | Use: ${v.use || ''} | Miles: ${v.miles || ''} | Primary Driver: ${v.primaryDriver || ''}`;
+                        }).join('\n');
+                        addSection('Vehicles', [['Vehicles', vehicleLines]]);
+                    } else {
+                        // Fallback to flat fields
+                        addSection('Vehicle Information', [
+                            ['VIN', data.vin || ''],
+                            ['Vehicle', data.vehDesc || ''],
+                            ['License Number', data.dlNum || ''],
+                            ['License State', data.dlState || ''],
+                            ['Vehicle Use', data.use || ''],
+                            ['Annual Miles', data.miles || ''],
+                            ['Commute Distance', data.commuteDist || ''],
+                            ['Ridesharing', data.rideSharing || ''],
+                            ['Telematics', data.telematics || '']
+                        ]);
+                    }
                 }
                 
                 addSection('Coverage & History', [
@@ -5860,20 +5882,21 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     return d.toISOString().split('T')[0];
                 };
 
-                const parseVehicle = (desc) => {
-                    const match = desc?.match(/(\d{4})\s+([A-Z]+)\s+(.+)/i);
-                    return {
-                        year: match?.[1] || '',
-                        make: match?.[2] || '',
-                        model: match?.[3]?.trim() || ''
-                    };
-                };
+                // Use arrays if available, otherwise fall back to flat fields
+                const drivers = (data.drivers && data.drivers.length > 0) ? data.drivers : null;
+                const vehicles = (data.vehicles && data.vehicles.length > 0) ? data.vehicles : null;
 
-                const state = (data.addrState || '').trim().toUpperCase();
-                const dob = normalizeDate(data.dob);
-                if (!data.firstName || !data.lastName) {
+                // Get primary applicant info (use first driver if array exists, otherwise use flat fields)
+                const primaryDriver = drivers ? drivers[0] : data;
+                const firstName = primaryDriver.firstName || data.firstName || '';
+                const lastName = primaryDriver.lastName || data.lastName || '';
+                const dob = normalizeDate(primaryDriver.dob || data.dob);
+
+                // Validation
+                if (!firstName || !lastName) {
                     return { ok: false, error: '⚠️ First and last name are required for EZLynx XML.' };
                 }
+                const state = (data.addrState || '').trim().toUpperCase();
                 if (!state || !/^[A-Z]{2}$/.test(state)) {
                     return { ok: false, error: '⚠️ A valid 2-letter state is required for EZLynx XML.' };
                 }
@@ -5882,7 +5905,6 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 }
 
                 const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
-                const { year, make, model } = parseVehicle(data.vehDesc);
                 const streetRaw = (data.addrStreet || '').trim();
                 const streetMatch = streetRaw.match(/^(\d+)\s+(.*)$/);
                 const streetNumber = streetMatch?.[1] || '';
@@ -5891,13 +5913,14 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
                 xml += '<EZAUTO xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200">\n';
 
+                // Applicant section (primary contact info)
                 xml += '  <Applicant>\n';
                 xml += '    <ApplicantType>Applicant</ApplicantType>\n';
                 xml += '    <PersonalInfo>\n';
                 xml += '      <Name>\n';
-                xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
+                xml += `        <FirstName>${escapeXML(firstName)}</FirstName>\n`;
                 xml += '        <MiddleName></MiddleName>\n';
-                xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
+                xml += `        <LastName>${escapeXML(lastName)}</LastName>\n`;
                 xml += '      </Name>\n';
                 xml += `      <DOB>${dob}</DOB>\n`;
                 if (data.maritalStatus) {
@@ -5927,6 +5950,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 xml += '    </Address>\n';
                 xml += '  </Applicant>\n';
 
+                // Prior Policy Info
                 if (data.priorCarrier || data.priorYears || data.priorExp) {
                     xml += '  <PriorPolicyInfo>\n';
                     if (data.priorCarrier) {
@@ -5943,59 +5967,150 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     xml += '  </PriorPolicyInfo>\n';
                 }
 
+                // Drivers section - iterate over drivers array or use flat fields
                 xml += '  <Drivers>\n';
-                xml += '    <Driver id="1">\n';
-                xml += '      <Name>\n';
-                xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
-                xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
-                xml += '      </Name>\n';
-                xml += `      <DOB>${dob}</DOB>\n`;
-                if (data.dlNum) {
-                    xml += `      <DLNumber>${escapeXML(data.dlNum)}</DLNumber>\n`;
+                if (drivers) {
+                    // Use drivers array
+                    drivers.forEach((driver, index) => {
+                        const driverDob = normalizeDate(driver.dob);
+                        const driverId = index + 1;
+                        const isFirstDriver = index === 0;
+
+                        xml += `    <Driver id="${driverId}">\n`;
+                        xml += '      <Name>\n';
+                        xml += `        <FirstName>${escapeXML(driver.firstName || '')}</FirstName>\n`;
+                        xml += `        <LastName>${escapeXML(driver.lastName || '')}</LastName>\n`;
+                        xml += '      </Name>\n';
+                        if (driverDob) {
+                            xml += `      <DOB>${driverDob}</DOB>\n`;
+                        }
+                        if (driver.gender || data.gender) {
+                            xml += `      <Gender>${escapeXML(driver.gender || data.gender)}</Gender>\n`;
+                        }
+                        if (driver.dlNum) {
+                            xml += `      <DLNumber>${escapeXML(driver.dlNum)}</DLNumber>\n`;
+                        }
+                        if (driver.dlState) {
+                            xml += `      <DLState>${escapeXML(driver.dlState)}</DLState>\n`;
+                        }
+                        if (driver.relationship || data.maritalStatus) {
+                            const relation = isFirstDriver ? 'Insured' : (driver.relationship || 'Other');
+                            xml += `      <Relation>${escapeXML(relation)}</Relation>\n`;
+                        } else {
+                            xml += `      <Relation>${isFirstDriver ? 'Insured' : 'Other'}</Relation>\n`;
+                        }
+                        if (data.maritalStatus) {
+                            xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
+                        }
+                        xml += '      <GoodStudent>No</GoodStudent>\n';
+                        xml += '      <MATDriver>No</MATDriver>\n';
+                        xml += '      <Rated>Rated</Rated>\n';
+                        xml += '    </Driver>\n';
+                    });
+                } else {
+                    // Fallback to flat fields for backward compatibility
+                    xml += '    <Driver id="1">\n';
+                    xml += '      <Name>\n';
+                    xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
+                    xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
+                    xml += '      </Name>\n';
+                    xml += `      <DOB>${dob}</DOB>\n`;
+                    if (data.gender) {
+                        xml += `      <Gender>${escapeXML(data.gender)}</Gender>\n`;
+                    }
+                    if (data.dlNum) {
+                        xml += `      <DLNumber>${escapeXML(data.dlNum)}</DLNumber>\n`;
+                    }
+                    if (data.dlState) {
+                        xml += `      <DLState>${escapeXML(data.dlState)}</DLState>\n`;
+                    }
+                    if (data.maritalStatus) {
+                        xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
+                    }
+                    xml += '      <Relation>Insured</Relation>\n';
+                    xml += '      <GoodStudent>No</GoodStudent>\n';
+                    xml += '      <MATDriver>No</MATDriver>\n';
+                    xml += '      <Rated>Rated</Rated>\n';
+                    xml += '    </Driver>\n';
                 }
-                if (data.dlState) {
-                    xml += `      <DLState>${escapeXML(data.dlState)}</DLState>\n`;
-                }
-                if (data.maritalStatus) {
-                    xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
-                }
-                xml += '      <Relation>Insured</Relation>\n';
-                xml += '      <GoodStudent>No</GoodStudent>\n';
-                xml += '      <MATDriver>No</MATDriver>\n';
-                xml += '      <Rated>Rated</Rated>\n';
-                xml += '    </Driver>\n';
                 xml += '  </Drivers>\n';
 
-                if (data.vin || data.vehDesc) {
+                // Vehicles section - iterate over vehicles array or use flat fields
+                if (vehicles || data.vin || data.vehDesc) {
                     xml += '  <Vehicles>\n';
-                    xml += '    <Vehicle id="1">\n';
-                    xml += '      <UseVinLookup>Yes</UseVinLookup>\n';
-                    if (year) {
-                        xml += `      <Year>${escapeXML(year)}</Year>\n`;
+                    if (vehicles) {
+                        // Use vehicles array
+                        vehicles.forEach((vehicle, index) => {
+                            const vehicleId = index + 1;
+                            xml += `    <Vehicle id="${vehicleId}">\n`;
+                            xml += '      <UseVinLookup>Yes</UseVinLookup>\n';
+                            if (vehicle.year) {
+                                xml += `      <Year>${escapeXML(vehicle.year)}</Year>\n`;
+                            }
+                            if (vehicle.vin) {
+                                xml += `      <Vin>${escapeXML(vehicle.vin)}</Vin>\n`;
+                            }
+                            if (vehicle.make) {
+                                xml += `      <Make>${escapeXML(vehicle.make)}</Make>\n`;
+                            }
+                            if (vehicle.model) {
+                                xml += `      <Model>${escapeXML(vehicle.model)}</Model>\n`;
+                            }
+                            xml += '      <Anti-Theft>None</Anti-Theft>\n';
+                            xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
+                            xml += '    </Vehicle>\n';
+                        });
+                    } else {
+                        // Fallback to flat fields
+                        const parseVehicle = (desc) => {
+                            const match = desc?.match(/(\d{4})\s+([A-Z]+)\s+(.+)/i);
+                            return {
+                                year: match?.[1] || '',
+                                make: match?.[2] || '',
+                                model: match?.[3]?.trim() || ''
+                            };
+                        };
+                        const { year, make, model } = parseVehicle(data.vehDesc);
+
+                        xml += '    <Vehicle id="1">\n';
+                        xml += '      <UseVinLookup>Yes</UseVinLookup>\n';
+                        if (year) {
+                            xml += `      <Year>${escapeXML(year)}</Year>\n`;
+                        }
+                        if (data.vin) {
+                            xml += `      <Vin>${escapeXML(data.vin)}</Vin>\n`;
+                        }
+                        if (make) {
+                            xml += `      <Make>${escapeXML(make)}</Make>\n`;
+                        }
+                        if (model) {
+                            xml += `      <Model>${escapeXML(model)}</Model>\n`;
+                        }
+                        xml += '      <Anti-Theft>None</Anti-Theft>\n';
+                        xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
+                        xml += '    </Vehicle>\n';
                     }
-                    if (data.vin) {
-                        xml += `      <Vin>${escapeXML(data.vin)}</Vin>\n`;
-                    }
-                    if (make) {
-                        xml += `      <Make>${escapeXML(make)}</Make>\n`;
-                    }
-                    if (model) {
-                        xml += `      <Model>${escapeXML(model)}</Model>\n`;
-                    }
-                    xml += '      <Anti-Theft>None</Anti-Theft>\n';
-                    xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
-                    xml += '    </Vehicle>\n';
                     xml += '  </Vehicles>\n';
 
-                    if (data.miles) {
-                        xml += '  <VehiclesUse>\n';
+                    // VehiclesUse section - mileage per vehicle
+                    xml += '  <VehiclesUse>\n';
+                    if (vehicles) {
+                        vehicles.forEach((vehicle, index) => {
+                            const vehicleId = index + 1;
+                            const miles = vehicle.miles || '12000';
+                            xml += `    <VehicleUse id="${vehicleId}">\n`;
+                            xml += `      <AnnualMiles>${escapeXML(miles)}</AnnualMiles>\n`;
+                            xml += '    </VehicleUse>\n';
+                        });
+                    } else if (data.miles) {
                         xml += '    <VehicleUse id="1">\n';
                         xml += `      <AnnualMiles>${escapeXML(data.miles)}</AnnualMiles>\n`;
                         xml += '    </VehicleUse>\n';
-                        xml += '  </VehiclesUse>\n';
                     }
+                    xml += '  </VehiclesUse>\n';
                 }
 
+                // Coverages section
                 if (data.liabilityLimits || data.autoDeductible) {
                     xml += '  <Coverages>\n';
                     if (data.liabilityLimits) {
@@ -6004,9 +6119,13 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         xml += '    </GeneralCoverage>\n';
                     }
                     if (data.autoDeductible) {
-                        xml += '    <VehicleCoverage id="1">\n';
-                        xml += `      <CollisionDeductible>${escapeXML(data.autoDeductible)}</CollisionDeductible>\n`;
-                        xml += '    </VehicleCoverage>\n';
+                        // Add vehicle coverage for each vehicle
+                        const vehicleCount = vehicles ? vehicles.length : 1;
+                        for (let i = 1; i <= vehicleCount; i++) {
+                            xml += `    <VehicleCoverage id="${i}">\n`;
+                            xml += `      <CollisionDeductible>${escapeXML(data.autoDeductible)}</CollisionDeductible>\n`;
+                            xml += '    </VehicleCoverage>\n';
+                        }
                     }
                     xml += '  </Coverages>\n';
                 }
@@ -6016,7 +6135,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 return {
                     ok: true,
                     content: xml,
-                    filename: `${data.lastName || 'Lead'}_EZLynx.xml`,
+                    filename: `${lastName || 'Lead'}_EZLynx.xml`,
                     mime: 'application/xml;charset=utf-8'
                 };
             },
