@@ -1,0 +1,31 @@
+State,Address,City,Zip Code,County,Expected Source
+WA,2202 NE 154th Ave,Vancouver,98684,Clark,Individual County API
+WA,529 W 25th St,Vancouver,98660,Clark,Individual County API
+WA,11115 NW 26th Ave,Vancouver,98685,Clark,Individual County API
+WA,311 NW 110th St,Vancouver,98685,Clark,Individual County API
+WA,16710 NE 96th St,Vancouver,98682,Clark,Individual County API
+WA,2901 SE Balboa Dr,Vancouver,98683,Clark,Individual County API
+WA,10125 NE 45th Ct,Vancouver,98686,Clark,Individual County API
+WA,4209 NE 90th St,Vancouver,98665,Clark,Individual County API
+WA,10511 NE 99th Ave,Vancouver,98662,Clark,Individual County API
+WA,12705 NE 49th Way,Vancouver,98682,Clark,Individual County API
+OR,4015 N Albina Ave,Portland,97227,Multnomah,Individual County API
+OR,4015 N Colonial Ave,Portland,97227,Multnomah,Individual County API
+OR,4015 N Concord Ave,Portland,97227,Multnomah,Individual County API
+OR,4015 N Haight Ave,Portland,97227,Multnomah,Individual County API
+OR,4015 N Overlook Blvd,Portland,97227,Multnomah,Individual County API
+OR,4015 N Williams Ave,Portland,97227,Multnomah,Individual County API
+OR,4015 NE 125th Pl,Portland,97230,Multnomah,Individual County API
+OR,4015 NE 130th Pl,Portland,97230,Multnomah,Individual County API
+OR,4015 NE 138th Ave,Portland,97230,Multnomah,Individual County API
+OR,4015 NE 62nd Ave,Portland,97213,Multnomah,Individual County API
+AZ,3916 E Eugie Ave,Phoenix,85032,Maricopa,Arizona Counties (State Aggregator)
+AZ,2217 E Sheridan St,Phoenix,85006,Maricopa,Arizona Counties (State Aggregator)
+AZ,2511 E Earll Dr,Phoenix,85016,Maricopa,Arizona Counties (State Aggregator)
+AZ,225 W Alice Ave,Phoenix,85021,Maricopa,Arizona Counties (State Aggregator)
+AZ,2217 W Wayland Rd,Phoenix,85041,Maricopa,Arizona Counties (State Aggregator)
+AZ,640 E Boca Raton Rd,Phoenix,85022,Maricopa,Arizona Counties (State Aggregator)
+AZ,3318 W Fraktur Rd,Phoenix,85041,Maricopa,Arizona Counties (State Aggregator)
+AZ,26121 N 19th Ln,Phoenix,85085,Maricopa,Arizona Counties (State Aggregator)
+AZ,23004 N 38th Pl,Phoenix,85050,Maricopa,Arizona Counties (State Aggregator)
+AZ,2818 W Minton St,Phoenix,85041,Maricopa,Arizona Counties (State Aggregator)
