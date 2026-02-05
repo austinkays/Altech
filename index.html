@@ -7269,8 +7269,8 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 }
 
                 try {
-                    // Call WA L&I contractor lookup API
-                    const response = await fetch(`/api/li-lookup?name=${encodeURIComponent(businessName)}&ubi=${encodeURIComponent(ubi)}`);
+                    // Call consolidated prospect lookup API with type=li
+                    const response = await fetch(`/api/prospect-lookup?type=li&name=${encodeURIComponent(businessName)}&ubi=${encodeURIComponent(ubi)}`);
                     const data = await response.json();
                     return data;
                 } catch (error) {
@@ -7281,8 +7281,8 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
 
             async searchSOS(businessName, ubi, state) {
                 try {
-                    // Call Secretary of State business entity search
-                    const response = await fetch(`/api/sos-lookup?name=${encodeURIComponent(businessName)}&ubi=${encodeURIComponent(ubi)}&state=${state}`);
+                    // Call consolidated prospect lookup API with type=sos
+                    const response = await fetch(`/api/prospect-lookup?type=sos&name=${encodeURIComponent(businessName)}&ubi=${encodeURIComponent(ubi)}&state=${state}`);
                     const data = await response.json();
                     return data;
                 } catch (error) {
@@ -7293,8 +7293,8 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
 
             async searchOSHA(businessName, city, state) {
                 try {
-                    // Call OSHA inspection database
-                    const response = await fetch(`/api/osha-lookup?name=${encodeURIComponent(businessName)}&city=${encodeURIComponent(city)}&state=${state}`);
+                    // Call consolidated prospect lookup API with type=osha
+                    const response = await fetch(`/api/prospect-lookup?type=osha&name=${encodeURIComponent(businessName)}&city=${encodeURIComponent(city)}&state=${state}`);
                     const data = await response.json();
                     return data;
                 } catch (error) {
