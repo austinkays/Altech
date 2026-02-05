@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     console.log(`[Smart Extract] Image retrieved: ${buffer.byteLength} bytes`);
     
     // Call Gemini Vision API
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     console.log(`[Smart Extract] Calling Gemini Vision API...`);
     
     const prompt = `Analyze this satellite image for property at: ${fullAddress}
