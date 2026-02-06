@@ -4041,7 +4041,7 @@
                     
                     // Show elegant hazard detection popup
                     const fullAddress = `${address}, ${city}, ${state} ${zip || ''}`.trim();
-                    this.showHazardDetectionPopup(result.data, result.satelliteImage, fullAddress);
+                    this.showHazardDetectionPopup(result.data, result.satelliteImage, fullAddress, result.streetViewImage);
                     
                 } catch (error) {
                     console.error('Smart auto-fill error:', error);
@@ -4449,13 +4449,14 @@
                 }
             },
 
-            showHazardDetectionPopup(detections, satelliteImage, address) {
+            showHazardDetectionPopup(detections, satelliteImage, address, streetViewImage) {
                 // Extract hazard information
                 const hazards = {
                     pool: detections.pool === 'yes',
                     trampoline: detections.trampoline === 'yes',
                     deck: detections.deck === 'yes',
                     roofType: detections.roofType && detections.roofType !== 'unknown' ? detections.roofType : null,
+                    roofShape: detections.roofShape && detections.roofShape !== 'unknown' ? detections.roofShape : null,
                     numStories: detections.numStories && detections.numStories !== 'unknown' ? detections.numStories : null,
                     garageSpaces: detections.garageSpaces && detections.garageSpaces !== 'unknown' ? detections.garageSpaces : null,
                 };
@@ -4475,16 +4476,30 @@
                             </div>
                             
                             <div class="modal-body">
-                                ${satelliteImage ? `
-                                    <div style="margin-bottom: 20px;">
-                                        <p style="font-size: 12px; font-weight: 600; margin: 0 0 8px 0;">🛰️ Satellite Image</p>
-                                        <img 
-                                            src="data:image/png;base64,${satelliteImage}" 
-                                            style="width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border); cursor: pointer;"
-                                            onclick="App.viewSatelliteFullscreen(this.src)"
-                                            title="Click to view fullscreen"
-                                        >
-                                        <p style="font-size: 11px; color: var(--text-secondary); margin: 6px 0 0 0; text-align: center;">Tap to view fullscreen</p>
+                                ${satelliteImage || streetViewImage ? `
+                                    <div style="margin-bottom: 20px; display: flex; gap: 8px;">
+                                        ${satelliteImage ? `
+                                            <div style="flex: 1;">
+                                                <p style="font-size: 11px; font-weight: 600; margin: 0 0 6px 0;">Satellite</p>
+                                                <img
+                                                    src="data:image/png;base64,${satelliteImage}"
+                                                    style="width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;"
+                                                    onclick="App.viewSatelliteFullscreen(this.src)"
+                                                    title="Click to view fullscreen"
+                                                >
+                                            </div>
+                                        ` : ''}
+                                        ${streetViewImage ? `
+                                            <div style="flex: 1;">
+                                                <p style="font-size: 11px; font-weight: 600; margin: 0 0 6px 0;">Street View</p>
+                                                <img
+                                                    src="data:image/jpeg;base64,${streetViewImage}"
+                                                    style="width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;"
+                                                    onclick="App.viewSatelliteFullscreen(this.src)"
+                                                    title="Click to view fullscreen"
+                                                >
+                                            </div>
+                                        ` : ''}
                                     </div>
                                 ` : ''}
                                 
@@ -4523,13 +4538,19 @@
                                                 <span style="font-size: 14px; font-weight: 600;">${hazards.roofType}</span>
                                             </div>
                                         ` : ''}
+                                        ${hazards.roofShape ? `
+                                            <div style="display: flex; justify-content: space-between;">
+                                                <span style="font-size: 14px;">🏗️ Roof Shape:</span>
+                                                <span style="font-size: 14px; font-weight: 600;">${hazards.roofShape}</span>
+                                            </div>
+                                        ` : ''}
                                         ${hazards.garageSpaces ? `
                                             <div style="display: flex; justify-content: space-between;">
                                                 <span style="font-size: 14px;">🚗 Garage Spaces:</span>
                                                 <span style="font-size: 14px; font-weight: 600;">${hazards.garageSpaces}</span>
                                             </div>
                                         ` : ''}
-                                        ${!hazards.numStories && !hazards.roofType && !hazards.garageSpaces ? `
+                                        ${!hazards.numStories && !hazards.roofType && !hazards.roofShape && !hazards.garageSpaces ? `
                                             <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">No additional details detected in satellite image.</p>
                                         ` : ''}
                                     </div>
@@ -4573,33 +4594,74 @@
                 const pool = document.getElementById('hazard_pool')?.checked || false;
                 const trampoline = document.getElementById('hazard_trampoline')?.checked || false;
                 const deck = document.getElementById('hazard_deck')?.checked || false;
-                
-                // Apply to form
+                const applied = [];
+
+                // Apply hazards to form
                 if (pool) {
-                    this.data.hasPool = 'yes';
-                    const poolEl = document.getElementById('hasPool');
-                    if (poolEl) poolEl.value = 'yes';
+                    this.data.pool = 'In Ground';
+                    const poolEl = document.getElementById('pool');
+                    if (poolEl) poolEl.value = 'In Ground';
+                    applied.push('Pool');
                 }
-                
+
                 if (trampoline) {
-                    this.data.hasTrampoline = 'yes';
-                    const trampolineEl = document.getElementById('hasTrampoline');
-                    if (trampolineEl) trampolineEl.value = 'yes';
+                    this.data.trampoline = 'Yes';
+                    const trampolineEl = document.getElementById('trampoline');
+                    if (trampolineEl) trampolineEl.value = 'Yes';
+                    applied.push('Trampoline');
                 }
-                
+
                 if (deck) {
-                    this.data.hasDeck = 'yes';
-                    const deckEl = document.getElementById('hasDeck');
-                    if (deckEl) deckEl.value = 'yes';
+                    applied.push('Deck/Patio (noted)');
                 }
-                
+
+                // Apply property details from detectedHazards
+                const h = this.detectedHazards || {};
+
+                if (h.roofShape) {
+                    const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+                    const val = capitalize(h.roofShape);
+                    const el = document.getElementById('roofShape');
+                    if (el) {
+                        const options = Array.from(el.options).map(o => o.value);
+                        if (options.includes(val)) {
+                            el.value = val;
+                            this.data.roofShape = val;
+                            applied.push('Roof Shape: ' + val);
+                        }
+                    }
+                }
+
+                if (h.roofType) {
+                    const roofMap = { 'asphalt': 'Asphalt/Composite Shingle', 'metal': 'Metal', 'tile': 'Clay Tile', 'flat': 'Tar & Gravel' };
+                    const mapped = roofMap[h.roofType.toLowerCase()] || null;
+                    if (mapped) {
+                        const el = document.getElementById('roofType');
+                        if (el) {
+                            const options = Array.from(el.options).map(o => o.value);
+                            if (options.includes(mapped)) {
+                                el.value = mapped;
+                                this.data.roofType = mapped;
+                                applied.push('Roof Type: ' + mapped);
+                            }
+                        }
+                    }
+                }
+
+                if (h.numStories) {
+                    const val = parseInt(String(h.numStories).replace('+', ''));
+                    if (val > 0 && val <= 5) {
+                        const el = document.getElementById('numStories');
+                        if (el) { el.value = val; this.data.numStories = val; applied.push('Stories: ' + val); }
+                    }
+                }
+
                 // Save to localStorage
-                this.save({ target: { id: 'hasPool', value: pool ? 'yes' : '' } });
-                
+                this.save({ target: { id: 'pool', value: this.data.pool || '' } });
+
                 // Show confirmation
-                const hazardList = [pool ? '🏊 Pool' : null, trampoline ? '🎪 Trampoline' : null, deck ? '🛋️ Deck' : null].filter(Boolean);
-                alert(`✅ Applied to form:\n\n${hazardList.length > 0 ? hazardList.join('\n') : 'No hazards selected'}`);
-                
+                this.toast(applied.length > 0 ? `Applied: ${applied.join(', ')}` : 'No detections applied', 4000);
+
                 // Close modal
                 this.closeHazardModal();
             },

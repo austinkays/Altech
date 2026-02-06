@@ -269,11 +269,16 @@ async function handleSatellite(req, res) {
   const fullAddress = `${address}, ${city}, ${state}${zip ? ' ' + zip : ''}`.trim();
   console.log(`[Smart Extract] Analyzing: ${fullAddress}`);
 
-  // Get satellite image
+  // Fetch satellite and street view images in parallel
   const satUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(fullAddress)}&zoom=19&size=640x640&maptype=satellite&key=${apiKey}`;
+  const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=640x480&location=${encodeURIComponent(fullAddress)}&key=${apiKey}`;
 
-  const satRes = await fetch(satUrl, { timeout: 10000 });
-  if (!satRes.ok) {
+  const [satRes, svRes] = await Promise.all([
+    fetch(satUrl).catch(() => null),
+    fetch(streetViewUrl).catch(() => null)
+  ]);
+
+  if (!satRes || !satRes.ok) {
     return res.status(200).json({
       success: false,
       data: {},
@@ -281,18 +286,30 @@ async function handleSatellite(req, res) {
     });
   }
 
-  const buffer = await satRes.arrayBuffer();
-  const base64 = Buffer.from(buffer).toString('base64');
+  const satBuffer = await satRes.arrayBuffer();
+  const satBase64 = Buffer.from(satBuffer).toString('base64');
 
-  // Call Gemini Vision API
+  // Street View may not be available for all addresses
+  let svBase64 = null;
+  if (svRes && svRes.ok) {
+    const svBuffer = await svRes.arrayBuffer();
+    svBase64 = Buffer.from(svBuffer).toString('base64');
+    console.log(`[Smart Extract] Street View image fetched (${svBuffer.byteLength} bytes)`);
+  } else {
+    console.log('[Smart Extract] Street View not available for this address');
+  }
+
+  // Call Gemini Vision API with both images
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
-  const prompt = `Analyze this satellite image for property at: ${fullAddress}
+  const prompt = `Analyze ${svBase64 ? 'these two images' : 'this satellite image'} for the property at: ${fullAddress}
+${svBase64 ? '\nImage 1 is a satellite/aerial view. Image 2 is a street-level view of the home.' : ''}
 
 Detect and identify:
-- Pool (visible blue water feature)
+- Pool (visible blue water feature in satellite image)
 - Trampoline (circular or rectangular structure in yard)
-- Roof type (asphalt shingles, metal, tile, flat, or unknown)
+- Roof material (asphalt shingles, metal, tile, flat, or unknown)
+- Roof shape (look at the roof structure${svBase64 ? ' in both images' : ''} — is it gable, hip, flat, or gambrel?)
 - Number of stories (1, 1.5, 2, 2.5, 3, or 3+)
 - Garage spaces (count visible garage doors: 0, 1, 2, 3+)
 - Deck or patio (wooden deck or concrete patio visible)
@@ -303,12 +320,21 @@ Return ONLY valid JSON with this structure:
   "pool": "yes|no|unknown",
   "trampoline": "yes|no|unknown",
   "roofType": "asphalt|metal|tile|flat|unknown",
+  "roofShape": "gable|hip|flat|gambrel|unknown",
   "numStories": "1|1.5|2|2.5|3|3+|unknown",
   "garageSpaces": "0|1|2|3+|unknown",
   "deck": "yes|no|unknown",
   "treeCoverage": "minimal|moderate|heavy|unknown",
   "notes": "Brief observations"
 }`;
+
+  // Build image parts array
+  const imageParts = [
+    { inline_data: { mime_type: 'image/png', data: satBase64 } }
+  ];
+  if (svBase64) {
+    imageParts.push({ inline_data: { mime_type: 'image/jpeg', data: svBase64 } });
+  }
 
   const geminiRes = await fetch(geminiUrl, {
     method: 'POST',
@@ -317,7 +343,7 @@ Return ONLY valid JSON with this structure:
       contents: [{
         parts: [
           { text: prompt },
-          { inline_data: { mime_type: 'image/png', data: base64 } }
+          ...imageParts
         ]
       }],
       generationConfig: {
@@ -332,7 +358,8 @@ Return ONLY valid JSON with this structure:
     return res.status(200).json({
       success: false,
       data: {},
-      satelliteImage: base64,
+      satelliteImage: satBase64,
+      streetViewImage: svBase64,
       notes: `AI analysis failed (${geminiRes.status}). Image shown for manual review.`,
       error: errorText
     });
@@ -346,8 +373,9 @@ Return ONLY valid JSON with this structure:
     return res.status(200).json({
       success: false,
       data: {},
-      satelliteImage: base64,
-      notes: 'Could not extract data. Showing satellite image for review.'
+      satelliteImage: satBase64,
+      streetViewImage: svBase64,
+      notes: 'Could not extract data. Showing images for review.'
     });
   }
 
@@ -356,8 +384,9 @@ Return ONLY valid JSON with this structure:
   res.status(200).json({
     success: true,
     data: extracted,
-    satelliteImage: base64,
-    notes: 'Satellite analysis - verify all data with public records'
+    satelliteImage: satBase64,
+    streetViewImage: svBase64,
+    notes: 'Satellite + Street View analysis - verify all data with public records'
   });
 }
 
