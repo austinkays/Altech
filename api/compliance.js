@@ -28,6 +28,12 @@ function getExpirationStatus(daysUntilExpiration) {
 }
 
 function isGeneralLiabilityPolicy(policy) {
+  // Skip non-active policies (prospects, quotes, cancelled)
+  const policyStatus = (policy.status || '').toLowerCase();
+  if (policyStatus === 'prospect' || policyStatus === 'cancelled' || policyStatus === 'canceled') {
+    return false;
+  }
+
   // ACORD Standard Codes for CGL/Liability policies
   const glCodes = [
     'cgl',          // Commercial General Liability (ACORD standard)
@@ -257,10 +263,13 @@ export default async function handler(req, res) {
     const clientIds = await changedClientsResponse.json();
     console.log(`[Compliance] ✓ Found ${clientIds.length} client IDs`);
 
-    // Limit to first 100 clients to avoid timeouts
-    const limitedClientIds = clientIds.slice(0, 100);
-    if (clientIds.length > 100) {
-      console.log(`[Compliance] ⚠ Limited to first 100 clients (${clientIds.length} total available)`);
+    // Take the MOST RECENT 500 clients (end of list = newest client numbers)
+    const clientLimit = 500;
+    const limitedClientIds = clientIds.length > clientLimit
+      ? clientIds.slice(-clientLimit)
+      : clientIds;
+    if (clientIds.length > clientLimit) {
+      console.log(`[Compliance] ⚠ Taking last ${clientLimit} clients (most recent) out of ${clientIds.length} total`);
     }
 
     // Step 3: Fetch client details in batches
@@ -366,7 +375,7 @@ export default async function handler(req, res) {
             console.log(`[Compliance] Now fetching policies for all ${allClients.length} clients...`);
 
             // Fetch policies for all clients
-            for (const client of allClients.slice(0, 100)) { // Limit to avoid timeout
+            for (const client of allClients) {
               try {
                 const clientPoliciesResponse = await fetch(
                   `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients/${client.ClientNumber}/policies?version=${API_VERSION}`,
