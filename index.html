@@ -804,8 +804,33 @@
         .tool-status.ready { background: #d4edda; color: #155724; }
         .tool-status.soon { background: #fff3cd; color: #856404; }
 
-        .back-to-home { position: fixed; top: 20px; left: 20px; background: rgba(255,255,255,0.95); padding: 12px 20px; border-radius: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; z-index: 1000; border: 1px solid rgba(0,0,0,0.05); font-weight: 600; color: #667eea; transition: all 0.2s; }
-        .back-to-home:hover { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-2px); }
+        .back-to-home {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            padding: 12px 24px;
+            border-radius: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            z-index: 1000;
+            border: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--apple-blue);
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+        .back-to-home:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+            transform: translateX(-50%) translateY(-2px);
+            background: var(--bg-card);
+        }
+
+        body.dark-mode .back-to-home {
+            background: rgba(28, 28, 30, 0.95);
+        }
 
         .plugin-container { display: none; }
         .plugin-container.active { display: block; }
@@ -8721,7 +8746,7 @@ This data is ready to paste into your quoting system.
 
         <div class="cgl-container">
             <!-- Back Button -->
-            <div class="back-to-home" onclick="App.goHome()" style="position: fixed;">
+            <div class="back-to-home" onclick="App.goHome()">
                 ← Back to Tools
             </div>
 
