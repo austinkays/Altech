@@ -33,23 +33,93 @@ function isGeneralLiabilityPolicy(policy) {
     'cgl',          // Commercial General Liability (ACORD standard)
     'gl',           // General Liability (shortcode)
     'bop',          // Business Owners Policy (includes GL coverage)
+    'bopgl',        // BOP General Liability
     'cumbr',        // Commercial Umbrella (often tied to GL)
     'general liability',
     'commercial general liability',
     'gen liab',
     'comm gen liab',
-    'liability',
-    'commercial',   // General commercial type
-    'general'       // General type
+    'liability'
   ];
 
-  // Check loBs array (camelCase per actual API response)
+  // Codes that are NOT CGL - exclude these
+  const excludeCodes = [
+    'auto',         // Auto policies
+    'ca',           // Commercial Auto
+    'personal',     // Personal lines
+    'home',         // Homeowners
+    'renters',      // Renters
+    'condo',        // Condo
+    'life',         // Life insurance
+    'health',       // Health insurance
+    'dental',       // Dental
+    'vision',       // Vision
+    'flood',        // Flood
+    'earthquake',   // Earthquake
+    'workers',      // Workers comp
+    'wc',           // Workers comp
+    'property',     // Property only
+    'fire',         // Fire only
+    'umbrella',     // Personal umbrella (not commercial)
+    'boat',         // Boat/Marine
+    'rv',           // RV
+    'motorcycle',   // Motorcycle
+    'dwelling',     // Dwelling fire
+    'garage',       // Garage keepers (not GL)
+    'garag'         // Garage keepers code
+  ];
+
+  // Check if policy should be EXCLUDED first
+  const policyNumber = (policy.policyNumber || '').toUpperCase();
+
+  // Exclude based on policy number prefixes (CA, HO, PA, etc.)
+  if (policyNumber.startsWith('CA') ||
+      policyNumber.startsWith('HO') ||
+      policyNumber.startsWith('PA') ||
+      policyNumber.startsWith('DP') ||
+      policyNumber.startsWith('FL')) {
+    return false;
+  }
+
+  // Check for exclusion codes in all fields
+  const allFieldsToCheck = [
+    policy.type,
+    policy.applicationType,
+    policy.title
+  ];
+
+  for (const field of allFieldsToCheck) {
+    if (field && typeof field === 'string') {
+      const fieldLower = field.toLowerCase();
+      for (const excludeCode of excludeCodes) {
+        if (fieldLower.includes(excludeCode)) {
+          return false; // Exclude this policy
+        }
+      }
+    }
+  }
+
+  // Check loBs array for exclusions
+  if (policy.loBs && Array.isArray(policy.loBs)) {
+    for (const lob of policy.loBs) {
+      if (lob.code && typeof lob.code === 'string') {
+        const codeLower = lob.code.toLowerCase();
+        for (const excludeCode of excludeCodes) {
+          if (codeLower.includes(excludeCode)) {
+            return false; // Exclude this policy
+          }
+        }
+      }
+    }
+  }
+
+  // Now check if it MATCHES CGL codes in loBs array
   if (policy.loBs && Array.isArray(policy.loBs)) {
     for (const lob of policy.loBs) {
       if (lob.code && typeof lob.code === 'string') {
         const codeLower = lob.code.toLowerCase();
         for (const glCode of glCodes) {
-          if (codeLower.includes(glCode)) {
+          if (codeLower === glCode || codeLower.includes(glCode)) {
             console.log(`[Compliance] ✓ MATCH FOUND in loBs[].code: "${lob.code}"`);
             return true;
           }
@@ -58,30 +128,40 @@ function isGeneralLiabilityPolicy(policy) {
     }
   }
 
-  // Check other fields (all camelCase per actual API response)
-  const fieldsToCheck = [
-    policy.type,
-    policy.applicationType,
-    policy.title
-  ];
+  // Check other fields - must be exact or specific match
+  if (policy.type && typeof policy.type === 'string') {
+    const typeLower = policy.type.toLowerCase();
+    for (const glCode of glCodes) {
+      if (typeLower === glCode || (glCode.length > 5 && typeLower.includes(glCode))) {
+        console.log(`[Compliance] ✓ MATCH FOUND in type: "${policy.type}"`);
+        return true;
+      }
+    }
+  }
 
-  for (let i = 0; i < fieldsToCheck.length; i++) {
-    const field = fieldsToCheck[i];
-    const fieldNames = ['type', 'applicationType', 'title'];
-    if (field && typeof field === 'string') {
-      const fieldLower = field.toLowerCase();
-      for (const code of glCodes) {
-        if (fieldLower.includes(code)) {
-          console.log(`[Compliance] ✓ MATCH FOUND in ${fieldNames[i]}: "${field}"`);
-          return true;
-        }
+  if (policy.applicationType && typeof policy.applicationType === 'string') {
+    const appTypeLower = policy.applicationType.toLowerCase();
+    for (const glCode of glCodes) {
+      if (appTypeLower.includes(glCode)) {
+        console.log(`[Compliance] ✓ MATCH FOUND in applicationType: "${policy.applicationType}"`);
+        return true;
+      }
+    }
+  }
+
+  if (policy.title && typeof policy.title === 'string') {
+    const titleLower = policy.title.toLowerCase();
+    for (const glCode of glCodes) {
+      if (titleLower === glCode || titleLower.includes(glCode)) {
+        console.log(`[Compliance] ✓ MATCH FOUND in title: "${policy.title}"`);
+        return true;
       }
     }
   }
 
   // Log non-matches for debugging
   const lobCodes = policy.loBs ? policy.loBs.map(l => l.code).join(', ') : 'none';
-  console.log(`[Compliance] ✗ NO MATCH: type="${policy.type || 'null'}", applicationType="${policy.applicationType || 'null'}", title="${policy.title || 'null'}", loBs.code=[${lobCodes}]`);
+  console.log(`[Compliance] ✗ NO MATCH: policyNumber="${policy.policyNumber || 'null'}", type="${policy.type || 'null'}", applicationType="${policy.applicationType || 'null'}", title="${policy.title || 'null'}", loBs.code=[${lobCodes}]`);
 
   return false;
 }
