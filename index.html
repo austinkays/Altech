@@ -8794,6 +8794,67 @@ This data is ready to paste into your quoting system.
                 background: #bfdbfe;
                 color: #2563eb;
             }
+            .cgl-backup-bar {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                margin-top: 8px;
+            }
+            .cgl-backup-btn {
+                background: white;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 6px 12px;
+                font-size: 12px;
+                cursor: pointer;
+                color: var(--text-secondary);
+                transition: all 0.15s;
+            }
+            .cgl-backup-btn:hover {
+                background: #f8fafc;
+                color: var(--text);
+            }
+            .cgl-backup-reminder {
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                background: #fffbeb;
+                border: 1px solid #fbbf24;
+                border-radius: 10px;
+                padding: 12px 16px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 1001;
+                display: none;
+                align-items: center;
+                gap: 10px;
+                font-size: 13px;
+                color: #92400e;
+                max-width: 360px;
+            }
+            .cgl-backup-reminder button {
+                background: #f59e0b;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 6px 12px;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                white-space: nowrap;
+            }
+            .cgl-backup-reminder button:hover {
+                background: #d97706;
+            }
+            .cgl-backup-reminder .cgl-reminder-dismiss {
+                background: none;
+                color: #92400e;
+                padding: 4px;
+                font-size: 16px;
+                line-height: 1;
+            }
+            .cgl-backup-reminder .cgl-reminder-dismiss:hover {
+                color: #78350f;
+            }
             .cgl-link {
                 color: var(--apple-blue);
                 text-decoration: none;
@@ -8948,6 +9009,11 @@ This data is ready to paste into your quoting system.
                 <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
                     Showing <span id="cglFilteredCount">0</span> of <span id="cglTotalCount">0</span> policies
                 </div>
+                <div class="cgl-backup-bar">
+                    <button class="cgl-backup-btn" onclick="ComplianceDashboard.exportBackup()">Backup My Work</button>
+                    <button class="cgl-backup-btn" onclick="document.getElementById('cglImportFile').click()">Restore Work</button>
+                    <input type="file" id="cglImportFile" accept=".csv" style="display:none;" onchange="ComplianceDashboard.importBackup(this)">
+                </div>
             </div>
 
             <!-- Loading State -->
@@ -9010,42 +9076,164 @@ This data is ready to paste into your quoting system.
                     </div>
                 </div>
             </div>
+
+            <!-- Floating backup reminder -->
+            <div class="cgl-backup-reminder" id="cglBackupReminder">
+                <span>You have <strong id="cglSessionCount">0</strong> unsaved changes.</span>
+                <button onclick="ComplianceDashboard.exportBackup()">Backup now</button>
+                <button class="cgl-reminder-dismiss" onclick="ComplianceDashboard.dismissReminder()">&times;</button>
+            </div>
         </div>
 
         <script>
             // CGL Compliance Dashboard JavaScript
+            const STORAGE_KEY = 'altech_cgl_state';
+
             const ComplianceDashboard = {
                 policies: [],
-                updatedPolicies: {},
+                verifiedPolicies: {},
                 dismissedPolicies: {},
                 showHidden: false,
+                sessionChanges: 0,
+                reminderDismissed: false,
+
+                // --- State persistence ---
+
+                loadState() {
+                    // Try new unified key first
+                    const state = localStorage.getItem(STORAGE_KEY);
+                    if (state) {
+                        try {
+                            const parsed = JSON.parse(state);
+                            this.verifiedPolicies = parsed.verifiedPolicies || {};
+                            this.dismissedPolicies = parsed.dismissedPolicies || {};
+                            console.log('[CGL] State loaded:', Object.keys(this.verifiedPolicies).length, 'verified,', Object.keys(this.dismissedPolicies).length, 'dismissed');
+                            return;
+                        } catch (e) {
+                            console.error('[CGL] Failed to parse state:', e);
+                        }
+                    }
+
+                    // Migrate from old keys
+                    const oldVerified = localStorage.getItem('compliance_updated_policies');
+                    const oldDismissed = localStorage.getItem('compliance_dismissed_policies');
+                    if (oldVerified) {
+                        try { this.verifiedPolicies = JSON.parse(oldVerified); } catch (e) {}
+                    }
+                    if (oldDismissed) {
+                        try { this.dismissedPolicies = JSON.parse(oldDismissed); } catch (e) {}
+                    }
+                    if (oldVerified || oldDismissed) {
+                        this.saveState();
+                        localStorage.removeItem('compliance_updated_policies');
+                        localStorage.removeItem('compliance_dismissed_policies');
+                        console.log('[CGL] Migrated old keys to altech_cgl_state');
+                    }
+                },
+
+                saveState() {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                        verifiedPolicies: this.verifiedPolicies,
+                        dismissedPolicies: this.dismissedPolicies,
+                        lastSaved: new Date().toISOString()
+                    }));
+                },
+
+                trackChange() {
+                    this.sessionChanges++;
+                    const countEl = document.getElementById('cglSessionCount');
+                    if (countEl) countEl.textContent = this.sessionChanges;
+
+                    if (this.sessionChanges >= 10 && !this.reminderDismissed) {
+                        const reminder = document.getElementById('cglBackupReminder');
+                        if (reminder) reminder.style.display = 'flex';
+                    }
+                },
+
+                dismissReminder() {
+                    this.reminderDismissed = true;
+                    const reminder = document.getElementById('cglBackupReminder');
+                    if (reminder) reminder.style.display = 'none';
+                },
+
+                // --- Export / Import ---
+
+                exportBackup() {
+                    const rows = ['PolicyNumber,Status,Date'];
+                    for (const [pn, data] of Object.entries(this.verifiedPolicies)) {
+                        rows.push(`${pn},verified,${data.updatedAt || ''}`);
+                    }
+                    for (const [pn, data] of Object.entries(this.dismissedPolicies)) {
+                        rows.push(`${pn},dismissed,${data.dismissedAt || ''}`);
+                    }
+
+                    if (rows.length === 1) {
+                        alert('Nothing to export yet. Verify or dismiss some policies first.');
+                        return;
+                    }
+
+                    const csv = rows.join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    const dateStr = new Date().toISOString().split('T')[0];
+                    a.href = url;
+                    a.download = `CGL_Work_Backup_${dateStr}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+
+                    // Reset session counter after backup
+                    this.sessionChanges = 0;
+                    this.reminderDismissed = false;
+                    const reminder = document.getElementById('cglBackupReminder');
+                    if (reminder) reminder.style.display = 'none';
+                    const countEl = document.getElementById('cglSessionCount');
+                    if (countEl) countEl.textContent = '0';
+                },
+
+                importBackup(fileInput) {
+                    const file = fileInput.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const text = e.target.result;
+                        const lines = text.trim().split('\n');
+
+                        // Skip header row
+                        let imported = 0;
+                        for (let i = 1; i < lines.length; i++) {
+                            const parts = lines[i].split(',');
+                            if (parts.length < 2) continue;
+                            const policyNumber = parts[0].trim();
+                            const status = parts[1].trim().toLowerCase();
+                            const date = parts[2] ? parts[2].trim() : new Date().toISOString();
+
+                            if (!policyNumber) continue;
+
+                            if (status === 'verified') {
+                                this.verifiedPolicies[policyNumber] = { updatedAt: date, updatedBy: 'import' };
+                                imported++;
+                            } else if (status === 'dismissed') {
+                                this.dismissedPolicies[policyNumber] = { dismissedAt: date };
+                                imported++;
+                            }
+                        }
+
+                        this.saveState();
+                        this.filterPolicies();
+                        this.updateStats();
+                        alert(`Restored ${imported} policy markers from backup.`);
+                    };
+                    reader.readAsText(file);
+                    fileInput.value = '';
+                },
+
+                // --- Init ---
 
                 init() {
-                    console.log('[CGL] ComplianceDashboard.init() called');
+                    this.loadState();
 
-                    // Load updated policies from localStorage
-                    const stored = localStorage.getItem('compliance_updated_policies');
-                    if (stored) {
-                        try {
-                            this.updatedPolicies = JSON.parse(stored);
-                            console.log('[CGL] Loaded updated policies:', Object.keys(this.updatedPolicies).length);
-                        } catch (e) {
-                            console.error('[CGL] Failed to parse stored policies:', e);
-                        }
-                    }
-
-                    // Load dismissed policies from localStorage
-                    const dismissed = localStorage.getItem('compliance_dismissed_policies');
-                    if (dismissed) {
-                        try {
-                            this.dismissedPolicies = JSON.parse(dismissed);
-                            console.log('[CGL] Loaded dismissed policies:', Object.keys(this.dismissedPolicies).length);
-                        } catch (e) {
-                            console.error('[CGL] Failed to parse dismissed policies:', e);
-                        }
-                    }
-
-                    // Add event listeners
                     const searchInput = document.getElementById('cglSearchInput');
                     const filterSelect = document.getElementById('cglFilterSelect');
 
@@ -9056,9 +9244,10 @@ This data is ready to paste into your quoting system.
                         filterSelect.addEventListener('change', () => this.filterPolicies());
                     }
 
-                    // Initial load
                     this.fetchPolicies();
                 },
+
+                // --- Data fetching ---
 
                 async fetchPolicies() {
                     const loading = document.getElementById('cglLoading');
@@ -9115,28 +9304,33 @@ This data is ready to paste into your quoting system.
                     this.fetchPolicies();
                 },
 
+                // --- Policy state helpers ---
+
                 isHidden(policyNumber) {
-                    return !!this.updatedPolicies[policyNumber] || !!this.dismissedPolicies[policyNumber];
+                    return !!this.verifiedPolicies[policyNumber] || !!this.dismissedPolicies[policyNumber];
                 },
 
                 getHiddenCount() {
-                    const hidden = new Set();
+                    let count = 0;
                     this.policies.forEach(p => {
-                        if (this.isHidden(p.policyNumber)) hidden.add(p.policyNumber);
+                        if (this.isHidden(p.policyNumber)) count++;
                     });
-                    return hidden.size;
+                    return count;
                 },
 
-                togglePolicyUpdated(policyNumber) {
-                    if (this.updatedPolicies[policyNumber]) {
-                        delete this.updatedPolicies[policyNumber];
+                // --- User actions ---
+
+                togglePolicyVerified(policyNumber) {
+                    if (this.verifiedPolicies[policyNumber]) {
+                        delete this.verifiedPolicies[policyNumber];
                     } else {
-                        this.updatedPolicies[policyNumber] = {
+                        this.verifiedPolicies[policyNumber] = {
                             updatedAt: new Date().toISOString(),
                             updatedBy: 'user'
                         };
                     }
-                    localStorage.setItem('compliance_updated_policies', JSON.stringify(this.updatedPolicies));
+                    this.saveState();
+                    this.trackChange();
                     this.filterPolicies();
                     this.updateStats();
                 },
@@ -9145,14 +9339,22 @@ This data is ready to paste into your quoting system.
                     this.dismissedPolicies[policyNumber] = {
                         dismissedAt: new Date().toISOString()
                     };
-                    localStorage.setItem('compliance_dismissed_policies', JSON.stringify(this.dismissedPolicies));
+                    this.saveState();
+                    this.trackChange();
                     this.filterPolicies();
                     this.updateStats();
                 },
 
                 undismissPolicy(policyNumber) {
                     delete this.dismissedPolicies[policyNumber];
-                    localStorage.setItem('compliance_dismissed_policies', JSON.stringify(this.dismissedPolicies));
+                    this.saveState();
+                    this.filterPolicies();
+                    this.updateStats();
+                },
+
+                unverifyPolicy(policyNumber) {
+                    delete this.verifiedPolicies[policyNumber];
+                    this.saveState();
                     this.filterPolicies();
                     this.updateStats();
                 },
@@ -9169,17 +9371,18 @@ This data is ready to paste into your quoting system.
                 },
 
                 clearAll() {
-                    if (confirm('Clear all "Updated" and "Dismissed" markers? This will restore all hidden policies.')) {
-                        this.updatedPolicies = {};
+                    if (confirm('Clear all verified and dismissed markers? This will restore all hidden policies.')) {
+                        this.verifiedPolicies = {};
                         this.dismissedPolicies = {};
-                        localStorage.removeItem('compliance_updated_policies');
-                        localStorage.removeItem('compliance_dismissed_policies');
+                        this.saveState();
                         this.showHidden = false;
                         document.getElementById('cglShowHiddenBtn').classList.remove('active');
                         this.renderPolicies();
                         this.updateStats();
                     }
                 },
+
+                // --- Filtering ---
 
                 filterPolicies() {
                     const searchTerm = document.getElementById('cglSearchInput').value.toLowerCase();
@@ -9188,23 +9391,20 @@ This data is ready to paste into your quoting system.
                     const filtered = this.policies.filter(policy => {
                         const isHidden = this.isHidden(policy.policyNumber);
 
-                        // Hide verified/dismissed unless showHidden is on
                         if (!this.showHidden && isHidden) return false;
 
-                        // Search filter
                         const matchesSearch =
                             policy.clientName.toLowerCase().includes(searchTerm) ||
                             policy.policyNumber.toLowerCase().includes(searchTerm) ||
                             policy.carrier.toLowerCase().includes(searchTerm);
 
-                        // Status filter
                         const matchesStatus =
                             filterStatus === 'all' ||
                             (filterStatus === 'critical' && policy.status === 'critical') ||
                             (filterStatus === 'expiring-soon' && policy.status === 'expiring-soon') ||
                             (filterStatus === 'expired' && policy.status === 'expired') ||
                             (filterStatus === 'manual-verification' && policy.requiresManualVerification) ||
-                            (filterStatus === 'not-updated' && !this.updatedPolicies[policy.policyNumber]);
+                            (filterStatus === 'not-updated' && !this.verifiedPolicies[policy.policyNumber]);
 
                         return matchesSearch && matchesStatus;
                     });
@@ -9212,15 +9412,15 @@ This data is ready to paste into your quoting system.
                     this.renderPolicies(filtered);
                 },
 
+                // --- Rendering ---
+
                 renderPolicies(filteredList = null) {
                     const tbody = document.getElementById('cglTableBody');
                     const policiesToRender = filteredList || this.policies.filter(p => this.showHidden || !this.isHidden(p.policyNumber));
 
-                    // Update hidden count badge
                     const hiddenCount = this.getHiddenCount();
                     document.getElementById('cglHiddenCount').textContent = hiddenCount;
 
-                    // Update visible count
                     const visibleTotal = this.policies.filter(p => !this.isHidden(p.policyNumber)).length;
                     document.getElementById('cglFilteredCount').textContent = policiesToRender.length;
                     document.getElementById('cglTotalCount').textContent = this.showHidden ? this.policies.length : visibleTotal;
@@ -9237,29 +9437,33 @@ This data is ready to paste into your quoting system.
                     }
 
                     tbody.innerHTML = policiesToRender.map(policy => {
-                        const isUpdated = !!this.updatedPolicies[policy.policyNumber];
+                        const isVerified = !!this.verifiedPolicies[policy.policyNumber];
                         const isDismissed = !!this.dismissedPolicies[policy.policyNumber];
-                        const isHidden = isUpdated || isDismissed;
+                        const isHidden = isVerified || isDismissed;
                         const statusLabel = this.getStatusLabel(policy.daysUntilExpiration);
                         const expDate = new Date(policy.expirationDate).toLocaleDateString();
                         const effDate = new Date(policy.effectiveDate).toLocaleDateString();
                         const incDate = policy.inceptionDate ? new Date(policy.inceptionDate).toLocaleDateString() : null;
 
-                        const rowClass = isHidden ? 'hidden-row' : (isUpdated ? 'updated' : '');
+                        const rowClass = isHidden ? 'hidden-row' : '';
 
-                        // Action column content
                         let actionHtml = '';
                         if (isHidden && this.showHidden) {
-                            actionHtml = `<button class="cgl-restore-btn" onclick="ComplianceDashboard.${isDismissed ? 'undismissPolicy' : 'togglePolicyUpdated'}('${policy.policyNumber}')">Restore</button>`;
+                            const fn = isDismissed ? 'undismissPolicy' : 'unverifyPolicy';
+                            actionHtml = `<button class="cgl-restore-btn" onclick="ComplianceDashboard.${fn}('${policy.policyNumber}')">Restore</button>`;
                         } else if (!isHidden) {
                             actionHtml = `<button class="cgl-dismiss-btn" onclick="ComplianceDashboard.dismissPolicy('${policy.policyNumber}')">Dismiss</button>`;
                         }
 
+                        const verifiedTitle = isVerified
+                            ? 'Verified on ' + new Date(this.verifiedPolicies[policy.policyNumber].updatedAt).toLocaleDateString()
+                            : 'Mark as verified on state site';
+
                         return `
                             <tr class="${rowClass}">
                                 <td>
-                                    <label class="cgl-toggle" title="${isUpdated ? 'Verified on ' + new Date(this.updatedPolicies[policy.policyNumber].updatedAt).toLocaleDateString() : 'Mark as verified on state site'}">
-                                        <input type="checkbox" ${isUpdated ? 'checked' : ''} onchange="ComplianceDashboard.togglePolicyUpdated('${policy.policyNumber}')">
+                                    <label class="cgl-toggle" title="${verifiedTitle}">
+                                        <input type="checkbox" ${isVerified ? 'checked' : ''} onchange="ComplianceDashboard.togglePolicyVerified('${policy.policyNumber}')">
                                         <span class="cgl-toggle-slider"></span>
                                     </label>
                                 </td>
@@ -9277,7 +9481,7 @@ This data is ready to paste into your quoting system.
                                 </td>
                                 <td>
                                     <div>${this.escapeHtml(policy.carrier)}</div>
-                                    ${policy.requiresManualVerification ? '<span class="cgl-manual-badge">⚠️ Manual Verification</span>' : ''}
+                                    ${policy.requiresManualVerification ? '<span class="cgl-manual-badge">Manual Verification</span>' : ''}
                                 </td>
                                 <td>
                                     <div style="font-weight: 600;">Exp: ${expDate}</div>
@@ -9290,6 +9494,8 @@ This data is ready to paste into your quoting system.
                     }).join('');
                 },
 
+                // --- Stats ---
+
                 updateStats() {
                     const visiblePolicies = this.policies.filter(p => !this.isHidden(p.policyNumber));
                     document.getElementById('statTotal').textContent = visiblePolicies.length;
@@ -9297,11 +9503,12 @@ This data is ready to paste into your quoting system.
                     document.getElementById('statExpiring').textContent = visiblePolicies.filter(p => p.status === 'expiring-soon').length;
                     document.getElementById('statExpired').textContent = visiblePolicies.filter(p => p.status === 'expired').length;
                     document.getElementById('statManual').textContent = visiblePolicies.filter(p => p.requiresManualVerification).length;
-                    document.getElementById('statUpdated').textContent = Object.keys(this.updatedPolicies).length;
+                    document.getElementById('statUpdated').textContent = Object.keys(this.verifiedPolicies).length;
 
-                    // Update hidden count badge
                     document.getElementById('cglHiddenCount').textContent = this.getHiddenCount();
                 },
+
+                // --- Helpers ---
 
                 getStatusLabel(daysUntilExpiration) {
                     if (daysUntilExpiration < 0) return `Expired ${Math.abs(daysUntilExpiration)} days ago`;
