@@ -8559,7 +8559,7 @@ This data is ready to paste into your quoting system.
     </div>
 
     <!-- CGL COMPLIANCE DASHBOARD CONTAINER -->
-    <div id="complianceTool" class="plugin-container" style="background: #f5f5f5; width: 100%; min-height: 100vh; position: fixed; top: 0; left: 0; overflow-y: auto; z-index: 999;">
+    <div id="complianceTool" class="plugin-container" style="background: #f5f5f5; width: 100%; min-height: 100vh; position: fixed; top: 0; left: 0; overflow-y: auto; z-index: 999; padding-bottom: 0;">
         <style>
             /* CGL Dashboard Styles */
             .cgl-container {
@@ -8567,7 +8567,6 @@ This data is ready to paste into your quoting system.
                 margin: 0 auto;
                 padding: 20px;
                 padding-bottom: 120px; /* Space for floating back button */
-                min-height: 100vh;
             }
             .cgl-header {
                 margin-bottom: 32px;
@@ -8928,7 +8927,7 @@ This data is ready to paste into your quoting system.
                             <th>Client</th>
                             <th>Policy #</th>
                             <th>Carrier</th>
-                            <th>Expiration</th>
+                            <th>Dates</th>
                             <th>UBI</th>
                             <th>Actions</th>
                         </tr>
@@ -9143,6 +9142,7 @@ This data is ready to paste into your quoting system.
                         const statusLabel = this.getStatusLabel(policy.daysUntilExpiration);
                         const expDate = new Date(policy.expirationDate).toLocaleDateString();
                         const effDate = new Date(policy.effectiveDate).toLocaleDateString();
+                        const incDate = policy.inceptionDate ? new Date(policy.inceptionDate).toLocaleDateString() : null;
 
                         return `
                             <tr class="${isUpdated ? 'updated' : ''}">
@@ -9162,15 +9162,19 @@ This data is ready to paste into your quoting system.
                                     ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${this.escapeHtml(policy.email)}</div>` : ''}
                                 </td>
                                 <td style="font-family: monospace; font-size: 13px;">
-                                    ${this.escapeHtml(policy.policyNumber)}
+                                    ${policy.hawkSoftLink ?
+                                        `<a href="${policy.hawkSoftLink}" target="_blank" rel="noopener noreferrer" class="cgl-link">${this.escapeHtml(policy.policyNumber)}</a>` :
+                                        this.escapeHtml(policy.policyNumber)
+                                    }
                                 </td>
                                 <td>
                                     <div>${this.escapeHtml(policy.carrier)}</div>
                                     ${policy.requiresManualVerification ? '<span class="cgl-manual-badge">⚠️ Manual Verification</span>' : ''}
                                 </td>
                                 <td>
-                                    <div>${expDate}</div>
-                                    <div style="font-size: 12px; color: var(--text-secondary);">Eff: ${effDate}</div>
+                                    <div style="font-weight: 600;">Exp: ${expDate}</div>
+                                    ${incDate ? `<div style="font-size: 12px; color: var(--text-secondary);">Inception: ${incDate}</div>` : ''}
+                                    <div style="font-size: 12px; color: var(--text-secondary);">Effective: ${effDate}</div>
                                 </td>
                                 <td style="font-family: monospace; font-size: 13px;">
                                     ${policy.ubi || 'N/A'}
