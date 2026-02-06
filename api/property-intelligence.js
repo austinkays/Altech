@@ -1346,22 +1346,64 @@ async function handleFireStation(req, res) {
     const { lat, lng } = geocodeData.results[0].geometry.location;
     console.log(`[FireStation] Property location: ${lat}, ${lng}`);
 
-    // Step 2: Find nearest fire station using Places Nearby Search
-    const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&rankby=distance&type=fire_station&key=${apiKey}`;
+    // Step 2: Find nearest fire station — try multiple approaches
+    let nearest = null;
 
-    console.log(`[FireStation] Searching for nearby fire stations...`);
-    const placesResp = await fetch(placesUrl);
-    const placesData = await placesResp.json();
+    // Approach A: Nearby Search with rankby=distance
+    const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&rankby=distance&type=fire_station&key=${apiKey}`;
+    console.log(`[FireStation] Trying Nearby Search (rankby=distance)...`);
+    const nearbyResp = await fetch(nearbyUrl);
+    const nearbyData = await nearbyResp.json();
+    console.log(`[FireStation] Nearby Search status: ${nearbyData.status}, results: ${nearbyData.results?.length || 0}`);
 
-    if (!placesData.results || placesData.results.length === 0) {
+    if (nearbyData.results && nearbyData.results.length > 0) {
+      nearest = nearbyData.results[0];
+    }
+
+    // Approach B: Nearby Search with radius (if A failed)
+    if (!nearest) {
+      const radiusUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=16000&type=fire_station&key=${apiKey}`;
+      console.log(`[FireStation] Trying Nearby Search (radius=16km)...`);
+      const radiusResp = await fetch(radiusUrl);
+      const radiusData = await radiusResp.json();
+      console.log(`[FireStation] Radius Search status: ${radiusData.status}, results: ${radiusData.results?.length || 0}`);
+
+      if (radiusData.results && radiusData.results.length > 0) {
+        // Find the closest one by distance
+        let minDist = Infinity;
+        for (const r of radiusData.results) {
+          const d = haversineDistance(lat, lng, r.geometry.location.lat, r.geometry.location.lng);
+          if (d < minDist) { minDist = d; nearest = r; }
+        }
+      }
+    }
+
+    // Approach C: Text Search fallback (if Places Nearby not enabled)
+    if (!nearest) {
+      const textQuery = `fire station near ${city}, ${state}`;
+      const textUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(textQuery)}&location=${lat},${lng}&radius=16000&key=${apiKey}`;
+      console.log(`[FireStation] Trying Text Search: "${textQuery}"...`);
+      const textResp = await fetch(textUrl);
+      const textData = await textResp.json();
+      console.log(`[FireStation] Text Search status: ${textData.status}, results: ${textData.results?.length || 0}`);
+
+      if (textData.results && textData.results.length > 0) {
+        let minDist = Infinity;
+        for (const r of textData.results) {
+          const d = haversineDistance(lat, lng, r.geometry.location.lat, r.geometry.location.lng);
+          if (d < minDist) { minDist = d; nearest = r; }
+        }
+      }
+    }
+
+    if (!nearest) {
       return res.status(200).json({
         success: false,
-        error: 'No fire stations found nearby',
+        error: 'No fire stations found nearby (Places API may not be enabled)',
         propertyLocation: { lat, lng }
       });
     }
 
-    const nearest = placesData.results[0];
     const stationLat = nearest.geometry.location.lat;
     const stationLng = nearest.geometry.location.lng;
     const distanceMiles = haversineDistance(lat, lng, stationLat, stationLng);
@@ -1373,7 +1415,7 @@ async function handleFireStation(req, res) {
       success: true,
       fireStationDist: Math.round(distanceMiles * 10) / 10,
       fireStationName: nearest.name,
-      fireStationAddress: nearest.vicinity || '',
+      fireStationAddress: nearest.vicinity || nearest.formatted_address || '',
       protectionClass,
       propertyLocation: { lat, lng },
       stationLocation: { lat: stationLat, lng: stationLng },
