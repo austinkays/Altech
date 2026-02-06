@@ -1436,7 +1436,8 @@
                 </div>
                 
                 <label class="label">Home Purchase Date</label>
-                <input type="date" id="purchaseDate">
+                <input type="date" id="purchaseDate" @change="calculateResidenceTime()">
+                <span id="residenceTimeDisplay" style="font-size: 12px; color: var(--text-secondary); margin-top: 2px; display: block;"></span>
             </div>
 
             <div class="card">
@@ -2073,6 +2074,7 @@
                 await this.loadDriversVehicles(); // Load multi-driver/vehicle data
                 this.handleType(); // Set initial flow
                 this.updateScanCoverage();
+                this.calculateResidenceTime(); // Show residence time if purchaseDate loaded
                 await this.renderQuoteList();
 
                 const scanInput = document.getElementById('policyScanInput');
@@ -4206,8 +4208,9 @@
                 useBtn.onclick = () => {
                     this.applyParcelData(parcelData);
                     this.closeParcelModal();
-                    // Fire Zillow enrichment in background (non-blocking)
+                    // Fire enrichments in background (non-blocking)
                     this.enrichWithZillow(address, city, state);
+                    this.enrichFireStation(address, city, state);
                 };
                 
                 const skipBtn = document.createElement('button');
@@ -4448,6 +4451,75 @@
                     }
                 } catch (e) {
                     console.warn('[Zillow] Enrichment failed (non-fatal):', e.message);
+                }
+            },
+
+            calculateResidenceTime() {
+                const dateStr = this.data.purchaseDate;
+                const display = document.getElementById('residenceTimeDisplay');
+                if (!display) return;
+                if (!dateStr) { display.textContent = ''; return; }
+                const purchase = new Date(dateStr);
+                const now = new Date();
+                const diffMs = now - purchase;
+                if (diffMs < 0) { display.textContent = '(future date)'; return; }
+                const years = Math.floor(diffMs / (365.25 * 24 * 60 * 60 * 1000));
+                const months = Math.floor((diffMs / (30.44 * 24 * 60 * 60 * 1000)) % 12);
+                if (years > 0) {
+                    display.textContent = `(~${years} yr${years !== 1 ? 's' : ''}, ${months} mo at residence)`;
+                } else {
+                    display.textContent = `(${months} month${months !== 1 ? 's' : ''} at residence)`;
+                }
+                this.data.yearsAtResidence = years;
+            },
+
+            async enrichFireStation(address, city, state) {
+                const zip = this.data.addrZip || '';
+                console.log(`[FireStation] Enrichment starting: ${address}, ${city}, ${state} ${zip}`);
+                try {
+                    const resp = await fetch('/api/property-intelligence?mode=firestation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ address, city, state, zip })
+                    });
+                    if (!resp.ok) {
+                        console.warn(`[FireStation] API returned HTTP ${resp.status}`);
+                        return;
+                    }
+                    const result = await resp.json();
+                    console.log('[FireStation] API response:', JSON.stringify(result).substring(0, 500));
+                    if (!result.success) {
+                        console.warn('[FireStation] No data:', result.error);
+                        return;
+                    }
+
+                    const applied = [];
+
+                    if (result.fireStationDist != null) {
+                        const el = document.getElementById('fireStationDist');
+                        if (el) {
+                            el.value = result.fireStationDist;
+                            this.data.fireStationDist = String(result.fireStationDist);
+                            applied.push(`${result.fireStationDist} mi to ${result.fireStationName || 'fire station'}`);
+                        }
+                    }
+
+                    if (result.protectionClass != null) {
+                        const el = document.getElementById('protectionClass');
+                        if (el) {
+                            el.value = result.protectionClass;
+                            this.data.protectionClass = String(result.protectionClass);
+                            applied.push(`Protection Class ${result.protectionClass}`);
+                        }
+                    }
+
+                    if (applied.length > 0) {
+                        this.save();
+                        this.toast(`🚒 ${applied.join(' · ')}`, 5000);
+                        console.log(`[FireStation] Applied: ${applied.join(', ')}`);
+                    }
+                } catch (e) {
+                    console.warn('[FireStation] Enrichment failed (non-fatal):', e.message);
                 }
             },
 

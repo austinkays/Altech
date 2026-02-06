@@ -1292,6 +1292,103 @@ async function handleZillow(req, res) {
 }
 
 // ===========================================================================
+// SECTION 4: Fire Station Distance & Protection Class
+// ===========================================================================
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 3959; // Earth radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function estimateProtectionClass(distanceMiles) {
+  if (distanceMiles < 1) return 4;
+  if (distanceMiles < 2) return 5;
+  if (distanceMiles < 3) return 6;
+  if (distanceMiles < 4) return 7;
+  if (distanceMiles < 5) return 8;
+  if (distanceMiles < 7) return 9;
+  return 10;
+}
+
+async function handleFireStation(req, res) {
+  const { address, city, state, zip } = req.body;
+
+  if (!address || !city || !state) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required parameters: address, city, state'
+    });
+  }
+
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ success: false, error: 'Google API key not configured' });
+  }
+
+  try {
+    // Step 1: Geocode the property address
+    const fullAddress = `${address}, ${city}, ${state}${zip ? ' ' + zip : ''}`;
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${apiKey}`;
+
+    console.log(`[FireStation] Geocoding: ${fullAddress}`);
+    const geocodeResp = await fetch(geocodeUrl);
+    const geocodeData = await geocodeResp.json();
+
+    if (!geocodeData.results || geocodeData.results.length === 0) {
+      return res.status(200).json({ success: false, error: 'Could not geocode address' });
+    }
+
+    const { lat, lng } = geocodeData.results[0].geometry.location;
+    console.log(`[FireStation] Property location: ${lat}, ${lng}`);
+
+    // Step 2: Find nearest fire station using Places Nearby Search
+    const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&rankby=distance&type=fire_station&key=${apiKey}`;
+
+    console.log(`[FireStation] Searching for nearby fire stations...`);
+    const placesResp = await fetch(placesUrl);
+    const placesData = await placesResp.json();
+
+    if (!placesData.results || placesData.results.length === 0) {
+      return res.status(200).json({
+        success: false,
+        error: 'No fire stations found nearby',
+        propertyLocation: { lat, lng }
+      });
+    }
+
+    const nearest = placesData.results[0];
+    const stationLat = nearest.geometry.location.lat;
+    const stationLng = nearest.geometry.location.lng;
+    const distanceMiles = haversineDistance(lat, lng, stationLat, stationLng);
+    const protectionClass = estimateProtectionClass(distanceMiles);
+
+    console.log(`[FireStation] Nearest: "${nearest.name}" at ${distanceMiles.toFixed(2)} mi → Protection Class ${protectionClass}`);
+
+    return res.status(200).json({
+      success: true,
+      fireStationDist: Math.round(distanceMiles * 10) / 10,
+      fireStationName: nearest.name,
+      fireStationAddress: nearest.vicinity || '',
+      protectionClass,
+      propertyLocation: { lat, lng },
+      stationLocation: { lat: stationLat, lng: stationLng },
+      note: 'Estimated from distance - verify with local fire department'
+    });
+  } catch (error) {
+    console.error('[FireStation] Error:', error);
+    return res.status(200).json({
+      success: false,
+      error: error.message || 'Unknown error'
+    });
+  }
+}
+
+// ===========================================================================
 // MAIN HANDLER — Routes by ?mode= query parameter
 // ===========================================================================
 
@@ -1314,9 +1411,11 @@ export default async function handler(req, res) {
         return await handleSatellite(req, res);
       case 'zillow':
         return await handleZillow(req, res);
+      case 'firestation':
+        return await handleFireStation(req, res);
       default:
         return res.status(400).json({
-          error: `Invalid mode "${mode}". Use ?mode=arcgis|satellite|zillow`
+          error: `Invalid mode "${mode}". Use ?mode=arcgis|satellite|zillow|firestation`
         });
     }
   } catch (error) {
