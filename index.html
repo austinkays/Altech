@@ -4199,6 +4199,8 @@
                 useBtn.onclick = () => {
                     this.applyParcelData(parcelData);
                     this.closeParcelModal();
+                    // Fire Zillow enrichment in background (non-blocking)
+                    this.enrichWithZillow(address, city, state);
                 };
                 
                 const skipBtn = document.createElement('button');
@@ -4360,6 +4362,63 @@
 
                 // Show success toast with count
                 this.toast(`✅ Auto-filled ${fieldsApplied} field${fieldsApplied !== 1 ? 's' : ''} from county data`);
+            },
+
+            async enrichWithZillow(address, city, state) {
+                const zip = this.data.addrZip || '';
+                try {
+                    const resp = await fetch(
+                        `/api/zillow-extract?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&zip=${encodeURIComponent(zip)}`
+                    );
+                    if (!resp.ok) return;
+                    const result = await resp.json();
+                    if (!result.success || !result.data) return;
+
+                    const zd = result.data;
+                    const applied = [];
+
+                    // Friendly labels for toast
+                    const labels = {
+                        heatingType: 'Heating', cooling: 'Cooling', roofType: 'Roof',
+                        foundation: 'Foundation', constructionStyle: 'Construction',
+                        exteriorWalls: 'Exterior', garageSpaces: 'Garage',
+                        bedrooms: 'Bedrooms', fullBaths: 'Bathrooms',
+                        yrBuilt: 'Year Built', fireplace: 'Fireplace'
+                    };
+
+                    // Select dropdowns — validate against option values
+                    const selectFields = ['heatingType', 'cooling', 'roofType', 'foundation', 'constructionStyle', 'exteriorWalls'];
+                    for (const fid of selectFields) {
+                        if (!zd[fid]) continue;
+                        const el = document.getElementById(fid);
+                        if (!el) continue;
+                        const opts = Array.from(el.options).map(o => o.value);
+                        if (opts.includes(zd[fid])) {
+                            el.value = zd[fid];
+                            this.data[fid] = zd[fid];
+                            applied.push(labels[fid] || fid);
+                        }
+                    }
+
+                    // Text / number fields
+                    const textFields = { yrBuilt: zd.yrBuilt, bedrooms: zd.bedrooms, fullBaths: zd.fullBaths, garageSpaces: zd.garageSpaces };
+                    for (const [fid, val] of Object.entries(textFields)) {
+                        if (val == null) continue;
+                        const el = document.getElementById(fid);
+                        if (!el) continue;
+                        el.value = val;
+                        this.data[fid] = String(val);
+                        applied.push(labels[fid] || fid);
+                    }
+
+                    if (applied.length > 0) {
+                        this.save();
+                        this.toast(`🏠 Found detailed Zillow data: ${applied.join(', ')} applied.`);
+                        console.log(`[Zillow] Enriched ${applied.length} fields via ${result.source}`);
+                    }
+                } catch (e) {
+                    console.warn('[Zillow] Enrichment failed (non-fatal):', e.message);
+                }
             },
 
             showHazardDetectionPopup(detections, satelliteImage, address) {
