@@ -204,8 +204,8 @@ export default async function handler(req, res) {
       const sampleClient = allClients[0];
       console.log('[Compliance] ===== CLIENT STRUCTURE FORENSICS =====');
       console.log('[Compliance] Sample client keys:', Object.keys(sampleClient));
-      console.log('[Compliance] Has Policies array?', Array.isArray(sampleClient.Policies));
-      console.log('[Compliance] Policies count in first client:', sampleClient.Policies ? sampleClient.Policies.length : 0);
+      console.log('[Compliance] Has policies array?', Array.isArray(sampleClient.policies));
+      console.log('[Compliance] Policies count in first client:', sampleClient.policies ? sampleClient.policies.length : 0);
       console.log('[Compliance] ========================================');
     }
 
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
     let clientsWithoutPolicies = 0;
 
     for (const client of allClients) {
-      if (client.Policies && client.Policies.length > 0) {
+      if (client.policies && client.policies.length > 0) {
         clientsWithPolicies++;
       } else {
         clientsWithoutPolicies++;
@@ -265,7 +265,7 @@ export default async function handler(req, res) {
                 );
 
                 if (clientPoliciesResponse.ok) {
-                  client.Policies = await clientPoliciesResponse.json();
+                  client.policies = await clientPoliciesResponse.json();
                 }
               } catch (err) {
                 console.error(`[Compliance] Failed to fetch policies for client ${client.ClientNumber}:`, err.message);
@@ -286,10 +286,10 @@ export default async function handler(req, res) {
     console.log('[Compliance] Searching for first policy to log...');
     let foundSamplePolicy = false;
     for (const client of allClients) {
-      if (client.Policies && client.Policies.length > 0) {
+      if (client.policies && client.policies.length > 0) {
         console.log('[Compliance] ===== RAW POLICY FORENSICS =====');
         console.log('[Compliance] Full raw policy object:');
-        console.log(JSON.stringify(client.Policies[0], null, 2));
+        console.log(JSON.stringify(client.policies[0], null, 2));
         console.log('[Compliance] ===================================');
         foundSamplePolicy = true;
         break;
@@ -309,12 +309,12 @@ export default async function handler(req, res) {
     const policyTypesFound = new Set();
 
     for (const client of allClients) {
-      if (!client.Policies || client.Policies.length === 0) continue;
+      if (!client.policies || client.policies.length === 0) continue;
 
-      totalPolicies += client.Policies.length;
+      totalPolicies += client.policies.length;
 
       // Log all unique policy type values from all possible fields
-      client.Policies.forEach(policy => {
+      client.policies.forEach(policy => {
         const fieldsToCapture = [
           policy.PolicyType,
           policy.LOB,
@@ -330,7 +330,7 @@ export default async function handler(req, res) {
         });
       });
 
-      const glPolicies = client.Policies.filter(policy =>
+      const glPolicies = client.policies.filter(policy =>
         isGeneralLiabilityPolicy(policy) &&  // Pass full policy object
         policy.ExpirationDate // Must have expiration date
       );
