@@ -37,7 +37,14 @@ function isGeneralLiabilityPolicy(policyType) {
   ];
 
   const type = policyType.toLowerCase();
-  return glKeywords.some(keyword => type.includes(keyword));
+  const matches = glKeywords.some(keyword => type.includes(keyword));
+
+  // Log non-matches to help debug
+  if (!matches && policyType) {
+    console.log(`[Compliance] Policy type "${policyType}" did not match CGL keywords`);
+  }
+
+  return matches;
 }
 
 function requiresManualVerification(carrier) {
@@ -143,17 +150,34 @@ export default async function handler(req, res) {
 
     console.log(`[Compliance] Fetched details for ${allClients.length} clients`);
 
+    // Log a sample client to see the structure
+    if (allClients.length > 0 && allClients[0].Policies && allClients[0].Policies.length > 0) {
+      console.log('[Compliance] Sample client structure:', JSON.stringify({
+        BusinessName: allClients[0].BusinessName,
+        ClientNumber: allClients[0].ClientNumber,
+        SamplePolicy: allClients[0].Policies[0]
+      }, null, 2));
+    }
+
     // Step 3: Extract and filter General Liability policies
     const compliancePolicies = [];
 
     console.log('[Compliance] Processing clients for CGL policies...');
     let totalPolicies = 0;
     let glPoliciesFound = 0;
+    const policyTypesFound = new Set();
 
     for (const client of allClients) {
       if (!client.Policies || client.Policies.length === 0) continue;
 
       totalPolicies += client.Policies.length;
+
+      // Log all unique policy types we encounter
+      client.Policies.forEach(policy => {
+        if (policy.PolicyType) {
+          policyTypesFound.add(policy.PolicyType);
+        }
+      });
 
       const glPolicies = client.Policies.filter(policy =>
         isGeneralLiabilityPolicy(policy.PolicyType || '') &&
@@ -197,7 +221,8 @@ export default async function handler(req, res) {
     compliancePolicies.sort((a, b) => a.daysUntilExpiration - b.daysUntilExpiration);
 
     console.log(`[Compliance] Summary: Scanned ${allClients.length} clients with ${totalPolicies} total policies`);
-    console.log(`[Compliance] Found ${glPoliciesFound} General Liability policies`);
+    console.log(`[Compliance] All policy types found in HawkSoft:`, Array.from(policyTypesFound).sort());
+    console.log(`[Compliance] Found ${glPoliciesFound} General Liability policies matching our keywords`);
     console.log(`[Compliance] Final filtered count: ${compliancePolicies.length}`);
 
     return res.status(200).json({
