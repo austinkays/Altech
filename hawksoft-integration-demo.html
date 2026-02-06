@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HawkSoft Integration - Safe Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .safety-banner {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .safety-banner h3 {
+            color: #155724;
+            margin-bottom: 10px;
+        }
+
+        .safety-banner ul {
+            margin-left: 20px;
+            color: #155724;
+        }
+
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .section h2 {
+            color: #007bff;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .section.safe {
+            border-left-color: #28a745;
+        }
+
+        .section.safe h2 {
+            color: #28a745;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-family: inherit;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button.safe {
+            background: #28a745;
+        }
+
+        button.safe:hover {
+            background: #218838;
+        }
+
+        button.preview {
+            background: #17a2b8;
+        }
+
+        button.preview:hover {
+            background: #138496;
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result.success {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .result.error {
+            border-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .badge.safe {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge.readonly {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .client-info {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .client-info.show {
+            display: block;
+        }
+
+        .client-info h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .client-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .checkbox-group {
+            margin: 10px 0;
+        }
+
+        .checkbox-group label {
+            display: inline;
+            font-weight: normal;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 HawkSoft Safe Integration Demo</h1>
+
+        <div class="safety-banner">
+            <h3>🛡️ Safety Guaranteed</h3>
+            <ul>
+                <li><strong>READ operations:</strong> Cannot modify any data</li>
+                <li><strong>LOG NOTES:</strong> Append-only (cannot delete or overwrite)</li>
+                <li><strong>NO DELETE:</strong> API does not support delete operations</li>
+                <li><strong>PREVIEW MODE:</strong> Test before sending</li>
+                <li><strong>CONFIRMATION:</strong> User approval required</li>
+            </ul>
+        </div>
+
+        <!-- Client Lookup Section -->
+        <div class="section safe">
+            <h2>1. Client Lookup <span class="badge readonly">READ-ONLY</span></h2>
+            <p>Safely fetch client information without modifying anything.</p>
+
+            <div class="form-group">
+                <label for="lookup-client-id">HawkSoft Client ID:</label>
+                <input type="number" id="lookup-client-id" placeholder="e.g., 12345">
+            </div>
+
+            <button class="safe" onclick="lookupClient()">🔍 Lookup Client (Safe)</button>
+
+            <div id="client-info" class="client-info">
+                <h4>Client Information:</h4>
+                <div id="client-details"></div>
+            </div>
+        </div>
+
+        <!-- Log Note Section -->
+        <div class="section safe">
+            <h2>2. Add Log Note <span class="badge safe">APPEND-ONLY</span></h2>
+            <p>Safely add a log note to an existing client. Cannot delete or overwrite data.</p>
+
+            <div class="form-group">
+                <label for="log-client-id">HawkSoft Client ID:</label>
+                <input type="number" id="log-client-id" placeholder="e.g., 12345">
+            </div>
+
+            <div class="form-group">
+                <label for="log-note">Log Note:</label>
+                <textarea id="log-note" placeholder="Enter the log note text here..."></textarea>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="create-task">
+                <label for="create-task">Create follow-up task</label>
+            </div>
+
+            <div class="form-group" id="task-details" style="display: none;">
+                <label for="task-title">Task Title:</label>
+                <input type="text" id="task-title" placeholder="e.g., Follow up with client">
+            </div>
+
+            <button class="preview" onclick="previewLogNote()">👁️ Preview Note (Safe)</button>
+            <button class="safe" onclick="sendLogNote()">📤 Send to HawkSoft</button>
+
+            <div id="log-result" class="result"></div>
+        </div>
+
+        <!-- Test Form Section -->
+        <div class="section">
+            <h2>3. Test with Sample Form Data</h2>
+            <p>Simulate creating a log note from a web form submission.</p>
+
+            <div class="form-group">
+                <label for="sample-client-id">HawkSoft Client ID:</label>
+                <input type="number" id="sample-client-id" placeholder="e.g., 12345">
+            </div>
+
+            <div class="form-group">
+                <label>Sample Form Data:</label>
+                <input type="text" id="sample-name" placeholder="Client Name" value="John Doe">
+                <input type="text" id="sample-email" placeholder="Email" value="john@example.com" style="margin-top: 10px;">
+                <input type="text" id="sample-phone" placeholder="Phone" value="555-1234" style="margin-top: 10px;">
+                <input type="text" id="sample-address" placeholder="Address" value="123 Main St" style="margin-top: 10px;">
+            </div>
+
+            <button class="preview" onclick="previewFormSubmission()">👁️ Preview Form Log</button>
+            <button class="safe" onclick="sendFormSubmission()">📤 Send Form Data</button>
+
+            <div id="form-result" class="result"></div>
+        </div>
+
+        <div class="info-box">
+            <p><strong>💡 Integration Tip:</strong> Copy the HawkSoftIntegration JavaScript class and use it in your existing forms. All operations include safety checks and user confirmations.</p>
+        </div>
+    </div>
+
+    <script src="/js/hawksoft-integration.js"></script>
+    <script>
+        // Initialize HawkSoft integration
+        const hawksoft = new HawkSoftIntegration();
+
+        // Test connection on load
+        hawksoft.testConnection().then(result => {
+            if (result.success) {
+                console.log('✅ HawkSoft API connected');
+            } else {
+                console.error('❌ HawkSoft API connection failed:', result);
+            }
+        });
+
+        // Show/hide task details
+        document.getElementById('create-task').addEventListener('change', (e) => {
+            document.getElementById('task-details').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // Client Lookup Function
+        async function lookupClient() {
+            const clientId = document.getElementById('lookup-client-id').value;
+            const clientInfo = document.getElementById('client-info');
+            const clientDetails = document.getElementById('client-details');
+
+            if (!clientId) {
+                alert('Please enter a Client ID');
+                return;
+            }
+
+            try {
+                clientInfo.classList.remove('show');
+                const client = await hawksoft.lookupClient(clientId);
+
+                // Display client information
+                clientDetails.innerHTML = `
+                    <p><strong>Name:</strong> ${client.FirstName || ''} ${client.LastName || ''}</p>
+                    <p><strong>Email:</strong> ${client.Email || 'N/A'}</p>
+                    <p><strong>Phone:</strong> ${client.Phone || 'N/A'}</p>
+                    <p><strong>Address:</strong> ${client.Address1 || ''} ${client.City || ''}, ${client.State || ''} ${client.Zip || ''}</p>
+                    <p><strong>Client #:</strong> ${client.ClientNumber || 'N/A'}</p>
+                `;
+
+                clientInfo.classList.add('show');
+            } catch (error) {
+                alert(`Error looking up client: ${error.message}`);
+                clientInfo.classList.remove('show');
+            }
+        }
+
+        // Preview Log Note Function
+        async function previewLogNote() {
+            const clientId = document.getElementById('log-client-id').value;
+            const note = document.getElementById('log-note').value;
+            const createTask = document.getElementById('create-task').checked;
+            const taskTitle = document.getElementById('task-title').value;
+            const resultDiv = document.getElementById('log-result');
+
+            if (!clientId || !note) {
+                alert('Please enter both Client ID and Note');
+                return;
+            }
+
+            const options = {
+                createTask: createTask,
+                taskDetails: createTask ? { title: taskTitle } : {}
+            };
+
+            try {
+                const preview = await hawksoft.previewLogNote(clientId, note, options);
+
+                resultDiv.textContent = JSON.stringify(preview, null, 2);
+                resultDiv.className = 'result show success';
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+                resultDiv.className = 'result show error';
+            }
+        }
+
+        // Send Log Note Function
+        async function sendLogNote() {
+            const clientId = document.getElementById('log-client-id').value;
+            const note = document.getElementById('log-note').value;
+            const createTask = document.getElementById('create-task').checked;
+            const taskTitle = document.getElementById('task-title').value;
+            const resultDiv = document.getElementById('log-result');
+
+            if (!clientId || !note) {
+                alert('Please enter both Client ID and Note');
+                return;
+            }
+
+            const options = {
+                createTask: createTask,
+                taskDetails: createTask ? { title: taskTitle } : {},
+                preview: true // Always show confirmation
+            };
+
+            try {
+                const result = await hawksoft.addLogNote(clientId, note, options);
+
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                resultDiv.className = result.success ? 'result show success' : 'result show error';
+
+                if (result.success) {
+                    alert('✅ Log note created successfully!');
+                } else if (result.cancelled) {
+                    alert('Operation cancelled by user');
+                }
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+                resultDiv.className = 'result show error';
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        // Preview Form Submission
+        async function previewFormSubmission() {
+            const clientId = document.getElementById('sample-client-id').value;
+            const formData = {
+                firstName: document.getElementById('sample-name').value.split(' ')[0],
+                lastName: document.getElementById('sample-name').value.split(' ')[1] || '',
+                email: document.getElementById('sample-email').value,
+                phone: document.getElementById('sample-phone').value,
+                addrStreet: document.getElementById('sample-address').value
+            };
+
+            if (!clientId) {
+                alert('Please enter a Client ID');
+                return;
+            }
+
+            const note = hawksoft.formatLogNote(formData);
+            const resultDiv = document.getElementById('form-result');
+
+            try {
+                const preview = await hawksoft.previewLogNote(clientId, note);
+
+                resultDiv.textContent = JSON.stringify(preview, null, 2);
+                resultDiv.className = 'result show success';
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+                resultDiv.className = 'result show error';
+            }
+        }
+
+        // Send Form Submission
+        async function sendFormSubmission() {
+            const clientId = document.getElementById('sample-client-id').value;
+            const formData = {
+                firstName: document.getElementById('sample-name').value.split(' ')[0],
+                lastName: document.getElementById('sample-name').value.split(' ')[1] || '',
+                email: document.getElementById('sample-email').value,
+                phone: document.getElementById('sample-phone').value,
+                addrStreet: document.getElementById('sample-address').value
+            };
+
+            if (!clientId) {
+                alert('Please enter a Client ID');
+                return;
+            }
+
+            const note = hawksoft.formatLogNote(formData);
+            const resultDiv = document.getElementById('form-result');
+
+            const options = {
+                createTask: true,
+                taskDetails: {
+                    title: 'Follow up on web form submission'
+                },
+                preview: true // Always show confirmation
+            };
+
+            try {
+                const result = await hawksoft.addLogNote(clientId, note, options);
+
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                resultDiv.className = result.success ? 'result show success' : 'result show error';
+
+                if (result.success) {
+                    alert('✅ Form submission logged successfully!');
+                } else if (result.cancelled) {
+                    alert('Operation cancelled by user');
+                }
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+                resultDiv.className = 'result show error';
+                alert(`Error: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
