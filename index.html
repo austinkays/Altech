@@ -455,6 +455,28 @@
         .btn-secondary:active { background: var(--bg-input); }
         .btn-secondary:disabled { opacity: 0.4; }
 
+        /* === PRODUCER TOGGLE === */
+        .producer-toggle {
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .producer-toggle:hover {
+            color: var(--text);
+            background: rgba(0, 0, 0, 0.03);
+        }
+        .producer-toggle.active {
+            background: var(--apple-blue);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
+        }
+
         /* === UTILS === */
         .toast {
             position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
@@ -7371,8 +7393,9 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 // Investigation Links
                 document.getElementById('investigationLinks').innerHTML = this.formatInvestigationLinks(data);
 
-                // Show results
+                // Show results and COI button
                 document.getElementById('prospectResults').style.display = 'block';
+                document.getElementById('generateCOIBtn').style.display = 'inline-block';
             },
 
             formatLIData(liData) {
@@ -7675,6 +7698,100 @@ This data is ready to paste into your quoting system.
                 // For now, print the report
                 // TODO: Generate PDF with formatted report
                 window.print();
+            },
+
+            // Producer Selection
+            currentProducer: 'austin', // Default to Austin
+
+            setProducer(producer) {
+                this.currentProducer = producer;
+
+                // Update toggle button styling
+                document.getElementById('producerAustin').classList.toggle('active', producer === 'austin');
+                document.getElementById('producerNeil').classList.toggle('active', producer === 'neil');
+
+                console.log(`Producer set to: ${producer === 'austin' ? 'Austin AK' : 'Neil W'}`);
+            },
+
+            getProducerInfo() {
+                return this.currentProducer === 'austin' ? {
+                    name: 'Austin AK',
+                    fullName: 'Austin Kay',
+                    email: 'austin@altechinsurance.com',
+                    phone: '(360) 573-3080'
+                } : {
+                    name: 'Neil W',
+                    fullName: 'Neil Wiebenga',
+                    email: 'neil@altechinsurance.com',
+                    phone: '(360) 573-3080'
+                };
+            },
+
+            async generateCOI() {
+                if (!this.currentData) {
+                    alert('Please run a search first to generate a COI');
+                    return;
+                }
+
+                const producer = this.getProducerInfo();
+                const contractor = this.currentData.li.contractor || this.currentData.li;
+                const entity = this.currentData.sos.entity || this.currentData.sos;
+
+                // Prepare COI data
+                const coiData = {
+                    producerName: 'Altech Insurance Agency',
+                    contactName: producer.name,
+                    phone: producer.phone,
+                    email: producer.email,
+                    certificateDate: new Date().toLocaleDateString('en-US'),
+                    insuredName: contractor.businessName || entity.businessName || this.currentData.businessName,
+                    insuredAddress1: contractor.address?.street || entity.principalOffice?.street || '',
+                    insuredAddress2: `${contractor.address?.city || entity.principalOffice?.city || ''}, ${contractor.address?.state || entity.principalOffice?.state || ''} ${contractor.address?.zip || entity.principalOffice?.zip || ''}`.trim(),
+                    descriptionOfOperations: `General Contracting - ${contractor.licenseType || 'Construction Services'}`,
+                    authorizedRepresentative: producer.fullName,
+                    // Certificate holder will be left blank for manual entry
+                    certificateHolder: {
+                        name: '',
+                        address1: '',
+                        address2: ''
+                    }
+                };
+
+                console.log('[COI Generator] Sending data to API:', coiData);
+
+                try {
+                    // Call the COI generation API
+                    const response = await fetch('/api/generate-coi', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(coiData)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API returned ${response.status}`);
+                    }
+
+                    // Get the PDF blob
+                    const blob = await response.blob();
+
+                    // Create download link
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `COI-${coiData.insuredName.replace(/\s+/g, '-')}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+
+                    console.log('[COI Generator] PDF downloaded successfully');
+
+                } catch (error) {
+                    console.error('[COI Generator] Error:', error);
+                    alert('Failed to generate COI. Please try again.');
+                }
             }
         };
 
@@ -7974,9 +8091,23 @@ This data is ready to paste into your quoting system.
         <header>
             <div class="header-top">
                 <div class="logo"><div class="logo-icon">🔍</div> Prospect Investigator</div>
-                <button class="btn-utility" onclick="ProspectInvestigator.exportReport()" style="font-size: 14px; padding: 8px 16px;">
-                    📄 Export Report
-                </button>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <!-- Producer Toggle -->
+                    <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 4px; display: flex; gap: 4px;">
+                        <button id="producerAustin" class="producer-toggle active" onclick="ProspectInvestigator.setProducer('austin')">
+                            Austin
+                        </button>
+                        <button id="producerNeil" class="producer-toggle" onclick="ProspectInvestigator.setProducer('neil')">
+                            Neil
+                        </button>
+                    </div>
+                    <button id="generateCOIBtn" class="btn-secondary" onclick="ProspectInvestigator.generateCOI()" style="font-size: 14px; padding: 8px 16px; display: none;">
+                        📄 Generate COI
+                    </button>
+                    <button class="btn-utility" onclick="ProspectInvestigator.exportReport()" style="font-size: 14px; padding: 8px 16px;">
+                        🖨️ Print Report
+                    </button>
+                </div>
             </div>
             <div class="step-title">Commercial Business Intelligence & Public Records</div>
             <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>

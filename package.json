@@ -28,6 +28,9 @@
     "url": "https://github.com/austinkays/Altech/issues"
   },
   "homepage": "https://github.com/austinkays/Altech#readme",
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  },
   "devDependencies": {
     "jest": "^29.7.0",
     "jsdom": "^23.2.0"
