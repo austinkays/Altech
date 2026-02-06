@@ -45,12 +45,17 @@
         }
 
         body.dark-mode .landing-header {
-            background: linear-gradient(135deg, #4a5bd9 0%, #5a3d70 100%);
+            background: linear-gradient(135deg, #0f1d32 0%, #1e40af 100%);
         }
 
         body.dark-mode .tool-card {
             background: var(--bg-card);
             border-color: var(--border);
+            border-left-color: #3b82f6;
+        }
+
+        body.dark-mode .tool-card.coming-soon {
+            border-left-color: #475569;
         }
 
         body.dark-mode .tool-title {
@@ -63,7 +68,20 @@
 
         body.dark-mode .tool-features li {
             color: var(--text-secondary);
-            border-bottom-color: var(--border);
+        }
+
+        body.dark-mode .landing-page {
+            background: var(--bg);
+        }
+
+        body.dark-mode .tool-status.ready {
+            background: rgba(6, 95, 70, 0.2);
+            color: #6ee7b7;
+        }
+
+        body.dark-mode .tool-status.soon {
+            background: rgba(148, 163, 184, 0.1);
+            color: #64748b;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -800,67 +818,36 @@
         }
 
         /* LANDING PAGE & PLUGIN ARCHITECTURE */
-        .landing-page { min-height: 100vh; display: flex; flex-direction: column; }
+        .landing-page { min-height: 100vh; display: flex; flex-direction: column; background: #f8fafc; }
         .landing-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
             color: white;
-            padding: 80px 20px 100px;
+            padding: 60px 20px 80px;
             text-align: center;
             position: relative;
-            overflow: hidden;
-        }
-        .landing-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            animation: pulse 15s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.3; }
-            50% { transform: scale(1.1) rotate(180deg); opacity: 0.5; }
         }
         .landing-header h1 {
-            font-size: 56px;
-            margin: 0 0 20px 0;
-            font-weight: 800;
-            letter-spacing: -1px;
-            text-shadow:
-                0 2px 10px rgba(0,0,0,0.2),
-                0 4px 20px rgba(0,0,0,0.15),
-                0 0 40px rgba(255,255,255,0.1);
+            font-size: 48px;
+            margin: 0 0 12px 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
             position: relative;
             z-index: 1;
             line-height: 1.1;
         }
-        .landing-header h1::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 4px;
-            background: rgba(255,255,255,0.5);
-            border-radius: 2px;
-        }
         .landing-header p {
-            font-size: 20px;
-            opacity: 0.95;
+            font-size: 18px;
+            opacity: 0.85;
             margin: 0;
-            font-weight: 500;
-            letter-spacing: 0.3px;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            font-weight: 400;
+            letter-spacing: 0.2px;
             position: relative;
             z-index: 1;
         }
         @media (max-width: 768px) {
-            .landing-header h1 { font-size: 42px; }
-            .landing-header p { font-size: 18px; }
-            .landing-header { padding: 60px 20px 70px; }
+            .landing-header h1 { font-size: 32px; }
+            .landing-header p { font-size: 16px; }
+            .landing-header { padding: 48px 20px 64px; }
         }
         .tools-container {
             max-width: 1200px;
@@ -874,22 +861,26 @@
         @media (min-width: 768px) { .tools-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .tools-grid { grid-template-columns: repeat(3, 1fr); } }
 
-        .tool-card { background: white; border-radius: 16px; padding: 32px; box-shadow: 0 4px 6px rgba(0,0,0,0.07), 0 10px 20px rgba(0,0,0,0.06); transition: all 0.3s ease; cursor: pointer; border: 2px solid transparent; }
-        .tool-card:hover { transform: translateY(-4px); box-shadow: 0 8px 12px rgba(0,0,0,0.1), 0 16px 32px rgba(0,0,0,0.08); border-color: #667eea; }
-        .tool-card.coming-soon { opacity: 0.6; cursor: not-allowed; }
-        .tool-card.coming-soon:hover { transform: none; border-color: transparent; }
+        .tool-card { background: white; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04); transition: all 0.2s ease; cursor: pointer; border: 1px solid #e8ecf1; border-left: 4px solid #2563eb; position: relative; }
+        .tool-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.06); }
+        .tool-card.coming-soon { opacity: 0.5; cursor: default; border-left-color: #cbd5e1; }
+        .tool-card.coming-soon:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04); }
 
-        .tool-icon { font-size: 48px; margin-bottom: 16px; display: block; }
-        .tool-title { font-size: 22px; font-weight: 700; margin: 0 0 8px 0; color: #1a1a1a; }
-        .tool-description { font-size: 15px; color: #666; margin: 0 0 20px 0; line-height: 1.5; }
-        .tool-features { list-style: none; padding: 0; margin: 0 0 20px 0; }
-        .tool-features li { font-size: 13px; color: #888; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
-        .tool-features li:last-child { border-bottom: none; }
-        .tool-features li::before { content: "✓"; color: #667eea; margin-right: 8px; font-weight: 700; }
+        .tool-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: white; margin-bottom: 16px; }
+        .tool-icon.icon-blue { background: #2563eb; }
+        .tool-icon.icon-emerald { background: #059669; }
+        .tool-icon.icon-amber { background: #d97706; }
+        .tool-icon.icon-indigo { background: #4f46e5; }
+        .tool-icon.icon-muted { background: #94a3b8; }
+        .tool-title { font-size: 18px; font-weight: 600; margin: 0 0 6px 0; color: #1e293b; }
+        .tool-description { font-size: 14px; color: #64748b; margin: 0 0 16px 0; line-height: 1.5; }
+        .tool-features { list-style: none; padding: 0; margin: 0 0 16px 0; }
+        .tool-features li { font-size: 13px; color: #64748b; padding: 4px 0; }
+        .tool-features li::before { content: "·"; color: #94a3b8; margin-right: 8px; font-weight: 700; }
 
-        .tool-status { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 12px; }
-        .tool-status.ready { background: #d4edda; color: #155724; }
-        .tool-status.soon { background: #fff3cd; color: #856404; }
+        .tool-status { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .tool-status.ready { background: #ecfdf5; color: #065f46; }
+        .tool-status.soon { background: #f8fafc; color: #94a3b8; }
 
         .back-to-home {
             position: fixed;
@@ -1073,7 +1064,7 @@
     <!-- LANDING PAGE -->
     <div id="landingPage" class="landing-page">
         <div class="landing-header">
-            <h1>🏠 Altech Insurance Tools</h1>
+            <h1>Altech Insurance Tools</h1>
             <p>Modern insurance tools powered by AI</p>
         </div>
 
@@ -1082,7 +1073,7 @@
 
                 <!-- Personal Lines Quoting Tool -->
                 <div class="tool-card" onclick="App.openTool('quoting')">
-                    <span class="tool-icon">📋</span>
+                    <div class="tool-icon icon-blue">PL</div>
                     <h3 class="tool-title">Personal Lines Quoting</h3>
                     <p class="tool-description">AI-powered insurance intake for Home & Auto policies with multi-format exports.</p>
                     <ul class="tool-features">
@@ -1091,12 +1082,12 @@
                         <li>GIS property auto-fill (15+ fields)</li>
                         <li>Export to EZLynx, HawkSoft, PDF, CSV</li>
                     </ul>
-                    <span class="tool-status ready">✓ Ready</span>
+                    <span class="tool-status ready">Ready</span>
                 </div>
 
                 <!-- COI Generator -->
                 <div class="tool-card" onclick="App.openTool('coi')">
-                    <span class="tool-icon">📄</span>
+                    <div class="tool-icon icon-emerald">COI</div>
                     <h3 class="tool-title">COI Generator</h3>
                     <p class="tool-description">Instant ACORD 25 Certificates of Insurance for contractors and businesses.</p>
                     <ul class="tool-features">
@@ -1105,12 +1096,12 @@
                         <li>Custom endorsements (CG 20 10, CG 20 37)</li>
                         <li>Save certificate templates</li>
                     </ul>
-                    <span class="tool-status ready">✓ Ready</span>
+                    <span class="tool-status ready">Ready</span>
                 </div>
 
                 <!-- Commercial Prospect Investigator -->
                 <div class="tool-card" onclick="App.openTool('prospect')">
-                    <span class="tool-icon">🔍</span>
+                    <div class="tool-icon icon-amber">PI</div>
                     <h3 class="tool-title">Prospect Investigator</h3>
                     <p class="tool-description">Deep-dive intelligence on commercial prospects with public records lookup.</p>
                     <ul class="tool-features">
@@ -1119,12 +1110,12 @@
                         <li>OSHA violations & safety history</li>
                         <li>Business classification & activities</li>
                     </ul>
-                    <span class="tool-status ready">✓ Ready</span>
+                    <span class="tool-status ready">Ready</span>
                 </div>
 
                 <!-- CGL Compliance Dashboard -->
                 <div class="tool-card" onclick="App.openTool('compliance')">
-                    <span class="tool-icon">📊</span>
+                    <div class="tool-icon icon-indigo">CGL</div>
                     <h3 class="tool-title">CGL Compliance Dashboard</h3>
                     <p class="tool-description">Track contractor General Liability insurance expirations and WA State L&I compliance.</p>
                     <ul class="tool-features">
@@ -1133,48 +1124,30 @@
                         <li>Direct WA L&I verification links</li>
                         <li>Manual verification flags (Hiscox, IES, etc.)</li>
                     </ul>
-                    <span class="tool-status ready">✓ Ready</span>
+                    <span class="tool-status ready">Ready</span>
                 </div>
 
                 <!-- Expiry Reminder System -->
                 <div class="tool-card coming-soon">
-                    <span class="tool-icon">🔔</span>
+                    <div class="tool-icon icon-muted">ER</div>
                     <h3 class="tool-title">Expiry Reminders</h3>
                     <p class="tool-description">Automated policy renewal reminders to prevent coverage lapses.</p>
-                    <ul class="tool-features">
-                        <li>45/30/15-day reminder sequence</li>
-                        <li>Email & SMS notifications</li>
-                        <li>Track renewal status</li>
-                        <li>Prevent coverage gaps</li>
-                    </ul>
                     <span class="tool-status soon">Coming Soon</span>
                 </div>
 
                 <!-- Premium Calculator -->
                 <div class="tool-card coming-soon">
-                    <span class="tool-icon">💰</span>
+                    <div class="tool-icon icon-muted">PE</div>
                     <h3 class="tool-title">Premium Estimator</h3>
                     <p class="tool-description">Predictive premium modeling with real-time feedback on operational changes.</p>
-                    <ul class="tool-features">
-                        <li>Real-time premium estimates</li>
-                        <li>Impact of revenue/payroll changes</li>
-                        <li>Audit surprise prevention</li>
-                        <li>Historical data analysis</li>
-                    </ul>
                     <span class="tool-status soon">Coming Soon</span>
                 </div>
 
                 <!-- Policy Language Simplifier -->
                 <div class="tool-card coming-soon">
-                    <span class="tool-icon">💬</span>
+                    <div class="tool-icon icon-muted">QA</div>
                     <h3 class="tool-title">Policy Q&A Assistant</h3>
                     <p class="tool-description">AI-powered policy language simplification with plain-English answers.</p>
-                    <ul class="tool-features">
-                        <li>Ask questions about your policy</li>
-                        <li>Plain-English explanations</li>
-                        <li>Cite specific policy sections</li>
-                        <li>Coverage verification</li>
-                    </ul>
                     <span class="tool-status soon">Coming Soon</span>
                 </div>
 
