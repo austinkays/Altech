@@ -371,14 +371,18 @@ export default async function handler(req, res) {
       });
 
       if (glPolicies.length > 0) {
-        console.log(`[Compliance] Client "${client.details?.businessName || client.details?.firstName + ' ' + client.details?.lastName}" has ${glPolicies.length} CGL policies`);
+        const displayName = client.details?.companyName ||
+                           (client.people && client.people[0] ? `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim() : 'Unknown');
+        console.log(`[Compliance] Client "${displayName}" has ${glPolicies.length} CGL policies`);
         glPoliciesFound += glPolicies.length;
       }
 
       for (const policy of glPolicies) {
         const daysUntilExpiration = calculateDaysUntilExpiration(policy.expirationDate);
-        const clientName = client.details?.businessName ||
-                          `${client.details?.firstName || ''} ${client.details?.lastName || ''}`.trim() ||
+
+        // Get client name from companyName (businesses) or people array (individuals)
+        const clientName = client.details?.companyName ||
+                          (client.people && client.people[0] ? `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim() : '') ||
                           'Unknown';
 
         const compliancePolicy = {
@@ -386,7 +390,7 @@ export default async function handler(req, res) {
           policyId: policy.id,
           clientNumber: client.clientNumber,
           clientName: clientName,
-          businessName: client.details?.businessName,
+          businessName: client.details?.companyName,
           carrier: policy.carrier || 'Unknown',
           effectiveDate: policy.effectiveDate,
           expirationDate: policy.expirationDate,
