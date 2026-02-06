@@ -3130,9 +3130,11 @@
             },
 
             async save(e) {
-                const k = e.target.id || e.target.name;
-                this.data[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-                
+                if (e && e.target) {
+                    const k = e.target.id || e.target.name;
+                    this.data[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                }
+
                 // Encrypt before storing
                 if (this.encryptionEnabled) {
                     const encrypted = await CryptoHelper.encrypt(this.data);
@@ -3140,7 +3142,7 @@
                 } else {
                     localStorage.setItem(this.storageKey, JSON.stringify(this.data));
                 }
-                
+
                 const ind = document.getElementById('saveIndicator');
                 ind.style.opacity = 1;
                 setTimeout(() => ind.style.opacity = 0, 1500);
