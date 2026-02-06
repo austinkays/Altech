@@ -7273,6 +7273,12 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         this.searchOSHA(businessName, city, state)
                     ]);
 
+                    // Check if SOS returned multiple results
+                    if (sosData.multipleResults) {
+                        this.showBusinessSelection(sosData.results, businessName, city, state);
+                        return;
+                    }
+
                     // Store combined data
                     this.currentData = {
                         businessName,
@@ -7291,6 +7297,97 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 } catch (error) {
                     console.error('Search error:', error);
                     alert('Error searching business records. Please try again.');
+                } finally {
+                    document.getElementById('prospectLoading').style.display = 'none';
+                }
+            },
+
+            // Show mult multiple business selection options§
+            showBusinessSelection(results, businessName, city, state) {
+                document.getElementById('prospectLoading').style.display = 'none';
+                document.getElementById('prospectResults').style.display = 'block';
+
+                // Hide other sections
+                document.getElementById('liContractorInfo').innerHTML = '';
+                document.getElementById('oshaViolations').innerHTML = '';
+                document.getElementById('riskScore').innerHTML = '';
+                document.getElementById('generateCOIBtn').style.display = 'none';
+
+                // Show selection UI in the SOS section
+                document.getElementById('sosBusinessInfo').innerHTML = `
+                    <div style="background: rgba(0, 122, 255, 0.05); border-left: 4px solid var(--apple-blue); padding: 16px; border-radius: 4px; margin-bottom: 20px;">
+                        <h3 style="margin: 0 0 12px 0;">📋 Multiple businesses found - Select one:</h3>
+                        <p style="margin: 0; color: var(--text-secondary);">Found ${results.length} businesses matching "${businessName}". Click to view full details.</p>
+                    </div>
+                    <div style="display: grid; gap: 12px;">
+                        ${results.map((business, index) => `
+                            <div class="business-option" onclick="ProspectInvestigator.selectBusiness('${business.ubi}', '${city}', '${state}')"
+                                 style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; transition: all 0.2s;"
+                                 onmouseover="this.style.borderColor='var(--apple-blue)'; this.style.background='rgba(0,122,255,0.03)'"
+                                 onmouseout="this.style.borderColor='#e0e0e0'; this.style.background='white'">
+                                <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start;">
+                                    <div>
+                                        <h4 style="margin: 0 0 8px 0; color: var(--apple-blue); font-size: 16px;">${business.businessName}</h4>
+                                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 13px; color: var(--text-secondary);">
+                                            <div><strong>UBI:</strong> ${business.ubi}</div>
+                                            <div><strong>Type:</strong> ${business.entityType}</div>
+                                            ${business.city ? `<div><strong>City:</strong> ${business.city}</div>` : ''}
+                                            <div><strong>Status:</strong> <span style="color: ${business.status.toLowerCase().includes('active') ? 'green' : 'orange'};">${business.status}</span></div>
+                                            ${business.formationDate ? `<div><strong>Formation:</strong> ${business.formationDate.split('T')[0]}</div>` : ''}
+                                        </div>
+                                    </div>
+                                    <div style="padding: 8px 16px; background: var(--apple-blue); color: white; border-radius: 6px; font-size: 13px; font-weight: 600;">
+                                        Select →
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>`;
+
+                // Show businessSummary with count
+                document.getElementById('businessSummary').innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1f 1fr; gap: 16px; font-size: 14px;">
+                        <div><strong>Search Term:</strong> ${businessName}</div>
+                        <div><strong>Results Found:</strong> ${results.length} businesses</div>
+                        <div><strong>Location:</strong> ${city ? city + ', ' : ''}${state}</div>
+                        <div><strong>Status:</strong> Awaiting selection</div>
+                    </div>
+                `;
+            },
+
+            // Handle business selection
+            async selectBusiness(ubi, city, state) {
+                console.log(`[Selection] User selected UBI: ${ubi}`);
+
+                // Show loading
+                document.getElementById('prospectLoading').style.display = 'block';
+
+                try {
+                    // Re-run search with specific UBI
+                    const [liData, sosData, oshaData] = await Promise.all([
+                        this.searchLI('', ubi, state),
+                        this.searchSOS('', ubi, state),
+                        this.searchOSHA('', city, state)
+                    ]);
+
+                    // Store combined data
+                    this.currentData = {
+                        businessName: sosData.entity?.businessName || 'Selected Business',
+                        ubi,
+                        city,
+                        state,
+                        li: liData,
+                        sos: sosData,
+                        osha: oshaData,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    // Display full results
+                    this.displayResults();
+
+                } catch (error) {
+                    console.error('Selection error:', error);
+                    alert('Error loading business details. Please try again.');
                 } finally {
                     document.getElementById('prospectLoading').style.display = 'none';
                 }
@@ -7328,6 +7425,17 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     // Call consolidated prospect lookup API with type=sos
                     const response = await fetch(`/api/prospect-lookup?type=sos&name=${encodeURIComponent(businessName)}&ubi=${encodeURIComponent(ubi)}&state=${state}`);
                     const data = await response.json();
+
+                    // Check if multiple results were returned
+                    if (data.entity && data.entity.multipleResults) {
+                        return {
+                            ...data,
+                            multipleResults: true,
+                            results: data.entity.results,
+                            count: data.entity.count
+                        };
+                    }
+
                     return data;
                 } catch (error) {
                     console.error('SOS search error:', error);

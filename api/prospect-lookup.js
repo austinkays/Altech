@@ -621,7 +621,24 @@ async function scrapeWASOS(businessName, ubi) {
       return null;
     }
 
-    // Get the first (most relevant) result
+    // If searching by name (not UBI) and multiple results found, return list for selection
+    if (!ubi && data.length > 1) {
+      console.log('[WA SOS] Multiple results found - returning selection list');
+      return {
+        multipleResults: true,
+        count: data.length,
+        results: data.slice(0, 20).map(entity => ({  // Limit to 20 results
+          ubi: entity.UBI || entity.ubi || '',
+          businessName: entity.Name || entity.BusinessName || '',
+          entityType: entity.EntityType || entity.Type || 'Unknown',
+          status: entity.Status || 'Unknown',
+          city: entity.PrincipalAddress?.City || entity.City || '',
+          formationDate: entity.FormationDate || entity.FilingDate || ''
+        }))
+      };
+    }
+
+    // Single result or UBI search - return full details
     const entity = data[0];
 
     // Extract UBI from result
