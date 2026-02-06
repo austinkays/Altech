@@ -4386,6 +4386,10 @@
                     console.log('[Zillow] API response:', JSON.stringify(result).substring(0, 500));
                     if (!result.success || !result.data) {
                         console.warn('[Zillow] No data:', result.error, result.diagnostics);
+                        // Show Zillow link if we got the zpid from autocomplete
+                        if (result.zillowUrl) {
+                            this.toast(`Zillow blocks server access. <a href="${result.zillowUrl}" target="_blank" style="color:var(--primary);text-decoration:underline;">View on Zillow</a> to check details manually.`, 8000, true);
+                        }
                         return;
                     }
 
@@ -6791,11 +6795,15 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 };
             },
 
-            toast(msg) {
+            toast(msg, duration, useHtml) {
                 const t = document.getElementById('toast');
-                t.innerText = msg;
+                if (useHtml) {
+                    t.innerHTML = msg;
+                } else {
+                    t.innerText = msg;
+                }
                 t.classList.add('show');
-                setTimeout(() => t.classList.remove('show'), 2500);
+                setTimeout(() => t.classList.remove('show'), duration || 2500);
             },
 
             downloadFile(content, filename, mime) {

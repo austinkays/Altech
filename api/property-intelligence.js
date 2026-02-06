@@ -809,11 +809,18 @@ async function fetchZillowViaAutocomplete(address, city, state, zip, diag) {
     });
 
     diag.autocompleteStatus = resp.status;
+    console.log(`[Zillow] Layer A autocomplete HTTP ${resp.status}`);
 
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      const errBody = await resp.text().catch(() => '');
+      console.log(`[Zillow] Layer A autocomplete failed: ${resp.status}, body: ${errBody.substring(0, 200)}`);
+      diag.autocompleteBody = errBody.substring(0, 200);
+      return null;
+    }
 
     const acData = await resp.json();
     const results = acData?.results || [];
+    console.log(`[Zillow] Layer A autocomplete results: ${results.length}, keys: ${JSON.stringify(acData).substring(0, 300)}`);
     let zpid = null;
 
     for (const r of results) {
@@ -826,7 +833,11 @@ async function fetchZillowViaAutocomplete(address, city, state, zip, diag) {
     diag.autocompleteFound = !!zpid;
     diag.zpid = zpid;
 
-    if (!zpid) return null;
+    if (!zpid) {
+      console.log(`[Zillow] Layer A: no zpid found in ${results.length} results`);
+      return null;
+    }
+    console.log(`[Zillow] Layer A: found zpid ${zpid}`);
 
     const slug = buildSlug(address, city, state, zip);
     const propertyUrl = `https://www.zillow.com/homedetails/${slug}/${zpid}_zpid/`;
@@ -850,7 +861,11 @@ async function fetchZillowViaAutocomplete(address, city, state, zip, diag) {
       });
 
       diag.propertyPageStatus = pageResp.status;
-      if (!pageResp.ok) return null;
+      console.log(`[Zillow] Layer A property page HTTP ${pageResp.status}, url: ${pageResp.url}`);
+      if (!pageResp.ok) {
+        console.log(`[Zillow] Layer A property page failed: ${pageResp.status}`);
+        return null;
+      }
 
       const html = await pageResp.text();
       diag.propertyPageLength = html.length;
@@ -861,6 +876,7 @@ async function fetchZillowViaAutocomplete(address, city, state, zip, diag) {
     }
   } catch (err) {
     diag.autocompleteError = err.name === 'AbortError' ? 'timeout' : err.message;
+    console.log(`[Zillow] Layer A error: ${diag.autocompleteError}`);
     return null;
   } finally {
     clearTimeout(timeout);
@@ -897,7 +913,13 @@ async function fetchZillowSearchAPI(address, city, state, zip, diag) {
     });
 
     diag.searchApiStatus = resp.status;
-    if (!resp.ok) return null;
+    console.log(`[Zillow] Layer B search API HTTP ${resp.status}`);
+    if (!resp.ok) {
+      const errBody = await resp.text().catch(() => '');
+      console.log(`[Zillow] Layer B search API failed: ${resp.status}, body: ${errBody.substring(0, 200)}`);
+      diag.searchApiBody = errBody.substring(0, 200);
+      return null;
+    }
 
     const text = await resp.text();
     diag.searchApiLength = text.length;
@@ -982,6 +1004,7 @@ async function fetchZillowSearchAPI(address, city, state, zip, diag) {
     return null;
   } catch (err) {
     diag.searchApiError = err.name === 'AbortError' ? 'timeout' : err.message;
+    console.log(`[Zillow] Layer B error: ${diag.searchApiError}`);
     return null;
   } finally {
     clearTimeout(timeout);
@@ -1008,7 +1031,11 @@ async function fetchZillowDirect(url, diag) {
     });
 
     diag.directFetchStatus = resp.status;
-    if (!resp.ok) return null;
+    console.log(`[Zillow] Layer C direct fetch HTTP ${resp.status}`);
+    if (!resp.ok) {
+      console.log(`[Zillow] Layer C direct fetch failed: ${resp.status}`);
+      return null;
+    }
 
     const html = await resp.text();
     diag.directFetchLength = html.length;
@@ -1016,6 +1043,7 @@ async function fetchZillowDirect(url, diag) {
     return tryExtractFromHtml(html, resp.url || url, diag);
   } catch (err) {
     diag.directFetchError = err.name === 'AbortError' ? 'timeout' : err.message;
+    console.log(`[Zillow] Layer C error: ${diag.directFetchError}`);
     return null;
   } finally {
     clearTimeout(timeout);
@@ -1044,21 +1072,32 @@ async function handleZillow(req, res) {
 
     // Layer B: Search API (JSON)
     if (!result) {
+      console.log('[Zillow] Layer A returned null, trying Layer B');
       result = await fetchZillowSearchAPI(address, city, state, zip || '', diag);
     }
 
     // Layer C: Direct fetch (fallback)
     if (!result) {
+      console.log('[Zillow] Layer B returned null, trying Layer C');
       const searchUrl = buildZillowSearchUrl(address, city, state, zip || '');
+      console.log(`[Zillow] Layer C URL: ${searchUrl}`);
       result = await fetchZillowDirect(searchUrl, diag);
     }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
 
     if (!result || !result.raw) {
+      // Even when scraping fails, return the Zillow URL if autocomplete found a zpid
+      const zillowUrl = diag.zpid
+        ? `https://www.zillow.com/homedetails/${buildSlug(address, city, state, zip || '')}/${diag.zpid}_zpid/`
+        : null;
+      console.log(`[Zillow] ALL LAYERS FAILED (${elapsed}s). zpid=${diag.zpid || 'none'}, url=${zillowUrl || 'none'}`);
+      console.log(`[Zillow] Diagnostics:`, JSON.stringify(diag));
       return res.status(200).json({
         success: false,
-        error: 'No property data found on Zillow for this address',
+        error: 'Could not extract property details from Zillow (site blocks server requests)',
+        zillowUrl,
+        zpid: diag.zpid || null,
         diagnostics: diag,
         elapsedSeconds: parseFloat(elapsed),
       });
