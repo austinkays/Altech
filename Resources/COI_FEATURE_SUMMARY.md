@@ -38,16 +38,17 @@
   - Description of operations (includes governors/owners)
   - Authorized representative signature
 
-### 4. **Socrata API Integration** (WA SOS Data)
-- **Datasets Used**:
-  - `4wur-kfnr`: WA Business Entity Lookup
-  - `4xk5-x9j6`: WA SOS Principals/Governors
-- **App Token**: W6r9WmhDxx16bq7hKsimDvb71 (stored in env)
+### 4. **WA SOS Direct API Integration**
+- **API**: `https://ccfs.sos.wa.gov/api/BusinessSearch/Search` (POST)
+- **Socrata Dataset**: `4xk5-x9j6` (WA L&I Contractor Principals)
+- **App Token**: W6r9WmhDxx16bq7hKsimDvb71 (stored in env, for Socrata only)
 - **Features**:
-  - Relational lookup: Entity search → UBI → Governors
-  - Real-time API calls (no HTML scraping)
-  - Governor names displayed in UI
-  - Governor names included in COI Description field
+  - WA SOS Direct API for legal entity data (UBI, status, formation date)
+  - Socrata API for L&I contractor principals (owner names)
+  - Relational lookup: Entity search → UBI → Principals
+  - Real-time API calls (no HTML scraping for WA SOS)
+  - Principal names displayed in UI
+  - Principal names included in COI Description field
 
 ### 5. **Manual Search Links**
 - **Location**: L&I section when no results found
