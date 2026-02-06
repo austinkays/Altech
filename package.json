@@ -2,6 +2,7 @@
   "name": "altech-field-lead",
   "version": "1.0.0",
   "description": "Mobile-first field intake wizard for insurance lead collection",
+  "type": "module",
   "main": "index.html",
   "scripts": {
     "start": "npx serve . -p 8000",
