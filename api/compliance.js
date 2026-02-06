@@ -453,21 +453,17 @@ export default async function handler(req, res) {
         glFilterPassed++;
 
         if (!policy.expirationDate) {
-          console.log(`[Compliance] ⚠ CGL match has NO expiration date: policyNumber="${policy.policyNumber}", title="${policy.title}"`);
           glNoExpDate++;
-          // Still include it - don't filter out policies with missing dates
-          return true;
+          return false; // Skip policies with no expiration date
         }
 
         const expirationDate = new Date(policy.expirationDate);
-        const ninetyDaysAgo = new Date();
-        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        const sixtyDaysAgo = new Date();
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
-        if (expirationDate < ninetyDaysAgo) {
-          console.log(`[Compliance] ⚠ CGL match EXPIRED >90 days: policyNumber="${policy.policyNumber}", expired="${policy.expirationDate}"`);
+        if (expirationDate < sixtyDaysAgo) {
           glExpiredOver90++;
-          // Still include it - show expired policies so user can see them
-          return true;
+          return false; // Skip policies expired more than 60 days ago
         }
 
         return true;
@@ -505,8 +501,6 @@ export default async function handler(req, res) {
           daysUntilExpiration: daysUntilExpiration,
           status: daysUntilExpiration !== null ? getExpirationStatus(daysUntilExpiration) : 'unknown',
           requiresManualVerification: requiresManualVerification(policy.carrier || ''),
-          ubi: client.details?.ubi,
-          lniLink: client.details?.ubi ? `https://secure.lni.wa.gov/verify/Detail.aspx?UBI=${client.details.ubi}` : undefined,
           hawkSoftLink: `https://online.hawksoft.com/commercial/clients/details/${client.clientNumber}`,
           email: client.details?.email,
           phone: client.details?.phone

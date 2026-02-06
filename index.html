@@ -8879,7 +8879,7 @@ This data is ready to paste into your quoting system.
                         type="text"
                         class="cgl-search"
                         id="cglSearchInput"
-                        placeholder="Search by client name, policy #, carrier, or UBI..."
+                        placeholder="Search by client name, policy #, or carrier..."
                         style="margin-bottom: 0;"
                     />
                     <select class="cgl-filter-select" id="cglFilterSelect" style="margin-bottom: 0;">
@@ -8928,8 +8928,6 @@ This data is ready to paste into your quoting system.
                             <th>Policy #</th>
                             <th>Carrier</th>
                             <th>Dates</th>
-                            <th>UBI</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="cglTableBody">
@@ -9114,8 +9112,7 @@ This data is ready to paste into your quoting system.
                         const matchesSearch =
                             policy.clientName.toLowerCase().includes(searchTerm) ||
                             policy.policyNumber.toLowerCase().includes(searchTerm) ||
-                            policy.carrier.toLowerCase().includes(searchTerm) ||
-                            (policy.ubi && policy.ubi.includes(searchTerm));
+                            policy.carrier.toLowerCase().includes(searchTerm);
 
                         // Status filter
                         const matchesStatus =
@@ -9171,14 +9168,14 @@ This data is ready to paste into your quoting system.
                                     </span>
                                 </td>
                                 <td>
-                                    <div style="font-weight: 600;">${this.escapeHtml(policy.clientName)}</div>
+                                    ${policy.hawkSoftLink ?
+                                        `<a href="${policy.hawkSoftLink}" target="_blank" rel="noopener noreferrer" class="cgl-link" style="font-weight: 600;">${this.escapeHtml(policy.clientName)}</a>` :
+                                        `<div style="font-weight: 600;">${this.escapeHtml(policy.clientName)}</div>`
+                                    }
                                     ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${this.escapeHtml(policy.email)}</div>` : ''}
                                 </td>
                                 <td style="font-family: monospace; font-size: 13px;">
-                                    ${policy.hawkSoftLink ?
-                                        `<a href="${policy.hawkSoftLink}" target="_blank" rel="noopener noreferrer" class="cgl-link">${this.escapeHtml(policy.policyNumber)}</a>` :
-                                        this.escapeHtml(policy.policyNumber)
-                                    }
+                                    ${this.escapeHtml(policy.policyNumber)}
                                 </td>
                                 <td>
                                     <div>${this.escapeHtml(policy.carrier)}</div>
@@ -9188,15 +9185,6 @@ This data is ready to paste into your quoting system.
                                     <div style="font-weight: 600;">Exp: ${expDate}</div>
                                     ${incDate ? `<div style="font-size: 12px; color: var(--text-secondary);">Inception: ${incDate}</div>` : ''}
                                     <div style="font-size: 12px; color: var(--text-secondary);">Effective: ${effDate}</div>
-                                </td>
-                                <td style="font-family: monospace; font-size: 13px;">
-                                    ${policy.ubi || 'N/A'}
-                                </td>
-                                <td>
-                                    ${policy.lniLink ?
-                                        `<a href="${policy.lniLink}" target="_blank" rel="noopener noreferrer" class="cgl-link">WA L&I →</a>` :
-                                        '<span style="color: var(--text-secondary);">No UBI</span>'
-                                    }
                                 </td>
                             </tr>
                         `;
