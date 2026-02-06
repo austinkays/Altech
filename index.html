@@ -45,17 +45,18 @@
         }
 
         body.dark-mode .landing-header {
-            background: linear-gradient(135deg, #0f1d32 0%, #1e40af 100%);
+            background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e40af 100%);
         }
 
         body.dark-mode .tool-card {
             background: var(--bg-card);
             border-color: var(--border);
-            border-left-color: #3b82f6;
         }
-
-        body.dark-mode .tool-card.coming-soon {
-            border-left-color: #475569;
+        body.dark-mode .tool-card::before {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        }
+        body.dark-mode .tool-card.coming-soon::before {
+            background: #475569;
         }
 
         body.dark-mode .tool-title {
@@ -75,13 +76,22 @@
         }
 
         body.dark-mode .tool-status.ready {
-            background: rgba(6, 95, 70, 0.2);
+            background: rgba(16, 185, 129, 0.15);
             color: #6ee7b7;
         }
 
         body.dark-mode .tool-status.soon {
             background: rgba(148, 163, 184, 0.1);
             color: #64748b;
+        }
+
+        body.dark-mode footer {
+            background: rgba(28, 28, 30, 0.95);
+        }
+
+        body.dark-mode .quote-card.starred {
+            background: rgba(255, 214, 10, 0.08);
+            border-color: rgba(255, 214, 10, 0.3);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -507,7 +517,7 @@
         .radio-card input { display: none; }
         .radio-card-content {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: white; padding: 20px 8px; border-radius: 12px; border: 2px solid var(--border);
+            background: var(--bg-card); padding: 20px 8px; border-radius: 12px; border: 2px solid var(--border);
             cursor: pointer; transition: all 0.2s;
             font-size: 14px; font-weight: 600; color: var(--text);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -569,8 +579,8 @@
         
         /* === QUOTE CARDS (Beautiful Modern Design) === */
         .quote-list { display: flex; flex-direction: column; gap: 12px; }
-        .quote-card { 
-            background: white; 
+        .quote-card {
+            background: var(--bg-card); 
             border-radius: 16px; 
             padding: 16px; 
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
@@ -648,7 +658,7 @@
             font-size: 14px;
             font-weight: 600;
             border: 1px solid var(--border);
-            background: white;
+            background: var(--bg-card);
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -660,7 +670,7 @@
         
         /* === DRIVER/VEHICLE CARDS === */
         .driver-vehicle-card {
-            background: linear-gradient(135deg, #F8FAFF 0%, #FFFFFF 100%);
+            background: var(--bg-card);
             border: 2px solid var(--border);
             border-radius: 16px;
             padding: 20px;
@@ -731,7 +741,7 @@
             to { opacity: 1; }
         }
         .modal-content {
-            background: white;
+            background: var(--bg-card);
             border-radius: 20px;
             padding: 24px;
             max-width: 500px;
@@ -794,9 +804,9 @@
         .btn-full { width: 100%; }
 
         /* === MAP PREVIEWS === */
-        .map-preview-card { background: linear-gradient(180deg, #F9FBFF 0%, #FFFFFF 100%); }
+        .map-preview-card { background: var(--bg-card); }
         .map-previews { display: grid; grid-template-columns: 1fr; gap: 16px; }
-        .map-preview-item { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .map-preview-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .map-preview-label { font-weight: 600; color: var(--text); margin-bottom: 8px; }
         .map-preview-img { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-input); cursor: pointer; }
         .map-preview-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
@@ -818,29 +828,37 @@
         }
 
         /* LANDING PAGE & PLUGIN ARCHITECTURE */
-        .landing-page { min-height: 100vh; display: flex; flex-direction: column; background: #f8fafc; }
+        .landing-page { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
         .landing-header {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1d4ed8 100%);
             color: white;
-            padding: 60px 20px 80px;
+            padding: 48px 20px 72px;
             text-align: center;
             position: relative;
+            overflow: hidden;
+        }
+        .landing-header::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
         }
         .landing-header h1 {
-            font-size: 48px;
-            margin: 0 0 12px 0;
-            font-weight: 700;
-            letter-spacing: -0.5px;
+            font-size: 40px;
+            margin: 0 0 8px 0;
+            font-weight: 800;
+            letter-spacing: -1px;
             position: relative;
             z-index: 1;
             line-height: 1.1;
         }
         .landing-header p {
-            font-size: 18px;
-            opacity: 0.85;
+            font-size: 16px;
+            opacity: 0.7;
             margin: 0;
             font-weight: 400;
-            letter-spacing: 0.2px;
+            letter-spacing: 0.3px;
             position: relative;
             z-index: 1;
         }
@@ -851,63 +869,64 @@
         }
         .tools-container {
             max-width: 1200px;
-            margin: -60px auto 60px;
+            margin: -48px auto 60px;
             padding: 0 20px;
             width: 100%;
             position: relative;
             z-index: 10;
         }
-        .tools-grid { display: grid; gap: 24px; grid-template-columns: 1fr; }
+        .tools-grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
         @media (min-width: 768px) { .tools-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .tools-grid { grid-template-columns: repeat(3, 1fr); } }
 
-        .tool-card { background: white; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04); transition: all 0.2s ease; cursor: pointer; border: 1px solid #e8ecf1; border-left: 4px solid #2563eb; position: relative; }
-        .tool-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.06); }
-        .tool-card.coming-soon { opacity: 0.5; cursor: default; border-left-color: #cbd5e1; }
-        .tool-card.coming-soon:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04); }
+        .tool-card { background: var(--bg-card); border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all 0.25s ease; cursor: pointer; border: 1px solid var(--border); position: relative; overflow: hidden; }
+        .tool-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #2563eb, #7c3aed); }
+        .tool-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); border-color: rgba(37, 99, 235, 0.3); }
+        .tool-card.coming-soon { opacity: 0.5; cursor: default; }
+        .tool-card.coming-soon::before { background: #cbd5e1; }
+        .tool-card.coming-soon:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
 
-        .tool-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: white; margin-bottom: 16px; }
+        .tool-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: white; margin-bottom: 14px; }
         .tool-icon.icon-blue { background: #2563eb; }
         .tool-icon.icon-emerald { background: #059669; }
         .tool-icon.icon-amber { background: #d97706; }
         .tool-icon.icon-indigo { background: #4f46e5; }
         .tool-icon.icon-muted { background: #94a3b8; }
-        .tool-title { font-size: 18px; font-weight: 600; margin: 0 0 6px 0; color: #1e293b; }
-        .tool-description { font-size: 14px; color: #64748b; margin: 0 0 16px 0; line-height: 1.5; }
+        .tool-title { font-size: 18px; font-weight: 700; margin: 0 0 6px 0; color: var(--text); }
+        .tool-description { font-size: 14px; color: var(--text-secondary); margin: 0 0 14px 0; line-height: 1.5; }
         .tool-features { list-style: none; padding: 0; margin: 0 0 16px 0; }
-        .tool-features li { font-size: 13px; color: #64748b; padding: 4px 0; }
-        .tool-features li::before { content: "·"; color: #94a3b8; margin-right: 8px; font-weight: 700; }
+        .tool-features li { font-size: 13px; color: var(--text-secondary); padding: 3px 0; }
+        .tool-features li::before { content: "\2713"; color: var(--success); margin-right: 8px; font-weight: 700; font-size: 11px; }
 
-        .tool-status { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .tool-status.ready { background: #ecfdf5; color: #065f46; }
-        .tool-status.soon { background: #f8fafc; color: #94a3b8; }
+        .tool-status { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .tool-status.ready { background: rgba(16, 185, 129, 0.1); color: #059669; }
+        .tool-status.soon { background: var(--bg-input); color: var(--text-secondary); }
 
         .back-to-home {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--bg-card);
-            padding: 12px 24px;
-            border-radius: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            border-radius: 8px;
             cursor: pointer;
-            z-index: 1000;
-            border: 1px solid var(--border);
             font-weight: 600;
-            font-size: 15px;
+            font-size: 14px;
             color: var(--apple-blue);
+            background: transparent;
+            border: none;
+            box-shadow: none;
             transition: all 0.2s;
-            backdrop-filter: blur(10px);
+            position: static;
+            transform: none;
         }
         .back-to-home:hover {
-            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-            transform: translateX(-50%) translateY(-2px);
-            background: var(--bg-card);
+            background: var(--bg-input);
         }
-
         body.dark-mode .back-to-home {
-            background: rgba(28, 28, 30, 0.95);
+            background: transparent;
+        }
+        body.dark-mode .back-to-home:hover {
+            background: var(--bg-input);
         }
 
         .plugin-container { display: none; }
@@ -1155,17 +1174,15 @@
         </div>
     </div>
 
-    <!-- BACK TO HOME BUTTON (hidden by default) -->
-    <div id="backToHome" class="back-to-home" onclick="App.goHome()" style="display:none;">
-        ← Back to Tools
-    </div>
-
     <!-- QUOTING TOOL CONTAINER -->
     <div id="quotingTool" class="plugin-container">
 
     <header>
         <div class="header-top">
-            <div class="logo"><div class="logo-icon">🏠</div> Insurance Intake</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div id="backToHome" class="back-to-home" onclick="App.goHome()" style="display:none;">← Tools</div>
+                <div class="logo"><div class="logo-icon">🏠</div> Insurance Intake</div>
+            </div>
             <div class="header-right">
                 <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" id="darkModeToggle" title="Toggle dark mode">
                     <span id="darkModeIcon">🌙</span>
@@ -1483,6 +1500,19 @@
                     <option value="Semi-Custom">Semi-Custom</option>
                     <option value="Custom">Custom</option>
                 </select>
+
+                <label class="label">Garage Type</label>
+                <select id="garageType">
+                    <option value="">Select...</option>
+                    <option value="Attached">Attached</option>
+                    <option value="Detached">Detached</option>
+                    <option value="Built-in">Built-in</option>
+                    <option value="Carport">Carport</option>
+                    <option value="None">None</option>
+                </select>
+
+                <label class="label">Garage Spaces</label>
+                <input type="number" id="garageSpaces" min="0" max="10" placeholder="2">
             </div>
 
             <div class="card">
@@ -1552,6 +1582,39 @@
                     <option value="Window Units">Window Units</option>
                     <option value="None">None</option>
                 </select>
+
+                <div class="grid-2">
+                    <div><label class="label">Sewer</label>
+                        <select id="sewer">
+                            <option value="">Select...</option>
+                            <option value="Public">Public</option>
+                            <option value="Septic">Septic</option>
+                        </select>
+                    </div>
+                    <div><label class="label">Water Source</label>
+                        <select id="waterSource">
+                            <option value="">Select...</option>
+                            <option value="Public">Public</option>
+                            <option value="Well">Well</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div><label class="label">Primary Flooring</label>
+                        <select id="flooring">
+                            <option value="">Select...</option>
+                            <option value="Hardwood">Hardwood</option>
+                            <option value="Carpet">Carpet</option>
+                            <option value="Tile">Tile</option>
+                            <option value="Laminate">Laminate</option>
+                            <option value="Mixed">Mixed</option>
+                        </select>
+                    </div>
+                    <div><label class="label">Number of Fireplaces</label>
+                        <input type="number" id="numFireplaces" min="0" max="5" placeholder="0">
+                    </div>
+                </div>
             </div>
 
             <div class="card">
@@ -4442,6 +4505,15 @@
                     if ((!merged.bathrooms || merged.bathrooms === 0) && zd.fullBaths) merged.bathrooms = zd.fullBaths;
                     if ((!merged.garageSpaces || merged.garageSpaces === 0) && zd.garageSpaces) merged.garageSpaces = zd.garageSpaces;
                     if (zd.fireplace) merged.fireplace = zd.fireplace;
+                    if (!merged.garageType && zd.garageType) merged.garageType = zd.garageType;
+                    if (!merged.flooring && zd.flooring) merged.flooring = zd.flooring;
+                    if (!merged.numFireplaces && zd.numFireplaces) merged.numFireplaces = zd.numFireplaces;
+                    if (!merged.sewer && zd.sewer) merged.sewer = zd.sewer;
+                    if (!merged.waterSource && zd.waterSource) merged.waterSource = zd.waterSource;
+                    if (!merged.pool && zd.pool) merged.pool = zd.pool;
+                    if (!merged.woodStove && zd.woodStove) merged.woodStove = zd.woodStove;
+                    if (!merged.roofYr && zd.roofYr) merged.roofYr = zd.roofYr;
+                    if (!merged.basementFinishPct && zd.basementFinishPct) merged.basementFinishPct = zd.basementFinishPct;
                 }
 
                 if (fireData) {
@@ -4511,14 +4583,21 @@
                     { label: 'Lot Size', value: merged.lotSizeAcres && merged.lotSizeAcres > 0 ? `${merged.lotSizeAcres.toFixed(2)} acres` : null },
                     { label: 'Bedrooms', value: merged.bedrooms && merged.bedrooms > 0 ? merged.bedrooms : null },
                     { label: 'Bathrooms', value: merged.bathrooms && merged.bathrooms > 0 ? merged.bathrooms : null },
+                    { label: 'Garage Type', value: merged.garageType || null },
                     { label: 'Garage Spaces', value: merged.garageSpaces && merged.garageSpaces > 0 ? merged.garageSpaces : (merged.garageSqft && merged.garageSqft > 0 ? `${Math.round(merged.garageSqft / 180)} (est.)` : null) },
                     { label: 'Foundation', value: merged.foundationType && merged.foundationType !== 'Unknown' ? merged.foundationType : null },
                     { label: 'Roof Type', value: merged.roofType && merged.roofType !== 'Unknown' ? merged.roofType : null },
+                    { label: 'Roof Year', value: merged.roofYr || null },
                     { label: 'Heating', value: merged.heatingType && merged.heatingType !== 'Unknown' ? merged.heatingType : null },
                     { label: 'Cooling', value: merged.cooling || null },
                     { label: 'Construction', value: merged.constructionStyle && merged.constructionStyle !== 'Unknown' ? merged.constructionStyle : null },
                     { label: 'Exterior', value: merged.exteriorWalls || null },
-                    { label: 'Fireplace', value: merged.fireplace || null },
+                    { label: 'Flooring', value: merged.flooring || null },
+                    { label: 'Fireplaces', value: merged.numFireplaces && merged.numFireplaces > 0 ? merged.numFireplaces : (merged.fireplace === 'Yes' ? 'Yes' : null) },
+                    { label: 'Sewer', value: merged.sewer || null },
+                    { label: 'Water', value: merged.waterSource || null },
+                    { label: 'Pool', value: merged.pool && merged.pool !== 'None' ? merged.pool : null },
+                    { label: 'Wood Stove', value: merged.woodStove === 'Yes' ? 'Yes' : null },
                     { label: 'Land Use', value: merged.landUse || null },
                 ];
 
@@ -4569,6 +4648,17 @@
                     if (fireData) {
                         this.applyFireStationData(fireData);
                     }
+                    // Smart Defaults — set standard HO3 assumptions unless data says otherwise
+                    if (!this.data.dwellingUsage) {
+                        this.data.dwellingUsage = 'Primary';
+                        const el = document.getElementById('dwellingUsage');
+                        if (el) el.value = 'Primary';
+                    }
+                    if (!this.data.occupancyType) {
+                        this.data.occupancyType = 'Owner Occupied';
+                        const el = document.getElementById('occupancyType');
+                        if (el) el.value = 'Owner Occupied';
+                    }
                     this.closeParcelModal();
                     this.save();
                     const count = fieldsWithData.length;
@@ -4597,7 +4687,7 @@
 
             // Apply Zillow select-field values (dropdown fields that need option matching)
             applyZillowSelects(zd) {
-                const selectFields = ['heatingType', 'cooling', 'roofType', 'foundation', 'constructionStyle', 'exteriorWalls'];
+                const selectFields = ['heatingType', 'cooling', 'roofType', 'foundation', 'constructionStyle', 'exteriorWalls', 'garageType', 'sewer', 'waterSource', 'flooring', 'pool', 'woodStove'];
                 for (const fid of selectFields) {
                     if (!zd[fid]) continue;
                     const el = document.getElementById(fid);
@@ -4615,7 +4705,9 @@
                     fullBaths: zd.fullBaths,
                     garageSpaces: zd.garageSpaces,
                     numStories: zd.stories,
-                    sqFt: zd.totalSqft
+                    sqFt: zd.totalSqft,
+                    numFireplaces: zd.numFireplaces,
+                    roofYr: zd.roofYr
                 };
                 for (const [fid, val] of Object.entries(textFields)) {
                     if (val == null) continue;
@@ -6676,9 +6768,13 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     y += 5;
                 };
                 
-                addSection('Personal Information', [
+                // === EZLynx Intake Screen Order ===
+
+                // Section 1: Client/Driver Info (Top)
+                addSection('Client Information', [
                     ['Name', `${data.firstName || ''} ${data.lastName || ''}`],
                     ['Date of Birth', data.dob || ''],
+                    ['Gender', data.gender || ''],
                     ['Email', data.email || ''],
                     ['Phone', data.phone || ''],
                     ['Marital Status', data.maritalStatus || ''],
@@ -6686,65 +6782,85 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     ['Industry', data.industry || ''],
                     ['Quote Type', data.qType || '']
                 ]);
-                
+
+                if (data.drivers && data.drivers.length) {
+                    const driverLines = data.drivers.map((d, i) => {
+                        const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
+                        return `Driver ${i + 1}: ${name || 'Unknown'} | DOB: ${d.dob || ''} | DL: ${d.dlNum || ''} (${d.dlState || ''}) | Relationship: ${d.relationship || ''} | Occupation: ${d.occupation || ''}`;
+                    }).join('\n');
+                    addSection('Drivers', [['Drivers', driverLines]]);
+                }
+
+                // Section 2: General Dwelling
                 if (data.qType === 'home' || data.qType === 'both') {
-                    addSection('Property Information', [
+                    addSection('General Dwelling', [
                         ['Address', `${data.addrStreet || ''}, ${data.addrCity || ''}, ${data.addrState || ''} ${data.addrZip || ''}`],
                         ['Year Built', data.yrBuilt || ''],
                         ['Square Footage', data.sqFt || ''],
                         ['Stories', data.numStories || ''],
-                        ['Bathrooms', data.fullBaths || ''],
+                        ['Bedrooms', data.bedrooms || ''],
+                        ['Full Bathrooms', data.fullBaths || ''],
+                        ['Half Bathrooms', data.halfBaths || ''],
                         ['Dwelling Type', data.dwellingType || ''],
                         ['Dwelling Usage', data.dwellingUsage || ''],
+                        ['Occupancy Type', data.occupancyType || '']
+                    ]);
+
+                    // Section 3: Exterior/Construction
+                    addSection('Exterior & Construction', [
                         ['Construction Style', data.constructionStyle || ''],
                         ['Exterior Walls', data.exteriorWalls || ''],
-                        ['Foundation', data.foundation || ''],
                         ['Roof Type', data.roofType || ''],
-                        ['Roof Year', data.roofYr || ''],
-                        ['Roof Shape', data.roofShape || '']
+                        ['Roof Shape', data.roofShape || ''],
+                        ['Roof Year Updated', data.roofYr || ''],
+                        ['Foundation', data.foundation || ''],
+                        ['Garage Type', data.garageType || ''],
+                        ['Garage Spaces', data.garageSpaces || ''],
+                        ['Kitchen/Bath Quality', data.kitchenQuality || '']
                     ]);
-                    
-                    addSection('Home Systems & Safety', [
+
+                    // Section 4: Systems/Utility
+                    addSection('Systems & Utilities', [
                         ['Heating Type', data.heatingType || ''],
-                        ['Heating Year', data.heatYr || ''],
+                        ['Heating Year Updated', data.heatYr || ''],
                         ['Cooling', data.cooling || ''],
-                        ['Plumbing Year', data.plumbYr || ''],
-                        ['Electrical Year', data.elecYr || ''],
-                        ['Fire Station Distance', data.fireStationDist || ''],
-                        ['Fire Hydrant Distance', data.fireHydrantFeet || ''],
+                        ['Plumbing Year Updated', data.plumbYr || ''],
+                        ['Electrical Year Updated', data.elecYr || ''],
+                        ['Sewer', data.sewer || ''],
+                        ['Water Source', data.waterSource || ''],
+                        ['Primary Flooring', data.flooring || ''],
+                        ['Fireplaces', data.numFireplaces || '']
+                    ]);
+
+                    // Section 5: Safety & Fire Protection
+                    addSection('Safety & Fire Protection', [
+                        ['Fire Station Distance (mi)', data.fireStationDist || ''],
+                        ['Fire Hydrant Distance (ft)', data.fireHydrantFeet || ''],
                         ['Protection Class', data.protectionClass || ''],
                         ['Burglar Alarm', data.burglarAlarm || ''],
                         ['Fire Alarm', data.fireAlarm || ''],
                         ['Sprinklers', data.sprinklers || '']
                     ]);
-                }
-                
-                addSection('Risk Factors', [
-                    ['Pool', data.pool || ''],
-                    ['Trampoline', data.trampoline || ''],
-                    ['Wood Stove', data.woodStove || ''],
-                    ['Dogs', data.dogInfo || ''],
-                    ['Business on Property', data.businessOnProperty || '']
-                ]);
 
-                if (data.drivers && data.drivers.length) {
-                    const driverLines = data.drivers.map((d, i) => {
-                        const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
-                        return `Driver ${i + 1}: ${name || 'Unknown'} | Relationship: ${d.relationship || ''} | Occupation: ${d.occupation || ''} | DOB: ${d.dob || ''} | DL: ${d.dlNum || ''} (${d.dlState || ''})`;
-                    }).join('\n');
-                    addSection('Drivers', [['Drivers', driverLines]]);
+                    // Section 6: Hazards
+                    addSection('Hazards & Risk Factors', [
+                        ['Swimming Pool', data.pool || ''],
+                        ['Trampoline', data.trampoline || ''],
+                        ['Wood Burning Stove', data.woodStove || ''],
+                        ['Dogs / Pets', data.dogInfo || ''],
+                        ['Business on Property', data.businessOnProperty || '']
+                    ]);
                 }
-                
+
+                // Section 7: Vehicles
                 if (data.qType === 'auto' || data.qType === 'both') {
                     if (data.vehicles && data.vehicles.length) {
-                        // Use vehicles array
                         const vehicleLines = data.vehicles.map((v, i) => {
                             const vehDesc = [v.year, v.make, v.model].filter(Boolean).join(' ');
                             return `Vehicle ${i + 1}: ${vehDesc || 'Unknown'} | VIN: ${v.vin || ''} | Use: ${v.use || ''} | Miles: ${v.miles || ''} | Primary Driver: ${v.primaryDriver || ''}`;
                         }).join('\n');
                         addSection('Vehicles', [['Vehicles', vehicleLines]]);
                     } else {
-                        // Fallback to flat fields
                         addSection('Vehicle Information', [
                             ['VIN', data.vin || ''],
                             ['Vehicle', data.vehDesc || ''],
@@ -6758,7 +6874,8 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         ]);
                     }
                 }
-                
+
+                // Section 8: Coverage & History
                 addSection('Coverage & History', [
                     ['Liability Limits', data.liabilityLimits || ''],
                     ['Home Deductible', data.homeDeductible || ''],
@@ -9687,10 +9804,6 @@ This data is ready to paste into your quoting system.
         </style>
 
         <div class="cgl-container">
-            <!-- Back Button -->
-            <div class="back-to-home" onclick="App.goHome()">
-                ← Back to Tools
-            </div>
 
             <!-- Header -->
             <div class="cgl-header">
