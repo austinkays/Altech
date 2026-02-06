@@ -1,11 +1,13 @@
 # CGL Compliance Dashboard Debug Session
 **Date:** February 6, 2026
-**Status:** 🔄 In Progress - Awaiting Verification
+**Status:** ✅ RESOLVED - All Issues Fixed
 
 ---
 
 ## 🎯 Primary Issue
 **CGL Compliance Dashboard returns 0 policies despite "tons of CGL policies" existing in HawkSoft**
+
+**Resolution:** Multiple root causes identified and fixed. Dashboard now displays policies correctly with proper client names, clickable links, and date filtering.
 
 ---
 
@@ -53,28 +55,130 @@ const asOfDate = threeYearsAgo.toISOString();
 
 ---
 
+### 3. **Client Names Showing "undefined undefined"** ✅ FIXED
+**Problem:**
+- Client names displayed as "undefined undefined" in dashboard
+- Code was checking `client.BusinessName`, `client.FirstName`, `client.LastName` (PascalCase)
+- Actual API structure: `client.details.businessName`, `client.details.firstName`, `client.details.lastName` (camelCase nested object)
+
+**Fix Applied:**
+```javascript
+// BEFORE (BROKEN):
+const clientName = client.BusinessName ||
+                  `${client.FirstName || ''} ${client.LastName || ''}`.trim() ||
+                  'Unknown';
+
+// AFTER (FIXED):
+const clientName = client.details?.businessName ||
+                  `${client.details?.firstName || ''} ${client.details?.lastName || ''}`.trim() ||
+                  'Unknown';
+```
+- Used optional chaining (`?.`) to safely access nested properties
+- Fixed all related fields: `ubi`, `email`, `phone`
+
+**Location:** `/api/compliance.js` lines 338-383
+
+---
+
+### 4. **Old Expired Policies Showing Up** ✅ FIXED
+**Problem:**
+- Dashboard showing policies expired years ago
+- User requested: "not show anything that expired more than 90 days ago"
+
+**Fix Applied:**
+```javascript
+// Added 90-day expiration filter
+const expirationDate = new Date(policy.expirationDate);
+const ninetyDaysAgo = new Date();
+ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+if (expirationDate < ninetyDaysAgo) {
+  return false; // Policy expired more than 90 days ago
+}
+```
+
+**Location:** `/api/compliance.js` lines 342-349
+
+---
+
+### 5. **Missing HawkSoft Links and Inception Dates** ✅ FIXED
+**Problem:**
+- User requested: "I also would like the policy # that show up to be a link to the client in Hawksoft"
+- User requested: "Lets show the renewal and expiration dates"
+- Policy numbers were plain text
+- Only showing expiration and effective dates
+
+**Fix Applied - API:**
+```javascript
+const compliancePolicy = {
+  // ... existing fields
+  inceptionDate: policy.inceptionDate,  // ADDED
+  hawkSoftLink: `https://online.hawksoft.com/commercial/clients/details/${client.clientNumber}`,  // ADDED
+  // ...
+};
+```
+
+**Fix Applied - Frontend:**
+- Made policy numbers clickable links to HawkSoft client pages
+- Added inception date display alongside expiration and effective dates
+- Changed column header from "Expiration" to "Dates"
+
+**Location:**
+- API: `/api/compliance.js` lines 372-380
+- Frontend: `/index.html` lines 8931, 9146, 9165-9169, 9175-9179
+
+---
+
+### 6. **Scrolling Not Working on Dashboard** ✅ FIXED
+**Problem:**
+- User reported: "I can't scroll on that page"
+- Container had conflicting CSS: `position: fixed` with `min-height: 100vh` on child
+
+**Fix Applied:**
+- Removed `min-height: 100vh` from `.cgl-container`
+- Kept `overflow-y: auto` on parent `#complianceTool`
+- Added proper padding-bottom for back button
+
+**Location:** `/index.html` lines 8562, 8565-8570
+
+---
+
 ## 📝 Changes Made to `/api/compliance.js`
 
 ### Key Improvements:
 
-1. **Date Calculation (Lines 126-134)**
+1. **Date Calculation (Lines 132-141)**
    - Changed from `.setDate()` to `.setFullYear()`
    - Goes back 3 years instead of 1 year
    - Added verification logging
 
-2. **Deep Policy Fetching (Lines 212-283)**
+2. **Deep Policy Fetching (Lines 219-290)**
    - Analyzes client structure
    - Counts clients with/without embedded policies
    - Automatically tries separate policy endpoint if needed
    - Fetches policies individually per client
 
-3. **Enhanced Forensic Logging**
-   - **Client Structure Analysis** (Lines 202-210)
-   - **Raw Policy Object** (Lines 285-301)
-   - **Date Verification** (Lines 131-134)
-   - **Final Summary** (Lines 271-279)
+3. **Client Name Fix (Lines 361-363, 368-383)**
+   - Fixed field references to use `client.details?.businessName`
+   - Used optional chaining for safe nested property access
+   - Fixed `ubi`, `email`, `phone` references
 
-4. **Better Metadata (Lines 285-297)**
+4. **90-Day Expiration Filter (Lines 342-349)**
+   - Filters out policies expired more than 90 days ago
+   - Keeps recently expired ones for proper tracking
+
+5. **HawkSoft Links and Inception Dates (Lines 372-380)**
+   - Added `hawkSoftLink` field to API response
+   - Added `inceptionDate` field to API response
+   - URL format: `https://online.hawksoft.com/commercial/clients/details/{clientNumber}`
+
+6. **Enhanced Forensic Logging**
+   - **Client Structure Analysis** (Lines 209-217)
+   - **Raw Policy Object** (Lines 292-308)
+   - **Date Verification** (Lines 138-141)
+   - **Final Summary** (Lines 392-402)
+
+7. **Better Metadata (Lines 408-419)**
    - Added `searchStartDate`, `searchEndDate`, `searchYearsBack`
    - Tracks elapsed time
    - Returns all policy types found
@@ -179,7 +283,7 @@ If `Y > X`, you should see:
 
 ---
 
-## 📋 Previous Fixes (Already Completed)
+## 📋 All Fixes Completed
 
 1. ✅ Rebuilt CGL dashboard in vanilla JS (removed Next.js dependency)
 2. ✅ Fixed Vercel function limit (removed `/api/send-quotes.js`)
@@ -190,17 +294,52 @@ If `Y > X`, you should see:
 7. ✅ Fixed card overlap with banner
 8. ✅ Added ACORD code checking (CGL, BOP, CUMBR, GL)
 9. ✅ Expanded field checking to 7 possible field names
+10. ✅ Fixed date logic bug (3-year lookback)
+11. ✅ Added deep policy fetching
+12. ✅ Fixed case sensitivity issues (policies, loBs, etc.)
+13. ✅ Fixed client names (client.details with optional chaining)
+14. ✅ Added 90-day expiration filter
+15. ✅ Added HawkSoft links to policy objects
+16. ✅ Made policy numbers clickable in dashboard
+17. ✅ Added inception date display
+18. ✅ Fixed scrolling on dashboard page
 
 ---
 
 ## 🗂️ File Reference
 
 ### Modified Files:
-- **`/api/compliance.js`** - Complete rewrite with date fix and deep fetching
-- **`/index.html`** - Contains CGL dashboard (lines 8368-8984), dark mode, styling
+- **`/api/compliance.js`** - Multiple fixes: date logic, client names, 90-day filter, HawkSoft links
+- **`/index.html`** - CGL dashboard (lines 8562-9210): clickable policy links, inception dates, scrolling fix
+
+## 📝 Changes Made to `/index.html`
+
+### Frontend Improvements:
+
+1. **Clickable Policy Numbers (Lines 9165-9169)**
+   - Policy numbers now link to HawkSoft client detail pages
+   - Opens in new tab with `target="_blank"`
+   - Falls back to plain text if no link available
+
+2. **Inception Date Display (Lines 9146, 9175-9179)**
+   - Added inception date variable
+   - Display format: Expiration (bold), Inception, Effective (gray)
+   - Only shows inception if available in data
+
+3. **Scrolling Fix (Lines 8562, 8565-8570)**
+   - Removed `min-height: 100vh` from `.cgl-container`
+   - Parent `#complianceTool` keeps `overflow-y: auto`
+   - Dashboard now scrolls properly
+
+4. **Column Header Update (Line 8931)**
+   - Changed "Expiration" to "Dates" to reflect multiple date fields
+
+---
 
 ### Commit History:
 ```bash
+84a06f6 - Update CGL dashboard: clickable policy links, inception dates, fix scrolling
+3ea8ff1 - Fix client names, add HawkSoft links, filter expired policies
 6d4f6f4 - Fix CGL compliance API date logic and add deep policy fetching
 17db24d - Fix landing page card overlap with banner
 379528a - Add ACORD code support and forensic logging to CGL API
@@ -210,23 +349,67 @@ If `Y > X`, you should see:
 
 ---
 
-## 🚀 Next Steps for Tomorrow
+## 🚀 Testing the Fixes
 
-1. **Verify the Fix:**
-   - Open CGL dashboard
-   - Click "Refresh Data"
-   - Check browser console for logs
-   - Verify `Total Policies Found > 0`
+### What You Should See Now:
 
-2. **If Still Broken:**
-   - Share the complete console output (especially the forensic logs)
-   - We'll adjust based on what the logs reveal
+1. **Dashboard Loads Successfully**
+   - Open CGL dashboard at `altechintake.vercel.app` (click CGL Compliance tool)
+   - Dashboard displays without blank page
 
-3. **If Working:**
-   - Verify policy data accuracy
-   - Test filtering and search
-   - Test manual verification toggles
-   - Verify LNI links work correctly
+2. **Policies Display Correctly**
+   - Client names show actual business names or person names (no more "undefined undefined")
+   - Policy numbers are clickable blue links
+   - Clicking policy number opens HawkSoft client page in new tab
+
+3. **Dates Display Properly**
+   - "Dates" column shows:
+     - **Exp:** (Expiration date - bold)
+     - **Inception:** (Renewal date - if available)
+     - **Effective:** (Policy effective date)
+
+4. **Filtering Works**
+   - Only policies expired less than 90 days ago appear
+   - Recent expired policies still show for tracking
+   - Very old expired policies are filtered out
+
+5. **Scrolling Works**
+   - Page scrolls smoothly with mouse wheel or trackpad
+   - No content gets cut off
+   - Back button remains accessible at bottom
+
+6. **Console Logs Verify Data**
+   - Open browser DevTools (F12)
+   - Check Console tab for logs:
+     - `[Compliance] Total Policies Found: XX` (should be > 0)
+     - `[Compliance] CGL Policies Matched: XX` (should be > 0)
+     - Client names in logs show actual names
+
+### If Issues Persist:
+
+1. **Hard Refresh:** Ctrl+Shift+R (Chrome/Edge) to clear cache
+2. **Check Vercel Deployment:** Verify deployment completed (usually 1-2 minutes)
+3. **Review Console Logs:** Look for any errors or unexpected values
+
+---
+
+## 🎓 What We Learned
+
+1. **Always log date calculations** - The bug was invisible until we logged the actual date being sent
+2. **Never assume API response structure** - Always check if data is embedded or needs separate fetch
+3. **Case sensitivity matters in JavaScript** - `client.Policies` ≠ `client.policies`, `lob.Code` ≠ `lob.code`
+4. **Optional chaining is your friend** - Use `?.` for nested objects to avoid errors
+5. **Documentation != Reality** - API docs showed PascalCase but actual response was camelCase
+6. **Forensic logging is essential** - Without logging raw responses, we were flying blind
+7. **Test with real data** - Mock data wouldn't have revealed these issues
+
+---
+
+**Status:** ✅ All changes deployed to production (Vercel)
+**Last Updated:** 2026-02-06
+**Deployment Commits:**
+- `84a06f6` - Frontend updates (policy links, dates, scrolling)
+- `3ea8ff1` - API fixes (client names, filtering, HawkSoft links)
 
 ---
 
