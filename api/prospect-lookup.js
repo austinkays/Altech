@@ -609,12 +609,24 @@ async function scrapeWASOS(businessName, ubi) {
       body: JSON.stringify(searchPayload)
     });
 
+    console.log('[WA SOS] API response status:', response.status);
+    const responseText = await response.text();
+    console.log('[WA SOS] API response (first 200 chars):', responseText.substring(0, 200));
+
     if (!response.ok) {
       console.error(`[WA SOS] Direct API returned ${response.status}`);
+      console.error(`[WA SOS] Response body:`, responseText);
       return null;
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('[WA SOS] Failed to parse JSON response:', e.message);
+      return null;
+    }
+
     console.log(`[WA SOS] Found ${data.length || 0} result(s)`);
 
     if (!data || data.length === 0) {
