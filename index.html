@@ -8799,6 +8799,7 @@ This data is ready to paste into your quoting system.
                 gap: 8px;
                 align-items: center;
                 margin-top: 8px;
+                flex-wrap: wrap;
             }
             .cgl-backup-btn {
                 background: white;
@@ -8813,6 +8814,64 @@ This data is ready to paste into your quoting system.
             .cgl-backup-btn:hover {
                 background: #f8fafc;
                 color: var(--text);
+            }
+            .cgl-file-btn {
+                background: #f8fafc;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                padding: 6px 14px;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                color: #334155;
+                transition: all 0.15s;
+            }
+            .cgl-file-btn:hover {
+                background: #e2e8f0;
+                color: #1e293b;
+            }
+            .cgl-file-btn.primary {
+                background: #2563eb;
+                border-color: #2563eb;
+                color: white;
+            }
+            .cgl-file-btn.primary:hover {
+                background: #1d4ed8;
+            }
+            .cgl-file-status {
+                font-size: 12px;
+                color: var(--text-secondary);
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .cgl-file-status .linked {
+                color: #059669;
+                font-weight: 600;
+            }
+            .cgl-file-status .field-mode {
+                background: #f1f5f9;
+                border: 1px solid #e2e8f0;
+                border-radius: 4px;
+                padding: 2px 8px;
+                font-size: 11px;
+                color: #64748b;
+            }
+            .cgl-save-flash {
+                color: #059669;
+                font-weight: 600;
+                font-size: 12px;
+                opacity: 0;
+                transition: opacity 0.2s;
+            }
+            .cgl-save-flash.visible {
+                opacity: 1;
+            }
+            .cgl-file-sep {
+                width: 1px;
+                height: 20px;
+                background: #e2e8f0;
+                margin: 0 4px;
             }
             .cgl-backup-reminder {
                 position: fixed;
@@ -9009,11 +9068,7 @@ This data is ready to paste into your quoting system.
                 <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
                     Showing <span id="cglFilteredCount">0</span> of <span id="cglTotalCount">0</span> policies
                 </div>
-                <div class="cgl-backup-bar">
-                    <button class="cgl-backup-btn" onclick="ComplianceDashboard.exportBackup()">Backup My Work</button>
-                    <button class="cgl-backup-btn" onclick="document.getElementById('cglImportFile').click()">Restore Work</button>
-                    <input type="file" id="cglImportFile" accept=".csv" style="display:none;" onchange="ComplianceDashboard.importBackup(this)">
-                </div>
+                <div class="cgl-backup-bar" id="cglFileToolbar"></div>
             </div>
 
             <!-- Loading State -->
@@ -9080,7 +9135,7 @@ This data is ready to paste into your quoting system.
             <!-- Floating backup reminder -->
             <div class="cgl-backup-reminder" id="cglBackupReminder">
                 <span>You have <strong id="cglSessionCount">0</strong> unsaved changes.</span>
-                <button onclick="ComplianceDashboard.exportBackup()">Backup now</button>
+                <button id="cglReminderAction" onclick="ComplianceDashboard.reminderAction()">Backup now</button>
                 <button class="cgl-reminder-dismiss" onclick="ComplianceDashboard.dismissReminder()">&times;</button>
             </div>
         </div>
@@ -9096,6 +9151,8 @@ This data is ready to paste into your quoting system.
                 showHidden: false,
                 sessionChanges: 0,
                 reminderDismissed: false,
+                fileHandle: null,
+                isDesktop: false,
 
                 // --- State persistence ---
 
@@ -9132,11 +9189,17 @@ This data is ready to paste into your quoting system.
                 },
 
                 saveState() {
+                    // Always save to localStorage as fallback
                     localStorage.setItem(STORAGE_KEY, JSON.stringify({
                         verifiedPolicies: this.verifiedPolicies,
                         dismissedPolicies: this.dismissedPolicies,
                         lastSaved: new Date().toISOString()
                     }));
+
+                    // If linked to a disk file, also auto-save there
+                    if (this.fileHandle) {
+                        this.saveDiskFile();
+                    }
                 },
 
                 trackChange() {
@@ -9156,7 +9219,198 @@ This data is ready to paste into your quoting system.
                     if (reminder) reminder.style.display = 'none';
                 },
 
-                // --- Export / Import ---
+                reminderAction() {
+                    if (this.fileHandle) {
+                        this.saveDiskFile();
+                    } else {
+                        this.exportBackup();
+                    }
+                },
+
+                // --- File System Access API (Desktop) ---
+
+                renderFileToolbar() {
+                    const toolbar = document.getElementById('cglFileToolbar');
+                    if (!toolbar) return;
+
+                    if (this.isDesktop) {
+                        toolbar.innerHTML = `
+                            <button class="cgl-file-btn primary" onclick="ComplianceDashboard.openDiskFile()">Open File</button>
+                            <button class="cgl-file-btn" onclick="ComplianceDashboard.saveDiskFile()" id="cglSaveBtn">Save</button>
+                            <button class="cgl-file-btn" onclick="ComplianceDashboard.saveDiskFileAs()">Save As</button>
+                            <span class="cgl-save-flash" id="cglSaveFlash">Saved</span>
+                            <span class="cgl-file-status" id="cglFileStatus">
+                                <span class="field-mode">No file linked</span>
+                            </span>
+                            <span class="cgl-file-sep"></span>
+                            <button class="cgl-backup-btn" onclick="ComplianceDashboard.exportBackup()">CSV Export</button>
+                            <button class="cgl-backup-btn" onclick="document.getElementById('cglImportFile').click()">CSV Import</button>
+                            <input type="file" id="cglImportFile" accept=".csv" style="display:none;" onchange="ComplianceDashboard.importBackup(this)">
+                        `;
+                    } else {
+                        toolbar.innerHTML = `
+                            <span class="cgl-file-status"><span class="field-mode">Field Mode (Local Storage)</span></span>
+                            <span class="cgl-file-sep"></span>
+                            <button class="cgl-backup-btn" onclick="ComplianceDashboard.exportBackup()">CSV Export</button>
+                            <button class="cgl-backup-btn" onclick="document.getElementById('cglImportFile').click()">CSV Import</button>
+                            <input type="file" id="cglImportFile" accept=".csv" style="display:none;" onchange="ComplianceDashboard.importBackup(this)">
+                        `;
+                    }
+
+                    // Update reminder button text
+                    const reminderBtn = document.getElementById('cglReminderAction');
+                    if (reminderBtn) {
+                        reminderBtn.textContent = this.fileHandle ? 'Save to disk' : 'Backup now';
+                    }
+                },
+
+                updateFileStatus() {
+                    const statusEl = document.getElementById('cglFileStatus');
+                    if (!statusEl) return;
+
+                    if (this.fileHandle) {
+                        const name = this.fileHandle.name || 'file';
+                        statusEl.innerHTML = `<span class="linked">Linked: ${this.escapeHtml(name)}</span>`;
+                    } else {
+                        statusEl.innerHTML = `<span class="field-mode">No file linked</span>`;
+                    }
+
+                    // Update reminder button text
+                    const reminderBtn = document.getElementById('cglReminderAction');
+                    if (reminderBtn) {
+                        reminderBtn.textContent = this.fileHandle ? 'Save to disk' : 'Backup now';
+                    }
+                },
+
+                async openDiskFile() {
+                    try {
+                        const [handle] = await window.showOpenFilePicker({
+                            startIn: 'documents',
+                            types: [{
+                                description: 'JSON Files',
+                                accept: { 'application/json': ['.json'] }
+                            }]
+                        });
+
+                        const file = await handle.getFile();
+                        const text = await file.text();
+                        const data = JSON.parse(text);
+
+                        // Support v2.0 format (meta + state) and flat format
+                        const stateData = data.state || data;
+
+                        // Load dismissed policies - convert arrays to objects if needed
+                        if (Array.isArray(stateData.dismissedPolicies)) {
+                            this.dismissedPolicies = {};
+                            stateData.dismissedPolicies.forEach(pn => {
+                                this.dismissedPolicies[pn] = { dismissedAt: data.meta?.lastSaved || new Date().toISOString() };
+                            });
+                        } else if (stateData.dismissedPolicies && typeof stateData.dismissedPolicies === 'object') {
+                            this.dismissedPolicies = stateData.dismissedPolicies;
+                        }
+
+                        // Load verified policies - convert arrays to objects if needed
+                        if (Array.isArray(stateData.verifiedPolicies)) {
+                            this.verifiedPolicies = {};
+                            stateData.verifiedPolicies.forEach(pn => {
+                                this.verifiedPolicies[pn] = { updatedAt: data.meta?.lastSaved || new Date().toISOString(), updatedBy: 'file' };
+                            });
+                        } else if (stateData.verifiedPolicies && typeof stateData.verifiedPolicies === 'object') {
+                            this.verifiedPolicies = stateData.verifiedPolicies;
+                        }
+
+                        this.fileHandle = handle;
+
+                        // Sync to localStorage as backup
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                            verifiedPolicies: this.verifiedPolicies,
+                            dismissedPolicies: this.dismissedPolicies,
+                            lastSaved: new Date().toISOString()
+                        }));
+
+                        this.updateFileStatus();
+                        this.filterPolicies();
+                        this.updateStats();
+
+                        console.log('[CGL] Opened file:', handle.name, '| Verified:', Object.keys(this.verifiedPolicies).length, '| Dismissed:', Object.keys(this.dismissedPolicies).length);
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.error('[CGL] Error opening file:', err);
+                            alert('Failed to open file: ' + err.message);
+                        }
+                    }
+                },
+
+                async saveDiskFile() {
+                    try {
+                        if (!this.fileHandle) {
+                            return this.saveDiskFileAs();
+                        }
+
+                        const jsonData = {
+                            meta: {
+                                version: '2.0',
+                                lastSaved: new Date().toISOString(),
+                                savedBy: 'Altech Desktop App'
+                            },
+                            state: {
+                                dismissedPolicies: Object.keys(this.dismissedPolicies),
+                                verifiedPolicies: Object.keys(this.verifiedPolicies),
+                                notes: {}
+                            }
+                        };
+
+                        const writable = await this.fileHandle.createWritable();
+                        await writable.write(JSON.stringify(jsonData, null, 2));
+                        await writable.close();
+
+                        // Flash "Saved" indicator
+                        const flash = document.getElementById('cglSaveFlash');
+                        if (flash) {
+                            flash.classList.add('visible');
+                            setTimeout(() => flash.classList.remove('visible'), 1500);
+                        }
+
+                        // Reset session counter
+                        this.sessionChanges = 0;
+                        this.reminderDismissed = false;
+                        const reminder = document.getElementById('cglBackupReminder');
+                        if (reminder) reminder.style.display = 'none';
+                        const countEl = document.getElementById('cglSessionCount');
+                        if (countEl) countEl.textContent = '0';
+
+                        console.log('[CGL] Saved to disk:', this.fileHandle.name);
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.error('[CGL] Error saving file:', err);
+                            alert('Failed to save file: ' + err.message);
+                        }
+                    }
+                },
+
+                async saveDiskFileAs() {
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: 'Altech_CGL_Master.json',
+                            startIn: 'documents',
+                            types: [{
+                                description: 'JSON Files',
+                                accept: { 'application/json': ['.json'] }
+                            }]
+                        });
+
+                        this.fileHandle = handle;
+                        this.updateFileStatus();
+                        await this.saveDiskFile();
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.error('[CGL] Error saving file as:', err);
+                            alert('Failed to save file: ' + err.message);
+                        }
+                    }
+                },
+
+                // --- CSV Export / Import ---
 
                 exportBackup() {
                     const rows = ['PolicyNumber,Status,Date'];
@@ -9233,6 +9487,8 @@ This data is ready to paste into your quoting system.
 
                 init() {
                     this.loadState();
+                    this.isDesktop = 'showOpenFilePicker' in window;
+                    this.renderFileToolbar();
 
                     const searchInput = document.getElementById('cglSearchInput');
                     const filterSelect = document.getElementById('cglFilterSelect');
