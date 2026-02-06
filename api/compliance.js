@@ -213,6 +213,25 @@ export default async function handler(req, res) {
       console.log('[Compliance] Sample client keys:', Object.keys(sampleClient));
       console.log('[Compliance] Has policies array?', Array.isArray(sampleClient.policies));
       console.log('[Compliance] Policies count in first client:', sampleClient.policies ? sampleClient.policies.length : 0);
+
+      // FORENSIC: Check client name field structure
+      console.log('[Compliance] ===== CLIENT NAME FIELDS FORENSICS =====');
+      console.log('[Compliance] Has details object?', !!sampleClient.details);
+      if (sampleClient.details) {
+        console.log('[Compliance] details keys:', Object.keys(sampleClient.details));
+        console.log('[Compliance] details.businessName:', sampleClient.details.businessName);
+        console.log('[Compliance] details.firstName:', sampleClient.details.firstName);
+        console.log('[Compliance] details.lastName:', sampleClient.details.lastName);
+      }
+      // Check if name fields are at root level
+      console.log('[Compliance] Root level businessName:', sampleClient.businessName);
+      console.log('[Compliance] Root level firstName:', sampleClient.firstName);
+      console.log('[Compliance] Root level lastName:', sampleClient.lastName);
+      console.log('[Compliance] Root level BusinessName (PascalCase):', sampleClient.BusinessName);
+      console.log('[Compliance] Root level FirstName (PascalCase):', sampleClient.FirstName);
+      console.log('[Compliance] Root level LastName (PascalCase):', sampleClient.LastName);
+      console.log('[Compliance] ================================================');
+
       console.log('[Compliance] ========================================');
     }
 
