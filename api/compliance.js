@@ -38,43 +38,49 @@ function isGeneralLiabilityPolicy(policy) {
     'commercial general liability',
     'gen liab',
     'comm gen liab',
-    'liability'
+    'liability',
+    'commercial'    // General commercial type
   ];
 
-  // Check multiple possible field names where the code might be stored
+  // Check LOBs array (this is the primary field per HawkSoft docs)
+  if (policy.LOBs && Array.isArray(policy.LOBs)) {
+    for (const lob of policy.LOBs) {
+      if (lob.Code && typeof lob.Code === 'string') {
+        const codeLower = lob.Code.toLowerCase();
+        for (const glCode of glCodes) {
+          if (codeLower.includes(glCode)) {
+            console.log(`[Compliance] ✓ MATCH FOUND in LOBs[].Code: "${lob.Code}"`);
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  // Check other documented fields: Type, ApplicationType, Title
   const fieldsToCheck = [
-    policy.PolicyType,
-    policy.LOB,
-    policy.LOBCode,
-    policy.LineOfBusiness,
-    policy.PolicyCategory,
     policy.Type,
-    policy.Code
+    policy.ApplicationType,
+    policy.Title
   ];
 
-  // Log field values for debugging
-  const fieldValues = fieldsToCheck.map((val, idx) => {
-    const fieldNames = ['PolicyType', 'LOB', 'LOBCode', 'LineOfBusiness', 'PolicyCategory', 'Type', 'Code'];
-    return `${fieldNames[idx]}="${val || 'null'}"`;
-  }).join(', ');
-
-  // Check if any field contains a GL code
-  for (const field of fieldsToCheck) {
+  for (let i = 0; i < fieldsToCheck.length; i++) {
+    const field = fieldsToCheck[i];
+    const fieldNames = ['Type', 'ApplicationType', 'Title'];
     if (field && typeof field === 'string') {
       const fieldLower = field.toLowerCase();
       for (const code of glCodes) {
         if (fieldLower.includes(code)) {
-          console.log(`[Compliance] ✓ MATCH FOUND: ${fieldValues}`);
+          console.log(`[Compliance] ✓ MATCH FOUND in ${fieldNames[i]}: "${field}"`);
           return true;
         }
       }
     }
   }
 
-  // Log non-matches with all field values for forensics
-  if (fieldsToCheck.some(f => f)) {
-    console.log(`[Compliance] ✗ NO MATCH: ${fieldValues}`);
-  }
+  // Log non-matches for debugging
+  const lobCodes = policy.LOBs ? policy.LOBs.map(l => l.Code).join(', ') : 'none';
+  console.log(`[Compliance] ✗ NO MATCH: Type="${policy.Type || 'null'}", ApplicationType="${policy.ApplicationType || 'null'}", Title="${policy.Title || 'null'}", LOBs.Code=[${lobCodes}]`);
 
   return false;
 }
@@ -315,19 +321,17 @@ export default async function handler(req, res) {
 
       // Log all unique policy type values from all possible fields
       client.policies.forEach(policy => {
-        const fieldsToCapture = [
-          policy.PolicyType,
-          policy.LOB,
-          policy.LOBCode,
-          policy.LineOfBusiness,
-          policy.PolicyCategory,
-          policy.Type
-        ];
-        fieldsToCapture.forEach(field => {
-          if (field && typeof field === 'string') {
-            policyTypesFound.add(field);
-          }
-        });
+        // Capture documented fields
+        if (policy.Type) policyTypesFound.add(`Type:${policy.Type}`);
+        if (policy.ApplicationType) policyTypesFound.add(`AppType:${policy.ApplicationType}`);
+        if (policy.Title) policyTypesFound.add(`Title:${policy.Title}`);
+
+        // Capture LOBs array codes (primary field per HawkSoft docs)
+        if (policy.LOBs && Array.isArray(policy.LOBs)) {
+          policy.LOBs.forEach(lob => {
+            if (lob.Code) policyTypesFound.add(`LOB:${lob.Code}`);
+          });
+        }
       });
 
       const glPolicies = client.policies.filter(policy =>
