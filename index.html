@@ -7074,13 +7074,25 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     // Initialize Prospect Investigator
                     ProspectInvestigator.init();
                 } else if (toolName === 'compliance') {
+                    console.log('[CGL] Opening compliance dashboard...');
                     const tool = document.getElementById('complianceTool');
+                    console.log('[CGL] Tool element:', tool);
+
+                    if (!tool) {
+                        console.error('[CGL] complianceTool element not found!');
+                        return;
+                    }
+
                     tool.classList.add('active');
                     tool.style.display = 'block';
 
                     // Initialize CGL Compliance Dashboard
+                    console.log('[CGL] ComplianceDashboard defined:', typeof ComplianceDashboard);
                     if (typeof ComplianceDashboard !== 'undefined') {
+                        console.log('[CGL] Calling ComplianceDashboard.init()...');
                         ComplianceDashboard.init();
+                    } else {
+                        console.error('[CGL] ComplianceDashboard not defined!');
                     }
                 }
 
@@ -8775,47 +8787,67 @@ This data is ready to paste into your quoting system.
                 updatedPolicies: {},
 
                 init() {
+                    console.log('[CGL] ComplianceDashboard.init() called');
+
                     // Load updated policies from localStorage
                     const stored = localStorage.getItem('compliance_updated_policies');
                     if (stored) {
                         try {
                             this.updatedPolicies = JSON.parse(stored);
+                            console.log('[CGL] Loaded updated policies:', Object.keys(this.updatedPolicies).length);
                         } catch (e) {
-                            console.error('Failed to parse stored policies:', e);
+                            console.error('[CGL] Failed to parse stored policies:', e);
                         }
                     }
 
                     // Add event listeners
-                    document.getElementById('cglSearchInput').addEventListener('input', () => this.filterPolicies());
-                    document.getElementById('cglFilterSelect').addEventListener('change', () => this.filterPolicies());
+                    const searchInput = document.getElementById('cglSearchInput');
+                    const filterSelect = document.getElementById('cglFilterSelect');
+
+                    console.log('[CGL] Search input:', searchInput, 'Filter select:', filterSelect);
+
+                    if (searchInput) {
+                        searchInput.addEventListener('input', () => this.filterPolicies());
+                    }
+                    if (filterSelect) {
+                        filterSelect.addEventListener('change', () => this.filterPolicies());
+                    }
 
                     // Initial load
+                    console.log('[CGL] Starting fetchPolicies...');
                     this.fetchPolicies();
                 },
 
                 async fetchPolicies() {
+                    console.log('[CGL] fetchPolicies() called');
                     const loading = document.getElementById('cglLoading');
                     const error = document.getElementById('cglError');
                     const tableContainer = document.getElementById('cglTableContainer');
+
+                    console.log('[CGL] Elements:', { loading, error, tableContainer });
 
                     loading.style.display = 'block';
                     error.style.display = 'none';
                     tableContainer.style.display = 'none';
 
                     try {
+                        console.log('[CGL] Fetching from /api/compliance.js...');
                         const response = await fetch('/api/compliance.js');
+                        console.log('[CGL] Response status:', response.status);
 
                         if (!response.ok) {
                             throw new Error(`Failed to fetch policies: ${response.status}`);
                         }
 
                         const data = await response.json();
+                        console.log('[CGL] Received data:', data);
 
                         if (!data.success) {
                             throw new Error(data.error || 'Failed to fetch policies');
                         }
 
                         this.policies = data.policies || [];
+                        console.log('[CGL] Loaded policies:', this.policies.length);
 
                         // Update last fetch time
                         if (data.metadata && data.metadata.fetchedAt) {
@@ -8830,10 +8862,10 @@ This data is ready to paste into your quoting system.
                         tableContainer.style.display = 'block';
 
                     } catch (err) {
+                        console.error('[CGL] Error fetching policies:', err);
                         loading.style.display = 'none';
                         error.style.display = 'block';
                         document.getElementById('cglErrorMessage').textContent = err.message;
-                        console.error('Error fetching policies:', err);
                     }
                 },
 
