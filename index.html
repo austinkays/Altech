@@ -8722,6 +8722,78 @@ This data is ready to paste into your quoting system.
             .cgl-toggle input:checked + .cgl-toggle-slider:before {
                 transform: translateX(20px);
             }
+            .cgl-dismiss-btn {
+                background: none;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                color: #94a3b8;
+                font-size: 12px;
+                padding: 4px 10px;
+                cursor: pointer;
+                transition: all 0.15s;
+            }
+            .cgl-dismiss-btn:hover {
+                background: #fee2e2;
+                color: #dc2626;
+                border-color: #fca5a5;
+            }
+            .cgl-restore-btn {
+                background: none;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                color: #3b82f6;
+                font-size: 12px;
+                padding: 4px 10px;
+                cursor: pointer;
+                transition: all 0.15s;
+            }
+            .cgl-restore-btn:hover {
+                background: #eff6ff;
+                border-color: #93c5fd;
+            }
+            .cgl-table tr.hidden-row {
+                opacity: 0.45;
+                background: #f8fafc;
+            }
+            .cgl-table tr.hidden-row td {
+                text-decoration: line-through;
+                text-decoration-color: #cbd5e1;
+            }
+            .cgl-table tr.hidden-row td:first-child,
+            .cgl-table tr.hidden-row td:last-child {
+                text-decoration: none;
+            }
+            .cgl-show-hidden-btn {
+                background: white;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 8px 14px;
+                font-size: 13px;
+                cursor: pointer;
+                color: var(--text-secondary);
+                transition: all 0.15s;
+            }
+            .cgl-show-hidden-btn:hover {
+                background: #f8fafc;
+            }
+            .cgl-show-hidden-btn.active {
+                background: #eff6ff;
+                border-color: #3b82f6;
+                color: #2563eb;
+            }
+            .cgl-hidden-count {
+                background: #e2e8f0;
+                color: #64748b;
+                border-radius: 10px;
+                padding: 1px 7px;
+                font-size: 11px;
+                font-weight: 600;
+                margin-left: 4px;
+            }
+            .cgl-show-hidden-btn.active .cgl-hidden-count {
+                background: #bfdbfe;
+                color: #2563eb;
+            }
             .cgl-link {
                 color: var(--apple-blue);
                 text-decoration: none;
@@ -8866,7 +8938,10 @@ This data is ready to paste into your quoting system.
                     <button class="cgl-button" onclick="ComplianceDashboard.refresh()">
                         Refresh Data
                     </button>
-                    <button class="cgl-button secondary" onclick="ComplianceDashboard.clearUpdated()">
+                    <button class="cgl-show-hidden-btn" id="cglShowHiddenBtn" onclick="ComplianceDashboard.toggleShowHidden()">
+                        Show Hidden <span class="cgl-hidden-count" id="cglHiddenCount">0</span>
+                    </button>
+                    <button class="cgl-button secondary" onclick="ComplianceDashboard.clearAll()">
                         Clear Markers
                     </button>
                 </div>
@@ -8901,6 +8976,7 @@ This data is ready to paste into your quoting system.
                             <th>Policy #</th>
                             <th>Carrier</th>
                             <th>Dates</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody id="cglTableBody">
@@ -8926,7 +9002,11 @@ This data is ready to paste into your quoting system.
                     </div>
                     <div class="cgl-legend-item">
                         <div class="cgl-legend-dot" style="background: #34C759;"></div>
-                        <span><strong>Green bg:</strong> Updated on state site</span>
+                        <span><strong>Toggle:</strong> Verified on state site (hides policy)</span>
+                    </div>
+                    <div class="cgl-legend-item">
+                        <div class="cgl-legend-dot" style="background: #94a3b8;"></div>
+                        <span><strong>Dismiss:</strong> Hide policies you don't need to track</span>
                     </div>
                 </div>
             </div>
@@ -8937,6 +9017,8 @@ This data is ready to paste into your quoting system.
             const ComplianceDashboard = {
                 policies: [],
                 updatedPolicies: {},
+                dismissedPolicies: {},
+                showHidden: false,
 
                 init() {
                     console.log('[CGL] ComplianceDashboard.init() called');
@@ -8952,11 +9034,20 @@ This data is ready to paste into your quoting system.
                         }
                     }
 
+                    // Load dismissed policies from localStorage
+                    const dismissed = localStorage.getItem('compliance_dismissed_policies');
+                    if (dismissed) {
+                        try {
+                            this.dismissedPolicies = JSON.parse(dismissed);
+                            console.log('[CGL] Loaded dismissed policies:', Object.keys(this.dismissedPolicies).length);
+                        } catch (e) {
+                            console.error('[CGL] Failed to parse dismissed policies:', e);
+                        }
+                    }
+
                     // Add event listeners
                     const searchInput = document.getElementById('cglSearchInput');
                     const filterSelect = document.getElementById('cglFilterSelect');
-
-                    console.log('[CGL] Search input:', searchInput, 'Filter select:', filterSelect);
 
                     if (searchInput) {
                         searchInput.addEventListener('input', () => this.filterPolicies());
@@ -8966,56 +9057,41 @@ This data is ready to paste into your quoting system.
                     }
 
                     // Initial load
-                    console.log('[CGL] Starting fetchPolicies...');
                     this.fetchPolicies();
                 },
 
                 async fetchPolicies() {
-                    console.log('[CGL] fetchPolicies() called');
                     const loading = document.getElementById('cglLoading');
                     const error = document.getElementById('cglError');
                     const tableContainer = document.getElementById('cglTableContainer');
-
-                    console.log('[CGL] Elements:', { loading, error, tableContainer });
 
                     loading.style.display = 'block';
                     error.style.display = 'none';
                     tableContainer.style.display = 'none';
 
                     try {
-                        console.log('[CGL] Fetching from /api/compliance.js...');
                         const response = await fetch('/api/compliance.js');
-                        console.log('[CGL] Response status:', response.status);
 
                         if (!response.ok) {
                             throw new Error(`Failed to fetch policies: ${response.status}`);
                         }
 
                         const data = await response.json();
-                        console.log('[CGL] Received data:', data);
 
                         if (!data.success) {
                             throw new Error(data.error || 'Failed to fetch policies');
                         }
 
-                        // Log detailed metadata for debugging
                         if (data.metadata) {
                             console.log('[CGL] ===== HAWKSOFT DEBUG INFO =====');
                             console.log('[CGL] Clients scanned:', data.metadata.clientsScanned);
                             console.log('[CGL] Total policies found:', data.metadata.totalPoliciesFound);
-                            console.log('[CGL] GL filter passed (isGeneralLiabilityPolicy):', data.metadata.glFilterPassed);
-                            console.log('[CGL] GL no expiration date:', data.metadata.glNoExpDate);
-                            console.log('[CGL] GL expired >90 days:', data.metadata.glExpiredOver90);
                             console.log('[CGL] CGL policies in result:', data.metadata.glPoliciesMatched);
-                            console.log('[CGL] Search date range:', data.metadata.searchDateRange);
-                            console.log('[CGL] ALL Policy Types in HawkSoft:', data.metadata.allPolicyTypes);
                             console.log('[CGL] ================================');
                         }
 
                         this.policies = data.policies || [];
-                        console.log('[CGL] Loaded policies:', this.policies.length);
 
-                        // Update last fetch time
                         if (data.metadata && data.metadata.fetchedAt) {
                             const fetchTime = new Date(data.metadata.fetchedAt).toLocaleString();
                             document.getElementById('cglLastFetch').textContent = `Last updated: ${fetchTime}`;
@@ -9039,6 +9115,18 @@ This data is ready to paste into your quoting system.
                     this.fetchPolicies();
                 },
 
+                isHidden(policyNumber) {
+                    return !!this.updatedPolicies[policyNumber] || !!this.dismissedPolicies[policyNumber];
+                },
+
+                getHiddenCount() {
+                    const hidden = new Set();
+                    this.policies.forEach(p => {
+                        if (this.isHidden(p.policyNumber)) hidden.add(p.policyNumber);
+                    });
+                    return hidden.size;
+                },
+
                 togglePolicyUpdated(policyNumber) {
                     if (this.updatedPolicies[policyNumber]) {
                         delete this.updatedPolicies[policyNumber];
@@ -9048,19 +9136,46 @@ This data is ready to paste into your quoting system.
                             updatedBy: 'user'
                         };
                     }
-
-                    // Save to localStorage
                     localStorage.setItem('compliance_updated_policies', JSON.stringify(this.updatedPolicies));
-
-                    // Re-render
-                    this.renderPolicies();
+                    this.filterPolicies();
                     this.updateStats();
                 },
 
-                clearUpdated() {
-                    if (confirm('Clear all "Updated on State Site" markers?')) {
+                dismissPolicy(policyNumber) {
+                    this.dismissedPolicies[policyNumber] = {
+                        dismissedAt: new Date().toISOString()
+                    };
+                    localStorage.setItem('compliance_dismissed_policies', JSON.stringify(this.dismissedPolicies));
+                    this.filterPolicies();
+                    this.updateStats();
+                },
+
+                undismissPolicy(policyNumber) {
+                    delete this.dismissedPolicies[policyNumber];
+                    localStorage.setItem('compliance_dismissed_policies', JSON.stringify(this.dismissedPolicies));
+                    this.filterPolicies();
+                    this.updateStats();
+                },
+
+                toggleShowHidden() {
+                    this.showHidden = !this.showHidden;
+                    const btn = document.getElementById('cglShowHiddenBtn');
+                    if (this.showHidden) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                    this.filterPolicies();
+                },
+
+                clearAll() {
+                    if (confirm('Clear all "Updated" and "Dismissed" markers? This will restore all hidden policies.')) {
                         this.updatedPolicies = {};
+                        this.dismissedPolicies = {};
                         localStorage.removeItem('compliance_updated_policies');
+                        localStorage.removeItem('compliance_dismissed_policies');
+                        this.showHidden = false;
+                        document.getElementById('cglShowHiddenBtn').classList.remove('active');
                         this.renderPolicies();
                         this.updateStats();
                     }
@@ -9071,6 +9186,11 @@ This data is ready to paste into your quoting system.
                     const filterStatus = document.getElementById('cglFilterSelect').value;
 
                     const filtered = this.policies.filter(policy => {
+                        const isHidden = this.isHidden(policy.policyNumber);
+
+                        // Hide verified/dismissed unless showHidden is on
+                        if (!this.showHidden && isHidden) return false;
+
                         // Search filter
                         const matchesSearch =
                             policy.clientName.toLowerCase().includes(searchTerm) ||
@@ -9094,16 +9214,22 @@ This data is ready to paste into your quoting system.
 
                 renderPolicies(filteredList = null) {
                     const tbody = document.getElementById('cglTableBody');
-                    const policiesToRender = filteredList || this.policies;
+                    const policiesToRender = filteredList || this.policies.filter(p => this.showHidden || !this.isHidden(p.policyNumber));
 
+                    // Update hidden count badge
+                    const hiddenCount = this.getHiddenCount();
+                    document.getElementById('cglHiddenCount').textContent = hiddenCount;
+
+                    // Update visible count
+                    const visibleTotal = this.policies.filter(p => !this.isHidden(p.policyNumber)).length;
                     document.getElementById('cglFilteredCount').textContent = policiesToRender.length;
-                    document.getElementById('cglTotalCount').textContent = this.policies.length;
+                    document.getElementById('cglTotalCount').textContent = this.showHidden ? this.policies.length : visibleTotal;
 
                     if (policiesToRender.length === 0) {
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="8" class="cgl-no-results">
-                                    No policies found matching your criteria
+                                <td colspan="7" class="cgl-no-results">
+                                    ${hiddenCount > 0 && !this.showHidden ? 'All policies handled! Click "Show Hidden" to review.' : 'No policies found matching your criteria'}
                                 </td>
                             </tr>
                         `;
@@ -9112,15 +9238,27 @@ This data is ready to paste into your quoting system.
 
                     tbody.innerHTML = policiesToRender.map(policy => {
                         const isUpdated = !!this.updatedPolicies[policy.policyNumber];
+                        const isDismissed = !!this.dismissedPolicies[policy.policyNumber];
+                        const isHidden = isUpdated || isDismissed;
                         const statusLabel = this.getStatusLabel(policy.daysUntilExpiration);
                         const expDate = new Date(policy.expirationDate).toLocaleDateString();
                         const effDate = new Date(policy.effectiveDate).toLocaleDateString();
                         const incDate = policy.inceptionDate ? new Date(policy.inceptionDate).toLocaleDateString() : null;
 
+                        const rowClass = isHidden ? 'hidden-row' : (isUpdated ? 'updated' : '');
+
+                        // Action column content
+                        let actionHtml = '';
+                        if (isHidden && this.showHidden) {
+                            actionHtml = `<button class="cgl-restore-btn" onclick="ComplianceDashboard.${isDismissed ? 'undismissPolicy' : 'togglePolicyUpdated'}('${policy.policyNumber}')">Restore</button>`;
+                        } else if (!isHidden) {
+                            actionHtml = `<button class="cgl-dismiss-btn" onclick="ComplianceDashboard.dismissPolicy('${policy.policyNumber}')">Dismiss</button>`;
+                        }
+
                         return `
-                            <tr class="${isUpdated ? 'updated' : ''}">
+                            <tr class="${rowClass}">
                                 <td>
-                                    <label class="cgl-toggle" title="${isUpdated ? 'Updated on ' + new Date(this.updatedPolicies[policy.policyNumber].updatedAt).toLocaleDateString() : 'Mark as updated on state site'}">
+                                    <label class="cgl-toggle" title="${isUpdated ? 'Verified on ' + new Date(this.updatedPolicies[policy.policyNumber].updatedAt).toLocaleDateString() : 'Mark as verified on state site'}">
                                         <input type="checkbox" ${isUpdated ? 'checked' : ''} onchange="ComplianceDashboard.togglePolicyUpdated('${policy.policyNumber}')">
                                         <span class="cgl-toggle-slider"></span>
                                     </label>
@@ -9146,18 +9284,23 @@ This data is ready to paste into your quoting system.
                                     ${incDate ? `<div style="font-size: 12px; color: var(--text-secondary);">Inception: ${incDate}</div>` : ''}
                                     <div style="font-size: 12px; color: var(--text-secondary);">Effective: ${effDate}</div>
                                 </td>
+                                <td>${actionHtml}</td>
                             </tr>
                         `;
                     }).join('');
                 },
 
                 updateStats() {
-                    document.getElementById('statTotal').textContent = this.policies.length;
-                    document.getElementById('statCritical').textContent = this.policies.filter(p => p.status === 'critical').length;
-                    document.getElementById('statExpiring').textContent = this.policies.filter(p => p.status === 'expiring-soon').length;
-                    document.getElementById('statExpired').textContent = this.policies.filter(p => p.status === 'expired').length;
-                    document.getElementById('statManual').textContent = this.policies.filter(p => p.requiresManualVerification).length;
+                    const visiblePolicies = this.policies.filter(p => !this.isHidden(p.policyNumber));
+                    document.getElementById('statTotal').textContent = visiblePolicies.length;
+                    document.getElementById('statCritical').textContent = visiblePolicies.filter(p => p.status === 'critical').length;
+                    document.getElementById('statExpiring').textContent = visiblePolicies.filter(p => p.status === 'expiring-soon').length;
+                    document.getElementById('statExpired').textContent = visiblePolicies.filter(p => p.status === 'expired').length;
+                    document.getElementById('statManual').textContent = visiblePolicies.filter(p => p.requiresManualVerification).length;
                     document.getElementById('statUpdated').textContent = Object.keys(this.updatedPolicies).length;
+
+                    // Update hidden count badge
+                    document.getElementById('cglHiddenCount').textContent = this.getHiddenCount();
                 },
 
                 getStatusLabel(daysUntilExpiration) {
