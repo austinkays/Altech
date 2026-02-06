@@ -136,7 +136,7 @@ export default async function handler(req, res) {
     // Step 2: Get list of changed clients
     console.log('[Compliance] Fetching client list from HawkSoft...');
     const changedClientsResponse = await fetch(
-      `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients?version=${API_VERSION}&asOf=${asOfDate}`,
+      `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients?version=${API_VERSION}&asOf=${asOfDate}&include=Policies`,
       {
         method: 'GET',
         headers: {
@@ -177,7 +177,7 @@ export default async function handler(req, res) {
       console.log(`[Compliance] Fetching batch ${Math.floor(i / batchSize) + 1} (${batch.length} clients)...`);
 
       const batchResponse = await fetch(
-        `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients?version=${API_VERSION}`,
+        `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients?version=${API_VERSION}&include=Policies`,
         {
           method: 'POST',
           headers: {
