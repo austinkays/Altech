@@ -232,6 +232,10 @@ export default async function handler(req, res) {
       metadata: {
         fetchedAt: new Date().toISOString(),
         clientsScanned: allClients.length,
+        totalPoliciesFound: totalPolicies,
+        glPoliciesMatched: glPoliciesFound,
+        allPolicyTypes: Array.from(policyTypesFound).sort(),
+        searchDateRange: asOfDate,
         nonSyncingCarriers: NON_SYNCING_CARRIERS
       }
     });

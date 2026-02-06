@@ -8846,6 +8846,17 @@ This data is ready to paste into your quoting system.
                             throw new Error(data.error || 'Failed to fetch policies');
                         }
 
+                        // Log detailed metadata for debugging
+                        if (data.metadata) {
+                            console.log('[CGL] ===== HAWKSOFT DEBUG INFO =====');
+                            console.log('[CGL] Clients scanned:', data.metadata.clientsScanned);
+                            console.log('[CGL] Total policies found:', data.metadata.totalPoliciesFound);
+                            console.log('[CGL] CGL policies matched:', data.metadata.glPoliciesMatched);
+                            console.log('[CGL] Search date range:', data.metadata.searchDateRange);
+                            console.log('[CGL] ALL Policy Types in HawkSoft:', data.metadata.allPolicyTypes);
+                            console.log('[CGL] ================================');
+                        }
+
                         this.policies = data.policies || [];
                         console.log('[CGL] Loaded policies:', this.policies.length);
 
