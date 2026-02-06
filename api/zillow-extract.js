@@ -5,9 +5,10 @@
  * Fetches detailed home attributes (Roof, Heating, Foundation, etc.)
  * from Zillow's Facts & Features for a given address.
  *
- * Two-layer approach:
- *   Layer A: Direct fetch with browser-like headers → parse JSON-LD / __NEXT_DATA__
- *   Layer B: Playwright fallback if Layer A returns no data
+ * Three-layer approach:
+ *   Layer A: Zillow Autocomplete API (CDN) → get zpid → canonical property page
+ *   Layer B: Zillow Search API (GetSearchPageState.htm) → JSON response
+ *   Layer C: Direct fetch of search URL → parse JSON-LD / __NEXT_DATA__ (original)
  */
 
 // ---------------------------------------------------------------------------
@@ -128,20 +129,33 @@ const EXTERIOR_MAP = {
 };
 
 // ---------------------------------------------------------------------------
+// Common browser headers for Zillow requests
+// ---------------------------------------------------------------------------
+
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Encoding': 'gzip, deflate, br',
+  'Cache-Control': 'no-cache',
+};
+
+// ---------------------------------------------------------------------------
 // URL builder
 // ---------------------------------------------------------------------------
 
-function buildZillowSearchUrl(address, city, state, zip) {
-  // Zillow search URL pattern: /homes/{slugified-address}_rb/
-  const slug = `${address} ${city} ${state} ${zip}`
+function buildSlug(address, city, state, zip) {
+  return `${address} ${city} ${state} ${zip}`
     .toLowerCase()
-    .replace(/#\d+/g, '')          // strip unit numbers (#204)
-    .replace(/apt\.?\s*\d+/gi, '') // strip apartment numbers
-    .replace(/[^a-z0-9\s]/g, '')   // strip special chars
-    .replace(/\s+/g, '-')          // spaces → dashes
-    .replace(/-+/g, '-')           // collapse double dashes
-    .replace(/^-|-$/g, '');        // trim leading/trailing dashes
-  return `https://www.zillow.com/homes/${slug}_rb/`;
+    .replace(/#\d+/g, '')
+    .replace(/apt\.?\s*\d+/gi, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function buildZillowSearchUrl(address, city, state, zip) {
+  return `https://www.zillow.com/homes/${buildSlug(address, city, state, zip)}_rb/`;
 }
 
 // ---------------------------------------------------------------------------
@@ -152,15 +166,12 @@ function fuzzyMapLookup(rawValue, map) {
   if (!rawValue || typeof rawValue !== 'string') return null;
   const lower = rawValue.toLowerCase().trim();
 
-  // Exact match first
   if (map[lower]) return map[lower];
 
-  // Partial match: check if any map key is contained in the raw value
   for (const [key, value] of Object.entries(map)) {
     if (lower.includes(key)) return value;
   }
 
-  // Reverse partial: check if raw value is contained in any map key
   for (const [key, value] of Object.entries(map)) {
     if (key.includes(lower)) return value;
   }
@@ -187,7 +198,6 @@ function mapZillowToAltech(raw) {
   const mapped = {};
   const fieldsFound = [];
 
-  // Heating
   const heatingRaw = raw.heating || raw.heatingFeatures || raw.heatingType || '';
   const heatingVal = fuzzyMapLookup(
     Array.isArray(heatingRaw) ? heatingRaw.join(' ') : heatingRaw,
@@ -195,7 +205,6 @@ function mapZillowToAltech(raw) {
   );
   if (heatingVal) { mapped.heatingType = heatingVal; fieldsFound.push('heatingType'); }
 
-  // Cooling
   const coolingRaw = raw.cooling || raw.coolingFeatures || raw.coolingType || '';
   const coolingVal = fuzzyMapLookup(
     Array.isArray(coolingRaw) ? coolingRaw.join(' ') : coolingRaw,
@@ -203,7 +212,6 @@ function mapZillowToAltech(raw) {
   );
   if (coolingVal) { mapped.cooling = coolingVal; fieldsFound.push('cooling'); }
 
-  // Roof
   const roofRaw = raw.roof || raw.roofType || raw.roofing || '';
   const roofVal = fuzzyMapLookup(
     Array.isArray(roofRaw) ? roofRaw.join(' ') : roofRaw,
@@ -211,7 +219,6 @@ function mapZillowToAltech(raw) {
   );
   if (roofVal) { mapped.roofType = roofVal; fieldsFound.push('roofType'); }
 
-  // Foundation / Basement
   const foundRaw = raw.foundation || raw.foundationDetails || raw.basement || '';
   const foundVal = fuzzyMapLookup(
     Array.isArray(foundRaw) ? foundRaw.join(' ') : foundRaw,
@@ -219,7 +226,6 @@ function mapZillowToAltech(raw) {
   );
   if (foundVal) { mapped.foundation = foundVal; fieldsFound.push('foundation'); }
 
-  // Construction style
   const constRaw = raw.constructionMaterials || raw.construction || raw.buildingStyle || '';
   const constVal = fuzzyMapLookup(
     Array.isArray(constRaw) ? constRaw.join(' ') : constRaw,
@@ -227,7 +233,6 @@ function mapZillowToAltech(raw) {
   );
   if (constVal) { mapped.constructionStyle = constVal; fieldsFound.push('constructionStyle'); }
 
-  // Exterior walls
   const extRaw = raw.exteriorFeatures || raw.exterior || raw.siding || '';
   const extVal = fuzzyMapLookup(
     Array.isArray(extRaw) ? extRaw.join(' ') : extRaw,
@@ -235,7 +240,6 @@ function mapZillowToAltech(raw) {
   );
   if (extVal) { mapped.exteriorWalls = extVal; fieldsFound.push('exteriorWalls'); }
 
-  // Garage spaces
   const garageRaw = raw.garageSpaces || raw.parkingFeatures || raw.garage || '';
   const garageNum = parseNum(Array.isArray(garageRaw) ? garageRaw.join(' ') : garageRaw);
   if (garageNum && garageNum > 0 && garageNum <= 10) {
@@ -243,15 +247,12 @@ function mapZillowToAltech(raw) {
     fieldsFound.push('garageSpaces');
   }
 
-  // Bedrooms
   const beds = parseNum(raw.bedrooms || raw.beds);
   if (beds && beds > 0) { mapped.bedrooms = beds; fieldsFound.push('bedrooms'); }
 
-  // Bathrooms
   const baths = parseNum(raw.bathrooms || raw.fullBathrooms || raw.bathroomsFull);
   if (baths && baths > 0) { mapped.fullBaths = baths; fieldsFound.push('fullBaths'); }
 
-  // Year built
   const yr = parseNum(raw.yearBuilt || raw.year_built);
   if (yr && yr > 1800 && yr <= new Date().getFullYear()) {
     mapped.yrBuilt = String(yr);
@@ -259,18 +260,15 @@ function mapZillowToAltech(raw) {
     fieldsFound.push('yrBuilt');
   }
 
-  // Stories
   const stories = parseNum(raw.stories || raw.levels);
   if (stories && stories > 0 && stories <= 10) {
     mapped.stories = stories;
     fieldsFound.push('stories');
   }
 
-  // Total sqft
   const sqft = parseNum(raw.livingArea || raw.totalSqft || raw.finishedSqFt);
   if (sqft && sqft > 0) { mapped.totalSqft = sqft; fieldsFound.push('totalSqft'); }
 
-  // Fireplace
   const fpRaw = raw.fireplaces || raw.fireplace || raw.fireplaceFeatures || '';
   const fpStr = Array.isArray(fpRaw) ? fpRaw.join(' ') : String(fpRaw);
   const fpNum = parseNum(fpStr);
@@ -286,82 +284,46 @@ function mapZillowToAltech(raw) {
 }
 
 // ---------------------------------------------------------------------------
-// Layer A: Direct fetch → JSON-LD and __NEXT_DATA__ extraction
+// HTML extraction helpers (shared across all layers)
 // ---------------------------------------------------------------------------
 
-async function fetchZillowDirect(url) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+function tryExtractFromHtml(html, finalUrl, diag) {
+  const attempts = [];
 
-  try {
-    const resp = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Cache-Control': 'no-cache',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Upgrade-Insecure-Requests': '1',
-      },
-      redirect: 'follow',
-    });
-
-    if (!resp.ok) {
-      console.log(`[Zillow] Direct fetch status: ${resp.status}`);
-      return null;
-    }
-
-    const html = await resp.text();
-    const finalUrl = resp.url || url;
-
-    // Try JSON-LD first
-    const jsonLdData = extractJsonLd(html);
-    if (jsonLdData && Object.keys(jsonLdData).length > 2) {
-      console.log('[Zillow] Extracted JSON-LD data');
-      return { raw: jsonLdData, source: 'zillow-jsonld', zillowUrl: finalUrl };
-    }
-
-    // Try __NEXT_DATA__
-    const nextData = extractNextData(html);
-    if (nextData && Object.keys(nextData).length > 2) {
-      console.log('[Zillow] Extracted __NEXT_DATA__');
-      return { raw: nextData, source: 'zillow-nextdata', zillowUrl: finalUrl };
-    }
-
-    // Try inline JSON patterns (Zillow sometimes embeds data differently)
-    const inlineData = extractInlineJson(html);
-    if (inlineData && Object.keys(inlineData).length > 2) {
-      console.log('[Zillow] Extracted inline JSON data');
-      return { raw: inlineData, source: 'zillow-inline', zillowUrl: finalUrl };
-    }
-
-    console.log('[Zillow] Direct fetch got HTML but no extractable data');
-    return null;
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      console.log('[Zillow] Direct fetch timed out');
-    } else {
-      console.log('[Zillow] Direct fetch failed:', err.message);
-    }
-    return null;
-  } finally {
-    clearTimeout(timeout);
+  const jsonLdData = extractJsonLd(html);
+  if (jsonLdData && Object.keys(jsonLdData).length > 2) {
+    attempts.push('jsonld:true');
+    diag.extractionAttempts = attempts;
+    return { raw: jsonLdData, source: 'zillow-jsonld', zillowUrl: finalUrl };
   }
+  attempts.push('jsonld:false');
+
+  const nextData = extractNextData(html);
+  if (nextData && Object.keys(nextData).length > 2) {
+    attempts.push('nextdata:true');
+    diag.extractionAttempts = attempts;
+    return { raw: nextData, source: 'zillow-nextdata', zillowUrl: finalUrl };
+  }
+  attempts.push('nextdata:false');
+
+  const inlineData = extractInlineJson(html);
+  if (inlineData && Object.keys(inlineData).length > 2) {
+    attempts.push('inline:true');
+    diag.extractionAttempts = attempts;
+    return { raw: inlineData, source: 'zillow-inline', zillowUrl: finalUrl };
+  }
+  attempts.push('inline:false');
+
+  diag.extractionAttempts = attempts;
+  return null;
 }
 
 function extractJsonLd(html) {
-  // Find all JSON-LD script blocks
   const regex = /<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
   let match;
   while ((match = regex.exec(html)) !== null) {
     try {
       const data = JSON.parse(match[1]);
-      // Look for SingleFamilyResidence or Product with property data
       if (data['@type'] === 'SingleFamilyResidence' || data['@type'] === 'Residence') {
         return normalizeJsonLdData(data);
       }
@@ -373,37 +335,32 @@ function extractJsonLd(html) {
         }
       }
     } catch (e) {
-      // skip invalid JSON-LD blocks
+      // skip invalid JSON-LD
     }
   }
   return null;
 }
 
 function normalizeJsonLdData(ld) {
-  // JSON-LD uses schema.org properties – normalize to flat keys we can map
   return {
     bedrooms: ld.numberOfRooms || ld.numberOfBedrooms,
     bathrooms: ld.numberOfBathroomsTotal || ld.numberOfFullBathrooms,
     yearBuilt: ld.yearBuilt,
     livingArea: ld.floorSize?.value || ld.floorSize,
-    // JSON-LD may not have detailed features – return what's there
     ...ld,
   };
 }
 
 function extractNextData(html) {
-  // __NEXT_DATA__ is embedded as a script tag by Next.js apps (Zillow uses Next.js)
   const regex = /<script\s+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i;
   const match = html.match(regex);
   if (!match) return null;
 
   try {
     const nextData = JSON.parse(match[1]);
-    // Navigate to property data — Zillow nests it in props.pageProps.componentProps or similar
     const props = nextData?.props?.pageProps;
     if (!props) return null;
 
-    // Try common Zillow data paths
     const property = props.property || props.initialReduxState?.gdp?.building ||
                      props.componentProps?.gdpClientCache;
 
@@ -411,7 +368,6 @@ function extractNextData(html) {
       return flattenZillowProperty(property);
     }
 
-    // Look for resoFacts in any nested structure
     const str = JSON.stringify(props);
     const resoMatch = str.match(/"resoFacts"\s*:\s*(\{[^}]+(?:\{[^}]*\}[^}]*)*\})/);
     if (resoMatch) {
@@ -425,7 +381,6 @@ function extractNextData(html) {
 }
 
 function extractInlineJson(html) {
-  // Look for Zillow property data in inline scripts — various patterns
   const patterns = [
     /window\.__PRELOADED_STATE__\s*=\s*({[\s\S]*?});\s*<\/script>/,
     /"buildingAttributes"\s*:\s*(\{[\s\S]*?\})\s*[,}]/,
@@ -440,17 +395,15 @@ function extractInlineJson(html) {
         const data = JSON.parse(match[1]);
         if (data && typeof data === 'object') return data;
       } catch (e) {
-        // try to salvage partial JSON
+        // skip
       }
     }
   }
 
-  // Fallback: scrape visible text for key facts
   return scrapeFactsFromHtml(html);
 }
 
 function scrapeFactsFromHtml(html) {
-  // Parse text-based facts from the HTML even without React data
   const facts = {};
 
   const factPatterns = [
@@ -481,17 +434,13 @@ function scrapeFactsFromHtml(html) {
 }
 
 function flattenZillowProperty(prop) {
-  // Flatten nested Zillow property object into a simple key-value map
   if (!prop || typeof prop !== 'object') return {};
 
   const flat = {};
   const resoFacts = prop.resoFacts || prop.facts || {};
   const homeFacts = prop.homeFacts || {};
-
-  // Merge all fact sources
   const allFacts = { ...prop, ...resoFacts, ...homeFacts };
 
-  // Copy relevant keys
   const keys = [
     'heating', 'heatingFeatures', 'cooling', 'coolingFeatures',
     'roof', 'roofType', 'roofing',
@@ -514,108 +463,304 @@ function flattenZillowProperty(prop) {
 }
 
 // ---------------------------------------------------------------------------
-// Layer B: Playwright fallback
+// Layer A: Zillow Autocomplete API → Canonical Property Page
+// Uses zillowstatic.com CDN (less bot detection than zillow.com)
 // ---------------------------------------------------------------------------
 
-async function fetchZillowPlaywright(url) {
-  let browser = null;
+async function fetchZillowViaAutocomplete(address, city, state, zip, diag) {
+  const query = `${address}, ${city}, ${state} ${zip}`.trim();
+  const acUrl = `https://www.zillowstatic.com/autocomplete/v3/suggestions?q=${encodeURIComponent(query)}&resultTypes=allAddress&resultCount=1`;
+
+  console.log(`[Zillow] Layer A: Autocomplete → ${acUrl}`);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
   try {
-    // Dynamic Playwright import (same pattern as headless-browser.js)
-    let playwright;
+    const resp = await fetch(acUrl, {
+      signal: controller.signal,
+      headers: {
+        ...BROWSER_HEADERS,
+        'Accept': 'application/json',
+        'Referer': 'https://www.zillow.com/',
+        'Origin': 'https://www.zillow.com',
+      },
+    });
+
+    diag.autocompleteStatus = resp.status;
+
+    if (!resp.ok) {
+      console.log(`[Zillow] Autocomplete HTTP ${resp.status}`);
+      return null;
+    }
+
+    const acData = await resp.json();
+    console.log(`[Zillow] Autocomplete response: ${JSON.stringify(acData).substring(0, 500)}`);
+
+    // Extract zpid from results
+    const results = acData?.results || [];
+    let zpid = null;
+
+    for (const r of results) {
+      if (r.metaData?.zpid) {
+        zpid = r.metaData.zpid;
+        break;
+      }
+    }
+
+    diag.autocompleteFound = !!zpid;
+    diag.zpid = zpid;
+
+    if (!zpid) {
+      console.log('[Zillow] No zpid in autocomplete results');
+      return null;
+    }
+
+    // Build canonical property URL using zpid
+    const slug = buildSlug(address, city, state, zip);
+    const propertyUrl = `https://www.zillow.com/homedetails/${slug}/${zpid}_zpid/`;
+    console.log(`[Zillow] Property URL: ${propertyUrl}`);
+
+    // Fetch the canonical property page
+    const controller2 = new AbortController();
+    const timeout2 = setTimeout(() => controller2.abort(), 8000);
+
     try {
-      playwright = await import('playwright');
-    } catch (e) {
-      try {
-        playwright = await import('playwright-core');
-      } catch (e2) {
-        console.log('[Zillow] Playwright not available, skipping Layer B');
+      const pageResp = await fetch(propertyUrl, {
+        signal: controller2.signal,
+        headers: {
+          ...BROWSER_HEADERS,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-User': '?1',
+          'Upgrade-Insecure-Requests': '1',
+        },
+        redirect: 'follow',
+      });
+
+      diag.propertyPageStatus = pageResp.status;
+
+      if (!pageResp.ok) {
+        console.log(`[Zillow] Property page HTTP ${pageResp.status}`);
         return null;
       }
+
+      const html = await pageResp.text();
+      diag.propertyPageLength = html.length;
+      diag.propertyPagePreview = html.substring(0, 200).replace(/\n/g, ' ');
+      console.log(`[Zillow] Property page: ${html.length} chars`);
+
+      return tryExtractFromHtml(html, pageResp.url || propertyUrl, diag);
+    } finally {
+      clearTimeout(timeout2);
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      diag.autocompleteError = 'timeout';
+    } else {
+      diag.autocompleteError = err.message;
+    }
+    console.log(`[Zillow] Layer A error: ${diag.autocompleteError}`);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Layer B: Zillow Search API (GetSearchPageState.htm)
+// JSON endpoint that powers Zillow's frontend search
+// ---------------------------------------------------------------------------
+
+async function fetchZillowSearchAPI(address, city, state, zip, diag) {
+  const searchTerm = `${address}, ${city}, ${state} ${zip}`.trim();
+  const searchQueryState = JSON.stringify({
+    usersSearchTerm: searchTerm,
+    mapBounds: { west: -180, east: 180, south: -90, north: 90 },
+    filterState: {},
+    isListVisible: true,
+    isMapVisible: false,
+  });
+
+  const wants = JSON.stringify({ cat1: ['listResults'] });
+  const searchUrl = `https://www.zillow.com/search/GetSearchPageState.htm?searchQueryState=${encodeURIComponent(searchQueryState)}&wants=${encodeURIComponent(wants)}&requestId=1`;
+
+  console.log(`[Zillow] Layer B: Search API`);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const resp = await fetch(searchUrl, {
+      signal: controller.signal,
+      headers: {
+        ...BROWSER_HEADERS,
+        'Accept': '*/*',
+        'Referer': 'https://www.zillow.com/',
+        'Origin': 'https://www.zillow.com',
+      },
+    });
+
+    diag.searchApiStatus = resp.status;
+
+    if (!resp.ok) {
+      console.log(`[Zillow] Search API HTTP ${resp.status}`);
+      return null;
     }
 
-    browser = await playwright.chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-    });
+    const text = await resp.text();
+    diag.searchApiLength = text.length;
+    console.log(`[Zillow] Search API: ${text.length} chars, preview: ${text.substring(0, 300)}`);
 
-    const context = await browser.newContext({
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      viewport: { width: 1280, height: 800 },
-    });
-
-    const page = await context.newPage();
-
-    // Navigate with a generous timeout
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-
-    // Wait a bit for React to hydrate
-    await page.waitForTimeout(2000);
-
-    // Try to extract __NEXT_DATA__ from the page context
-    const nextData = await page.evaluate(() => {
-      try {
-        const el = document.getElementById('__NEXT_DATA__');
-        if (el) return JSON.parse(el.textContent);
-      } catch (e) { /* skip */ }
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.log('[Zillow] Search API response not valid JSON');
+      diag.searchApiJsonError = true;
       return null;
-    });
+    }
 
-    if (nextData?.props?.pageProps) {
-      const property = nextData.props.pageProps.property ||
-                       nextData.props.pageProps.initialReduxState?.gdp?.building;
-      if (property) {
-        return { raw: flattenZillowProperty(property), source: 'zillow-playwright', zillowUrl: page.url() };
+    // Extract property data from search results
+    const listResults = data?.cat1?.searchResults?.listResults ||
+                       data?.searchResults?.listResults || [];
+
+    if (listResults.length === 0) {
+      console.log('[Zillow] Search API: no results');
+      diag.searchApiResults = 0;
+      return null;
+    }
+
+    diag.searchApiResults = listResults.length;
+    const first = listResults[0];
+    console.log(`[Zillow] Search API first result keys: ${Object.keys(first).join(', ')}`);
+
+    // Extract property data from the search result
+    const info = first.hdpData?.homeInfo || {};
+    const raw = {};
+
+    // Basic fields from search result
+    if (first.beds != null) raw.bedrooms = first.beds;
+    if (first.baths != null) raw.bathrooms = first.baths;
+    if (first.area != null) raw.livingArea = first.area;
+
+    // Deeper fields from hdpData.homeInfo
+    if (info.yearBuilt) raw.yearBuilt = info.yearBuilt;
+    if (info.bedrooms) raw.bedrooms = info.bedrooms;
+    if (info.bathrooms) raw.bathrooms = info.bathrooms;
+    if (info.livingArea) raw.livingArea = info.livingArea;
+    if (info.homeType) raw.homeType = info.homeType;
+
+    const nonNullKeys = Object.keys(raw).filter(k => raw[k] != null);
+    console.log(`[Zillow] Search API extracted ${nonNullKeys.length} fields: ${nonNullKeys.join(', ')}`);
+
+    if (nonNullKeys.length > 1) {
+      const detailUrl = first.detailUrl
+        ? (first.detailUrl.startsWith('http') ? first.detailUrl : `https://www.zillow.com${first.detailUrl}`)
+        : null;
+
+      return {
+        raw,
+        source: 'zillow-searchapi',
+        zillowUrl: detailUrl,
+      };
+    }
+
+    // If we got a detail URL but not enough data, try fetching the detail page
+    if (first.detailUrl) {
+      const detailUrl = first.detailUrl.startsWith('http')
+        ? first.detailUrl
+        : `https://www.zillow.com${first.detailUrl}`;
+      console.log(`[Zillow] Trying detail page: ${detailUrl}`);
+
+      const controller2 = new AbortController();
+      const timeout2 = setTimeout(() => controller2.abort(), 8000);
+      try {
+        const pageResp = await fetch(detailUrl, {
+          signal: controller2.signal,
+          headers: {
+            ...BROWSER_HEADERS,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+          },
+          redirect: 'follow',
+        });
+
+        diag.detailPageStatus = pageResp.status;
+
+        if (pageResp.ok) {
+          const html = await pageResp.text();
+          diag.detailPageLength = html.length;
+          return tryExtractFromHtml(html, pageResp.url || detailUrl, diag);
+        }
+      } finally {
+        clearTimeout(timeout2);
       }
     }
 
-    // Fallback: scrape text from Facts & Features section
-    const facts = await page.evaluate(() => {
-      const result = {};
-      // Try data-testid selectors (Zillow uses these)
-      const factGroups = document.querySelectorAll('[data-testid="fact-category"], .fact-group, .home-facts-group');
-      factGroups.forEach(group => {
-        const items = group.querySelectorAll('.fact-value, .fact-label, dt, dd, li');
-        items.forEach(item => {
-          const text = item.textContent.trim();
-          if (text.includes(':')) {
-            const [label, ...rest] = text.split(':');
-            result[label.trim().toLowerCase()] = rest.join(':').trim();
-          }
-        });
-      });
-
-      // Also try generic text extraction
-      const allText = document.body.innerText;
-      const patterns = [
-        { regex: /Heating[:\s]+([^\n]+)/i, key: 'heating' },
-        { regex: /Cooling[:\s]+([^\n]+)/i, key: 'cooling' },
-        { regex: /Roof[:\s]+([^\n]+)/i, key: 'roof' },
-        { regex: /Foundation[:\s]+([^\n]+)/i, key: 'foundation' },
-        { regex: /Basement[:\s]+([^\n]+)/i, key: 'basement' },
-        { regex: /Year\s*built[:\s]+(\d{4})/i, key: 'yearBuilt' },
-        { regex: /Bedrooms[:\s]+(\d+)/i, key: 'bedrooms' },
-      ];
-      patterns.forEach(({ regex, key }) => {
-        const m = allText.match(regex);
-        if (m) result[key] = m[1].trim();
-      });
-
-      return result;
-    });
-
-    if (facts && Object.keys(facts).length > 0) {
-      return { raw: facts, source: 'zillow-playwright', zillowUrl: page.url() };
-    }
-
-    console.log('[Zillow] Playwright found no extractable data');
     return null;
   } catch (err) {
-    console.log('[Zillow] Playwright error:', err.message);
+    if (err.name === 'AbortError') {
+      diag.searchApiError = 'timeout';
+    } else {
+      diag.searchApiError = err.message;
+    }
+    console.log(`[Zillow] Layer B error: ${diag.searchApiError}`);
     return null;
   } finally {
-    if (browser) {
-      try { await browser.close(); } catch (e) { /* ignore */ }
+    clearTimeout(timeout);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Layer C: Direct fetch of search URL (original approach, kept as fallback)
+// ---------------------------------------------------------------------------
+
+async function fetchZillowDirect(url, diag) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        ...BROWSER_HEADERS,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
+      },
+      redirect: 'follow',
+    });
+
+    diag.directFetchStatus = resp.status;
+
+    if (!resp.ok) {
+      console.log(`[Zillow] Direct fetch HTTP ${resp.status}`);
+      return null;
     }
+
+    const html = await resp.text();
+    diag.directFetchLength = html.length;
+    diag.directFetchPreview = html.substring(0, 200).replace(/\n/g, ' ');
+    console.log(`[Zillow] Direct fetch: ${html.length} chars`);
+
+    return tryExtractFromHtml(html, resp.url || url, diag);
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      diag.directFetchError = 'timeout';
+    } else {
+      diag.directFetchError = err.message;
+    }
+    console.log(`[Zillow] Layer C error: ${diag.directFetchError}`);
+    return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -624,7 +769,6 @@ async function fetchZillowPlaywright(url) {
 // ---------------------------------------------------------------------------
 
 export default async function handler(req, res) {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -641,39 +785,47 @@ export default async function handler(req, res) {
     });
   }
 
-  console.log(`[Zillow] Extracting data for: ${address}, ${city}, ${state} ${zip || ''}`);
+  console.log(`[Zillow] ===== Extracting: ${address}, ${city}, ${state} ${zip || ''} =====`);
   const startTime = Date.now();
+  const diag = {};
 
   try {
-    const searchUrl = buildZillowSearchUrl(address, city, state, zip || '');
-    console.log(`[Zillow] Search URL: ${searchUrl}`);
+    let result = null;
 
-    // Layer A: Direct fetch
-    let result = await fetchZillowDirect(searchUrl);
+    // Layer A: Autocomplete API → canonical property page
+    console.log('[Zillow] --- Layer A: Autocomplete + Property Page ---');
+    result = await fetchZillowViaAutocomplete(address, city, state, zip || '', diag);
 
-    // Layer B: Playwright fallback
+    // Layer B: Search API (JSON)
     if (!result) {
-      console.log('[Zillow] Layer A failed, trying Playwright...');
-      result = await fetchZillowPlaywright(searchUrl);
+      console.log('[Zillow] --- Layer B: Search API ---');
+      result = await fetchZillowSearchAPI(address, city, state, zip || '', diag);
     }
 
+    // Layer C: Direct fetch (original approach)
+    if (!result) {
+      console.log('[Zillow] --- Layer C: Direct Fetch ---');
+      const searchUrl = buildZillowSearchUrl(address, city, state, zip || '');
+      console.log(`[Zillow] Search URL: ${searchUrl}`);
+      result = await fetchZillowDirect(searchUrl, diag);
+    }
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
     if (!result || !result.raw) {
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
-      console.log(`[Zillow] No data found (${elapsed}s)`);
+      console.log(`[Zillow] No data found (${elapsed}s). Diagnostics:`, JSON.stringify(diag));
       return res.status(200).json({
         success: false,
         error: 'No property data found on Zillow for this address',
-        searchUrl,
+        diagnostics: diag,
         elapsedSeconds: parseFloat(elapsed),
       });
     }
 
-    // Map raw Zillow data to Altech form values
     const { data, fieldsFound } = mapZillowToAltech(result.raw);
 
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`[Zillow] Success: ${fieldsFound.length} fields mapped (${elapsed}s) via ${result.source}`);
-    console.log(`[Zillow] Fields found: ${fieldsFound.join(', ')}`);
+    console.log(`[Zillow] Success: ${fieldsFound.length} fields via ${result.source} (${elapsed}s)`);
+    console.log(`[Zillow] Fields: ${fieldsFound.join(', ')}`);
 
     return res.status(200).json({
       success: true,
@@ -681,6 +833,7 @@ export default async function handler(req, res) {
       zillowUrl: result.zillowUrl,
       data,
       fieldsFound,
+      diagnostics: diag,
       elapsedSeconds: parseFloat(elapsed),
     });
   } catch (error) {
@@ -688,6 +841,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: false,
       error: error.message || 'Unknown error',
+      diagnostics: diag,
     });
   }
 }

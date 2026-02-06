@@ -4371,18 +4371,25 @@
 
             async enrichWithZillow(address, city, state) {
                 const zip = this.data.addrZip || '';
+                console.log(`[Zillow] Enrichment starting: ${address}, ${city}, ${state} ${zip}`);
                 try {
                     const resp = await fetch(
                         `/api/zillow-extract?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&zip=${encodeURIComponent(zip)}`
                     );
-                    if (!resp.ok) return;
+                    if (!resp.ok) {
+                        console.warn(`[Zillow] API returned HTTP ${resp.status}`);
+                        return;
+                    }
                     const result = await resp.json();
-                    if (!result.success || !result.data) return;
+                    console.log('[Zillow] API response:', JSON.stringify(result).substring(0, 500));
+                    if (!result.success || !result.data) {
+                        console.warn('[Zillow] No data:', result.error, result.diagnostics);
+                        return;
+                    }
 
                     const zd = result.data;
                     const applied = [];
 
-                    // Friendly labels for toast
                     const labels = {
                         heatingType: 'Heating', cooling: 'Cooling', roofType: 'Roof',
                         foundation: 'Foundation', constructionStyle: 'Construction',
@@ -4391,7 +4398,6 @@
                         yrBuilt: 'Year Built', fireplace: 'Fireplace'
                     };
 
-                    // Select dropdowns — validate against option values
                     const selectFields = ['heatingType', 'cooling', 'roofType', 'foundation', 'constructionStyle', 'exteriorWalls'];
                     for (const fid of selectFields) {
                         if (!zd[fid]) continue;
@@ -4405,7 +4411,6 @@
                         }
                     }
 
-                    // Text / number fields
                     const textFields = { yrBuilt: zd.yrBuilt, bedrooms: zd.bedrooms, fullBaths: zd.fullBaths, garageSpaces: zd.garageSpaces };
                     for (const [fid, val] of Object.entries(textFields)) {
                         if (val == null) continue;
@@ -4420,6 +4425,8 @@
                         this.save();
                         this.toast(`🏠 Found detailed Zillow data: ${applied.join(', ')} applied.`);
                         console.log(`[Zillow] Enriched ${applied.length} fields via ${result.source}`);
+                    } else {
+                        console.log('[Zillow] Data received but no fields matched form options:', zd);
                     }
                 } catch (e) {
                     console.warn('[Zillow] Enrichment failed (non-fatal):', e.message);
