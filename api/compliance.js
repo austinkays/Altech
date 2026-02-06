@@ -83,10 +83,12 @@ export default async function handler(req, res) {
     console.log('[Compliance] Fetching clients from HawkSoft...');
 
     // Step 1: Get list of changed clients (recent changes)
-    // Use a reasonable date range (e.g., last 90 days) to get active clients
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    const asOfDate = ninetyDaysAgo.toISOString();
+    // Use a wider date range (365 days) to ensure we get all active CGL policies
+    const oneYearAgo = new Date();
+    oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+    const asOfDate = oneYearAgo.toISOString();
+
+    console.log('[Compliance] Searching for policies changed since:', asOfDate);
 
     const changedClientsResponse = await fetch(
       `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients?version=${API_VERSION}&asOf=${asOfDate}`,
@@ -144,13 +146,24 @@ export default async function handler(req, res) {
     // Step 3: Extract and filter General Liability policies
     const compliancePolicies = [];
 
+    console.log('[Compliance] Processing clients for CGL policies...');
+    let totalPolicies = 0;
+    let glPoliciesFound = 0;
+
     for (const client of allClients) {
       if (!client.Policies || client.Policies.length === 0) continue;
+
+      totalPolicies += client.Policies.length;
 
       const glPolicies = client.Policies.filter(policy =>
         isGeneralLiabilityPolicy(policy.PolicyType || '') &&
         policy.ExpirationDate // Must have expiration date
       );
+
+      if (glPolicies.length > 0) {
+        console.log(`[Compliance] Client "${client.BusinessName || client.FirstName + ' ' + client.LastName}" has ${glPolicies.length} CGL policies`);
+        glPoliciesFound += glPolicies.length;
+      }
 
       for (const policy of glPolicies) {
         const daysUntilExpiration = calculateDaysUntilExpiration(policy.ExpirationDate);
@@ -183,7 +196,9 @@ export default async function handler(req, res) {
     // Sort by days until expiration (most urgent first)
     compliancePolicies.sort((a, b) => a.daysUntilExpiration - b.daysUntilExpiration);
 
-    console.log(`[Compliance] Found ${compliancePolicies.length} General Liability policies`);
+    console.log(`[Compliance] Summary: Scanned ${allClients.length} clients with ${totalPolicies} total policies`);
+    console.log(`[Compliance] Found ${glPoliciesFound} General Liability policies`);
+    console.log(`[Compliance] Final filtered count: ${compliancePolicies.length}`);
 
     return res.status(200).json({
       success: true,
