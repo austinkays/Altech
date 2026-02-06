@@ -99,7 +99,31 @@ function isGeneralLiabilityPolicy(policy) {
     }
   }
 
-  // Check loBs array for exclusions
+  // Check loBs array - FIRST check if ANY lob is a CGL match, THEN check exclusions
+  // This prevents a multi-lob policy (e.g., CGL + AUTOB) from being excluded by the non-CGL lob
+  let hasCglLob = false;
+  if (policy.loBs && Array.isArray(policy.loBs)) {
+    for (const lob of policy.loBs) {
+      if (lob.code && typeof lob.code === 'string') {
+        const codeLower = lob.code.toLowerCase();
+        for (const glCode of glCodes) {
+          if (codeLower === glCode || codeLower.includes(glCode)) {
+            hasCglLob = true;
+            console.log(`[Compliance] ✓ MATCH FOUND in loBs[].code: "${lob.code}"`);
+            break;
+          }
+        }
+        if (hasCglLob) break;
+      }
+    }
+  }
+
+  // If a CGL lob was found, this IS a CGL policy - return true immediately
+  if (hasCglLob) {
+    return true;
+  }
+
+  // Only check loBs exclusions if no CGL lob was found
   if (policy.loBs && Array.isArray(policy.loBs)) {
     for (const lob of policy.loBs) {
       if (lob.code && typeof lob.code === 'string') {
@@ -107,21 +131,6 @@ function isGeneralLiabilityPolicy(policy) {
         for (const excludeCode of excludeCodes) {
           if (codeLower.includes(excludeCode)) {
             return false; // Exclude this policy
-          }
-        }
-      }
-    }
-  }
-
-  // Now check if it MATCHES CGL codes in loBs array
-  if (policy.loBs && Array.isArray(policy.loBs)) {
-    for (const lob of policy.loBs) {
-      if (lob.code && typeof lob.code === 'string') {
-        const codeLower = lob.code.toLowerCase();
-        for (const glCode of glCodes) {
-          if (codeLower === glCode || codeLower.includes(glCode)) {
-            console.log(`[Compliance] ✓ MATCH FOUND in loBs[].code: "${lob.code}"`);
-            return true;
           }
         }
       }
@@ -412,6 +421,9 @@ export default async function handler(req, res) {
     console.log('[Compliance] Processing clients for CGL policies...');
     let totalPolicies = 0;
     let glPoliciesFound = 0;
+    let glFilterPassed = 0;     // How many pass isGeneralLiabilityPolicy()
+    let glNoExpDate = 0;         // GL matches without expiration date
+    let glExpiredOver90 = 0;     // GL matches expired more than 90 days ago
     const policyTypesFound = new Set();
 
     for (const client of allClients) {
@@ -436,15 +448,26 @@ export default async function handler(req, res) {
 
       const glPolicies = client.policies.filter(policy => {
         if (!isGeneralLiabilityPolicy(policy)) return false;
-        if (!policy.expirationDate) return false;
 
-        // Filter out policies expired more than 90 days ago
+        // This policy IS a CGL match
+        glFilterPassed++;
+
+        if (!policy.expirationDate) {
+          console.log(`[Compliance] ⚠ CGL match has NO expiration date: policyNumber="${policy.policyNumber}", title="${policy.title}"`);
+          glNoExpDate++;
+          // Still include it - don't filter out policies with missing dates
+          return true;
+        }
+
         const expirationDate = new Date(policy.expirationDate);
         const ninetyDaysAgo = new Date();
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
         if (expirationDate < ninetyDaysAgo) {
-          return false; // Policy expired more than 90 days ago
+          console.log(`[Compliance] ⚠ CGL match EXPIRED >90 days: policyNumber="${policy.policyNumber}", expired="${policy.expirationDate}"`);
+          glExpiredOver90++;
+          // Still include it - show expired policies so user can see them
+          return true;
         }
 
         return true;
@@ -459,7 +482,9 @@ export default async function handler(req, res) {
       }
 
       for (const policy of glPolicies) {
-        const daysUntilExpiration = calculateDaysUntilExpiration(policy.expirationDate);
+        const daysUntilExpiration = policy.expirationDate
+          ? calculateDaysUntilExpiration(policy.expirationDate)
+          : null;
 
         // Get client name from companyName, dbaName (fallback), or people array (individuals)
         const clientName = client.details?.companyName ||
@@ -478,7 +503,7 @@ export default async function handler(req, res) {
           expirationDate: policy.expirationDate,
           inceptionDate: policy.inceptionDate,
           daysUntilExpiration: daysUntilExpiration,
-          status: getExpirationStatus(daysUntilExpiration),
+          status: daysUntilExpiration !== null ? getExpirationStatus(daysUntilExpiration) : 'unknown',
           requiresManualVerification: requiresManualVerification(policy.carrier || ''),
           ubi: client.details?.ubi,
           lniLink: client.details?.ubi ? `https://secure.lni.wa.gov/verify/Detail.aspx?UBI=${client.details.ubi}` : undefined,
@@ -491,15 +516,22 @@ export default async function handler(req, res) {
       }
     }
 
-    // Sort by days until expiration (most urgent first)
-    compliancePolicies.sort((a, b) => a.daysUntilExpiration - b.daysUntilExpiration);
+    // Sort by days until expiration (most urgent first, nulls at end)
+    compliancePolicies.sort((a, b) => {
+      if (a.daysUntilExpiration === null) return 1;
+      if (b.daysUntilExpiration === null) return -1;
+      return a.daysUntilExpiration - b.daysUntilExpiration;
+    });
 
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
 
     console.log('[Compliance] ===== FINAL SUMMARY =====');
     console.log(`[Compliance] Clients Scanned: ${allClients.length}`);
     console.log(`[Compliance] Total Policies Found: ${totalPolicies}`);
-    console.log(`[Compliance] CGL Policies Matched: ${glPoliciesFound}`);
+    console.log(`[Compliance] GL Filter Passed (isGeneralLiabilityPolicy): ${glFilterPassed}`);
+    console.log(`[Compliance] GL No Expiration Date: ${glNoExpDate}`);
+    console.log(`[Compliance] GL Expired >90 Days: ${glExpiredOver90}`);
+    console.log(`[Compliance] CGL Policies in Final Result: ${glPoliciesFound}`);
     console.log(`[Compliance] Final Filtered Count: ${compliancePolicies.length}`);
     console.log(`[Compliance] All Policy Types Found:`, Array.from(policyTypesFound).sort());
     console.log(`[Compliance] Search Date Range: ${asOfDate} to ${today}`);
@@ -517,6 +549,9 @@ export default async function handler(req, res) {
         searchYearsBack: 3,
         clientsScanned: allClients.length,
         totalPoliciesFound: totalPolicies,
+        glFilterPassed: glFilterPassed,
+        glNoExpDate: glNoExpDate,
+        glExpiredOver90: glExpiredOver90,
         glPoliciesMatched: glPoliciesFound,
         allPolicyTypes: Array.from(policyTypesFound).sort(),
         nonSyncingCarriers: NON_SYNCING_CARRIERS,

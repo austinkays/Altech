@@ -9032,7 +9032,10 @@ This data is ready to paste into your quoting system.
                             console.log('[CGL] ===== HAWKSOFT DEBUG INFO =====');
                             console.log('[CGL] Clients scanned:', data.metadata.clientsScanned);
                             console.log('[CGL] Total policies found:', data.metadata.totalPoliciesFound);
-                            console.log('[CGL] CGL policies matched:', data.metadata.glPoliciesMatched);
+                            console.log('[CGL] GL filter passed (isGeneralLiabilityPolicy):', data.metadata.glFilterPassed);
+                            console.log('[CGL] GL no expiration date:', data.metadata.glNoExpDate);
+                            console.log('[CGL] GL expired >90 days:', data.metadata.glExpiredOver90);
+                            console.log('[CGL] CGL policies in result:', data.metadata.glPoliciesMatched);
                             console.log('[CGL] Search date range:', data.metadata.searchDateRange);
                             console.log('[CGL] ALL Policy Types in HawkSoft:', data.metadata.allPolicyTypes);
                             console.log('[CGL] ================================');
