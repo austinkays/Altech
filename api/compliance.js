@@ -39,17 +39,18 @@ function isGeneralLiabilityPolicy(policy) {
     'gen liab',
     'comm gen liab',
     'liability',
-    'commercial'    // General commercial type
+    'commercial',   // General commercial type
+    'general'       // General type
   ];
 
-  // Check LOBs array (this is the primary field per HawkSoft docs)
-  if (policy.LOBs && Array.isArray(policy.LOBs)) {
-    for (const lob of policy.LOBs) {
-      if (lob.Code && typeof lob.Code === 'string') {
-        const codeLower = lob.Code.toLowerCase();
+  // Check loBs array (camelCase per actual API response)
+  if (policy.loBs && Array.isArray(policy.loBs)) {
+    for (const lob of policy.loBs) {
+      if (lob.code && typeof lob.code === 'string') {
+        const codeLower = lob.code.toLowerCase();
         for (const glCode of glCodes) {
           if (codeLower.includes(glCode)) {
-            console.log(`[Compliance] ✓ MATCH FOUND in LOBs[].Code: "${lob.Code}"`);
+            console.log(`[Compliance] ✓ MATCH FOUND in loBs[].code: "${lob.code}"`);
             return true;
           }
         }
@@ -57,16 +58,16 @@ function isGeneralLiabilityPolicy(policy) {
     }
   }
 
-  // Check other documented fields: Type, ApplicationType, Title
+  // Check other fields (all camelCase per actual API response)
   const fieldsToCheck = [
-    policy.Type,
-    policy.ApplicationType,
-    policy.Title
+    policy.type,
+    policy.applicationType,
+    policy.title
   ];
 
   for (let i = 0; i < fieldsToCheck.length; i++) {
     const field = fieldsToCheck[i];
-    const fieldNames = ['Type', 'ApplicationType', 'Title'];
+    const fieldNames = ['type', 'applicationType', 'title'];
     if (field && typeof field === 'string') {
       const fieldLower = field.toLowerCase();
       for (const code of glCodes) {
@@ -79,8 +80,8 @@ function isGeneralLiabilityPolicy(policy) {
   }
 
   // Log non-matches for debugging
-  const lobCodes = policy.LOBs ? policy.LOBs.map(l => l.Code).join(', ') : 'none';
-  console.log(`[Compliance] ✗ NO MATCH: Type="${policy.Type || 'null'}", ApplicationType="${policy.ApplicationType || 'null'}", Title="${policy.Title || 'null'}", LOBs.Code=[${lobCodes}]`);
+  const lobCodes = policy.loBs ? policy.loBs.map(l => l.code).join(', ') : 'none';
+  console.log(`[Compliance] ✗ NO MATCH: type="${policy.type || 'null'}", applicationType="${policy.applicationType || 'null'}", title="${policy.title || 'null'}", loBs.code=[${lobCodes}]`);
 
   return false;
 }
@@ -321,22 +322,22 @@ export default async function handler(req, res) {
 
       // Log all unique policy type values from all possible fields
       client.policies.forEach(policy => {
-        // Capture documented fields
-        if (policy.Type) policyTypesFound.add(`Type:${policy.Type}`);
-        if (policy.ApplicationType) policyTypesFound.add(`AppType:${policy.ApplicationType}`);
-        if (policy.Title) policyTypesFound.add(`Title:${policy.Title}`);
+        // Capture documented fields (all camelCase per actual API)
+        if (policy.type) policyTypesFound.add(`type:${policy.type}`);
+        if (policy.applicationType) policyTypesFound.add(`appType:${policy.applicationType}`);
+        if (policy.title) policyTypesFound.add(`title:${policy.title}`);
 
-        // Capture LOBs array codes (primary field per HawkSoft docs)
-        if (policy.LOBs && Array.isArray(policy.LOBs)) {
-          policy.LOBs.forEach(lob => {
-            if (lob.Code) policyTypesFound.add(`LOB:${lob.Code}`);
+        // Capture loBs array codes (camelCase per actual API)
+        if (policy.loBs && Array.isArray(policy.loBs)) {
+          policy.loBs.forEach(lob => {
+            if (lob.code) policyTypesFound.add(`lob:${lob.code}`);
           });
         }
       });
 
       const glPolicies = client.policies.filter(policy =>
         isGeneralLiabilityPolicy(policy) &&  // Pass full policy object
-        policy.ExpirationDate // Must have expiration date
+        policy.expirationDate // Must have expiration date (camelCase)
       );
 
       if (glPolicies.length > 0) {
@@ -345,23 +346,23 @@ export default async function handler(req, res) {
       }
 
       for (const policy of glPolicies) {
-        const daysUntilExpiration = calculateDaysUntilExpiration(policy.ExpirationDate);
+        const daysUntilExpiration = calculateDaysUntilExpiration(policy.expirationDate);
         const clientName = client.BusinessName ||
                           `${client.FirstName || ''} ${client.LastName || ''}`.trim() ||
                           'Unknown';
 
         const compliancePolicy = {
-          policyNumber: policy.PolicyNumber,
-          policyId: policy.PolicyId,
+          policyNumber: policy.policyNumber,
+          policyId: policy.id,
           clientNumber: client.ClientNumber,
           clientName: clientName,
           businessName: client.BusinessName,
-          carrier: policy.Carrier || 'Unknown',
-          effectiveDate: policy.EffectiveDate,
-          expirationDate: policy.ExpirationDate,
+          carrier: policy.carrier || 'Unknown',
+          effectiveDate: policy.effectiveDate,
+          expirationDate: policy.expirationDate,
           daysUntilExpiration: daysUntilExpiration,
           status: getExpirationStatus(daysUntilExpiration),
-          requiresManualVerification: requiresManualVerification(policy.Carrier || ''),
+          requiresManualVerification: requiresManualVerification(policy.carrier || ''),
           ubi: client.UBI,
           lniLink: client.UBI ? `https://secure.lni.wa.gov/verify/Detail.aspx?UBI=${client.UBI}` : undefined,
           email: client.Email,
