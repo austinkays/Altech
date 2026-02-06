@@ -4064,122 +4064,160 @@
                 const city = this.data.addrCity || '';
                 const state = this.data.addrState || '';
                 const zip = this.data.addrZip || '';
-                
+
                 if (!address || !city || !state) {
                     alert('Please enter a complete address (street, city, and state) first.');
                     return;
                 }
-                
+
                 const btn = document.getElementById('smartFillBtn');
                 const originalText = btn.innerHTML;
                 const county = this.getCountyFromCity(city, state);
-                
+
                 try {
-                    let rawParcelData = null;
-                    let dataSource = null;
-                    
-                    // PHASE 1: Try ArcGIS API first (Official County Data)
                     btn.disabled = true;
-                    btn.innerHTML = '🔄 Querying official county records...';
-                    
-                    const arcgisResponse = await fetch('/api/property-intelligence?mode=arcgis', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ address, city, state, county })
+                    btn.innerHTML = '🔄 Gathering property data from all sources...';
+
+                    // Fire ALL enrichment sources in parallel
+                    const [arcgisResult, zillowResult, fireStationResult] = await Promise.allSettled([
+                        this.fetchArcgisAndRag(address, city, state, county),
+                        this.fetchZillowData(address, city, state, zip),
+                        this.fetchFireStationData(address, city, state, zip)
+                    ]);
+
+                    const arcgisData = arcgisResult.status === 'fulfilled' ? arcgisResult.value : null;
+                    const zillowData = zillowResult.status === 'fulfilled' ? zillowResult.value : null;
+                    const fireData = fireStationResult.status === 'fulfilled' ? fireStationResult.value : null;
+
+                    console.log('[SmartFill] Results:', {
+                        arcgis: arcgisData ? arcgisData.source : 'none',
+                        zillow: zillowData ? zillowData.source : 'none',
+                        fire: fireData ? 'ok' : 'none'
                     });
 
-                    if (arcgisResponse.ok) {
-                        const arcgisData = await arcgisResponse.json();
-
-                        if (arcgisData.success && arcgisData.parcelData) {
-                            rawParcelData = arcgisData.parcelData;
-                            dataSource = 'phase1-arcgis';
-                        } else {
-                            // Log the actual error from Phase 1
-                            console.warn('Phase 1 (ArcGIS API) failed:', arcgisData.error || 'Unknown error', arcgisData);
-                        }
-                    }
-                    
-                    // PHASE 3: RAG Pattern - Interpret raw data with Gemini
-                    if (rawParcelData) {
-                        btn.innerHTML = '🧠 Standardizing property data...';
-                        
-                        const ragResponse = await fetch('/api/rag-interpreter', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                rawParcelData: rawParcelData,
-                                county: county
-                            })
-                        });
-                        
-                        if (ragResponse.ok) {
-                            const ragData = await ragResponse.json();
-                            
-                            if (ragData.success && ragData.parcelData) {
-                                // Phase 3 Success: Got interpreted parcel data (99% confidence)
-                                btn.innerHTML = originalText;
-                                btn.disabled = false;
-                                
-                                // Show RAG-interpreted data with highest confidence
-                                this.showParcelDataPopup(ragData.parcelData, address, city, state, 0.99, dataSource);
-                                return;
-                            }
-                        }
-                        
-                        // RAG interpretation failed, show raw data from Phase 1 or 2
+                    // If we have any structured data, show unified popup
+                    if (arcgisData || zillowData || fireData) {
                         btn.innerHTML = originalText;
                         btn.disabled = false;
-                        
-                        const confidence = dataSource === 'phase1-arcgis' ? 0.95 : 0.85;
-                        this.showParcelDataPopup(rawParcelData, address, city, state, confidence, dataSource);
+                        this.showUnifiedDataPopup(arcgisData, zillowData, fireData, address, city, state);
                         return;
                     }
-                    
-                    // PHASE 4: Try Vision Processing (Images, PDFs, Aerial analysis)
-                    // This is the enrichment layer - adds visual/document data to the form
-                    btn.innerHTML = '👁️ Analyzing visual data...';
-                    
-                    // For now, this is a placeholder for future integration
-                    // Vision processing would happen here if user uploads images/PDFs
-                    // Example: await this.processVisionData(address, city, state);
-                    
-                    // FALLBACK: No official data available, try satellite hazard detection
+
+                    // FALLBACK: No structured data — try satellite imagery
                     btn.innerHTML = '🔄 Analyzing satellite imagery...';
-                    
+
                     const hazardResponse = await fetch('/api/property-intelligence?mode=satellite', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ address, city, state, zip })
                     });
-                    
+
                     if (!hazardResponse.ok) {
                         throw new Error('Failed to analyze property');
                     }
-                    
+
                     const result = await hazardResponse.json();
-                    
+
                     if (!result.success) {
                         throw new Error(result.error || 'Analysis failed');
                     }
-                    
-                    // Reset button
+
                     btn.innerHTML = originalText;
                     btn.disabled = false;
-                    
-                    // Show elegant hazard detection popup
+
                     const fullAddress = `${address}, ${city}, ${state} ${zip || ''}`.trim();
                     this.showHazardDetectionPopup(result.data, result.satelliteImage, fullAddress, result.streetViewImage);
-                    
+
                 } catch (error) {
                     console.error('Smart auto-fill error:', error);
                     btn.innerHTML = '❌ Failed';
                     alert('Failed to retrieve property data.\n\nTry:\n- Manually entering details\n- Using Zillow or GIS lookup\n- Checking County property records');
-                    
+
                     setTimeout(() => {
                         btn.innerHTML = originalText;
                         btn.disabled = false;
                     }, 3000);
+                }
+            },
+
+            // Helper: ArcGIS + RAG pipeline (internal sequential dependency)
+            async fetchArcgisAndRag(address, city, state, county) {
+                try {
+                    const arcgisResponse = await fetch('/api/property-intelligence?mode=arcgis', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ address, city, state, county })
+                    });
+                    if (!arcgisResponse.ok) return null;
+                    const arcgisData = await arcgisResponse.json();
+                    if (!arcgisData.success || !arcgisData.parcelData) {
+                        console.warn('[ArcGIS] No parcel data:', arcgisData.error || 'Unknown error');
+                        return null;
+                    }
+
+                    // Try RAG interpretation
+                    const ragResponse = await fetch('/api/rag-interpreter', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ rawParcelData: arcgisData.parcelData, county })
+                    });
+                    if (ragResponse.ok) {
+                        const ragData = await ragResponse.json();
+                        if (ragData.success && ragData.parcelData) {
+                            return { data: ragData.parcelData, source: 'arcgis-rag', confidence: 0.99 };
+                        }
+                    }
+                    // RAG failed, return raw ArcGIS data
+                    return { data: arcgisData.parcelData, source: 'arcgis-raw', confidence: 0.95 };
+                } catch (e) {
+                    console.warn('[ArcGIS+RAG] Error:', e.message);
+                    return null;
+                }
+            },
+
+            // Helper: Zillow/Gemini property data
+            async fetchZillowData(address, city, state, zip) {
+                try {
+                    const resp = await fetch('/api/property-intelligence?mode=zillow', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ address, city, state, zip })
+                    });
+                    if (!resp.ok) return null;
+                    const result = await resp.json();
+                    if (!result.success || !result.data) {
+                        console.warn('[Zillow] No data:', result.error);
+                        return null;
+                    }
+                    return { data: result.data, source: result.source, zillowUrl: result.zillowUrl };
+                } catch (e) {
+                    console.warn('[Zillow] Error:', e.message);
+                    return null;
+                }
+            },
+
+            // Helper: Fire station distance
+            async fetchFireStationData(address, city, state, zip) {
+                try {
+                    const resp = await fetch('/api/property-intelligence?mode=firestation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ address, city, state, zip })
+                    });
+                    if (!resp.ok) return null;
+                    const result = await resp.json();
+                    if (!result.success) {
+                        console.warn('[FireStation] No data:', result.error);
+                        return null;
+                    }
+                    return {
+                        fireStationDist: result.fireStationDist,
+                        fireStationName: result.fireStationName,
+                        protectionClass: result.protectionClass
+                    };
+                } catch (e) {
+                    console.warn('[FireStation] Error:', e.message);
+                    return null;
                 }
             },
 
@@ -4374,6 +4412,231 @@
                     modal.style.opacity = '0';
                     modal.style.transition = 'opacity 0.3s ease';
                     setTimeout(() => modal.remove(), 300);
+                }
+            },
+
+            showUnifiedDataPopup(arcgisData, zillowData, fireData, address, city, state) {
+                // Merge data from all sources: ArcGIS (primary) → Zillow (fill gaps) → FireStation
+                const merged = {};
+                const sources = [];
+
+                if (arcgisData && arcgisData.data) {
+                    Object.assign(merged, arcgisData.data);
+                    sources.push('County Records');
+                }
+
+                if (zillowData && zillowData.data) {
+                    const zd = zillowData.data;
+                    sources.push('Property Listings');
+                    // Only fill gaps — don't overwrite ArcGIS data
+                    if (!merged.heatingType && zd.heatingType) merged.heatingType = zd.heatingType;
+                    if (!merged.cooling && zd.cooling) merged.cooling = zd.cooling;
+                    if (!merged.roofType && zd.roofType) merged.roofType = zd.roofType;
+                    if (!merged.foundationType && zd.foundation) merged.foundationType = zd.foundation;
+                    if (!merged.constructionStyle && zd.constructionStyle) merged.constructionStyle = zd.constructionStyle;
+                    if (!merged.exteriorWalls && zd.exteriorWalls) merged.exteriorWalls = zd.exteriorWalls;
+                    if ((!merged.yearBuilt || merged.yearBuilt === 0) && zd.yearBuilt) merged.yearBuilt = zd.yearBuilt;
+                    if ((!merged.stories || merged.stories === 0) && zd.stories) merged.stories = zd.stories;
+                    if ((!merged.totalSqft || merged.totalSqft === 0) && zd.totalSqft) merged.totalSqft = zd.totalSqft;
+                    if ((!merged.bedrooms || merged.bedrooms === 0) && zd.bedrooms) merged.bedrooms = zd.bedrooms;
+                    if ((!merged.bathrooms || merged.bathrooms === 0) && zd.fullBaths) merged.bathrooms = zd.fullBaths;
+                    if ((!merged.garageSpaces || merged.garageSpaces === 0) && zd.garageSpaces) merged.garageSpaces = zd.garageSpaces;
+                    if (zd.fireplace) merged.fireplace = zd.fireplace;
+                }
+
+                if (fireData) {
+                    sources.push('Fire Protection');
+                    merged.fireStationDist = fireData.fireStationDist;
+                    merged.fireStationName = fireData.fireStationName;
+                    merged.protectionClass = fireData.protectionClass;
+                }
+
+                // Build modal
+                const modal = document.createElement('div');
+                modal.id = 'parcelDataModal';
+                modal.style.cssText = `
+                    position: fixed; top: 0; left: 0;
+                    width: 100%; height: 100%;
+                    background: rgba(0, 0, 0, 0.6);
+                    display: flex; align-items: center; justify-content: center;
+                    z-index: 10000;
+                `;
+
+                const content = document.createElement('div');
+                content.style.cssText = `
+                    background: white; border-radius: 12px; padding: 24px;
+                    max-width: 520px; max-height: 85vh; overflow-y: auto;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                    font-family: system-ui, sans-serif;
+                `;
+
+                // Title
+                const title = document.createElement('h2');
+                title.textContent = `Property Data Found`;
+                title.style.cssText = 'margin: 0 0 8px 0; color: #28a745;';
+                content.appendChild(title);
+
+                // Source badges
+                const badgeRow = document.createElement('div');
+                badgeRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;';
+                const badgeColors = { 'County Records': '#0066cc', 'Property Listings': '#6f42c1', 'Fire Protection': '#dc3545' };
+                const badgeIcons = { 'County Records': '🏛', 'Property Listings': '🏠', 'Fire Protection': '🚒' };
+                sources.forEach(src => {
+                    const badge = document.createElement('span');
+                    badge.style.cssText = `
+                        display: inline-flex; align-items: center; gap: 4px;
+                        padding: 3px 10px; border-radius: 12px;
+                        font-size: 11px; font-weight: 600; color: white;
+                        background: ${badgeColors[src] || '#666'};
+                    `;
+                    badge.textContent = `${badgeIcons[src] || ''} ${src}`;
+                    badgeRow.appendChild(badge);
+                });
+                content.appendChild(badgeRow);
+
+                // Address line
+                const addressLine = document.createElement('p');
+                addressLine.style.cssText = 'color: #666; margin: 4px 0 12px 0; font-size: 13px;';
+                addressLine.textContent = `${address}, ${city}, ${state}${merged.parcelId ? ' · Parcel: ' + merged.parcelId : ''}`;
+                content.appendChild(addressLine);
+
+                // Data grid
+                const grid = document.createElement('div');
+                grid.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0;';
+
+                const fields = [
+                    { label: 'Year Built', value: merged.yearBuilt && merged.yearBuilt > 0 ? merged.yearBuilt : null },
+                    { label: 'Stories', value: merged.stories && merged.stories > 0 ? merged.stories : null },
+                    { label: 'Total Sq Ft', value: merged.totalSqft && merged.totalSqft > 0 ? merged.totalSqft.toLocaleString() : null },
+                    { label: 'Lot Size', value: merged.lotSizeAcres && merged.lotSizeAcres > 0 ? `${merged.lotSizeAcres.toFixed(2)} acres` : null },
+                    { label: 'Bedrooms', value: merged.bedrooms && merged.bedrooms > 0 ? merged.bedrooms : null },
+                    { label: 'Bathrooms', value: merged.bathrooms && merged.bathrooms > 0 ? merged.bathrooms : null },
+                    { label: 'Garage Spaces', value: merged.garageSpaces && merged.garageSpaces > 0 ? merged.garageSpaces : (merged.garageSqft && merged.garageSqft > 0 ? `${Math.round(merged.garageSqft / 180)} (est.)` : null) },
+                    { label: 'Foundation', value: merged.foundationType && merged.foundationType !== 'Unknown' ? merged.foundationType : null },
+                    { label: 'Roof Type', value: merged.roofType && merged.roofType !== 'Unknown' ? merged.roofType : null },
+                    { label: 'Heating', value: merged.heatingType && merged.heatingType !== 'Unknown' ? merged.heatingType : null },
+                    { label: 'Cooling', value: merged.cooling || null },
+                    { label: 'Construction', value: merged.constructionStyle && merged.constructionStyle !== 'Unknown' ? merged.constructionStyle : null },
+                    { label: 'Exterior', value: merged.exteriorWalls || null },
+                    { label: 'Fireplace', value: merged.fireplace || null },
+                    { label: 'Land Use', value: merged.landUse || null },
+                ];
+
+                // Add fire station fields if available
+                if (fireData) {
+                    fields.push({ label: 'Fire Station', value: `${fireData.fireStationDist} mi — ${fireData.fireStationName || 'Nearest'}` });
+                    fields.push({ label: 'Protection Class', value: fireData.protectionClass });
+                }
+
+                // Only show fields that have data
+                const fieldsWithData = fields.filter(f => f.value != null && f.value !== '' && f.value !== 'N/A');
+
+                fieldsWithData.forEach(field => {
+                    const box = document.createElement('div');
+                    box.style.cssText = 'background: #f5f5f5; padding: 10px; border-radius: 6px;';
+
+                    const label = document.createElement('div');
+                    label.style.cssText = 'font-size: 11px; color: #999; text-transform: uppercase; margin-bottom: 3px;';
+                    label.textContent = field.label;
+
+                    const value = document.createElement('div');
+                    value.style.cssText = 'font-size: 15px; font-weight: 600; color: #333;';
+                    value.textContent = field.value;
+
+                    box.appendChild(label);
+                    box.appendChild(value);
+                    grid.appendChild(box);
+                });
+
+                content.appendChild(grid);
+
+                // Buttons
+                const buttonBox = document.createElement('div');
+                buttonBox.style.cssText = 'display: flex; gap: 12px; margin-top: 16px;';
+
+                const useBtn = document.createElement('button');
+                useBtn.textContent = `✓ Use This Data (${fieldsWithData.length} fields)`;
+                useBtn.style.cssText = `
+                    flex: 1; padding: 12px; background: #28a745; color: white;
+                    border: none; border-radius: 6px; font-weight: 600;
+                    cursor: pointer; font-size: 14px;
+                `;
+                useBtn.onclick = () => {
+                    this.applyParcelData(merged);
+                    if (zillowData && zillowData.data) {
+                        this.applyZillowSelects(zillowData.data);
+                    }
+                    if (fireData) {
+                        this.applyFireStationData(fireData);
+                    }
+                    this.closeParcelModal();
+                    this.save();
+                    const count = fieldsWithData.length;
+                    this.toast(`Applied ${count} field${count !== 1 ? 's' : ''} from ${sources.join(' + ')}`);
+                };
+
+                const skipBtn = document.createElement('button');
+                skipBtn.textContent = '✗ Skip';
+                skipBtn.style.cssText = `
+                    flex: 0 0 auto; padding: 12px 20px; background: #6c757d; color: white;
+                    border: none; border-radius: 6px; font-weight: 600;
+                    cursor: pointer; font-size: 14px;
+                `;
+                skipBtn.onclick = () => this.closeParcelModal();
+
+                buttonBox.appendChild(useBtn);
+                buttonBox.appendChild(skipBtn);
+                content.appendChild(buttonBox);
+
+                modal.appendChild(content);
+                modal.onclick = (e) => {
+                    if (e.target === modal) this.closeParcelModal();
+                };
+                document.body.appendChild(modal);
+            },
+
+            // Apply Zillow select-field values (dropdown fields that need option matching)
+            applyZillowSelects(zd) {
+                const selectFields = ['heatingType', 'cooling', 'roofType', 'foundation', 'constructionStyle', 'exteriorWalls'];
+                for (const fid of selectFields) {
+                    if (!zd[fid]) continue;
+                    const el = document.getElementById(fid);
+                    if (!el) continue;
+                    const opts = Array.from(el.options).map(o => o.value);
+                    if (opts.includes(zd[fid])) {
+                        el.value = zd[fid];
+                        this.data[fid] = zd[fid];
+                    }
+                }
+                // Text/number fields from Zillow
+                const textFields = {
+                    yrBuilt: zd.yrBuilt,
+                    bedrooms: zd.bedrooms,
+                    fullBaths: zd.fullBaths,
+                    garageSpaces: zd.garageSpaces,
+                    numStories: zd.stories,
+                    sqFt: zd.totalSqft
+                };
+                for (const [fid, val] of Object.entries(textFields)) {
+                    if (val == null) continue;
+                    const el = document.getElementById(fid);
+                    if (!el) continue;
+                    // Only fill if currently empty
+                    if (el.value && el.value !== '0' && el.value !== '') continue;
+                    el.value = val;
+                    this.data[fid] = String(val);
+                }
+            },
+
+            // Apply fire station distance and protection class
+            applyFireStationData(fireData) {
+                if (fireData.fireStationDist != null) {
+                    const el = document.getElementById('fireStationDist');
+                    if (el) { el.value = fireData.fireStationDist; this.data.fireStationDist = String(fireData.fireStationDist); }
+                }
+                if (fireData.protectionClass != null) {
+                    const el = document.getElementById('protectionClass');
+                    if (el) { el.value = fireData.protectionClass; this.data.protectionClass = String(fireData.protectionClass); }
                 }
             },
 
