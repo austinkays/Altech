@@ -8366,7 +8366,7 @@ This data is ready to paste into your quoting system.
     </div>
 
     <!-- CGL COMPLIANCE DASHBOARD CONTAINER -->
-    <div id="complianceTool" class="plugin-container" style="background: #f5f5f5;">
+    <div id="complianceTool" class="plugin-container" style="background: #f5f5f5; width: 100%; min-height: 100vh; position: fixed; top: 0; left: 0; overflow-y: auto; z-index: 999;">
         <style>
             /* CGL Dashboard Styles */
             .cgl-container {
@@ -8639,6 +8639,11 @@ This data is ready to paste into your quoting system.
         </style>
 
         <div class="cgl-container">
+            <!-- Back Button -->
+            <div class="back-to-home" onclick="App.goHome()" style="position: fixed;">
+                ← Back to Tools
+            </div>
+
             <!-- Header -->
             <div class="cgl-header">
                 <h1 class="cgl-title">CGL Compliance Dashboard</h1>
