@@ -860,9 +860,16 @@
         @media (max-width: 768px) {
             .landing-header h1 { font-size: 42px; }
             .landing-header p { font-size: 18px; }
-            .landing-header { padding: 60px 20px 80px; }
+            .landing-header { padding: 60px 20px 70px; }
         }
-        .tools-container { max-width: 1200px; margin: -40px auto 60px; padding: 0 20px; width: 100%; }
+        .tools-container {
+            max-width: 1200px;
+            margin: -60px auto 60px;
+            padding: 0 20px;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+        }
         .tools-grid { display: grid; gap: 24px; grid-template-columns: 1fr; }
         @media (min-width: 768px) { .tools-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .tools-grid { grid-template-columns: repeat(3, 1fr); } }
