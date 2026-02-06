@@ -776,9 +776,13 @@ IMPORTANT: Look in the listing description text for renovation info like "New ro
     }
 
     const result = await resp.json();
-    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // Gemini with google_search tool returns multiple parts:
+    // parts[0] may be a functionCall (tool invocation), text is in later parts
+    const allParts = result.candidates?.[0]?.content?.parts || [];
+    const text = allParts.map(p => p.text || '').filter(Boolean).join('');
     diag.geminiSearchResponseLength = text.length;
-    console.log(`[Zillow] Gemini response (${text.length} chars): ${text.substring(0, 200)}`);
+    diag.geminiSearchPartsCount = allParts.length;
+    console.log(`[Zillow] Gemini response (${text.length} chars, ${allParts.length} parts): ${text.substring(0, 200)}`);
 
     if (!text) {
       console.log('[Zillow] Empty Gemini response');
