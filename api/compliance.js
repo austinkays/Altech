@@ -119,16 +119,22 @@ export default async function handler(req, res) {
     const BASE_URL = 'https://integration.hawksoft.app';
     const API_VERSION = '3.0';
 
-    console.log('[Compliance] Fetching clients from HawkSoft...');
+    console.log('[Compliance] ===== STARTING HAWKSOFT DATA FETCH =====');
+    const startTime = Date.now();
 
-    // Step 1: Get list of changed clients (recent changes)
-    // Use a wider date range (365 days) to ensure we get all active CGL policies
-    const oneYearAgo = new Date();
-    oneYearAgo.setDate(oneYearAgo.getDate() - 365);
-    const asOfDate = oneYearAgo.toISOString();
+    // Step 1: Calculate date range - GO BACK 3 YEARS
+    const threeYearsAgo = new Date();
+    threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+    const asOfDate = threeYearsAgo.toISOString();
+    const today = new Date().toISOString();
 
-    console.log('[Compliance] Searching for policies changed since:', asOfDate);
+    console.log('[Compliance] Date Range Configuration:');
+    console.log(`[Compliance]   Today: ${today}`);
+    console.log(`[Compliance]   Search Start Date (3 years ago): ${asOfDate}`);
+    console.log(`[Compliance]   Date calculation verified: ${threeYearsAgo.getFullYear()} (should be 3 years before ${new Date().getFullYear()})`);
 
+    // Step 2: Get list of changed clients
+    console.log('[Compliance] Fetching client list from HawkSoft...');
     const changedClientsResponse = await fetch(
       `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients?version=${API_VERSION}&asOf=${asOfDate}`,
       {
@@ -142,25 +148,33 @@ export default async function handler(req, res) {
 
     if (!changedClientsResponse.ok) {
       console.error('[Compliance] Failed to fetch clients:', changedClientsResponse.status);
+      const errorText = await changedClientsResponse.text();
+      console.error('[Compliance] Error response:', errorText);
       return res.status(changedClientsResponse.status).json({
         success: false,
         error: 'Failed to fetch clients from HawkSoft',
-        status: changedClientsResponse.status
+        status: changedClientsResponse.status,
+        details: errorText
       });
     }
 
     const clientIds = await changedClientsResponse.json();
-    console.log(`[Compliance] Found ${clientIds.length} clients`);
+    console.log(`[Compliance] ✓ Found ${clientIds.length} client IDs`);
 
     // Limit to first 100 clients to avoid timeouts
     const limitedClientIds = clientIds.slice(0, 100);
+    if (clientIds.length > 100) {
+      console.log(`[Compliance] ⚠ Limited to first 100 clients (${clientIds.length} total available)`);
+    }
 
-    // Step 2: Fetch client details in batches
-    const batchSize = 50; // Fetch in batches of 50
+    // Step 3: Fetch client details in batches
+    console.log('[Compliance] Fetching client details in batches...');
+    const batchSize = 50;
     const allClients = [];
 
     for (let i = 0; i < limitedClientIds.length; i += batchSize) {
       const batch = limitedClientIds.slice(i, i + batchSize);
+      console.log(`[Compliance] Fetching batch ${Math.floor(i / batchSize) + 1} (${batch.length} clients)...`);
 
       const batchResponse = await fetch(
         `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients?version=${API_VERSION}`,
@@ -176,23 +190,114 @@ export default async function handler(req, res) {
 
       if (batchResponse.ok) {
         const batchClients = await batchResponse.json();
+        console.log(`[Compliance] ✓ Batch returned ${batchClients.length} clients`);
         allClients.push(...batchClients);
+      } else {
+        console.error(`[Compliance] ✗ Batch fetch failed:`, batchResponse.status);
       }
     }
 
-    console.log(`[Compliance] Fetched details for ${allClients.length} clients`);
+    console.log(`[Compliance] ✓ Total clients fetched: ${allClients.length}`);
 
-    // FORENSIC LOGGING: Output first complete raw policy object
+    // FORENSIC LOGGING: Client structure analysis
     if (allClients.length > 0) {
-      for (const client of allClients) {
-        if (client.Policies && client.Policies.length > 0) {
-          console.log('[Compliance] ===== RAW POLICY FORENSICS =====');
-          console.log('[Compliance] Full raw policy object:');
-          console.log(JSON.stringify(client.Policies[0], null, 2));
-          console.log('[Compliance] ===================================');
-          break; // Only log first policy found
+      const sampleClient = allClients[0];
+      console.log('[Compliance] ===== CLIENT STRUCTURE FORENSICS =====');
+      console.log('[Compliance] Sample client keys:', Object.keys(sampleClient));
+      console.log('[Compliance] Has Policies array?', Array.isArray(sampleClient.Policies));
+      console.log('[Compliance] Policies count in first client:', sampleClient.Policies ? sampleClient.Policies.length : 0);
+      console.log('[Compliance] ========================================');
+    }
+
+    // Step 4: If no policies in client objects, fetch them separately per client
+    let clientsWithPolicies = 0;
+    let clientsWithoutPolicies = 0;
+
+    for (const client of allClients) {
+      if (client.Policies && client.Policies.length > 0) {
+        clientsWithPolicies++;
+      } else {
+        clientsWithoutPolicies++;
+      }
+    }
+
+    console.log(`[Compliance] Clients with embedded policies: ${clientsWithPolicies}`);
+    console.log(`[Compliance] Clients without embedded policies: ${clientsWithoutPolicies}`);
+
+    // If most clients don't have policies, try fetching them separately
+    if (clientsWithoutPolicies > 0 && clientsWithPolicies < 10) {
+      console.log('[Compliance] ⚠ Policies not embedded in client response, attempting separate policy fetch...');
+
+      // Try fetching policies for a sample client to test
+      if (allClients.length > 0 && allClients[0].ClientNumber) {
+        const sampleClientNumber = allClients[0].ClientNumber;
+        console.log(`[Compliance] Testing policy fetch for client ${sampleClientNumber}...`);
+
+        try {
+          const policiesResponse = await fetch(
+            `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients/${sampleClientNumber}/policies?version=${API_VERSION}`,
+            {
+              method: 'GET',
+              headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          if (policiesResponse.ok) {
+            const policies = await policiesResponse.json();
+            console.log(`[Compliance] ✓ Separate policy endpoint works! Found ${policies.length} policies for sample client`);
+            console.log(`[Compliance] Now fetching policies for all ${allClients.length} clients...`);
+
+            // Fetch policies for all clients
+            for (const client of allClients.slice(0, 100)) { // Limit to avoid timeout
+              try {
+                const clientPoliciesResponse = await fetch(
+                  `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients/${client.ClientNumber}/policies?version=${API_VERSION}`,
+                  {
+                    method: 'GET',
+                    headers: {
+                      'Authorization': authHeader,
+                      'Content-Type': 'application/json'
+                    }
+                  }
+                );
+
+                if (clientPoliciesResponse.ok) {
+                  client.Policies = await clientPoliciesResponse.json();
+                }
+              } catch (err) {
+                console.error(`[Compliance] Failed to fetch policies for client ${client.ClientNumber}:`, err.message);
+              }
+            }
+
+            console.log('[Compliance] ✓ Completed separate policy fetch for all clients');
+          } else {
+            console.log(`[Compliance] ✗ Separate policy endpoint returned ${policiesResponse.status}`);
+          }
+        } catch (err) {
+          console.error('[Compliance] Error testing separate policy fetch:', err.message);
         }
       }
+    }
+
+    // FORENSIC LOGGING: Output first complete raw policy object
+    console.log('[Compliance] Searching for first policy to log...');
+    let foundSamplePolicy = false;
+    for (const client of allClients) {
+      if (client.Policies && client.Policies.length > 0) {
+        console.log('[Compliance] ===== RAW POLICY FORENSICS =====');
+        console.log('[Compliance] Full raw policy object:');
+        console.log(JSON.stringify(client.Policies[0], null, 2));
+        console.log('[Compliance] ===================================');
+        foundSamplePolicy = true;
+        break;
+      }
+    }
+
+    if (!foundSamplePolicy) {
+      console.log('[Compliance] ✗ NO POLICIES FOUND IN ANY CLIENT - This is the root cause!');
     }
 
     // Step 3: Extract and filter General Liability policies
@@ -266,23 +371,33 @@ export default async function handler(req, res) {
     // Sort by days until expiration (most urgent first)
     compliancePolicies.sort((a, b) => a.daysUntilExpiration - b.daysUntilExpiration);
 
-    console.log(`[Compliance] Summary: Scanned ${allClients.length} clients with ${totalPolicies} total policies`);
-    console.log(`[Compliance] All policy types found in HawkSoft:`, Array.from(policyTypesFound).sort());
-    console.log(`[Compliance] Found ${glPoliciesFound} General Liability policies matching our keywords`);
-    console.log(`[Compliance] Final filtered count: ${compliancePolicies.length}`);
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+
+    console.log('[Compliance] ===== FINAL SUMMARY =====');
+    console.log(`[Compliance] Clients Scanned: ${allClients.length}`);
+    console.log(`[Compliance] Total Policies Found: ${totalPolicies}`);
+    console.log(`[Compliance] CGL Policies Matched: ${glPoliciesFound}`);
+    console.log(`[Compliance] Final Filtered Count: ${compliancePolicies.length}`);
+    console.log(`[Compliance] All Policy Types Found:`, Array.from(policyTypesFound).sort());
+    console.log(`[Compliance] Search Date Range: ${asOfDate} to ${today}`);
+    console.log(`[Compliance] Elapsed Time: ${elapsedTime}s`);
+    console.log('[Compliance] ===================================');
 
     return res.status(200).json({
       success: true,
       count: compliancePolicies.length,
       policies: compliancePolicies,
       metadata: {
-        fetchedAt: new Date().toISOString(),
+        fetchedAt: today,
+        searchStartDate: asOfDate,
+        searchEndDate: today,
+        searchYearsBack: 3,
         clientsScanned: allClients.length,
         totalPoliciesFound: totalPolicies,
         glPoliciesMatched: glPoliciesFound,
         allPolicyTypes: Array.from(policyTypesFound).sort(),
-        searchDateRange: asOfDate,
-        nonSyncingCarriers: NON_SYNCING_CARRIERS
+        nonSyncingCarriers: NON_SYNCING_CARRIERS,
+        elapsedTimeSeconds: parseFloat(elapsedTime)
       }
     });
 
