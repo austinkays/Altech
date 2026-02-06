@@ -1673,7 +1673,7 @@
                 <h2>Auto Coverage</h2>
                 <p class="section-subtitle">Current auto insurance details</p>
 
-                <label class="label">Current Liability Limits</label>
+                <label class="label">Bodily Injury Limits (BI)</label>
                 <select id="liabilityLimits">
                     <option value="">Select...</option>
                     <option value="25/50">25/50</option>
@@ -1683,22 +1683,146 @@
                     <option value="500/500">500/500</option>
                 </select>
 
-                <label class="label">Auto Deductible</label>
-                <input type="text" id="autoDeductible" placeholder="$500">
+                <label class="label">Property Damage Limit (PD)</label>
+                <select id="pdLimit">
+                    <option value="">Select...</option>
+                    <option value="25000">$25,000</option>
+                    <option value="50000">$50,000</option>
+                    <option value="100000">$100,000</option>
+                    <option value="250000">$250,000</option>
+                    <option value="300000">$300,000</option>
+                </select>
+
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Uninsured Motorist (UM)</label>
+                        <select id="umLimits">
+                            <option value="">Select...</option>
+                            <option value="25/50">25/50</option>
+                            <option value="50/100">50/100</option>
+                            <option value="100/300">100/300</option>
+                            <option value="250/500">250/500</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Underinsured Motorist (UIM)</label>
+                        <select id="uimLimits">
+                            <option value="">Select...</option>
+                            <option value="25/50">25/50</option>
+                            <option value="50/100">50/100</option>
+                            <option value="100/300">100/300</option>
+                            <option value="250/500">250/500</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Comprehensive Deductible</label>
+                        <select id="compDeductible">
+                            <option value="">Select...</option>
+                            <option value="No Coverage">No Coverage</option>
+                            <option value="100">$100</option>
+                            <option value="250">$250</option>
+                            <option value="500">$500</option>
+                            <option value="1000">$1,000</option>
+                            <option value="2500">$2,500</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Collision Deductible</label>
+                        <select id="autoDeductible">
+                            <option value="">Select...</option>
+                            <option value="No Coverage">No Coverage</option>
+                            <option value="100">$100</option>
+                            <option value="250">$250</option>
+                            <option value="500">$500</option>
+                            <option value="1000">$1,000</option>
+                            <option value="2500">$2,500</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Rental Reimbursement</label>
+                        <select id="rentalDeductible">
+                            <option value="">Select...</option>
+                            <option value="No Coverage">No Coverage</option>
+                            <option value="30/900">$30/day, $900 max</option>
+                            <option value="50/1500">$50/day, $1500 max</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Towing & Labor</label>
+                        <select id="towingDeductible">
+                            <option value="">Select...</option>
+                            <option value="No Coverage">No Coverage</option>
+                            <option value="50">$50</option>
+                            <option value="100">$100</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- STEP 5: INSURANCE HISTORY & ADDITIONAL INFO -->
         <div id="step-5" class="step hidden">
             <div class="card">
+                <h2>Policy Details</h2>
+                <p class="section-subtitle">Requested policy information</p>
+
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Requested Policy Term</label>
+                        <select id="policyTerm">
+                            <option value="">Select...</option>
+                            <option value="6 Month">6 Month</option>
+                            <option value="12 Month">12 Month</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Requested Effective Date</label>
+                        <input type="date" id="effectiveDate">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
                 <h2>Insurance History</h2>
                 <p class="section-subtitle">Your current and prior coverage</p>
 
-                <label class="label">Prior Insurance Carrier</label>
-                <input type="text" id="priorCarrier" placeholder="e.g., State Farm">
+                <div class="grid-2">
+                    <div>
+                        <label class="label">Prior Insurance Carrier</label>
+                        <input type="text" id="priorCarrier" placeholder="e.g., State Farm">
+                    </div>
+                    <div>
+                        <label class="label">Prior Policy Term</label>
+                        <select id="priorPolicyTerm">
+                            <option value="">Select...</option>
+                            <option value="6 Month">6 Month</option>
+                            <option value="12 Month">12 Month</option>
+                        </select>
+                    </div>
+                </div>
 
                 <div class="grid-2">
-                    <div><label class="label">Years with Prior Carrier</label><input type="number" id="priorYears" placeholder="5"></div>
+                    <div>
+                        <label class="label">Years with Prior Carrier</label>
+                        <select id="priorYears">
+                            <option value="">Select...</option>
+                            <option value="Less than 1">Less than 1</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6 to 10">6 to 10</option>
+                            <option value="More than 10">More than 10</option>
+                            <option value="More than 15">More than 15</option>
+                        </select>
+                    </div>
                     <div><label class="label">Prior Policy Expiration</label><input type="date" id="priorExp"></div>
                 </div>
             </div>
@@ -6673,13 +6797,18 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         .replace(/'/g, '&apos;');
                 };
 
+                const mapGender = (g) => {
+                    if (g === 'M') return 'Male';
+                    if (g === 'F') return 'Female';
+                    return g || '';
+                };
+
                 const normalizeDate = (dateStr) => {
                     if (!dateStr) return '';
                     const d = new Date(dateStr);
                     if (Number.isNaN(d.getTime())) return '';
                     const year = d.getUTCFullYear();
-                    const currentYear = new Date().getUTCFullYear();
-                    if (year < 1900 || year > currentYear) return '';
+                    if (year < 1900 || year > 2100) return '';
                     return d.toISOString().split('T')[0];
                 };
 
@@ -6724,7 +6853,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 xml += '      </Name>\n';
                 xml += `      <DOB>${dob}</DOB>\n`;
                 if (data.gender) {
-                    xml += `      <Gender>${escapeXML(data.gender)}</Gender>\n`;
+                    xml += `      <Gender>${escapeXML(mapGender(data.gender))}</Gender>\n`;
                 }
                 if (data.maritalStatus) {
                     xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
@@ -6739,6 +6868,10 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 xml += '      </Addr1>\n';
                 xml += `      <City>${escapeXML(data.addrCity)}</City>\n`;
                 xml += `      <StateCode>${escapeXML(state)}</StateCode>\n`;
+                const county = this.getCountyFromCity(data.addrCity, state);
+                if (county) {
+                    xml += `      <County>${escapeXML(county)}</County>\n`;
+                }
                 xml += `      <Zip5>${escapeXML(data.addrZip)}</Zip5>\n`;
                 if (phone) {
                     xml += '      <Phone id="1">\n';
@@ -6754,10 +6887,13 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 xml += '  </Applicant>\n';
 
                 // Prior Policy Info
-                if (data.priorCarrier || data.priorYears || data.priorExp) {
+                if (data.priorCarrier || data.priorYears || data.priorExp || data.priorPolicyTerm) {
                     xml += '  <PriorPolicyInfo>\n';
                     if (data.priorCarrier) {
                         xml += `    <PriorCarrier>${escapeXML(data.priorCarrier)}</PriorCarrier>\n`;
+                    }
+                    if (data.priorPolicyTerm) {
+                        xml += `    <PriorPolicyTerm>${escapeXML(data.priorPolicyTerm)}</PriorPolicyTerm>\n`;
                     }
                     if (data.priorExp) {
                         xml += `    <Expiration>${normalizeDate(data.priorExp)}</Expiration>\n`;
@@ -6769,6 +6905,37 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     }
                     xml += '  </PriorPolicyInfo>\n';
                 }
+
+                // PolicyInfo section
+                if (data.policyTerm || data.effectiveDate) {
+                    xml += '  <PolicyInfo>\n';
+                    if (data.policyTerm) {
+                        xml += `    <PolicyTerm>${escapeXML(data.policyTerm)}</PolicyTerm>\n`;
+                    }
+                    if (data.effectiveDate) {
+                        xml += `    <Effective>${normalizeDate(data.effectiveDate)}</Effective>\n`;
+                    }
+                    xml += '  </PolicyInfo>\n';
+                }
+
+                // ResidenceInfo section (garage location = mailing address by default)
+                xml += '  <ResidenceInfo>\n';
+                xml += '    <GarageLocation>\n';
+                xml += '      <Address>\n';
+                xml += '        <AddressCode>StreetAddress</AddressCode>\n';
+                xml += '        <Addr1>\n';
+                xml += `          <StreetName>${escapeXML(streetName)}</StreetName>\n`;
+                xml += `          <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
+                xml += '        </Addr1>\n';
+                xml += `        <City>${escapeXML(data.addrCity)}</City>\n`;
+                xml += `        <StateCode>${escapeXML(state)}</StateCode>\n`;
+                if (county) {
+                    xml += `        <County>${escapeXML(county)}</County>\n`;
+                }
+                xml += `        <Zip5>${escapeXML(data.addrZip)}</Zip5>\n`;
+                xml += '      </Address>\n';
+                xml += '    </GarageLocation>\n';
+                xml += '  </ResidenceInfo>\n';
 
                 // Drivers section - iterate over drivers array or use flat fields
                 xml += '  <Drivers>\n';
@@ -6785,7 +6952,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         xml += `        <LastName>${escapeXML(driver.lastName || '')}</LastName>\n`;
                         xml += '      </Name>\n';
                         if (driver.gender || data.gender) {
-                            xml += `      <Gender>${escapeXML(driver.gender || data.gender)}</Gender>\n`;
+                            xml += `      <Gender>${escapeXML(mapGender(driver.gender || data.gender))}</Gender>\n`;
                         }
                         if (driverDob) {
                             xml += `      <DOB>${driverDob}</DOB>\n`;
@@ -6814,7 +6981,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
                     xml += '      </Name>\n';
                     if (data.gender) {
-                        xml += `      <Gender>${escapeXML(data.gender)}</Gender>\n`;
+                        xml += `      <Gender>${escapeXML(mapGender(data.gender))}</Gender>\n`;
                     }
                     xml += `      <DOB>${dob}</DOB>\n`;
                     if (data.dlNum) {
@@ -6910,24 +7077,47 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 }
 
                 // Coverages section
-                if (data.liabilityLimits || data.autoDeductible) {
-                    xml += '  <Coverages>\n';
-                    if (data.liabilityLimits) {
-                        xml += '    <GeneralCoverage>\n';
-                        xml += `      <BI>${escapeXML(data.liabilityLimits)}</BI>\n`;
-                        xml += '    </GeneralCoverage>\n';
-                    }
-                    if (data.autoDeductible) {
-                        // Add vehicle coverage for each vehicle
-                        const vehicleCount = vehicles ? vehicles.length : 1;
-                        for (let i = 1; i <= vehicleCount; i++) {
-                            xml += `    <VehicleCoverage id="${i}">\n`;
-                            xml += `      <CollisionDeductible>${escapeXML(data.autoDeductible)}</CollisionDeductible>\n`;
-                            xml += '    </VehicleCoverage>\n';
-                        }
-                    }
-                    xml += '  </Coverages>\n';
+                const vehCount = vehicles ? vehicles.length : (data.vin || data.vehDesc ? 1 : 0);
+                xml += '  <Coverages>\n';
+                xml += '    <GeneralCoverage>\n';
+                if (data.liabilityLimits) {
+                    xml += `      <BI>${escapeXML(data.liabilityLimits)}</BI>\n`;
                 }
+                if (data.pdLimit) {
+                    xml += `      <PD>${escapeXML(data.pdLimit)}</PD>\n`;
+                }
+                if (data.umLimits) {
+                    xml += `      <UM>${escapeXML(data.umLimits)}</UM>\n`;
+                }
+                if (data.uimLimits) {
+                    xml += `      <UIM>${escapeXML(data.uimLimits)}</UIM>\n`;
+                }
+                xml += `      <Multicar>${vehCount > 1 ? 'Yes' : 'No'}</Multicar>\n`;
+                xml += '    </GeneralCoverage>\n';
+
+                // VehicleCoverage per vehicle
+                for (let i = 1; i <= vehCount; i++) {
+                    xml += `    <VehicleCoverage id="${i}">\n`;
+                    xml += `      <OtherCollisionDeductible>${escapeXML(data.compDeductible || 'No Coverage')}</OtherCollisionDeductible>\n`;
+                    xml += `      <CollisionDeductible>${escapeXML(data.autoDeductible || 'No Coverage')}</CollisionDeductible>\n`;
+                    xml += `      <TowingDeductible>${escapeXML(data.towingDeductible || 'No Coverage')}</TowingDeductible>\n`;
+                    xml += `      <RentalDeductible>${escapeXML(data.rentalDeductible || 'No Coverage')}</RentalDeductible>\n`;
+                    xml += '    </VehicleCoverage>\n';
+                }
+
+                // StateSpecificCoverage
+                if (state === 'WA') {
+                    xml += '    <StateSpecificCoverage>\n';
+                    xml += '      <WA-Coverages>\n';
+                    if (data.pdLimit) {
+                        xml += `        <WA-UMPD>${escapeXML(data.pdLimit)}</WA-UMPD>\n`;
+                    }
+                    xml += '        <WA-PIP>10000</WA-PIP>\n';
+                    xml += '      </WA-Coverages>\n';
+                    xml += '    </StateSpecificCoverage>\n';
+                }
+
+                xml += '  </Coverages>\n';
 
                 // VehicleAssignments section (required by V200 schema)
                 if (vehicles || data.vin || data.vehDesc) {
