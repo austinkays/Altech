@@ -6637,8 +6637,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 const streetNumber = streetMatch?.[1] || '';
                 const streetName = streetMatch?.[2] || streetRaw;
 
-                let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-                xml += '<EZAUTO xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200">\n';
+                let xml = '<EZAUTO xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200">\n';
 
                 // Applicant section (primary contact info)
                 xml += '  <Applicant>\n';
@@ -6650,6 +6649,9 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 xml += `        <LastName>${escapeXML(lastName)}</LastName>\n`;
                 xml += '      </Name>\n';
                 xml += `      <DOB>${dob}</DOB>\n`;
+                if (data.gender) {
+                    xml += `      <Gender>${escapeXML(data.gender)}</Gender>\n`;
+                }
                 if (data.maritalStatus) {
                     xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
                 }
@@ -6708,11 +6710,11 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         xml += `        <FirstName>${escapeXML(driver.firstName || '')}</FirstName>\n`;
                         xml += `        <LastName>${escapeXML(driver.lastName || '')}</LastName>\n`;
                         xml += '      </Name>\n';
-                        if (driverDob) {
-                            xml += `      <DOB>${driverDob}</DOB>\n`;
-                        }
                         if (driver.gender || data.gender) {
                             xml += `      <Gender>${escapeXML(driver.gender || data.gender)}</Gender>\n`;
+                        }
+                        if (driverDob) {
+                            xml += `      <DOB>${driverDob}</DOB>\n`;
                         }
                         if (driver.dlNum) {
                             xml += `      <DLNumber>${escapeXML(driver.dlNum)}</DLNumber>\n`;
@@ -6720,15 +6722,11 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         if (driver.dlState) {
                             xml += `      <DLState>${escapeXML(driver.dlState)}</DLState>\n`;
                         }
-                        if (driver.relationship || data.maritalStatus) {
-                            const relation = isFirstDriver ? 'Insured' : (driver.relationship || 'Other');
-                            xml += `      <Relation>${escapeXML(relation)}</Relation>\n`;
-                        } else {
-                            xml += `      <Relation>${isFirstDriver ? 'Insured' : 'Other'}</Relation>\n`;
-                        }
                         if (data.maritalStatus) {
                             xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
                         }
+                        const relation = isFirstDriver ? 'Insured' : (driver.relationship || 'Other');
+                        xml += `      <Relation>${escapeXML(relation)}</Relation>\n`;
                         xml += '      <GoodStudent>No</GoodStudent>\n';
                         xml += '      <MATDriver>No</MATDriver>\n';
                         xml += '      <Rated>Rated</Rated>\n';
@@ -6741,10 +6739,10 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
                     xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
                     xml += '      </Name>\n';
-                    xml += `      <DOB>${dob}</DOB>\n`;
                     if (data.gender) {
                         xml += `      <Gender>${escapeXML(data.gender)}</Gender>\n`;
                     }
+                    xml += `      <DOB>${dob}</DOB>\n`;
                     if (data.dlNum) {
                         xml += `      <DLNumber>${escapeXML(data.dlNum)}</DLNumber>\n`;
                     }
@@ -6855,6 +6853,18 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         }
                     }
                     xml += '  </Coverages>\n';
+                }
+
+                // VehicleAssignments section (required by V200 schema)
+                if (vehicles || data.vin || data.vehDesc) {
+                    xml += '  <VehicleAssignments>\n';
+                    const vehicleCount = vehicles ? vehicles.length : 1;
+                    for (let i = 1; i <= vehicleCount; i++) {
+                        xml += `    <VehicleAssignment id="${i}">\n`;
+                        xml += '      <DriverAssignment/>\n';
+                        xml += '    </VehicleAssignment>\n';
+                    }
+                    xml += '  </VehicleAssignments>\n';
                 }
 
                 xml += '</EZAUTO>\n';
