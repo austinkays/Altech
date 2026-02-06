@@ -7364,8 +7364,20 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 if (data.li.available) {
                     document.getElementById('liContractorInfo').innerHTML = this.formatLIData(data.li);
                 } else {
+                    // Get UBI from SOS data for manual search link
+                    const ubi = (data.sos.entity && data.sos.entity.ubi) || (data.sos.ubi) || data.ubi || '';
+                    const manualSearchLink = ubi ? `
+                        <a href="https://secure.lni.wa.gov/verify/Detail.aspx?UBI=${ubi}"
+                           target="_blank"
+                           class="btn-secondary"
+                           style="display: inline-block; margin-top: 12px; padding: 8px 16px; text-decoration: none;">
+                            🔍 Manual L&I Search
+                        </a>
+                    ` : '';
+
                     document.getElementById('liContractorInfo').innerHTML = `
                         <p style="color: var(--text-secondary); font-style: italic;">${data.li.reason || 'No L&I contractor license found'}</p>
+                        ${manualSearchLink}
                     `;
                 }
 
@@ -7449,7 +7461,14 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         ${entity.registeredAgent?.name ? `<div style="grid-column: 1 / -1;"><strong>Registered Agent:</strong> ${entity.registeredAgent.name}</div>` : ''}
                         ${entity.principalOffice?.street ? `<div style="grid-column: 1 / -1;"><strong>Principal Office:</strong> ${entity.principalOffice.street}, ${entity.principalOffice.city || ''} ${entity.principalOffice.state || ''} ${entity.principalOffice.zip || ''}</div>` : ''}
                     </div>
-                    ${entity.officers && entity.officers.length > 0 ? `
+                    ${entity.governors && entity.governors.length > 0 ? `
+                        <div style="margin-top: 16px; padding: 12px; background: rgba(0, 122, 255, 0.05); border-radius: 8px;">
+                            <strong>📋 Governors/Owners:</strong>
+                            <ul style="margin: 8px 0 0 20px;">
+                                ${entity.governors.map(g => `<li><strong>${g.name || 'Unknown'}</strong> - ${g.title || 'Governor'}${g.appointmentDate ? ` (Appointed: ${g.appointmentDate})` : ''}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : entity.officers && entity.officers.length > 0 ? `
                         <div style="margin-top: 16px;">
                             <strong>Officers/Owners:</strong>
                             <ul style="margin: 8px 0 0 20px;">
@@ -7737,6 +7756,11 @@ This data is ready to paste into your quoting system.
                 const contractor = this.currentData.li.contractor || this.currentData.li;
                 const entity = this.currentData.sos.entity || this.currentData.sos;
 
+                // Extract governors for COI description
+                const governors = entity.governors || [];
+                const governorNames = governors.map(g => g.name).join(', ');
+                const governorText = governorNames ? `. Governors/Owners: ${governorNames}` : '';
+
                 // Prepare COI data
                 const coiData = {
                     producerName: 'Altech Insurance Agency',
@@ -7747,7 +7771,7 @@ This data is ready to paste into your quoting system.
                     insuredName: contractor.businessName || entity.businessName || this.currentData.businessName,
                     insuredAddress1: contractor.address?.street || entity.principalOffice?.street || '',
                     insuredAddress2: `${contractor.address?.city || entity.principalOffice?.city || ''}, ${contractor.address?.state || entity.principalOffice?.state || ''} ${contractor.address?.zip || entity.principalOffice?.zip || ''}`.trim(),
-                    descriptionOfOperations: `General Contracting - ${contractor.licenseType || 'Construction Services'}`,
+                    descriptionOfOperations: `General Contracting - ${contractor.licenseType || 'Construction Services'}${governorText}`,
                     authorizedRepresentative: producer.fullName,
                     // Certificate holder will be left blank for manual entry
                     certificateHolder: {

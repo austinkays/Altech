@@ -576,28 +576,146 @@ async function searchSOSEntity(businessName, ubi, state) {
 
 async function scrapeWASOS(businessName, ubi) {
   try {
-    const searchUrl = 'https://ccfs.sos.wa.gov/';
+    console.log(`[WA SOS] Querying Socrata API by ${ubi ? 'UBI' : 'name'}: ${ubi || businessName}`);
 
-    console.log('[WA SOS] Searching for:', businessName || ubi);
+    // Use Socrata Open Data API (SODA) for WA SOS Entity data
+    // Dataset: 4wur-kfnr (WA Business Entity Lookup)
+    const baseUrl = 'https://data.wa.gov/resource/4wur-kfnr.json';
 
-    const response = await fetch(searchUrl, {
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (ubi) {
+      // Clean UBI format (remove dashes if present)
+      const cleanUbi = ubi.replace(/-/g, '');
+      params.append('$where', `ubi_number='${cleanUbi}' OR ubi_number='${ubi}'`);
+    } else {
+      // Search by business name (case-insensitive, partial match)
+      params.append('$where', `upper(entity_name) LIKE upper('%${businessName}%')`);
+    }
+    params.append('$limit', '10'); // Limit results
+    params.append('$order', 'filing_date DESC'); // Most recent first
+
+    const apiUrl = `${baseUrl}?${params.toString()}`;
+    console.log('[WA SOS] API URL:', apiUrl);
+
+    const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html'
+        'Accept': 'application/json',
+        'User-Agent': 'Altech-Insurance-Platform/1.0',
+        'X-App-Token': process.env.SOCRATA_APP_TOKEN || ''
       }
     });
 
     if (!response.ok) {
-      throw new Error(`WA SOS returned ${response.status}`);
+      console.error(`[WA SOS] Socrata API returned ${response.status}`);
+      return null;
     }
 
-    const html = await response.text();
-    return parseWASOSHTML(html, businessName, ubi);
+    const data = await response.json();
+    console.log(`[WA SOS] Found ${data.length} result(s)`);
+
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    // Get the first (most relevant) result
+    const entity = data[0];
+
+    // Fetch governors from SOS principals dataset if we have UBI
+    let governors = [];
+    if (entity.ubi_number) {
+      governors = await fetchWAGovernors(entity.ubi_number);
+    }
+
+    // Transform Socrata data to our standard format
+    return {
+      ubi: entity.ubi_number || ubi || '',
+      businessName: entity.entity_name || businessName,
+      entityType: entity.entity_type || 'Unknown',
+      status: entity.active_inactive_ind === 'A' ? 'Active' : 'Inactive',
+      formationDate: entity.filing_date ? entity.filing_date.split('T')[0] : '',
+      expirationDate: entity.expiration_date ? entity.expiration_date.split('T')[0] : '',
+      jurisdiction: entity.jurisdiction || 'WA',
+      principalOffice: {
+        street: entity.principal_office_street || '',
+        city: entity.principal_office_city || '',
+        state: entity.principal_office_state || 'WA',
+        zip: entity.principal_office_zip || ''
+      },
+      registeredAgent: {
+        name: entity.registered_agent_name || '',
+       address: {
+          street: entity.registered_agent_street || '',
+          city: entity.registered_agent_city || '',
+          state: entity.registered_agent_state || 'WA',
+          zip: entity.registered_agent_zip || ''
+        }
+      },
+      officers: governors.map(g => ({
+        name: g.name,
+        title: g.title || 'Governor',
+        appointmentDate: g.appointmentDate || ''
+      })),
+      governors: governors,  // Include separate governors list
+      businessActivity: entity.nature_of_business || '',
+      filingHistory: []  // Would need separate dataset for filing history
+    };
 
   } catch (error) {
-    console.error('[WA SOS] Scrape error:', error);
+    console.error('[WA SOS] Socrata API error:', error);
     return null;
+  }
+}
+
+// Helper function to fetch governors/principals from WA SOS
+async function fetchWAGovernors(ubiNumber) {
+  try {
+    // Dataset: 4xk5-x9j6 (WA SOS Principal/Governors)
+    const baseUrl = 'https://data.wa.gov/resource/4xk5-x9j6.json';
+    const cleanUbi = ubiNumber.replace(/-/g, '');
+
+    const params = new URLSearchParams();
+    params.append('$where', `ubi='${cleanUbi}' OR ubi='${ubiNumber}'`);
+    params.append('$limit', '20');  // Allow more governors
+
+    const apiUrl = `${baseUrl}?${params.toString()}`;
+
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Altech-Insurance-Platform/1.0',
+        'X-App-Token': process.env.SOCRATA_APP_TOKEN || ''
+      }
+    });
+
+    if (!response.ok) {
+      console.error(`[WA Governors] API returned ${response.status}`);
+      return [];
+    }
+
+    const principals = await response.json();
+    console.log(`[WA Governors] Found ${principals.length} governor(s)`);
+
+    // Extract and format governor data
+    const governors = principals
+      .filter(p => p.principalname && p.principalname.trim())
+      .map(p => ({
+        name: p.principalname,
+        title: p.principaltitle || 'Governor',
+        appointmentDate: p.appointment_date || ''
+      }))
+      .filter((gov, index, self) =>
+        // Remove duplicates by name
+        self.findIndex(g => g.name === gov.name) === index
+      );
+
+    return governors;
+
+  } catch (error) {
+    console.error('[WA Governors] Error fetching governors:', error);
+    return [];
   }
 }
 

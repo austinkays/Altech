@@ -35,8 +35,24 @@
   - Producer section (agency info + contact)
   - Insured section (business name + address)
   - Certificate date
-  - Description of operations
+  - Description of operations (includes governors/owners)
   - Authorized representative signature
+
+### 4. **Socrata API Integration** (WA SOS Data)
+- **Datasets Used**:
+  - `4wur-kfnr`: WA Business Entity Lookup
+  - `4xk5-x9j6`: WA SOS Principals/Governors
+- **App Token**: W6r9WmhDxx16bq7hKsimDvb71 (stored in env)
+- **Features**:
+  - Relational lookup: Entity search → UBI → Governors
+  - Real-time API calls (no HTML scraping)
+  - Governor names displayed in UI
+  - Governor names included in COI Description field
+
+### 5. **Manual Search Links**
+- **Location**: L&I section when no results found
+- **Link**: `https://secure.lni.wa.gov/verify/Detail.aspx?UBI={ubi}`
+- **Behavior**: Button appears when L&I returns no data but UBI is available from SOS
 
 ### 4. **PDF Field Extraction Utility**
 - **Location**: `scripts/extract-pdf-fields.js`
@@ -140,8 +156,9 @@ Vancouver, WA 98665
 ### Input Sources
 1. **Producer Toggle**: Contact name, email, phone
 2. **L&I Search Results**: Business name, address, license type
-3. **SOS Search Results**: (Fallback) Business name, address
-4. **System**: Certificate date (today)
+3. **SOS Search Results**: Business name, address, governors/owners
+4. **Socrata API**: Entity details, principal/governor names
+5. **System**: Certificate date (today)
 
 ### Output Fields
 | ACORD 25 Field | Data Source |
@@ -153,7 +170,7 @@ Vancouver, WA 98665
 | Certificate Date | System date |
 | Insured Name | L&I or SOS results |
 | Insured Address | L&I or SOS results |
-| Description of Operations | License type from L&I |
+| Description of Operations | License type + Governor names from Socrata |
 | Authorized Representative | Producer full name |
 | Certificate Holder | (Left blank for manual entry) |
 
@@ -173,6 +190,7 @@ Vancouver, WA 98665
 3. **Policy Numbers**: Not filled - requires carrier integration
 4. **Text Positioning**: May need fine-tuning for perfect alignment
 5. **Template Encryption**: Bypassed with `ignoreEncryption: true`
+6. **Clark County GIS**: Property data integration not yet implemented
 
 ## 🔮 Future Enhancements
 
@@ -182,6 +200,7 @@ Vancouver, WA 98665
 - [ ] Add coverage limits fields to UI
 - [ ] Policy number integration with carrier APIs
 - [ ] Template positioning calibration tool
+- [ ] Clark County GIS integration (property data: year built, sq footage, construction type)
 
 ### Phase 3 (Advanced)
 - [ ] Multi-page COI support
@@ -229,19 +248,26 @@ sigY: 60
 - [x] Generate COI button appears after search
 - [x] COI generation extracts correct data
 - [x] PDF downloads successfully
+- [x] Socrata API integration retrieves entity data
+- [x] Governors/owners display in UI
+- [x] Governors included in COI Description field
+- [x] Manual L&I search button appears when no results
 - [ ] Text alignment is accurate (needs visual verification)
 - [ ] All fields are readable
 - [ ] PDF opens correctly in Adobe Reader
 - [ ] Austin's info appears correctly
 - [ ] Neil's info appears correctly
+- [ ] Governor names appear in downloaded COI
 
 ## 📝 Deployment Notes
 
 ### Vercel Environment
-- No environment variables needed for basic COI generation
+- Environment variable needed: `SOCRATA_APP_TOKEN=W6r9WmhDxx16bq7hKsimDvb71`
 - pdf-lib runs in Node.js serverless environment
 - Template PDF must be in `Resources/` directory
-- API endpoint: `/api/generate-coi` (POST)
+- API endpoints:
+  - `/api/generate-coi` (POST) - COI generation
+  - `/api/prospect-lookup` (POST) - Business data lookup with Socrata integration
 
 ### Dependencies Added
 ```json
