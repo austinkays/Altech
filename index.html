@@ -4401,23 +4401,33 @@
                         foundation: 'Foundation', constructionStyle: 'Construction',
                         exteriorWalls: 'Exterior', garageSpaces: 'Garage',
                         bedrooms: 'Bedrooms', fullBaths: 'Bathrooms',
-                        yrBuilt: 'Year Built', fireplace: 'Fireplace'
+                        yrBuilt: 'Year Built', numStories: 'Stories', sqFt: 'Sq Ft'
                     };
 
                     const selectFields = ['heatingType', 'cooling', 'roofType', 'foundation', 'constructionStyle', 'exteriorWalls'];
                     for (const fid of selectFields) {
-                        if (!zd[fid]) continue;
+                        if (!zd[fid]) { console.log(`[Zillow] Select ${fid}: no data`); continue; }
                         const el = document.getElementById(fid);
-                        if (!el) continue;
+                        if (!el) { console.log(`[Zillow] Select ${fid}: no element`); continue; }
                         const opts = Array.from(el.options).map(o => o.value);
                         if (opts.includes(zd[fid])) {
                             el.value = zd[fid];
                             this.data[fid] = zd[fid];
                             applied.push(labels[fid] || fid);
+                        } else {
+                            console.log(`[Zillow] Select ${fid}: value "${zd[fid]}" not in options:`, opts);
                         }
                     }
 
-                    const textFields = { yrBuilt: zd.yrBuilt, bedrooms: zd.bedrooms, fullBaths: zd.fullBaths, garageSpaces: zd.garageSpaces };
+                    // Map API field names to form field IDs
+                    const textFields = {
+                        yrBuilt: zd.yrBuilt,
+                        bedrooms: zd.bedrooms,
+                        fullBaths: zd.fullBaths,
+                        garageSpaces: zd.garageSpaces,
+                        numStories: zd.stories,
+                        sqFt: zd.totalSqft
+                    };
                     for (const [fid, val] of Object.entries(textFields)) {
                         if (val == null) continue;
                         const el = document.getElementById(fid);
@@ -4429,8 +4439,8 @@
 
                     if (applied.length > 0) {
                         this.save();
-                        this.toast(`🏠 Found detailed Zillow data: ${applied.join(', ')} applied.`);
-                        console.log(`[Zillow] Enriched ${applied.length} fields via ${result.source}`);
+                        this.toast(`🏠 Property data found (${result.source}): ${applied.join(', ')}`, 6000);
+                        console.log(`[Zillow] Enriched ${applied.length} fields via ${result.source}:`, applied);
                     } else {
                         console.log('[Zillow] Data received but no fields matched form options:', zd);
                     }
