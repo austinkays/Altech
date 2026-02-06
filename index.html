@@ -3952,26 +3952,6 @@
                         }
                     }
                     
-                    // PHASE 2: Try Headless Browser scraping (for non-API counties)
-                    if (!rawParcelData) {
-                        btn.innerHTML = '🔄 Accessing county database...';
-                        
-                        const gisUrl = this.getGISUrlForCounty(city, state);
-                        const browserResponse = await fetch(`/api/headless-browser?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}&gisUrl=${encodeURIComponent(gisUrl || '')}`);
-                        
-                        if (browserResponse.ok) {
-                            const browserData = await browserResponse.json();
-
-                            if (browserData.success && browserData.parcelData) {
-                                rawParcelData = browserData.parcelData;
-                                dataSource = 'phase2-browser';
-                            } else {
-                                // Log the actual error from Phase 2
-                                console.warn('Phase 2 (Headless Browser) failed:', browserData.error || 'Unknown error', browserData);
-                            }
-                        }
-                    }
-                    
                     // PHASE 3: RAG Pattern - Interpret raw data with Gemini
                     if (rawParcelData) {
                         btn.innerHTML = '🧠 Standardizing property data...';
