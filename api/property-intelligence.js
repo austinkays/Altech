@@ -1050,6 +1050,136 @@ async function fetchZillowDirect(url, diag) {
   }
 }
 
+// ===========================================================================
+// Layer D: Gemini Search Grounding (bypasses Zillow blocking entirely)
+// Uses Google's search index to find property details from any real estate site
+// ===========================================================================
+
+async function fetchViaGeminiSearch(address, city, state, zip, diag) {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+  if (!apiKey) {
+    diag.geminiSearchError = 'No API key';
+    return null;
+  }
+
+  const fullAddress = `${address}, ${city}, ${state}${zip ? ' ' + zip : ''}`.trim();
+  console.log(`[Zillow] Layer D: Gemini Search for "${fullAddress}"`);
+
+  const prompt = `Find detailed property/home facts for this specific address: ${fullAddress}
+
+Search real estate listings and public records for this exact property. I need these specific construction and feature details:
+
+Return ONLY valid JSON (no markdown, no code fences) with this exact structure:
+{
+  "heating": "the heating system type (e.g. Forced Air, Baseboard, Heat Pump, Boiler, Radiant)",
+  "cooling": "the cooling system type (e.g. Central Air, Window Units, None)",
+  "roofType": "roof material (e.g. Composition, Asphalt Shingle, Metal, Tile, Wood Shake)",
+  "foundation": "foundation type (e.g. Crawl Space, Slab, Basement, Pier)",
+  "construction": "construction type (e.g. Wood Frame, Masonry, Brick)",
+  "exterior": "exterior wall material (e.g. Vinyl Siding, Wood Siding, Brick, Stucco, Fiber Cement)",
+  "garageSpaces": number_or_null,
+  "bedrooms": number_or_null,
+  "bathrooms": number_or_null,
+  "yearBuilt": number_or_null,
+  "stories": number_or_null,
+  "livingArea": square_feet_number_or_null,
+  "fireplaces": number_or_null,
+  "notes": "source of data and confidence level"
+}
+
+Use null for any field you cannot find. Only include data for THIS SPECIFIC address.`;
+
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const resp = await fetch(geminiUrl, {
+      signal: controller.signal,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        tools: [{ google_search: {} }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 1024
+        }
+      })
+    });
+
+    diag.geminiSearchStatus = resp.status;
+    console.log(`[Zillow] Layer D Gemini HTTP ${resp.status}`);
+
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => '');
+      console.log(`[Zillow] Layer D Gemini failed: ${resp.status}, body: ${errText.substring(0, 300)}`);
+      diag.geminiSearchBody = errText.substring(0, 300);
+      return null;
+    }
+
+    const result = await resp.json();
+    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    diag.geminiSearchResponseLength = text.length;
+    console.log(`[Zillow] Layer D Gemini response (${text.length} chars): ${text.substring(0, 200)}`);
+
+    if (!text) {
+      console.log('[Zillow] Layer D: empty Gemini response');
+      return null;
+    }
+
+    // Extract JSON from response (may be wrapped in markdown code fences)
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.log('[Zillow] Layer D: no JSON found in Gemini response');
+      diag.geminiSearchNoJson = true;
+      return null;
+    }
+
+    const raw = JSON.parse(jsonMatch[0]);
+    const nonNullKeys = Object.keys(raw).filter(k => raw[k] != null && k !== 'notes');
+
+    if (nonNullKeys.length < 2) {
+      console.log(`[Zillow] Layer D: only ${nonNullKeys.length} non-null fields, skipping`);
+      diag.geminiSearchFieldCount = nonNullKeys.length;
+      return null;
+    }
+
+    console.log(`[Zillow] Layer D: extracted ${nonNullKeys.length} fields: ${nonNullKeys.join(', ')}`);
+
+    // Normalize field names to match what mapZillowToAltech expects
+    const normalized = {};
+    if (raw.heating) normalized.heating = raw.heating;
+    if (raw.cooling) normalized.cooling = raw.cooling;
+    if (raw.roofType) normalized.roof = raw.roofType;
+    if (raw.foundation) normalized.foundation = raw.foundation;
+    if (raw.construction) normalized.constructionMaterials = raw.construction;
+    if (raw.exterior) normalized.exteriorFeatures = raw.exterior;
+    if (raw.garageSpaces != null) normalized.garageSpaces = raw.garageSpaces;
+    if (raw.bedrooms != null) normalized.bedrooms = raw.bedrooms;
+    if (raw.bathrooms != null) normalized.bathrooms = raw.bathrooms;
+    if (raw.yearBuilt != null) normalized.yearBuilt = raw.yearBuilt;
+    if (raw.stories != null) normalized.stories = raw.stories;
+    if (raw.livingArea != null) normalized.livingArea = raw.livingArea;
+    if (raw.fireplaces != null) normalized.fireplaces = raw.fireplaces;
+
+    return {
+      raw: normalized,
+      source: 'gemini-search',
+      zillowUrl: diag.zpid
+        ? `https://www.zillow.com/homedetails/${buildSlug(address, city, state, zip || '')}/${diag.zpid}_zpid/`
+        : null
+    };
+  } catch (err) {
+    diag.geminiSearchError = err.name === 'AbortError' ? 'timeout' : err.message;
+    console.log(`[Zillow] Layer D error: ${diag.geminiSearchError}`);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function handleZillow(req, res) {
   const { address, city, state, zip } = req.body;
 
@@ -1082,6 +1212,12 @@ async function handleZillow(req, res) {
       const searchUrl = buildZillowSearchUrl(address, city, state, zip || '');
       console.log(`[Zillow] Layer C URL: ${searchUrl}`);
       result = await fetchZillowDirect(searchUrl, diag);
+    }
+
+    // Layer D: Gemini Search Grounding (bypasses site blocking via Google's index)
+    if (!result) {
+      console.log('[Zillow] Layer C returned null, trying Layer D (Gemini Search)');
+      result = await fetchViaGeminiSearch(address, city, state, zip || '', diag);
     }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
