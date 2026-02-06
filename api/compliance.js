@@ -335,38 +335,51 @@ export default async function handler(req, res) {
         }
       });
 
-      const glPolicies = client.policies.filter(policy =>
-        isGeneralLiabilityPolicy(policy) &&  // Pass full policy object
-        policy.expirationDate // Must have expiration date (camelCase)
-      );
+      const glPolicies = client.policies.filter(policy => {
+        if (!isGeneralLiabilityPolicy(policy)) return false;
+        if (!policy.expirationDate) return false;
+
+        // Filter out policies expired more than 90 days ago
+        const expirationDate = new Date(policy.expirationDate);
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+        if (expirationDate < ninetyDaysAgo) {
+          return false; // Policy expired more than 90 days ago
+        }
+
+        return true;
+      });
 
       if (glPolicies.length > 0) {
-        console.log(`[Compliance] Client "${client.BusinessName || client.FirstName + ' ' + client.LastName}" has ${glPolicies.length} CGL policies`);
+        console.log(`[Compliance] Client "${client.details?.businessName || client.details?.firstName + ' ' + client.details?.lastName}" has ${glPolicies.length} CGL policies`);
         glPoliciesFound += glPolicies.length;
       }
 
       for (const policy of glPolicies) {
         const daysUntilExpiration = calculateDaysUntilExpiration(policy.expirationDate);
-        const clientName = client.BusinessName ||
-                          `${client.FirstName || ''} ${client.LastName || ''}`.trim() ||
+        const clientName = client.details?.businessName ||
+                          `${client.details?.firstName || ''} ${client.details?.lastName || ''}`.trim() ||
                           'Unknown';
 
         const compliancePolicy = {
           policyNumber: policy.policyNumber,
           policyId: policy.id,
-          clientNumber: client.ClientNumber,
+          clientNumber: client.clientNumber,
           clientName: clientName,
-          businessName: client.BusinessName,
+          businessName: client.details?.businessName,
           carrier: policy.carrier || 'Unknown',
           effectiveDate: policy.effectiveDate,
           expirationDate: policy.expirationDate,
+          inceptionDate: policy.inceptionDate,
           daysUntilExpiration: daysUntilExpiration,
           status: getExpirationStatus(daysUntilExpiration),
           requiresManualVerification: requiresManualVerification(policy.carrier || ''),
-          ubi: client.UBI,
-          lniLink: client.UBI ? `https://secure.lni.wa.gov/verify/Detail.aspx?UBI=${client.UBI}` : undefined,
-          email: client.Email,
-          phone: client.Phone
+          ubi: client.details?.ubi,
+          lniLink: client.details?.ubi ? `https://secure.lni.wa.gov/verify/Detail.aspx?UBI=${client.details.ubi}` : undefined,
+          hawkSoftLink: `https://online.hawksoft.com/commercial/clients/details/${client.clientNumber}`,
+          email: client.details?.email,
+          phone: client.details?.phone
         };
 
         compliancePolicies.push(compliancePolicy);
