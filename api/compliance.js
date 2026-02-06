@@ -27,24 +27,56 @@ function getExpirationStatus(daysUntilExpiration) {
   return 'active';
 }
 
-function isGeneralLiabilityPolicy(policyType) {
-  const glKeywords = [
+function isGeneralLiabilityPolicy(policy) {
+  // ACORD Standard Codes for CGL/Liability policies
+  const glCodes = [
+    'cgl',          // Commercial General Liability (ACORD standard)
+    'gl',           // General Liability (shortcode)
+    'bop',          // Business Owners Policy (includes GL coverage)
+    'cumbr',        // Commercial Umbrella (often tied to GL)
     'general liability',
-    'gl',
-    'cgl',
     'commercial general liability',
+    'gen liab',
+    'comm gen liab',
     'liability'
   ];
 
-  const type = policyType.toLowerCase();
-  const matches = glKeywords.some(keyword => type.includes(keyword));
+  // Check multiple possible field names where the code might be stored
+  const fieldsToCheck = [
+    policy.PolicyType,
+    policy.LOB,
+    policy.LOBCode,
+    policy.LineOfBusiness,
+    policy.PolicyCategory,
+    policy.Type,
+    policy.Code
+  ];
 
-  // Log non-matches to help debug
-  if (!matches && policyType) {
-    console.log(`[Compliance] Policy type "${policyType}" did not match CGL keywords`);
+  // Log field values for debugging
+  const fieldValues = fieldsToCheck.map((val, idx) => {
+    const fieldNames = ['PolicyType', 'LOB', 'LOBCode', 'LineOfBusiness', 'PolicyCategory', 'Type', 'Code'];
+    return `${fieldNames[idx]}="${val || 'null'}"`;
+  }).join(', ');
+
+  // Check if any field contains a GL code
+  for (const field of fieldsToCheck) {
+    if (field && typeof field === 'string') {
+      const fieldLower = field.toLowerCase();
+      for (const code of glCodes) {
+        if (fieldLower.includes(code)) {
+          console.log(`[Compliance] ✓ MATCH FOUND: ${fieldValues}`);
+          return true;
+        }
+      }
+    }
   }
 
-  return matches;
+  // Log non-matches with all field values for forensics
+  if (fieldsToCheck.some(f => f)) {
+    console.log(`[Compliance] ✗ NO MATCH: ${fieldValues}`);
+  }
+
+  return false;
 }
 
 function requiresManualVerification(carrier) {
@@ -150,13 +182,17 @@ export default async function handler(req, res) {
 
     console.log(`[Compliance] Fetched details for ${allClients.length} clients`);
 
-    // Log a sample client to see the structure
-    if (allClients.length > 0 && allClients[0].Policies && allClients[0].Policies.length > 0) {
-      console.log('[Compliance] Sample client structure:', JSON.stringify({
-        BusinessName: allClients[0].BusinessName,
-        ClientNumber: allClients[0].ClientNumber,
-        SamplePolicy: allClients[0].Policies[0]
-      }, null, 2));
+    // FORENSIC LOGGING: Output first complete raw policy object
+    if (allClients.length > 0) {
+      for (const client of allClients) {
+        if (client.Policies && client.Policies.length > 0) {
+          console.log('[Compliance] ===== RAW POLICY FORENSICS =====');
+          console.log('[Compliance] Full raw policy object:');
+          console.log(JSON.stringify(client.Policies[0], null, 2));
+          console.log('[Compliance] ===================================');
+          break; // Only log first policy found
+        }
+      }
     }
 
     // Step 3: Extract and filter General Liability policies
@@ -172,15 +208,25 @@ export default async function handler(req, res) {
 
       totalPolicies += client.Policies.length;
 
-      // Log all unique policy types we encounter
+      // Log all unique policy type values from all possible fields
       client.Policies.forEach(policy => {
-        if (policy.PolicyType) {
-          policyTypesFound.add(policy.PolicyType);
-        }
+        const fieldsToCapture = [
+          policy.PolicyType,
+          policy.LOB,
+          policy.LOBCode,
+          policy.LineOfBusiness,
+          policy.PolicyCategory,
+          policy.Type
+        ];
+        fieldsToCapture.forEach(field => {
+          if (field && typeof field === 'string') {
+            policyTypesFound.add(field);
+          }
+        });
       });
 
       const glPolicies = client.Policies.filter(policy =>
-        isGeneralLiabilityPolicy(policy.PolicyType || '') &&
+        isGeneralLiabilityPolicy(policy) &&  // Pass full policy object
         policy.ExpirationDate // Must have expiration date
       );
 
