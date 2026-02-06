@@ -372,6 +372,7 @@ export default async function handler(req, res) {
 
       if (glPolicies.length > 0) {
         const displayName = client.details?.companyName ||
+                           client.details?.dbaName ||
                            (client.people && client.people[0] ? `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim() : 'Unknown');
         console.log(`[Compliance] Client "${displayName}" has ${glPolicies.length} CGL policies`);
         glPoliciesFound += glPolicies.length;
@@ -380,10 +381,11 @@ export default async function handler(req, res) {
       for (const policy of glPolicies) {
         const daysUntilExpiration = calculateDaysUntilExpiration(policy.expirationDate);
 
-        // Get client name from companyName (businesses) or people array (individuals)
+        // Get client name from companyName, dbaName (fallback), or people array (individuals)
         const clientName = client.details?.companyName ||
+                          client.details?.dbaName ||
                           (client.people && client.people[0] ? `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim() : '') ||
-                          'Unknown';
+                          `Client #${client.clientNumber}`;
 
         const compliancePolicy = {
           policyNumber: policy.policyNumber,
