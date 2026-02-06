@@ -1,11 +1,8 @@
 /**
- * CGL Compliance Dashboard API Route
- *
+ * CGL Compliance Dashboard API
  * Fetches General Liability policies from HawkSoft API
- * Route: /app/api/compliance/route.ts
+ * Vercel Serverless Function
  */
-
-import { NextRequest, NextResponse } from 'next/server';
 
 // Non-syncing carriers that require manual verification
 const NON_SYNCING_CARRIERS = [
@@ -15,47 +12,7 @@ const NON_SYNCING_CARRIERS = [
   'BTIS'
 ];
 
-interface HawkSoftPolicy {
-  PolicyId: string;
-  PolicyNumber: string;
-  PolicyType: string;
-  Carrier: string;
-  EffectiveDate: string;
-  ExpirationDate: string;
-  Premium?: number;
-  Status?: string;
-}
-
-interface HawkSoftClient {
-  ClientNumber: number;
-  FirstName: string;
-  LastName: string;
-  BusinessName?: string;
-  Email?: string;
-  Phone?: string;
-  UBI?: string;
-  Policies?: HawkSoftPolicy[];
-}
-
-interface CompliancePolicy {
-  policyNumber: string;
-  policyId: string;
-  clientNumber: number;
-  clientName: string;
-  businessName?: string;
-  carrier: string;
-  effectiveDate: string;
-  expirationDate: string;
-  daysUntilExpiration: number;
-  status: 'active' | 'expiring-soon' | 'critical' | 'expired';
-  requiresManualVerification: boolean;
-  ubi?: string;
-  lniLink?: string;
-  email?: string;
-  phone?: string;
-}
-
-function calculateDaysUntilExpiration(expirationDate: string): number {
+function calculateDaysUntilExpiration(expirationDate) {
   const expDate = new Date(expirationDate);
   const today = new Date();
   const diffTime = expDate.getTime() - today.getTime();
@@ -63,14 +20,14 @@ function calculateDaysUntilExpiration(expirationDate: string): number {
   return diffDays;
 }
 
-function getExpirationStatus(daysUntilExpiration: number): CompliancePolicy['status'] {
+function getExpirationStatus(daysUntilExpiration) {
   if (daysUntilExpiration < 0) return 'expired';
   if (daysUntilExpiration < 30) return 'critical';
   if (daysUntilExpiration < 60) return 'expiring-soon';
   return 'active';
 }
 
-function isGeneralLiabilityPolicy(policyType: string): boolean {
+function isGeneralLiabilityPolicy(policyType) {
   const glKeywords = [
     'general liability',
     'gl',
@@ -83,13 +40,26 @@ function isGeneralLiabilityPolicy(policyType: string): boolean {
   return glKeywords.some(keyword => type.includes(keyword));
 }
 
-function requiresManualVerification(carrier: string): boolean {
+function requiresManualVerification(carrier) {
   return NON_SYNCING_CARRIERS.some(
     nonSyncCarrier => carrier.toLowerCase().includes(nonSyncCarrier.toLowerCase())
   );
 }
 
-export async function GET(request: NextRequest) {
+export default async function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
     // Get HawkSoft credentials from environment
     const HAWKSOFT_CLIENT_ID = process.env.HAWKSOFT_CLIENT_ID;
@@ -97,10 +67,10 @@ export async function GET(request: NextRequest) {
     const HAWKSOFT_AGENCY_ID = process.env.HAWKSOFT_AGENCY_ID;
 
     if (!HAWKSOFT_CLIENT_ID || !HAWKSOFT_CLIENT_SECRET || !HAWKSOFT_AGENCY_ID) {
-      return NextResponse.json(
-        { error: 'HawkSoft API credentials not configured' },
-        { status: 500 }
-      );
+      return res.status(500).json({
+        success: false,
+        error: 'HawkSoft API credentials not configured'
+      });
     }
 
     // Create Basic Auth header
@@ -131,13 +101,14 @@ export async function GET(request: NextRequest) {
 
     if (!changedClientsResponse.ok) {
       console.error('[Compliance] Failed to fetch clients:', changedClientsResponse.status);
-      return NextResponse.json(
-        { error: 'Failed to fetch clients from HawkSoft', status: changedClientsResponse.status },
-        { status: changedClientsResponse.status }
-      );
+      return res.status(changedClientsResponse.status).json({
+        success: false,
+        error: 'Failed to fetch clients from HawkSoft',
+        status: changedClientsResponse.status
+      });
     }
 
-    const clientIds: number[] = await changedClientsResponse.json();
+    const clientIds = await changedClientsResponse.json();
     console.log(`[Compliance] Found ${clientIds.length} clients`);
 
     // Limit to first 100 clients to avoid timeouts
@@ -145,7 +116,7 @@ export async function GET(request: NextRequest) {
 
     // Step 2: Fetch client details in batches
     const batchSize = 50; // Fetch in batches of 50
-    const allClients: HawkSoftClient[] = [];
+    const allClients = [];
 
     for (let i = 0; i < limitedClientIds.length; i += batchSize) {
       const batch = limitedClientIds.slice(i, i + batchSize);
@@ -171,7 +142,7 @@ export async function GET(request: NextRequest) {
     console.log(`[Compliance] Fetched details for ${allClients.length} clients`);
 
     // Step 3: Extract and filter General Liability policies
-    const compliancePolicies: CompliancePolicy[] = [];
+    const compliancePolicies = [];
 
     for (const client of allClients) {
       if (!client.Policies || client.Policies.length === 0) continue;
@@ -187,7 +158,7 @@ export async function GET(request: NextRequest) {
                           `${client.FirstName || ''} ${client.LastName || ''}`.trim() ||
                           'Unknown';
 
-        const compliancePolicy: CompliancePolicy = {
+        const compliancePolicy = {
           policyNumber: policy.PolicyNumber,
           policyId: policy.PolicyId,
           clientNumber: client.ClientNumber,
@@ -214,7 +185,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`[Compliance] Found ${compliancePolicies.length} General Liability policies`);
 
-    return NextResponse.json({
+    return res.status(200).json({
       success: true,
       count: compliancePolicies.length,
       policies: compliancePolicies,
@@ -227,24 +198,10 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('[Compliance] API Error:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message || 'Unknown error'
+    });
   }
-}
-
-// Support OPTIONS for CORS
-export async function OPTIONS(request: NextRequest) {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
 }

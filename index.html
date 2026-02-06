@@ -7,7 +7,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230066cc' width='100' height='100'/><text y='70' x='50' text-anchor='middle' font-size='60' fill='white'>AL</text></svg>">
     <title>Altech Field Lead</title>
-    <script src="validation.js"></script>
     <style>
         /* === APPLE-INSPIRED THEME === */
         :root {
@@ -7079,10 +7078,9 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     tool.classList.add('active');
                     tool.style.display = 'block';
 
-                    // Refresh iframe on open
-                    const iframe = tool.querySelector('iframe');
-                    if (iframe) {
-                        iframe.src = iframe.src;
+                    // Initialize CGL Compliance Dashboard
+                    if (typeof ComplianceDashboard !== 'undefined') {
+                        ComplianceDashboard.init();
                     }
                 }
 
@@ -8369,11 +8367,618 @@ This data is ready to paste into your quoting system.
 
     <!-- CGL COMPLIANCE DASHBOARD CONTAINER -->
     <div id="complianceTool" class="plugin-container" style="background: #f5f5f5;">
-        <iframe
-            src="/compliance"
-            style="width: 100%; height: 100vh; border: none; display: block; margin: 0; padding: 0;"
-            title="CGL Compliance Dashboard"
-        ></iframe>
+        <style>
+            /* CGL Dashboard Styles */
+            .cgl-container {
+                max-width: 1400px;
+                margin: 0 auto;
+                padding: 20px;
+                min-height: 100vh;
+            }
+            .cgl-header {
+                margin-bottom: 32px;
+            }
+            .cgl-title {
+                font-size: 28px;
+                font-weight: 700;
+                margin-bottom: 8px;
+                color: var(--text);
+            }
+            .cgl-subtitle {
+                font-size: 15px;
+                color: var(--text-secondary);
+            }
+            .cgl-stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 16px;
+                margin-bottom: 24px;
+            }
+            .cgl-stat-card {
+                background: var(--bg-card);
+                padding: 16px;
+                border-radius: 12px;
+                box-shadow: 0 2px 10px var(--shadow);
+                border-left: 4px solid var(--apple-blue);
+            }
+            .cgl-stat-card.critical { border-left-color: #FF3B30; }
+            .cgl-stat-card.warning { border-left-color: #FF9500; }
+            .cgl-stat-card.expired { border-left-color: #8E8E93; }
+            .cgl-stat-card.manual { border-left-color: #FF9500; }
+            .cgl-stat-card.updated { border-left-color: #34C759; }
+            .cgl-stat-value {
+                font-size: 28px;
+                font-weight: 700;
+                margin-bottom: 4px;
+            }
+            .cgl-stat-label {
+                font-size: 13px;
+                color: var(--text-secondary);
+            }
+            .cgl-controls {
+                background: var(--bg-card);
+                padding: 16px;
+                border-radius: 12px;
+                margin-bottom: 24px;
+                box-shadow: 0 2px 10px var(--shadow);
+            }
+            .cgl-search-filter {
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+                margin-bottom: 12px;
+            }
+            .cgl-search {
+                flex: 1;
+                min-width: 250px;
+            }
+            .cgl-filter-select {
+                min-width: 200px;
+            }
+            .cgl-button {
+                padding: 10px 20px;
+                background: var(--apple-blue);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: 600;
+                cursor: pointer;
+                white-space: nowrap;
+                transition: background 0.2s;
+            }
+            .cgl-button:hover {
+                background: var(--apple-blue-hover);
+            }
+            .cgl-button.secondary {
+                background: var(--apple-gray);
+            }
+            .cgl-button.secondary:hover {
+                background: #6e6e73;
+            }
+            .cgl-table-container {
+                background: var(--bg-card);
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 2px 10px var(--shadow);
+            }
+            .cgl-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .cgl-table th {
+                background: #f8f8f8;
+                padding: 12px;
+                text-align: left;
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text-secondary);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                border-bottom: 1px solid var(--border);
+            }
+            .cgl-table td {
+                padding: 16px 12px;
+                border-bottom: 1px solid var(--border);
+                font-size: 14px;
+            }
+            .cgl-table tr:hover {
+                background: #fafafa;
+            }
+            .cgl-table tr.updated {
+                background: #f0fdf4;
+            }
+            .cgl-status-badge {
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+            .cgl-status-badge.expired {
+                background: #fee;
+                color: #c00;
+                border: 1px solid #fcc;
+            }
+            .cgl-status-badge.critical {
+                background: #fff3e6;
+                color: #cc6600;
+                border: 1px solid #ffe0b3;
+            }
+            .cgl-status-badge.expiring-soon {
+                background: #fffbeb;
+                color: #cc9900;
+                border: 1px solid #fef3c7;
+            }
+            .cgl-status-badge.active {
+                background: #f0fdf4;
+                color: #166534;
+                border: 1px solid #bbf7d0;
+            }
+            .cgl-toggle {
+                position: relative;
+                display: inline-block;
+                width: 44px;
+                height: 24px;
+            }
+            .cgl-toggle input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+                margin: 0;
+            }
+            .cgl-toggle-slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #ccc;
+                border-radius: 24px;
+                transition: 0.3s;
+            }
+            .cgl-toggle-slider:before {
+                position: absolute;
+                content: "";
+                height: 18px;
+                width: 18px;
+                left: 3px;
+                bottom: 3px;
+                background-color: white;
+                border-radius: 50%;
+                transition: 0.3s;
+            }
+            .cgl-toggle input:checked + .cgl-toggle-slider {
+                background-color: #34C759;
+            }
+            .cgl-toggle input:checked + .cgl-toggle-slider:before {
+                transform: translateX(20px);
+            }
+            .cgl-link {
+                color: var(--apple-blue);
+                text-decoration: none;
+                font-weight: 600;
+            }
+            .cgl-link:hover {
+                text-decoration: underline;
+            }
+            .cgl-loading {
+                text-align: center;
+                padding: 60px 20px;
+            }
+            .cgl-spinner {
+                border: 3px solid var(--border);
+                border-top: 3px solid var(--apple-blue);
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 20px;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .cgl-error {
+                background: #fee;
+                border: 1px solid #fcc;
+                border-radius: 12px;
+                padding: 20px;
+                margin: 20px;
+                text-align: center;
+            }
+            .cgl-error-title {
+                color: #c00;
+                font-weight: 600;
+                margin-bottom: 8px;
+            }
+            .cgl-manual-badge {
+                display: inline-block;
+                padding: 2px 8px;
+                background: #fff3e6;
+                color: #cc6600;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: 600;
+                margin-top: 4px;
+            }
+            .cgl-legend {
+                background: var(--bg-card);
+                border-radius: 12px;
+                padding: 16px;
+                margin-top: 24px;
+                box-shadow: 0 2px 10px var(--shadow);
+            }
+            .cgl-legend-title {
+                font-weight: 600;
+                margin-bottom: 12px;
+            }
+            .cgl-legend-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 12px;
+                font-size: 13px;
+            }
+            .cgl-legend-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .cgl-legend-dot {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+            }
+            .cgl-no-results {
+                text-align: center;
+                padding: 40px;
+                color: var(--text-secondary);
+            }
+        </style>
+
+        <div class="cgl-container">
+            <!-- Header -->
+            <div class="cgl-header">
+                <h1 class="cgl-title">CGL Compliance Dashboard</h1>
+                <p class="cgl-subtitle">Track contractor General Liability insurance expirations and WA State L&I compliance</p>
+                <p class="cgl-subtitle" id="cglLastFetch" style="margin-top: 4px; font-size: 13px;"></p>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="cgl-stats-grid" id="cglStats">
+                <div class="cgl-stat-card">
+                    <div class="cgl-stat-value" id="statTotal">0</div>
+                    <div class="cgl-stat-label">Total Policies</div>
+                </div>
+                <div class="cgl-stat-card critical">
+                    <div class="cgl-stat-value" id="statCritical">0</div>
+                    <div class="cgl-stat-label">Critical (&lt;30d)</div>
+                </div>
+                <div class="cgl-stat-card warning">
+                    <div class="cgl-stat-value" id="statExpiring">0</div>
+                    <div class="cgl-stat-label">Expiring Soon</div>
+                </div>
+                <div class="cgl-stat-card expired">
+                    <div class="cgl-stat-value" id="statExpired">0</div>
+                    <div class="cgl-stat-label">Expired</div>
+                </div>
+                <div class="cgl-stat-card manual">
+                    <div class="cgl-stat-value" id="statManual">0</div>
+                    <div class="cgl-stat-label">Manual Check</div>
+                </div>
+                <div class="cgl-stat-card updated">
+                    <div class="cgl-stat-value" id="statUpdated">0</div>
+                    <div class="cgl-stat-label">Updated</div>
+                </div>
+            </div>
+
+            <!-- Search and Filters -->
+            <div class="cgl-controls">
+                <div class="cgl-search-filter">
+                    <input
+                        type="text"
+                        class="cgl-search"
+                        id="cglSearchInput"
+                        placeholder="Search by client name, policy #, carrier, or UBI..."
+                        style="margin-bottom: 0;"
+                    />
+                    <select class="cgl-filter-select" id="cglFilterSelect" style="margin-bottom: 0;">
+                        <option value="all">All Status</option>
+                        <option value="critical">Critical (&lt;30d)</option>
+                        <option value="expiring-soon">Expiring Soon (30-60d)</option>
+                        <option value="expired">Expired</option>
+                        <option value="manual-verification">Manual Verification</option>
+                        <option value="not-updated">Not Updated</option>
+                    </select>
+                    <button class="cgl-button" onclick="ComplianceDashboard.refresh()">
+                        Refresh Data
+                    </button>
+                    <button class="cgl-button secondary" onclick="ComplianceDashboard.clearUpdated()">
+                        Clear Markers
+                    </button>
+                </div>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+                    Showing <span id="cglFilteredCount">0</span> of <span id="cglTotalCount">0</span> policies
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="cglLoading" class="cgl-loading">
+                <div class="cgl-spinner"></div>
+                <p style="color: var(--text-secondary);">Loading compliance data...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="cglError" class="cgl-error" style="display: none;">
+                <div class="cgl-error-title">Error Loading Data</div>
+                <p id="cglErrorMessage"></p>
+                <button class="cgl-button" onclick="ComplianceDashboard.refresh()" style="margin-top: 16px;">
+                    Retry
+                </button>
+            </div>
+
+            <!-- Policies Table -->
+            <div class="cgl-table-container" id="cglTableContainer" style="display: none;">
+                <table class="cgl-table">
+                    <thead>
+                        <tr>
+                            <th>Updated</th>
+                            <th>Status</th>
+                            <th>Client</th>
+                            <th>Policy #</th>
+                            <th>Carrier</th>
+                            <th>Expiration</th>
+                            <th>UBI</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cglTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Legend -->
+            <div class="cgl-legend">
+                <div class="cgl-legend-title">Legend</div>
+                <div class="cgl-legend-grid">
+                    <div class="cgl-legend-item">
+                        <div class="cgl-legend-dot" style="background: #c00;"></div>
+                        <span><strong>Red:</strong> &lt;30 days or expired</span>
+                    </div>
+                    <div class="cgl-legend-item">
+                        <div class="cgl-legend-dot" style="background: #cc9900;"></div>
+                        <span><strong>Yellow:</strong> 30-60 days</span>
+                    </div>
+                    <div class="cgl-legend-item">
+                        <div class="cgl-legend-dot" style="background: #cc6600;"></div>
+                        <span><strong>⚠️:</strong> Manual verification (Hiscox, IES, HCC, BTIS)</span>
+                    </div>
+                    <div class="cgl-legend-item">
+                        <div class="cgl-legend-dot" style="background: #34C759;"></div>
+                        <span><strong>Green bg:</strong> Updated on state site</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // CGL Compliance Dashboard JavaScript
+            const ComplianceDashboard = {
+                policies: [],
+                updatedPolicies: {},
+
+                init() {
+                    // Load updated policies from localStorage
+                    const stored = localStorage.getItem('compliance_updated_policies');
+                    if (stored) {
+                        try {
+                            this.updatedPolicies = JSON.parse(stored);
+                        } catch (e) {
+                            console.error('Failed to parse stored policies:', e);
+                        }
+                    }
+
+                    // Add event listeners
+                    document.getElementById('cglSearchInput').addEventListener('input', () => this.filterPolicies());
+                    document.getElementById('cglFilterSelect').addEventListener('change', () => this.filterPolicies());
+
+                    // Initial load
+                    this.fetchPolicies();
+                },
+
+                async fetchPolicies() {
+                    const loading = document.getElementById('cglLoading');
+                    const error = document.getElementById('cglError');
+                    const tableContainer = document.getElementById('cglTableContainer');
+
+                    loading.style.display = 'block';
+                    error.style.display = 'none';
+                    tableContainer.style.display = 'none';
+
+                    try {
+                        const response = await fetch('/api/compliance.js');
+
+                        if (!response.ok) {
+                            throw new Error(`Failed to fetch policies: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+
+                        if (!data.success) {
+                            throw new Error(data.error || 'Failed to fetch policies');
+                        }
+
+                        this.policies = data.policies || [];
+
+                        // Update last fetch time
+                        if (data.metadata && data.metadata.fetchedAt) {
+                            const fetchTime = new Date(data.metadata.fetchedAt).toLocaleString();
+                            document.getElementById('cglLastFetch').textContent = `Last updated: ${fetchTime}`;
+                        }
+
+                        this.renderPolicies();
+                        this.updateStats();
+
+                        loading.style.display = 'none';
+                        tableContainer.style.display = 'block';
+
+                    } catch (err) {
+                        loading.style.display = 'none';
+                        error.style.display = 'block';
+                        document.getElementById('cglErrorMessage').textContent = err.message;
+                        console.error('Error fetching policies:', err);
+                    }
+                },
+
+                refresh() {
+                    this.fetchPolicies();
+                },
+
+                togglePolicyUpdated(policyNumber) {
+                    if (this.updatedPolicies[policyNumber]) {
+                        delete this.updatedPolicies[policyNumber];
+                    } else {
+                        this.updatedPolicies[policyNumber] = {
+                            updatedAt: new Date().toISOString(),
+                            updatedBy: 'user'
+                        };
+                    }
+
+                    // Save to localStorage
+                    localStorage.setItem('compliance_updated_policies', JSON.stringify(this.updatedPolicies));
+
+                    // Re-render
+                    this.renderPolicies();
+                    this.updateStats();
+                },
+
+                clearUpdated() {
+                    if (confirm('Clear all "Updated on State Site" markers?')) {
+                        this.updatedPolicies = {};
+                        localStorage.removeItem('compliance_updated_policies');
+                        this.renderPolicies();
+                        this.updateStats();
+                    }
+                },
+
+                filterPolicies() {
+                    const searchTerm = document.getElementById('cglSearchInput').value.toLowerCase();
+                    const filterStatus = document.getElementById('cglFilterSelect').value;
+
+                    const filtered = this.policies.filter(policy => {
+                        // Search filter
+                        const matchesSearch =
+                            policy.clientName.toLowerCase().includes(searchTerm) ||
+                            policy.policyNumber.toLowerCase().includes(searchTerm) ||
+                            policy.carrier.toLowerCase().includes(searchTerm) ||
+                            (policy.ubi && policy.ubi.includes(searchTerm));
+
+                        // Status filter
+                        const matchesStatus =
+                            filterStatus === 'all' ||
+                            (filterStatus === 'critical' && policy.status === 'critical') ||
+                            (filterStatus === 'expiring-soon' && policy.status === 'expiring-soon') ||
+                            (filterStatus === 'expired' && policy.status === 'expired') ||
+                            (filterStatus === 'manual-verification' && policy.requiresManualVerification) ||
+                            (filterStatus === 'not-updated' && !this.updatedPolicies[policy.policyNumber]);
+
+                        return matchesSearch && matchesStatus;
+                    });
+
+                    this.renderPolicies(filtered);
+                },
+
+                renderPolicies(filteredList = null) {
+                    const tbody = document.getElementById('cglTableBody');
+                    const policiesToRender = filteredList || this.policies;
+
+                    document.getElementById('cglFilteredCount').textContent = policiesToRender.length;
+                    document.getElementById('cglTotalCount').textContent = this.policies.length;
+
+                    if (policiesToRender.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="8" class="cgl-no-results">
+                                    No policies found matching your criteria
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+
+                    tbody.innerHTML = policiesToRender.map(policy => {
+                        const isUpdated = !!this.updatedPolicies[policy.policyNumber];
+                        const statusLabel = this.getStatusLabel(policy.daysUntilExpiration);
+                        const expDate = new Date(policy.expirationDate).toLocaleDateString();
+                        const effDate = new Date(policy.effectiveDate).toLocaleDateString();
+
+                        return `
+                            <tr class="${isUpdated ? 'updated' : ''}">
+                                <td>
+                                    <label class="cgl-toggle" title="${isUpdated ? 'Updated on ' + new Date(this.updatedPolicies[policy.policyNumber].updatedAt).toLocaleDateString() : 'Mark as updated on state site'}">
+                                        <input type="checkbox" ${isUpdated ? 'checked' : ''} onchange="ComplianceDashboard.togglePolicyUpdated('${policy.policyNumber}')">
+                                        <span class="cgl-toggle-slider"></span>
+                                    </label>
+                                </td>
+                                <td>
+                                    <span class="cgl-status-badge ${policy.status}">
+                                        ${statusLabel}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600;">${this.escapeHtml(policy.clientName)}</div>
+                                    ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${this.escapeHtml(policy.email)}</div>` : ''}
+                                </td>
+                                <td style="font-family: monospace; font-size: 13px;">
+                                    ${this.escapeHtml(policy.policyNumber)}
+                                </td>
+                                <td>
+                                    <div>${this.escapeHtml(policy.carrier)}</div>
+                                    ${policy.requiresManualVerification ? '<span class="cgl-manual-badge">⚠️ Manual Verification</span>' : ''}
+                                </td>
+                                <td>
+                                    <div>${expDate}</div>
+                                    <div style="font-size: 12px; color: var(--text-secondary);">Eff: ${effDate}</div>
+                                </td>
+                                <td style="font-family: monospace; font-size: 13px;">
+                                    ${policy.ubi || 'N/A'}
+                                </td>
+                                <td>
+                                    ${policy.lniLink ?
+                                        `<a href="${policy.lniLink}" target="_blank" rel="noopener noreferrer" class="cgl-link">WA L&I →</a>` :
+                                        '<span style="color: var(--text-secondary);">No UBI</span>'
+                                    }
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                },
+
+                updateStats() {
+                    document.getElementById('statTotal').textContent = this.policies.length;
+                    document.getElementById('statCritical').textContent = this.policies.filter(p => p.status === 'critical').length;
+                    document.getElementById('statExpiring').textContent = this.policies.filter(p => p.status === 'expiring-soon').length;
+                    document.getElementById('statExpired').textContent = this.policies.filter(p => p.status === 'expired').length;
+                    document.getElementById('statManual').textContent = this.policies.filter(p => p.requiresManualVerification).length;
+                    document.getElementById('statUpdated').textContent = Object.keys(this.updatedPolicies).length;
+                },
+
+                getStatusLabel(daysUntilExpiration) {
+                    if (daysUntilExpiration < 0) return `Expired ${Math.abs(daysUntilExpiration)} days ago`;
+                    if (daysUntilExpiration === 0) return 'Expires today';
+                    if (daysUntilExpiration === 1) return 'Expires tomorrow';
+                    return `${daysUntilExpiration} days`;
+                },
+
+                escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+            };
+        </script>
     </div>
 
 </body>
