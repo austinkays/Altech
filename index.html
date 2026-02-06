@@ -9042,16 +9042,6 @@ This data is ready to paste into your quoting system.
                         this.policies = data.policies || [];
                         console.log('[CGL] Loaded policies:', this.policies.length);
 
-                        // FORENSIC: Log first policy to see client name data
-                        if (this.policies.length > 0) {
-                            console.log('[CGL] ===== FIRST POLICY DATA =====');
-                            console.log('[CGL] Sample policy object:', this.policies[0]);
-                            console.log('[CGL] clientName:', this.policies[0].clientName);
-                            console.log('[CGL] businessName:', this.policies[0].businessName);
-                            console.log('[CGL] clientNumber:', this.policies[0].clientNumber);
-                            console.log('[CGL] ==================================');
-                        }
-
                         // Update last fetch time
                         if (data.metadata && data.metadata.fetchedAt) {
                             const fetchTime = new Date(data.metadata.fetchedAt).toLocaleString();
@@ -9168,10 +9158,7 @@ This data is ready to paste into your quoting system.
                                     </span>
                                 </td>
                                 <td>
-                                    ${policy.hawkSoftLink ?
-                                        `<a href="${policy.hawkSoftLink}" target="_blank" rel="noopener noreferrer" class="cgl-link" style="font-weight: 600;">${this.escapeHtml(policy.clientName)}</a>` :
-                                        `<div style="font-weight: 600;">${this.escapeHtml(policy.clientName)}</div>`
-                                    }
+                                    <div style="font-weight: 600;">${this.escapeHtml(policy.clientName)}</div>
                                     ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${this.escapeHtml(policy.email)}</div>` : ''}
                                 </td>
                                 <td style="font-family: monospace; font-size: 13px;">
