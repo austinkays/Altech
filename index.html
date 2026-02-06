@@ -3938,7 +3938,11 @@
                     btn.disabled = true;
                     btn.innerHTML = '🔄 Querying official county records...';
                     
-                    const arcgisResponse = await fetch(`/api/arcgis-consumer?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&county=${encodeURIComponent(county)}`);
+                    const arcgisResponse = await fetch('/api/property-intelligence?mode=arcgis', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ address, city, state, county })
+                    });
 
                     if (arcgisResponse.ok) {
                         const arcgisData = await arcgisResponse.json();
@@ -3999,7 +4003,7 @@
                     // FALLBACK: No official data available, try satellite hazard detection
                     btn.innerHTML = '🔄 Analyzing satellite imagery...';
                     
-                    const hazardResponse = await fetch('/api/smart-extract.js', {
+                    const hazardResponse = await fetch('/api/property-intelligence?mode=satellite', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ address, city, state, zip })
@@ -4353,9 +4357,11 @@
                 const zip = this.data.addrZip || '';
                 console.log(`[Zillow] Enrichment starting: ${address}, ${city}, ${state} ${zip}`);
                 try {
-                    const resp = await fetch(
-                        `/api/zillow-extract?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&zip=${encodeURIComponent(zip)}`
-                    );
+                    const resp = await fetch('/api/property-intelligence?mode=zillow', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ address, city, state, zip })
+                    });
                     if (!resp.ok) {
                         console.warn(`[Zillow] API returned HTTP ${resp.status}`);
                         return;
