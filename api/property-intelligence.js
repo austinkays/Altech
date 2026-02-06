@@ -748,7 +748,7 @@ IMPORTANT: Look in the listing description text for renovation info like "New ro
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 30000);
 
   try {
     const resp = await fetch(geminiUrl, {
@@ -760,7 +760,7 @@ IMPORTANT: Look in the listing description text for renovation info like "New ro
         tools: [{ google_search: {} }],
         generationConfig: {
           temperature: 0.1,
-          maxOutputTokens: 1024
+          maxOutputTokens: 4096
         }
       })
     });
@@ -783,6 +783,7 @@ IMPORTANT: Look in the listing description text for renovation info like "New ro
     diag.geminiSearchResponseLength = text.length;
     diag.geminiSearchPartsCount = allParts.length;
     console.log(`[Zillow] Gemini response (${text.length} chars, ${allParts.length} parts): ${text.substring(0, 200)}`);
+    console.log(`[Zillow] Part types: ${allParts.map(p => p.text ? 'text' : p.functionCall ? 'functionCall' : 'other').join(', ')}`);
 
     if (!text) {
       console.log('[Zillow] Empty Gemini response');
