@@ -7214,14 +7214,17 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     return { ok: false, error: '⚠️ A valid DOB is required for EZLynx XML.' };
                 }
 
-                // VIN validation - EZLynx requires VIN for vehicle rating
-                if (vehicles) {
-                    const missingVin = vehicles.some(v => !v.vin || v.vin.trim().length === 0);
-                    if (missingVin) {
-                        return { ok: false, error: '⚠️ All vehicles must have a VIN for EZLynx XML export.' };
+                // VIN validation - only for auto/both policies
+                const isAutoPolicy = data.qType === 'auto' || data.qType === 'both';
+                if (isAutoPolicy) {
+                    if (vehicles) {
+                        const missingVin = vehicles.some(v => !v.vin || v.vin.trim().length === 0);
+                        if (missingVin) {
+                            return { ok: false, error: '⚠️ All vehicles must have a VIN for EZLynx XML export.' };
+                        }
+                    } else if ((data.vin || data.vehDesc) && (!data.vin || data.vin.trim().length === 0)) {
+                        return { ok: false, error: '⚠️ Vehicle VIN is required for EZLynx XML export.' };
                     }
-                } else if ((data.vin || data.vehDesc) && (!data.vin || data.vin.trim().length === 0)) {
-                    return { ok: false, error: '⚠️ Vehicle VIN is required for EZLynx XML export.' };
                 }
 
                 const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
