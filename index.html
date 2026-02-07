@@ -7214,6 +7214,16 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     return { ok: false, error: '⚠️ A valid DOB is required for EZLynx XML.' };
                 }
 
+                // VIN validation - EZLynx requires VIN for vehicle rating
+                if (vehicles) {
+                    const missingVin = vehicles.some(v => !v.vin || v.vin.trim().length === 0);
+                    if (missingVin) {
+                        return { ok: false, error: '⚠️ All vehicles must have a VIN for EZLynx XML export.' };
+                    }
+                } else if ((data.vin || data.vehDesc) && (!data.vin || data.vin.trim().length === 0)) {
+                    return { ok: false, error: '⚠️ Vehicle VIN is required for EZLynx XML export.' };
+                }
+
                 const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
                 const streetRaw = (data.addrStreet || '').trim();
                 const streetMatch = streetRaw.match(/^(\d+)\s+(.*)$/);
@@ -7311,14 +7321,16 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         const isFirstDriver = index === 0;
 
                         xml += `    <Driver id="${driverId}">\n`;
+                        const driverFirst = driver.firstName || (isFirstDriver ? (data.firstName || '') : '');
+                        const driverLast = driver.lastName || (isFirstDriver ? (data.lastName || '') : '');
                         xml += '      <Name>\n';
-                        xml += `        <FirstName>${escapeXML(driver.firstName || '')}</FirstName>\n`;
-                        xml += `        <LastName>${escapeXML(driver.lastName || '')}</LastName>\n`;
+                        xml += `        <FirstName>${escapeXML(driverFirst)}</FirstName>\n`;
+                        xml += `        <LastName>${escapeXML(driverLast)}</LastName>\n`;
                         xml += '      </Name>\n';
                         xml += `      <Gender>${escapeXML(mapGender(driver.gender || data.gender) || '')}</Gender>\n`;
                         xml += `      <DOB>${driverDob || ''}</DOB>\n`;
                         xml += `      <DLNumber>${escapeXML(driver.dlNum || '')}</DLNumber>\n`;
-                        xml += `      <DLState>${escapeXML(driver.dlState || '')}</DLState>\n`;
+                        xml += `      <DLState>${escapeXML(driver.dlState || state)}</DLState>\n`;
                         xml += `      <MaritalStatus>${escapeXML(data.maritalStatus || '')}</MaritalStatus>\n`;
                         if (isFirstDriver) {
                             xml += '      <Relation>Insured</Relation>\n';
@@ -7338,7 +7350,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     xml += `      <Gender>${escapeXML(mapGender(data.gender) || '')}</Gender>\n`;
                     xml += `      <DOB>${dob}</DOB>\n`;
                     xml += `      <DLNumber>${escapeXML(data.dlNum || '')}</DLNumber>\n`;
-                    xml += `      <DLState>${escapeXML(data.dlState || '')}</DLState>\n`;
+                    xml += `      <DLState>${escapeXML(data.dlState || state)}</DLState>\n`;
                     xml += `      <MaritalStatus>${escapeXML(data.maritalStatus || '')}</MaritalStatus>\n`;
                     xml += '      <Relation>Insured</Relation>\n';
                     xml += '      <GoodStudent>No</GoodStudent>\n';
@@ -7406,10 +7418,10 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 const vehCount = vehicles ? vehicles.length : (data.vin || data.vehDesc ? 1 : 0);
                 xml += '  <Coverages>\n';
                 xml += '    <GeneralCoverage>\n';
-                xml += `      <BI>${escapeXML(data.liabilityLimits || '')}</BI>\n`;
-                xml += `      <PD>${escapeXML(data.pdLimit || '')}</PD>\n`;
-                xml += `      <UM>${escapeXML(data.umLimits || '')}</UM>\n`;
-                xml += `      <UIM>${escapeXML(data.uimLimits || '')}</UIM>\n`;
+                xml += `      <BI>${escapeXML(data.liabilityLimits || '100/300')}</BI>\n`;
+                xml += `      <PD>${escapeXML(data.pdLimit || '100000')}</PD>\n`;
+                xml += `      <UM>${escapeXML(data.umLimits || '100/300')}</UM>\n`;
+                xml += `      <UIM>${escapeXML(data.uimLimits || '100/300')}</UIM>\n`;
                 xml += `      <Multicar>${vehCount > 1 ? 'Yes' : 'No'}</Multicar>\n`;
                 xml += '    </GeneralCoverage>\n';
 
@@ -7427,7 +7439,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 if (state === 'WA') {
                     xml += '    <StateSpecificCoverage>\n';
                     xml += '      <WA-Coverages>\n';
-                    xml += `        <WA-UMPD>${escapeXML(data.pdLimit || '')}</WA-UMPD>\n`;
+                    xml += `        <WA-UMPD>${escapeXML(data.pdLimit || '25000')}</WA-UMPD>\n`;
                     xml += '        <WA-PIP>10000</WA-PIP>\n';
                     xml += '      </WA-Coverages>\n';
                     xml += '    </StateSpecificCoverage>\n';
@@ -7438,9 +7450,12 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 // VehicleAssignments section (always emit for schema compliance)
                 xml += '  <VehicleAssignments>\n';
                 const vehicleCount = vehicles ? vehicles.length : (data.vin || data.vehDesc ? 1 : 0);
+                const driverCount = drivers ? drivers.length : 1;
                 for (let i = 1; i <= vehicleCount; i++) {
+                    const assignedDriver = (vehicles && vehicles[i-1]?.driverAssignment)
+                        || ((i - 1) % driverCount) + 1;
                     xml += `    <VehicleAssignment id="${i}">\n`;
-                    xml += '      <DriverAssignment/>\n';
+                    xml += `      <DriverAssignment>${assignedDriver}</DriverAssignment>\n`;
                     xml += '    </VehicleAssignment>\n';
                 }
                 xml += '  </VehicleAssignments>\n';
