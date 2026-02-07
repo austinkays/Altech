@@ -45,7 +45,7 @@
         }
 
         body.dark-mode .landing-header {
-            background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e40af 100%);
+            background: linear-gradient(135deg, #4c5ec7 0%, #5c3580 100%);
         }
 
         body.dark-mode .tool-card {
@@ -830,9 +830,9 @@
         /* LANDING PAGE & PLUGIN ARCHITECTURE */
         .landing-page { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
         .landing-header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1d4ed8 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 48px 20px 72px;
+            padding: 48px 20px 40px;
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -842,7 +842,7 @@
             position: absolute;
             top: -50%; left: -50%;
             width: 200%; height: 200%;
-            background: radial-gradient(circle at 30% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+            background: radial-gradient(circle at 30% 50%, rgba(118, 75, 162, 0.2) 0%, transparent 50%);
         }
         .landing-header h1 {
             font-size: 40px;
@@ -869,7 +869,7 @@
         }
         .tools-container {
             max-width: 1200px;
-            margin: -48px auto 60px;
+            margin: 32px auto 60px;
             padding: 0 20px;
             width: 100%;
             position: relative;
@@ -1084,7 +1084,7 @@
     <div id="landingPage" class="landing-page">
         <div class="landing-header">
             <h1>Altech Insurance Tools</h1>
-            <p>Modern insurance tools powered by AI</p>
+            <p>Smart insurance tools for modern agencies</p>
         </div>
 
         <div class="tools-container">
@@ -1094,7 +1094,7 @@
                 <div class="tool-card" onclick="App.openTool('quoting')">
                     <div class="tool-icon icon-blue">PL</div>
                     <h3 class="tool-title">Personal Lines Quoting</h3>
-                    <p class="tool-description">AI-powered insurance intake for Home & Auto policies with multi-format exports.</p>
+                    <p class="tool-description">Smart insurance intake for Home & Auto policies with multi-format exports.</p>
                     <ul class="tool-features">
                         <li>Document scanning (policy, driver license)</li>
                         <li>Multi-driver & multi-vehicle support</li>
@@ -1166,7 +1166,7 @@
                 <div class="tool-card coming-soon">
                     <div class="tool-icon icon-muted">QA</div>
                     <h3 class="tool-title">Policy Q&A Assistant</h3>
-                    <p class="tool-description">AI-powered policy language simplification with plain-English answers.</p>
+                    <p class="tool-description">Smart policy language simplification with plain-English answers.</p>
                     <span class="tool-status soon">Coming Soon</span>
                 </div>
 
@@ -1373,10 +1373,10 @@
                         </button>
                     </div>
                     <button class="btn-primary" onclick="App.smartAutoFill()" style="margin-top: 12px; width: 100%; font-size: 14px; padding: 12px;" id="smartFillBtn">
-                        🛡️ Scan for Hazards (AI-Powered) <span style="background: #ff9800; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 6px; font-weight: 600;">BETA</span>
+                        🛡️ Smart Hazard Scan <span style="background: #ff9800; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 6px; font-weight: 600;">BETA</span>
                     </button>
                     <p style="font-size: 11px; color: var(--text-secondary); margin-top: 6px; text-align: center;">
-                        Uses satellite imagery to detect pools, trampolines, and other property features. AI-powered analysis. <span style="color: #ff9800;">Beta: Best results in Multnomah County, OR.</span>
+                        Uses satellite imagery to detect pools, trampolines, and other property features. Smart analysis powered by satellite + street view. <span style="color: #ff9800;">Beta: Best results in Multnomah County, OR.</span>
                     </p>
                 </div>
             </div>
@@ -2057,56 +2057,9 @@
     <script>
         // 🔒 Encryption Utilities (AES-256-GCM via Web Crypto API)
         const CryptoHelper = {
-            userPIN: null, // Set by user for extra protection
-            
-            async promptForPIN() {
-                // Check if PIN is stored (hashed)
-                const storedHash = localStorage.getItem('altech_pin_hash');
-                
-                if (storedHash) {
-                    // User has PIN set - verify it
-                    const pin = prompt('Enter your PIN to access encrypted data:');
-                    if (!pin) return null;
-                    
-                    const hash = await this.hashPIN(pin);
-                    if (hash !== storedHash) {
-                        alert('❌ Incorrect PIN. Data cannot be decrypted.');
-                        return null;
-                    }
-                    this.userPIN = pin;
-                    return pin;
-                } else {
-                    // First time - ask if they want to set a PIN
-                    const wantsPIN = confirm('🔐 Would you like to set a PIN for extra security? (You can skip this)');
-                    if (!wantsPIN) return 'no-pin';
-                    
-                    const pin = prompt('Create a 4-8 digit PIN (REMEMBER THIS - cannot be recovered):');
-                    if (!pin || pin.length < 4) {
-                        alert('PIN must be at least 4 digits');
-                        return null;
-                    }
-                    
-                    const hash = await this.hashPIN(pin);
-                    localStorage.setItem('altech_pin_hash', hash);
-                    this.userPIN = pin;
-                    return pin;
-                }
-            },
-            
-            async hashPIN(pin) {
-                const encoder = new TextEncoder();
-                const data = encoder.encode(pin + 'altech_salt_2026');
-                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            },
-
             async getEncryptionKey() {
-                // Generate or retrieve encryption key (now with optional PIN)
                 const fingerprint = await this.getDeviceFingerprint();
-                
-                // If PIN is set, include it in key derivation
-                const keySource = this.userPIN ? `${fingerprint}:${this.userPIN}` : fingerprint;
+                const keySource = fingerprint;
                 
                 const keyMaterial = await crypto.subtle.importKey(
                     'raw',
@@ -2246,15 +2199,6 @@
             async init() {
                 // Load dark mode preference
                 this.loadDarkMode();
-
-                // Prompt for PIN if encryption enabled and PIN is set
-                if (this.encryptionEnabled) {
-                    const pin = await CryptoHelper.promptForPIN();
-                    if (pin === null) {
-                        alert('Cannot access encrypted data without PIN. Please refresh and try again.');
-                        return;
-                    }
-                }
 
                 await this.load();
                 await this.loadDocIntelResults();
@@ -4347,7 +4291,7 @@
                 if (confidence === 0.99) {
                     titleText = '✓ Property Data Verified & Standardized';
                     titleColor = '#28a745';
-                    warningText = '✅ Data has been verified by AI and standardized for accuracy (99% confidence).';
+                    warningText = 'Data has been verified and standardized for accuracy (99% confidence).';
                 } else if (confidence === 0.95) {
                     titleText = '✓ Official County Parcel Data Found';
                     titleColor = '#28a745';
@@ -6225,7 +6169,7 @@
                         `;
                     } else {
                         // Single value - show as editable input
-                        const source = data[key + '_source'] || 'AI';
+                        const source = data[key + '_source'] || 'Smart';
                         html += `
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <input type="text" class="data-value" id="field_${key}" value="${value}">
