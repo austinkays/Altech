@@ -915,18 +915,18 @@
         #backToHome {
             display: none;
             position: fixed;
-            top: 14px;
+            bottom: calc(env(safe-area-inset-bottom) + 16px);
             left: 16px;
             z-index: 10001;
             align-items: center;
             gap: 4px;
-            padding: 10px 16px;
+            padding: 10px 14px;
             min-height: 44px;
             min-width: 44px;
             border-radius: 10px;
             cursor: pointer;
             font-weight: 700;
-            font-size: 15px;
+            font-size: 14px;
             color: #fff;
             background: var(--apple-blue);
             border: none;
@@ -967,6 +967,12 @@
         }
         body.dark-mode #breadcrumbBar {
             background: rgba(28, 28, 30, 0.92);
+        }
+        @media (min-width: 1024px) {
+            #backToHome {
+                top: 14px;
+                bottom: auto;
+            }
         }
         #complianceTool { background: var(--bg); }
 
@@ -8086,6 +8092,11 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 });
 
                 this.updateBackButtonVisibility();
+                document.body.classList.remove('tool-active');
+                const backButton = document.getElementById('backToHome');
+                if (backButton) backButton.style.display = 'none';
+                const breadcrumb = document.getElementById('breadcrumbBar');
+                if (breadcrumb) breadcrumb.style.display = 'none';
 
                 // Show landing page
                 document.getElementById('landingPage').style.display = 'flex';
