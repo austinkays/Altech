@@ -31,7 +31,7 @@
   "homepage": "https://github.com/austinkays/Altech#readme",
   "dependencies": {
     "pdf-lib": "^1.17.1",
-    "vercel": "^41.0.2"
+    "vercel": "^50.13.2"
   },
   "devDependencies": {
     "jest": "^29.7.0",
