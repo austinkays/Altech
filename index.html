@@ -97,10 +97,10 @@
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Segoe UI", system-ui, sans-serif;
             background: var(--bg);
             color: var(--text);
-            height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             overscroll-behavior-y: none;
@@ -114,12 +114,12 @@
             backdrop-filter: blur(20px);
             padding: calc(env(safe-area-inset-top) + 16px) 20px 16px;
             border-bottom: 1px solid var(--border);
-            z-index: 100;
+            z-index: 1000;
         }
-        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
         .logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 22px; }
         .logo-icon { width: 40px; height: 40px; background: var(--apple-blue); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; }
-        .header-right { display: flex; align-items: center; gap: 12px; }
+        .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .save-indicator { font-size: 13px; color: var(--success); opacity: 0; transition: opacity 0.3s; font-weight: 500; }
 
         /* Dark Mode Toggle */
@@ -146,29 +146,131 @@
         .progress-fill { height: 100%; background: var(--apple-blue); width: 0%; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
 
         /* === MAIN === */
-        main { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 120px; -webkit-overflow-scrolling: touch; }
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: calc(120px + env(safe-area-inset-bottom));
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+            z-index: 1;
+        }
         .hidden { display: none !important; }
-        .card { background: var(--bg-card); border: none; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06); }
-        h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
-        h3 { font-size: 17px; font-weight: 600; margin: 24px 0 12px; color: var(--text); }
-        .section-subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; font-weight: 400; }
+        .card {
+            background: var(--bg-card);
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            position: relative;
+            z-index: 1;
+        }
+        h2 { font-size: 19px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+        h3 { font-size: 16px; font-weight: 600; margin: 18px 0 10px; color: var(--text); }
+        .section-subtitle { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; font-weight: 400; }
         
         /* === INPUTS === */
         input, select, textarea {
-            width: 100%; padding: 14px 16px; font-size: 17px !important; 
-            background: var(--bg-input); border: none; border-radius: 10px; 
-            color: var(--text); margin-bottom: 12px; transition: all 0.2s;
+            width: 100%; padding: 10px 12px; font-size: 16px !important;
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text); margin-bottom: 8px; transition: all 0.2s;
             font-family: inherit;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+            border-left: 4px solid transparent;
         }
-        input:focus, select:focus, textarea:focus { 
-            outline: none; 
+        input:focus, select:focus, textarea:focus {
+            outline: none;
             background: var(--bg-card);
-            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-color: rgba(0, 122, 255, 0.4);
+            border-left-color: var(--apple-blue);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
         }
-        .label { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+        .label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; display: block; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+        .header-top,
+        .header-right,
+        .quote-card-header,
+        .driver-vehicle-header,
+        .modal-header,
+        .modal-actions,
+        .modal-footer,
+        .export-summary,
+        .quote-actions {
+            flex-wrap: wrap;
+        }
+
+        .grid-2 > div,
+        .grid-3 > div {
+            display: grid;
+            grid-template-columns: minmax(110px, 160px) minmax(0, 1fr);
+            align-items: center;
+            column-gap: 10px;
+        }
+        .grid-2 > div > .label,
+        .grid-3 > div > .label {
+            margin-bottom: 0;
+            text-align: right;
+        }
+        .grid-2 > div > input,
+        .grid-2 > div > select,
+        .grid-2 > div > textarea,
+        .grid-3 > div > input,
+        .grid-3 > div > select,
+        .grid-3 > div > textarea {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 720px) {
+            .grid-2 > div,
+            .grid-3 > div {
+                grid-template-columns: 1fr;
+                row-gap: 6px;
+            }
+            .grid-2 > div > .label,
+            .grid-3 > div > .label {
+                text-align: left;
+                margin-bottom: 4px;
+            }
+        }
+
+        input.is-invalid,
+        select.is-invalid,
+        textarea.is-invalid,
+        input[aria-invalid="true"],
+        select[aria-invalid="true"],
+        textarea[aria-invalid="true"],
+        input:invalid,
+        select:invalid,
+        textarea:invalid {
+            background: rgba(255, 59, 48, 0.08);
+            border-color: rgba(255, 59, 48, 0.6);
+            border-left-color: rgba(255, 59, 48, 0.9);
+        }
+        div:has(> .field-error) > input,
+        div:has(> .field-error) > select,
+        div:has(> .field-error) > textarea {
+            background: rgba(255, 59, 48, 0.08);
+            border-color: rgba(255, 59, 48, 0.6);
+            border-left-color: rgba(255, 59, 48, 0.9);
+        }
+
+        #vin,
+        #addrZip,
+        #coiProducerZip,
+        #coiInsuredZip,
+        #coiHolderZip,
+        #liabilityLimits,
+        #pdLimit,
+        #umLimits,
+        #uimLimits,
+        input[placeholder="1HG..."] {
+            font-family: ui-monospace, "SFMono-Regular", "Roboto Mono", Consolas, "Menlo", monospace;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.2px;
+        }
         
         /* === QUOTE LIBRARY SEARCH === */
         .quote-search-container { margin-bottom: 16px; }
@@ -350,7 +452,7 @@
             right: 0;
             bottom: 0;
             background: rgba(0, 0, 0, 0.6);
-            z-index: 10000;
+            z-index: 9999;
             backdrop-filter: blur(4px);
         }
         .modal-overlay.active {
@@ -508,6 +610,7 @@
             border-top: 1px solid var(--border);
             display: flex;
             gap: 12px;
+            flex-wrap: wrap;
         }
         .modal-footer button {
             flex: 1;
@@ -533,12 +636,13 @@
         /* === FOOTER === */
         footer {
             position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(20px);
             border-top: 1px solid var(--border);
-            padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
-            display: flex; gap: 12px; z-index: 100;
+            padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+            display: flex; gap: 10px; z-index: 1000;
+            box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.08);
         }
-        .btn { flex: 1; padding: 18px 24px; border-radius: 14px; font-weight: 600; font-size: 17px; border: none; cursor: pointer; transition: all 0.2s; }
+        .btn { flex: 1; padding: 14px 18px; border-radius: 12px; font-weight: 600; font-size: 15px; border: none; cursor: pointer; transition: all 0.2s; }
         .btn-primary { background: var(--apple-blue); color: white; box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3); }
         .btn-primary:active { background: var(--apple-blue-hover); transform: scale(0.98); }
         .btn-secondary { background: rgba(0, 122, 255, 0.06); color: var(--apple-blue); border: none; }
@@ -742,7 +846,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 9999;
             padding: 20px;
             animation: fadeIn 0.2s;
         }
@@ -782,10 +886,7 @@
             color: var(--text-secondary);
             line-height: 1.5;
         }
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-        }
+        .modal-actions { display: flex; gap: 12px; flex-wrap: wrap; }
         .modal-btn {
             flex: 1;
             padding: 14px;
@@ -838,7 +939,7 @@
         }
 
         /* LANDING PAGE & PLUGIN ARCHITECTURE */
-        .landing-page { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+        .landing-page { min-height: 100dvh; display: flex; flex-direction: column; background: var(--bg); }
         .landing-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -883,7 +984,7 @@
             padding: 0 20px;
             width: 100%;
             position: relative;
-            z-index: 10;
+            z-index: 1;
         }
         .tools-grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
         @media (min-width: 768px) { .tools-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -917,7 +1018,7 @@
             position: fixed;
             bottom: calc(env(safe-area-inset-bottom) + 16px);
             left: 16px;
-            z-index: 10001;
+            z-index: 1000;
             align-items: center;
             gap: 4px;
             padding: 10px 14px;
@@ -951,7 +1052,7 @@
             position: fixed;
             top: 18px;
             left: 140px;
-            z-index: 1090;
+            z-index: 1000;
             font-size: 13px;
             font-weight: 600;
             color: var(--text-secondary);
@@ -2135,16 +2236,21 @@
             },
 
             async getDeviceFingerprint() {
-                // Create semi-persistent device fingerprint
-                // Combines browser info + stored UUID
-                let uuid = localStorage.getItem('altech_device_uuid');
-                if (!uuid) {
-                    uuid = this.generateUUID();
-                    localStorage.setItem('altech_device_uuid', uuid);
-                }
-                
-                const browserInfo = `${navigator.userAgent}|${screen.width}x${screen.height}|${navigator.language}`;
-                return `${uuid}:${browserInfo}`;
+                // Stable fingerprint: avoids screen dimensions that change on rotation/zoom.
+                const components = [
+                    navigator.userAgent,
+                    navigator.language,
+                    navigator.hardwareConcurrency,
+                    navigator.deviceMemory,
+                    new Date().getTimezoneOffset(),
+                    'ALTECH_FIELD_PRO_v1'
+                ];
+
+                const msgBuffer = new TextEncoder().encode(components.join('||'));
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                return Array.from(new Uint8Array(hashBuffer))
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
             },
 
             generateUUID() {
@@ -2229,6 +2335,8 @@
             mapApiKey: null,
             mapPreviewCache: {},
             mapPreviewTimer: null,
+            saveTimeout: null,
+            saveToken: 0,
             
             workflows: {
                 home: ['step-0', 'step-1', 'step-2', 'step-3', 'step-5', 'step-6'],
@@ -3326,17 +3434,31 @@
                     this.data[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
                 }
 
-                // Encrypt before storing
-                if (this.encryptionEnabled) {
-                    const encrypted = await CryptoHelper.encrypt(this.data);
-                    localStorage.setItem(this.storageKey, encrypted);
-                } else {
-                    localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+                if (this.saveTimeout) {
+                    clearTimeout(this.saveTimeout);
                 }
 
-                const ind = document.getElementById('saveIndicator');
-                ind.style.opacity = 1;
-                setTimeout(() => ind.style.opacity = 0, 1500);
+                this.saveToken += 1;
+                const token = this.saveToken;
+
+                this.saveTimeout = setTimeout(async () => {
+                    if (token !== this.saveToken) return;
+
+                    const dataToSave = JSON.parse(JSON.stringify(this.data || {}));
+
+                    if (this.encryptionEnabled) {
+                        const encrypted = await CryptoHelper.encrypt(dataToSave);
+                        localStorage.setItem(this.storageKey, encrypted);
+                    } else {
+                        localStorage.setItem(this.storageKey, JSON.stringify(dataToSave));
+                    }
+
+                    const ind = document.getElementById('saveIndicator');
+                    if (ind) {
+                        ind.style.opacity = 1;
+                        setTimeout(() => { ind.style.opacity = 0; }, 1500);
+                    }
+                }, 500);
             },
 
             async load() {
@@ -3388,18 +3510,52 @@
 
             // === FEATURES ===
             async decodeVin(el) {
-                const v = el.value.toUpperCase();
-                if(v.length === 17) {
-                    try {
-                        document.getElementById('vinResult').innerText = "🔍 Decoding...";
-                        const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${v}?format=json`);
-                        const d = await r.json();
-                        const r1 = d.Results[0];
-                        const desc = `${r1.ModelYear} ${r1.Make} ${r1.Model}`;
-                        document.getElementById('vehDesc').value = desc;
-                        document.getElementById('vinResult').innerText = "✓ " + desc;
-                        this.data.vehDesc = desc; // Force save
-                    } catch(e) { document.getElementById('vinResult').innerText = "⚠️ Decode Error"; }
+                const v = (el.value || '').toUpperCase().trim();
+                const resultEl = document.getElementById('vinResult');
+                const vinRegex = /^[A-HJ-NPR-Z0-9]{17}$/;
+
+                if (!v) {
+                    if (resultEl) resultEl.innerText = '';
+                    return;
+                }
+
+                if (!vinRegex.test(v)) {
+                    if (resultEl) resultEl.innerText = 'Invalid VIN format (17 chars, no I/O/Q).';
+                    return;
+                }
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+                try {
+                    if (resultEl) resultEl.innerText = 'Decoding VIN...';
+                    const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${v}?format=json`, {
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+
+                    if (!r.ok) {
+                        throw new Error(`VIN decode failed: ${r.status}`);
+                    }
+
+                    const d = await r.json();
+                    const r1 = d && d.Results && d.Results[0];
+                    if (!r1) {
+                        throw new Error('No vehicle data found for VIN');
+                    }
+
+                    const desc = `${r1.ModelYear || ''} ${r1.Make || ''} ${r1.Model || ''}`.trim();
+                    const descEl = document.getElementById('vehDesc');
+                    if (descEl) descEl.value = desc;
+                    if (resultEl) resultEl.innerText = desc ? `OK ${desc}` : 'VIN decoded.';
+                    this.data.vehDesc = desc;
+                } catch (e) {
+                    clearTimeout(timeoutId);
+                    if (resultEl) {
+                        resultEl.innerText = e && e.name === 'AbortError'
+                            ? 'VIN decode timed out. Enter details manually.'
+                            : 'VIN decode failed. Enter details manually.';
+                    }
                 }
             },
 
@@ -3941,25 +4097,57 @@
             async decodeVehicleVin(id, vin) {
                 const vehicle = this.vehicles.find(v => v.id === id);
                 if (!vehicle) return;
-                
-                const vinUpper = vin.toUpperCase();
+
+                const vinUpper = (vin || '').toUpperCase().trim();
                 vehicle.vin = vinUpper;
-                
-                if (vinUpper.length === 17) {
-                    try {
-                        const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vinUpper}?format=json`);
-                        const d = await r.json();
-                        const r1 = d.Results[0];
-                        
-                        vehicle.year = r1.ModelYear || '';
-                        vehicle.make = r1.Make || '';
-                        vehicle.model = r1.Model || '';
-                        
-                        this.renderVehicles();
-                        this.saveDriversVehicles();
-                    } catch(e) {
-                        console.error('VIN decode error:', e);
+
+                const vinRegex = /^[A-HJ-NPR-Z0-9]{17}$/;
+                if (!vinUpper) {
+                    this.renderVehicles();
+                    return;
+                }
+
+                if (!vinRegex.test(vinUpper)) {
+                    if (typeof this.toast === 'function') {
+                        this.toast('Invalid VIN format (17 chars, no I/O/Q).');
                     }
+                    this.renderVehicles();
+                    return;
+                }
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+                try {
+                    const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vinUpper}?format=json`, {
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+
+                    if (!r.ok) {
+                        throw new Error(`VIN decode failed: ${r.status}`);
+                    }
+
+                    const d = await r.json();
+                    const r1 = d && d.Results && d.Results[0];
+                    if (!r1) {
+                        throw new Error('No vehicle data found for VIN');
+                    }
+
+                    vehicle.year = r1.ModelYear || '';
+                    vehicle.make = r1.Make || '';
+                    vehicle.model = r1.Model || '';
+
+                    this.renderVehicles();
+                    this.saveDriversVehicles();
+                } catch (e) {
+                    clearTimeout(timeoutId);
+                    if (typeof this.toast === 'function') {
+                        this.toast(e && e.name === 'AbortError'
+                            ? 'VIN decode timed out. Enter details manually.'
+                            : 'VIN decode failed. Enter details manually.');
+                    }
+                    console.error('VIN decode error:', e);
                 }
             },
 
@@ -9731,7 +9919,7 @@ This data is ready to paste into your quoting system.
                 border-radius: 10px;
                 padding: 12px 16px;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                z-index: 1001;
+                z-index: 1000;
                 display: none;
                 align-items: center;
                 gap: 10px;
