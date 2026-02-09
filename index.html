@@ -982,20 +982,6 @@
         .map-preview-label { font-weight: 600; color: var(--text); margin-bottom: 8px; }
         .map-preview-img { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-input); cursor: pointer; }
         .map-preview-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-        .map-preview-overlay {
-            position: absolute;
-            bottom: 8px;
-            right: 8px;
-            background: rgba(0, 0, 0, 0.65);
-            color: #fff;
-            font-weight: 700;
-            font-size: 11px;
-            padding: 6px 10px;
-            border-radius: 8px;
-            text-align: right;
-            line-height: 1.5;
-            pointer-events: none;
-        }
         @media (min-width: 720px) {
             .map-previews { grid-template-columns: 1fr 1fr; }
             .map-preview-img { height: 200px; }
@@ -1809,20 +1795,14 @@
                 <div class="map-previews">
                     <div class="map-preview-item">
                         <div class="map-preview-label">Street View</div>
-                        <div style="position:relative;">
-                            <img id="streetViewImg" class="map-preview-img" alt="Street View preview" />
-                            <div id="streetViewOverlay" class="map-preview-overlay"></div>
-                        </div>
+                        <img id="streetViewImg" class="map-preview-img" alt="Street View preview" />
                         <div class="map-preview-actions">
                             <button class="btn-utility" onclick="App.openStreetView()">🚶 Open Street View</button>
                         </div>
                     </div>
                     <div class="map-preview-item">
                         <div class="map-preview-label">Satellite View</div>
-                        <div style="position:relative;">
-                            <img id="satelliteViewImg" class="map-preview-img" alt="Satellite preview" />
-                            <div id="satelliteViewOverlay" class="map-preview-overlay"></div>
-                        </div>
+                        <img id="satelliteViewImg" class="map-preview-img" alt="Satellite preview" />
                         <div class="map-preview-actions">
                             <button class="btn-utility" onclick="App.openGoogleMaps()">🗺️ Open Maps</button>
                             <button class="btn-utility" onclick="App.openGoogleEarth()">🛰️ Open Earth</button>
@@ -4049,18 +4029,6 @@
                 streetImg.src = urls.streetViewUrl;
                 satImg.src = urls.satelliteUrl;
                 if (hint) hint.textContent = ' ';
-                this.updateMapOverlays();
-            },
-
-            updateMapOverlays() {
-                const overlayStreet = document.getElementById('streetViewOverlay');
-                const overlaySat = document.getElementById('satelliteViewOverlay');
-                const clientName = `${this.data.firstName || ''} ${this.data.lastName || ''}`.trim() || 'Client';
-                const now = new Date();
-                const exportDate = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}-${now.getFullYear()}`;
-                const overlayHtml = `Client Name: ${clientName}<br>Export Date: ${exportDate}`;
-                if (overlayStreet) overlayStreet.innerHTML = overlayHtml;
-                if (overlaySat) overlaySat.innerHTML = overlayHtml;
             },
 
             scheduleMapPreviewUpdate() {
@@ -4506,7 +4474,8 @@
                 const vehicle = this.vehicles.find(v => v.id === id);
                 if (vehicle) {
                     vehicle[field] = value;
-                    this.saveDriversVehicles();
+                    clearTimeout(this._vehicleSaveTimer);
+                    this._vehicleSaveTimer = setTimeout(() => this.saveDriversVehicles(), 300);
                 }
             },
 
@@ -4594,22 +4563,25 @@
                             placeholder="1HG...">
                         <div class="hint" style="margin-top:6px;">No VIN? Leave blank and fill Year/Make/Model below.</div>
                         
-                        <div class="grid-2" style="grid-template-columns: 80px 1fr 1fr;">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                             <div>
                                 <label class="label">Year</label>
-                                <input type="text" value="${vehicle.year || ''}" 
+                                <input type="text" inputmode="numeric" maxlength="4" value="${vehicle.year || ''}" 
+                                    oninput="App.updateVehicle('${vehicle.id}', 'year', this.value)"
                                     onchange="App.updateVehicle('${vehicle.id}', 'year', this.value)" 
-                                    placeholder="2020">
+                                    placeholder="2020" style="min-width:0;">
                             </div>
                             <div>
                                 <label class="label">Make</label>
                                 <input type="text" value="${vehicle.make || ''}" 
+                                    oninput="App.updateVehicle('${vehicle.id}', 'make', this.value)"
                                     onchange="App.updateVehicle('${vehicle.id}', 'make', this.value)" 
                                     placeholder="Honda">
                             </div>
                             <div>
                                 <label class="label">Model</label>
                                 <input type="text" value="${vehicle.model || ''}" 
+                                    oninput="App.updateVehicle('${vehicle.id}', 'model', this.value)"
                                     onchange="App.updateVehicle('${vehicle.id}', 'model', this.value)" 
                                     placeholder="Civic">
                             </div>
