@@ -116,9 +116,25 @@
             border-bottom: 1px solid var(--border);
             z-index: 1000;
         }
-        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
-        .logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 22px; }
-        .logo-icon { width: 40px; height: 40px; background: var(--apple-blue); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+        .logo { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 22px; }
+        .logo-controls { display: inline-flex; align-items: center; gap: 8px; }
+        .tool-header-brand { margin-left: 80px; }
+        .logo-icon-button {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo-icon-button:focus-visible {
+            outline: 2px solid var(--apple-blue);
+            outline-offset: 4px;
+            border-radius: 10px;
+        }
+        .logo-icon { width: 36px; height: 36px; background: var(--apple-blue); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; }
         .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .save-indicator { font-size: 13px; color: var(--success); opacity: 0; transition: opacity 0.3s; font-weight: 500; }
 
@@ -126,18 +142,38 @@
         .dark-mode-toggle {
             background: var(--bg-input);
             border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 6px 12px;
-            font-size: 18px;
+            border-radius: 10px;
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
             cursor: pointer;
             transition: all 0.3s;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
         }
         .dark-mode-toggle:hover {
             background: var(--bg-card);
             transform: scale(1.05);
+        }
+
+        @media (max-width: 600px) {
+            header { padding: calc(env(safe-area-inset-top) + 12px) 14px 12px; }
+            .header-top { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .tool-header-brand { margin-left: 0; }
+            .logo { font-size: 18px; }
+            .logo-icon { width: 32px; height: 32px; border-radius: 8px; font-size: 15px; }
+            .dark-mode-toggle { width: 32px; height: 32px; font-size: 15px; }
+            .step-title { font-size: 12px; text-align: left; }
+            .header-right { width: 100%; justify-content: flex-start; gap: 8px; }
+            .save-indicator { margin-left: 0; }
+        }
+
+        @media (min-width: 1024px) {
+            header { padding: calc(env(safe-area-inset-top) + 18px) 28px 18px; }
+            .tool-header-brand { margin-left: 32px; }
+            .logo { font-size: 23px; }
+            .logo-icon { width: 38px; height: 38px; border-radius: 10px; }
         }
 
         .step-title { font-size: 14px; color: var(--text-secondary); font-weight: 600; text-align: center; margin-bottom: 8px; }
@@ -941,76 +977,126 @@
         /* LANDING PAGE & PLUGIN ARCHITECTURE */
         .landing-page { min-height: 100dvh; display: flex; flex-direction: column; background: var(--bg); }
         .landing-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 48px 20px 40px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
+            background: var(--bg-card);
+            color: var(--text);
+            padding: 28px 20px 22px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
         }
-        .landing-header::before {
-            content: '';
-            position: absolute;
-            top: -50%; left: -50%;
-            width: 200%; height: 200%;
-            background: radial-gradient(circle at 30% 50%, rgba(118, 75, 162, 0.2) 0%, transparent 50%);
-        }
+        .landing-header::before { display: none; }
         .landing-header h1 {
-            font-size: 40px;
-            margin: 0 0 8px 0;
+            font-size: 28px;
+            margin: 0 0 6px 0;
             font-weight: 800;
-            letter-spacing: -1px;
-            position: relative;
-            z-index: 1;
-            line-height: 1.1;
+            letter-spacing: -0.5px;
+            line-height: 1.15;
         }
         .landing-header p {
-            font-size: 16px;
-            opacity: 0.7;
+            font-size: 14px;
             margin: 0;
-            font-weight: 400;
-            letter-spacing: 0.3px;
-            position: relative;
-            z-index: 1;
+            color: var(--text-secondary);
+            letter-spacing: 0;
         }
         @media (max-width: 768px) {
-            .landing-header h1 { font-size: 32px; }
-            .landing-header p { font-size: 16px; }
-            .landing-header { padding: 48px 20px 64px; }
+            .landing-header h1 { font-size: 22px; }
+            .landing-header p { font-size: 13px; }
+            .landing-header { padding: 22px 16px 18px; }
         }
         .tools-container {
-            max-width: 1200px;
-            margin: 32px auto 60px;
-            padding: 0 20px;
+            max-width: 1100px;
+            margin: 20px auto 36px;
+            padding: 0 16px;
             width: 100%;
             position: relative;
             z-index: 1;
         }
-        .tools-grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
-        @media (min-width: 768px) { .tools-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1024px) { .tools-grid { grid-template-columns: repeat(3, 1fr); } }
+        .tools-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+        @media (min-width: 720px) { .tools-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1100px) { .tools-grid { grid-template-columns: repeat(3, 1fr); } }
 
-        .tool-card { background: var(--bg-card); border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all 0.25s ease; cursor: pointer; border: 1px solid var(--border); position: relative; overflow: hidden; }
-        .tool-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #2563eb, #7c3aed); }
-        .tool-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); border-color: rgba(37, 99, 235, 0.3); }
+        .tool-card {
+            background: var(--bg-card);
+            border-radius: 14px;
+            padding: 18px 18px 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(0,122,255,0.85), rgba(0,122,255,0.2));
+        }
+        @media (hover: hover) and (min-width: 900px) {
+            .tool-card:hover,
+            .tool-card:focus-within {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 18px rgba(0,0,0,0.1);
+                border-color: rgba(0, 122, 255, 0.4);
+            }
+        }
+        .tool-card:active { transform: translateY(0); }
         .tool-card.coming-soon { opacity: 0.5; cursor: default; }
         .tool-card.coming-soon::before { background: #cbd5e1; }
         .tool-card.coming-soon:hover { transform: none; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
 
-        .tool-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: white; margin-bottom: 14px; }
+        .tool-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 10px;
+        }
         .tool-icon.icon-blue { background: #2563eb; }
         .tool-icon.icon-emerald { background: #059669; }
         .tool-icon.icon-amber { background: #d97706; }
         .tool-icon.icon-indigo { background: #4f46e5; }
         .tool-icon.icon-muted { background: #94a3b8; }
-        .tool-title { font-size: 18px; font-weight: 700; margin: 0 0 6px 0; color: var(--text); }
-        .tool-description { font-size: 14px; color: var(--text-secondary); margin: 0 0 14px 0; line-height: 1.5; }
-        .tool-features { list-style: none; padding: 0; margin: 0 0 16px 0; }
-        .tool-features li { font-size: 13px; color: var(--text-secondary); padding: 3px 0; }
-        .tool-features li::before { content: "\2713"; color: var(--success); margin-right: 8px; font-weight: 700; font-size: 11px; }
+        .tool-title { font-size: 16px; font-weight: 700; margin: 0 0 4px 0; color: var(--text); }
+        .tool-description { font-size: 13px; color: var(--text-secondary); margin: 0 0 10px 0; line-height: 1.4; }
+        .tool-features { display: none; }
 
-        .tool-status { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .tool-status.ready { background: rgba(16, 185, 129, 0.1); color: #059669; }
+        .tool-more {
+            margin-top: 6px;
+        }
+        .tool-more summary {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--apple-blue);
+            cursor: pointer;
+            user-select: none;
+        }
+        .tool-more summary::-webkit-details-marker { display: none; }
+        .tool-more summary::after {
+            content: "+";
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+        .tool-more[open] summary::after {
+            content: "–";
+        }
+        .tool-more[open] .tool-features {
+            display: block;
+            margin-top: 8px;
+        }
+
+        .tool-status { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 14px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+        .tool-status.ready { background: rgba(16, 185, 129, 0.12); color: #059669; }
         .tool-status.soon { background: var(--bg-input); color: var(--text-secondary); }
 
         #backToHome {
@@ -1243,12 +1329,15 @@
                     <div class="tool-icon icon-blue">PL</div>
                     <h3 class="tool-title">Personal Lines Quoting</h3>
                     <p class="tool-description">Smart insurance intake for Home & Auto policies with multi-format exports.</p>
-                    <ul class="tool-features">
-                        <li>Document scanning (policy, driver license)</li>
-                        <li>Multi-driver & multi-vehicle support</li>
-                        <li>GIS property auto-fill (15+ fields)</li>
-                        <li>Export to EZLynx, HawkSoft, PDF, CSV</li>
-                    </ul>
+                    <details class="tool-more" onclick="event.stopPropagation();">
+                        <summary onclick="event.stopPropagation();">More</summary>
+                        <ul class="tool-features">
+                            <li>Document scanning (policy, driver license)</li>
+                            <li>Multi-driver & multi-vehicle support</li>
+                            <li>GIS property auto-fill (15+ fields)</li>
+                            <li>Export to EZLynx, HawkSoft, PDF, CSV</li>
+                        </ul>
+                    </details>
                     <span class="tool-status ready">Ready</span>
                 </div>
 
@@ -1257,12 +1346,15 @@
                     <div class="tool-icon icon-emerald">COI</div>
                     <h3 class="tool-title">COI Generator</h3>
                     <p class="tool-description">Instant ACORD 25 Certificates of Insurance for contractors and businesses.</p>
-                    <ul class="tool-features">
-                        <li>Generate COIs in under 3 minutes</li>
-                        <li>Add additional insureds</li>
-                        <li>Custom endorsements (CG 20 10, CG 20 37)</li>
-                        <li>Save certificate templates</li>
-                    </ul>
+                    <details class="tool-more" onclick="event.stopPropagation();">
+                        <summary onclick="event.stopPropagation();">More</summary>
+                        <ul class="tool-features">
+                            <li>Generate COIs in under 3 minutes</li>
+                            <li>Add additional insureds</li>
+                            <li>Custom endorsements (CG 20 10, CG 20 37)</li>
+                            <li>Save certificate templates</li>
+                        </ul>
+                    </details>
                     <span class="tool-status ready">Ready</span>
                 </div>
 
@@ -1271,12 +1363,15 @@
                     <div class="tool-icon icon-amber">PI</div>
                     <h3 class="tool-title">Prospect Investigator</h3>
                     <p class="tool-description">Deep-dive intelligence on commercial prospects with public records lookup.</p>
-                    <ul class="tool-features">
-                        <li>WA L&I contractor license verification</li>
-                        <li>Business entity & ownership records</li>
-                        <li>OSHA violations & safety history</li>
-                        <li>Business classification & activities</li>
-                    </ul>
+                    <details class="tool-more" onclick="event.stopPropagation();">
+                        <summary onclick="event.stopPropagation();">More</summary>
+                        <ul class="tool-features">
+                            <li>WA L&I contractor license verification</li>
+                            <li>Business entity & ownership records</li>
+                            <li>OSHA violations & safety history</li>
+                            <li>Business classification & activities</li>
+                        </ul>
+                    </details>
                     <span class="tool-status ready">Ready</span>
                 </div>
 
@@ -1285,12 +1380,15 @@
                     <div class="tool-icon icon-indigo">CGL</div>
                     <h3 class="tool-title">CGL Compliance Dashboard</h3>
                     <p class="tool-description">Track contractor General Liability insurance expirations and WA State L&I compliance.</p>
-                    <ul class="tool-features">
-                        <li>Real-time HawkSoft policy tracking</li>
-                        <li>Color-coded expiration alerts (&lt;30d red)</li>
-                        <li>Direct WA L&I verification links</li>
-                        <li>Manual verification flags (Hiscox, IES, etc.)</li>
-                    </ul>
+                    <details class="tool-more" onclick="event.stopPropagation();">
+                        <summary onclick="event.stopPropagation();">More</summary>
+                        <ul class="tool-features">
+                            <li>Real-time HawkSoft policy tracking</li>
+                            <li>Color-coded expiration alerts (&lt;30d red)</li>
+                            <li>Direct WA L&I verification links</li>
+                            <li>Manual verification flags (Hiscox, IES, etc.)</li>
+                        </ul>
+                    </details>
                     <span class="tool-status ready">Ready</span>
                 </div>
 
@@ -1331,13 +1429,18 @@
 
     <header>
         <div class="header-top">
-            <div style="display:flex;align-items:center;gap:8px;margin-left:80px;">
-                <div class="logo"><div class="logo-icon">🏠</div> Insurance Intake</div>
+            <div class="logo tool-header-brand">
+                <span class="logo-controls">
+                    <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                        <span class="logo-icon">🏠</span>
+                    </button>
+                    <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                        <span class="dark-mode-icon">🌙</span>
+                    </button>
+                </span>
+                <span>Insurance Intake</span>
             </div>
             <div class="header-right">
-                <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" id="darkModeToggle" title="Toggle dark mode">
-                    <span id="darkModeIcon">🌙</span>
-                </button>
                 <div id="saveIndicator" class="save-indicator">✓ Saved</div>
             </div>
         </div>
@@ -2453,24 +2556,26 @@
             },
 
             // Dark Mode Functions
+            updateDarkModeIcons(isDark) {
+                document.querySelectorAll('.dark-mode-icon').forEach(icon => {
+                    icon.textContent = isDark ? '☀️' : '🌙';
+                });
+            },
+
             loadDarkMode() {
                 const darkMode = localStorage.getItem('altech_dark_mode');
-                if (darkMode === 'true') {
+                const isDark = darkMode === 'true';
+                if (isDark) {
                     document.body.classList.add('dark-mode');
-                    const icon = document.getElementById('darkModeIcon');
-                    if (icon) icon.textContent = '☀️';
                 }
+                this.updateDarkModeIcons(isDark);
             },
 
             toggleDarkMode() {
                 document.body.classList.toggle('dark-mode');
                 const isDark = document.body.classList.contains('dark-mode');
                 localStorage.setItem('altech_dark_mode', isDark);
-
-                const icon = document.getElementById('darkModeIcon');
-                if (icon) {
-                    icon.textContent = isDark ? '☀️' : '🌙';
-                }
+                this.updateDarkModeIcons(isDark);
             },
 
             initPlaces() {
@@ -9150,7 +9255,17 @@ This data is ready to paste into your quoting system.
     <div id="coiTool" class="plugin-container">
         <header>
             <div class="header-top">
-                <div style="margin-left:80px;" class="logo"><div class="logo-icon">📄</div> COI Generator</div>
+                <div class="logo tool-header-brand">
+                    <span class="logo-controls">
+                        <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                            <span class="logo-icon">📄</span>
+                        </button>
+                        <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                            <span class="dark-mode-icon">🌙</span>
+                        </button>
+                    </span>
+                    <span>COI Generator</span>
+                </div>
                 <button class="btn-utility" onclick="COI.printCOI()" style="font-size: 14px; padding: 8px 16px;">
                     🖨️ Print/Save PDF
                 </button>
@@ -9433,7 +9548,17 @@ This data is ready to paste into your quoting system.
     <div id="prospectTool" class="plugin-container">
         <header>
             <div class="header-top">
-                <div style="margin-left:80px;" class="logo"><div class="logo-icon">🔍</div> Prospect Investigator</div>
+                <div class="logo tool-header-brand">
+                    <span class="logo-controls">
+                        <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                            <span class="logo-icon">🔍</span>
+                        </button>
+                        <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                            <span class="dark-mode-icon">🌙</span>
+                        </button>
+                    </span>
+                    <span>Prospect Investigator</span>
+                </div>
                 <div style="display: flex; gap: 12px; align-items: center;">
                     <!-- Producer Toggle -->
                     <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 4px; display: flex; gap: 4px;">
@@ -10035,8 +10160,16 @@ This data is ready to paste into your quoting system.
 
         <header>
             <div class="header-top">
-                <div style="display:flex;align-items:center;gap:8px;margin-left:80px;">
-                    <div class="logo"><div class="logo-icon">📋</div> CGL Compliance</div>
+                <div class="logo tool-header-brand">
+                    <span class="logo-controls">
+                        <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                            <span class="logo-icon">📋</span>
+                        </button>
+                        <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                            <span class="dark-mode-icon">🌙</span>
+                        </button>
+                    </span>
+                    <span>CGL Compliance</span>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <button class="btn-utility" onclick="ComplianceDashboard.refresh()" style="font-size: 14px; padding: 8px 16px;">
