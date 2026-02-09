@@ -1634,6 +1634,12 @@
                     <div><label class="label">First Name</label><input type="text" id="firstName" placeholder="John" autocomplete="given-name"></div>
                     <div><label class="label">Last Name</label><input type="text" id="lastName" placeholder="Smith" autocomplete="family-name"></div>
                 </div>
+
+                <div class="grid-2">
+                    <div><label class="label">First Name Pronunciation (optional)</label><input type="text" id="firstNamePhonetic" placeholder="john (jon)"></div>
+                    <div><label class="label">Last Name Pronunciation (optional)</label><input type="text" id="lastNamePhonetic" placeholder="nguyen (win)"></div>
+                </div>
+                <div class="hint" style="margin-top:6px;">Example: Siobhan -> "shi-VAWN"</div>
                 
                 <label class="label">Email Address</label>
                 <input type="email" id="email" placeholder="john@example.com" autocomplete="email">
@@ -4536,11 +4542,12 @@
                             <button class="remove-btn" onclick="App.removeVehicle('${vehicle.id}')" title="Remove vehicle">×</button>
                         </div>
                         
-                        <label class="label">VIN (17 Characters) - Auto-fills year/make/model</label>
+                        <label class="label">VIN (optional) - Auto-fills year/make/model</label>
                         <input type="text" maxlength="17" value="${vehicle.vin || ''}" 
                             onchange="App.decodeVehicleVin('${vehicle.id}', this.value)" 
                             style="text-transform:uppercase;font-family:monospace" 
                             placeholder="1HG...">
+                        <div class="hint" style="margin-top:6px;">No VIN? Leave blank and fill Year/Make/Model below.</div>
                         
                         <div class="grid-2" style="grid-template-columns: 80px 1fr 1fr;">
                             <div>
@@ -7226,6 +7233,16 @@
             },
 
             // === NOTES & EXPORT ===
+            getNamePronunciation(data) {
+                const first = (data.firstNamePhonetic || '').trim();
+                const last = (data.lastNamePhonetic || '').trim();
+
+                if (!first && !last) return '';
+                if (first && last) return `First: ${first} | Last: ${last}`;
+                if (first) return `First: ${first}`;
+                return `Last: ${last}`;
+            },
+
             getNotesForData(data) {
                 return `
 === CLIENT INFORMATION ===
@@ -7466,6 +7483,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
 
                 addSection('Client Profile', [
                     ['Name', clientName],
+                    ['Name Pronunciation', this.getNamePronunciation(data)],
                     ['Date of Birth', formatDate(data.dob || '')],
                     ['Email', data.email || ''],
                     ['Phone', data.phone || ''],
@@ -7869,18 +7887,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     return { ok: false, error: '⚠️ A valid DOB is required for EZLynx XML.' };
                 }
 
-                // VIN validation - only for auto/both policies
-                const isAutoPolicy = data.qType === 'auto' || data.qType === 'both';
-                if (isAutoPolicy) {
-                    if (vehicles) {
-                        const missingVin = vehicles.some(v => !v.vin || v.vin.trim().length === 0);
-                        if (missingVin) {
-                            return { ok: false, error: '⚠️ All vehicles must have a VIN for EZLynx XML export.' };
-                        }
-                    } else if ((data.vin || data.vehDesc) && (!data.vin || data.vin.trim().length === 0)) {
-                        return { ok: false, error: '⚠️ Vehicle VIN is required for EZLynx XML export.' };
-                    }
-                }
+                // VIN is optional for EZLynx XML export
 
                 const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
                 const streetRaw = (data.addrStreet || '').trim();
@@ -8030,10 +8037,13 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 if (vehicles) {
                     vehicles.forEach((vehicle, index) => {
                         const vehicleId = index + 1;
+                        const hasVin = vehicle.vin && vehicle.vin.trim().length > 0;
                         xml += `    <Vehicle id="${vehicleId}">\n`;
-                        xml += '      <UseVinLookup>Yes</UseVinLookup>\n';
+                        xml += `      <UseVinLookup>${hasVin ? 'Yes' : 'No'}</UseVinLookup>\n`;
                         xml += `      <Year>${escapeXML(vehicle.year || '')}</Year>\n`;
-                        xml += `      <Vin>${escapeXML(vehicle.vin || '')}</Vin>\n`;
+                        if (hasVin) {
+                            xml += `      <Vin>${escapeXML(vehicle.vin || '')}</Vin>\n`;
+                        }
                         xml += `      <Make>${escapeXML(vehicle.make || '')}</Make>\n`;
                         xml += `      <Model>${escapeXML(vehicle.model || '')}</Model>\n`;
                         xml += '      <Anti-Theft>None</Anti-Theft>\n';
@@ -8050,10 +8060,13 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         };
                     };
                     const { year, make, model } = parseVehicle(data.vehDesc);
+                    const hasVin = data.vin && data.vin.trim().length > 0;
                     xml += '    <Vehicle id="1">\n';
-                    xml += '      <UseVinLookup>Yes</UseVinLookup>\n';
+                    xml += `      <UseVinLookup>${hasVin ? 'Yes' : 'No'}</UseVinLookup>\n`;
                     xml += `      <Year>${escapeXML(year)}</Year>\n`;
-                    xml += `      <Vin>${escapeXML(data.vin || '')}</Vin>\n`;
+                    if (hasVin) {
+                        xml += `      <Vin>${escapeXML(data.vin || '')}</Vin>\n`;
+                    }
                     xml += `      <Make>${escapeXML(make)}</Make>\n`;
                     xml += `      <Model>${escapeXML(model)}</Model>\n`;
                     xml += '      <Anti-Theft>None</Anti-Theft>\n';
