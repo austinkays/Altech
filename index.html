@@ -704,6 +704,7 @@
         .btn-primary:active { background: var(--apple-blue-hover); transform: scale(0.98); }
         .btn-secondary { background: rgba(0, 122, 255, 0.06); color: var(--apple-blue); border: none; }
         .btn-secondary:active { background: var(--bg-input); }
+        .btn-compact { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; border-radius: 10px; }
         .btn-step-back {
             background: transparent;
             color: var(--text-secondary);
@@ -747,6 +748,9 @@
         .toast.show { opacity: 1; }
         .hint { font-size: 14px; color: var(--text-secondary); background: var(--bg-input); padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; line-height: 1.4; }
         .divider { height: 1px; background: var(--border); margin: 24px 0; }
+        .pronunciation-row { margin-top: 12px; }
+        .pronunciation-input { display: flex; gap: 10px; align-items: center; }
+        .pronunciation-input input { flex: 1; }
         
         /* === QUOTE CARDS (Beautiful Modern Design) === */
         .quote-list { display: flex; flex-direction: column; gap: 12px; }
@@ -1635,14 +1639,11 @@
                     <div><label class="label">Last Name</label><input type="text" id="lastName" placeholder="Smith" autocomplete="family-name"></div>
                 </div>
 
-                <div class="grid-2" style="align-items:end;">
-                    <div>
-                        <label class="label">Name Pronunciation (AI)</label>
-                        <input type="text" id="namePronunciation" placeholder="Generate from name" readonly>
-                    </div>
-                    <div>
-                        <button class="btn btn-tertiary" type="button" onclick="App.generateNamePronunciation()">Generate Pronunciation</button>
-                        <div class="hint" style="margin-top:6px;">Uses Gemini; update the name above and click generate.</div>
+                <div class="pronunciation-row">
+                    <label class="label" for="namePronunciation">Pronunciation</label>
+                    <div class="pronunciation-input">
+                        <input type="text" id="namePronunciation" placeholder="Click generate" readonly>
+                        <button class="btn btn-tertiary btn-compact" type="button" onclick="App.generateNamePronunciation()">Generate</button>
                     </div>
                 </div>
                 
@@ -7946,7 +7947,32 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     return { ok: false, error: '⚠️ A valid DOB is required for EZLynx XML.' };
                 }
 
-                // VIN is optional for EZLynx XML export
+                // VIN is optional for EZLynx XML export, but each vehicle needs VIN or year/make/model
+                const isAutoPolicy = data.qType === 'auto' || data.qType === 'both';
+                if (isAutoPolicy) {
+                    if (vehicles && vehicles.length) {
+                        const invalidVehicles = vehicles.filter(v => {
+                            const hasVin = v.vin && v.vin.trim().length > 0;
+                            const hasDetails = (v.year && v.make && v.model);
+                            return !hasVin && !hasDetails;
+                        });
+                        if (invalidVehicles.length) {
+                            return { ok: false, error: '⚠️ Each vehicle needs a VIN or Year/Make/Model for EZLynx XML.' };
+                        }
+                    } else {
+                        const hasVin = data.vin && data.vin.trim().length > 0;
+                        const hasDesc = data.vehDesc && data.vehDesc.trim().length > 0;
+                        if (!hasVin && !hasDesc) {
+                            return { ok: false, error: '⚠️ Add at least one vehicle (VIN or Year/Make/Model) for EZLynx XML.' };
+                        }
+                        if (!hasVin && hasDesc) {
+                            const match = data.vehDesc.match(/(\d{4})\s+([A-Z]+)\s+(.+)/i);
+                            if (!match) {
+                                return { ok: false, error: '⚠️ Vehicle description should be "YEAR MAKE MODEL" if no VIN is provided.' };
+                            }
+                        }
+                    }
+                }
 
                 const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
                 const streetRaw = (data.addrStreet || '').trim();
@@ -8100,9 +8126,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                         xml += `    <Vehicle id="${vehicleId}">\n`;
                         xml += `      <UseVinLookup>${hasVin ? 'Yes' : 'No'}</UseVinLookup>\n`;
                         xml += `      <Year>${escapeXML(vehicle.year || '')}</Year>\n`;
-                        if (hasVin) {
-                            xml += `      <Vin>${escapeXML(vehicle.vin || '')}</Vin>\n`;
-                        }
+                        xml += `      <Vin>${escapeXML(vehicle.vin || '')}</Vin>\n`;
                         xml += `      <Make>${escapeXML(vehicle.make || '')}</Make>\n`;
                         xml += `      <Model>${escapeXML(vehicle.model || '')}</Model>\n`;
                         xml += '      <Anti-Theft>None</Anti-Theft>\n';
@@ -8123,9 +8147,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     xml += '    <Vehicle id="1">\n';
                     xml += `      <UseVinLookup>${hasVin ? 'Yes' : 'No'}</UseVinLookup>\n`;
                     xml += `      <Year>${escapeXML(year)}</Year>\n`;
-                    if (hasVin) {
-                        xml += `      <Vin>${escapeXML(data.vin || '')}</Vin>\n`;
-                    }
+                    xml += `      <Vin>${escapeXML(data.vin || '')}</Vin>\n`;
                     xml += `      <Make>${escapeXML(make)}</Make>\n`;
                     xml += `      <Model>${escapeXML(model)}</Model>\n`;
                     xml += '      <Anti-Theft>None</Anti-Theft>\n';
