@@ -7940,6 +7940,13 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     return g || '';
                 };
 
+                const mapMaritalStatus = (m) => {
+                    const valid = ['Single','Married','Divorced','Widowed','Separated','Domestic Partner'];
+                    if (!m) return '';
+                    const match = valid.find(v => v.toLowerCase() === m.toLowerCase());
+                    return match || m;
+                };
+
                 const normalizeDate = (dateStr) => {
                     if (!dateStr) return '';
                     const d = new Date(dateStr);
@@ -8024,8 +8031,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const streetNumber = streetMatch?.[1] || '';
                 const streetName = streetMatch?.[2] || streetRaw;
                 const { zip5, zip4 } = splitZip(data.addrZip);
+                const gender = mapGender(data.gender);
+                const marital = mapMaritalStatus(data.maritalStatus);
 
-                let xml = '<EZAUTO xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200">\n';
+                let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
+                xml += '<EZAUTO xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200">\n';
 
                 // Applicant section (primary contact info)
                 xml += '  <Applicant>\n';
@@ -8037,11 +8047,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += `        <LastName>${escapeXML(lastName)}</LastName>\n`;
                 xml += '      </Name>\n';
                 xml += `      <DOB>${dob}</DOB>\n`;
-                if (data.gender) {
-                    xml += `      <Gender>${escapeXML(mapGender(data.gender))}</Gender>\n`;
+                if (gender) {
+                    xml += `      <Gender>${escapeXML(gender)}</Gender>\n`;
                 }
-                if (data.maritalStatus) {
-                    xml += `      <MaritalStatus>${escapeXML(data.maritalStatus)}</MaritalStatus>\n`;
+                if (marital) {
+                    xml += `      <MaritalStatus>${escapeXML(marital)}</MaritalStatus>\n`;
                 }
                 xml += '      <Relation>Insured</Relation>\n';
                 xml += '    </PersonalInfo>\n';
@@ -8074,20 +8084,34 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += '    </Address>\n';
                 xml += '  </Applicant>\n';
 
-                // Prior Policy Info (always emit for schema compliance)
+                // PriorPolicyInfo — only emit child date/text elements when they have values
+                const priorExp = normalizeDate(data.priorExp);
                 xml += '  <PriorPolicyInfo>\n';
-                xml += `    <PriorCarrier>${escapeXML(data.priorCarrier || '')}</PriorCarrier>\n`;
-                xml += `    <PriorPolicyTerm>${escapeXML(data.priorPolicyTerm || '')}</PriorPolicyTerm>\n`;
-                xml += `    <Expiration>${normalizeDate(data.priorExp)}</Expiration>\n`;
-                xml += '    <YearsWithPriorCarrier>\n';
-                xml += `      <Years>${escapeXML(data.priorYears || '')}</Years>\n`;
-                xml += '    </YearsWithPriorCarrier>\n';
+                if (data.priorCarrier) {
+                    xml += `    <PriorCarrier>${escapeXML(data.priorCarrier)}</PriorCarrier>\n`;
+                }
+                if (data.priorPolicyTerm) {
+                    xml += `    <PriorPolicyTerm>${escapeXML(data.priorPolicyTerm)}</PriorPolicyTerm>\n`;
+                }
+                if (priorExp) {
+                    xml += `    <Expiration>${priorExp}</Expiration>\n`;
+                }
+                if (data.priorYears) {
+                    xml += '    <YearsWithPriorCarrier>\n';
+                    xml += `      <Years>${escapeXML(data.priorYears)}</Years>\n`;
+                    xml += '    </YearsWithPriorCarrier>\n';
+                }
                 xml += '  </PriorPolicyInfo>\n';
 
-                // PolicyInfo section (always emit for schema compliance)
+                // PolicyInfo — only emit when values present
+                const effectiveDate = normalizeDate(data.effectiveDate);
                 xml += '  <PolicyInfo>\n';
-                xml += `    <PolicyTerm>${escapeXML(data.policyTerm || '')}</PolicyTerm>\n`;
-                xml += `    <Effective>${normalizeDate(data.effectiveDate)}</Effective>\n`;
+                if (data.policyTerm) {
+                    xml += `    <PolicyTerm>${escapeXML(data.policyTerm)}</PolicyTerm>\n`;
+                }
+                if (effectiveDate) {
+                    xml += `    <Effective>${effectiveDate}</Effective>\n`;
+                }
                 xml += '  </PolicyInfo>\n';
 
                 // ResidenceInfo section (garage location = mailing address by default)
@@ -8120,6 +8144,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                         const driverDob = normalizeDate(driver.dob);
                         const driverId = index + 1;
                         const isFirstDriver = index === 0;
+                        const driverGender = mapGender(driver.gender || data.gender);
+                        const driverMarital = mapMaritalStatus(driver.maritalStatus || data.maritalStatus);
 
                         xml += `    <Driver id="${driverId}">\n`;
                         const driverFirst = driver.firstName || (isFirstDriver ? (data.firstName || '') : '');
@@ -8128,11 +8154,19 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                         xml += `        <FirstName>${escapeXML(driverFirst)}</FirstName>\n`;
                         xml += `        <LastName>${escapeXML(driverLast)}</LastName>\n`;
                         xml += '      </Name>\n';
-                        xml += `      <Gender>${escapeXML(mapGender(driver.gender || data.gender) || '')}</Gender>\n`;
-                        xml += `      <DOB>${driverDob || ''}</DOB>\n`;
-                        xml += `      <DLNumber>${escapeXML(driver.dlNum || '')}</DLNumber>\n`;
+                        if (driverGender) {
+                            xml += `      <Gender>${escapeXML(driverGender)}</Gender>\n`;
+                        }
+                        if (driverDob) {
+                            xml += `      <DOB>${driverDob}</DOB>\n`;
+                        }
+                        if (driver.dlNum) {
+                            xml += `      <DLNumber>${escapeXML(driver.dlNum)}</DLNumber>\n`;
+                        }
                         xml += `      <DLState>${escapeXML(driver.dlState || state)}</DLState>\n`;
-                        xml += `      <MaritalStatus>${escapeXML(data.maritalStatus || '')}</MaritalStatus>\n`;
+                        if (driverMarital) {
+                            xml += `      <MaritalStatus>${escapeXML(driverMarital)}</MaritalStatus>\n`;
+                        }
                         if (isFirstDriver) {
                             xml += '      <Relation>Insured</Relation>\n';
                         }
@@ -8148,11 +8182,17 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
                     xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
                     xml += '      </Name>\n';
-                    xml += `      <Gender>${escapeXML(mapGender(data.gender) || '')}</Gender>\n`;
+                    if (gender) {
+                        xml += `      <Gender>${escapeXML(gender)}</Gender>\n`;
+                    }
                     xml += `      <DOB>${dob}</DOB>\n`;
-                    xml += `      <DLNumber>${escapeXML(data.dlNum || '')}</DLNumber>\n`;
+                    if (data.dlNum) {
+                        xml += `      <DLNumber>${escapeXML(data.dlNum)}</DLNumber>\n`;
+                    }
                     xml += `      <DLState>${escapeXML(data.dlState || state)}</DLState>\n`;
-                    xml += `      <MaritalStatus>${escapeXML(data.maritalStatus || '')}</MaritalStatus>\n`;
+                    if (marital) {
+                        xml += `      <MaritalStatus>${escapeXML(marital)}</MaritalStatus>\n`;
+                    }
                     xml += '      <Relation>Insured</Relation>\n';
                     xml += '      <GoodStudent>No</GoodStudent>\n';
                     xml += '      <MATDriver>No</MATDriver>\n';
@@ -8161,114 +8201,116 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 }
                 xml += '  </Drivers>\n';
 
-                // Vehicles section (always emit for schema compliance)
-                xml += '  <Vehicles>\n';
-                if (vehicles) {
-                    vehicles.forEach((vehicle, index) => {
-                        const vehicleId = index + 1;
-                        const hasVin = vehicle.vin && vehicle.vin.trim().length > 0;
-                        xml += `    <Vehicle id="${vehicleId}">\n`;
+                // Vehicles section — only emit if there are vehicles
+                const hasVehicles = vehicles ? vehicles.length > 0 : !!(data.vin || data.vehDesc);
+                if (hasVehicles) {
+                    xml += '  <Vehicles>\n';
+                    if (vehicles) {
+                        vehicles.forEach((vehicle, index) => {
+                            const vehicleId = index + 1;
+                            const hasVin = vehicle.vin && vehicle.vin.trim().length > 0;
+                            xml += `    <Vehicle id="${vehicleId}">\n`;
+                            xml += `      <UseVinLookup>${hasVin ? 'Yes' : 'No'}</UseVinLookup>\n`;
+                            xml += `      <Year>${escapeXML(vehicle.year || '')}</Year>\n`;
+                            xml += `      <Vin>${escapeXML(vehicle.vin || '')}</Vin>\n`;
+                            xml += `      <Make>${escapeXML(vehicle.make || '')}</Make>\n`;
+                            xml += `      <Model>${escapeXML(vehicle.model || '')}</Model>\n`;
+                            xml += '      <Anti-Theft>None</Anti-Theft>\n';
+                            xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
+                            xml += '    </Vehicle>\n';
+                        });
+                    } else if (data.vin || data.vehDesc) {
+                        const parseVehicle = (desc) => {
+                            const match = desc?.match(/(\d{4})\s+([A-Z]+)\s+(.+)/i);
+                            return {
+                                year: match?.[1] || '',
+                                make: match?.[2] || '',
+                                model: match?.[3]?.trim() || ''
+                            };
+                        };
+                        const { year, make, model } = parseVehicle(data.vehDesc);
+                        const hasVin = data.vin && data.vin.trim().length > 0;
+                        xml += '    <Vehicle id="1">\n';
                         xml += `      <UseVinLookup>${hasVin ? 'Yes' : 'No'}</UseVinLookup>\n`;
-                        xml += `      <Year>${escapeXML(vehicle.year || '')}</Year>\n`;
-                        xml += `      <Vin>${escapeXML(vehicle.vin || '')}</Vin>\n`;
-                        xml += `      <Make>${escapeXML(vehicle.make || '')}</Make>\n`;
-                        xml += `      <Model>${escapeXML(vehicle.model || '')}</Model>\n`;
+                        xml += `      <Year>${escapeXML(year)}</Year>\n`;
+                        xml += `      <Vin>${escapeXML(data.vin || '')}</Vin>\n`;
+                        xml += `      <Make>${escapeXML(make)}</Make>\n`;
+                        xml += `      <Model>${escapeXML(model)}</Model>\n`;
                         xml += '      <Anti-Theft>None</Anti-Theft>\n';
                         xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
                         xml += '    </Vehicle>\n';
-                    });
-                } else if (data.vin || data.vehDesc) {
-                    const parseVehicle = (desc) => {
-                        const match = desc?.match(/(\d{4})\s+([A-Z]+)\s+(.+)/i);
-                        return {
-                            year: match?.[1] || '',
-                            make: match?.[2] || '',
-                            model: match?.[3]?.trim() || ''
-                        };
-                    };
-                    const { year, make, model } = parseVehicle(data.vehDesc);
-                    const hasVin = data.vin && data.vin.trim().length > 0;
-                    xml += '    <Vehicle id="1">\n';
-                    xml += `      <UseVinLookup>${hasVin ? 'Yes' : 'No'}</UseVinLookup>\n`;
-                    xml += `      <Year>${escapeXML(year)}</Year>\n`;
-                    xml += `      <Vin>${escapeXML(data.vin || '')}</Vin>\n`;
-                    xml += `      <Make>${escapeXML(make)}</Make>\n`;
-                    xml += `      <Model>${escapeXML(model)}</Model>\n`;
-                    xml += '      <Anti-Theft>None</Anti-Theft>\n';
-                    xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
-                    xml += '    </Vehicle>\n';
-                }
-                xml += '  </Vehicles>\n';
-
-                // VehiclesUse section (always emit for schema compliance)
-                xml += '  <VehiclesUse>\n';
-                if (vehicles) {
-                    vehicles.forEach((vehicle, index) => {
-                        const vehicleId = index + 1;
-                        const miles = vehicle.miles || '12000';
-                        xml += `    <VehicleUse id="${vehicleId}">\n`;
-                        xml += `      <AnnualMiles>${escapeXML(miles)}</AnnualMiles>\n`;
-                        xml += '    </VehicleUse>\n';
-                    });
-                } else if (data.vin || data.vehDesc) {
-                    xml += '    <VehicleUse id="1">\n';
-                    xml += `      <AnnualMiles>${escapeXML(data.miles || '12000')}</AnnualMiles>\n`;
-                    xml += '    </VehicleUse>\n';
-                }
-                xml += '  </VehiclesUse>\n';
-
-                // Coverages section
-                const vehCount = vehicles ? vehicles.length : (data.vin || data.vehDesc ? 1 : 0);
-                const liab = parseLimits(data.liabilityLimits);
-                const um = parseLimits(data.umLimits);
-                const uim = parseLimits(data.uimLimits);
-                const pdValue = data.pdLimit || liab.pd || '100000';
-                xml += '  <Coverages>\n';
-                xml += '    <GeneralCoverage>\n';
-                xml += `      <BI>${escapeXML(liab.bi || data.liabilityLimits || '100/300')}</BI>\n`;
-                xml += `      <PD>${escapeXML(pdValue)}</PD>\n`;
-                xml += `      <UM>${escapeXML(um.bi || data.umLimits || '100/300')}</UM>\n`;
-                xml += `      <UIM>${escapeXML(uim.bi || data.uimLimits || '100/300')}</UIM>\n`;
-                xml += `      <Multicar>${vehCount > 1 ? 'Yes' : 'No'}</Multicar>\n`;
-                xml += '    </GeneralCoverage>\n';
-
-                // VehicleCoverage per vehicle
-                for (let i = 1; i <= vehCount; i++) {
-                    xml += `    <VehicleCoverage id="${i}">\n`;
-                    xml += `      <OtherCollisionDeductible>${escapeXML(data.compDeductible || 'No Coverage')}</OtherCollisionDeductible>\n`;
-                    xml += `      <CollisionDeductible>${escapeXML(data.autoDeductible || 'No Coverage')}</CollisionDeductible>\n`;
-                    xml += `      <TowingDeductible>${escapeXML(data.towingDeductible || 'No Coverage')}</TowingDeductible>\n`;
-                    xml += `      <RentalDeductible>${escapeXML(data.rentalDeductible || 'No Coverage')}</RentalDeductible>\n`;
-                    xml += '    </VehicleCoverage>\n';
-                }
-
-                // StateSpecificCoverage
-                if (state === 'WA') {
-                    xml += '    <StateSpecificCoverage>\n';
-                    xml += '      <WA-Coverages>\n';
-                    xml += `        <WA-UMPD>${escapeXML(data.umPd || data.pdLimit || liab.pd || '25000')}</WA-UMPD>\n`;
-                    xml += '        <WA-PIP>10000</WA-PIP>\n';
-                    xml += '      </WA-Coverages>\n';
-                    xml += '    </StateSpecificCoverage>\n';
-                }
-
-                xml += '  </Coverages>\n';
-
-                // VehicleAssignments section (always emit for schema compliance)
-                xml += '  <VehicleAssignments>\n';
-                const vehicleCount = vehicles ? vehicles.length : (data.vin || data.vehDesc ? 1 : 0);
-                const driverCount = drivers ? drivers.length : 1;
-                for (let i = 1; i <= vehicleCount; i++) {
-                    let assignedDriver = ((i - 1) % driverCount) + 1;
-                    if (vehicles && vehicles[i-1]?.primaryDriver && drivers) {
-                        const driverIdx = drivers.findIndex(d => d.id === vehicles[i-1].primaryDriver);
-                        if (driverIdx >= 0) assignedDriver = driverIdx + 1;
                     }
-                    xml += `    <VehicleAssignment id="${i}">\n`;
-                    xml += `      <DriverAssignment>${assignedDriver}</DriverAssignment>\n`;
-                    xml += '    </VehicleAssignment>\n';
+                    xml += '  </Vehicles>\n';
+
+                    // VehiclesUse section
+                    xml += '  <VehiclesUse>\n';
+                    if (vehicles) {
+                        vehicles.forEach((vehicle, index) => {
+                            const vehicleId = index + 1;
+                            const miles = vehicle.miles || '12000';
+                            xml += `    <VehicleUse id="${vehicleId}">\n`;
+                            xml += `      <AnnualMiles>${escapeXML(miles)}</AnnualMiles>\n`;
+                            xml += '    </VehicleUse>\n';
+                        });
+                    } else if (data.vin || data.vehDesc) {
+                        xml += '    <VehicleUse id="1">\n';
+                        xml += `      <AnnualMiles>${escapeXML(data.miles || '12000')}</AnnualMiles>\n`;
+                        xml += '    </VehicleUse>\n';
+                    }
+                    xml += '  </VehiclesUse>\n';
+
+                    // Coverages section
+                    const vehCount = vehicles ? vehicles.length : 1;
+                    const liab = parseLimits(data.liabilityLimits);
+                    const um = parseLimits(data.umLimits);
+                    const uim = parseLimits(data.uimLimits);
+                    const pdValue = data.pdLimit || liab.pd || '100000';
+                    xml += '  <Coverages>\n';
+                    xml += '    <GeneralCoverage>\n';
+                    xml += `      <BI>${escapeXML(liab.bi || data.liabilityLimits || '100/300')}</BI>\n`;
+                    xml += `      <PD>${escapeXML(pdValue)}</PD>\n`;
+                    xml += `      <UM>${escapeXML(um.bi || data.umLimits || '100/300')}</UM>\n`;
+                    xml += `      <UIM>${escapeXML(uim.bi || data.uimLimits || '100/300')}</UIM>\n`;
+                    xml += `      <Multicar>${vehCount > 1 ? 'Yes' : 'No'}</Multicar>\n`;
+                    xml += '    </GeneralCoverage>\n';
+
+                    // VehicleCoverage per vehicle
+                    for (let i = 1; i <= vehCount; i++) {
+                        xml += `    <VehicleCoverage id="${i}">\n`;
+                        xml += `      <OtherCollisionDeductible>${escapeXML(data.compDeductible || 'No Coverage')}</OtherCollisionDeductible>\n`;
+                        xml += `      <CollisionDeductible>${escapeXML(data.autoDeductible || 'No Coverage')}</CollisionDeductible>\n`;
+                        xml += `      <TowingDeductible>${escapeXML(data.towingDeductible || 'No Coverage')}</TowingDeductible>\n`;
+                        xml += `      <RentalDeductible>${escapeXML(data.rentalDeductible || 'No Coverage')}</RentalDeductible>\n`;
+                        xml += '    </VehicleCoverage>\n';
+                    }
+
+                    // StateSpecificCoverage
+                    if (state === 'WA') {
+                        xml += '    <StateSpecificCoverage>\n';
+                        xml += '      <WA-Coverages>\n';
+                        xml += `        <WA-UMPD>${escapeXML(data.umPd || data.pdLimit || liab.pd || '25000')}</WA-UMPD>\n`;
+                        xml += '        <WA-PIP>10000</WA-PIP>\n';
+                        xml += '      </WA-Coverages>\n';
+                        xml += '    </StateSpecificCoverage>\n';
+                    }
+
+                    xml += '  </Coverages>\n';
+
+                    // VehicleAssignments section
+                    xml += '  <VehicleAssignments>\n';
+                    const driverCount = drivers ? drivers.length : 1;
+                    for (let i = 1; i <= vehCount; i++) {
+                        xml += `    <VehicleAssignment id="${i}">\n`;
+                        let assignedDriver = ((i - 1) % driverCount) + 1;
+                        if (vehicles && vehicles[i-1]?.primaryDriver && drivers) {
+                            const driverIdx = drivers.findIndex(d => d.id === vehicles[i-1].primaryDriver);
+                            if (driverIdx >= 0) assignedDriver = driverIdx + 1;
+                        }
+                        xml += `      <DriverAssignment>${assignedDriver}</DriverAssignment>\n`;
+                        xml += '    </VehicleAssignment>\n';
+                    }
+                    xml += '  </VehicleAssignments>\n';
                 }
-                xml += '  </VehicleAssignments>\n';
 
                 xml += '</EZAUTO>\n';
 
