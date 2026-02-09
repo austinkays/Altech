@@ -982,6 +982,20 @@
         .map-preview-label { font-weight: 600; color: var(--text); margin-bottom: 8px; }
         .map-preview-img { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-input); cursor: pointer; }
         .map-preview-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .map-preview-overlay {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.65);
+            color: #fff;
+            font-weight: 700;
+            font-size: 11px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            text-align: right;
+            line-height: 1.5;
+            pointer-events: none;
+        }
         @media (min-width: 720px) {
             .map-previews { grid-template-columns: 1fr 1fr; }
             .map-preview-img { height: 200px; }
@@ -1795,14 +1809,20 @@
                 <div class="map-previews">
                     <div class="map-preview-item">
                         <div class="map-preview-label">Street View</div>
-                        <img id="streetViewImg" class="map-preview-img" alt="Street View preview" />
+                        <div style="position:relative;">
+                            <img id="streetViewImg" class="map-preview-img" alt="Street View preview" />
+                            <div id="streetViewOverlay" class="map-preview-overlay"></div>
+                        </div>
                         <div class="map-preview-actions">
                             <button class="btn-utility" onclick="App.openStreetView()">🚶 Open Street View</button>
                         </div>
                     </div>
                     <div class="map-preview-item">
                         <div class="map-preview-label">Satellite View</div>
-                        <img id="satelliteViewImg" class="map-preview-img" alt="Satellite preview" />
+                        <div style="position:relative;">
+                            <img id="satelliteViewImg" class="map-preview-img" alt="Satellite preview" />
+                            <div id="satelliteViewOverlay" class="map-preview-overlay"></div>
+                        </div>
                         <div class="map-preview-actions">
                             <button class="btn-utility" onclick="App.openGoogleMaps()">🗺️ Open Maps</button>
                             <button class="btn-utility" onclick="App.openGoogleEarth()">🛰️ Open Earth</button>
@@ -4028,7 +4048,19 @@
                 this.mapPreviewCache[address] = urls;
                 streetImg.src = urls.streetViewUrl;
                 satImg.src = urls.satelliteUrl;
-                if (hint) hint.textContent = ' '; 
+                if (hint) hint.textContent = ' ';
+                this.updateMapOverlays();
+            },
+
+            updateMapOverlays() {
+                const overlayStreet = document.getElementById('streetViewOverlay');
+                const overlaySat = document.getElementById('satelliteViewOverlay');
+                const clientName = `${this.data.firstName || ''} ${this.data.lastName || ''}`.trim() || 'Client';
+                const now = new Date();
+                const exportDate = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}-${now.getFullYear()}`;
+                const overlayHtml = `Client Name: ${clientName}<br>Export Date: ${exportDate}`;
+                if (overlayStreet) overlayStreet.innerHTML = overlayHtml;
+                if (overlaySat) overlaySat.innerHTML = overlayHtml;
             },
 
             scheduleMapPreviewUpdate() {
@@ -7303,18 +7335,39 @@
                 }
             },
 
+            formatDateDisplay(value) {
+                if (!value) return '';
+                const d = new Date(value);
+                if (Number.isNaN(d.getTime())) return value;
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                const yyyy = String(d.getFullYear());
+                return `${mm}-${dd}-${yyyy}`;
+            },
+
+            resolveDriverName(driverId, driversArr) {
+                if (!driverId) return '';
+                const drivers = driversArr || this.drivers || [];
+                const driver = drivers.find(d => d.id === driverId);
+                return driver ? [driver.firstName, driver.lastName].filter(Boolean).join(' ') : '';
+            },
+
             getNotesForData(data) {
+                const fmt = (v) => this.formatDateDisplay(v);
+                const drivers = (data.drivers && data.drivers.length) ? data.drivers : (this.drivers || []);
+                const vehicles = (data.vehicles && data.vehicles.length) ? data.vehicles : (this.vehicles || []);
+
                 return `
-=== CLIENT INFORMATION ===
+=== CLIENT PROFILE ===
 Name: ${data.firstName || ''} ${data.lastName || ''}
 Email: ${data.email || ''}
 Phone: ${data.phone || ''}
-DOB: ${data.dob || ''}
+DOB: ${fmt(data.dob)}
 Marital Status: ${data.maritalStatus || ''}
 Education: ${data.education || ''}
-Industry: ${data.industry || ''}
+Occupation: ${data.industry || ''}
 
-=== PROPERTY DETAILS ===
+=== DWELLING SPECIFICATIONS ===
 Address: ${data.addrStreet || ''}, ${data.addrCity || ''}, ${data.addrState || ''} ${data.addrZip || ''}
 Dwelling Type: ${data.dwellingType || ''} (${data.dwellingUsage || ''})
 Year Built: ${data.yrBuilt || ''} | Square Feet: ${data.sqFt || ''}
@@ -7326,60 +7379,46 @@ Heating: ${data.heatingType || ''} (Updated: ${data.heatYr || ''})
 Cooling: ${data.cooling || ''}
 Plumbing Updated: ${data.plumbYr || ''}
 Electrical Updated: ${data.elecYr || ''}
-
-=== SAFETY & SYSTEMS ===
 Fire Station: ${data.fireStationDist || ''} miles | Hydrant: ${data.fireHydrantFeet || ''} feet
 Protection Class: ${data.protectionClass || ''}
 Burglar Alarm: ${data.burglarAlarm || ''}
 Fire Alarm: ${data.fireAlarm || ''}
 Sprinklers: ${data.sprinklers || ''}
 
-=== RISK FACTORS ===
-Pool: ${data.pool || 'No'}
-Trampoline: ${data.trampoline || 'No'}
-Wood Stove: ${data.woodStove || 'No'}
-Dog: ${data.dogInfo || 'None'}
-Business on Property: ${data.businessOnProperty || 'No'}
-
-=== AUTO INFORMATION ===
-Vehicle: ${data.vehDesc || ''}
-VIN: ${data.vin || ''}
+=== DRIVERS & VEHICLES ===
+${drivers.map((d, i) => `Driver ${i + 1}: ${[d.firstName, d.lastName].filter(Boolean).join(' ')} | Relationship: ${d.relationship || ''} | Occupation: ${d.occupation || ''} | DOB: ${fmt(d.dob)} | DL: ${d.dlNum || ''} (${d.dlState || ''})`).join('\n')}
+${vehicles.map((v, i) => { const desc = [v.year, v.make, v.model].filter(Boolean).join(' '); return `Vehicle ${i + 1}: ${desc || 'Unknown'} | VIN: ${v.vin || ''} | Use: ${v.use || ''} | Miles: ${v.miles || ''} | Primary Driver: ${this.resolveDriverName(v.primaryDriver, drivers)}`; }).join('\n')}
+Vehicle (Legacy): ${data.vehDesc || ''}
+VIN (Legacy): ${data.vin || ''}
 Driver's License: ${data.dlNum || ''} (${data.dlState || ''})
 Usage: ${data.use || ''} | Annual Miles: ${data.miles || ''}
 Commute Distance: ${data.commuteDist || ''} miles
 Ride Sharing: ${data.rideSharing || 'No'}
 Telematics: ${data.telematics || ''}
 
-=== DRIVERS ===
-${(data.drivers || []).map((d, i) => `Driver ${i + 1}: ${[d.firstName, d.lastName].filter(Boolean).join(' ')} | Relationship: ${d.relationship || ''} | Occupation: ${d.occupation || ''} | DOB: ${d.dob || ''} | DL: ${d.dlNum || ''} (${d.dlState || ''})`).join('\n')}
-
-=== INSURANCE HISTORY ===
+=== POLICY HISTORY & RISK ===
 Current Liability: ${data.liabilityLimits || ''}
 Deductibles: Home ${data.homeDeductible || ''} / Auto ${data.autoDeductible || ''}
 Prior Carrier: ${data.priorCarrier || ''} (${data.priorYears || ''} years)
-Prior Expiration: ${data.priorExp || ''}
+Prior Expiration: ${fmt(data.priorExp)}
+Effective Date: ${fmt(data.effectiveDate)}
 Accidents: ${data.accidents || 'None'}
 Violations: ${data.violations || 'None'}
 Student GPA: ${data.studentGPA || 'N/A'}
+Pool: ${data.pool || 'No'}
+Trampoline: ${data.trampoline || 'No'}
+Wood Stove: ${data.woodStove || 'No'}
+Dog: ${data.dogInfo || 'None'}
+Business on Property: ${data.businessOnProperty || 'No'}
 
-=== ADDITIONAL INFO ===
+=== ADDITIONAL INFORMATION ===
 Mortgagee: ${data.mortgagee || ''}
 Additional Insureds: ${data.additionalInsureds || 'None'}
-Import Notes: ${data.importNotes || ''}
-Purchase Date: ${data.purchaseDate || ''}
+Purchase Date: ${fmt(data.purchaseDate)}
 Kitchen/Bath Quality: ${data.kitchenQuality || ''}
 Best Contact Time: ${data.contactTime || ''}
 Referral Source: ${data.referralSource || ''}
 TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
-
-=== DOCUMENT INTELLIGENCE ===
-Year Built (Doc): ${data.docIntel?.yearBuilt || ''}
-Assessed Value (Doc): ${data.docIntel?.assessedValue || ''}
-Owner Name (Doc): ${data.docIntel?.ownerName || ''}
-Policy Number (Doc): ${data.docIntel?.policyNumber || ''}
-Effective Date (Doc): ${data.docIntel?.effectiveDate || ''}
-Expiration Date (Doc): ${data.docIntel?.expirationDate || ''}
-Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 `.trim();
             },
 
@@ -7469,7 +7508,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 if (mapImages?.streetView?.dataUrl) {
                     const bannerHeight = 65;
                     doc.addImage(mapImages.streetView.dataUrl, mapImages.streetView.format, 10, 10, 190, bannerHeight);
-                    applyImageOverlay(10, 10, 190, bannerHeight, clientName, `Exported ${exportStamp}`);
+                    applyImageOverlay(10, 10, 190, bannerHeight, `Client Name: ${clientName}`, `Export Date: ${formatDate(new Date())}`);
                     y = 85;
                 }
 
@@ -7484,21 +7523,25 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 // Satellite thumbnail near header
                 if (mapImages?.satellite?.dataUrl) {
                     doc.setFontSize(9);
-                    doc.setTextColor(60, 60, 60);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(40, 40, 40);
                     doc.text('Satellite View', 150, y - 18);
+                    doc.setFont(undefined, 'normal');
                     doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, 150, y - 15, 45, 45);
-                    applyImageOverlay(150, y - 15, 45, 45, clientName, 'Satellite');
+                    applyImageOverlay(150, y - 15, 45, 45, `Client Name: ${clientName}`, `Export Date: ${formatDate(new Date())}`);
                     doc.setTextColor(0, 0, 0);
                     const mapAddress = this.getFullAddress(data);
                     if (mapAddress) {
                         doc.setFontSize(8);
-                        doc.setTextColor(0, 122, 255);
+                        doc.setFont(undefined, 'bold');
+                        doc.setTextColor(40, 40, 40);
                         doc.textWithLink('Open in Maps', 150, y + 32, {
                             url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddress)}`
                         });
                         doc.textWithLink('Open in Earth', 150, y + 38, {
                             url: `https://earth.google.com/web/search/${encodeURIComponent(mapAddress)}`
                         });
+                        doc.setFont(undefined, 'normal');
                         doc.setTextColor(0, 0, 0);
                     }
                 }
@@ -7574,7 +7617,8 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
 
                     const vehicleLines = vehicles.length ? vehicles.map((v, i) => {
                         const vehDesc = [v.year, v.make, v.model].filter(Boolean).join(' ');
-                        return `Vehicle ${i + 1}: ${vehDesc || 'Unknown'} | VIN: ${v.vin || ''} | Use: ${v.use || ''} | Miles: ${v.miles || ''} | Primary Driver: ${v.primaryDriver || ''}`;
+                        const driverDisplay = this.resolveDriverName(v.primaryDriver, drivers);
+                        return `Vehicle ${i + 1}: ${vehDesc || 'Unknown'} | VIN: ${v.vin || ''} | Use: ${v.use || ''} | Miles: ${v.miles || ''} | Primary Driver: ${driverDisplay}`;
                     }).join('\n') : '';
 
                     addSection('Drivers & Vehicles', [
@@ -7806,7 +7850,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     { tag: 'ZIP', value: data.addrZip },
                     { tag: 'PHN', value: data.phone ? data.phone.replace(/\D/g, '') : '' },
                     { tag: 'EML', value: data.email },
-                    { tag: 'DOB', value: data.dob },
+                    { tag: 'DOB', value: this.formatDateDisplay(data.dob) },
                     { tag: 'L1', value: data.roofYr },
                     { tag: 'L2', value: data.roofType },
                     { tag: 'L3', value: data.heatingType },
@@ -7831,7 +7875,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     { tag: 'R2', value: data.trampoline },
                     { tag: 'R3', value: data.woodStove },
                     { tag: 'R4', value: data.businessOnProperty },
-                    { tag: 'R5', value: data.purchaseDate },
+                    { tag: 'R5', value: this.formatDateDisplay(data.purchaseDate) },
                     { tag: 'R6', value: data.mortgagee },
                     { tag: 'R7', value: data.additionalInsureds },
                     { tag: 'R8', value: data.contactTime },
@@ -8215,8 +8259,11 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 const vehicleCount = vehicles ? vehicles.length : (data.vin || data.vehDesc ? 1 : 0);
                 const driverCount = drivers ? drivers.length : 1;
                 for (let i = 1; i <= vehicleCount; i++) {
-                    const assignedDriver = (vehicles && vehicles[i-1]?.driverAssignment)
-                        || ((i - 1) % driverCount) + 1;
+                    let assignedDriver = ((i - 1) % driverCount) + 1;
+                    if (vehicles && vehicles[i-1]?.primaryDriver && drivers) {
+                        const driverIdx = drivers.findIndex(d => d.id === vehicles[i-1].primaryDriver);
+                        if (driverIdx >= 0) assignedDriver = driverIdx + 1;
+                    }
                     xml += `    <VehicleAssignment id="${i}">\n`;
                     xml += `      <DriverAssignment>${assignedDriver}</DriverAssignment>\n`;
                     xml += '    </VehicleAssignment>\n';
