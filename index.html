@@ -227,6 +227,20 @@
             border-left-color: var(--apple-blue);
             box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
         }
+        input.auto-filled,
+        select.auto-filled,
+        textarea.auto-filled {
+            border-color: rgba(52, 199, 89, 0.6);
+            border-left-color: var(--success);
+            box-shadow: 0 0 0 2px rgba(52, 199, 89, 0.18), 0 0 16px rgba(52, 199, 89, 0.25);
+        }
+        input.auto-filled:focus,
+        select.auto-filled:focus,
+        textarea.auto-filled:focus {
+            border-color: rgba(52, 199, 89, 0.8);
+            border-left-color: var(--success);
+            box-shadow: 0 0 0 2px rgba(52, 199, 89, 0.2), 0 0 18px rgba(52, 199, 89, 0.35), 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
         .label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; display: block; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
@@ -2621,8 +2635,14 @@
                 
                 // Auto-save listeners
                 document.querySelectorAll('input, select, textarea').forEach(el => {
-                    el.addEventListener('input', (e) => this.save(e));
-                    el.addEventListener('change', (e) => this.save(e));
+                    el.addEventListener('input', (e) => {
+                        this.clearAutoFilledIndicator(e.target);
+                        this.save(e);
+                    });
+                    el.addEventListener('change', (e) => {
+                        this.clearAutoFilledIndicator(e.target);
+                        this.save(e);
+                    });
                     
                     // Real-time validation on blur
                     el.addEventListener('blur', (e) => {
@@ -2753,10 +2773,10 @@
                     const state = parts.administrative_area_level_1 || '';
                     const zip = parts.postal_code || '';
 
-                    this.setFieldValue('addrStreet', street || place.formatted_address || '');
-                    this.setFieldValue('addrCity', city);
-                    this.setFieldValue('addrState', state);
-                    this.setFieldValue('addrZip', zip);
+                    this.setFieldValue('addrStreet', street || place.formatted_address || '', { autoFilled: true, source: 'places' });
+                    this.setFieldValue('addrCity', city, { autoFilled: true, source: 'places' });
+                    this.setFieldValue('addrState', state, { autoFilled: true, source: 'places' });
+                    this.setFieldValue('addrZip', zip, { autoFilled: true, source: 'places' });
 
                     this.scheduleMapPreviewUpdate();
 
@@ -2764,15 +2784,35 @@
                 });
             },
 
-            setFieldValue(id, value) {
+            setFieldValue(id, value, options = {}) {
                 const el = document.getElementById(id);
                 if (!el) return;
                 el.value = value || '';
                 this.data[id] = el.value;
                 localStorage.setItem(this.storageKey, JSON.stringify(this.data));
 
+                if (options.autoFilled) {
+                    this.markAutoFilled(el, options.source || 'scan');
+                }
+
                 if (id === 'vin') {
                     this.decodeVin(el);
+                }
+            },
+
+            markAutoFilled(el, source) {
+                if (!el) return;
+                el.classList.add('auto-filled');
+                if (source) {
+                    el.dataset.autoFilledSource = source;
+                }
+            },
+
+            clearAutoFilledIndicator(el) {
+                if (!el || !el.classList) return;
+                if (el.classList.contains('auto-filled')) {
+                    el.classList.remove('auto-filled');
+                    delete el.dataset.autoFilledSource;
                 }
             },
 
@@ -3061,6 +3101,7 @@
                     if (!el || el.value) return;
                     el.value = value;
                     this.save({ target: { id, value } });
+                    this.markAutoFilled(el, 'scan');
                     appliedCount++;
                 };
 
@@ -3457,6 +3498,7 @@
                     if (!el.value) {
                         el.value = value;
                         this.data[id] = value;
+                        this.markAutoFilled(el, 'scan');
                     }
                 };
 
@@ -3623,7 +3665,7 @@
                 let appliedCount = 0;
                 inputs.forEach((input) => {
                     if (input.value) {
-                        this.setFieldValue(input.dataset.field, input.value);
+                        this.setFieldValue(input.dataset.field, input.value, { autoFilled: true, source: 'scan' });
                         appliedCount++;
                     }
                 });
@@ -5165,12 +5207,18 @@
                     if (!this.data.dwellingUsage) {
                         this.data.dwellingUsage = 'Primary';
                         const el = document.getElementById('dwellingUsage');
-                        if (el) el.value = 'Primary';
+                        if (el) {
+                            el.value = 'Primary';
+                            this.markAutoFilled(el, 'smart');
+                        }
                     }
                     if (!this.data.occupancyType) {
                         this.data.occupancyType = 'Owner Occupied';
                         const el = document.getElementById('occupancyType');
-                        if (el) el.value = 'Owner Occupied';
+                        if (el) {
+                            el.value = 'Owner Occupied';
+                            this.markAutoFilled(el, 'smart');
+                        }
                     }
                     this.closeParcelModal();
                     this.save();
@@ -5209,6 +5257,7 @@
                     if (opts.includes(zd[fid])) {
                         el.value = zd[fid];
                         this.data[fid] = zd[fid];
+                        this.markAutoFilled(el, 'zillow');
                     }
                 }
                 // Text/number fields from Zillow
@@ -5230,6 +5279,7 @@
                     if (el.value && el.value !== '0' && el.value !== '') continue;
                     el.value = val;
                     this.data[fid] = String(val);
+                    this.markAutoFilled(el, 'zillow');
                 }
             },
 
@@ -5237,11 +5287,19 @@
             applyFireStationData(fireData) {
                 if (fireData.fireStationDist != null) {
                     const el = document.getElementById('fireStationDist');
-                    if (el) { el.value = fireData.fireStationDist; this.data.fireStationDist = String(fireData.fireStationDist); }
+                    if (el) {
+                        el.value = fireData.fireStationDist;
+                        this.data.fireStationDist = String(fireData.fireStationDist);
+                        this.markAutoFilled(el, 'fire');
+                    }
                 }
                 if (fireData.protectionClass != null) {
                     const el = document.getElementById('protectionClass');
-                    if (el) { el.value = fireData.protectionClass; this.data.protectionClass = String(fireData.protectionClass); }
+                    if (el) {
+                        el.value = fireData.protectionClass;
+                        this.data.protectionClass = String(fireData.protectionClass);
+                        this.markAutoFilled(el, 'fire');
+                    }
                 }
             },
 
@@ -5252,39 +5310,74 @@
                 // Basic property info
                 if (parcelData.yearBuilt && parcelData.yearBuilt > 0) {
                     const field = document.getElementById('yrBuilt');
-                    if (field) { field.value = parcelData.yearBuilt; this.data.yrBuilt = parcelData.yearBuilt; fieldsApplied++; }
+                    if (field) {
+                        field.value = parcelData.yearBuilt;
+                        this.data.yrBuilt = parcelData.yearBuilt;
+                        this.markAutoFilled(field, 'parcel');
+                        fieldsApplied++;
+                    }
                 }
 
                 if (parcelData.stories && parcelData.stories > 0) {
                     const field = document.getElementById('numStories');
-                    if (field) { field.value = parcelData.stories; this.data.numStories = parcelData.stories; fieldsApplied++; }
+                    if (field) {
+                        field.value = parcelData.stories;
+                        this.data.numStories = parcelData.stories;
+                        this.markAutoFilled(field, 'parcel');
+                        fieldsApplied++;
+                    }
                 }
 
                 if (parcelData.totalSqft && parcelData.totalSqft > 0) {
                     const field = document.getElementById('sqFt');
-                    if (field) { field.value = parcelData.totalSqft; this.data.sqFt = parcelData.totalSqft; fieldsApplied++; }
+                    if (field) {
+                        field.value = parcelData.totalSqft;
+                        this.data.sqFt = parcelData.totalSqft;
+                        this.markAutoFilled(field, 'parcel');
+                        fieldsApplied++;
+                    }
                 }
 
                 if (parcelData.lotSizeAcres && parcelData.lotSizeAcres > 0) {
                     const field = document.getElementById('lotSize');
-                    if (field) { field.value = parcelData.lotSizeAcres.toFixed(2); this.data.lotSize = parcelData.lotSizeAcres.toFixed(2); fieldsApplied++; }
+                    if (field) {
+                        field.value = parcelData.lotSizeAcres.toFixed(2);
+                        this.data.lotSize = parcelData.lotSizeAcres.toFixed(2);
+                        this.markAutoFilled(field, 'parcel');
+                        fieldsApplied++;
+                    }
                 }
 
                 // Garage info
                 if (parcelData.garageSpaces && parcelData.garageSpaces > 0) {
                     const field = document.getElementById('garageSpaces');
-                    if (field) { field.value = parcelData.garageSpaces; this.data.garageSpaces = parcelData.garageSpaces; fieldsApplied++; }
+                    if (field) {
+                        field.value = parcelData.garageSpaces;
+                        this.data.garageSpaces = parcelData.garageSpaces;
+                        this.markAutoFilled(field, 'parcel');
+                        fieldsApplied++;
+                    }
                 } else if (parcelData.garageSqft && parcelData.garageSqft > 0) {
                     // Estimate garage spaces (1 space ≈ 180 sq ft)
                     const garageSpaces = Math.round(parcelData.garageSqft / 180);
                     const field = document.getElementById('garageSpaces');
-                    if (field) { field.value = garageSpaces; this.data.garageSpaces = garageSpaces; fieldsApplied++; }
+                    if (field) {
+                        field.value = garageSpaces;
+                        this.data.garageSpaces = garageSpaces;
+                        this.markAutoFilled(field, 'parcel');
+                        fieldsApplied++;
+                    }
                 }
 
                 // NEW: Bedrooms
                 if (parcelData.bedrooms && parcelData.bedrooms > 0) {
                     const field = document.getElementById('bedrooms');
-                    if (field) { field.value = parcelData.bedrooms; this.data.bedrooms = parcelData.bedrooms; fieldsApplied++; }
+                    if (field) {
+                        field.value = parcelData.bedrooms;
+                        this.data.bedrooms = parcelData.bedrooms;
+                        this.markAutoFilled(field, 'parcel');
+                        fieldsApplied++;
+                    }
                 }
 
                 // NEW: Bathrooms
@@ -5296,12 +5389,14 @@
                         const halfBaths = (parcelData.bathrooms % 1) >= 0.5 ? 1 : 0;
                         field.value = fullBaths;
                         this.data.fullBaths = fullBaths;
+                        this.markAutoFilled(field, 'parcel');
                         fieldsApplied++;
 
                         const halfField = document.getElementById('halfBaths');
                         if (halfField && halfBaths > 0) {
                             halfField.value = halfBaths;
                             this.data.halfBaths = halfBaths;
+                            this.markAutoFilled(halfField, 'parcel');
                         }
                     }
                 }
@@ -5315,6 +5410,7 @@
                         if (options.includes(parcelData.foundationType)) {
                             field.value = parcelData.foundationType;
                             this.data.foundation = parcelData.foundationType;
+                            this.markAutoFilled(field, 'parcel');
                             fieldsApplied++;
                         }
                     }
@@ -5328,6 +5424,7 @@
                         if (options.includes(parcelData.roofType)) {
                             field.value = parcelData.roofType;
                             this.data.roofType = parcelData.roofType;
+                            this.markAutoFilled(field, 'parcel');
                             fieldsApplied++;
                         }
                     }
@@ -5341,6 +5438,7 @@
                         if (options.includes(parcelData.heatingType)) {
                             field.value = parcelData.heatingType;
                             this.data.heatingType = parcelData.heatingType;
+                            this.markAutoFilled(field, 'parcel');
                             fieldsApplied++;
                         }
                     }
@@ -5354,6 +5452,7 @@
                         if (options.includes(parcelData.constructionStyle)) {
                             field.value = parcelData.constructionStyle;
                             this.data.constructionStyle = parcelData.constructionStyle;
+                            this.markAutoFilled(field, 'parcel');
                             fieldsApplied++;
                         }
                     }
@@ -5410,6 +5509,7 @@
                         if (opts.includes(zd[fid])) {
                             el.value = zd[fid];
                             this.data[fid] = zd[fid];
+                            this.markAutoFilled(el, 'zillow');
                             applied.push(labels[fid] || fid);
                         } else {
                             console.log(`[Zillow] Select ${fid}: value "${zd[fid]}" not in options:`, opts);
@@ -5431,6 +5531,7 @@
                         if (!el) continue;
                         el.value = val;
                         this.data[fid] = String(val);
+                        this.markAutoFilled(el, 'zillow');
                         applied.push(labels[fid] || fid);
                     }
 
@@ -5492,6 +5593,7 @@
                         if (el) {
                             el.value = result.fireStationDist;
                             this.data.fireStationDist = String(result.fireStationDist);
+                            this.markAutoFilled(el, 'fire');
                             applied.push(`${result.fireStationDist} mi to ${result.fireStationName || 'fire station'}`);
                         }
                     }
@@ -5501,6 +5603,7 @@
                         if (el) {
                             el.value = result.protectionClass;
                             this.data.protectionClass = String(result.protectionClass);
+                            this.markAutoFilled(el, 'fire');
                             applied.push(`Protection Class ${result.protectionClass}`);
                         }
                     }
@@ -5666,14 +5769,20 @@
                 if (pool) {
                     this.data.pool = 'In Ground';
                     const poolEl = document.getElementById('pool');
-                    if (poolEl) poolEl.value = 'In Ground';
+                    if (poolEl) {
+                        poolEl.value = 'In Ground';
+                        this.markAutoFilled(poolEl, 'hazard');
+                    }
                     applied.push('Pool');
                 }
 
                 if (trampoline) {
                     this.data.trampoline = 'Yes';
                     const trampolineEl = document.getElementById('trampoline');
-                    if (trampolineEl) trampolineEl.value = 'Yes';
+                    if (trampolineEl) {
+                        trampolineEl.value = 'Yes';
+                        this.markAutoFilled(trampolineEl, 'hazard');
+                    }
                     applied.push('Trampoline');
                 }
 
@@ -5693,6 +5802,7 @@
                         if (options.includes(val)) {
                             el.value = val;
                             this.data.roofShape = val;
+                            this.markAutoFilled(el, 'hazard');
                             applied.push('Roof Shape: ' + val);
                         }
                     }
@@ -5708,6 +5818,7 @@
                             if (options.includes(mapped)) {
                                 el.value = mapped;
                                 this.data.roofType = mapped;
+                                this.markAutoFilled(el, 'hazard');
                                 applied.push('Roof Type: ' + mapped);
                             }
                         }
@@ -5718,7 +5829,12 @@
                     const val = parseInt(String(h.numStories).replace('+', ''));
                     if (val > 0 && val <= 5) {
                         const el = document.getElementById('numStories');
-                        if (el) { el.value = val; this.data.numStories = val; applied.push('Stories: ' + val); }
+                        if (el) {
+                            el.value = val;
+                            this.data.numStories = val;
+                            this.markAutoFilled(el, 'hazard');
+                            applied.push('Stories: ' + val);
+                        }
                     }
                 }
 
@@ -6000,6 +6116,7 @@
                         if (formElement) {
                             formElement.value = data[visionKey];
                             this.data[formKey] = data[visionKey];
+                            this.markAutoFilled(formElement, 'vision');
                             this.save({ target: { id: formKey, value: data[visionKey] } });
                         }
                     }
@@ -7213,15 +7330,69 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
             async buildPDF(data) {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
+
+                const formatDate = (value) => {
+                    if (!value) return '';
+                    const d = new Date(value);
+                    if (Number.isNaN(d.getTime())) return value;
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    const yyyy = String(d.getFullYear());
+                    return `${mm}-${dd}-${yyyy}`;
+                };
+
+                const formatDateTime = (value) => {
+                    const d = value instanceof Date ? value : new Date(value);
+                    if (Number.isNaN(d.getTime())) return '';
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    const yyyy = String(d.getFullYear());
+                    let hours = d.getHours();
+                    const minutes = String(d.getMinutes()).padStart(2, '0');
+                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    hours = hours % 12 || 12;
+                    return `${mm}-${dd}-${yyyy} ${hours}:${minutes} ${ampm}`;
+                };
+
+                const applyImageOverlay = (x, y, w, h, title, subtitle) => {
+                    if (!title && !subtitle) return;
+                    const overlayHeight = 18;
+                    const overlayY = y + h - overlayHeight;
+                    if (doc.GState) {
+                        doc.setGState(new doc.GState({ opacity: 0.55 }));
+                    }
+                    doc.setFillColor(0, 0, 0);
+                    doc.rect(x, overlayY, w, overlayHeight, 'F');
+                    if (doc.GState) {
+                        doc.setGState(new doc.GState({ opacity: 1 }));
+                    }
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(9);
+                    doc.setFont(undefined, 'bold');
+                    const textX = x + w - 3;
+                    if (subtitle) {
+                        doc.text(subtitle, textX, overlayY + 12, { align: 'right' });
+                        doc.setFontSize(9);
+                        doc.text(title, textX, overlayY + 6, { align: 'right' });
+                    } else {
+                        doc.text(title, textX, overlayY + 11, { align: 'right' });
+                    }
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(0, 0, 0);
+                };
                 
                 const address = this.getFullAddress(data);
                 const mapImages = await this.getMapImages(address);
+
+                const exportStamp = formatDateTime(new Date());
+                const clientName = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Client';
 
                 // Banner image (Street View)
                 let y = 20;
                 if (mapImages?.streetView?.dataUrl) {
                     const bannerHeight = 65;
                     doc.addImage(mapImages.streetView.dataUrl, mapImages.streetView.format, 10, 10, 190, bannerHeight);
+                    applyImageOverlay(10, 10, 190, bannerHeight, clientName, `Exported ${exportStamp}`);
                     y = 85;
                 }
 
@@ -7229,12 +7400,17 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 doc.setTextColor(0, 122, 255);
                 doc.text('Insurance Application Summary', 105, y - 12, { align: 'center' });
 
+                doc.setFontSize(9);
+                doc.setTextColor(90, 90, 90);
+                doc.text(`Exported ${exportStamp}`, 195, y - 2, { align: 'right' });
+
                 // Satellite thumbnail near header
                 if (mapImages?.satellite?.dataUrl) {
                     doc.setFontSize(9);
                     doc.setTextColor(60, 60, 60);
                     doc.text('Satellite View', 150, y - 18);
                     doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, 150, y - 15, 45, 45);
+                    applyImageOverlay(150, y - 15, 45, 45, clientName, 'Satellite');
                     doc.setTextColor(0, 0, 0);
                     const mapAddress = this.getFullAddress(data);
                     if (mapAddress) {
@@ -7280,127 +7456,73 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     });
                     y += 5;
                 };
-                
-                // === EZLynx Intake Screen Order ===
 
-                // Section 1: Client/Driver Info (Top)
-                addSection('Client Information', [
-                    ['Name', `${data.firstName || ''} ${data.lastName || ''}`],
-                    ['Date of Birth', data.dob || ''],
-                    ['Gender', data.gender || ''],
+                const quoteType = (data.qType || '').toLowerCase();
+                const showHome = quoteType === 'home' || quoteType === 'both' || !quoteType;
+                const showAuto = quoteType === 'auto' || quoteType === 'both' || !quoteType;
+
+                const drivers = (data.drivers && data.drivers.length) ? data.drivers : (this.drivers || []);
+                const vehicles = (data.vehicles && data.vehicles.length) ? data.vehicles : (this.vehicles || []);
+
+                addSection('Client Profile', [
+                    ['Name', clientName],
+                    ['Date of Birth', formatDate(data.dob || '')],
                     ['Email', data.email || ''],
                     ['Phone', data.phone || ''],
                     ['Marital Status', data.maritalStatus || ''],
-                    ['Education', data.education || ''],
-                    ['Industry', data.industry || ''],
+                    ['Occupation', data.occupation || data.industry || ''],
                     ['Quote Type', data.qType || '']
                 ]);
 
-                if (data.drivers && data.drivers.length) {
-                    const driverLines = data.drivers.map((d, i) => {
-                        const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
-                        return `Driver ${i + 1}: ${name || 'Unknown'} | DOB: ${d.dob || ''} | DL: ${d.dlNum || ''} (${d.dlState || ''}) | Relationship: ${d.relationship || ''} | Occupation: ${d.occupation || ''}`;
-                    }).join('\n');
-                    addSection('Drivers', [['Drivers', driverLines]]);
-                }
-
-                // Section 2: General Dwelling
-                if (data.qType === 'home' || data.qType === 'both') {
-                    addSection('General Dwelling', [
+                if (showHome) {
+                    addSection('Dwelling Specifications', [
                         ['Address', `${data.addrStreet || ''}, ${data.addrCity || ''}, ${data.addrState || ''} ${data.addrZip || ''}`],
                         ['Year Built', data.yrBuilt || ''],
                         ['Square Footage', data.sqFt || ''],
-                        ['Stories', data.numStories || ''],
                         ['Bedrooms', data.bedrooms || ''],
-                        ['Full Bathrooms', data.fullBaths || ''],
-                        ['Half Bathrooms', data.halfBaths || ''],
-                        ['Dwelling Type', data.dwellingType || ''],
-                        ['Dwelling Usage', data.dwellingUsage || ''],
-                        ['Occupancy Type', data.occupancyType || '']
-                    ]);
-
-                    // Section 3: Exterior/Construction
-                    addSection('Exterior & Construction', [
-                        ['Construction Style', data.constructionStyle || ''],
+                        ['Bathrooms', data.fullBaths || ''],
+                        ['Construction', data.constructionStyle || ''],
                         ['Exterior Walls', data.exteriorWalls || ''],
                         ['Roof Type', data.roofType || ''],
-                        ['Roof Shape', data.roofShape || ''],
-                        ['Roof Year Updated', data.roofYr || ''],
-                        ['Foundation', data.foundation || ''],
-                        ['Garage Type', data.garageType || ''],
-                        ['Garage Spaces', data.garageSpaces || ''],
-                        ['Kitchen/Bath Quality', data.kitchenQuality || '']
-                    ]);
-
-                    // Section 4: Systems/Utility
-                    addSection('Systems & Utilities', [
-                        ['Heating Type', data.heatingType || ''],
-                        ['Heating Year Updated', data.heatYr || ''],
-                        ['Cooling', data.cooling || ''],
-                        ['Plumbing Year Updated', data.plumbYr || ''],
-                        ['Electrical Year Updated', data.elecYr || ''],
-                        ['Sewer', data.sewer || ''],
-                        ['Water Source', data.waterSource || ''],
-                        ['Primary Flooring', data.flooring || ''],
-                        ['Fireplaces', data.numFireplaces || '']
-                    ]);
-
-                    // Section 5: Safety & Fire Protection
-                    addSection('Safety & Fire Protection', [
-                        ['Fire Station Distance (mi)', data.fireStationDist || ''],
-                        ['Fire Hydrant Distance (ft)', data.fireHydrantFeet || ''],
-                        ['Protection Class', data.protectionClass || ''],
-                        ['Burglar Alarm', data.burglarAlarm || ''],
-                        ['Fire Alarm', data.fireAlarm || ''],
-                        ['Sprinklers', data.sprinklers || '']
-                    ]);
-
-                    // Section 6: Hazards
-                    addSection('Hazards & Risk Factors', [
-                        ['Swimming Pool', data.pool || ''],
-                        ['Trampoline', data.trampoline || ''],
-                        ['Wood Burning Stove', data.woodStove || ''],
-                        ['Dogs / Pets', data.dogInfo || ''],
-                        ['Business on Property', data.businessOnProperty || '']
+                        ['Foundation', data.foundation || '']
                     ]);
                 }
 
-                // Section 7: Vehicles
-                if (data.qType === 'auto' || data.qType === 'both') {
-                    if (data.vehicles && data.vehicles.length) {
-                        const vehicleLines = data.vehicles.map((v, i) => {
-                            const vehDesc = [v.year, v.make, v.model].filter(Boolean).join(' ');
-                            return `Vehicle ${i + 1}: ${vehDesc || 'Unknown'} | VIN: ${v.vin || ''} | Use: ${v.use || ''} | Miles: ${v.miles || ''} | Primary Driver: ${v.primaryDriver || ''}`;
-                        }).join('\n');
-                        addSection('Vehicles', [['Vehicles', vehicleLines]]);
-                    } else {
-                        addSection('Vehicle Information', [
-                            ['VIN', data.vin || ''],
-                            ['Vehicle', data.vehDesc || ''],
-                            ['License Number', data.dlNum || ''],
-                            ['License State', data.dlState || ''],
-                            ['Vehicle Use', data.use || ''],
-                            ['Annual Miles', data.miles || ''],
-                            ['Commute Distance', data.commuteDist || ''],
-                            ['Ridesharing', data.rideSharing || ''],
-                            ['Telematics', data.telematics || '']
-                        ]);
-                    }
+                if (showAuto) {
+                    const driverLines = drivers.length ? drivers.map((d, i) => {
+                        const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
+                        return `Driver ${i + 1}: ${name || 'Unknown'} | DOB: ${formatDate(d.dob || '')} | DL: ${d.dlNum || ''} (${d.dlState || ''}) | Relationship: ${d.relationship || ''} | Occupation: ${d.occupation || ''}`;
+                    }).join('\n') : '';
+
+                    const vehicleLines = vehicles.length ? vehicles.map((v, i) => {
+                        const vehDesc = [v.year, v.make, v.model].filter(Boolean).join(' ');
+                        return `Vehicle ${i + 1}: ${vehDesc || 'Unknown'} | VIN: ${v.vin || ''} | Use: ${v.use || ''} | Miles: ${v.miles || ''} | Primary Driver: ${v.primaryDriver || ''}`;
+                    }).join('\n') : '';
+
+                    addSection('Drivers & Vehicles', [
+                        ['Drivers', driverLines || ''],
+                        ['Vehicles', vehicleLines || ''],
+                        ['Vehicle (Legacy)', data.vehDesc || ''],
+                        ['VIN (Legacy)', data.vin || ''],
+                        ['Usage (Legacy)', data.use || ''],
+                        ['Annual Miles (Legacy)', data.miles || '']
+                    ]);
                 }
 
-                // Section 8: Coverage & History
-                addSection('Coverage & History', [
+                addSection('Policy History & Risk', [
                     ['Liability Limits', data.liabilityLimits || ''],
                     ['Home Deductible', data.homeDeductible || ''],
                     ['Auto Deductible', data.autoDeductible || ''],
                     ['Prior Carrier', data.priorCarrier || ''],
                     ['Prior Years', data.priorYears || ''],
-                    ['Prior Expiration', data.priorExp || ''],
+                    ['Prior Expiration', formatDate(data.priorExp || '')],
+                    ['Effective Date', formatDate(data.effectiveDate || '')],
                     ['Accidents', data.accidents || ''],
                     ['Violations', data.violations || ''],
-                    ['Student GPA', data.studentGPA || '']
+                    ['Fire Station Distance (mi)', data.fireStationDist || ''],
+                    ['Protection Class', data.protectionClass || '']
                 ]);
-                
+
                 addSection('Additional Information', [
                     ['Mortgagee', data.mortgagee || ''],
                     ['Additional Insureds', data.additionalInsureds || ''],
@@ -7705,6 +7827,26 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                     return d.toISOString().split('T')[0];
                 };
 
+                const splitZip = (zip) => {
+                    const raw = (zip || '').toString().trim();
+                    if (!raw) return { zip5: '', zip4: '' };
+                    const digits = raw.replace(/[^0-9]/g, '');
+                    if (digits.length >= 9) {
+                        return { zip5: digits.slice(0, 5), zip4: digits.slice(5, 9) };
+                    }
+                    return { zip5: digits.slice(0, 5), zip4: '' };
+                };
+
+                const parseLimits = (value) => {
+                    if (!value) return { bi: '', pd: '' };
+                    const cleaned = String(value).replace(/\s+/g, '');
+                    const parts = cleaned.split('/').filter(Boolean);
+                    if (parts.length >= 2) {
+                        return { bi: `${parts[0]}/${parts[1]}`, pd: parts[2] || '' };
+                    }
+                    return { bi: cleaned, pd: '' };
+                };
+
                 // Use arrays if available, otherwise fall back to flat fields
                 const drivers = (data.drivers && data.drivers.length > 0) ? data.drivers : null;
                 const vehicles = (data.vehicles && data.vehicles.length > 0) ? data.vehicles : null;
@@ -7745,6 +7887,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 const streetMatch = streetRaw.match(/^(\d+)\s+(.*)$/);
                 const streetNumber = streetMatch?.[1] || '';
                 const streetName = streetMatch?.[2] || streetRaw;
+                const { zip5, zip4 } = splitZip(data.addrZip);
 
                 let xml = '<EZAUTO xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200">\n';
 
@@ -7778,7 +7921,10 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 if (county) {
                     xml += `      <County>${escapeXML(county)}</County>\n`;
                 }
-                xml += `      <Zip5>${escapeXML(data.addrZip)}</Zip5>\n`;
+                xml += `      <Zip5>${escapeXML(zip5)}</Zip5>\n`;
+                if (zip4) {
+                    xml += `      <Zip4>${escapeXML(zip4)}</Zip4>\n`;
+                }
                 if (phone) {
                     xml += '      <Phone id="1">\n';
                     xml += '        <PhoneType>Mobile</PhoneType>\n';
@@ -7822,7 +7968,10 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 if (county) {
                     xml += `        <County>${escapeXML(county)}</County>\n`;
                 }
-                xml += `        <Zip5>${escapeXML(data.addrZip)}</Zip5>\n`;
+                xml += `        <Zip5>${escapeXML(zip5)}</Zip5>\n`;
+                if (zip4) {
+                    xml += `        <Zip4>${escapeXML(zip4)}</Zip4>\n`;
+                }
                 xml += '      </Address>\n';
                 xml += '    </GarageLocation>\n';
                 xml += '  </ResidenceInfo>\n';
@@ -7932,12 +8081,16 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
 
                 // Coverages section
                 const vehCount = vehicles ? vehicles.length : (data.vin || data.vehDesc ? 1 : 0);
+                const liab = parseLimits(data.liabilityLimits);
+                const um = parseLimits(data.umLimits);
+                const uim = parseLimits(data.uimLimits);
+                const pdValue = data.pdLimit || liab.pd || '100000';
                 xml += '  <Coverages>\n';
                 xml += '    <GeneralCoverage>\n';
-                xml += `      <BI>${escapeXML(data.liabilityLimits || '100/300')}</BI>\n`;
-                xml += `      <PD>${escapeXML(data.pdLimit || '100000')}</PD>\n`;
-                xml += `      <UM>${escapeXML(data.umLimits || '100/300')}</UM>\n`;
-                xml += `      <UIM>${escapeXML(data.uimLimits || '100/300')}</UIM>\n`;
+                xml += `      <BI>${escapeXML(liab.bi || data.liabilityLimits || '100/300')}</BI>\n`;
+                xml += `      <PD>${escapeXML(pdValue)}</PD>\n`;
+                xml += `      <UM>${escapeXML(um.bi || data.umLimits || '100/300')}</UM>\n`;
+                xml += `      <UIM>${escapeXML(uim.bi || data.uimLimits || '100/300')}</UIM>\n`;
                 xml += `      <Multicar>${vehCount > 1 ? 'Yes' : 'No'}</Multicar>\n`;
                 xml += '    </GeneralCoverage>\n';
 
@@ -7955,7 +8108,7 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
                 if (state === 'WA') {
                     xml += '    <StateSpecificCoverage>\n';
                     xml += '      <WA-Coverages>\n';
-                    xml += `        <WA-UMPD>${escapeXML(data.pdLimit || '25000')}</WA-UMPD>\n`;
+                    xml += `        <WA-UMPD>${escapeXML(data.umPd || data.pdLimit || liab.pd || '25000')}</WA-UMPD>\n`;
                     xml += '        <WA-PIP>10000</WA-PIP>\n';
                     xml += '      </WA-Coverages>\n';
                     xml += '    </StateSpecificCoverage>\n';
@@ -8633,26 +8786,34 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
             },
 
             init() {
+                const setValue = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.value = value;
+                    if (window.App && App.markAutoFilled) {
+                        App.markAutoFilled(el, 'coi');
+                    }
+                };
                 // Auto-fill agency information
-                document.getElementById('coiProducerName').value = this.agencyDefaults.name;
-                document.getElementById('coiProducerPhone').value = this.agencyDefaults.phone;
-                document.getElementById('coiProducerFax').value = this.agencyDefaults.fax;
-                document.getElementById('coiProducerEmail').value = this.agencyDefaults.email;
-                document.getElementById('coiProducerAddress').value = this.agencyDefaults.address;
-                document.getElementById('coiProducerCity').value = this.agencyDefaults.city;
-                document.getElementById('coiProducerState').value = this.agencyDefaults.state;
-                document.getElementById('coiProducerZip').value = this.agencyDefaults.zip;
+                setValue('coiProducerName', this.agencyDefaults.name);
+                setValue('coiProducerPhone', this.agencyDefaults.phone);
+                setValue('coiProducerFax', this.agencyDefaults.fax);
+                setValue('coiProducerEmail', this.agencyDefaults.email);
+                setValue('coiProducerAddress', this.agencyDefaults.address);
+                setValue('coiProducerCity', this.agencyDefaults.city);
+                setValue('coiProducerState', this.agencyDefaults.state);
+                setValue('coiProducerZip', this.agencyDefaults.zip);
 
                 // Set today's date
                 const today = new Date().toISOString().split('T')[0];
-                document.getElementById('coiDate').value = today;
+                setValue('coiDate', today);
 
                 // Generate certificate number (format: 00017905-0 5)
                 const certNumber = this.generateCertNumber();
-                document.getElementById('coiCertNumber').value = certNumber;
+                setValue('coiCertNumber', certNumber);
 
                 // Set revision to 0 by default
-                document.getElementById('coiRevNumber').value = '0';
+                setValue('coiRevNumber', '0');
 
                 // Try to load any saved draft
                 this.load();
@@ -8765,7 +8926,13 @@ Mortgagee (Doc): ${data.docIntel?.mortgagee || ''}
 
             init() {
                 // Set default state to WA
-                document.getElementById('prospectState').value = 'WA';
+                const stateEl = document.getElementById('prospectState');
+                if (stateEl) {
+                    stateEl.value = 'WA';
+                    if (window.App && App.markAutoFilled) {
+                        App.markAutoFilled(stateEl, 'prospect');
+                    }
+                }
                 console.log('Prospect Investigator initialized');
             },
 
