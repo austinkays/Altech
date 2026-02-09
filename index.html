@@ -1635,11 +1635,16 @@
                     <div><label class="label">Last Name</label><input type="text" id="lastName" placeholder="Smith" autocomplete="family-name"></div>
                 </div>
 
-                <div class="grid-2">
-                    <div><label class="label">First Name Pronunciation (optional)</label><input type="text" id="firstNamePhonetic" placeholder="john (jon)"></div>
-                    <div><label class="label">Last Name Pronunciation (optional)</label><input type="text" id="lastNamePhonetic" placeholder="nguyen (win)"></div>
+                <div class="grid-2" style="align-items:end;">
+                    <div>
+                        <label class="label">Name Pronunciation (AI)</label>
+                        <input type="text" id="namePronunciation" placeholder="Generate from name" readonly>
+                    </div>
+                    <div>
+                        <button class="btn btn-tertiary" type="button" onclick="App.generateNamePronunciation()">Generate Pronunciation</button>
+                        <div class="hint" style="margin-top:6px;">Uses Gemini; update the name above and click generate.</div>
+                    </div>
                 </div>
-                <div class="hint" style="margin-top:6px;">Example: Siobhan -> "shi-VAWN"</div>
                 
                 <label class="label">Email Address</label>
                 <input type="email" id="email" placeholder="john@example.com" autocomplete="email">
@@ -3803,6 +3808,12 @@
                 if (e && e.target) {
                     const k = e.target.id || e.target.name;
                     this.data[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+
+                    if (k === 'firstName' || k === 'lastName') {
+                        this.data.firstNamePhonetic = '';
+                        this.data.lastNamePhonetic = '';
+                        this.updateNamePronunciationUI();
+                    }
                 }
 
                 if (this.saveTimeout) {
@@ -3865,6 +3876,7 @@
                 });
                 this.checkUpdates();
                 this.handleType();
+                this.updateNamePronunciationUI();
             },
 
             // === PROGRESSIVE DISCLOSURE ===
@@ -7241,6 +7253,53 @@
                 if (first && last) return `First: ${first} | Last: ${last}`;
                 if (first) return `First: ${first}`;
                 return `Last: ${last}`;
+            },
+
+            updateNamePronunciationUI() {
+                const el = document.getElementById('namePronunciation');
+                if (!el) return;
+                el.value = this.getNamePronunciation(this.data) || '';
+            },
+
+            async generateNamePronunciation() {
+                const firstName = (this.data.firstName || '').trim();
+                const lastName = (this.data.lastName || '').trim();
+                if (!firstName && !lastName) {
+                    this.toast('⚠️ Enter a first or last name first.');
+                    return;
+                }
+
+                const btn = document.querySelector('button[onclick="App.generateNamePronunciation()"]');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Generating...';
+                }
+
+                try {
+                    const res = await fetch('/api/name-phonetics', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ firstName, lastName })
+                    });
+                    const payload = await res.json();
+                    if (!res.ok || payload?.error) {
+                        throw new Error(payload?.error || 'Pronunciation lookup failed');
+                    }
+
+                    this.data.firstNamePhonetic = payload.firstNamePhonetic || '';
+                    this.data.lastNamePhonetic = payload.lastNamePhonetic || '';
+                    this.updateNamePronunciationUI();
+                    this.save();
+                    this.toast('✓ Pronunciation added');
+                } catch (err) {
+                    console.error('[Pronunciation] Failed:', err);
+                    this.toast('⚠️ Unable to generate pronunciation right now');
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'Generate Pronunciation';
+                    }
+                }
             },
 
             getNotesForData(data) {
