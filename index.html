@@ -4841,7 +4841,14 @@
                         }
                     }
                     // RAG failed, return raw ArcGIS data
-                    return { data: arcgisData.parcelData, source: 'arcgis-raw', confidence: 0.95 };
+                    const result = { data: arcgisData.parcelData, source: 'arcgis-raw', confidence: 0.95 };
+                    // If Clark County enrichment happened, note it
+                    if (arcgisData.enrichedBy === 'clark-factsheet') {
+                        result.source = 'arcgis+clark-factsheet';
+                        result.factSheetFields = arcgisData.factSheetFields;
+                        console.log(`[ArcGIS] Clark County enriched with: ${arcgisData.factSheetFields?.join(', ')}`);
+                    }
+                    return result;
                 } catch (e) {
                     console.warn('[ArcGIS+RAG] Error:', e.message);
                     return null;
@@ -4886,7 +4893,9 @@
                     return {
                         fireStationDist: result.fireStationDist,
                         fireStationName: result.fireStationName,
-                        protectionClass: result.protectionClass
+                        protectionClass: result.protectionClass,
+                        stationReliability: result.stationReliability || 'responding',
+                        reviewNote: result.reviewNote || null
                     };
                 } catch (e) {
                     console.warn('[FireStation] Error:', e.message);
@@ -5213,8 +5222,13 @@
 
                 // Add fire station fields if available
                 if (fireData) {
-                    fields.push({ label: 'Fire Station', value: `${fireData.fireStationDist} mi — ${fireData.fireStationName || 'Nearest'}` });
+                    const reliabilityBadge = fireData.stationReliability === 'volunteer' ? ' 🟡' :
+                                             fireData.stationReliability === 'review' ? ' ⚠️' : '';
+                    fields.push({ label: 'Fire Station', value: `${fireData.fireStationDist} mi — ${fireData.fireStationName || 'Nearest'}${reliabilityBadge}` });
                     fields.push({ label: 'Protection Class', value: fireData.protectionClass });
+                    if (fireData.reviewNote) {
+                        fields.push({ label: 'Station Note', value: fireData.reviewNote });
+                    }
                 }
 
                 // Only show fields that have data
@@ -5674,15 +5688,23 @@
             },
 
             showHazardDetectionPopup(detections, satelliteImage, address, streetViewImage) {
-                // Extract hazard information
+                // Normalize new Gemini Vision response format (roof_material, has_pool, etc.)
+                // to the internal field names used by the popup and apply logic
+                const d = detections || {};
                 const hazards = {
-                    pool: detections.pool === 'yes',
-                    trampoline: detections.trampoline === 'yes',
-                    deck: detections.deck === 'yes',
-                    roofType: detections.roofType && detections.roofType !== 'unknown' ? detections.roofType : null,
-                    roofShape: detections.roofShape && detections.roofShape !== 'unknown' ? detections.roofShape : null,
-                    numStories: detections.numStories && detections.numStories !== 'unknown' ? detections.numStories : null,
-                    garageSpaces: detections.garageSpaces && detections.garageSpaces !== 'unknown' ? detections.garageSpaces : null,
+                    pool: d.has_pool === true || d.pool === 'yes',
+                    poolFenced: d.pool_fenced === true || null,
+                    trampoline: d.has_trampoline === true || d.trampoline === 'yes',
+                    deck: d.deck_or_patio === true || d.deck === 'yes',
+                    roofType: d.roof_material && d.roof_material !== 'unknown' ? d.roof_material : (d.roofType && d.roofType !== 'unknown' ? d.roofType : null),
+                    roofShape: d.roof_shape && d.roof_shape !== 'unknown' ? d.roof_shape : (d.roofShape && d.roofShape !== 'unknown' ? d.roofShape : null),
+                    roofConditionScore: d.roof_condition_score || null,
+                    numStories: d.stories || (d.numStories && d.numStories !== 'unknown' ? d.numStories : null),
+                    garageSpaces: d.garage_doors || (d.garageSpaces && d.garageSpaces !== 'unknown' ? d.garageSpaces : null),
+                    visibleHazards: d.visible_hazards || [],
+                    treeOverhang: d.tree_overhang_roof,
+                    brushClearance: d.brush_clearance_adequate,
+                    notes: d.notes || '',
                 };
                 
                 // Count detected hazards
@@ -5733,7 +5755,7 @@
                                     <div style="display: grid; gap: 8px;">
                                         <label class="checkbox-row is-prominent">
                                             <input type="checkbox" id="hazard_pool" ${hazards.pool ? 'checked' : ''}>
-                                            <span>🏊 Pool ${hazards.pool ? '✓ Detected' : '(Not detected)'}</span>
+                                            <span>🏊 Pool ${hazards.pool ? '✓ Detected' : '(Not detected)'}${hazards.pool && hazards.poolFenced === true ? ' (fenced)' : hazards.pool && hazards.poolFenced === false ? ' ⚠️ no visible fence' : ''}</span>
                                         </label>
                                         <label class="checkbox-row is-prominent">
                                             <input type="checkbox" id="hazard_trampoline" ${hazards.trampoline ? 'checked' : ''}>
@@ -5743,6 +5765,20 @@
                                             <input type="checkbox" id="hazard_deck" ${hazards.deck ? 'checked' : ''}>
                                             <span>🛋️ Deck/Patio ${hazards.deck ? '✓ Detected' : '(Not detected)'}</span>
                                         </label>
+                                        ${hazards.treeOverhang === true ? `
+                                            <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #fff3cd; border-radius: 6px;">
+                                                <span>🌲</span>
+                                                <span style="font-size: 13px; color: #856404;">Tree branches overhanging roof</span>
+                                            </div>
+                                        ` : ''}
+                                        ${hazards.visibleHazards && hazards.visibleHazards.length > 0 ? `
+                                            <div style="padding: 8px; background: #f8d7da; border-radius: 6px;">
+                                                <p style="font-size: 11px; font-weight: 600; margin: 0 0 4px 0; color: #721c24;">⚠️ Visible Hazards</p>
+                                                <ul style="margin: 0; padding: 0 0 0 16px; font-size: 12px; color: #721c24;">
+                                                    ${hazards.visibleHazards.map(h => `<li>${h}</li>`).join('')}
+                                                </ul>
+                                            </div>
+                                        ` : ''}
                                     </div>
                                 </div>
                                 
@@ -5758,8 +5794,8 @@
                                         ` : ''}
                                         ${hazards.roofType ? `
                                             <div style="display: flex; justify-content: space-between;">
-                                                <span style="font-size: 14px;">🏠 Roof Type:</span>
-                                                <span style="font-size: 14px; font-weight: 600;">${hazards.roofType}</span>
+                                                <span style="font-size: 14px;">🏠 Roof Material:</span>
+                                                <span style="font-size: 14px; font-weight: 600;">${String(hazards.roofType).replace(/_/g, ' ')}</span>
                                             </div>
                                         ` : ''}
                                         ${hazards.roofShape ? `
@@ -5768,10 +5804,22 @@
                                                 <span style="font-size: 14px; font-weight: 600;">${hazards.roofShape}</span>
                                             </div>
                                         ` : ''}
+                                        ${hazards.roofConditionScore ? `
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <span style="font-size: 14px;">🔍 Roof Condition:</span>
+                                                <span style="font-size: 14px; font-weight: 600; color: ${hazards.roofConditionScore >= 7 ? '#28a745' : hazards.roofConditionScore >= 4 ? '#ffc107' : '#dc3545'};">${hazards.roofConditionScore}/10 ${hazards.roofConditionScore >= 7 ? '(Good)' : hazards.roofConditionScore >= 4 ? '(Fair)' : '(Poor)'}</span>
+                                            </div>
+                                        ` : ''}
                                         ${hazards.garageSpaces ? `
                                             <div style="display: flex; justify-content: space-between;">
-                                                <span style="font-size: 14px;">🚗 Garage Spaces:</span>
+                                                <span style="font-size: 14px;">🚗 Garage Doors:</span>
                                                 <span style="font-size: 14px; font-weight: 600;">${hazards.garageSpaces}</span>
+                                            </div>
+                                        ` : ''}
+                                        ${hazards.notes ? `
+                                            <div style="margin-top: 8px; padding: 8px; background: var(--bg); border-radius: 6px;">
+                                                <p style="font-size: 11px; font-weight: 600; margin: 0 0 4px 0; color: var(--text-secondary);">📝 Underwriter Notes</p>
+                                                <p style="font-size: 12px; margin: 0; color: var(--text);">${hazards.notes}</p>
                                             </div>
                                         ` : ''}
                                         ${!hazards.numStories && !hazards.roofType && !hazards.roofShape && !hazards.garageSpaces ? `
@@ -5864,8 +5912,20 @@
                 }
 
                 if (h.roofType) {
-                    const roofMap = { 'asphalt': 'Asphalt/Composite Shingle', 'metal': 'Metal', 'tile': 'Clay Tile', 'flat': 'Tar & Gravel' };
-                    const mapped = roofMap[h.roofType.toLowerCase()] || null;
+                    const roofMap = {
+                        'asphalt': 'Asphalt/Composite Shingle',
+                        'composition_shingle': 'Asphalt/Composite Shingle',
+                        'architectural_shingle': 'Asphalt/Composite Shingle',
+                        'metal': 'Metal',
+                        'tile': 'Clay Tile',
+                        'clay_tile': 'Clay Tile',
+                        'concrete_tile': 'Concrete Tile',
+                        'flat': 'Tar & Gravel',
+                        'flat_membrane': 'Tar & Gravel',
+                        'wood_shake': 'Wood Shake/Shingle',
+                        'slate': 'Slate',
+                    };
+                    const mapped = roofMap[h.roofType.toLowerCase()] || roofMap[h.roofType.toLowerCase().replace(/_/g, ' ')] || null;
                     if (mapped) {
                         const el = document.getElementById('roofType');
                         if (el) {

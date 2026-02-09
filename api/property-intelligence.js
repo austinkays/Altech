@@ -236,6 +236,122 @@ function normalizeParcelData(parcel, countyName) {
   };
 }
 
+// ===========================================================================
+// Clark County "Fact Sheet" Deep-Link Scraper
+// Fetches server-rendered HTML report with full building details
+// URL: https://gis.clark.wa.gov/gishome/property/reports.cfm?account_rekey=[ACCT]&item=fact
+// ===========================================================================
+
+async function fetchClarkFactSheet(accountNumber) {
+  if (!accountNumber) return null;
+
+  // The DATA_LINK from ArcGIS contains the account number or full URL
+  // Extract just the account number if it's a URL
+  let acctKey = accountNumber;
+  const urlMatch = String(accountNumber).match(/account_rekey=([^&]+)/);
+  if (urlMatch) acctKey = urlMatch[1];
+  // Also try extracting from a plain data link path
+  const pathMatch = String(accountNumber).match(/\/(\d+)\/?$/);
+  if (pathMatch) acctKey = pathMatch[1];
+
+  const factUrl = `https://gis.clark.wa.gov/gishome/property/reports.cfm?account_rekey=${encodeURIComponent(acctKey)}&item=fact`;
+  console.log(`[Clark FactSheet] Fetching: ${factUrl}`);
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const resp = await fetch(factUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Altech PropertyIntel/1.0)',
+        'Accept': 'text/html'
+      }
+    });
+    clearTimeout(timeout);
+
+    if (!resp.ok) {
+      console.log(`[Clark FactSheet] HTTP ${resp.status}`);
+      return null;
+    }
+
+    const html = await resp.text();
+    console.log(`[Clark FactSheet] Got ${html.length} chars of HTML`);
+
+    // Parse building details from the fact sheet HTML using regex
+    // The page has table rows with label/value pairs
+    const extract = (pattern) => {
+      const m = html.match(pattern);
+      return m ? m[1].replace(/<[^>]*>/g, '').trim() : null;
+    };
+    const extractNum = (pattern) => {
+      const v = extract(pattern);
+      if (!v) return 0;
+      const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
+      return Number.isNaN(n) ? 0 : n;
+    };
+    const extractFloat = (pattern) => {
+      const v = extract(pattern);
+      if (!v) return 0;
+      const n = parseFloat(v.replace(/[^0-9.]/g, ''));
+      return Number.isNaN(n) ? 0 : n;
+    };
+
+    // Common patterns in Clark County fact sheet HTML tables
+    const data = {
+      yearBuilt: extractNum(/Year\s*Built[^<]*<[^>]*>\s*([^<]+)/i),
+      totalSqft: extractNum(/(?:Total|Living)\s*(?:Area|Sq\s*F|SqFt|Square)[^<]*<[^>]*>\s*([^<]+)/i),
+      stories: extractFloat(/Stor(?:ies|y)[^<]*<[^>]*>\s*([^<]+)/i),
+      bedrooms: extractNum(/Bedroom[^<]*<[^>]*>\s*([^<]+)/i),
+      bathrooms: extractFloat(/(?:Full\s*)?Bath[^<]*<[^>]*>\s*([^<]+)/i),
+      halfBaths: extractFloat(/Half\s*Bath[^<]*<[^>]*>\s*([^<]+)/i),
+      roofType: extract(/Roof(?:\s*(?:Type|Material|Cover))?[^<]*<[^>]*>\s*([^<]+)/i),
+      foundation: extract(/Foundation[^<]*<[^>]*>\s*([^<]+)/i),
+      heating: extract(/Heat(?:ing)?(?:\s*Type)?[^<]*<[^>]*>\s*([^<]+)/i),
+      construction: extract(/(?:Construction|Exterior\s*Wall|Frame)[^<]*<[^>]*>\s*([^<]+)/i),
+      garageType: extract(/Garage(?:\s*Type)?[^<]*<[^>]*>\s*([^<]+)/i),
+      garageSqft: extractNum(/Garage\s*(?:Area|Sq\s*F|SqFt)[^<]*<[^>]*>\s*([^<]+)/i),
+      basementSqft: extractNum(/Basement\s*(?:Area|Sq\s*F|SqFt)[^<]*<[^>]*>\s*([^<]+)/i),
+      fireplace: extractNum(/Fireplace[^<]*<[^>]*>\s*([^<]+)/i),
+    };
+
+    // Count how many fields we actually got
+    const fieldsFound = Object.entries(data)
+      .filter(([k, v]) => v && v !== 0 && v !== 'N/A')
+      .map(([k]) => k);
+
+    if (fieldsFound.length < 2) {
+      console.log(`[Clark FactSheet] Only ${fieldsFound.length} fields parsed, skipping`);
+      return null;
+    }
+
+    console.log(`[Clark FactSheet] Extracted ${fieldsFound.length} fields: ${fieldsFound.join(', ')}`);
+    return { data, fieldsFound, source: 'clark-factsheet' };
+  } catch (err) {
+    console.warn(`[Clark FactSheet] Error: ${err.message}`);
+    return null;
+  }
+}
+
+function enrichParcelWithFactSheet(parcelData, factSheet) {
+  // Merge fact sheet data into parcel, filling gaps only
+  const fs = factSheet.data;
+  if (fs.yearBuilt && (!parcelData.yearBuilt || parcelData.yearBuilt === 0)) parcelData.yearBuilt = fs.yearBuilt;
+  if (fs.totalSqft && (!parcelData.totalSqft || parcelData.totalSqft === 0)) parcelData.totalSqft = fs.totalSqft;
+  if (fs.stories && (!parcelData.stories || parcelData.stories === 0)) parcelData.stories = fs.stories;
+  if (fs.bedrooms && (!parcelData.bedrooms || parcelData.bedrooms === 0)) parcelData.bedrooms = fs.bedrooms;
+  if (fs.bathrooms && (!parcelData.bathrooms || parcelData.bathrooms === 0)) parcelData.bathrooms = fs.bathrooms;
+  if (fs.roofType && (parcelData.roofType === 'N/A' || !parcelData.roofType)) parcelData.roofType = fs.roofType;
+  if (fs.foundation && (parcelData.foundationType === 'Unknown' || !parcelData.foundationType)) parcelData.foundationType = fs.foundation;
+  if (fs.heating) parcelData.heatingType = fs.heating;
+  if (fs.construction) parcelData.constructionStyle = fs.construction;
+  if (fs.garageType) parcelData.garageType = fs.garageType;
+  if (fs.garageSqft && (!parcelData.garageSqft || parcelData.garageSqft === 0)) parcelData.garageSqft = fs.garageSqft;
+  if (fs.basementSqft && (!parcelData.basementSqft || parcelData.basementSqft === 0)) parcelData.basementSqft = fs.basementSqft;
+  if (fs.fireplace && fs.fireplace > 0) parcelData.fireplaces = fs.fireplace;
+  return parcelData;
+}
+
 async function handleArcgis(req, res) {
   const { address, city, state, county } = req.body;
 
@@ -247,6 +363,22 @@ async function handleArcgis(req, res) {
   }
 
   const result = await arcgisQueryByAddress(address, city, state, county);
+
+  // Clark County enrichment: if ArcGIS succeeded, try the Fact Sheet scrape
+  if (result.success && county === 'Clark' && result.rawResponse) {
+    const acctNum = result.rawResponse.DATA_LINK || result.rawResponse.ORIG_PARCEL_ID || result.parcelData?.parcelId;
+    if (acctNum) {
+      console.log(`[ArcGIS] Clark County detected — attempting Fact Sheet enrichment (acct: ${acctNum})`);
+      const factSheet = await fetchClarkFactSheet(acctNum);
+      if (factSheet) {
+        result.parcelData = enrichParcelWithFactSheet(result.parcelData, factSheet);
+        result.enrichedBy = 'clark-factsheet';
+        result.factSheetFields = factSheet.fieldsFound;
+        console.log(`[ArcGIS] Clark enrichment added ${factSheet.fieldsFound.length} fields`);
+      }
+    }
+  }
+
   res.status(200).json(result);
 }
 
@@ -302,31 +434,27 @@ async function handleSatellite(req, res) {
   // Call Gemini Vision API with both images
   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
-  const prompt = `Analyze ${svBase64 ? 'these two images' : 'this satellite image'} for the property at: ${fullAddress}
-${svBase64 ? '\nImage 1 is a satellite/aerial view. Image 2 is a street-level view of the home.' : ''}
+  const prompt = `You are an insurance property underwriter. Analyze ${svBase64 ? 'these two images' : 'this satellite image'} of the property at: ${fullAddress}
+${svBase64 ? 'Image 1: Satellite/aerial view. Image 2: Street-level view.' : ''}
 
-Detect and identify:
-- Pool (visible blue water feature in satellite image)
-- Trampoline (circular or rectangular structure in yard)
-- Roof material (asphalt shingles, metal, tile, flat, or unknown)
-- Roof shape (look at the roof structure${svBase64 ? ' in both images' : ''} — is it gable, hip, flat, or gambrel?)
-- Number of stories (1, 1.5, 2, 2.5, 3, or 3+)
-- Garage spaces (count visible garage doors: 0, 1, 2, 3+)
-- Deck or patio (wooden deck or concrete patio visible)
-- Tree coverage (minimal, moderate, heavy)
-
-Return ONLY valid JSON with this structure:
+Evaluate for insurance risk underwriting. Return ONLY valid JSON (no markdown, no explanation):
 {
-  "pool": "yes|no|unknown",
-  "trampoline": "yes|no|unknown",
-  "roofType": "asphalt|metal|tile|flat|unknown",
-  "roofShape": "gable|hip|flat|gambrel|unknown",
-  "numStories": "1|1.5|2|2.5|3|3+|unknown",
-  "garageSpaces": "0|1|2|3+|unknown",
-  "deck": "yes|no|unknown",
-  "treeCoverage": "minimal|moderate|heavy|unknown",
-  "notes": "Brief observations"
-}`;
+  "roof_material": "composition_shingle|architectural_shingle|metal|clay_tile|concrete_tile|wood_shake|slate|flat_membrane|unknown",
+  "roof_condition_score": 1-10 integer or null,
+  "roof_shape": "gable|hip|flat|gambrel|mansard|unknown",
+  "has_pool": true/false/null,
+  "pool_fenced": true/false/null,
+  "has_trampoline": true/false/null,
+  "stories": integer or null,
+  "garage_doors": integer or null,
+  "visible_hazards": ["list of observed risks: dead trees, debris, damaged siding, sagging roof, etc."],
+  "deck_or_patio": true/false/null,
+  "tree_overhang_roof": true/false/null,
+  "brush_clearance_adequate": true/false/null,
+  "notes": "2-3 sentence underwriter observations"
+}
+
+Scoring guide for roof_condition_score: 10=new/excellent, 7-9=good/minor wear, 4-6=aging/moss/staining, 1-3=visible damage/sagging/missing shingles. Use null if roof not clearly visible.`;
 
   // Build image parts array
   const imageParts = [
@@ -924,6 +1052,38 @@ function estimateProtectionClass(distanceMiles) {
   return 10;
 }
 
+// Keywords that indicate a fire station result is NOT a responding station
+// Admin offices, training centers, and some volunteer-only facilities
+// may appear in Google Places but don't have apparatus (engines/trucks)
+const NON_RESPONDING_KEYWORDS = [
+  'training', 'training center', 'training facility',
+  'admin', 'administrative', 'administration', 'headquarters',
+  'museum', 'historical', 'historic',
+  'prevention', 'fire prevention', 'fire marshal',
+  'dispatch', 'communications',
+];
+
+function isRespondingStation(station) {
+  const name = (station.name || '').toLowerCase();
+  const types = station.types || [];
+  // If it's explicitly typed as fire_station by Google, give it some credit
+  const isTypedFireStation = types.includes('fire_station');
+  // Check for non-responding keywords
+  const hasNonRespondingKeyword = NON_RESPONDING_KEYWORDS.some(kw => name.includes(kw));
+  if (hasNonRespondingKeyword && !name.includes('station')) {
+    // If it says "Training Center" but NOT "Station 5 Training Center", skip it
+    return false;
+  }
+  return true;
+}
+
+function classifyStationReliability(station) {
+  const name = (station.name || '').toLowerCase();
+  if (/volunteer/i.test(name)) return 'volunteer';
+  if (NON_RESPONDING_KEYWORDS.some(kw => name.includes(kw))) return 'review';
+  return 'responding';
+}
+
 async function handleFireStation(req, res) {
   const { address, city, state, zip } = req.body;
 
@@ -965,8 +1125,30 @@ async function handleFireStation(req, res) {
     const nearbyData = await nearbyResp.json();
     console.log(`[FireStation] Nearby Search status: ${nearbyData.status}, results: ${nearbyData.results?.length || 0}`);
 
+    // Helper: find best responding station from a list of results
+    const findBestStation = (results) => {
+      if (!results || results.length === 0) return null;
+      // Sort by distance, then pick the first one that's a responding station
+      const sorted = results
+        .map(r => ({
+          ...r,
+          dist: haversineDistance(lat, lng, r.geometry.location.lat, r.geometry.location.lng),
+          responding: isRespondingStation(r),
+          reliability: classifyStationReliability(r)
+        }))
+        .sort((a, b) => a.dist - b.dist);
+
+      // Prefer responding stations, but track the best non-responding as fallback
+      const responding = sorted.find(s => s.responding);
+      const skipped = sorted.filter(s => !s.responding).map(s => s.name);
+      if (skipped.length > 0) {
+        console.log(`[FireStation] Skipped non-responding: ${skipped.join(', ')}`);
+      }
+      return responding || sorted[0]; // Fall back to closest if all are non-responding
+    };
+
     if (nearbyData.results && nearbyData.results.length > 0) {
-      nearest = nearbyData.results[0];
+      nearest = findBestStation(nearbyData.results);
     }
 
     // Approach B: Nearby Search with radius (if A failed)
@@ -978,12 +1160,7 @@ async function handleFireStation(req, res) {
       console.log(`[FireStation] Radius Search status: ${radiusData.status}, results: ${radiusData.results?.length || 0}`);
 
       if (radiusData.results && radiusData.results.length > 0) {
-        // Find the closest one by distance
-        let minDist = Infinity;
-        for (const r of radiusData.results) {
-          const d = haversineDistance(lat, lng, r.geometry.location.lat, r.geometry.location.lng);
-          if (d < minDist) { minDist = d; nearest = r; }
-        }
+        nearest = findBestStation(radiusData.results);
       }
     }
 
@@ -997,11 +1174,7 @@ async function handleFireStation(req, res) {
       console.log(`[FireStation] Text Search status: ${textData.status}, results: ${textData.results?.length || 0}`);
 
       if (textData.results && textData.results.length > 0) {
-        let minDist = Infinity;
-        for (const r of textData.results) {
-          const d = haversineDistance(lat, lng, r.geometry.location.lat, r.geometry.location.lng);
-          if (d < minDist) { minDist = d; nearest = r; }
-        }
+        nearest = findBestStation(textData.results);
       }
     }
 
@@ -1013,12 +1186,13 @@ async function handleFireStation(req, res) {
       });
     }
 
-    const stationLat = nearest.geometry.location.lat;
-    const stationLng = nearest.geometry.location.lng;
-    const distanceMiles = haversineDistance(lat, lng, stationLat, stationLng);
+    const stationLat = nearest.geometry?.location?.lat || nearest.geometry.location.lat;
+    const stationLng = nearest.geometry?.location?.lng || nearest.geometry.location.lng;
+    const distanceMiles = nearest.dist || haversineDistance(lat, lng, stationLat, stationLng);
     const protectionClass = estimateProtectionClass(distanceMiles);
+    const reliability = nearest.reliability || classifyStationReliability(nearest);
 
-    console.log(`[FireStation] Nearest: "${nearest.name}" at ${distanceMiles.toFixed(2)} mi → Protection Class ${protectionClass}`);
+    console.log(`[FireStation] Nearest: "${nearest.name}" (${reliability}) at ${distanceMiles.toFixed(2)} mi → Protection Class ${protectionClass}`);
 
     return res.status(200).json({
       success: true,
@@ -1026,9 +1200,12 @@ async function handleFireStation(req, res) {
       fireStationName: nearest.name,
       fireStationAddress: nearest.vicinity || nearest.formatted_address || '',
       protectionClass,
+      stationReliability: reliability,
+      reviewNote: reliability === 'volunteer' ? 'Volunteer station — verify response times with local fire district' :
+                  reliability === 'review' ? 'Station may be admin/training — verify with local fire department' : null,
       propertyLocation: { lat, lng },
       stationLocation: { lat: stationLat, lng: stationLng },
-      note: 'Estimated from distance - verify with local fire department'
+      note: 'Estimated from distance - verify with local fire department. Hydrant distance not included (affects rural protection class).'
     });
   } catch (error) {
     console.error('[FireStation] Error:', error);
