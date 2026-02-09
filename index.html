@@ -1149,6 +1149,30 @@
         .tool-status.ready { background: rgba(16, 185, 129, 0.12); color: #059669; }
         .tool-status.soon { background: var(--bg-input); color: var(--text-secondary); }
 
+        .consent-row { margin-top: 16px; }
+        .checkbox-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            cursor: pointer;
+        }
+        .checkbox-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin: 2px 0 0;
+            flex: 0 0 auto;
+            accent-color: var(--apple-blue);
+        }
+        .checkbox-row span {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        .checkbox-row.is-prominent span {
+            font-size: 14px;
+            color: var(--text);
+        }
+
         /* === GLOBAL MOTION === */
         @keyframes progressGlow {
             0%, 100% { filter: drop-shadow(0 0 0 rgba(0,122,255,0.0)); }
@@ -1354,6 +1378,17 @@
             width: 12px;
             height: 12px;
         }
+        #acord25-form label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #acord25-form input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            accent-color: var(--apple-blue);
+        }
 
         .acord-legal {
             font-size: 6px;
@@ -1385,6 +1420,10 @@
                 border: none !important;
             }
             .acord-legal { background: white; border: none; }
+            #acord25-form input[type="checkbox"] {
+                width: 10px;
+                height: 10px;
+            }
 
             /* Hide interactive elements in Prospect Investigator during print */
             #investigationLinks { display: none !important; }
@@ -1546,6 +1585,7 @@
                 <div class="scan-actions">
                     <button class="btn btn-primary" onclick="App.openScanPicker()">📸 Upload Policy Document</button>
                     <button class="btn btn-primary" onclick="App.openInitialDriverLicensePicker()">🪪 Upload Driver License</button>
+                    <button class="btn btn-secondary" onclick="App.exportDemoPolicyDoc()">⬇️ Download Demo Policy PDF</button>
                     <input id="policyScanInput" type="file" accept="image/*,application/pdf" capture="environment" multiple class="hidden" />
                     <input id="initialDlScanInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="App.handleInitialDriverLicenseFile(this.files[0])" />
                     <input id="docIntelInput" type="file" accept="image/*,application/pdf" multiple class="hidden" />
@@ -2252,10 +2292,10 @@
                     <option value="Other">Other</option>
                 </select>
 
-                <div style="margin-top:20px;">
-                    <label style="display:flex; align-items:start; gap:10px; cursor:pointer;">
-                        <input type="checkbox" id="tcpaConsent" style="margin-top:4px;">
-                        <span style="font-size:13px; color:var(--text-secondary); line-height:1.4;">I consent to receive communications via phone, text, and email regarding insurance quotes and services.</span>
+                <div class="consent-row">
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="tcpaConsent">
+                        <span>I consent to receive communications via phone, text, and email regarding insurance quotes and services.</span>
                     </label>
                 </div>
             </div>
@@ -2739,6 +2779,96 @@
             openScanPicker() {
                 const input = document.getElementById('policyScanInput');
                 if (input) input.click();
+            },
+
+            exportDemoPolicyDoc() {
+                const jsPDF = window.jspdf && window.jspdf.jsPDF;
+                if (!jsPDF) {
+                    this.toast('⚠️ PDF library not available.');
+                    return;
+                }
+
+                const demo = {
+                    firstName: 'Jordan',
+                    lastName: 'Reed',
+                    dob: '1988-05-12',
+                    phone: '(360) 555-0199',
+                    email: 'jordan.reed@example.com',
+                    addrStreet: '412 Evergreen Terrace',
+                    addrCity: 'Vancouver',
+                    addrState: 'WA',
+                    addrZip: '98686',
+                    vin: '1HGCM82633A123456',
+                    vehDesc: '2019 Honda Civic',
+                    liabilityLimits: '100/300/100',
+                    homeDeductible: '$1,000',
+                    autoDeductible: '$500',
+                    priorCarrier: 'State Farm',
+                    priorExp: '2025-12-31'
+                };
+
+                const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+                const marginX = 48;
+                let y = 60;
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(18);
+                doc.text('Insurance Policy Declarations (Demo)', marginX, y);
+                y += 22;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(11);
+                doc.text('Use this document to demo policy scan auto-fill.', marginX, y);
+                y += 18;
+
+                const addSection = (title, lines) => {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    doc.text(title, marginX, y);
+                    y += 16;
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(11);
+                    lines.forEach(line => {
+                        const wrapped = doc.splitTextToSize(line, 520);
+                        wrapped.forEach(w => {
+                            doc.text(w, marginX, y);
+                            y += 14;
+                        });
+                    });
+                    y += 8;
+                };
+
+                addSection('POLICYHOLDER / INSURED', [
+                    `Name: ${demo.firstName} ${demo.lastName}`,
+                    `DOB: ${demo.dob}`,
+                    `Phone: ${demo.phone}`,
+                    `Email: ${demo.email}`
+                ]);
+
+                addSection('ADDRESS', [
+                    `Street: ${demo.addrStreet}`,
+                    `City: ${demo.addrCity}`,
+                    `State: ${demo.addrState}`,
+                    `ZIP: ${demo.addrZip}`
+                ]);
+
+                addSection('VEHICLES', [
+                    `VIN: ${demo.vin}`,
+                    `Vehicle: ${demo.vehDesc}`
+                ]);
+
+                addSection('COVERAGE DETAILS', [
+                    `Liability Limits (BI/PD): ${demo.liabilityLimits}`,
+                    `Home Deductible: ${demo.homeDeductible}`,
+                    `Auto Deductible: ${demo.autoDeductible}`
+                ]);
+
+                addSection('PRIOR INSURANCE', [
+                    `Previous Carrier: ${demo.priorCarrier}`,
+                    `Expiration Date: ${demo.priorExp}`
+                ]);
+
+                doc.save('Altech_Demo_Policy.pdf');
+                this.toast('⬇️ Demo policy PDF downloaded');
             },
 
             openInitialDriverLicensePicker() {
@@ -5443,17 +5573,17 @@
                                     <p style="font-size: 12px; font-weight: 600; margin: 0 0 12px 0; color: var(--text);">Hazards Detected ${hazardCount > 0 ? `(${hazardCount})` : ''}</p>
                                     
                                     <div style="display: grid; gap: 8px;">
-                                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                            <input type="checkbox" id="hazard_pool" ${hazards.pool ? 'checked' : ''} style="cursor: pointer;">
-                                            <span style="font-size: 14px;">🏊 Pool ${hazards.pool ? '✓ Detected' : '(Not detected)'}</span>
+                                        <label class="checkbox-row is-prominent">
+                                            <input type="checkbox" id="hazard_pool" ${hazards.pool ? 'checked' : ''}>
+                                            <span>🏊 Pool ${hazards.pool ? '✓ Detected' : '(Not detected)'}</span>
                                         </label>
-                                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                            <input type="checkbox" id="hazard_trampoline" ${hazards.trampoline ? 'checked' : ''} style="cursor: pointer;">
-                                            <span style="font-size: 14px;">🎪 Trampoline ${hazards.trampoline ? '✓ Detected' : '(Not detected)'}</span>
+                                        <label class="checkbox-row is-prominent">
+                                            <input type="checkbox" id="hazard_trampoline" ${hazards.trampoline ? 'checked' : ''}>
+                                            <span>🎪 Trampoline ${hazards.trampoline ? '✓ Detected' : '(Not detected)'}</span>
                                         </label>
-                                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                            <input type="checkbox" id="hazard_deck" ${hazards.deck ? 'checked' : ''} style="cursor: pointer;">
-                                            <span style="font-size: 14px;">🛋️ Deck/Patio ${hazards.deck ? '✓ Detected' : '(Not detected)'}</span>
+                                        <label class="checkbox-row is-prominent">
+                                            <input type="checkbox" id="hazard_deck" ${hazards.deck ? 'checked' : ''}>
+                                            <span>🛋️ Deck/Patio ${hazards.deck ? '✓ Detected' : '(Not detected)'}</span>
                                         </label>
                                     </div>
                                 </div>
