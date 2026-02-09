@@ -2096,10 +2096,29 @@
 
             <div class="card">
                 <h2>Home Coverage</h2>
-                <p class="section-subtitle">Current home insurance details</p>
+                <p class="section-subtitle">Coverage limits and policy details</p>
 
-                <label class="label">Home Deductible</label>
-                <input type="text" id="homeDeductible" placeholder="$1000">
+                <label class="label">Policy Type</label>
+                <select id="homePolicyType">
+                    <option value="HO3" selected>HO3 - Special Form</option>
+                    <option value="HO5">HO5 - Comprehensive</option>
+                    <option value="HO6">HO6 - Condo</option>
+                    <option value="HO4">HO4 - Renters</option>
+                    <option value="DP1">DP1 - Dwelling Fire</option>
+                    <option value="DP3">DP3 - Dwelling Special</option>
+                </select>
+
+                <label class="label">Dwelling Coverage (Coverage A)</label>
+                <input type="text" id="dwellingCoverage" placeholder="e.g. 600000" inputmode="numeric">
+
+                <label class="label">Personal Liability</label>
+                <input type="text" id="personalLiability" placeholder="e.g. 200000" inputmode="numeric">
+
+                <label class="label">Medical Payments</label>
+                <input type="text" id="medicalPayments" placeholder="e.g. 5000" inputmode="numeric">
+
+                <label class="label">Deductible</label>
+                <input type="text" id="homeDeductible" placeholder="e.g. 1000" inputmode="numeric">
 
                 <label class="label">Mortgagee / Lienholder</label>
                 <input type="text" id="mortgagee" placeholder="Bank name and address">
@@ -8374,6 +8393,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
             },
 
             buildHomeXML(data) {
+                // ─── Helpers (shared with buildXML) ───
                 const escapeXML = (str) => {
                     if (!str) return '';
                     return String(str)
@@ -8383,20 +8403,16 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                         .replace(/"/g, '&quot;')
                         .replace(/'/g, '&apos;');
                 };
-
                 const mapMaritalStatus = (m) => {
                     const valid = ['Single','Married','Divorced','Widowed','Separated','Domestic Partner'];
                     if (!m) return '';
-                    const match = valid.find(v => v.toLowerCase() === m.toLowerCase());
-                    return match || m;
+                    return valid.find(v => v.toLowerCase() === m.toLowerCase()) || m;
                 };
-
                 const mapGender = (g) => {
                     if (g === 'M') return 'Male';
                     if (g === 'F') return 'Female';
                     return g || '';
                 };
-
                 const normalizeDate = (dateStr) => {
                     if (!dateStr) return '';
                     const d = new Date(dateStr);
@@ -8405,120 +8421,73 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     if (year < 1900 || year > 2100) return '';
                     return d.toISOString().split('T')[0];
                 };
-
                 const splitZip = (zip) => {
                     const raw = (zip || '').toString().trim();
                     if (!raw) return { zip5: '', zip4: '' };
                     const digits = raw.replace(/[^0-9]/g, '');
-                    if (digits.length >= 9) {
-                        return { zip5: digits.slice(0, 5), zip4: digits.slice(5, 9) };
-                    }
+                    if (digits.length >= 9) return { zip5: digits.slice(0, 5), zip4: digits.slice(5, 9) };
                     return { zip5: digits.slice(0, 5), zip4: '' };
                 };
+                const cleanNum = (v) => (v || '').toString().replace(/[$,\s]/g, '').trim();
 
-                // Map construction style to EZLynx construction type
+                // ─── Mapping helpers (EZLynx exact values from reference sample) ───
                 const mapConstruction = (style) => {
                     if (!style) return '';
-                    const map = {
-                        'Frame': 'Frame',
-                        'Masonry Veneer': 'Masonry Veneer',
-                        'Masonry': 'Masonry',
-                        'Stucco': 'Stucco',
-                        'Log': 'Log',
-                        'Adobe': 'Adobe',
-                        'Brick': 'Brick'
-                    };
+                    const map = { 'Frame': 'Frame', 'Vinyl Siding': 'Siding, Vinyl', 'Masonry Veneer': 'Masonry Veneer', 'Masonry': 'Masonry', 'Stucco': 'Stucco', 'Log': 'Log', 'Adobe': 'Adobe', 'Brick': 'Brick' };
                     return map[style] || style;
                 };
-
-                // Map dwelling type to EZLynx style of house
-                const mapDwellingType = (dt) => {
-                    if (!dt) return '';
-                    const map = {
-                        'Single Family': 'Dwelling',
-                        'Condo': 'Condo',
-                        'Townhome': 'Townhouse',
-                        'Row House': 'Row House',
-                        'Duplex': 'Duplex',
-                        'Triplex': 'Triplex',
-                        'Fourplex': 'Fourplex'
-                    };
+                const mapDwelling = (dt) => {
+                    if (!dt) return 'One Family';
+                    const map = { 'Single Family': 'One Family', 'Condo': 'Condo', 'Townhome': 'Townhouse', 'Duplex': 'Two Family', 'Triplex': 'Three Family', 'Fourplex': 'Four Family' };
                     return map[dt] || dt;
                 };
-
-                // Map roof type to EZLynx roof material
-                const mapRoofType = (rt) => {
-                    if (!rt) return '';
-                    const map = {
-                        'Asphalt/Composite Shingle': 'Composition Shingle',
-                        'Architectural Shingle': 'Architectural Shingle',
-                        'Metal': 'Metal',
-                        'Clay Tile': 'Clay Tile',
-                        'Concrete Tile': 'Concrete Tile',
-                        'Wood Shake': 'Wood Shake',
-                        'Slate': 'Slate',
-                        'Tar & Gravel': 'Tar and Gravel'
-                    };
-                    return map[rt] || rt;
+                const mapStructure = (dt) => {
+                    if (!dt) return '';
+                    const map = { 'Single Family': 'Ranch', 'Condo': 'Condo', 'Townhome': 'Townhouse', 'Colonial': 'Colonial', 'Ranch': 'Ranch', 'Split Level': 'Split Level', 'Cape Cod': 'Cape Cod', 'Victorian': 'Victorian' };
+                    return map[dt] || dt;
                 };
-
-                // Map foundation to EZLynx foundation type
+                const mapRoof = (rt) => {
+                    if (!rt) return '';
+                    const map = { 'Asphalt/Composite Shingle': 'COMPOSITION', 'Architectural Shingle': 'ARCHITECTURAL SHINGLE', 'Metal': 'METAL', 'Clay Tile': 'CLAY TILE', 'Concrete Tile': 'CONCRETE TILE', 'Wood Shake': 'WOOD SHAKE', 'Slate': 'SLATE', 'Tar & Gravel': 'TAR AND GRAVEL' };
+                    return map[rt] || rt.toUpperCase();
+                };
                 const mapFoundation = (f) => {
                     if (!f) return '';
-                    const map = {
-                        'Slab': 'Slab',
-                        'Crawlspace': 'Crawlspace',
-                        'Basement (Finished)': 'Basement - Finished',
-                        'Basement (Unfinished)': 'Basement - Unfinished',
-                        'Pier/Pile': 'Pier'
-                    };
+                    const map = { 'Slab': 'Slab', 'Crawlspace': 'Crawlspace', 'Basement (Finished)': 'Basement - Finished', 'Basement (Unfinished)': 'Basement - Unfinished', 'Pier/Pile': 'Pier' };
                     return map[f] || f;
                 };
-
-                // Map heating type
                 const mapHeating = (h) => {
                     if (!h) return '';
-                    const map = {
-                        'Forced Air - Gas': 'Forced Air - Gas',
-                        'Forced Air - Electric': 'Forced Air - Electric',
-                        'Heat Pump': 'Heat Pump',
-                        'Boiler (Steam/Water)': 'Hot Water/Steam',
-                        'Electric Baseboard': 'Electric Baseboard',
-                        'Oil/Kerosene': 'Oil'
-                    };
+                    const map = { 'Forced Air - Gas': 'Gas', 'Forced Air - Electric': 'Electric', 'Heat Pump': 'Heat Pump', 'Boiler (Steam/Water)': 'Hot Water/Steam', 'Electric Baseboard': 'Electric', 'Oil/Kerosene': 'Oil' };
                     return map[h] || h;
                 };
-
-                // Map burglar alarm
-                const mapBurglarAlarm = (ba) => {
-                    if (!ba) return '';
-                    const map = {
-                        'None': 'None',
-                        'Local': 'Local',
-                        'Monitored': 'Central'
-                    };
-                    return map[ba] || ba;
+                const mapDwellingUse = (u) => {
+                    if (!u) return 'Primary';
+                    const map = { 'Primary': 'Primary', 'Secondary': 'Secondary', 'Seasonal': 'Seasonal', 'Rental': 'Tenant Occupied', 'Vacant': 'Vacant' };
+                    return map[u] || u;
+                };
+                const mapOccupancy = (o) => {
+                    if (!o) return 'Owner Occupied';
+                    const map = { 'Owner': 'Owner Occupied', 'Tenant': 'Tenant', 'Vacant': 'Vacant' };
+                    return map[o] || o;
+                };
+                // Determine update status from year
+                const updateStatus = (yr, builtYr) => {
+                    if (!yr) return 'NOT UPDATED';
+                    const y = parseInt(yr, 10);
+                    const b = parseInt(builtYr, 10) || 0;
+                    if (y >= b + 5) return 'PARTIAL UPDATE';
+                    return 'NOT UPDATED';
                 };
 
-                // Map fire alarm
-                const mapFireAlarm = (fa) => {
-                    if (!fa) return '';
-                    const map = {
-                        'None': 'None',
-                        'Local': 'Smoke Detector',
-                        'Monitored': 'Central'
-                    };
-                    return map[fa] || fa;
-                };
-
-                // Use first driver as primary applicant if available, otherwise flat fields
+                // ─── Primary applicant resolution ───
                 const drivers = (data.drivers && data.drivers.length > 0) ? data.drivers : null;
                 const primaryDriver = drivers ? drivers[0] : data;
                 const firstName = primaryDriver.firstName || data.firstName || '';
                 const lastName = primaryDriver.lastName || data.lastName || '';
                 const dob = normalizeDate(primaryDriver.dob || data.dob);
 
-                // Validation
+                // ─── Validation ───
                 if (!firstName || !lastName) {
                     return { ok: false, error: '⚠️ First and last name are required for EZLynx Home XML.' };
                 }
@@ -8530,6 +8499,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     return { ok: false, error: '⚠️ A valid DOB is required for EZLynx Home XML.' };
                 }
 
+                // ─── Shared address/contact fields ───
                 const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
                 const streetRaw = (data.addrStreet || '').trim();
                 const streetMatch = streetRaw.match(/^(\d+)\s+(.*)$/);
@@ -8538,17 +8508,47 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const { zip5, zip4 } = splitZip(data.addrZip);
                 const gender = mapGender(primaryDriver.gender || data.gender);
                 const marital = mapMaritalStatus(primaryDriver.maritalStatus || data.maritalStatus);
+                const county = this.getCountyFromCity(data.addrCity, state);
 
+                // ─── Build Address XML block (reusable) ───
+                const buildAddress = () => {
+                    let a = '';
+                    a += '      <AddressCode>StreetAddress</AddressCode>\n';
+                    a += '      <Addr1>\n';
+                    a += `        <StreetName>${escapeXML(streetName)}</StreetName>\n`;
+                    a += `        <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
+                    a += '        <UnitNumber />\n';
+                    a += '      </Addr1>\n';
+                    a += '      <Addr2 />\n';
+                    a += `      <City>${escapeXML(data.addrCity || '')}</City>\n`;
+                    a += `      <StateCode>${escapeXML(state)}</StateCode>\n`;
+                    if (county) a += `      <County>${escapeXML(county)}</County>\n`;
+                    a += `      <Zip5>${escapeXML(zip5)}</Zip5>\n`;
+                    if (zip4) a += `      <Zip4>${escapeXML(zip4)}</Zip4>\n`;
+                    if (phone) {
+                        a += '      <Phone>\n';
+                        a += '        <PhoneType>Mobile</PhoneType>\n';
+                        a += `        <PhoneNumber>${escapeXML(phone)}</PhoneNumber>\n`;
+                        a += '      </Phone>\n';
+                    }
+                    if (data.email) a += `      <Email>${escapeXML(data.email)}</Email>\n`;
+                    a += '      <Validation>Valid</Validation>\n';
+                    return a;
+                };
+
+                // ════════════════════════════════════════
+                // START XML — matches John_Smith_Home.xml
+                // ════════════════════════════════════════
                 let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
-                xml += '<EZHOME xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">\n';
+                xml += '<EZHOME xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">\n';
 
-                // ── Applicant section ──
+                // ── Applicant ──
                 xml += '  <Applicant>\n';
                 xml += '    <ApplicantType>Applicant</ApplicantType>\n';
                 xml += '    <PersonalInfo>\n';
                 xml += '      <Name>\n';
                 xml += `        <FirstName>${escapeXML(firstName)}</FirstName>\n`;
-                xml += '        <MiddleName></MiddleName>\n';
+                xml += '        <MiddleName />\n';
                 xml += `        <LastName>${escapeXML(lastName)}</LastName>\n`;
                 xml += '      </Name>\n';
                 xml += `      <DOB>${dob}</DOB>\n`;
@@ -8557,232 +8557,154 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += '      <Relation>Insured</Relation>\n';
                 xml += '    </PersonalInfo>\n';
                 xml += '    <Address>\n';
-                xml += '      <AddressCode>StreetAddress</AddressCode>\n';
-                xml += '      <Addr1>\n';
-                xml += `        <StreetName>${escapeXML(streetName)}</StreetName>\n`;
-                xml += `        <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
-                xml += '      </Addr1>\n';
-                xml += `      <City>${escapeXML(data.addrCity)}</City>\n`;
-                xml += `      <StateCode>${escapeXML(state)}</StateCode>\n`;
-                const county = this.getCountyFromCity(data.addrCity, state);
-                if (county) xml += `      <County>${escapeXML(county)}</County>\n`;
-                xml += `      <Zip5>${escapeXML(zip5)}</Zip5>\n`;
-                if (zip4) xml += `      <Zip4>${escapeXML(zip4)}</Zip4>\n`;
-                if (phone) {
-                    xml += '      <Phone id="1">\n';
-                    xml += '        <PhoneType>Mobile</PhoneType>\n';
-                    xml += `        <PhoneNumber>${escapeXML(phone)}</PhoneNumber>\n`;
-                    xml += '        <Extension></Extension>\n';
-                    xml += '      </Phone>\n';
-                }
-                if (data.email) xml += `      <Email>${escapeXML(data.email)}</Email>\n`;
+                xml += buildAddress();
                 xml += '    </Address>\n';
                 xml += '  </Applicant>\n';
 
-                // ── Co-Applicant (if second driver exists) ──
-                if (drivers && drivers.length > 1) {
-                    const coApp = drivers[1];
-                    const coFirst = coApp.firstName || '';
-                    const coLast = coApp.lastName || '';
-                    if (coFirst || coLast) {
-                        xml += '  <Applicant>\n';
-                        xml += '    <ApplicantType>CoApplicant</ApplicantType>\n';
-                        xml += '    <PersonalInfo>\n';
-                        xml += '      <Name>\n';
-                        xml += `        <FirstName>${escapeXML(coFirst)}</FirstName>\n`;
-                        xml += '        <MiddleName></MiddleName>\n';
-                        xml += `        <LastName>${escapeXML(coLast)}</LastName>\n`;
-                        xml += '      </Name>\n';
-                        xml += '    </PersonalInfo>\n';
-                        xml += '    <Address>\n';
-                        xml += '      <AddressCode>StreetAddress</AddressCode>\n';
-                        xml += '      <Addr1>\n';
-                        xml += `        <StreetName>${escapeXML(streetName)}</StreetName>\n`;
-                        xml += `        <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
-                        xml += '      </Addr1>\n';
-                        xml += `      <City>${escapeXML(data.addrCity)}</City>\n`;
-                        xml += `      <StateCode>${escapeXML(state)}</StateCode>\n`;
-                        if (county) xml += `      <County>${escapeXML(county)}</County>\n`;
-                        xml += `      <Zip5>${escapeXML(zip5)}</Zip5>\n`;
-                        if (zip4) xml += `      <Zip4>${escapeXML(zip4)}</Zip4>\n`;
-                        if (phone) {
-                            xml += '      <Phone id="1">\n';
-                            xml += '        <PhoneType>Mobile</PhoneType>\n';
-                            xml += `        <PhoneNumber>${escapeXML(phone)}</PhoneNumber>\n`;
-                            xml += '        <Extension></Extension>\n';
-                            xml += '      </Phone>\n';
-                        }
-                        if (data.email) xml += `      <Email>${escapeXML(data.email)}</Email>\n`;
-                        xml += '    </Address>\n';
-                        xml += '  </Applicant>\n';
-                    }
-                }
-
                 // ── PriorPolicyInfo ──
-                const priorExp = normalizeDate(data.priorExp);
                 xml += '  <PriorPolicyInfo>\n';
                 if (data.priorCarrier) xml += `    <PriorCarrier>${escapeXML(data.priorCarrier)}</PriorCarrier>\n`;
-                if (data.priorPolicyTerm) xml += `    <PriorPolicyTerm>${escapeXML(data.priorPolicyTerm)}</PriorPolicyTerm>\n`;
+                const priorExp = normalizeDate(data.priorExp);
                 if (priorExp) xml += `    <Expiration>${priorExp}</Expiration>\n`;
                 if (data.priorYears) {
                     xml += '    <YearsWithPriorCarrier>\n';
                     xml += `      <Years>${escapeXML(data.priorYears)}</Years>\n`;
                     xml += '    </YearsWithPriorCarrier>\n';
+                    xml += '    <YearsWithContinuousCoverage>\n';
+                    xml += `      <Years>${escapeXML(data.priorYears)}</Years>\n`;
+                    xml += '    </YearsWithContinuousCoverage>\n';
                 }
                 xml += '  </PriorPolicyInfo>\n';
 
                 // ── PolicyInfo ──
-                const effectiveDate = normalizeDate(data.effectiveDate);
+                const effectiveDate = normalizeDate(data.effectiveDate) || new Date().toISOString().split('T')[0];
+                const policyType = data.homePolicyType || 'HO3';
                 xml += '  <PolicyInfo>\n';
-                if (data.policyTerm) xml += `    <PolicyTerm>${escapeXML(data.policyTerm)}</PolicyTerm>\n`;
-                if (effectiveDate) xml += `    <Effective>${effectiveDate}</Effective>\n`;
+                xml += `    <PolicyTerm>${escapeXML(data.policyTerm || '12 Month')}</PolicyTerm>\n`;
+                xml += `    <PolicyType>${escapeXML(policyType)}</PolicyType>\n`;
+                xml += '    <Package>No</Package>\n';
+                xml += `    <Effective>${effectiveDate}</Effective>\n`;
+                xml += '    <CreditCheckAuth>Yes</CreditCheckAuth>\n';
                 xml += '  </PolicyInfo>\n';
 
-                // ── DwellingInfo — property-specific section ──
-                xml += '  <DwellingInfo>\n';
+                // ── RatingInfo (THE core section — all property details) ──
+                const yrBuilt = data.yrBuilt || '';
+                xml += '  <RatingInfo>\n';
+                xml += '    <PropertyInsCancelledLapsed>No</PropertyInsCancelledLapsed>\n';
+                if (yrBuilt) xml += `    <YearBuilt>${escapeXML(yrBuilt)}</YearBuilt>\n`;
+                xml += `    <Dwelling>${escapeXML(mapDwelling(data.dwellingType))}</Dwelling>\n`;
+                xml += `    <DwellingUse>${escapeXML(mapDwellingUse(data.dwellingUsage))}</DwellingUse>\n`;
+                xml += `    <DwellingOccupancy>${escapeXML(mapOccupancy(data.occupancyType))}</DwellingOccupancy>\n`;
 
-                // Location (same as mailing address for owner-occupied)
-                xml += '    <Location>\n';
-                xml += '      <Address>\n';
-                xml += '        <AddressCode>StreetAddress</AddressCode>\n';
-                xml += '        <Addr1>\n';
-                xml += `          <StreetName>${escapeXML(streetName)}</StreetName>\n`;
-                xml += `          <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
-                xml += '        </Addr1>\n';
-                xml += `        <City>${escapeXML(data.addrCity)}</City>\n`;
-                xml += `        <StateCode>${escapeXML(state)}</StateCode>\n`;
-                if (county) xml += `        <County>${escapeXML(county)}</County>\n`;
-                xml += `        <Zip5>${escapeXML(zip5)}</Zip5>\n`;
-                if (zip4) xml += `        <Zip4>${escapeXML(zip4)}</Zip4>\n`;
-                xml += '      </Address>\n';
-                xml += '    </Location>\n';
+                // Fire protection — in RatingInfo per schema
+                if (data.fireHydrantFeet) xml += `    <DistanceToFireHydrant>${escapeXML(data.fireHydrantFeet)}</DistanceToFireHydrant>\n`;
+                if (data.fireStationDist) xml += `    <DistanceToFireStation>${escapeXML(data.fireStationDist)}</DistanceToFireStation>\n`;
+                if (data.protectionClass) xml += `    <ProtectionClass>${escapeXML(data.protectionClass)}</ProtectionClass>\n`;
 
-                // Construction details
+                // Structure details
+                if (data.numStories) xml += `    <NumberOfStories>${escapeXML(data.numStories)}</NumberOfStories>\n`;
+                if (data.fullBaths) xml += `    <NumberOfFullBaths>${escapeXML(data.fullBaths)}</NumberOfFullBaths>\n`;
+                if (data.halfBaths && data.halfBaths !== '0') xml += `    <NumberOfHalfBaths>${escapeXML(data.halfBaths)}</NumberOfHalfBaths>\n`;
+
+                // Construction & structure type
                 const construction = mapConstruction(data.constructionStyle || data.exteriorWalls);
                 if (construction) xml += `    <Construction>${escapeXML(construction)}</Construction>\n`;
-
-                if (data.yrBuilt) xml += `    <YearBuilt>${escapeXML(data.yrBuilt)}</YearBuilt>\n`;
-                if (data.sqFt) xml += `    <SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>\n`;
-                if (data.numStories) xml += `    <NumberOfStories>${escapeXML(data.numStories)}</NumberOfStories>\n`;
-
-                const dwelling = mapDwellingType(data.dwellingType);
-                if (dwelling) xml += `    <StyleOfHouse>${escapeXML(dwelling)}</StyleOfHouse>\n`;
-
-                if (data.dwellingUsage) xml += `    <DwellingUse>${escapeXML(data.dwellingUsage)}</DwellingUse>\n`;
-                if (data.occupancyType) xml += `    <OccupancyType>${escapeXML(data.occupancyType)}</OccupancyType>\n`;
-
-                // Foundation
-                const foundationType = mapFoundation(data.foundation);
-                if (foundationType) xml += `    <FoundationType>${escapeXML(foundationType)}</FoundationType>\n`;
+                const structure = mapStructure(data.dwellingType);
+                if (structure) xml += `    <Structure>${escapeXML(structure)}</Structure>\n`;
 
                 // Roof
-                const roofMaterial = mapRoofType(data.roofType);
-                if (roofMaterial) xml += `    <RoofMaterial>${escapeXML(roofMaterial)}</RoofMaterial>\n`;
-                if (data.roofShape) xml += `    <RoofType>${escapeXML(data.roofShape)}</RoofType>\n`;
-                if (data.roofYr) xml += `    <YearRoofReplaced>${escapeXML(data.roofYr)}</YearRoofReplaced>\n`;
+                const roof = mapRoof(data.roofType);
+                if (roof) xml += `    <Roof>${escapeXML(roof)}</Roof>\n`;
 
-                // Exterior walls (if different from construction)
-                if (data.exteriorWalls && data.constructionStyle) {
-                    xml += `    <ExteriorWalls>${escapeXML(data.exteriorWalls)}</ExteriorWalls>\n`;
-                }
+                // Pool, Dogs, Trampoline — Yes/No flags
+                xml += `    <SwimmingPool>${(data.pool && data.pool !== 'None') ? 'Yes' : 'No'}</SwimmingPool>\n`;
+                xml += `    <SwimmingPoolFenced>${(data.pool && data.pool.includes('Ground')) ? 'Yes' : 'No'}</SwimmingPoolFenced>\n`;
+                xml += `    <DogOnPremises>${data.dogInfo ? 'Yes' : 'No'}</DogOnPremises>\n`;
 
-                // Garage
-                if (data.garageType && data.garageType !== 'None') {
-                    xml += `    <GarageType>${escapeXML(data.garageType)}</GarageType>\n`;
-                    if (data.garageSpaces) xml += `    <NumberOfGarages>${escapeXML(data.garageSpaces)}</NumberOfGarages>\n`;
-                }
-
-                // Rooms
-                if (data.bedrooms) xml += `    <Bedrooms>${escapeXML(data.bedrooms)}</Bedrooms>\n`;
-                if (data.fullBaths) xml += `    <FullBathrooms>${escapeXML(data.fullBaths)}</FullBathrooms>\n`;
-                if (data.halfBaths && data.halfBaths !== '0') xml += `    <HalfBathrooms>${escapeXML(data.halfBaths)}</HalfBathrooms>\n`;
-                if (data.numFireplaces && data.numFireplaces !== '0') xml += `    <NumberOfFireplaces>${escapeXML(data.numFireplaces)}</NumberOfFireplaces>\n`;
-
-                // Heating and cooling
+                // Heating
                 const heating = mapHeating(data.heatingType);
                 if (heating) xml += `    <HeatingType>${escapeXML(heating)}</HeatingType>\n`;
-                if (data.cooling) xml += `    <CoolingType>${escapeXML(data.cooling)}</CoolingType>\n`;
 
-                // Plumbing, Electrical, Heating system updates
-                if (data.heatYr) xml += `    <HeatingUpdateYear>${escapeXML(data.heatYr)}</HeatingUpdateYear>\n`;
-                if (data.plumbYr) xml += `    <PlumbingUpdateYear>${escapeXML(data.plumbYr)}</PlumbingUpdateYear>\n`;
+                // System updates (roofing, electrical, plumbing, heating)
+                xml += `    <RoofingUpdate>${updateStatus(data.roofYr, yrBuilt)}</RoofingUpdate>\n`;
+                if (data.roofYr) xml += `    <RoofingUpdateYear>${escapeXML(data.roofYr)}</RoofingUpdateYear>\n`;
+                xml += `    <ElectricalUpdate>${updateStatus(data.elecYr, yrBuilt)}</ElectricalUpdate>\n`;
                 if (data.elecYr) xml += `    <ElectricalUpdateYear>${escapeXML(data.elecYr)}</ElectricalUpdateYear>\n`;
+                xml += `    <PlumbingUpdate>${updateStatus(data.plumbYr, yrBuilt)}</PlumbingUpdate>\n`;
+                if (data.plumbYr) xml += `    <PlumbingUpdateYear>${escapeXML(data.plumbYr)}</PlumbingUpdateYear>\n`;
+                xml += `    <HeatingUpdate>${updateStatus(data.heatYr, yrBuilt)}</HeatingUpdate>\n`;
+                if (data.heatYr) xml += `    <HeatingUpdateYear>${escapeXML(data.heatYr)}</HeatingUpdateYear>\n`;
 
-                // Utilities
-                if (data.sewer) xml += `    <SewerType>${escapeXML(data.sewer)}</SewerType>\n`;
-                if (data.waterSource) xml += `    <WaterType>${escapeXML(data.waterSource)}</WaterType>\n`;
+                xml += '    <UnderConstruction>No</UnderConstruction>\n';
+                if (data.sqFt) xml += `    <SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>\n`;
+                const purchaseDate = normalizeDate(data.purchaseDate);
+                if (purchaseDate) xml += `    <PurchaseDate>${purchaseDate}</PurchaseDate>\n`;
 
-                xml += '  </DwellingInfo>\n';
+                xml += `    <Trampoline>${(data.trampoline && data.trampoline !== 'None') ? 'Yes' : 'No'}</Trampoline>\n`;
+                xml += `    <BusinessOnPremises>${data.businessOnProperty ? 'Yes' : 'No'}</BusinessOnPremises>\n`;
 
-                // ── ProtectiveDevices ──
-                const burgAlarm = mapBurglarAlarm(data.burglarAlarm);
-                const fireAlarm = mapFireAlarm(data.fireAlarm);
-                const hasSprinklers = data.sprinklers === 'Yes';
-                const hasProtDevices = burgAlarm || fireAlarm || hasSprinklers;
-                if (hasProtDevices) {
-                    xml += '  <ProtectiveDevices>\n';
-                    if (burgAlarm) xml += `    <BurglarAlarm>${escapeXML(burgAlarm)}</BurglarAlarm>\n`;
-                    if (fireAlarm) xml += `    <FireAlarm>${escapeXML(fireAlarm)}</FireAlarm>\n`;
-                    if (hasSprinklers) xml += '    <Sprinkler>Full</Sprinkler>\n';
-                    xml += '    <Deadbolt>Yes</Deadbolt>\n';
-                    xml += '  </ProtectiveDevices>\n';
+                // Mortgagee — Yes/No flags
+                xml += `    <FirstMortgagee>${data.mortgagee ? 'Yes' : 'No'}</FirstMortgagee>\n`;
+                xml += '    <SecondMortgagee>No</SecondMortgagee>\n';
+                xml += '    <ThirdMortgagee>No</ThirdMortgagee>\n';
+                xml += '    <EquityLineOfCredit>No</EquityLineOfCredit>\n';
+                xml += '    <CoSigner>No</CoSigner>\n';
+                xml += '    <NumberOfOtherInterests>0</NumberOfOtherInterests>\n';
+
+                // Foundation & roof design
+                const foundation = mapFoundation(data.foundation);
+                if (foundation) xml += `    <Foundation>${escapeXML(foundation)}</Foundation>\n`;
+                if (data.roofShape) xml += `    <RoofDesign>${escapeXML(data.roofShape)}</RoofDesign>\n`;
+
+                xml += '  </RatingInfo>\n';
+
+                // ── ReplacementCost (coverage limits) ──
+                xml += '  <ReplacementCost>\n';
+                const dwellingCov = cleanNum(data.dwellingCoverage);
+                if (dwellingCov) {
+                    xml += `    <ReplacementCost>${escapeXML(dwellingCov)}</ReplacementCost>\n`;
+                    xml += `    <Dwelling>${escapeXML(dwellingCov)}</Dwelling>\n`;
                 }
+                xml += '    <LossOfUse>0</LossOfUse>\n';
+                const liability = cleanNum(data.personalLiability);
+                if (liability) xml += `    <PersonalLiability>${escapeXML(liability)}</PersonalLiability>\n`;
+                const medPay = cleanNum(data.medicalPayments);
+                if (medPay) xml += `    <MedicalPayments>${escapeXML(medPay)}</MedicalPayments>\n`;
+                const deductible = cleanNum(data.homeDeductible);
+                xml += '    <DeductibeInfo>\n';
+                xml += `      <Deductible>${escapeXML(deductible || '1000')}</Deductible>\n`;
+                xml += '    </DeductibeInfo>\n';
+                xml += '    <RatingCredits>\n';
+                xml += '      <RetireesCredit>No</RetireesCredit>\n';
+                xml += '      <MatureDiscount>No</MatureDiscount>\n';
+                xml += '      <RetirementCommunity>No</RetirementCommunity>\n';
+                xml += '      <LimitedAccessCommunity>No</LimitedAccessCommunity>\n';
+                xml += '      <GatedCommunity>No</GatedCommunity>\n';
+                xml += '      <Multipolicy>No</Multipolicy>\n';
+                xml += '      <NonSmoker>Yes</NonSmoker>\n';
+                xml += '    </RatingCredits>\n';
+                xml += '  </ReplacementCost>\n';
 
-                // ── Fire Protection ──
-                if (data.protectionClass || data.fireStationDist || data.fireHydrantFeet) {
-                    xml += '  <FireProtection>\n';
-                    if (data.protectionClass) xml += `    <ProtectionClass>${escapeXML(data.protectionClass)}</ProtectionClass>\n`;
-                    if (data.fireStationDist) xml += `    <DistanceToFireStation>${escapeXML(data.fireStationDist)}</DistanceToFireStation>\n`;
-                    if (data.fireHydrantFeet) xml += `    <DistanceToFireHydrant>${escapeXML(data.fireHydrantFeet)}</DistanceToFireHydrant>\n`;
-                    xml += '  </FireProtection>\n';
-                }
+                // ── Endorsements (protective devices live here) ──
+                xml += '  <Endorsements>\n';
+                xml += '    <SpecialPersonalProperty>No</SpecialPersonalProperty>\n';
+                xml += '    <ProtectiveDevices>\n';
+                xml += '      <BurglarAlarm>\n';
+                const hasDeadbolt = (data.burglarAlarm && data.burglarAlarm !== 'None') ? 'Yes' : 'No';
+                xml += `        <DeadBolt>${hasDeadbolt}</DeadBolt>\n`;
+                xml += '        <VisibleToNeighbor>No</VisibleToNeighbor>\n';
+                xml += '        <MannedSecurity>No</MannedSecurity>\n';
+                xml += '      </BurglarAlarm>\n';
+                xml += '    </ProtectiveDevices>\n';
+                xml += '    <Sinkhole>\n';
+                xml += '      <SinkholeCollapse>No</SinkholeCollapse>\n';
+                xml += '    </Sinkhole>\n';
+                xml += '  </Endorsements>\n';
 
-                // ── Coverages ──
-                xml += '  <Coverages>\n';
-                // Coverage A through D — use form values or common defaults
-                // These will be filled during quoting if not provided
-                if (data.homeDeductible) {
-                    const deductVal = (data.homeDeductible || '').replace(/[$,]/g, '').trim();
-                    if (deductVal) xml += `    <Deductible>${escapeXML(deductVal)}</Deductible>\n`;
-                }
-                xml += '  </Coverages>\n';
-
-                // ── RiskFactors (pools, trampolines, wood stoves, dogs) ──
-                const hasRisks = data.pool || data.trampoline || data.woodStove || data.dogInfo || data.businessOnProperty;
-                if (hasRisks) {
-                    xml += '  <RiskFactors>\n';
-                    if (data.pool && data.pool !== 'None') {
-                        xml += `    <SwimmingPool>${escapeXML(data.pool)}</SwimmingPool>\n`;
-                        const hasFence = data.pool.includes('Ground');
-                        xml += `    <PoolFenced>${hasFence ? 'Yes' : 'No'}</PoolFenced>\n`;
-                    }
-                    if (data.trampoline && data.trampoline !== 'None') {
-                        xml += '    <Trampoline>Yes</Trampoline>\n';
-                        xml += `    <TrampolineNet>${data.trampoline.includes('Net') ? 'Yes' : 'No'}</TrampolineNet>\n`;
-                    }
-                    if (data.woodStove && data.woodStove !== 'None') {
-                        xml += '    <WoodBurningStove>Yes</WoodBurningStove>\n';
-                    }
-                    if (data.dogInfo) {
-                        xml += `    <Dogs>Yes</Dogs>\n`;
-                        xml += `    <DogBreed>${escapeXML(data.dogInfo)}</DogBreed>\n`;
-                    }
-                    if (data.businessOnProperty) {
-                        xml += '    <BusinessOnPremises>Yes</BusinessOnPremises>\n';
-                        xml += `    <BusinessDescription>${escapeXML(data.businessOnProperty)}</BusinessDescription>\n`;
-                    }
-                    xml += '  </RiskFactors>\n';
-                }
-
-                // ── MortgageeInfo ──
-                if (data.mortgagee) {
-                    xml += '  <MortgageeInfo>\n';
-                    xml += '    <Mortgagee id="1">\n';
-                    xml += `      <MortgageeName>${escapeXML(data.mortgagee)}</MortgageeName>\n`;
-                    xml += '      <MortgageeType>First Mortgagee</MortgageeType>\n';
-                    xml += '    </Mortgagee>\n';
-                    xml += '  </MortgageeInfo>\n';
-                }
+                // ── GeneralInfo ──
+                xml += '  <GeneralInfo>\n';
+                xml += `    <RatingStateCode>${escapeXML(state)}</RatingStateCode>\n`;
+                xml += '  </GeneralInfo>\n';
 
                 xml += '</EZHOME>\n';
 
