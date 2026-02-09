@@ -2334,12 +2334,20 @@
                 <p class="section-subtitle">Choose how you'd like to export this information</p>
             </div>
 
-            <div class="card export-card">
+            <div class="card export-card" id="ezlynx-export-card">
                 <h3>EZLynx XML (Recommended)</h3>
-                <p class="section-subtitle">Complete XML file ready for instant quoting</p>
-                <button class="btn btn-primary btn-full" onclick="App.exportXML()">📥 Download EZLynx XML File</button>
+                <p class="section-subtitle">Complete XML file(s) ready for instant quoting</p>
+                <div id="ezlynx-auto-btn" style="margin-bottom:8px;">
+                    <button class="btn btn-primary btn-full" onclick="App.exportXML()">🚗 Download Auto XML</button>
+                </div>
+                <div id="ezlynx-home-btn" style="margin-bottom:8px;">
+                    <button class="btn btn-primary btn-full" onclick="App.exportHomeXML()">🏠 Download Home XML</button>
+                </div>
+                <div id="ezlynx-both-btn" style="margin-bottom:8px;">
+                    <button class="btn btn-secondary btn-full" onclick="App.exportBothXML()">📦 Download Both (Auto + Home)</button>
+                </div>
                 <div class="hint" style="margin-top:12px">
-                    Import to EZLynx using Applicants → Import → HawkSoft. All data auto-populates for immediate quoting.
+                    Import to EZLynx using Applicants → Import → HawkSoft. Upload up to 1 Auto and 1 Home file at a time.
                 </div>
             </div>
 
@@ -3736,6 +3744,7 @@
                 // Auto-select current data when landing on export page
                 if (curId === 'step-6') {
                     this.autoSaveCurrentQuote();
+                    this.updateExportButtons();
                 }
                 
                 // Update step title
@@ -7892,7 +7901,67 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     return;
                 }
                 this.downloadFile(result.content, result.filename, result.mime);
-                this.toast('📥 EZLynx XML File Generated!');
+                this.toast('📥 EZLynx Auto XML File Generated!');
+            },
+
+            updateExportButtons() {
+                const qType = (document.querySelector('input[name="qType"]:checked') || {}).value || 'both';
+                const autoBtn = document.getElementById('ezlynx-auto-btn');
+                const homeBtn = document.getElementById('ezlynx-home-btn');
+                const bothBtn = document.getElementById('ezlynx-both-btn');
+                if (!autoBtn || !homeBtn || !bothBtn) return;
+
+                if (qType === 'home') {
+                    autoBtn.style.display = 'none';
+                    homeBtn.style.display = 'block';
+                    bothBtn.style.display = 'none';
+                } else if (qType === 'auto') {
+                    autoBtn.style.display = 'block';
+                    homeBtn.style.display = 'none';
+                    bothBtn.style.display = 'none';
+                } else {
+                    // 'both'
+                    autoBtn.style.display = 'block';
+                    homeBtn.style.display = 'block';
+                    bothBtn.style.display = 'block';
+                }
+            },
+
+            async exportBothXML() {
+                const autoResult = this.buildXML(this.data);
+                const homeResult = this.buildHomeXML(this.data);
+                if (!autoResult.ok) {
+                    this.toast(autoResult.error);
+                    return;
+                }
+                if (!homeResult.ok) {
+                    this.toast(homeResult.error);
+                    return;
+                }
+                // Use JSZip to bundle both files
+                if (typeof JSZip === 'undefined') {
+                    // Fallback: download individually
+                    this.downloadFile(autoResult.content, autoResult.filename, autoResult.mime);
+                    setTimeout(() => {
+                        this.downloadFile(homeResult.content, homeResult.filename, homeResult.mime);
+                    }, 500);
+                    this.toast('📦 Both XML files downloaded!');
+                    return;
+                }
+                const zip = new JSZip();
+                zip.file(autoResult.filename, autoResult.content);
+                zip.file(homeResult.filename, homeResult.content);
+                const lastName = this.data.lastName || 'Lead';
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${lastName}_EZLynx_Bundle.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                this.toast('📦 Auto + Home XML Bundle Downloaded!');
             },
 
             buildXML(data) {
@@ -8290,6 +8359,437 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     ok: true,
                     content: xml,
                     filename: `${lastName || 'Lead'}_EZLynx.xml`,
+                    mime: 'application/xml;charset=utf-8'
+                };
+            },
+
+            exportHomeXML() {
+                const result = this.buildHomeXML(this.data);
+                if (!result.ok) {
+                    this.toast(result.error);
+                    return;
+                }
+                this.downloadFile(result.content, result.filename, result.mime);
+                this.toast('🏠 EZLynx Home XML File Generated!');
+            },
+
+            buildHomeXML(data) {
+                const escapeXML = (str) => {
+                    if (!str) return '';
+                    return String(str)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&apos;');
+                };
+
+                const mapMaritalStatus = (m) => {
+                    const valid = ['Single','Married','Divorced','Widowed','Separated','Domestic Partner'];
+                    if (!m) return '';
+                    const match = valid.find(v => v.toLowerCase() === m.toLowerCase());
+                    return match || m;
+                };
+
+                const mapGender = (g) => {
+                    if (g === 'M') return 'Male';
+                    if (g === 'F') return 'Female';
+                    return g || '';
+                };
+
+                const normalizeDate = (dateStr) => {
+                    if (!dateStr) return '';
+                    const d = new Date(dateStr);
+                    if (Number.isNaN(d.getTime())) return '';
+                    const year = d.getUTCFullYear();
+                    if (year < 1900 || year > 2100) return '';
+                    return d.toISOString().split('T')[0];
+                };
+
+                const splitZip = (zip) => {
+                    const raw = (zip || '').toString().trim();
+                    if (!raw) return { zip5: '', zip4: '' };
+                    const digits = raw.replace(/[^0-9]/g, '');
+                    if (digits.length >= 9) {
+                        return { zip5: digits.slice(0, 5), zip4: digits.slice(5, 9) };
+                    }
+                    return { zip5: digits.slice(0, 5), zip4: '' };
+                };
+
+                // Map construction style to EZLynx construction type
+                const mapConstruction = (style) => {
+                    if (!style) return '';
+                    const map = {
+                        'Frame': 'Frame',
+                        'Masonry Veneer': 'Masonry Veneer',
+                        'Masonry': 'Masonry',
+                        'Stucco': 'Stucco',
+                        'Log': 'Log',
+                        'Adobe': 'Adobe',
+                        'Brick': 'Brick'
+                    };
+                    return map[style] || style;
+                };
+
+                // Map dwelling type to EZLynx style of house
+                const mapDwellingType = (dt) => {
+                    if (!dt) return '';
+                    const map = {
+                        'Single Family': 'Dwelling',
+                        'Condo': 'Condo',
+                        'Townhome': 'Townhouse',
+                        'Row House': 'Row House',
+                        'Duplex': 'Duplex',
+                        'Triplex': 'Triplex',
+                        'Fourplex': 'Fourplex'
+                    };
+                    return map[dt] || dt;
+                };
+
+                // Map roof type to EZLynx roof material
+                const mapRoofType = (rt) => {
+                    if (!rt) return '';
+                    const map = {
+                        'Asphalt/Composite Shingle': 'Composition Shingle',
+                        'Architectural Shingle': 'Architectural Shingle',
+                        'Metal': 'Metal',
+                        'Clay Tile': 'Clay Tile',
+                        'Concrete Tile': 'Concrete Tile',
+                        'Wood Shake': 'Wood Shake',
+                        'Slate': 'Slate',
+                        'Tar & Gravel': 'Tar and Gravel'
+                    };
+                    return map[rt] || rt;
+                };
+
+                // Map foundation to EZLynx foundation type
+                const mapFoundation = (f) => {
+                    if (!f) return '';
+                    const map = {
+                        'Slab': 'Slab',
+                        'Crawlspace': 'Crawlspace',
+                        'Basement (Finished)': 'Basement - Finished',
+                        'Basement (Unfinished)': 'Basement - Unfinished',
+                        'Pier/Pile': 'Pier'
+                    };
+                    return map[f] || f;
+                };
+
+                // Map heating type
+                const mapHeating = (h) => {
+                    if (!h) return '';
+                    const map = {
+                        'Forced Air - Gas': 'Forced Air - Gas',
+                        'Forced Air - Electric': 'Forced Air - Electric',
+                        'Heat Pump': 'Heat Pump',
+                        'Boiler (Steam/Water)': 'Hot Water/Steam',
+                        'Electric Baseboard': 'Electric Baseboard',
+                        'Oil/Kerosene': 'Oil'
+                    };
+                    return map[h] || h;
+                };
+
+                // Map burglar alarm
+                const mapBurglarAlarm = (ba) => {
+                    if (!ba) return '';
+                    const map = {
+                        'None': 'None',
+                        'Local': 'Local',
+                        'Monitored': 'Central'
+                    };
+                    return map[ba] || ba;
+                };
+
+                // Map fire alarm
+                const mapFireAlarm = (fa) => {
+                    if (!fa) return '';
+                    const map = {
+                        'None': 'None',
+                        'Local': 'Smoke Detector',
+                        'Monitored': 'Central'
+                    };
+                    return map[fa] || fa;
+                };
+
+                // Use first driver as primary applicant if available, otherwise flat fields
+                const drivers = (data.drivers && data.drivers.length > 0) ? data.drivers : null;
+                const primaryDriver = drivers ? drivers[0] : data;
+                const firstName = primaryDriver.firstName || data.firstName || '';
+                const lastName = primaryDriver.lastName || data.lastName || '';
+                const dob = normalizeDate(primaryDriver.dob || data.dob);
+
+                // Validation
+                if (!firstName || !lastName) {
+                    return { ok: false, error: '⚠️ First and last name are required for EZLynx Home XML.' };
+                }
+                const state = (data.addrState || '').trim().toUpperCase();
+                if (!state || !/^[A-Z]{2}$/.test(state)) {
+                    return { ok: false, error: '⚠️ A valid 2-letter state is required for EZLynx Home XML.' };
+                }
+                if (!dob) {
+                    return { ok: false, error: '⚠️ A valid DOB is required for EZLynx Home XML.' };
+                }
+
+                const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
+                const streetRaw = (data.addrStreet || '').trim();
+                const streetMatch = streetRaw.match(/^(\d+)\s+(.*)$/);
+                const streetNumber = streetMatch?.[1] || '';
+                const streetName = streetMatch?.[2] || streetRaw;
+                const { zip5, zip4 } = splitZip(data.addrZip);
+                const gender = mapGender(primaryDriver.gender || data.gender);
+                const marital = mapMaritalStatus(primaryDriver.maritalStatus || data.maritalStatus);
+
+                let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
+                xml += '<EZHOME xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">\n';
+
+                // ── Applicant section ──
+                xml += '  <Applicant>\n';
+                xml += '    <ApplicantType>Applicant</ApplicantType>\n';
+                xml += '    <PersonalInfo>\n';
+                xml += '      <Name>\n';
+                xml += `        <FirstName>${escapeXML(firstName)}</FirstName>\n`;
+                xml += '        <MiddleName></MiddleName>\n';
+                xml += `        <LastName>${escapeXML(lastName)}</LastName>\n`;
+                xml += '      </Name>\n';
+                xml += `      <DOB>${dob}</DOB>\n`;
+                if (gender) xml += `      <Gender>${escapeXML(gender)}</Gender>\n`;
+                if (marital) xml += `      <MaritalStatus>${escapeXML(marital)}</MaritalStatus>\n`;
+                xml += '      <Relation>Insured</Relation>\n';
+                xml += '    </PersonalInfo>\n';
+                xml += '    <Address>\n';
+                xml += '      <AddressCode>StreetAddress</AddressCode>\n';
+                xml += '      <Addr1>\n';
+                xml += `        <StreetName>${escapeXML(streetName)}</StreetName>\n`;
+                xml += `        <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
+                xml += '      </Addr1>\n';
+                xml += `      <City>${escapeXML(data.addrCity)}</City>\n`;
+                xml += `      <StateCode>${escapeXML(state)}</StateCode>\n`;
+                const county = this.getCountyFromCity(data.addrCity, state);
+                if (county) xml += `      <County>${escapeXML(county)}</County>\n`;
+                xml += `      <Zip5>${escapeXML(zip5)}</Zip5>\n`;
+                if (zip4) xml += `      <Zip4>${escapeXML(zip4)}</Zip4>\n`;
+                if (phone) {
+                    xml += '      <Phone id="1">\n';
+                    xml += '        <PhoneType>Mobile</PhoneType>\n';
+                    xml += `        <PhoneNumber>${escapeXML(phone)}</PhoneNumber>\n`;
+                    xml += '        <Extension></Extension>\n';
+                    xml += '      </Phone>\n';
+                }
+                if (data.email) xml += `      <Email>${escapeXML(data.email)}</Email>\n`;
+                xml += '    </Address>\n';
+                xml += '  </Applicant>\n';
+
+                // ── Co-Applicant (if second driver exists) ──
+                if (drivers && drivers.length > 1) {
+                    const coApp = drivers[1];
+                    const coFirst = coApp.firstName || '';
+                    const coLast = coApp.lastName || '';
+                    if (coFirst || coLast) {
+                        xml += '  <Applicant>\n';
+                        xml += '    <ApplicantType>CoApplicant</ApplicantType>\n';
+                        xml += '    <PersonalInfo>\n';
+                        xml += '      <Name>\n';
+                        xml += `        <FirstName>${escapeXML(coFirst)}</FirstName>\n`;
+                        xml += '        <MiddleName></MiddleName>\n';
+                        xml += `        <LastName>${escapeXML(coLast)}</LastName>\n`;
+                        xml += '      </Name>\n';
+                        xml += '    </PersonalInfo>\n';
+                        xml += '    <Address>\n';
+                        xml += '      <AddressCode>StreetAddress</AddressCode>\n';
+                        xml += '      <Addr1>\n';
+                        xml += `        <StreetName>${escapeXML(streetName)}</StreetName>\n`;
+                        xml += `        <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
+                        xml += '      </Addr1>\n';
+                        xml += `      <City>${escapeXML(data.addrCity)}</City>\n`;
+                        xml += `      <StateCode>${escapeXML(state)}</StateCode>\n`;
+                        if (county) xml += `      <County>${escapeXML(county)}</County>\n`;
+                        xml += `      <Zip5>${escapeXML(zip5)}</Zip5>\n`;
+                        if (zip4) xml += `      <Zip4>${escapeXML(zip4)}</Zip4>\n`;
+                        if (phone) {
+                            xml += '      <Phone id="1">\n';
+                            xml += '        <PhoneType>Mobile</PhoneType>\n';
+                            xml += `        <PhoneNumber>${escapeXML(phone)}</PhoneNumber>\n`;
+                            xml += '        <Extension></Extension>\n';
+                            xml += '      </Phone>\n';
+                        }
+                        if (data.email) xml += `      <Email>${escapeXML(data.email)}</Email>\n`;
+                        xml += '    </Address>\n';
+                        xml += '  </Applicant>\n';
+                    }
+                }
+
+                // ── PriorPolicyInfo ──
+                const priorExp = normalizeDate(data.priorExp);
+                xml += '  <PriorPolicyInfo>\n';
+                if (data.priorCarrier) xml += `    <PriorCarrier>${escapeXML(data.priorCarrier)}</PriorCarrier>\n`;
+                if (data.priorPolicyTerm) xml += `    <PriorPolicyTerm>${escapeXML(data.priorPolicyTerm)}</PriorPolicyTerm>\n`;
+                if (priorExp) xml += `    <Expiration>${priorExp}</Expiration>\n`;
+                if (data.priorYears) {
+                    xml += '    <YearsWithPriorCarrier>\n';
+                    xml += `      <Years>${escapeXML(data.priorYears)}</Years>\n`;
+                    xml += '    </YearsWithPriorCarrier>\n';
+                }
+                xml += '  </PriorPolicyInfo>\n';
+
+                // ── PolicyInfo ──
+                const effectiveDate = normalizeDate(data.effectiveDate);
+                xml += '  <PolicyInfo>\n';
+                if (data.policyTerm) xml += `    <PolicyTerm>${escapeXML(data.policyTerm)}</PolicyTerm>\n`;
+                if (effectiveDate) xml += `    <Effective>${effectiveDate}</Effective>\n`;
+                xml += '  </PolicyInfo>\n';
+
+                // ── DwellingInfo — property-specific section ──
+                xml += '  <DwellingInfo>\n';
+
+                // Location (same as mailing address for owner-occupied)
+                xml += '    <Location>\n';
+                xml += '      <Address>\n';
+                xml += '        <AddressCode>StreetAddress</AddressCode>\n';
+                xml += '        <Addr1>\n';
+                xml += `          <StreetName>${escapeXML(streetName)}</StreetName>\n`;
+                xml += `          <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
+                xml += '        </Addr1>\n';
+                xml += `        <City>${escapeXML(data.addrCity)}</City>\n`;
+                xml += `        <StateCode>${escapeXML(state)}</StateCode>\n`;
+                if (county) xml += `        <County>${escapeXML(county)}</County>\n`;
+                xml += `        <Zip5>${escapeXML(zip5)}</Zip5>\n`;
+                if (zip4) xml += `        <Zip4>${escapeXML(zip4)}</Zip4>\n`;
+                xml += '      </Address>\n';
+                xml += '    </Location>\n';
+
+                // Construction details
+                const construction = mapConstruction(data.constructionStyle || data.exteriorWalls);
+                if (construction) xml += `    <Construction>${escapeXML(construction)}</Construction>\n`;
+
+                if (data.yrBuilt) xml += `    <YearBuilt>${escapeXML(data.yrBuilt)}</YearBuilt>\n`;
+                if (data.sqFt) xml += `    <SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>\n`;
+                if (data.numStories) xml += `    <NumberOfStories>${escapeXML(data.numStories)}</NumberOfStories>\n`;
+
+                const dwelling = mapDwellingType(data.dwellingType);
+                if (dwelling) xml += `    <StyleOfHouse>${escapeXML(dwelling)}</StyleOfHouse>\n`;
+
+                if (data.dwellingUsage) xml += `    <DwellingUse>${escapeXML(data.dwellingUsage)}</DwellingUse>\n`;
+                if (data.occupancyType) xml += `    <OccupancyType>${escapeXML(data.occupancyType)}</OccupancyType>\n`;
+
+                // Foundation
+                const foundationType = mapFoundation(data.foundation);
+                if (foundationType) xml += `    <FoundationType>${escapeXML(foundationType)}</FoundationType>\n`;
+
+                // Roof
+                const roofMaterial = mapRoofType(data.roofType);
+                if (roofMaterial) xml += `    <RoofMaterial>${escapeXML(roofMaterial)}</RoofMaterial>\n`;
+                if (data.roofShape) xml += `    <RoofType>${escapeXML(data.roofShape)}</RoofType>\n`;
+                if (data.roofYr) xml += `    <YearRoofReplaced>${escapeXML(data.roofYr)}</YearRoofReplaced>\n`;
+
+                // Exterior walls (if different from construction)
+                if (data.exteriorWalls && data.constructionStyle) {
+                    xml += `    <ExteriorWalls>${escapeXML(data.exteriorWalls)}</ExteriorWalls>\n`;
+                }
+
+                // Garage
+                if (data.garageType && data.garageType !== 'None') {
+                    xml += `    <GarageType>${escapeXML(data.garageType)}</GarageType>\n`;
+                    if (data.garageSpaces) xml += `    <NumberOfGarages>${escapeXML(data.garageSpaces)}</NumberOfGarages>\n`;
+                }
+
+                // Rooms
+                if (data.bedrooms) xml += `    <Bedrooms>${escapeXML(data.bedrooms)}</Bedrooms>\n`;
+                if (data.fullBaths) xml += `    <FullBathrooms>${escapeXML(data.fullBaths)}</FullBathrooms>\n`;
+                if (data.halfBaths && data.halfBaths !== '0') xml += `    <HalfBathrooms>${escapeXML(data.halfBaths)}</HalfBathrooms>\n`;
+                if (data.numFireplaces && data.numFireplaces !== '0') xml += `    <NumberOfFireplaces>${escapeXML(data.numFireplaces)}</NumberOfFireplaces>\n`;
+
+                // Heating and cooling
+                const heating = mapHeating(data.heatingType);
+                if (heating) xml += `    <HeatingType>${escapeXML(heating)}</HeatingType>\n`;
+                if (data.cooling) xml += `    <CoolingType>${escapeXML(data.cooling)}</CoolingType>\n`;
+
+                // Plumbing, Electrical, Heating system updates
+                if (data.heatYr) xml += `    <HeatingUpdateYear>${escapeXML(data.heatYr)}</HeatingUpdateYear>\n`;
+                if (data.plumbYr) xml += `    <PlumbingUpdateYear>${escapeXML(data.plumbYr)}</PlumbingUpdateYear>\n`;
+                if (data.elecYr) xml += `    <ElectricalUpdateYear>${escapeXML(data.elecYr)}</ElectricalUpdateYear>\n`;
+
+                // Utilities
+                if (data.sewer) xml += `    <SewerType>${escapeXML(data.sewer)}</SewerType>\n`;
+                if (data.waterSource) xml += `    <WaterType>${escapeXML(data.waterSource)}</WaterType>\n`;
+
+                xml += '  </DwellingInfo>\n';
+
+                // ── ProtectiveDevices ──
+                const burgAlarm = mapBurglarAlarm(data.burglarAlarm);
+                const fireAlarm = mapFireAlarm(data.fireAlarm);
+                const hasSprinklers = data.sprinklers === 'Yes';
+                const hasProtDevices = burgAlarm || fireAlarm || hasSprinklers;
+                if (hasProtDevices) {
+                    xml += '  <ProtectiveDevices>\n';
+                    if (burgAlarm) xml += `    <BurglarAlarm>${escapeXML(burgAlarm)}</BurglarAlarm>\n`;
+                    if (fireAlarm) xml += `    <FireAlarm>${escapeXML(fireAlarm)}</FireAlarm>\n`;
+                    if (hasSprinklers) xml += '    <Sprinkler>Full</Sprinkler>\n';
+                    xml += '    <Deadbolt>Yes</Deadbolt>\n';
+                    xml += '  </ProtectiveDevices>\n';
+                }
+
+                // ── Fire Protection ──
+                if (data.protectionClass || data.fireStationDist || data.fireHydrantFeet) {
+                    xml += '  <FireProtection>\n';
+                    if (data.protectionClass) xml += `    <ProtectionClass>${escapeXML(data.protectionClass)}</ProtectionClass>\n`;
+                    if (data.fireStationDist) xml += `    <DistanceToFireStation>${escapeXML(data.fireStationDist)}</DistanceToFireStation>\n`;
+                    if (data.fireHydrantFeet) xml += `    <DistanceToFireHydrant>${escapeXML(data.fireHydrantFeet)}</DistanceToFireHydrant>\n`;
+                    xml += '  </FireProtection>\n';
+                }
+
+                // ── Coverages ──
+                xml += '  <Coverages>\n';
+                // Coverage A through D — use form values or common defaults
+                // These will be filled during quoting if not provided
+                if (data.homeDeductible) {
+                    const deductVal = (data.homeDeductible || '').replace(/[$,]/g, '').trim();
+                    if (deductVal) xml += `    <Deductible>${escapeXML(deductVal)}</Deductible>\n`;
+                }
+                xml += '  </Coverages>\n';
+
+                // ── RiskFactors (pools, trampolines, wood stoves, dogs) ──
+                const hasRisks = data.pool || data.trampoline || data.woodStove || data.dogInfo || data.businessOnProperty;
+                if (hasRisks) {
+                    xml += '  <RiskFactors>\n';
+                    if (data.pool && data.pool !== 'None') {
+                        xml += `    <SwimmingPool>${escapeXML(data.pool)}</SwimmingPool>\n`;
+                        const hasFence = data.pool.includes('Ground');
+                        xml += `    <PoolFenced>${hasFence ? 'Yes' : 'No'}</PoolFenced>\n`;
+                    }
+                    if (data.trampoline && data.trampoline !== 'None') {
+                        xml += '    <Trampoline>Yes</Trampoline>\n';
+                        xml += `    <TrampolineNet>${data.trampoline.includes('Net') ? 'Yes' : 'No'}</TrampolineNet>\n`;
+                    }
+                    if (data.woodStove && data.woodStove !== 'None') {
+                        xml += '    <WoodBurningStove>Yes</WoodBurningStove>\n';
+                    }
+                    if (data.dogInfo) {
+                        xml += `    <Dogs>Yes</Dogs>\n`;
+                        xml += `    <DogBreed>${escapeXML(data.dogInfo)}</DogBreed>\n`;
+                    }
+                    if (data.businessOnProperty) {
+                        xml += '    <BusinessOnPremises>Yes</BusinessOnPremises>\n';
+                        xml += `    <BusinessDescription>${escapeXML(data.businessOnProperty)}</BusinessDescription>\n`;
+                    }
+                    xml += '  </RiskFactors>\n';
+                }
+
+                // ── MortgageeInfo ──
+                if (data.mortgagee) {
+                    xml += '  <MortgageeInfo>\n';
+                    xml += '    <Mortgagee id="1">\n';
+                    xml += `      <MortgageeName>${escapeXML(data.mortgagee)}</MortgageeName>\n`;
+                    xml += '      <MortgageeType>First Mortgagee</MortgageeType>\n';
+                    xml += '    </Mortgagee>\n';
+                    xml += '  </MortgageeInfo>\n';
+                }
+
+                xml += '</EZHOME>\n';
+
+                return {
+                    ok: true,
+                    content: xml,
+                    filename: `${lastName || 'Lead'}_EZLynx_Home.xml`,
                     mime: 'application/xml;charset=utf-8'
                 };
             },
@@ -8716,11 +9216,25 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     const folderName = this.sanitizeFilename(q.title);
                     const folder = zip.folder(folderName);
 
-                    const xml = this.buildXML(q.data);
-                    if (xml.ok) {
-                        folder.file(xml.filename, xml.content);
-                    } else {
-                        errors.push(`${q.title}: ${xml.error.replace('⚠️ ', '')}`);
+                    // Auto XML
+                    const qType = q.qType || q.data?.qType || 'both';
+                    if (qType === 'auto' || qType === 'both') {
+                        const xml = this.buildXML(q.data);
+                        if (xml.ok) {
+                            folder.file(xml.filename, xml.content);
+                        } else {
+                            errors.push(`${q.title}: Auto XML - ${xml.error.replace('⚠️ ', '')}`);
+                        }
+                    }
+
+                    // Home XML
+                    if (qType === 'home' || qType === 'both') {
+                        const homeXml = this.buildHomeXML(q.data);
+                        if (homeXml.ok) {
+                            folder.file(homeXml.filename, homeXml.content);
+                        } else {
+                            errors.push(`${q.title}: Home XML - ${homeXml.error.replace('⚠️ ', '')}`);
+                        }
                     }
 
                     const cmsmtf = this.buildCMSMTF(q.data);
