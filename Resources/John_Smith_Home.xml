@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="utf-8"?>
+<EZHOME xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">
+  <Applicant>
+    <ApplicantType>Applicant</ApplicantType>
+    <PersonalInfo>
+      <Name>
+        <FirstName>John</FirstName>
+        <MiddleName />
+        <LastName>Smith</LastName>
+      </Name>
+      <DOB>1992-04-25</DOB>
+      <Gender>Male</Gender>
+      <MaritalStatus>Single</MaritalStatus>
+      <Relation>Insured</Relation>
+      <Industry>Insurance</Industry>
+      <Occupation>Agent/Broker</Occupation>
+    </PersonalInfo>
+    <Address>
+      <AddressCode>StreetAddress</AddressCode>
+      <Addr1>
+        <StreetName>Northwest 129th Street</StreetName>
+        <StreetNumber>2414</StreetNumber>
+        <UnitNumber />
+      </Addr1>
+      <Addr2 />
+      <City>VANCOUVER</City>
+      <StateCode>WA</StateCode>
+      <County>Clark</County>
+      <Zip5>98685</Zip5>
+      <Zip4>2039</Zip4>
+      <Phone>
+        <PhoneType>Mobile</PhoneType>
+        <PhoneNumber>3609314846</PhoneNumber>
+      </Phone>
+      <Email>austinkays@gmail.com</Email>
+      <BridgeEmailToCarriers>No</BridgeEmailToCarriers>
+      <PreferredContactMethod>Phone (Mobile)</PreferredContactMethod>
+      <YearsAtAddress>10</YearsAtAddress>
+      <Validation>Valid</Validation>
+    </Address>
+  </Applicant>
+  <PriorPolicyInfo>
+    <PriorCarrier>Nationwide</PriorCarrier>
+    <Expiration>2026-05-05</Expiration>
+    <YearsWithPriorCarrier>
+      <Years>3</Years>
+      <Months>1</Months>
+    </YearsWithPriorCarrier>
+    <YearsWithContinuousCoverage>
+      <Years>3</Years>
+      <Months>1</Months>
+    </YearsWithContinuousCoverage>
+  </PriorPolicyInfo>
+  <PolicyInfo>
+    <PolicyTerm>12 Month</PolicyTerm>
+    <PolicyType>HO3</PolicyType>
+    <Package>No</Package>
+    <Effective>2026-02-09</Effective>
+    <CreditCheckAuth>Yes</CreditCheckAuth>
+  </PolicyInfo>
+  <RatingInfo>
+    <PropertyInsCancelledLapsed>No</PropertyInsCancelledLapsed>
+    <YearBuilt>2005</YearBuilt>
+    <Dwelling>One Family</Dwelling>
+    <NumberOfOccupants>2</NumberOfOccupants>
+    <DwellingUse>Primary</DwellingUse>
+    <DwellingOccupancy>Owner Occupied</DwellingOccupancy>
+    <DistanceToFireHydrant>501-600</DistanceToFireHydrant>
+    <WithinCityLimits>No</WithinCityLimits>
+    <DistanceToFireStation>2</DistanceToFireStation>
+    <WithinFireDistrict>No</WithinFireDistrict>
+    <ProtectionClass>3</ProtectionClass>
+    <NumberOfStories>1</NumberOfStories>
+    <NumberOfFullBaths>2</NumberOfFullBaths>
+    <NumberOfHalfBaths>1</NumberOfHalfBaths>
+    <Construction>Siding, Vinyl</Construction>
+    <Structure>Ranch</Structure>
+    <Roof>COMPOSITION</Roof>
+    <SwimmingPool>No</SwimmingPool>
+    <SwimmingPoolFenced>No</SwimmingPoolFenced>
+    <DogOnPremises>No</DogOnPremises>
+    <HeatingType>Gas</HeatingType>
+    <RoofingUpdate>PARTIAL UPDATE</RoofingUpdate>
+    <RoofingUpdateYear>2021</RoofingUpdateYear>
+    <ElectricalUpdate>NOT UPDATED</ElectricalUpdate>
+    <ElectricalUpdateYear>2005</ElectricalUpdateYear>
+    <PlumbingUpdate>PARTIAL UPDATE</PlumbingUpdate>
+    <PlumbingUpdateYear>2021</PlumbingUpdateYear>
+    <HeatingUpdate>PARTIAL UPDATE</HeatingUpdate>
+    <HeatingUpdateYear>2023</HeatingUpdateYear>
+    <UnderConstruction>No</UnderConstruction>
+    <SquareFootage>2000</SquareFootage>
+    <PurchaseDate>2022-01-01</PurchaseDate>
+    <Trampoline>No</Trampoline>
+    <BusinessOnPremises>No</BusinessOnPremises>
+    <FirstMortgagee>No</FirstMortgagee>
+    <SecondMortgagee>No</SecondMortgagee>
+    <ThirdMortgagee>No</ThirdMortgagee>
+    <EquityLineOfCredit>No</EquityLineOfCredit>
+    <CoSigner>No</CoSigner>
+    <NumberOfOtherInterests>0</NumberOfOtherInterests>
+    <Foundation>Basement - Finished</Foundation>
+    <RoofDesign>Gable</RoofDesign>
+  </RatingInfo>
+  <ReplacementCost>
+    <ReplacementCost>600000</ReplacementCost>
+    <Dwelling>600000</Dwelling>
+    <LossOfUse>0</LossOfUse>
+    <PersonalLiability>200000</PersonalLiability>
+    <MedicalPayments>5000</MedicalPayments>
+    <DeductibeInfo>
+      <Deductible>500</Deductible>
+    </DeductibeInfo>
+    <RatingCredits>
+      <RetireesCredit>No</RetireesCredit>
+      <MatureDiscount>No</MatureDiscount>
+      <RetirementCommunity>No</RetirementCommunity>
+      <LimitedAccessCommunity>No</LimitedAccessCommunity>
+      <GatedCommunity>No</GatedCommunity>
+      <Multipolicy>No</Multipolicy>
+      <NonSmoker>Yes</NonSmoker>
+    </RatingCredits>
+  </ReplacementCost>
+  <Endorsements>
+    <SpecialPersonalProperty>No</SpecialPersonalProperty>
+    <ProtectiveDevices>
+      <BurglarAlarm>
+        <DeadBolt>No</DeadBolt>
+        <VisibleToNeighbor>No</VisibleToNeighbor>
+        <MannedSecurity>No</MannedSecurity>
+      </BurglarAlarm>
+    </ProtectiveDevices>
+    <Sinkhole>
+      <SinkholeCollapse>No</SinkholeCollapse>
+    </Sinkhole>
+  </Endorsements>
+  <GeneralInfo>
+    <RatingStateCode>WA</RatingStateCode>
+  </GeneralInfo>
+  <ExtendedInfo name="ICQ|CARRIERS|ST_WA">
+    <valuepair name="carriers_list">
+      <value>1029,835,1157,388,429</value>
+    </valuepair>
+  </ExtendedInfo>
+  <ExtendedInfo name="ICQ|CROSSREF|ST_WA">
+    <valuepair name="343">
+      <value>1029</value>
+    </valuepair>
+    <valuepair name="225">
+      <value>835</value>
+    </valuepair>
+    <valuepair name="377">
+      <value>1157</value>
+    </valuepair>
+    <valuepair name="35">
+      <value>388</value>
+    </valuepair>
+    <valuepair name="13">
+      <value>429</value>
+    </valuepair>
+  </ExtendedInfo>
+  <ExtendedInfo name="ICQ|NAME_VALUE_PAIRS">
+    <valuepair name="coverage_paperless_common">
+      <value>Yes</value>
+    </valuepair>
+    <valuepair name="prior_liabilityasiMI">
+      <value>org.asicorp_301K+</value>
+    </valuepair>
+    <valuepair name="paidinfullasixmlny">
+      <value>org.asicorp_MortgageBilled</value>
+    </valuepair>
+    <valuepair name="booktransfer">
+      <value />
+    </valuepair>
+    <valuepair name="textPurchaseDate">
+      <value />
+    </valuepair>
+    <valuepair name="textInspectionDate">
+      <value />
+    </valuepair>
+    <valuepair name="endorsements_equipbreakdown_common">
+      <value>No</value>
+    </valuepair>
+    <valuepair name="endorsements_serviceline_common">
+      <value>No</value>
+    </valuepair>
+    <valuepair name="textOrdinanceOrLawPercent">
+      <value />
+    </valuepair>
+    <valuepair name="bicycleamt">
+      <value />
+    </valuepair>
+    <valuepair name="homeshieldUT_asi">
+      <value>None</value>
+    </valuepair>
+    <valuepair name="packagesafecoWA">
+      <value>A</value>
+    </valuepair>
+    <valuepair name="packagexmlKY">
+      <value>org.asicorp_PPDNone</value>
+    </valuepair>
+    <valuepair name="coverage_winddeductible__377">
+      <value>1000</value>
+    </valuepair>
+    <valuepair name="acvxml3__377">
+      <value>org.asicorp_RC</value>
+    </valuepair>
+    <valuepair name="agentcode__343">
+      <value>0057</value>
+    </valuepair>
+    <valuepair name="cyber_common__343">
+      <value>N</value>
+    </valuepair>
+    <valuepair name="graduate__225">
+      <value>N</value>
+    </valuepair>
+    <valuepair name="agentid__35">
+      <value>013575</value>
+    </valuepair>
+    <valuepair name="producername__35">
+      <value />
+    </valuepair>
+    <valuepair name="safeco_personalproperty__35">
+      <value>No</value>
+    </valuepair>
+    <valuepair name="agencycode__13">
+      <value>0cfj97</value>
+    </valuepair>
+    <valuepair name="coveragelevel__13">
+      <value />
+    </valuepair>
+    <valuepair name="solarpanels__13">
+      <value />
+    </valuepair>
+    <valuepair name="carstall__13">
+      <value />
+    </valuepair>
+    <valuepair name="autopolicylimit__13">
+      <value />
+    </valuepair>
+    <valuepair name="accidentsaz__13">
+      <value>0</value>
+    </valuepair>
+  </ExtendedInfo>
+  <ExtendedInfo name="ICQ|CARRIERSTAB|ST_WA">
+    <valuepair name="coverage_winddeductible__377">
+      <value>1157</value>
+    </valuepair>
+    <valuepair name="acvxml3__377">
+      <value>1157</value>
+    </valuepair>
+    <valuepair name="agentcode__343">
+      <value>1029</value>
+    </valuepair>
+    <valuepair name="cyber_common__343">
+      <value>1029</value>
+    </valuepair>
+    <valuepair name="graduate__225">
+      <value>835</value>
+    </valuepair>
+    <valuepair name="agentid__35">
+      <value>388</value>
+    </valuepair>
+    <valuepair name="producername__35">
+      <value>388</value>
+    </valuepair>
+    <valuepair name="safeco_personalproperty__35">
+      <value>388</value>
+    </valuepair>
+    <valuepair name="agencycode__13">
+      <value>429</value>
+    </valuepair>
+    <valuepair name="coveragelevel__13">
+      <value>429</value>
+    </valuepair>
+    <valuepair name="solarpanels__13">
+      <value>429</value>
+    </valuepair>
+    <valuepair name="carstall__13">
+      <value>429</value>
+    </valuepair>
+    <valuepair name="autopolicylimit__13">
+      <value>429</value>
+    </valuepair>
+    <valuepair name="accidentsaz__13">
+      <value>429</value>
+    </valuepair>
+    <valuepair name="__completed__">
+      <value>true</value>
+    </valuepair>
+    <valuepair name="__carriers_list_at_last_run__">
+      <value>1029,835,1157,388,429</value>
+    </valuepair>
+    <valuepair name="__last_run_datetime__">
+      <value>2026-02-09T16:16:17</value>
+    </valuepair>
+  </ExtendedInfo>
+</EZHOME>

@@ -8599,6 +8599,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += '<Addr1>';
                 xml += `<StreetName>${escapeXML(streetName)}</StreetName>`;
                 xml += `<StreetNumber>${escapeXML(streetNumber)}</StreetNumber>`;
+                xml += '<UnitNumber />';
                 xml += '</Addr1>';
                 xml += `<City>${escapeXML(data.addrCity || '')}</City>`;
                 xml += `<StateCode>${escapeXML(state)}</StateCode>`;
@@ -8625,7 +8626,12 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     const yearsInt = parseInt(String(data.priorYears).replace(/[^0-9]/g, ''), 10) || 0;
                     xml += '<YearsWithPriorCarrier>';
                     xml += `<Years>${yearsInt}</Years>`;
+                    xml += '<Months>0</Months>';
                     xml += '</YearsWithPriorCarrier>';
+                    xml += '<YearsWithContinuousCoverage>';
+                    xml += `<Years>${yearsInt}</Years>`;
+                    xml += '<Months>0</Months>';
+                    xml += '</YearsWithContinuousCoverage>';
                 }
                 xml += '</PriorPolicyInfo>\n';
 
@@ -8635,14 +8641,18 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += '<PolicyInfo>';
                 xml += `<PolicyTerm>${escapeXML(data.policyTerm || '12 Month')}</PolicyTerm>`;
                 xml += `<PolicyType>${escapeXML(policyType)}</PolicyType>`;
+                xml += '<Package>No</Package>';
                 xml += `<Effective>${effectiveDate}</Effective>`;
+                xml += '<CreditCheckAuth>Yes</CreditCheckAuth>';
                 xml += '</PolicyInfo>\n';
 
                 // ── RatingInfo (THE core section — all property details) ──
                 const yrBuilt = data.yrBuilt || '';
                 xml += '<RatingInfo>';
+                xml += '<PropertyInsCancelledLapsed>No</PropertyInsCancelledLapsed>';
                 if (yrBuilt) xml += `<YearBuilt>${escapeXML(yrBuilt)}</YearBuilt>`;
                 xml += `<Dwelling>${escapeXML(mapDwelling(data.dwellingType))}</Dwelling>`;
+                xml += `<NumberOfOccupants>${escapeXML(data.numOccupants || '1')}</NumberOfOccupants>`;
                 xml += `<DwellingUse>${escapeXML(mapDwellingUse(data.dwellingUsage))}</DwellingUse>`;
                 xml += `<DwellingOccupancy>${escapeXML(mapOccupancy(data.occupancyType))}</DwellingOccupancy>`;
 
