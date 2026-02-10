@@ -8664,10 +8664,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const roof = mapRoof(data.roofType);
                 if (roof) xml += `<Roof>${escapeXML(roof)}</Roof>`;
 
-                // Square footage (EZLynx requires this immediately after Roof)
-                if (data.sqFt) xml += `<SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>`;
-
-                // Heating type
+                // Heating type (must come right after Roof, before system updates)
                 const heating = mapHeating(data.heatingType);
                 if (heating) xml += `<HeatingType>${escapeXML(heating)}</HeatingType>`;
 
@@ -8682,6 +8679,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 if (data.heatYr) xml += `<HeatingUpdateYear>${escapeXML(data.heatYr)}</HeatingUpdateYear>`;
 
                 xml += '<UnderConstruction>No</UnderConstruction>';
+                // Square footage (must come after UnderConstruction per working template)
+                if (data.sqFt) xml += `<SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>`;
                 const purchaseDate = normalizeDate(data.purchaseDate);
                 if (purchaseDate) xml += `<PurchaseDate>${purchaseDate}</PurchaseDate>`;
 
