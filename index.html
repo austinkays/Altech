@@ -8573,201 +8573,166 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const marital = mapMaritalStatus(primaryDriver.maritalStatus || data.maritalStatus);
                 const county = this.getCountyFromCity(data.addrCity, state);
 
-                // ─── Build Address XML block (reusable) ───
-                const buildAddress = () => {
-                    let a = '';
-                    a += '      <AddressCode>StreetAddress</AddressCode>\n';
-                    a += '      <Addr1>\n';
-                    a += `        <StreetName>${escapeXML(streetName)}</StreetName>\n`;
-                    a += `        <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
-                    a += '        <UnitNumber />\n';
-                    a += '      </Addr1>\n';
-                    a += '      <Addr2 />\n';
-                    a += `      <City>${escapeXML(data.addrCity || '')}</City>\n`;
-                    a += `      <StateCode>${escapeXML(state)}</StateCode>\n`;
-                    if (county) a += `      <County>${escapeXML(county)}</County>\n`;
-                    a += `      <Zip5>${escapeXML(zip5)}</Zip5>\n`;
-                    if (zip4) a += `      <Zip4>${escapeXML(zip4)}</Zip4>\n`;
-                    if (phone) {
-                        a += '      <Phone>\n';
-                        a += '        <PhoneType>Mobile</PhoneType>\n';
-                        a += `        <PhoneNumber>${escapeXML(phone)}</PhoneNumber>\n`;
-                        a += '      </Phone>\n';
-                    }
-                    if (data.email) a += `      <Email>${escapeXML(data.email)}</Email>\n`;
-                    a += '      <Validation>Valid</Validation>\n';
-                    return a;
-                };
-
                 // ════════════════════════════════════════
-                // START XML — matches John_Smith_Home.xml
+                // START XML — Clean EZHOME V200 format
+                // Matches working EZAUTO patterns exactly
                 // ════════════════════════════════════════
                 let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
-                xml += '<EZHOME xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">\n';
+                xml += '<EZHOME xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">\n';
 
                 // ── Applicant ──
-                xml += '  <Applicant>\n';
-                xml += '    <ApplicantType>Applicant</ApplicantType>\n';
-                xml += '    <PersonalInfo>\n';
-                xml += '      <Name>\n';
-                xml += `        <FirstName>${escapeXML(firstName)}</FirstName>\n`;
-                xml += '        <MiddleName />\n';
-                xml += `        <LastName>${escapeXML(lastName)}</LastName>\n`;
-                xml += '      </Name>\n';
-                xml += `      <DOB>${dob}</DOB>\n`;
-                if (gender) xml += `      <Gender>${escapeXML(gender)}</Gender>\n`;
-                if (marital) xml += `      <MaritalStatus>${escapeXML(marital)}</MaritalStatus>\n`;
-                xml += '      <Relation>Insured</Relation>\n';
-                xml += '    </PersonalInfo>\n';
-                xml += '    <Address>\n';
-                xml += buildAddress();
-                xml += '    </Address>\n';
-                xml += '  </Applicant>\n';
+                xml += '<Applicant>';
+                xml += '<ApplicantType>Applicant</ApplicantType>';
+                xml += '<PersonalInfo>';
+                xml += '<Name>';
+                xml += `<FirstName>${escapeXML(firstName)}</FirstName>`;
+                xml += `<MiddleName></MiddleName>`;
+                xml += `<LastName>${escapeXML(lastName)}</LastName>`;
+                xml += '</Name>';
+                xml += `<DOB>${dob}</DOB>`;
+                if (gender) xml += `<Gender>${escapeXML(gender)}</Gender>`;
+                if (marital) xml += `<MaritalStatus>${escapeXML(marital)}</MaritalStatus>`;
+                xml += '<Relation>Insured</Relation>';
+                xml += '</PersonalInfo>';
+                xml += '<Address>';
+                xml += '<AddressCode>StreetAddress</AddressCode>';
+                xml += '<Addr1>';
+                xml += `<StreetName>${escapeXML(streetName)}</StreetName>`;
+                xml += `<StreetNumber>${escapeXML(streetNumber)}</StreetNumber>`;
+                xml += '</Addr1>';
+                xml += `<City>${escapeXML(data.addrCity || '')}</City>`;
+                xml += `<StateCode>${escapeXML(state)}</StateCode>`;
+                if (county) xml += `<County>${escapeXML(county)}</County>`;
+                xml += `<Zip5>${escapeXML(zip5)}</Zip5>`;
+                if (zip4) xml += `<Zip4>${escapeXML(zip4)}</Zip4>`;
+                if (phone) {
+                    xml += '<Phone id="1">';
+                    xml += '<PhoneType>Mobile</PhoneType>';
+                    xml += `<PhoneNumber>${escapeXML(phone)}</PhoneNumber>`;
+                    xml += '<Extension></Extension>';
+                    xml += '</Phone>';
+                }
+                if (data.email) xml += `<Email>${escapeXML(data.email)}</Email>`;
+                xml += '</Address>';
+                xml += '</Applicant>\n';
 
                 // ── PriorPolicyInfo ──
-                xml += '  <PriorPolicyInfo>\n';
-                if (data.priorCarrier) xml += `    <PriorCarrier>${escapeXML(data.priorCarrier)}</PriorCarrier>\n`;
+                xml += '<PriorPolicyInfo>';
+                if (data.priorCarrier) xml += `<PriorCarrier>${escapeXML(data.priorCarrier)}</PriorCarrier>`;
                 const priorExp = normalizeDate(data.priorExp);
-                if (priorExp) xml += `    <Expiration>${priorExp}</Expiration>\n`;
+                if (priorExp) xml += `<Expiration>${priorExp}</Expiration>`;
                 if (data.priorYears) {
-                    xml += '    <YearsWithPriorCarrier>\n';
-                    xml += `      <Years>${escapeXML(data.priorYears)}</Years>\n`;
-                    xml += '    </YearsWithPriorCarrier>\n';
-                    xml += '    <YearsWithContinuousCoverage>\n';
-                    xml += `      <Years>${escapeXML(data.priorYears)}</Years>\n`;
-                    xml += '    </YearsWithContinuousCoverage>\n';
+                    xml += '<YearsWithPriorCarrier>';
+                    xml += `<Years>${escapeXML(data.priorYears)}</Years>`;
+                    xml += '</YearsWithPriorCarrier>';
                 }
-                xml += '  </PriorPolicyInfo>\n';
+                xml += '</PriorPolicyInfo>\n';
 
                 // ── PolicyInfo ──
                 const effectiveDate = normalizeDate(data.effectiveDate) || new Date().toISOString().split('T')[0];
                 const policyType = data.homePolicyType || 'HO3';
-                xml += '  <PolicyInfo>\n';
-                xml += `    <PolicyTerm>${escapeXML(data.policyTerm || '12 Month')}</PolicyTerm>\n`;
-                xml += `    <PolicyType>${escapeXML(policyType)}</PolicyType>\n`;
-                xml += '    <Package>No</Package>\n';
-                xml += `    <Effective>${effectiveDate}</Effective>\n`;
-                xml += '    <CreditCheckAuth>Yes</CreditCheckAuth>\n';
-                xml += '  </PolicyInfo>\n';
+                xml += '<PolicyInfo>';
+                xml += `<PolicyTerm>${escapeXML(data.policyTerm || '12 Month')}</PolicyTerm>`;
+                xml += `<PolicyType>${escapeXML(policyType)}</PolicyType>`;
+                xml += `<Effective>${effectiveDate}</Effective>`;
+                xml += '</PolicyInfo>\n';
 
                 // ── RatingInfo (THE core section — all property details) ──
                 const yrBuilt = data.yrBuilt || '';
-                xml += '  <RatingInfo>\n';
-                xml += '    <PropertyInsCancelledLapsed>No</PropertyInsCancelledLapsed>\n';
-                if (yrBuilt) xml += `    <YearBuilt>${escapeXML(yrBuilt)}</YearBuilt>\n`;
-                xml += `    <Dwelling>${escapeXML(mapDwelling(data.dwellingType))}</Dwelling>\n`;
-                xml += `    <DwellingUse>${escapeXML(mapDwellingUse(data.dwellingUsage))}</DwellingUse>\n`;
-                xml += `    <DwellingOccupancy>${escapeXML(mapOccupancy(data.occupancyType))}</DwellingOccupancy>\n`;
+                xml += '<RatingInfo>';
+                if (yrBuilt) xml += `<YearBuilt>${escapeXML(yrBuilt)}</YearBuilt>`;
+                xml += `<Dwelling>${escapeXML(mapDwelling(data.dwellingType))}</Dwelling>`;
+                xml += `<DwellingUse>${escapeXML(mapDwellingUse(data.dwellingUsage))}</DwellingUse>`;
+                xml += `<DwellingOccupancy>${escapeXML(mapOccupancy(data.occupancyType))}</DwellingOccupancy>`;
 
-                // Fire protection — in RatingInfo per schema
-                if (data.fireHydrantFeet) xml += `    <DistanceToFireHydrant>${escapeXML(data.fireHydrantFeet)}</DistanceToFireHydrant>\n`;
-                if (data.fireStationDist) xml += `    <DistanceToFireStation>${escapeXML(data.fireStationDist)}</DistanceToFireStation>\n`;
-                if (data.protectionClass) xml += `    <ProtectionClass>${escapeXML(data.protectionClass)}</ProtectionClass>\n`;
+                // Fire protection
+                if (data.fireHydrantFeet) xml += `<DistanceToFireHydrant>${escapeXML(data.fireHydrantFeet)}</DistanceToFireHydrant>`;
+                if (data.fireStationDist) xml += `<DistanceToFireStation>${escapeXML(data.fireStationDist)}</DistanceToFireStation>`;
+                if (data.protectionClass) xml += `<ProtectionClass>${escapeXML(data.protectionClass)}</ProtectionClass>`;
 
                 // Structure details
-                if (data.numStories) xml += `    <NumberOfStories>${escapeXML(data.numStories)}</NumberOfStories>\n`;
-                if (data.fullBaths) xml += `    <NumberOfFullBaths>${escapeXML(data.fullBaths)}</NumberOfFullBaths>\n`;
-                if (data.halfBaths && data.halfBaths !== '0') xml += `    <NumberOfHalfBaths>${escapeXML(data.halfBaths)}</NumberOfHalfBaths>\n`;
+                if (data.numStories) xml += `<NumberOfStories>${escapeXML(data.numStories)}</NumberOfStories>`;
+                if (data.fullBaths) xml += `<NumberOfFullBaths>${escapeXML(data.fullBaths)}</NumberOfFullBaths>`;
+                if (data.halfBaths && data.halfBaths !== '0') xml += `<NumberOfHalfBaths>${escapeXML(data.halfBaths)}</NumberOfHalfBaths>`;
 
                 // Construction & structure type
                 const construction = mapConstruction(data.constructionStyle || data.exteriorWalls);
-                if (construction) xml += `    <Construction>${escapeXML(construction)}</Construction>\n`;
+                if (construction) xml += `<Construction>${escapeXML(construction)}</Construction>`;
                 const structure = mapStructure(data.dwellingType);
-                if (structure) xml += `    <Structure>${escapeXML(structure)}</Structure>\n`;
+                if (structure) xml += `<Structure>${escapeXML(structure)}</Structure>`;
 
                 // Roof
                 const roof = mapRoof(data.roofType);
-                if (roof) xml += `    <Roof>${escapeXML(roof)}</Roof>\n`;
+                if (roof) xml += `<Roof>${escapeXML(roof)}</Roof>`;
 
                 // Pool, Dogs, Trampoline — Yes/No flags
-                xml += `    <SwimmingPool>${(data.pool && data.pool !== 'None') ? 'Yes' : 'No'}</SwimmingPool>\n`;
-                xml += `    <SwimmingPoolFenced>${(data.pool && data.pool.includes('Ground')) ? 'Yes' : 'No'}</SwimmingPoolFenced>\n`;
-                xml += `    <DogOnPremises>${data.dogInfo ? 'Yes' : 'No'}</DogOnPremises>\n`;
+                xml += `<SwimmingPool>${(data.pool && data.pool !== 'None') ? 'Yes' : 'No'}</SwimmingPool>`;
+                xml += `<SwimmingPoolFenced>${(data.pool && data.pool.includes('Ground')) ? 'Yes' : 'No'}</SwimmingPoolFenced>`;
+                xml += `<DogOnPremises>${data.dogInfo ? 'Yes' : 'No'}</DogOnPremises>`;
 
                 // Heating
                 const heating = mapHeating(data.heatingType);
-                if (heating) xml += `    <HeatingType>${escapeXML(heating)}</HeatingType>\n`;
+                if (heating) xml += `<HeatingType>${escapeXML(heating)}</HeatingType>`;
 
                 // System updates (roofing, electrical, plumbing, heating)
-                xml += `    <RoofingUpdate>${updateStatus(data.roofYr, yrBuilt)}</RoofingUpdate>\n`;
-                if (data.roofYr) xml += `    <RoofingUpdateYear>${escapeXML(data.roofYr)}</RoofingUpdateYear>\n`;
-                xml += `    <ElectricalUpdate>${updateStatus(data.elecYr, yrBuilt)}</ElectricalUpdate>\n`;
-                if (data.elecYr) xml += `    <ElectricalUpdateYear>${escapeXML(data.elecYr)}</ElectricalUpdateYear>\n`;
-                xml += `    <PlumbingUpdate>${updateStatus(data.plumbYr, yrBuilt)}</PlumbingUpdate>\n`;
-                if (data.plumbYr) xml += `    <PlumbingUpdateYear>${escapeXML(data.plumbYr)}</PlumbingUpdateYear>\n`;
-                xml += `    <HeatingUpdate>${updateStatus(data.heatYr, yrBuilt)}</HeatingUpdate>\n`;
-                if (data.heatYr) xml += `    <HeatingUpdateYear>${escapeXML(data.heatYr)}</HeatingUpdateYear>\n`;
+                xml += `<RoofingUpdate>${updateStatus(data.roofYr, yrBuilt)}</RoofingUpdate>`;
+                if (data.roofYr) xml += `<RoofingUpdateYear>${escapeXML(data.roofYr)}</RoofingUpdateYear>`;
+                xml += `<ElectricalUpdate>${updateStatus(data.elecYr, yrBuilt)}</ElectricalUpdate>`;
+                if (data.elecYr) xml += `<ElectricalUpdateYear>${escapeXML(data.elecYr)}</ElectricalUpdateYear>`;
+                xml += `<PlumbingUpdate>${updateStatus(data.plumbYr, yrBuilt)}</PlumbingUpdate>`;
+                if (data.plumbYr) xml += `<PlumbingUpdateYear>${escapeXML(data.plumbYr)}</PlumbingUpdateYear>`;
+                xml += `<HeatingUpdate>${updateStatus(data.heatYr, yrBuilt)}</HeatingUpdate>`;
+                if (data.heatYr) xml += `<HeatingUpdateYear>${escapeXML(data.heatYr)}</HeatingUpdateYear>`;
 
-                xml += '    <UnderConstruction>No</UnderConstruction>\n';
-                if (data.sqFt) xml += `    <SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>\n`;
+                xml += '<UnderConstruction>No</UnderConstruction>';
+                if (data.sqFt) xml += `<SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>`;
                 const purchaseDate = normalizeDate(data.purchaseDate);
-                if (purchaseDate) xml += `    <PurchaseDate>${purchaseDate}</PurchaseDate>\n`;
+                if (purchaseDate) xml += `<PurchaseDate>${purchaseDate}</PurchaseDate>`;
 
-                xml += `    <Trampoline>${(data.trampoline && data.trampoline !== 'None') ? 'Yes' : 'No'}</Trampoline>\n`;
-                xml += `    <BusinessOnPremises>${data.businessOnProperty ? 'Yes' : 'No'}</BusinessOnPremises>\n`;
+                xml += `<Trampoline>${(data.trampoline && data.trampoline !== 'None') ? 'Yes' : 'No'}</Trampoline>`;
+                xml += `<BusinessOnPremises>${data.businessOnProperty ? 'Yes' : 'No'}</BusinessOnPremises>`;
 
-                // Mortgagee — Yes/No flags
-                xml += `    <FirstMortgagee>${data.mortgagee ? 'Yes' : 'No'}</FirstMortgagee>\n`;
-                xml += '    <SecondMortgagee>No</SecondMortgagee>\n';
-                xml += '    <ThirdMortgagee>No</ThirdMortgagee>\n';
-                xml += '    <EquityLineOfCredit>No</EquityLineOfCredit>\n';
-                xml += '    <CoSigner>No</CoSigner>\n';
-                xml += '    <NumberOfOtherInterests>0</NumberOfOtherInterests>\n';
+                // Mortgagee flags
+                xml += `<FirstMortgagee>${data.mortgagee ? 'Yes' : 'No'}</FirstMortgagee>`;
+                xml += '<SecondMortgagee>No</SecondMortgagee>';
+                xml += '<ThirdMortgagee>No</ThirdMortgagee>';
 
                 // Foundation & roof design
                 const foundation = mapFoundation(data.foundation);
-                if (foundation) xml += `    <Foundation>${escapeXML(foundation)}</Foundation>\n`;
-                if (data.roofShape) xml += `    <RoofDesign>${escapeXML(data.roofShape)}</RoofDesign>\n`;
+                if (foundation) xml += `<Foundation>${escapeXML(foundation)}</Foundation>`;
+                if (data.roofShape) xml += `<RoofDesign>${escapeXML(data.roofShape)}</RoofDesign>`;
 
-                xml += '  </RatingInfo>\n';
+                xml += '</RatingInfo>\n';
 
                 // ── ReplacementCost (coverage limits) ──
-                xml += '  <ReplacementCost>\n';
+                xml += '<ReplacementCost>';
                 const dwellingCov = cleanNum(data.dwellingCoverage);
                 if (dwellingCov) {
-                    xml += `    <ReplacementCost>${escapeXML(dwellingCov)}</ReplacementCost>\n`;
-                    xml += `    <Dwelling>${escapeXML(dwellingCov)}</Dwelling>\n`;
+                    xml += `<Dwelling>${escapeXML(dwellingCov)}</Dwelling>`;
                 }
-                xml += '    <LossOfUse>0</LossOfUse>\n';
+                xml += '<LossOfUse>0</LossOfUse>';
                 const liability = cleanNum(data.personalLiability);
-                if (liability) xml += `    <PersonalLiability>${escapeXML(liability)}</PersonalLiability>\n`;
+                if (liability) xml += `<PersonalLiability>${escapeXML(liability)}</PersonalLiability>`;
                 const medPay = cleanNum(data.medicalPayments);
-                if (medPay) xml += `    <MedicalPayments>${escapeXML(medPay)}</MedicalPayments>\n`;
+                if (medPay) xml += `<MedicalPayments>${escapeXML(medPay)}</MedicalPayments>`;
                 const deductible = cleanNum(data.homeDeductible);
-                xml += '    <DeductibeInfo>\n';
-                xml += `      <Deductible>${escapeXML(deductible || '1000')}</Deductible>\n`;
-                xml += '    </DeductibeInfo>\n';
-                xml += '    <RatingCredits>\n';
-                xml += '      <RetireesCredit>No</RetireesCredit>\n';
-                xml += '      <MatureDiscount>No</MatureDiscount>\n';
-                xml += '      <RetirementCommunity>No</RetirementCommunity>\n';
-                xml += '      <LimitedAccessCommunity>No</LimitedAccessCommunity>\n';
-                xml += '      <GatedCommunity>No</GatedCommunity>\n';
-                xml += '      <Multipolicy>No</Multipolicy>\n';
-                xml += '      <NonSmoker>Yes</NonSmoker>\n';
-                xml += '    </RatingCredits>\n';
-                xml += '  </ReplacementCost>\n';
+                xml += `<Deductible>${escapeXML(deductible || '1000')}</Deductible>`;
+                xml += '</ReplacementCost>\n';
 
                 // ── Endorsements (protective devices live here) ──
-                xml += '  <Endorsements>\n';
-                xml += '    <SpecialPersonalProperty>No</SpecialPersonalProperty>\n';
-                xml += '    <ProtectiveDevices>\n';
-                xml += '      <BurglarAlarm>\n';
+                xml += '<Endorsements>';
+                xml += '<ProtectiveDevices>';
+                xml += '<BurglarAlarm>';
                 const hasDeadbolt = (data.burglarAlarm && data.burglarAlarm !== 'None') ? 'Yes' : 'No';
-                xml += `        <DeadBolt>${hasDeadbolt}</DeadBolt>\n`;
-                xml += '        <VisibleToNeighbor>No</VisibleToNeighbor>\n';
-                xml += '        <MannedSecurity>No</MannedSecurity>\n';
-                xml += '      </BurglarAlarm>\n';
-                xml += '    </ProtectiveDevices>\n';
-                xml += '    <Sinkhole>\n';
-                xml += '      <SinkholeCollapse>No</SinkholeCollapse>\n';
-                xml += '    </Sinkhole>\n';
-                xml += '  </Endorsements>\n';
+                xml += `<DeadBolt>${hasDeadbolt}</DeadBolt>`;
+                xml += '</BurglarAlarm>';
+                xml += '</ProtectiveDevices>';
+                xml += '</Endorsements>\n';
 
                 // ── GeneralInfo ──
-                xml += '  <GeneralInfo>\n';
-                xml += `    <RatingStateCode>${escapeXML(state)}</RatingStateCode>\n`;
-                xml += '  </GeneralInfo>\n';
+                xml += '<GeneralInfo>';
+                xml += `<RatingStateCode>${escapeXML(state)}</RatingStateCode>`;
+                xml += '</GeneralInfo>\n';
 
                 xml += '</EZHOME>\n';
 
