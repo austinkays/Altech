@@ -7515,6 +7515,22 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const contentW = pageW - margin * 2;
                 let pageNum = 1;
 
+                // Helper: get value from data, falling back to the current DOM
+                // element value. This ensures fields with HTML default values
+                // (e.g. numStories="1", bedrooms="3") appear even if the user
+                // never manually changed them.
+                const v = (key) => {
+                    if (data[key] !== undefined && data[key] !== null && String(data[key]).trim() !== '') {
+                        return String(data[key]);
+                    }
+                    const el = document.getElementById(key);
+                    if (el) {
+                        const val = el.type === 'checkbox' ? (el.checked ? 'Yes' : '') : (el.value || '');
+                        return val.trim();
+                    }
+                    return '';
+                };
+
                 // ─── Color palette ───
                 const C = {
                     brand:    [0, 102, 204],     // Professional blue
@@ -7787,95 +7803,95 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 sectionHeader('Client Information', '\u{1F464}');
                 kvTable([
                     ['Full Name', clientName],
-                    ['Date of Birth', formatDate(data.dob || '')],
-                    ['Gender', data.gender === 'M' ? 'Male' : data.gender === 'F' ? 'Female' : (data.gender || '')],
-                    ['Marital Status', data.maritalStatus || ''],
-                    ['Phone', data.phone || ''],
-                    ['Email', data.email || ''],
-                    ['Education', data.education || ''],
-                    ['Industry', data.industry || ''],
-                    ['Occupation', data.occupation || ''],
-                    ['Quote Type', (data.qType || '').charAt(0).toUpperCase() + (data.qType || '').slice(1)],
+                    ['Date of Birth', formatDate(v('dob'))],
+                    ['Gender', v('gender') === 'M' ? 'Male' : v('gender') === 'F' ? 'Female' : v('gender')],
+                    ['Marital Status', v('maritalStatus')],
+                    ['Phone', v('phone')],
+                    ['Email', v('email')],
+                    ['Education', v('education')],
+                    ['Industry', v('industry')],
+                    ['Occupation', v('occupation')],
+                    ['Quote Type', v('qType') ? v('qType').charAt(0).toUpperCase() + v('qType').slice(1) : ''],
                     ['Pronunciation', this.getNamePronunciation(data)],
                 ]);
 
                 // ── Address ──
                 sectionHeader('Property Address', '\u{1F3E0}');
                 kvTable([
-                    ['Street Address', data.addrStreet || ''],
-                    ['City', data.addrCity || ''],
-                    ['State', data.addrState || ''],
-                    ['ZIP Code', data.addrZip || ''],
+                    ['Street Address', v('addrStreet')],
+                    ['City', v('addrCity')],
+                    ['State', v('addrState')],
+                    ['ZIP Code', v('addrZip')],
                     ['County', this.getCountyFromCity(data.addrCity, data.addrState) || ''],
-                    ['Years at Address', data.yearsAtAddress || ''],
+                    ['Years at Address', v('yearsAtAddress')],
                 ]);
 
                 if (showHome) {
                     // ── Dwelling Specifications ──
                     sectionHeader('Dwelling Specifications', '\u{1F3D7}');
                     kvTable([
-                        ['Year Built', data.yrBuilt || ''],
-                        ['Square Footage', data.sqFt ? Number(data.sqFt).toLocaleString() + ' sq ft' : ''],
-                        ['Lot Size', data.lotSize ? data.lotSize + ' acres' : ''],
-                        ['Dwelling Type', data.dwellingType || ''],
-                        ['Dwelling Use', data.dwellingUsage || ''],
-                        ['Occupancy', data.occupancyType || ''],
-                        ['Stories', data.numStories || ''],
-                        ['Occupants', data.numOccupants || ''],
-                        ['Bedrooms', data.bedrooms || ''],
-                        ['Full Baths', data.fullBaths || ''],
-                        ['Half Baths', data.halfBaths || ''],
-                        ['Construction', data.constructionStyle || ''],
-                        ['Exterior Walls', data.exteriorWalls || ''],
-                        ['Foundation', data.foundation || ''],
-                        ['Garage Type', data.garageType || ''],
-                        ['Garage Spaces', data.garageSpaces || ''],
-                        ['Kitchen/Bath Quality', data.kitchenQuality || ''],
-                        ['Flooring', data.flooring || ''],
-                        ['Fireplaces', data.numFireplaces || ''],
-                        ['Purchase Date', formatDate(data.purchaseDate || '')],
+                        ['Year Built', v('yrBuilt')],
+                        ['Square Footage', v('sqFt') ? Number(v('sqFt')).toLocaleString() + ' sq ft' : ''],
+                        ['Lot Size', v('lotSize') ? v('lotSize') + ' acres' : ''],
+                        ['Dwelling Type', v('dwellingType')],
+                        ['Dwelling Use', v('dwellingUsage')],
+                        ['Occupancy', v('occupancyType')],
+                        ['Stories', v('numStories')],
+                        ['Occupants', v('numOccupants')],
+                        ['Bedrooms', v('bedrooms')],
+                        ['Full Baths', v('fullBaths')],
+                        ['Half Baths', v('halfBaths')],
+                        ['Construction', v('constructionStyle')],
+                        ['Exterior Walls', v('exteriorWalls')],
+                        ['Foundation', v('foundation')],
+                        ['Garage Type', v('garageType')],
+                        ['Garage Spaces', v('garageSpaces')],
+                        ['Kitchen/Bath Quality', v('kitchenQuality')],
+                        ['Flooring', v('flooring')],
+                        ['Fireplaces', v('numFireplaces')],
+                        ['Purchase Date', formatDate(v('purchaseDate'))],
                     ]);
 
                     // ── Roof & Systems ──
                     sectionHeader('Roof & Building Systems', '\u{1F527}');
                     kvTable([
-                        ['Roof Type', data.roofType || ''],
-                        ['Roof Shape', data.roofShape || ''],
-                        ['Roof Updated', data.roofYr || ''],
-                        ['Heating Type', data.heatingType || ''],
-                        ['Heating Updated', data.heatYr || ''],
-                        ['Cooling', data.cooling || ''],
-                        ['Plumbing Updated', data.plumbYr || ''],
-                        ['Electrical Updated', data.elecYr || ''],
-                        ['Sewer', data.sewer || ''],
-                        ['Water Source', data.waterSource || ''],
+                        ['Roof Type', v('roofType')],
+                        ['Roof Shape', v('roofShape')],
+                        ['Roof Updated', v('roofYr')],
+                        ['Heating Type', v('heatingType')],
+                        ['Heating Updated', v('heatYr')],
+                        ['Cooling', v('cooling')],
+                        ['Plumbing Updated', v('plumbYr')],
+                        ['Electrical Updated', v('elecYr')],
+                        ['Sewer', v('sewer')],
+                        ['Water Source', v('waterSource')],
                     ]);
 
                     // ── Safety & Hazards ──
                     sectionHeader('Safety & Hazards', '\u{1F6E1}');
                     kvTable([
-                        ['Burglar Alarm', data.burglarAlarm || ''],
-                        ['Fire Alarm', data.fireAlarm || ''],
-                        ['Sprinklers', data.sprinklers || ''],
-                        ['Swimming Pool', data.pool || 'No'],
-                        ['Trampoline', data.trampoline || 'No'],
-                        ['Wood Stove', data.woodStove || 'No'],
+                        ['Burglar Alarm', v('burglarAlarm')],
+                        ['Fire Alarm', v('fireAlarm')],
+                        ['Sprinklers', v('sprinklers')],
+                        ['Swimming Pool', v('pool') || 'No'],
+                        ['Trampoline', v('trampoline') || 'No'],
+                        ['Wood Stove', v('woodStove') || 'No'],
                         ['Dog on Premises', data.dogInfo || 'None'],
                         ['Business on Property', data.businessOnProperty || 'No'],
-                        ['Fire Station (mi)', data.fireStationDist || ''],
-                        ['Fire Hydrant (ft)', data.fireHydrantFeet || ''],
-                        ['Protection Class', data.protectionClass || ''],
+                        ['Fire Station (mi)', v('fireStationDist')],
+                        ['Fire Hydrant (ft)', v('fireHydrantFeet')],
+                        ['Protection Class', v('protectionClass')],
                     ]);
 
                     // ── Home Coverage ──
                     sectionHeader('Home Coverage', '\u{1F4B0}');
                     kvTable([
-                        ['Policy Type', data.homePolicyType || ''],
-                        ['Dwelling Coverage', formatCurrency(data.dwellingCoverage)],
-                        ['Personal Liability', formatCurrency(data.personalLiability)],
-                        ['Medical Payments', formatCurrency(data.medicalPayments)],
-                        ['Deductible', formatCurrency(data.homeDeductible)],
-                        ['Mortgagee', data.mortgagee || ''],
+                        ['Policy Type', v('homePolicyType')],
+                        ['Dwelling Coverage', formatCurrency(v('dwellingCoverage'))],
+                        ['Personal Liability', formatCurrency(v('personalLiability'))],
+                        ['Medical Payments', formatCurrency(v('medicalPayments'))],
+                        ['Deductible', formatCurrency(v('homeDeductible'))],
+                        ['Mortgagee', v('mortgagee')],
                     ]);
                 }
 
@@ -7930,37 +7946,37 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     // ── Auto Coverage ──
                     sectionHeader('Auto Coverage', '\u{1F6E1}');
                     kvTable([
-                        ['Liability Limits', data.liabilityLimits || ''],
-                        ['Property Damage', data.pdLimit || ''],
-                        ['UM Limits', data.umLimits || ''],
-                        ['UIM Limits', data.uimLimits || ''],
-                        ['Comprehensive Ded.', formatCurrency(data.compDeductible)],
-                        ['Collision Ded.', formatCurrency(data.autoDeductible)],
-                        ['Rental Reimburse.', data.rentalDeductible || ''],
-                        ['Towing/Roadside', data.towingDeductible || ''],
-                        ['Student GPA', data.studentGPA || ''],
+                        ['Liability Limits', v('liabilityLimits')],
+                        ['Property Damage', v('pdLimit')],
+                        ['UM Limits', v('umLimits')],
+                        ['UIM Limits', v('uimLimits')],
+                        ['Comprehensive Ded.', formatCurrency(v('compDeductible'))],
+                        ['Collision Ded.', formatCurrency(v('autoDeductible'))],
+                        ['Rental Reimburse.', v('rentalDeductible')],
+                        ['Towing/Roadside', v('towingDeductible')],
+                        ['Student GPA', v('studentGPA')],
                     ]);
                 }
 
                 // ── Policy Information ──
                 sectionHeader('Policy Information', '\u{1F4CB}');
                 kvTable([
-                    ['Policy Term', data.policyTerm || ''],
-                    ['Effective Date', formatDate(data.effectiveDate || '')],
-                    ['Prior Carrier', data.priorCarrier || ''],
-                    ['Prior Policy Term', data.priorPolicyTerm || ''],
-                    ['Years w/ Prior', data.priorYears || ''],
-                    ['Prior Expiration', formatDate(data.priorExp || '')],
-                    ['Accidents', data.accidents || ''],
-                    ['Violations', data.violations || ''],
+                    ['Policy Term', v('policyTerm')],
+                    ['Effective Date', formatDate(v('effectiveDate'))],
+                    ['Prior Carrier', v('priorCarrier')],
+                    ['Prior Policy Term', v('priorPolicyTerm')],
+                    ['Years w/ Prior', v('priorYears')],
+                    ['Prior Expiration', formatDate(v('priorExp'))],
+                    ['Accidents', v('accidents')],
+                    ['Violations', v('violations')],
                 ]);
 
                 // ── Additional Information ──
                 sectionHeader('Additional Information', '\u{2139}');
                 kvTable([
-                    ['Additional Insureds', data.additionalInsureds || ''],
-                    ['Best Contact Time', data.contactTime || ''],
-                    ['Referral Source', data.referralSource || ''],
+                    ['Additional Insureds', v('additionalInsureds')],
+                    ['Best Contact Time', v('contactTime')],
+                    ['Referral Source', v('referralSource')],
                     ['TCPA Consent', data.tcpaConsent ? 'Yes' : 'No'],
                 ], 2);
 
