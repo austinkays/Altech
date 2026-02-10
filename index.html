@@ -8597,8 +8597,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 if (gender) xml += I3 + `<Gender>${escapeXML(gender)}</Gender>` + L;
                 if (marital) xml += I3 + `<MaritalStatus>${escapeXML(marital)}</MaritalStatus>` + L;
                 xml += I3 + '<Relation>Insured</Relation>' + L;
-                if (data.industry) xml += I3 + `<Industry>${escapeXML(data.industry)}</Industry>` + L;
-                if (data.occupation) xml += I3 + `<Occupation>${escapeXML(data.occupation)}</Occupation>` + L;
+                xml += I3 + (data.industry ? `<Industry>${escapeXML(data.industry)}</Industry>` : '<Industry />') + L;
+                xml += I3 + (data.occupation ? `<Occupation>${escapeXML(data.occupation)}</Occupation>` : '<Occupation />') + L;
                 xml += I2 + '</PersonalInfo>' + L;
                 xml += I2 + '<Address>' + L;
                 xml += I3 + '<AddressCode>StreetAddress</AddressCode>' + L;
@@ -8622,7 +8622,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 if (data.email) xml += I3 + `<Email>${escapeXML(data.email)}</Email>` + L;
                 xml += I3 + '<BridgeEmailToCarriers>No</BridgeEmailToCarriers>' + L;
                 xml += I3 + '<PreferredContactMethod>Phone (Mobile)</PreferredContactMethod>' + L;
-                if (data.yearsAtAddress) xml += I3 + `<YearsAtAddress>${escapeXML(data.yearsAtAddress)}</YearsAtAddress>` + L;
+                xml += I3 + (data.yearsAtAddress ? `<YearsAtAddress>${escapeXML(data.yearsAtAddress)}</YearsAtAddress>` : '<YearsAtAddress />') + L;
                 xml += I3 + '<Validation>Valid</Validation>' + L;
                 xml += I2 + '</Address>' + L;
                 xml += I + '</Applicant>' + L;
@@ -8674,7 +8674,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 }
                 xml += I2 + '<WithinCityLimits>No</WithinCityLimits>' + L;
                 if (data.fireStationDist) {
-                    xml += I2 + `<DistanceToFireStation>${escapeXML(data.fireStationDist)}</DistanceToFireStation>` + L;
+                    // Round to integer — V200 schema expects int for DistanceToFireStation
+                    const fireDist = Math.round(parseFloat(data.fireStationDist)) || data.fireStationDist;
+                    xml += I2 + `<DistanceToFireStation>${escapeXML(String(fireDist))}</DistanceToFireStation>` + L;
                 } else {
                     xml += I2 + '<DistanceToFireStation />' + L;
                 }
