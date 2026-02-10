@@ -8601,6 +8601,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += `<StreetNumber>${escapeXML(streetNumber)}</StreetNumber>`;
                 xml += '<UnitNumber />';
                 xml += '</Addr1>';
+                xml += '<Addr2 />';
                 xml += `<City>${escapeXML(data.addrCity || '')}</City>`;
                 xml += `<StateCode>${escapeXML(state)}</StateCode>`;
                 if (county) xml += `<County>${escapeXML(county)}</County>`;
@@ -8656,13 +8657,23 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += `<DwellingUse>${escapeXML(mapDwellingUse(data.dwellingUsage))}</DwellingUse>`;
                 xml += `<DwellingOccupancy>${escapeXML(mapOccupancy(data.occupancyType))}</DwellingOccupancy>`;
 
-                // Fire protection
-                if (data.fireHydrantFeet) xml += `<DistanceToFireHydrant>${escapeXML(data.fireHydrantFeet)}</DistanceToFireHydrant>`;
-                if (data.fireStationDist) xml += `<DistanceToFireStation>${escapeXML(data.fireStationDist)}</DistanceToFireStation>`;
+                // Fire protection — all tags must be present for positional deserializer
+                if (data.fireHydrantFeet) {
+                    xml += `<DistanceToFireHydrant>${escapeXML(data.fireHydrantFeet)}</DistanceToFireHydrant>`;
+                } else {
+                    xml += '<DistanceToFireHydrant />';
+                }
+                xml += '<WithinCityLimits>No</WithinCityLimits>';
+                if (data.fireStationDist) {
+                    xml += `<DistanceToFireStation>${escapeXML(data.fireStationDist)}</DistanceToFireStation>`;
+                } else {
+                    xml += '<DistanceToFireStation />';
+                }
+                xml += '<WithinFireDistrict>No</WithinFireDistrict>';
                 if (data.protectionClass) xml += `<ProtectionClass>${escapeXML(data.protectionClass)}</ProtectionClass>`;
 
-                // Structure details
-                if (data.numStories) xml += `<NumberOfStories>${escapeXML(data.numStories)}</NumberOfStories>`;
+                // Structure details — always present (default to 1)
+                xml += `<NumberOfStories>${escapeXML(data.numStories || '1')}</NumberOfStories>`;
                 if (data.fullBaths) xml += `<NumberOfFullBaths>${escapeXML(data.fullBaths)}</NumberOfFullBaths>`;
                 if (data.halfBaths && data.halfBaths !== '0') xml += `<NumberOfHalfBaths>${escapeXML(data.halfBaths)}</NumberOfHalfBaths>`;
 
@@ -8685,15 +8696,15 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const heating = mapHeating(data.heatingType);
                 if (heating) xml += `<HeatingType>${escapeXML(heating)}</HeatingType>`;
 
-                // System updates (roofing, electrical, plumbing, heating)
+                // System updates — always emit UpdateYear (default to yrBuilt for positional parser)
                 xml += `<RoofingUpdate>${updateStatus(data.roofYr, yrBuilt)}</RoofingUpdate>`;
-                if (data.roofYr) xml += `<RoofingUpdateYear>${escapeXML(data.roofYr)}</RoofingUpdateYear>`;
+                xml += `<RoofingUpdateYear>${escapeXML(data.roofYr || yrBuilt)}</RoofingUpdateYear>`;
                 xml += `<ElectricalUpdate>${updateStatus(data.elecYr, yrBuilt)}</ElectricalUpdate>`;
-                if (data.elecYr) xml += `<ElectricalUpdateYear>${escapeXML(data.elecYr)}</ElectricalUpdateYear>`;
+                xml += `<ElectricalUpdateYear>${escapeXML(data.elecYr || yrBuilt)}</ElectricalUpdateYear>`;
                 xml += `<PlumbingUpdate>${updateStatus(data.plumbYr, yrBuilt)}</PlumbingUpdate>`;
-                if (data.plumbYr) xml += `<PlumbingUpdateYear>${escapeXML(data.plumbYr)}</PlumbingUpdateYear>`;
+                xml += `<PlumbingUpdateYear>${escapeXML(data.plumbYr || yrBuilt)}</PlumbingUpdateYear>`;
                 xml += `<HeatingUpdate>${updateStatus(data.heatYr, yrBuilt)}</HeatingUpdate>`;
-                if (data.heatYr) xml += `<HeatingUpdateYear>${escapeXML(data.heatYr)}</HeatingUpdateYear>`;
+                xml += `<HeatingUpdateYear>${escapeXML(data.heatYr || yrBuilt)}</HeatingUpdateYear>`;
 
                 xml += '<UnderConstruction>No</UnderConstruction>';
                 if (data.sqFt) xml += `<SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>`;
@@ -8708,6 +8719,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += `<FirstMortgagee>${data.mortgagee ? 'Yes' : 'No'}</FirstMortgagee>`;
                 xml += '<SecondMortgagee>No</SecondMortgagee>';
                 xml += '<ThirdMortgagee>No</ThirdMortgagee>';
+                xml += '<EquityLineOfCredit>No</EquityLineOfCredit>';
+                xml += '<CoSigner>No</CoSigner>';
+                xml += '<NumberOfOtherInterests>0</NumberOfOtherInterests>';
 
                 // Foundation & roof design
                 const foundation = mapFoundation(data.foundation);
