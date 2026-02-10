@@ -8578,7 +8578,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 // Matches working EZAUTO patterns exactly
                 // ════════════════════════════════════════
                 let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
-                xml += '<EZHOME xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">\n';
+                xml += '<EZHOME xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">\n';
 
                 // ── Applicant ──
                 xml += '<Applicant>';
@@ -8586,7 +8586,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += '<PersonalInfo>';
                 xml += '<Name>';
                 xml += `<FirstName>${escapeXML(firstName)}</FirstName>`;
-                xml += `<MiddleName></MiddleName>`;
+                xml += '<MiddleName />';
                 xml += `<LastName>${escapeXML(lastName)}</LastName>`;
                 xml += '</Name>';
                 xml += `<DOB>${dob}</DOB>`;
@@ -8606,10 +8606,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += `<Zip5>${escapeXML(zip5)}</Zip5>`;
                 if (zip4) xml += `<Zip4>${escapeXML(zip4)}</Zip4>`;
                 if (phone) {
-                    xml += '<Phone id="1">';
+                    xml += '<Phone>';
                     xml += '<PhoneType>Mobile</PhoneType>';
                     xml += `<PhoneNumber>${escapeXML(phone)}</PhoneNumber>`;
-                    xml += '<Extension></Extension>';
                     xml += '</Phone>';
                 }
                 if (data.email) xml += `<Email>${escapeXML(data.email)}</Email>`;
@@ -8665,12 +8664,10 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const roof = mapRoof(data.roofType);
                 if (roof) xml += `<Roof>${escapeXML(roof)}</Roof>`;
 
-                // Pool, Dogs, Trampoline — Yes/No flags
-                xml += `<SwimmingPool>${(data.pool && data.pool !== 'None') ? 'Yes' : 'No'}</SwimmingPool>`;
-                xml += `<SwimmingPoolFenced>${(data.pool && data.pool.includes('Ground')) ? 'Yes' : 'No'}</SwimmingPoolFenced>`;
-                xml += `<DogOnPremises>${data.dogInfo ? 'Yes' : 'No'}</DogOnPremises>`;
+                // Square footage (EZLynx requires this immediately after Roof)
+                if (data.sqFt) xml += `<SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>`;
 
-                // Heating
+                // Heating type
                 const heating = mapHeating(data.heatingType);
                 if (heating) xml += `<HeatingType>${escapeXML(heating)}</HeatingType>`;
 
@@ -8685,10 +8682,13 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 if (data.heatYr) xml += `<HeatingUpdateYear>${escapeXML(data.heatYr)}</HeatingUpdateYear>`;
 
                 xml += '<UnderConstruction>No</UnderConstruction>';
-                if (data.sqFt) xml += `<SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>`;
                 const purchaseDate = normalizeDate(data.purchaseDate);
                 if (purchaseDate) xml += `<PurchaseDate>${purchaseDate}</PurchaseDate>`;
 
+                // Pool, Dogs, Trampoline — Yes/No flags (must come after system updates)
+                xml += `<SwimmingPool>${(data.pool && data.pool !== 'None') ? 'Yes' : 'No'}</SwimmingPool>`;
+                xml += `<SwimmingPoolFenced>${(data.pool && data.pool.includes('Ground')) ? 'Yes' : 'No'}</SwimmingPoolFenced>`;
+                xml += `<DogOnPremises>${data.dogInfo ? 'Yes' : 'No'}</DogOnPremises>`;
                 xml += `<Trampoline>${(data.trampoline && data.trampoline !== 'None') ? 'Yes' : 'No'}</Trampoline>`;
                 xml += `<BusinessOnPremises>${data.businessOnProperty ? 'Yes' : 'No'}</BusinessOnPremises>`;
 
@@ -8716,7 +8716,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const medPay = cleanNum(data.medicalPayments);
                 if (medPay) xml += `<MedicalPayments>${escapeXML(medPay)}</MedicalPayments>`;
                 const deductible = cleanNum(data.homeDeductible);
+                xml += '<DeductibeInfo>';
                 xml += `<Deductible>${escapeXML(deductible || '1000')}</Deductible>`;
+                xml += '</DeductibeInfo>';
                 xml += '</ReplacementCost>\n';
 
                 // ── Endorsements (protective devices live here) ──
