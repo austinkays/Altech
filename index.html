@@ -7594,19 +7594,17 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     }
                 };
 
-                const sectionHeader = (title, icon) => {
-                    checkPage(18);
-                    // Blue bar background
+                const sectionHeader = (title) => {
+                    checkPage(16);
                     doc.setFillColor(...C.brand);
-                    doc.roundedRect(margin, y, contentW, 9, 1, 1, 'F');
-                    // White text on blue bar
-                    doc.setFontSize(10);
+                    doc.roundedRect(margin, y, contentW, 7.5, 1.5, 1.5, 'F');
+                    doc.setFontSize(8);
                     doc.setFont(undefined, 'bold');
                     doc.setTextColor(...C.white);
-                    doc.text(`${icon || ''}  ${title}`.trim(), margin + 4, y + 6.5);
+                    doc.text(title.toUpperCase(), margin + 4, y + 5.3);
                     doc.setFont(undefined, 'normal');
                     doc.setTextColor(...C.dark);
-                    y += 12;
+                    y += 10;
                 };
 
                 // Key-value rows in a two-column table style
@@ -7711,82 +7709,58 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const mapImages = await this.getMapImages(address);
                 const clientName = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Client';
 
-                // Top blue accent bar
+                // Top accent bar
                 doc.setFillColor(...C.brand);
-                doc.rect(0, 0, pageW, 4, 'F');
+                doc.rect(0, 0, pageW, 3, 'F');
+                y = 10;
 
-                y = 12;
-
-                // Street View banner
+                // Street View banner (clean — no overlay text)
                 if (mapImages?.streetView?.dataUrl) {
-                    const bannerH = 55;
+                    const bannerH = 46;
                     doc.addImage(mapImages.streetView.dataUrl, mapImages.streetView.format, margin, y, contentW, bannerH);
-                    // Gradient-style overlay at bottom of banner
-                    if (doc.GState) doc.setGState(new doc.GState({ opacity: 0.65 }));
-                    doc.setFillColor(0, 0, 0);
-                    doc.rect(margin, y + bannerH - 16, contentW, 16, 'F');
-                    if (doc.GState) doc.setGState(new doc.GState({ opacity: 1 }));
-                    doc.setTextColor(...C.white);
-                    doc.setFontSize(11);
-                    doc.setFont(undefined, 'bold');
-                    doc.text(clientName, margin + 4, y + bannerH - 5);
-                    doc.setFontSize(8);
-                    doc.setFont(undefined, 'normal');
-                    doc.text(address || '', margin + 4, y + bannerH - 11);
-                    doc.setTextColor(...C.dark);
-                    y += bannerH + 4;
-                } else {
-                    // No image — text-only header
-                    doc.setFillColor(...C.brandLt);
-                    doc.roundedRect(margin, y, contentW, 22, 2, 2, 'F');
-                    doc.setFontSize(16);
-                    doc.setFont(undefined, 'bold');
-                    doc.setTextColor(...C.brand);
-                    doc.text(clientName, margin + 4, y + 10);
-                    doc.setFontSize(9);
-                    doc.setFont(undefined, 'normal');
-                    doc.setTextColor(...C.mid);
-                    doc.text(address || '', margin + 4, y + 17);
-                    doc.setTextColor(...C.dark);
-                    y += 26;
+                    doc.setDrawColor(...C.light);
+                    doc.setLineWidth(0.3);
+                    doc.rect(margin, y, contentW, bannerH, 'S');
+                    y += bannerH + 2;
                 }
 
-                // Title bar
-                doc.setFontSize(14);
+                // Client info strip
+                doc.setFillColor(...C.brandLt);
+                doc.rect(margin, y, contentW, 13, 'F');
+                doc.setFontSize(12);
                 doc.setFont(undefined, 'bold');
                 doc.setTextColor(...C.brand);
-                doc.text('Insurance Application Summary', margin, y + 2);
-                doc.setFontSize(8);
+                doc.text(clientName, margin + 3, y + 5.5);
+                doc.setFontSize(7.5);
                 doc.setFont(undefined, 'normal');
                 doc.setTextColor(...C.mid);
-                doc.text(`Exported ${formatDateTime(new Date())}`, pageW - margin, y + 2, { align: 'right' });
-                y += 4;
+                doc.text(address || '', margin + 3, y + 10.5);
+                doc.text(formatDateTime(new Date()), pageW - margin - 3, y + 5.5, { align: 'right' });
+                doc.setTextColor(...C.dark);
+                y += 16;
+
+                // Title
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(...C.dark);
+                doc.text('Insurance Application Summary', margin, y);
+                y += 2;
                 doc.setDrawColor(...C.brand);
-                doc.setLineWidth(0.6);
+                doc.setLineWidth(0.5);
                 doc.line(margin, y, pageW - margin, y);
                 y += 5;
 
-                // Satellite thumbnail (small, top-right)
+                // Satellite thumbnail
                 if (mapImages?.satellite?.dataUrl) {
-                    const satX = pageW - margin - 38;
-                    const satY = y;
-                    doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, satX, satY, 38, 30);
+                    const satX = pageW - margin - 30;
+                    doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, satX, y, 30, 24);
                     doc.setDrawColor(...C.light);
-                    doc.setLineWidth(0.5);
-                    doc.rect(satX, satY, 38, 30, 'S');
-                    doc.setFontSize(6);
-                    doc.setTextColor(...C.mid);
-                    doc.text('Satellite', satX + 19, satY + 33, { align: 'center' });
-                    const mapAddr = this.getFullAddress(data);
-                    if (mapAddr) {
-                        doc.setTextColor(...C.brand);
-                        doc.textWithLink('Maps', satX + 10, satY + 37, {
-                            url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddr)}`
-                        });
-                        doc.textWithLink('Earth', satX + 24, satY + 37, {
-                            url: `https://earth.google.com/web/search/${encodeURIComponent(mapAddr)}`
-                        });
-                    }
+                    doc.setLineWidth(0.3);
+                    doc.rect(satX, y, 30, 24, 'S');
+                    doc.setFontSize(5.5);
+                    doc.setTextColor(...C.brand);
+                    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || '')}`;
+                    doc.textWithLink('View on Maps', satX + 15, y + 27, { url: mapUrl, align: 'center' });
                     doc.setTextColor(...C.dark);
                 }
 
@@ -7799,8 +7773,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const drivers = (data.drivers && data.drivers.length) ? data.drivers : (this.drivers || []);
                 const vehicles = (data.vehicles && data.vehicles.length) ? data.vehicles : (this.vehicles || []);
 
-                // ── Client Profile ──
-                sectionHeader('Client Information', '\u{1F464}');
+                // ── Applicant ──
+                sectionHeader('Applicant');
                 kvTable([
                     ['Full Name', clientName],
                     ['Date of Birth', formatDate(v('dob'))],
@@ -7811,12 +7785,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     ['Education', v('education')],
                     ['Industry', v('industry')],
                     ['Occupation', v('occupation')],
-                    ['Quote Type', v('qType') ? v('qType').charAt(0).toUpperCase() + v('qType').slice(1) : ''],
                     ['Pronunciation', this.getNamePronunciation(data)],
                 ]);
 
-                // ── Address ──
-                sectionHeader('Property Address', '\u{1F3E0}');
+                // ── Property Address ──
+                sectionHeader('Property Address');
                 kvTable([
                     ['Street Address', v('addrStreet')],
                     ['City', v('addrCity')],
@@ -7827,8 +7800,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 ]);
 
                 if (showHome) {
-                    // ── Dwelling Specifications ──
-                    sectionHeader('Dwelling Specifications', '\u{1F3D7}');
+                    // ── Property Details ──
+                    sectionHeader('Property Details');
                     kvTable([
                         ['Year Built', v('yrBuilt')],
                         ['Square Footage', v('sqFt') ? Number(v('sqFt')).toLocaleString() + ' sq ft' : ''],
@@ -7852,8 +7825,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                         ['Purchase Date', formatDate(v('purchaseDate'))],
                     ]);
 
-                    // ── Roof & Systems ──
-                    sectionHeader('Roof & Building Systems', '\u{1F527}');
+                    // ── Building Systems ──
+                    sectionHeader('Building Systems');
                     kvTable([
                         ['Roof Type', v('roofType')],
                         ['Roof Shape', v('roofShape')],
@@ -7867,8 +7840,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                         ['Water Source', v('waterSource')],
                     ]);
 
-                    // ── Safety & Hazards ──
-                    sectionHeader('Safety & Hazards', '\u{1F6E1}');
+                    // ── Risk & Protection ──
+                    sectionHeader('Risk & Protection');
                     kvTable([
                         ['Burglar Alarm', v('burglarAlarm')],
                         ['Fire Alarm', v('fireAlarm')],
@@ -7884,7 +7857,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     ]);
 
                     // ── Home Coverage ──
-                    sectionHeader('Home Coverage', '\u{1F4B0}');
+                    sectionHeader('Home Coverage');
                     kvTable([
                         ['Policy Type', v('homePolicyType')],
                         ['Dwelling Coverage', formatCurrency(v('dwellingCoverage'))],
@@ -7898,7 +7871,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 if (showAuto) {
                     // ── Drivers ──
                     if (drivers.length) {
-                        sectionHeader('Drivers', '\u{1F4B3}');
+                        sectionHeader('Drivers');
                         const driverRows = drivers.map((d, i) => {
                             const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
                             return [
@@ -7917,7 +7890,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
 
                     // ── Vehicles ──
                     if (vehicles.length) {
-                        sectionHeader('Vehicles', '\u{1F697}');
+                        sectionHeader('Vehicles');
                         const vehicleRows = vehicles.map((v, i) => {
                             const vehDesc = [v.year, v.make, v.model].filter(Boolean).join(' ');
                             const driverDisplay = this.resolveDriverName(v.primaryDriver, drivers);
@@ -7934,7 +7907,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
 
                     // Legacy single-vehicle (if no multi-vehicle data)
                     if (!vehicles.length && (data.vehDesc || data.vin)) {
-                        sectionHeader('Vehicle', '\u{1F697}');
+                        sectionHeader('Vehicle');
                         kvTable([
                             ['Vehicle', data.vehDesc || ''],
                             ['VIN', data.vin || ''],
@@ -7944,7 +7917,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     }
 
                     // ── Auto Coverage ──
-                    sectionHeader('Auto Coverage', '\u{1F6E1}');
+                    sectionHeader('Auto Coverage');
                     kvTable([
                         ['Liability Limits', v('liabilityLimits')],
                         ['Property Damage', v('pdLimit')],
@@ -7958,8 +7931,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     ]);
                 }
 
-                // ── Policy Information ──
-                sectionHeader('Policy Information', '\u{1F4CB}');
+                // ── Policy & Prior Insurance ──
+                sectionHeader('Policy & Prior Insurance');
                 kvTable([
                     ['Policy Term', v('policyTerm')],
                     ['Effective Date', formatDate(v('effectiveDate'))],
@@ -7972,7 +7945,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 ]);
 
                 // ── Additional Information ──
-                sectionHeader('Additional Information', '\u{2139}');
+                sectionHeader('Additional Information');
                 kvTable([
                     ['Additional Insureds', v('additionalInsureds')],
                     ['Best Contact Time', v('contactTime')],
