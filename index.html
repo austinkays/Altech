@@ -8574,271 +8574,275 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const county = this.getCountyFromCity(data.addrCity, state);
 
                 // ════════════════════════════════════════
-                // START XML — Clean EZHOME V200 format
-                // Matches working EZAUTO patterns exactly
+                // START XML — Pretty-printed EZHOME V200 format
+                // Structural twin of John_Smith_Home.xml reference
                 // ════════════════════════════════════════
-                let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
-                xml += '<EZHOME xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">\n';
+                const I = '  ';   // 2-space indent (matches reference file)
+                const I2 = I+I, I3 = I2+I, I4 = I3+I;
+                const L = '\n';   // newline between elements
+
+                let xml = '<?xml version="1.0" encoding="utf-8"?>' + L;
+                xml += '<EZHOME xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">' + L;
 
                 // ── Applicant ──
-                xml += '<Applicant>';
-                xml += '<ApplicantType>Applicant</ApplicantType>';
-                xml += '<PersonalInfo>';
-                xml += '<Name>';
-                xml += `<FirstName>${escapeXML(firstName)}</FirstName>`;
-                xml += '<MiddleName />';
-                xml += `<LastName>${escapeXML(lastName)}</LastName>`;
-                xml += '</Name>';
-                xml += `<DOB>${dob}</DOB>`;
-                if (gender) xml += `<Gender>${escapeXML(gender)}</Gender>`;
-                if (marital) xml += `<MaritalStatus>${escapeXML(marital)}</MaritalStatus>`;
-                xml += '<Relation>Insured</Relation>';
-                xml += '</PersonalInfo>';
-                xml += '<Address>';
-                xml += '<AddressCode>StreetAddress</AddressCode>';
-                xml += '<Addr1>';
-                xml += `<StreetName>${escapeXML(streetName)}</StreetName>`;
-                xml += `<StreetNumber>${escapeXML(streetNumber)}</StreetNumber>`;
-                xml += '<UnitNumber />';
-                xml += '</Addr1>';
-                xml += '<Addr2 />';
-                xml += `<City>${escapeXML(data.addrCity || '')}</City>`;
-                xml += `<StateCode>${escapeXML(state)}</StateCode>`;
-                if (county) xml += `<County>${escapeXML(county)}</County>`;
-                xml += `<Zip5>${escapeXML(zip5)}</Zip5>`;
-                if (zip4) xml += `<Zip4>${escapeXML(zip4)}</Zip4>`;
+                xml += I + '<Applicant>' + L;
+                xml += I2 + '<ApplicantType>Applicant</ApplicantType>' + L;
+                xml += I2 + '<PersonalInfo>' + L;
+                xml += I3 + '<Name>' + L;
+                xml += I4 + `<FirstName>${escapeXML(firstName)}</FirstName>` + L;
+                xml += I4 + '<MiddleName />' + L;
+                xml += I4 + `<LastName>${escapeXML(lastName)}</LastName>` + L;
+                xml += I3 + '</Name>' + L;
+                xml += I3 + `<DOB>${dob}</DOB>` + L;
+                if (gender) xml += I3 + `<Gender>${escapeXML(gender)}</Gender>` + L;
+                if (marital) xml += I3 + `<MaritalStatus>${escapeXML(marital)}</MaritalStatus>` + L;
+                xml += I3 + '<Relation>Insured</Relation>' + L;
+                xml += I2 + '</PersonalInfo>' + L;
+                xml += I2 + '<Address>' + L;
+                xml += I3 + '<AddressCode>StreetAddress</AddressCode>' + L;
+                xml += I3 + '<Addr1>' + L;
+                xml += I4 + `<StreetName>${escapeXML(streetName)}</StreetName>` + L;
+                xml += I4 + `<StreetNumber>${escapeXML(streetNumber)}</StreetNumber>` + L;
+                xml += I4 + '<UnitNumber />' + L;
+                xml += I3 + '</Addr1>' + L;
+                xml += I3 + '<Addr2 />' + L;
+                xml += I3 + `<City>${escapeXML(data.addrCity || '')}</City>` + L;
+                xml += I3 + `<StateCode>${escapeXML(state)}</StateCode>` + L;
+                if (county) xml += I3 + `<County>${escapeXML(county)}</County>` + L;
+                xml += I3 + `<Zip5>${escapeXML(zip5)}</Zip5>` + L;
+                if (zip4) xml += I3 + `<Zip4>${escapeXML(zip4)}</Zip4>` + L;
                 if (phone) {
-                    xml += '<Phone>';
-                    xml += '<PhoneType>Mobile</PhoneType>';
-                    xml += `<PhoneNumber>${escapeXML(phone)}</PhoneNumber>`;
-                    xml += '</Phone>';
+                    xml += I3 + '<Phone>' + L;
+                    xml += I4 + '<PhoneType>Mobile</PhoneType>' + L;
+                    xml += I4 + `<PhoneNumber>${escapeXML(phone)}</PhoneNumber>` + L;
+                    xml += I3 + '</Phone>' + L;
                 }
-                if (data.email) xml += `<Email>${escapeXML(data.email)}</Email>`;
-                xml += '</Address>';
-                xml += '</Applicant>\n';
+                if (data.email) xml += I3 + `<Email>${escapeXML(data.email)}</Email>` + L;
+                xml += I2 + '</Address>' + L;
+                xml += I + '</Applicant>' + L;
 
                 // ── PriorPolicyInfo ──
-                xml += '<PriorPolicyInfo>';
-                if (data.priorCarrier) xml += `<PriorCarrier>${escapeXML(data.priorCarrier)}</PriorCarrier>`;
+                xml += I + '<PriorPolicyInfo>' + L;
+                if (data.priorCarrier) xml += I2 + `<PriorCarrier>${escapeXML(data.priorCarrier)}</PriorCarrier>` + L;
                 const priorExp = normalizeDate(data.priorExp);
-                if (priorExp) xml += `<Expiration>${priorExp}</Expiration>`;
+                if (priorExp) xml += I2 + `<Expiration>${priorExp}</Expiration>` + L;
                 if (data.priorYears) {
-                    // EZLynx requires integer — strip non-numeric text like "More than 15" → "15"
                     const yearsInt = parseInt(String(data.priorYears).replace(/[^0-9]/g, ''), 10) || 0;
-                    xml += '<YearsWithPriorCarrier>';
-                    xml += `<Years>${yearsInt}</Years>`;
-                    xml += '<Months>0</Months>';
-                    xml += '</YearsWithPriorCarrier>';
-                    xml += '<YearsWithContinuousCoverage>';
-                    xml += `<Years>${yearsInt}</Years>`;
-                    xml += '<Months>0</Months>';
-                    xml += '</YearsWithContinuousCoverage>';
+                    xml += I2 + '<YearsWithPriorCarrier>' + L;
+                    xml += I3 + `<Years>${yearsInt}</Years>` + L;
+                    xml += I3 + '<Months>0</Months>' + L;
+                    xml += I2 + '</YearsWithPriorCarrier>' + L;
+                    xml += I2 + '<YearsWithContinuousCoverage>' + L;
+                    xml += I3 + `<Years>${yearsInt}</Years>` + L;
+                    xml += I3 + '<Months>0</Months>' + L;
+                    xml += I2 + '</YearsWithContinuousCoverage>' + L;
                 }
-                xml += '</PriorPolicyInfo>\n';
+                xml += I + '</PriorPolicyInfo>' + L;
 
                 // ── PolicyInfo ──
                 const effectiveDate = normalizeDate(data.effectiveDate) || new Date().toISOString().split('T')[0];
                 const policyType = data.homePolicyType || 'HO3';
-                xml += '<PolicyInfo>';
-                xml += `<PolicyTerm>${escapeXML(data.policyTerm || '12 Month')}</PolicyTerm>`;
-                xml += `<PolicyType>${escapeXML(policyType)}</PolicyType>`;
-                xml += '<Package>No</Package>';
-                xml += `<Effective>${effectiveDate}</Effective>`;
-                xml += '<CreditCheckAuth>Yes</CreditCheckAuth>';
-                xml += '</PolicyInfo>\n';
+                xml += I + '<PolicyInfo>' + L;
+                xml += I2 + `<PolicyTerm>${escapeXML(data.policyTerm || '12 Month')}</PolicyTerm>` + L;
+                xml += I2 + `<PolicyType>${escapeXML(policyType)}</PolicyType>` + L;
+                xml += I2 + '<Package>No</Package>' + L;
+                xml += I2 + `<Effective>${effectiveDate}</Effective>` + L;
+                xml += I2 + '<CreditCheckAuth>Yes</CreditCheckAuth>' + L;
+                xml += I + '</PolicyInfo>' + L;
 
-                // ── RatingInfo (THE core section — all property details) ──
+                // ── RatingInfo (strict positional sequence from John_Smith reference) ──
                 const yrBuilt = data.yrBuilt || '';
-                xml += '<RatingInfo>';
-                xml += '<PropertyInsCancelledLapsed>No</PropertyInsCancelledLapsed>';
-                if (yrBuilt) xml += `<YearBuilt>${escapeXML(yrBuilt)}</YearBuilt>`;
-                xml += `<Dwelling>${escapeXML(mapDwelling(data.dwellingType))}</Dwelling>`;
-                xml += `<NumberOfOccupants>${escapeXML(data.numOccupants || '1')}</NumberOfOccupants>`;
-                xml += `<DwellingUse>${escapeXML(mapDwellingUse(data.dwellingUsage))}</DwellingUse>`;
-                xml += `<DwellingOccupancy>${escapeXML(mapOccupancy(data.occupancyType))}</DwellingOccupancy>`;
+                xml += I + '<RatingInfo>' + L;
+                xml += I2 + '<PropertyInsCancelledLapsed>No</PropertyInsCancelledLapsed>' + L;
+                if (yrBuilt) xml += I2 + `<YearBuilt>${escapeXML(yrBuilt)}</YearBuilt>` + L;
+                xml += I2 + `<Dwelling>${escapeXML(mapDwelling(data.dwellingType))}</Dwelling>` + L;
+                xml += I2 + `<NumberOfOccupants>${escapeXML(data.numOccupants || '1')}</NumberOfOccupants>` + L;
+                xml += I2 + `<DwellingUse>${escapeXML(mapDwellingUse(data.dwellingUsage))}</DwellingUse>` + L;
+                xml += I2 + `<DwellingOccupancy>${escapeXML(mapOccupancy(data.occupancyType))}</DwellingOccupancy>` + L;
 
-                // Fire protection — all tags must be present for positional deserializer
+                // Fire protection — all tags always present for positional deserializer
                 if (data.fireHydrantFeet) {
-                    xml += `<DistanceToFireHydrant>${escapeXML(data.fireHydrantFeet)}</DistanceToFireHydrant>`;
+                    xml += I2 + `<DistanceToFireHydrant>${escapeXML(data.fireHydrantFeet)}</DistanceToFireHydrant>` + L;
                 } else {
-                    xml += '<DistanceToFireHydrant />';
+                    xml += I2 + '<DistanceToFireHydrant />' + L;
                 }
-                xml += '<WithinCityLimits>No</WithinCityLimits>';
+                xml += I2 + '<WithinCityLimits>No</WithinCityLimits>' + L;
                 if (data.fireStationDist) {
-                    xml += `<DistanceToFireStation>${escapeXML(data.fireStationDist)}</DistanceToFireStation>`;
+                    xml += I2 + `<DistanceToFireStation>${escapeXML(data.fireStationDist)}</DistanceToFireStation>` + L;
                 } else {
-                    xml += '<DistanceToFireStation />';
+                    xml += I2 + '<DistanceToFireStation />' + L;
                 }
-                xml += '<WithinFireDistrict>No</WithinFireDistrict>';
-                if (data.protectionClass) xml += `<ProtectionClass>${escapeXML(data.protectionClass)}</ProtectionClass>`;
+                xml += I2 + '<WithinFireDistrict>No</WithinFireDistrict>' + L;
+                if (data.protectionClass) xml += I2 + `<ProtectionClass>${escapeXML(data.protectionClass)}</ProtectionClass>` + L;
 
-                // Structure details — always present (default to 1)
-                xml += `<NumberOfStories>${escapeXML(data.numStories || '1')}</NumberOfStories>`;
-                if (data.fullBaths) xml += `<NumberOfFullBaths>${escapeXML(data.fullBaths)}</NumberOfFullBaths>`;
-                if (data.halfBaths && data.halfBaths !== '0') xml += `<NumberOfHalfBaths>${escapeXML(data.halfBaths)}</NumberOfHalfBaths>`;
+                // Structure — always present
+                xml += I2 + `<NumberOfStories>${escapeXML(data.numStories || '1')}</NumberOfStories>` + L;
+                if (data.fullBaths) xml += I2 + `<NumberOfFullBaths>${escapeXML(data.fullBaths)}</NumberOfFullBaths>` + L;
+                if (data.halfBaths && data.halfBaths !== '0') xml += I2 + `<NumberOfHalfBaths>${escapeXML(data.halfBaths)}</NumberOfHalfBaths>` + L;
 
-                // Construction & structure type
                 const construction = mapConstruction(data.constructionStyle || data.exteriorWalls);
-                if (construction) xml += `<Construction>${escapeXML(construction)}</Construction>`;
+                if (construction) xml += I2 + `<Construction>${escapeXML(construction)}</Construction>` + L;
                 const structure = mapStructure(data.dwellingType);
-                if (structure) xml += `<Structure>${escapeXML(structure)}</Structure>`;
-
-                // Roof
+                if (structure) xml += I2 + `<Structure>${escapeXML(structure)}</Structure>` + L;
                 const roof = mapRoof(data.roofType);
-                if (roof) xml += `<Roof>${escapeXML(roof)}</Roof>`;
+                if (roof) xml += I2 + `<Roof>${escapeXML(roof)}</Roof>` + L;
 
-                // Pool & Dogs — must come right after Roof per golden template
-                xml += `<SwimmingPool>${(data.pool && data.pool !== 'None') ? 'Yes' : 'No'}</SwimmingPool>`;
-                xml += `<SwimmingPoolFenced>${(data.pool && data.pool.includes('Ground')) ? 'Yes' : 'No'}</SwimmingPoolFenced>`;
-                xml += `<DogOnPremises>${data.dogInfo ? 'Yes' : 'No'}</DogOnPremises>`;
+                // Pool & Dogs — right after Roof
+                xml += I2 + `<SwimmingPool>${(data.pool && data.pool !== 'None') ? 'Yes' : 'No'}</SwimmingPool>` + L;
+                xml += I2 + `<SwimmingPoolFenced>${(data.pool && data.pool.includes('Ground')) ? 'Yes' : 'No'}</SwimmingPoolFenced>` + L;
+                xml += I2 + `<DogOnPremises>${data.dogInfo ? 'Yes' : 'No'}</DogOnPremises>` + L;
 
-                // Heating type (after DogOnPremises, before system updates)
+                // Heating type
                 const heating = mapHeating(data.heatingType);
-                if (heating) xml += `<HeatingType>${escapeXML(heating)}</HeatingType>`;
+                if (heating) xml += I2 + `<HeatingType>${escapeXML(heating)}</HeatingType>` + L;
 
-                // System updates — always emit UpdateYear (default to yrBuilt for positional parser)
-                xml += `<RoofingUpdate>${updateStatus(data.roofYr, yrBuilt)}</RoofingUpdate>`;
-                xml += `<RoofingUpdateYear>${escapeXML(data.roofYr || yrBuilt)}</RoofingUpdateYear>`;
-                xml += `<ElectricalUpdate>${updateStatus(data.elecYr, yrBuilt)}</ElectricalUpdate>`;
-                xml += `<ElectricalUpdateYear>${escapeXML(data.elecYr || yrBuilt)}</ElectricalUpdateYear>`;
-                xml += `<PlumbingUpdate>${updateStatus(data.plumbYr, yrBuilt)}</PlumbingUpdate>`;
-                xml += `<PlumbingUpdateYear>${escapeXML(data.plumbYr || yrBuilt)}</PlumbingUpdateYear>`;
-                xml += `<HeatingUpdate>${updateStatus(data.heatYr, yrBuilt)}</HeatingUpdate>`;
-                xml += `<HeatingUpdateYear>${escapeXML(data.heatYr || yrBuilt)}</HeatingUpdateYear>`;
+                // System updates — always emit UpdateYear (default to yrBuilt)
+                xml += I2 + `<RoofingUpdate>${updateStatus(data.roofYr, yrBuilt)}</RoofingUpdate>` + L;
+                xml += I2 + `<RoofingUpdateYear>${escapeXML(data.roofYr || yrBuilt)}</RoofingUpdateYear>` + L;
+                xml += I2 + `<ElectricalUpdate>${updateStatus(data.elecYr, yrBuilt)}</ElectricalUpdate>` + L;
+                xml += I2 + `<ElectricalUpdateYear>${escapeXML(data.elecYr || yrBuilt)}</ElectricalUpdateYear>` + L;
+                xml += I2 + `<PlumbingUpdate>${updateStatus(data.plumbYr, yrBuilt)}</PlumbingUpdate>` + L;
+                xml += I2 + `<PlumbingUpdateYear>${escapeXML(data.plumbYr || yrBuilt)}</PlumbingUpdateYear>` + L;
+                xml += I2 + `<HeatingUpdate>${updateStatus(data.heatYr, yrBuilt)}</HeatingUpdate>` + L;
+                xml += I2 + `<HeatingUpdateYear>${escapeXML(data.heatYr || yrBuilt)}</HeatingUpdateYear>` + L;
 
-                xml += '<UnderConstruction>No</UnderConstruction>';
-                if (data.sqFt) xml += `<SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>`;
+                xml += I2 + '<UnderConstruction>No</UnderConstruction>' + L;
+                if (data.sqFt) xml += I2 + `<SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>` + L;
                 const purchaseDate = normalizeDate(data.purchaseDate);
-                if (purchaseDate) xml += `<PurchaseDate>${purchaseDate}</PurchaseDate>`;
+                if (purchaseDate) xml += I2 + `<PurchaseDate>${purchaseDate}</PurchaseDate>` + L;
 
-                // Trampoline & Business — after PurchaseDate per golden template
-                xml += `<Trampoline>${(data.trampoline && data.trampoline !== 'None') ? 'Yes' : 'No'}</Trampoline>`;
-                xml += `<BusinessOnPremises>${data.businessOnProperty ? 'Yes' : 'No'}</BusinessOnPremises>`;
+                xml += I2 + `<Trampoline>${(data.trampoline && data.trampoline !== 'None') ? 'Yes' : 'No'}</Trampoline>` + L;
+                xml += I2 + `<BusinessOnPremises>${data.businessOnProperty ? 'Yes' : 'No'}</BusinessOnPremises>` + L;
+                xml += I2 + `<FirstMortgagee>${data.mortgagee ? 'Yes' : 'No'}</FirstMortgagee>` + L;
+                xml += I2 + '<SecondMortgagee>No</SecondMortgagee>' + L;
+                xml += I2 + '<ThirdMortgagee>No</ThirdMortgagee>' + L;
+                xml += I2 + '<EquityLineOfCredit>No</EquityLineOfCredit>' + L;
+                xml += I2 + '<CoSigner>No</CoSigner>' + L;
+                xml += I2 + '<NumberOfOtherInterests>0</NumberOfOtherInterests>' + L;
 
-                // Mortgagee flags
-                xml += `<FirstMortgagee>${data.mortgagee ? 'Yes' : 'No'}</FirstMortgagee>`;
-                xml += '<SecondMortgagee>No</SecondMortgagee>';
-                xml += '<ThirdMortgagee>No</ThirdMortgagee>';
-                xml += '<EquityLineOfCredit>No</EquityLineOfCredit>';
-                xml += '<CoSigner>No</CoSigner>';
-                xml += '<NumberOfOtherInterests>0</NumberOfOtherInterests>';
-
-                // Foundation & roof design
                 const foundation = mapFoundation(data.foundation);
-                if (foundation) xml += `<Foundation>${escapeXML(foundation)}</Foundation>`;
-                if (data.roofShape) xml += `<RoofDesign>${escapeXML(data.roofShape)}</RoofDesign>`;
+                if (foundation) xml += I2 + `<Foundation>${escapeXML(foundation)}</Foundation>` + L;
+                if (data.roofShape) xml += I2 + `<RoofDesign>${escapeXML(data.roofShape)}</RoofDesign>` + L;
+                xml += I + '</RatingInfo>' + L;
 
-                xml += '</RatingInfo>\n';
-
-                // ── ReplacementCost (coverage limits) ──
-                xml += '<ReplacementCost>';
-                const dwellingCov = cleanNum(data.dwellingCoverage);
-                if (dwellingCov) {
-                    xml += `<ReplacementCost>${escapeXML(dwellingCov)}</ReplacementCost>`;
-                    xml += `<Dwelling>${escapeXML(dwellingCov)}</Dwelling>`;
-                }
-                xml += '<LossOfUse>0</LossOfUse>';
+                // ── ReplacementCost — always emit dwelling value (default 0) ──
+                xml += I + '<ReplacementCost>' + L;
+                const dwellingCov = cleanNum(data.dwellingCoverage) || '0';
+                xml += I2 + `<ReplacementCost>${escapeXML(dwellingCov)}</ReplacementCost>` + L;
+                xml += I2 + `<Dwelling>${escapeXML(dwellingCov)}</Dwelling>` + L;
+                xml += I2 + '<LossOfUse>0</LossOfUse>' + L;
                 const liability = cleanNum(data.personalLiability);
-                if (liability) xml += `<PersonalLiability>${escapeXML(liability)}</PersonalLiability>`;
+                if (liability) xml += I2 + `<PersonalLiability>${escapeXML(liability)}</PersonalLiability>` + L;
                 const medPay = cleanNum(data.medicalPayments);
-                if (medPay) xml += `<MedicalPayments>${escapeXML(medPay)}</MedicalPayments>`;
+                if (medPay) xml += I2 + `<MedicalPayments>${escapeXML(medPay)}</MedicalPayments>` + L;
                 const deductible = cleanNum(data.homeDeductible);
-                xml += '<DeductibeInfo>';
-                xml += `<Deductible>${escapeXML(deductible || '1000')}</Deductible>`;
-                xml += '</DeductibeInfo>';
-                xml += '<RatingCredits>';
-                xml += '<RetireesCredit>No</RetireesCredit>';
-                xml += '<MatureDiscount>No</MatureDiscount>';
-                xml += '<RetirementCommunity>No</RetirementCommunity>';
-                xml += '<LimitedAccessCommunity>No</LimitedAccessCommunity>';
-                xml += '<GatedCommunity>No</GatedCommunity>';
-                xml += '<Multipolicy>No</Multipolicy>';
-                xml += '<NonSmoker>Yes</NonSmoker>';
-                xml += '</RatingCredits>';
-                xml += '</ReplacementCost>\n';
+                xml += I2 + '<DeductibeInfo>' + L;
+                xml += I3 + `<Deductible>${escapeXML(deductible || '1000')}</Deductible>` + L;
+                xml += I2 + '</DeductibeInfo>' + L;
+                xml += I2 + '<RatingCredits>' + L;
+                xml += I3 + '<RetireesCredit>No</RetireesCredit>' + L;
+                xml += I3 + '<MatureDiscount>No</MatureDiscount>' + L;
+                xml += I3 + '<RetirementCommunity>No</RetirementCommunity>' + L;
+                xml += I3 + '<LimitedAccessCommunity>No</LimitedAccessCommunity>' + L;
+                xml += I3 + '<GatedCommunity>No</GatedCommunity>' + L;
+                xml += I3 + '<Multipolicy>No</Multipolicy>' + L;
+                xml += I3 + '<NonSmoker>Yes</NonSmoker>' + L;
+                xml += I2 + '</RatingCredits>' + L;
+                xml += I + '</ReplacementCost>' + L;
 
-                // ── Endorsements (protective devices + anchor tags) ──
-                xml += '<Endorsements>';
-                xml += '<SpecialPersonalProperty>No</SpecialPersonalProperty>';
-                xml += '<ProtectiveDevices>';
-                xml += '<BurglarAlarm>';
+                // ── Endorsements ──
+                xml += I + '<Endorsements>' + L;
+                xml += I2 + '<SpecialPersonalProperty>No</SpecialPersonalProperty>' + L;
+                xml += I2 + '<ProtectiveDevices>' + L;
+                xml += I3 + '<BurglarAlarm>' + L;
                 const hasDeadbolt = (data.burglarAlarm && data.burglarAlarm !== 'None') ? 'Yes' : 'No';
-                xml += `<DeadBolt>${hasDeadbolt}</DeadBolt>`;
-                xml += '<VisibleToNeighbor>No</VisibleToNeighbor>';
-                xml += '<MannedSecurity>No</MannedSecurity>';
-                xml += '</BurglarAlarm>';
-                xml += '</ProtectiveDevices>';
-                xml += '<Sinkhole>';
-                xml += '<SinkholeCollapse>No</SinkholeCollapse>';
-                xml += '</Sinkhole>';
-                xml += '</Endorsements>\n';
+                xml += I4 + `<DeadBolt>${hasDeadbolt}</DeadBolt>` + L;
+                xml += I4 + '<VisibleToNeighbor>No</VisibleToNeighbor>' + L;
+                xml += I4 + '<MannedSecurity>No</MannedSecurity>' + L;
+                xml += I3 + '</BurglarAlarm>' + L;
+                xml += I2 + '</ProtectiveDevices>' + L;
+                xml += I2 + '<Sinkhole>' + L;
+                xml += I3 + '<SinkholeCollapse>No</SinkholeCollapse>' + L;
+                xml += I2 + '</Sinkhole>' + L;
+                xml += I + '</Endorsements>' + L;
 
                 // ── GeneralInfo ──
-                xml += '<GeneralInfo>';
-                xml += `<RatingStateCode>${escapeXML(state)}</RatingStateCode>`;
-                xml += '</GeneralInfo>\n';
+                xml += I + '<GeneralInfo>' + L;
+                xml += I2 + `<RatingStateCode>${escapeXML(state)}</RatingStateCode>` + L;
+                xml += I + '</GeneralInfo>' + L;
 
                 // ── ExtendedInfo blocks (agency credentials for WA rater) ──
-                xml += '<ExtendedInfo name="ICQ|CARRIERS|ST_WA">';
-                xml += '<valuepair name="carriers_list"><value>1029,835,1157,388,429</value></valuepair>';
-                xml += '</ExtendedInfo>\n';
+                xml += I + '<ExtendedInfo name="ICQ|CARRIERS|ST_WA">' + L;
+                xml += I2 + '<valuepair name="carriers_list">' + L;
+                xml += I3 + '<value>1029,835,1157,388,429</value>' + L;
+                xml += I2 + '</valuepair>' + L;
+                xml += I + '</ExtendedInfo>' + L;
 
-                xml += '<ExtendedInfo name="ICQ|CROSSREF|ST_WA">';
-                xml += '<valuepair name="343"><value>1029</value></valuepair>';
-                xml += '<valuepair name="225"><value>835</value></valuepair>';
-                xml += '<valuepair name="377"><value>1157</value></valuepair>';
-                xml += '<valuepair name="35"><value>388</value></valuepair>';
-                xml += '<valuepair name="13"><value>429</value></valuepair>';
-                xml += '</ExtendedInfo>\n';
+                xml += I + '<ExtendedInfo name="ICQ|CROSSREF|ST_WA">' + L;
+                xml += I2 + '<valuepair name="343"><value>1029</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="225"><value>835</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="377"><value>1157</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="35"><value>388</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="13"><value>429</value></valuepair>' + L;
+                xml += I + '</ExtendedInfo>' + L;
 
-                xml += '<ExtendedInfo name="ICQ|NAME_VALUE_PAIRS">';
-                xml += '<valuepair name="coverage_paperless_common"><value>Yes</value></valuepair>';
-                xml += '<valuepair name="prior_liabilityasiMI"><value>org.asicorp_301K+</value></valuepair>';
-                xml += '<valuepair name="paidinfullasixmlny"><value>org.asicorp_MortgageBilled</value></valuepair>';
-                xml += '<valuepair name="booktransfer"><value /></valuepair>';
-                xml += '<valuepair name="textPurchaseDate"><value /></valuepair>';
-                xml += '<valuepair name="textInspectionDate"><value /></valuepair>';
-                xml += '<valuepair name="endorsements_equipbreakdown_common"><value>No</value></valuepair>';
-                xml += '<valuepair name="endorsements_serviceline_common"><value>No</value></valuepair>';
-                xml += '<valuepair name="textOrdinanceOrLawPercent"><value /></valuepair>';
-                xml += '<valuepair name="bicycleamt"><value /></valuepair>';
-                xml += '<valuepair name="homeshieldUT_asi"><value>None</value></valuepair>';
-                xml += '<valuepair name="packagesafecoWA"><value>A</value></valuepair>';
-                xml += '<valuepair name="packagexmlKY"><value>org.asicorp_PPDNone</value></valuepair>';
-                xml += '<valuepair name="coverage_winddeductible__377"><value>1000</value></valuepair>';
-                xml += '<valuepair name="acvxml3__377"><value>org.asicorp_RC</value></valuepair>';
-                xml += '<valuepair name="agentcode__343"><value>0057</value></valuepair>';
-                xml += '<valuepair name="cyber_common__343"><value>N</value></valuepair>';
-                xml += '<valuepair name="graduate__225"><value>N</value></valuepair>';
-                xml += '<valuepair name="agentid__35"><value>013575</value></valuepair>';
-                xml += '<valuepair name="producername__35"><value /></valuepair>';
-                xml += '<valuepair name="safeco_personalproperty__35"><value>No</value></valuepair>';
-                xml += '<valuepair name="agencycode__13"><value>0cfj97</value></valuepair>';
-                xml += '<valuepair name="coveragelevel__13"><value /></valuepair>';
-                xml += '<valuepair name="solarpanels__13"><value /></valuepair>';
-                xml += '<valuepair name="carstall__13"><value /></valuepair>';
-                xml += '<valuepair name="autopolicylimit__13"><value /></valuepair>';
-                xml += '<valuepair name="accidentsaz__13"><value>0</value></valuepair>';
-                xml += '</ExtendedInfo>\n';
+                xml += I + '<ExtendedInfo name="ICQ|NAME_VALUE_PAIRS">' + L;
+                xml += I2 + '<valuepair name="coverage_paperless_common"><value>Yes</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="prior_liabilityasiMI"><value>org.asicorp_301K+</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="paidinfullasixmlny"><value>org.asicorp_MortgageBilled</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="booktransfer"><value /></valuepair>' + L;
+                xml += I2 + '<valuepair name="textPurchaseDate"><value /></valuepair>' + L;
+                xml += I2 + '<valuepair name="textInspectionDate"><value /></valuepair>' + L;
+                xml += I2 + '<valuepair name="endorsements_equipbreakdown_common"><value>No</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="endorsements_serviceline_common"><value>No</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="textOrdinanceOrLawPercent"><value /></valuepair>' + L;
+                xml += I2 + '<valuepair name="bicycleamt"><value /></valuepair>' + L;
+                xml += I2 + '<valuepair name="homeshieldUT_asi"><value>None</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="packagesafecoWA"><value>A</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="packagexmlKY"><value>org.asicorp_PPDNone</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="coverage_winddeductible__377"><value>1000</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="acvxml3__377"><value>org.asicorp_RC</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="agentcode__343"><value>0057</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="cyber_common__343"><value>N</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="graduate__225"><value>N</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="agentid__35"><value>013575</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="producername__35"><value /></valuepair>' + L;
+                xml += I2 + '<valuepair name="safeco_personalproperty__35"><value>No</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="agencycode__13"><value>0cfj97</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="coveragelevel__13"><value /></valuepair>' + L;
+                xml += I2 + '<valuepair name="solarpanels__13"><value /></valuepair>' + L;
+                xml += I2 + '<valuepair name="carstall__13"><value /></valuepair>' + L;
+                xml += I2 + '<valuepair name="autopolicylimit__13"><value /></valuepair>' + L;
+                xml += I2 + '<valuepair name="accidentsaz__13"><value>0</value></valuepair>' + L;
+                xml += I + '</ExtendedInfo>' + L;
 
-                xml += '<ExtendedInfo name="ICQ|CARRIERSTAB|ST_WA">';
-                xml += '<valuepair name="coverage_winddeductible__377"><value>1157</value></valuepair>';
-                xml += '<valuepair name="acvxml3__377"><value>1157</value></valuepair>';
-                xml += '<valuepair name="agentcode__343"><value>1029</value></valuepair>';
-                xml += '<valuepair name="cyber_common__343"><value>1029</value></valuepair>';
-                xml += '<valuepair name="graduate__225"><value>835</value></valuepair>';
-                xml += '<valuepair name="agentid__35"><value>388</value></valuepair>';
-                xml += '<valuepair name="producername__35"><value>388</value></valuepair>';
-                xml += '<valuepair name="safeco_personalproperty__35"><value>388</value></valuepair>';
-                xml += '<valuepair name="agencycode__13"><value>429</value></valuepair>';
-                xml += '<valuepair name="coveragelevel__13"><value>429</value></valuepair>';
-                xml += '<valuepair name="solarpanels__13"><value>429</value></valuepair>';
-                xml += '<valuepair name="carstall__13"><value>429</value></valuepair>';
-                xml += '<valuepair name="autopolicylimit__13"><value>429</value></valuepair>';
-                xml += '<valuepair name="accidentsaz__13"><value>429</value></valuepair>';
-                xml += '</ExtendedInfo>\n';
+                xml += I + '<ExtendedInfo name="ICQ|CARRIERSTAB|ST_WA">' + L;
+                xml += I2 + '<valuepair name="coverage_winddeductible__377"><value>1157</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="acvxml3__377"><value>1157</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="agentcode__343"><value>1029</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="cyber_common__343"><value>1029</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="graduate__225"><value>835</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="agentid__35"><value>388</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="producername__35"><value>388</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="safeco_personalproperty__35"><value>388</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="agencycode__13"><value>429</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="coveragelevel__13"><value>429</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="solarpanels__13"><value>429</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="carstall__13"><value>429</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="autopolicylimit__13"><value>429</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="accidentsaz__13"><value>429</value></valuepair>' + L;
+                xml += I2 + '<valuepair name="__completed__">' + L;
+                xml += I3 + '<value>true</value>' + L;
+                xml += I2 + '</valuepair>' + L;
+                xml += I2 + '<valuepair name="__carriers_list_at_last_run__">' + L;
+                xml += I3 + '<value>1029,835,1157,388,429</value>' + L;
+                xml += I2 + '</valuepair>' + L;
+                xml += I2 + '<valuepair name="__last_run_datetime__">' + L;
+                xml += I3 + `<value>${new Date().toISOString().split('.')[0]}</value>` + L;
+                xml += I2 + '</valuepair>' + L;
+                xml += I + '</ExtendedInfo>' + L;
 
-                xml += '</EZHOME>\n';
+                xml += '</EZHOME>' + L;
 
                 return {
                     ok: true,
