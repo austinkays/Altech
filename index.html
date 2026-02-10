@@ -8597,8 +8597,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 if (gender) xml += I3 + `<Gender>${escapeXML(gender)}</Gender>` + L;
                 if (marital) xml += I3 + `<MaritalStatus>${escapeXML(marital)}</MaritalStatus>` + L;
                 xml += I3 + '<Relation>Insured</Relation>' + L;
-                xml += I3 + (data.industry ? `<Industry>${escapeXML(data.industry)}</Industry>` : '<Industry />') + L;
-                xml += I3 + (data.occupation ? `<Occupation>${escapeXML(data.occupation)}</Occupation>` : '<Occupation />') + L;
+                if (data.industry) xml += I3 + `<Industry>${escapeXML(data.industry)}</Industry>` + L;
+                if (data.occupation) xml += I3 + `<Occupation>${escapeXML(data.occupation)}</Occupation>` + L;
                 xml += I2 + '</PersonalInfo>' + L;
                 xml += I2 + '<Address>' + L;
                 xml += I3 + '<AddressCode>StreetAddress</AddressCode>' + L;
@@ -8612,7 +8612,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += I3 + `<StateCode>${escapeXML(state)}</StateCode>` + L;
                 if (county) xml += I3 + `<County>${escapeXML(county)}</County>` + L;
                 xml += I3 + `<Zip5>${escapeXML(zip5)}</Zip5>` + L;
-                xml += I3 + (zip4 ? `<Zip4>${escapeXML(zip4)}</Zip4>` : '<Zip4 />') + L;
+                if (zip4) xml += I3 + `<Zip4>${escapeXML(zip4)}</Zip4>` + L;
                 if (phone) {
                     xml += I3 + '<Phone>' + L;
                     xml += I4 + '<PhoneType>Mobile</PhoneType>' + L;
@@ -8622,7 +8622,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 if (data.email) xml += I3 + `<Email>${escapeXML(data.email)}</Email>` + L;
                 xml += I3 + '<BridgeEmailToCarriers>No</BridgeEmailToCarriers>' + L;
                 xml += I3 + '<PreferredContactMethod>Phone (Mobile)</PreferredContactMethod>' + L;
-                xml += I3 + (data.yearsAtAddress ? `<YearsAtAddress>${escapeXML(data.yearsAtAddress)}</YearsAtAddress>` : '<YearsAtAddress />') + L;
+                if (data.yearsAtAddress) xml += I3 + `<YearsAtAddress>${escapeXML(data.yearsAtAddress)}</YearsAtAddress>` + L;
                 xml += I3 + '<Validation>Valid</Validation>' + L;
                 xml += I2 + '</Address>' + L;
                 xml += I + '</Applicant>' + L;
@@ -8631,7 +8631,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += I + '<PriorPolicyInfo>' + L;
                 if (data.priorCarrier) xml += I2 + `<PriorCarrier>${escapeXML(data.priorCarrier)}</PriorCarrier>` + L;
                 const priorExp = normalizeDate(data.priorExp);
-                xml += I2 + (priorExp ? `<Expiration>${priorExp}</Expiration>` : '<Expiration />') + L;
+                if (priorExp) xml += I2 + `<Expiration>${priorExp}</Expiration>` + L;
                 if (data.priorYears) {
                     const yearsInt = parseInt(String(data.priorYears).replace(/[^0-9]/g, ''), 10) || 0;
                     xml += I2 + '<YearsWithPriorCarrier>' + L;
@@ -8667,11 +8667,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += I2 + `<DwellingOccupancy>${escapeXML(mapOccupancy(data.occupancyType))}</DwellingOccupancy>` + L;
 
                 // Fire protection — all tags always present for positional deserializer
-                if (data.fireHydrantFeet) {
-                    xml += I2 + `<DistanceToFireHydrant>${escapeXML(data.fireHydrantFeet)}</DistanceToFireHydrant>` + L;
-                } else {
-                    xml += I2 + '<DistanceToFireHydrant />' + L;
-                }
+                if (data.fireHydrantFeet) xml += I2 + `<DistanceToFireHydrant>${escapeXML(data.fireHydrantFeet)}</DistanceToFireHydrant>` + L;
                 xml += I2 + '<WithinCityLimits>No</WithinCityLimits>' + L;
                 if (data.fireStationDist) {
                     // Round to integer — V200 schema expects int for DistanceToFireStation
