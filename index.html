@@ -7647,69 +7647,168 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const drivers = (data.drivers && data.drivers.length) ? data.drivers : (this.drivers || []);
                 const vehicles = (data.vehicles && data.vehicles.length) ? data.vehicles : (this.vehicles || []);
 
+                // ── Client Profile ──
                 addSection('Client Profile', [
                     ['Name', clientName],
                     ['Name Pronunciation', this.getNamePronunciation(data)],
                     ['Date of Birth', formatDate(data.dob || '')],
+                    ['Gender', data.gender === 'M' ? 'Male' : data.gender === 'F' ? 'Female' : (data.gender || '')],
+                    ['Marital Status', data.maritalStatus || ''],
                     ['Email', data.email || ''],
                     ['Phone', data.phone || ''],
-                    ['Marital Status', data.maritalStatus || ''],
-                    ['Occupation', data.occupation || data.industry || ''],
+                    ['Education', data.education || ''],
+                    ['Industry', data.industry || ''],
+                    ['Occupation', data.occupation || ''],
                     ['Quote Type', data.qType || '']
                 ]);
 
+                // ── Address ──
+                addSection('Address', [
+                    ['Street', data.addrStreet || ''],
+                    ['City', data.addrCity || ''],
+                    ['State', data.addrState || ''],
+                    ['ZIP', data.addrZip || ''],
+                    ['County', this.getCountyFromCity(data.addrCity, data.addrState) || '']
+                ]);
+
                 if (showHome) {
+                    // ── Dwelling Specifications ──
                     addSection('Dwelling Specifications', [
-                        ['Address', `${data.addrStreet || ''}, ${data.addrCity || ''}, ${data.addrState || ''} ${data.addrZip || ''}`],
                         ['Year Built', data.yrBuilt || ''],
                         ['Square Footage', data.sqFt || ''],
+                        ['Lot Size (acres)', data.lotSize || ''],
+                        ['Dwelling Type', data.dwellingType || ''],
+                        ['Dwelling Use', data.dwellingUsage || ''],
+                        ['Occupancy', data.occupancyType || ''],
+                        ['Number of Stories', data.numStories || ''],
+                        ['Number of Occupants', data.numOccupants || ''],
                         ['Bedrooms', data.bedrooms || ''],
-                        ['Bathrooms', data.fullBaths || ''],
-                        ['Construction', data.constructionStyle || ''],
+                        ['Full Bathrooms', data.fullBaths || ''],
+                        ['Half Bathrooms', data.halfBaths || ''],
+                        ['Construction Style', data.constructionStyle || ''],
                         ['Exterior Walls', data.exteriorWalls || ''],
+                        ['Foundation', data.foundation || ''],
+                        ['Garage Type', data.garageType || ''],
+                        ['Garage Spaces', data.garageSpaces || ''],
+                        ['Kitchen/Bath Quality', data.kitchenQuality || ''],
+                        ['Flooring', data.flooring || ''],
+                        ['Fireplaces', data.numFireplaces || ''],
+                        ['Purchase Date', formatDate(data.purchaseDate || '')]
+                    ]);
+
+                    // ── Roof & Systems ──
+                    addSection('Roof & Building Systems', [
                         ['Roof Type', data.roofType || ''],
-                        ['Foundation', data.foundation || '']
+                        ['Roof Shape', data.roofShape || ''],
+                        ['Roof Updated (Year)', data.roofYr || ''],
+                        ['Heating Type', data.heatingType || ''],
+                        ['Heating Updated (Year)', data.heatYr || ''],
+                        ['Cooling', data.cooling || ''],
+                        ['Plumbing Updated (Year)', data.plumbYr || ''],
+                        ['Electrical Updated (Year)', data.elecYr || ''],
+                        ['Sewer', data.sewer || ''],
+                        ['Water Source', data.waterSource || '']
+                    ]);
+
+                    // ── Safety & Hazards ──
+                    addSection('Safety & Hazards', [
+                        ['Burglar Alarm', data.burglarAlarm || ''],
+                        ['Fire Alarm', data.fireAlarm || ''],
+                        ['Sprinklers', data.sprinklers || ''],
+                        ['Swimming Pool', data.pool || 'No'],
+                        ['Trampoline', data.trampoline || 'No'],
+                        ['Wood Stove', data.woodStove || 'No'],
+                        ['Dog on Premises', data.dogInfo || 'None'],
+                        ['Business on Property', data.businessOnProperty || 'No'],
+                        ['Distance to Fire Station (mi)', data.fireStationDist || ''],
+                        ['Distance to Fire Hydrant (ft)', data.fireHydrantFeet || ''],
+                        ['Protection Class', data.protectionClass || '']
+                    ]);
+
+                    // ── Home Coverage ──
+                    addSection('Home Coverage', [
+                        ['Policy Type', data.homePolicyType || ''],
+                        ['Dwelling Coverage', data.dwellingCoverage || ''],
+                        ['Personal Liability', data.personalLiability || ''],
+                        ['Medical Payments', data.medicalPayments || ''],
+                        ['Home Deductible', data.homeDeductible || ''],
+                        ['Mortgagee', data.mortgagee || '']
                     ]);
                 }
 
                 if (showAuto) {
-                    const driverLines = drivers.length ? drivers.map((d, i) => {
-                        const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
-                        return `Driver ${i + 1}: ${name || 'Unknown'} | DOB: ${formatDate(d.dob || '')} | DL: ${d.dlNum || ''} (${d.dlState || ''}) | Relationship: ${d.relationship || ''} | Occupation: ${d.occupation || ''}`;
-                    }).join('\n') : '';
+                    // ── Drivers ──
+                    if (drivers.length) {
+                        const driverRows = drivers.map((d, i) => {
+                            const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
+                            return [
+                                [`Driver ${i + 1}`, name || 'Unknown'],
+                                ['  DOB', formatDate(d.dob || '')],
+                                ['  Gender', d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : (d.gender || '')],
+                                ['  Marital Status', d.maritalStatus || ''],
+                                ['  Relationship', d.relationship || ''],
+                                ['  Occupation', d.occupation || ''],
+                                ['  License #', d.dlNum || ''],
+                                ['  License State', d.dlState || ''],
+                            ];
+                        }).flat();
+                        addSection('Drivers', driverRows);
+                    }
 
-                    const vehicleLines = vehicles.length ? vehicles.map((v, i) => {
-                        const vehDesc = [v.year, v.make, v.model].filter(Boolean).join(' ');
-                        const driverDisplay = this.resolveDriverName(v.primaryDriver, drivers);
-                        return `Vehicle ${i + 1}: ${vehDesc || 'Unknown'} | VIN: ${v.vin || ''} | Use: ${v.use || ''} | Miles: ${v.miles || ''} | Primary Driver: ${driverDisplay}`;
-                    }).join('\n') : '';
+                    // ── Vehicles ──
+                    if (vehicles.length) {
+                        const vehicleRows = vehicles.map((v, i) => {
+                            const vehDesc = [v.year, v.make, v.model].filter(Boolean).join(' ');
+                            const driverDisplay = this.resolveDriverName(v.primaryDriver, drivers);
+                            return [
+                                [`Vehicle ${i + 1}`, vehDesc || 'Unknown'],
+                                ['  VIN', v.vin || ''],
+                                ['  Usage', v.use || ''],
+                                ['  Annual Miles', v.miles || ''],
+                                ['  Primary Driver', driverDisplay],
+                            ];
+                        }).flat();
+                        addSection('Vehicles', vehicleRows);
+                    }
 
-                    addSection('Drivers & Vehicles', [
-                        ['Drivers', driverLines || ''],
-                        ['Vehicles', vehicleLines || ''],
-                        ['Vehicle (Legacy)', data.vehDesc || ''],
-                        ['VIN (Legacy)', data.vin || ''],
-                        ['Usage (Legacy)', data.use || ''],
-                        ['Annual Miles (Legacy)', data.miles || '']
+                    // Legacy single-vehicle fields (if no multi-vehicle data)
+                    if (!vehicles.length && (data.vehDesc || data.vin)) {
+                        addSection('Vehicle (Legacy)', [
+                            ['Vehicle', data.vehDesc || ''],
+                            ['VIN', data.vin || ''],
+                            ['Usage', data.use || ''],
+                            ['Annual Miles', data.miles || '']
+                        ]);
+                    }
+
+                    // ── Auto Coverage ──
+                    addSection('Auto Coverage', [
+                        ['Liability Limits', data.liabilityLimits || ''],
+                        ['Property Damage Limit', data.pdLimit || ''],
+                        ['UM Limits', data.umLimits || ''],
+                        ['UIM Limits', data.uimLimits || ''],
+                        ['Comprehensive Deductible', data.compDeductible || ''],
+                        ['Collision Deductible', data.autoDeductible || ''],
+                        ['Rental Reimbursement', data.rentalDeductible || ''],
+                        ['Towing/Roadside', data.towingDeductible || ''],
+                        ['Student GPA', data.studentGPA || '']
                     ]);
                 }
 
-                addSection('Policy History & Risk', [
-                    ['Liability Limits', data.liabilityLimits || ''],
-                    ['Home Deductible', data.homeDeductible || ''],
-                    ['Auto Deductible', data.autoDeductible || ''],
-                    ['Prior Carrier', data.priorCarrier || ''],
-                    ['Prior Years', data.priorYears || ''],
-                    ['Prior Expiration', formatDate(data.priorExp || '')],
+                // ── Policy Info ──
+                addSection('Policy Information', [
+                    ['Policy Term', data.policyTerm || ''],
                     ['Effective Date', formatDate(data.effectiveDate || '')],
+                    ['Prior Carrier', data.priorCarrier || ''],
+                    ['Prior Policy Term', data.priorPolicyTerm || ''],
+                    ['Years with Prior Carrier', data.priorYears || ''],
+                    ['Prior Expiration', formatDate(data.priorExp || '')],
                     ['Accidents', data.accidents || ''],
-                    ['Violations', data.violations || ''],
-                    ['Fire Station Distance (mi)', data.fireStationDist || ''],
-                    ['Protection Class', data.protectionClass || '']
+                    ['Violations', data.violations || '']
                 ]);
 
+                // ── Additional Information ──
                 addSection('Additional Information', [
-                    ['Mortgagee', data.mortgagee || ''],
                     ['Additional Insureds', data.additionalInsureds || ''],
                     ['Best Contact Time', data.contactTime || ''],
                     ['Referral Source', data.referralSource || ''],
