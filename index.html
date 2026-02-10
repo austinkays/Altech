@@ -8621,8 +8621,10 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const priorExp = normalizeDate(data.priorExp);
                 if (priorExp) xml += `<Expiration>${priorExp}</Expiration>`;
                 if (data.priorYears) {
+                    // EZLynx requires integer — strip non-numeric text like "More than 15" → "15"
+                    const yearsInt = parseInt(String(data.priorYears).replace(/[^0-9]/g, ''), 10) || 0;
                     xml += '<YearsWithPriorCarrier>';
-                    xml += `<Years>${escapeXML(data.priorYears)}</Years>`;
+                    xml += `<Years>${yearsInt}</Years>`;
                     xml += '</YearsWithPriorCarrier>';
                 }
                 xml += '</PriorPolicyInfo>\n';
@@ -8664,7 +8666,12 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 const roof = mapRoof(data.roofType);
                 if (roof) xml += `<Roof>${escapeXML(roof)}</Roof>`;
 
-                // Heating type (must come right after Roof, before system updates)
+                // Pool & Dogs — must come right after Roof per golden template
+                xml += `<SwimmingPool>${(data.pool && data.pool !== 'None') ? 'Yes' : 'No'}</SwimmingPool>`;
+                xml += `<SwimmingPoolFenced>${(data.pool && data.pool.includes('Ground')) ? 'Yes' : 'No'}</SwimmingPoolFenced>`;
+                xml += `<DogOnPremises>${data.dogInfo ? 'Yes' : 'No'}</DogOnPremises>`;
+
+                // Heating type (after DogOnPremises, before system updates)
                 const heating = mapHeating(data.heatingType);
                 if (heating) xml += `<HeatingType>${escapeXML(heating)}</HeatingType>`;
 
@@ -8679,15 +8686,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 if (data.heatYr) xml += `<HeatingUpdateYear>${escapeXML(data.heatYr)}</HeatingUpdateYear>`;
 
                 xml += '<UnderConstruction>No</UnderConstruction>';
-                // Square footage (must come after UnderConstruction per working template)
                 if (data.sqFt) xml += `<SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>`;
                 const purchaseDate = normalizeDate(data.purchaseDate);
                 if (purchaseDate) xml += `<PurchaseDate>${purchaseDate}</PurchaseDate>`;
 
-                // Pool, Dogs, Trampoline — Yes/No flags (must come after system updates)
-                xml += `<SwimmingPool>${(data.pool && data.pool !== 'None') ? 'Yes' : 'No'}</SwimmingPool>`;
-                xml += `<SwimmingPoolFenced>${(data.pool && data.pool.includes('Ground')) ? 'Yes' : 'No'}</SwimmingPoolFenced>`;
-                xml += `<DogOnPremises>${data.dogInfo ? 'Yes' : 'No'}</DogOnPremises>`;
+                // Trampoline & Business — after PurchaseDate per golden template
                 xml += `<Trampoline>${(data.trampoline && data.trampoline !== 'None') ? 'Yes' : 'No'}</Trampoline>`;
                 xml += `<BusinessOnPremises>${data.businessOnProperty ? 'Yes' : 'No'}</BusinessOnPremises>`;
 
