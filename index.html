@@ -8534,6 +8534,36 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     const map = { 'Owner': 'Owner Occupied', 'Tenant': 'Tenant', 'Vacant': 'Vacant' };
                     return map[o] || o;
                 };
+                // Map form industry values to valid EZLynx/ACORD Industry names.
+                // Employment statuses (Retired, Disabled, etc.) are NOT industries
+                // and crash .NET enum deserialization — omit them.
+                const mapIndustry = (val) => {
+                    if (!val) return '';
+                    const notIndustry = ['Retired','Disabled','Unemployed','Student','Homemaker/House person'];
+                    if (notIndustry.includes(val)) return '';
+                    const map = {
+                        'Agriculture/Forestry/Fishing': 'Agriculture/Forestry/Fishing',
+                        'Art/Design/Media': 'Art/Design/Media',
+                        'Banking/Finance/Real Estate': 'Banking/Finance/Real Estate',
+                        'Business/Sales/Office': 'Business/Sales/Office',
+                        'Construction/Energy Trades': 'Construction/Energy Trades',
+                        'Education/Library': 'Education/Library',
+                        'Engineer/Architect/Science/Math': 'Engineer/Architect/Science/Math',
+                        'Government/Military': 'Government/Military',
+                        'Information Technology': 'Information Technology',
+                        'Insurance': 'Insurance',
+                        'Legal/Law Enforcement/Security': 'Legal/Law Enforcement/Security',
+                        'Maintenance/Repair/Housekeeping': 'Maintenance/Repair/Housekeeping',
+                        'Manufacturing/Production': 'Manufacturing/Production',
+                        'Medical/Social Services/Religion': 'Medical/Social Services/Religion',
+                        'Personal Care/Service': 'Personal Care/Service',
+                        'Restaurant/Hotel Services': 'Restaurant/Hotel Services',
+                        'Sports/Recreation': 'Sports/Recreation',
+                        'Travel/Transportation/Warehousing': 'Travel/Transportation/Warehousing',
+                        'Other': 'Other'
+                    };
+                    return map[val] || '';
+                };
                 // Determine update status from year
                 const updateStatus = (yr, builtYr) => {
                     if (!yr) return 'NOT UPDATED';
@@ -8597,7 +8627,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 if (gender) xml += I3 + `<Gender>${escapeXML(gender)}</Gender>` + L;
                 if (marital) xml += I3 + `<MaritalStatus>${escapeXML(marital)}</MaritalStatus>` + L;
                 xml += I3 + '<Relation>Insured</Relation>' + L;
-                if (data.industry) xml += I3 + `<Industry>${escapeXML(data.industry)}</Industry>` + L;
+                const industry = mapIndustry(data.industry);
+                if (industry) xml += I3 + `<Industry>${escapeXML(industry)}</Industry>` + L;
                 if (data.occupation) xml += I3 + `<Occupation>${escapeXML(data.occupation)}</Occupation>` + L;
                 xml += I2 + '</PersonalInfo>' + L;
                 xml += I2 + '<Address>' + L;
@@ -8673,9 +8704,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                     // Round to integer — V200 schema expects int for DistanceToFireStation
                     const fireDist = Math.round(parseFloat(data.fireStationDist)) || data.fireStationDist;
                     xml += I2 + `<DistanceToFireStation>${escapeXML(String(fireDist))}</DistanceToFireStation>` + L;
-                } else {
-                    xml += I2 + '<DistanceToFireStation />' + L;
                 }
+                // Omit DistanceToFireStation entirely when no data — self-closing
+                // <DistanceToFireStation /> crashes .NET int deserialization
                 xml += I2 + '<WithinFireDistrict>No</WithinFireDistrict>' + L;
                 if (data.protectionClass) xml += I2 + `<ProtectionClass>${escapeXML(data.protectionClass)}</ProtectionClass>` + L;
 
