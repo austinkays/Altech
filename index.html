@@ -8734,6 +8734,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += '<ReplacementCost>';
                 const dwellingCov = cleanNum(data.dwellingCoverage);
                 if (dwellingCov) {
+                    xml += `<ReplacementCost>${escapeXML(dwellingCov)}</ReplacementCost>`;
                     xml += `<Dwelling>${escapeXML(dwellingCov)}</Dwelling>`;
                 }
                 xml += '<LossOfUse>0</LossOfUse>';
@@ -8745,22 +8746,97 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}
                 xml += '<DeductibeInfo>';
                 xml += `<Deductible>${escapeXML(deductible || '1000')}</Deductible>`;
                 xml += '</DeductibeInfo>';
+                xml += '<RatingCredits>';
+                xml += '<RetireesCredit>No</RetireesCredit>';
+                xml += '<MatureDiscount>No</MatureDiscount>';
+                xml += '<RetirementCommunity>No</RetirementCommunity>';
+                xml += '<LimitedAccessCommunity>No</LimitedAccessCommunity>';
+                xml += '<GatedCommunity>No</GatedCommunity>';
+                xml += '<Multipolicy>No</Multipolicy>';
+                xml += '<NonSmoker>Yes</NonSmoker>';
+                xml += '</RatingCredits>';
                 xml += '</ReplacementCost>\n';
 
-                // ── Endorsements (protective devices live here) ──
+                // ── Endorsements (protective devices + anchor tags) ──
                 xml += '<Endorsements>';
+                xml += '<SpecialPersonalProperty>No</SpecialPersonalProperty>';
                 xml += '<ProtectiveDevices>';
                 xml += '<BurglarAlarm>';
                 const hasDeadbolt = (data.burglarAlarm && data.burglarAlarm !== 'None') ? 'Yes' : 'No';
                 xml += `<DeadBolt>${hasDeadbolt}</DeadBolt>`;
+                xml += '<VisibleToNeighbor>No</VisibleToNeighbor>';
+                xml += '<MannedSecurity>No</MannedSecurity>';
                 xml += '</BurglarAlarm>';
                 xml += '</ProtectiveDevices>';
+                xml += '<Sinkhole>';
+                xml += '<SinkholeCollapse>No</SinkholeCollapse>';
+                xml += '</Sinkhole>';
                 xml += '</Endorsements>\n';
 
                 // ── GeneralInfo ──
                 xml += '<GeneralInfo>';
                 xml += `<RatingStateCode>${escapeXML(state)}</RatingStateCode>`;
                 xml += '</GeneralInfo>\n';
+
+                // ── ExtendedInfo blocks (agency credentials for WA rater) ──
+                xml += '<ExtendedInfo name="ICQ|CARRIERS|ST_WA">';
+                xml += '<valuepair name="carriers_list"><value>1029,835,1157,388,429</value></valuepair>';
+                xml += '</ExtendedInfo>\n';
+
+                xml += '<ExtendedInfo name="ICQ|CROSSREF|ST_WA">';
+                xml += '<valuepair name="343"><value>1029</value></valuepair>';
+                xml += '<valuepair name="225"><value>835</value></valuepair>';
+                xml += '<valuepair name="377"><value>1157</value></valuepair>';
+                xml += '<valuepair name="35"><value>388</value></valuepair>';
+                xml += '<valuepair name="13"><value>429</value></valuepair>';
+                xml += '</ExtendedInfo>\n';
+
+                xml += '<ExtendedInfo name="ICQ|NAME_VALUE_PAIRS">';
+                xml += '<valuepair name="coverage_paperless_common"><value>Yes</value></valuepair>';
+                xml += '<valuepair name="prior_liabilityasiMI"><value>org.asicorp_301K+</value></valuepair>';
+                xml += '<valuepair name="paidinfullasixmlny"><value>org.asicorp_MortgageBilled</value></valuepair>';
+                xml += '<valuepair name="booktransfer"><value /></valuepair>';
+                xml += '<valuepair name="textPurchaseDate"><value /></valuepair>';
+                xml += '<valuepair name="textInspectionDate"><value /></valuepair>';
+                xml += '<valuepair name="endorsements_equipbreakdown_common"><value>No</value></valuepair>';
+                xml += '<valuepair name="endorsements_serviceline_common"><value>No</value></valuepair>';
+                xml += '<valuepair name="textOrdinanceOrLawPercent"><value /></valuepair>';
+                xml += '<valuepair name="bicycleamt"><value /></valuepair>';
+                xml += '<valuepair name="homeshieldUT_asi"><value>None</value></valuepair>';
+                xml += '<valuepair name="packagesafecoWA"><value>A</value></valuepair>';
+                xml += '<valuepair name="packagexmlKY"><value>org.asicorp_PPDNone</value></valuepair>';
+                xml += '<valuepair name="coverage_winddeductible__377"><value>1000</value></valuepair>';
+                xml += '<valuepair name="acvxml3__377"><value>org.asicorp_RC</value></valuepair>';
+                xml += '<valuepair name="agentcode__343"><value>0057</value></valuepair>';
+                xml += '<valuepair name="cyber_common__343"><value>N</value></valuepair>';
+                xml += '<valuepair name="graduate__225"><value>N</value></valuepair>';
+                xml += '<valuepair name="agentid__35"><value>013575</value></valuepair>';
+                xml += '<valuepair name="producername__35"><value /></valuepair>';
+                xml += '<valuepair name="safeco_personalproperty__35"><value>No</value></valuepair>';
+                xml += '<valuepair name="agencycode__13"><value>0cfj97</value></valuepair>';
+                xml += '<valuepair name="coveragelevel__13"><value /></valuepair>';
+                xml += '<valuepair name="solarpanels__13"><value /></valuepair>';
+                xml += '<valuepair name="carstall__13"><value /></valuepair>';
+                xml += '<valuepair name="autopolicylimit__13"><value /></valuepair>';
+                xml += '<valuepair name="accidentsaz__13"><value>0</value></valuepair>';
+                xml += '</ExtendedInfo>\n';
+
+                xml += '<ExtendedInfo name="ICQ|CARRIERSTAB|ST_WA">';
+                xml += '<valuepair name="coverage_winddeductible__377"><value>1157</value></valuepair>';
+                xml += '<valuepair name="acvxml3__377"><value>1157</value></valuepair>';
+                xml += '<valuepair name="agentcode__343"><value>1029</value></valuepair>';
+                xml += '<valuepair name="cyber_common__343"><value>1029</value></valuepair>';
+                xml += '<valuepair name="graduate__225"><value>835</value></valuepair>';
+                xml += '<valuepair name="agentid__35"><value>388</value></valuepair>';
+                xml += '<valuepair name="producername__35"><value>388</value></valuepair>';
+                xml += '<valuepair name="safeco_personalproperty__35"><value>388</value></valuepair>';
+                xml += '<valuepair name="agencycode__13"><value>429</value></valuepair>';
+                xml += '<valuepair name="coveragelevel__13"><value>429</value></valuepair>';
+                xml += '<valuepair name="solarpanels__13"><value>429</value></valuepair>';
+                xml += '<valuepair name="carstall__13"><value>429</value></valuepair>';
+                xml += '<valuepair name="autopolicylimit__13"><value>429</value></valuepair>';
+                xml += '<valuepair name="accidentsaz__13"><value>429</value></valuepair>';
+                xml += '</ExtendedInfo>\n';
 
                 xml += '</EZHOME>\n';
 
