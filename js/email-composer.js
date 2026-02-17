@@ -33,8 +33,8 @@ const EMAIL_STORAGE_KEY = 'altech_email_drafts';
                     const saved = localStorage.getItem('gemini_api_key');
                     if (saved) { this._geminiApiKey = saved; return; }
                     try {
-                        const res = await fetch('/api/gemini-config');
-                        if (res.ok) { const d = await res.json(); if (d.apiKey) { this._geminiApiKey = d.apiKey; return; } }
+                        const res = await fetch('/api/places-config');
+                        if (res.ok) { const d = await res.json(); if (d.geminiKey) { this._geminiApiKey = d.geminiKey; return; } }
                     } catch (e) {}
                     try {
                         const res = await fetch('api/config.json');

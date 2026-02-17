@@ -65,20 +65,20 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
                         return;
                     }
 
-                    // 2. Try Gemini config endpoint (Vercel serves GOOGLE_API_KEY)
+                    // 2. Try places-config endpoint (Vercel serves both keys)
                     try {
-                        const res = await fetch('/api/gemini-config');
+                        const res = await fetch('/api/places-config');
                         if (res.ok) {
                             const data = await res.json();
-                            if (data.apiKey) {
-                                this._geminiApiKey = data.apiKey;
-                                console.log('[PolicyQA] Gemini key loaded from /api/gemini-config');
+                            if (data.geminiKey) {
+                                this._geminiApiKey = data.geminiKey;
+                                console.log('[PolicyQA] Gemini key loaded from /api/places-config');
                                 this.addSystemMessage('✅ Gemini AI ready — drop a PDF to get started.');
                                 return;
                             }
                         }
                     } catch (e) {
-                        console.warn('[PolicyQA] Could not load /api/gemini-config:', e);
+                        console.warn('[PolicyQA] Could not load /api/places-config:', e);
                     }
 
                     // 3. Fallback: try api/config.json (local dev only)

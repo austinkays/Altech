@@ -150,12 +150,12 @@ You have access to the full quote data. Reference specific numbers, carriers, an
                     // Try localStorage
                     const stored = localStorage.getItem('gemini_api_key');
                     if (stored) return stored;
-                    // Try Gemini config endpoint (Vercel serves GOOGLE_API_KEY)
+                    // Try places-config endpoint (serves both Places + Gemini keys)
                     try {
-                        const res = await fetch('/api/gemini-config');
+                        const res = await fetch('/api/places-config');
                         if (res.ok) {
                             const cfg = await res.json();
-                            return cfg.apiKey || null;
+                            return cfg.geminiKey || null;
                         }
                     } catch {}
                     // Fallback: local dev config

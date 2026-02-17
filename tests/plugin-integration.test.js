@@ -73,11 +73,8 @@ function createPluginTestDOM() {
   // Mock fetch to prevent real network calls during init
   window.fetch = jest.fn().mockImplementation((url) => {
     // Return sensible defaults for known endpoints
-    if (typeof url === 'string' && url.includes('gemini-config')) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ apiKey: 'test-key' }) });
-    }
     if (typeof url === 'string' && url.includes('places-config')) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ apiKey: 'test-places-key' }) });
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ apiKey: 'test-places-key', geminiKey: 'test-gemini-key' }) });
     }
     if (typeof url === 'string' && url.includes('config.json')) {
       return Promise.resolve({ ok: false, status: 404 });
@@ -306,7 +303,6 @@ describe('navigateTo() Router', () => {
 describe('API Endpoint Files Exist', () => {
   const requiredAPIs = [
     'places-config.js',
-    'gemini-config.js',
     'compliance.js',
     'kv-store.js',
     'prospect-lookup.js',
@@ -377,50 +373,51 @@ describe('JS Module Files', () => {
 // ────────────────────────────────────────────────────
 
 describe('Gemini API Key Discovery (correctness)', () => {
-  test('App._getGeminiKey fetches /api/gemini-config (not places-config)', () => {
+  test('App._getGeminiKey fetches /api/places-config and reads geminiKey', () => {
     const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-    // The centralized key getter should hit gemini-config
     const getKeyBlock = source.match(/_getGeminiKey\(\)\s*\{[\s\S]*?\n\s{12}\},/);
     expect(getKeyBlock).not.toBeNull();
-    expect(getKeyBlock[0]).toContain('/api/gemini-config');
-    expect(getKeyBlock[0]).not.toContain('places-config');
+    expect(getKeyBlock[0]).toContain('/api/places-config');
+    expect(getKeyBlock[0]).toContain('geminiKey');
   });
 
-  test('PolicyQA resolveGeminiKey fetches /api/gemini-config first', () => {
+  test('PolicyQA resolveGeminiKey fetches /api/places-config first', () => {
     const source = fs.readFileSync(path.join(ROOT, 'js/policy-qa.js'), 'utf8');
-    const geminiConfigIndex = source.indexOf('/api/gemini-config');
+    const placesConfigIndex = source.indexOf('/api/places-config');
     const configJsonIndex = source.indexOf('api/config.json');
-    expect(geminiConfigIndex).toBeGreaterThan(-1);
-    // gemini-config should come BEFORE config.json
+    expect(placesConfigIndex).toBeGreaterThan(-1);
+    expect(source).toContain('geminiKey');
+    // places-config should come BEFORE config.json fallback
     if (configJsonIndex > -1) {
-      expect(geminiConfigIndex).toBeLessThan(configJsonIndex);
+      expect(placesConfigIndex).toBeLessThan(configJsonIndex);
     }
   });
 
-  test('EmailComposer resolveGeminiKey fetches /api/gemini-config first', () => {
+  test('EmailComposer resolveGeminiKey fetches /api/places-config', () => {
     const source = fs.readFileSync(path.join(ROOT, 'js/email-composer.js'), 'utf8');
-    const geminiConfigIndex = source.indexOf('/api/gemini-config');
-    expect(geminiConfigIndex).toBeGreaterThan(-1);
-    // Should NOT use places-config for Gemini key
-    expect(source).not.toMatch(/places-config.*geminiApiKey/);
+    expect(source).toContain('/api/places-config');
+    expect(source).toContain('geminiKey');
   });
 
-  test('QuoteCompare getApiKey fetches /api/gemini-config', () => {
+  test('QuoteCompare getApiKey fetches /api/places-config', () => {
     const source = fs.readFileSync(path.join(ROOT, 'js/quote-compare.js'), 'utf8');
-    expect(source).toContain('/api/gemini-config');
+    expect(source).toContain('/api/places-config');
+    expect(source).toContain('geminiKey');
   });
 
-  test('gemini-config.js reads GOOGLE_API_KEY from env', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'api/gemini-config.js'), 'utf8');
-    expect(source).toContain('process.env.GOOGLE_API_KEY');
-    // Must NOT read PLACES_API_KEY as the actual key source
-    expect(source).not.toMatch(/process\.env\.PLACES_API_KEY/);
-  });
-
-  test('places-config.js serves PLACES_API_KEY (not GOOGLE_API_KEY)', () => {
+  test('places-config.js serves both PLACES_API_KEY and GOOGLE_API_KEY', () => {
     const source = fs.readFileSync(path.join(ROOT, 'api/places-config.js'), 'utf8');
     expect(source).toContain('PLACES_API_KEY');
-    expect(source).not.toContain('GOOGLE_API_KEY');
+    expect(source).toContain('GOOGLE_API_KEY');
+    // Must return both keys in response
+    expect(source).toContain('geminiKey');
+  });
+
+  test('serverless function count stays within Hobby plan limit (max 12)', () => {
+    const apiDir = path.join(ROOT, 'api');
+    const jsFiles = fs.readdirSync(apiDir)
+      .filter(f => f.endsWith('.js') && !f.startsWith('_'));
+    expect(jsFiles.length).toBeLessThanOrEqual(12);
   });
 });
 
@@ -431,8 +428,7 @@ describe('Gemini API Key Discovery (correctness)', () => {
 describe('API Env Var Trimming', () => {
   const apiFilesWithEnvVars = [
     { file: 'compliance.js', envVars: ['HAWKSOFT_CLIENT_ID', 'HAWKSOFT_CLIENT_SECRET', 'HAWKSOFT_AGENCY_ID'] },
-    { file: 'places-config.js', envVars: ['PLACES_API_KEY'] },
-    { file: 'gemini-config.js', envVars: ['GOOGLE_API_KEY'] },
+    { file: 'places-config.js', envVars: ['PLACES_API_KEY', 'GOOGLE_API_KEY'] },
     { file: 'vision-processor.js', envVars: ['GOOGLE_API_KEY'] },
     { file: 'historical-analyzer.js', envVars: ['GOOGLE_API_KEY'] },
     { file: 'policy-scan.js', envVars: ['GOOGLE_API_KEY'] },

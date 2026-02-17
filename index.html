@@ -4786,10 +4786,10 @@
                     return this._geminiApiKey;
                 }
                 try {
-                    const res = await fetch('/api/gemini-config');
+                    const res = await fetch('/api/places-config');
                     if (res.ok) {
                         const data = await res.json();
-                        if (data.apiKey) { this._geminiApiKey = data.apiKey; return data.apiKey; }
+                        if (data.geminiKey) { this._geminiApiKey = data.geminiKey; return data.geminiKey; }
                     }
                 } catch (_) {}
                 return null;
