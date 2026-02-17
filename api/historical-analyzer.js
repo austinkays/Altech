@@ -20,7 +20,7 @@ let genAI = null;
 
 async function getGenAI() {
     if (genAI) return genAI;
-    const apiKey = process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+    const apiKey = (process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '').trim();
     if (!apiKey) throw new Error('GOOGLE_API_KEY not configured');
     if (!GoogleGenerativeAI) {
         try {

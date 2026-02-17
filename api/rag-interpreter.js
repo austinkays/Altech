@@ -108,7 +108,7 @@ RETURN THIS EXACT JSON STRUCTURE (valid JSON only, no markdown):
  */
 async function interpretParcelData(rawParcelData, countyName) {
   try {
-    const googleApiKey = process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+    const googleApiKey = (process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '').trim();
     if (!googleApiKey) {
       return {
         success: false,

@@ -11,15 +11,15 @@ import { readFileSync } from 'fs';
 // Helper: resolve Google API key from environment variables only
 // Used for Gemini AI calls (generative language API)
 function getGoogleApiKey() {
-  return process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || null;
+  return (process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '').trim() || null;
 }
 
 // Helper: resolve key for Google Maps/Geocoding/Places APIs
 // Falls back through: GOOGLE_API_KEY → PLACES_API_KEY
 function getMapsApiKey() {
-  const envKey = process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+  const envKey = (process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '').trim();
   if (envKey) return envKey;
-  return process.env.PLACES_API_KEY || process.env.GOOGLE_PLACES_API_KEY || null;
+  return (process.env.PLACES_API_KEY || process.env.GOOGLE_PLACES_API_KEY || '').trim() || null;
 }
 
 // ===========================================================================

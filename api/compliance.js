@@ -402,10 +402,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get HawkSoft credentials from environment
-    const HAWKSOFT_CLIENT_ID = process.env.HAWKSOFT_CLIENT_ID;
-    const HAWKSOFT_CLIENT_SECRET = process.env.HAWKSOFT_CLIENT_SECRET;
-    const HAWKSOFT_AGENCY_ID = process.env.HAWKSOFT_AGENCY_ID;
+    // Get HawkSoft credentials from environment (trim to handle CLI newlines)
+    const HAWKSOFT_CLIENT_ID = (process.env.HAWKSOFT_CLIENT_ID || '').trim();
+    const HAWKSOFT_CLIENT_SECRET = (process.env.HAWKSOFT_CLIENT_SECRET || '').trim();
+    const HAWKSOFT_AGENCY_ID = (process.env.HAWKSOFT_AGENCY_ID || '').trim();
 
     if (!HAWKSOFT_CLIENT_ID || !HAWKSOFT_CLIENT_SECRET || !HAWKSOFT_AGENCY_ID) {
       return res.status(500).json({
