@@ -422,7 +422,6 @@ export default async function handler(req, res) {
     const API_VERSION = '3.0';
 
     console.log('[Compliance] ===== STARTING HAWKSOFT DATA FETCH =====');
-    console.log('[Compliance] Client ID length:', HAWKSOFT_CLIENT_ID.length, 'Secret length:', HAWKSOFT_CLIENT_SECRET.length, 'Agency:', HAWKSOFT_AGENCY_ID);
     const startTime = Date.now();
 
     // Step 1: Calculate date range - GO BACK 3 YEARS
@@ -457,18 +456,7 @@ export default async function handler(req, res) {
         success: false,
         error: 'Failed to fetch clients from HawkSoft',
         status: changedClientsResponse.status,
-        details: errorText,
-        debug: {
-          clientIdLen: HAWKSOFT_CLIENT_ID.length,
-          secretLen: HAWKSOFT_CLIENT_SECRET.length,
-          agencyId: HAWKSOFT_AGENCY_ID,
-          clientIdFirst4: HAWKSOFT_CLIENT_ID.substring(0, 4),
-          clientIdLast4: HAWKSOFT_CLIENT_ID.substring(HAWKSOFT_CLIENT_ID.length - 4),
-          secretFirst4: HAWKSOFT_CLIENT_SECRET.substring(0, 4),
-          secretLast4: HAWKSOFT_CLIENT_SECRET.substring(HAWKSOFT_CLIENT_SECRET.length - 4),
-          authHeaderLen: authHeader.length,
-          url: `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients?version=${API_VERSION}&asOf=${asOfDate}&include=Policies`
-        }
+        details: errorText
       });
     }
 
