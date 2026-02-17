@@ -1,4 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// Dynamic import — @google/generative-ai may not be installed
+let GoogleGenerativeAI;
 
 /**
  * Phase 5: Historical Data & Comparative Analysis
@@ -15,7 +16,23 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
  * Model: gemini-2.0-flash-001
  */
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY);
+let genAI = null;
+
+async function getGenAI() {
+    if (genAI) return genAI;
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+    if (!apiKey) throw new Error('GOOGLE_API_KEY not configured');
+    if (!GoogleGenerativeAI) {
+        try {
+            const mod = await import('@google/generative-ai');
+            GoogleGenerativeAI = mod.GoogleGenerativeAI;
+        } catch {
+            throw new Error('@google/generative-ai package not installed');
+        }
+    }
+    genAI = new GoogleGenerativeAI(apiKey);
+    return genAI;
+}
 
 /**
  * Analyze historical property values
@@ -41,7 +58,8 @@ async function analyzeValueHistory(options) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    const ai = await getGenAI();
+    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-001" });
 
     const prompt = `You are a real estate market analyst. Based on historical data patterns and market knowledge, analyze property value trends.
 
@@ -180,7 +198,8 @@ async function analyzeInsuranceHistory(options) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    const ai = await getGenAI();
+    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-001" });
 
     const prompt = `You are an insurance expert analyzing historical insurance trends and risk.
 
@@ -331,7 +350,8 @@ async function compareToMarketBaseline(options) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    const ai = await getGenAI();
+    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-001" });
 
     const prompt = `You are a real estate market analyst. Compare this property to market baselines.
 
@@ -463,7 +483,8 @@ async function generateTimelineReport(options) {
   const { address, city, state, county, yearBuilt, propertyValue, sqft } = options;
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    const ai = await getGenAI();
+    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-001" });
 
     const prompt = `Create a comprehensive property timeline report.
 

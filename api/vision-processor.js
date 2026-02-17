@@ -20,6 +20,44 @@ const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 /**
+ * Call Gemini REST API with vision content
+ * @param {string} prompt - Text prompt
+ * @param {Object} imageData - { data: base64, mime_type: string }
+ * @param {Object} [config] - Generation config overrides
+ * @returns {Promise<string>} Response text from Gemini
+ */
+async function callGeminiVision(prompt, imageData, config = {}) {
+    if (!GEMINI_API_KEY) throw new Error('GOOGLE_API_KEY not configured');
+
+    const requestBody = {
+        contents: [{
+            parts: [
+                { inline_data: imageData },
+                { text: prompt }
+            ]
+        }],
+        generationConfig: {
+            temperature: config.temperature ?? 0.2,
+            maxOutputTokens: config.maxOutputTokens ?? 2048
+        }
+    };
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Gemini API error ${response.status}: ${errorData.error?.message || 'Unknown'}`);
+    }
+
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+/**
  * Process a single property image (base64 or URL)
  * 
  * @param {Object} options
@@ -41,8 +79,6 @@ async function processPropertyImage(options) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
-
     const prompt = `You are a property assessment expert analyzing property images.
 
 Given a ${imageType} image, extract and standardize the following information:
@@ -81,28 +117,10 @@ FOR SATELLITE/AERIAL IMAGES:
 
 Return JSON with extracted values and confidence (0-100).`;
 
-    const response = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              inlineData: {
-                mimeType: mimeType,
-                data: base64Data
-              }
-            },
-            { text: prompt }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 2048
-      }
+    const responseText = await callGeminiVision(prompt, {
+      mime_type: mimeType,
+      data: base64Data
     });
-
-    const responseText = response.content.parts[0].text;
     
     // Try to parse JSON response
     try {
@@ -158,8 +176,6 @@ async function processPDFDocument(options) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
-
     const prompt = `You are a property document analysis expert.
 
 Given a ${documentType} PDF document, extract and standardize property information:
@@ -208,28 +224,10 @@ Return JSON with:
   "warnings": [ any data quality issues ]
 }`;
 
-    const response = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              inlineData: {
-                mimeType: "application/pdf",
-                data: base64Data
-              }
-            },
-            { text: prompt }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 2048
-      }
+    const responseText = await callGeminiVision(prompt, {
+      mime_type: "application/pdf",
+      data: base64Data
     });
-
-    const responseText = response.content.parts[0].text;
     
     try {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -286,8 +284,6 @@ async function analyzeAerialImage(options) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
-
     const prompt = `You are an aerial image analyst for property risk assessment.
 
 Analyze this satellite/aerial image of property near ${lat}, ${lng} in ${county} county.
@@ -331,28 +327,10 @@ Return JSON:
   "caveats": "image age/clarity notes"
 }`;
 
-    const response = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: base64Data
-              }
-            },
-            { text: prompt }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 2048
-      }
+    const responseText = await callGeminiVision(prompt, {
+      mime_type: "image/jpeg",
+      data: base64Data
     });
-
-    const responseText = response.content.parts[0].text;
     
     try {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
