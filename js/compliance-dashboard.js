@@ -1014,21 +1014,24 @@ const ComplianceDashboard = {
             if (loadingSub) loadingSub.textContent = 'Will fall back to cached data if unavailable';
         }
 
-        // Start SSE progress listener
+        // Start SSE progress listener (local server only — Vercel has no SSE endpoint)
         let progressSource = null;
-        try {
-            progressSource = new EventSource('/local/compliance-progress');
-            progressSource.onmessage = (event) => {
-                try {
-                    const prog = JSON.parse(event.data);
-                    this._renderFetchProgress(prog, isBackground);
-                } catch (e) {}
-            };
-            progressSource.onerror = () => {
-                progressSource.close();
-                progressSource = null;
-            };
-        } catch (e) { /* SSE not critical */ }
+        const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (isLocal) {
+            try {
+                progressSource = new EventSource('/local/compliance-progress');
+                progressSource.onmessage = (event) => {
+                    try {
+                        const prog = JSON.parse(event.data);
+                        this._renderFetchProgress(prog, isBackground);
+                    } catch (e) {}
+                };
+                progressSource.onerror = () => {
+                    progressSource.close();
+                    progressSource = null;
+                };
+            } catch (e) { /* SSE not critical */ }
+        }
 
         try {
             // Race fetch against timeout to prevent infinite hang
