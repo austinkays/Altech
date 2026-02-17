@@ -253,8 +253,8 @@
             box-shadow: 0 0 0 2px rgba(52, 199, 89, 0.2), 0 0 18px rgba(52, 199, 89, 0.35), 0 2px 8px rgba(0, 0, 0, 0.08);
         }
         .label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; display: block; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 6px; }
         .grid-addr-row1 { display: grid; grid-template-columns: 3fr 2fr; gap: 10px; align-items: end; }
         .grid-addr-row2 { display: grid; grid-template-columns: 60px 80px 1fr; gap: 10px; align-items: end; }
         .grid-addr-row1 > div,
@@ -401,6 +401,63 @@
         }
         .dark-mode .seg-btn.seg-active {
             background: var(--apple-blue);
+        }
+
+        /* ─── iOS Toggle Switch ─── */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+        .toggle-row .label {
+            margin: 0;
+            flex: 1;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 51px;
+            height: 31px;
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #e9e9eb;
+            border-radius: 31px;
+            transition: background 0.25s ease;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 27px;
+            height: 27px;
+            left: 2px;
+            bottom: 2px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.25s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background: #34c759;
+        }
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(20px);
+        }
+        .dark-mode .toggle-slider {
+            background: #39393d;
+        }
+        .dark-mode .toggle-switch input:checked + .toggle-slider {
+            background: #30d158;
         }
 
         .header-top,
@@ -2867,131 +2924,134 @@
                     <p class="section-subtitle" style="margin:4px 0 0">Materials, foundation, garage, and roofing</p></div>
                 </summary>
                 <div class="accordion-body">
-                
-                <label class="label">Construction Style</label>
-                <select id="constructionStyle">
-                    <option value="">Select...</option>
-                    <option value="Ranch">Ranch</option>
-                    <option value="Colonial">Colonial</option>
-                    <option value="Cape Cod">Cape Cod</option>
-                    <option value="Bi-Level">Bi-Level</option>
-                    <option value="Bi-Level/Row Center">Bi-Level / Row Center</option>
-                    <option value="Bi-Level/Row End">Bi-Level / Row End</option>
-                    <option value="Split Level">Split Level</option>
-                    <option value="Split Foyer">Split Foyer</option>
-                    <option value="Tri-Level">Tri-Level</option>
-                    <option value="Tri-Level Center">Tri-Level Center</option>
-                    <option value="Raised Ranch">Raised Ranch</option>
-                    <option value="Rambler">Rambler</option>
-                    <option value="Bungalow">Bungalow</option>
-                    <option value="Cottage">Cottage</option>
-                    <option value="Contemporary">Contemporary</option>
-                    <option value="Victorian">Victorian</option>
-                    <option value="Ornate Victorian">Ornate Victorian</option>
-                    <option value="Queen Anne">Queen Anne</option>
-                    <option value="Federal Colonial">Federal Colonial</option>
-                    <option value="Mediterranean">Mediterranean</option>
-                    <option value="Southwest Adobe">Southwest Adobe</option>
-                    <option value="Townhouse">Townhouse</option>
-                    <option value="Townhouse Center">Townhouse Center</option>
-                    <option value="Townhouse End">Townhouse End</option>
-                    <option value="Rowhouse">Rowhouse</option>
-                    <option value="Rowhouse Center">Rowhouse Center</option>
-                    <option value="Rowhouse End">Rowhouse End</option>
-                    <option value="Condo">Condo</option>
-                    <option value="Coop">Coop</option>
-                    <option value="Apartment">Apartment</option>
-                    <option value="Dwelling">Dwelling</option>
-                    <option value="Backsplit">Backsplit</option>
-                    <option value="Substandard">Substandard</option>
-                </select>
-                
-                <label class="label">Exterior Walls</label>
-                <select id="exteriorWalls">
-                    <option value="">Select...</option>
-                    <option value="Aluminum/Vinyl">Aluminum / Vinyl</option>
-                    <option value="Siding, Vinyl">Siding, Vinyl</option>
-                    <option value="Siding, Aluminum">Siding, Aluminum</option>
-                    <option value="Siding, Wood">Siding, Wood</option>
-                    <option value="Siding, Hardboard">Siding, Hardboard</option>
-                    <option value="Siding, Steel">Siding, Steel</option>
-                    <option value="Siding, T-111">Siding, T-111</option>
-                    <option value="Siding, Plywood">Siding, Plywood</option>
-                    <option value="Brick">Brick</option>
-                    <option value="Brick Veneer">Brick Veneer</option>
-                    <option value="Brick Veneer, Custom">Brick Veneer, Custom</option>
-                    <option value="Brick on Block">Brick on Block</option>
-                    <option value="Brick on Block, Custom">Brick on Block, Custom</option>
-                    <option value="Solid Brick">Solid Brick</option>
-                    <option value="Solid Brick, Custom">Solid Brick, Custom</option>
-                    <option value="Stucco">Stucco</option>
-                    <option value="Stucco on Block">Stucco on Block</option>
-                    <option value="Stucco on Frame">Stucco on Frame</option>
-                    <option value="Stone Veneer">Stone Veneer</option>
-                    <option value="Stone Veneer, Custom">Stone Veneer, Custom</option>
-                    <option value="Stone on Block">Stone on Block</option>
-                    <option value="Stone on Block, Custom Stone">Stone on Block, Custom Stone</option>
-                    <option value="Solid Stone">Solid Stone</option>
-                    <option value="Solid Stone, Custom">Solid Stone, Custom</option>
-                    <option value="Solid Brownstone">Solid Brownstone</option>
-                    <option value="Cement Fiber Shingles">Cement Fiber Shingles</option>
-                    <option value="Clapboard">Clapboard</option>
-                    <option value="Concrete Decorative Block, Painted">Concrete Decorative Block</option>
-                    <option value="Ext Insul and Finish Sys (EIFS)">EIFS (Synthetic Stucco)</option>
-                    <option value="Fire Resistant">Fire Resistant</option>
-                    <option value="Logs">Logs</option>
-                    <option value="Poured Concrete">Poured Concrete</option>
-                    <option value="Adobe">Adobe</option>
-                    <option value="Barn Plank">Barn Plank</option>
-                    <option value="Slump Block">Slump Block</option>
-                    <option value="Victorian Scalloped Shakes">Victorian Scalloped Shakes</option>
-                    <option value="Wood Shakes">Wood Shakes</option>
-                    <option value="Window Wall">Window Wall</option>
-                </select>
-                
-                <label class="label">Foundation Type</label>
-                <select id="foundation">
-                    <option value="">Select...</option>
-                    <option value="Slab">Slab</option>
-                    <option value="Crawl Space - Enclosed">Crawl Space - Enclosed</option>
-                    <option value="Crawl Space - Open">Crawl Space - Open</option>
-                    <option value="Basement - Finished">Basement - Finished</option>
-                    <option value="Basement - Partially Finished">Basement - Partially Finished</option>
-                    <option value="Basement - Unfinished">Basement - Unfinished</option>
-                    <option value="Basement - Walkout">Basement - Walkout</option>
-                    <option value="Daylight Basement - Finished">Daylight Basement - Finished</option>
-                    <option value="Daylight Basement - Partially Finished">Daylight Basement - Partially Finished</option>
-                    <option value="Daylight Basement - Unfinished">Daylight Basement - Unfinished</option>
-                    <option value="Hillside Foundation">Hillside Foundation</option>
-                    <option value="Piers">Piers</option>
-                    <option value="Pilings/stilts">Pilings / Stilts</option>
-                    <option value="Other">Other</option>
-                </select>
-                
-                <label class="label">Kitchen/Bath Quality</label>
-                <select id="kitchenQuality">
-                    <option value="">Select...</option>
-                    <option value="Builder's Grade">Builder's Grade</option>
-                    <option value="Semi-Custom">Semi-Custom</option>
-                    <option value="Custom">Custom</option>
-                </select>
 
-                <label class="label">Garage Type</label>
-                <select id="garageType">
-                    <option value="">Select...</option>
-                    <option value="Attached">Attached</option>
-                    <option value="Detached">Detached</option>
-                    <option value="Built-in">Built-in</option>
-                    <option value="Carport">Carport</option>
-                    <option value="None">None</option>
-                </select>
+                <div class="grid-2">
+                    <div><label class="label">Construction Style</label>
+                    <select id="constructionStyle">
+                        <option value="">Select...</option>
+                        <option value="Ranch">Ranch</option>
+                        <option value="Colonial">Colonial</option>
+                        <option value="Cape Cod">Cape Cod</option>
+                        <option value="Bi-Level">Bi-Level</option>
+                        <option value="Bi-Level/Row Center">Bi-Level / Row Center</option>
+                        <option value="Bi-Level/Row End">Bi-Level / Row End</option>
+                        <option value="Split Level">Split Level</option>
+                        <option value="Split Foyer">Split Foyer</option>
+                        <option value="Tri-Level">Tri-Level</option>
+                        <option value="Tri-Level Center">Tri-Level Center</option>
+                        <option value="Raised Ranch">Raised Ranch</option>
+                        <option value="Rambler">Rambler</option>
+                        <option value="Bungalow">Bungalow</option>
+                        <option value="Cottage">Cottage</option>
+                        <option value="Contemporary">Contemporary</option>
+                        <option value="Victorian">Victorian</option>
+                        <option value="Ornate Victorian">Ornate Victorian</option>
+                        <option value="Queen Anne">Queen Anne</option>
+                        <option value="Federal Colonial">Federal Colonial</option>
+                        <option value="Mediterranean">Mediterranean</option>
+                        <option value="Southwest Adobe">Southwest Adobe</option>
+                        <option value="Townhouse">Townhouse</option>
+                        <option value="Townhouse Center">Townhouse Center</option>
+                        <option value="Townhouse End">Townhouse End</option>
+                        <option value="Rowhouse">Rowhouse</option>
+                        <option value="Rowhouse Center">Rowhouse Center</option>
+                        <option value="Rowhouse End">Rowhouse End</option>
+                        <option value="Condo">Condo</option>
+                        <option value="Coop">Coop</option>
+                        <option value="Apartment">Apartment</option>
+                        <option value="Dwelling">Dwelling</option>
+                        <option value="Backsplit">Backsplit</option>
+                        <option value="Substandard">Substandard</option>
+                    </select></div>
+                    <div><label class="label">Exterior Walls</label>
+                    <select id="exteriorWalls">
+                        <option value="">Select...</option>
+                        <option value="Aluminum/Vinyl">Aluminum / Vinyl</option>
+                        <option value="Siding, Vinyl">Siding, Vinyl</option>
+                        <option value="Siding, Aluminum">Siding, Aluminum</option>
+                        <option value="Siding, Wood">Siding, Wood</option>
+                        <option value="Siding, Hardboard">Siding, Hardboard</option>
+                        <option value="Siding, Steel">Siding, Steel</option>
+                        <option value="Siding, T-111">Siding, T-111</option>
+                        <option value="Siding, Plywood">Siding, Plywood</option>
+                        <option value="Brick">Brick</option>
+                        <option value="Brick Veneer">Brick Veneer</option>
+                        <option value="Brick Veneer, Custom">Brick Veneer, Custom</option>
+                        <option value="Brick on Block">Brick on Block</option>
+                        <option value="Brick on Block, Custom">Brick on Block, Custom</option>
+                        <option value="Solid Brick">Solid Brick</option>
+                        <option value="Solid Brick, Custom">Solid Brick, Custom</option>
+                        <option value="Stucco">Stucco</option>
+                        <option value="Stucco on Block">Stucco on Block</option>
+                        <option value="Stucco on Frame">Stucco on Frame</option>
+                        <option value="Stone Veneer">Stone Veneer</option>
+                        <option value="Stone Veneer, Custom">Stone Veneer, Custom</option>
+                        <option value="Stone on Block">Stone on Block</option>
+                        <option value="Stone on Block, Custom Stone">Stone on Block, Custom Stone</option>
+                        <option value="Solid Stone">Solid Stone</option>
+                        <option value="Solid Stone, Custom">Solid Stone, Custom</option>
+                        <option value="Solid Brownstone">Solid Brownstone</option>
+                        <option value="Cement Fiber Shingles">Cement Fiber Shingles</option>
+                        <option value="Clapboard">Clapboard</option>
+                        <option value="Concrete Decorative Block, Painted">Concrete Decorative Block</option>
+                        <option value="Ext Insul and Finish Sys (EIFS)">EIFS (Synthetic Stucco)</option>
+                        <option value="Fire Resistant">Fire Resistant</option>
+                        <option value="Logs">Logs</option>
+                        <option value="Poured Concrete">Poured Concrete</option>
+                        <option value="Adobe">Adobe</option>
+                        <option value="Barn Plank">Barn Plank</option>
+                        <option value="Slump Block">Slump Block</option>
+                        <option value="Victorian Scalloped Shakes">Victorian Scalloped Shakes</option>
+                        <option value="Wood Shakes">Wood Shakes</option>
+                        <option value="Window Wall">Window Wall</option>
+                    </select></div>
+                </div>
 
-                <label class="label">Garage Spaces</label>
-                <input type="number" id="garageSpaces" min="0" max="10" placeholder="2">
+                <div class="grid-2">
+                    <div><label class="label">Foundation Type</label>
+                    <select id="foundation">
+                        <option value="">Select...</option>
+                        <option value="Slab">Slab</option>
+                        <option value="Crawl Space - Enclosed">Crawl Space - Enclosed</option>
+                        <option value="Crawl Space - Open">Crawl Space - Open</option>
+                        <option value="Basement - Finished">Basement - Finished</option>
+                        <option value="Basement - Partially Finished">Basement - Partially Finished</option>
+                        <option value="Basement - Unfinished">Basement - Unfinished</option>
+                        <option value="Basement - Walkout">Basement - Walkout</option>
+                        <option value="Daylight Basement - Finished">Daylight Basement - Finished</option>
+                        <option value="Daylight Basement - Partially Finished">Daylight Basement - Partially Finished</option>
+                        <option value="Daylight Basement - Unfinished">Daylight Basement - Unfinished</option>
+                        <option value="Hillside Foundation">Hillside Foundation</option>
+                        <option value="Piers">Piers</option>
+                        <option value="Pilings/stilts">Pilings / Stilts</option>
+                        <option value="Other">Other</option>
+                    </select></div>
+                    <div><label class="label">Kitchen/Bath Quality</label>
+                    <select id="kitchenQuality">
+                        <option value="">Select...</option>
+                        <option value="Builder's Grade">Builder's Grade</option>
+                        <option value="Semi-Custom">Semi-Custom</option>
+                        <option value="Custom">Custom</option>
+                    </select></div>
+                </div>
+
+                <div class="grid-2">
+                    <div><label class="label">Garage Type</label>
+                    <select id="garageType">
+                        <option value="">Select...</option>
+                        <option value="Attached">Attached</option>
+                        <option value="Detached">Detached</option>
+                        <option value="Built-in">Built-in</option>
+                        <option value="Carport">Carport</option>
+                        <option value="None">None</option>
+                    </select></div>
+                    <div><label class="label">Garage Spaces</label>
+                    <input type="number" id="garageSpaces" min="0" max="10" placeholder="2"></div>
+                </div>
 
                 <div class="divider" style="margin:12px 0;"></div>
                 <h3 style="font-size:15px; font-weight:600; margin-bottom:8px;">Roof</h3>
-                
+
                 <div class="grid-2">
                     <div><label class="label">Roof Type</label>
                         <select id="roofType">
@@ -3049,9 +3109,11 @@
                         </select>
                     </div>
                 </div>
-                
-                <label class="label">Year Roof Updated</label>
-                <input type="tel" id="roofYr" placeholder="2015">
+                <div class="grid-2">
+                    <div><label class="label">Year Roof Updated</label>
+                    <input type="tel" id="roofYr" placeholder="2015"></div>
+                    <div></div>
+                </div>
 
                 </div> <!-- end .accordion-body -->
             </details>
@@ -3438,21 +3500,21 @@
                 </div>
 
                 <div class="grid-2">
-                    <div>
+                    <div class="toggle-row">
                         <label class="label">Equipment Breakdown</label>
                         <input type="hidden" id="equipmentBreakdown" value="">
-                        <div class="seg-group" data-field="equipmentBreakdown">
-                            <button type="button" class="seg-btn seg-active" data-value="">No</button>
-                            <button type="button" class="seg-btn" data-value="Yes">Yes</button>
-                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-toggle-field="equipmentBreakdown">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <div>
+                    <div class="toggle-row">
                         <label class="label">Service Line</label>
                         <input type="hidden" id="serviceLine" value="">
-                        <div class="seg-group" data-field="serviceLine">
-                            <button type="button" class="seg-btn seg-active" data-value="">No</button>
-                            <button type="button" class="seg-btn" data-value="Yes">Yes</button>
-                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-toggle-field="serviceLine">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
                 </div>
 
@@ -3511,13 +3573,13 @@
                             <option value="100000">$100,000</option>
                         </select>
                     </div>
-                    <div>
+                    <div class="toggle-row">
                         <label class="label">Earthquake Coverage</label>
                         <input type="hidden" id="earthquakeCoverage" value="">
-                        <div class="seg-group" data-field="earthquakeCoverage">
-                            <button type="button" class="seg-btn seg-active" data-value="">No</button>
-                            <button type="button" class="seg-btn" data-value="Yes">Yes</button>
-                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-toggle-field="earthquakeCoverage">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
                 </div>
 
@@ -4811,6 +4873,17 @@
                     btn.classList.add('seg-active');
                     hidden.value = btn.dataset.value;
                     hidden.dispatchEvent(new Event('change', { bubbles: true }));
+
+                // iOS toggle switch handler
+                document.body.addEventListener('change', (e) => {
+                    const toggle = e.target.closest('[data-toggle-field]');
+                    if (!toggle) return;
+                    const fieldId = toggle.dataset.toggleField;
+                    const hidden = document.getElementById(fieldId);
+                    if (!hidden) return;
+                    hidden.value = toggle.checked ? 'Yes' : '';
+                    hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                });
                 });
 
                 // Map previews: update when address fields change
@@ -6799,6 +6872,12 @@
                     group.querySelectorAll('.seg-btn').forEach(btn => {
                         btn.classList.toggle('seg-active', btn.dataset.value === val);
                     });
+                });
+                // Sync iOS toggle switches
+                document.querySelectorAll('[data-toggle-field]').forEach(toggle => {
+                    const fieldId = toggle.dataset.toggleField;
+                    const val = this.data[fieldId] || '';
+                    toggle.checked = (val === 'Yes');
                 });
             },
 
