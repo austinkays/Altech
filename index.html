@@ -604,6 +604,58 @@
             opacity: 0.4;
             cursor: not-allowed;
         }
+
+        /* ── Smart Scan Button (glowing magic) ── */
+        .btn-smart-scan {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            border: 1.5px solid rgba(124, 58, 237, 0.5);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            white-space: nowrap;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            box-shadow: 0 2px 12px rgba(37, 99, 235, 0.25), 0 0 8px rgba(124, 58, 237, 0.15);
+            transition: all 0.3s ease;
+            animation: smartScanPulse 3s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-smart-scan::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: conic-gradient(from 0deg, transparent, rgba(255,255,255,0.08), transparent, rgba(124,58,237,0.12), transparent);
+            animation: smartScanRotate 4s linear infinite;
+        }
+        .btn-smart-scan:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4), 0 0 20px rgba(124, 58, 237, 0.3), 0 0 40px rgba(124, 58, 237, 0.1);
+            border-color: rgba(124, 58, 237, 0.7);
+        }
+        .btn-smart-scan:active {
+            transform: translateY(0);
+        }
+        .btn-smart-scan:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            animation: none;
+        }
+        .btn-smart-scan:disabled::before {
+            animation: none;
+        }
+        @keyframes smartScanPulse {
+            0%, 100% { box-shadow: 0 2px 12px rgba(37, 99, 235, 0.25), 0 0 8px rgba(124, 58, 237, 0.15); }
+            50% { box-shadow: 0 2px 18px rgba(37, 99, 235, 0.35), 0 0 16px rgba(124, 58, 237, 0.25), 0 0 30px rgba(124, 58, 237, 0.08); }
+        }
+        @keyframes smartScanRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
         
         /* === FORM ENHANCEMENTS === */
         .collapsible-section {
@@ -2712,7 +2764,7 @@
                 <div class="utility-buttons" style="margin-top: 8px;">
                     <button class="btn-utility" onclick="App.openZillow()" title="Search this address on Zillow">🔍 Zillow</button>
                     <button class="btn-utility" onclick="App.openPropertyRecords()" title="Copies address to clipboard & opens county assessor site">🏛️ Assessor</button>
-                    <button class="btn-utility" onclick="App.smartAutoFill()" title="Uses satellite imagery to detect pools, trampolines, and other property features" id="smartFillBtn">🛡️ Hazard Scan</button>
+                    <button class="btn-smart-scan" onclick="App.smartAutoFill()" title="AI-powered property lookup — auto-fills county, year built, sqft, hazards & more" id="smartFillBtn">✨ Smart Scan</button>
                     <button class="btn-utility" onclick="App.importPropertyFromExtension()" title="Import property data scraped by the Chrome Extension from Zillow/GIS" style="background: linear-gradient(135deg, #ff9500, #e68600); color: white;">📥 Import</button>
                 </div>
 
@@ -8136,6 +8188,17 @@
                 const btn = document.getElementById('smartFillBtn');
                 const originalText = btn.innerHTML;
                 const county = this.getCountyFromCity(city, state);
+
+                // Auto-fill county if we can resolve it and it's not already set
+                if (county) {
+                    const countyEl = document.getElementById('county');
+                    if (countyEl && !countyEl.value) {
+                        countyEl.value = county;
+                        this.data.county = county;
+                        localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+                        console.log('[SmartScan] Auto-filled county:', county);
+                    }
+                }
 
                 try {
                     btn.disabled = true;
