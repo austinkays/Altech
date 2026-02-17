@@ -255,6 +255,21 @@
         .label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; display: block; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 6px; }
+        /* ─── 12-Column Grid ─── */
+        .grid-12 { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; margin-bottom: 6px; align-items: end; }
+        .span-4 { grid-column: span 4; }
+        .span-6 { grid-column: span 6; }
+        .span-8 { grid-column: span 8; }
+        .span-12 { grid-column: span 12; }
+        @media (max-width: 600px) {
+            .grid-12 { grid-template-columns: 1fr; }
+            .span-4, .span-6, .span-8, .span-12 { grid-column: span 1; }
+        }
+        /* ─── Progressive Disclosure ─── */
+        .disclosure-hidden { display: none; }
+        .disclosure-check { display: flex; align-items: center; gap: 8px; padding: 8px 0; cursor: pointer; }
+        .disclosure-check input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--apple-blue); cursor: pointer; margin: 0; }
+        .disclosure-check span { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
         .grid-addr-row1 { display: grid; grid-template-columns: 3fr 2fr; gap: 10px; align-items: end; }
         .grid-addr-row2 { display: grid; grid-template-columns: 60px 80px 1fr; gap: 10px; align-items: end; }
         .grid-addr-row1 > div,
@@ -3052,8 +3067,8 @@
                 <div class="divider" style="margin:12px 0;"></div>
                 <h3 style="font-size:15px; font-weight:600; margin-bottom:8px;">Roof</h3>
 
-                <div class="grid-2">
-                    <div><label class="label">Roof Type</label>
+                <div class="grid-12">
+                    <div class="span-8"><label class="label">Roof Type</label>
                         <select id="roofType">
                             <option value="">Select...</option>
                             <option value="Architectural Shingles">Architectural Shingles</option>
@@ -3093,7 +3108,7 @@
                             <option value="Other">Other</option>
                         </select>
                     </div>
-                    <div><label class="label">Roof Shape</label>
+                    <div class="span-4"><label class="label">Roof Shape</label>
                         <select id="roofShape">
                             <option value="">Select...</option>
                             <option value="Gable">Gable</option>
@@ -3109,10 +3124,9 @@
                         </select>
                     </div>
                 </div>
-                <div class="grid-2">
-                    <div><label class="label">Year Roof Updated</label>
+                <div class="grid-12">
+                    <div class="span-4"><label class="label">Year Roof Updated</label>
                     <input type="tel" id="roofYr" placeholder="2015"></div>
-                    <div></div>
                 </div>
 
                 </div> <!-- end .accordion-body -->
@@ -3163,29 +3177,60 @@
             <details class="section-accordion" open>
                 <summary>Systems & Utilities</summary>
                 <div class="accordion-body">
-                    <label class="label">Heating Type</label>
-                    <select id="heatingType">
-                        <option value="">Select...</option>
-                        <option value="Gas - Forced Air">Gas - Forced Air</option>
-                        <option value="Gas - Hot Water">Gas - Hot Water</option>
-                        <option value="Gas">Gas (Other)</option>
-                        <option value="Electric">Electric</option>
-                        <option value="Oil - Forced Air">Oil - Forced Air</option>
-                        <option value="Oil - Hot Water">Oil - Hot Water</option>
-                        <option value="Oil">Oil (Other)</option>
-                        <option value="Other - Forced Air">Other - Forced Air</option>
-                        <option value="Other - Hot Water">Other - Hot Water</option>
-                        <option value="Solid Fuel">Solid Fuel</option>
-                        <option value="Other">Other</option>
-                    </select>
-                    
-                    <label class="label">Cooling System</label>
-                    <select id="cooling">
-                        <option value="">Select...</option>
-                        <option value="Central Air">Central Air</option>
-                        <option value="Window Units">Window Units</option>
-                        <option value="None">None</option>
-                    </select>
+                    <div class="grid-12">
+                        <div class="span-6">
+                            <label class="label">Heating Type</label>
+                            <select id="heatingType">
+                                <option value="">Select...</option>
+                                <option value="Gas - Forced Air">Gas - Forced Air</option>
+                                <option value="Gas - Hot Water">Gas - Hot Water</option>
+                                <option value="Gas">Gas (Other)</option>
+                                <option value="Electric">Electric</option>
+                                <option value="Oil - Forced Air">Oil - Forced Air</option>
+                                <option value="Oil - Hot Water">Oil - Hot Water</option>
+                                <option value="Oil">Oil (Other)</option>
+                                <option value="Other - Forced Air">Other - Forced Air</option>
+                                <option value="Other - Hot Water">Other - Hot Water</option>
+                                <option value="Solid Fuel">Solid Fuel</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="span-6">
+                            <label class="label">Cooling System</label>
+                            <select id="cooling">
+                                <option value="">Select...</option>
+                                <option value="Central Air">Central Air</option>
+                                <option value="Window Units">Window Units</option>
+                                <option value="None">None</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <label class="disclosure-check" id="secondaryHeatToggle">
+                        <input type="checkbox" id="hasSecondaryHeating">
+                        <span>Has Secondary Heating?</span>
+                    </label>
+                    <div id="secondaryHeatingWrapper" class="disclosure-hidden">
+                        <label class="label">Secondary Heating Source</label>
+                        <select id="secondaryHeating">
+                            <option value="">None</option>
+                            <option value="Wood Professionally Installed">Wood (Professionally Installed)</option>
+                            <option value="Wood Non-Professionally Installed">Wood (Non-Professionally Installed)</option>
+                            <option value="Coal Professionally Installed">Coal (Professionally Installed)</option>
+                            <option value="Coal Non-Professionally Installed">Coal (Non-Professionally Installed)</option>
+                            <option value="Electric">Electric</option>
+                            <option value="Electric Portable Heater">Electric Portable Heater</option>
+                            <option value="Kerosene">Kerosene</option>
+                            <option value="Kerosene Portable Heater">Kerosene Portable Heater</option>
+                            <option value="Liquid Propane">Liquid Propane</option>
+                            <option value="Liquid Propane Portable Heater">Liquid Propane Portable Heater</option>
+                            <option value="Natural Gas">Natural Gas</option>
+                            <option value="Oil">Oil</option>
+                            <option value="Solar Professionally Installed">Solar (Professionally Installed)</option>
+                            <option value="Solar Non-Professionally Installed">Solar (Non-Professionally Installed)</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
 
                     <div class="grid-2">
                         <div><label class="label">Sewer</label>
@@ -3307,26 +3352,6 @@
                     <option value="1">1</option>
                     <option value="2">2</option>
                     <option value="3">3</option>
-                </select>
-
-                <label class="label">Secondary Heating Source</label>
-                <select id="secondaryHeating">
-                    <option value="">None</option>
-                    <option value="Wood Professionally Installed">Wood (Professionally Installed)</option>
-                    <option value="Wood Non-Professionally Installed">Wood (Non-Professionally Installed)</option>
-                    <option value="Coal Professionally Installed">Coal (Professionally Installed)</option>
-                    <option value="Coal Non-Professionally Installed">Coal (Non-Professionally Installed)</option>
-                    <option value="Electric">Electric</option>
-                    <option value="Electric Portable Heater">Electric Portable Heater</option>
-                    <option value="Kerosene">Kerosene</option>
-                    <option value="Kerosene Portable Heater">Kerosene Portable Heater</option>
-                    <option value="Liquid Propane">Liquid Propane</option>
-                    <option value="Liquid Propane Portable Heater">Liquid Propane Portable Heater</option>
-                    <option value="Natural Gas">Natural Gas</option>
-                    <option value="Oil">Oil</option>
-                    <option value="Solar Professionally Installed">Solar (Professionally Installed)</option>
-                    <option value="Solar Non-Professionally Installed">Solar (Non-Professionally Installed)</option>
-                    <option value="Other">Other</option>
                 </select>
 
                 <label class="label">Distance to Tidal Water (Miles)</label>
@@ -4873,6 +4898,7 @@
                     btn.classList.add('seg-active');
                     hidden.value = btn.dataset.value;
                     hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                });
 
                 // iOS toggle switch handler
                 document.body.addEventListener('change', (e) => {
@@ -4884,7 +4910,15 @@
                     hidden.value = toggle.checked ? 'Yes' : '';
                     hidden.dispatchEvent(new Event('change', { bubbles: true }));
                 });
-                });
+
+                // Secondary heating progressive disclosure
+                const secHeatCheck = document.getElementById('hasSecondaryHeating');
+                const secHeatWrap = document.getElementById('secondaryHeatingWrapper');
+                if (secHeatCheck && secHeatWrap) {
+                    secHeatCheck.addEventListener('change', () => {
+                        secHeatWrap.classList.toggle('disclosure-hidden', !secHeatCheck.checked);
+                    });
+                }
 
                 // Map previews: update when address fields change
                 ['addrStreet', 'addrCity', 'addrState', 'addrZip'].forEach(id => {
@@ -6879,6 +6913,15 @@
                     const val = this.data[fieldId] || '';
                     toggle.checked = (val === 'Yes');
                 });
+                // Restore progressive disclosure state
+                const secHeatVal = this.data.secondaryHeating || '';
+                const secHeatCheck = document.getElementById('hasSecondaryHeating');
+                const secHeatWrap = document.getElementById('secondaryHeatingWrapper');
+                if (secHeatCheck && secHeatWrap) {
+                    const hasValue = secHeatVal !== '';
+                    secHeatCheck.checked = hasValue;
+                    secHeatWrap.classList.toggle('disclosure-hidden', !hasValue);
+                }
             },
 
             // === CARRIER AUTOCOMPLETE ===

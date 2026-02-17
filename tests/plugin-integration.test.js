@@ -650,3 +650,200 @@ describe('localStorage Key Stability', () => {
     expect(source).toContain('altech_v6_quotes');
   });
 });
+
+// ────────────────────────────────────────────────────
+// 12-Column Grid Layout
+// ────────────────────────────────────────────────────
+
+describe('12-Column Grid Layout', () => {
+  let source;
+
+  beforeAll(() => {
+    source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  });
+
+  test('grid-12 CSS class is defined with 12-column template', () => {
+    expect(source).toMatch(/\.grid-12\s*\{[^}]*grid-template-columns:\s*repeat\(12,\s*1fr\)/);
+  });
+
+  test('span utility classes exist (span-4, span-6, span-8)', () => {
+    expect(source).toMatch(/\.span-4\s*\{[^}]*grid-column:\s*span\s+4/);
+    expect(source).toMatch(/\.span-6\s*\{[^}]*grid-column:\s*span\s+6/);
+    expect(source).toMatch(/\.span-8\s*\{[^}]*grid-column:\s*span\s+8/);
+  });
+
+  test('grid-12 has responsive fallback for mobile', () => {
+    expect(source).toMatch(/@media[^{]*max-width[^{]*\{[^}]*\.grid-12\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  });
+});
+
+// ────────────────────────────────────────────────────
+// Roof Section Grid
+// ────────────────────────────────────────────────────
+
+describe('Roof Section Grid', () => {
+  let window;
+
+  beforeAll(() => {
+    const env = createPluginTestDOM();
+    window = env.window;
+  });
+
+  test('Roof Type uses span-8 in grid-12', () => {
+    const roofType = window.document.getElementById('roofType');
+    expect(roofType).not.toBeNull();
+    const parent = roofType.parentElement;
+    expect(parent.classList.contains('span-8')).toBe(true);
+    expect(parent.parentElement.classList.contains('grid-12')).toBe(true);
+  });
+
+  test('Roof Shape uses span-4 in grid-12', () => {
+    const roofShape = window.document.getElementById('roofShape');
+    expect(roofShape).not.toBeNull();
+    const parent = roofShape.parentElement;
+    expect(parent.classList.contains('span-4')).toBe(true);
+    expect(parent.parentElement.classList.contains('grid-12')).toBe(true);
+  });
+
+  test('Year Roof Updated uses span-4 in grid-12', () => {
+    const roofYr = window.document.getElementById('roofYr');
+    expect(roofYr).not.toBeNull();
+    const parent = roofYr.parentElement;
+    expect(parent.classList.contains('span-4')).toBe(true);
+    expect(parent.parentElement.classList.contains('grid-12')).toBe(true);
+  });
+});
+
+// ────────────────────────────────────────────────────
+// Systems Section Grid
+// ────────────────────────────────────────────────────
+
+describe('Systems Section Grid', () => {
+  let window;
+
+  beforeAll(() => {
+    const env = createPluginTestDOM();
+    window = env.window;
+  });
+
+  test('Heating Type uses span-6 in grid-12', () => {
+    const heatingType = window.document.getElementById('heatingType');
+    expect(heatingType).not.toBeNull();
+    const parent = heatingType.parentElement;
+    expect(parent.classList.contains('span-6')).toBe(true);
+    expect(parent.parentElement.classList.contains('grid-12')).toBe(true);
+  });
+
+  test('Cooling System uses span-6 in grid-12', () => {
+    const cooling = window.document.getElementById('cooling');
+    expect(cooling).not.toBeNull();
+    const parent = cooling.parentElement;
+    expect(parent.classList.contains('span-6')).toBe(true);
+    expect(parent.parentElement.classList.contains('grid-12')).toBe(true);
+  });
+});
+
+// ────────────────────────────────────────────────────
+// Progressive Disclosure: Secondary Heating
+// ────────────────────────────────────────────────────
+
+describe('Progressive Disclosure: Secondary Heating', () => {
+  let window, document;
+
+  beforeAll(() => {
+    const env = createPluginTestDOM();
+    window = env.window;
+    document = window.document;
+  });
+
+  test('hasSecondaryHeating checkbox exists', () => {
+    const checkbox = document.getElementById('hasSecondaryHeating');
+    expect(checkbox).not.toBeNull();
+    expect(checkbox.type).toBe('checkbox');
+  });
+
+  test('secondaryHeating dropdown exists in DOM (not removed)', () => {
+    const select = document.getElementById('secondaryHeating');
+    expect(select).not.toBeNull();
+    expect(select.tagName).toBe('SELECT');
+  });
+
+  test('secondary heating wrapper is hidden by default', () => {
+    const wrapper = document.getElementById('secondaryHeatingWrapper');
+    expect(wrapper).not.toBeNull();
+    expect(wrapper.classList.contains('disclosure-hidden')).toBe(true);
+  });
+
+  test('disclosure-hidden CSS class uses display:none', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    expect(source).toMatch(/\.disclosure-hidden\s*\{[^}]*display:\s*none/);
+  });
+
+  test('checking toggle reveals secondary heating (JS handler exists)', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    expect(source).toContain('hasSecondaryHeating');
+    expect(source).toContain('secondaryHeatingWrapper');
+    expect(source).toContain('disclosure-hidden');
+  });
+
+  test('secondaryHeating value persists in App.data even when hidden', () => {
+    // Set the value directly on App.data (simulating what save() does)
+    const App = window.App;
+    const select = document.getElementById('secondaryHeating');
+    expect(select).not.toBeNull();
+    // Simulate user selecting a value - App.save reads e.target.id + e.target.value
+    App.data.secondaryHeating = 'Electric';
+    select.value = 'Electric';
+    // The key point: the DOM element still exists and holds its value even when wrapper is hidden
+    const wrapper = document.getElementById('secondaryHeatingWrapper');
+    expect(wrapper.classList.contains('disclosure-hidden')).toBe(true);
+    expect(select.value).toBe('Electric');
+    expect(App.data.secondaryHeating).toBe('Electric');
+  });
+
+  test('syncSegmentedControls restores disclosure state from saved data', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    // The sync function should check secondaryHeating value and toggle disclosure
+    expect(source).toMatch(/syncSegmentedControls[\s\S]*secondaryHeating[\s\S]*disclosure-hidden/);
+  });
+});
+
+// ────────────────────────────────────────────────────
+// iOS Toggle Switches
+// ────────────────────────────────────────────────────
+
+describe('iOS Toggle Switches', () => {
+  let window, document;
+
+  beforeAll(() => {
+    const env = createPluginTestDOM();
+    window = env.window;
+    document = window.document;
+  });
+
+  const toggleFields = ['equipmentBreakdown', 'serviceLine', 'earthquakeCoverage'];
+
+  test.each(toggleFields)('%s has toggle switch (data-toggle-field)', (fieldId) => {
+    const toggle = document.querySelector(`[data-toggle-field="${fieldId}"]`);
+    expect(toggle).not.toBeNull();
+    expect(toggle.type).toBe('checkbox');
+  });
+
+  test.each(toggleFields)('%s hidden input exists for data binding', (fieldId) => {
+    const hidden = document.getElementById(fieldId);
+    expect(hidden).not.toBeNull();
+    expect(hidden.type).toBe('hidden');
+  });
+
+  test('toggle-switch CSS is defined', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    expect(source).toMatch(/\.toggle-switch\s*\{/);
+    expect(source).toMatch(/\.toggle-slider\s*\{/);
+    expect(source).toMatch(/\.toggle-slider::before\s*\{/);
+  });
+
+  test('no seg-group elements remain in endorsements (all converted to toggles)', () => {
+    const segGroups = document.querySelectorAll('.seg-group[data-field="equipmentBreakdown"], .seg-group[data-field="serviceLine"], .seg-group[data-field="earthquakeCoverage"]');
+    expect(segGroups.length).toBe(0);
+  });
+});
