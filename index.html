@@ -256,7 +256,7 @@
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         .grid-addr-row1 { display: grid; grid-template-columns: 3fr 2fr; gap: 10px; align-items: end; }
-        .grid-addr-row2 { display: grid; grid-template-columns: 80px 100px 1fr; gap: 10px; align-items: end; }
+        .grid-addr-row2 { display: grid; grid-template-columns: 70px 90px 1fr; gap: 10px; align-items: end; }
         .grid-addr-row1 > div,
         .grid-addr-row2 > div { display: flex; flex-direction: column; }
         .grid-addr-row1 > div > .label,
@@ -607,22 +607,25 @@
 
         /* ── Smart Scan Button (glowing magic) ── */
         .btn-smart-scan {
-            flex: 1;
-            padding: 10px 12px;
-            font-size: 13px;
+            display: block;
+            width: 100%;
+            padding: 16px 24px;
+            font-size: 16px;
             font-weight: 700;
+            letter-spacing: 0.3px;
             color: #fff;
             border: 1.5px solid rgba(124, 58, 237, 0.5);
-            border-radius: 8px;
+            border-radius: 14px;
             cursor: pointer;
             text-align: center;
             white-space: nowrap;
             background: linear-gradient(135deg, #2563eb, #7c3aed);
-            box-shadow: 0 2px 12px rgba(37, 99, 235, 0.25), 0 0 8px rgba(124, 58, 237, 0.15);
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3), 0 0 12px rgba(124, 58, 237, 0.15);
             transition: all 0.3s ease;
             animation: smartScanPulse 3s ease-in-out infinite;
             position: relative;
             overflow: hidden;
+            font-family: inherit;
         }
         .btn-smart-scan::before {
             content: '';
@@ -634,7 +637,7 @@
         }
         .btn-smart-scan:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4), 0 0 20px rgba(124, 58, 237, 0.3), 0 0 40px rgba(124, 58, 237, 0.1);
+            box-shadow: 0 6px 28px rgba(37, 99, 235, 0.4), 0 0 24px rgba(124, 58, 237, 0.3), 0 0 48px rgba(124, 58, 237, 0.12);
             border-color: rgba(124, 58, 237, 0.7);
         }
         .btn-smart-scan:active {
@@ -649,8 +652,8 @@
             animation: none;
         }
         @keyframes smartScanPulse {
-            0%, 100% { box-shadow: 0 2px 12px rgba(37, 99, 235, 0.25), 0 0 8px rgba(124, 58, 237, 0.15); }
-            50% { box-shadow: 0 2px 18px rgba(37, 99, 235, 0.35), 0 0 16px rgba(124, 58, 237, 0.25), 0 0 30px rgba(124, 58, 237, 0.08); }
+            0%, 100% { box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3), 0 0 12px rgba(124, 58, 237, 0.15); }
+            50% { box-shadow: 0 4px 28px rgba(37, 99, 235, 0.4), 0 0 20px rgba(124, 58, 237, 0.25), 0 0 40px rgba(124, 58, 237, 0.1); }
         }
         @keyframes smartScanRotate {
             from { transform: rotate(0deg); }
@@ -2717,8 +2720,8 @@
                     <div><label class="label">State</label><input type="text" id="addrState" value="WA" autocomplete="off"></div>
                     <div><label class="label">Zip</label><input type="tel" id="addrZip" placeholder="98686"></div>
                     <div><label class="label">County</label>
-                        <select id="county">
-                            <option value="">Select...</option>
+                        <select id="county" style="font-size: 12px;">
+                            <option value="">Auto-fills ✨</option>
                             <option value="Adams">Adams</option>
                             <option value="Asotin">Asotin</option>
                             <option value="Benton">Benton</option>
@@ -2761,11 +2764,17 @@
                         </select>
                     </div>
                 </div>
-                <div class="utility-buttons" style="margin-top: 8px;">
-                    <button class="btn-utility" onclick="App.openZillow()" title="Search this address on Zillow">🔍 Zillow</button>
-                    <button class="btn-utility" onclick="App.openPropertyRecords()" title="Copies address to clipboard & opens county assessor site">🏛️ Assessor</button>
+
+                <!-- Smart Scan: hero button -->
+                <div style="margin-top: 14px;">
                     <button class="btn-smart-scan" onclick="App.smartAutoFill()" title="AI-powered property lookup — auto-fills county, year built, sqft, hazards & more" id="smartFillBtn">✨ Smart Scan</button>
-                    <button class="btn-utility" onclick="App.importPropertyFromExtension()" title="Import property data scraped by the Chrome Extension from Zillow/GIS" style="background: linear-gradient(135deg, #ff9500, #e68600); color: white;">📥 Import</button>
+                </div>
+
+                <!-- Secondary tools row -->
+                <div class="utility-buttons" style="margin-top: 8px; justify-content: center;">
+                    <button class="btn-utility" onclick="App.openZillow()" title="Search this address on Zillow" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px;">🔍 Zillow</button>
+                    <button class="btn-utility" onclick="App.openPropertyRecords()" title="Copies address to clipboard & opens county assessor site" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px;">🏛️ Assessor</button>
+                    <button class="btn-utility" onclick="App.importPropertyFromExtension()" title="Import property data scraped by the Chrome Extension from Zillow/GIS" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px; background: linear-gradient(135deg, #ff9500, #e68600); color: white;">📥 Import</button>
                 </div>
 
                 <!-- Hidden file input kept for backward compatibility -->
