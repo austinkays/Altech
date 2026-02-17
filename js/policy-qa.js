@@ -65,7 +65,23 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
                         return;
                     }
 
-                    // 2. Try api/config.json (bundled with the app)
+                    // 2. Try Gemini config endpoint (Vercel serves GOOGLE_API_KEY)
+                    try {
+                        const res = await fetch('/api/gemini-config');
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.apiKey) {
+                                this._geminiApiKey = data.apiKey;
+                                console.log('[PolicyQA] Gemini key loaded from /api/gemini-config');
+                                this.addSystemMessage('✅ Gemini AI ready — drop a PDF to get started.');
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[PolicyQA] Could not load /api/gemini-config:', e);
+                    }
+
+                    // 3. Fallback: try api/config.json (local dev only)
                     try {
                         const res = await fetch('api/config.json');
                         if (res.ok) {
@@ -73,22 +89,6 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
                             if (data.apiKey) {
                                 this._geminiApiKey = data.apiKey;
                                 console.log('[PolicyQA] Gemini key loaded from api/config.json');
-                                this.addSystemMessage('✅ Gemini AI ready — drop a PDF to get started.');
-                                return;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('[PolicyQA] Could not load api/config.json:', e);
-                    }
-
-                    // 3. Try Vercel endpoint (when deployed)
-                    try {
-                        const res = await fetch('/api/places-config.js');
-                        if (res.ok) {
-                            const data = await res.json();
-                            if (data.apiKey) {
-                                this._geminiApiKey = data.apiKey;
-                                console.log('[PolicyQA] Gemini key loaded from places-config');
                                 this.addSystemMessage('✅ Gemini AI ready — drop a PDF to get started.');
                                 return;
                             }

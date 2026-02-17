@@ -4786,7 +4786,7 @@
                     return this._geminiApiKey;
                 }
                 try {
-                    const res = await fetch('api/config.json');
+                    const res = await fetch('/api/gemini-config');
                     if (res.ok) {
                         const data = await res.json();
                         if (data.apiKey) { this._geminiApiKey = data.apiKey; return data.apiKey; }
@@ -5053,7 +5053,7 @@
 
                     const key = await this._getGeminiKey();
                     if (!key) {
-                        if (status) status.textContent = '⚠️ No Gemini API key available. Set one in Policy Q&A or api/config.json.';
+                        if (status) status.textContent = '⚠️ No Gemini API key available. Set GOOGLE_API_KEY on Vercel or enter key in Policy Q&A.';
                         return;
                     }
 
@@ -5629,7 +5629,7 @@
                 const status = document.getElementById('scanStatus');
                 const apiKey = await this._getGeminiKey();
                 if (!apiKey) {
-                    if (status) status.textContent = '⚠️ No Gemini API key available. Set one in Policy Q&A or api/config.json.';
+                    if (status) status.textContent = '⚠️ No Gemini API key available. Set GOOGLE_API_KEY on Vercel or enter key in Policy Q&A.';
                     return;
                 }
 

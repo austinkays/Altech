@@ -26,8 +26,11 @@ function loadHTML(indexPath) {
             return match; // Leave CDN scripts as-is (JSDOM won't load them anyway)
         }
 
+        // Strip cache-busting query params (e.g. ?v=20260217j)
+        const cleanSrc = src.split('?')[0];
+
         // Resolve the path relative to index.html's directory
-        const scriptPath = path.resolve(path.dirname(htmlPath), src);
+        const scriptPath = path.resolve(path.dirname(htmlPath), cleanSrc);
         
         if (!fs.existsSync(scriptPath)) {
             console.warn(`[load-html] External script not found: ${src} (resolved to ${scriptPath})`);
