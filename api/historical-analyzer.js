@@ -15,7 +15,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
  * Model: gemini-2.0-flash-001
  */
 
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GOOGLE_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY);
 
 /**
  * Analyze historical property values

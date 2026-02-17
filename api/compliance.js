@@ -173,10 +173,218 @@ function isGeneralLiabilityPolicy(policy) {
   return false;
 }
 
+function isSuretyBondPolicy(policy) {
+  // Skip non-active policies
+  const policyStatus = (policy.status || '').toLowerCase();
+  if (policyStatus === 'prospect' || policyStatus === 'cancelled' || policyStatus === 'canceled') {
+    return false;
+  }
+
+  // Surety bond codes/keywords
+  const bondCodes = [
+    'surety',
+    'sure',
+    'bond',
+    'sb',
+    'contractor bond',
+    'license bond',
+    'permit bond',
+    'performance bond',
+    'bid bond',
+    'fidelity'
+  ];
+
+  // Check all relevant fields
+  const fieldsToCheck = [
+    policy.type,
+    policy.applicationType,
+    policy.title
+  ];
+
+  for (const field of fieldsToCheck) {
+    if (field && typeof field === 'string') {
+      const fieldLower = field.toLowerCase();
+      for (const code of bondCodes) {
+        if (fieldLower.includes(code)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  // Check loBs array
+  if (policy.loBs && Array.isArray(policy.loBs)) {
+    for (const lob of policy.loBs) {
+      if (lob.code && typeof lob.code === 'string') {
+        const codeLower = lob.code.toLowerCase();
+        for (const code of bondCodes) {
+          if (codeLower === code || codeLower.includes(code)) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  // Check policy number prefix
+  const policyNumber = (policy.policyNumber || '').toUpperCase();
+  if (policyNumber.startsWith('SB') || policyNumber.startsWith('SURE') || policyNumber.startsWith('BOND')) {
+    return true;
+  }
+
+  return false;
+}
+
 function requiresManualVerification(carrier) {
   return NON_SYNCING_CARRIERS.some(
     nonSyncCarrier => carrier.toLowerCase().includes(nonSyncCarrier.toLowerCase())
   );
+}
+
+// ── Commercial Policy Detection (broad filter for all commercial lines) ──
+
+function isCommercialPolicy(policy) {
+  // Skip non-active policies (prospects, quotes, cancelled)
+  const policyStatus = (policy.status || '').toLowerCase();
+  if (policyStatus === 'prospect' || policyStatus === 'cancelled' || policyStatus === 'canceled') {
+    return false;
+  }
+
+  // Personal lines to EXCLUDE
+  const personalCodes = [
+    'home', 'homeowner', 'ho', 'renters', 'condo', 'dwelling',
+    'personal auto', 'personal', 'life', 'health', 'dental', 'vision',
+    'flood', 'earthquake', 'boat', 'rv', 'motorcycle', 'pet',
+    'travel', 'wedding', 'special event'
+  ];
+
+  // Personal policy number prefixes
+  const policyNumber = (policy.policyNumber || '').toUpperCase();
+  if (policyNumber.startsWith('HO') || policyNumber.startsWith('DP') ||
+      policyNumber.startsWith('FL') || policyNumber.startsWith('PA')) {
+    return false;
+  }
+
+  // Commercial codes/keywords we want to INCLUDE
+  const commercialCodes = [
+    'cgl', 'gl', 'bop', 'bopgl', 'general liability', 'commercial general liability',
+    'gen liab', 'comm gen liab', 'liability',
+    'autob', 'commercial auto', 'comm auto', 'ca', 'business auto', 'hired auto',
+    'non-owned auto', 'truck', 'fleet',
+    'workers', 'wc', 'work comp', 'workers comp', 'workers compensation',
+    'cpkge', 'commercial package', 'comm pkg', 'package',
+    'cumbr', 'commercial umbrella', 'comm umbrella', 'excess',
+    'property', 'commercial property', 'comm prop', 'bldg', 'building',
+    'prpty', 'cp',
+    'inland', 'inland marine', 'im',
+    'crime', 'employee dishonesty',
+    'epli', 'employment practices',
+    'do', 'd&o', 'directors', 'officers',
+    'eo', 'e&o', 'errors', 'professional',
+    'cyber', 'data breach',
+    'pollution', 'environmental',
+    'liquor', 'llqu',
+    'garage', 'garag', 'garagekeepers',
+    'artisan', 'contractor',
+    'surety', 'sure', 'bond', 'sb', 'fidelity',
+    'commercial'
+  ];
+
+  // Gather all text fields to search
+  const fieldsToCheck = [
+    policy.type,
+    policy.applicationType,
+    policy.title
+  ];
+
+  // Check for personal exclusions first
+  for (const field of fieldsToCheck) {
+    if (field && typeof field === 'string') {
+      const fieldLower = field.toLowerCase();
+      for (const code of personalCodes) {
+        if (fieldLower.includes(code)) {
+          return false;
+        }
+      }
+    }
+  }
+
+  // Check loBs for personal exclusions
+  if (policy.loBs && Array.isArray(policy.loBs)) {
+    let hasCommercialLob = false;
+    for (const lob of policy.loBs) {
+      if (lob.code && typeof lob.code === 'string') {
+        const codeLower = lob.code.toLowerCase();
+        for (const code of commercialCodes) {
+          if (codeLower === code || codeLower.includes(code)) {
+            hasCommercialLob = true;
+            break;
+          }
+        }
+        if (hasCommercialLob) break;
+      }
+    }
+    if (hasCommercialLob) return true;
+
+    // If loBs exist but none matched commercial, check if personal
+    for (const lob of policy.loBs) {
+      if (lob.code && typeof lob.code === 'string') {
+        const codeLower = lob.code.toLowerCase();
+        for (const code of personalCodes) {
+          if (codeLower.includes(code)) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+
+  // Check other fields for commercial matches
+  for (const field of fieldsToCheck) {
+    if (field && typeof field === 'string') {
+      const fieldLower = field.toLowerCase();
+      for (const code of commercialCodes) {
+        if (fieldLower === code || fieldLower.includes(code)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+function getCommercialPolicyType(policy) {
+  if (isSuretyBondPolicy(policy)) return 'bond';
+
+  // Classify by loBs codes first, then title/type — check SPECIFIC types
+  // before isGeneralLiabilityPolicy() which broadly matches 'liability'
+  const allText = [
+    policy.type, policy.applicationType, policy.title,
+    ...(policy.loBs || []).map(l => l.code || '')
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  if (/autob|commercial auto|comm auto|business auto|hired auto|fleet|truck/i.test(allText)) return 'auto';
+  if (/workers|wc|work comp/i.test(allText)) return 'wc';
+  if (/cpkge|commercial package|comm pkg/i.test(allText)) return 'pkg';
+  if (/cumbr|commercial umbrella|comm umbrella|excess/i.test(allText)) return 'umbrella';
+  if (/inland|im/i.test(allText)) return 'im';
+  if (/epli|employment practices/i.test(allText)) return 'epli';
+  if (/d&o|directors.*officers|officers.*directors/i.test(allText)) return 'do';
+  if (/e&o|errors.*omissions|professional/i.test(allText)) return 'eo';
+  if (/cyber|data breach/i.test(allText)) return 'cyber';
+  if (/crime|employee dishonesty/i.test(allText)) return 'crime';
+  if (/liquor|llqu/i.test(allText)) return 'liquor';
+  if (/garage|garag/i.test(allText)) return 'garage';
+  if (/pollution|environmental/i.test(allText)) return 'pollution';
+  if (/bop/i.test(allText)) return 'bop';
+  if (/prpty|commercial property|comm prop|cp|bldg|building/i.test(allText)) return 'property';
+  if (/property/i.test(allText)) return 'property';
+
+  // CGL is the catch-all for general liability
+  if (isGeneralLiabilityPolicy(policy)) return 'cgl';
+
+  return 'commercial'; // generic commercial fallback
 }
 
 export default async function handler(req, res) {
@@ -266,14 +474,22 @@ export default async function handler(req, res) {
     for (let i = 0; i < clientIds.length; i += batchSize) {
       batches.push(clientIds.slice(i, i + batchSize));
     }
-    console.log(`[Compliance] Total batches: ${batches.length} (${batchSize} clients each, ${concurrency} concurrent)`);
+    const totalChunks = Math.ceil(batches.length / concurrency);
+    console.log(`[Compliance] Total batches: ${batches.length} (${batchSize} clients each, ${concurrency} concurrent, ${totalChunks} chunks)`);
+
+    // Emit progress for SSE
+    if (typeof global !== 'undefined') {
+      global.__complianceProgress = { chunk: 0, totalChunks, phase: 'fetching', startedAt: Date.now() };
+    }
 
     // Process batches in parallel chunks
     for (let i = 0; i < batches.length; i += concurrency) {
       const chunk = batches.slice(i, i + concurrency);
       const chunkNum = Math.floor(i / concurrency) + 1;
-      const totalChunks = Math.ceil(batches.length / concurrency);
       console.log(`[Compliance] Processing chunk ${chunkNum}/${totalChunks} (${chunk.length} parallel requests)...`);
+      if (typeof global !== 'undefined') {
+        global.__complianceProgress = { chunk: chunkNum, totalChunks, phase: 'fetching', startedAt: global.__complianceProgress?.startedAt || Date.now() };
+      }
 
       const promises = chunk.map(batch =>
         fetch(
@@ -307,16 +523,23 @@ export default async function handler(req, res) {
     }
 
     console.log(`[Compliance] ✓ Total clients fetched: ${allClients.length}`);
+    if (typeof global !== 'undefined') {
+      global.__complianceProgress = { chunk: totalChunks, totalChunks, phase: 'done', startedAt: global.__complianceProgress?.startedAt || Date.now() };
+    }
 
     // Step 3: Extract and filter General Liability policies
     const compliancePolicies = [];
 
-    console.log('[Compliance] Processing clients for CGL policies...');
+    console.log('[Compliance] Processing clients for commercial policies...');
     let totalPolicies = 0;
     let glPoliciesFound = 0;
+    let bondPoliciesFound = 0;
+    let commercialPoliciesFound = 0;
     let glFilterPassed = 0;     // How many pass isGeneralLiabilityPolicy()
-    let glNoExpDate = 0;         // GL matches without expiration date
-    let glExpiredOver90 = 0;     // GL matches expired more than 90 days ago
+    let bondFilterPassed = 0;   // How many pass isSuretyBondPolicy()
+    let commercialFilterPassed = 0; // How many pass isCommercialPolicy()
+    let glNoExpDate = 0;         // Matches without expiration date
+    let glExpiredOver90 = 0;     // Matches expired more than 30 days ago
     const policyTypesFound = new Set();
 
     for (const client of allClients) {
@@ -340,10 +563,18 @@ export default async function handler(req, res) {
       });
 
       const glPolicies = client.policies.filter(policy => {
-        if (!isGeneralLiabilityPolicy(policy)) return false;
+        const isCommercial = isCommercialPolicy(policy);
+        const isCgl = isGeneralLiabilityPolicy(policy);
+        const isBond = isSuretyBondPolicy(policy);
 
-        // This policy IS a CGL match
-        glFilterPassed++;
+        if (!isCommercial) return false;
+
+        // Tag with specific type
+        policy._policyType = getCommercialPolicyType(policy);
+
+        if (isCgl) glFilterPassed++;
+        if (isBond) bondFilterPassed++;
+        commercialFilterPassed++;
 
         if (!policy.expirationDate) {
           glNoExpDate++;
@@ -351,12 +582,12 @@ export default async function handler(req, res) {
         }
 
         const expirationDate = new Date(policy.expirationDate);
-        const sixtyDaysAgo = new Date();
-        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        if (expirationDate < sixtyDaysAgo) {
+        if (expirationDate < thirtyDaysAgo) {
           glExpiredOver90++;
-          return false; // Skip policies expired more than 60 days ago
+          return false; // Skip policies expired more than 30 days ago
         }
 
         return true;
@@ -366,8 +597,17 @@ export default async function handler(req, res) {
         const displayName = client.details?.companyName ||
                            client.details?.dbaName ||
                            (client.people && client.people[0] ? `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim() : 'Unknown');
-        console.log(`[Compliance] Client "${displayName}" has ${glPolicies.length} CGL policies`);
-        glPoliciesFound += glPolicies.length;
+        const cglCount = glPolicies.filter(p => p._policyType === 'cgl').length;
+        const bondCount = glPolicies.filter(p => p._policyType === 'bond').length;
+        const otherCount = glPolicies.length - cglCount - bondCount;
+        const parts = [];
+        if (cglCount) parts.push(`${cglCount} CGL`);
+        if (bondCount) parts.push(`${bondCount} bond`);
+        if (otherCount) parts.push(`${otherCount} other commercial`);
+        console.log(`[Compliance] Client "${displayName}" has ${parts.join(' + ')} policies`);
+        glPoliciesFound += cglCount;
+        bondPoliciesFound += bondCount;
+        commercialPoliciesFound += glPolicies.length;
       }
 
       for (const policy of glPolicies) {
@@ -384,7 +624,9 @@ export default async function handler(req, res) {
         const compliancePolicy = {
           policyNumber: policy.policyNumber,
           policyId: policy.id,
+          policyType: policy._policyType || 'cgl',
           clientNumber: client.clientNumber,
+          hawksoftId: client.clientNumber,
           clientName: clientName,
           businessName: client.details?.companyName,
           carrier: policy.carrier || 'Unknown',
@@ -414,11 +656,14 @@ export default async function handler(req, res) {
     console.log('[Compliance] ===== FINAL SUMMARY =====');
     console.log(`[Compliance] Clients Scanned: ${allClients.length}`);
     console.log(`[Compliance] Total Policies Found: ${totalPolicies}`);
+    console.log(`[Compliance] Commercial Filter Passed (isCommercialPolicy): ${commercialFilterPassed}`);
     console.log(`[Compliance] GL Filter Passed (isGeneralLiabilityPolicy): ${glFilterPassed}`);
-    console.log(`[Compliance] GL No Expiration Date: ${glNoExpDate}`);
-    console.log(`[Compliance] GL Expired >90 Days: ${glExpiredOver90}`);
+    console.log(`[Compliance] Bond Filter Passed (isSuretyBondPolicy): ${bondFilterPassed}`);
+    console.log(`[Compliance] No Expiration Date: ${glNoExpDate}`);
+    console.log(`[Compliance] Expired >30 Days: ${glExpiredOver90}`);
     console.log(`[Compliance] CGL Policies in Final Result: ${glPoliciesFound}`);
-    console.log(`[Compliance] Final Filtered Count: ${compliancePolicies.length}`);
+    console.log(`[Compliance] Bond Policies in Final Result: ${bondPoliciesFound}`);
+    console.log(`[Compliance] Total Commercial in Final Result: ${compliancePolicies.length}`);
     console.log(`[Compliance] All Policy Types Found:`, Array.from(policyTypesFound).sort());
     console.log(`[Compliance] Search Date Range: ${asOfDate} to ${today}`);
     console.log(`[Compliance] Elapsed Time: ${elapsedTime}s`);
@@ -437,8 +682,9 @@ export default async function handler(req, res) {
         totalPoliciesFound: totalPolicies,
         glFilterPassed: glFilterPassed,
         glNoExpDate: glNoExpDate,
-        glExpiredOver90: glExpiredOver90,
+        glExpiredOver30: glExpiredOver90,
         glPoliciesMatched: glPoliciesFound,
+        bondPoliciesMatched: bondPoliciesFound,
         allPolicyTypes: Array.from(policyTypesFound).sort(),
         nonSyncingCarriers: NON_SYNCING_CARRIERS,
         elapsedTimeSeconds: parseFloat(elapsedTime)

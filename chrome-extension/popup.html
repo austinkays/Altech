@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            width: 360px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            font-size: 13px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a2140, #2a3a6a);
+            color: #fff;
+            padding: 14px 16px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .header-icon { font-size: 20px; }
+        .header-title { font-weight: 700; font-size: 15px; }
+        .header-version { font-size: 10px; opacity: 0.5; margin-left: auto; }
+
+        /* Content */
+        .content { padding: 12px; }
+
+        /* Client Card */
+        .client-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            border: 1px solid #e5e5ea;
+        }
+        .client-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #8e8e93;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .client-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1d1d1f;
+            margin-bottom: 6px;
+        }
+        .client-name.empty { color: #8e8e93; font-weight: 400; font-style: italic; }
+        .client-fields {
+            display: flex; gap: 12px; flex-wrap: wrap;
+        }
+        .client-stat {
+            font-size: 11px; color: #6c757d;
+        }
+        .client-stat strong {
+            color: #1d1d1f; font-weight: 600;
+        }
+
+        /* Page Info */
+        .page-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+            border: 1px solid #e5e5ea;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .page-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #ff3b30; flex-shrink: 0;
+        }
+        .page-dot.connected { background: #34c759; }
+        .page-label { font-size: 12px; color: #6c757d; }
+        .page-label strong { color: #1d1d1f; }
+
+        /* Buttons */
+        .actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        .btn {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 10px 14px;
+            border: none; border-radius: 10px;
+            font-size: 13px; font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn:hover { filter: brightness(0.95); }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        .btn-paste {
+            background: #007AFF; color: #fff;
+        }
+        .btn-fill {
+            background: #34c759; color: #fff;
+        }
+        .btn-row { display: flex; gap: 8px; }
+        .btn-row .btn { flex: 1; }
+        .btn-clear {
+            background: #f2f2f7; color: #ff3b30;
+        }
+        .btn-refill {
+            background: #f2f2f7; color: #007AFF;
+        }
+        .btn-scrape {
+            background: #5856d6; color: #fff;
+        }
+        .btn-property {
+            background: #ff9500; color: #fff;
+        }
+        .btn-copy-prop {
+            background: #34c759; color: #fff;
+        }
+
+        /* Property Results */
+        .prop-results {
+            background: #fff;
+            border-radius: 12px;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+            border: 1px solid #e5e5ea;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .prop-results .prop-header {
+            display: flex; align-items: center; gap: 6px;
+            margin-bottom: 8px;
+        }
+        .prop-results .prop-header .site-badge {
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #f2f2f7;
+            color: #8e8e93;
+        }
+        .prop-results .prop-header .site-badge.zillow { background: #e8f5e9; color: #1b5e20; }
+        .prop-results .prop-header .site-badge.redfin { background: #fce4ec; color: #b71c1c; }
+        .prop-results .prop-header .site-badge.gis    { background: #e3f2fd; color: #0d47a1; }
+        .prop-field {
+            display: flex; justify-content: space-between; align-items: baseline;
+            padding: 3px 0;
+            font-size: 11px;
+            border-bottom: 1px solid #f2f2f7;
+        }
+        .prop-field:last-child { border-bottom: none; }
+        .prop-field .prop-label {
+            color: #8e8e93; font-weight: 500; flex-shrink: 0;
+            margin-right: 8px;
+        }
+        .prop-field .prop-value {
+            color: #1d1d1f; font-weight: 600; text-align: right;
+            word-break: break-word;
+        }
+        .prop-address {
+            font-size: 13px; font-weight: 700; color: #1d1d1f;
+            margin-bottom: 6px;
+        }
+
+        /* Status */
+        .status {
+            background: #fff;
+            border-radius: 12px;
+            padding: 10px 14px;
+            border: 1px solid #e5e5ea;
+            font-size: 12px;
+            color: #6c757d;
+            min-height: 36px;
+        }
+        .status.success { border-color: rgba(52,199,89,0.3); background: rgba(52,199,89,0.06); color: #248a3d; }
+        .status.error { border-color: rgba(255,59,48,0.3); background: rgba(255,59,48,0.06); color: #d70015; }
+
+        /* Footer */
+        .footer {
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 10px;
+            color: #8e8e93;
+            border-top: 1px solid #e5e5ea;
+        }
+        .footer a {
+            color: #007AFF; text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <span class="header-icon">⚡</span>
+        <span class="header-title">Altech EZLynx Filler</span>
+        <span class="header-version">v1.0</span>
+    </div>
+
+    <div class="content">
+        <!-- Client Data Card -->
+        <div class="client-card">
+            <div class="client-label">Loaded Client</div>
+            <div class="client-name empty" id="clientName">No client loaded</div>
+            <div class="client-fields" id="clientFields"></div>
+        </div>
+
+        <!-- Page Detection Card -->
+        <div class="page-card">
+            <div class="page-dot" id="pageDot"></div>
+            <div class="page-label" id="pageLabel">Checking page...</div>
+        </div>
+
+        <!-- Manual Paste Fallback -->
+        <div class="paste-area" id="pasteArea" style="display:none;">
+            <div class="client-label">Paste data here (Ctrl+V)</div>
+            <textarea id="pasteTextarea" placeholder="Click here, then press Ctrl+V to paste the copied data from Altech..." rows="4" style="width:100%; border:1px solid #e5e5ea; border-radius:8px; padding:8px; font-size:11px; font-family:inherit; resize:vertical; margin:6px 0;"></textarea>
+            <button class="btn btn-paste" id="manualPasteBtn" style="margin-bottom:8px;">📥 Load Pasted Data</button>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <button class="btn btn-paste" id="pasteBtn">📋 Paste from Altech</button>
+            <button class="btn btn-fill" id="fillBtn" disabled>⚡ Fill This Page</button>
+            <div class="btn-row">
+                <button class="btn btn-refill" id="refillBtn" disabled>🔄 Re-fill</button>
+                <button class="btn btn-clear" id="clearBtn" disabled>🗑 Clear</button>
+            </div>
+            <button class="btn btn-scrape" id="scrapeBtn">🔍 Scrape This Page</button>
+            <button class="btn btn-property" id="propertyBtn">🏠 Grab Property Data</button>
+        </div>
+
+        <!-- Property Results (hidden until scrape) -->
+        <div id="propertyResults" style="display:none;">
+            <div class="prop-results">
+                <div class="prop-header">
+                    <span style="font-weight:700; font-size:12px;">🏠 Property Data</span>
+                    <span class="site-badge" id="propSiteBadge">—</span>
+                    <span style="margin-left:auto; font-size:10px; color:#8e8e93;" id="propFieldCount">0 fields</span>
+                </div>
+                <div class="prop-address" id="propAddress"></div>
+                <div id="propFieldList"></div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-copy-prop" id="copyPropBtn">📋 Copy for Altech</button>
+                <button class="btn btn-clear" id="clearPropBtn">🗑 Clear</button>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="status" id="status">
+            Copy client data from Altech, then paste it here to get started.
+        </div>
+    </div>
+
+    <div class="footer">
+        In Altech → EZLynx Quoter → click <strong>📤 Copy for Extension</strong>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

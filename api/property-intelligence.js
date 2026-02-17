@@ -6,6 +6,22 @@
  * Body: JSON with { address, city, state, zip?, county? }
  */
 
+import { readFileSync } from 'fs';
+
+// Helper: resolve Google API key from environment variables only
+// Used for Gemini AI calls (generative language API)
+function getGoogleApiKey() {
+  return process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || null;
+}
+
+// Helper: resolve key for Google Maps/Geocoding/Places APIs
+// Falls back through: GOOGLE_API_KEY → PLACES_API_KEY
+function getMapsApiKey() {
+  const envKey = process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+  if (envKey) return envKey;
+  return process.env.PLACES_API_KEY || process.env.GOOGLE_PLACES_API_KEY || null;
+}
+
 // ===========================================================================
 // SECTION 1: ArcGIS County Parcel Data
 // ===========================================================================
@@ -174,7 +190,7 @@ async function arcgisQueryEndpoint(latitude, longitude, config, countyName) {
 
 async function arcgisQueryByAddress(address, city, state, countyName) {
   try {
-    const googleApiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+    const googleApiKey = getMapsApiKey();
     if (!googleApiKey) {
       return { success: false, error: 'Google API key not configured' };
     }
@@ -238,12 +254,19 @@ function normalizeParcelData(parcel, countyName) {
 
 // ===========================================================================
 // Clark County "Fact Sheet" Deep-Link Scraper
-// Fetches server-rendered HTML report with full building details
-// URL: https://gis.clark.wa.gov/gishome/property/reports.cfm?account_rekey=[ACCT]&item=fact
+// NOTE: Clark County retired reports.cfm in early 2026. The property info
+//       page (gis.clark.wa.gov/gishome/property/) now requires reCAPTCHA
+//       with no public API alternative. Building details for Clark County
+//       properties are now provided by Gemini Search Grounding instead.
+//       This function is kept for compatibility but short-circuits early.
 // ===========================================================================
 
 async function fetchClarkFactSheet(accountNumber) {
   if (!accountNumber) return null;
+
+  // The reports.cfm endpoint is permanently dead (returns "PAGE NOT FOUND")
+  // Clark County property data now requires reCAPTCHA — no programmatic access
+  console.log(`[Clark FactSheet] DEPRECATED: reports.cfm endpoint no longer available. Building details will be fetched via Gemini Search Grounding instead.`);
 
   // The DATA_LINK from ArcGIS contains the account number or full URL
   // Extract just the account number if it's a URL
@@ -254,9 +277,14 @@ async function fetchClarkFactSheet(accountNumber) {
   const pathMatch = String(accountNumber).match(/\/(\d+)\/?$/);
   if (pathMatch) acctKey = pathMatch[1];
 
-  const factUrl = `https://gis.clark.wa.gov/gishome/property/reports.cfm?account_rekey=${encodeURIComponent(acctKey)}&item=fact`;
-  console.log(`[Clark FactSheet] Fetching: ${factUrl}`);
+  // Skip the HTTP call — the endpoint is dead
+  // If Clark County restores a public API in the future, this is where to add it
+  return null;
 
+  // PRESERVED FOR REFERENCE — original reports.cfm scraper:
+  // const factUrl = `https://gis.clark.wa.gov/gishome/property/reports.cfm?account_rekey=${acctKey}&item=fact`;
+
+  /*
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
@@ -331,6 +359,7 @@ async function fetchClarkFactSheet(accountNumber) {
     console.warn(`[Clark FactSheet] Error: ${err.message}`);
     return null;
   }
+  */
 }
 
 function enrichParcelWithFactSheet(parcelData, factSheet) {
@@ -393,17 +422,25 @@ async function handleSatellite(req, res) {
     return res.status(400).json({ error: 'Address, city, and state required' });
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'NEXT_PUBLIC_GOOGLE_API_KEY not configured' });
+  const mapsKey = getMapsApiKey();
+  const geminiKey = getGoogleApiKey();
+  if (!mapsKey && !geminiKey) {
+    return res.status(500).json({ error: 'GOOGLE_API_KEY not configured' });
+  }
+  if (!mapsKey) {
+    return res.status(200).json({
+      success: false,
+      data: {},
+      notes: 'Static Maps API key not available. Please use GIS/Zillow buttons or manual entry.'
+    });
   }
 
   const fullAddress = `${address}, ${city}, ${state}${zip ? ' ' + zip : ''}`.trim();
   console.log(`[Smart Extract] Analyzing: ${fullAddress}`);
 
   // Fetch satellite and street view images in parallel
-  const satUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(fullAddress)}&zoom=19&size=640x640&maptype=satellite&key=${apiKey}`;
-  const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=640x480&location=${encodeURIComponent(fullAddress)}&key=${apiKey}`;
+  const satUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(fullAddress)}&zoom=19&size=640x640&maptype=satellite&key=${mapsKey}`;
+  const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=640x480&location=${encodeURIComponent(fullAddress)}&key=${mapsKey}`;
 
   const [satRes, svRes] = await Promise.all([
     fetch(satUrl).catch(() => null),
@@ -432,7 +469,7 @@ async function handleSatellite(req, res) {
   }
 
   // Call Gemini Vision API with both images
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey || mapsKey}`;
 
   const prompt = `You are an insurance property underwriter. Analyze ${svBase64 ? 'these two images' : 'this satellite image'} of the property at: ${fullAddress}
 ${svBase64 ? 'Image 1: Satellite/aerial view. Image 2: Street-level view.' : ''}
@@ -832,7 +869,7 @@ function mapZillowToAltech(raw) {
 // ===========================================================================
 
 async function fetchViaGeminiSearch(address, city, state, zip, diag) {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+  const apiKey = getGoogleApiKey();
   if (!apiKey) {
     diag.geminiSearchError = 'No API key';
     return null;
@@ -1094,7 +1131,7 @@ async function handleFireStation(req, res) {
     });
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+  const apiKey = getMapsApiKey();
   if (!apiKey) {
     return res.status(500).json({ success: false, error: 'Google API key not configured' });
   }

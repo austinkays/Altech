@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Tauri (6GB+ build artifacts)
+src-tauri/target/
+src-tauri/gen/
+
+# Python
+__pycache__/
+.venv/
+
+# Git
+.git/
+
+# Tests & docs (not needed on Vercel)
+tests/
+docs/
+coverage/
+scripts/
+Resources/archive/
+
+# Local data files
+.cgl-cache.json
+cgl-state.json
+.export-history.json
+.scan-history.json
+.email-drafts.json
+.quickref-cards.json
+
+# IDE / OS
+.vscode/
+.vs/
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+
+# Large binary files
+*.pdf
+*.xls
+*.xlsx
+*.doc
+*.docx

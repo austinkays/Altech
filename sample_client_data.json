@@ -1,0 +1,21 @@
+{
+    "FirstName": "Austin",
+    "LastName": "Kays",
+    "MiddleName": "",
+    "DOB": "01/15/1990",
+    "SSN": "",
+    "Gender": "M",
+    "MaritalStatus": "Single",
+    "Email": "austin@example.com",
+    "Phone": "3605551234",
+    "CellPhone": "3605551234",
+    "Address": "123 Main St",
+    "City": "Vancouver",
+    "State": "WA",
+    "Zip": "98686",
+    "Education": "BA",
+    "Occupation": "Insurance Agent",
+    "Industry": "Insurance",
+    "LicenseNumber": "KAYSAB123XY",
+    "Suffix": ""
+}

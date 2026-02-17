@@ -1,15 +1,42 @@
 /**
  * Certificate of Insurance (COI) Generator API
  *
- * Generates ACORD 25 certificates by overlaying text on the PDF template
- * Endpoint: /api/generate-coi
+ * Fills the real ACORD 25 fillable PDF using PyPDF2 (via Python subprocess).
+ * Endpoint: POST /api/generate-coi
  */
 
-const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
-const fs = require('fs');
-const path = require('path');
+import { execFileSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-module.exports = async function handler(req, res) {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Project root (one level up from api/)
+const PROJECT_ROOT = path.resolve(__dirname, '..');
+
+// Possible Python executable paths
+const PYTHON_CANDIDATES = [
+    path.join(PROJECT_ROOT, '.venv', 'Scripts', 'python.exe'),   // Windows venv
+    path.join(PROJECT_ROOT, '.venv', 'bin', 'python'),            // Linux/Mac venv
+    'python3',
+    'python',
+];
+
+function findPython() {
+    for (const candidate of PYTHON_CANDIDATES) {
+        try {
+            execFileSync(candidate, ['--version'], { stdio: 'pipe', timeout: 5000 });
+            return candidate;
+        } catch {
+            // Try next candidate
+        }
+    }
+    return null;
+}
+
+export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -27,194 +54,57 @@ module.exports = async function handler(req, res) {
 
   try {
     const data = req.body;
+    const insuredName = (data?.insured?.name || data?.insuredName || 'Certificate').replace(/[^a-zA-Z0-9 ]/g, '');
 
-    console.log('[COI Generator] Generating certificate for:', data.insuredName);
+    console.log('[COI Generator] Generating ACORD 25 certificate for:', insuredName);
 
-    // Load the ACORD 25 template
-    const templatePath = path.join(process.cwd(), 'Resources', 'CERTIFICATE OF INSURANCE (202512).PDF');
-    const templateBytes = fs.readFileSync(templatePath);
-    const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
+    const scriptPath = path.join(PROJECT_ROOT, 'python_backend', 'fill_acord25.py');
+    const templatePath = path.join(PROJECT_ROOT, 'Resources', 'ACORD 25 fillable.pdf');
 
-    // Get the first page
-    const pages = pdfDoc.getPages();
-    const firstPage = pages[0];
-    const { width, height } = firstPage.getSize();
+    if (!fs.existsSync(scriptPath)) {
+      return res.status(500).json({ error: 'fill_acord25.py not found' });
+    }
+    if (!fs.existsSync(templatePath)) {
+      return res.status(500).json({ error: 'ACORD 25 fillable.pdf template not found in Resources/' });
+    }
 
-    // Load fonts
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-    // Define text properties
-    const fontSize = 9;
-    const fontSizeSmall = 8;
-    const textColor = rgb(0, 0, 0);
-
-    // Field coordinates (measured from bottom-left origin)
-    // Producer section (top left)
-    const producerX = 40;
-    const producerY = height - 95;
-
-    firstPage.drawText(data.producerName || 'Altech Insurance Agency', {
-      x: producerX,
-      y: producerY,
-      size: fontSize,
-      font: font,
-      color: textColor
-    });
-
-    firstPage.drawText('7813 NE 13th Ave', {
-      x: producerX,
-      y: producerY - 12,
-      size: fontSizeSmall,
-      font: font,
-      color: textColor
-    });
-
-    firstPage.drawText('Vancouver, WA 98665', {
-      x: producerX,
-      y: producerY - 24,
-      size: fontSizeSmall,
-      font: font,
-      color: textColor
-    });
-
-    // Contact info
-    firstPage.drawText(data.contactName || '', {
-      x: producerX,
-      y: producerY - 40,
-      size: fontSizeSmall,
-      font: font,
-      color: textColor
-    });
-
-    firstPage.drawText(data.phone || '(360) 573-3080', {
-      x: producerX + 150,
-      y: producerY - 40,
-      size: fontSizeSmall,
-      font: font,
-      color: textColor
-    });
-
-    firstPage.drawText(data.email || '', {
-      x: producerX + 280,
-      y: producerY - 40,
-      size: fontSizeSmall,
-      font: font,
-      color: textColor
-    });
-
-    // Certificate date (top right)
-    const dateX = width - 150;
-    const dateY = height - 70;
-    firstPage.drawText(data.certificateDate || new Date().toLocaleDateString('en-US'), {
-      x: dateX,
-      y: dateY,
-      size: fontSize,
-      font: font,
-      color: textColor
-    });
-
-    // Insured section (left side)
-    const insuredX = 40;
-    const insuredY = height - 170;
-
-    firstPage.drawText(data.insuredName || '', {
-      x: insuredX,
-      y: insuredY,
-      size: fontSize,
-      font: fontBold,
-      color: textColor
-    });
-
-    firstPage.drawText(data.insuredAddress1 || '', {
-      x: insuredX,
-      y: insuredY - 12,
-      size: fontSizeSmall,
-      font: font,
-      color: textColor
-    });
-
-    firstPage.drawText(data.insuredAddress2 || '', {
-      x: insuredX,
-      y: insuredY - 24,
-      size: fontSizeSmall,
-      font: font,
-      color: textColor
-    });
-
-    // Description of operations (bottom section)
-    const descriptionX = 40;
-    const descriptionY = 180; // From bottom
-
-    const description = data.descriptionOfOperations || 'General Contracting';
-    firstPage.drawText(description, {
-      x: descriptionX,
-      y: descriptionY,
-      size: fontSize,
-      font: font,
-      color: textColor,
-      maxWidth: width - 80
-    });
-
-    // Certificate Holder (bottom left)
-    const holderX = 40;
-    const holderY = 120;
-
-    if (data.certificateHolder) {
-      firstPage.drawText(data.certificateHolder.name || '', {
-        x: holderX,
-        y: holderY,
-        size: fontSize,
-        font: fontBold,
-        color: textColor
-      });
-
-      firstPage.drawText(data.certificateHolder.address1 || '', {
-        x: holderX,
-        y: holderY - 12,
-        size: fontSizeSmall,
-        font: font,
-        color: textColor
-      });
-
-      firstPage.drawText(data.certificateHolder.address2 || '', {
-        x: holderX,
-        y: holderY - 24,
-        size: fontSizeSmall,
-        font: font,
-        color: textColor
+    const pythonExe = findPython();
+    if (!pythonExe) {
+      return res.status(500).json({
+        error: 'Python not found. Install Python 3 and PyPDF2 to generate ACORD 25 PDFs.'
       });
     }
 
-    // Authorized Representative (bottom right)
-    const sigX = width - 200;
-    const sigY = 60;
-
-    firstPage.drawText(data.authorizedRepresentative || '', {
-      x: sigX,
-      y: sigY,
-      size: fontSize,
-      font: fontBold,
-      color: textColor
+    // Call Python script: pipe JSON in, get PDF bytes out
+    const inputJson = JSON.stringify(data);
+    const pdfBytes = execFileSync(pythonExe, [scriptPath], {
+      input: inputJson,
+      maxBuffer: 20 * 1024 * 1024, // 20MB
+      timeout: 30000,
     });
 
-    // Serialize the PDF to bytes
-    const pdfBytes = await pdfDoc.save();
+    if (!pdfBytes || pdfBytes.length < 100) {
+      return res.status(500).json({ error: 'PDF generation returned empty output' });
+    }
 
-    // Return the PDF
+    // Return the filled PDF
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="COI-${data.insuredName || 'Certificate'}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="COI-${insuredName}.pdf"`);
     res.setHeader('Content-Length', pdfBytes.length);
 
-    console.log(`[COI Generator] Generated ${pdfBytes.length} byte PDF for ${data.insuredName}`);
+    console.log(`[COI Generator] Generated ${pdfBytes.length} byte ACORD 25 PDF for ${insuredName}`);
 
     res.status(200).send(Buffer.from(pdfBytes));
 
   } catch (error) {
-    console.error('[COI Generator] Error:', error);
+    console.error('[COI Generator] Error:', error.message);
+    if (error.stderr) {
+      console.error('[COI Generator] Python stderr:', error.stderr.toString());
+    }
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      detail: error.stderr ? error.stderr.toString().trim() : undefined
     });
   }
 };

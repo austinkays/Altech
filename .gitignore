@@ -21,9 +21,23 @@ pnpm-lock.yaml
 .env
 .env.local
 .env.*.local
+api/config.json
+
+# Sensitive / temp data
+python_backend/temp_client_data.json
+client_data.json
+
+# Local CGL state & cache (user-specific data)
+cgl-state.json
+.cgl-cache.json
+.export-history.json
+.scan-history.json
+.email-drafts.json
+.quickref-cards.json
 
 # IDE
 .vscode/
+.vs/
 .idea/
 *.swp
 *.swo
@@ -34,12 +48,20 @@ pnpm-lock.yaml
 Thumbs.db
 *.log
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+
 # Testing
 coverage/
 .nyc_output/
+test-stderr.txt
+test-stdout.txt
 
-# Temporary files
+# Temporary / backup files
 *.tmp
 *.temp
+*.bak
 .vercel
 .env*.local

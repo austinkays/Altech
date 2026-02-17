@@ -15,7 +15,7 @@
  * Uses REST API directly (no SDK dependencies needed)
  */
 
-const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+const GEMINI_API_KEY = process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
