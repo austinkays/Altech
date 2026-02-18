@@ -8,6 +8,7 @@
  *     sync/currentForm → { data: {...}, updatedAt, deviceId }
  *     sync/cglState    → { data: {...}, updatedAt, deviceId }
  *     sync/clientHistory → { data: [...], updatedAt, deviceId }
+ *     sync/quickRefCards → { data: [...], updatedAt, deviceId }
  *     quotes/{quoteId} → { ...quote, updatedAt, deviceId }
  * 
  * Conflict strategy: "Keep both" — if remote updatedAt > local lastSync,
@@ -91,6 +92,7 @@ const CloudSync = (() => {
             quotes: tryParse('altech_v6_quotes'),
             cglState: tryParse('altech_cgl_state'),
             clientHistory: tryParse('altech_client_history'),
+            quickRefCards: tryParse('altech_quickref_cards'),
             settings: {
                 darkMode: localStorage.getItem('altech_dark_mode') === 'true',
             }
@@ -333,6 +335,7 @@ const CloudSync = (() => {
                     _pushDoc('currentForm', local.currentForm, 'currentForm'),
                     _pushDoc('cglState', local.cglState, 'cglState'),
                     _pushDoc('clientHistory', local.clientHistory, 'clientHistory'),
+                    _pushDoc('quickRefCards', local.quickRefCards, 'quickRefCards'),
                     local.quotes?.length ? _pushQuotes(local.quotes) : Promise.resolve()
                 ]);
 
@@ -394,6 +397,13 @@ const CloudSync = (() => {
 
                 // Pull client history
                 await _pullDoc('clientHistory', 'altech_client_history', 'clientHistory');
+
+                // Pull Quick Reference cards
+                const qrResult = await _pullDoc('quickRefCards', 'altech_quickref_cards', 'quickRefCards');
+                if (qrResult?.data && typeof QuickRef !== 'undefined') {
+                    QuickRef.cards = qrResult.data;
+                    if (QuickRef.renderCards) QuickRef.renderCards();
+                }
 
                 // Pull quotes (merge strategy)
                 const remoteQuotes = await _pullQuotes();
@@ -473,7 +483,7 @@ const CloudSync = (() => {
                 const db = FirebaseConfig.db;
 
                 // Delete sync docs
-                const syncDocs = ['settings', 'currentForm', 'cglState', 'clientHistory'];
+                const syncDocs = ['settings', 'currentForm', 'cglState', 'clientHistory', 'quickRefCards'];
                 await Promise.all(syncDocs.map(doc =>
                     db.collection('users').doc(uid).collection('sync').doc(doc).delete()
                 ));

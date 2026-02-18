@@ -138,6 +138,10 @@ const QuickRef = {
     save() {
         this.persistLocal();
         this.syncToDisk();
+        // Trigger cloud sync if available
+        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
+            CloudSync.schedulePush();
+        }
     },
 
     renderCards() {
