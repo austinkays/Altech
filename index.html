@@ -153,33 +153,67 @@
                 transparent;
         }
 
-        /* === HEADER === */
+        /* === HEADER (Plugin Headers) === */
         header {
             position: relative;
-            background: linear-gradient(to right, rgba(235, 240, 252, 0.97), rgba(240, 238, 252, 0.97));
-            backdrop-filter: blur(20px);
-            padding: calc(env(safe-area-inset-top) + 16px) 20px 16px;
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(24px) saturate(1.4);
+            -webkit-backdrop-filter: blur(24px) saturate(1.4);
+            padding: calc(env(safe-area-inset-top) + 14px) 20px 10px;
             border-bottom: none;
             z-index: 1000;
+            margin: 12px 12px 0;
+            border-radius: 16px;
+            border: 1px solid rgba(0, 60, 140, 0.08);
+            box-shadow:
+                0 4px 20px rgba(0, 40, 100, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
         }
         header::after {
             content: '';
             position: absolute;
-            bottom: -12px;
-            left: 0;
-            right: 0;
-            height: 12px;
-            background: linear-gradient(to bottom, rgba(0, 40, 100, 0.06), transparent);
+            inset: 0;
+            border-radius: 16px;
+            background:
+                radial-gradient(ellipse at 10% 50%, rgba(0, 122, 255, 0.05) 0%, transparent 60%),
+                radial-gradient(ellipse at 90% 30%, rgba(88, 86, 214, 0.04) 0%, transparent 50%);
             pointer-events: none;
+            animation: pillGlow 6s ease-in-out infinite alternate;
+            z-index: -1;
         }
         body.dark-mode header {
-            background: rgba(28, 28, 30, 0.95);
+            background: rgba(15, 25, 45, 0.55);
+            border-color: rgba(56, 189, 248, 0.10);
+            box-shadow:
+                0 4px 20px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
         body.dark-mode header::after {
-            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent);
+            background:
+                radial-gradient(ellipse at 10% 50%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 90% 30%, rgba(120, 80, 255, 0.06) 0%, transparent 50%);
         }
-        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
-        .logo { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 22px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px; }
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+        }
+        body:not(.dark-mode) .logo > span {
+            background: linear-gradient(135deg, #1a3a5c, #0f2027, #2c5364);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        body.dark-mode .logo > span {
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
         .logo-controls { display: inline-flex; align-items: center; gap: 8px; }
         .tool-header-brand { margin-left: 80px; }
         .logo-icon-button {
@@ -196,18 +230,29 @@
             outline-offset: 4px;
             border-radius: 10px;
         }
-        .logo-icon { width: 36px; height: 36px; background: var(--apple-blue); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; }
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, var(--apple-blue), #5856D6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+        }
         .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .save-indicator { font-size: 13px; color: var(--success); opacity: 0; transition: opacity 0.3s; font-weight: 500; }
 
         /* Dark Mode Toggle */
         .dark-mode-toggle {
-            background: var(--bg-input);
-            border: 1px solid var(--border);
+            background: rgba(0, 60, 140, 0.06);
+            border: 1px solid rgba(0, 60, 140, 0.08);
             border-radius: 10px;
-            width: 36px;
-            height: 36px;
-            font-size: 16px;
+            width: 34px;
+            height: 34px;
+            font-size: 15px;
             cursor: pointer;
             transition: all 0.3s;
             display: inline-flex;
@@ -215,33 +260,56 @@
             justify-content: center;
         }
         .dark-mode-toggle:hover {
-            background: var(--bg-card);
+            background: rgba(0, 60, 140, 0.12);
             transform: scale(1.05);
+        }
+        body.dark-mode .dark-mode-toggle {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.10);
+        }
+        body.dark-mode .dark-mode-toggle:hover {
+            background: rgba(255, 255, 255, 0.15);
         }
 
         @media (max-width: 600px) {
-            header { padding: calc(env(safe-area-inset-top) + 12px) 14px 12px; }
+            header {
+                padding: calc(env(safe-area-inset-top) + 10px) 14px 8px;
+                margin: 8px 8px 0;
+                border-radius: 14px;
+            }
             .header-top { flex-direction: column; align-items: flex-start; gap: 10px; }
             .tool-header-brand { margin-left: 0; }
-            .logo { font-size: 18px; }
-            .logo-icon { width: 32px; height: 32px; border-radius: 8px; font-size: 15px; }
-            .dark-mode-toggle { width: 32px; height: 32px; font-size: 15px; }
+            .logo { font-size: 17px; }
+            .logo-icon { width: 30px; height: 30px; border-radius: 8px; font-size: 14px; }
+            .dark-mode-toggle { width: 30px; height: 30px; font-size: 14px; }
             .step-title { font-size: 12px; text-align: left; }
             .header-right { width: 100%; justify-content: flex-start; gap: 8px; }
             .save-indicator { margin-left: 0; }
         }
 
         @media (min-width: 1024px) {
-            header { padding: calc(env(safe-area-inset-top) + 18px) 28px 18px; }
+            header {
+                padding: calc(env(safe-area-inset-top) + 16px) 28px 12px;
+                margin: 14px 20px 0;
+                border-radius: 18px;
+            }
             .tool-header-brand { margin-left: 32px; }
-            .logo { font-size: 23px; }
-            .logo-icon { width: 38px; height: 38px; border-radius: 10px; }
+            .logo { font-size: 21px; }
+            .logo-icon { width: 36px; height: 36px; border-radius: 10px; }
         }
 
-        .step-title { font-size: 14px; color: var(--text-secondary); font-weight: 600; text-align: center; margin-bottom: 8px; }
+        .step-title {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-align: center;
+            margin-bottom: 8px;
+            letter-spacing: 0.2px;
+        }
         
-        .progress-track { height: 3px; background: var(--border); border-radius: 1.5px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--apple-blue); width: 0%; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); animation: progressGlow 6s ease-in-out infinite; }
+        .progress-track { height: 3px; background: rgba(0, 60, 140, 0.08); border-radius: 1.5px; overflow: hidden; }
+        body.dark-mode .progress-track { background: rgba(255, 255, 255, 0.08); }
+        .progress-fill { height: 100%; background: linear-gradient(to right, var(--apple-blue), #5856D6); width: 0%; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); animation: progressGlow 6s ease-in-out infinite; }
 
         /* === MAIN === */
         main {
