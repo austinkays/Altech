@@ -15,12 +15,12 @@
             --apple-gray: #6e6e73;
             --success: #34C759;
             --danger: #FF3B30;
-            --bg: #EEF1F6;
-            --bg-card: #FFFFFF;
-            --bg-input: #F0F2F8;
+            --bg: #E8EDF5;
+            --bg-card: rgba(255, 255, 255, 0.92);
+            --bg-input: #EDF0F8;
             --text: #1a1a1e;
-            --text-secondary: #5e6370;
-            --border: #C5CAD4;
+            --text-secondary: #556070;
+            --border: #BEC5D4;
             --shadow: rgba(0, 0, 0, 0.12);
         }
 
@@ -62,11 +62,14 @@
         /* Light-mode landing page — stronger blue ambient glow */
         body:not(.dark-mode) .landing-page {
             background:
-                radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0, 90, 220, 0.08) 0%, transparent 55%),
-                radial-gradient(ellipse at 20% 30%, rgba(0, 122, 255, 0.06) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 70%, rgba(88, 86, 214, 0.05) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 100%, rgba(52, 199, 89, 0.04) 0%, transparent 40%),
+                radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0, 80, 200, 0.12) 0%, transparent 55%),
+                radial-gradient(ellipse at 20% 30%, rgba(0, 122, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(88, 86, 214, 0.07) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 100%, rgba(52, 199, 89, 0.05) 0%, transparent 40%),
                 var(--bg);
+        }
+        body:not(.dark-mode) .landing-page .landing-content {
+            padding-top: 24px;
         }
 
         body.dark-mode .landing-page {
@@ -124,22 +127,36 @@
         /* Light mode ambient bloom on form area */
         body:not(.dark-mode) main {
             background:
-                radial-gradient(ellipse 60% 40% at 20% 10%, rgba(0, 122, 255, 0.05) 0%, transparent 60%),
-                radial-gradient(ellipse 50% 40% at 80% 80%, rgba(88, 86, 214, 0.04) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 20% 10%, rgba(0, 100, 230, 0.07) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 40% at 80% 80%, rgba(88, 86, 214, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse 40% 30% at 50% 50%, rgba(0, 122, 255, 0.03) 0%, transparent 50%),
                 transparent;
         }
 
         /* === HEADER === */
         header {
             position: relative;
-            background: linear-gradient(to right, rgba(240, 245, 255, 0.97), rgba(245, 243, 255, 0.97));
+            background: linear-gradient(to right, rgba(235, 240, 252, 0.97), rgba(240, 238, 252, 0.97));
             backdrop-filter: blur(20px);
             padding: calc(env(safe-area-inset-top) + 16px) 20px 16px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: none;
             z-index: 1000;
+        }
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 0;
+            right: 0;
+            height: 12px;
+            background: linear-gradient(to bottom, rgba(0, 40, 100, 0.06), transparent);
+            pointer-events: none;
         }
         body.dark-mode header {
             background: rgba(28, 28, 30, 0.95);
+        }
+        body.dark-mode header::after {
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent);
         }
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
         .logo { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 22px; }
@@ -231,7 +248,10 @@
         body.dark-mode .card { border-color: transparent; }
         .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 24px rgba(0,0,0,0.08), 0 0 0 1px rgba(0, 122, 255, 0.06);
+            box-shadow: 0 10px 24px rgba(0, 50, 150, 0.08), 0 0 0 1px rgba(0, 122, 255, 0.08);
+        }
+        body.dark-mode .card:hover {
+            box-shadow: 0 10px 24px rgba(0,0,0,0.12), 0 0 0 1px rgba(0, 122, 255, 0.06);
         }
         h2 { font-size: 19px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
         h3 { font-size: 16px; font-weight: 600; margin: 18px 0 10px; color: var(--text); }
@@ -1686,10 +1706,14 @@
             background-size: 400% 400%;
             animation: headerGradient 12s ease infinite;
             color: #f8fafc;
-            padding: 48px 20px 40px;
+            padding: 48px 20px 56px;
             text-align: center;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
+            border-radius: 0 0 24px 24px;
+            margin-bottom: -16px;
+            z-index: 2;
+            box-shadow: 0 8px 32px rgba(15, 32, 39, 0.25);
         }
         @keyframes headerGradient {
             0% { background-position: 0% 50%; }
@@ -2011,19 +2035,30 @@
             background: var(--bg-card);
             border-radius: 14px;
             padding: 18px 18px 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 40, 120, 0.06), 0 1px 3px rgba(0,0,0,0.04);
+            transition: all 0.25s ease;
             cursor: pointer;
-            border: 1px solid var(--border);
+            border: 1px solid rgba(0, 60, 140, 0.1);
             position: relative;
             overflow: hidden;
+        }
+        body.dark-mode .tool-card {
+            border-color: var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .tool-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 60, 180, 0.10), 0 2px 6px rgba(0,0,0,0.06);
+        }
+        body.dark-mode .tool-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 200, 255, 0.08), 0 2px 6px rgba(0,0,0,0.15);
         }
         .tool-card::before {
             content: '';
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 2px;
-            background: var(--apple-blue);
+            background: linear-gradient(to right, var(--apple-blue), #5856D6);
         }
         .tool-card.coming-soon { opacity: 0.5; cursor: default; }
         .tool-features { display: none; }
