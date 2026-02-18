@@ -1061,3 +1061,60 @@ describe('Home Endorsements Layout', () => {
     expect(source).toMatch(/@media[^{]*max-width[^{]*\{[^}]*\.toggle-grid-3\s*\{[^}]*grid-template-columns:\s*1fr/s);
   });
 });
+
+// ── About You Grid Layout ───────────────────────────────────────────────────
+describe('About You Grid Layout', () => {
+  let document;
+
+  beforeAll(() => {
+    const env = createPluginTestDOM();
+    document = env.window.document;
+  });
+
+  const mainFieldIds = ['firstName', 'lastName', 'prefix', 'suffix', 'dob', 'gender', 'email', 'phone', 'maritalStatus'];
+
+  test('all About You fields live in a single grid-2-full container', () => {
+    const containers = mainFieldIds.map(id => {
+      const el = document.getElementById(id);
+      expect(el).not.toBeNull();
+      let node = el;
+      while (node && !node.classList?.contains('grid-2-full')) node = node.parentElement;
+      return node;
+    });
+    const unique = new Set(containers);
+    expect(unique.size).toBe(1);
+    expect(containers[0]).not.toBeNull();
+  });
+
+  test('firstName appears before prefix in DOM order', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const firstNamePos = source.indexOf('id="firstName"');
+    const prefixPos = source.indexOf('id="prefix"');
+    expect(firstNamePos).toBeLessThan(prefixPos);
+  });
+
+  const coApplicantIds = ['coFirstName', 'coLastName', 'coDob', 'coGender', 'coEmail', 'coPhone', 'coRelationship'];
+
+  test('all co-applicant fields live in a single grid-2-full container', () => {
+    const containers = coApplicantIds.map(id => {
+      const el = document.getElementById(id);
+      expect(el).not.toBeNull();
+      let node = el;
+      while (node && !node.classList?.contains('grid-2-full')) node = node.parentElement;
+      return node;
+    });
+    const unique = new Set(containers);
+    expect(unique.size).toBe(1);
+    expect(containers[0]).not.toBeNull();
+  });
+
+  test('About You and co-applicant use separate grid-2-full containers', () => {
+    const firstName = document.getElementById('firstName');
+    const coFirstName = document.getElementById('coFirstName');
+    let mainGrid = firstName;
+    while (mainGrid && !mainGrid.classList?.contains('grid-2-full')) mainGrid = mainGrid.parentElement;
+    let coGrid = coFirstName;
+    while (coGrid && !coGrid.classList?.contains('grid-2-full')) coGrid = coGrid.parentElement;
+    expect(mainGrid).not.toBe(coGrid);
+  });
+});

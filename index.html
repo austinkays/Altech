@@ -2571,31 +2571,7 @@
                 <h2>About You</h2>
                 <p class="section-subtitle">Let's start with your basic information</p>
                 
-                <div class="grid-2">
-                    <div>
-                        <label class="label">Prefix</label>
-                        <select id="prefix">
-                            <option value="">--</option>
-                            <option value="MR">Mr.</option>
-                            <option value="MRS">Mrs.</option>
-                            <option value="MS">Ms.</option>
-                            <option value="DR">Dr.</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="label">Suffix</label>
-                        <select id="suffix">
-                            <option value="">--</option>
-                            <option value="JR">Jr.</option>
-                            <option value="SR">Sr.</option>
-                            <option value="I">I</option>
-                            <option value="II">II</option>
-                            <option value="III">III</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid-2">
+                <div class="grid-2-full">
                     <div>
                         <label class="label">First Name</label>
                         <div class="input-with-action">
@@ -2624,14 +2600,29 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="grid-2">
-                    <div><label class="label">Email Address</label><input type="email" id="email" placeholder="john@example.com" autocomplete="email"></div>
-                    <div><label class="label">Phone Number</label><input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="tel"></div>
-                </div>
+                    <div>
+                        <label class="label">Prefix</label>
+                        <select id="prefix">
+                            <option value="">--</option>
+                            <option value="MR">Mr.</option>
+                            <option value="MRS">Mrs.</option>
+                            <option value="MS">Ms.</option>
+                            <option value="DR">Dr.</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Suffix</label>
+                        <select id="suffix">
+                            <option value="">--</option>
+                            <option value="JR">Jr.</option>
+                            <option value="SR">Sr.</option>
+                            <option value="I">I</option>
+                            <option value="II">II</option>
+                            <option value="III">III</option>
+                        </select>
+                    </div>
 
-                <div class="grid-2">
                     <div><label class="label">Date of Birth</label><input type="date" id="dob"></div>
                     <div>
                         <label class="label">Gender</label>
@@ -2642,9 +2633,10 @@
                             <option value="X">Not Specified</option>
                         </select>
                     </div>
-                </div>
 
-                <div class="grid-2">
+                    <div><label class="label">Email Address</label><input type="email" id="email" placeholder="john@example.com" autocomplete="email"></div>
+                    <div><label class="label">Phone Number</label><input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="tel"></div>
+
                     <div>
                         <label class="label">Marital Status</label>
                         <select id="maritalStatus">
@@ -2671,7 +2663,7 @@
                 <!-- Co-Applicant Fields -->
                 <div id="coApplicantSection" class="co-applicant-section">
                     <h3>Co-Applicant Information</h3>
-                    <div class="grid-2">
+                    <div class="grid-2-full">
                         <div>
                             <label class="label">First Name</label>
                             <input type="text" id="coFirstName" placeholder="Jane">
@@ -2680,8 +2672,6 @@
                             <label class="label">Last Name</label>
                             <input type="text" id="coLastName" placeholder="Smith">
                         </div>
-                    </div>
-                    <div class="grid-2">
                         <div>
                             <label class="label">Date of Birth</label>
                             <input type="date" id="coDob">
@@ -2694,8 +2684,6 @@
                                 <option value="F">Female</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="grid-2">
                         <div>
                             <label class="label">Email</label>
                             <input type="email" id="coEmail" placeholder="jane@email.com">
@@ -2704,14 +2692,15 @@
                             <label class="label">Phone</label>
                             <input type="tel" id="coPhone" placeholder="(555) 555-5555">
                         </div>
-                    </div>
-                    <div>
-                        <label class="label">Relationship</label>
-                        <select id="coRelationship">
-                            <option value="Spouse">Spouse</option>
-                            <option value="Domestic Partner">Domestic Partner</option>
-                            <option value="Other">Other</option>
-                        </select>
+                        <div>
+                            <label class="label">Relationship</label>
+                            <select id="coRelationship">
+                                <option value="Spouse">Spouse</option>
+                                <option value="Domestic Partner">Domestic Partner</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div></div>
                     </div>
                 </div>
             </div>
