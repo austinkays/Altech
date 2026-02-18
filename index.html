@@ -90,8 +90,7 @@
         }
 
         body.dark-mode .landing-footer-btn {
-            background: var(--bg-card);
-            border-color: var(--border);
+            background: transparent;
             color: var(--text-secondary);
         }
         body.dark-mode .bento-label { color: rgba(148, 163, 184, 0.6); letter-spacing: 2.5px; }
@@ -648,6 +647,31 @@
             line-height: 1.4;
         }
         .quote-stat-item { display: inline-block; margin-right: 12px; }
+
+        /* Quick Start draft rows (compact) */
+        .qs-draft-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-bottom: 1px solid var(--border);
+        }
+        .qs-draft-row:last-child { border-bottom: none; }
+        .qs-draft-row:hover { background: rgba(0, 122, 255, 0.06); }
+        .qs-draft-row:active { background: rgba(0, 122, 255, 0.12); }
+        .qs-draft-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+        .qs-draft-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .qs-draft-meta { font-size: 11px; color: var(--text-secondary); }
+        .qs-draft-delete {
+            background: none; border: none; cursor: pointer;
+            color: var(--text-secondary); font-size: 14px; padding: 4px 8px;
+            border-radius: 4px; opacity: 0.4; transition: all 0.15s; flex-shrink: 0;
+        }
+        .qs-draft-delete:hover { opacity: 1; color: #ff3b30; background: rgba(255, 59, 48, 0.08); }
+
         .quote-actions {
             display: flex;
             gap: 6px;
@@ -1937,17 +1961,18 @@
         .landing-footer-btn {
             padding: 8px 16px;
             border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
+            border: none;
+            background: transparent;
             color: var(--text-secondary);
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.15s ease;
+            opacity: 0.6;
         }
         .landing-footer-btn:hover {
-            border-color: var(--apple-blue);
             color: var(--apple-blue);
+            opacity: 1;
         }
 
         /* ─── Legacy Support (other tools may reference these) ─── */
@@ -2559,8 +2584,8 @@
             <!-- Saved Drafts (Quick Load) -->
             <div class="card" id="quickStartDraftsCard" style="display:none;">
                 <h2>📋 Saved Drafts</h2>
-                <p class="section-subtitle">Load a saved draft to resume editing</p>
-                <div id="quickStartDraftList" class="quote-list"></div>
+                <p class="section-subtitle">Tap a draft to resume editing</p>
+                <div id="quickStartDraftList"></div>
             </div>
         </div>
 
@@ -13774,35 +13799,30 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                 container.innerHTML = '';
                 quotes.slice(0, 10).forEach(q => {
                     const row = document.createElement('div');
-                    row.className = 'quote-card';
-                    const header = document.createElement('div');
-                    header.className = 'quote-card-header';
+                    row.className = 'qs-draft-row';
+                    row.onclick = () => this.loadQuote(q.id);
+
+                    const info = document.createElement('div');
+                    info.className = 'qs-draft-info';
                     const nameSpan = document.createElement('span');
-                    nameSpan.className = 'quote-name';
+                    nameSpan.className = 'qs-draft-name';
                     nameSpan.textContent = q.title;
-                    header.appendChild(nameSpan);
+                    info.appendChild(nameSpan);
+                    const meta = document.createElement('span');
+                    meta.className = 'qs-draft-meta';
+                    const qType = q.qType ? q.qType.toUpperCase() : '';
+                    const dateStr = q.timestamp ? new Date(q.timestamp).toLocaleDateString() : '';
+                    meta.textContent = [qType, dateStr].filter(Boolean).join(' · ');
+                    info.appendChild(meta);
 
-                    const stats = document.createElement('div');
-                    stats.className = 'quote-stats';
-                    stats.innerHTML = this.getQuoteStats(q);
-
-                    const actions = document.createElement('div');
-                    actions.className = 'quote-actions';
-                    const loadBtn = document.createElement('button');
-                    loadBtn.className = 'quote-action-btn';
-                    loadBtn.textContent = '📥 Load';
-                    loadBtn.onclick = () => this.loadQuote(q.id);
-                    actions.appendChild(loadBtn);
                     const delBtn = document.createElement('button');
-                    delBtn.className = 'quote-action-btn delete';
-                    delBtn.textContent = '🗑️';
+                    delBtn.className = 'qs-draft-delete';
+                    delBtn.textContent = '✕';
                     delBtn.title = 'Delete draft';
                     delBtn.onclick = (e) => { e.stopPropagation(); if (confirm('Delete "' + q.title + '"?')) this.deleteQuote(q.id); };
-                    actions.appendChild(delBtn);
 
-                    row.appendChild(header);
-                    row.appendChild(stats);
-                    row.appendChild(actions);
+                    row.appendChild(info);
+                    row.appendChild(delBtn);
                     container.appendChild(row);
                 });
             },
