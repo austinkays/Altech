@@ -11,9 +11,9 @@
  *   FIREBASE_APP_ID
  */
 
-const securityMiddleware = require('./_security');
+import { securityMiddleware } from './_security.js';
 
-module.exports = securityMiddleware(async (req, res) => {
+export default securityMiddleware(async (req, res) => {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
