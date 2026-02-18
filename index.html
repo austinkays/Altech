@@ -11798,7 +11798,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                 // Use signed-in user's display name, fall back to prompt
                 const user = typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser;
                 if (user) {
-                    const name = user.displayName || user.email.split('@')[0];
+                    const rawName = user.displayName || user.email.split('@')[0];
+                    const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
                     el.textContent = greeting + ', ' + name;
                 } else {
                     el.innerHTML = greeting + ' ☀️ <a href="#" onclick="Auth.showModal(); return false;" style="color:var(--apple-blue);text-decoration:none;font-weight:600;">Sign in</a> for cloud sync';

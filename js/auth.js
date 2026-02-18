@@ -215,6 +215,10 @@ const Auth = (() => {
                 const cred = await FirebaseConfig.auth.createUserWithEmailAndPassword(email, password);
                 if (displayName) {
                     await cred.user.updateProfile({ displayName });
+                    // Refresh greeting now that displayName is set
+                    if (typeof App !== 'undefined' && App.updateLandingGreeting) {
+                        App.updateLandingGreeting();
+                    }
                 }
                 this.closeModal();
             } catch (e) {
@@ -274,6 +278,10 @@ const Auth = (() => {
             try {
                 await _user.updateProfile({ displayName: newName });
                 _updateHeaderUI(_user);
+                // Refresh landing greeting with updated name
+                if (typeof App !== 'undefined' && App.updateLandingGreeting) {
+                    App.updateLandingGreeting();
+                }
                 // Sync name change
                 if (typeof CloudSync !== 'undefined') {
                     await CloudSync.pushToCloud({ settingsOnly: true });
