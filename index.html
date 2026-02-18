@@ -1706,14 +1706,21 @@
             background-size: 400% 400%;
             animation: headerGradient 12s ease infinite;
             color: #f8fafc;
-            padding: 48px 20px 56px;
+            padding: 48px 20px 40px;
             text-align: center;
             position: relative;
-            overflow: visible;
-            border-radius: 0 0 24px 24px;
-            margin-bottom: -16px;
-            z-index: 2;
-            box-shadow: 0 8px 32px rgba(15, 32, 39, 0.25);
+            overflow: hidden;
+        }
+        .landing-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 48px;
+            background: linear-gradient(to bottom, transparent 0%, var(--bg) 100%);
+            pointer-events: none;
+            z-index: 3;
         }
         @keyframes headerGradient {
             0% { background-position: 0% 50%; }
