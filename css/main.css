@@ -205,7 +205,7 @@ body.dark-mode .logo > span {
     background-clip: text;
 }
 .logo-controls { display: inline-flex; align-items: center; gap: 8px; }
-.tool-header-brand { margin-left: 80px; }
+.tool-header-brand { margin-left: 0; }
 .logo-icon-button {
     background: none;
     border: none;
@@ -223,14 +223,28 @@ body.dark-mode .logo > span {
 .logo-icon {
     width: 34px;
     height: 34px;
-    background: linear-gradient(135deg, var(--apple-blue), #5856D6);
+    background: rgba(0, 60, 140, 0.06);
+    border: 1px solid rgba(0, 60, 140, 0.08);
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
-    color: white;
-    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+    font-size: 17px;
+    color: var(--text-primary, #1c1c1e);
+    box-shadow: none;
+    transition: all 0.2s ease;
+}
+.logo-icon:hover {
+    background: rgba(0, 60, 140, 0.12);
+    transform: scale(1.05);
+}
+body.dark-mode .logo-icon {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.10);
+    color: #fff;
+}
+body.dark-mode .logo-icon:hover {
+    background: rgba(255, 255, 255, 0.15);
 }
 .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .save-indicator { font-size: 13px; color: var(--success); opacity: 0; transition: opacity 0.3s; font-weight: 500; }
@@ -270,8 +284,8 @@ body.dark-mode .dark-mode-toggle:hover {
     .header-top { flex-direction: column; align-items: flex-start; gap: 10px; }
     .tool-header-brand { margin-left: 0; }
     .logo { font-size: 17px; }
-    .logo-icon { width: 30px; height: 30px; border-radius: 8px; font-size: 14px; }
-    .dark-mode-toggle { width: 30px; height: 30px; font-size: 14px; }
+    .logo-icon { width: 30px; height: 30px; border-radius: 8px; font-size: 15px; }
+    .dark-mode-toggle { width: 30px; height: 30px; font-size: 15px; }
     .step-title { font-size: 12px; text-align: left; }
     .header-right { width: 100%; justify-content: flex-start; gap: 8px; }
     .save-indicator { margin-left: 0; }
@@ -283,7 +297,7 @@ body.dark-mode .dark-mode-toggle:hover {
         margin: 14px 20px 0;
         border-radius: 18px;
     }
-    .tool-header-brand { margin-left: 32px; }
+    .tool-header-brand { margin-left: 0; }
     .logo { font-size: 21px; }
     .logo-icon { width: 36px; height: 36px; border-radius: 10px; }
 }
@@ -2235,10 +2249,10 @@ body.dark-mode .tool-card:hover {
 }
 
 header .logo-icon {
-    animation: floatSoft 8s ease-in-out infinite;
+    animation: none;
 }
 .dark-mode-toggle {
-    animation: pulseRing 8s ease-in-out infinite;
+    animation: none;
 }
 .export-card,
 .driver-vehicle-card,
