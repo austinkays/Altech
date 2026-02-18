@@ -15,6 +15,10 @@ const Auth = (() => {
     function _onAuthStateChanged(user) {
         _user = user;
         _updateHeaderUI(user);
+        // Refresh landing greeting with user's name
+        if (typeof App !== 'undefined' && App.updateLandingGreeting) {
+            App.updateLandingGreeting();
+        }
         _listeners.forEach(fn => {
             try { fn(user); } catch (e) { console.error('[Auth] Listener error:', e); }
         });
