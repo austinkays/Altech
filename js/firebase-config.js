@@ -1,4 +1,4 @@
-/**
+147931/**
  * Firebase Configuration
  * 
  * Setup instructions:
@@ -24,12 +24,12 @@ const FirebaseConfig = (() => {
     // Firebase project configuration
     // Set these values directly OR use Vercel environment variables via /api/firebase-config
     const _config = {
-        apiKey: '',
-        authDomain: '',
-        projectId: '',
-        storageBucket: '',
-        messagingSenderId: '',
-        appId: ''
+        apiKey: 'AIzaSyBoLK7NcAZwdRKNanGDi42lubXg2UlEL1U',
+        authDomain: 'altech-app-5f3d0.firebaseapp.com',
+        projectId: 'altech-app-5f3d0',
+        storageBucket: 'altech-app-5f3d0.firebasestorage.app',
+        messagingSenderId: '80158794755',
+        appId: '1:80158794755:web:a7410b551a47ce554b1a36'
     };
 
     let _initialized = false;
