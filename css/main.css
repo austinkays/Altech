@@ -2249,10 +2249,10 @@ body.dark-mode .tool-card:hover {
 }
 
 header .logo-icon {
-    animation: none;
+    animation: floatSoft 8s ease-in-out infinite;
 }
 .dark-mode-toggle {
-    animation: none;
+    animation: pulseRing 8s ease-in-out infinite;
 }
 .export-card,
 .driver-vehicle-card,
