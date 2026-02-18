@@ -402,6 +402,44 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ── Server-side KV cache check ──
+    // On Vercel, the HawkSoft API can take 30-60s. Check Redis cache first
+    // and return immediately if the data is fresh (< 15 minutes old).
+    const KV_CACHE_KEY = 'cgl_cache';
+    const KV_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+    const forceRefresh = req.query?.refresh === 'true';
+    let redisClient = null;
+
+    try {
+      const redisUrl = process.env.REDIS_URL;
+      if (redisUrl && !forceRefresh) {
+        const { default: Redis } = await import('ioredis');
+        redisClient = new Redis(redisUrl, {
+          maxRetriesPerRequest: 1,
+          connectTimeout: 3000,
+          commandTimeout: 3000,
+          lazyConnect: true,
+          retryStrategy(times) { return times > 1 ? null : 500; }
+        });
+        redisClient.on('error', () => {});
+        await redisClient.connect();
+
+        const raw = await redisClient.get(KV_CACHE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          const age = Date.now() - (cached.cachedAt || 0);
+          if (age < KV_CACHE_TTL_MS && cached.policies?.length > 0) {
+            console.log(`[Compliance] ✅ KV cache hit — ${cached.policies.length} policies, ${Math.round(age / 60000)}m old`);
+            try { redisClient.disconnect(); } catch {}
+            return res.status(200).json(cached);
+          }
+          console.log(`[Compliance] KV cache stale (${Math.round(age / 60000)}m old) — refreshing from HawkSoft`);
+        }
+      }
+    } catch (kvErr) {
+      console.log('[Compliance] KV cache check skipped:', kvErr.message);
+    }
+
     // Get HawkSoft credentials from environment (trim to handle CLI newlines)
     const HAWKSOFT_CLIENT_ID = (process.env.HAWKSOFT_CLIENT_ID || '').trim();
     const HAWKSOFT_CLIENT_SECRET = (process.env.HAWKSOFT_CLIENT_SECRET || '').trim();
@@ -669,10 +707,11 @@ export default async function handler(req, res) {
     console.log(`[Compliance] Elapsed Time: ${elapsedTime}s`);
     console.log('[Compliance] ===================================');
 
-    return res.status(200).json({
+    const responsePayload = {
       success: true,
       count: compliancePolicies.length,
       policies: compliancePolicies,
+      cachedAt: Date.now(),
       metadata: {
         fetchedAt: today,
         searchStartDate: asOfDate,
@@ -689,7 +728,37 @@ export default async function handler(req, res) {
         nonSyncingCarriers: NON_SYNCING_CARRIERS,
         elapsedTimeSeconds: parseFloat(elapsedTime)
       }
-    });
+    };
+
+    // ── Save to KV cache for next request ──
+    try {
+      const redisUrl = process.env.REDIS_URL;
+      if (redisUrl) {
+        let kvClient = redisClient;
+        if (!kvClient || kvClient.status !== 'ready') {
+          const { default: Redis } = await import('ioredis');
+          kvClient = new Redis(redisUrl, {
+            maxRetriesPerRequest: 1,
+            connectTimeout: 3000,
+            commandTimeout: 5000,
+            lazyConnect: true,
+            retryStrategy(times) { return times > 1 ? null : 500; }
+          });
+          kvClient.on('error', () => {});
+          await kvClient.connect();
+        }
+        const serialized = JSON.stringify(responsePayload);
+        if (serialized.length < 1_000_000) {
+          await kvClient.set(KV_CACHE_KEY, serialized);
+          console.log(`[Compliance] ☁️ KV cache updated — ${compliancePolicies.length} policies (${(serialized.length / 1024).toFixed(0)}KB)`);
+        }
+        try { kvClient.disconnect(); } catch {}
+      }
+    } catch (kvErr) {
+      console.log('[Compliance] KV cache write failed:', kvErr.message);
+    }
+
+    return res.status(200).json(responsePayload);
 
   } catch (error) {
     console.error('[Compliance] API Error:', error);

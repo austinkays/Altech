@@ -993,11 +993,11 @@ const ComplianceDashboard = {
         }
     },
 
-    async fetchPoliciesFromAPI(isBackground = false) {
+    async fetchPoliciesFromAPI(isBackground = false, bypassServerCache = false) {
         const loading = document.getElementById('cglLoading');
         const error = document.getElementById('cglError');
         const tableContainer = document.getElementById('cglTableContainer');
-        const API_TIMEOUT_MS = 15000; // 15 seconds max for HawkSoft API
+        const API_TIMEOUT_MS = 65000; // 65 seconds max (Vercel function limit is 60s)
 
         if (isBackground) {
             const lastFetchEl = document.getElementById('cglLastFetch');
@@ -1038,7 +1038,8 @@ const ComplianceDashboard = {
             const controller = new AbortController();
             const apiTimeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
-            const response = await fetch('/api/compliance.js', { signal: controller.signal });
+            const apiUrl = (isBackground || bypassServerCache) ? '/api/compliance.js?refresh=true' : '/api/compliance.js';
+            const response = await fetch(apiUrl, { signal: controller.signal });
             clearTimeout(apiTimeout);
 
             if (!response.ok) {
@@ -1403,12 +1404,12 @@ const ComplianceDashboard = {
         if (this.policies && this.policies.length > 0) {
             if (bar) bar.classList.add('active');
             if (banner) banner.classList.add('active');
-            await this.fetchPoliciesFromAPI(true);
+            await this.fetchPoliciesFromAPI(true, true);
             if (bar) bar.classList.remove('active');
             if (banner) banner.classList.remove('active');
         } else {
-            // No existing data — full loading screen
-            await this.fetchPolicies(true);
+            // No existing data — full loading screen, bypass server cache
+            await this.fetchPoliciesFromAPI(false, true);
         }
 
         // Restore button
