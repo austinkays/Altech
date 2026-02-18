@@ -40,29 +40,16 @@ const FirebaseConfig = (() => {
     return {
         /**
          * Initialize Firebase with config.
-         * Tries: 1) hardcoded config above, 2) /api/firebase-config endpoint
+         * Uses the hardcoded config values above.
          */
         async init() {
             if (_initialized) return true;
 
             try {
-                let config = { ..._config };
-
-                // If no hardcoded apiKey, try fetching from server
-                if (!config.apiKey) {
-                    try {
-                        const resp = await fetch('/api/firebase-config');
-                        if (resp.ok) {
-                            const serverConfig = await resp.json();
-                            Object.assign(config, serverConfig);
-                        }
-                    } catch (e) {
-                        console.warn('[Firebase] Could not fetch config from server:', e.message);
-                    }
-                }
+                const config = { ..._config };
 
                 if (!config.apiKey || !config.projectId) {
-                    console.warn('[Firebase] No configuration found. Cloud sync disabled.');
+                    console.warn('[Firebase] No configuration found. Set values in js/firebase-config.js. Cloud sync disabled.');
                     return false;
                 }
 

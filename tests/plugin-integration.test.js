@@ -413,11 +413,11 @@ describe('Gemini API Key Discovery (correctness)', () => {
     expect(source).toContain('geminiKey');
   });
 
-  test('serverless function count stays within Hobby plan limit (max 13)', () => {
+  test('serverless function count stays within Hobby plan limit (max 12)', () => {
     const apiDir = path.join(ROOT, 'api');
     const jsFiles = fs.readdirSync(apiDir)
       .filter(f => f.endsWith('.js') && !f.startsWith('_'));
-    expect(jsFiles.length).toBeLessThanOrEqual(13);
+    expect(jsFiles.length).toBeLessThanOrEqual(12);
   });
 });
 
