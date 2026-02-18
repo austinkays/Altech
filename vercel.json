@@ -6,7 +6,7 @@
   },
   "rewrites": [
     {
-      "source": "/((?!api/|css/|js/|plugins/).*)",
+      "source": "/((?!api/.*).*)",
       "destination": "/index.html"
     }
   ],
