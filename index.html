@@ -13797,6 +13797,12 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                     loadBtn.textContent = '📥 Load';
                     loadBtn.onclick = () => this.loadQuote(q.id);
                     actions.appendChild(loadBtn);
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'quote-action-btn delete';
+                    delBtn.textContent = '🗑️';
+                    delBtn.title = 'Delete draft';
+                    delBtn.onclick = (e) => { e.stopPropagation(); if (confirm('Delete "' + q.title + '"?')) this.deleteQuote(q.id); };
+                    actions.appendChild(delBtn);
 
                     row.appendChild(header);
                     row.appendChild(stats);
