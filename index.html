@@ -1717,6 +1717,18 @@
             color: rgba(248, 250, 252, 0.6);
             position: relative;
         }
+        .landing-theme-toggle {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            z-index: 2;
+        }
+        .landing-theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
         @media (max-width: 768px) {
             .landing-header h1 { font-size: 24px; }
             .landing-header p { font-size: 13px; }
@@ -2487,6 +2499,9 @@
 
         <!-- ── Section: Hero Header ── -->
         <section id="landingHero" class="landing-header" aria-label="Dashboard header">
+            <button class="dark-mode-toggle landing-theme-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                <span class="dark-mode-icon">🌙</span>
+            </button>
             <h1>Altech Applications</h1>
             <p class="landing-greeting" id="landingGreeting"></p>
             <p>Your insurance toolkit &mdash; simple, fast, organized</p>
@@ -5020,7 +5035,8 @@
 
             loadDarkMode() {
                 const darkMode = localStorage.getItem('altech_dark_mode');
-                const isDark = darkMode === 'true';
+                // Default to dark mode when no preference is stored
+                const isDark = darkMode === null ? true : darkMode === 'true';
                 if (isDark) {
                     document.body.classList.add('dark-mode');
                 }
