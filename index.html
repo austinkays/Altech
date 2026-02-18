@@ -271,6 +271,28 @@
             .grid-12 { grid-template-columns: 1fr; }
             .span-4, .span-6, .span-8, .span-12 { grid-column: span 1; }
         }
+        /* ─── Toggle Grid (3-column for binary options) ─── */
+        .toggle-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+        .toggle-grid-3 .toggle-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+        }
+        .toggle-card .label { margin: 0; font-size: 13px; flex: 1; }
+        @media (max-width: 600px) {
+            .toggle-grid-3 { grid-template-columns: 1fr; }
+        }
         /* ─── Progressive Disclosure ─── */
         .disclosure-hidden { display: none; }
         .disclosure-check { display: flex; align-items: center; gap: 8px; padding: 8px 0; cursor: pointer; }
@@ -3476,7 +3498,8 @@
                 <h2>Home Endorsements</h2>
                 <p class="section-subtitle">Optional coverages and endorsements</p>
 
-                <div class="grid-2">
+                <!-- ── Group 1: Coverage Limit Selectors (2-column grid) ── -->
+                <div class="grid-2-full">
                     <div>
                         <label class="label">Increased Replacement Cost %</label>
                         <select id="increasedReplacementCost">
@@ -3497,9 +3520,6 @@
                             <option value="100">100%</option>
                         </select>
                     </div>
-                </div>
-
-                <div class="grid-2">
                     <div>
                         <label class="label">Water Backup</label>
                         <select id="waterBackup">
@@ -3532,28 +3552,6 @@
                             <option value="100000">$100,000</option>
                         </select>
                     </div>
-                </div>
-
-                <div class="grid-2">
-                    <div class="toggle-row">
-                        <label class="label">Equipment Breakdown</label>
-                        <input type="hidden" id="equipmentBreakdown" value="">
-                        <label class="toggle-switch">
-                            <input type="checkbox" data-toggle-field="equipmentBreakdown">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="toggle-row">
-                        <label class="label">Service Line</label>
-                        <input type="hidden" id="serviceLine" value="">
-                        <label class="toggle-switch">
-                            <input type="checkbox" data-toggle-field="serviceLine">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="grid-2">
                     <div>
                         <label class="label">Animal Liability</label>
                         <select id="animalLiability">
@@ -3571,9 +3569,6 @@
                             <option value="1500">$1,500</option>
                         </select>
                     </div>
-                </div>
-
-                <div class="grid-2">
                     <div>
                         <label class="label">Jewelry / Watches / Furs Limit</label>
                         <select id="jewelryLimit">
@@ -3595,10 +3590,7 @@
                             <option value="10000">$10,000</option>
                         </select>
                     </div>
-                </div>
-
-                <div class="grid-2">
-                    <div>
+                    <div class="full-span">
                         <label class="label">Increased Mold Damage</label>
                         <select id="moldDamage">
                             <option value="">Default</option>
@@ -3608,8 +3600,28 @@
                             <option value="100000">$100,000</option>
                         </select>
                     </div>
-                    <div class="toggle-row">
-                        <label class="label">Earthquake Coverage</label>
+                </div>
+
+                <!-- ── Group 2: Binary Toggles (3-column compact cards) ── -->
+                <div class="toggle-grid-3">
+                    <div class="toggle-card">
+                        <label class="label">Equipment Breakdown</label>
+                        <input type="hidden" id="equipmentBreakdown" value="">
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-toggle-field="equipmentBreakdown">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-card">
+                        <label class="label">Service Line</label>
+                        <input type="hidden" id="serviceLine" value="">
+                        <label class="toggle-switch">
+                            <input type="checkbox" data-toggle-field="serviceLine">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-card">
+                        <label class="label">Earthquake</label>
                         <input type="hidden" id="earthquakeCoverage" value="">
                         <label class="toggle-switch">
                             <input type="checkbox" data-toggle-field="earthquakeCoverage">
@@ -3618,32 +3630,35 @@
                     </div>
                 </div>
 
-                <div class="grid-2">
-                    <div>
-                        <label class="label">Earthquake Zone</label>
-                        <select id="earthquakeZone">
-                            <option value="">N/A</option>
-                            <option value="1">Zone 1</option>
-                            <option value="2">Zone 2</option>
-                            <option value="3">Zone 3</option>
-                            <option value="4">Zone 4</option>
-                            <option value="5">Zone 5</option>
-                            <option value="6">Zone 6</option>
-                            <option value="7">Zone 7</option>
-                            <option value="8">Zone 8</option>
-                            <option value="9">Zone 9</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="label">Earthquake Deductible</label>
-                        <select id="earthquakeDeductible">
-                            <option value="">N/A</option>
-                            <option value="5%">5%</option>
-                            <option value="10%">10%</option>
-                            <option value="15%">15%</option>
-                            <option value="20%">20%</option>
-                            <option value="25%">25%</option>
-                        </select>
+                <!-- ── Earthquake Details (progressive disclosure) ── -->
+                <div id="earthquakeDetailsWrapper" class="disclosure-hidden" style="margin-top: 12px;">
+                    <div class="grid-2-full">
+                        <div>
+                            <label class="label">Earthquake Zone</label>
+                            <select id="earthquakeZone">
+                                <option value="">N/A</option>
+                                <option value="1">Zone 1</option>
+                                <option value="2">Zone 2</option>
+                                <option value="3">Zone 3</option>
+                                <option value="4">Zone 4</option>
+                                <option value="5">Zone 5</option>
+                                <option value="6">Zone 6</option>
+                                <option value="7">Zone 7</option>
+                                <option value="8">Zone 8</option>
+                                <option value="9">Zone 9</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label">Earthquake Deductible</label>
+                            <select id="earthquakeDeductible">
+                                <option value="">N/A</option>
+                                <option value="5%">5%</option>
+                                <option value="10%">10%</option>
+                                <option value="15%">15%</option>
+                                <option value="20%">20%</option>
+                                <option value="25%">25%</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4927,6 +4942,16 @@
                 if (secHeatCheck && secHeatWrap) {
                     secHeatCheck.addEventListener('change', () => {
                         secHeatWrap.classList.toggle('disclosure-hidden', !secHeatCheck.checked);
+                    });
+                }
+
+                // Earthquake coverage progressive disclosure
+                const eqWrap = document.getElementById('earthquakeDetailsWrapper');
+                if (eqWrap) {
+                    document.body.addEventListener('change', (e) => {
+                        const toggle = e.target.closest('[data-toggle-field="earthquakeCoverage"]');
+                        if (!toggle) return;
+                        eqWrap.classList.toggle('disclosure-hidden', !toggle.checked);
                     });
                 }
 
@@ -6931,6 +6956,12 @@
                     const hasValue = secHeatVal !== '';
                     secHeatCheck.checked = hasValue;
                     secHeatWrap.classList.toggle('disclosure-hidden', !hasValue);
+                }
+                // Restore earthquake disclosure state
+                const eqVal = this.data.earthquakeCoverage || '';
+                const eqWrap = document.getElementById('earthquakeDetailsWrapper');
+                if (eqWrap) {
+                    eqWrap.classList.toggle('disclosure-hidden', eqVal !== 'Yes');
                 }
             },
 

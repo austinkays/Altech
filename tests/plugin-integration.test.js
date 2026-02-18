@@ -941,3 +941,123 @@ describe('Home Coverage Grid', () => {
     expect(containers[0]).not.toBeNull();
   });
 });
+
+// ── Home Endorsements Layout ────────────────────────────────────────────────
+describe('Home Endorsements Layout', () => {
+  let window, document;
+
+  beforeAll(() => {
+    const env = createPluginTestDOM();
+    window = env.window;
+    document = window.document;
+  });
+
+  // Group 1: All dropdown selectors should live in a single grid-2-full
+  const dropdownIds = [
+    'increasedReplacementCost', 'ordinanceOrLaw', 'waterBackup', 'lossAssessment',
+    'animalLiability', 'theftDeductible', 'jewelryLimit', 'creditCardCoverage', 'moldDamage'
+  ];
+
+  test('all endorsement dropdowns live in one grid-2-full container', () => {
+    const containers = dropdownIds.map(id => {
+      const el = document.getElementById(id);
+      expect(el).not.toBeNull();
+      let node = el;
+      while (node && !node.classList?.contains('grid-2-full')) node = node.parentElement;
+      return node;
+    });
+    const unique = new Set(containers);
+    expect(unique.size).toBe(1);
+    expect(containers[0]).not.toBeNull();
+  });
+
+  test('moldDamage is full-span within the endorsement grid', () => {
+    const el = document.getElementById('moldDamage');
+    expect(el).not.toBeNull();
+    expect(el.parentElement.classList.contains('full-span')).toBe(true);
+  });
+
+  // Group 2: All 3 toggles in toggle-grid-3
+  test('toggle-grid-3 CSS class is defined', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    expect(source).toMatch(/\.toggle-grid-3\s*\{[^}]*grid-template-columns:\s*1fr\s+1fr\s+1fr/);
+  });
+
+  test('toggle-card CSS class is defined with flex layout', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    expect(source).toMatch(/\.toggle-card\s*\{[^}]*display:\s*flex/);
+  });
+
+  const toggleIds = ['equipmentBreakdown', 'serviceLine', 'earthquakeCoverage'];
+
+  test('all 3 toggles are inside toggle-card elements within toggle-grid-3', () => {
+    toggleIds.forEach(id => {
+      const hidden = document.getElementById(id);
+      expect(hidden).not.toBeNull();
+      const card = hidden.closest('.toggle-card');
+      expect(card).not.toBeNull();
+      expect(card.parentElement.classList.contains('toggle-grid-3')).toBe(true);
+    });
+  });
+
+  test('all 3 toggle-cards share the same toggle-grid-3 parent', () => {
+    const parents = toggleIds.map(id => {
+      return document.getElementById(id).closest('.toggle-grid-3');
+    });
+    const unique = new Set(parents);
+    expect(unique.size).toBe(1);
+  });
+
+  test('no toggle-row elements remain in endorsements', () => {
+    // Find the endorsements card by heading text
+    const cards = document.querySelectorAll('.card');
+    let endorseCard = null;
+    cards.forEach(c => {
+      const h2 = c.querySelector('h2');
+      if (h2 && h2.textContent.includes('Home Endorsements')) endorseCard = c;
+    });
+    expect(endorseCard).not.toBeNull();
+    const toggleRows = endorseCard.querySelectorAll('.toggle-row');
+    expect(toggleRows.length).toBe(0);
+  });
+
+  // Earthquake progressive disclosure
+  test('earthquakeDetailsWrapper exists and is hidden by default', () => {
+    const wrapper = document.getElementById('earthquakeDetailsWrapper');
+    expect(wrapper).not.toBeNull();
+    expect(wrapper.classList.contains('disclosure-hidden')).toBe(true);
+  });
+
+  test('earthquake zone and deductible selects are inside the disclosure wrapper', () => {
+    const wrapper = document.getElementById('earthquakeDetailsWrapper');
+    expect(wrapper).not.toBeNull();
+    const zone = wrapper.querySelector('#earthquakeZone');
+    const ded = wrapper.querySelector('#earthquakeDeductible');
+    expect(zone).not.toBeNull();
+    expect(ded).not.toBeNull();
+  });
+
+  test('earthquake disclosure wrapper contains a grid-2-full', () => {
+    const wrapper = document.getElementById('earthquakeDetailsWrapper');
+    expect(wrapper).not.toBeNull();
+    const grid = wrapper.querySelector('.grid-2-full');
+    expect(grid).not.toBeNull();
+  });
+
+  test('earthquake toggle-field change handler is wired (JS source check)', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    expect(source).toContain('earthquakeDetailsWrapper');
+    expect(source).toContain('earthquakeCoverage');
+    expect(source).toMatch(/data-toggle-field.*earthquakeCoverage/);
+  });
+
+  test('syncSegmentedControls restores earthquake disclosure state', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    expect(source).toMatch(/syncSegmentedControls[\s\S]*earthquakeDetailsWrapper/);
+  });
+
+  test('toggle-grid-3 has responsive fallback for mobile', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    expect(source).toMatch(/@media[^{]*max-width[^{]*\{[^}]*\.toggle-grid-3\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  });
+});
