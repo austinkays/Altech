@@ -4266,8 +4266,39 @@
 
             handleType() {
                 const t = document.querySelector('input[name="qType"]:checked')?.value || 'both';
+                const prevFlow = this.flow || [];
                 this.flow = this.workflows[t];
                 
+                // Clear data for steps excluded from the new workflow
+                // (prevents stale home data leaking into auto-only quotes, etc.)
+                const allSteps = this.workflows.both; // superset of all steps
+                const excludedSteps = allSteps.filter(s => !this.flow.includes(s));
+                excludedSteps.forEach(stepId => {
+                    const stepEl = document.getElementById(stepId);
+                    if (!stepEl) return;
+                    stepEl.querySelectorAll('input, select, textarea').forEach(el => {
+                        if (!el.id || el.type === 'radio' || el.type === 'hidden' || el.type === 'file') return;
+                        if (el.type === 'checkbox') {
+                            el.checked = false;
+                            delete this.data[el.id];
+                        } else {
+                            el.value = '';
+                            delete this.data[el.id];
+                        }
+                    });
+                    // Clear drivers/vehicles arrays when step-4 (auto) is excluded
+                    if (stepId === 'step-4') {
+                        this.drivers = [];
+                        this.vehicles = [];
+                        delete this.data.drivers;
+                        delete this.data.vehicles;
+                        const driverList = document.getElementById('driverCardList');
+                        const vehicleList = document.getElementById('vehicleCardList');
+                        if (driverList) driverList.innerHTML = '';
+                        if (vehicleList) vehicleList.innerHTML = '';
+                    }
+                });
+
                 // Move to next step automatically after selection
                 if (this.step === 2) {
                     this.step++;
