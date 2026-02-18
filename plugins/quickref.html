@@ -1,79 +1,79 @@
 
-        <header>
-            <div class="header-top">
-                <div class="logo tool-header-brand">
-                    <span class="logo-controls">
-                        <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
-                            <span class="logo-icon">📋</span>
-                        </button>
-                        <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
-                            <span class="dark-mode-icon">🌙</span>
-                        </button>
-                    </span>
-                    <span>Quick Reference</span>
+<header>
+    <div class="header-top">
+        <div class="logo tool-header-brand">
+            <span class="logo-controls">
+                <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                    <span class="logo-icon">📋</span>
+                </button>
+                <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <span class="dark-mode-icon">🌙</span>
+                </button>
+            </span>
+            <span>Quick Reference</span>
+        </div>
+    </div>
+    <div class="step-title">Agent IDs, carrier info & phonetic alphabet — your phone companion</div>
+</header>
+
+<div class="qr-container">
+
+    <!-- Phonetic Speller -->
+    <div class="card">
+        <h2>🔤 Spell It Out</h2>
+        <p class="section-subtitle">Type any word and get the NATO phonetic spelling instantly</p>
+        <input type="text" class="qr-speller-input" id="qrSpellerInput" placeholder="Type here… e.g. SMITH" oninput="QuickRef.spell(this.value)">
+        <div class="qr-speller-output" id="qrSpellerOutput"></div>
+    </div>
+
+    <!-- Agent ID Cards -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h2>🪪 Agent ID Cards</h2>
+            <button class="qr-btn qr-btn-secondary" onclick="QuickRef.toggleAddForm()" style="padding: 6px 12px; font-size: 12px;">+ Add Card</button>
+        </div>
+        <p class="section-subtitle">Click any value to copy it. Hover a card for edit/delete.</p>
+
+        <!-- Add Form -->
+        <div class="qr-add-form" id="qrAddForm">
+            <div class="qr-add-row">
+                <input type="text" class="qr-add-input" id="qrAddCarrier" placeholder="Carrier name (e.g. Progressive)">
+                <input type="color" id="qrAddColor" value="#0d9488" style="width:40px;height:36px;border:none;border-radius:8px;cursor:pointer;">
+            </div>
+            <div class="qr-add-fields-list" id="qrAddFieldsList">
+                <div class="qr-add-field-row">
+                    <input type="text" class="qr-add-input" placeholder="Label (e.g. Agent ID)" data-role="label">
+                    <input type="text" class="qr-add-input" placeholder="Value (e.g. A12345)" data-role="value">
+                    <button class="qr-card-btn delete" onclick="this.parentElement.remove()" title="Remove field">✕</button>
                 </div>
             </div>
-            <div class="step-title">Agent IDs, carrier info & phonetic alphabet — your phone companion</div>
-        </header>
-
-        <div class="qr-container">
-
-            <!-- Phonetic Speller -->
-            <div class="card">
-                <h2>🔤 Spell It Out</h2>
-                <p class="section-subtitle">Type any word and get the NATO phonetic spelling instantly</p>
-                <input type="text" class="qr-speller-input" id="qrSpellerInput" placeholder="Type here… e.g. SMITH" oninput="QuickRef.spell(this.value)">
-                <div class="qr-speller-output" id="qrSpellerOutput"></div>
-            </div>
-
-            <!-- Agent ID Cards -->
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <h2>🪪 Agent ID Cards</h2>
-                    <button class="qr-btn qr-btn-secondary" onclick="QuickRef.toggleAddForm()" style="padding: 6px 12px; font-size: 12px;">+ Add Card</button>
-                </div>
-                <p class="section-subtitle">Click any value to copy it. Hover a card for edit/delete.</p>
-
-                <!-- Add Form -->
-                <div class="qr-add-form" id="qrAddForm">
-                    <div class="qr-add-row">
-                        <input type="text" class="qr-add-input" id="qrAddCarrier" placeholder="Carrier name (e.g. Progressive)">
-                        <input type="color" id="qrAddColor" value="#0d9488" style="width:40px;height:36px;border:none;border-radius:8px;cursor:pointer;">
-                    </div>
-                    <div class="qr-add-fields-list" id="qrAddFieldsList">
-                        <div class="qr-add-field-row">
-                            <input type="text" class="qr-add-input" placeholder="Label (e.g. Agent ID)" data-role="label">
-                            <input type="text" class="qr-add-input" placeholder="Value (e.g. A12345)" data-role="value">
-                            <button class="qr-card-btn delete" onclick="this.parentElement.remove()" title="Remove field">✕</button>
-                        </div>
-                    </div>
-                    <div style="display:flex;gap:6px;">
-                        <button class="qr-btn qr-btn-primary" onclick="QuickRef.saveNewCard()">Save Card</button>
-                        <button class="qr-btn qr-btn-secondary" onclick="QuickRef.addFieldRow()">+ Field</button>
-                        <button class="qr-btn qr-btn-secondary" onclick="QuickRef.toggleAddForm()">Cancel</button>
-                    </div>
-                </div>
-
-                <div class="qr-cards-grid" id="qrCardsGrid"></div>
-            </div>
-
-            <!-- Phonetic Alphabet -->
-            <div class="card">
-                <h2>🅰️ NATO Phonetic Alphabet</h2>
-                <p class="section-subtitle">Letters highlighted as you type above</p>
-                <div class="qr-phonetic-grid" id="qrPhoneticGrid"></div>
-            </div>
-
-            <!-- Common Numbers -->
-            <div class="card">
-                <details>
-                    <summary class="export-summary"><span>📞 Common Numbers Quick Reference</span></summary>
-                    <div style="margin-top: 12px; font-size: 13px; line-height: 2;">
-                        <div class="qr-card-field"><span>NAIC Lookup</span> <span class="qr-card-value" onclick="QuickRef.copyVal(this)">naic.org/cis_consumer_information_look_up.htm</span></div>
-                        <div class="qr-card-field"><span>CLUE Report</span> <span class="qr-card-value" onclick="QuickRef.copyVal(this)">1-866-312-8076</span></div>
-                        <div class="qr-card-field"><span>MVR Check</span> <span class="qr-card-value" onclick="QuickRef.copyVal(this)">1-800-777-9929</span></div>
-                    </div>
-                </details>
+            <div style="display:flex;gap:6px;">
+                <button class="qr-btn qr-btn-primary" onclick="QuickRef.saveNewCard()">Save Card</button>
+                <button class="qr-btn qr-btn-secondary" onclick="QuickRef.addFieldRow()">+ Field</button>
+                <button class="qr-btn qr-btn-secondary" onclick="QuickRef.toggleAddForm()">Cancel</button>
             </div>
         </div>
+
+        <div class="qr-cards-grid" id="qrCardsGrid"></div>
+    </div>
+
+    <!-- Phonetic Alphabet -->
+    <div class="card">
+        <h2>🅰️ NATO Phonetic Alphabet</h2>
+        <p class="section-subtitle">Letters highlighted as you type above</p>
+        <div class="qr-phonetic-grid" id="qrPhoneticGrid"></div>
+    </div>
+
+    <!-- Common Numbers -->
+    <div class="card">
+        <details>
+            <summary class="export-summary"><span>📞 Common Numbers Quick Reference</span></summary>
+            <div style="margin-top: 12px; font-size: 13px; line-height: 2;">
+                <div class="qr-card-field"><span>NAIC Lookup</span> <span class="qr-card-value" onclick="QuickRef.copyVal(this)">naic.org/cis_consumer_information_look_up.htm</span></div>
+                <div class="qr-card-field"><span>CLUE Report</span> <span class="qr-card-value" onclick="QuickRef.copyVal(this)">1-866-312-8076</span></div>
+                <div class="qr-card-field"><span>MVR Check</span> <span class="qr-card-value" onclick="QuickRef.copyVal(this)">1-800-777-9929</span></div>
+            </div>
+        </details>
+    </div>
+</div>
 

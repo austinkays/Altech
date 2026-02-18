@@ -1,117 +1,117 @@
 
-        <header>
-            <div class="header-top">
-                <div class="logo tool-header-brand">
-                    <span class="logo-controls">
-                        <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
-                            <span class="logo-icon">📊</span>
-                        </button>
-                        <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
-                            <span class="dark-mode-icon">🌙</span>
-                        </button>
-                    </span>
-                    <span>Quote Compare</span>
+<header>
+    <div class="header-top">
+        <div class="logo tool-header-brand">
+            <span class="logo-controls">
+                <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                    <span class="logo-icon">📊</span>
+                </button>
+                <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <span class="dark-mode-icon">🌙</span>
+                </button>
+            </span>
+            <span>Quote Compare</span>
+        </div>
+    </div>
+    <div class="step-title">EZLynx Quote Analysis &amp; Carrier Comparison</div>
+    <div class="progress-track"><div class="progress-fill" id="qcProgress" style="width: 0%; transition: width 0.4s;"></div></div>
+</header>
+
+<main style="padding: 20px; padding-bottom: 60px;">
+    <div class="qc-container">
+
+        <!-- Upload zone -->
+        <div id="qcUploadZone" class="qc-drop-zone">
+            <input type="file" id="qcFileInput" accept="application/pdf,image/*" class="hidden" multiple>
+            <div class="qc-drop-icon">📄</div>
+            <div class="qc-drop-title">Drop EZLynx Quote PDF Here</div>
+            <div class="qc-drop-subtitle">or tap to browse &bull; Supports PDF and images</div>
+        </div>
+
+        <!-- Saved comparisons -->
+        <div id="qcSavedSection" class="qc-saved-section">
+            <div class="qc-saved-label">Saved Comparisons</div>
+            <div id="qcSavedList" class="qc-saved-list"></div>
+        </div>
+
+        <!-- Loading state -->
+        <div id="qcLoading" class="qc-loading">
+            <div class="qc-spinner"></div>
+            <div class="qc-loading-text">Analyzing your quotes...</div>
+        </div>
+
+        <!-- Results -->
+        <div id="qcResults" class="qc-results">
+            <div id="qcApplicantBar" class="qc-applicant-bar"></div>
+            <details class="qc-details" open>
+                <summary>Premium Comparison</summary>
+                <div id="qcCards" class="qc-cards"></div>
+            </details>
+
+            <details class="qc-details" open>
+                <summary>Coverage Comparison</summary>
+                <div class="qc-table-wrap">
+                    <table class="qc-table">
+                        <thead id="qcTableHead"></thead>
+                        <tbody id="qcTableBody"></tbody>
+                    </table>
                 </div>
-            </div>
-            <div class="step-title">EZLynx Quote Analysis &amp; Carrier Comparison</div>
-            <div class="progress-track"><div class="progress-fill" id="qcProgress" style="width: 0%; transition: width 0.4s;"></div></div>
-        </header>
+            </details>
 
-        <main style="padding: 20px; padding-bottom: 60px;">
-            <div class="qc-container">
-
-                <!-- Upload zone -->
-                <div id="qcUploadZone" class="qc-drop-zone">
-                    <input type="file" id="qcFileInput" accept="application/pdf,image/*" class="hidden" multiple>
-                    <div class="qc-drop-icon">📄</div>
-                    <div class="qc-drop-title">Drop EZLynx Quote PDF Here</div>
-                    <div class="qc-drop-subtitle">or tap to browse &bull; Supports PDF and images</div>
+            <details class="qc-details" open>
+                <summary>Endorsements</summary>
+                <div class="qc-table-wrap">
+                    <table class="qc-table">
+                        <thead id="qcEndorsementHead"></thead>
+                        <tbody id="qcEndorsementBody"></tbody>
+                    </table>
                 </div>
+            </details>
 
-                <!-- Saved comparisons -->
-                <div id="qcSavedSection" class="qc-saved-section">
-                    <div class="qc-saved-label">Saved Comparisons</div>
-                    <div id="qcSavedList" class="qc-saved-list"></div>
+            <details class="qc-details">
+                <summary>Discounts &amp; Rating Messages</summary>
+                <div id="qcDiscounts"></div>
+            </details>
+
+            <details class="qc-details">
+                <summary>Payment Plans</summary>
+                <div id="qcPaymentPlans" class="qc-payment-grid"></div>
+            </details>
+
+            <div id="qcRecommendation" class="qc-recommendation"></div>
+
+            <!-- Agent Chat -->
+            <div id="qcChat" class="qc-chat open">
+                <div class="qc-chat-header" onclick="QuoteCompare.toggleChat()">
+                    <span class="qc-chat-header-icon">💬</span>
+                    <span class="qc-chat-header-title">Ask About Your Quotes</span>
+                    <span class="qc-chat-header-toggle">▼</span>
                 </div>
-
-                <!-- Loading state -->
-                <div id="qcLoading" class="qc-loading">
-                    <div class="qc-spinner"></div>
-                    <div class="qc-loading-text">Analyzing your quotes...</div>
-                </div>
-
-                <!-- Results -->
-                <div id="qcResults" class="qc-results">
-                    <div id="qcApplicantBar" class="qc-applicant-bar"></div>
-                    <details class="qc-details" open>
-                        <summary>Premium Comparison</summary>
-                        <div id="qcCards" class="qc-cards"></div>
-                    </details>
-
-                    <details class="qc-details" open>
-                        <summary>Coverage Comparison</summary>
-                        <div class="qc-table-wrap">
-                            <table class="qc-table">
-                                <thead id="qcTableHead"></thead>
-                                <tbody id="qcTableBody"></tbody>
-                            </table>
-                        </div>
-                    </details>
-
-                    <details class="qc-details" open>
-                        <summary>Endorsements</summary>
-                        <div class="qc-table-wrap">
-                            <table class="qc-table">
-                                <thead id="qcEndorsementHead"></thead>
-                                <tbody id="qcEndorsementBody"></tbody>
-                            </table>
-                        </div>
-                    </details>
-
-                    <details class="qc-details">
-                        <summary>Discounts &amp; Rating Messages</summary>
-                        <div id="qcDiscounts"></div>
-                    </details>
-
-                    <details class="qc-details">
-                        <summary>Payment Plans</summary>
-                        <div id="qcPaymentPlans" class="qc-payment-grid"></div>
-                    </details>
-
-                    <div id="qcRecommendation" class="qc-recommendation"></div>
-
-                    <!-- Agent Chat -->
-                    <div id="qcChat" class="qc-chat open">
-                        <div class="qc-chat-header" onclick="QuoteCompare.toggleChat()">
-                            <span class="qc-chat-header-icon">💬</span>
-                            <span class="qc-chat-header-title">Ask About Your Quotes</span>
-                            <span class="qc-chat-header-toggle">▼</span>
-                        </div>
-                        <div class="qc-chat-body">
-                            <div id="qcChatMessages" class="qc-chat-messages">
-                                <div class="qc-msg qc-msg-ai">Hey there! 👋 I've looked over your quotes and I'm ready to help you make sense of everything. Ask me anything — like "What does ordinance or law mean?" or "Why is Travelers cheaper?" — and I'll explain it in plain English!</div>
-                            </div>
-                            <div class="qc-chip-row">
-                                <button class="qc-chip" onclick="QuoteCompare.askChip('Which carrier is the best deal and why?')">Best deal?</button>
-                                <button class="qc-chip" onclick="QuoteCompare.askChip('What coverage am I missing with the cheapest option?')">What am I missing?</button>
-                                <button class="qc-chip" onclick="QuoteCompare.askChip('Explain the endorsements like I am 5')">ELI5 endorsements</button>
-                                <button class="qc-chip" onclick="QuoteCompare.askChip('What are the payment plan options?')">Payment plans?</button>
-                                <button class="qc-chip" onclick="QuoteCompare.askChip('Are there any red flags or warnings I should know about?')">Red flags?</button>
-                            </div>
-                            <div class="qc-chat-input-row">
-                                <textarea id="qcChatInput" class="qc-chat-input" placeholder="Ask me anything about your quotes..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();QuoteCompare.sendChat()}"></textarea>
-                                <button class="qc-chat-send" onclick="QuoteCompare.sendChat()" title="Send">➤</button>
-                            </div>
-                        </div>
+                <div class="qc-chat-body">
+                    <div id="qcChatMessages" class="qc-chat-messages">
+                        <div class="qc-msg qc-msg-ai">Hey there! 👋 I've looked over your quotes and I'm ready to help you make sense of everything. Ask me anything — like "What does ordinance or law mean?" or "Why is Travelers cheaper?" — and I'll explain it in plain English!</div>
                     </div>
-
-                    <div class="qc-actions">
-                        <button class="qc-btn qc-btn-secondary" onclick="QuoteCompare.reset()">📄 Analyze Another</button>
-                        <button class="qc-btn qc-btn-secondary" onclick="QuoteCompare.copyTable()">📋 Copy Table</button>
-                        <button class="qc-btn qc-btn-primary" onclick="QuoteCompare.exportPDF()">📥 Download Summary PDF</button>
+                    <div class="qc-chip-row">
+                        <button class="qc-chip" onclick="QuoteCompare.askChip('Which carrier is the best deal and why?')">Best deal?</button>
+                        <button class="qc-chip" onclick="QuoteCompare.askChip('What coverage am I missing with the cheapest option?')">What am I missing?</button>
+                        <button class="qc-chip" onclick="QuoteCompare.askChip('Explain the endorsements like I am 5')">ELI5 endorsements</button>
+                        <button class="qc-chip" onclick="QuoteCompare.askChip('What are the payment plan options?')">Payment plans?</button>
+                        <button class="qc-chip" onclick="QuoteCompare.askChip('Are there any red flags or warnings I should know about?')">Red flags?</button>
+                    </div>
+                    <div class="qc-chat-input-row">
+                        <textarea id="qcChatInput" class="qc-chat-input" placeholder="Ask me anything about your quotes..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();QuoteCompare.sendChat()}"></textarea>
+                        <button class="qc-chat-send" onclick="QuoteCompare.sendChat()" title="Send">➤</button>
                     </div>
                 </div>
-
             </div>
-        </main>
+
+            <div class="qc-actions">
+                <button class="qc-btn qc-btn-secondary" onclick="QuoteCompare.reset()">📄 Analyze Another</button>
+                <button class="qc-btn qc-btn-secondary" onclick="QuoteCompare.copyTable()">📋 Copy Table</button>
+                <button class="qc-btn qc-btn-primary" onclick="QuoteCompare.exportPDF()">📥 Download Summary PDF</button>
+            </div>
+        </div>
+
+    </div>
+</main>
 

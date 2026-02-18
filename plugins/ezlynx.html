@@ -1,950 +1,950 @@
 
-        <header>
-            <div class="header-top">
-                <div class="logo tool-header-brand">
-                    <span class="logo-controls">
-                        <a class="logo-icon-button" href="#home" onclick="App.goHome(); return false;" aria-label="Back to home">
-                            <span class="logo-icon">⚡</span>
-                        </a>
-                        <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
-                            <span class="dark-mode-icon">🌙</span>
-                        </button>
-                    </span>
-                    <span>EZLynx Quoter</span>
-                </div>
-            </div>
-            <div class="step-title">Auto-fill EZLynx new applicant forms with fuzzy dropdown matching</div>
-        </header>
-
-        <div class="ez-container">
-            <!-- Schema Status — collapsible accordion -->
-            <details class="ez-accordion" id="ezSchemaCard">
-                <summary onclick="EZLynxTool.toggleSchema && EZLynxTool.toggleSchema()">
-                    <div class="ez-schema-dot missing" id="ezSchemaDot"></div>
-                    <span>📋 Dropdown Schema</span>
-                    <span id="ezSchemaQuickInfo" style="font-size:11px; color:#64748b; white-space:nowrap;"></span>
-                    <span class="ez-acc-chevron">▼</span>
-                </summary>
-                <div class="ez-acc-body" id="ezSchemaBody">
-                    <p style="font-size:13px; color:#94a3b8; margin:0 0 12px;">Maps every dropdown option so the filler can fuzzy-match your data.</p>
-
-                    <div class="ez-schema-status" id="ezSchemaStatus">
-                        <div class="ez-schema-info">
-                            <div class="ez-label" id="ezSchemaLabel">Checking...</div>
-                            <div class="ez-sublabel" id="ezSchemaSub"></div>
-                        </div>
-                        <button class="ez-toolbar-btn primary" onclick="event.stopPropagation(); EZLynxTool.refreshSchema()">
-                            🔄 Refresh
-                        </button>
-                    </div>
-                    <div id="ezSchemaPages" style="margin-top:8px;"></div>
-                    <div class="ez-status-box" id="ezSchemaLog"></div>
-                </div>
-            </details>
-
-            <!-- Client Data Form -->
-            <div class="ez-glass" style="padding:0;">
-                <!-- Toolbar -->
-                <div class="ez-toolbar" style="border-radius:16px 16px 0 0;">
-                    <button class="ez-toolbar-btn primary" onclick="EZLynxTool.loadFromIntake()" title="Load from intake form">📥 Intake</button>
-                    <button class="ez-toolbar-btn" onclick="EZLynxTool.clearForm()" title="Clear all fields">🗑 Clear</button>
-                    <div class="ez-toolbar-sep"></div>
-                    <button class="ez-toolbar-btn primary" onclick="EZLynxTool.copyForExtension()" title="Copy data for Chrome Extension">📤 Copy for Extension</button>
-                    <button class="ez-toolbar-btn" style="border-color:rgba(124,58,237,0.4); color:#a78bfa;" onclick="EZLynxTool.importScrapedSchema()" title="Import scraped JSON schema">📊 Import Schema</button>
-                </div>
-                <div style="padding:18px 20px 20px;">
-
-                <!-- 👤 Client Personal accordion (open by default) -->
-                <details class="ez-accordion" open>
-                    <summary>
-                        👤 Client Personal
-                        <span class="ez-acc-chevron">▼</span>
-                    </summary>
-                    <div class="ez-acc-body">
-
-                <div class="ez-section-label">Personal</div>
-                <div class="ez-form-grid">
-                    <div class="ez-form-field">
-                        <label>First Name</label>
-                        <input type="text" id="ezFirstName" placeholder="Austin">
-                    </div>
-                    <div class="ez-form-field">
-                        <label>Last Name</label>
-                        <input type="text" id="ezLastName" placeholder="Kays">
-                    </div>
-                    <div class="ez-form-field">
-                        <label>Middle Name</label>
-                        <input type="text" id="ezMiddleName" placeholder="">
-                    </div>
-                    <div class="ez-form-field">
-                        <label>Date of Birth</label>
-                        <input type="text" id="ezDOB" placeholder="MM/DD/YYYY">
-                    </div>
-                    <div class="ez-form-field">
-                        <label>Gender</label>
-                        <select id="ezGender">
-                            <option value="">—</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Not Specified">Not Specified</option>
-                        </select>
-                    </div>
-                    <div class="ez-form-field">
-                        <label>Marital Status</label>
-                        <select id="ezMaritalStatus">
-                            <option value="">—</option>
-                            <option value="Single">Single</option>
-                            <option value="Married">Married</option>
-                            <option value="Divorced">Divorced</option>
-                            <option value="Widowed">Widowed</option>
-                            <option value="Separated">Separated</option>
-                            <option value="Domestic Partner">Domestic Partner</option>
-                        </select>
-                    </div>
-                </div>
-
-                <hr class="ez-divider">
-                <div class="ez-section-label">Contact</div>
-                <div class="ez-form-grid">
-                    <div class="ez-form-field">
-                        <label>Email</label>
-                        <input type="email" id="ezEmail" placeholder="austin@example.com">
-                    </div>
-                    <div class="ez-form-field">
-                        <label>Phone</label>
-                        <input type="tel" id="ezPhone" placeholder="3605551234">
-                    </div>
-                </div>
-
-                <hr class="ez-divider">
-                <div class="ez-section-label">Address</div>
-                <div class="ez-form-grid">
-                    <div class="ez-form-field ez-form-full">
-                        <label>Street Address</label>
-                        <input type="text" id="ezAddress" placeholder="123 Main St">
-                    </div>
-                    <div class="ez-form-field">
-                        <label>City</label>
-                        <input type="text" id="ezCity" placeholder="Vancouver">
-                    </div>
-                    <div class="ez-form-field">
-                        <label>State</label>
-                        <input type="text" id="ezState" placeholder="WA" maxlength="2" style="text-transform:uppercase;">
-                    </div>
-                    <div class="ez-form-field">
-                        <label>Zip Code</label>
-                        <input type="text" id="ezZip" placeholder="98686" maxlength="10">
-                    </div>
-                    <div class="ez-form-field">
-                        <label>County</label>
-                        <input type="text" id="ezCounty" placeholder="Clark">
-                    </div>
-                    <div class="ez-form-field">
-                        <label>Years at Address</label>
-                        <input type="text" id="ezYearsAtAddress" placeholder="5">
-                    </div>
-                </div>
-
-                <hr class="ez-divider">
-                <div class="ez-section-label">Additional</div>
-                <div class="ez-form-grid">
-                    <div class="ez-form-field">
-                        <label>Education</label>
-                        <select id="ezEducation">
-                            <option value="">—</option>
-                            <option value="No High School Diploma">No High School Diploma</option>
-                            <option value="High School Diploma">High School Diploma</option>
-                            <option value="Some College - No Degree">Some College - No Degree</option>
-                            <option value="Vocational/Technical Degree">Vocational/Technical Degree</option>
-                            <option value="Associates Degree">Associates Degree</option>
-                            <option value="Bachelors">Bachelors</option>
-                            <option value="Masters">Masters</option>
-                            <option value="Phd">Phd</option>
-                            <option value="Medical Degree">Medical Degree</option>
-                            <option value="Law Degree">Law Degree</option>
-                        </select>
-                    </div>
-                    <div class="ez-form-field">
-                        <label>Occupation</label>
-                        <input type="text" id="ezOccupation" placeholder="Insurance Agent">
-                    </div>
-                    <div class="ez-form-field">
-                        <label>Industry</label>
-                        <input type="text" id="ezIndustry" placeholder="Insurance">
-                    </div>
-                    <div class="ez-form-field">
-                        <label>License #</label>
-                        <input type="text" id="ezLicenseNumber" placeholder="KAYSAB123XY">
-                    </div>
-                </div>
-
-                    </div><!-- /ez-acc-body Client Personal -->
-                </details>
-
-                <!-- 🚗 Auto Policy accordion -->
-                <details class="ez-accordion">
-                    <summary>
-                        🚗 Auto Policy & Driver
-                        <span class="ez-acc-chevron">▼</span>
-                    </summary>
-                    <div class="ez-acc-body">
-
-                <div class="ez-section-label">Policy & Coverage</div>
-                <details class="ez-details" id="ezAutoSection">
-                    <summary>Auto Coverage Details</summary>
-                    <div class="ez-form-grid">
-                        <div class="ez-form-field"><label>Policy Term</label>
-                            <select id="ezPolicyTerm">
-                                <option value="">—</option>
-                                <option value="6 Month">6 Month</option>
-                                <option value="12 Month">12 Month</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Effective Date</label><input type="text" id="ezEffectiveDate" placeholder="MM/DD/YYYY"></div>
-                        <div class="ez-form-field"><label>Prior Carrier</label><input type="text" id="ezPriorCarrier" placeholder="State Farm"></div>
-                        <div class="ez-form-field"><label>Prior Policy Term</label>
-                            <select id="ezPriorPolicyTerm">
-                                <option value="">—</option>
-                                <option value="6 Month">6 Month</option>
-                                <option value="12 Month">12 Month</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Years w/ Prior</label>
-                            <select id="ezPriorYearsWithCarrier">
-                                <option value="">—</option>
-                                <option value="0">0</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9">9</option>
-                                <option value="10">10</option>
-                                <option value="11">11</option>
-                                <option value="12">12</option>
-                                <option value="13">13</option>
-                                <option value="14">14</option>
-                                <option value="15">15</option>
-                                <option value="More than 15">More than 15</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Bodily Injury</label>
-                            <select id="ezBodilyInjury">
-                                <option value="">—</option>
-                                <option value="State Minimum">State Minimum</option>
-                                <option value="25/50">25/50</option>
-                                <option value="50/50">50/50</option>
-                                <option value="50/100">50/100</option>
-                                <option value="100/100">100/100</option>
-                                <option value="100/300">100/300</option>
-                                <option value="250/500">250/500</option>
-                                <option value="300/300">300/300</option>
-                                <option value="500/500">500/500</option>
-                                <option value="1000/1000">1000/1000</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Property Damage</label>
-                            <select id="ezPropertyDamage">
-                                <option value="">—</option>
-                                <option value="State Minimum">State Minimum</option>
-                                <option value="10000">$10,000</option>
-                                <option value="15000">$15,000</option>
-                                <option value="25000">$25,000</option>
-                                <option value="50000">$50,000</option>
-                                <option value="100000">$100,000</option>
-                                <option value="250000">$250,000</option>
-                                <option value="500000">$500,000</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Comprehensive</label>
-                            <select id="ezComprehensive">
-                                <option value="">—</option>
-                                <option value="No Coverage">No Coverage</option>
-                                <option value="0">$0</option>
-                                <option value="50">$50</option>
-                                <option value="100">$100</option>
-                                <option value="200">$200</option>
-                                <option value="250">$250</option>
-                                <option value="500">$500</option>
-                                <option value="1000">$1,000</option>
-                                <option value="2000">$2,000</option>
-                                <option value="2500">$2,500</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Collision</label>
-                            <select id="ezCollision">
-                                <option value="">—</option>
-                                <option value="No Coverage">No Coverage</option>
-                                <option value="0">$0</option>
-                                <option value="50">$50</option>
-                                <option value="100">$100</option>
-                                <option value="200">$200</option>
-                                <option value="250">$250</option>
-                                <option value="500">$500</option>
-                                <option value="1000">$1,000</option>
-                                <option value="2000">$2,000</option>
-                                <option value="2500">$2,500</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Med Payments</label>
-                            <select id="ezMedPaymentsAuto">
-                                <option value="">—</option>
-                                <option value="500">$500</option>
-                                <option value="1000">$1,000</option>
-                                <option value="2000">$2,000</option>
-                                <option value="2500">$2,500</option>
-                                <option value="5000">$5,000</option>
-                                <option value="10000">$10,000</option>
-                                <option value="15000">$15,000</option>
-                                <option value="25000">$25,000</option>
-                                <option value="50000">$50,000</option>
-                                <option value="100000">$100,000</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>UMPD</label>
-                            <select id="ezUMPD">
-                                <option value="">—</option>
-                                <option value="No Coverage">No Coverage</option>
-                                <option value="State Minimum">State Minimum</option>
-                                <option value="10000">$10,000</option>
-                                <option value="15000">$15,000</option>
-                                <option value="25000">$25,000</option>
-                                <option value="50000">$50,000</option>
-                                <option value="100000">$100,000</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Prior Liab Limits</label>
-                            <select id="ezPriorLiabilityLimits">
-                                <option value="">—</option>
-                                <option value="State Minimum">State Minimum</option>
-                                <option value="25/50">25/50</option>
-                                <option value="50/50">50/50</option>
-                                <option value="50/100">50/100</option>
-                                <option value="100/100">100/100</option>
-                                <option value="100/300">100/300</option>
-                                <option value="250/500">250/500</option>
-                                <option value="300/300">300/300</option>
-                                <option value="500/500">500/500</option>
-                                <option value="1000/1000">1000/1000</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Yrs Continuous Cov</label><input type="text" id="ezYearsContinuousCoverage" placeholder="5"></div>
-                        <div class="ez-form-field"><label># Residents</label><input type="text" id="ezNumResidents" placeholder="2"></div>
-                        <div class="ez-form-field"><label>Residence Is</label>
-                            <select id="ezResidenceIs">
-                                <option value="">—</option>
-                                <option value="Home (owned)">Home (owned)</option>
-                                <option value="Condo (owned)">Condo (owned)</option>
-                                <option value="Apartment">Apartment</option>
-                                <option value="Rental Home/Condo">Rental Home/Condo</option>
-                                <option value="Mobile Home">Mobile Home</option>
-                                <option value="Live With Parents">Live With Parents</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Accidents</label><input type="text" id="ezAccidents" placeholder="0"></div>
-                        <div class="ez-form-field"><label>Violations</label><input type="text" id="ezViolations" placeholder="0"></div>
-                    </div>
-                </details>
-
-                <hr class="ez-divider">
-                <div class="ez-section-label">Driver & Vehicle</div>
-                <details class="ez-details" id="ezDriverSection">
-                    <summary>Driver & Vehicle Details</summary>
-                    <div class="ez-form-grid">
-                        <div class="ez-form-field"><label>DL State</label><input type="text" id="ezDLState" placeholder="WA" maxlength="2" style="text-transform:uppercase;"></div>
-                        <div class="ez-form-field"><label>Age Licensed</label><input type="text" id="ezAgeLicensed" placeholder="16"></div>
-                        <div class="ez-form-field ez-form-full"><label>VIN</label><input type="text" id="ezVIN" placeholder="1HGBH41JXMN109186" maxlength="17" style="text-transform:uppercase;"></div>
-                        <div class="ez-form-field"><label>Vehicle Year</label><input type="text" id="ezVehicleYear" placeholder="2022"></div>
-                        <div class="ez-form-field"><label>Vehicle Make</label><input type="text" id="ezVehicleMake" placeholder="Honda"></div>
-                        <div class="ez-form-field"><label>Vehicle Model</label><input type="text" id="ezVehicleModel" placeholder="Civic"></div>
-                        <div class="ez-form-field"><label>Vehicle Use</label>
-                            <select id="ezVehicleUse">
-                                <option value="">—</option>
-                                <option value="Business">Business</option>
-                                <option value="Farming">Farming</option>
-                                <option value="Pleasure">Pleasure</option>
-                                <option value="To/From Work">To/From Work</option>
-                                <option value="To/From School">To/From School</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Annual Miles</label><input type="text" id="ezAnnualMiles" placeholder="12000"></div>
-                        <div class="ez-form-field"><label>Ownership</label>
-                            <select id="ezOwnershipType">
-                                <option value="">—</option>
-                                <option value="Owned">Owned</option>
-                                <option value="Leased">Leased</option>
-                                <option value="Lien">Lien</option>
-                            </select>
-                        </div>
-                    </div>
-                </details>
-
-                    </div><!-- /ez-acc-body Auto Policy -->
-                </details>
-
-                <!-- 🏠 Home Policy accordion -->
-                <details class="ez-accordion">
-                    <summary>
-                        🏠 Home Policy
-                        <span class="ez-acc-chevron">▼</span>
-                    </summary>
-                    <div class="ez-acc-body">
-
-                <div class="ez-section-label">Dwelling Details</div>
-                <details class="ez-details" id="ezHomeSection">
-                    <summary>Home Dwelling</summary>
-                    <div class="ez-form-grid">
-                        <div class="ez-form-field"><label>Dwelling Usage</label>
-                            <select id="ezDwellingUsage">
-                                <option value="">—</option>
-                                <option value="Primary">Primary</option>
-                                <option value="Secondary">Secondary</option>
-                                <option value="Seasonal">Seasonal</option>
-                                <option value="Farm">Farm</option>
-                                <option value="COC">COC</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Occupancy</label>
-                            <select id="ezOccupancyType">
-                                <option value="">—</option>
-                                <option value="Owner Occupied">Owner Occupied</option>
-                                <option value="Renter Occupied">Renter Occupied</option>
-                                <option value="Unoccupied">Unoccupied</option>
-                                <option value="Vacant">Vacant</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Dwelling Type</label>
-                            <select id="ezDwellingType">
-                                <option value="">—</option>
-                                <option value="One Family">One Family</option>
-                                <option value="Two Family">Two Family</option>
-                                <option value="Three Family">Three Family</option>
-                                <option value="Four Family">Four Family</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Stories</label>
-                            <select id="ezNumStories">
-                                <option value="">—</option>
-                                <option value="1">1</option>
-                                <option value="1.5">1.5</option>
-                                <option value="2">2</option>
-                                <option value="2.5">2.5</option>
-                                <option value="3">3</option>
-                                <option value="3.5">3.5</option>
-                                <option value="4">4</option>
-                                <option value="Bi-Level">Bi-Level</option>
-                                <option value="Tri-Level">Tri-Level</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Construction</label>
-                            <select id="ezConstructionStyle">
-                                <option value="">—</option>
-                                <option value="Apartment">Apartment</option>
-                                <option value="Backsplit">Backsplit</option>
-                                <option value="Bi-Level">Bi-Level</option>
-                                <option value="Bi-Level/Row Center">Bi-Level/Row Center</option>
-                                <option value="Bi-Level/Row End">Bi-Level/Row End</option>
-                                <option value="Bungalow">Bungalow</option>
-                                <option value="Cape Cod">Cape Cod</option>
-                                <option value="Colonial">Colonial</option>
-                                <option value="Condo">Condo</option>
-                                <option value="Coop">Coop</option>
-                                <option value="Contemporary">Contemporary</option>
-                                <option value="Cottage">Cottage</option>
-                                <option value="Dwelling">Dwelling</option>
-                                <option value="Federal Colonial">Federal Colonial</option>
-                                <option value="Mediterranean">Mediterranean</option>
-                                <option value="Ornate Victorian">Ornate Victorian</option>
-                                <option value="Queen Anne">Queen Anne</option>
-                                <option value="Raised Ranch">Raised Ranch</option>
-                                <option value="Rambler">Rambler</option>
-                                <option value="Ranch">Ranch</option>
-                                <option value="Rowhouse">Rowhouse</option>
-                                <option value="Rowhouse Center">Rowhouse Center</option>
-                                <option value="Rowhouse End">Rowhouse End</option>
-                                <option value="Southwest Adobe">Southwest Adobe</option>
-                                <option value="Split Foyer">Split Foyer</option>
-                                <option value="Split Level">Split Level</option>
-                                <option value="Substandard">Substandard</option>
-                                <option value="Townhouse">Townhouse</option>
-                                <option value="Townhouse Center">Townhouse Center</option>
-                                <option value="Townhouse End">Townhouse End</option>
-                                <option value="Tri-Level">Tri-Level</option>
-                                <option value="Tri-Level Center">Tri-Level Center</option>
-                                <option value="Victorian">Victorian</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Exterior Walls</label>
-                            <select id="ezExteriorWalls">
-                                <option value="">—</option>
-                                <option value="Adobe">Adobe</option>
-                                <option value="Aluminum/Vinyl">Aluminum/Vinyl</option>
-                                <option value="Barn Plank">Barn Plank</option>
-                                <option value="Brick">Brick</option>
-                                <option value="Brick on Block">Brick on Block</option>
-                                <option value="Brick on Block, Custom">Brick on Block, Custom</option>
-                                <option value="Brick Veneer">Brick Veneer</option>
-                                <option value="Brick Veneer, Custom">Brick Veneer, Custom</option>
-                                <option value="Cement Fiber Shingles">Cement Fiber Shingles</option>
-                                <option value="Clapboard">Clapboard</option>
-                                <option value="Concrete Decorative Block, Painted">Concrete Decorative Block, Painted</option>
-                                <option value="Ext Insul and Finish Sys (EIFS)">Ext Insul and Finish Sys (EIFS)</option>
-                                <option value="Fire Resistant">Fire Resistant</option>
-                                <option value="Logs">Logs</option>
-                                <option value="Poured Concrete">Poured Concrete</option>
-                                <option value="Siding, Aluminum">Siding, Aluminum</option>
-                                <option value="Siding, Hardboard">Siding, Hardboard</option>
-                                <option value="Siding, Plywood">Siding, Plywood</option>
-                                <option value="Siding, Steel">Siding, Steel</option>
-                                <option value="Siding, T-111">Siding, T-111</option>
-                                <option value="Siding, Vinyl">Siding, Vinyl</option>
-                                <option value="Siding, Wood">Siding, Wood</option>
-                                <option value="Slump Block">Slump Block</option>
-                                <option value="Solid Brick">Solid Brick</option>
-                                <option value="Solid Brick, Custom">Solid Brick, Custom</option>
-                                <option value="Solid Brownstone">Solid Brownstone</option>
-                                <option value="Solid Stone">Solid Stone</option>
-                                <option value="Solid Stone, Custom">Solid Stone, Custom</option>
-                                <option value="Stone on Block">Stone on Block</option>
-                                <option value="Stone on Block, Custom Stone">Stone on Block, Custom Stone</option>
-                                <option value="Stone Veneer">Stone Veneer</option>
-                                <option value="Stone Veneer, Custom">Stone Veneer, Custom</option>
-                                <option value="Stucco">Stucco</option>
-                                <option value="Stucco on Block">Stucco on Block</option>
-                                <option value="Stucco on Frame">Stucco on Frame</option>
-                                <option value="Victorian Scalloped Shakes">Victorian Scalloped Shakes</option>
-                                <option value="Window Wall">Window Wall</option>
-                                <option value="Wood Shakes">Wood Shakes</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Foundation</label>
-                            <select id="ezFoundationType">
-                                <option value="">—</option>
-                                <option value="Basement - Finished">Basement - Finished</option>
-                                <option value="Basement - Partially Finished">Basement - Partially Finished</option>
-                                <option value="Basement - Unfinished">Basement - Unfinished</option>
-                                <option value="Basement - Walkout">Basement - Walkout</option>
-                                <option value="Crawl Space - Enclosed">Crawl Space - Enclosed</option>
-                                <option value="Crawl Space - Open">Crawl Space - Open</option>
-                                <option value="Daylight Basement - Finished">Daylight Basement - Finished</option>
-                                <option value="Daylight Basement - Partially Finished">Daylight Basement - Partially Finished</option>
-                                <option value="Daylight Basement - Unfinished">Daylight Basement - Unfinished</option>
-                                <option value="Hillside Foundation">Hillside Foundation</option>
-                                <option value="Other">Other</option>
-                                <option value="Piers">Piers</option>
-                                <option value="Pilings/stilts">Pilings/stilts</option>
-                                <option value="Slab">Slab</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Roof Type</label>
-                            <select id="ezRoofType">
-                                <option value="">—</option>
-                                <option value="Architectural Shingles">Architectural Shingles</option>
-                                <option value="Asbestos">Asbestos</option>
-                                <option value="Asphalt Shingles">Asphalt Shingles</option>
-                                <option value="Composition">Composition</option>
-                                <option value="Copper(flat)">Copper(flat)</option>
-                                <option value="Copper(pitched)">Copper(pitched)</option>
-                                <option value="Corrugated Steel(flat)">Corrugated Steel(flat)</option>
-                                <option value="Corrugated Steel(pitched)">Corrugated Steel(pitched)</option>
-                                <option value="Fiberglass">Fiberglass</option>
-                                <option value="Foam">Foam</option>
-                                <option value="Gravel">Gravel</option>
-                                <option value="Metal(flat)">Metal(flat)</option>
-                                <option value="Metal(pitched)">Metal(pitched)</option>
-                                <option value="Mineral Fiber Shake">Mineral Fiber Shake</option>
-                                <option value="Other">Other</option>
-                                <option value="Plastic(flat)">Plastic(flat)</option>
-                                <option value="Plastic(pitched)">Plastic(pitched)</option>
-                                <option value="Rock">Rock</option>
-                                <option value="Rolled Paper(flat)">Rolled Paper(flat)</option>
-                                <option value="Rolled Paper(pitched)">Rolled Paper(pitched)</option>
-                                <option value="Rubber Flat">Rubber Flat</option>
-                                <option value="Rubber(pitched)">Rubber(pitched)</option>
-                                <option value="Slate">Slate</option>
-                                <option value="Solar">Solar</option>
-                                <option value="Thatch">Thatch</option>
-                                <option value="Tar">Tar</option>
-                                <option value="Tar And Gravel">Tar And Gravel</option>
-                                <option value="Tile(clay)">Tile(clay)</option>
-                                <option value="Tile(concrete)">Tile(concrete)</option>
-                                <option value="Tile(spanish)">Tile(spanish)</option>
-                                <option value="Tin(flat)">Tin(flat)</option>
-                                <option value="Tin(pitched)">Tin(pitched)</option>
-                                <option value="Wood Fiberglass Shingles">Wood Fiberglass Shingles</option>
-                                <option value="Wood Shake">Wood Shake</option>
-                                <option value="Wood Shingles">Wood Shingles</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Roof Shape</label>
-                            <select id="ezRoofDesign">
-                                <option value="">—</option>
-                                <option value="Dormer">Dormer</option>
-                                <option value="Flat">Flat</option>
-                                <option value="Gable">Gable</option>
-                                <option value="Gambrel">Gambrel</option>
-                                <option value="Hip">Hip</option>
-                                <option value="Mansard">Mansard</option>
-                                <option value="Other">Other</option>
-                                <option value="Pyramid">Pyramid</option>
-                                <option value="Shed">Shed</option>
-                                <option value="Turret">Turret</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Roof Year</label><input type="text" id="ezRoofYear" placeholder="2015"></div>
-                        <div class="ez-form-field"><label>Heating</label>
-                            <select id="ezHeatingType">
-                                <option value="">—</option>
-                                <option value="Electric">Electric</option>
-                                <option value="Gas">Gas</option>
-                                <option value="Gas - Forced Air">Gas - Forced Air</option>
-                                <option value="Gas - Hot Water">Gas - Hot Water</option>
-                                <option value="Oil">Oil</option>
-                                <option value="Oil - Forced Air">Oil - Forced Air</option>
-                                <option value="Oil - Hot Water">Oil - Hot Water</option>
-                                <option value="Other">Other</option>
-                                <option value="Other - Forced Air">Other - Forced Air</option>
-                                <option value="Other - Hot Water">Other - Hot Water</option>
-                                <option value="Solid Fuel">Solid Fuel</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Cooling</label><input type="text" id="ezCooling" placeholder="Central Air"></div>
-                        <div class="ez-form-field"><label>Burglar Alarm</label>
-                            <select id="ezBurglarAlarm">
-                                <option value="">—</option>
-                                <option value="None">None</option>
-                                <option value="Central">Central</option>
-                                <option value="Direct">Direct</option>
-                                <option value="Local">Local</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Fire Detection</label>
-                            <select id="ezFireDetection">
-                                <option value="">—</option>
-                                <option value="None">None</option>
-                                <option value="Central">Central</option>
-                                <option value="Direct">Direct</option>
-                                <option value="Local">Local</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Sprinkler</label>
-                            <select id="ezSprinklerSystem">
-                                <option value="">—</option>
-                                <option value="None">None</option>
-                                <option value="Partial">Partial</option>
-                                <option value="Full">Full</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Protection Class</label>
-                            <select id="ezProtectionClass">
-                                <option value="">—</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9">9</option>
-                                <option value="10">10</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Sq Ft</label><input type="text" id="ezSqFt" placeholder="1800"></div>
-                        <div class="ez-form-field"><label>Year Built</label><input type="text" id="ezYearBuilt" placeholder="1990"></div>
-                        <div class="ez-form-field"><label>Lot Size (acres)</label><input type="text" id="ezLotSize" placeholder="0.25"></div>
-                        <div class="ez-form-field"><label>Bedrooms</label><input type="text" id="ezBedrooms" placeholder="3"></div>
-                        <div class="ez-form-field"><label>Smoke Detector</label>
-                            <select id="ezSmokeDetector">
-                                <option value="">—</option>
-                                <option value="None">None</option>
-                                <option value="Central">Central</option>
-                                <option value="Direct">Direct</option>
-                                <option value="Local">Local</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Ft from Hydrant</label>
-                            <select id="ezFeetFromHydrant">
-                                <option value="">—</option>
-                                <option value="1-500">1-500</option>
-                                <option value="501-600">501-600</option>
-                                <option value="601-1000">601-1000</option>
-                                <option value="1001-1100">1001-1100</option>
-                                <option value="1101-1200">1101-1200</option>
-                                <option value="1201-1300">1201-1300</option>
-                                <option value="1301-1400">1301-1400</option>
-                                <option value="1401-1500">1401-1500</option>
-                                <option value="1501 and Greater">1501 and Greater</option>
-                                <option value="None in Area">None in Area</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Full Baths</label>
-                            <select id="ezNumFullBaths">
-                                <option value="">—</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9">9</option>
-                                <option value="10+">10+</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Half Baths</label>
-                            <select id="ezNumHalfBaths">
-                                <option value="">—</option>
-                                <option value="0">0</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5+">5+</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label># Occupants</label>
-                            <select id="ezNumOccupants">
-                                <option value="">—</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9 or more">9 or more</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Garage Type</label>
-                            <select id="ezGarageType">
-                                <option value="">—</option>
-                                <option value="None">None</option>
-                                <option value="Attached">Attached</option>
-                                <option value="Detached">Detached</option>
-                                <option value="Built-In">Built-In</option>
-                                <option value="Carport">Carport</option>
-                                <option value="Basement">Basement</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Garage Spaces</label>
-                            <select id="ezGarageSpaces">
-                                <option value="">—</option>
-                                <option value="0">0</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6+">6+</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Fireplaces</label>
-                            <select id="ezNumFireplaces">
-                                <option value="">—</option>
-                                <option value="0">0</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5+">5+</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Pool</label>
-                            <select id="ezPool">
-                                <option value="">—</option>
-                                <option value="No">No</option>
-                                <option value="Yes - Above Ground">Yes - Above Ground</option>
-                                <option value="Yes - In Ground">Yes - In Ground</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Trampoline</label>
-                            <select id="ezTrampoline">
-                                <option value="">—</option>
-                                <option value="No">No</option>
-                                <option value="Yes">Yes</option>
-                            </select>
-                        </div>
-                    </div>
-                </details>
-
-                <hr class="ez-divider">
-                <div class="ez-section-label">Coverage</div>
-                <details class="ez-details" id="ezHomeCovSection">
-                    <summary>Home Coverage</summary>
-                    <div class="ez-form-grid">
-                        <div class="ez-form-field"><label>Policy Type</label>
-                            <select id="ezHomePolicyType">
-                                <option value="">—</option>
-                                <option value="HO1">HO1</option>
-                                <option value="HO2">HO2</option>
-                                <option value="HO3">HO3</option>
-                                <option value="HO4">HO4 (Renters)</option>
-                                <option value="HO5">HO5</option>
-                                <option value="HO6">HO6 (Condo)</option>
-                                <option value="HO8">HO8</option>
-                                <option value="DP1">DP1</option>
-                                <option value="DP2">DP2</option>
-                                <option value="DP3">DP3</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Prior Carrier</label><input type="text" id="ezHomePriorCarrier" placeholder="Safeco"></div>
-                        <div class="ez-form-field"><label>Prior Policy Term</label>
-                            <select id="ezHomePriorPolicyTerm">
-                                <option value="">—</option>
-                                <option value="6 Month">6 Month</option>
-                                <option value="12 Month">12 Month</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Prior Years</label><input type="text" id="ezHomePriorYears" placeholder="4"></div>
-                        <div class="ez-form-field"><label>Prior Expiration</label><input type="text" id="ezHomePriorExp" placeholder="MM/DD/YYYY"></div>
-                        <div class="ez-form-field"><label>Dwelling (Cov A)</label><input type="text" id="ezDwellingCoverage" placeholder="350000"></div>
-                        <div class="ez-form-field"><label>Personal Liability</label>
-                            <select id="ezHomePersonalLiability">
-                                <option value="">—</option>
-                                <option value="25000">$25,000</option>
-                                <option value="50000">$50,000</option>
-                                <option value="100000">$100,000</option>
-                                <option value="200000">$200,000</option>
-                                <option value="300000">$300,000</option>
-                                <option value="400000">$400,000</option>
-                                <option value="500000">$500,000</option>
-                                <option value="1000000">$1,000,000</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Medical Payments</label>
-                            <select id="ezHomeMedicalPayments">
-                                <option value="">—</option>
-                                <option value="1000">$1,000</option>
-                                <option value="2000">$2,000</option>
-                                <option value="3000">$3,000</option>
-                                <option value="4000">$4,000</option>
-                                <option value="5000">$5,000</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>All Perils Ded.</label>
-                            <select id="ezAllPerilsDeductible">
-                                <option value="">—</option>
-                                <option value="1/2%">1/2%</option>
-                                <option value="1%">1%</option>
-                                <option value="100">$100</option>
-                                <option value="250">$250</option>
-                                <option value="500">$500</option>
-                                <option value="750">$750</option>
-                                <option value="1000">$1,000</option>
-                                <option value="1500">$1,500</option>
-                                <option value="2000">$2,000</option>
-                                <option value="2500">$2,500</option>
-                                <option value="3000">$3,000</option>
-                                <option value="4000">$4,000</option>
-                                <option value="5000">$5,000</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Theft Ded.</label>
-                            <select id="ezTheftDeductible">
-                                <option value="">—</option>
-                                <option value="500">$500</option>
-                                <option value="1500">$1,500</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field"><label>Wind Ded.</label>
-                            <select id="ezWindDeductible">
-                                <option value="">—</option>
-                                <option value="100">$100</option>
-                                <option value="250">$250</option>
-                                <option value="500">$500</option>
-                                <option value="1000">$1,000</option>
-                                <option value="1500">$1,500</option>
-                                <option value="2000">$2,000</option>
-                                <option value="2500">$2,500</option>
-                                <option value="5000">$5,000</option>
-                                <option value="10000">$10,000</option>
-                                <option value="1%">1%</option>
-                                <option value="2%">2%</option>
-                                <option value="3%">3%</option>
-                                <option value="4%">4%</option>
-                                <option value="5%">5%</option>
-                            </select>
-                        </div>
-                        <div class="ez-form-field ez-form-full"><label>Mortgagee</label><input type="text" id="ezMortgagee" placeholder="US Bank"></div>
-                    </div>
-                </details>
-
-                    </div><!-- /ez-acc-body Home Policy -->
-                </details>
-
-                <div id="ezExtraLoaded" style="display:none; margin-top:12px; padding:8px 14px; border-radius:10px; font-size:12px;">
-                    ✅ <span id="ezExtraCount">0</span> additional fields loaded from intake
-                </div>
-
-                </div><!-- /padding wrapper -->
-            </div><!-- /ez-glass client data -->
-
-            <!-- Auto-Fill Launch -->
-            <div class="ez-launch-card">
-                <h2>🚀 Auto-Fill EZLynx</h2>
-                <p class="section-subtitle">Opens Chromium, waits for login, then fills the current page with matching data.</p>
-
-                <!-- Quick Login -->
-                <div class="ez-login-box" style="text-align:left; margin-bottom:20px;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                        <span style="font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#64748b;">🔑 Quick Login</span>
-                        <span style="font-size:10px; color:#475569;">Stored locally only</span>
-                    </div>
-                    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
-                        <div style="flex:1; min-width:120px;">
-                            <label>Username</label>
-                            <input type="text" id="ezLoginUser" placeholder="agent@example.com" oninput="EZLynxTool.saveLogin()">
-                        </div>
-                        <div style="flex:1; min-width:120px;">
-                            <label>Password</label>
-                            <div style="display:flex; gap:0;">
-                                <input type="password" id="ezLoginPass" placeholder="••••••••" oninput="EZLynxTool.saveLogin()" style="border-radius:8px 0 0 8px; border-right:none;">
-                                <button type="button" onclick="EZLynxTool.toggleLoginPw()" title="Show/hide" id="ezLoginPwToggle" style="border-radius:0; font-size:14px; min-width:36px;">👁</button>
-                                <button type="button" onclick="EZLynxTool.copyPassword()" title="Copy password" id="ezCopyPwBtn" style="border-radius:0 8px 8px 0; background:linear-gradient(135deg, #2563eb, #7c3aed); border-color:transparent; color:#fff; font-weight:700; font-size:11px; letter-spacing:0.5px; white-space:nowrap; padding:7px 14px;">📋 Copy</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <button class="ez-launch-btn" id="ezLaunchBtn" onclick="EZLynxTool.launch()">
-                    🚀 Auto-Fill EZLynx
+<header>
+    <div class="header-top">
+        <div class="logo tool-header-brand">
+            <span class="logo-controls">
+                <a class="logo-icon-button" href="#home" onclick="App.goHome(); return false;" aria-label="Back to home">
+                    <span class="logo-icon">⚡</span>
+                </a>
+                <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <span class="dark-mode-icon">🌙</span>
                 </button>
+            </span>
+            <span>EZLynx Quoter</span>
+        </div>
+    </div>
+    <div class="step-title">Auto-fill EZLynx new applicant forms with fuzzy dropdown matching</div>
+</header>
 
-                <div class="ez-status-box" id="ezFillStatus"></div>
+<div class="ez-container">
+    <!-- Schema Status — collapsible accordion -->
+    <details class="ez-accordion" id="ezSchemaCard">
+        <summary onclick="EZLynxTool.toggleSchema && EZLynxTool.toggleSchema()">
+            <div class="ez-schema-dot missing" id="ezSchemaDot"></div>
+            <span>📋 Dropdown Schema</span>
+            <span id="ezSchemaQuickInfo" style="font-size:11px; color:#64748b; white-space:nowrap;"></span>
+            <span class="ez-acc-chevron">▼</span>
+        </summary>
+        <div class="ez-acc-body" id="ezSchemaBody">
+            <p style="font-size:13px; color:#94a3b8; margin:0 0 12px;">Maps every dropdown option so the filler can fuzzy-match your data.</p>
+
+            <div class="ez-schema-status" id="ezSchemaStatus">
+                <div class="ez-schema-info">
+                    <div class="ez-label" id="ezSchemaLabel">Checking...</div>
+                    <div class="ez-sublabel" id="ezSchemaSub"></div>
+                </div>
+                <button class="ez-toolbar-btn primary" onclick="event.stopPropagation(); EZLynxTool.refreshSchema()">
+                    🔄 Refresh
+                </button>
             </div>
+            <div id="ezSchemaPages" style="margin-top:8px;"></div>
+            <div class="ez-status-box" id="ezSchemaLog"></div>
+        </div>
+    </details>
 
-            <!-- How It Works -->
-            <details class="ez-accordion" style="margin-top:16px;">
-                <summary>
-                    ℹ️ How It Works
-                    <span class="ez-acc-chevron">▼</span>
-                </summary>
-                <div class="ez-acc-body">
-                    <div class="ez-info-card" style="margin-top:0; border:none; background:transparent; padding:0;">
-                        <p style="margin:0 0 14px;">
-                            <strong style="color:#e2e8f0;">Option A — Chrome Extension (Recommended):</strong><br>
-                            1. Click <strong>📤 Copy for Extension</strong> to copy client data.<br>
-                            2. Open EZLynx in your browser.<br>
-                            3. Click the Altech extension → <strong>📋 Paste from Altech</strong>.<br>
-                            4. Navigate to each form page → click <strong>⚡ Fill This Page</strong>.<br><br>
-                            <strong style="color:#e2e8f0;">Option B — Python Filler (Desktop):</strong><br>
-                            1. Click <strong>🔄 Refresh</strong> — log in, navigate pages, dropdowns auto-scrape.<br>
-                            2. Enter client data or click <strong>📥 Intake</strong>.<br>
-                            3. Click Auto-Fill → Chromium opens → log in → <strong>Fill Now</strong> on each page.
-                        </p>
-                        <p style="margin:0;">Both methods fuzzy-match dropdowns: <code>WA → Washington</code>, <code>HO3 → HO3 - Dwelling</code>, <code>Commute → To/From Work</code>.</p>
-                        <div class="hint" style="margin-top:14px; font-size:12px; color:#64748b; padding:10px 14px; background:rgba(0,0,0,0.15); border-radius:10px;">
-                            💡 <strong>Chrome Extension:</strong> Load from <code>chrome://extensions</code> → Enable Developer Mode → Load Unpacked → select <code>chrome-extension/</code>.
-                        </div>
+    <!-- Client Data Form -->
+    <div class="ez-glass" style="padding:0;">
+        <!-- Toolbar -->
+        <div class="ez-toolbar" style="border-radius:16px 16px 0 0;">
+            <button class="ez-toolbar-btn primary" onclick="EZLynxTool.loadFromIntake()" title="Load from intake form">📥 Intake</button>
+            <button class="ez-toolbar-btn" onclick="EZLynxTool.clearForm()" title="Clear all fields">🗑 Clear</button>
+            <div class="ez-toolbar-sep"></div>
+            <button class="ez-toolbar-btn primary" onclick="EZLynxTool.copyForExtension()" title="Copy data for Chrome Extension">📤 Copy for Extension</button>
+            <button class="ez-toolbar-btn" style="border-color:rgba(124,58,237,0.4); color:#a78bfa;" onclick="EZLynxTool.importScrapedSchema()" title="Import scraped JSON schema">📊 Import Schema</button>
+        </div>
+        <div style="padding:18px 20px 20px;">
+
+        <!-- 👤 Client Personal accordion (open by default) -->
+        <details class="ez-accordion" open>
+            <summary>
+                👤 Client Personal
+                <span class="ez-acc-chevron">▼</span>
+            </summary>
+            <div class="ez-acc-body">
+
+        <div class="ez-section-label">Personal</div>
+        <div class="ez-form-grid">
+            <div class="ez-form-field">
+                <label>First Name</label>
+                <input type="text" id="ezFirstName" placeholder="Austin">
+            </div>
+            <div class="ez-form-field">
+                <label>Last Name</label>
+                <input type="text" id="ezLastName" placeholder="Kays">
+            </div>
+            <div class="ez-form-field">
+                <label>Middle Name</label>
+                <input type="text" id="ezMiddleName" placeholder="">
+            </div>
+            <div class="ez-form-field">
+                <label>Date of Birth</label>
+                <input type="text" id="ezDOB" placeholder="MM/DD/YYYY">
+            </div>
+            <div class="ez-form-field">
+                <label>Gender</label>
+                <select id="ezGender">
+                    <option value="">—</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Not Specified">Not Specified</option>
+                </select>
+            </div>
+            <div class="ez-form-field">
+                <label>Marital Status</label>
+                <select id="ezMaritalStatus">
+                    <option value="">—</option>
+                    <option value="Single">Single</option>
+                    <option value="Married">Married</option>
+                    <option value="Divorced">Divorced</option>
+                    <option value="Widowed">Widowed</option>
+                    <option value="Separated">Separated</option>
+                    <option value="Domestic Partner">Domestic Partner</option>
+                </select>
+            </div>
+        </div>
+
+        <hr class="ez-divider">
+        <div class="ez-section-label">Contact</div>
+        <div class="ez-form-grid">
+            <div class="ez-form-field">
+                <label>Email</label>
+                <input type="email" id="ezEmail" placeholder="austin@example.com">
+            </div>
+            <div class="ez-form-field">
+                <label>Phone</label>
+                <input type="tel" id="ezPhone" placeholder="3605551234">
+            </div>
+        </div>
+
+        <hr class="ez-divider">
+        <div class="ez-section-label">Address</div>
+        <div class="ez-form-grid">
+            <div class="ez-form-field ez-form-full">
+                <label>Street Address</label>
+                <input type="text" id="ezAddress" placeholder="123 Main St">
+            </div>
+            <div class="ez-form-field">
+                <label>City</label>
+                <input type="text" id="ezCity" placeholder="Vancouver">
+            </div>
+            <div class="ez-form-field">
+                <label>State</label>
+                <input type="text" id="ezState" placeholder="WA" maxlength="2" style="text-transform:uppercase;">
+            </div>
+            <div class="ez-form-field">
+                <label>Zip Code</label>
+                <input type="text" id="ezZip" placeholder="98686" maxlength="10">
+            </div>
+            <div class="ez-form-field">
+                <label>County</label>
+                <input type="text" id="ezCounty" placeholder="Clark">
+            </div>
+            <div class="ez-form-field">
+                <label>Years at Address</label>
+                <input type="text" id="ezYearsAtAddress" placeholder="5">
+            </div>
+        </div>
+
+        <hr class="ez-divider">
+        <div class="ez-section-label">Additional</div>
+        <div class="ez-form-grid">
+            <div class="ez-form-field">
+                <label>Education</label>
+                <select id="ezEducation">
+                    <option value="">—</option>
+                    <option value="No High School Diploma">No High School Diploma</option>
+                    <option value="High School Diploma">High School Diploma</option>
+                    <option value="Some College - No Degree">Some College - No Degree</option>
+                    <option value="Vocational/Technical Degree">Vocational/Technical Degree</option>
+                    <option value="Associates Degree">Associates Degree</option>
+                    <option value="Bachelors">Bachelors</option>
+                    <option value="Masters">Masters</option>
+                    <option value="Phd">Phd</option>
+                    <option value="Medical Degree">Medical Degree</option>
+                    <option value="Law Degree">Law Degree</option>
+                </select>
+            </div>
+            <div class="ez-form-field">
+                <label>Occupation</label>
+                <input type="text" id="ezOccupation" placeholder="Insurance Agent">
+            </div>
+            <div class="ez-form-field">
+                <label>Industry</label>
+                <input type="text" id="ezIndustry" placeholder="Insurance">
+            </div>
+            <div class="ez-form-field">
+                <label>License #</label>
+                <input type="text" id="ezLicenseNumber" placeholder="KAYSAB123XY">
+            </div>
+        </div>
+
+            </div><!-- /ez-acc-body Client Personal -->
+        </details>
+
+        <!-- 🚗 Auto Policy accordion -->
+        <details class="ez-accordion">
+            <summary>
+                🚗 Auto Policy & Driver
+                <span class="ez-acc-chevron">▼</span>
+            </summary>
+            <div class="ez-acc-body">
+
+        <div class="ez-section-label">Policy & Coverage</div>
+        <details class="ez-details" id="ezAutoSection">
+            <summary>Auto Coverage Details</summary>
+            <div class="ez-form-grid">
+                <div class="ez-form-field"><label>Policy Term</label>
+                    <select id="ezPolicyTerm">
+                        <option value="">—</option>
+                        <option value="6 Month">6 Month</option>
+                        <option value="12 Month">12 Month</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Effective Date</label><input type="text" id="ezEffectiveDate" placeholder="MM/DD/YYYY"></div>
+                <div class="ez-form-field"><label>Prior Carrier</label><input type="text" id="ezPriorCarrier" placeholder="State Farm"></div>
+                <div class="ez-form-field"><label>Prior Policy Term</label>
+                    <select id="ezPriorPolicyTerm">
+                        <option value="">—</option>
+                        <option value="6 Month">6 Month</option>
+                        <option value="12 Month">12 Month</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Years w/ Prior</label>
+                    <select id="ezPriorYearsWithCarrier">
+                        <option value="">—</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                        <option value="13">13</option>
+                        <option value="14">14</option>
+                        <option value="15">15</option>
+                        <option value="More than 15">More than 15</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Bodily Injury</label>
+                    <select id="ezBodilyInjury">
+                        <option value="">—</option>
+                        <option value="State Minimum">State Minimum</option>
+                        <option value="25/50">25/50</option>
+                        <option value="50/50">50/50</option>
+                        <option value="50/100">50/100</option>
+                        <option value="100/100">100/100</option>
+                        <option value="100/300">100/300</option>
+                        <option value="250/500">250/500</option>
+                        <option value="300/300">300/300</option>
+                        <option value="500/500">500/500</option>
+                        <option value="1000/1000">1000/1000</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Property Damage</label>
+                    <select id="ezPropertyDamage">
+                        <option value="">—</option>
+                        <option value="State Minimum">State Minimum</option>
+                        <option value="10000">$10,000</option>
+                        <option value="15000">$15,000</option>
+                        <option value="25000">$25,000</option>
+                        <option value="50000">$50,000</option>
+                        <option value="100000">$100,000</option>
+                        <option value="250000">$250,000</option>
+                        <option value="500000">$500,000</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Comprehensive</label>
+                    <select id="ezComprehensive">
+                        <option value="">—</option>
+                        <option value="No Coverage">No Coverage</option>
+                        <option value="0">$0</option>
+                        <option value="50">$50</option>
+                        <option value="100">$100</option>
+                        <option value="200">$200</option>
+                        <option value="250">$250</option>
+                        <option value="500">$500</option>
+                        <option value="1000">$1,000</option>
+                        <option value="2000">$2,000</option>
+                        <option value="2500">$2,500</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Collision</label>
+                    <select id="ezCollision">
+                        <option value="">—</option>
+                        <option value="No Coverage">No Coverage</option>
+                        <option value="0">$0</option>
+                        <option value="50">$50</option>
+                        <option value="100">$100</option>
+                        <option value="200">$200</option>
+                        <option value="250">$250</option>
+                        <option value="500">$500</option>
+                        <option value="1000">$1,000</option>
+                        <option value="2000">$2,000</option>
+                        <option value="2500">$2,500</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Med Payments</label>
+                    <select id="ezMedPaymentsAuto">
+                        <option value="">—</option>
+                        <option value="500">$500</option>
+                        <option value="1000">$1,000</option>
+                        <option value="2000">$2,000</option>
+                        <option value="2500">$2,500</option>
+                        <option value="5000">$5,000</option>
+                        <option value="10000">$10,000</option>
+                        <option value="15000">$15,000</option>
+                        <option value="25000">$25,000</option>
+                        <option value="50000">$50,000</option>
+                        <option value="100000">$100,000</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>UMPD</label>
+                    <select id="ezUMPD">
+                        <option value="">—</option>
+                        <option value="No Coverage">No Coverage</option>
+                        <option value="State Minimum">State Minimum</option>
+                        <option value="10000">$10,000</option>
+                        <option value="15000">$15,000</option>
+                        <option value="25000">$25,000</option>
+                        <option value="50000">$50,000</option>
+                        <option value="100000">$100,000</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Prior Liab Limits</label>
+                    <select id="ezPriorLiabilityLimits">
+                        <option value="">—</option>
+                        <option value="State Minimum">State Minimum</option>
+                        <option value="25/50">25/50</option>
+                        <option value="50/50">50/50</option>
+                        <option value="50/100">50/100</option>
+                        <option value="100/100">100/100</option>
+                        <option value="100/300">100/300</option>
+                        <option value="250/500">250/500</option>
+                        <option value="300/300">300/300</option>
+                        <option value="500/500">500/500</option>
+                        <option value="1000/1000">1000/1000</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Yrs Continuous Cov</label><input type="text" id="ezYearsContinuousCoverage" placeholder="5"></div>
+                <div class="ez-form-field"><label># Residents</label><input type="text" id="ezNumResidents" placeholder="2"></div>
+                <div class="ez-form-field"><label>Residence Is</label>
+                    <select id="ezResidenceIs">
+                        <option value="">—</option>
+                        <option value="Home (owned)">Home (owned)</option>
+                        <option value="Condo (owned)">Condo (owned)</option>
+                        <option value="Apartment">Apartment</option>
+                        <option value="Rental Home/Condo">Rental Home/Condo</option>
+                        <option value="Mobile Home">Mobile Home</option>
+                        <option value="Live With Parents">Live With Parents</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Accidents</label><input type="text" id="ezAccidents" placeholder="0"></div>
+                <div class="ez-form-field"><label>Violations</label><input type="text" id="ezViolations" placeholder="0"></div>
+            </div>
+        </details>
+
+        <hr class="ez-divider">
+        <div class="ez-section-label">Driver & Vehicle</div>
+        <details class="ez-details" id="ezDriverSection">
+            <summary>Driver & Vehicle Details</summary>
+            <div class="ez-form-grid">
+                <div class="ez-form-field"><label>DL State</label><input type="text" id="ezDLState" placeholder="WA" maxlength="2" style="text-transform:uppercase;"></div>
+                <div class="ez-form-field"><label>Age Licensed</label><input type="text" id="ezAgeLicensed" placeholder="16"></div>
+                <div class="ez-form-field ez-form-full"><label>VIN</label><input type="text" id="ezVIN" placeholder="1HGBH41JXMN109186" maxlength="17" style="text-transform:uppercase;"></div>
+                <div class="ez-form-field"><label>Vehicle Year</label><input type="text" id="ezVehicleYear" placeholder="2022"></div>
+                <div class="ez-form-field"><label>Vehicle Make</label><input type="text" id="ezVehicleMake" placeholder="Honda"></div>
+                <div class="ez-form-field"><label>Vehicle Model</label><input type="text" id="ezVehicleModel" placeholder="Civic"></div>
+                <div class="ez-form-field"><label>Vehicle Use</label>
+                    <select id="ezVehicleUse">
+                        <option value="">—</option>
+                        <option value="Business">Business</option>
+                        <option value="Farming">Farming</option>
+                        <option value="Pleasure">Pleasure</option>
+                        <option value="To/From Work">To/From Work</option>
+                        <option value="To/From School">To/From School</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Annual Miles</label><input type="text" id="ezAnnualMiles" placeholder="12000"></div>
+                <div class="ez-form-field"><label>Ownership</label>
+                    <select id="ezOwnershipType">
+                        <option value="">—</option>
+                        <option value="Owned">Owned</option>
+                        <option value="Leased">Leased</option>
+                        <option value="Lien">Lien</option>
+                    </select>
+                </div>
+            </div>
+        </details>
+
+            </div><!-- /ez-acc-body Auto Policy -->
+        </details>
+
+        <!-- 🏠 Home Policy accordion -->
+        <details class="ez-accordion">
+            <summary>
+                🏠 Home Policy
+                <span class="ez-acc-chevron">▼</span>
+            </summary>
+            <div class="ez-acc-body">
+
+        <div class="ez-section-label">Dwelling Details</div>
+        <details class="ez-details" id="ezHomeSection">
+            <summary>Home Dwelling</summary>
+            <div class="ez-form-grid">
+                <div class="ez-form-field"><label>Dwelling Usage</label>
+                    <select id="ezDwellingUsage">
+                        <option value="">—</option>
+                        <option value="Primary">Primary</option>
+                        <option value="Secondary">Secondary</option>
+                        <option value="Seasonal">Seasonal</option>
+                        <option value="Farm">Farm</option>
+                        <option value="COC">COC</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Occupancy</label>
+                    <select id="ezOccupancyType">
+                        <option value="">—</option>
+                        <option value="Owner Occupied">Owner Occupied</option>
+                        <option value="Renter Occupied">Renter Occupied</option>
+                        <option value="Unoccupied">Unoccupied</option>
+                        <option value="Vacant">Vacant</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Dwelling Type</label>
+                    <select id="ezDwellingType">
+                        <option value="">—</option>
+                        <option value="One Family">One Family</option>
+                        <option value="Two Family">Two Family</option>
+                        <option value="Three Family">Three Family</option>
+                        <option value="Four Family">Four Family</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Stories</label>
+                    <select id="ezNumStories">
+                        <option value="">—</option>
+                        <option value="1">1</option>
+                        <option value="1.5">1.5</option>
+                        <option value="2">2</option>
+                        <option value="2.5">2.5</option>
+                        <option value="3">3</option>
+                        <option value="3.5">3.5</option>
+                        <option value="4">4</option>
+                        <option value="Bi-Level">Bi-Level</option>
+                        <option value="Tri-Level">Tri-Level</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Construction</label>
+                    <select id="ezConstructionStyle">
+                        <option value="">—</option>
+                        <option value="Apartment">Apartment</option>
+                        <option value="Backsplit">Backsplit</option>
+                        <option value="Bi-Level">Bi-Level</option>
+                        <option value="Bi-Level/Row Center">Bi-Level/Row Center</option>
+                        <option value="Bi-Level/Row End">Bi-Level/Row End</option>
+                        <option value="Bungalow">Bungalow</option>
+                        <option value="Cape Cod">Cape Cod</option>
+                        <option value="Colonial">Colonial</option>
+                        <option value="Condo">Condo</option>
+                        <option value="Coop">Coop</option>
+                        <option value="Contemporary">Contemporary</option>
+                        <option value="Cottage">Cottage</option>
+                        <option value="Dwelling">Dwelling</option>
+                        <option value="Federal Colonial">Federal Colonial</option>
+                        <option value="Mediterranean">Mediterranean</option>
+                        <option value="Ornate Victorian">Ornate Victorian</option>
+                        <option value="Queen Anne">Queen Anne</option>
+                        <option value="Raised Ranch">Raised Ranch</option>
+                        <option value="Rambler">Rambler</option>
+                        <option value="Ranch">Ranch</option>
+                        <option value="Rowhouse">Rowhouse</option>
+                        <option value="Rowhouse Center">Rowhouse Center</option>
+                        <option value="Rowhouse End">Rowhouse End</option>
+                        <option value="Southwest Adobe">Southwest Adobe</option>
+                        <option value="Split Foyer">Split Foyer</option>
+                        <option value="Split Level">Split Level</option>
+                        <option value="Substandard">Substandard</option>
+                        <option value="Townhouse">Townhouse</option>
+                        <option value="Townhouse Center">Townhouse Center</option>
+                        <option value="Townhouse End">Townhouse End</option>
+                        <option value="Tri-Level">Tri-Level</option>
+                        <option value="Tri-Level Center">Tri-Level Center</option>
+                        <option value="Victorian">Victorian</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Exterior Walls</label>
+                    <select id="ezExteriorWalls">
+                        <option value="">—</option>
+                        <option value="Adobe">Adobe</option>
+                        <option value="Aluminum/Vinyl">Aluminum/Vinyl</option>
+                        <option value="Barn Plank">Barn Plank</option>
+                        <option value="Brick">Brick</option>
+                        <option value="Brick on Block">Brick on Block</option>
+                        <option value="Brick on Block, Custom">Brick on Block, Custom</option>
+                        <option value="Brick Veneer">Brick Veneer</option>
+                        <option value="Brick Veneer, Custom">Brick Veneer, Custom</option>
+                        <option value="Cement Fiber Shingles">Cement Fiber Shingles</option>
+                        <option value="Clapboard">Clapboard</option>
+                        <option value="Concrete Decorative Block, Painted">Concrete Decorative Block, Painted</option>
+                        <option value="Ext Insul and Finish Sys (EIFS)">Ext Insul and Finish Sys (EIFS)</option>
+                        <option value="Fire Resistant">Fire Resistant</option>
+                        <option value="Logs">Logs</option>
+                        <option value="Poured Concrete">Poured Concrete</option>
+                        <option value="Siding, Aluminum">Siding, Aluminum</option>
+                        <option value="Siding, Hardboard">Siding, Hardboard</option>
+                        <option value="Siding, Plywood">Siding, Plywood</option>
+                        <option value="Siding, Steel">Siding, Steel</option>
+                        <option value="Siding, T-111">Siding, T-111</option>
+                        <option value="Siding, Vinyl">Siding, Vinyl</option>
+                        <option value="Siding, Wood">Siding, Wood</option>
+                        <option value="Slump Block">Slump Block</option>
+                        <option value="Solid Brick">Solid Brick</option>
+                        <option value="Solid Brick, Custom">Solid Brick, Custom</option>
+                        <option value="Solid Brownstone">Solid Brownstone</option>
+                        <option value="Solid Stone">Solid Stone</option>
+                        <option value="Solid Stone, Custom">Solid Stone, Custom</option>
+                        <option value="Stone on Block">Stone on Block</option>
+                        <option value="Stone on Block, Custom Stone">Stone on Block, Custom Stone</option>
+                        <option value="Stone Veneer">Stone Veneer</option>
+                        <option value="Stone Veneer, Custom">Stone Veneer, Custom</option>
+                        <option value="Stucco">Stucco</option>
+                        <option value="Stucco on Block">Stucco on Block</option>
+                        <option value="Stucco on Frame">Stucco on Frame</option>
+                        <option value="Victorian Scalloped Shakes">Victorian Scalloped Shakes</option>
+                        <option value="Window Wall">Window Wall</option>
+                        <option value="Wood Shakes">Wood Shakes</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Foundation</label>
+                    <select id="ezFoundationType">
+                        <option value="">—</option>
+                        <option value="Basement - Finished">Basement - Finished</option>
+                        <option value="Basement - Partially Finished">Basement - Partially Finished</option>
+                        <option value="Basement - Unfinished">Basement - Unfinished</option>
+                        <option value="Basement - Walkout">Basement - Walkout</option>
+                        <option value="Crawl Space - Enclosed">Crawl Space - Enclosed</option>
+                        <option value="Crawl Space - Open">Crawl Space - Open</option>
+                        <option value="Daylight Basement - Finished">Daylight Basement - Finished</option>
+                        <option value="Daylight Basement - Partially Finished">Daylight Basement - Partially Finished</option>
+                        <option value="Daylight Basement - Unfinished">Daylight Basement - Unfinished</option>
+                        <option value="Hillside Foundation">Hillside Foundation</option>
+                        <option value="Other">Other</option>
+                        <option value="Piers">Piers</option>
+                        <option value="Pilings/stilts">Pilings/stilts</option>
+                        <option value="Slab">Slab</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Roof Type</label>
+                    <select id="ezRoofType">
+                        <option value="">—</option>
+                        <option value="Architectural Shingles">Architectural Shingles</option>
+                        <option value="Asbestos">Asbestos</option>
+                        <option value="Asphalt Shingles">Asphalt Shingles</option>
+                        <option value="Composition">Composition</option>
+                        <option value="Copper(flat)">Copper(flat)</option>
+                        <option value="Copper(pitched)">Copper(pitched)</option>
+                        <option value="Corrugated Steel(flat)">Corrugated Steel(flat)</option>
+                        <option value="Corrugated Steel(pitched)">Corrugated Steel(pitched)</option>
+                        <option value="Fiberglass">Fiberglass</option>
+                        <option value="Foam">Foam</option>
+                        <option value="Gravel">Gravel</option>
+                        <option value="Metal(flat)">Metal(flat)</option>
+                        <option value="Metal(pitched)">Metal(pitched)</option>
+                        <option value="Mineral Fiber Shake">Mineral Fiber Shake</option>
+                        <option value="Other">Other</option>
+                        <option value="Plastic(flat)">Plastic(flat)</option>
+                        <option value="Plastic(pitched)">Plastic(pitched)</option>
+                        <option value="Rock">Rock</option>
+                        <option value="Rolled Paper(flat)">Rolled Paper(flat)</option>
+                        <option value="Rolled Paper(pitched)">Rolled Paper(pitched)</option>
+                        <option value="Rubber Flat">Rubber Flat</option>
+                        <option value="Rubber(pitched)">Rubber(pitched)</option>
+                        <option value="Slate">Slate</option>
+                        <option value="Solar">Solar</option>
+                        <option value="Thatch">Thatch</option>
+                        <option value="Tar">Tar</option>
+                        <option value="Tar And Gravel">Tar And Gravel</option>
+                        <option value="Tile(clay)">Tile(clay)</option>
+                        <option value="Tile(concrete)">Tile(concrete)</option>
+                        <option value="Tile(spanish)">Tile(spanish)</option>
+                        <option value="Tin(flat)">Tin(flat)</option>
+                        <option value="Tin(pitched)">Tin(pitched)</option>
+                        <option value="Wood Fiberglass Shingles">Wood Fiberglass Shingles</option>
+                        <option value="Wood Shake">Wood Shake</option>
+                        <option value="Wood Shingles">Wood Shingles</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Roof Shape</label>
+                    <select id="ezRoofDesign">
+                        <option value="">—</option>
+                        <option value="Dormer">Dormer</option>
+                        <option value="Flat">Flat</option>
+                        <option value="Gable">Gable</option>
+                        <option value="Gambrel">Gambrel</option>
+                        <option value="Hip">Hip</option>
+                        <option value="Mansard">Mansard</option>
+                        <option value="Other">Other</option>
+                        <option value="Pyramid">Pyramid</option>
+                        <option value="Shed">Shed</option>
+                        <option value="Turret">Turret</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Roof Year</label><input type="text" id="ezRoofYear" placeholder="2015"></div>
+                <div class="ez-form-field"><label>Heating</label>
+                    <select id="ezHeatingType">
+                        <option value="">—</option>
+                        <option value="Electric">Electric</option>
+                        <option value="Gas">Gas</option>
+                        <option value="Gas - Forced Air">Gas - Forced Air</option>
+                        <option value="Gas - Hot Water">Gas - Hot Water</option>
+                        <option value="Oil">Oil</option>
+                        <option value="Oil - Forced Air">Oil - Forced Air</option>
+                        <option value="Oil - Hot Water">Oil - Hot Water</option>
+                        <option value="Other">Other</option>
+                        <option value="Other - Forced Air">Other - Forced Air</option>
+                        <option value="Other - Hot Water">Other - Hot Water</option>
+                        <option value="Solid Fuel">Solid Fuel</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Cooling</label><input type="text" id="ezCooling" placeholder="Central Air"></div>
+                <div class="ez-form-field"><label>Burglar Alarm</label>
+                    <select id="ezBurglarAlarm">
+                        <option value="">—</option>
+                        <option value="None">None</option>
+                        <option value="Central">Central</option>
+                        <option value="Direct">Direct</option>
+                        <option value="Local">Local</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Fire Detection</label>
+                    <select id="ezFireDetection">
+                        <option value="">—</option>
+                        <option value="None">None</option>
+                        <option value="Central">Central</option>
+                        <option value="Direct">Direct</option>
+                        <option value="Local">Local</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Sprinkler</label>
+                    <select id="ezSprinklerSystem">
+                        <option value="">—</option>
+                        <option value="None">None</option>
+                        <option value="Partial">Partial</option>
+                        <option value="Full">Full</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Protection Class</label>
+                    <select id="ezProtectionClass">
+                        <option value="">—</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Sq Ft</label><input type="text" id="ezSqFt" placeholder="1800"></div>
+                <div class="ez-form-field"><label>Year Built</label><input type="text" id="ezYearBuilt" placeholder="1990"></div>
+                <div class="ez-form-field"><label>Lot Size (acres)</label><input type="text" id="ezLotSize" placeholder="0.25"></div>
+                <div class="ez-form-field"><label>Bedrooms</label><input type="text" id="ezBedrooms" placeholder="3"></div>
+                <div class="ez-form-field"><label>Smoke Detector</label>
+                    <select id="ezSmokeDetector">
+                        <option value="">—</option>
+                        <option value="None">None</option>
+                        <option value="Central">Central</option>
+                        <option value="Direct">Direct</option>
+                        <option value="Local">Local</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Ft from Hydrant</label>
+                    <select id="ezFeetFromHydrant">
+                        <option value="">—</option>
+                        <option value="1-500">1-500</option>
+                        <option value="501-600">501-600</option>
+                        <option value="601-1000">601-1000</option>
+                        <option value="1001-1100">1001-1100</option>
+                        <option value="1101-1200">1101-1200</option>
+                        <option value="1201-1300">1201-1300</option>
+                        <option value="1301-1400">1301-1400</option>
+                        <option value="1401-1500">1401-1500</option>
+                        <option value="1501 and Greater">1501 and Greater</option>
+                        <option value="None in Area">None in Area</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Full Baths</label>
+                    <select id="ezNumFullBaths">
+                        <option value="">—</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10+">10+</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Half Baths</label>
+                    <select id="ezNumHalfBaths">
+                        <option value="">—</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5+">5+</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label># Occupants</label>
+                    <select id="ezNumOccupants">
+                        <option value="">—</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9 or more">9 or more</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Garage Type</label>
+                    <select id="ezGarageType">
+                        <option value="">—</option>
+                        <option value="None">None</option>
+                        <option value="Attached">Attached</option>
+                        <option value="Detached">Detached</option>
+                        <option value="Built-In">Built-In</option>
+                        <option value="Carport">Carport</option>
+                        <option value="Basement">Basement</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Garage Spaces</label>
+                    <select id="ezGarageSpaces">
+                        <option value="">—</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6+">6+</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Fireplaces</label>
+                    <select id="ezNumFireplaces">
+                        <option value="">—</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5+">5+</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Pool</label>
+                    <select id="ezPool">
+                        <option value="">—</option>
+                        <option value="No">No</option>
+                        <option value="Yes - Above Ground">Yes - Above Ground</option>
+                        <option value="Yes - In Ground">Yes - In Ground</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Trampoline</label>
+                    <select id="ezTrampoline">
+                        <option value="">—</option>
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                    </select>
+                </div>
+            </div>
+        </details>
+
+        <hr class="ez-divider">
+        <div class="ez-section-label">Coverage</div>
+        <details class="ez-details" id="ezHomeCovSection">
+            <summary>Home Coverage</summary>
+            <div class="ez-form-grid">
+                <div class="ez-form-field"><label>Policy Type</label>
+                    <select id="ezHomePolicyType">
+                        <option value="">—</option>
+                        <option value="HO1">HO1</option>
+                        <option value="HO2">HO2</option>
+                        <option value="HO3">HO3</option>
+                        <option value="HO4">HO4 (Renters)</option>
+                        <option value="HO5">HO5</option>
+                        <option value="HO6">HO6 (Condo)</option>
+                        <option value="HO8">HO8</option>
+                        <option value="DP1">DP1</option>
+                        <option value="DP2">DP2</option>
+                        <option value="DP3">DP3</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Prior Carrier</label><input type="text" id="ezHomePriorCarrier" placeholder="Safeco"></div>
+                <div class="ez-form-field"><label>Prior Policy Term</label>
+                    <select id="ezHomePriorPolicyTerm">
+                        <option value="">—</option>
+                        <option value="6 Month">6 Month</option>
+                        <option value="12 Month">12 Month</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Prior Years</label><input type="text" id="ezHomePriorYears" placeholder="4"></div>
+                <div class="ez-form-field"><label>Prior Expiration</label><input type="text" id="ezHomePriorExp" placeholder="MM/DD/YYYY"></div>
+                <div class="ez-form-field"><label>Dwelling (Cov A)</label><input type="text" id="ezDwellingCoverage" placeholder="350000"></div>
+                <div class="ez-form-field"><label>Personal Liability</label>
+                    <select id="ezHomePersonalLiability">
+                        <option value="">—</option>
+                        <option value="25000">$25,000</option>
+                        <option value="50000">$50,000</option>
+                        <option value="100000">$100,000</option>
+                        <option value="200000">$200,000</option>
+                        <option value="300000">$300,000</option>
+                        <option value="400000">$400,000</option>
+                        <option value="500000">$500,000</option>
+                        <option value="1000000">$1,000,000</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Medical Payments</label>
+                    <select id="ezHomeMedicalPayments">
+                        <option value="">—</option>
+                        <option value="1000">$1,000</option>
+                        <option value="2000">$2,000</option>
+                        <option value="3000">$3,000</option>
+                        <option value="4000">$4,000</option>
+                        <option value="5000">$5,000</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>All Perils Ded.</label>
+                    <select id="ezAllPerilsDeductible">
+                        <option value="">—</option>
+                        <option value="1/2%">1/2%</option>
+                        <option value="1%">1%</option>
+                        <option value="100">$100</option>
+                        <option value="250">$250</option>
+                        <option value="500">$500</option>
+                        <option value="750">$750</option>
+                        <option value="1000">$1,000</option>
+                        <option value="1500">$1,500</option>
+                        <option value="2000">$2,000</option>
+                        <option value="2500">$2,500</option>
+                        <option value="3000">$3,000</option>
+                        <option value="4000">$4,000</option>
+                        <option value="5000">$5,000</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Theft Ded.</label>
+                    <select id="ezTheftDeductible">
+                        <option value="">—</option>
+                        <option value="500">$500</option>
+                        <option value="1500">$1,500</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Wind Ded.</label>
+                    <select id="ezWindDeductible">
+                        <option value="">—</option>
+                        <option value="100">$100</option>
+                        <option value="250">$250</option>
+                        <option value="500">$500</option>
+                        <option value="1000">$1,000</option>
+                        <option value="1500">$1,500</option>
+                        <option value="2000">$2,000</option>
+                        <option value="2500">$2,500</option>
+                        <option value="5000">$5,000</option>
+                        <option value="10000">$10,000</option>
+                        <option value="1%">1%</option>
+                        <option value="2%">2%</option>
+                        <option value="3%">3%</option>
+                        <option value="4%">4%</option>
+                        <option value="5%">5%</option>
+                    </select>
+                </div>
+                <div class="ez-form-field ez-form-full"><label>Mortgagee</label><input type="text" id="ezMortgagee" placeholder="US Bank"></div>
+            </div>
+        </details>
+
+            </div><!-- /ez-acc-body Home Policy -->
+        </details>
+
+        <div id="ezExtraLoaded" style="display:none; margin-top:12px; padding:8px 14px; border-radius:10px; font-size:12px;">
+            ✅ <span id="ezExtraCount">0</span> additional fields loaded from intake
+        </div>
+
+        </div><!-- /padding wrapper -->
+    </div><!-- /ez-glass client data -->
+
+    <!-- Auto-Fill Launch -->
+    <div class="ez-launch-card">
+        <h2>🚀 Auto-Fill EZLynx</h2>
+        <p class="section-subtitle">Opens Chromium, waits for login, then fills the current page with matching data.</p>
+
+        <!-- Quick Login -->
+        <div class="ez-login-box" style="text-align:left; margin-bottom:20px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#64748b;">🔑 Quick Login</span>
+                <span style="font-size:10px; color:#475569;">Stored locally only</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                <div style="flex:1; min-width:120px;">
+                    <label>Username</label>
+                    <input type="text" id="ezLoginUser" placeholder="agent@example.com" oninput="EZLynxTool.saveLogin()">
+                </div>
+                <div style="flex:1; min-width:120px;">
+                    <label>Password</label>
+                    <div style="display:flex; gap:0;">
+                        <input type="password" id="ezLoginPass" placeholder="••••••••" oninput="EZLynxTool.saveLogin()" style="border-radius:8px 0 0 8px; border-right:none;">
+                        <button type="button" onclick="EZLynxTool.toggleLoginPw()" title="Show/hide" id="ezLoginPwToggle" style="border-radius:0; font-size:14px; min-width:36px;">👁</button>
+                        <button type="button" onclick="EZLynxTool.copyPassword()" title="Copy password" id="ezCopyPwBtn" style="border-radius:0 8px 8px 0; background:linear-gradient(135deg, #2563eb, #7c3aed); border-color:transparent; color:#fff; font-weight:700; font-size:11px; letter-spacing:0.5px; white-space:nowrap; padding:7px 14px;">📋 Copy</button>
                     </div>
                 </div>
-            </details>
+            </div>
         </div>
+
+        <button class="ez-launch-btn" id="ezLaunchBtn" onclick="EZLynxTool.launch()">
+            🚀 Auto-Fill EZLynx
+        </button>
+
+        <div class="ez-status-box" id="ezFillStatus"></div>
+    </div>
+
+    <!-- How It Works -->
+    <details class="ez-accordion" style="margin-top:16px;">
+        <summary>
+            ℹ️ How It Works
+            <span class="ez-acc-chevron">▼</span>
+        </summary>
+        <div class="ez-acc-body">
+            <div class="ez-info-card" style="margin-top:0; border:none; background:transparent; padding:0;">
+                <p style="margin:0 0 14px;">
+                    <strong style="color:#e2e8f0;">Option A — Chrome Extension (Recommended):</strong><br>
+                    1. Click <strong>📤 Copy for Extension</strong> to copy client data.<br>
+                    2. Open EZLynx in your browser.<br>
+                    3. Click the Altech extension → <strong>📋 Paste from Altech</strong>.<br>
+                    4. Navigate to each form page → click <strong>⚡ Fill This Page</strong>.<br><br>
+                    <strong style="color:#e2e8f0;">Option B — Python Filler (Desktop):</strong><br>
+                    1. Click <strong>🔄 Refresh</strong> — log in, navigate pages, dropdowns auto-scrape.<br>
+                    2. Enter client data or click <strong>📥 Intake</strong>.<br>
+                    3. Click Auto-Fill → Chromium opens → log in → <strong>Fill Now</strong> on each page.
+                </p>
+                <p style="margin:0;">Both methods fuzzy-match dropdowns: <code>WA → Washington</code>, <code>HO3 → HO3 - Dwelling</code>, <code>Commute → To/From Work</code>.</p>
+                <div class="hint" style="margin-top:14px; font-size:12px; color:#64748b; padding:10px 14px; background:rgba(0,0,0,0.15); border-radius:10px;">
+                    💡 <strong>Chrome Extension:</strong> Load from <code>chrome://extensions</code> → Enable Developer Mode → Load Unpacked → select <code>chrome-extension/</code>.
+                </div>
+            </div>
+        </div>
+    </details>
+</div>
 

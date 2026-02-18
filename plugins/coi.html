@@ -1,418 +1,418 @@
-        <header>
-            <div class="header-top">
-                <div class="logo tool-header-brand">
-                    <span class="logo-controls">
-                        <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
-                            <span class="logo-icon">📄</span>
-                        </button>
-                        <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
-                            <span class="dark-mode-icon">🌙</span>
-                        </button>
-                    </span>
-                    <span>COI Generator</span>
+<header>
+    <div class="header-top">
+        <div class="logo tool-header-brand">
+            <span class="logo-controls">
+                <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                    <span class="logo-icon">📄</span>
+                </button>
+                <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <span class="dark-mode-icon">🌙</span>
+                </button>
+            </span>
+            <span>COI Generator</span>
+        </div>
+        <button class="btn-utility" onclick="COI.exportPDF()" style="font-size: 14px; padding: 8px 16px; background: #003366; color: white; border: none; border-radius: 8px;">
+            📥 Export ACORD 25 PDF
+        </button>
+        <button class="btn-utility" onclick="COI.printCOI()" style="font-size: 14px; padding: 8px 16px;">
+            🖨️ Print/Save PDF
+        </button>
+    </div>
+    <div class="step-title">ACORD 25 Certificate of Insurance</div>
+    <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
+</header>
+
+<main style="padding: 20px; padding-bottom: 60px;">
+
+    <div id="acord25-form">
+
+        <!-- ═══ CERTIFICATE INFO ═══ -->
+        <div class="coi-section">
+            <div class="coi-section-header">
+                <div class="coi-section-icon">📋</div>
+                <div>
+                    <div class="coi-section-title">Certificate Info</div>
+                    <div class="coi-section-subtitle">Date, certificate number, and revision</div>
                 </div>
-                <button class="btn-utility" onclick="COI.exportPDF()" style="font-size: 14px; padding: 8px 16px; background: #003366; color: white; border: none; border-radius: 8px;">
-                    📥 Export ACORD 25 PDF
-                </button>
-                <button class="btn-utility" onclick="COI.printCOI()" style="font-size: 14px; padding: 8px 16px;">
-                    🖨️ Print/Save PDF
-                </button>
             </div>
-            <div class="step-title">ACORD 25 Certificate of Insurance</div>
-            <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
-        </header>
-
-        <main style="padding: 20px; padding-bottom: 60px;">
-
-            <div id="acord25-form">
-
-                <!-- ═══ CERTIFICATE INFO ═══ -->
-                <div class="coi-section">
-                    <div class="coi-section-header">
-                        <div class="coi-section-icon">📋</div>
-                        <div>
-                            <div class="coi-section-title">Certificate Info</div>
-                            <div class="coi-section-subtitle">Date, certificate number, and revision</div>
-                        </div>
-                    </div>
-                    <div class="coi-field-grid cols-3">
-                        <div class="coi-field">
-                            <label for="coiDate">Date</label>
-                            <input type="date" id="coiDate">
-                        </div>
-                        <div class="coi-field">
-                            <label for="coiRevNumber">Revision #</label>
-                            <input type="text" id="coiRevNumber" placeholder="0">
-                        </div>
-                        <div class="coi-field">
-                            <label for="coiCertNumber">Certificate Number</label>
-                            <input type="text" id="coiCertNumber" placeholder="00000000-0 0">
-                        </div>
-                    </div>
+            <div class="coi-field-grid cols-3">
+                <div class="coi-field">
+                    <label for="coiDate">Date</label>
+                    <input type="date" id="coiDate">
                 </div>
-
-                <!-- ═══ PRODUCER ═══ -->
-                <div class="coi-section">
-                    <div class="coi-section-header">
-                        <div class="coi-section-icon">🏢</div>
-                        <div>
-                            <div class="coi-section-title">Producer (Agency)</div>
-                            <div class="coi-section-subtitle">Your agency's contact information</div>
-                        </div>
-                    </div>
-                    <div class="coi-field-grid">
-                        <div class="coi-field">
-                            <label for="coiProducerName">Agency Name</label>
-                            <input type="text" id="coiProducerName" placeholder="Agency Name">
-                        </div>
-                    </div>
-                    <div class="coi-field-grid" style="margin-top: 16px;">
-                        <div class="coi-field">
-                            <label for="coiProducerAddress">Street Address</label>
-                            <input type="text" id="coiProducerAddress" placeholder="123 Main St">
-                        </div>
-                    </div>
-                    <div class="coi-field-grid cols-3" style="margin-top: 16px;">
-                        <div class="coi-field">
-                            <label for="coiProducerCity">City</label>
-                            <input type="text" id="coiProducerCity" placeholder="City">
-                        </div>
-                        <div class="coi-field">
-                            <label for="coiProducerState">State</label>
-                            <input type="text" id="coiProducerState" placeholder="ST" maxlength="2">
-                        </div>
-                        <div class="coi-field">
-                            <label for="coiProducerZip">ZIP</label>
-                            <input type="text" id="coiProducerZip" placeholder="00000">
-                        </div>
-                    </div>
-                    <div class="coi-field-grid cols-2" style="margin-top: 16px;">
-                        <div class="coi-field">
-                            <label for="coiProducerPhone">Phone</label>
-                            <input type="tel" id="coiProducerPhone" placeholder="(360) 555-0100">
-                        </div>
-                        <div class="coi-field">
-                            <label for="coiProducerFax">Fax</label>
-                            <input type="tel" id="coiProducerFax" placeholder="(360) 555-0101">
-                        </div>
-                    </div>
-                    <div class="coi-field-grid" style="margin-top: 16px;">
-                        <div class="coi-field">
-                            <label for="coiProducerEmail">Email</label>
-                            <input type="email" id="coiProducerEmail" placeholder="agent@agency.com">
-                        </div>
-                    </div>
+                <div class="coi-field">
+                    <label for="coiRevNumber">Revision #</label>
+                    <input type="text" id="coiRevNumber" placeholder="0">
                 </div>
-
-                <!-- ═══ INSURED ═══ -->
-                <div class="coi-section">
-                    <div class="coi-section-header">
-                        <div class="coi-section-icon">👤</div>
-                        <div>
-                            <div class="coi-section-title">Named Insured</div>
-                            <div class="coi-section-subtitle">The person or business being insured</div>
-                        </div>
-                    </div>
-                    <div class="coi-field-grid">
-                        <div class="coi-field">
-                            <label for="coiInsuredName">Insured Name</label>
-                            <input type="text" id="coiInsuredName" placeholder="Business or Individual Name">
-                        </div>
-                    </div>
-                    <div class="coi-field-grid" style="margin-top: 16px;">
-                        <div class="coi-field">
-                            <label for="coiInsuredAddress">Street Address</label>
-                            <input type="text" id="coiInsuredAddress" placeholder="456 Oak Ave">
-                        </div>
-                    </div>
-                    <div class="coi-field-grid cols-3" style="margin-top: 16px;">
-                        <div class="coi-field">
-                            <label for="coiInsuredCity">City</label>
-                            <input type="text" id="coiInsuredCity" placeholder="City">
-                        </div>
-                        <div class="coi-field">
-                            <label for="coiInsuredState">State</label>
-                            <input type="text" id="coiInsuredState" placeholder="ST" maxlength="2">
-                        </div>
-                        <div class="coi-field">
-                            <label for="coiInsuredZip">ZIP</label>
-                            <input type="text" id="coiInsuredZip" placeholder="00000">
-                        </div>
-                    </div>
+                <div class="coi-field">
+                    <label for="coiCertNumber">Certificate Number</label>
+                    <input type="text" id="coiCertNumber" placeholder="00000000-0 0">
                 </div>
+            </div>
+        </div>
 
-                <!-- ═══ INSURERS A–F ═══ -->
-                <div class="coi-section">
-                    <div class="coi-section-header">
-                        <div class="coi-section-icon">🏦</div>
-                        <div>
-                            <div class="coi-section-title">Insurers Affording Coverage</div>
-                            <div class="coi-section-subtitle">Carrier names and NAIC codes (A–F)</div>
-                        </div>
-                    </div>
-                    <div class="coi-insurer-row">
-                        <div class="coi-insurer-letter">A</div>
-                        <div class="coi-field"><label for="coiInsurerA">Insurer Name</label><input type="text" id="coiInsurerA" placeholder="e.g., State Farm"></div>
-                        <div class="coi-field"><label for="coiInsurerANaic">NAIC #</label><input type="text" id="coiInsurerANaic" placeholder="12345"></div>
-                    </div>
-                    <div class="coi-insurer-row">
-                        <div class="coi-insurer-letter">B</div>
-                        <div class="coi-field"><label for="coiInsurerB">Insurer Name</label><input type="text" id="coiInsurerB"></div>
-                        <div class="coi-field"><label for="coiInsurerBNaic">NAIC #</label><input type="text" id="coiInsurerBNaic"></div>
-                    </div>
-                    <div class="coi-insurer-row">
-                        <div class="coi-insurer-letter">C</div>
-                        <div class="coi-field"><label for="coiInsurerC">Insurer Name</label><input type="text" id="coiInsurerC"></div>
-                        <div class="coi-field"><label for="coiInsurerCNaic">NAIC #</label><input type="text" id="coiInsurerCNaic"></div>
-                    </div>
-                    <div class="coi-insurer-row">
-                        <div class="coi-insurer-letter">D</div>
-                        <div class="coi-field"><label for="coiInsurerD">Insurer Name</label><input type="text" id="coiInsurerD"></div>
-                        <div class="coi-field"><label for="coiInsurerDNaic">NAIC #</label><input type="text" id="coiInsurerDNaic"></div>
-                    </div>
-                    <div class="coi-insurer-row">
-                        <div class="coi-insurer-letter">E</div>
-                        <div class="coi-field"><label for="coiInsurerE">Insurer Name</label><input type="text" id="coiInsurerE"></div>
-                        <div class="coi-field"><label for="coiInsurerENaic">NAIC #</label><input type="text" id="coiInsurerENaic"></div>
-                    </div>
-                    <div class="coi-insurer-row">
-                        <div class="coi-insurer-letter">F</div>
-                        <div class="coi-field"><label for="coiInsurerF">Insurer Name</label><input type="text" id="coiInsurerF"></div>
-                        <div class="coi-field"><label for="coiInsurerFNaic">NAIC #</label><input type="text" id="coiInsurerFNaic"></div>
-                    </div>
+        <!-- ═══ PRODUCER ═══ -->
+        <div class="coi-section">
+            <div class="coi-section-header">
+                <div class="coi-section-icon">🏢</div>
+                <div>
+                    <div class="coi-section-title">Producer (Agency)</div>
+                    <div class="coi-section-subtitle">Your agency's contact information</div>
                 </div>
-
-                <!-- ═══ COVERAGES ═══ -->
-                <div class="coi-section">
-                    <div class="coi-section-header">
-                        <div class="coi-section-icon">🛡️</div>
-                        <div>
-                            <div class="coi-section-title">Coverage Details</div>
-                            <div class="coi-section-subtitle">Policy information and limits for each line</div>
-                        </div>
-                    </div>
-
-                    <div class="coi-legal" style="margin-top: 0; margin-bottom: 20px;">
-                        This certifies that the policies listed below have been issued to the insured named above for the policy period indicated. Limits shown may have been reduced by paid claims.
-                    </div>
-
-                    <!-- ── General Liability ── -->
-                    <div class="coi-coverage-card">
-                        <div class="coi-coverage-header">
-                            <div class="coi-coverage-type">General Liability</div>
-                            <div class="coi-coverage-badge">GL</div>
-                        </div>
-                        <div class="coi-check-row">
-                            <label><input type="checkbox" id="coiGlClaimsMade"> Claims-Made</label>
-                            <label><input type="checkbox" id="coiGlOccur" checked> Occurrence</label>
-                            <label><input type="checkbox" id="coiGlAddl"> Addl Insured</label>
-                            <label><input type="checkbox" id="coiGlSubr"> Subr Waived</label>
-                        </div>
-                        <div class="coi-policy-row">
-                            <div class="coi-field">
-                                <label for="coiGlLetter">Ltr</label>
-                                <input type="text" id="coiGlLetter" value="A" maxlength="1" style="text-align: center;">
-                            </div>
-                            <div class="coi-field">
-                                <label for="coiGlPolicy">Policy Number</label>
-                                <input type="text" id="coiGlPolicy" placeholder="GL-000000">
-                            </div>
-                            <div class="coi-field">
-                                <label for="coiGlEffective">Effective</label>
-                                <input type="date" id="coiGlEffective">
-                            </div>
-                            <div class="coi-field">
-                                <label for="coiGlExpiration">Expiration</label>
-                                <input type="date" id="coiGlExpiration">
-                            </div>
-                        </div>
-                        <div class="coi-limits-grid">
-                            <div class="coi-field"><label for="coiGlOccurrence">Each Occurrence</label><input type="text" id="coiGlOccurrence" placeholder="$1,000,000"></div>
-                            <div class="coi-field"><label for="coiGlRented">Damage to Rented Premises</label><input type="text" id="coiGlRented" placeholder="$300,000"></div>
-                            <div class="coi-field"><label for="coiGlMed">Med Exp (Any One Person)</label><input type="text" id="coiGlMed" placeholder="$10,000"></div>
-                            <div class="coi-field"><label for="coiGlPersonal">Personal & Adv Injury</label><input type="text" id="coiGlPersonal" placeholder="$1,000,000"></div>
-                            <div class="coi-field"><label for="coiGlAggregate">General Aggregate</label><input type="text" id="coiGlAggregate" placeholder="$2,000,000"></div>
-                            <div class="coi-field"><label for="coiGlProducts">Products – Comp/Op Agg</label><input type="text" id="coiGlProducts" placeholder="$2,000,000"></div>
-                        </div>
-                    </div>
-
-                    <!-- ── Automobile Liability ── -->
-                    <div class="coi-coverage-card">
-                        <div class="coi-coverage-header">
-                            <div class="coi-coverage-type">Automobile Liability</div>
-                            <div class="coi-coverage-badge">AUTO</div>
-                        </div>
-                        <div class="coi-check-row">
-                            <label><input type="checkbox" id="coiAutoAny" checked> Any Auto</label>
-                            <label><input type="checkbox" id="coiAutoOwned"> Owned Autos</label>
-                            <label><input type="checkbox" id="coiAutoScheduled"> Scheduled</label>
-                            <label><input type="checkbox" id="coiAutoHired"> Hired Autos</label>
-                            <label><input type="checkbox" id="coiAutoNonOwned"> Non-Owned</label>
-                        </div>
-                        <div class="coi-check-row">
-                            <label><input type="checkbox" id="coiAutoAddl"> Addl Insured</label>
-                            <label><input type="checkbox" id="coiAutoSubr"> Subr Waived</label>
-                        </div>
-                        <div class="coi-policy-row">
-                            <div class="coi-field">
-                                <label for="coiAutoLetter">Ltr</label>
-                                <input type="text" id="coiAutoLetter" value="B" maxlength="1" style="text-align: center;">
-                            </div>
-                            <div class="coi-field">
-                                <label for="coiAutoPolicy">Policy Number</label>
-                                <input type="text" id="coiAutoPolicy" placeholder="AUTO-000000">
-                            </div>
-                            <div class="coi-field">
-                                <label for="coiAutoEffective">Effective</label>
-                                <input type="date" id="coiAutoEffective">
-                            </div>
-                            <div class="coi-field">
-                                <label for="coiAutoExpiration">Expiration</label>
-                                <input type="date" id="coiAutoExpiration">
-                            </div>
-                        </div>
-                        <div class="coi-limits-grid">
-                            <div class="coi-field"><label for="coiAutoCsl">Combined Single Limit</label><input type="text" id="coiAutoCsl" placeholder="$1,000,000"></div>
-                            <div class="coi-field"><label for="coiAutoBodyPerson">Bodily Injury (Per Person)</label><input type="text" id="coiAutoBodyPerson" placeholder=""></div>
-                            <div class="coi-field"><label for="coiAutoBodyAccident">Bodily Injury (Per Accident)</label><input type="text" id="coiAutoBodyAccident" placeholder=""></div>
-                            <div class="coi-field"><label for="coiAutoProp">Property Damage</label><input type="text" id="coiAutoProp" placeholder=""></div>
-                        </div>
-                    </div>
-
-                    <!-- ── Umbrella / Excess Liability ── -->
-                    <div class="coi-coverage-card">
-                        <div class="coi-coverage-header">
-                            <div class="coi-coverage-type">Umbrella / Excess Liability</div>
-                            <div class="coi-coverage-badge">UMB</div>
-                        </div>
-                        <div class="coi-check-row">
-                            <label><input type="checkbox" id="coiUmbClaims"> Claims-Made</label>
-                            <label><input type="checkbox" id="coiUmbOccur" checked> Occurrence</label>
-                            <label><input type="checkbox" id="coiUmbAddl"> Addl Insured</label>
-                            <label><input type="checkbox" id="coiUmbSubr"> Subr Waived</label>
-                        </div>
-                        <div class="coi-policy-row">
-                            <div class="coi-field">
-                                <label for="coiUmbLetter">Ltr</label>
-                                <input type="text" id="coiUmbLetter" value="D" maxlength="1" style="text-align: center;">
-                            </div>
-                            <div class="coi-field">
-                                <label for="coiUmbrellaPolicy">Policy Number</label>
-                                <input type="text" id="coiUmbrellaPolicy" placeholder="UMB-000000">
-                            </div>
-                            <div class="coi-field">
-                                <label for="coiUmbrellaEffective">Effective</label>
-                                <input type="date" id="coiUmbrellaEffective">
-                            </div>
-                            <div class="coi-field">
-                                <label for="coiUmbrellaExpiration">Expiration</label>
-                                <input type="date" id="coiUmbrellaExpiration">
-                            </div>
-                        </div>
-                        <div class="coi-limits-grid">
-                            <div class="coi-field"><label for="coiUmbrellaOccurrence">Each Occurrence</label><input type="text" id="coiUmbrellaOccurrence" placeholder="$5,000,000"></div>
-                            <div class="coi-field"><label for="coiUmbrellaAggregate">Aggregate</label><input type="text" id="coiUmbrellaAggregate" placeholder="$5,000,000"></div>
-                            <div class="coi-field"><label for="coiUmbDed">Deductible</label><input type="text" id="coiUmbDed" placeholder="$0"></div>
-                            <div class="coi-field"><label for="coiUmbRet">Retention</label><input type="text" id="coiUmbRet" placeholder="$10,000"></div>
-                        </div>
-                    </div>
-
-                    <!-- ── Workers Compensation ── -->
-                    <div class="coi-coverage-card">
-                        <div class="coi-coverage-header">
-                            <div class="coi-coverage-type">Workers Comp & Employers' Liability</div>
-                            <div class="coi-coverage-badge">WC</div>
-                        </div>
-                        <div class="coi-check-row">
-                            <label><input type="checkbox" id="coiWcExcl"> Proprietor/Partner/Officer Excluded</label>
-                            <label><input type="checkbox" id="coiWcSubr"> Subr Waived</label>
-                        </div>
-                        <div class="coi-policy-row">
-                            <div class="coi-field">
-                                <label for="coiWcLetter">Ltr</label>
-                                <input type="text" id="coiWcLetter" value="C" maxlength="1" style="text-align: center;">
-                            </div>
-                            <div class="coi-field">
-                                <label for="coiWcPolicy">Policy Number</label>
-                                <input type="text" id="coiWcPolicy" placeholder="WC-000000">
-                            </div>
-                            <div class="coi-field">
-                                <label for="coiWcEffective">Effective</label>
-                                <input type="date" id="coiWcEffective">
-                            </div>
-                            <div class="coi-field">
-                                <label for="coiWcExpiration">Expiration</label>
-                                <input type="date" id="coiWcExpiration">
-                            </div>
-                        </div>
-                        <div class="coi-limits-grid">
-                            <div class="coi-field"><label for="coiWcAccident">E.L. Each Accident</label><input type="text" id="coiWcAccident" placeholder="$1,000,000"></div>
-                            <div class="coi-field"><label for="coiWcEmployee">E.L. Disease – Each Employee</label><input type="text" id="coiWcEmployee" placeholder="$1,000,000"></div>
-                            <div class="coi-field"><label for="coiWcDisease">E.L. Disease – Policy Limit</label><input type="text" id="coiWcDisease" placeholder="$1,000,000"></div>
-                        </div>
-                    </div>
+            </div>
+            <div class="coi-field-grid">
+                <div class="coi-field">
+                    <label for="coiProducerName">Agency Name</label>
+                    <input type="text" id="coiProducerName" placeholder="Agency Name">
                 </div>
+            </div>
+            <div class="coi-field-grid" style="margin-top: 16px;">
+                <div class="coi-field">
+                    <label for="coiProducerAddress">Street Address</label>
+                    <input type="text" id="coiProducerAddress" placeholder="123 Main St">
+                </div>
+            </div>
+            <div class="coi-field-grid cols-3" style="margin-top: 16px;">
+                <div class="coi-field">
+                    <label for="coiProducerCity">City</label>
+                    <input type="text" id="coiProducerCity" placeholder="City">
+                </div>
+                <div class="coi-field">
+                    <label for="coiProducerState">State</label>
+                    <input type="text" id="coiProducerState" placeholder="ST" maxlength="2">
+                </div>
+                <div class="coi-field">
+                    <label for="coiProducerZip">ZIP</label>
+                    <input type="text" id="coiProducerZip" placeholder="00000">
+                </div>
+            </div>
+            <div class="coi-field-grid cols-2" style="margin-top: 16px;">
+                <div class="coi-field">
+                    <label for="coiProducerPhone">Phone</label>
+                    <input type="tel" id="coiProducerPhone" placeholder="(360) 555-0100">
+                </div>
+                <div class="coi-field">
+                    <label for="coiProducerFax">Fax</label>
+                    <input type="tel" id="coiProducerFax" placeholder="(360) 555-0101">
+                </div>
+            </div>
+            <div class="coi-field-grid" style="margin-top: 16px;">
+                <div class="coi-field">
+                    <label for="coiProducerEmail">Email</label>
+                    <input type="email" id="coiProducerEmail" placeholder="agent@agency.com">
+                </div>
+            </div>
+        </div>
 
-                <!-- ═══ DESCRIPTION OF OPERATIONS ═══ -->
-                <div class="coi-section">
-                    <div class="coi-section-header">
-                        <div class="coi-section-icon">📝</div>
-                        <div>
-                            <div class="coi-section-title">Description of Operations</div>
-                            <div class="coi-section-subtitle">Locations, vehicles, additional remarks</div>
-                        </div>
+        <!-- ═══ INSURED ═══ -->
+        <div class="coi-section">
+            <div class="coi-section-header">
+                <div class="coi-section-icon">👤</div>
+                <div>
+                    <div class="coi-section-title">Named Insured</div>
+                    <div class="coi-section-subtitle">The person or business being insured</div>
+                </div>
+            </div>
+            <div class="coi-field-grid">
+                <div class="coi-field">
+                    <label for="coiInsuredName">Insured Name</label>
+                    <input type="text" id="coiInsuredName" placeholder="Business or Individual Name">
+                </div>
+            </div>
+            <div class="coi-field-grid" style="margin-top: 16px;">
+                <div class="coi-field">
+                    <label for="coiInsuredAddress">Street Address</label>
+                    <input type="text" id="coiInsuredAddress" placeholder="456 Oak Ave">
+                </div>
+            </div>
+            <div class="coi-field-grid cols-3" style="margin-top: 16px;">
+                <div class="coi-field">
+                    <label for="coiInsuredCity">City</label>
+                    <input type="text" id="coiInsuredCity" placeholder="City">
+                </div>
+                <div class="coi-field">
+                    <label for="coiInsuredState">State</label>
+                    <input type="text" id="coiInsuredState" placeholder="ST" maxlength="2">
+                </div>
+                <div class="coi-field">
+                    <label for="coiInsuredZip">ZIP</label>
+                    <input type="text" id="coiInsuredZip" placeholder="00000">
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ INSURERS A–F ═══ -->
+        <div class="coi-section">
+            <div class="coi-section-header">
+                <div class="coi-section-icon">🏦</div>
+                <div>
+                    <div class="coi-section-title">Insurers Affording Coverage</div>
+                    <div class="coi-section-subtitle">Carrier names and NAIC codes (A–F)</div>
+                </div>
+            </div>
+            <div class="coi-insurer-row">
+                <div class="coi-insurer-letter">A</div>
+                <div class="coi-field"><label for="coiInsurerA">Insurer Name</label><input type="text" id="coiInsurerA" placeholder="e.g., State Farm"></div>
+                <div class="coi-field"><label for="coiInsurerANaic">NAIC #</label><input type="text" id="coiInsurerANaic" placeholder="12345"></div>
+            </div>
+            <div class="coi-insurer-row">
+                <div class="coi-insurer-letter">B</div>
+                <div class="coi-field"><label for="coiInsurerB">Insurer Name</label><input type="text" id="coiInsurerB"></div>
+                <div class="coi-field"><label for="coiInsurerBNaic">NAIC #</label><input type="text" id="coiInsurerBNaic"></div>
+            </div>
+            <div class="coi-insurer-row">
+                <div class="coi-insurer-letter">C</div>
+                <div class="coi-field"><label for="coiInsurerC">Insurer Name</label><input type="text" id="coiInsurerC"></div>
+                <div class="coi-field"><label for="coiInsurerCNaic">NAIC #</label><input type="text" id="coiInsurerCNaic"></div>
+            </div>
+            <div class="coi-insurer-row">
+                <div class="coi-insurer-letter">D</div>
+                <div class="coi-field"><label for="coiInsurerD">Insurer Name</label><input type="text" id="coiInsurerD"></div>
+                <div class="coi-field"><label for="coiInsurerDNaic">NAIC #</label><input type="text" id="coiInsurerDNaic"></div>
+            </div>
+            <div class="coi-insurer-row">
+                <div class="coi-insurer-letter">E</div>
+                <div class="coi-field"><label for="coiInsurerE">Insurer Name</label><input type="text" id="coiInsurerE"></div>
+                <div class="coi-field"><label for="coiInsurerENaic">NAIC #</label><input type="text" id="coiInsurerENaic"></div>
+            </div>
+            <div class="coi-insurer-row">
+                <div class="coi-insurer-letter">F</div>
+                <div class="coi-field"><label for="coiInsurerF">Insurer Name</label><input type="text" id="coiInsurerF"></div>
+                <div class="coi-field"><label for="coiInsurerFNaic">NAIC #</label><input type="text" id="coiInsurerFNaic"></div>
+            </div>
+        </div>
+
+        <!-- ═══ COVERAGES ═══ -->
+        <div class="coi-section">
+            <div class="coi-section-header">
+                <div class="coi-section-icon">🛡️</div>
+                <div>
+                    <div class="coi-section-title">Coverage Details</div>
+                    <div class="coi-section-subtitle">Policy information and limits for each line</div>
+                </div>
+            </div>
+
+            <div class="coi-legal" style="margin-top: 0; margin-bottom: 20px;">
+                This certifies that the policies listed below have been issued to the insured named above for the policy period indicated. Limits shown may have been reduced by paid claims.
+            </div>
+
+            <!-- ── General Liability ── -->
+            <div class="coi-coverage-card">
+                <div class="coi-coverage-header">
+                    <div class="coi-coverage-type">General Liability</div>
+                    <div class="coi-coverage-badge">GL</div>
+                </div>
+                <div class="coi-check-row">
+                    <label><input type="checkbox" id="coiGlClaimsMade"> Claims-Made</label>
+                    <label><input type="checkbox" id="coiGlOccur" checked> Occurrence</label>
+                    <label><input type="checkbox" id="coiGlAddl"> Addl Insured</label>
+                    <label><input type="checkbox" id="coiGlSubr"> Subr Waived</label>
+                </div>
+                <div class="coi-policy-row">
+                    <div class="coi-field">
+                        <label for="coiGlLetter">Ltr</label>
+                        <input type="text" id="coiGlLetter" value="A" maxlength="1" style="text-align: center;">
                     </div>
                     <div class="coi-field">
-                        <label for="coiDescription">Operations / Locations / Vehicles</label>
-                        <textarea id="coiDescription" placeholder="General contracting work. Certificate holder is named as additional insured as required by written contract.&#10;&#10;Endorsements: CG 20 10 04 13, CG 20 37 04 13&#10;&#10;Waiver of subrogation in favor of certificate holder where required by contract."></textarea>
+                        <label for="coiGlPolicy">Policy Number</label>
+                        <input type="text" id="coiGlPolicy" placeholder="GL-000000">
+                    </div>
+                    <div class="coi-field">
+                        <label for="coiGlEffective">Effective</label>
+                        <input type="date" id="coiGlEffective">
+                    </div>
+                    <div class="coi-field">
+                        <label for="coiGlExpiration">Expiration</label>
+                        <input type="date" id="coiGlExpiration">
                     </div>
                 </div>
-
-                <!-- ═══ CERTIFICATE HOLDER ═══ -->
-                <div class="coi-section">
-                    <div class="coi-section-header">
-                        <div class="coi-section-icon">📌</div>
-                        <div>
-                            <div class="coi-section-title">Certificate Holder</div>
-                            <div class="coi-section-subtitle">The party requesting the certificate</div>
-                        </div>
-                    </div>
-                    <div class="coi-field-grid">
-                        <div class="coi-field">
-                            <label for="coiHolderName">Holder Name</label>
-                            <input type="text" id="coiHolderName" placeholder="Certificate Holder Name">
-                        </div>
-                    </div>
-                    <div class="coi-field-grid" style="margin-top: 16px;">
-                        <div class="coi-field">
-                            <label for="coiHolderAddress">Address</label>
-                            <input type="text" id="coiHolderAddress" placeholder="789 Corporate Blvd">
-                        </div>
-                    </div>
-                    <div class="coi-field-grid cols-3" style="margin-top: 16px;">
-                        <div class="coi-field">
-                            <label for="coiHolderCity">City</label>
-                            <input type="text" id="coiHolderCity" placeholder="City">
-                        </div>
-                        <div class="coi-field">
-                            <label for="coiHolderState">State</label>
-                            <input type="text" id="coiHolderState" placeholder="ST" maxlength="2">
-                        </div>
-                        <div class="coi-field">
-                            <label for="coiHolderZip">ZIP</label>
-                            <input type="text" id="coiHolderZip" placeholder="00000">
-                        </div>
-                    </div>
-
-                    <div class="coi-legal">
-                        <strong>Cancellation:</strong> Should any of the above described policies be cancelled before the expiration date thereof, notice will be delivered in accordance with the policy provisions.
-                    </div>
-                </div>
-
-                <!-- ACORD 25 FOOTER -->
-                <div style="font-size: 11px; text-align: center; margin-top: 8px; padding: 12px; color: var(--text-secondary, #8e8e93);">
-                    ACORD 25 (2016/03) &copy; 1988-2015 ACORD CORPORATION. All rights reserved.
+                <div class="coi-limits-grid">
+                    <div class="coi-field"><label for="coiGlOccurrence">Each Occurrence</label><input type="text" id="coiGlOccurrence" placeholder="$1,000,000"></div>
+                    <div class="coi-field"><label for="coiGlRented">Damage to Rented Premises</label><input type="text" id="coiGlRented" placeholder="$300,000"></div>
+                    <div class="coi-field"><label for="coiGlMed">Med Exp (Any One Person)</label><input type="text" id="coiGlMed" placeholder="$10,000"></div>
+                    <div class="coi-field"><label for="coiGlPersonal">Personal & Adv Injury</label><input type="text" id="coiGlPersonal" placeholder="$1,000,000"></div>
+                    <div class="coi-field"><label for="coiGlAggregate">General Aggregate</label><input type="text" id="coiGlAggregate" placeholder="$2,000,000"></div>
+                    <div class="coi-field"><label for="coiGlProducts">Products – Comp/Op Agg</label><input type="text" id="coiGlProducts" placeholder="$2,000,000"></div>
                 </div>
             </div>
 
-        </main>
+            <!-- ── Automobile Liability ── -->
+            <div class="coi-coverage-card">
+                <div class="coi-coverage-header">
+                    <div class="coi-coverage-type">Automobile Liability</div>
+                    <div class="coi-coverage-badge">AUTO</div>
+                </div>
+                <div class="coi-check-row">
+                    <label><input type="checkbox" id="coiAutoAny" checked> Any Auto</label>
+                    <label><input type="checkbox" id="coiAutoOwned"> Owned Autos</label>
+                    <label><input type="checkbox" id="coiAutoScheduled"> Scheduled</label>
+                    <label><input type="checkbox" id="coiAutoHired"> Hired Autos</label>
+                    <label><input type="checkbox" id="coiAutoNonOwned"> Non-Owned</label>
+                </div>
+                <div class="coi-check-row">
+                    <label><input type="checkbox" id="coiAutoAddl"> Addl Insured</label>
+                    <label><input type="checkbox" id="coiAutoSubr"> Subr Waived</label>
+                </div>
+                <div class="coi-policy-row">
+                    <div class="coi-field">
+                        <label for="coiAutoLetter">Ltr</label>
+                        <input type="text" id="coiAutoLetter" value="B" maxlength="1" style="text-align: center;">
+                    </div>
+                    <div class="coi-field">
+                        <label for="coiAutoPolicy">Policy Number</label>
+                        <input type="text" id="coiAutoPolicy" placeholder="AUTO-000000">
+                    </div>
+                    <div class="coi-field">
+                        <label for="coiAutoEffective">Effective</label>
+                        <input type="date" id="coiAutoEffective">
+                    </div>
+                    <div class="coi-field">
+                        <label for="coiAutoExpiration">Expiration</label>
+                        <input type="date" id="coiAutoExpiration">
+                    </div>
+                </div>
+                <div class="coi-limits-grid">
+                    <div class="coi-field"><label for="coiAutoCsl">Combined Single Limit</label><input type="text" id="coiAutoCsl" placeholder="$1,000,000"></div>
+                    <div class="coi-field"><label for="coiAutoBodyPerson">Bodily Injury (Per Person)</label><input type="text" id="coiAutoBodyPerson" placeholder=""></div>
+                    <div class="coi-field"><label for="coiAutoBodyAccident">Bodily Injury (Per Accident)</label><input type="text" id="coiAutoBodyAccident" placeholder=""></div>
+                    <div class="coi-field"><label for="coiAutoProp">Property Damage</label><input type="text" id="coiAutoProp" placeholder=""></div>
+                </div>
+            </div>
+
+            <!-- ── Umbrella / Excess Liability ── -->
+            <div class="coi-coverage-card">
+                <div class="coi-coverage-header">
+                    <div class="coi-coverage-type">Umbrella / Excess Liability</div>
+                    <div class="coi-coverage-badge">UMB</div>
+                </div>
+                <div class="coi-check-row">
+                    <label><input type="checkbox" id="coiUmbClaims"> Claims-Made</label>
+                    <label><input type="checkbox" id="coiUmbOccur" checked> Occurrence</label>
+                    <label><input type="checkbox" id="coiUmbAddl"> Addl Insured</label>
+                    <label><input type="checkbox" id="coiUmbSubr"> Subr Waived</label>
+                </div>
+                <div class="coi-policy-row">
+                    <div class="coi-field">
+                        <label for="coiUmbLetter">Ltr</label>
+                        <input type="text" id="coiUmbLetter" value="D" maxlength="1" style="text-align: center;">
+                    </div>
+                    <div class="coi-field">
+                        <label for="coiUmbrellaPolicy">Policy Number</label>
+                        <input type="text" id="coiUmbrellaPolicy" placeholder="UMB-000000">
+                    </div>
+                    <div class="coi-field">
+                        <label for="coiUmbrellaEffective">Effective</label>
+                        <input type="date" id="coiUmbrellaEffective">
+                    </div>
+                    <div class="coi-field">
+                        <label for="coiUmbrellaExpiration">Expiration</label>
+                        <input type="date" id="coiUmbrellaExpiration">
+                    </div>
+                </div>
+                <div class="coi-limits-grid">
+                    <div class="coi-field"><label for="coiUmbrellaOccurrence">Each Occurrence</label><input type="text" id="coiUmbrellaOccurrence" placeholder="$5,000,000"></div>
+                    <div class="coi-field"><label for="coiUmbrellaAggregate">Aggregate</label><input type="text" id="coiUmbrellaAggregate" placeholder="$5,000,000"></div>
+                    <div class="coi-field"><label for="coiUmbDed">Deductible</label><input type="text" id="coiUmbDed" placeholder="$0"></div>
+                    <div class="coi-field"><label for="coiUmbRet">Retention</label><input type="text" id="coiUmbRet" placeholder="$10,000"></div>
+                </div>
+            </div>
+
+            <!-- ── Workers Compensation ── -->
+            <div class="coi-coverage-card">
+                <div class="coi-coverage-header">
+                    <div class="coi-coverage-type">Workers Comp & Employers' Liability</div>
+                    <div class="coi-coverage-badge">WC</div>
+                </div>
+                <div class="coi-check-row">
+                    <label><input type="checkbox" id="coiWcExcl"> Proprietor/Partner/Officer Excluded</label>
+                    <label><input type="checkbox" id="coiWcSubr"> Subr Waived</label>
+                </div>
+                <div class="coi-policy-row">
+                    <div class="coi-field">
+                        <label for="coiWcLetter">Ltr</label>
+                        <input type="text" id="coiWcLetter" value="C" maxlength="1" style="text-align: center;">
+                    </div>
+                    <div class="coi-field">
+                        <label for="coiWcPolicy">Policy Number</label>
+                        <input type="text" id="coiWcPolicy" placeholder="WC-000000">
+                    </div>
+                    <div class="coi-field">
+                        <label for="coiWcEffective">Effective</label>
+                        <input type="date" id="coiWcEffective">
+                    </div>
+                    <div class="coi-field">
+                        <label for="coiWcExpiration">Expiration</label>
+                        <input type="date" id="coiWcExpiration">
+                    </div>
+                </div>
+                <div class="coi-limits-grid">
+                    <div class="coi-field"><label for="coiWcAccident">E.L. Each Accident</label><input type="text" id="coiWcAccident" placeholder="$1,000,000"></div>
+                    <div class="coi-field"><label for="coiWcEmployee">E.L. Disease – Each Employee</label><input type="text" id="coiWcEmployee" placeholder="$1,000,000"></div>
+                    <div class="coi-field"><label for="coiWcDisease">E.L. Disease – Policy Limit</label><input type="text" id="coiWcDisease" placeholder="$1,000,000"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ DESCRIPTION OF OPERATIONS ═══ -->
+        <div class="coi-section">
+            <div class="coi-section-header">
+                <div class="coi-section-icon">📝</div>
+                <div>
+                    <div class="coi-section-title">Description of Operations</div>
+                    <div class="coi-section-subtitle">Locations, vehicles, additional remarks</div>
+                </div>
+            </div>
+            <div class="coi-field">
+                <label for="coiDescription">Operations / Locations / Vehicles</label>
+                <textarea id="coiDescription" placeholder="General contracting work. Certificate holder is named as additional insured as required by written contract.&#10;&#10;Endorsements: CG 20 10 04 13, CG 20 37 04 13&#10;&#10;Waiver of subrogation in favor of certificate holder where required by contract."></textarea>
+            </div>
+        </div>
+
+        <!-- ═══ CERTIFICATE HOLDER ═══ -->
+        <div class="coi-section">
+            <div class="coi-section-header">
+                <div class="coi-section-icon">📌</div>
+                <div>
+                    <div class="coi-section-title">Certificate Holder</div>
+                    <div class="coi-section-subtitle">The party requesting the certificate</div>
+                </div>
+            </div>
+            <div class="coi-field-grid">
+                <div class="coi-field">
+                    <label for="coiHolderName">Holder Name</label>
+                    <input type="text" id="coiHolderName" placeholder="Certificate Holder Name">
+                </div>
+            </div>
+            <div class="coi-field-grid" style="margin-top: 16px;">
+                <div class="coi-field">
+                    <label for="coiHolderAddress">Address</label>
+                    <input type="text" id="coiHolderAddress" placeholder="789 Corporate Blvd">
+                </div>
+            </div>
+            <div class="coi-field-grid cols-3" style="margin-top: 16px;">
+                <div class="coi-field">
+                    <label for="coiHolderCity">City</label>
+                    <input type="text" id="coiHolderCity" placeholder="City">
+                </div>
+                <div class="coi-field">
+                    <label for="coiHolderState">State</label>
+                    <input type="text" id="coiHolderState" placeholder="ST" maxlength="2">
+                </div>
+                <div class="coi-field">
+                    <label for="coiHolderZip">ZIP</label>
+                    <input type="text" id="coiHolderZip" placeholder="00000">
+                </div>
+            </div>
+
+            <div class="coi-legal">
+                <strong>Cancellation:</strong> Should any of the above described policies be cancelled before the expiration date thereof, notice will be delivered in accordance with the policy provisions.
+            </div>
+        </div>
+
+        <!-- ACORD 25 FOOTER -->
+        <div style="font-size: 11px; text-align: center; margin-top: 8px; padding: 12px; color: var(--text-secondary, #8e8e93);">
+            ACORD 25 (2016/03) &copy; 1988-2015 ACORD CORPORATION. All rights reserved.
+        </div>
+    </div>
+
+</main>

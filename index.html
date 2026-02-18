@@ -11722,9 +11722,23 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                             tool.dataset.loaded = 'true';
                         } else {
                             console.error('[navigateTo] Failed to load plugin HTML:', entry.htmlFile, resp.status);
+                            tool.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-secondary,#666)">
+                                <p style="font-size:1.1rem;margin-bottom:1rem">⚠️ Failed to load ${entry.name || entry.key}</p>
+                                <button onclick="delete this.closest('.plugin-container').dataset.loaded; App.navigateTo('${entry.key}')"
+                                    style="padding:0.5rem 1.5rem;border-radius:8px;border:none;background:var(--apple-blue,#007AFF);color:#fff;cursor:pointer;font-size:0.95rem">
+                                    Retry
+                                </button>
+                            </div>`;
                         }
                     } catch(e) {
                         console.error('[navigateTo] Error loading plugin HTML:', entry.htmlFile, e);
+                        tool.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-secondary,#666)">
+                            <p style="font-size:1.1rem;margin-bottom:1rem">⚠️ Connection error loading ${entry.name || entry.key}</p>
+                            <button onclick="delete this.closest('.plugin-container').dataset.loaded; App.navigateTo('${entry.key}')"
+                                style="padding:0.5rem 1.5rem;border-radius:8px;border:none;background:var(--apple-blue,#007AFF);color:#fff;cursor:pointer;font-size:0.95rem">
+                                Retry
+                            </button>
+                        </div>`;
                     }
                 }
 

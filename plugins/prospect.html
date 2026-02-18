@@ -1,145 +1,145 @@
-        <header>
-            <div class="header-top">
-                <div class="logo tool-header-brand">
-                    <span class="logo-controls">
-                        <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
-                            <span class="logo-icon">🔍</span>
-                        </button>
-                        <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
-                            <span class="dark-mode-icon">🌙</span>
-                        </button>
-                    </span>
-                    <span>Prospect Investigator</span>
+<header>
+    <div class="header-top">
+        <div class="logo tool-header-brand">
+            <span class="logo-controls">
+                <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                    <span class="logo-icon">🔍</span>
+                </button>
+                <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <span class="dark-mode-icon">🌙</span>
+                </button>
+            </span>
+            <span>Prospect Investigator</span>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <!-- Producer Toggle -->
+            <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 4px; display: flex; gap: 4px;">
+                <button id="producerAustin" class="producer-toggle active" onclick="ProspectInvestigator.setProducer('austin')">
+                    Austin
+                </button>
+                <button id="producerNeil" class="producer-toggle" onclick="ProspectInvestigator.setProducer('neil')">
+                    Neil
+                </button>
+            </div>
+            <button id="generateCOIBtn" class="btn-secondary" onclick="ProspectInvestigator.generateCOI()" style="font-size: 14px; padding: 8px 16px; display: none;">
+                📄 Generate COI
+            </button>
+            <button class="btn-utility" onclick="ProspectInvestigator.exportReport()" style="font-size: 14px; padding: 8px 16px;">
+                🖨️ Print Report
+            </button>
+        </div>
+    </div>
+    <div class="step-title">Commercial Business Intelligence & Public Records</div>
+    <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
+</header>
+
+<main style="padding: 20px; padding-bottom: 60px;">
+
+    <!-- SEARCH SECTION -->
+    <div class="card">
+        <h2>🔎 Search Business</h2>
+        <p class="section-subtitle">Lookup by business name, UBI number, or contractor registration</p>
+
+        <div class="grid-2">
+            <div>
+                <label class="label">Business Name</label>
+                <input type="text" id="prospectBusinessName" placeholder="e.g., ABC Construction LLC">
+            </div>
+            <div>
+                <label class="label">UBI / CCB# (Optional)</label>
+                <input type="text" id="prospectUBI" placeholder="e.g., 123-456-789 or CCB#">
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 16px;">
+            <div>
+                <label class="label">City</label>
+                <input type="text" id="prospectCity" placeholder="e.g., Seattle">
+            </div>
+            <div>
+                <label class="label">State</label>
+                <select id="prospectState">
+                    <option value="WA">Washington</option>
+                    <option value="OR">Oregon</option>
+                    <option value="AZ">Arizona</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn-primary" onclick="ProspectInvestigator.search()" style="margin-top: 20px; width: 100%;">
+            🔍 Run Full Investigation
+        </button>
+    </div>
+
+    <!-- LOADING INDICATOR -->
+    <div id="prospectLoading" style="display: none; text-align: center; padding: 40px;">
+        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+        <h3>Investigating Business Records...</h3>
+        <p style="color: var(--text-secondary);">Searching WA L&I, Secretary of State, OSHA, and other public databases</p>
+    </div>
+
+    <!-- RESULTS SECTION -->
+    <div id="prospectResults" style="display: none;">
+
+        <!-- BUSINESS SUMMARY -->
+        <div class="card">
+            <h2>🏢 Business Summary</h2>
+            <div id="businessSummary"></div>
+        </div>
+
+        <!-- L&I CONTRACTOR INFO -->
+        <div class="card">
+            <h2>🔨 WA L&I Contractor License</h2>
+            <div id="liContractorInfo"></div>
+        </div>
+
+        <!-- SECRETARY OF STATE -->
+        <div class="card">
+            <h2>📋 Business Entity Records</h2>
+            <div id="sosBusinessInfo"></div>
+        </div>
+
+        <!-- OSHA VIOLATIONS -->
+        <div class="card">
+            <h2>⚠️ OSHA Inspection History</h2>
+            <div id="oshaViolations"></div>
+        </div>
+
+        <!-- BUSINESS CLASSIFICATION -->
+        <div class="card">
+            <h2>📊 Risk Classification</h2>
+            <div id="riskClassification"></div>
+        </div>
+
+        <!-- INVESTIGATION LINKS -->
+        <div class="card">
+            <h2>🔗 Investigation Links</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 13px;">
+                Open official records in new tabs for detailed manual review
+            </p>
+            <div id="investigationLinks"></div>
+        </div>
+
+        <!-- EXPORT ACTIONS -->
+        <div class="card" style="background: #f8f9fa; border: 2px dashed #dee2e6;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h3 style="margin: 0 0 4px 0; font-size: 16px;">📋 Export Options</h3>
+                    <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">
+                        Export this investigation report for your workflow
+                    </p>
                 </div>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <!-- Producer Toggle -->
-                    <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 4px; display: flex; gap: 4px;">
-                        <button id="producerAustin" class="producer-toggle active" onclick="ProspectInvestigator.setProducer('austin')">
-                            Austin
-                        </button>
-                        <button id="producerNeil" class="producer-toggle" onclick="ProspectInvestigator.setProducer('neil')">
-                            Neil
-                        </button>
-                    </div>
-                    <button id="generateCOIBtn" class="btn-secondary" onclick="ProspectInvestigator.generateCOI()" style="font-size: 14px; padding: 8px 16px; display: none;">
-                        📄 Generate COI
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn-secondary" onclick="ProspectInvestigator.copyToQuote()" style="font-size: 14px;">
+                        📋 Copy to Quote
                     </button>
-                    <button class="btn-utility" onclick="ProspectInvestigator.exportReport()" style="font-size: 14px; padding: 8px 16px;">
+                    <button class="btn-utility" onclick="ProspectInvestigator.exportReport()" style="font-size: 14px;">
                         🖨️ Print Report
                     </button>
                 </div>
             </div>
-            <div class="step-title">Commercial Business Intelligence & Public Records</div>
-            <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
-        </header>
+        </div>
 
-        <main style="padding: 20px; padding-bottom: 60px;">
+    </div>
 
-            <!-- SEARCH SECTION -->
-            <div class="card">
-                <h2>🔎 Search Business</h2>
-                <p class="section-subtitle">Lookup by business name, UBI number, or contractor registration</p>
-
-                <div class="grid-2">
-                    <div>
-                        <label class="label">Business Name</label>
-                        <input type="text" id="prospectBusinessName" placeholder="e.g., ABC Construction LLC">
-                    </div>
-                    <div>
-                        <label class="label">UBI / CCB# (Optional)</label>
-                        <input type="text" id="prospectUBI" placeholder="e.g., 123-456-789 or CCB#">
-                    </div>
-                </div>
-
-                <div class="grid-2" style="margin-top: 16px;">
-                    <div>
-                        <label class="label">City</label>
-                        <input type="text" id="prospectCity" placeholder="e.g., Seattle">
-                    </div>
-                    <div>
-                        <label class="label">State</label>
-                        <select id="prospectState">
-                            <option value="WA">Washington</option>
-                            <option value="OR">Oregon</option>
-                            <option value="AZ">Arizona</option>
-                        </select>
-                    </div>
-                </div>
-
-                <button class="btn-primary" onclick="ProspectInvestigator.search()" style="margin-top: 20px; width: 100%;">
-                    🔍 Run Full Investigation
-                </button>
-            </div>
-
-            <!-- LOADING INDICATOR -->
-            <div id="prospectLoading" style="display: none; text-align: center; padding: 40px;">
-                <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-                <h3>Investigating Business Records...</h3>
-                <p style="color: var(--text-secondary);">Searching WA L&I, Secretary of State, OSHA, and other public databases</p>
-            </div>
-
-            <!-- RESULTS SECTION -->
-            <div id="prospectResults" style="display: none;">
-
-                <!-- BUSINESS SUMMARY -->
-                <div class="card">
-                    <h2>🏢 Business Summary</h2>
-                    <div id="businessSummary"></div>
-                </div>
-
-                <!-- L&I CONTRACTOR INFO -->
-                <div class="card">
-                    <h2>🔨 WA L&I Contractor License</h2>
-                    <div id="liContractorInfo"></div>
-                </div>
-
-                <!-- SECRETARY OF STATE -->
-                <div class="card">
-                    <h2>📋 Business Entity Records</h2>
-                    <div id="sosBusinessInfo"></div>
-                </div>
-
-                <!-- OSHA VIOLATIONS -->
-                <div class="card">
-                    <h2>⚠️ OSHA Inspection History</h2>
-                    <div id="oshaViolations"></div>
-                </div>
-
-                <!-- BUSINESS CLASSIFICATION -->
-                <div class="card">
-                    <h2>📊 Risk Classification</h2>
-                    <div id="riskClassification"></div>
-                </div>
-
-                <!-- INVESTIGATION LINKS -->
-                <div class="card">
-                    <h2>🔗 Investigation Links</h2>
-                    <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 13px;">
-                        Open official records in new tabs for detailed manual review
-                    </p>
-                    <div id="investigationLinks"></div>
-                </div>
-
-                <!-- EXPORT ACTIONS -->
-                <div class="card" style="background: #f8f9fa; border: 2px dashed #dee2e6;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-                        <div>
-                            <h3 style="margin: 0 0 4px 0; font-size: 16px;">📋 Export Options</h3>
-                            <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">
-                                Export this investigation report for your workflow
-                            </p>
-                        </div>
-                        <div style="display: flex; gap: 12px;">
-                            <button class="btn-secondary" onclick="ProspectInvestigator.copyToQuote()" style="font-size: 14px;">
-                                📋 Copy to Quote
-                            </button>
-                            <button class="btn-utility" onclick="ProspectInvestigator.exportReport()" style="font-size: 14px;">
-                                🖨️ Print Report
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-        </main>
+</main>

@@ -1,206 +1,206 @@
 
-        <header>
-            <div class="header-top">
-                <div class="logo tool-header-brand">
-                    <span class="logo-controls">
-                        <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
-                            <span class="logo-icon">📋</span>
-                        </button>
-                        <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
-                            <span class="dark-mode-icon">🌙</span>
-                        </button>
-                    </span>
-                    <span>CGL Compliance</span>
-                </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <button class="btn-utility" onclick="ComplianceDashboard.downloadFullBackup()" style="font-size: 14px; padding: 8px 16px;" title="Download full annotations backup (JSON)">
-                        💾 Backup
-                    </button>
-                    <button class="btn-utility" onclick="ComplianceDashboard.refresh()" style="font-size: 14px; padding: 8px 16px;">
-                        🔄 Refresh
-                    </button>
-                </div>
-            </div>
-            <div class="step-title">Contractor CGL & Bond Tracking</div>
-            <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
-        </header>
-
-        <div style="padding-top: 20px;">
-        <div class="cgl-container">
-
-            <!-- Header -->
-            <div class="cgl-header">
-                <h1 class="cgl-title">Commercial Policy Dashboard</h1>
-                <p class="cgl-subtitle">Track all commercial policy expirations & compliance</p>
-                <p class="cgl-subtitle" id="cglLastFetch" style="margin-top: 4px; font-size: 13px;"></p>
-                <p id="cglLastSynced" style="margin-top: 2px; font-size: 12px; color: var(--text-secondary); transition: color 0.3s;"></p>
-            </div>
-
-            <!-- Statistics Cards -->
-            <div class="cgl-stats-grid" id="cglStats">
-                <div class="cgl-stat-card">
-                    <span class="cgl-stat-icon">🛡️</span>
-                    <div class="cgl-stat-value" id="statTotal">0</div>
-                    <div class="cgl-stat-label">Total Policies</div>
-                </div>
-                <div class="cgl-stat-card critical">
-                    <span class="cgl-stat-icon">🔴</span>
-                    <div class="cgl-stat-value" id="statCritical">0</div>
-                    <div class="cgl-stat-label">Critical (&lt;30d)</div>
-                </div>
-                <div class="cgl-stat-card warning">
-                    <span class="cgl-stat-icon">🟡</span>
-                    <div class="cgl-stat-value" id="statExpiring">0</div>
-                    <div class="cgl-stat-label">Expiring Soon</div>
-                </div>
-                <div class="cgl-stat-card expired">
-                    <span class="cgl-stat-icon">⏰</span>
-                    <div class="cgl-stat-value" id="statExpired">0</div>
-                    <div class="cgl-stat-label">Expired</div>
-                </div>
-                <div class="cgl-stat-card manual">
-                    <span class="cgl-stat-icon">👁️</span>
-                    <div class="cgl-stat-value" id="statManual">0</div>
-                    <div class="cgl-stat-label">Manual Check</div>
-                </div>
-                <div class="cgl-stat-card updated">
-                    <span class="cgl-stat-icon">✅</span>
-                    <div class="cgl-stat-value" id="statUpdated">0</div>
-                    <div class="cgl-stat-label">Updated</div>
-                </div>
-            </div>
-
-            <!-- Type Visibility Toggles -->
-            <div class="cgl-type-toggles" id="cglTypeToggles">
-                <!-- Populated by renderTypeToggles() -->
-            </div>
-
-            <!-- Search and Filters -->
-            <div class="cgl-controls">
-                <div class="cgl-search-filter">
-                    <input
-                        type="text"
-                        class="cgl-search"
-                        id="cglSearchInput"
-                        placeholder="Search by client name, policy #, or carrier..."
-                        style="margin-bottom: 0;"
-                    />
-                    <select class="cgl-filter-select" id="cglFilterSelect" style="margin-bottom: 0;">
-                        <option value="all">All Status</option>
-                        <option value="critical">Critical (&lt;30d)</option>
-                        <option value="expiring-soon">Expiring Soon (30-60d)</option>
-                        <option value="expired">Expired</option>
-                        <option value="manual-verification">Manual Verification</option>
-                        <option value="not-updated">Not Updated</option>
-                        <option value="cgl-only">CGL Only</option>
-                        <option value="bond-only">Bonds Only</option>
-                        <option value="auto-only">Comm Auto Only</option>
-                        <option value="wc-only">Workers Comp Only</option>
-                        <option value="pkg-only">Package Only</option>
-                        <option value="umbrella-only">Umbrella Only</option>
-                        <option value="bop-only">BOP Only</option>
-                        <option value="property-only">Property Only</option>
-                        <option value="renewed">Renewed</option>
-                        <option value="has-notes">Has Notes</option>
-                        <option value="state-updated">State Updated</option>
-                        <option value="needs-state-update">Needs State Update</option>
-                    </select>
-                    <button class="cgl-show-hidden-btn" id="cglShowHiddenBtn" onclick="ComplianceDashboard.toggleShowHidden()">
-                        Show Hidden <span class="cgl-hidden-count" id="cglHiddenCount">0</span>
-                    </button>
-                </div>
-                <div id="cglCounterRow" style="font-size: 13px; color: var(--text-secondary); margin-top: 8px; display: none;">
-                    Showing <span id="cglFilteredCount">0</span> of <span id="cglTotalCount">0</span> policies
-                    &nbsp;·&nbsp; <span id="cglAnnotationSummary" style="color: var(--apple-gray);"></span>
-                </div>
-            </div>
-
-            <!-- Loading State -->
-            <div id="cglLoading" class="cgl-loading">
-                <div class="cgl-loading-graphic">
-                    <div class="cgl-spinner"></div>
-                    <span class="cgl-loading-icon">🛡️</span>
-                </div>
-                <p class="cgl-loading-text">Loading compliance data…</p>
-                <p class="cgl-loading-sub">Connecting to HawkSoft</p>
-            </div>
-
-            <!-- Error State -->
-            <div id="cglError" class="cgl-error" style="display: none;">
-                <div class="cgl-error-title">Error Loading Data</div>
-                <p id="cglErrorMessage"></p>
-                <button class="cgl-button" onclick="ComplianceDashboard.refresh()" style="margin-top: 16px;">
-                    Retry
+<header>
+    <div class="header-top">
+        <div class="logo tool-header-brand">
+            <span class="logo-controls">
+                <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                    <span class="logo-icon">📋</span>
                 </button>
-            </div>
+                <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <span class="dark-mode-icon">🌙</span>
+                </button>
+            </span>
+            <span>CGL Compliance</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn-utility" onclick="ComplianceDashboard.downloadFullBackup()" style="font-size: 14px; padding: 8px 16px;" title="Download full annotations backup (JSON)">
+                💾 Backup
+            </button>
+            <button class="btn-utility" onclick="ComplianceDashboard.refresh()" style="font-size: 14px; padding: 8px 16px;">
+                🔄 Refresh
+            </button>
+        </div>
+    </div>
+    <div class="step-title">Contractor CGL & Bond Tracking</div>
+    <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
+</header>
 
-            <!-- Policies Table -->
-            <div class="cgl-table-container" id="cglTableContainer" style="display: none;">
-                <div class="cgl-refresh-bar" id="cglRefreshBar"></div>
-                <div class="cgl-refresh-banner" id="cglRefreshBanner">
-                    <div class="mini-spinner"></div>
-                    <span>Fetching latest data from HawkSoft…</span>
-                </div>
-                <table class="cgl-table">
-                    <thead>
-                        <tr>
-                            <th>Updated</th>
-                            <th class="sortable" data-sort="status" onclick="ComplianceDashboard.toggleSort('status')">Status</th>
-                            <th class="sortable" data-sort="policyType" onclick="ComplianceDashboard.toggleSort('policyType')">Type</th>
-                            <th class="sortable" data-sort="clientName" onclick="ComplianceDashboard.toggleSort('clientName')">Client</th>
-                            <th class="sortable" data-sort="policyNumber" onclick="ComplianceDashboard.toggleSort('policyNumber')">Policy #</th>
-                            <th class="sortable" data-sort="carrier" onclick="ComplianceDashboard.toggleSort('carrier')">Carrier</th>
-                            <th class="sortable" data-sort="daysUntilExpiration" onclick="ComplianceDashboard.toggleSort('daysUntilExpiration')">Dates</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="cglTableBody">
-                    </tbody>
-                </table>
-            </div>
+<div style="padding-top: 20px;">
+<div class="cgl-container">
 
-            <!-- Legend -->
-            <div class="cgl-legend">
-                <div class="cgl-legend-title">Legend</div>
-                <div class="cgl-legend-grid">
-                    <div class="cgl-legend-item">
-                        <div class="cgl-legend-dot" style="background: #c00; color: #c00;"></div>
-                        <span class="cgl-legend-label">Expired</span>
-                        <span class="cgl-legend-desc">&lt;30 days or past due</span>
-                    </div>
-                    <div class="cgl-legend-item">
-                        <div class="cgl-legend-dot" style="background: #cc9900; color: #cc9900;"></div>
-                        <span class="cgl-legend-label">Warning</span>
-                        <span class="cgl-legend-desc">30–60 days remaining</span>
-                    </div>
-                    <div class="cgl-legend-item">
-                        <div class="cgl-legend-dot" style="background: #cc6600; color: #cc6600;"></div>
-                        <span class="cgl-legend-label">⚠️ Manual</span>
-                        <span class="cgl-legend-desc">Hiscox, IES, HCC, BTIS</span>
-                    </div>
-                    <div class="cgl-legend-item">
-                        <div class="cgl-legend-dot" style="background: #34C759; color: #34C759;"></div>
-                        <span class="cgl-legend-label">Updated</span>
-                        <span class="cgl-legend-desc">Hide from view</span>
-                    </div>
-                    <div class="cgl-legend-item">
-                        <div class="cgl-legend-dot" style="background: #94a3b8; color: #94a3b8;"></div>
-                        <span class="cgl-legend-label">Dismissed</span>
-                        <span class="cgl-legend-desc">Hidden from tracking</span>
-                    </div>
-                </div>
-            </div>
+    <!-- Header -->
+    <div class="cgl-header">
+        <h1 class="cgl-title">Commercial Policy Dashboard</h1>
+        <p class="cgl-subtitle">Track all commercial policy expirations & compliance</p>
+        <p class="cgl-subtitle" id="cglLastFetch" style="margin-top: 4px; font-size: 13px;"></p>
+        <p id="cglLastSynced" style="margin-top: 2px; font-size: 12px; color: var(--text-secondary); transition: color 0.3s;"></p>
+    </div>
 
-            <!-- Clear All / Restore (bottom, out of the way) -->
-            <div style="text-align: center; margin-top: 16px; padding-bottom: 24px; display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; align-items: center;">
-                <label style="background: none; border: 1px solid #e2e8f0; border-radius: 6px; color: #3b82f6; font-size: 12px; cursor: pointer; padding: 6px 12px; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px;"
-                    onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='none'">
-                    📂 Restore Backup
-                    <input type="file" accept=".json" onchange="ComplianceDashboard.restoreFullBackup(this)" style="display: none;">
-                </label>
-                <button onclick="ComplianceDashboard.clearAll()" style="background: none; border: none; color: #94a3b8; font-size: 12px; cursor: pointer; padding: 6px 12px; transition: color 0.15s;"
-                    onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">Clear All Markers &amp; Notes</button>
+    <!-- Statistics Cards -->
+    <div class="cgl-stats-grid" id="cglStats">
+        <div class="cgl-stat-card">
+            <span class="cgl-stat-icon">🛡️</span>
+            <div class="cgl-stat-value" id="statTotal">0</div>
+            <div class="cgl-stat-label">Total Policies</div>
+        </div>
+        <div class="cgl-stat-card critical">
+            <span class="cgl-stat-icon">🔴</span>
+            <div class="cgl-stat-value" id="statCritical">0</div>
+            <div class="cgl-stat-label">Critical (&lt;30d)</div>
+        </div>
+        <div class="cgl-stat-card warning">
+            <span class="cgl-stat-icon">🟡</span>
+            <div class="cgl-stat-value" id="statExpiring">0</div>
+            <div class="cgl-stat-label">Expiring Soon</div>
+        </div>
+        <div class="cgl-stat-card expired">
+            <span class="cgl-stat-icon">⏰</span>
+            <div class="cgl-stat-value" id="statExpired">0</div>
+            <div class="cgl-stat-label">Expired</div>
+        </div>
+        <div class="cgl-stat-card manual">
+            <span class="cgl-stat-icon">👁️</span>
+            <div class="cgl-stat-value" id="statManual">0</div>
+            <div class="cgl-stat-label">Manual Check</div>
+        </div>
+        <div class="cgl-stat-card updated">
+            <span class="cgl-stat-icon">✅</span>
+            <div class="cgl-stat-value" id="statUpdated">0</div>
+            <div class="cgl-stat-label">Updated</div>
+        </div>
+    </div>
+
+    <!-- Type Visibility Toggles -->
+    <div class="cgl-type-toggles" id="cglTypeToggles">
+        <!-- Populated by renderTypeToggles() -->
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="cgl-controls">
+        <div class="cgl-search-filter">
+            <input
+                type="text"
+                class="cgl-search"
+                id="cglSearchInput"
+                placeholder="Search by client name, policy #, or carrier..."
+                style="margin-bottom: 0;"
+            />
+            <select class="cgl-filter-select" id="cglFilterSelect" style="margin-bottom: 0;">
+                <option value="all">All Status</option>
+                <option value="critical">Critical (&lt;30d)</option>
+                <option value="expiring-soon">Expiring Soon (30-60d)</option>
+                <option value="expired">Expired</option>
+                <option value="manual-verification">Manual Verification</option>
+                <option value="not-updated">Not Updated</option>
+                <option value="cgl-only">CGL Only</option>
+                <option value="bond-only">Bonds Only</option>
+                <option value="auto-only">Comm Auto Only</option>
+                <option value="wc-only">Workers Comp Only</option>
+                <option value="pkg-only">Package Only</option>
+                <option value="umbrella-only">Umbrella Only</option>
+                <option value="bop-only">BOP Only</option>
+                <option value="property-only">Property Only</option>
+                <option value="renewed">Renewed</option>
+                <option value="has-notes">Has Notes</option>
+                <option value="state-updated">State Updated</option>
+                <option value="needs-state-update">Needs State Update</option>
+            </select>
+            <button class="cgl-show-hidden-btn" id="cglShowHiddenBtn" onclick="ComplianceDashboard.toggleShowHidden()">
+                Show Hidden <span class="cgl-hidden-count" id="cglHiddenCount">0</span>
+            </button>
+        </div>
+        <div id="cglCounterRow" style="font-size: 13px; color: var(--text-secondary); margin-top: 8px; display: none;">
+            Showing <span id="cglFilteredCount">0</span> of <span id="cglTotalCount">0</span> policies
+            &nbsp;·&nbsp; <span id="cglAnnotationSummary" style="color: var(--apple-gray);"></span>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="cglLoading" class="cgl-loading">
+        <div class="cgl-loading-graphic">
+            <div class="cgl-spinner"></div>
+            <span class="cgl-loading-icon">🛡️</span>
+        </div>
+        <p class="cgl-loading-text">Loading compliance data…</p>
+        <p class="cgl-loading-sub">Connecting to HawkSoft</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="cglError" class="cgl-error" style="display: none;">
+        <div class="cgl-error-title">Error Loading Data</div>
+        <p id="cglErrorMessage"></p>
+        <button class="cgl-button" onclick="ComplianceDashboard.refresh()" style="margin-top: 16px;">
+            Retry
+        </button>
+    </div>
+
+    <!-- Policies Table -->
+    <div class="cgl-table-container" id="cglTableContainer" style="display: none;">
+        <div class="cgl-refresh-bar" id="cglRefreshBar"></div>
+        <div class="cgl-refresh-banner" id="cglRefreshBanner">
+            <div class="mini-spinner"></div>
+            <span>Fetching latest data from HawkSoft…</span>
+        </div>
+        <table class="cgl-table">
+            <thead>
+                <tr>
+                    <th>Updated</th>
+                    <th class="sortable" data-sort="status" onclick="ComplianceDashboard.toggleSort('status')">Status</th>
+                    <th class="sortable" data-sort="policyType" onclick="ComplianceDashboard.toggleSort('policyType')">Type</th>
+                    <th class="sortable" data-sort="clientName" onclick="ComplianceDashboard.toggleSort('clientName')">Client</th>
+                    <th class="sortable" data-sort="policyNumber" onclick="ComplianceDashboard.toggleSort('policyNumber')">Policy #</th>
+                    <th class="sortable" data-sort="carrier" onclick="ComplianceDashboard.toggleSort('carrier')">Carrier</th>
+                    <th class="sortable" data-sort="daysUntilExpiration" onclick="ComplianceDashboard.toggleSort('daysUntilExpiration')">Dates</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="cglTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Legend -->
+    <div class="cgl-legend">
+        <div class="cgl-legend-title">Legend</div>
+        <div class="cgl-legend-grid">
+            <div class="cgl-legend-item">
+                <div class="cgl-legend-dot" style="background: #c00; color: #c00;"></div>
+                <span class="cgl-legend-label">Expired</span>
+                <span class="cgl-legend-desc">&lt;30 days or past due</span>
+            </div>
+            <div class="cgl-legend-item">
+                <div class="cgl-legend-dot" style="background: #cc9900; color: #cc9900;"></div>
+                <span class="cgl-legend-label">Warning</span>
+                <span class="cgl-legend-desc">30–60 days remaining</span>
+            </div>
+            <div class="cgl-legend-item">
+                <div class="cgl-legend-dot" style="background: #cc6600; color: #cc6600;"></div>
+                <span class="cgl-legend-label">⚠️ Manual</span>
+                <span class="cgl-legend-desc">Hiscox, IES, HCC, BTIS</span>
+            </div>
+            <div class="cgl-legend-item">
+                <div class="cgl-legend-dot" style="background: #34C759; color: #34C759;"></div>
+                <span class="cgl-legend-label">Updated</span>
+                <span class="cgl-legend-desc">Hide from view</span>
+            </div>
+            <div class="cgl-legend-item">
+                <div class="cgl-legend-dot" style="background: #94a3b8; color: #94a3b8;"></div>
+                <span class="cgl-legend-label">Dismissed</span>
+                <span class="cgl-legend-desc">Hidden from tracking</span>
             </div>
         </div>
-        </div>
+    </div>
+
+    <!-- Clear All / Restore (bottom, out of the way) -->
+    <div style="text-align: center; margin-top: 16px; padding-bottom: 24px; display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; align-items: center;">
+        <label style="background: none; border: 1px solid #e2e8f0; border-radius: 6px; color: #3b82f6; font-size: 12px; cursor: pointer; padding: 6px 12px; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px;"
+            onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='none'">
+            📂 Restore Backup
+            <input type="file" accept=".json" onchange="ComplianceDashboard.restoreFullBackup(this)" style="display: none;">
+        </label>
+        <button onclick="ComplianceDashboard.clearAll()" style="background: none; border: none; color: #94a3b8; font-size: 12px; cursor: pointer; padding: 6px 12px; transition: color 0.15s;"
+            onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">Clear All Markers &amp; Notes</button>
+    </div>
+</div>
+</div>
 
