@@ -659,7 +659,7 @@ describe('12-Column Grid Layout', () => {
   let source;
 
   beforeAll(() => {
-    source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    source = fs.readFileSync(path.join(ROOT, 'css', 'main.css'), 'utf8');
   });
 
   test('grid-12 CSS class is defined with 12-column template', () => {
@@ -775,7 +775,7 @@ describe('Progressive Disclosure: Secondary Heating', () => {
   });
 
   test('disclosure-hidden CSS class uses display:none', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'css', 'main.css'), 'utf8');
     expect(source).toMatch(/\.disclosure-hidden\s*\{[^}]*display:\s*none/);
   });
 
@@ -836,7 +836,7 @@ describe('iOS Toggle Switches', () => {
   });
 
   test('toggle-switch CSS is defined', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'css', 'main.css'), 'utf8');
     expect(source).toMatch(/\.toggle-switch\s*\{/);
     expect(source).toMatch(/\.toggle-slider\s*\{/);
     expect(source).toMatch(/\.toggle-slider::before\s*\{/);
@@ -859,13 +859,13 @@ describe('Home Coverage Grid', () => {
   });
 
   test('grid-2-full CSS class is defined with correct columns and gap', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'css', 'main.css'), 'utf8');
     expect(source).toMatch(/\.grid-2-full\s*\{[^}]*grid-template-columns:\s*1fr\s+1fr/);
     expect(source).toMatch(/\.grid-2-full\s*\{[^}]*gap:\s*16px/);
   });
 
   test('full-span CSS class spans both columns', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'css', 'main.css'), 'utf8');
     expect(source).toMatch(/\.full-span\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/);
   });
 
@@ -979,12 +979,12 @@ describe('Home Endorsements Layout', () => {
 
   // Group 2: All 3 toggles in toggle-grid-3
   test('toggle-grid-3 CSS class is defined', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'css', 'main.css'), 'utf8');
     expect(source).toMatch(/\.toggle-grid-3\s*\{[^}]*grid-template-columns:\s*1fr\s+1fr\s+1fr/);
   });
 
   test('toggle-card CSS class is defined with flex layout', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'css', 'main.css'), 'utf8');
     expect(source).toMatch(/\.toggle-card\s*\{[^}]*display:\s*flex/);
   });
 
@@ -1057,7 +1057,7 @@ describe('Home Endorsements Layout', () => {
   });
 
   test('toggle-grid-3 has responsive fallback for mobile', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'css', 'main.css'), 'utf8');
     expect(source).toMatch(/@media[^{]*max-width[^{]*\{[^}]*\.toggle-grid-3\s*\{[^}]*grid-template-columns:\s*1fr/s);
   });
 });

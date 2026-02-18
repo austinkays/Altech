@@ -1,0 +1,204 @@
+.acct-container { max-width: 700px; margin: 0 auto; padding: 0 16px 80px; }
+.acct-status-box {
+    background: var(--bg-input);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-line;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.acct-status-box:empty { display: none; }
+.acct-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 16px 0;
+}
+.acct-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+.acct-step:last-child { border-bottom: none; }
+.acct-step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--text-secondary);
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+.acct-step.active .acct-step-num { background: var(--apple-blue); color: #fff; }
+.acct-step.done .acct-step-num { background: #34c759; color: #fff; }
+.acct-step-text { flex: 1; }
+.acct-step-title { font-weight: 600; font-size: 14px; color: var(--text); }
+.acct-step-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.acct-filename-row {
+    display: flex; gap: 10px; align-items: end; margin-top: 12px;
+}
+.acct-filename-row input { flex: 1; }
+.acct-filename-row .label { margin-bottom: 0; }
+.acct-history { margin-top: 16px; }
+.acct-history-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.acct-history-item:last-child { border-bottom: none; }
+.acct-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+.acct-badge.success { background: rgba(52,199,89,0.12); color: #34c759; }
+.acct-badge.running { background: rgba(0,122,255,0.12); color: var(--apple-blue); }
+.acct-badge.error { background: rgba(255,59,48,0.12); color: #ff3b30; }
+
+/* Vault (collapsible account info) */
+.acct-vault-toggle {
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; user-select: none;
+    padding: 8px 0; margin: 0;
+}
+.acct-vault-toggle h2 { margin: 0; }
+.acct-vault-arrow {
+    display: inline-block; transition: transform 0.2s;
+    font-size: 12px; color: var(--text-secondary);
+}
+.acct-vault-toggle.open .acct-vault-arrow { transform: rotate(90deg); }
+.acct-vault-body {
+    display: none; padding-top: 12px;
+}
+.acct-vault-body.open { display: block; }
+.acct-vault-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+@media (max-width: 500px) {
+    .acct-vault-grid { grid-template-columns: 1fr; }
+}
+.acct-vault-field label {
+    display: block; font-size: 11px; font-weight: 600;
+    color: var(--text-secondary); text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 4px;
+}
+.acct-vault-field input,
+.acct-vault-field textarea {
+    width: 100%; box-sizing: border-box;
+    padding: 8px 10px; border: 1.5px solid var(--border);
+    border-radius: 8px; background: var(--bg-input);
+    color: var(--text); font-size: 13px; font-family: inherit;
+}
+.acct-vault-field textarea {
+    min-height: 80px; resize: vertical;
+}
+.acct-vault-field .pw-wrapper {
+    position: relative;
+}
+.acct-vault-field .pw-wrapper input {
+    padding-right: 36px;
+}
+.acct-vault-field .pw-toggle {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    font-size: 14px; padding: 4px; color: var(--text-secondary);
+}
+.acct-vault-divider {
+    grid-column: 1 / -1;
+    border: none; border-top: 1px solid var(--border);
+    margin: 6px 0;
+}
+.acct-vault-section-label {
+    grid-column: 1 / -1;
+    font-size: 12px; font-weight: 700;
+    color: var(--text-secondary); text-transform: uppercase;
+    letter-spacing: 0.5px; margin-top: 4px;
+}
+
+/* Deposit Calculator */
+.dep-calc-table {
+    width: 100%; border-collapse: collapse;
+}
+.dep-calc-table th {
+    text-align: left; font-size: 11px; font-weight: 600;
+    color: var(--text-secondary); text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 6px 4px;
+    border-bottom: 2px solid var(--border);
+}
+.dep-calc-table th:last-child { text-align: right; }
+.dep-calc-table td {
+    padding: 5px 4px; border-bottom: 1px solid var(--border);
+    font-size: 14px; vertical-align: middle;
+}
+.dep-calc-table td:first-child {
+    font-weight: 600; white-space: nowrap; width: 70px;
+}
+.dep-calc-table td:last-child {
+    text-align: right; font-variant-numeric: tabular-nums;
+    font-weight: 500; min-width: 80px;
+}
+.dep-calc-table input[type="number"] {
+    width: 70px; padding: 6px 8px; border: 1.5px solid var(--border);
+    border-radius: 8px; background: var(--bg-input); color: var(--text);
+    font-size: 14px; text-align: center; font-family: inherit;
+    -moz-appearance: textfield;
+}
+.dep-calc-table input[type="number"]::-webkit-outer-spin-button,
+.dep-calc-table input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+}
+.dep-calc-table input[type="number"]:focus {
+    outline: none; border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+}
+.dep-calc-separator td {
+    border-bottom: 2px solid var(--border); padding: 0; height: 4px;
+}
+.dep-calc-check-row {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 6px;
+}
+.dep-calc-check-row input {
+    flex: 1; padding: 6px 8px; border: 1.5px solid var(--border);
+    border-radius: 8px; background: var(--bg-input); color: var(--text);
+    font-size: 13px; font-family: inherit;
+}
+.dep-calc-check-row input:focus {
+    outline: none; border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+}
+.dep-calc-check-row .dep-remove-check {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-secondary); font-size: 16px; padding: 4px;
+    border-radius: 6px;
+}
+.dep-calc-check-row .dep-remove-check:hover { color: #ff3b30; }
+.dep-calc-total-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; margin-top: 4px;
+    border-top: 2px solid var(--text);
+}
+.dep-calc-total-label {
+    font-size: 16px; font-weight: 700; color: var(--text);
+}
+.dep-calc-total-amount {
+    font-size: 22px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: #34c759;
+}
+.dep-calc-subtotal {
+    display: flex; justify-content: space-between;
+    padding: 6px 0; font-size: 13px; color: var(--text-secondary);
+}
+.dep-calc-subtotal span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }

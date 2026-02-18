@@ -1,0 +1,221 @@
+.qr-container { max-width: 750px; margin: 0 auto; padding: 0 16px 80px; }
+
+/* ── Carrier Cards ── */
+.qr-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+}
+.qr-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    position: relative;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    cursor: default;
+}
+.qr-card:hover { border-color: #0d9488; box-shadow: 0 2px 8px rgba(13,148,136,0.1); }
+.qr-card-carrier {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.qr-card-carrier .qr-carrier-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.qr-card-field {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 3px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.qr-card-value {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    padding: 1px 6px;
+    border-radius: 4px;
+    transition: background 0.1s;
+}
+.qr-card-value:hover { background: rgba(13,148,136,0.1); }
+.qr-card-value.copied {
+    background: rgba(5,150,105,0.15);
+    color: #059669;
+}
+.qr-card-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.qr-card:hover .qr-card-actions { opacity: 1; }
+.qr-card-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    color: #999;
+    transition: color 0.1s, background 0.1s;
+}
+.qr-card-btn:hover { background: var(--border); color: var(--text); }
+.qr-card-btn.delete:hover { color: #e53e3e; }
+
+/* ── Add Card Form ── */
+.qr-add-card {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    transition: border-color 0.15s, color 0.15s;
+    min-height: 100px;
+}
+.qr-add-card:hover { border-color: #0d9488; color: #0d9488; }
+.qr-add-form {
+    display: none;
+    border: 1.5px solid #0d9488;
+    border-radius: 12px;
+    padding: 14px;
+    background: var(--surface);
+}
+.qr-add-form.active { display: block; }
+.qr-add-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.qr-add-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+}
+.qr-add-input:focus { outline: none; border-color: #0d9488; }
+.qr-add-fields-list {
+    margin-bottom: 8px;
+}
+.qr-add-field-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    align-items: center;
+}
+.qr-add-field-row .qr-add-input { font-size: 12px; padding: 6px 10px; }
+.qr-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.qr-btn-primary { background: #0d9488; color: #fff; }
+.qr-btn-primary:hover { background: #0f766e; }
+.qr-btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+}
+.qr-btn-secondary:hover { background: color-mix(in srgb, var(--border) 30%, var(--surface)); }
+
+/* ── Phonetic Alphabet ── */
+.qr-phonetic-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+}
+.qr-phonetic-cell {
+    text-align: center;
+    padding: 8px 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    transition: all 0.15s;
+    cursor: default;
+}
+.qr-phonetic-cell.highlight {
+    background: #0d9488;
+    color: #fff;
+    border-color: #0d9488;
+    transform: scale(1.05);
+    font-weight: 700;
+}
+.qr-phonetic-letter {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+.qr-phonetic-word {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ── Speller ── */
+.qr-speller-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 16px;
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    letter-spacing: 2px;
+    background: var(--surface);
+    color: var(--text);
+    text-transform: uppercase;
+    transition: border-color 0.2s;
+}
+.qr-speller-input:focus { outline: none; border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13,148,136,0.15); }
+.qr-speller-output {
+    margin-top: 10px;
+    font-size: 15px;
+    line-height: 2;
+    min-height: 40px;
+}
+.qr-speller-item {
+    display: inline-block;
+    padding: 2px 10px;
+    margin: 2px 4px;
+    border-radius: 6px;
+    background: color-mix(in srgb, #0d9488 10%, var(--surface));
+    font-weight: 600;
+    font-size: 14px;
+    transition: background 0.15s;
+}
+.qr-speller-item .qr-spell-letter {
+    color: #0d9488;
+    font-weight: 800;
+    margin-right: 4px;
+}
+.qr-speller-item.space {
+    background: transparent;
+    color: var(--text-secondary);
+    font-style: italic;
+    font-weight: 400;
+}

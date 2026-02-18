@@ -1,0 +1,252 @@
+
+        <header>
+            <div class="header-top">
+                <div class="logo tool-header-brand">
+                    <span class="logo-controls">
+                        <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                            <span class="logo-icon">💰</span>
+                        </button>
+                        <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                            <span class="dark-mode-icon">🌙</span>
+                        </button>
+                    </span>
+                    <span>Accounting Export</span>
+                </div>
+            </div>
+            <div class="step-title">Automated HawkSoft trust accounting export — Receipts only, one click</div>
+        </header>
+
+        <div class="acct-container">
+            <div class="card">
+                <h2>📥 Export Receipts</h2>
+                <p class="section-subtitle">Opens HawkSoft in a browser, lets you log in, then auto-filters and downloads receipt CSV.</p>
+
+                <div class="acct-steps">
+                    <div class="acct-step" id="acctStep1">
+                        <div class="acct-step-num">1</div>
+                        <div class="acct-step-text">
+                            <div class="acct-step-title">Launch Browser</div>
+                            <div class="acct-step-desc">Opens Chromium to HawkSoft's "To Be Exported" page</div>
+                        </div>
+                    </div>
+                    <div class="acct-step" id="acctStep2">
+                        <div class="acct-step-num">2</div>
+                        <div class="acct-step-text">
+                            <div class="acct-step-title">Log In Manually</div>
+                            <div class="acct-step-desc">Enter your credentials &amp; 2FA, then press Enter in the terminal</div>
+                        </div>
+                    </div>
+                    <div class="acct-step" id="acctStep3">
+                        <div class="acct-step-num">3</div>
+                        <div class="acct-step-text">
+                            <div class="acct-step-title">Auto-Filter Receipts</div>
+                            <div class="acct-step-desc">Script checks Receipt rows, unchecks Invoices automatically</div>
+                        </div>
+                    </div>
+                    <div class="acct-step" id="acctStep4">
+                        <div class="acct-step-num">4</div>
+                        <div class="acct-step-text">
+                            <div class="acct-step-title">Download CSV</div>
+                            <div class="acct-step-desc">Clicks Export → Download and saves the file locally</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="acct-filename-row">
+                    <div style="flex:1;">
+                        <label class="label">Output Filename</label>
+                        <input type="text" id="acctOutputFile" value="hawksoft_receipts.csv" placeholder="hawksoft_receipts.csv">
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px; display: flex; gap: 10px;">
+                    <button class="btn btn-primary" id="acctLaunchBtn" onclick="AccountingExport.launch()">
+                        🚀 Launch Export
+                    </button>
+                    <button class="btn btn-secondary" id="acctCheckBtn" onclick="AccountingExport.checkStatus()" style="display:none;">
+                        🔄 Check Status
+                    </button>
+                </div>
+
+                <div class="acct-status-box" id="acctStatusBox"></div>
+            </div>
+
+            <div class="card">
+                <h2>📋 Export History</h2>
+                <p class="section-subtitle">Recent accounting exports from this device</p>
+                <div class="acct-history" id="acctHistory">
+                    <p style="font-size: 13px; color: var(--text-secondary);">No exports yet.</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📊 Trust Deposit Report</h2>
+                <p class="section-subtitle">Generate a formatted Excel report from the exported CSV — landscape layout, Cash/Check split, color-coded totals.</p>
+
+                <div class="acct-filename-row">
+                    <div style="flex:1;">
+                        <label class="label">Input CSV</label>
+                        <input type="text" id="acctReportInput" value="hawksoft_receipts.csv" placeholder="hawksoft_receipts.csv">
+                    </div>
+                    <div style="flex:1;">
+                        <label class="label">Output Excel</label>
+                        <input type="text" id="acctReportOutput" value="Trust_Deposit_Report.xlsx" placeholder="Trust_Deposit_Report.xlsx">
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px; display: flex; gap: 10px; align-items: center;">
+                    <button class="btn btn-primary" id="acctReportBtn" onclick="AccountingExport.generateReport()">
+                        📊 Generate Report
+                    </button>
+                    <span id="acctReportStatus" style="font-size: 13px; color: var(--text-secondary);"></span>
+                </div>
+
+                <div class="acct-status-box" id="acctReportLog"></div>
+            </div>
+
+            <!-- Deposit Calculator -->
+            <div class="card">
+                <h2>🧮 Deposit Calculator</h2>
+                <p class="section-subtitle">Count your cash and checks to get a deposit total.</p>
+
+                <table class="dep-calc-table">
+                    <thead>
+                        <tr><th>Denom.</th><th>Count</th><th>Subtotal</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>$100</td>
+                            <td><input type="number" id="depC100" min="0" value="0" oninput="AccountingExport.calcDeposit()"></td>
+                            <td id="depS100">$0.00</td>
+                        </tr>
+                        <tr>
+                            <td>$50</td>
+                            <td><input type="number" id="depC50" min="0" value="0" oninput="AccountingExport.calcDeposit()"></td>
+                            <td id="depS50">$0.00</td>
+                        </tr>
+                        <tr>
+                            <td>$20</td>
+                            <td><input type="number" id="depC20" min="0" value="0" oninput="AccountingExport.calcDeposit()"></td>
+                            <td id="depS20">$0.00</td>
+                        </tr>
+                        <tr>
+                            <td>$10</td>
+                            <td><input type="number" id="depC10" min="0" value="0" oninput="AccountingExport.calcDeposit()"></td>
+                            <td id="depS10">$0.00</td>
+                        </tr>
+                        <tr>
+                            <td>$5</td>
+                            <td><input type="number" id="depC5" min="0" value="0" oninput="AccountingExport.calcDeposit()"></td>
+                            <td id="depS5">$0.00</td>
+                        </tr>
+                        <tr>
+                            <td>$1</td>
+                            <td><input type="number" id="depC1" min="0" value="0" oninput="AccountingExport.calcDeposit()"></td>
+                            <td id="depS1">$0.00</td>
+                        </tr>
+                        <tr class="dep-calc-separator"><td colspan="3"></td></tr>
+                        <tr>
+                            <td>Coins</td>
+                            <td colspan="2" style="text-align:right;">
+                                <input type="number" id="depCoins" min="0" step="0.01" value="0" style="width:100px;text-align:right;" oninput="AccountingExport.calcDeposit()" placeholder="0.00">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div style="margin-top: 14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                        <span style="font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Checks</span>
+                        <button type="button" class="btn btn-secondary" style="padding:4px 12px; font-size:12px;" onclick="AccountingExport.addCheck()">+ Add Check</button>
+                    </div>
+                    <div id="depChecksContainer"></div>
+                </div>
+
+                <div class="dep-calc-subtotal" id="depSubCash"><span>Cash Total</span><span>$0.00</span></div>
+                <div class="dep-calc-subtotal" id="depSubChecks"><span>Checks Total</span><span>$0.00</span></div>
+
+                <div class="dep-calc-total-row">
+                    <span class="dep-calc-total-label">TOTAL DEPOSIT</span>
+                    <span class="dep-calc-total-amount" id="depGrandTotal">$0.00</span>
+                </div>
+
+                <div style="margin-top: 10px; text-align: right;">
+                    <button type="button" class="btn btn-secondary" style="font-size:12px; padding:6px 14px;" onclick="AccountingExport.clearCalc()">Clear All</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>ℹ️ How It Works</h2>
+                <p class="section-subtitle" style="margin-bottom: 0;">
+                    This tool uses <strong>Playwright</strong> (a browser automation library) to open HawkSoft's
+                    trust accounting page. You log in manually to handle 2FA — the script then takes over,
+                    selecting only <strong>Receipt</strong> rows and clicking Export → Download.
+                    The CSV is saved to your Altech project folder.
+                </p>
+                <div class="hint" style="margin-top: 12px;">
+                    ⚠️ <strong>Desktop only</strong> — requires the local server running and Python + Playwright installed.
+                </div>
+            </div>
+
+            <!-- Account Info Vault (collapsible) -->
+            <div class="card">
+                <div class="acct-vault-toggle" id="acctVaultToggle" onclick="AccountingExport.toggleVault()">
+                    <span class="acct-vault-arrow">▶</span>
+                    <h2 style="margin:0;">🔐 Account Info</h2>
+                </div>
+                <div class="acct-vault-body" id="acctVaultBody">
+                    <div class="acct-vault-grid">
+                        <div class="acct-vault-section-label">HawkSoft Login</div>
+
+                        <div class="acct-vault-field">
+                            <label>Username / Email</label>
+                            <input type="text" id="vaultHsUser" placeholder="agent@example.com" oninput="AccountingExport.saveVault()">
+                        </div>
+                        <div class="acct-vault-field">
+                            <label>Password</label>
+                            <div class="pw-wrapper">
+                                <input type="password" id="vaultHsPass" placeholder="••••••••" oninput="AccountingExport.saveVault()">
+                                <button type="button" class="pw-toggle" onclick="AccountingExport.togglePw('vaultHsPass', this)" title="Show/hide">👁</button>
+                            </div>
+                        </div>
+
+                        <hr class="acct-vault-divider">
+                        <div class="acct-vault-section-label">Trust Account / Bank</div>
+
+                        <div class="acct-vault-field">
+                            <label>Bank Name</label>
+                            <input type="text" id="vaultBankName" placeholder="First National Bank" oninput="AccountingExport.saveVault()">
+                        </div>
+                        <div class="acct-vault-field">
+                            <label>Account Number</label>
+                            <div class="pw-wrapper">
+                                <input type="password" id="vaultAcctNum" placeholder="••••••••" oninput="AccountingExport.saveVault()">
+                                <button type="button" class="pw-toggle" onclick="AccountingExport.togglePw('vaultAcctNum', this)" title="Show/hide">👁</button>
+                            </div>
+                        </div>
+                        <div class="acct-vault-field">
+                            <label>Routing Number</label>
+                            <div class="pw-wrapper">
+                                <input type="password" id="vaultRouting" placeholder="••••••••" oninput="AccountingExport.saveVault()">
+                                <button type="button" class="pw-toggle" onclick="AccountingExport.togglePw('vaultRouting', this)" title="Show/hide">👁</button>
+                            </div>
+                        </div>
+                        <div class="acct-vault-field">
+                            <label>Account Type</label>
+                            <input type="text" id="vaultAcctType" placeholder="Trust Checking" oninput="AccountingExport.saveVault()">
+                        </div>
+
+                        <hr class="acct-vault-divider">
+                        <div class="acct-vault-section-label">Notes</div>
+
+                        <div class="acct-vault-field" style="grid-column: 1 / -1;">
+                            <textarea id="vaultNotes" placeholder="Any reference info — deposit instructions, contact numbers, etc." oninput="AccountingExport.saveVault()"></textarea>
+                        </div>
+                    </div>
+                    <div class="hint" style="margin-top: 10px; font-size: 11px;">
+                        🔒 Stored locally in your browser only — never sent to any server.
+                    </div>
+                </div>
+            </div>
+        </div>
+

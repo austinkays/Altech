@@ -1,0 +1,95 @@
+        <header>
+            <div class="header-top">
+                <div class="logo tool-header-brand">
+                    <span class="logo-controls">
+                        <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                            <span class="logo-icon">💬</span>
+                        </button>
+                        <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                            <span class="dark-mode-icon">🌙</span>
+                        </button>
+                    </span>
+                    <span>Policy Q&amp;A Assistant</span>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="btn-utility" id="qnaClearChat" onclick="PolicyQA.clearChat()" style="font-size: 13px; padding: 6px 14px;">
+                        🗑️ Clear Chat
+                    </button>
+                    <button class="btn-utility" id="qnaExportChat" onclick="PolicyQA.exportChat()" style="font-size: 13px; padding: 6px 14px;">
+                        📋 Export
+                    </button>
+                </div>
+            </div>
+            <div class="step-title">Upload a policy &amp; ask anything in plain English</div>
+            <div class="progress-track"><div class="progress-fill" id="qnaProgress" style="width: 0%;"></div></div>
+        </header>
+
+        <div class="qna-container">
+
+            <!-- ENVIRONMENT STATUS -->
+            <div id="qnaEnvBanner" class="card" style="display: none;">
+                <div class="qna-desktop-notice">
+                    <div class="notice-icon">🖥️</div>
+                    <h3>Desktop Feature — Stateless Mode Active</h3>
+                    <p>Full vector search requires the Tauri desktop app with local ChromaDB. You can still upload a single policy for stateless Q&amp;A.</p>
+                </div>
+            </div>
+
+            <!-- FILE DROP ZONE -->
+            <div class="card">
+                <h2>📄 Policy Documents</h2>
+                <p class="section-subtitle">Upload policy PDFs or images for AI analysis</p>
+
+                <div class="qna-drop-zone" id="qnaDropZone">
+                    <div class="drop-icon">📁</div>
+                    <div class="drop-label">Drop policy files here or tap to browse</div>
+                    <div class="drop-hint">PDF, PNG, JPG, HEIC • Max 25 MB per file</div>
+                </div>
+
+                <div class="qna-file-list" id="qnaFileList"></div>
+            </div>
+
+            <!-- RECENTLY ANALYZED -->
+            <div class="card" id="qnaRecentCard" style="display: none;">
+                <h2>🕐 Recent Policies</h2>
+                <p class="section-subtitle">Previously analyzed policy documents</p>
+                <div class="qna-recent-list" id="qnaRecentList"></div>
+            </div>
+
+            <!-- CHAT INTERFACE -->
+            <div class="card">
+                <h2>💬 Ask About Your Policy</h2>
+                <p class="section-subtitle">AI answers with section citations &amp; confidence scores</p>
+
+                <div class="qna-chat" id="qnaChat">
+                    <div class="qna-messages" id="qnaMessages">
+                        <div class="qna-msg system">Upload a policy document above, then ask any question below.</div>
+                    </div>
+                    <div class="qna-input-bar">
+                        <input type="text" id="qnaInput" placeholder="e.g. Does this policy cover water damage?" onkeydown="if(event.key==='Enter')PolicyQA.send()" disabled>
+                        <button id="qnaSendBtn" onclick="PolicyQA.send()" disabled aria-label="Send">➤</button>
+                    </div>
+                </div>
+
+                <div class="qna-quick-actions" id="qnaQuickActions" style="margin-top: 10px;">
+                    <button class="qna-quick-btn" onclick="PolicyQA.askQuick('What are the main exclusions?')">🚫 Exclusions</button>
+                    <button class="qna-quick-btn" onclick="PolicyQA.askQuick('What are the coverage limits?')">💰 Limits</button>
+                    <button class="qna-quick-btn" onclick="PolicyQA.askQuick('What is the deductible?')">🧾 Deductible</button>
+                    <button class="qna-quick-btn" onclick="PolicyQA.askQuick('Is water damage covered?')">💧 Water Damage</button>
+                    <button class="qna-quick-btn" onclick="PolicyQA.askQuick('Summarize this policy in 5 bullet points')">📝 Summary</button>
+                    <button class="qna-quick-btn" onclick="PolicyQA.askQuick('Are there any endorsements?')">📎 Endorsements</button>
+                </div>
+            </div>
+
+            <!-- HOW IT WORKS -->
+            <div class="card">
+                <h2>ℹ️ How It Works</h2>
+                <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                    <p><strong>Desktop (Tauri):</strong> Policies are chunked, embedded, and stored in a local ChromaDB vector database on your machine. Questions use semantic search to find relevant sections, then an LLM generates answers with page/section citations.</p>
+                    <p style="margin-top: 8px;"><strong>Browser (Stateless):</strong> Policy text is extracted client-side and sent per-question to the AI. No data is persisted beyond your browser session. Suitable for quick lookups.</p>
+                    <p style="margin-top: 8px;"><strong>⚠️ Disclaimer:</strong> AI answers are informational only. Always verify coverage details with the carrier or a licensed professional. Confidence scores reflect the AI's certainty, not legal guarantees.</p>
+                </div>
+            </div>
+
+        </div>
+

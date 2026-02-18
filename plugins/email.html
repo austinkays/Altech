@@ -1,0 +1,98 @@
+
+        <header>
+            <div class="header-top">
+                <div class="logo tool-header-brand">
+                    <span class="logo-controls">
+                        <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                            <span class="logo-icon">✉️</span>
+                        </button>
+                        <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                            <span class="dark-mode-icon">🌙</span>
+                        </button>
+                    </span>
+                    <span>Email Composer</span>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span class="email-lock-badge">🔒 Encrypted</span>
+                </div>
+            </div>
+            <div class="step-title">Paste a rough draft → AI polishes it in your professional tone</div>
+            <div class="progress-track"><div class="progress-fill" id="emailProgress" style="width: 0%;"></div></div>
+        </header>
+
+        <div class="email-container">
+
+            <!-- Context -->
+            <div class="card">
+                <h2>📧 Compose</h2>
+                <p class="section-subtitle">Who are you writing to and what tone should it have?</p>
+
+                <div class="email-context-row">
+                    <input type="text" class="email-context-input" id="emailRecipientName" placeholder="Client name (e.g. Sarah Johnson)">
+                    <input type="text" class="email-context-input" id="emailSubject" placeholder="Subject (optional)">
+                </div>
+
+                <div class="email-context-row">
+                    <select class="email-context-input" id="emailContext" style="min-width:180px;">
+                        <option value="general">General Client Email</option>
+                        <option value="quote-follow-up">Quote Follow-up</option>
+                        <option value="policy-change">Policy Change Confirmation</option>
+                        <option value="renewal">Renewal Notice</option>
+                        <option value="claim-update">Claim Update</option>
+                        <option value="new-client-welcome">New Client Welcome</option>
+                        <option value="missing-info">Request Missing Info</option>
+                        <option value="certificate-request">Certificate Request</option>
+                    </select>
+                </div>
+
+                <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block;">Tone</label>
+                <div class="email-tone-chips" id="emailToneChips">
+                    <button class="email-tone-chip active" data-tone="professional-friendly">Professional & Friendly</button>
+                    <button class="email-tone-chip" data-tone="formal">Formal</button>
+                    <button class="email-tone-chip" data-tone="casual">Casual</button>
+                    <button class="email-tone-chip" data-tone="urgent">Urgent</button>
+                    <button class="email-tone-chip" data-tone="empathetic">Empathetic</button>
+                </div>
+
+                <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block;">Your rough draft or bullet points</label>
+                <textarea class="email-textarea" id="emailDraftInput" placeholder="Paste or type your rough draft here...&#10;&#10;Example:&#10;hey sarah wanted to let you know your home quote came back at $1,247/yr which is way better than what you have now. let me know if you want to move forward, also need your mortgage company info"></textarea>
+
+                <div class="email-actions">
+                    <button class="email-btn email-btn-primary" id="emailComposeBtn" onclick="EmailComposer.compose()">
+                        ✨ Polish Email
+                    </button>
+                    <button class="email-btn email-btn-secondary" onclick="EmailComposer.clear()">
+                        🗑️ Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Output -->
+            <div class="card" id="emailOutputCard" style="display:none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h2>📝 Polished Email</h2>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="email-btn email-btn-secondary" onclick="EmailComposer.copyOutput()" style="padding: 6px 14px; font-size: 13px;">📋 Copy</button>
+                        <button class="email-btn email-btn-secondary" onclick="EmailComposer.saveDraft()" style="padding: 6px 14px; font-size: 13px;">💾 Save</button>
+                        <button class="email-btn email-btn-secondary" onclick="EmailComposer.rewrite()" style="padding: 6px 14px; font-size: 13px;">🔄 Rewrite</button>
+                    </div>
+                </div>
+                <div class="email-output" id="emailOutputText"></div>
+                <div id="emailSubjectLine" style="display:none; margin-top: 10px; padding: 8px 12px; background: color-mix(in srgb, #7c3aed 8%, transparent); border-radius: 8px; font-size: 13px;">
+                    <strong>Subject:</strong> <span id="emailSubjectOutput"></span>
+                </div>
+            </div>
+
+            <!-- Saved Drafts -->
+            <div class="card">
+                <details id="emailHistoryDetails">
+                    <summary class="export-summary" onclick="EmailComposer.renderHistory()">
+                        <span>💾 Saved Drafts</span>
+                    </summary>
+                    <div id="emailHistoryList" style="margin-top: 12px;">
+                        <p style="color: var(--text-secondary); font-style: italic;">No saved drafts yet.</p>
+                    </div>
+                </details>
+            </div>
+        </div>
+
