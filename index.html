@@ -41,9 +41,29 @@
         }
 
         body.dark-mode .landing-header {
-            background: linear-gradient(135deg, #0a1628 0%, #0f2027 25%, #162d3d 50%, #1a3050 75%, #0a1628 100%);
-            background-size: 400% 400%;
-            animation: headerGradient 12s ease infinite;
+            background: transparent;
+        }
+        body.dark-mode .landing-header-pill {
+            background: rgba(15, 25, 45, 0.6);
+            border-color: rgba(56, 189, 248, 0.12);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+        body.dark-mode .landing-header-pill::before {
+            background:
+                radial-gradient(ellipse at 10% 50%, rgba(56, 189, 248, 0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 90% 30%, rgba(120, 80, 255, 0.10) 0%, transparent 50%);
+        }
+        body.dark-mode .landing-brand-name {
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        body.dark-mode .landing-brand-tagline {
+            color: rgba(148, 163, 184, 0.8);
+        }
+        body.dark-mode .landing-header-right .landing-greeting {
+            color: rgba(148, 163, 184, 0.9);
         }
 
         body.dark-mode .tool-row {
@@ -1701,84 +1721,122 @@
         }
         /* ── Hero Header ── */
         .landing-header {
-            background: linear-gradient(135deg, #0f2027 0%, #203a43 25%, #2c5364 50%, #1a3a5c 75%, #0f2027 100%);
-            background-size: 400% 400%;
-            animation: headerGradient 12s ease infinite;
-            color: #f8fafc;
-            padding: 48px 20px 40px;
-            text-align: center;
+            background: transparent;
+            color: var(--text);
+            padding: 28px 20px 12px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Glassmorphism pill container */
+        .landing-header-pill {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(24px) saturate(1.4);
+            -webkit-backdrop-filter: blur(24px) saturate(1.4);
+            border-radius: 18px;
+            border: 1px solid rgba(0, 60, 140, 0.10);
+            box-shadow:
+                0 4px 24px rgba(0, 40, 100, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
             position: relative;
             overflow: hidden;
         }
-        .landing-header::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 48px;
-            background: linear-gradient(to bottom, transparent 0%, var(--bg) 100%);
-            pointer-events: none;
-            z-index: 3;
-        }
-        @keyframes headerGradient {
-            0% { background-position: 0% 50%; }
-            25% { background-position: 50% 75%; }
-            50% { background-position: 100% 50%; }
-            75% { background-position: 50% 25%; }
-            100% { background-position: 0% 50%; }
-        }
-        .landing-header::before {
+
+        /* Glow behind the pill */
+        .landing-header-pill::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: radial-gradient(ellipse at 20% 50%, rgba(100, 200, 255, 0.2) 0%, transparent 50%),
-                        radial-gradient(ellipse at 80% 20%, rgba(120, 160, 255, 0.15) 0%, transparent 40%),
-                        radial-gradient(ellipse at 50% 90%, rgba(80, 220, 200, 0.1) 0%, transparent 50%);
+            background:
+                radial-gradient(ellipse at 10% 50%, rgba(0, 122, 255, 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 90% 30%, rgba(88, 86, 214, 0.06) 0%, transparent 50%);
             pointer-events: none;
-            animation: headerGlow 6s ease-in-out infinite alternate;
+            animation: pillGlow 6s ease-in-out infinite alternate;
         }
-        @keyframes headerGlow {
-            from { opacity: 0.6; }
+        @keyframes pillGlow {
+            from { opacity: 0.5; }
             to { opacity: 1; }
         }
-        .landing-header h1 {
-            font-size: 28px;
-            margin: 0 0 8px 0;
+
+        /* Left side: brand */
+        .landing-header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        .landing-brand-name {
+            font-size: 22px;
             font-weight: 800;
-            letter-spacing: -0.5px;
-            line-height: 1.15;
-            position: relative;
+            letter-spacing: -0.8px;
+            line-height: 1.1;
+            background: linear-gradient(135deg, #1a3a5c, #0f2027, #2c5364);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            white-space: nowrap;
         }
-        .landing-greeting {
-            font-size: 15px;
+        .landing-brand-tagline {
+            font-size: 12px;
             font-weight: 500;
-            color: rgba(255, 255, 255, 0.85);
-            margin: 0 0 2px 0;
-            position: relative;
-        }
-        .landing-header p {
-            font-size: 14px;
+            color: var(--text-secondary);
+            letter-spacing: 0.2px;
             margin: 0;
-            color: rgba(248, 250, 252, 0.6);
-            position: relative;
+        }
+
+        /* Right side: greeting + toggle */
+        .landing-header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .landing-header-right .landing-greeting {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 0;
+            white-space: nowrap;
         }
         .landing-theme-toggle {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: #fff;
+            background: rgba(0, 60, 140, 0.06);
+            border: 1px solid rgba(0, 60, 140, 0.10);
+            color: var(--text-secondary);
             z-index: 2;
+            flex-shrink: 0;
         }
         .landing-theme-toggle:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(0, 60, 140, 0.12);
         }
-        @media (max-width: 768px) {
-            .landing-header h1 { font-size: 24px; }
-            .landing-header p { font-size: 13px; }
-            .landing-header { padding: 36px 16px 32px; }
+        body.dark-mode .landing-theme-toggle {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+        body.dark-mode .landing-theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        @media (max-width: 520px) {
+            .landing-header { padding: 20px 12px 8px; }
+            .landing-header-pill {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 14px 18px;
+            }
+            .landing-header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .landing-brand-name { font-size: 20px; }
         }
         /* ── Bento App Grid ── */
         .landing-app-grid { flex: 1; }
@@ -2556,12 +2614,18 @@
 
         <!-- ── Section: Hero Header ── -->
         <section id="landingHero" class="landing-header" aria-label="Dashboard header">
-            <button class="dark-mode-toggle landing-theme-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
-                <span class="dark-mode-icon">🌙</span>
-            </button>
-            <h1>Altech Applications</h1>
-            <p class="landing-greeting" id="landingGreeting"></p>
-            <p>Your insurance toolkit &mdash; simple, fast, organized</p>
+            <div class="landing-header-pill">
+                <div class="landing-header-left">
+                    <div class="landing-brand-name">Altech Applications</div>
+                    <p class="landing-brand-tagline">Your insurance toolkit &mdash; simple, fast, organized</p>
+                </div>
+                <div class="landing-header-right">
+                    <p class="landing-greeting" id="landingGreeting"></p>
+                    <button class="dark-mode-toggle landing-theme-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                        <span class="dark-mode-icon">🌙</span>
+                    </button>
+                </div>
+            </div>
         </section>
 
         <!-- ── Section: Bento App Grid ── -->
