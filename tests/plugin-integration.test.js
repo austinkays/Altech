@@ -847,3 +847,97 @@ describe('iOS Toggle Switches', () => {
     expect(segGroups.length).toBe(0);
   });
 });
+
+// ── Home Coverage Grid ──────────────────────────────────────────────────────
+describe('Home Coverage Grid', () => {
+  let window, document;
+
+  beforeAll(() => {
+    const env = createPluginTestDOM();
+    window = env.window;
+    document = window.document;
+  });
+
+  test('grid-2-full CSS class is defined with correct columns and gap', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    expect(source).toMatch(/\.grid-2-full\s*\{[^}]*grid-template-columns:\s*1fr\s+1fr/);
+    expect(source).toMatch(/\.grid-2-full\s*\{[^}]*gap:\s*16px/);
+  });
+
+  test('full-span CSS class spans both columns', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    expect(source).toMatch(/\.full-span\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/);
+  });
+
+  test('homePolicyType is inside a full-span wrapper within grid-2-full', () => {
+    const el = document.getElementById('homePolicyType');
+    expect(el).not.toBeNull();
+    const parent = el.parentElement;
+    expect(parent.classList.contains('full-span')).toBe(true);
+    expect(parent.parentElement.classList.contains('grid-2-full')).toBe(true);
+  });
+
+  test('dwellingCoverage is inside a full-span wrapper within grid-2-full', () => {
+    const el = document.getElementById('dwellingCoverage');
+    expect(el).not.toBeNull();
+    const parent = el.parentElement;
+    expect(parent.classList.contains('full-span')).toBe(true);
+    expect(parent.parentElement.classList.contains('grid-2-full')).toBe(true);
+  });
+
+  test('mortgagee is inside a full-span wrapper within grid-2-full', () => {
+    const el = document.getElementById('mortgagee');
+    expect(el).not.toBeNull();
+    const parent = el.parentElement;
+    expect(parent.classList.contains('full-span')).toBe(true);
+    expect(parent.parentElement.classList.contains('grid-2-full')).toBe(true);
+  });
+
+  test('personalLiability and medicalPayments are siblings without full-span', () => {
+    const liability = document.getElementById('personalLiability');
+    const medical = document.getElementById('medicalPayments');
+    expect(liability).not.toBeNull();
+    expect(medical).not.toBeNull();
+    const liabilityParent = liability.parentElement;
+    const medicalParent = medical.parentElement;
+    // Neither should have full-span
+    expect(liabilityParent.classList.contains('full-span')).toBe(false);
+    expect(medicalParent.classList.contains('full-span')).toBe(false);
+    // Both should share the same grid-2-full parent
+    expect(liabilityParent.parentElement.classList.contains('grid-2-full')).toBe(true);
+    expect(medicalParent.parentElement.classList.contains('grid-2-full')).toBe(true);
+    expect(liabilityParent.parentElement).toBe(medicalParent.parentElement);
+  });
+
+  test('homeDeductible and windDeductible are siblings without full-span', () => {
+    const deductible = document.getElementById('homeDeductible');
+    const wind = document.getElementById('windDeductible');
+    expect(deductible).not.toBeNull();
+    expect(wind).not.toBeNull();
+    const deductibleParent = deductible.parentElement;
+    const windParent = wind.parentElement;
+    // Neither should have full-span
+    expect(deductibleParent.classList.contains('full-span')).toBe(false);
+    expect(windParent.classList.contains('full-span')).toBe(false);
+    // Both should share the same grid-2-full parent
+    expect(deductibleParent.parentElement.classList.contains('grid-2-full')).toBe(true);
+    expect(windParent.parentElement.classList.contains('grid-2-full')).toBe(true);
+    expect(deductibleParent.parentElement).toBe(windParent.parentElement);
+  });
+
+  test('all Home Coverage fields live in a single grid-2-full container', () => {
+    const ids = ['homePolicyType', 'dwellingCoverage', 'personalLiability', 'medicalPayments', 'homeDeductible', 'windDeductible', 'mortgagee'];
+    const containers = ids.map(id => {
+      const el = document.getElementById(id);
+      expect(el).not.toBeNull();
+      // Walk up to grid-2-full
+      let node = el;
+      while (node && !node.classList?.contains('grid-2-full')) node = node.parentElement;
+      return node;
+    });
+    // All should resolve to the same grid-2-full container
+    const unique = new Set(containers);
+    expect(unique.size).toBe(1);
+    expect(containers[0]).not.toBeNull();
+  });
+});

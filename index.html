@@ -255,6 +255,12 @@
         .label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; display: block; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 6px; }
+        .grid-2-full { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 0; }
+        .grid-2-full > .full-span { grid-column: 1 / -1; }
+        .grid-2-full > .full-span > input,
+        .grid-2-full > .full-span > select,
+        .grid-2-full > div > input,
+        .grid-2-full > div > select { width: 100%; box-sizing: border-box; }
         /* ─── 12-Column Grid ─── */
         .grid-12 { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; margin-bottom: 6px; align-items: end; }
         .span-4 { grid-column: span 4; }
@@ -3375,20 +3381,24 @@
                 <h2>Home Coverage</h2>
                 <p class="section-subtitle">Coverage limits and policy details</p>
 
-                <label class="label">Policy Type</label>
-                <select id="homePolicyType">
-                    <option value="HO3" selected>HO3 - Special Form</option>
-                    <option value="HO5">HO5 - Comprehensive</option>
-                    <option value="HO6">HO6 - Condo</option>
-                    <option value="HO4">HO4 - Renters</option>
-                    <option value="DP1">DP1 - Dwelling Fire</option>
-                    <option value="DP3">DP3 - Dwelling Special</option>
-                </select>
+                <div class="grid-2-full">
+                    <div class="full-span">
+                        <label class="label">Policy Type</label>
+                        <select id="homePolicyType">
+                            <option value="HO3" selected>HO3 - Special Form</option>
+                            <option value="HO5">HO5 - Comprehensive</option>
+                            <option value="HO6">HO6 - Condo</option>
+                            <option value="HO4">HO4 - Renters</option>
+                            <option value="DP1">DP1 - Dwelling Fire</option>
+                            <option value="DP3">DP3 - Dwelling Special</option>
+                        </select>
+                    </div>
 
-                <label class="label">Dwelling Coverage (Coverage A)</label>
-                <input type="text" id="dwellingCoverage" placeholder="e.g. 600000" inputmode="numeric">
+                    <div class="full-span">
+                        <label class="label">Dwelling Coverage (Coverage A)</label>
+                        <input type="text" id="dwellingCoverage" placeholder="e.g. 600000" inputmode="numeric">
+                    </div>
 
-                <div class="grid-2">
                     <div>
                         <label class="label">Personal Liability</label>
                         <select id="personalLiability">
@@ -3414,9 +3424,7 @@
                             <option value="5000">$5,000</option>
                         </select>
                     </div>
-                </div>
 
-                <div class="grid-2">
                     <div>
                         <label class="label">All Perils Deductible</label>
                         <select id="homeDeductible">
@@ -3456,10 +3464,12 @@
                             <option value="5%">5%</option>
                         </select>
                     </div>
-                </div>
 
-                <label class="label">Mortgagee / Lienholder</label>
-                <input type="text" id="mortgagee" placeholder="Bank name and address">
+                    <div class="full-span">
+                        <label class="label">Mortgagee / Lienholder</label>
+                        <input type="text" id="mortgagee" placeholder="Bank name and address">
+                    </div>
+                </div>
             </div>
 
             <div class="card">
