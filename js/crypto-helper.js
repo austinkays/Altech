@@ -123,6 +123,10 @@ const CryptoHelper = {
 function safeSave(key, value) {
     try {
         localStorage.setItem(key, value);
+        // Trigger cloud sync (debounced) after successful local save
+        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
+            CloudSync.schedulePush();
+        }
         return true;
     } catch (e) {
         console.error(`[safeSave] Failed to write "${key}":`, e.name, e.message);

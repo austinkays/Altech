@@ -254,6 +254,11 @@ const ComplianceDashboard = {
 
         // 5. CLOUD: Vercel KV (debounced, non-blocking)
         this._syncToKV('cgl_state', stateObj);
+
+        // 6. CLOUD SYNC: Firebase (debounced, non-blocking)
+        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
+            CloudSync.schedulePush();
+        }
     },
 
     syncStateToDisk(stateObj, force = false) {

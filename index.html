@@ -14,6 +14,12 @@
     <link rel="stylesheet" href="css/accounting.css">
     <link rel="stylesheet" href="css/ezlynx.css">
     <link rel="stylesheet" href="css/quote-compare.css">
+    <link rel="stylesheet" href="css/auth.css">
+
+    <!-- Firebase SDK (compat mode — no build step needed) -->
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -35,6 +41,10 @@
                     <button class="dark-mode-toggle landing-theme-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
                         <span class="dark-mode-icon">🌙</span>
                     </button>
+                    <button id="authUserBtn" class="auth-user-btn" onclick="Auth.showModal()" title="Sign in to sync across devices" aria-label="Account">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </button>
+                    <span id="authUserIndicator" class="auth-user-indicator" style="display:none"></span>
                 </div>
             </div>
         </section>
@@ -2580,6 +2590,10 @@
                 const isDark = document.body.classList.contains('dark-mode');
                 localStorage.setItem('altech_dark_mode', isDark);
                 this.updateDarkModeIcons(isDark);
+                // Sync dark mode preference to cloud
+                if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
+                    CloudSync.schedulePush();
+                }
             },
 
             initPlaces() {
@@ -11908,6 +11922,13 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             // Apply dark mode preference FIRST — before any tool rendering
             App.loadDarkMode();
 
+            // Initialize cloud sync (non-blocking)
+            if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.sdkLoaded) {
+                FirebaseConfig.init().then(() => {
+                    if (typeof Auth !== 'undefined') Auth.init();
+                }).catch(e => console.warn('[App] Firebase init skipped:', e.message));
+            }
+
             // Render landing page tools from config
             App.renderLandingTools();
 
@@ -11994,6 +12015,117 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         <!-- Plugin HTML loaded dynamically from plugins/ -->
     </div>
 
+    <!-- Sync indicator toast -->
+    <div id="syncIndicator" class="sync-indicator" style="display:none"></div>
+
+    <!-- ══ Auth Modal ══ -->
+    <div id="authModal" class="auth-modal-overlay" style="display:none">
+        <div class="auth-modal">
+            <button class="auth-close" onclick="Auth.closeModal()">&times;</button>
+
+            <!-- Login View -->
+            <div class="auth-view" data-auth-view="login" style="display:block">
+                <div class="auth-modal-header">
+                    <h3>Sign In</h3>
+                    <p class="auth-subtitle">Sync your data across devices</p>
+                </div>
+                <form class="auth-form" onsubmit="Auth.handleLoginSubmit(event)">
+                    <div class="auth-field">
+                        <label for="authLoginEmail">Email</label>
+                        <input type="email" id="authLoginEmail" placeholder="you@example.com" required autocomplete="email">
+                    </div>
+                    <div class="auth-field">
+                        <label for="authLoginPassword">Password</label>
+                        <input type="password" id="authLoginPassword" placeholder="Your password" required autocomplete="current-password">
+                    </div>
+                    <div class="auth-error" style="display:none"></div>
+                    <button type="submit" class="btn-auth btn-auth-primary">Sign In</button>
+                </form>
+                <div class="auth-links">
+                    <button type="button" class="auth-link" onclick="Auth.switchView('signup')">Create account</button>
+                    <button type="button" class="auth-link" onclick="Auth.switchView('reset')">Forgot password?</button>
+                </div>
+            </div>
+
+            <!-- Signup View -->
+            <div class="auth-view" data-auth-view="signup" style="display:none">
+                <div class="auth-modal-header">
+                    <h3>Create Account</h3>
+                    <p class="auth-subtitle">Start syncing across your devices</p>
+                </div>
+                <form class="auth-form" onsubmit="Auth.handleSignupSubmit(event)">
+                    <div class="auth-field">
+                        <label for="authSignupName">Display Name</label>
+                        <input type="text" id="authSignupName" placeholder="Your name (optional)" autocomplete="name">
+                    </div>
+                    <div class="auth-field">
+                        <label for="authSignupEmail">Email</label>
+                        <input type="email" id="authSignupEmail" placeholder="you@example.com" required autocomplete="email">
+                    </div>
+                    <div class="auth-field">
+                        <label for="authSignupPassword">Password</label>
+                        <input type="password" id="authSignupPassword" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password">
+                    </div>
+                    <div class="auth-field">
+                        <label for="authSignupConfirm">Confirm Password</label>
+                        <input type="password" id="authSignupConfirm" placeholder="Confirm your password" required minlength="6" autocomplete="new-password">
+                    </div>
+                    <div class="auth-error" style="display:none"></div>
+                    <button type="submit" class="btn-auth btn-auth-primary">Create Account</button>
+                </form>
+                <div class="auth-links">
+                    <button type="button" class="auth-link" onclick="Auth.switchView('login')">Already have an account? Sign in</button>
+                </div>
+            </div>
+
+            <!-- Reset Password View -->
+            <div class="auth-view" data-auth-view="reset" style="display:none">
+                <div class="auth-modal-header">
+                    <h3>Reset Password</h3>
+                    <p class="auth-subtitle">We'll send you a reset link</p>
+                </div>
+                <form class="auth-form" onsubmit="Auth.handleResetSubmit(event)">
+                    <div class="auth-field">
+                        <label for="authResetEmail">Email</label>
+                        <input type="email" id="authResetEmail" placeholder="you@example.com" required autocomplete="email">
+                    </div>
+                    <div class="auth-error" style="display:none"></div>
+                    <div class="auth-success" style="display:none"></div>
+                    <button type="submit" class="btn-auth btn-auth-primary">Send Reset Link</button>
+                </form>
+                <div class="auth-links">
+                    <button type="button" class="auth-link" onclick="Auth.switchView('login')">Back to sign in</button>
+                </div>
+            </div>
+
+            <!-- Account View (signed in) -->
+            <div class="auth-view" data-auth-view="account" style="display:none">
+                <div class="auth-modal-header">
+                    <h3>Your Account</h3>
+                </div>
+                <div class="auth-account-info">
+                    <div class="auth-field">
+                        <label>Email</label>
+                        <p id="authAccountEmail" class="auth-readonly"></p>
+                    </div>
+                    <div class="auth-field">
+                        <label for="authAccountName">Display Name</label>
+                        <input type="text" id="authAccountName" placeholder="Your name">
+                        <button class="btn-auth btn-auth-small" onclick="Auth.updateName(document.getElementById('authAccountName').value)">Update</button>
+                    </div>
+                    <div class="auth-sync-status">
+                        <span id="authSyncStatus">Ready to sync</span>
+                        <button class="btn-auth btn-auth-small" onclick="CloudSync.fullSync()">Sync Now</button>
+                    </div>
+                </div>
+                <div class="auth-account-actions">
+                    <button class="btn-auth btn-auth-secondary" onclick="Auth.logout()">Sign Out</button>
+                    <button class="btn-auth btn-auth-danger" onclick="CloudSync.deleteCloudData()">Delete Cloud Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Plugin scripts (loaded after DOM) -->
     <script src="js/quick-ref.js"></script>
     <script src="js/accounting-export.js"></script>
@@ -12004,6 +12136,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
     <script src="js/policy-qa.js"></script>
 
 <script src="js/data-backup.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cloud-sync.js"></script>
 
 </body>
 </html>
