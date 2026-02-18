@@ -3950,10 +3950,9 @@
                 <div class="grid-2">
                     <div>
                         <label class="label">Prior Home Carrier</label>
-                        <div class="carrier-ac-wrap">
-                            <input type="text" id="homePriorCarrier" placeholder="Start typing carrier name..." autocomplete="off">
-                            <div class="carrier-ac-list" id="homePriorCarrier_aclist"></div>
-                        </div>
+                        <select id="homePriorCarrier">
+                            <option value="">Select carrier...</option>
+                        </select>
                     </div>
                     <div>
                         <label class="label">Prior Home Policy Term</label>
@@ -4016,10 +4015,9 @@
                 <div class="grid-2">
                     <div>
                         <label class="label">Prior Auto Carrier</label>
-                        <div class="carrier-ac-wrap">
-                            <input type="text" id="priorCarrier" placeholder="Start typing carrier name..." autocomplete="off">
-                            <div class="carrier-ac-list" id="priorCarrier_aclist"></div>
-                        </div>
+                        <select id="priorCarrier">
+                            <option value="">Select carrier...</option>
+                        </select>
                         <label class="same-carrier-row">
                             <input type="checkbox" id="sameAsHomeCarrier" onchange="App.handleSameCarrier()">
                             <span>Same as Home Carrier</span>
@@ -4475,49 +4473,41 @@
 
             <div class="divider"></div>
 
+            <!-- Quote Library -->
             <div class="card export-card">
-                <details class="export-details">
-                    <summary class="export-summary">
-                        <span>More Options</span>
-                    </summary>
-                    <div class="export-stack" style="margin-top:12px;">
-                        <div>
-                            <h4 style="font-size:15px; font-weight:600; margin-bottom:8px;">Quote Library</h4>
-                            <p class="section-subtitle">Save multiple drafts and batch export when ready</p>
-                            <div class="export-row">
-                                <button class="btn btn-secondary" onclick="App.saveQuote()">💾 Save Draft</button>
-                                <button class="btn btn-tertiary" onclick="App.startNewDraft()">➕ New Draft</button>
-                            </div>
-                            <div class="export-row">
-                                <button class="btn btn-secondary" onclick="App.exportSelectedZip()">📦 Download ZIP (Selected)</button>
-                                <button class="btn btn-tertiary" onclick="App.exportAllZip()">📦 Export All ZIP</button>
-                            </div>
-                            <div class="export-row">
-                                <button class="btn btn-tertiary" onclick="App.selectAllQuotes()">✅ Select All</button>
-                                <button class="btn btn-tertiary" onclick="App.clearQuoteSelection()">✖ Clear Selection</button>
-                                <button class="btn btn-tertiary" onclick="App.clearAllDrafts()">🧹 Clear Drafts</button>
-                            </div>
-                            <div class="export-row">
-                                <input id="quoteSearch" class="quote-search-input" type="text" placeholder="Search drafts" oninput="App.filterQuotes(this.value)">
-                            </div>
-                            <div id="quoteList" class="quote-list"></div>
-                            <div class="hint">Select drafts to include in the ZIP. Use Load to resume any draft.</div>
-                        </div>
+                <h3 style="margin:0 0 4px 0;">💾 Quote Library</h3>
+                <p class="section-subtitle" style="margin-bottom:12px;">Save drafts and export when ready</p>
+                <div class="export-row" style="margin-bottom:12px;">
+                    <button class="btn btn-secondary" onclick="App.saveQuote()">💾 Save Draft</button>
+                    <button class="btn btn-secondary" onclick="App.startNewDraft()">➕ New Draft</button>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <input id="quoteSearch" class="quote-search-input" type="text" placeholder="🔍 Search drafts..." oninput="App.filterQuotes(this.value)">
+                </div>
+                <div id="quoteList" class="quote-list"></div>
+                <div class="export-row" style="margin-top:12px;">
+                    <button class="btn btn-tertiary" onclick="App.selectAllQuotes()">✅ Select All</button>
+                    <button class="btn btn-tertiary" onclick="App.clearQuoteSelection()">✖ Clear</button>
+                </div>
+                <div class="export-row" style="margin-top:8px;">
+                    <button class="btn btn-secondary" onclick="App.exportSelectedZip()">📦 Export Selected ZIP</button>
+                    <button class="btn btn-secondary" onclick="App.exportAllZip()">📦 Export All ZIP</button>
+                </div>
+                <div class="export-row" style="margin-top:8px;">
+                    <button class="btn btn-tertiary" onclick="App.clearAllDrafts()">🧹 Clear All Drafts</button>
+                </div>
+            </div>
 
-                        <div class="divider"></div>
-
-                        <div>
-                            <h4 style="font-size:15px; font-weight:600; margin-bottom:8px;">Batch Import (CSV)</h4>
-                            <p class="section-subtitle">Upload a spreadsheet to create multiple drafts at once</p>
-                            <div class="export-row">
-                                <button class="btn btn-secondary" onclick="App.downloadCSVTemplate()">📄 Download CSV Template</button>
-                                <button class="btn btn-tertiary" onclick="App.openBatchImport()">⬆️ Import CSV</button>
-                                <input id="batchCsvInput" type="file" accept=".csv" class="hidden" onchange="App.handleBatchImport(this.files[0])" />
-                            </div>
-                            <div class="hint">Required columns: First Name, Last Name, Address Line 1, City, State Code, Zip Code.</div>
-                        </div>
-                    </div>
-                </details>
+            <!-- Batch Import -->
+            <div class="card export-card">
+                <h3 style="margin:0 0 4px 0;">📋 Batch Import</h3>
+                <p class="section-subtitle" style="margin-bottom:12px;">Upload a spreadsheet to create multiple drafts at once</p>
+                <div class="export-row">
+                    <button class="btn btn-secondary" onclick="App.downloadCSVTemplate()">📄 Download CSV Template</button>
+                    <button class="btn btn-secondary" onclick="App.openBatchImport()">⬆️ Import CSV</button>
+                    <input id="batchCsvInput" type="file" accept=".csv" class="hidden" onchange="App.handleBatchImport(this.files[0])" />
+                </div>
+                <div class="hint" style="margin-top:8px;">Required: First Name, Last Name, Address Line 1, City, State Code, Zip Code.</div>
             </div>
 
             <div class="card export-card">
@@ -6973,56 +6963,18 @@
             },
 
             initCarrierAutocomplete() {
+                const carriers = this.getCarrierList();
+                const optionsHTML = '<option value="">Select carrier...</option>' +
+                    carriers.map(c => {
+                        const esc = c.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+                        return `<option value="${esc}">${esc}</option>`;
+                    }).join('');
                 ['homePriorCarrier', 'priorCarrier'].forEach(id => {
-                    const input = document.getElementById(id);
-                    if (!input) return;
-                    const listEl = document.getElementById(id + '_aclist');
-                    if (!listEl) return;
-                    let focusIdx = -1;
-
-                    input.addEventListener('input', () => {
-                        const q = (input.value || '').toLowerCase().trim();
-                        if (q.length < 1) { listEl.classList.remove('open'); listEl.innerHTML = ''; return; }
-                        const carriers = this.getCarrierList();
-                        const matches = carriers.filter(c => c.toLowerCase().includes(q)).slice(0, 15);
-                        if (!matches.length) { listEl.classList.remove('open'); listEl.innerHTML = ''; return; }
-                        focusIdx = -1;
-                        listEl.innerHTML = matches.map((c, i) => {
-                            const esc = c.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-                            const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-                            const hl = esc.replace(re, '<mark>$1</mark>');
-                            return `<div class="carrier-ac-item" data-idx="${i}" data-value="${esc}">${hl}</div>`;
-                        }).join('');
-                        listEl.classList.add('open');
-                    });
-
-                    input.addEventListener('keydown', (e) => {
-                        const items = listEl.querySelectorAll('.carrier-ac-item');
-                        if (!items.length || !listEl.classList.contains('open')) return;
-                        if (e.key === 'ArrowDown') { e.preventDefault(); focusIdx = Math.min(focusIdx + 1, items.length - 1); }
-                        else if (e.key === 'ArrowUp') { e.preventDefault(); focusIdx = Math.max(focusIdx - 1, 0); }
-                        else if (e.key === 'Enter' && focusIdx >= 0) { e.preventDefault(); items[focusIdx].click(); return; }
-                        else if (e.key === 'Escape') { listEl.classList.remove('open'); return; }
-                        else return;
-                        items.forEach((it, i) => it.classList.toggle('focused', i === focusIdx));
-                        items[focusIdx]?.scrollIntoView({ block: 'nearest' });
-                    });
-
-                    listEl.addEventListener('click', (e) => {
-                        const item = e.target.closest('.carrier-ac-item');
-                        if (!item) return;
-                        input.value = item.dataset.value;
-                        input.dispatchEvent(new Event('change', { bubbles: true }));
-                        listEl.classList.remove('open');
-                        listEl.innerHTML = '';
-                    });
-
-                    input.addEventListener('blur', () => {
-                        setTimeout(() => { listEl.classList.remove('open'); }, 150);
-                    });
-                    input.addEventListener('focus', () => {
-                        if (input.value.trim().length >= 1) input.dispatchEvent(new Event('input'));
-                    });
+                    const el = document.getElementById(id);
+                    if (!el || el.tagName !== 'SELECT') return;
+                    el.innerHTML = optionsHTML;
+                    // Restore saved value
+                    if (this.data[id]) el.value = this.data[id];
                 });
             },
 
@@ -7033,11 +6985,11 @@
                 if (!cb || !autoInput || !homeInput) return;
                 if (cb.checked) {
                     autoInput.value = homeInput.value || '';
-                    autoInput.readOnly = true;
+                    autoInput.disabled = true;
                     autoInput.style.opacity = '0.6';
                     autoInput.dispatchEvent(new Event('change', { bubbles: true }));
                 } else {
-                    autoInput.readOnly = false;
+                    autoInput.disabled = false;
                     autoInput.style.opacity = '';
                 }
                 this.data.sameAsHomeCarrier = cb.checked;
