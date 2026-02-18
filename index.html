@@ -2540,7 +2540,6 @@
                 <div class="scan-actions">
                     <button class="btn btn-primary" onclick="App.openScanPicker()">📸 Upload Policy Document</button>
                     <button class="btn btn-primary" onclick="App.openInitialDriverLicensePicker()">🪪 Upload Driver License</button>
-                    <button class="btn btn-secondary" onclick="App.exportDemoPolicyDoc()">⬇️ Download Demo Policy PDF</button>
                     <input id="policyScanInput" type="file" accept="image/*,application/pdf" capture="environment" multiple class="hidden" />
                     <input id="initialDlScanInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="App.handleInitialDriverLicenseFile(this.files[0])" />
                     <input id="docIntelInput" type="file" accept="image/*,application/pdf" multiple class="hidden" />
@@ -2559,6 +2558,13 @@
                 <div id="docIntelResults"></div>
                 
                 <div id="scanCoverage" class="hint" style="margin-top:12px; display:none;">Scan coverage: 0/0 fields applied</div>
+            </div>
+
+            <!-- Saved Drafts (Quick Load) -->
+            <div class="card" id="quickStartDraftsCard" style="display:none;">
+                <h2>📋 Saved Drafts</h2>
+                <p class="section-subtitle">Load a saved draft to resume editing</p>
+                <div id="quickStartDraftList" class="quote-list"></div>
             </div>
         </div>
 
@@ -2730,8 +2736,8 @@
                     <label class="radio-card"><input type="radio" name="qType" value="both" checked onchange="App.handleType()">
                         <div class="radio-card-content">
                             <span style="font-size:48px">🎯</span>
-                            <span style="margin-top:12px; font-size:16px; font-weight:600">BOTH</span>
-                            <span style="font-size:13px; color:var(--text-secondary); margin-top:4px">Home + Auto bundle</span>
+                            <span style="margin-top:12px; font-size:16px; font-weight:600">HOME & AUTO</span>
+                            <span style="font-size:13px; color:var(--text-secondary); margin-top:4px">Bundle coverage</span>
                         </div>
                     </label>
                 </div>
@@ -13753,6 +13759,49 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                     row.appendChild(stats);
                     row.appendChild(actions);
                     list.appendChild(row);
+                });
+
+                // Also update Quick Start drafts panel
+                this.renderQuickStartDrafts(quotes);
+            },
+
+            renderQuickStartDrafts(quotes) {
+                const card = document.getElementById('quickStartDraftsCard');
+                const container = document.getElementById('quickStartDraftList');
+                if (!card || !container) return;
+                if (!quotes || !quotes.length) {
+                    card.style.display = 'none';
+                    container.innerHTML = '';
+                    return;
+                }
+                card.style.display = '';
+                container.innerHTML = '';
+                quotes.slice(0, 10).forEach(q => {
+                    const row = document.createElement('div');
+                    row.className = 'quote-card';
+                    const header = document.createElement('div');
+                    header.className = 'quote-card-header';
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'quote-name';
+                    nameSpan.textContent = q.title;
+                    header.appendChild(nameSpan);
+
+                    const stats = document.createElement('div');
+                    stats.className = 'quote-stats';
+                    stats.innerHTML = this.getQuoteStats(q);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'quote-actions';
+                    const loadBtn = document.createElement('button');
+                    loadBtn.className = 'quote-action-btn';
+                    loadBtn.textContent = '📥 Load';
+                    loadBtn.onclick = () => this.loadQuote(q.id);
+                    actions.appendChild(loadBtn);
+
+                    row.appendChild(header);
+                    row.appendChild(stats);
+                    row.appendChild(actions);
+                    container.appendChild(row);
                 });
             },
 
