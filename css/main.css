@@ -145,7 +145,8 @@ body:not(.dark-mode) main {
 
 /* === HEADER (Plugin Headers) === */
 header {
-    position: relative;
+    position: sticky;
+    top: 0;
     background: rgba(255, 255, 255, 0.45);
     backdrop-filter: blur(24px) saturate(1.4);
     -webkit-backdrop-filter: blur(24px) saturate(1.4);
@@ -2327,9 +2328,8 @@ body.dark-mode #breadcrumbBar {
     background: rgba(28, 28, 30, 0.92);
 }
 @media (min-width: 1024px) {
-    #backToHome {
-        top: 14px;
-        bottom: auto;
+    #breadcrumbBar {
+        display: none !important;
     }
 }
 #complianceTool { background: var(--bg); }
