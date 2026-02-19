@@ -266,8 +266,8 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://localhost:${PORT}`);
     const pathname = url.pathname;
 
-    // CORS headers — restrict to local development
-    const allowedOrigins = [`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`];
+    // CORS headers — restrict to local development + Tauri
+    const allowedOrigins = [`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`, 'tauri://localhost', 'https://tauri.localhost'];
     const origin = req.headers.origin || '';
     if (allowedOrigins.includes(origin) || !origin) {
         res.setHeader('Access-Control-Allow-Origin', origin || `http://localhost:${PORT}`);

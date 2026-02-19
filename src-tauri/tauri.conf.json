@@ -4,9 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.policypilot.app",
   "build": {
-    "beforeDevCommand": "",
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:8000",
     "beforeBuildCommand": "",
-    "frontendDist": ".."
+    "frontendDist": "../dist"
   },
   "app": {
     "withGlobalTauri": true,

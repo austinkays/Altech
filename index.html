@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="css/reminders.css">
     <link rel="stylesheet" href="css/hawksoft.css">
     <link rel="stylesheet" href="css/vin-decoder.css">
+    <link rel="stylesheet" href="css/onboarding.css">
 
     <!-- Firebase SDK (compat mode — no build step needed) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -25,6 +26,116 @@
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  ONBOARDING — First-run welcome for new team members     ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
+    <div id="onboardingOverlay" class="onboarding-overlay" style="display:none">
+        <div class="onboarding-card">
+
+            <!-- Step 1: Welcome -->
+            <div class="onboarding-step active" data-step="1">
+                <div class="onboarding-brand">
+                    <div class="onboarding-logo">AL</div>
+                    <h2>Welcome to Altech</h2>
+                    <p>Your insurance toolkit — built for speed</p>
+                </div>
+                <ul class="onboarding-features">
+                    <li>
+                        <div class="onboarding-feature-icon">📷</div>
+                        <div class="onboarding-feature-text">
+                            <strong>Scan &amp; Auto-Fill</strong>
+                            <span>Snap a photo of any policy doc — AI extracts the data in seconds</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="onboarding-feature-icon">📤</div>
+                        <div class="onboarding-feature-text">
+                            <strong>One-Tap Export</strong>
+                            <span>Export to HawkSoft, EZLynx, or PDF with a single tap</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="onboarding-feature-icon">🔄</div>
+                        <div class="onboarding-feature-text">
+                            <strong>Cloud Sync</strong>
+                            <span>Sign in to sync your data across all your devices</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="onboarding-feature-icon">🛡️</div>
+                        <div class="onboarding-feature-text">
+                            <strong>CGL &amp; Compliance</strong>
+                            <span>Track policy expirations, bonds, and compliance status</span>
+                        </div>
+                    </li>
+                </ul>
+                <div class="onboarding-actions">
+                    <button class="onboarding-btn onboarding-btn-primary" onclick="Onboarding.next()">Get Started</button>
+                </div>
+                <div class="onboarding-dots">
+                    <div class="onboarding-dot active"></div>
+                    <div class="onboarding-dot"></div>
+                    <div class="onboarding-dot"></div>
+                </div>
+            </div>
+
+            <!-- Step 2: Your Name -->
+            <div class="onboarding-step" data-step="2">
+                <div class="onboarding-brand">
+                    <h2>Let's personalize</h2>
+                    <p>Tell us your name so we can greet you properly</p>
+                </div>
+                <div class="onboarding-input-group">
+                    <label for="onboardingName">Your first name</label>
+                    <input type="text" id="onboardingName" placeholder="e.g. Austin" autocomplete="given-name" maxlength="30">
+                    <div class="onboarding-hint">This shows in the dashboard greeting</div>
+                </div>
+                <div class="onboarding-actions">
+                    <button class="onboarding-btn onboarding-btn-secondary" onclick="Onboarding.prev()">Back</button>
+                    <button class="onboarding-btn onboarding-btn-primary" onclick="Onboarding.next()">Continue</button>
+                </div>
+                <div class="onboarding-dots">
+                    <div class="onboarding-dot"></div>
+                    <div class="onboarding-dot active"></div>
+                    <div class="onboarding-dot"></div>
+                </div>
+            </div>
+
+            <!-- Step 3: Share with team + finish -->
+            <div class="onboarding-step" data-step="3">
+                <div class="onboarding-brand">
+                    <h2>You're all set!</h2>
+                    <p>Share Altech with your team — one link, instant access</p>
+                </div>
+                <div class="onboarding-share-section">
+                    <h4>Invite your team</h4>
+                    <div class="onboarding-share-url">
+                        <input type="text" id="onboardingShareUrl" readonly value="https://altech-app.vercel.app">
+                        <button onclick="Onboarding.copyLink(this)">Copy</button>
+                    </div>
+                </div>
+                <ul class="onboarding-features" style="margin-top:12px">
+                    <li>
+                        <div class="onboarding-feature-icon">💡</div>
+                        <div class="onboarding-feature-text">
+                            <strong>Pro tip</strong>
+                            <span>On your phone, tap Share → "Add to Home Screen" for an app-like experience</span>
+                        </div>
+                    </li>
+                </ul>
+                <div class="onboarding-actions">
+                    <button class="onboarding-btn onboarding-btn-secondary" onclick="Onboarding.prev()">Back</button>
+                    <button class="onboarding-btn onboarding-btn-primary" onclick="Onboarding.finish()">Start Using Altech</button>
+                </div>
+                <div class="onboarding-dots">
+                    <div class="onboarding-dot"></div>
+                    <div class="onboarding-dot"></div>
+                    <div class="onboarding-dot active"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- ╔══════════════════════════════════════════════════════════╗ -->
     <!-- ║  LANDING PAGE — Dashboard Shell                          ║ -->
@@ -51,6 +162,16 @@
                 </div>
             </div>
         </section>
+
+        <!-- ── Invite Team Bar (shown for signed-in users) ── -->
+        <div id="teamInviteBar" class="team-invite-bar" style="display:none" onclick="Onboarding.showShareModal()">
+            <div class="team-invite-icon">👥</div>
+            <div class="team-invite-text">
+                <strong>Invite Your Team</strong>
+                <span>Share Altech with colleagues — one link, instant access</span>
+            </div>
+            <div class="team-invite-arrow">›</div>
+        </div>
 
         <!-- ── Section: Bento App Grid ── -->
         <!-- Rendered dynamically from App.toolConfig → renderLandingTools() -->
@@ -12002,14 +12123,20 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                 const h = new Date().getHours();
                 const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 
-                // Use signed-in user's display name, fall back to prompt
+                // Use signed-in user's display name, fall back to onboarding name, then prompt
                 const user = typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser;
                 if (user) {
                     const rawName = user.displayName || user.email.split('@')[0];
                     const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
                     el.textContent = greeting + ', ' + name;
                 } else {
-                    el.innerHTML = greeting + ' ☀️ <a href="#" onclick="Auth.showModal(); return false;" style="color:var(--apple-blue);text-decoration:none;font-weight:600;">Sign in</a> for cloud sync';
+                    const onboardName = typeof Onboarding !== 'undefined' ? Onboarding.getUserName() : '';
+                    if (onboardName) {
+                        const name = onboardName.charAt(0).toUpperCase() + onboardName.slice(1);
+                        el.innerHTML = greeting + ', ' + name + ' · <a href="#" onclick="Auth.showModal(); return false;" style="color:var(--apple-blue);text-decoration:none;font-weight:600;font-size:12px">Sign in for sync</a>';
+                    } else {
+                        el.innerHTML = greeting + ' ☀️ <a href="#" onclick="Auth.showModal(); return false;" style="color:var(--apple-blue);text-decoration:none;font-weight:600;">Sign in</a> for cloud sync';
+                    }
                 }
             },
 
@@ -12158,6 +12285,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             // Set landing greeting
             App.updateLandingGreeting();
             App.updateCGLBadge();
+
+            // First-run onboarding for new users
+            if (typeof Onboarding !== 'undefined') {
+                Onboarding.init();
+            }
 
             // Show reminder badges + check for alerts
             if (typeof Reminders !== 'undefined') {
@@ -12402,6 +12534,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
 <script src="js/firebase-config.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/cloud-sync.js"></script>
+<script src="js/onboarding.js"></script>
 
 </body>
 </html>
