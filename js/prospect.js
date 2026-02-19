@@ -222,8 +222,21 @@
             displayResults() {
                 const data = this.currentData;
 
+                // Track which sources actually returned data vs errored
+                const liOk = data.li && data.li.available !== false && !data.li.error;
+                const sosOk = data.sos && data.sos.available !== false && !data.sos.error;
+                const oshaOk = data.osha && data.osha.available !== false && !data.osha.error;
+
+                // Data source status banner
+                const sourceStatuses = [
+                    { name: 'L&I / Contractor', ok: liOk, source: data.li?.source || 'Contractor Registry', error: data.li?.error },
+                    { name: 'Secretary of State', ok: sosOk, source: data.sos?.source || 'SOS Business Search', error: data.sos?.error },
+                    { name: 'OSHA', ok: oshaOk, source: data.osha?.source || 'OSHA Database', error: data.osha?.error }
+                ];
+                const failedSources = sourceStatuses.filter(s => !s.ok);
+
                 // Business Summary
-                document.getElementById('businessSummary').innerHTML = `
+                let summaryHtml = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 14px;">
                         <div><strong>Business Name:</strong> ${data.businessName}</div>
                         <div><strong>UBI:</strong> ${data.ubi || 'Not provided'}</div>
@@ -232,39 +245,104 @@
                     </div>
                 `;
 
+                // Show source status
+                if (failedSources.length > 0) {
+                    summaryHtml += `
+                        <div style="margin-top: 16px; padding: 12px 16px; background: rgba(255, 149, 0, 0.08); border: 1px solid rgba(255, 149, 0, 0.3); border-radius: 8px;">
+                            <div style="font-weight: 600; color: #FF9500; margin-bottom: 8px;">⚠️ Some data sources were unavailable</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">
+                                ${failedSources.map(s => `<div style="margin: 4px 0;">• <strong>${s.name}:</strong> ${s.error || 'API unreachable — use manual investigation links below'}</div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Source confidence
+                const okCount = sourceStatuses.filter(s => s.ok).length;
+                summaryHtml += `
+                    <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${sourceStatuses.map(s => `
+                            <span style="font-size: 11px; padding: 3px 10px; border-radius: 12px;
+                                         background: ${s.ok ? 'rgba(52, 199, 89, 0.1)' : 'rgba(255, 59, 48, 0.1)'};
+                                         color: ${s.ok ? '#34C759' : '#FF3B30'}; font-weight: 600;">
+                                ${s.ok ? '✓' : '✗'} ${s.name}
+                            </span>
+                        `).join('')}
+                    </div>
+                `;
+
+                document.getElementById('businessSummary').innerHTML = summaryHtml;
+
                 // L&I Contractor Info
-                if (data.li.available) {
+                if (liOk && data.li.contractor) {
                     document.getElementById('liContractorInfo').innerHTML = this.formatLIData(data.li);
                 } else {
                     // Get UBI from SOS data for manual search link
-                    const ubi = (data.sos.entity && data.sos.entity.ubi) || (data.sos.ubi) || data.ubi || '';
-                    const manualSearchLink = ubi ? `
-                        <a href="https://secure.lni.wa.gov/verify/Detail.aspx?UBI=${ubi}"
-                           target="_blank"
-                           class="btn-secondary"
-                           style="display: inline-block; margin-top: 12px; padding: 8px 16px; text-decoration: none;">
-                            🔍 Manual L&I Search
-                        </a>
-                    ` : '';
+                    const ubi = (data.sos?.entity && data.sos.entity.ubi) || (data.sos?.ubi) || data.ubi || '';
+                    const errorMsg = data.li?.error || data.li?.reason || 'No L&I contractor license found';
+                    const isError = !!data.li?.error;
+
+                    let manualSearchHtml = '';
+                    if (data.state === 'WA') {
+                        manualSearchHtml = `
+                            <a href="https://secure.lni.wa.gov/verify/" target="_blank" class="btn-secondary"
+                               style="display: inline-block; margin-top: 12px; padding: 8px 16px; text-decoration: none;">
+                                🔍 Manual L&I Search
+                            </a>`;
+                    } else if (data.state === 'OR') {
+                        manualSearchHtml = `
+                            <a href="https://search.ccb.state.or.us/search/" target="_blank" class="btn-secondary"
+                               style="display: inline-block; margin-top: 12px; padding: 8px 16px; text-decoration: none;">
+                                🔍 Manual OR CCB Search
+                            </a>`;
+                    }
 
                     document.getElementById('liContractorInfo').innerHTML = `
-                        <p style="color: var(--text-secondary); font-style: italic;">${data.li.reason || 'No L&I contractor license found'}</p>
-                        ${manualSearchLink}
+                        <div style="padding: 12px 16px; background: ${isError ? 'rgba(255, 59, 48, 0.06)' : 'rgba(255, 149, 0, 0.06)'}; border-left: 4px solid ${isError ? '#FF3B30' : '#FF9500'}; border-radius: 4px;">
+                            <p style="color: var(--text-secondary); margin: 0;">${isError ? '⚠️ ' : ''}${errorMsg}</p>
+                        </div>
+                        ${manualSearchHtml}
                     `;
                 }
 
                 // Secretary of State
-                if (data.sos.available) {
+                if (sosOk && data.sos.entity) {
                     document.getElementById('sosBusinessInfo').innerHTML = this.formatSOSData(data.sos);
                 } else {
+                    const errorMsg = data.sos?.error || 'No business entity records found';
+                    const isError = !!data.sos?.error;
+                    const sosLinks = {
+                        'WA': { url: 'https://ccfs.sos.wa.gov/#/Home/Search', label: 'WA SOS Search' },
+                        'OR': { url: 'https://sos.oregon.gov/business/pages/find.aspx', label: 'OR SOS Search' },
+                        'AZ': { url: 'https://ecorp.azcc.gov/BusinessSearch', label: 'AZ Corp Commission' }
+                    };
+                    const sosLink = sosLinks[data.state];
+
                     document.getElementById('sosBusinessInfo').innerHTML = `
-                        <p style="color: var(--text-secondary); font-style: italic;">No business entity records found</p>
+                        <div style="padding: 12px 16px; background: ${isError ? 'rgba(255, 59, 48, 0.06)' : 'rgba(255, 149, 0, 0.06)'}; border-left: 4px solid ${isError ? '#FF3B30' : '#FF9500'}; border-radius: 4px;">
+                            <p style="color: var(--text-secondary); margin: 0;">${isError ? '⚠️ ' : ''}${errorMsg}</p>
+                        </div>
+                        ${sosLink ? `
+                            <a href="${sosLink.url}" target="_blank" class="btn-secondary"
+                               style="display: inline-block; margin-top: 12px; padding: 8px 16px; text-decoration: none;">
+                                🔍 ${sosLink.label}
+                            </a>` : ''}
                     `;
                 }
 
                 // OSHA Violations
-                if (data.osha.inspections && data.osha.inspections.length > 0) {
+                if (oshaOk && data.osha.inspections && data.osha.inspections.length > 0) {
                     document.getElementById('oshaViolations').innerHTML = this.formatOSHAData(data.osha);
+                } else if (!oshaOk) {
+                    document.getElementById('oshaViolations').innerHTML = `
+                        <div style="padding: 12px 16px; background: rgba(255, 59, 48, 0.06); border-left: 4px solid #FF3B30; border-radius: 4px;">
+                            <p style="color: var(--text-secondary); margin: 0;">⚠️ ${data.osha?.error || 'OSHA database unavailable'}</p>
+                        </div>
+                        <a href="https://www.osha.gov/pls/imis/establishment.html" target="_blank" class="btn-secondary"
+                           style="display: inline-block; margin-top: 12px; padding: 8px 16px; text-decoration: none;">
+                            🔍 Manual OSHA Search
+                        </a>
+                    `;
                 } else {
                     document.getElementById('oshaViolations').innerHTML = `
                         <p style="color: green;">✓ No OSHA violations found in public records</p>
@@ -379,49 +457,138 @@
                 // Calculate risk score based on available data
                 let riskScore = 0;
                 let factors = [];
+                let warnings = [];
 
-                // Check L&I violations (nested under contractor)
-                const contractor = data.li.contractor || data.li;
-                if (contractor.violations && contractor.violations.length > 0) {
-                    riskScore += 20;
-                    factors.push('L&I violations on record');
+                // Track data availability
+                const liOk = data.li && data.li.available !== false && !data.li.error;
+                const sosOk = data.sos && data.sos.available !== false && !data.sos.error;
+                const oshaOk = data.osha && data.osha.available !== false && !data.osha.error;
+                const sourcesAvailable = [liOk, sosOk, oshaOk].filter(Boolean).length;
+
+                if (sourcesAvailable === 0) {
+                    return `
+                        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                            <div style="font-size: 48px; color: #FF9500;">⚠️</div>
+                            <div>
+                                <div style="font-size: 24px; font-weight: bold; color: #FF9500;">Insufficient Data</div>
+                                <div style="font-size: 13px; color: var(--text-secondary);">All data sources failed — use investigation links below for manual review</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 16px; padding: 12px; background: rgba(255, 149, 0, 0.06); border-radius: 8px; font-size: 12px;">
+                            <strong>Suggested Action:</strong> Conduct manual investigation using the links below. Verify contractor licensing, business entity status, and OSHA history directly.
+                        </div>
+                    `;
+                }
+
+                if (sourcesAvailable < 3) {
+                    warnings.push(`Only ${sourcesAvailable}/3 data sources responded — risk assessment may be incomplete`);
+                }
+
+                // Check L&I / contractor licensing
+                const contractor = data.li?.contractor || data.li || {};
+                if (liOk) {
+                    if (contractor.violations && contractor.violations.length > 0) {
+                        riskScore += 20;
+                        factors.push(`${contractor.violations.length} L&I violation(s) on record`);
+                    }
+                    if (contractor.status && !contractor.status.toLowerCase().includes('active')) {
+                        riskScore += 15;
+                        factors.push(`Contractor license status: ${contractor.status}`);
+                    }
+                    if (contractor.expirationDate) {
+                        const expDate = new Date(contractor.expirationDate);
+                        const now = new Date();
+                        const daysUntilExpiry = (expDate - now) / (1000 * 60 * 60 * 24);
+                        if (daysUntilExpiry < 0) {
+                            riskScore += 20;
+                            factors.push('Contractor license is expired');
+                        } else if (daysUntilExpiry < 90) {
+                            riskScore += 5;
+                            factors.push(`Contractor license expires in ${Math.round(daysUntilExpiry)} days`);
+                        }
+                    }
+                } else {
+                    warnings.push('Contractor licensing data unavailable');
                 }
 
                 // Check OSHA inspections
-                if (data.osha.inspections && data.osha.inspections.length > 0) {
-                    riskScore += data.osha.inspections.length * 10;
-                    factors.push(`${data.osha.inspections.length} OSHA inspection(s)`);
+                if (oshaOk) {
+                    if (data.osha.inspections && data.osha.inspections.length > 0) {
+                        const inspCount = data.osha.inspections.length;
+                        const seriousViolations = data.osha.summary?.seriousViolations || 0;
+                        const willfulViolations = data.osha.summary?.willfulViolations || 0;
+                        const totalPenalties = data.osha.summary?.totalPenalties || 0;
+
+                        riskScore += Math.min(inspCount * 8, 30);
+                        factors.push(`${inspCount} OSHA inspection(s)`);
+
+                        if (seriousViolations > 0) {
+                            riskScore += seriousViolations * 5;
+                            factors.push(`${seriousViolations} serious violation(s)`);
+                        }
+                        if (willfulViolations > 0) {
+                            riskScore += willfulViolations * 15;
+                            factors.push(`${willfulViolations} willful violation(s)`);
+                        }
+                        if (totalPenalties > 10000) {
+                            riskScore += 10;
+                            factors.push(`$${totalPenalties.toLocaleString()} in OSHA penalties`);
+                        }
+                    }
+                } else {
+                    warnings.push('OSHA inspection data unavailable');
                 }
 
-                // Check business entity status (nested under entity)
-                const entity = data.sos.entity || data.sos;
-                if (entity.status && !entity.status.toLowerCase().includes('active')) {
-                    riskScore += 30;
-                    factors.push('Business entity not in active status');
+                // Check business entity status
+                const entity = data.sos?.entity || data.sos || {};
+                if (sosOk) {
+                    if (entity.status && !entity.status.toLowerCase().includes('active')) {
+                        riskScore += 30;
+                        factors.push(`Business entity status: ${entity.status}`);
+                    }
+                    if (entity.formationDate) {
+                        const formed = new Date(entity.formationDate);
+                        const yearsInBusiness = (new Date() - formed) / (1000 * 60 * 60 * 24 * 365);
+                        if (yearsInBusiness < 2) {
+                            riskScore += 10;
+                            factors.push(`Business formed ${yearsInBusiness.toFixed(1)} years ago (newer business)`);
+                        }
+                    }
+                } else {
+                    warnings.push('Business entity data unavailable');
                 }
 
-                const riskLevel = riskScore === 0 ? 'Low' : riskScore < 30 ? 'Moderate' : 'High';
-                const riskColor = riskLevel === 'Low' ? 'green' : riskLevel === 'Moderate' ? 'orange' : 'red';
+                // Cap at 100
+                riskScore = Math.min(riskScore, 100);
+
+                const riskLevel = riskScore === 0 ? 'Low' : riskScore < 25 ? 'Low-Moderate' : riskScore < 50 ? 'Moderate' : riskScore < 75 ? 'High' : 'Critical';
+                const riskColor = riskScore === 0 ? 'green' : riskScore < 25 ? '#34C759' : riskScore < 50 ? 'orange' : riskScore < 75 ? '#FF3B30' : '#cc0000';
+                const riskIcon = riskScore < 25 ? '✓' : riskScore < 50 ? '⚠️' : '🚨';
 
                 return `
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
                         <div style="font-size: 48px; color: ${riskColor};">
-                            ${riskLevel === 'Low' ? '✓' : riskLevel === 'Moderate' ? '⚠️' : '🚨'}
+                            ${riskIcon}
                         </div>
                         <div>
                             <div style="font-size: 24px; font-weight: bold; color: ${riskColor};">${riskLevel} Risk</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Risk Score: ${riskScore}/100</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Score: ${riskScore}/100 · ${sourcesAvailable}/3 sources checked</div>
                         </div>
                     </div>
+                    ${warnings.length > 0 ? `
+                        <div style="margin-bottom: 16px; padding: 10px 14px; background: rgba(255, 149, 0, 0.06); border-radius: 8px;">
+                            ${warnings.map(w => `<div style="font-size: 12px; color: #FF9500; margin: 2px 0;">⚠ ${w}</div>`).join('')}
+                        </div>
+                    ` : ''}
                     ${factors.length > 0 ? `
-                        <div style="margin-top: 16px;">
+                        <div style="margin-top: 8px;">
                             <strong>Risk Factors:</strong>
                             <ul style="margin: 8px 0 0 20px;">
                                 ${factors.map(f => `<li>${f}</li>`).join('')}
                             </ul>
                         </div>
-                    ` : '<p style="color: green;">No significant risk factors identified</p>'}
-                    <div style="margin-top: 16px; padding: 12px; background: #f8f9fa; border-radius: 4px; font-size: 12px;">
+                    ` : '<p style="color: green;">No significant risk factors identified from available data</p>'}
+                    <div style="margin-top: 16px; padding: 12px; background: rgba(0, 122, 255, 0.04); border-radius: 8px; font-size: 12px;">
                         <strong>Suggested Action:</strong> ${this.getSuggestedAction(riskLevel)}
                     </div>
                 `;
@@ -431,10 +598,14 @@
                 switch (riskLevel) {
                     case 'Low':
                         return 'Standard underwriting process. Request current insurance declarations and loss runs.';
+                    case 'Low-Moderate':
+                        return 'Standard process with attention to flagged items. Verify license and insurance currency.';
                     case 'Moderate':
                         return 'Enhanced review recommended. Request detailed loss history, safety program documentation, and consider higher premiums or coverage restrictions.';
                     case 'High':
                         return 'Thorough underwriting required. Consider declination or require extensive risk mitigation measures before binding coverage.';
+                    case 'Critical':
+                        return 'Significant concerns identified. Recommend declination unless risk can be substantially mitigated. Document all findings.';
                     default:
                         return 'Review available information and proceed accordingly.';
                 }

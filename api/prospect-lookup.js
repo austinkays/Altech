@@ -236,40 +236,12 @@ async function searchLIContractor(businessName, ubi) {
 
   } catch (error) {
     console.error('[L&I Lookup] Search error:', error);
-
-    // Return mock data as fallback for testing
-    const mockData = {
-      success: true,
-      available: true,
-      source: 'WA Department of Labor & Industries',
-      contractor: {
-        licenseNumber: 'MOCKLI001234',
-        businessName: businessName || 'Mock Business Name',
-        ubi: ubi || '123-456-789',
-        status: 'Active',
-        licenseType: 'General Contractor',
-        classifications: [
-          'General Construction/Trades',
-          'Residential Construction',
-          'Commercial Construction'
-        ],
-        expirationDate: '2025-12-31',
-        bondAmount: '$12,000',
-        registrationDate: '2018-03-15',
-        address: {
-          street: '123 Main St',
-          city: 'Seattle',
-          state: 'WA',
-          zip: '98101'
-        },
-        violations: [],
-        bondStatus: 'Current',
-        insuranceStatus: 'Current'
-      }
+    return {
+      success: false,
+      available: false,
+      source: 'WA Department of Labor & Industries (Socrata API)',
+      error: `L&I lookup failed: ${error.message}`
     };
-
-    console.log('[L&I Lookup] Using fallback mock data due to error');
-    return mockData;
   }
 }
 
@@ -381,44 +353,12 @@ async function searchORCCBContractor(businessName, licenseNumber) {
 
   } catch (error) {
     console.error('[OR CCB Lookup] Search error:', error);
-
-    // Return mock data as fallback for testing
-    const mockData = {
-      success: true,
-      available: true,
-      source: 'Oregon Construction Contractors Board',
-      contractor: {
-        licenseNumber: 'MOCKCCB001234',
-        businessName: businessName || 'Mock Oregon Business',
-        ccbNumber: licenseNumber || '123456',
-        status: 'Active',
-        licenseType: 'Residential General Contractor',
-        classifications: ['Residential General Contractor'],
-        expirationDate: '2027-12-31',
-        bondAmount: '$25,000',
-        bondCompany: 'Mock Surety Company',
-        bondExpirationDate: '2027-12-31',
-        registrationDate: '2015-01-15',
-        insuranceCompany: 'Mock Insurance Co',
-        insuranceAmount: '$1,000,000',
-        insuranceExpirationDate: '2026-12-31',
-        address: {
-          street: '123 Main St',
-          city: 'Portland',
-          state: 'OR',
-          zip: '97201'
-        },
-        phone: '5035551234',
-        county: 'Multnomah',
-        rmi: 'John Smith',
-        violations: [],
-        bondStatus: 'Current',
-        insuranceStatus: 'Current'
-      }
+    return {
+      success: false,
+      available: false,
+      source: 'Oregon Construction Contractors Board (Socrata API)',
+      error: `OR CCB lookup failed: ${error.message}`
     };
-
-    console.log('[OR CCB Lookup] Using fallback mock data due to error');
-    return mockData;
   }
 }
 
@@ -525,59 +465,13 @@ async function searchSOSEntity(businessName, ubi, state) {
 
   } catch (error) {
     console.error('[SOS Lookup] Search error:', error);
-
-    // Return mock data as fallback for testing
-    const mockData = {
-      success: true,
-      available: true,
-      source: STATE_SOS_ENDPOINTS[state].name,
+    return {
+      success: false,
+      available: false,
+      source: STATE_SOS_ENDPOINTS[state]?.name || `${state} Secretary of State`,
       state: state,
-      entity: {
-        ubi: ubi || '123-456-789',
-        businessName: businessName || 'Mock Business Name',
-        entityType: 'Limited Liability Company (LLC)',
-        status: 'Active',
-        formationDate: '2018-03-15',
-        expirationDate: '2025-12-31',
-        jurisdiction: state,
-        principalOffice: {
-          street: '123 Main St',
-          city: 'Seattle',
-          state: state,
-          zip: '98101'
-        },
-        registeredAgent: {
-          name: 'John Doe',
-          address: {
-            street: '456 Agent Ave',
-            city: 'Seattle',
-            state: state,
-            zip: '98102'
-          }
-        },
-        officers: [
-          {
-            name: 'Jane Smith',
-            title: 'Managing Member',
-            appointmentDate: '2018-03-15'
-          },
-          {
-            name: 'Bob Johnson',
-            title: 'Member',
-            appointmentDate: '2018-03-15'
-          }
-        ],
-        businessActivity: 'General Construction Services',
-        filingHistory: [
-          { date: '2024-12-01', type: 'Annual Report', status: 'Filed' },
-          { date: '2023-12-01', type: 'Annual Report', status: 'Filed' },
-          { date: '2022-12-01', type: 'Annual Report', status: 'Filed' }
-        ]
-      }
+      error: `SOS lookup failed: ${error.message}`
     };
-
-    console.log('[SOS Lookup] Using fallback mock data due to error');
-    return mockData;
   }
 }
 
@@ -780,37 +674,17 @@ function parseWASOSHTML(html, businessName, ubi) {
 }
 
 function parseORSOSHTML(html, businessName, ubi) {
-  return {
-    ubi: ubi || '',
-    businessName: businessName,
-    entityType: 'Limited Liability Company (LLC)',
-    status: 'Active',
-    formationDate: '',
-    expirationDate: '',
-    jurisdiction: 'OR',
-    principalOffice: {},
-    registeredAgent: {},
-    officers: [],
-    businessActivity: '',
-    filingHistory: []
-  };
+  // OR SOS doesn't expose a usable API/response from a simple GET
+  // Return null so the caller surfaces "not available" instead of fake data
+  console.log('[OR SOS] HTML parsing not implemented — OR SOS requires browser-based search');
+  return null;
 }
 
 function parseAZSOSHTML(html, businessName, ubi) {
-  return {
-    ubi: ubi || '',
-    businessName: businessName,
-    entityType: 'Limited Liability Company (LLC)',
-    status: 'Active',
-    formationDate: '',
-    expirationDate: '',
-    jurisdiction: 'AZ',
-    principalOffice: {},
-    registeredAgent: {},
-    officers: [],
-    businessActivity: '',
-    filingHistory: []
-  };
+  // AZ Corporation Commission doesn't expose a usable API/response from a simple GET
+  // Return null so the caller surfaces "not available" instead of fake data
+  console.log('[AZ SOS] HTML parsing not implemented — AZ SOS requires browser-based search');
+  return null;
 }
 
 // ============================================================================
@@ -932,106 +806,27 @@ async function searchOSHAInspections(businessName, city, state) {
 
   } catch (error) {
     console.error('[OSHA Lookup] Search error:', error);
-
-    // Return mock data as fallback for testing
-    const mockData = {
-      success: true,
-      available: true,
+    return {
+      success: false,
+      available: false,
       source: 'U.S. Department of Labor - OSHA',
+      error: `OSHA lookup failed: ${error.message}`,
       establishment: {
         name: businessName,
-        city: city || 'Seattle',
-        state: state || 'WA'
+        city: city || '',
+        state: state || ''
       },
       summary: {
-        totalInspections: 3,
-        seriousViolations: 2,
-        otherViolations: 1,
+        totalInspections: 0,
+        seriousViolations: 0,
+        otherViolations: 0,
         willfulViolations: 0,
         repeatViolations: 0,
-        totalPenalties: 8500,
-        lastInspection: '2023-08-15'
+        totalPenalties: 0,
+        lastInspection: null
       },
-      inspections: [
-        {
-          activityNumber: '1234567',
-          inspectionDate: '2023-08-15',
-          inspectionType: 'Complaint',
-          openDate: '2023-08-15',
-          closeDate: '2023-10-20',
-          caseStatus: 'Closed',
-          violations: [
-            {
-              citationNumber: '01001',
-              standardViolated: '1926.451(g)(1)',
-              violationType: 'Serious',
-              issuanceDate: '2023-09-10',
-              abatementDate: '2023-10-15',
-              currentPenalty: 5000,
-              initialPenalty: 7000,
-              description: 'Fall protection not provided on scaffold',
-              abatementStatus: 'Completed'
-            },
-            {
-              citationNumber: '01002',
-              standardViolated: '1926.102(a)(1)',
-              violationType: 'Other',
-              issuanceDate: '2023-09-10',
-              abatementDate: '2023-10-15',
-              currentPenalty: 1500,
-              initialPenalty: 2000,
-              description: 'Eye protection not worn during grinding operations',
-              abatementStatus: 'Completed'
-            }
-          ],
-          naicsCode: '236220',
-          naicsDescription: 'Commercial and Institutional Building Construction',
-          sicCode: '1542',
-          sicDescription: 'General Contractors-Nonresidential Buildings'
-        },
-        {
-          activityNumber: '7654321',
-          inspectionDate: '2021-05-12',
-          inspectionType: 'Programmed',
-          openDate: '2021-05-12',
-          closeDate: '2021-07-30',
-          caseStatus: 'Closed',
-          violations: [
-            {
-              citationNumber: '01001',
-              standardViolated: '1926.501(b)(1)',
-              violationType: 'Serious',
-              issuanceDate: '2021-06-15',
-              abatementDate: '2021-07-20',
-              currentPenalty: 2000,
-              initialPenalty: 3500,
-              description: 'Unprotected sides and edges',
-              abatementStatus: 'Completed'
-            }
-          ],
-          naicsCode: '236220',
-          naicsDescription: 'Commercial and Institutional Building Construction',
-          sicCode: '1542',
-          sicDescription: 'General Contractors-Nonresidential Buildings'
-        },
-        {
-          activityNumber: '9876543',
-          inspectionDate: '2019-11-20',
-          inspectionType: 'Referral',
-          openDate: '2019-11-20',
-          closeDate: '2020-01-15',
-          caseStatus: 'Closed',
-          violations: [],
-          naicsCode: '236220',
-          naicsDescription: 'Commercial and Institutional Building Construction',
-          sicCode: '1542',
-          sicDescription: 'General Contractors-Nonresidential Buildings'
-        }
-      ]
+      inspections: []
     };
-
-    console.log('[OSHA Lookup] Using fallback mock data due to error');
-    return mockData;
   }
 }
 
