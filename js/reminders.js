@@ -300,36 +300,36 @@ window.Reminders = (() => {
 
         if (tasks.length === 0) {
             list.innerHTML = `<div class="rem-empty">
-                <div class="rem-empty-icon">✅</div>
+                <div class="rem-empty-icon"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
                 <p>${filter === 'all' && !search ? 'No reminders yet. Tap + to add one.' : 'No matching reminders.'}</p>
             </div>`;
             return;
         }
 
-        list.innerHTML = tasks.map(t => {
+        list.innerHTML = tasks.map((t, i) => {
             const status = _getStatus(t);
             const isCompleted = status === 'completed';
             const statusClass = `rem-status-${status}`;
             const priorityDot = t.priority === 'high' ? '<span class="rem-priority-dot high"></span>' :
                                 t.priority === 'low' ? '<span class="rem-priority-dot low"></span>' : '';
 
-            return `<div class="rem-task-card ${statusClass}" data-id="${t.id}">
+            return `<div class="rem-task-card ${statusClass}" data-id="${t.id}" style="animation-delay: ${i * 0.02}s;">
                 <div class="rem-task-row">
                     <button class="rem-check-btn ${isCompleted ? 'checked' : ''}" onclick="Reminders.toggle('${t.id}')" aria-label="Toggle complete">
-                        ${isCompleted ? '✓' : ''}
+                        ${isCompleted ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
                     </button>
                     <div class="rem-task-content">
                         <div class="rem-task-title ${isCompleted ? 'rem-done' : ''}">${priorityDot}${_escapeHTML(t.title)}</div>
                         <div class="rem-task-meta">
                             <span class="rem-badge rem-badge-${status}">${_relativeDate(t.dueDate)}</span>
-                            <span class="rem-cat">${_escapeHTML(t.category)}</span>
-                            <span class="rem-freq">${t.frequency}</span>
+                            <span class="rem-badge rem-cat">${_escapeHTML(t.category)}</span>
+                            <span class="rem-badge rem-freq">${t.frequency}</span>
                         </div>
                         ${t.notes ? `<div class="rem-task-notes">${_escapeHTML(t.notes)}</div>` : ''}
                     </div>
                     <div class="rem-task-actions">
-                        <button class="rem-action-btn" onclick="Reminders.showEdit('${t.id}')" title="Edit">✏️</button>
-                        <button class="rem-action-btn" onclick="Reminders.remove('${t.id}')" title="Delete">🗑️</button>
+                        <button class="rem-action-btn" onclick="Reminders.showEdit('${t.id}')" title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                        <button class="rem-action-btn" onclick="Reminders.remove('${t.id}')" title="Delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                     </div>
                 </div>
             </div>`;

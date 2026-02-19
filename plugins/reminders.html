@@ -33,22 +33,22 @@
     <!-- Stats Cards -->
     <div class="rem-stats-grid">
         <div class="rem-stat-card" onclick="Reminders.setFilter('all')">
-            <span class="rem-stat-icon">📋</span>
+            <div class="rem-stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
             <div class="rem-stat-value" id="remStatTotal">0</div>
             <div class="rem-stat-label">Total</div>
         </div>
         <div class="rem-stat-card overdue" onclick="Reminders.setFilter('overdue')">
-            <span class="rem-stat-icon">🔴</span>
+            <div class="rem-stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
             <div class="rem-stat-value" id="remStatOverdue">0</div>
             <div class="rem-stat-label">Overdue</div>
         </div>
         <div class="rem-stat-card due-today" onclick="Reminders.setFilter('due-today')">
-            <span class="rem-stat-icon">🟡</span>
+            <div class="rem-stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
             <div class="rem-stat-value" id="remStatDueToday">0</div>
             <div class="rem-stat-label">Due Today</div>
         </div>
         <div class="rem-stat-card completed" onclick="Reminders.setFilter('completed')">
-            <span class="rem-stat-icon">✅</span>
+            <div class="rem-stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
             <div class="rem-stat-value" id="remStatCompleted">0</div>
             <div class="rem-stat-label">Done</div>
         </div>
@@ -74,7 +74,7 @@
     <!-- Task List -->
     <div class="rem-task-list" id="remTaskList">
         <div class="rem-empty">
-            <div class="rem-empty-icon">📋</div>
+            <div class="rem-empty-icon"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
             <p>Loading...</p>
         </div>
     </div>
