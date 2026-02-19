@@ -191,6 +191,13 @@
     color: #cc6600;
     border: 1px solid #ffe0b3;
 }
+/* ≤14 days — matches home screen red badge threshold */
+.cgl-status-badge.notifying {
+    background: #fee;
+    color: #cc0000;
+    border: 1px solid rgba(255, 59, 48, 0.35);
+    box-shadow: 0 0 8px rgba(255, 59, 48, 0.20), 0 0 2px rgba(255, 59, 48, 0.10);
+}
 .cgl-status-badge.expiring-soon {
     background: #fffbeb;
     color: #cc9900;
@@ -963,6 +970,7 @@ body.dark-mode .cgl-table tr.hidden-row { background: rgba(255,255,255,0.02); }
 body.dark-mode .cgl-table tr.hidden-row td { text-decoration-color: #555; }
 body.dark-mode .cgl-status-badge.expired { background: rgba(255,59,48,0.12); color: #ff6b6b; border-color: rgba(255,59,48,0.3); }
 body.dark-mode .cgl-status-badge.critical { background: rgba(204,102,0,0.12); color: #ffaa44; border-color: rgba(204,102,0,0.3); }
+body.dark-mode .cgl-status-badge.notifying { background: rgba(255,59,48,0.15); color: #ff6b6b; border-color: rgba(255,59,48,0.35); box-shadow: 0 0 10px rgba(255,59,48,0.25), 0 0 3px rgba(255,59,48,0.15); }
 body.dark-mode .cgl-status-badge.expiring-soon { background: rgba(204,153,0,0.12); color: #ffd644; border-color: rgba(204,153,0,0.3); }
 body.dark-mode .cgl-status-badge.active { background: rgba(52,199,89,0.12); color: #6ee7b7; border-color: rgba(52,199,89,0.3); }
 body.dark-mode .cgl-toggle-slider { background-color: rgba(255,255,255,0.2); }

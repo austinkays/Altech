@@ -1948,7 +1948,7 @@ const ComplianceDashboard = {
                         </label>
                     </td>
                     <td>
-                        <span class="cgl-status-badge ${policy.status}">
+                        <span class="cgl-status-badge ${policy.status}${policy.daysUntilExpiration <= 14 && !isHidden ? ' notifying' : ''}">
                             ${statusLabel}
                         </span>
                     </td>
