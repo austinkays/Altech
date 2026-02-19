@@ -47,6 +47,27 @@ window.HawkSoftExport = (() => {
         return v;
     }
 
+    // Today's date as MM/DD/YYYY
+    function _todayFormatted() {
+        const d = new Date();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return `${mm}/${dd}/${yyyy}`;
+    }
+
+    // Calculate expiration date from effective + term months
+    function _calcExpiration(effStr, termMonths) {
+        if (!effStr || !termMonths) return '';
+        const m = effStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (!m) return '';
+        const dt = new Date(parseInt(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
+        dt.setMonth(dt.getMonth() + parseInt(termMonths));
+        const mm = String(dt.getMonth() + 1).padStart(2, '0');
+        const dd = String(dt.getDate()).padStart(2, '0');
+        return `${mm}/${dd}/${dt.getFullYear()}`;
+    }
+
     // Format DOB to MM/DD/YY for driver block
     function _fmtDobShort(v) {
         if (!v) return '';
@@ -207,12 +228,12 @@ window.HawkSoftExport = (() => {
                 policyNumber: '',
                 policyTitle: policyTitle,
                 policyForm: policyForm,
-                effectiveDate: _fmtDate(d.effectiveDate) || '(today)',
+                effectiveDate: _fmtDate(d.effectiveDate) || _todayFormatted(),
                 expirationDate: '',
                 productionDate: '',
                 term: d.policyTerm === '12 Month' ? '12' : d.policyTerm === '6 Month' ? '6' : '',
                 totalPremium: '',
-                status: 'Active',
+                status: 'New',
                 clientStatus: 'PROSPECT',
                 leadSource: d.referralSource || '',
                 producer: _settings.producer || '',
@@ -1181,9 +1202,9 @@ window.HawkSoftExport = (() => {
                     <div class="hs-field"><label>City</label><input id="hs_city" value="${_val(c.city)}"></div>
                     <div class="hs-field"><label>State</label><input id="hs_state" value="${_val(c.state)}" maxlength="2"></div>
                     <div class="hs-field"><label>ZIP</label><input id="hs_zip" value="${_val(c.zip)}"></div>
-                    <div class="hs-field"><label>Phone</label><input id="hs_phone" value="${_val(c.phone)}"></div>
-                    <div class="hs-field"><label>Cell Phone</label><input id="hs_cellPhone" value="${_val(c.cellPhone)}"></div>
-                    <div class="hs-field"><label>Work Phone</label><input id="hs_workPhone" value="${_val(c.workPhone)}"></div>
+                    <div class="hs-field"><label>Phone</label><input id="hs_phone" value="${_val(c.phone)}" type="tel"></div>
+                    <div class="hs-field"><label>Cell Phone</label><input id="hs_cellPhone" value="${_val(c.cellPhone)}" type="tel"></div>
+                    <div class="hs-field"><label>Work Phone</label><input id="hs_workPhone" value="${_val(c.workPhone)}" type="tel"></div>
                     <div class="hs-field"><label>Email</label><input id="hs_email" type="email" value="${_val(c.email)}"></div>
                     <div class="hs-field"><label>Work Email</label><input id="hs_emailWork" type="email" value="${_val(c.emailWork)}"></div>
                     <div class="hs-field"><label>Client Source</label>
@@ -1214,25 +1235,25 @@ window.HawkSoftExport = (() => {
                 <div class="hs-form-grid">
                     <div class="hs-field"><label>Carrier / Company</label><input id="hs_company" value="${_val(p.company)}" placeholder="e.g. Safeco"></div>
                     <div class="hs-field"><label>Policy Number</label><input id="hs_policyNumber" value="${_val(p.policyNumber)}"></div>
-                    <div class="hs-field"><label>Effective Date</label><input id="hs_effectiveDate" value="${_val(p.effectiveDate)}" placeholder="MM/DD/YYYY or (today)"></div>
-                    <div class="hs-field"><label>Expiration Date</label><input id="hs_expirationDate" value="${_val(p.expirationDate)}" placeholder="MM/DD/YYYY"></div>
-                    <div class="hs-field"><label>Production Date</label><input id="hs_productionDate" value="${_val(p.productionDate)}" placeholder="MM/DD/YYYY"></div>
+                    <div class="hs-field"><label>Effective Date</label><input id="hs_effectiveDate" value="${_val(p.effectiveDate)}" placeholder="MM/DD/YYYY" onchange="HawkSoftExport.updateExpiration()"></div>
                     <div class="hs-field"><label>Term (months)</label>
-                        <select id="hs_term">
+                        <select id="hs_term" onchange="HawkSoftExport.updateExpiration()">
                             <option value="">—</option>
                             <option value="6" ${p.term === '6' ? 'selected' : ''}>6</option>
                             <option value="12" ${p.term === '12' ? 'selected' : ''}>12</option>
                         </select>
                     </div>
-                    <div class="hs-field"><label>Total Premium</label><input id="hs_totalPremium" value="${_val(p.totalPremium)}" placeholder="$"></div>
+                    <div class="hs-field"><label>Expiration Date</label><input id="hs_expirationDate" value="${_val(p.expirationDate || _calcExpiration(p.effectiveDate, p.term))}" placeholder="Auto-calculated"></div>
+                    <div class="hs-field"><label>Production Date</label><input id="hs_productionDate" value="${_val(p.productionDate)}" placeholder="MM/DD/YYYY"></div>
                     <div class="hs-field"><label>Status</label>
                         <select id="hs_status">
-                            <option value="Active" ${p.status === 'Active' ? 'selected' : ''}>Active</option>
                             <option value="New" ${p.status === 'New' ? 'selected' : ''}>New</option>
+                            <option value="Active" ${p.status === 'Active' ? 'selected' : ''}>Active</option>
                             <option value="Renewal" ${p.status === 'Renewal' ? 'selected' : ''}>Renewal</option>
                             <option value="Quote" ${p.status === 'Quote' ? 'selected' : ''}>Quote</option>
                         </select>
                     </div>
+                    <div class="hs-field"><label>Total Premium</label><input id="hs_totalPremium" value="${_val(p.totalPremium)}" placeholder="$"></div>
                     <div class="hs-field"><label>Client Status</label>
                         <select id="hs_clientStatus">
                             <option value="PROSPECT" ${p.clientStatus === 'PROSPECT' ? 'selected' : ''}>Prospect</option>
@@ -1557,6 +1578,17 @@ window.HawkSoftExport = (() => {
     // ── Preview & copy ──────────────────────────────────────
     function preview() { _doPreview(); }
 
+    // ── Auto-calc expiration from effective + term ────────
+    function updateExpiration() {
+        const effEl = document.getElementById('hs_effectiveDate');
+        const termEl = document.getElementById('hs_term');
+        const expEl = document.getElementById('hs_expirationDate');
+        if (effEl && termEl && expEl) {
+            const calc = _calcExpiration(effEl.value, termEl.value);
+            if (calc) expEl.value = calc;
+        }
+    }
+
     function copyPreview() {
         const content = document.getElementById('hs_previewContent');
         if (content) {
@@ -1583,6 +1615,7 @@ window.HawkSoftExport = (() => {
         copyPreview,
         toggleSection,
         toggleExportType,
+        updateExpiration,
         addVehicle,
         removeVehicle,
         addDriver,
