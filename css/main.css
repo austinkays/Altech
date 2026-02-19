@@ -2209,6 +2209,16 @@ body:not(.dark-mode) .tool-row:hover .tool-icon.icon-muted    { filter: drop-sha
     animation: badgePulse 2s ease-in-out infinite;
     z-index: 2;
 }
+/* Warning tier: amber/yellow for 15-30 days out */
+.tool-notify-badge.badge-warning {
+    background: #F59E0B;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+}
+/* Critical tier: red for ≤14 days — keeps default red */
+.tool-notify-badge.badge-critical {
+    background: #FF3B30;
+    box-shadow: 0 2px 6px rgba(255, 59, 48, 0.4);
+}
 .tool-notify-badge:empty,
 .tool-notify-badge[data-count="0"] {
     display: none;

@@ -12065,7 +12065,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                 if (!badge) return;
                 try {
                     const raw = localStorage.getItem('altech_cgl_cache');
-                    if (!raw) { badge.textContent = ''; badge.dataset.count = '0'; return; }
+                    if (!raw) { badge.textContent = ''; badge.dataset.count = '0'; badge.classList.remove('badge-critical', 'badge-warning'); return; }
                     const cached = JSON.parse(raw);
                     const policies = cached.policies || [];
                     // Load state to check verified/dismissed
@@ -12078,20 +12078,24 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                     }
                     const now = new Date();
                     now.setHours(0, 0, 0, 0);
-                    let urgent = 0;
+                    let total = 0, critical = 0;
                     policies.forEach(p => {
                         if (verified[p.policyNumber] || dismissed[p.policyNumber]) return;
                         if (!p.expirationDate) return;
                         const exp = new Date(p.expirationDate);
                         exp.setHours(0, 0, 0, 0);
                         const days = Math.round((exp - now) / 86400000);
-                        if (days <= 14) urgent++;
+                        if (days <= 30) { total++; if (days <= 14) critical++; }
                     });
-                    badge.textContent = urgent > 0 ? String(urgent) : '';
-                    badge.dataset.count = String(urgent);
+                    badge.textContent = total > 0 ? String(total) : '';
+                    badge.dataset.count = String(total);
+                    // Red for ≤14 days, amber/yellow for ≤30 days
+                    badge.classList.toggle('badge-critical', critical > 0);
+                    badge.classList.toggle('badge-warning', total > 0 && critical === 0);
                 } catch (e) {
                     badge.textContent = '';
                     badge.dataset.count = '0';
+                    badge.classList.remove('badge-critical', 'badge-warning');
                 }
             },
 
