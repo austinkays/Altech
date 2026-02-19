@@ -169,6 +169,75 @@
     gap: 10px;
     margin-bottom: 14px;
 }
+
+/* ── Hero Section ── */
+.vin-hero {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 20px 18px;
+    text-align: center;
+    margin-bottom: 14px;
+}
+.vin-hero-ymm {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+}
+.vin-hero-trim {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+.vin-hero-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 12px;
+}
+.vin-hero-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+}
+.vin-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.vin-badge-body {
+    background: rgba(0, 122, 255, 0.12);
+    color: var(--apple-blue);
+}
+.vin-badge-engine {
+    background: rgba(124, 58, 237, 0.12);
+    color: #a78bfa;
+}
+.vin-badge-drive {
+    background: rgba(52, 199, 89, 0.12);
+    color: var(--success);
+}
+.vin-badge-check {
+    background: rgba(52, 199, 89, 0.08);
+    color: var(--success);
+}
+.vin-badge-loading {
+    background: rgba(255, 159, 10, 0.12);
+    color: #FF9F0A;
+    animation: vinPulse 1.5s ease-in-out infinite;
+}
+@keyframes vinPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
 .vin-summary-card {
     background: var(--bg-card);
     border: 1px solid var(--border);

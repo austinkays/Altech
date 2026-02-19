@@ -217,17 +217,123 @@ window.VinDecoder = (() => {
         'BM-G': 'Graz, Austria (Magna)',
     };
 
-    // ── Manufacturer short keys (for plant lookup) ──
+    // ── Manufacturer short keys (for plant & model lookup) ──
     function _getMfgKey(wmi) {
         const code = wmi.substring(0, 3);
-        if (WMI_3[code] && WMI_3[code].includes('Mercedes')) return 'MB';
-        if (WMI_3[code] && WMI_3[code].includes('Toyota')) return 'TY';
-        if (WMI_3[code] && WMI_3[code].includes('Lexus')) return 'TY';
-        if (WMI_3[code] && WMI_3[code].includes('Ford')) return 'FD';
-        if (WMI_3[code] && WMI_3[code].includes('Honda')) return 'HN';
-        if (WMI_3[code] && WMI_3[code].includes('Acura')) return 'HN';
-        if (WMI_3[code] && WMI_3[code].includes('BMW')) return 'BM';
+        const name = WMI_3[code] || '';
+        if (name.includes('Mercedes') || name.includes('AMG')) return 'MB';
+        if (name.includes('Toyota') || name.includes('Lexus')) return 'TY';
+        if (name.includes('Ford') || name.includes('Lincoln')) return 'FD';
+        if (name.includes('Honda') || name.includes('Acura')) return 'HN';
+        if (name.includes('BMW')) return 'BM';
+        if (name.includes('Chevrolet') || name.includes('GMC') || name.includes('Cadillac') || name.includes('Buick')) return 'GM';
+        if (name.includes('Nissan') || name.includes('Infiniti')) return 'NS';
+        if (name.includes('Jeep') || name.includes('Ram') || name.includes('Chrysler') || name.includes('Dodge')) return 'FC';
+        if (name.includes('Hyundai') || name.includes('Genesis')) return 'HY';
+        if (name.includes('Kia')) return 'KI';
+        if (name.includes('Subaru')) return 'SB';
+        if (name.includes('Volkswagen')) return 'VW';
+        if (name.includes('Audi')) return 'AU';
+        if (name.includes('Porsche')) return 'PO';
+        if (name.includes('Tesla')) return 'TS';
+        if (name.includes('Mazda')) return 'MZ';
+        if (name.includes('Volvo')) return 'VO';
+        // Fallback to 2-char manufacturer match
+        const n2 = MANUFACTURER[wmi[0] + wmi[1]] || '';
+        if (n2.includes('Mercedes')) return 'MB';
+        if (n2.includes('Toyota') || n2.includes('Lexus')) return 'TY';
+        if (n2.includes('Ford') || n2.includes('Lincoln')) return 'FD';
+        if (n2.includes('Honda')) return 'HN';
+        if (n2.includes('BMW')) return 'BM';
+        if (n2.includes('General Motors') || n2.includes('Chevrolet') || n2.includes('Cadillac')) return 'GM';
+        if (n2.includes('Nissan')) return 'NS';
+        if (n2.includes('Jeep') || n2.includes('Chrysler') || n2.includes('Dodge') || n2.includes('FCA')) return 'FC';
+        if (n2.includes('Hyundai')) return 'HY';
+        if (n2.includes('Kia')) return 'KI';
+        if (n2.includes('Subaru')) return 'SB';
+        if (n2.includes('Volkswagen')) return 'VW';
+        if (n2.includes('Mazda')) return 'MZ';
         return null;
+    }
+
+    // ── String cleanup helpers ──
+    function _cleanMake(mfg) {
+        let c = mfg.replace(/\s*\(.*?\)/g, '').trim();
+        if (c.includes(' / ')) c = c.split(' / ')[0].trim();
+        return c || mfg;
+    }
+
+    function _cleanBody(body) {
+        if (!body) return null;
+        const m = body.match(/\(([^)]+)\)/);
+        if (m) return m[1];
+        return body.split('/')[0].trim();
+    }
+
+    function _cleanDriveType(dt) {
+        if (!dt) return null;
+        return dt.split('/')[0].trim();
+    }
+
+    // ── NHTSA VIN Decoder API (free, no key required) ──
+    let _lastDecodeVin = '';
+
+    async function _fetchNHTSA(vin) {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 8000);
+        try {
+            const resp = await fetch(
+                `https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${vin}?format=json`,
+                { signal: controller.signal }
+            );
+            clearTimeout(tid);
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            const r = {};
+            for (const item of (data.Results || [])) {
+                if (item.Value && item.Value.trim() && item.Value !== 'Not Applicable') {
+                    r[item.Variable] = item.Value.trim();
+                }
+            }
+            if (!r['Make'] && !r['Model']) return null;
+            return {
+                make: r['Make'] || null,
+                model: r['Model'] || null,
+                trim: r['Trim'] || r['Trim2'] || null,
+                body: r['Body Class'] || null,
+                doors: r['Doors'] || null,
+                engine: _buildEngineStr(r),
+                driveType: r['Drive Type'] || null,
+                fuel: r['Fuel Type - Primary'] || null,
+                plantCity: r['Plant City'] || null,
+                plantState: r['Plant State'] || null,
+                plantCountry: r['Plant Country'] || null,
+                series: r['Series'] || r['Series2'] || null,
+            };
+        } catch (e) {
+            clearTimeout(tid);
+            return null;
+        }
+    }
+
+    function _buildEngineStr(r) {
+        const parts = [];
+        if (r['Displacement (L)']) {
+            parts.push(parseFloat(r['Displacement (L)']).toFixed(1) + 'L');
+        }
+        const cyl = r['Engine Number of Cylinders'];
+        const cfg = r['Engine Configuration'];
+        if (cyl && cfg) {
+            const prefix = cfg === 'V-Shaped' ? 'V' : cfg === 'In-Line' ? 'I'
+                : (cfg === 'Flat' || cfg === 'Opposed') ? 'H' : '';
+            parts.push(prefix ? prefix + cyl : cyl + '-cyl');
+        } else if (cyl) {
+            parts.push(cyl + '-cyl');
+        }
+        const fuel = r['Fuel Type - Primary'];
+        if (fuel && fuel !== 'Gasoline') parts.push(fuel);
+        if (r['Turbo'] === 'Yes') parts.push('Turbo');
+        return parts.length ? parts.join(' ') : null;
     }
 
     // ── Position 10: Model Year ──
@@ -327,9 +433,14 @@ window.VinDecoder = (() => {
             { pos: '12-17', char: serial, section: 'VIS', label: 'Production Sequence', value: `Serial #${serial}` },
         ];
 
+        const make = _cleanMake(manufacturer);
+
         return {
-            vin, wmi, vds, vis, country, manufacturer, vehicleType,
-            modelYear, plant: plantCode, serial, checkDigit, positions
+            vin, wmi, vds, vis, country, manufacturer, make, vehicleType,
+            modelYear, plant: plantCode, serial, checkDigit, positions,
+            model: null, body: null, trim: null, engine: null,
+            driveType: null, fuel: null, plantInfo: plantName || null,
+            _nhtsaLoading: false
         };
     }
 
@@ -365,25 +476,35 @@ window.VinDecoder = (() => {
             return;
         }
 
-        // Summary cards
-        const summaryHTML = `
-            <div class="vin-summary-grid">
-                <div class="vin-summary-card">
-                    <div class="vin-summary-label">Year</div>
-                    <div class="vin-summary-value">${result.modelYear}</div>
-                </div>
-                <div class="vin-summary-card">
-                    <div class="vin-summary-label">Manufacturer</div>
-                    <div class="vin-summary-value">${result.manufacturer}</div>
-                </div>
-                <div class="vin-summary-card">
-                    <div class="vin-summary-label">Country</div>
-                    <div class="vin-summary-value">${result.country}</div>
-                </div>
-                <div class="vin-summary-card">
-                    <div class="vin-summary-label">Check Digit</div>
-                    <div class="vin-summary-value">${result.checkDigit.valid ? '✅ Valid' : '⚠️ Invalid'}</div>
-                </div>
+        // Hero section — Year Make Model + vehicle badges
+        const heroMake = result.make || _cleanMake(result.manufacturer);
+        const ymmParts = [];
+        if (result.modelYear && result.modelYear !== 'Unknown') ymmParts.push(result.modelYear);
+        ymmParts.push(heroMake);
+        if (result.model) ymmParts.push(result.model);
+        const ymm = ymmParts.join(' ');
+
+        const bodyDisplay = result.body ? _cleanBody(result.body) : (result.vehicleType || null);
+        const driveDisplay = result.driveType ? _cleanDriveType(result.driveType) : null;
+
+        let heroBadges = '';
+        if (result._nhtsaLoading) {
+            heroBadges += '<span class="vin-badge vin-badge-loading">🔄 Fetching vehicle details…</span>';
+        }
+        if (bodyDisplay) heroBadges += `<span class="vin-badge vin-badge-body">${bodyDisplay}</span>`;
+        if (result.engine) heroBadges += `<span class="vin-badge vin-badge-engine">⚙️ ${result.engine}</span>`;
+        if (driveDisplay) heroBadges += `<span class="vin-badge vin-badge-drive">🛞 ${driveDisplay}</span>`;
+        heroBadges += `<span class="vin-badge vin-badge-check">${result.checkDigit.valid ? '✅ Valid' : '⚠️ Invalid Check'}</span>`;
+
+        const builtIn = result.plantInfo || result.country;
+        const heroTrim = result.trim ? `<div class="vin-hero-trim">${result.trim}</div>` : '';
+
+        const heroHTML = `
+            <div class="vin-hero">
+                <div class="vin-hero-ymm">${ymm}</div>
+                ${heroTrim}
+                <div class="vin-hero-badges">${heroBadges}</div>
+                <div class="vin-hero-meta">🏭 Built in ${builtIn}</div>
             </div>`;
 
         // Phonetic readout
@@ -441,7 +562,7 @@ window.VinDecoder = (() => {
                 </div>
             </div>`;
 
-        el.innerHTML = visualHTML + summaryHTML + phoneticHTML + breakdownHTML;
+        el.innerHTML = heroHTML + visualHTML + phoneticHTML + breakdownHTML;
         el.style.display = 'block';
     }
 
@@ -458,7 +579,7 @@ window.VinDecoder = (() => {
             <div class="vin-history-item" onclick="VinDecoder.loadFromHistory(${i})">
                 <div class="vin-history-vin">${item.vin}</div>
                 <div class="vin-history-meta">
-                    ${item.modelYear !== 'Unknown' ? item.modelYear + ' ' : ''}${item.manufacturer}
+                    ${item.modelYear !== 'Unknown' ? item.modelYear + ' ' : ''}${item.make || item.manufacturer}${item.model ? ' ' + item.model : ''}${item.body ? ' · ' + item.body : ''}
                 </div>
             </div>
         `).join('');
@@ -466,7 +587,7 @@ window.VinDecoder = (() => {
 
     // ── Actions ──
 
-    function decode() {
+    async function decode() {
         const input = document.getElementById('vinInput');
         if (!input) return;
 
@@ -474,22 +595,68 @@ window.VinDecoder = (() => {
         if (!raw) return;
 
         const result = _decode(raw);
+        if (!result) { _renderResult(null); return; }
+
+        // Render instantly with local data
+        result._nhtsaLoading = true;
+        _lastDecodeVin = result.vin;
         _renderResult(result);
 
-        // Add to history
-        if (result) {
-            _history = _history.filter(h => h.vin !== result.vin);
-            _history.unshift({
-                vin: result.vin,
-                manufacturer: result.manufacturer,
-                modelYear: result.modelYear,
-                country: result.country,
-                decodedAt: new Date().toISOString()
-            });
-            if (_history.length > MAX_HISTORY) _history = _history.slice(0, MAX_HISTORY);
-            _save();
-            _renderHistory();
+        // Fetch full vehicle details from NHTSA (free, no API key)
+        const nhtsa = await _fetchNHTSA(result.vin);
+
+        // Guard: user may have decoded another VIN while waiting
+        if (_lastDecodeVin !== result.vin) return;
+        result._nhtsaLoading = false;
+
+        if (nhtsa) {
+            result.make = nhtsa.make || result.make;
+            result.model = nhtsa.model || null;
+            result.trim = nhtsa.trim || null;
+            result.body = nhtsa.body || null;
+            result.engine = nhtsa.engine || null;
+            result.driveType = nhtsa.driveType || null;
+            result.fuel = nhtsa.fuel || null;
+
+            // Enrich plant info (keep local if more detailed)
+            if (!result.plantInfo && (nhtsa.plantCity || nhtsa.plantState)) {
+                result.plantInfo = [nhtsa.plantCity, nhtsa.plantState].filter(Boolean).join(', ');
+            }
+
+            // Update VDS breakdown row with actual decoded info
+            if (result.model) {
+                const vdsParts = [result.model];
+                if (result.engine) vdsParts.push(result.engine);
+                if (result.driveType) vdsParts.push(_cleanDriveType(result.driveType));
+                const vdsRow = result.positions.find(p => p.pos === '4-8');
+                if (vdsRow) vdsRow.value = vdsParts.join(' · ');
+            }
+
+            // Update plant breakdown row
+            if (result.plantInfo) {
+                const plantRow = result.positions.find(p => p.pos === 11);
+                if (plantRow) plantRow.value = `${result.plantInfo} (${result.plant})`;
+            }
         }
+
+        // Re-render with enriched data
+        _renderResult(result);
+
+        // Save to history
+        _history = _history.filter(h => h.vin !== result.vin);
+        _history.unshift({
+            vin: result.vin,
+            manufacturer: result.manufacturer,
+            make: result.make,
+            model: result.model || null,
+            body: result.body ? _cleanBody(result.body) : null,
+            modelYear: result.modelYear,
+            country: result.country,
+            decodedAt: new Date().toISOString()
+        });
+        if (_history.length > MAX_HISTORY) _history = _history.slice(0, MAX_HISTORY);
+        _save();
+        _renderHistory();
     }
 
     function clear() {
