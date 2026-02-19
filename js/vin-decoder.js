@@ -46,7 +46,7 @@ window.VinDecoder = (() => {
         'U': 'Romania / Poland'
     };
 
-    // ── Position 2: Manufacturer ──
+    // ── Position 2: Manufacturer (2-char fallback) ──
     const MANUFACTURER = {
         // ── United States (1, 4, 5) ──
         '1B': 'Dodge', '1C': 'Chrysler/FCA', '1D': 'Dodge',
@@ -54,8 +54,8 @@ window.VinDecoder = (() => {
         '1J': 'Jeep', '1L': 'Lincoln', '1M': 'Mercury',
         '1N': 'Nissan', '1P': 'Plymouth', '1V': 'Volkswagen',
         '1Y': 'Chrysler / Dodge', '19': 'FCA / Stellantis',
-        '4F': 'Mazda (US)', '4M': 'Mercury', '4S': 'Subaru (US)',
-        '4T': 'Toyota', '4U': 'BMW (US)',
+        '4F': 'Mazda (US)', '4J': 'Mercedes-Benz', '4M': 'Mercury',
+        '4S': 'Subaru (US)', '4T': 'Toyota', '4U': 'BMW (US)',
         '5F': 'Honda', '5L': 'Lincoln', '5N': 'Hyundai (US)',
         '5T': 'Toyota', '5X': 'Kia (US)', '5Y': 'BMW (US)',
         // ── Canada (2) ──
@@ -111,12 +111,124 @@ window.VinDecoder = (() => {
         '9C': 'Honda (Brazil)', '9F': 'Ford (Brazil)',
     };
 
+    // ── Full 3-char WMI codes (highest priority match) ──
+    const WMI_3 = {
+        // Mercedes-Benz
+        '4JG': 'Mercedes-Benz', 'WDB': 'Mercedes-Benz', 'WDC': 'Mercedes-Benz',
+        'WDD': 'Mercedes-Benz', 'WDF': 'Mercedes-Benz (Vans)', 'WMX': 'Mercedes-AMG',
+        '55S': 'Mercedes-Benz',
+        // BMW
+        'WBA': 'BMW', 'WBS': 'BMW M', 'WBY': 'BMW i (Electric)',
+        '5UX': 'BMW (US)', '5UM': 'BMW M (US)',
+        // Audi
+        'WAU': 'Audi', 'WA1': 'Audi (SUV)',
+        // Volkswagen
+        'WVW': 'Volkswagen', 'WVG': 'Volkswagen (SUV)',
+        '3VW': 'Volkswagen (Mexico)',
+        // Porsche
+        'WP0': 'Porsche', 'WP1': 'Porsche (SUV)',
+        // Toyota / Lexus
+        '4T1': 'Toyota (Sedan)', '4T3': 'Toyota (SUV)', '4T4': 'Toyota (SUV)',
+        '5TD': 'Toyota (Minivan)', '5TF': 'Toyota (Truck)',
+        'JTD': 'Toyota (SUV)', 'JTE': 'Toyota (SUV)',
+        '2T1': 'Toyota (Canada Sedan)', '2T3': 'Toyota (Canada SUV)',
+        'JTH': 'Lexus',
+        // Honda / Acura
+        '1HG': 'Honda (Sedan)', '2HG': 'Honda (Canada Sedan)',
+        '5J6': 'Honda (SUV)', '5FN': 'Honda (Minivan)',
+        '19U': 'Acura', 'JH4': 'Acura',
+        // Ford / Lincoln
+        '1FA': 'Ford (Sedan)', '1FT': 'Ford (Truck)',
+        '1FM': 'Ford (SUV)', '1FD': 'Ford (Heavy Truck)',
+        '2FM': 'Ford (Canada SUV)', '3FA': 'Ford (Mexico Sedan)',
+        '5LM': 'Lincoln (SUV)', '3LN': 'Lincoln (Mexico)',
+        // General Motors
+        '1G1': 'Chevrolet', '1GC': 'Chevrolet (Truck)', '1GN': 'Chevrolet (SUV)',
+        '2G1': 'Chevrolet (Canada)', '3G1': 'Chevrolet (Mexico)',
+        '1GT': 'GMC (Truck)', '1GK': 'GMC (SUV)',
+        '1G6': 'Cadillac', '1GY': 'Cadillac (SUV)',
+        '2G4': 'Buick (Canada)',
+        // Chrysler / Stellantis
+        '1C3': 'Chrysler', '1C4': 'Chrysler (SUV)',
+        '2C3': 'Chrysler (Canada)', '3C4': 'Chrysler (Mexico)',
+        '1C6': 'Ram', '3C6': 'Ram (Mexico)',
+        // Jeep
+        '1J4': 'Jeep', '1J8': 'Jeep (Commander)',
+        '1C4': 'Jeep / Chrysler',
+        // Nissan / Infiniti
+        '1N4': 'Nissan (Sedan)', '1N6': 'Nissan (Truck)',
+        '5N1': 'Nissan (SUV)', 'JN1': 'Nissan (Japan)',
+        'JN8': 'Infiniti',
+        // Hyundai / Kia / Genesis
+        '5NP': 'Hyundai (Sedan)', '5NM': 'Hyundai (SUV)',
+        'KMH': 'Hyundai', 'KNA': 'Kia',
+        'KMJ': 'Genesis',
+        // Subaru
+        'JF1': 'Subaru', 'JF2': 'Subaru (SUV)',
+        '4S3': 'Subaru (US Sedan)', '4S4': 'Subaru (US SUV)',
+        // Mazda
+        'JM1': 'Mazda (Sedan)', 'JM3': 'Mazda (SUV)',
+        '3MY': 'Mazda (Mexico)',
+        // Volvo
+        'YV1': 'Volvo (Sedan)', 'YV4': 'Volvo (SUV)',
+        // Tesla
+        '5YJ': 'Tesla', '7SA': 'Tesla',
+        // Rivian / Lucid / EV
+        '7PD': 'Rivian', '7GR': 'Rivian',
+    };
+
     // ── Position 3: Vehicle Type / Division ──
     const VEHICLE_TYPE_HINTS = {
         '1': 'Passenger Car', '2': 'Passenger Car / SUV', '3': 'Truck / MPV',
         '4': 'SUV / Crossover', '5': 'SUV / Crossover', '6': 'Van / MPV',
         '7': 'Truck / Commercial', '8': 'Heavy Truck / Bus',
+        'A': 'Sedan / Hatchback', 'B': 'SUV / Crossover', 'C': 'Convertible / Coupe',
+        'D': 'Truck / SUV', 'E': 'SUV / Crossover', 'F': 'Truck / SUV',
+        'G': 'SUV / Multipurpose Vehicle', 'H': 'Van / Bus',
+        'K': 'SUV / Crossover', 'L': 'Sedan / Hatchback',
+        'N': 'SUV / Crossover', 'P': 'Sedan / Coupe',
+        'R': 'SUV / Crossover', 'S': 'Sport / Performance',
+        'T': 'Truck / Utility', 'U': 'Utility / Chassis',
+        'V': 'Van / Multipurpose', 'W': 'Wagon / Estate',
+        'X': 'SUV / Crossover', 'Y': 'SUV / Crossover',
     };
+
+    // ── Known Assembly Plants (pos 11) ──
+    const ASSEMBLY_PLANTS = {
+        // Mercedes-Benz
+        'MB-A': 'Tuscaloosa (Vance), Alabama', 'MB-E': 'Stuttgart, Germany',
+        'MB-F': 'Sindelfingen, Germany', 'MB-J': 'Rastatt, Germany',
+        'MB-H': 'Bremen, Germany', 'MB-D': 'Düsseldorf, Germany',
+        // Toyota
+        'TY-0': 'Toyota City, Japan', 'TY-2': 'Cambridge, Ontario',
+        'TY-K': 'Georgetown, Kentucky', 'TY-U': 'Princeton, Indiana',
+        'TY-6': 'Tahara, Japan', 'TY-X': 'San Antonio, Texas',
+        // Ford
+        'FD-A': 'Atlanta, Georgia', 'FD-C': 'Ontario, Canada',
+        'FD-D': 'Dearborn, Michigan', 'FD-K': 'Kansas City, Missouri',
+        'FD-L': 'Louisville, Kentucky', 'FD-P': 'Twin Cities, Minnesota',
+        'FD-X': 'Louisville, Kentucky',
+        // Honda
+        'HN-A': 'Marysville, Ohio', 'HN-L': 'East Liberty, Ohio',
+        'HN-C': 'Alliston, Ontario', 'HN-1': 'Suzuka, Japan',
+        // BMW
+        'BM-A': 'Munich, Germany', 'BM-B': 'Dingolfing, Germany',
+        'BM-E': 'Spartanburg, South Carolina', 'BM-V': 'Leipzig, Germany',
+        'BM-G': 'Graz, Austria (Magna)',
+    };
+
+    // ── Manufacturer short keys (for plant lookup) ──
+    function _getMfgKey(wmi) {
+        const code = wmi.substring(0, 3);
+        if (WMI_3[code] && WMI_3[code].includes('Mercedes')) return 'MB';
+        if (WMI_3[code] && WMI_3[code].includes('Toyota')) return 'TY';
+        if (WMI_3[code] && WMI_3[code].includes('Lexus')) return 'TY';
+        if (WMI_3[code] && WMI_3[code].includes('Ford')) return 'FD';
+        if (WMI_3[code] && WMI_3[code].includes('Honda')) return 'HN';
+        if (WMI_3[code] && WMI_3[code].includes('Acura')) return 'HN';
+        if (WMI_3[code] && WMI_3[code].includes('BMW')) return 'BM';
+        return null;
+    }
 
     // ── Position 10: Model Year ──
     const MODEL_YEAR = {
@@ -180,29 +292,44 @@ window.VinDecoder = (() => {
         const vis = vin.substring(9, 17);  // Vehicle Identifier Section
 
         const country = COUNTRY[vin[0]] || 'Unknown';
+
+        // 3-char WMI first, then 2-char fallback
+        const mfgKey3 = wmi;
         const mfgKey2 = vin[0] + vin[1];
-        const manufacturer = MANUFACTURER[mfgKey2] || 'Unknown Manufacturer';
-        const vehicleType = VEHICLE_TYPE_HINTS[vin[2]] || (vin[2].match(/[A-Z]/) ? 'Vehicle Division' : 'Unknown');
+        const manufacturer = WMI_3[mfgKey3] || MANUFACTURER[mfgKey2] || 'Unknown Manufacturer';
+
+        const vehicleType = VEHICLE_TYPE_HINTS[vin[2]] || 'Vehicle Division';
         const checkDigit = _validateCheckDigit(vin);
         const modelYear = MODEL_YEAR[vin[9]] || 'Unknown';
-        const plant = vin[10];
+        const plantCode = vin[10];
         const serial = vin.substring(11, 17);
+
+        // Resolve assembly plant name
+        const mfgShort = _getMfgKey(wmi);
+        const plantName = mfgShort ? (ASSEMBLY_PLANTS[mfgShort + '-' + plantCode] || null) : null;
+        const plantDisplay = plantName ? `${plantName} (${plantCode})` : `Plant code: ${plantCode}`;
+
+        // Build VDS description — show WMI context for pos 1-3
+        const wmiLabel = WMI_3[mfgKey3]
+            ? `${WMI_3[mfgKey3]} (WMI: ${mfgKey3})`
+            : manufacturer;
+        const vdsDesc = 'Body, engine, restraints, transmission (manufacturer-specific)';
 
         // Build per-position breakdown
         const positions = [
             { pos: 1,    char: vin[0],  section: 'WMI', label: 'Country of Origin',    value: country },
-            { pos: 2,    char: vin[1],  section: 'WMI', label: 'Manufacturer',          value: manufacturer },
+            { pos: 2,    char: vin[1],  section: 'WMI', label: 'Manufacturer',          value: wmiLabel },
             { pos: 3,    char: vin[2],  section: 'WMI', label: 'Vehicle Type / Division', value: vehicleType },
-            { pos: '4-8', char: vds.substring(0, 5), section: 'VDS', label: 'Vehicle Attributes', value: 'Body, engine, restraints, transmission (manufacturer-specific)' },
+            { pos: '4-8', char: vds.substring(0, 5), section: 'VDS', label: 'Vehicle Attributes', value: vdsDesc },
             { pos: 9,    char: vin[8],  section: 'VDS', label: 'Check Digit',           value: checkDigit.valid ? '✅ Valid' : `⚠️ Expected ${checkDigit.expected}, got ${checkDigit.actual}` },
             { pos: 10,   char: vin[9],  section: 'VIS', label: 'Model Year',            value: String(modelYear) },
-            { pos: 11,   char: vin[10], section: 'VIS', label: 'Assembly Plant',        value: `Plant code: ${plant}` },
+            { pos: 11,   char: vin[10], section: 'VIS', label: 'Assembly Plant',        value: plantDisplay },
             { pos: '12-17', char: serial, section: 'VIS', label: 'Production Sequence', value: `Serial #${serial}` },
         ];
 
         return {
             vin, wmi, vds, vis, country, manufacturer, vehicleType,
-            modelYear, plant, serial, checkDigit, positions
+            modelYear, plant: plantCode, serial, checkDigit, positions
         };
     }
 
