@@ -502,6 +502,32 @@
     font-size: 0.82rem;
     padding: 0.5rem 0.6rem;
     border-radius: 8px;
+    position: relative;
+}
+
+.conflict-btn-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.conflict-timestamp {
+    font-size: 0.7rem;
+    opacity: 0.75;
+    font-weight: 400;
+}
+
+.conflict-newest {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #34C759;
+    margin-top: 2px;
+    letter-spacing: 0.02em;
+}
+
+.conflict-actions .btn-auth-primary .conflict-newest {
+    color: #fff;
 }
 
 .conflict-actions .btn-auth-primary {

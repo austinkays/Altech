@@ -400,7 +400,9 @@ const CloudSync = (() => {
                     conflicts.push({
                         type: 'Current Form',
                         remote: formResult.data,
-                        local: formResult.localData
+                        local: formResult.localData,
+                        remoteTime: formResult.remoteTime,
+                        localTime: _getSyncMeta()['lastSync_currentForm'] || 0
                     });
                 } else if (formResult?.data && typeof App !== 'undefined') {
                     App.data = formResult.data;
@@ -413,7 +415,9 @@ const CloudSync = (() => {
                     conflicts.push({
                         type: 'CGL Compliance State',
                         remote: cglResult.data,
-                        local: cglResult.localData
+                        local: cglResult.localData,
+                        remoteTime: cglResult.remoteTime,
+                        localTime: _getSyncMeta()['lastSync_cglState'] || 0
                     });
                 }
 
@@ -546,6 +550,19 @@ const CloudSync = (() => {
             dialog.className = 'auth-modal-overlay';
             dialog.style.display = 'flex';
 
+            // Format timestamps for display
+            function _fmtTime(ms) {
+                if (!ms) return 'Unknown';
+                const d = new Date(ms);
+                const now = new Date();
+                const isToday = d.toDateString() === now.toDateString();
+                const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                if (isToday) return `Today at ${time}`;
+                const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+                if (d.toDateString() === yesterday.toDateString()) return `Yesterday at ${time}`;
+                return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ` at ${time}`;
+            }
+
             let conflictHTML = conflicts.map((c, i) => {
                 const icon = c.type === 'CGL Compliance State' ? '🛡️' :
                              c.type === 'Current Form' ? '📝' :
@@ -560,6 +577,10 @@ const CloudSync = (() => {
                         <p class="conflict-hint">Review your Quote Library to merge or delete duplicates.</p>
                     </div>`;
                 }
+                const cloudNewer = (c.remoteTime || 0) >= (c.localTime || 0);
+                const localNewer = (c.localTime || 0) > (c.remoteTime || 0);
+                const cloudBadge = cloudNewer ? '<span class="conflict-newest">✦ Newest</span>' : '';
+                const localBadge = localNewer ? '<span class="conflict-newest">✦ Newest</span>' : '';
                 return `<div class="conflict-item">
                     <div class="conflict-item-header">
                         <span class="conflict-icon">${icon}</span>
@@ -567,11 +588,19 @@ const CloudSync = (() => {
                     </div>
                     <p>Modified on another device since your last sync.</p>
                     <div class="conflict-actions">
-                        <button class="btn-auth btn-auth-primary" onclick="CloudSync._resolveConflict(${i}, 'remote')">
-                            ☁️ Use Cloud
+                        <button class="btn-auth ${cloudNewer ? 'btn-auth-primary' : 'btn-auth-secondary'}" onclick="CloudSync._resolveConflict(${i}, 'remote')">
+                            <span class="conflict-btn-content">
+                                <span>☁️ Use Cloud</span>
+                                <span class="conflict-timestamp">${_fmtTime(c.remoteTime)}</span>
+                            </span>
+                            ${cloudBadge}
                         </button>
-                        <button class="btn-auth btn-auth-secondary" onclick="CloudSync._resolveConflict(${i}, 'local')">
-                            📱 Keep Local
+                        <button class="btn-auth ${localNewer ? 'btn-auth-primary' : 'btn-auth-secondary'}" onclick="CloudSync._resolveConflict(${i}, 'local')">
+                            <span class="conflict-btn-content">
+                                <span>📱 Keep Local</span>
+                                <span class="conflict-timestamp">${_fmtTime(c.localTime)}</span>
+                            </span>
+                            ${localBadge}
                         </button>
                     </div>
                 </div>`;
