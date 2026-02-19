@@ -2,7 +2,7 @@
  * HawkSoft CMSMTF Export Module
  * ==============================
  * Generates proper HawkSoft 6 .CMSMTF tagged files for client/policy import.
- * Supports Personal Auto, Home, and combined (Both) policy types.
+ * Supports multi-select: Auto, Home, and Commercial — each exports its own file.
  *
  * Pre-fills from intake form (App.data, App.drivers, App.vehicles) and
  * lets user edit/add HawkSoft-specific fields before export.
@@ -15,7 +15,7 @@ window.HawkSoftExport = (() => {
     const SETTINGS_KEY = 'altech_hawksoft_settings';
     let _settings = {};
     let _exportData = {};
-    let _policyType = 'auto'; // 'auto' | 'home' | 'both'
+    let _selectedTypes = { auto: false, home: false, commercial: false };
 
     // ── Helpers ──────────────────────────────────────────────
     function _val(v) {
@@ -41,9 +41,7 @@ window.HawkSoftExport = (() => {
     // Format date to MM/DD/YYYY for HawkSoft
     function _fmtDate(v) {
         if (!v) return '';
-        // Already MM/DD/YYYY
         if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) return v;
-        // YYYY-MM-DD → MM/DD/YYYY
         const m = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
         if (m) return `${m[2]}/${m[3]}/${m[1]}`;
         return v;
@@ -57,91 +55,113 @@ window.HawkSoftExport = (() => {
         return v;
     }
 
+    // ── Build structured FSC notes ──────────────────────────
+    function _buildFscNotes(d) {
+        const sections = [];
+
+        // Property Details
+        const prop = [];
+        if (d.dwellingType) prop.push(`Dwelling Type: ${d.dwellingType}`);
+        if (d.dwellingUsage) prop.push(`Usage: ${d.dwellingUsage}`);
+        if (d.occupancyType) prop.push(`Occupancy: ${d.occupancyType}`);
+        if (d.sqFt) prop.push(`Sq Ft: ${d.sqFt}`);
+        if (d.numStories) prop.push(`Stories: ${d.numStories}`);
+        if (d.bedrooms) prop.push(`Bedrooms: ${d.bedrooms}`);
+        if (d.fullBaths || d.halfBaths) prop.push(`Baths: ${d.fullBaths || 0} full / ${d.halfBaths || 0} half`);
+        if (d.constructionStyle) prop.push(`Style: ${d.constructionStyle}`);
+        if (d.foundation) prop.push(`Foundation: ${d.foundation}`);
+        if (d.roofType) prop.push(`Roof: ${d.roofType}`);
+        if (d.roofShape) prop.push(`Roof Shape: ${d.roofShape}`);
+        if (d.roofYr) prop.push(`Roof Year: ${d.roofYr}`);
+        if (d.heatingType) prop.push(`Heating: ${d.heatingType}`);
+        if (d.cooling) prop.push(`Cooling: ${d.cooling}`);
+        if (d.heatYr) prop.push(`Heating Updated: ${d.heatYr}`);
+        if (d.plumbYr) prop.push(`Plumbing Updated: ${d.plumbYr}`);
+        if (d.elecYr) prop.push(`Electrical Updated: ${d.elecYr}`);
+        if (d.garageType) prop.push(`Garage: ${d.garageType}${d.garageSpaces ? ' (' + d.garageSpaces + ' spaces)' : ''}`);
+        if (d.lotSize) prop.push(`Lot Size: ${d.lotSize}`);
+        if (d.pool) prop.push(`Pool: ${d.pool}`);
+        if (d.dogInfo) prop.push(`Dogs: ${d.dogInfo}`);
+        if (d.trampoline && d.trampoline !== 'No') prop.push(`Trampoline: ${d.trampoline}`);
+        if (d.woodStove && d.woodStove !== 'No') prop.push(`Wood Stove: ${d.woodStove}`);
+        if (d.businessOnProperty && d.businessOnProperty !== 'No') prop.push(`Business on Property: ${d.businessOnProperty}`);
+        if (d.smokeDetector) prop.push(`Smoke Detector: ${d.smokeDetector}`);
+        if (d.kitchenQuality) prop.push(`Kitchen Quality: ${d.kitchenQuality}`);
+        if (d.purchaseDate) prop.push(`Purchase Date: ${d.purchaseDate}`);
+        if (d.yearsAtAddress) prop.push(`Years at Address: ${d.yearsAtAddress}`);
+        if (d.numOccupants) prop.push(`Occupants: ${d.numOccupants}`);
+        if (d.windDeductible) prop.push(`Wind Deductible: ${d.windDeductible}`);
+        if (prop.length) sections.push('PROPERTY\n' + prop.join('\n'));
+
+        // Home Endorsements
+        const endorse = [];
+        if (d.waterBackup && d.waterBackup !== 'No') endorse.push(`Water Backup: ${d.waterBackup}`);
+        if (d.lossAssessment) endorse.push(`Loss Assessment: ${d.lossAssessment}`);
+        if (d.animalLiability && d.animalLiability !== 'No') endorse.push(`Animal Liability: ${d.animalLiability}`);
+        if (d.equipmentBreakdown && d.equipmentBreakdown !== 'No') endorse.push(`Equipment Breakdown: Yes`);
+        if (d.serviceLine && d.serviceLine !== 'No') endorse.push(`Service Line: Yes`);
+        if (d.creditCardCoverage) endorse.push(`Credit Card Coverage: ${d.creditCardCoverage}`);
+        if (d.moldDamage) endorse.push(`Mold Damage: ${d.moldDamage}`);
+        if (d.theftDeductible) endorse.push(`Theft Deductible: ${d.theftDeductible}`);
+        if (d.additionalInsureds) endorse.push(`Additional Insureds: ${d.additionalInsureds}`);
+        if (endorse.length) sections.push('ENDORSEMENTS\n' + endorse.join('\n'));
+
+        // Insurance History
+        const hist = [];
+        if (d.priorCarrier) hist.push(`Prior Carrier: ${d.priorCarrier}`);
+        if (d.priorYears) hist.push(`Years with Prior: ${d.priorYears}`);
+        if (d.priorPolicyTerm) hist.push(`Prior Term: ${d.priorPolicyTerm}`);
+        if (d.priorLiabilityLimits) hist.push(`Prior BI Limits: ${d.priorLiabilityLimits}`);
+        if (d.priorExp) hist.push(`Prior Expiration: ${_fmtDate(d.priorExp)}`);
+        if (d.continuousCoverage) hist.push(`Continuous Coverage: ${d.continuousCoverage}`);
+        if (d.homePriorCarrier) hist.push(`Home Prior Carrier: ${d.homePriorCarrier}`);
+        if (d.homePriorYears) hist.push(`Home Prior Years: ${d.homePriorYears}`);
+        if (hist.length) sections.push('INSURANCE HISTORY\n' + hist.join('\n'));
+
+        // Risk / Other
+        const risk = [];
+        if (d.accidents) risk.push(`Accidents: ${d.accidents}`);
+        if (d.violations) risk.push(`Violations: ${d.violations}`);
+        if (d.studentGPA) risk.push(`Student GPA: ${d.studentGPA}`);
+        if (d.residenceIs) risk.push(`Residence: ${d.residenceIs}`);
+        if (d.contactTime) risk.push(`Best Contact Time: ${d.contactTime}`);
+        if (d.contactMethod) risk.push(`Contact Method: ${d.contactMethod}`);
+        if (d.tcpaConsent) risk.push(`TCPA Consent: ${d.tcpaConsent}`);
+        if (risk.length) sections.push('NOTES\n' + risk.join('\n'));
+
+        return sections.join('\n\n');
+    }
+
     // ── Load from Intake Form ──────────────────────────────
     function _loadFromIntake() {
         const d = (typeof App !== 'undefined' && App.data) ? App.data : {};
         const drivers = (typeof App !== 'undefined' && App.drivers) ? App.drivers : [];
         const vehicles = (typeof App !== 'undefined' && App.vehicles) ? App.vehicles : [];
 
-        // Detect policy type from form
+        // Pre-select types based on intake form
         const qType = d.qType || 'auto';
-        if (qType === 'home') _policyType = 'home';
-        else if (qType === 'both') _policyType = 'both';
-        else _policyType = 'auto';
+        if (qType === 'home') {
+            _selectedTypes = { auto: false, home: true, commercial: false };
+        } else if (qType === 'both') {
+            _selectedTypes = { auto: true, home: true, commercial: false };
+        } else {
+            _selectedTypes = { auto: true, home: false, commercial: false };
+        }
 
-        // ── Build FSC notes from property/risk details that lack CMSMTF keys ──
-        const noteLines = [];
-        if (d.dwellingType) noteLines.push(`Dwelling Type: ${d.dwellingType}`);
-        if (d.dwellingUsage) noteLines.push(`Dwelling Usage: ${d.dwellingUsage}`);
-        if (d.occupancyType) noteLines.push(`Occupancy: ${d.occupancyType}`);
-        if (d.sqFt) noteLines.push(`Sq Ft: ${d.sqFt}`);
-        if (d.numStories) noteLines.push(`Stories: ${d.numStories}`);
-        if (d.bedrooms) noteLines.push(`Bedrooms: ${d.bedrooms}`);
-        if (d.fullBaths || d.halfBaths) noteLines.push(`Baths: ${d.fullBaths || 0} full / ${d.halfBaths || 0} half`);
-        if (d.constructionStyle) noteLines.push(`Construction Style: ${d.constructionStyle}`);
-        if (d.foundation) noteLines.push(`Foundation: ${d.foundation}`);
-        if (d.roofType) noteLines.push(`Roof Type: ${d.roofType}`);
-        if (d.roofShape) noteLines.push(`Roof Shape: ${d.roofShape}`);
-        if (d.roofYr) noteLines.push(`Roof Year: ${d.roofYr}`);
-        if (d.heatingType) noteLines.push(`Heating: ${d.heatingType}`);
-        if (d.cooling) noteLines.push(`Cooling: ${d.cooling}`);
-        if (d.heatYr) noteLines.push(`Heating Updated: ${d.heatYr}`);
-        if (d.plumbYr) noteLines.push(`Plumbing Updated: ${d.plumbYr}`);
-        if (d.elecYr) noteLines.push(`Electrical Updated: ${d.elecYr}`);
-        if (d.garageType) noteLines.push(`Garage: ${d.garageType}${d.garageSpaces ? ' (' + d.garageSpaces + ' spaces)' : ''}`);
-        if (d.lotSize) noteLines.push(`Lot Size: ${d.lotSize}`);
-        if (d.pool) noteLines.push(`Pool: ${d.pool}`);
-        if (d.dogInfo) noteLines.push(`Dogs: ${d.dogInfo}`);
-        if (d.trampoline && d.trampoline !== 'No') noteLines.push(`Trampoline: ${d.trampoline}`);
-        if (d.woodStove && d.woodStove !== 'No') noteLines.push(`Wood Stove: ${d.woodStove}`);
-        if (d.businessOnProperty && d.businessOnProperty !== 'No') noteLines.push(`Business on Property: ${d.businessOnProperty}`);
-        if (d.smokeDetector) noteLines.push(`Smoke Detector: ${d.smokeDetector}`);
-        if (d.kitchenQuality) noteLines.push(`Kitchen Quality: ${d.kitchenQuality}`);
-        if (d.purchaseDate) noteLines.push(`Purchase Date: ${d.purchaseDate}`);
-        if (d.yearsAtAddress) noteLines.push(`Years at Address: ${d.yearsAtAddress}`);
-        if (d.numOccupants) noteLines.push(`Occupants: ${d.numOccupants}`);
-        if (d.windDeductible) noteLines.push(`Wind Deductible: ${d.windDeductible}`);
-        // Auto risk/history notes
-        if (d.priorCarrier) noteLines.push(`Prior Carrier: ${d.priorCarrier}`);
-        if (d.priorYears) noteLines.push(`Prior Years: ${d.priorYears}`);
-        if (d.priorPolicyTerm) noteLines.push(`Prior Policy Term: ${d.priorPolicyTerm}`);
-        if (d.priorLiabilityLimits) noteLines.push(`Prior BI Limits: ${d.priorLiabilityLimits}`);
-        if (d.priorExp) noteLines.push(`Prior Expiration: ${_fmtDate(d.priorExp)}`);
-        if (d.continuousCoverage) noteLines.push(`Continuous Coverage: ${d.continuousCoverage}`);
-        if (d.homePriorCarrier) noteLines.push(`Home Prior Carrier: ${d.homePriorCarrier}`);
-        if (d.homePriorYears) noteLines.push(`Home Prior Years: ${d.homePriorYears}`);
-        if (d.accidents) noteLines.push(`Accidents: ${d.accidents}`);
-        if (d.violations) noteLines.push(`Violations: ${d.violations}`);
-        if (d.studentGPA) noteLines.push(`Student GPA: ${d.studentGPA}`);
-        if (d.residenceIs) noteLines.push(`Residence: ${d.residenceIs}`);
-        // Home endorsements
-        if (d.waterBackup && d.waterBackup !== 'No') noteLines.push(`Water Backup: ${d.waterBackup}`);
-        if (d.lossAssessment) noteLines.push(`Loss Assessment: ${d.lossAssessment}`);
-        if (d.animalLiability && d.animalLiability !== 'No') noteLines.push(`Animal Liability: ${d.animalLiability}`);
-        if (d.equipmentBreakdown && d.equipmentBreakdown !== 'No') noteLines.push(`Equipment Breakdown: Yes`);
-        if (d.serviceLine && d.serviceLine !== 'No') noteLines.push(`Service Line: Yes`);
-        if (d.creditCardCoverage) noteLines.push(`Credit Card Coverage: ${d.creditCardCoverage}`);
-        if (d.moldDamage) noteLines.push(`Mold Damage: ${d.moldDamage}`);
-        if (d.theftDeductible) noteLines.push(`Theft Deductible: ${d.theftDeductible}`);
-        if (d.additionalInsureds) noteLines.push(`Additional Insureds: ${d.additionalInsureds}`);
-        // Contact preferences
-        if (d.contactTime) noteLines.push(`Best Contact Time: ${d.contactTime}`);
-        if (d.contactMethod) noteLines.push(`Contact Method: ${d.contactMethod}`);
-        if (d.tcpaConsent) noteLines.push(`TCPA Consent: ${d.tcpaConsent}`);
-        const fscNotes = noteLines.join(' | ');
+        const fscNotes = _buildFscNotes(d);
 
-        // ── Determine policy form from intake ──
+        // Determine policy form from intake
         let policyForm = '';
-        if (d.homePolicyType) policyForm = d.homePolicyType; // HO3, HO5, etc.
-        else if (_policyType === 'auto') policyForm = 'PAP';
+        if (d.homePolicyType) policyForm = d.homePolicyType;
+        else if (qType === 'auto') policyForm = 'PAP';
 
-        // ── Determine policy title ──
+        // Determine policy title
         let policyTitle = '';
-        if (_policyType === 'home') policyTitle = 'Homeowners';
-        else if (_policyType === 'auto') policyTitle = 'Personal Auto';
-        else if (_policyType === 'both') policyTitle = 'Home + Auto';
+        if (qType === 'home') policyTitle = 'Homeowners';
+        else if (qType === 'auto') policyTitle = 'Personal Auto';
+        else if (qType === 'both') policyTitle = 'Home + Auto';
 
-        // ── Resolve comp/coll deductibles for vehicles ──
+        // Resolve comp/coll deductibles for vehicles
         const globalComp = d.compDeductible || '';
         const globalColl = d.autoDeductible || '';
         const globalTowing = d.towingDeductible && d.towingDeductible !== 'No Coverage' ? 'Yes' : 'No';
@@ -166,7 +186,6 @@ window.HawkSoftExport = (() => {
                 clientSource: d.referralSource || '',
                 clientNotes: '',
                 clientOffice: _settings.clientOffice || '1',
-                // Extra client data for misc slots
                 dob: d.dob || '',
                 gender: d.gender || '',
                 education: d.education || '',
@@ -174,7 +193,6 @@ window.HawkSoftExport = (() => {
                 industry: d.industry || '',
                 prefix: d.prefix || '',
                 suffix: d.suffix || '',
-                // Co-applicant
                 coFirstName: d.coFirstName || '',
                 coLastName: d.coLastName || '',
                 coDob: d.coDob || '',
@@ -251,7 +269,6 @@ window.HawkSoftExport = (() => {
                 eqMasonryVeneer: false,
                 ordinanceLawIncr: d.ordinanceOrLaw || '',
                 multiPolicy: false,
-                // Lienholder
                 lienholderName: d.mortgagee || '',
                 lienholderAddress: '',
                 lienholderCity: '',
@@ -259,20 +276,27 @@ window.HawkSoftExport = (() => {
                 lienholderZip: '',
                 lienholderLoanNum: '',
                 lienholderType: 'ML',
-                // Scheduled items
                 jewelry: d.jewelryLimit || '',
-                furs: '',
-                guns: '',
-                cameras: '',
-                coins: '',
-                stamps: '',
-                silverware: '',
-                fineArt: '',
-                golfEquip: '',
-                musicalInst: '',
-                electronics: '',
+                furs: '', guns: '', cameras: '', coins: '',
+                stamps: '', silverware: '', fineArt: '',
+                golfEquip: '', musicalInst: '', electronics: '',
             },
-            // Drivers (from intake)
+            // Commercial-specific
+            commercial: {
+                businessName: '',
+                dbaName: '',
+                fein: '',
+                businessLicense: '',
+                naics: '',
+                website: '',
+                businessType: '',
+                lobCode: 'CGL',
+                coverages: [
+                    { name: 'General Liability', limits: '$1,000,000 / $2,000,000', deductible: '$0' },
+                    { name: 'Products / Completed Ops', limits: '$1,000,000', deductible: '$0' },
+                ],
+            },
+            // Drivers
             drivers: drivers.map(drv => ({
                 lastName: drv.lastName || '',
                 firstName: drv.firstName || '',
@@ -302,9 +326,8 @@ window.HawkSoftExport = (() => {
                 ssn: '',
                 relationship: drv.relationship || 'Insured',
             })),
-            // Vehicles (from intake)
-            vehicles: vehicles.map((veh, vIdx) => {
-                // Resolve primaryDriver to a 0-based driver index
+            // Vehicles
+            vehicles: vehicles.map((veh) => {
                 let assignedDriver = '';
                 if (veh.primaryDriver && drivers.length) {
                     const dIdx = drivers.findIndex(dr => dr.id === veh.primaryDriver);
@@ -315,9 +338,7 @@ window.HawkSoftExport = (() => {
                     model: veh.model || '',
                     year: veh.year || '',
                     vin: (veh.vin || '').toUpperCase(),
-                    symbol: '',
-                    territory: '',
-                    addonEquip: '',
+                    symbol: '', territory: '', addonEquip: '',
                     assignedDriver: assignedDriver,
                     use: veh.use || '',
                     commuteMileage: '',
@@ -329,22 +350,17 @@ window.HawkSoftExport = (() => {
                     fourWd: 'No',
                     comp: globalComp || 'None',
                     coll: globalColl || 'None',
-                    umpd: '',
-                    uimpd: '',
+                    umpd: '', uimpd: '',
                     garagingZip: d.addrZip || '',
                     lossPayee: veh.ownershipType === 'Leased' || veh.ownershipType === 'Lien' ? 'Yes' : 'No',
                     additionalInterest: 'No',
-                    lossPayeeName: '',
-                    lossPayeeAddress: '',
-                    lossPayeeAddr2: '',
-                    lossPayeeCity: '',
-                    lossPayeeState: '',
-                    lossPayeeZip: '',
+                    lossPayeeName: '', lossPayeeAddress: '', lossPayeeAddr2: '',
+                    lossPayeeCity: '', lossPayeeState: '', lossPayeeZip: '',
                 };
             }),
         };
 
-        // If no drivers exist but we have the main insured, create one
+        // Fallback driver from insured
         if (_exportData.drivers.length === 0 && (d.firstName || d.lastName)) {
             _exportData.drivers.push({
                 lastName: d.lastName || '',
@@ -361,34 +377,28 @@ window.HawkSoftExport = (() => {
                 occupation: d.occupation || '',
                 sex: (d.gender === 'M') ? 'Male' : (d.gender === 'F') ? 'Female' : '',
                 maritalStatus: d.maritalStatus || '',
-                sr22Filing: '',
-                sr22State: '',
-                sr22Reason: '',
-                dateLicensed: '',
-                hiredDate: '',
-                cdlDate: '',
-                goodStudent: 'No',
-                driverTraining: 'No',
-                defensiveDriver: 'No',
-                ssn: '',
-                relationship: 'Insured',
+                sr22Filing: '', sr22State: '', sr22Reason: '',
+                dateLicensed: '', hiredDate: '', cdlDate: '',
+                goodStudent: 'No', driverTraining: 'No', defensiveDriver: 'No',
+                ssn: '', relationship: 'Insured',
             });
         }
     }
 
-    // ── Generate CMSMTF Content ─────────────────────────────
-    function _generateCMSMTF() {
+    // ── Generate CMSMTF for a specific policy type ──────────
+    function _generateCMSMTF(forType) {
         const lines = [];
         const c = _exportData.client;
         const p = _exportData.policy;
-        const includeAuto = _policyType === 'auto' || _policyType === 'both';
-        const includeHome = _policyType === 'home' || _policyType === 'both';
+        const isCommercial = forType === 'commercial';
+        const includeAuto = forType === 'auto';
+        const includeHome = forType === 'home';
 
         // ── Client Block ──
-        lines.push(_line('gen_bBusinessType', ''));
-        lines.push(_line('gen_sCustType', c.custType));
-        lines.push(_line('gen_sBusinessName', ''));
-        lines.push(_line('gen_sDBAName', ''));
+        lines.push(_line('gen_bBusinessType', isCommercial ? (_exportData.commercial.businessType || 'L') : ''));
+        lines.push(_line('gen_sCustType', isCommercial ? 'Commercial' : c.custType));
+        lines.push(_line('gen_sBusinessName', isCommercial ? _exportData.commercial.businessName : ''));
+        lines.push(_line('gen_sDBAName', isCommercial ? _exportData.commercial.dbaName : ''));
         lines.push(_line('gen_sLastName', c.lastName));
         lines.push(_line('gen_sFirstName', c.firstName));
         lines.push(_line('gen_cInitial', c.middleInitial));
@@ -396,12 +406,12 @@ window.HawkSoftExport = (() => {
         lines.push(_line('gen_sCity', c.city));
         lines.push(_line('gen_sState', c.state));
         lines.push(_line('gen_sZip', c.zip));
-        lines.push(_line('gen_sFEIN', ''));
-        lines.push(_line('gen_sBusinessLicense', ''));
+        lines.push(_line('gen_sFEIN', isCommercial ? _exportData.commercial.fein : ''));
+        lines.push(_line('gen_sBusinessLicense', isCommercial ? _exportData.commercial.businessLicense : ''));
         lines.push(_line('gen_sClientSource', c.clientSource));
         lines.push(_line('gen_sClientNotes', c.clientNotes));
-        lines.push(_line('gen_sNAICS', ''));
-        lines.push(_line('gen_sWebsite', ''));
+        lines.push(_line('gen_sNAICS', isCommercial ? _exportData.commercial.naics : ''));
+        lines.push(_line('gen_sWebsite', isCommercial ? _exportData.commercial.website : ''));
         lines.push(_line('gen_sPhone', c.phone));
         lines.push(_line('gen_sWorkPhone', c.workPhone));
         lines.push(_line('gen_sFax', ''));
@@ -422,7 +432,7 @@ window.HawkSoftExport = (() => {
             lines.push(_line(`gen_sClientMiscData[${i}]`, miscData1[i] || ''));
         }
 
-        // Client Misc Data Set 2: Co-Applicant info
+        // Client Misc Data Set 2: Co-Applicant
         const miscData2 = [
             c.coFirstName, c.coLastName, c.coDob, c.coGender,
             c.coEmail, c.coPhone, c.coRelationship,
@@ -438,12 +448,24 @@ window.HawkSoftExport = (() => {
         }
 
         // ── Policy Meta Block ──
-        const policyType = includeHome ? 'HOME' : 'AUTO';
-        const lobCode = includeHome ? 'HOME' : 'AUTOP';
+        let policyType, lobCode, applicationType;
+        if (isCommercial) {
+            policyType = 'ENHANCED';
+            lobCode = _exportData.commercial.lobCode || 'CGL';
+            applicationType = 'Commercial';
+        } else if (includeHome) {
+            policyType = 'HOME';
+            lobCode = 'HOME';
+            applicationType = 'Personal';
+        } else {
+            policyType = 'AUTO';
+            lobCode = 'AUTOP';
+            applicationType = 'Personal';
+        }
 
         lines.push(_line('gen_sAgencyID', p.agencyId));
         lines.push(_line('gen_sCMSPolicyType', policyType));
-        lines.push(_line('gen_sApplicationType', 'Personal'));
+        lines.push(_line('gen_sApplicationType', applicationType));
         lines.push(_line('gen_sCompany', p.company));
         lines.push(_line('gen_lPolicyOffice', p.policyOffice));
         lines.push(_line('gen_sPolicyTitle', p.policyTitle));
@@ -519,22 +541,12 @@ window.HawkSoftExport = (() => {
                 lines.push(_line(`veh_sLossPayeeState${idx}`, v.lossPayeeState));
                 lines.push(_line(`veh_sLossPayeeZip${idx}`, v.lossPayeeZip));
                 // Premium placeholders
-                lines.push(_line(`prm_sClass${idx}`, ''));
-                lines.push(_line(`prm_dBi${idx}`, ''));
-                lines.push(_line(`prm_dPd${idx}`, ''));
-                lines.push(_line(`prm_dUmBi${idx}`, ''));
-                lines.push(_line(`prm_dUmPd${idx}`, ''));
-                lines.push(_line(`prm_dUimBi${idx}`, ''));
-                lines.push(_line(`prm_dUimPd${idx}`, ''));
-                lines.push(_line(`prm_dMedical${idx}`, ''));
-                lines.push(_line(`prm_dPip${idx}`, ''));
-                lines.push(_line(`prm_dAddOnEquip${idx}`, ''));
-                lines.push(_line(`prm_dCarLoanProtection${idx}`, ''));
-                lines.push(_line(`prm_dLienholderDed${idx}`, ''));
-                lines.push(_line(`prm_dComp${idx}`, ''));
-                lines.push(_line(`prm_dColl${idx}`, ''));
-                lines.push(_line(`prm_dTowing${idx}`, ''));
-                lines.push(_line(`prm_dRentRemb${idx}`, ''));
+                const prmFields = [
+                    'sClass','dBi','dPd','dUmBi','dUmPd','dUimBi','dUimPd',
+                    'dMedical','dPip','dAddOnEquip','dCarLoanProtection',
+                    'dLienholderDed','dComp','dColl','dTowing','dRentRemb'
+                ];
+                prmFields.forEach(f => lines.push(_line(`prm_${f}${idx}`, '')));
             });
 
             // Drivers
@@ -579,7 +591,6 @@ window.HawkSoftExport = (() => {
             lines.push(_line('gen_sBurgAlarm', h.burgAlarm));
             lines.push(_line('gen_sFireAlarm', h.fireAlarm));
 
-            // Lienholder
             if (h.lienholderName) {
                 lines.push(_line('gen_sLPType1', h.lienholderType));
                 lines.push(_line('gen_sLpName1', h.lienholderName));
@@ -596,17 +607,11 @@ window.HawkSoftExport = (() => {
             lines.push(_line('gen_sSprinkler', h.sprinkler));
 
             // Scheduled personal property
-            lines.push(_line('gen_lJewelry', h.jewelry));
-            lines.push(_line('gen_lFurs', h.furs));
-            lines.push(_line('gen_lGuns', h.guns));
-            lines.push(_line('gen_lCameras', h.cameras));
-            lines.push(_line('gen_lCoins', h.coins));
-            lines.push(_line('gen_lStamps', h.stamps));
-            lines.push(_line('gen_lSilverware', h.silverware));
-            lines.push(_line('gen_lFineArt', h.fineArt));
-            lines.push(_line('gen_lGolfEquip', h.golfEquip));
-            lines.push(_line('gen_lMusicalInst', h.musicalInst));
-            lines.push(_line('gen_lElectronics', h.electronics));
+            const sppFields = ['Jewelry','Furs','Guns','Cameras','Coins','Stamps','Silverware','FineArt','GolfEquip','MusicalInst','Electronics'];
+            sppFields.forEach(f => {
+                const key = f.charAt(0).toLowerCase() + f.slice(1);
+                lines.push(_line(`gen_l${f}`, h[key] || ''));
+            });
 
             // Coverages
             lines.push(_line('gen_bHomeReplacement', h.homeReplacement ? 'Y' : ''));
@@ -624,7 +629,7 @@ window.HawkSoftExport = (() => {
             lines.push(_line('gen_lOrdinanceOrLawIncr', h.ordinanceLawIncr));
             lines.push(_line('gen_bMultiPolicy', h.multiPolicy ? 'Y' : ''));
 
-            // Home premium block (blank placeholders for HawkSoft)
+            // Home premium block (blank placeholders)
             const hpmFields = [
                 'sTerritory', 'sEarthquakeZone', 'sPremiumGroup',
                 'dDwelling', 'dOtherStructures', 'dPersonalProp', 'dLossOfUse',
@@ -635,11 +640,20 @@ window.HawkSoftExport = (() => {
                 'dProtectiveDeviceCr', 'dMultiPolicyCredit', 'dRenewalCredit',
                 'dSPPSurcharge', 'dOrdinanceOrLaw', 'dSpecialCovA'
             ];
-            // Fill earthquake zone if available
             hpmFields.forEach(f => {
                 let val = '';
                 if (f === 'sEarthquakeZone') val = h.eqZone;
                 lines.push(_line(`hpm_${f}`, val));
+            });
+        }
+
+        // ── Commercial-Specific Block ──
+        if (isCommercial) {
+            const cm = _exportData.commercial;
+            cm.coverages.forEach((cov, i) => {
+                lines.push(_line(`gen_Coverage[${i}]`, cov.name));
+                lines.push(_line(`gen_CoverageLimits[${i}]`, cov.limits));
+                lines.push(_line(`gen_CoverageDeds[${i}]`, cov.deductible));
             });
         }
 
@@ -656,6 +670,11 @@ window.HawkSoftExport = (() => {
             const e = document.getElementById(id);
             return e ? e.checked : false;
         };
+
+        // Read selected export types from checkboxes
+        _selectedTypes.auto = chk('hs_typeAuto');
+        _selectedTypes.home = chk('hs_typeHome');
+        _selectedTypes.commercial = chk('hs_typeCommercial');
 
         // Client
         _exportData.client.lastName = el('hs_lastName');
@@ -696,12 +715,8 @@ window.HawkSoftExport = (() => {
         _exportData.policy.garagingZip = el('hs_garagingZip');
         _exportData.policy.county = el('hs_county');
 
-        // Policy type selection
-        const typeEl = document.querySelector('input[name="hs_policyType"]:checked');
-        if (typeEl) _policyType = typeEl.value;
-
         // Auto
-        if (_policyType === 'auto' || _policyType === 'both') {
+        if (_selectedTypes.auto) {
             _exportData.auto.bi = el('hs_bi');
             _exportData.auto.pd = el('hs_pd');
             _exportData.auto.umBi = el('hs_umBi');
@@ -718,7 +733,7 @@ window.HawkSoftExport = (() => {
                     make: (row.querySelector('[data-field="make"]')?.value || '').toUpperCase(),
                     model: row.querySelector('[data-field="model"]')?.value || '',
                     year: row.querySelector('[data-field="year"]')?.value || '',
-                    vin: row.querySelector('[data-field="vin"]')?.value || '',
+                    vin: (row.querySelector('[data-field="vin"]')?.value || '').toUpperCase(),
                     use: row.querySelector('[data-field="use"]')?.value || '',
                     annualMileage: row.querySelector('[data-field="annualMileage"]')?.value || '',
                     vehicleType: row.querySelector('[data-field="vehicleType"]')?.value || '',
@@ -749,15 +764,15 @@ window.HawkSoftExport = (() => {
                     firstName: row.querySelector('[data-field="firstName"]')?.value || '',
                     middleInitial: row.querySelector('[data-field="middleInitial"]')?.value || '',
                     birthDate: row.querySelector('[data-field="birthDate"]')?.value || '',
-                    licenseState: row.querySelector('[data-field="licenseState"]')?.value || '',
-                    licenseNumber: row.querySelector('[data-field="licenseNumber"]')?.value || '',
+                    licenseState: (row.querySelector('[data-field="licenseState"]')?.value || '').toUpperCase(),
+                    licenseNumber: (row.querySelector('[data-field="licenseNumber"]')?.value || '').toUpperCase(),
                     sex: row.querySelector('[data-field="sex"]')?.value || '',
                     maritalStatus: row.querySelector('[data-field="maritalStatus"]')?.value || '',
                     occupation: row.querySelector('[data-field="occupation"]')?.value || '',
                     relationship: row.querySelector('[data-field="relationship"]')?.value || 'Insured',
                     principalOperator: row.querySelector('[data-field="principalOperator"]')?.value || 'No',
                     sr22Filing: row.querySelector('[data-field="sr22Filing"]')?.value || '',
-                    sr22State: row.querySelector('[data-field="sr22State"]')?.value || '',
+                    sr22State: (row.querySelector('[data-field="sr22State"]')?.value || '').toUpperCase(),
                     goodStudent: row.querySelector('[data-field="goodStudent"]')?.value || 'No',
                     driverTraining: row.querySelector('[data-field="driverTraining"]')?.value || 'No',
                     defensiveDriver: row.querySelector('[data-field="defensiveDriver"]')?.value || 'No',
@@ -769,7 +784,7 @@ window.HawkSoftExport = (() => {
         }
 
         // Home
-        if (_policyType === 'home' || _policyType === 'both') {
+        if (_selectedTypes.home) {
             _exportData.home.protectionClass = el('hs_protectionClass');
             _exportData.home.yearBuilt = el('hs_yearBuilt');
             _exportData.home.construction = el('hs_construction');
@@ -802,7 +817,30 @@ window.HawkSoftExport = (() => {
             _exportData.home.jewelry = el('hs_jewelry');
         }
 
-        // Save agency settings for reuse
+        // Commercial
+        if (_selectedTypes.commercial) {
+            _exportData.commercial.businessName = el('hs_businessName');
+            _exportData.commercial.dbaName = el('hs_dbaName');
+            _exportData.commercial.fein = el('hs_fein');
+            _exportData.commercial.businessLicense = el('hs_businessLicense');
+            _exportData.commercial.naics = el('hs_naics');
+            _exportData.commercial.website = el('hs_website');
+            _exportData.commercial.businessType = el('hs_businessType');
+            _exportData.commercial.lobCode = el('hs_lobCode');
+
+            // Read coverage rows
+            const covContainer = document.getElementById('hs_coverageList');
+            if (covContainer) {
+                const rows = covContainer.querySelectorAll('.hs-coverage-row');
+                _exportData.commercial.coverages = Array.from(rows).map(row => ({
+                    name: row.querySelector('[data-field="covName"]')?.value || '',
+                    limits: row.querySelector('[data-field="covLimits"]')?.value || '',
+                    deductible: row.querySelector('[data-field="covDeductible"]')?.value || '',
+                }));
+            }
+        }
+
+        // Save agency settings
         _settings.agencyId = _exportData.policy.agencyId;
         _settings.producer = _exportData.policy.producer;
         _settings.policyOffice = _exportData.policy.policyOffice;
@@ -810,43 +848,72 @@ window.HawkSoftExport = (() => {
         _saveSettings();
     }
 
-    // ── Export as .CMSMTF file download ─────────────────────
+    // ── Export as .CMSMTF file download(s) ──────────────────
     function _doExport() {
         _readForm();
 
-        // Validate required fields
         if (!_exportData.client.lastName && !_exportData.client.firstName) {
             _showToast('Client name is required for export', 'error');
             return;
         }
 
-        const content = _generateCMSMTF();
+        const types = Object.keys(_selectedTypes).filter(t => _selectedTypes[t]);
+        if (types.length === 0) {
+            _showToast('Select at least one export type (Auto, Home, or Commercial)', 'error');
+            return;
+        }
+
         const lastName = _exportData.client.lastName || 'Client';
         const firstName = _exportData.client.firstName || '';
-        const filename = `${lastName}${firstName ? '_' + firstName : ''}_HawkSoft.CMSMTF`;
+        const baseName = `${lastName}${firstName ? '_' + firstName : ''}`;
 
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        types.forEach((type, i) => {
+            const content = _generateCMSMTF(type);
+            const label = type.charAt(0).toUpperCase() + type.slice(1);
+            const filename = types.length === 1
+                ? `${baseName}_HawkSoft.CMSMTF`
+                : `${baseName}_HawkSoft_${label}.CMSMTF`;
 
-        _showToast(`Exported ${filename}`, 'success');
-        _addToExportHistory(filename);
+            // Stagger downloads slightly so browser doesn't block them
+            setTimeout(() => {
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                _addToExportHistory(filename);
+            }, i * 300);
+        });
+
+        const label = types.length === 1
+            ? types[0].charAt(0).toUpperCase() + types[0].slice(1)
+            : types.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(' + ');
+        _showToast(`Exported ${label} (${types.length} file${types.length > 1 ? 's' : ''})`, 'success');
     }
 
     // ── Preview CMSMTF content ──────────────────────────────
     function _doPreview() {
         _readForm();
-        const content = _generateCMSMTF();
+        const types = Object.keys(_selectedTypes).filter(t => _selectedTypes[t]);
+        if (types.length === 0) {
+            _showToast('Select at least one export type to preview', 'error');
+            return;
+        }
+
+        const previews = types.map(type => {
+            const label = type.toUpperCase();
+            const content = _generateCMSMTF(type);
+            return `── ${label} ──────────────────────────────\n${content}`;
+        });
+
         const previewEl = document.getElementById('hs_preview');
         const previewContent = document.getElementById('hs_previewContent');
         if (previewEl && previewContent) {
-            previewContent.textContent = content;
+            previewContent.textContent = previews.join('\n\n');
             previewEl.style.display = previewEl.style.display === 'none' ? 'block' : 'none';
         }
     }
@@ -980,8 +1047,8 @@ window.HawkSoftExport = (() => {
                         <option value="Domestic Partner" ${d.maritalStatus === 'Domestic Partner' ? 'selected' : ''}>Domestic Partner</option>
                     </select>
                 </div>
-                <div class="hs-field"><label>License #</label><input type="text" data-field="licenseNumber" value="${_val(d.licenseNumber)}"></div>
-                <div class="hs-field"><label>License State</label><input type="text" data-field="licenseState" value="${_val(d.licenseState)}" maxlength="2"></div>
+                <div class="hs-field"><label>License #</label><input type="text" data-field="licenseNumber" value="${_val(d.licenseNumber)}" style="text-transform:uppercase"></div>
+                <div class="hs-field"><label>License State</label><input type="text" data-field="licenseState" value="${_val(d.licenseState)}" maxlength="2" style="text-transform:uppercase"></div>
                 <div class="hs-field"><label>Occupation</label><input type="text" data-field="occupation" value="${_val(d.occupation)}"></div>
                 <div class="hs-field"><label>Relationship</label>
                     <select data-field="relationship">
@@ -999,7 +1066,7 @@ window.HawkSoftExport = (() => {
                 <div class="hs-field"><label>SR-22</label>
                     <select data-field="sr22Filing"><option value="">No</option><option value="Y" ${d.sr22Filing === 'Y' ? 'selected' : ''}>Yes</option></select>
                 </div>
-                <div class="hs-field"><label>Filing State</label><input type="text" data-field="sr22State" value="${_val(d.sr22State)}" maxlength="2"></div>
+                <div class="hs-field"><label>Filing State</label><input type="text" data-field="sr22State" value="${_val(d.sr22State)}" maxlength="2" style="text-transform:uppercase"></div>
                 <div class="hs-field"><label>Good Student</label>
                     <select data-field="goodStudent"><option value="No">No</option><option value="Yes" ${d.goodStudent === 'Yes' ? 'selected' : ''}>Yes</option></select>
                 </div>
@@ -1013,23 +1080,43 @@ window.HawkSoftExport = (() => {
         </div>`;
     }
 
+    // ── Build commercial coverage row HTML ──────────────────
+    function _coverageRowHTML(cov, index) {
+        return `
+        <div class="hs-coverage-row hs-card" data-index="${index}">
+            <div class="hs-card-header">
+                <span class="hs-card-number">${index + 1}</span>
+                <span class="hs-card-title">${cov.name || 'Coverage'}</span>
+                <button type="button" class="hs-btn-icon hs-btn-remove" onclick="HawkSoftExport.removeCoverage(${index})" title="Remove coverage">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="hs-form-grid">
+                <div class="hs-field hs-field-wide"><label>Coverage Name</label><input type="text" data-field="covName" value="${_val(cov.name)}" placeholder="e.g. General Liability"></div>
+                <div class="hs-field"><label>Limits</label><input type="text" data-field="covLimits" value="${_val(cov.limits)}" placeholder="$1,000,000 / $2,000,000"></div>
+                <div class="hs-field"><label>Deductible</label><input type="text" data-field="covDeductible" value="${_val(cov.deductible)}" placeholder="$0"></div>
+            </div>
+        </div>`;
+    }
+
     // ── Render the full plugin UI ───────────────────────────
     function render() {
         const container = document.getElementById('hs_body');
         if (!container) return;
 
-        // Detect data availability
         const hasFormData = typeof App !== 'undefined' && App.data && (App.data.firstName || App.data.lastName);
-        const hasAutoData = _policyType === 'auto' || _policyType === 'both';
-        const hasHomeData = _policyType === 'home' || _policyType === 'both';
+        const showAuto = _selectedTypes.auto;
+        const showHome = _selectedTypes.home;
+        const showCommercial = _selectedTypes.commercial;
         const c = _exportData.client;
         const p = _exportData.policy;
         const a = _exportData.auto;
         const h = _exportData.home;
+        const cm = _exportData.commercial;
 
-        // Count filled fields for the summary badge
         const filledClient = [c.firstName, c.lastName, c.address1, c.city, c.state, c.zip, c.phone, c.email].filter(Boolean).length;
         const filledPolicy = [p.company, p.policyNumber, p.effectiveDate, p.term].filter(Boolean).length;
+        const selectedCount = [showAuto, showHome, showCommercial].filter(Boolean).length;
 
         container.innerHTML = `
         <div id="hs_toastContainer" class="hs-toast-container"></div>
@@ -1047,29 +1134,31 @@ window.HawkSoftExport = (() => {
             </div>
         </div>
 
-        <!-- Policy Type Selector -->
+        <!-- Export Type Selector (Multi-Select Checkboxes) -->
         <div class="hs-section">
             <div class="hs-section-header" onclick="HawkSoftExport.toggleSection(this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                <span>Policy Type</span>
+                <span>Export Types</span>
+                <span class="hs-badge">${selectedCount} selected</span>
                 <svg class="hs-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="hs-section-body">
-                <div class="hs-radio-group">
-                    <label class="hs-radio-card ${_policyType === 'auto' ? 'hs-radio-active' : ''}">
-                        <input type="radio" name="hs_policyType" value="auto" ${_policyType === 'auto' ? 'checked' : ''} onchange="HawkSoftExport.setPolicyType('auto')">
+                <p class="hs-hint-text">Select one or more — each generates a separate .CMSMTF file for HawkSoft import.</p>
+                <div class="hs-checkbox-group">
+                    <label class="hs-checkbox-card ${showAuto ? 'hs-checkbox-active' : ''}">
+                        <input type="checkbox" id="hs_typeAuto" ${showAuto ? 'checked' : ''} onchange="HawkSoftExport.toggleExportType()">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.28V16h3"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>
                         <span>Auto</span>
                     </label>
-                    <label class="hs-radio-card ${_policyType === 'home' ? 'hs-radio-active' : ''}">
-                        <input type="radio" name="hs_policyType" value="home" ${_policyType === 'home' ? 'checked' : ''} onchange="HawkSoftExport.setPolicyType('home')">
+                    <label class="hs-checkbox-card ${showHome ? 'hs-checkbox-active' : ''}">
+                        <input type="checkbox" id="hs_typeHome" ${showHome ? 'checked' : ''} onchange="HawkSoftExport.toggleExportType()">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                         <span>Home</span>
                     </label>
-                    <label class="hs-radio-card ${_policyType === 'both' ? 'hs-radio-active' : ''}">
-                        <input type="radio" name="hs_policyType" value="both" ${_policyType === 'both' ? 'checked' : ''} onchange="HawkSoftExport.setPolicyType('both')">
+                    <label class="hs-checkbox-card ${showCommercial ? 'hs-checkbox-active' : ''}">
+                        <input type="checkbox" id="hs_typeCommercial" ${showCommercial ? 'checked' : ''} onchange="HawkSoftExport.toggleExportType()">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                        <span>Both</span>
+                        <span>Commercial</span>
                     </label>
                 </div>
             </div>
@@ -1108,7 +1197,7 @@ window.HawkSoftExport = (() => {
                             <option value="Walk In" ${c.clientSource === 'Walk In' ? 'selected' : ''}>Walk In</option>
                         </select>
                     </div>
-                    <div class="hs-field hs-field-wide"><label>Client Notes</label><textarea id="hs_clientNotes" rows="2">${_val(c.clientNotes)}</textarea></div>
+                    <div class="hs-field hs-field-wide"><label>Client Notes</label><textarea id="hs_clientNotes" rows="3" placeholder="Notes visible in HawkSoft client record">${_val(c.clientNotes)}</textarea></div>
                 </div>
             </div>
         </div>
@@ -1131,8 +1220,6 @@ window.HawkSoftExport = (() => {
                     <div class="hs-field"><label>Term (months)</label>
                         <select id="hs_term">
                             <option value="">—</option>
-                            <option value="1" ${p.term === '1' ? 'selected' : ''}>1</option>
-                            <option value="3" ${p.term === '3' ? 'selected' : ''}>3</option>
                             <option value="6" ${p.term === '6' ? 'selected' : ''}>6</option>
                             <option value="12" ${p.term === '12' ? 'selected' : ''}>12</option>
                         </select>
@@ -1155,9 +1242,9 @@ window.HawkSoftExport = (() => {
                         </select>
                     </div>
                     <div class="hs-field"><label>Lead Source</label><input id="hs_leadSource" value="${_val(p.leadSource)}"></div>
-                    <div class="hs-field"><label>Filing Fee</label><input id="hs_filingFee" value="${_val(p.filingFee)}"></div>
-                    <div class="hs-field"><label>Policy Fee</label><input id="hs_policyFee" value="${_val(p.policyFee)}"></div>
-                    <div class="hs-field"><label>Broker Fee</label><input id="hs_brokerFee" value="${_val(p.brokerFee)}"></div>
+                    <div class="hs-field"><label>Filing Fee</label><input id="hs_filingFee" value="${_val(p.filingFee)}" placeholder="$"></div>
+                    <div class="hs-field"><label>Policy Fee</label><input id="hs_policyFee" value="${_val(p.policyFee)}" placeholder="$"></div>
+                    <div class="hs-field"><label>Broker Fee</label><input id="hs_brokerFee" value="${_val(p.brokerFee)}" placeholder="$"></div>
                 </div>
                 <div class="hs-subsection">
                     <h4>Agency Settings <span class="hs-hint">(saved for reuse)</span></h4>
@@ -1180,8 +1267,8 @@ window.HawkSoftExport = (() => {
             </div>
         </div>
 
-        <!-- Auto Coverage (shown when auto or both) -->
-        <div class="hs-section ${hasAutoData ? '' : 'hs-hidden'}" id="hs_autoSection">
+        <!-- Auto Coverage -->
+        <div class="hs-section ${showAuto ? '' : 'hs-hidden'}" id="hs_autoSection">
             <div class="hs-section-header" onclick="HawkSoftExport.toggleSection(this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.28V16h3"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>
                 <span>Auto Coverage</span>
@@ -1197,8 +1284,6 @@ window.HawkSoftExport = (() => {
                     <div class="hs-field"><label>Medical</label><input id="hs_autoMedical" value="${_val(a.medical)}"></div>
                     <div class="hs-field"><label>PIP</label><input id="hs_pip" value="${_val(a.pip)}"></div>
                 </div>
-
-                <!-- Vehicles -->
                 <div class="hs-subsection">
                     <div class="hs-subsection-header">
                         <h4>Vehicles (${_exportData.vehicles.length})</h4>
@@ -1211,8 +1296,6 @@ window.HawkSoftExport = (() => {
                         ${_exportData.vehicles.map((v, i) => _vehicleRowHTML(v, i)).join('')}
                     </div>
                 </div>
-
-                <!-- Drivers -->
                 <div class="hs-subsection">
                     <div class="hs-subsection-header">
                         <h4>Drivers (${_exportData.drivers.length})</h4>
@@ -1228,8 +1311,8 @@ window.HawkSoftExport = (() => {
             </div>
         </div>
 
-        <!-- Home Coverage (shown when home or both) -->
-        <div class="hs-section ${hasHomeData ? '' : 'hs-hidden'}" id="hs_homeSection">
+        <!-- Home Coverage -->
+        <div class="hs-section ${showHome ? '' : 'hs-hidden'}" id="hs_homeSection">
             <div class="hs-section-header" onclick="HawkSoftExport.toggleSection(this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 <span>Home / Property</span>
@@ -1318,6 +1401,62 @@ window.HawkSoftExport = (() => {
             </div>
         </div>
 
+        <!-- Commercial / CGL -->
+        <div class="hs-section ${showCommercial ? '' : 'hs-hidden'}" id="hs_commercialSection">
+            <div class="hs-section-header" onclick="HawkSoftExport.toggleSection(this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                <span>Commercial / CGL</span>
+                <svg class="hs-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="hs-section-body">
+                <div class="hs-form-grid">
+                    <div class="hs-field hs-field-wide"><label>Business Name</label><input id="hs_businessName" value="${_val(cm.businessName)}" placeholder="e.g. Brown Insurance Services LLC"></div>
+                    <div class="hs-field"><label>DBA Name</label><input id="hs_dbaName" value="${_val(cm.dbaName)}"></div>
+                    <div class="hs-field"><label>Entity Type</label>
+                        <select id="hs_businessType">
+                            <option value="">—</option>
+                            <option value="L" ${cm.businessType === 'L' ? 'selected' : ''}>LLC</option>
+                            <option value="C" ${cm.businessType === 'C' ? 'selected' : ''}>Corporation</option>
+                            <option value="S" ${cm.businessType === 'S' ? 'selected' : ''}>S-Corp</option>
+                            <option value="P" ${cm.businessType === 'P' ? 'selected' : ''}>Partnership</option>
+                            <option value="I" ${cm.businessType === 'I' ? 'selected' : ''}>Sole Proprietor</option>
+                        </select>
+                    </div>
+                    <div class="hs-field"><label>FEIN</label><input id="hs_fein" value="${_val(cm.fein)}" placeholder="XX-XXXXXXX"></div>
+                    <div class="hs-field"><label>Business License</label><input id="hs_businessLicense" value="${_val(cm.businessLicense)}"></div>
+                    <div class="hs-field"><label>NAICS Code</label><input id="hs_naics" value="${_val(cm.naics)}" placeholder="e.g. 524210"></div>
+                    <div class="hs-field"><label>Website</label><input id="hs_website" value="${_val(cm.website)}" placeholder="https://"></div>
+                    <div class="hs-field"><label>LOB Code</label>
+                        <select id="hs_lobCode">
+                            <option value="CGL" ${cm.lobCode === 'CGL' ? 'selected' : ''}>CGL</option>
+                            <option value="BOP" ${cm.lobCode === 'BOP' ? 'selected' : ''}>BOP</option>
+                            <option value="WC" ${cm.lobCode === 'WC' ? 'selected' : ''}>Workers Comp</option>
+                            <option value="CA" ${cm.lobCode === 'CA' ? 'selected' : ''}>Commercial Auto</option>
+                            <option value="CPP" ${cm.lobCode === 'CPP' ? 'selected' : ''}>Commercial Package</option>
+                            <option value="IM" ${cm.lobCode === 'IM' ? 'selected' : ''}>Inland Marine</option>
+                            <option value="UMBR" ${cm.lobCode === 'UMBR' ? 'selected' : ''}>Umbrella</option>
+                            <option value="PL" ${cm.lobCode === 'PL' ? 'selected' : ''}>Professional Liability</option>
+                            <option value="EPLI" ${cm.lobCode === 'EPLI' ? 'selected' : ''}>EPLI</option>
+                            <option value="CYBER" ${cm.lobCode === 'CYBER' ? 'selected' : ''}>Cyber</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="hs-subsection">
+                    <div class="hs-subsection-header">
+                        <h4>Coverages (${cm.coverages.length})</h4>
+                        <button type="button" class="hs-btn hs-btn-small" onclick="HawkSoftExport.addCoverage()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Coverage
+                        </button>
+                    </div>
+                    <div id="hs_coverageList">
+                        ${cm.coverages.map((cov, i) => _coverageRowHTML(cov, i)).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Preview & Export -->
         <div class="hs-export-bar">
             <button type="button" class="hs-btn hs-btn-secondary" onclick="HawkSoftExport.preview()">
@@ -1326,7 +1465,7 @@ window.HawkSoftExport = (() => {
             </button>
             <button type="button" class="hs-btn hs-btn-primary" onclick="HawkSoftExport.export()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Export .CMSMTF
+                Export .CMSMTF${selectedCount > 1 ? ` (${selectedCount} files)` : ''}
             </button>
         </div>
 
@@ -1349,18 +1488,11 @@ window.HawkSoftExport = (() => {
         section.classList.toggle('hs-collapsed');
     }
 
-    // ── Policy type change ──────────────────────────────────
-    function setPolicyType(type) {
-        _policyType = type;
-        const autoSection = document.getElementById('hs_autoSection');
-        const homeSection = document.getElementById('hs_homeSection');
-        if (autoSection) autoSection.classList.toggle('hs-hidden', type === 'home');
-        if (homeSection) homeSection.classList.toggle('hs-hidden', type === 'auto');
-        // Update radio card active states
-        document.querySelectorAll('.hs-radio-card').forEach(card => {
-            const input = card.querySelector('input');
-            card.classList.toggle('hs-radio-active', input && input.checked);
-        });
+    // ── Export type checkbox change ──────────────────────────
+    function toggleExportType() {
+        _readForm();
+        // Re-render to show/hide sections & update button label
+        render();
     }
 
     // ── Add / remove vehicles ───────────────────────────────
@@ -1407,6 +1539,21 @@ window.HawkSoftExport = (() => {
         render();
     }
 
+    // ── Add / remove commercial coverages ───────────────────
+    function addCoverage() {
+        _readForm();
+        _exportData.commercial.coverages.push({
+            name: '', limits: '', deductible: '',
+        });
+        render();
+    }
+
+    function removeCoverage(index) {
+        _readForm();
+        _exportData.commercial.coverages.splice(index, 1);
+        render();
+    }
+
     // ── Preview & copy ──────────────────────────────────────
     function preview() { _doPreview(); }
 
@@ -1435,10 +1582,12 @@ window.HawkSoftExport = (() => {
         preview,
         copyPreview,
         toggleSection,
-        setPolicyType,
+        toggleExportType,
         addVehicle,
         removeVehicle,
         addDriver,
         removeDriver,
+        addCoverage,
+        removeCoverage,
     };
 })();

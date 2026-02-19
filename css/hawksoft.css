@@ -179,12 +179,12 @@
     margin: 0;
 }
 
-/* ── Radio card group (policy type) ─────────── */
-.hs-radio-group {
+/* ── Checkbox card group (export type multi-select) ── */
+.hs-checkbox-group {
     display: flex;
     gap: 10px;
 }
-.hs-radio-card {
+.hs-checkbox-card {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -201,20 +201,26 @@
     font-size: 14px;
     font-weight: 600;
 }
-.hs-radio-card input {
+.hs-checkbox-card input {
     display: none;
 }
-.hs-radio-card:hover {
+.hs-checkbox-card:hover {
     border-color: var(--apple-blue);
 }
-.hs-radio-card.hs-radio-active {
+.hs-checkbox-card.hs-checkbox-active {
     border-color: var(--apple-blue);
     background: color-mix(in srgb, var(--apple-blue) 8%, var(--bg-card));
     color: var(--apple-blue);
 }
-.hs-radio-card svg {
+.hs-checkbox-card svg {
     width: 28px;
     height: 28px;
+}
+.hs-hint-text {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin: 0 0 10px;
+    line-height: 1.4;
 }
 
 /* ── Vehicle / Driver cards ─────────────────── */
@@ -440,14 +446,14 @@
     .hs-form-grid {
         grid-template-columns: 1fr 1fr;
     }
-    .hs-radio-group {
+    .hs-checkbox-group {
         flex-direction: row;
     }
-    .hs-radio-card {
+    .hs-checkbox-card {
         padding: 12px 6px;
         font-size: 12px;
     }
-    .hs-radio-card svg {
+    .hs-checkbox-card svg {
         width: 22px;
         height: 22px;
     }
