@@ -110,10 +110,6 @@ body.dark-mode .tool-badge.badge-soon {
     color: #64748b;
 }
 
-body.dark-mode .landing-footer-btn {
-    background: transparent;
-    color: var(--text-secondary);
-}
 body.dark-mode .bento-label { color: rgba(148, 163, 184, 0.6); letter-spacing: 2.5px; }
 
 body.dark-mode footer {
@@ -2173,33 +2169,12 @@ body.dark-mode .landing-theme-toggle:hover {
     border-color: rgba(56, 189, 248, 0.35);
 }
 
-/* ── Footer Actions ── */
+/* ── Footer ── */
 .landing-footer {
     padding: 0 16px 24px;
     max-width: 780px;
     margin: 0 auto;
     width: 100%;
-}
-.landing-footer-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-}
-.landing-footer-btn {
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    opacity: 0.6;
-}
-.landing-footer-btn:hover {
-    color: var(--apple-blue);
-    opacity: 1;
 }
 
 /* ─── Legacy Support (other tools may reference these) ─── */
