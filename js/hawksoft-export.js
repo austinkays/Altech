@@ -199,8 +199,8 @@ window.HawkSoftExport = (() => {
                 city: d.addrCity || '',
                 state: d.addrState || '',
                 zip: d.addrZip || '',
-                phone: d.phone || '',
-                cellPhone: '',
+                phone: '',
+                cellPhone: d.phone || '',
                 workPhone: '',
                 email: d.email || '',
                 emailWork: '',
@@ -221,6 +221,7 @@ window.HawkSoftExport = (() => {
                 coEmail: d.coEmail || '',
                 coPhone: d.coPhone || '',
                 coRelationship: d.coRelationship || '',
+                county: d.county || '',
             },
             // Policy block
             policy: {
@@ -230,7 +231,7 @@ window.HawkSoftExport = (() => {
                 policyForm: policyForm,
                 effectiveDate: _fmtDate(d.effectiveDate) || _todayFormatted(),
                 expirationDate: '',
-                productionDate: '',
+                productionDate: _todayFormatted(),
                 term: d.policyTerm === '12 Month' ? '12' : d.policyTerm === '6 Month' ? '6' : '',
                 totalPremium: '',
                 status: 'New',
@@ -712,10 +713,14 @@ window.HawkSoftExport = (() => {
         _exportData.client.emailWork = el('hs_emailWork');
         _exportData.client.clientSource = el('hs_clientSource');
         _exportData.client.clientNotes = el('hs_clientNotes');
+        _exportData.client.county = el('hs_clientCounty');
 
         // Policy
         _exportData.policy.company = el('hs_company');
         _exportData.policy.policyNumber = el('hs_policyNumber');
+        _exportData.policy.policyTitle = el('hs_policyTitle');
+        _exportData.policy.policyForm = el('hs_policyForm');
+        _exportData.policy.program = el('hs_program');
         _exportData.policy.effectiveDate = el('hs_effectiveDate');
         _exportData.policy.expirationDate = el('hs_expirationDate');
         _exportData.policy.productionDate = el('hs_productionDate');
@@ -1202,6 +1207,7 @@ window.HawkSoftExport = (() => {
                     <div class="hs-field"><label>City</label><input id="hs_city" value="${_val(c.city)}"></div>
                     <div class="hs-field"><label>State</label><input id="hs_state" value="${_val(c.state)}" maxlength="2"></div>
                     <div class="hs-field"><label>ZIP</label><input id="hs_zip" value="${_val(c.zip)}"></div>
+                    <div class="hs-field"><label>County</label><input id="hs_clientCounty" value="${_val(c.county)}"></div>
                     <div class="hs-field"><label>Phone</label><input id="hs_phone" value="${_val(c.phone)}" type="tel"></div>
                     <div class="hs-field"><label>Cell Phone</label><input id="hs_cellPhone" value="${_val(c.cellPhone)}" type="tel"></div>
                     <div class="hs-field"><label>Work Phone</label><input id="hs_workPhone" value="${_val(c.workPhone)}" type="tel"></div>
@@ -1235,10 +1241,26 @@ window.HawkSoftExport = (() => {
                 <div class="hs-form-grid">
                     <div class="hs-field"><label>Carrier / Company</label><input id="hs_company" value="${_val(p.company)}" placeholder="e.g. Safeco"></div>
                     <div class="hs-field"><label>Policy Number</label><input id="hs_policyNumber" value="${_val(p.policyNumber)}"></div>
+                    <div class="hs-field"><label>Policy Title</label>
+                        <select id="hs_policyTitle">
+                            <option value="" ${!p.policyTitle ? 'selected' : ''}>—</option>
+                            <option value="Personal Auto" ${p.policyTitle === 'Personal Auto' ? 'selected' : ''}>Personal Auto</option>
+                            <option value="Homeowners" ${p.policyTitle === 'Homeowners' ? 'selected' : ''}>Homeowners</option>
+                            <option value="Home + Auto" ${p.policyTitle === 'Home + Auto' ? 'selected' : ''}>Home + Auto</option>
+                            <option value="Renters" ${p.policyTitle === 'Renters' ? 'selected' : ''}>Renters</option>
+                            <option value="Condo" ${p.policyTitle === 'Condo' ? 'selected' : ''}>Condo</option>
+                            <option value="Personal" ${p.policyTitle === 'Personal' ? 'selected' : ''}>Personal</option>
+                            <option value="Commercial" ${p.policyTitle === 'Commercial' ? 'selected' : ''}>Commercial</option>
+                        </select>
+                    </div>
+                    <div class="hs-field"><label>Policy Form</label><input id="hs_policyForm" value="${_val(p.policyForm)}" placeholder="HO3, PAP, DP1, etc."></div>
+                    <div class="hs-field"><label>Program</label><input id="hs_program" value="${_val(p.program)}" placeholder="Optional"></div>
                     <div class="hs-field"><label>Effective Date</label><input id="hs_effectiveDate" value="${_val(p.effectiveDate)}" placeholder="MM/DD/YYYY" onchange="HawkSoftExport.updateExpiration()"></div>
                     <div class="hs-field"><label>Term (months)</label>
                         <select id="hs_term" onchange="HawkSoftExport.updateExpiration()">
                             <option value="">—</option>
+                            <option value="1" ${p.term === '1' ? 'selected' : ''}>1</option>
+                            <option value="3" ${p.term === '3' ? 'selected' : ''}>3</option>
                             <option value="6" ${p.term === '6' ? 'selected' : ''}>6</option>
                             <option value="12" ${p.term === '12' ? 'selected' : ''}>12</option>
                         </select>
@@ -1248,6 +1270,7 @@ window.HawkSoftExport = (() => {
                     <div class="hs-field"><label>Status</label>
                         <select id="hs_status">
                             <option value="New" ${p.status === 'New' ? 'selected' : ''}>New</option>
+                            <option value="Prospect" ${p.status === 'Prospect' ? 'selected' : ''}>Prospect</option>
                             <option value="Active" ${p.status === 'Active' ? 'selected' : ''}>Active</option>
                             <option value="Renewal" ${p.status === 'Renewal' ? 'selected' : ''}>Renewal</option>
                             <option value="Quote" ${p.status === 'Quote' ? 'selected' : ''}>Quote</option>
@@ -1285,6 +1308,9 @@ window.HawkSoftExport = (() => {
                         <div class="hs-field"><label>County</label><input id="hs_county" value="${_val(p.county)}"></div>
                     </div>
                 </div>
+                <p class="hs-hint-text" style="margin-top:12px">
+                    <strong>Set manually in HawkSoft after import:</strong> CSR, Client Since, At Address Since, Writing Carrier/NAIC, Agent Code, Account #, Billing Type, Payment Plan
+                </p>
             </div>
         </div>
 
