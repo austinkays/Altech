@@ -1,0 +1,465 @@
+/* ═══════════════════════════════════════════════
+   HawkSoft Export Plugin — css/hawksoft.css
+   ═══════════════════════════════════════════════ */
+
+/* ── Body container ─────────────────────────── */
+.hs-body {
+    padding: 0 16px 100px;
+    max-width: 780px;
+    margin: 0 auto;
+}
+
+/* ── Source banner ──────────────────────────── */
+.hs-source-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+}
+.hs-source-banner.hs-source-active {
+    background: color-mix(in srgb, var(--apple-blue) 8%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--apple-blue) 30%, var(--border));
+}
+.hs-source-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--apple-blue);
+    color: #fff;
+}
+.hs-source-active .hs-source-icon {
+    background: var(--success);
+}
+.hs-source-text strong {
+    color: var(--text);
+    font-size: 14px;
+}
+.hs-source-detail {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+/* ── Collapsible sections ───────────────────── */
+.hs-section {
+    background: var(--bg-card);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+}
+.hs-section:hover {
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.hs-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 15px;
+}
+.hs-section-header svg:first-child {
+    flex-shrink: 0;
+    color: var(--apple-blue);
+}
+.hs-section-header span:first-of-type {
+    flex: 1;
+}
+.hs-chevron {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    transition: transform 0.25s ease;
+}
+.hs-collapsed .hs-chevron {
+    transform: rotate(-90deg);
+}
+.hs-section-body {
+    padding: 0 18px 18px;
+    transition: max-height 0.3s ease;
+}
+.hs-collapsed .hs-section-body {
+    display: none;
+}
+
+/* ── Badge (field count) ────────────────────── */
+.hs-badge {
+    font-size: 11px;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--apple-blue) 12%, transparent);
+    color: var(--apple-blue);
+    padding: 2px 8px;
+    border-radius: 20px;
+    min-width: 28px;
+    text-align: center;
+}
+
+/* ── Form grid ──────────────────────────────── */
+.hs-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+}
+.hs-field {
+    display: flex;
+    flex-direction: column;
+}
+.hs-field-wide {
+    grid-column: 1 / -1;
+}
+.hs-field label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.hs-field input,
+.hs-field select,
+.hs-field textarea {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+}
+.hs-field input:focus,
+.hs-field select:focus,
+.hs-field textarea:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--apple-blue) 15%, transparent);
+}
+.hs-field textarea {
+    resize: vertical;
+    min-height: 44px;
+}
+
+/* ── Subsections ────────────────────────────── */
+.hs-subsection {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+.hs-subsection h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 10px;
+}
+.hs-hint {
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.hs-subsection-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.hs-subsection-header h4 {
+    margin: 0;
+}
+
+/* ── Radio card group (policy type) ─────────── */
+.hs-radio-group {
+    display: flex;
+    gap: 10px;
+}
+.hs-radio-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 10px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: var(--bg-input);
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+}
+.hs-radio-card input {
+    display: none;
+}
+.hs-radio-card:hover {
+    border-color: var(--apple-blue);
+}
+.hs-radio-card.hs-radio-active {
+    border-color: var(--apple-blue);
+    background: color-mix(in srgb, var(--apple-blue) 8%, var(--bg-card));
+    color: var(--apple-blue);
+}
+.hs-radio-card svg {
+    width: 28px;
+    height: 28px;
+}
+
+/* ── Vehicle / Driver cards ─────────────────── */
+.hs-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-input);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+}
+.hs-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.hs-card-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--apple-blue);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.hs-card-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+}
+
+/* ── Toggle grid (checkboxes) ───────────────── */
+.hs-toggle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+}
+.hs-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text);
+    transition: all 0.2s;
+}
+.hs-toggle:has(input:checked) {
+    border-color: var(--apple-blue);
+    background: color-mix(in srgb, var(--apple-blue) 8%, var(--bg-card));
+}
+.hs-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--apple-blue);
+}
+
+/* ── Buttons ────────────────────────────────── */
+.hs-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.hs-btn-primary {
+    background: var(--apple-blue);
+    color: #fff;
+}
+.hs-btn-primary:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+.hs-btn-primary:active {
+    transform: translateY(0);
+}
+.hs-btn-secondary {
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.hs-btn-secondary:hover {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+}
+.hs-btn-small {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--apple-blue) 10%, var(--bg-card));
+    color: var(--apple-blue);
+    border: 1px solid color-mix(in srgb, var(--apple-blue) 25%, var(--border));
+}
+.hs-btn-small:hover {
+    background: color-mix(in srgb, var(--apple-blue) 18%, var(--bg-card));
+}
+.hs-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.hs-btn-icon:hover {
+    background: var(--bg-input);
+    color: var(--text);
+}
+.hs-btn-remove:hover {
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+    color: var(--danger);
+}
+
+/* ── Export bar (sticky bottom) ─────────────── */
+.hs-export-bar {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    padding: 16px 0;
+    margin-top: 8px;
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, var(--bg) 60%, transparent);
+    padding-bottom: 24px;
+    z-index: 5;
+}
+
+/* ── Preview output ─────────────────────────── */
+.hs-preview {
+    margin-top: 12px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    overflow: hidden;
+}
+.hs-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--bg-input);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+#hs_previewContent {
+    padding: 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 400px;
+    overflow-y: auto;
+    margin: 0;
+}
+
+/* ── Hidden utility ─────────────────────────── */
+.hs-hidden {
+    display: none !important;
+}
+
+/* ── Toast notifications ────────────────────── */
+.hs-toast-container {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+.hs-toast {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s;
+    pointer-events: auto;
+}
+.hs-toast-show {
+    opacity: 1;
+    transform: translateY(0);
+}
+.hs-toast-success {
+    background: var(--success);
+}
+.hs-toast-error {
+    background: var(--danger);
+}
+
+/* ── Mobile responsive ──────────────────────── */
+@media (max-width: 600px) {
+    .hs-body {
+        padding: 0 10px 100px;
+    }
+    .hs-form-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .hs-radio-group {
+        flex-direction: row;
+    }
+    .hs-radio-card {
+        padding: 12px 6px;
+        font-size: 12px;
+    }
+    .hs-radio-card svg {
+        width: 22px;
+        height: 22px;
+    }
+    .hs-toggle-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .hs-export-bar {
+        flex-direction: column;
+        padding: 12px 16px 20px;
+    }
+    .hs-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

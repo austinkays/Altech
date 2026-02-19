@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="css/quote-compare.css">
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/reminders.css">
+    <link rel="stylesheet" href="css/hawksoft.css">
 
     <!-- Firebase SDK (compat mode — no build step needed) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -2239,6 +2240,7 @@
                 { key: 'prospect',     icon: '🔍', color: 'icon-amber',   title: 'Prospect Intel',  name: 'Prospect Investigator',  containerId: 'prospectTool',     initModule: 'ProspectInvestigator', htmlFile: 'plugins/prospect.html', category: 'ops' },
                 { key: 'email',        icon: '✉️', color: 'icon-violet',  title: 'Email Composer',  name: 'Email Composer',         containerId: 'emailTool',        initModule: 'EmailComposer',     htmlFile: 'plugins/email.html',       category: 'ops' },
                 { key: 'accounting',   icon: '💰', color: 'icon-amber',   title: 'Accounting',      name: 'Accounting Export',      containerId: 'accountingTool',   initModule: 'AccountingExport',  htmlFile: 'plugins/accounting.html',  category: 'ops' },
+                { key: 'hawksoft',     icon: '📤', color: 'icon-blue',    title: 'HawkSoft Export', name: 'HawkSoft Export',        containerId: 'hawksoftTool',     initModule: 'HawkSoftExport',    htmlFile: 'plugins/hawksoft.html',    category: 'ops' },
                 // ── Reference ──
                 { key: 'quickref',     icon: '📖', color: 'icon-blue',    title: 'Quick Reference', name: 'Quick Reference',        containerId: 'quickrefTool',     initModule: 'QuickRef',          htmlFile: 'plugins/quickref.html',    section: 'quickref', category: 'ref' },
                 // ── Hidden / internal ──
@@ -12164,6 +12166,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         <!-- Plugin HTML loaded dynamically from plugins/ -->
     </div>
 
+    <!-- HAWKSOFT EXPORT TOOL CONTAINER -->
+    <div id="hawksoftTool" class="plugin-container">
+        <!-- Plugin HTML loaded dynamically from plugins/ -->
+    </div>
+
     <!-- EZLYNX QUOTER TOOL CONTAINER -->
     <div id="ezlynxTool" class="plugin-container">
         <!-- Plugin HTML loaded dynamically from plugins/ -->
@@ -12299,6 +12306,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
     <script src="js/email-composer.js"></script>
     <script src="js/policy-qa.js"></script>
     <script src="js/reminders.js"></script>
+    <script src="js/hawksoft-export.js"></script>
 
 <script src="js/data-backup.js"></script>
 <script src="js/firebase-config.js"></script>
