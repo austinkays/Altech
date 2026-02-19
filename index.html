@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/ezlynx.css">
     <link rel="stylesheet" href="css/quote-compare.css">
     <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/reminders.css">
 
     <!-- Firebase SDK (compat mode — no build step needed) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -2238,6 +2239,7 @@
                 // ── Documents & Compliance ──
                 { key: 'coi',          icon: '📋', color: 'icon-teal',    title: 'COI Generator',   name: 'COI Generator',          containerId: 'coiTool',          initModule: 'COI',               htmlFile: 'plugins/coi.html',         category: 'docs' },
                 { key: 'compliance',   icon: '🛡️', color: 'icon-indigo',  title: 'CGL & Bonds',     name: 'CGL Compliance',         containerId: 'complianceTool',   initModule: 'ComplianceDashboard', badge: 'cglBadge', htmlFile: 'plugins/compliance.html', category: 'docs' },
+                { key: 'reminders',    icon: '⏰', color: 'icon-orange',  title: 'Reminders',       name: 'Task Reminders',         containerId: 'remindersTool',    initModule: 'Reminders',           badge: 'remindersBadge', htmlFile: 'plugins/reminders.html', category: 'docs' },
                 // ── Operations ──
                 { key: 'prospect',     icon: '🔍', color: 'icon-amber',   title: 'Prospect Intel',  name: 'Prospect Investigator',  containerId: 'prospectTool',     initModule: 'ProspectInvestigator', htmlFile: 'plugins/prospect.html', category: 'ops' },
                 { key: 'email',        icon: '✉️', color: 'icon-violet',  title: 'Email Composer',  name: 'Email Composer',         containerId: 'emailTool',        initModule: 'EmailComposer',     htmlFile: 'plugins/email.html',       category: 'ops' },
@@ -12090,6 +12092,12 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             App.updateLandingGreeting();
             App.updateCGLBadge();
 
+            // Show reminder badges + check for alerts
+            if (typeof Reminders !== 'undefined') {
+                Reminders.init();
+                Reminders.checkAlerts();
+            }
+
             // Don't auto-init the quoting tool anymore
             // It will init when user clicks the card
             App.observePluginVisibility();
@@ -12166,6 +12174,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
 
     <!-- QUOTE COMPARE TOOL CONTAINER -->
     <div id="quoteCompareTool" class="plugin-container">
+        <!-- Plugin HTML loaded dynamically from plugins/ -->
+    </div>
+
+    <!-- TASK REMINDERS TOOL CONTAINER -->
+    <div id="remindersTool" class="plugin-container">
         <!-- Plugin HTML loaded dynamically from plugins/ -->
     </div>
 
@@ -12288,6 +12301,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
     <script src="js/quote-compare.js"></script>
     <script src="js/email-composer.js"></script>
     <script src="js/policy-qa.js"></script>
+    <script src="js/reminders.js"></script>
 
 <script src="js/data-backup.js"></script>
 <script src="js/firebase-config.js"></script>

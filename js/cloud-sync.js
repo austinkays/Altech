@@ -93,6 +93,7 @@ const CloudSync = (() => {
             cglState: tryParse('altech_cgl_state'),
             clientHistory: tryParse('altech_client_history'),
             quickRefCards: tryParse('altech_quickref_cards'),
+            reminders: tryParse('altech_reminders'),
             settings: {
                 darkMode: localStorage.getItem('altech_dark_mode') === 'true',
             }
@@ -336,6 +337,7 @@ const CloudSync = (() => {
                     _pushDoc('cglState', local.cglState, 'cglState'),
                     _pushDoc('clientHistory', local.clientHistory, 'clientHistory'),
                     _pushDoc('quickRefCards', local.quickRefCards, 'quickRefCards'),
+                    _pushDoc('reminders', local.reminders, 'reminders'),
                     local.quotes?.length ? _pushQuotes(local.quotes) : Promise.resolve()
                 ]);
 
@@ -403,6 +405,13 @@ const CloudSync = (() => {
                 if (qrResult?.data && typeof QuickRef !== 'undefined') {
                     QuickRef.cards = qrResult.data;
                     if (QuickRef.renderCards) QuickRef.renderCards();
+                }
+
+                // Pull Reminders
+                const remResult = await _pullDoc('reminders', 'altech_reminders', 'reminders');
+                if (remResult?.data && typeof Reminders !== 'undefined') {
+                    Reminders.state = remResult.data;
+                    if (Reminders.render) Reminders.render();
                 }
 
                 // Pull quotes (merge strategy)
@@ -483,7 +492,7 @@ const CloudSync = (() => {
                 const db = FirebaseConfig.db;
 
                 // Delete sync docs
-                const syncDocs = ['settings', 'currentForm', 'cglState', 'clientHistory', 'quickRefCards'];
+                const syncDocs = ['settings', 'currentForm', 'cglState', 'clientHistory', 'quickRefCards', 'reminders'];
                 await Promise.all(syncDocs.map(doc =>
                     db.collection('users').doc(uid).collection('sync').doc(doc).delete()
                 ));

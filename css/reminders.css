@@ -1,0 +1,560 @@
+/* ===== REMINDERS PLUGIN STYLES ===== */
+
+.rem-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 16px 100px;
+}
+
+.rem-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.rem-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 4px;
+}
+
+.rem-subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0;
+}
+
+/* ===== Stats Grid ===== */
+.rem-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.rem-stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+    overflow: hidden;
+}
+
+.rem-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 12px 12px 0 0;
+}
+
+.rem-stat-card.overdue::before { background: #ef4444; }
+.rem-stat-card.due-today::before { background: #f59e0b; }
+.rem-stat-card.completed::before { background: #22c55e; }
+
+.rem-stat-card:active { transform: scale(0.97); }
+
+.rem-stat-icon {
+    display: block;
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+
+.rem-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+}
+
+.rem-stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
+/* ===== Controls (Filters + Search) ===== */
+.rem-controls {
+    margin-bottom: 16px;
+}
+
+.rem-filter-row {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.rem-filter-btn {
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.rem-filter-btn.active,
+.rem-filter-btn:active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.rem-search-row {
+    display: flex;
+    gap: 8px;
+}
+
+.rem-search {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.rem-search:focus {
+    border-color: var(--accent);
+}
+
+.rem-category-filter {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    min-width: 140px;
+    outline: none;
+}
+
+/* ===== Task List ===== */
+.rem-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ===== Task Card ===== */
+.rem-task-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.rem-task-card:active {
+    transform: scale(0.995);
+}
+
+.rem-task-card.rem-status-overdue {
+    border-left: 4px solid #ef4444;
+}
+
+.rem-task-card.rem-status-due-today {
+    border-left: 4px solid #f59e0b;
+}
+
+.rem-task-card.rem-status-due-soon {
+    border-left: 4px solid #3b82f6;
+}
+
+.rem-task-card.rem-status-upcoming {
+    border-left: 4px solid var(--border);
+}
+
+.rem-task-card.rem-status-completed {
+    border-left: 4px solid #22c55e;
+    opacity: 0.7;
+}
+
+.rem-task-card.rem-status-no-date {
+    border-left: 4px solid var(--muted);
+}
+
+.rem-task-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+}
+
+/* Check Button */
+.rem-check-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+    margin-top: 2px;
+    color: transparent;
+}
+
+.rem-check-btn:hover {
+    border-color: #22c55e;
+    color: #22c55e;
+}
+
+.rem-check-btn.checked {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: #fff;
+}
+
+/* Task Content */
+.rem-task-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.rem-task-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rem-task-title.rem-done {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.rem-priority-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.rem-priority-dot.high { background: #ef4444; }
+.rem-priority-dot.normal { background: #3b82f6; }
+.rem-priority-dot.low { background: #94a3b8; }
+
+.rem-task-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.rem-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--accent);
+}
+
+.rem-cat {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.rem-freq {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.rem-task-notes {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Task Actions */
+.rem-task-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.rem-action-btn {
+    width: 34px;
+    height: 34px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: background 0.15s;
+}
+
+.rem-action-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* ===== Empty State ===== */
+.rem-empty {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--muted);
+}
+
+.rem-empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.rem-empty p {
+    margin: 0;
+    font-size: 15px;
+}
+
+/* ===== FAB ===== */
+.rem-fab {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 28px;
+    border: none;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, box-shadow 0.15s;
+    z-index: 50;
+}
+
+.rem-fab:active {
+    transform: scale(0.92);
+}
+
+/* ===== Modal ===== */
+.rem-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.rem-modal {
+    background: var(--card);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.rem-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 0;
+}
+
+.rem-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.rem-modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    font-size: 22px;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rem-modal-body {
+    padding: 16px 20px;
+}
+
+.rem-field {
+    margin-bottom: 14px;
+}
+
+.rem-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.rem-field input,
+.rem-field select,
+.rem-field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.rem-field input:focus,
+.rem-field select:focus,
+.rem-field textarea:focus {
+    border-color: var(--accent);
+}
+
+.rem-field textarea {
+    resize: vertical;
+    min-height: 70px;
+}
+
+.rem-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.rem-field-row .rem-field {
+    margin-bottom: 14px;
+}
+
+.rem-modal-footer {
+    padding: 0 20px 18px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* ===== Dark Mode ===== */
+body.dark-mode .rem-stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .rem-task-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .rem-filter-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .rem-search,
+body.dark-mode .rem-category-filter {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .rem-modal {
+    background: var(--card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .rem-field input,
+body.dark-mode .rem-field select,
+body.dark-mode .rem-field textarea {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .rem-action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .rem-badge {
+    background: rgba(99, 102, 241, 0.2);
+}
+
+body.dark-mode .rem-cat {
+    background: rgba(34, 197, 94, 0.15);
+}
+
+body.dark-mode .rem-freq {
+    background: rgba(59, 130, 246, 0.15);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+    .rem-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .rem-field-row {
+        grid-template-columns: 1fr;
+    }
+
+    .rem-stat-value {
+        font-size: 20px;
+    }
+
+    .rem-fab {
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+    }
+
+    .rem-container {
+        padding: 0 12px 90px;
+    }
+}

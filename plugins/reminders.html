@@ -1,0 +1,140 @@
+<header>
+    <div class="header-top">
+        <div class="logo tool-header-brand">
+            <span class="logo-controls">
+                <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                    <span class="logo-icon">🔔</span>
+                </button>
+                <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <span class="dark-mode-icon">🌙</span>
+                </button>
+            </span>
+            <span>Task Reminders</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn-utility" onclick="Reminders.showAdd()" style="font-size: 14px; padding: 8px 16px;">
+                ＋ New
+            </button>
+        </div>
+    </div>
+    <div class="step-title">Weekly Tasks & Reminders</div>
+    <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
+</header>
+
+<div style="padding-top: 20px;">
+<div class="rem-container">
+
+    <!-- Header -->
+    <div class="rem-header">
+        <h1 class="rem-title">Task Reminders</h1>
+        <p class="rem-subtitle">Track recurring tasks and weekly to-dos</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="rem-stats-grid">
+        <div class="rem-stat-card" onclick="Reminders.setFilter('all')">
+            <span class="rem-stat-icon">📋</span>
+            <div class="rem-stat-value" id="remStatTotal">0</div>
+            <div class="rem-stat-label">Total</div>
+        </div>
+        <div class="rem-stat-card overdue" onclick="Reminders.setFilter('overdue')">
+            <span class="rem-stat-icon">🔴</span>
+            <div class="rem-stat-value" id="remStatOverdue">0</div>
+            <div class="rem-stat-label">Overdue</div>
+        </div>
+        <div class="rem-stat-card due-today" onclick="Reminders.setFilter('due-today')">
+            <span class="rem-stat-icon">🟡</span>
+            <div class="rem-stat-value" id="remStatDueToday">0</div>
+            <div class="rem-stat-label">Due Today</div>
+        </div>
+        <div class="rem-stat-card completed" onclick="Reminders.setFilter('completed')">
+            <span class="rem-stat-icon">✅</span>
+            <div class="rem-stat-value" id="remStatCompleted">0</div>
+            <div class="rem-stat-label">Done</div>
+        </div>
+    </div>
+
+    <!-- Filters & Search -->
+    <div class="rem-controls">
+        <div class="rem-filter-row">
+            <button class="rem-filter-btn active" data-filter="all" onclick="Reminders.setFilter('all')">All</button>
+            <button class="rem-filter-btn" data-filter="active" onclick="Reminders.setFilter('active')">Active</button>
+            <button class="rem-filter-btn" data-filter="overdue" onclick="Reminders.setFilter('overdue')">Overdue</button>
+            <button class="rem-filter-btn" data-filter="due-today" onclick="Reminders.setFilter('due-today')">Today</button>
+            <button class="rem-filter-btn" data-filter="completed" onclick="Reminders.setFilter('completed')">Done</button>
+        </div>
+        <div class="rem-search-row">
+            <input type="text" class="rem-search" id="remSearchInput" placeholder="Search reminders...">
+            <select class="rem-category-filter" id="remCategoryFilter">
+                <option value="all">All Categories</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Task List -->
+    <div class="rem-task-list" id="remTaskList">
+        <div class="rem-empty">
+            <div class="rem-empty-icon">📋</div>
+            <p>Loading...</p>
+        </div>
+    </div>
+
+    <!-- Add Button (FAB) -->
+    <button class="rem-fab" onclick="Reminders.showAdd()" aria-label="Add reminder">＋</button>
+
+</div>
+</div>
+
+<!-- Edit / Add Modal -->
+<div class="rem-modal-overlay" id="remEditModal" style="display: none;">
+    <div class="rem-modal">
+        <div class="rem-modal-header">
+            <h3 id="remEditModalTitle">New Reminder</h3>
+            <button class="rem-modal-close" onclick="Reminders.closeEdit()">&times;</button>
+        </div>
+        <div class="rem-modal-body">
+            <div class="rem-field">
+                <label>Title</label>
+                <input type="text" id="remEditTitle" placeholder="e.g., Review expiring policies" maxlength="120">
+            </div>
+            <div class="rem-field">
+                <label>Notes</label>
+                <textarea id="remEditNotes" rows="3" placeholder="Additional details, links, instructions..."></textarea>
+            </div>
+            <div class="rem-field-row">
+                <div class="rem-field">
+                    <label>Due Date</label>
+                    <input type="date" id="remEditDueDate">
+                </div>
+                <div class="rem-field">
+                    <label>Frequency</label>
+                    <select id="remEditFrequency">
+                        <option value="once">One-time</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly" selected>Weekly</option>
+                        <option value="biweekly">Biweekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+            </div>
+            <div class="rem-field-row">
+                <div class="rem-field">
+                    <label>Category</label>
+                    <select id="remEditCategory"></select>
+                </div>
+                <div class="rem-field">
+                    <label>Priority</label>
+                    <select id="remEditPriority">
+                        <option value="low">Low</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="rem-modal-footer">
+            <button class="btn-auth btn-auth-secondary" onclick="Reminders.closeEdit()">Cancel</button>
+            <button class="btn-auth btn-auth-primary" onclick="Reminders.saveEdit()" style="margin-top:0;">Save</button>
+        </div>
+    </div>
+</div>
