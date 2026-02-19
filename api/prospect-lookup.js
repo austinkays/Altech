@@ -155,8 +155,9 @@ async function searchLIContractor(businessName, ubi) {
       const cleanUbi = ubi.replace(/-/g, '');
       params.append('$where', `ubi='${cleanUbi}' OR ubi='${ubi}'`);
     } else {
-      // Search by business name (case-insensitive, partial match)
-      params.append('$where', `upper(businessname) LIKE upper('%${businessName}%')`);
+      // Sanitize business name for SoQL: escape single quotes, strip chars that break queries
+      const safeName = businessName.replace(/'/g, "''").replace(/[\\%_]/g, '');
+      params.append('$where', `upper(businessname) LIKE upper('%${safeName}%')`);
     }
     params.append('$limit', '10'); // Limit results
     params.append('$order', 'licenseexpirationdate DESC'); // Most recent first
@@ -709,7 +710,8 @@ async function searchOSHAInspections(businessName, city, state) {
   try {
     console.log(`[OSHA Lookup] Querying OSHA database for: ${businessName}`);
 
-    const baseUrl = 'https://data.dol.gov/get/inspection';
+    // DOL Enforcement API for OSHA inspection data
+    const baseUrl = 'https://enforcedata.dol.gov/api/osha_inspection';
 
     const params = new URLSearchParams({
       estab_name: businessName,
@@ -731,8 +733,13 @@ async function searchOSHAInspections(businessName, city, state) {
       }
     });
 
-    if (!response.ok) {
-      console.error(`[OSHA Lookup] API returned ${response.status}`);
+    // Check if response is actually JSON before parsing
+    const contentType = response.headers.get('content-type') || '';
+    const responseText = await response.text();
+
+    if (!response.ok || !contentType.includes('json')) {
+      // API returned HTML error page or non-JSON — treat as no results
+      console.warn(`[OSHA Lookup] API returned ${response.status}, content-type: ${contentType}`);
       return {
         success: true,
         available: true,
@@ -755,14 +762,28 @@ async function searchOSHAInspections(businessName, city, state) {
       };
     }
 
-    const rawData = await response.json();
+    let rawData;
+    try {
+      rawData = JSON.parse(responseText);
+    } catch (parseErr) {
+      console.error('[OSHA Lookup] JSON parse failed:', parseErr.message);
+      return {
+        success: true,
+        available: true,
+        source: 'U.S. Department of Labor - OSHA',
+        establishment: { name: businessName, city: city || '', state: state || '' },
+        summary: { totalInspections: 0, seriousViolations: 0, otherViolations: 0, willfulViolations: 0, repeatViolations: 0, totalPenalties: 0, lastInspection: null },
+        inspections: []
+      };
+    }
+
     console.log(`[OSHA Lookup] Found ${rawData.length || 0} inspection(s)`);
 
     const inspectionsWithViolations = [];
 
     for (const inspection of rawData.slice(0, 10)) {
       try {
-        const violationsUrl = `https://data.dol.gov/get/violation?activity_nr=${encodeURIComponent(inspection.activity_nr)}&format=json`;
+        const violationsUrl = `https://enforcedata.dol.gov/api/osha_violation?activity_nr=${encodeURIComponent(inspection.activity_nr)}&format=json`;
         const violationsResponse = await fetch(violationsUrl, {
           headers: {
             'User-Agent': 'Altech-Insurance-Platform/1.0',
@@ -772,7 +793,10 @@ async function searchOSHAInspections(businessName, city, state) {
 
         let violations = [];
         if (violationsResponse.ok) {
-          violations = await violationsResponse.json();
+          const vioContentType = violationsResponse.headers.get('content-type') || '';
+          if (vioContentType.includes('json')) {
+            try { violations = await violationsResponse.json(); } catch (e) { /* ignore parse errors */ }
+          }
         }
 
         inspectionsWithViolations.push({

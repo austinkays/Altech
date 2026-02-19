@@ -762,29 +762,25 @@ This data is ready to paste into your quoting system.
                 window.print();
             },
 
-            // Producer Selection
-            currentProducer: 'austin', // Default to Austin
-
-            setProducer(producer) {
-                this.currentProducer = producer;
-
-                // Update toggle button styling
-                document.getElementById('producerAustin').classList.toggle('active', producer === 'austin');
-                document.getElementById('producerNeil').classList.toggle('active', producer === 'neil');
-
-                console.log(`Producer set to: ${producer === 'austin' ? 'Austin AK' : 'Neil W'}`);
-            },
-
+            // Producer Info — derived from signed-in Firebase user
             getProducerInfo() {
-                return this.currentProducer === 'austin' ? {
-                    name: 'Austin AK',
-                    fullName: 'Austin Kay',
-                    email: 'austin@altechinsurance.com',
-                    phone: '(360) 573-3080'
-                } : {
-                    name: 'Neil W',
-                    fullName: 'Neil Wiebenga',
-                    email: 'neil@altechinsurance.com',
+                const user = typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser;
+                if (user) {
+                    const fullName = user.displayName || user.email.split('@')[0];
+                    const firstName = fullName.split(' ')[0];
+                    const initial = fullName.split(' ').length > 1 ? fullName.split(' ').slice(-1)[0][0] : '';
+                    return {
+                        name: initial ? `${firstName} ${initial}` : firstName,
+                        fullName: fullName,
+                        email: user.email || '',
+                        phone: '(360) 573-3080'
+                    };
+                }
+                // Fallback when not signed in
+                return {
+                    name: 'Agent',
+                    fullName: 'Agent',
+                    email: '',
                     phone: '(360) 573-3080'
                 };
             },
