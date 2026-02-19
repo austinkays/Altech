@@ -1,0 +1,141 @@
+
+<header>
+    <div class="header-top">
+        <div class="logo tool-header-brand">
+            <span class="logo-controls">
+                <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                    <span class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+                </button>
+                <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <span class="dark-mode-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+                </button>
+            </span>
+            <span>VIN Decoder</span>
+        </div>
+    </div>
+    <div class="step-title">Decode VINs & read them phonetically over the phone</div>
+</header>
+
+<div class="vin-container">
+    <!-- Input Card -->
+    <div class="vin-input-card">
+        <div class="vin-input-row">
+            <input type="text"
+                   id="vinInput"
+                   class="vin-input"
+                   placeholder="Enter 17-character VIN..."
+                   maxlength="17"
+                   autocomplete="off"
+                   spellcheck="false"
+                   style="text-transform: uppercase;">
+            <button class="vin-decode-btn" onclick="VinDecoder.decode()">
+                🔍 Decode
+            </button>
+        </div>
+        <div class="vin-input-actions">
+            <button class="vin-action-btn" onclick="VinDecoder.loadFromIntake()" title="Load VIN from intake form">
+                📥 From Intake
+            </button>
+            <button class="vin-action-btn" onclick="VinDecoder.copyVin()" title="Copy VIN to clipboard">
+                📋 Copy VIN
+            </button>
+            <button class="vin-action-btn" onclick="VinDecoder.clear()" title="Clear">
+                🗑 Clear
+            </button>
+        </div>
+        <p class="vin-input-hint">VINs use 17 characters (A-Z, 0-9 — no I, O, or Q). Press Enter to decode.</p>
+    </div>
+
+    <!-- Decode Result -->
+    <div id="vinResult" class="vin-result" style="display:none;"></div>
+
+    <!-- Recent History -->
+    <details class="vin-accordion" open>
+        <summary>
+            🕐 Recent VINs
+            <span class="vin-acc-chevron">▼</span>
+        </summary>
+        <div class="vin-acc-body">
+            <div id="vinHistory"></div>
+            <button class="vin-action-btn" onclick="VinDecoder.clearHistory()" style="margin-top:10px; font-size:11px;">
+                🗑 Clear History
+            </button>
+        </div>
+    </details>
+
+    <!-- Reference -->
+    <details class="vin-accordion">
+        <summary>
+            📖 VIN Structure Reference
+            <span class="vin-acc-chevron">▼</span>
+        </summary>
+        <div class="vin-acc-body">
+            <div class="vin-ref-table">
+                <div class="vin-ref-header">
+                    <span>Position</span><span>Section</span><span>What It Means</span>
+                </div>
+                <div class="vin-ref-row">
+                    <span class="vin-ref-pos">1</span>
+                    <span class="vin-tag vin-tag-blue">WMI</span>
+                    <span>Country where the vehicle was manufactured</span>
+                </div>
+                <div class="vin-ref-row">
+                    <span class="vin-ref-pos">2</span>
+                    <span class="vin-tag vin-tag-blue">WMI</span>
+                    <span>Manufacturer (e.g. Ford, Toyota, BMW)</span>
+                </div>
+                <div class="vin-ref-row">
+                    <span class="vin-ref-pos">3</span>
+                    <span class="vin-tag vin-tag-blue">WMI</span>
+                    <span>Vehicle type or manufacturing division</span>
+                </div>
+                <div class="vin-ref-row">
+                    <span class="vin-ref-pos">4–8</span>
+                    <span class="vin-tag vin-tag-purple">VDS</span>
+                    <span>Body style, engine type, restraint system, transmission</span>
+                </div>
+                <div class="vin-ref-row">
+                    <span class="vin-ref-pos">9</span>
+                    <span class="vin-tag vin-tag-purple">VDS</span>
+                    <span>Check digit — validates the VIN mathematically</span>
+                </div>
+                <div class="vin-ref-row">
+                    <span class="vin-ref-pos">10</span>
+                    <span class="vin-tag vin-tag-green">VIS</span>
+                    <span>Model year (A=2010, B=2011... S=2025, T=2026)</span>
+                </div>
+                <div class="vin-ref-row">
+                    <span class="vin-ref-pos">11</span>
+                    <span class="vin-tag vin-tag-green">VIS</span>
+                    <span>Assembly plant code</span>
+                </div>
+                <div class="vin-ref-row">
+                    <span class="vin-ref-pos">12–17</span>
+                    <span class="vin-tag vin-tag-green">VIS</span>
+                    <span>Sequential production / serial number</span>
+                </div>
+            </div>
+
+            <div class="vin-ref-note">
+                <strong>WMI</strong> = World Manufacturer Identifier &nbsp;·&nbsp;
+                <strong>VDS</strong> = Vehicle Descriptor Section &nbsp;·&nbsp;
+                <strong>VIS</strong> = Vehicle Identifier Section
+            </div>
+
+            <h4 class="vin-ref-subtitle">NATO Phonetic Alphabet</h4>
+            <div class="vin-phonetic-grid">
+                <span>A — Alpha</span><span>B — Bravo</span><span>C — Charlie</span>
+                <span>D — Delta</span><span>E — Echo</span><span>F — Foxtrot</span>
+                <span>G — Golf</span><span>H — Hotel</span><span>J — Juliet</span>
+                <span>K — Kilo</span><span>L — Lima</span><span>M — Mike</span>
+                <span>N — November</span><span>P — Papa</span><span>R — Romeo</span>
+                <span>S — Sierra</span><span>T — Tango</span><span>U — Uniform</span>
+                <span>V — Victor</span><span>W — Whiskey</span><span>X — X-ray</span>
+                <span>Y — Yankee</span><span>Z — Zulu</span>
+            </div>
+            <p class="vin-ref-note" style="margin-top:8px;">
+                Letters <strong>I</strong>, <strong>O</strong>, and <strong>Q</strong> are never used in VINs to avoid confusion with 1, 0, and 9.
+            </p>
+        </div>
+    </details>
+</div>

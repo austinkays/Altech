@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/reminders.css">
     <link rel="stylesheet" href="css/hawksoft.css">
+    <link rel="stylesheet" href="css/vin-decoder.css">
 
     <!-- Firebase SDK (compat mode — no build step needed) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -2211,6 +2212,7 @@
                 { key: 'hawksoft',     icon: '📤', color: 'icon-blue',    title: 'HawkSoft Export', name: 'HawkSoft Export',        containerId: 'hawksoftTool',     initModule: 'HawkSoftExport',    htmlFile: 'plugins/hawksoft.html',    category: 'ops' },
                 // ── Reference ──
                 { key: 'quickref',     icon: '📖', color: 'icon-blue',    title: 'Quick Reference', name: 'Quick Reference',        containerId: 'quickrefTool',     initModule: 'QuickRef',          htmlFile: 'plugins/quickref.html',    section: 'quickref', category: 'ref' },
+                { key: 'vindecoder',   icon: '🚗', color: 'icon-emerald', title: 'VIN Decoder',     name: 'VIN Decoder',            containerId: 'vinDecoderTool',   initModule: 'VinDecoder',        htmlFile: 'plugins/vin-decoder.html', category: 'ref' },
                 // ── Hidden / internal ──
                 { key: 'ezlynx',       icon: '📊', color: 'icon-blue',    title: 'EZLynx Quoter',   name: 'EZLynx Quoter',          containerId: 'ezlynxTool',       initModule: 'EZLynxTool',        htmlFile: 'plugins/ezlynx.html',     hidden: true },
                 // ┌────────────────────────────────────────────────────────────┐
@@ -12232,6 +12234,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         <!-- Plugin HTML loaded dynamically from plugins/ -->
     </div>
 
+    <!-- VIN DECODER TOOL CONTAINER -->
+    <div id="vinDecoderTool" class="plugin-container">
+        <!-- Plugin HTML loaded dynamically from plugins/ -->
+    </div>
+
     <!-- EZLYNX QUOTER TOOL CONTAINER -->
     <div id="ezlynxTool" class="plugin-container">
         <!-- Plugin HTML loaded dynamically from plugins/ -->
@@ -12384,6 +12391,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
     <script src="js/policy-qa.js"></script>
     <script src="js/reminders.js"></script>
     <script src="js/hawksoft-export.js"></script>
+    <script src="js/vin-decoder.js"></script>
 
 <script src="js/data-backup.js"></script>
 <script src="js/firebase-config.js"></script>

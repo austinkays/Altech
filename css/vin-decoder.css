@@ -1,0 +1,511 @@
+/* ═══════════════════════════════════════════════════ */
+/* VIN Decoder — Clean Reference Theme                */
+/* ═══════════════════════════════════════════════════ */
+
+.vin-container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 16px 80px;
+}
+
+/* ── Input Card ── */
+.vin-input-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+.vin-input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.vin-input {
+    flex: 1;
+    padding: 14px 16px;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    letter-spacing: 2.5px;
+    color: var(--text);
+    background: var(--bg-input);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.vin-input::placeholder {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0.3px;
+    color: var(--text-secondary);
+}
+.vin-input:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+.vin-decode-btn {
+    padding: 14px 24px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    color: #fff;
+    background: var(--apple-blue);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.vin-decode-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+}
+.vin-decode-btn:active {
+    transform: translateY(0);
+}
+.vin-input-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.vin-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.vin-action-btn:hover {
+    color: var(--text);
+    background: var(--bg-input);
+    border-color: var(--apple-blue);
+}
+.vin-input-hint {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ── Result Container ── */
+.vin-result {
+    margin-bottom: 16px;
+}
+
+/* ── Visual VIN (color-coded chars) ── */
+.vin-visual {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 16px 14px;
+    margin-bottom: 14px;
+    text-align: center;
+}
+.vin-visual-chars {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+.vin-vis-char {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 38px;
+    font-size: 17px;
+    font-weight: 800;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    border-radius: 8px;
+    border: 1.5px solid transparent;
+}
+.vin-vis-wmi {
+    background: rgba(0, 122, 255, 0.1);
+    color: var(--apple-blue);
+    border-color: rgba(0, 122, 255, 0.2);
+}
+.vin-vis-vds {
+    background: rgba(124, 58, 237, 0.1);
+    color: #a78bfa;
+    border-color: rgba(124, 58, 237, 0.2);
+}
+.vin-vis-vis {
+    background: rgba(52, 199, 89, 0.1);
+    color: var(--success);
+    border-color: rgba(52, 199, 89, 0.2);
+}
+.vin-visual-labels {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.vin-vis-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 2px 10px;
+    border-radius: 6px;
+}
+.vin-vis-wmi-label { color: var(--apple-blue); background: rgba(0, 122, 255, 0.08); }
+.vin-vis-vds-label { color: #a78bfa; background: rgba(124, 58, 237, 0.08); }
+.vin-vis-vis-label { color: var(--success); background: rgba(52, 199, 89, 0.08); }
+
+/* ── Summary Grid ── */
+.vin-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.vin-summary-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+}
+.vin-summary-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+.vin-summary-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+/* ── Sections (phonetic + breakdown) ── */
+.vin-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 14px;
+}
+.vin-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.vin-section-header h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+}
+.vin-copy-btn {
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--apple-blue);
+    background: transparent;
+    border: 1px solid var(--apple-blue);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.vin-copy-btn:hover {
+    background: rgba(0, 122, 255, 0.08);
+}
+
+/* ── Phonetic Readout ── */
+.vin-phonetic-readout {
+    padding: 14px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 2;
+    word-break: break-word;
+}
+.vin-phonetic-char {
+    font-weight: 800;
+    font-size: 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    color: var(--apple-blue);
+}
+.vin-phonetic-word {
+    font-weight: 500;
+    color: var(--text);
+}
+.vin-phonetic-sep {
+    color: var(--text-secondary);
+    opacity: 0.4;
+}
+.vin-phonetic-hint {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ── Character Breakdown ── */
+.vin-breakdown-legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+.vin-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+.vin-tag-blue {
+    background: rgba(0, 122, 255, 0.12);
+    color: var(--apple-blue);
+}
+.vin-tag-purple {
+    background: rgba(124, 58, 237, 0.12);
+    color: #a78bfa;
+}
+.vin-tag-green {
+    background: rgba(52, 199, 89, 0.12);
+    color: var(--success);
+}
+.vin-breakdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.vin-breakdown-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: border-color 0.15s;
+}
+.vin-breakdown-row:hover {
+    border-color: var(--apple-blue);
+}
+.vin-pos {
+    min-width: 32px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-align: center;
+}
+.vin-char-cell {
+    min-width: 36px;
+    font-size: 16px;
+    font-weight: 800;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    color: var(--text);
+    text-align: center;
+}
+.vin-breakdown-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+}
+.vin-breakdown-info strong {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+.vin-breakdown-info span {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ── Error State ── */
+.vin-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 59, 48, 0.08);
+    border: 1px solid rgba(255, 59, 48, 0.2);
+    border-radius: 12px;
+    color: var(--danger);
+    font-size: 14px;
+    margin-bottom: 14px;
+}
+.vin-error span:first-child {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+/* ── Accordion ── */
+.vin-accordion {
+    margin-bottom: 12px;
+}
+.vin-accordion summary {
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    transition: background 0.15s, border-color 0.15s;
+}
+.vin-accordion summary::-webkit-details-marker { display: none; }
+.vin-accordion summary .vin-acc-chevron {
+    margin-left: auto;
+    font-size: 12px;
+    opacity: 0.4;
+    transition: transform 0.25s ease;
+}
+.vin-accordion[open] summary .vin-acc-chevron {
+    transform: rotate(180deg);
+}
+.vin-accordion[open] summary {
+    border-radius: 14px 14px 0 0;
+    border-color: var(--apple-blue);
+    background: var(--bg-card);
+}
+.vin-accordion summary:hover {
+    border-color: var(--apple-blue);
+}
+.vin-acc-body {
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+    background: var(--bg-card);
+}
+
+/* ── History ── */
+.vin-history-empty {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+    text-align: center;
+    padding: 8px 0;
+}
+.vin-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 4px;
+}
+.vin-history-item:hover {
+    background: var(--bg-input);
+}
+.vin-history-vin {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    letter-spacing: 1.5px;
+    color: var(--text);
+}
+.vin-history-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+/* ── Reference Table ── */
+.vin-ref-table {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.vin-ref-header {
+    display: grid;
+    grid-template-columns: 60px 55px 1fr;
+    gap: 10px;
+    padding: 6px 12px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+}
+.vin-ref-row {
+    display: grid;
+    grid-template-columns: 60px 55px 1fr;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    border-radius: 8px;
+}
+.vin-ref-pos {
+    font-weight: 700;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    color: var(--text);
+    text-align: center;
+}
+.vin-ref-note {
+    margin-top: 12px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    border-radius: 10px;
+    line-height: 1.6;
+}
+.vin-ref-subtitle {
+    margin: 16px 0 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+/* ── Phonetic Alphabet Grid ── */
+.vin-phonetic-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+@media (max-width: 500px) {
+    .vin-phonetic-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .vin-vis-char {
+        width: 28px;
+        height: 34px;
+        font-size: 14px;
+    }
+    .vin-ref-header,
+    .vin-ref-row {
+        grid-template-columns: 50px 48px 1fr;
+        gap: 6px;
+    }
+}
