@@ -2,15 +2,17 @@
 // Do not edit this section in index.html; edit this file instead.
 
 const QR_STORAGE_KEY = 'altech_quickref_cards';
-const NATO = {
-    A:'Adam',B:'Baker',C:'Charlie',D:'David',E:'Edward',F:'Frank',
+const PHONETIC_ALPHABET = {
+    A:'Adam',B:'Boy',C:'Charles',D:'David',E:'Edward',F:'Frank',
     G:'George',H:'Henry',I:'Ida',J:'John',K:'King',L:'Lincoln',
-    M:'Mary',N:'Nancy',O:'Ocean',P:'Paul',Q:'Queen',R:'Robert',
-    S:'Sam',T:'Thomas',U:'Union',V:'Victor',W:'William',
+    M:'Mary',N:'Nora',O:'Ocean',P:'Paul',Q:'Queen',R:'Robert',
+    S:'Sam',T:'Tom',U:'Union',V:'Victor',W:'William',
     X:'X-ray',Y:'Young',Z:'Zebra',
     '0':'Zero','1':'One','2':'Two','3':'Three','4':'Four',
     '5':'Five','6':'Six','7':'Seven','8':'Eight','9':'Nine'
 };
+// Alias for backward compat
+const NATO = PHONETIC_ALPHABET;
 
 const QuickRef = {
     initialized: false,

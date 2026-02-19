@@ -10,14 +10,15 @@ window.VinDecoder = (() => {
 
     let _history = [];
 
-    // ── NATO Phonetic Alphabet ──
+    // ── APCO Phonetic Alphabet (Police / Insurance Industry Standard) ──
     const PHONETIC = {
-        'A': 'Alpha',   'B': 'Bravo',   'C': 'Charlie', 'D': 'Delta',
-        'E': 'Echo',    'F': 'Foxtrot', 'G': 'Golf',    'H': 'Hotel',
-        'J': 'Juliet',  'K': 'Kilo',    'L': 'Lima',    'M': 'Mike',
-        'N': 'November','P': 'Papa',    'R': 'Romeo',   'S': 'Sierra',
-        'T': 'Tango',   'U': 'Uniform', 'V': 'Victor',  'W': 'Whiskey',
-        'X': 'X-ray',   'Y': 'Yankee',  'Z': 'Zulu',
+        'A': 'Adam',    'B': 'Boy',     'C': 'Charles', 'D': 'David',
+        'E': 'Edward',  'F': 'Frank',   'G': 'George',  'H': 'Henry',
+        'I': 'Ida',     'J': 'John',    'K': 'King',    'L': 'Lincoln',
+        'M': 'Mary',    'N': 'Nora',    'O': 'Ocean',   'P': 'Paul',
+        'Q': 'Queen',   'R': 'Robert',  'S': 'Sam',     'T': 'Tom',
+        'U': 'Union',   'V': 'Victor',  'W': 'William', 'X': 'X-ray',
+        'Y': 'Young',   'Z': 'Zebra',
         '0': 'Zero',    '1': 'One',     '2': 'Two',     '3': 'Three',
         '4': 'Four',    '5': 'Five',    '6': 'Six',     '7': 'Seven',
         '8': 'Eight',   '9': 'Nine'
@@ -47,29 +48,67 @@ window.VinDecoder = (() => {
 
     // ── Position 2: Manufacturer ──
     const MANUFACTURER = {
-        // US / Japan / Germany — common combos (pos1 + pos2)
-        '1G': 'General Motors', '1C': 'Chrysler/FCA', '1F': 'Ford',
-        '1H': 'Honda', '1N': 'Nissan', '1L': 'Lincoln',
-        '2G': 'General Motors (Canada)', '2F': 'Ford (Canada)',
-        '2H': 'Honda (Canada)', '2T': 'Toyota (Canada)',
-        '3F': 'Ford (Mexico)', '3G': 'GM (Mexico)', '3N': 'Nissan (Mexico)',
-        '3V': 'Volkswagen (Mexico)',
-        '4T': 'Toyota', '5T': 'Toyota', '5F': 'Honda',
-        'JH': 'Honda', 'JT': 'Toyota', 'JN': 'Nissan',
-        'JM': 'Mazda', 'JF': 'Subaru (Fuji)', 'JS': 'Suzuki',
-        'KM': 'Hyundai', 'KN': 'Kia', '5N': 'Hyundai', '5X': 'Kia',
-        'WA': 'Audi', 'WB': 'BMW', 'WD': 'Mercedes-Benz',
-        'WF': 'Ford (Germany)', 'WP': 'Porsche', 'WV': 'Volkswagen',
-        'W0': 'Opel', 'W1': 'Mercedes-Benz',
-        'SA': 'Jaguar / Land Rover', 'SC': 'Lotus', 'SF': 'Aston Martin',
+        // ── United States (1, 4, 5) ──
+        '1B': 'Dodge', '1C': 'Chrysler/FCA', '1D': 'Dodge',
+        '1F': 'Ford', '1G': 'General Motors', '1H': 'Honda',
+        '1J': 'Jeep', '1L': 'Lincoln', '1M': 'Mercury',
+        '1N': 'Nissan', '1P': 'Plymouth', '1V': 'Volkswagen',
+        '1Y': 'Chrysler / Dodge', '19': 'FCA / Stellantis',
+        '4F': 'Mazda (US)', '4M': 'Mercury', '4S': 'Subaru (US)',
+        '4T': 'Toyota', '4U': 'BMW (US)',
+        '5F': 'Honda', '5L': 'Lincoln', '5N': 'Hyundai (US)',
+        '5T': 'Toyota', '5X': 'Kia (US)', '5Y': 'BMW (US)',
+        // ── Canada (2) ──
+        '2C': 'Chrysler (Canada)', '2F': 'Ford (Canada)',
+        '2G': 'General Motors (Canada)', '2H': 'Honda (Canada)',
+        '2M': 'Mercury (Canada)', '2T': 'Toyota (Canada)',
+        // ── Mexico (3) ──
+        '3C': 'Chrysler (Mexico)', '3F': 'Ford (Mexico)',
+        '3G': 'GM (Mexico)', '3H': 'Honda (Mexico)',
+        '3N': 'Nissan (Mexico)', '3V': 'Volkswagen (Mexico)',
+        // ── Japan (J) ──
+        'JA': 'Isuzu', 'JD': 'Daihatsu', 'JF': 'Subaru (Fuji)',
+        'JH': 'Honda', 'JK': 'Kawasaki', 'JL': 'Mitsubishi Trucks',
+        'JM': 'Mazda / Mitsubishi', 'JN': 'Nissan / Infiniti',
+        'JP': 'Honda (motorcycles)', 'JS': 'Suzuki',
+        'JT': 'Toyota / Lexus', 'JY': 'Yamaha',
+        // ── South Korea (K) ──
+        'KL': 'GM Daewoo / Chevrolet', 'KM': 'Hyundai',
+        'KN': 'Kia', 'KP': 'SsangYong',
+        // ── China (L) ──
+        'LB': 'BMW (China)', 'LF': 'Ford (China)',
+        'LH': 'Honda (China)', 'LL': 'Lifan',
+        'LS': 'GM (China)', 'LT': 'Toyota (China)',
+        'LV': 'Volkswagen (China)', 'LZ': 'MG / Roewe',
+        // ── United Kingdom (S) ──
+        'SA': 'Jaguar / Land Rover', 'SB': 'Toyota (UK)',
+        'SC': 'Lotus', 'SF': 'Aston Martin',
         'SH': 'Honda (UK)', 'SJ': 'Jaguar',
-        'VF': 'Renault / Peugeot', 'VS': 'SEAT',
-        'YV': 'Volvo', 'YS': 'Saab',
-        'ZA': 'Alfa Romeo', 'ZF': 'Ferrari', 'ZH': 'Maserati',
-        'LF': 'Ford (China)', 'LH': 'Honda (China)', 'LT': 'Toyota (China)',
-        'MA': 'Mahindra', 'MH': 'Honda (Indonesia)',
-        '1V': 'Volkswagen', '19': 'FCA / Stellantis',
-        '2C': 'Chrysler (Canada)',
+        'TM': 'Hyundai (Czech Republic)', 'TR': 'Husqvarna',
+        // ── France / Spain (V) ──
+        'VF': 'Renault / Peugeot / Citroën', 'VN': 'Renault Trucks',
+        'VR': 'Renault', 'VS': 'SEAT', 'VV': 'Volkswagen (Spain)',
+        // ── Germany (W) ──
+        'W0': 'Opel', 'W1': 'Mercedes-Benz',
+        'WA': 'Audi', 'WB': 'BMW', 'WD': 'Mercedes-Benz',
+        'WF': 'Ford (Germany)', 'WM': 'smart (Mercedes)',
+        'WP': 'Porsche', 'WV': 'Volkswagen',
+        // ── Sweden / Finland (Y) ──
+        'YK': 'Saab', 'YS': 'Saab', 'YT': 'Saab',
+        'YV': 'Volvo',
+        // ── Italy (Z) ──
+        'ZA': 'Alfa Romeo', 'ZC': 'Fiat',
+        'ZD': 'Aprilia / Yamaha (Italy)', 'ZF': 'Ferrari',
+        'ZH': 'Maserati', 'ZL': 'Lamborghini',
+        // ── India / Southeast Asia (M) ──
+        'MA': 'Mahindra', 'MB': 'Suzuki (India)',
+        'MC': 'Hyundai (India)', 'MH': 'Honda (Indonesia)',
+        'MN': 'Ford (India)', 'MR': 'Toyota (Indonesia)',
+        // ── Australia (6) / Brazil (9) ──
+        '6F': 'Ford (Australia)', '6G': 'Holden (GM Australia)',
+        '6T': 'Toyota (Australia)',
+        '93': 'Volkswagen (Brazil)', '9B': 'Toyota (Brazil)',
+        '9C': 'Honda (Brazil)', '9F': 'Ford (Brazil)',
     };
 
     // ── Position 3: Vehicle Type / Division ──
@@ -230,7 +269,7 @@ window.VinDecoder = (() => {
                     </button>
                 </div>
                 <div class="vin-phonetic-readout">${_phonetic(result.vin)}</div>
-                <p class="vin-phonetic-hint">Read each character using the NATO phonetic alphabet for clear phone communication</p>
+                <p class="vin-phonetic-hint">Read each character using the APCO phonetic alphabet — the standard for insurance & police dispatchers</p>
             </div>`;
 
         // Position breakdown
