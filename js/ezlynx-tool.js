@@ -12,6 +12,7 @@ const EZLynxTool = {
         this.loadLogin();
         this.loadFormData();
         this._wireAutoSave();
+        this._restoreInstallGuide();
     },
 
     // ── Quick Login ──
@@ -849,6 +850,21 @@ const EZLynxTool = {
             }
         } catch (err) {
             App.toast('⚠️ ' + err.message);
+        }
+    },
+
+    // ── Extension Install Guide ──
+    dismissInstallGuide() {
+        const card = document.getElementById('ezInstallCard');
+        if (card) card.classList.add('dismissed');
+        try { localStorage.setItem('altech_ez_install_dismissed', '1'); } catch (e) { }
+    },
+
+    _restoreInstallGuide() {
+        const dismissed = localStorage.getItem('altech_ez_install_dismissed');
+        if (dismissed) {
+            const card = document.getElementById('ezInstallCard');
+            if (card) card.classList.add('dismissed');
         }
     }
 };
