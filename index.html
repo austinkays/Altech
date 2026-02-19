@@ -136,6 +136,14 @@
                 <div id="scanCoverage" class="hint" style="margin-top:12px; display:none;">Scan coverage: 0/0 fields applied</div>
             </div>
 
+            <!-- Recent Clients & Fresh Start -->
+            <div class="card" id="step0ClientCard">
+                <h2>👤 Begin Intake</h2>
+                <p class="section-subtitle">Start fresh or restore a previous client</p>
+                <button class="btn btn-primary" onclick="App.startFresh()" style="width:100%;margin-bottom:12px;">✨ New Client — Start Fresh</button>
+                <div id="step0ClientHistoryList"></div>
+            </div>
+
             <!-- Saved Drafts (Quick Load) -->
             <div class="card" id="quickStartDraftsCard" style="display:none;">
                 <h2>📋 Saved Drafts</h2>
@@ -4320,6 +4328,11 @@
                     }
                 }
                 
+                // Render client history on Quick Start page
+                if (curId === 'step-0') {
+                    this.renderStep0ClientHistory();
+                }
+
                 // Auto-select current data when landing on export page
                 if (curId === 'step-6') {
                     this.autoSaveClient();
@@ -11118,6 +11131,49 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                 if (typeof CloudSync !== 'undefined') {
                     try { CloudSync.schedulePush(); } catch(e) { /* ok */ }
                 }
+            },
+
+            startFresh() {
+                this.data = {};
+                this.drivers = [];
+                this.vehicles = [];
+                // Clear all form inputs
+                document.querySelectorAll('#mainContainer input, #mainContainer select, #mainContainer textarea').forEach(el => {
+                    if (el.type === 'checkbox' || el.type === 'radio') {
+                        el.checked = false;
+                    } else {
+                        el.value = '';
+                    }
+                });
+                // Save empty state
+                safeSave(this.storageKey, JSON.stringify(this.data));
+                this.handleType();
+                this.next();
+                this.toast('✨ Fresh form ready');
+            },
+
+            renderStep0ClientHistory() {
+                const container = document.getElementById('step0ClientHistoryList');
+                if (!container) return;
+                const clients = this.getClientHistory().slice(0, 5);
+                if (!clients.length) {
+                    container.innerHTML = '<div class="hint" style="text-align:center;padding:12px 0;">No previous clients yet</div>';
+                    return;
+                }
+                container.innerHTML = '<div style="font-weight:600;font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Recent Clients</div>' +
+                    clients.map(c => {
+                        const date = new Date(c.savedAt).toLocaleDateString();
+                        const addr = [c.data.addrCity, c.data.addrState].filter(Boolean).join(', ');
+                        return `<div class="ch-row">
+                            <div class="ch-info">
+                                <span class="ch-name">${this.escapeHTML(c.name)}</span>
+                                <span class="ch-meta">${this.escapeHTML(c.summary)}${addr ? ' • ' + this.escapeHTML(addr) : ''} • ${date}</span>
+                            </div>
+                            <div class="ch-actions">
+                                <button class="btn btn-primary btn-sm" onclick="App.loadClientFromHistory('${c.id}'); App.next();">Restore</button>
+                            </div>
+                        </div>`;
+                    }).join('');
             },
 
             renderClientHistory() {

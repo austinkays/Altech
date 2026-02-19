@@ -1515,10 +1515,13 @@ footer {
     .map-previews { grid-template-columns: 1fr 1fr; }
 }
 .export-card { border: 1px solid var(--border); background: var(--bg-card); }
+#step-6 > .card,
+#step-6 > .export-btn-row { margin-bottom: 8px; }
+#step-6 > .export-btn-row { padding-bottom: 0; }
 /* Hero export card — centered call-to-action */
 .hero-export {
     text-align: center;
-    padding: 32px 24px;
+    padding: 24px 20px;
     border: 1px solid rgba(0, 122, 255, 0.25);
     background: linear-gradient(160deg, var(--bg-card) 60%, rgba(0, 122, 255, 0.04) 100%);
     position: relative;
