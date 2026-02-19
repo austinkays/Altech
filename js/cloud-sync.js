@@ -518,35 +518,45 @@ const CloudSync = (() => {
             dialog.style.display = 'flex';
 
             let conflictHTML = conflicts.map((c, i) => {
+                const icon = c.type === 'CGL Compliance State' ? '🛡️' :
+                             c.type === 'Current Form' ? '📝' :
+                             c.type === 'Quick Reference Cards' ? '🗂️' : '📄';
                 if (c.quoteConflicts) {
                     return `<div class="conflict-item">
-                        <h4>📋 ${c.type}</h4>
-                        <p>${c.quoteConflicts.length} quote(s) were modified on another device. Conflict copies have been created with "(conflict copy)" in the name.</p>
+                        <div class="conflict-item-header">
+                            <span class="conflict-icon">${icon}</span>
+                            <span class="conflict-label">${c.type}</span>
+                        </div>
+                        <p>${c.quoteConflicts.length} quote(s) modified on another device. Conflict copies created.</p>
                         <p class="conflict-hint">Review your Quote Library to merge or delete duplicates.</p>
                     </div>`;
                 }
                 return `<div class="conflict-item">
-                    <h4>📋 ${c.type}</h4>
-                    <p>This data was modified on another device since your last sync.</p>
+                    <div class="conflict-item-header">
+                        <span class="conflict-icon">${icon}</span>
+                        <span class="conflict-label">${c.type}</span>
+                    </div>
+                    <p>Modified on another device since your last sync.</p>
                     <div class="conflict-actions">
                         <button class="btn-auth btn-auth-primary" onclick="CloudSync._resolveConflict(${i}, 'remote')">
-                            Use Cloud Version
+                            ☁️ Use Cloud
                         </button>
                         <button class="btn-auth btn-auth-secondary" onclick="CloudSync._resolveConflict(${i}, 'local')">
-                            Keep Local Version
+                            📱 Keep Local
                         </button>
                     </div>
                 </div>`;
             }).join('');
 
             dialog.innerHTML = `
-                <div class="auth-modal" style="max-width:500px">
+                <div class="auth-modal conflict-modal">
+                    <button class="auth-close" onclick="document.getElementById('conflictDialog').remove()">&times;</button>
+                    <div class="conflict-modal-icon">⚠️</div>
                     <div class="auth-modal-header">
-                        <h3>⚠️ Sync Conflicts</h3>
-                        <button class="auth-close" onclick="document.getElementById('conflictDialog').remove()">&times;</button>
+                        <h3>Sync Conflict</h3>
+                        <p class="auth-subtitle">Choose which version to keep</p>
                     </div>
                     <div class="auth-modal-body">
-                        <p style="margin-bottom:1rem;color:var(--text-secondary)">Changes were made on another device. Choose which version to keep:</p>
                         ${conflictHTML}
                     </div>
                 </div>
