@@ -7,25 +7,6 @@
     padding: 0 16px 100px;
 }
 
-.rem-header {
-    text-align: center;
-    margin-bottom: 28px;
-}
-
-.rem-title {
-    font-size: 24px;
-    font-weight: 800;
-    color: var(--text);
-    margin: 0 0 4px;
-    letter-spacing: -0.3px;
-}
-
-.rem-subtitle {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin: 0;
-}
-
 /* ===== Stats Grid — Glassmorphism cards ===== */
 .rem-stats-grid {
     display: grid;
@@ -171,10 +152,12 @@
 .rem-search-row {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .rem-search {
     flex: 1;
+    min-width: 0;
     padding: 11px 16px;
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -184,6 +167,11 @@
     font-family: inherit;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.rem-search::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
 }
 
 .rem-search:focus {
@@ -644,48 +632,44 @@
 
 /* ===== Dark Mode ===== */
 body.dark-mode .rem-stat-card {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #1C1C1E;
+    border-color: #38383A;
     box-shadow:
         0 1px 3px rgba(0, 0, 0, 0.4),
-        0 4px 16px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 body.dark-mode .rem-stat-card:hover {
-    background: rgba(255, 255, 255, 0.09);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: #2C2C2E;
+    border-color: #48484A;
     box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.35),
-        0 2px 8px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 body.dark-mode .rem-task-card {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #1C1C1E;
+    border-color: #38383A;
     box-shadow:
         0 1px 3px rgba(0, 0, 0, 0.4),
-        0 4px 16px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 body.dark-mode .rem-task-card:hover {
-    background: rgba(255, 255, 255, 0.09);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: #2C2C2E;
+    border-color: #48484A;
     box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.35),
-        0 2px 8px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 body.dark-mode .rem-filter-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #1C1C1E;
+    border-color: #38383A;
 }
 
 body.dark-mode .rem-filter-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: #2C2C2E;
 }
 
 body.dark-mode .rem-filter-btn.active {
@@ -711,27 +695,26 @@ body.dark-mode .rem-modal-overlay {
 }
 
 body.dark-mode .rem-modal {
-    background: rgba(28, 28, 30, 0.95);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: #1C1C1E;
+    border-color: #38383A;
     box-shadow:
         0 20px 60px rgba(0, 0, 0, 0.5),
-        0 8px 24px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 body.dark-mode .rem-modal-close {
-    background: rgba(255, 255, 255, 0.08);
+    background: #2C2C2E;
 }
 
 body.dark-mode .rem-modal-close:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: #3A3A3C;
 }
 
 body.dark-mode .rem-field input,
 body.dark-mode .rem-field select,
 body.dark-mode .rem-field textarea {
     background: #2C2C2E;
-    border-color: #48484A;
+    border-color: #38383A;
     color: #fff;
 }
 
@@ -743,7 +726,7 @@ body.dark-mode .rem-field textarea:focus {
 }
 
 body.dark-mode .rem-action-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: #2C2C2E;
 }
 
 body.dark-mode .rem-badge-overdue {
@@ -768,7 +751,7 @@ body.dark-mode .rem-badge-completed {
 }
 
 body.dark-mode .rem-badge-no-date {
-    background: rgba(255, 255, 255, 0.06);
+    background: #2C2C2E;
     color: #98989D;
 }
 
@@ -783,7 +766,7 @@ body.dark-mode .rem-freq {
 }
 
 body.dark-mode .rem-check-btn {
-    border-color: #48484A;
+    border-color: #38383A;
 }
 
 body.dark-mode .rem-check-btn:hover {

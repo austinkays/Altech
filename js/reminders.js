@@ -53,6 +53,13 @@ window.Reminders = (() => {
 
     // ── Date Helpers ──
 
+    /** Parse YYYY-MM-DD as local midnight (not UTC) */
+    function _parseLocalDate(dateStr) {
+        if (!dateStr) return new Date(NaN);
+        const [y, m, d] = dateStr.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }
+
     function _today() {
         const d = new Date();
         d.setHours(0, 0, 0, 0);
@@ -61,14 +68,13 @@ window.Reminders = (() => {
 
     function _formatDate(dateStr) {
         if (!dateStr) return '';
-        const d = new Date(dateStr);
+        const d = _parseLocalDate(dateStr);
         return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
     function _relativeDate(dateStr) {
         if (!dateStr) return '';
-        const due = new Date(dateStr);
-        due.setHours(0, 0, 0, 0);
+        const due = _parseLocalDate(dateStr);
         const today = _today();
         const diff = Math.round((due - today) / (1000 * 60 * 60 * 24));
         if (diff < 0) return `${Math.abs(diff)}d overdue`;
@@ -81,8 +87,7 @@ window.Reminders = (() => {
     function _getNextDueDate(task) {
         const freq = task.frequency || 'weekly';
         const today = _today();
-        const due = new Date(task.dueDate);
-        due.setHours(0, 0, 0, 0);
+        const due = _parseLocalDate(task.dueDate);
 
         // If not yet due, keep current date
         if (due > today) return task.dueDate;
@@ -101,8 +106,7 @@ window.Reminders = (() => {
 
     function _getStatus(task) {
         if (!task.dueDate) return 'no-date';
-        const due = new Date(task.dueDate);
-        due.setHours(0, 0, 0, 0);
+        const due = _parseLocalDate(task.dueDate);
         const today = _today();
         const diff = Math.round((due - today) / (1000 * 60 * 60 * 24));
 
@@ -295,7 +299,7 @@ window.Reminders = (() => {
             // Within same status, sort by priority then date
             const pOrd = { high: 0, normal: 1, low: 2 };
             if (pOrd[a.priority] !== pOrd[b.priority]) return pOrd[a.priority] - pOrd[b.priority];
-            return new Date(a.dueDate) - new Date(b.dueDate);
+            return _parseLocalDate(a.dueDate) - _parseLocalDate(b.dueDate);
         });
 
         if (tasks.length === 0) {

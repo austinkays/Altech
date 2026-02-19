@@ -17,18 +17,11 @@
             </button>
         </div>
     </div>
-    <div class="step-title">Weekly Tasks & Reminders</div>
-    <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
+    <div class="step-title">Task Reminders</div>
 </header>
 
 <div style="padding-top: 20px;">
 <div class="rem-container">
-
-    <!-- Header -->
-    <div class="rem-header">
-        <h1 class="rem-title">Task Reminders</h1>
-        <p class="rem-subtitle">Track recurring tasks and weekly to-dos</p>
-    </div>
 
     <!-- Stats Cards -->
     <div class="rem-stats-grid">
@@ -65,7 +58,9 @@
         </div>
         <div class="rem-search-row">
             <input type="text" class="rem-search" id="remSearchInput" placeholder="Search reminders...">
-            <select class="rem-category-filter" id="remCategoryFilter">
+        </div>
+        <div class="rem-search-row" style="margin-top: 8px;">
+            <select class="rem-category-filter" id="remCategoryFilter" style="flex:1;">
                 <option value="all">All Categories</option>
             </select>
         </div>
