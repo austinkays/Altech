@@ -430,6 +430,92 @@ body.dark-mode .conflict-item {
     border-color: rgba(255, 255, 255, 0.08);
 }
 
+/* ── Intake Session Dialog ── */
+.intake-session-modal {
+    max-width: 380px;
+    padding: 1.75rem 1.5rem;
+    text-align: center;
+}
+
+.intake-session-icon {
+    font-size: 2.2rem;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.intake-session-modal .auth-modal-header {
+    margin-bottom: 1rem;
+}
+
+.intake-session-modal .auth-modal-header h3 {
+    font-size: 1.1rem;
+}
+
+.intake-session-preview {
+    background: var(--bg-secondary, #f5f5f7);
+    border: 1px solid var(--border-color, rgba(0,0,0,0.06));
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1.25rem;
+    text-align: left;
+}
+
+.intake-session-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary, #1d1d1f);
+    margin-bottom: 0.2rem;
+}
+
+.intake-session-meta {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #666);
+}
+
+.intake-session-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.intake-session-actions .btn-auth {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 10px;
+}
+
+.intake-session-actions .btn-auth-primary {
+    margin-top: 0;
+}
+
+.btn-auth-ghost {
+    background: transparent;
+    color: var(--text-secondary, #888);
+    border: none;
+    font-size: 0.82rem !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.btn-auth-ghost:hover {
+    color: var(--text-primary, #333);
+    background: rgba(0, 0, 0, 0.04);
+}
+
+body.dark-mode .intake-session-preview {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .btn-auth-ghost {
+    color: var(--text-secondary, #aaa);
+}
+
+body.dark-mode .btn-auth-ghost:hover {
+    color: var(--text-primary, #f5f5f7);
+    background: rgba(255, 255, 255, 0.06);
+}
+
 /* ── Dark Mode ── */
 body.dark-mode .auth-modal {
     background: var(--card-bg, #1c1c1e);

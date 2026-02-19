@@ -11278,6 +11278,96 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                 location.reload();
             },
 
+            /**
+             * Shows a session dialog when opening the intake tool with existing data.
+             * Returns: 'continue' | 'fresh' | 'save-fresh'
+             */
+            _showIntakeSessionDialog() {
+                return new Promise(resolve => {
+                    // Check if there's meaningful data worth prompting about
+                    const raw = localStorage.getItem(this.storageKey);
+                    if (!raw) return resolve('continue'); // No data — go straight to form
+                    let parsed;
+                    try { parsed = JSON.parse(raw); } catch { return resolve('continue'); }
+                    const hasName = (parsed.firstName || '').trim() || (parsed.lastName || '').trim();
+                    const hasAddress = (parsed.addrStreet || '').trim();
+                    const hasType = (parsed.qType || '').trim();
+                    if (!hasName && !hasAddress && !hasType) return resolve('continue'); // Trivial data
+
+                    // Build display info
+                    const name = [parsed.firstName, parsed.lastName].filter(Boolean).join(' ') || 'Unnamed client';
+                    const type = (parsed.qType || '').toUpperCase() || 'QUOTE';
+                    const addr = parsed.addrStreet ? `${parsed.addrStreet}, ${parsed.addrCity || ''} ${parsed.addrState || ''}`.replace(/,\s*$/, '') : '';
+
+                    const overlay = document.createElement('div');
+                    overlay.className = 'auth-modal-overlay';
+                    overlay.id = 'intakeSessionDialog';
+                    overlay.style.display = 'flex';
+                    overlay.innerHTML = `
+                        <div class="auth-modal intake-session-modal">
+                            <div class="intake-session-icon">📋</div>
+                            <div class="auth-modal-header">
+                                <h3>Existing Intake Found</h3>
+                                <p class="auth-subtitle">You have an in-progress intake</p>
+                            </div>
+                            <div class="intake-session-preview">
+                                <div class="intake-session-name">${this._escapeHTML(name)}</div>
+                                <div class="intake-session-meta">
+                                    ${type}${addr ? ' · ' + this._escapeHTML(addr) : ''}
+                                </div>
+                            </div>
+                            <div class="intake-session-actions">
+                                <button class="btn-auth btn-auth-primary intake-session-btn" data-choice="continue">
+                                    Continue Editing
+                                </button>
+                                <button class="btn-auth btn-auth-secondary intake-session-btn" data-choice="save-fresh">
+                                    Save Draft & Start Fresh
+                                </button>
+                                <button class="btn-auth btn-auth-ghost intake-session-btn" data-choice="fresh">
+                                    Discard & Start Fresh
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    overlay.addEventListener('click', (e) => {
+                        const btn = e.target.closest('[data-choice]');
+                        if (!btn) return;
+                        const choice = btn.dataset.choice;
+                        overlay.remove();
+                        resolve(choice);
+                    });
+
+                    document.body.appendChild(overlay);
+                });
+            },
+
+            /** Save current form data as a named draft (used by session dialog) */
+            async _saveCurrentAsDraft() {
+                const raw = localStorage.getItem(this.storageKey);
+                if (!raw) return;
+                let snapshot;
+                try { snapshot = JSON.parse(raw); } catch { return; }
+                const quotes = await this.getQuotes();
+                const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+                const title = this.getQuoteTitle(snapshot);
+                quotes.unshift({
+                    id,
+                    title,
+                    data: snapshot,
+                    updatedAt: new Date().toISOString(),
+                    starred: false
+                });
+                await this.saveQuotes(quotes);
+                this.toast('💾 Previous intake saved as draft');
+            },
+
+            _escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str || '';
+                return div.innerHTML;
+            },
+
             clearAllDrafts() {
                 if (!confirm('Clear all saved drafts?')) return;
                 localStorage.removeItem(this.quotesKey);
@@ -11793,7 +11883,30 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                 try {
                     // Quoting tool uses App.init(); all others use their module's init()
                     if (entry.key === 'quoting') {
-                        if (!this.initialized) await this.init();
+                        if (!this.initialized) {
+                            // Check for existing form data before init
+                            const choice = await this._showIntakeSessionDialog();
+                            if (choice === 'fresh') {
+                                // Clear form data, then init blank
+                                localStorage.removeItem(this.storageKey);
+                                this.data = {};
+                                this.drivers = [];
+                                this.vehicles = [];
+                                localStorage.removeItem('altech_drivers');
+                                localStorage.removeItem('altech_vehicles');
+                            } else if (choice === 'save-fresh') {
+                                // Save current as draft, then clear
+                                await this._saveCurrentAsDraft();
+                                localStorage.removeItem(this.storageKey);
+                                this.data = {};
+                                this.drivers = [];
+                                this.vehicles = [];
+                                localStorage.removeItem('altech_drivers');
+                                localStorage.removeItem('altech_vehicles');
+                            }
+                            // 'continue' — just proceed with existing data
+                            await this.init();
+                        }
                     } else if (entry.initModule) {
                         const mod = window[entry.initModule];
                         if (mod?.init) await mod.init();
