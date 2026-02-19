@@ -352,10 +352,13 @@
                 if (sosOk && data.sos.entity) {
                     document.getElementById('sosBusinessInfo').innerHTML = this.formatSOSData(data.sos);
                 } else {
-                    const errorMsg = data.sos?.error || 'No business entity records found';
+                    const manualSearchData = data.sos?.manualSearch;
+                    const errorMsg = manualSearchData
+                        ? 'WA SOS requires browser verification — use the link below to search manually.'
+                        : (data.sos?.error || 'No business entity records found');
                     const isError = !!data.sos?.error;
                     const sosLinks = {
-                        'WA': { url: 'https://ccfs.sos.wa.gov/#/Home/Search', label: 'WA SOS Search' },
+                        'WA': { url: 'https://ccfs.sos.wa.gov/#/BusinessSearch', label: 'WA SOS Search' },
                         'OR': { url: 'https://sos.oregon.gov/business/pages/find.aspx', label: 'OR SOS Search' },
                         'AZ': { url: 'https://ecorp.azcc.gov/BusinessSearch', label: 'AZ Corp Commission' }
                     };
@@ -363,7 +366,7 @@
 
                     document.getElementById('sosBusinessInfo').innerHTML = `
                         <div style="padding: 12px 16px; background: ${isError ? 'rgba(255, 59, 48, 0.06)' : 'rgba(255, 149, 0, 0.06)'}; border-left: 4px solid ${isError ? '#FF3B30' : '#FF9500'}; border-radius: 4px;">
-                            <p style="color: var(--text-secondary); margin: 0;">${isError ? '⚠️ ' : ''}${errorMsg}</p>
+                            <p style="color: var(--text-secondary); margin: 0;">${isError ? '⚠️ ' : '🔗 '}${errorMsg}</p>
                         </div>
                         ${sosLink ? `
                             <a href="${sosLink.url}" target="_blank" class="btn-secondary"

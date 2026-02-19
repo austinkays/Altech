@@ -500,6 +500,20 @@ async function searchSOSEntity(businessName, ubi, state) {
       };
     }
 
+    // If the scraper returned a manual search fallback (e.g. Turnstile-blocked)
+    if (entityData.manualSearch) {
+      return {
+        success: false,
+        available: true,
+        source: endpoint.name,
+        state: state,
+        manualSearch: true,
+        searchUrl: entityData.searchUrl,
+        searchTerm: entityData.searchTerm,
+        error: entityData.message
+      };
+    }
+
     return {
       success: true,
       available: true,
@@ -522,48 +536,80 @@ async function searchSOSEntity(businessName, ubi, state) {
 
 async function scrapeWASOS(businessName, ubi) {
   try {
-    console.log(`[WA SOS] Querying WA SOS Direct API by ${ubi ? 'UBI' : 'name'}: ${ubi || businessName}`);
+    console.log(`[WA SOS] Querying WA SOS API by ${ubi ? 'UBI' : 'name'}: ${ubi || businessName}`);
 
-    // Use WA Secretary of State Direct API (not Socrata)
-    // This is the authoritative source for legal entity data
-    const apiUrl = 'https://ccfs.sos.wa.gov/api/BusinessSearch/Search';
+    // WA SOS moved their API to ccfs-api.prod.sos.wa.gov (Jan 2026)
+    // and now requires Cloudflare Turnstile for searches.
+    // We try the new endpoint; if it blocks us, return a manual-search link.
+    const apiUrl = 'https://ccfs-api.prod.sos.wa.gov/api/BusinessSearch/GetBusinessSearchList';
 
-    // Build search payload
-    const searchPayload = {
-      searchTerm: ubi || businessName,
-      searchType: ubi ? 'UBI' : 'BusinessName',
-      status: 'All',
-      filingType: 'All'
-    };
+    // Build search payload matching the official AngularJS app format
+    const searchPayload = ubi
+      ? {
+          Type: 'UBI',
+          SearchType: 'UBI',
+          SearchEntityName: ubi.replace(/[\s-]/g, ''),
+          SearchValue: ubi.replace(/[\s-]/g, ''),
+          SearchCriteria: 'Contains',
+          IsSearch: true,
+          PageID: 1,
+          PageCount: 25
+        }
+      : {
+          Type: 'BusinessName',
+          SearchType: 'BusinessName',
+          SearchEntityName: businessName,
+          SortType: 'ASC',
+          SortBy: 'Entity Name',
+          SearchValue: businessName,
+          SearchCriteria: 'Contains',
+          IsSearch: true,
+          PageID: 1,
+          PageCount: 25
+        };
 
-    console.log('[WA SOS] API payload:', searchPayload);
+    console.log('[WA SOS] API payload:', JSON.stringify(searchPayload));
 
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'User-Agent': 'Altech-Insurance-Platform/1.0'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Origin': 'https://ccfs.sos.wa.gov',
+        'Referer': 'https://ccfs.sos.wa.gov/'
       },
       body: JSON.stringify(searchPayload)
     });
 
     console.log('[WA SOS] API response status:', response.status);
+
+    // If blocked by Turnstile or endpoint error, return manual search link
+    if (!response.ok) {
+      console.warn(`[WA SOS] API returned ${response.status} — likely Turnstile-blocked`);
+      const searchTerm = encodeURIComponent(ubi || businessName);
+      return {
+        manualSearch: true,
+        searchUrl: `https://ccfs.sos.wa.gov/#/BusinessSearch`,
+        searchTerm: ubi || businessName,
+        message: 'WA SOS requires browser verification. Use the link below to search manually.'
+      };
+    }
+
     const responseText = await response.text();
     console.log('[WA SOS] API response (first 200 chars):', responseText.substring(0, 200));
-
-    if (!response.ok) {
-      console.error(`[WA SOS] Direct API returned ${response.status}`);
-      console.error(`[WA SOS] Response body:`, responseText);
-      return null;
-    }
 
     let data;
     try {
       data = JSON.parse(responseText);
     } catch (e) {
       console.error('[WA SOS] Failed to parse JSON response:', e.message);
-      return null;
+      return {
+        manualSearch: true,
+        searchUrl: `https://ccfs.sos.wa.gov/#/BusinessSearch`,
+        searchTerm: ubi || businessName,
+        message: 'WA SOS returned an unexpected response. Use the link below to search manually.'
+      };
     }
 
     console.log(`[WA SOS] Found ${data.length || 0} result(s)`);
@@ -635,8 +681,13 @@ async function scrapeWASOS(businessName, ubi) {
     };
 
   } catch (error) {
-    console.error('[WA SOS] Direct API error:', error);
-    return null;
+    console.error('[WA SOS] API error:', error);
+    return {
+      manualSearch: true,
+      searchUrl: `https://ccfs.sos.wa.gov/#/BusinessSearch`,
+      searchTerm: ubi || businessName,
+      message: 'WA SOS lookup failed. Use the link below to search manually.'
+    };
   }
 }
 
