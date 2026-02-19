@@ -69,6 +69,84 @@ window.HawkSoftExport = (() => {
         else if (qType === 'both') _policyType = 'both';
         else _policyType = 'auto';
 
+        // ── Build FSC notes from property/risk details that lack CMSMTF keys ──
+        const noteLines = [];
+        if (d.dwellingType) noteLines.push(`Dwelling Type: ${d.dwellingType}`);
+        if (d.dwellingUsage) noteLines.push(`Dwelling Usage: ${d.dwellingUsage}`);
+        if (d.occupancyType) noteLines.push(`Occupancy: ${d.occupancyType}`);
+        if (d.sqFt) noteLines.push(`Sq Ft: ${d.sqFt}`);
+        if (d.numStories) noteLines.push(`Stories: ${d.numStories}`);
+        if (d.bedrooms) noteLines.push(`Bedrooms: ${d.bedrooms}`);
+        if (d.fullBaths || d.halfBaths) noteLines.push(`Baths: ${d.fullBaths || 0} full / ${d.halfBaths || 0} half`);
+        if (d.constructionStyle) noteLines.push(`Construction Style: ${d.constructionStyle}`);
+        if (d.foundation) noteLines.push(`Foundation: ${d.foundation}`);
+        if (d.roofType) noteLines.push(`Roof Type: ${d.roofType}`);
+        if (d.roofShape) noteLines.push(`Roof Shape: ${d.roofShape}`);
+        if (d.roofYr) noteLines.push(`Roof Year: ${d.roofYr}`);
+        if (d.heatingType) noteLines.push(`Heating: ${d.heatingType}`);
+        if (d.cooling) noteLines.push(`Cooling: ${d.cooling}`);
+        if (d.heatYr) noteLines.push(`Heating Updated: ${d.heatYr}`);
+        if (d.plumbYr) noteLines.push(`Plumbing Updated: ${d.plumbYr}`);
+        if (d.elecYr) noteLines.push(`Electrical Updated: ${d.elecYr}`);
+        if (d.garageType) noteLines.push(`Garage: ${d.garageType}${d.garageSpaces ? ' (' + d.garageSpaces + ' spaces)' : ''}`);
+        if (d.lotSize) noteLines.push(`Lot Size: ${d.lotSize}`);
+        if (d.pool) noteLines.push(`Pool: ${d.pool}`);
+        if (d.dogInfo) noteLines.push(`Dogs: ${d.dogInfo}`);
+        if (d.trampoline && d.trampoline !== 'No') noteLines.push(`Trampoline: ${d.trampoline}`);
+        if (d.woodStove && d.woodStove !== 'No') noteLines.push(`Wood Stove: ${d.woodStove}`);
+        if (d.businessOnProperty && d.businessOnProperty !== 'No') noteLines.push(`Business on Property: ${d.businessOnProperty}`);
+        if (d.smokeDetector) noteLines.push(`Smoke Detector: ${d.smokeDetector}`);
+        if (d.kitchenQuality) noteLines.push(`Kitchen Quality: ${d.kitchenQuality}`);
+        if (d.purchaseDate) noteLines.push(`Purchase Date: ${d.purchaseDate}`);
+        if (d.yearsAtAddress) noteLines.push(`Years at Address: ${d.yearsAtAddress}`);
+        if (d.numOccupants) noteLines.push(`Occupants: ${d.numOccupants}`);
+        if (d.windDeductible) noteLines.push(`Wind Deductible: ${d.windDeductible}`);
+        // Auto risk/history notes
+        if (d.priorCarrier) noteLines.push(`Prior Carrier: ${d.priorCarrier}`);
+        if (d.priorYears) noteLines.push(`Prior Years: ${d.priorYears}`);
+        if (d.priorPolicyTerm) noteLines.push(`Prior Policy Term: ${d.priorPolicyTerm}`);
+        if (d.priorLiabilityLimits) noteLines.push(`Prior BI Limits: ${d.priorLiabilityLimits}`);
+        if (d.priorExp) noteLines.push(`Prior Expiration: ${_fmtDate(d.priorExp)}`);
+        if (d.continuousCoverage) noteLines.push(`Continuous Coverage: ${d.continuousCoverage}`);
+        if (d.homePriorCarrier) noteLines.push(`Home Prior Carrier: ${d.homePriorCarrier}`);
+        if (d.homePriorYears) noteLines.push(`Home Prior Years: ${d.homePriorYears}`);
+        if (d.accidents) noteLines.push(`Accidents: ${d.accidents}`);
+        if (d.violations) noteLines.push(`Violations: ${d.violations}`);
+        if (d.studentGPA) noteLines.push(`Student GPA: ${d.studentGPA}`);
+        if (d.residenceIs) noteLines.push(`Residence: ${d.residenceIs}`);
+        // Home endorsements
+        if (d.waterBackup && d.waterBackup !== 'No') noteLines.push(`Water Backup: ${d.waterBackup}`);
+        if (d.lossAssessment) noteLines.push(`Loss Assessment: ${d.lossAssessment}`);
+        if (d.animalLiability && d.animalLiability !== 'No') noteLines.push(`Animal Liability: ${d.animalLiability}`);
+        if (d.equipmentBreakdown && d.equipmentBreakdown !== 'No') noteLines.push(`Equipment Breakdown: Yes`);
+        if (d.serviceLine && d.serviceLine !== 'No') noteLines.push(`Service Line: Yes`);
+        if (d.creditCardCoverage) noteLines.push(`Credit Card Coverage: ${d.creditCardCoverage}`);
+        if (d.moldDamage) noteLines.push(`Mold Damage: ${d.moldDamage}`);
+        if (d.theftDeductible) noteLines.push(`Theft Deductible: ${d.theftDeductible}`);
+        if (d.additionalInsureds) noteLines.push(`Additional Insureds: ${d.additionalInsureds}`);
+        // Contact preferences
+        if (d.contactTime) noteLines.push(`Best Contact Time: ${d.contactTime}`);
+        if (d.contactMethod) noteLines.push(`Contact Method: ${d.contactMethod}`);
+        if (d.tcpaConsent) noteLines.push(`TCPA Consent: ${d.tcpaConsent}`);
+        const fscNotes = noteLines.join(' | ');
+
+        // ── Determine policy form from intake ──
+        let policyForm = '';
+        if (d.homePolicyType) policyForm = d.homePolicyType; // HO3, HO5, etc.
+        else if (_policyType === 'auto') policyForm = 'PAP';
+
+        // ── Determine policy title ──
+        let policyTitle = '';
+        if (_policyType === 'home') policyTitle = 'Homeowners';
+        else if (_policyType === 'auto') policyTitle = 'Personal Auto';
+        else if (_policyType === 'both') policyTitle = 'Home + Auto';
+
+        // ── Resolve comp/coll deductibles for vehicles ──
+        const globalComp = d.compDeductible || '';
+        const globalColl = d.autoDeductible || '';
+        const globalTowing = d.towingDeductible && d.towingDeductible !== 'No Coverage' ? 'Yes' : 'No';
+        const globalRental = d.rentalDeductible && d.rentalDeductible !== 'No Coverage' ? 'Yes' : 'No';
+
         _exportData = {
             // Client block
             client: {
@@ -88,13 +166,29 @@ window.HawkSoftExport = (() => {
                 clientSource: d.referralSource || '',
                 clientNotes: '',
                 clientOffice: _settings.clientOffice || '1',
+                // Extra client data for misc slots
+                dob: d.dob || '',
+                gender: d.gender || '',
+                education: d.education || '',
+                occupation: d.occupation || '',
+                industry: d.industry || '',
+                prefix: d.prefix || '',
+                suffix: d.suffix || '',
+                // Co-applicant
+                coFirstName: d.coFirstName || '',
+                coLastName: d.coLastName || '',
+                coDob: d.coDob || '',
+                coGender: d.coGender || '',
+                coEmail: d.coEmail || '',
+                coPhone: d.coPhone || '',
+                coRelationship: d.coRelationship || '',
             },
             // Policy block
             policy: {
                 company: '',
                 policyNumber: '',
-                policyTitle: '',
-                policyForm: '',
+                policyTitle: policyTitle,
+                policyForm: policyForm,
                 effectiveDate: _fmtDate(d.effectiveDate) || '(today)',
                 expirationDate: '',
                 productionDate: '',
@@ -107,7 +201,7 @@ window.HawkSoftExport = (() => {
                 agencyId: _settings.agencyId || '',
                 policyOffice: _settings.policyOffice || '1',
                 program: '',
-                fscNotes: '',
+                fscNotes: fscNotes,
                 filingFee: '',
                 policyFee: '',
                 brokerFee: '',
@@ -138,8 +232,8 @@ window.HawkSoftExport = (() => {
                 burgAlarm: d.burglarAlarm || '',
                 fireAlarm: d.fireAlarm || '',
                 sprinkler: d.sprinklers || '',
-                deadbolt: '',
-                fireExtinguisher: '',
+                deadbolt: d.deadbolt === 'Yes' || d.deadbolt === true,
+                fireExtinguisher: d.fireExtinguisher === 'Yes' || d.fireExtinguisher === true,
                 county: d.county || '',
                 additionalRes: '',
                 covA: d.dwellingCoverage || '',
@@ -147,7 +241,7 @@ window.HawkSoftExport = (() => {
                 covC: '',
                 covD: '',
                 contentsReplacement: '',
-                homeReplacement: '',
+                homeReplacement: d.increasedReplacementCost === 'Yes' || d.increasedReplacementCost === true,
                 liability: d.personalLiability || '',
                 medical: d.medicalPayments || '',
                 deductible: d.homeDeductible || '',
@@ -185,8 +279,8 @@ window.HawkSoftExport = (() => {
                 middleInitial: '',
                 birthDate: _fmtDobShort(drv.dob) || '',
                 points: '',
-                licenseState: drv.dlState || '',
-                licenseNumber: drv.dlNum || '',
+                licenseState: (drv.dlState || '').toUpperCase(),
+                licenseNumber: (drv.dlNum || '').toUpperCase(),
                 excluded: 'No',
                 principalOperator: 'No',
                 onlyOperator: 'No',
@@ -195,9 +289,10 @@ window.HawkSoftExport = (() => {
                 sex: (drv.gender === 'M' || drv.gender === 'Male') ? 'Male' :
                      (drv.gender === 'F' || drv.gender === 'Female') ? 'Female' : '',
                 maritalStatus: drv.maritalStatus || '',
-                sr22Filing: drv.sr22 === 'Yes' || drv.sr22 === true ? 'Y' : '',
-                sr22State: drv.sr22 === 'Yes' || drv.sr22 === true ? (drv.dlState || '') : '',
-                sr22Reason: '',
+                sr22Filing: (drv.sr22 === 'Yes' || drv.sr22 === true || drv.fr44 === 'Yes' || drv.fr44 === true) ? 'Y' : '',
+                sr22State: (drv.sr22 === 'Yes' || drv.sr22 === true) ? (drv.dlState || '').toUpperCase() :
+                           (drv.fr44 === 'Yes' || drv.fr44 === true) ? (drv.dlState || '').toUpperCase() : '',
+                sr22Reason: drv.fr44 === 'Yes' || drv.fr44 === true ? 'FR-44' : '',
                 dateLicensed: '',
                 hiredDate: '',
                 cdlDate: '',
@@ -208,37 +303,45 @@ window.HawkSoftExport = (() => {
                 relationship: drv.relationship || 'Insured',
             })),
             // Vehicles (from intake)
-            vehicles: vehicles.map(veh => ({
-                make: (veh.make || '').toUpperCase(),
-                model: veh.model || '',
-                year: veh.year || '',
-                vin: veh.vin || '',
-                symbol: '',
-                territory: '',
-                addonEquip: '',
-                assignedDriver: '',
-                use: veh.use || '',
-                commuteMileage: '',
-                annualMileage: veh.miles || '',
-                gvw: '',
-                towing: 'No',
-                rental: 'No',
-                vehicleType: '',
-                fourWd: 'No',
-                comp: 'None',
-                coll: 'None',
-                umpd: '',
-                uimpd: '',
-                garagingZip: d.addrZip || '',
-                lossPayee: 'No',
-                additionalInterest: 'No',
-                lossPayeeName: '',
-                lossPayeeAddress: '',
-                lossPayeeAddr2: '',
-                lossPayeeCity: '',
-                lossPayeeState: '',
-                lossPayeeZip: '',
-            })),
+            vehicles: vehicles.map((veh, vIdx) => {
+                // Resolve primaryDriver to a 0-based driver index
+                let assignedDriver = '';
+                if (veh.primaryDriver && drivers.length) {
+                    const dIdx = drivers.findIndex(dr => dr.id === veh.primaryDriver);
+                    if (dIdx >= 0) assignedDriver = String(dIdx);
+                }
+                return {
+                    make: (veh.make || '').toUpperCase(),
+                    model: veh.model || '',
+                    year: veh.year || '',
+                    vin: (veh.vin || '').toUpperCase(),
+                    symbol: '',
+                    territory: '',
+                    addonEquip: '',
+                    assignedDriver: assignedDriver,
+                    use: veh.use || '',
+                    commuteMileage: '',
+                    annualMileage: veh.miles || '',
+                    gvw: '',
+                    towing: globalTowing,
+                    rental: globalRental,
+                    vehicleType: '',
+                    fourWd: 'No',
+                    comp: globalComp || 'None',
+                    coll: globalColl || 'None',
+                    umpd: '',
+                    uimpd: '',
+                    garagingZip: d.addrZip || '',
+                    lossPayee: veh.ownershipType === 'Leased' || veh.ownershipType === 'Lien' ? 'Yes' : 'No',
+                    additionalInterest: 'No',
+                    lossPayeeName: '',
+                    lossPayeeAddress: '',
+                    lossPayeeAddr2: '',
+                    lossPayeeCity: '',
+                    lossPayeeState: '',
+                    lossPayeeZip: '',
+                };
+            }),
         };
 
         // If no drivers exist but we have the main insured, create one
@@ -309,13 +412,29 @@ window.HawkSoftExport = (() => {
         lines.push(_line('gen_sEmailWork', c.emailWork));
         lines.push(_line('gen_lClientOffice', c.clientOffice));
 
-        // Misc data arrays (10 slots each, 3 sets)
-        for (let set = 0; set < 3; set++) {
-            const key = set === 0 ? 'gen_sClientMiscData' :
-                        set === 1 ? 'gen_sClientMisc2Data' : 'gen_sClientMisc3Data';
-            for (let i = 0; i < 10; i++) {
-                lines.push(_line(`${key}[${i}]`, ''));
-            }
+        // Client Misc Data Set 1: DOB, prefix, suffix, gender, education, occupation, industry
+        const miscData1 = [
+            c.dob, c.prefix, c.suffix, c.gender,
+            c.education, c.occupation, c.industry,
+            '', '', ''
+        ];
+        for (let i = 0; i < 10; i++) {
+            lines.push(_line(`gen_sClientMiscData[${i}]`, miscData1[i] || ''));
+        }
+
+        // Client Misc Data Set 2: Co-Applicant info
+        const miscData2 = [
+            c.coFirstName, c.coLastName, c.coDob, c.coGender,
+            c.coEmail, c.coPhone, c.coRelationship,
+            '', '', ''
+        ];
+        for (let i = 0; i < 10; i++) {
+            lines.push(_line(`gen_sClientMisc2Data[${i}]`, miscData2[i] || ''));
+        }
+
+        // Client Misc Data Set 3: unused
+        for (let i = 0; i < 10; i++) {
+            lines.push(_line(`gen_sClientMisc3Data[${i}]`, ''));
         }
 
         // ── Policy Meta Block ──

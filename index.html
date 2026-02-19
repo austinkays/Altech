@@ -3228,8 +3228,8 @@
                         lastName: fields.lastName || '',
                         dob: fields.dob || '',
                         gender: fields.gender || '',
-                        dlNum: fields.licenseNumber || '',
-                        dlState: fields.licenseState || fields.state || 'WA',
+                        dlNum: (fields.licenseNumber || '').toUpperCase(),
+                        dlState: (fields.licenseState || fields.state || 'WA').toUpperCase(),
                         relationship: 'Self',
                         occupation: ''
                     });
@@ -3240,8 +3240,8 @@
                         if (!primary.lastName) primary.lastName = fields.lastName || '';
                         if (!primary.dob) primary.dob = fields.dob || '';
                         if (!primary.gender) primary.gender = fields.gender || '';
-                        if (!primary.dlNum) primary.dlNum = fields.licenseNumber || '';
-                        if (!primary.dlState) primary.dlState = fields.licenseState || fields.state || 'WA';
+                        if (!primary.dlNum) primary.dlNum = (fields.licenseNumber || '').toUpperCase();
+                        if (!primary.dlState) primary.dlState = (fields.licenseState || fields.state || 'WA').toUpperCase();
                     }
                 }
 
@@ -4893,6 +4893,8 @@
             updateDriver(id, field, value) {
                 const driver = this.drivers.find(d => d.id === id);
                 if (driver) {
+                    // Normalize license # and state to uppercase
+                    if (field === 'dlNum' || field === 'dlState') value = (value || '').toUpperCase();
                     driver[field] = value;
                     this.saveDriversVehicles();
                 }
@@ -4926,8 +4928,8 @@
                 if (!driver.firstName && data.firstName) driver.firstName = data.firstName;
                 if (!driver.lastName && data.lastName) driver.lastName = data.lastName;
                 if (!driver.dob && data.dob) driver.dob = data.dob;
-                if (!driver.dlNum && data.licenseNumber) driver.dlNum = data.licenseNumber;
-                if (!driver.dlState && data.licenseState) driver.dlState = data.licenseState;
+                if (!driver.dlNum && data.licenseNumber) driver.dlNum = (data.licenseNumber || '').toUpperCase();
+                if (!driver.dlState && data.licenseState) driver.dlState = (data.licenseState || '').toUpperCase();
 
                 const setFieldIfEmpty = (id, value) => {
                     if (!value) return;
@@ -8876,11 +8878,11 @@ Sprinklers: ${data.sprinklers || ''}`;
                     notes += `
 
 === DRIVERS & VEHICLES ===
-${drivers.map((d, i) => `Driver ${i + 1}: ${[d.firstName, d.lastName].filter(Boolean).join(' ')} | Relationship: ${d.relationship || ''} | Occupation: ${d.occupation || ''} | DOB: ${fmt(d.dob)} | DL: ${d.dlNum || ''} (${d.dlState || ''})`).join('\n')}
+${drivers.map((d, i) => `Driver ${i + 1}: ${[d.firstName, d.lastName].filter(Boolean).join(' ')} | Relationship: ${d.relationship || ''} | Occupation: ${d.occupation || ''} | DOB: ${fmt(d.dob)} | DL: ${(d.dlNum || '').toUpperCase()} (${(d.dlState || '').toUpperCase()})`).join('\n')}
 ${vehicles.map((v, i) => { const desc = [v.year, v.make, v.model].filter(Boolean).join(' '); return `Vehicle ${i + 1}: ${desc || 'Unknown'} | VIN: ${v.vin || ''} | Use: ${v.use || ''} | Miles: ${v.miles || ''} | Primary Driver: ${this.resolveDriverName(v.primaryDriver, drivers)}`; }).join('\n')}
 Vehicle (Legacy): ${data.vehDesc || ''}
 VIN (Legacy): ${data.vin || ''}
-Driver's License: ${data.dlNum || ''} (${data.dlState || ''})
+Driver's License: ${(data.dlNum || '').toUpperCase()} (${(data.dlState || '').toUpperCase()})
 Usage: ${data.use || ''} | Annual Miles: ${data.miles || ''}
 Commute Distance: ${data.commuteDist || ''} miles
 Ride Sharing: ${data.rideSharing || 'No'}
@@ -9354,8 +9356,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                                 ['  Relationship', d.relationship || ''],
                                 ['  Education', d.education || ''],
                                 ['  Occupation', d.occupation || ''],
-                                ['  License #', d.dlNum || ''],
-                                ['  License State', d.dlState || ''],
+                                ['  License #', (d.dlNum || '').toUpperCase()],
+                                ['  License State', (d.dlState || '').toUpperCase()],
                             ];
                         }).flat();
                         detailTable(driverRows);
@@ -9721,7 +9723,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                         { tag: 'C10', value: data.studentGPA },
                         { tag: 'VIN', value: data.vin },
                         { tag: 'VEH', value: data.vehDesc },
-                        { tag: 'DL_NUM', value: data.dlNum },
+                        { tag: 'DL_NUM', value: (data.dlNum || '').toUpperCase() },
                         { tag: 'DL_STATE', value: data.dlState },
                         { tag: 'VEHICLE_USE', value: data.use }
                     );
@@ -10222,9 +10224,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                             xml += `      <DOB>${driverDob}</DOB>\n`;
                         }
                         if (driver.dlNum) {
-                            xml += `      <DLNumber>${escapeXML(driver.dlNum)}</DLNumber>\n`;
+                            xml += `      <DLNumber>${escapeXML((driver.dlNum || '').toUpperCase())}</DLNumber>\n`;
                         }
-                        xml += `      <DLState>${escapeXML(driver.dlState || state)}</DLState>\n`;
+                        xml += `      <DLState>${escapeXML((driver.dlState || state).toUpperCase())}</DLState>\n`;
                         if (driverMarital) {
                             xml += `      <MaritalStatus>${escapeXML(driverMarital)}</MaritalStatus>\n`;
                         }
@@ -10248,9 +10250,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                     }
                     xml += `      <DOB>${dob}</DOB>\n`;
                     if (data.dlNum) {
-                        xml += `      <DLNumber>${escapeXML(data.dlNum)}</DLNumber>\n`;
+                        xml += `      <DLNumber>${escapeXML((data.dlNum || '').toUpperCase())}</DLNumber>\n`;
                     }
-                    xml += `      <DLState>${escapeXML(data.dlState || state)}</DLState>\n`;
+                    xml += `      <DLState>${escapeXML((data.dlState || state).toUpperCase())}</DLState>\n`;
                     if (marital) {
                         xml += `      <MaritalStatus>${escapeXML(marital)}</MaritalStatus>\n`;
                     }
