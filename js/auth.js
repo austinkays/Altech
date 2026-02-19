@@ -46,8 +46,8 @@ const Auth = (() => {
             btn.title = user.email || 'Account';
             btn.classList.add('signed-in');
             if (indicator) {
-                indicator.textContent = user.displayName || user.email.split('@')[0];
-                indicator.style.display = 'inline';
+                indicator.textContent = '';
+                indicator.style.display = 'none';
             }
         } else {
             btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
@@ -170,8 +170,10 @@ const Auth = (() => {
                 // Populate account view
                 const emailEl = modal.querySelector('#authAccountEmail');
                 const nameEl = modal.querySelector('#authAccountName');
+                const avatarEl = modal.querySelector('#authAccountAvatar');
                 if (emailEl) emailEl.textContent = _user.email;
                 if (nameEl) nameEl.value = _user.displayName || '';
+                if (avatarEl) avatarEl.textContent = (_user.displayName || _user.email || '?')[0].toUpperCase();
             } else {
                 _showView('login');
             }

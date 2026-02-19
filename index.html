@@ -12201,18 +12201,24 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
 
             <!-- Login View -->
             <div class="auth-view" data-auth-view="login" style="display:block">
+                <div class="auth-brand">
+                    <div class="auth-brand-logo">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    </div>
+                    <div class="auth-brand-name">Altech</div>
+                </div>
                 <div class="auth-modal-header">
-                    <h3>Sign In</h3>
-                    <p class="auth-subtitle">Sync your data across devices</p>
+                    <h3>Welcome Back</h3>
+                    <p class="auth-subtitle">Sign in to sync your data across devices</p>
                 </div>
                 <form class="auth-form" onsubmit="Auth.handleLoginSubmit(event)">
                     <div class="auth-field">
                         <label for="authLoginEmail">Email</label>
-                        <input type="email" id="authLoginEmail" placeholder="you@example.com" required autocomplete="email">
+                        <input type="email" id="authLoginEmail" placeholder="you@company.com" required autocomplete="email">
                     </div>
                     <div class="auth-field">
                         <label for="authLoginPassword">Password</label>
-                        <input type="password" id="authLoginPassword" placeholder="Your password" required autocomplete="current-password">
+                        <input type="password" id="authLoginPassword" placeholder="Enter your password" required autocomplete="current-password">
                     </div>
                     <div class="auth-error" style="display:none"></div>
                     <button type="submit" class="btn-auth btn-auth-primary">Sign In</button>
@@ -12225,18 +12231,24 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
 
             <!-- Signup View -->
             <div class="auth-view" data-auth-view="signup" style="display:none">
+                <div class="auth-brand">
+                    <div class="auth-brand-logo">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    </div>
+                    <div class="auth-brand-name">Altech</div>
+                </div>
                 <div class="auth-modal-header">
                     <h3>Create Account</h3>
-                    <p class="auth-subtitle">Start syncing across your devices</p>
+                    <p class="auth-subtitle">Get started with cloud sync for your team</p>
                 </div>
                 <form class="auth-form" onsubmit="Auth.handleSignupSubmit(event)">
                     <div class="auth-field">
                         <label for="authSignupName">Display Name</label>
-                        <input type="text" id="authSignupName" placeholder="Your name (optional)" autocomplete="name">
+                        <input type="text" id="authSignupName" placeholder="Your name" autocomplete="name">
                     </div>
                     <div class="auth-field">
                         <label for="authSignupEmail">Email</label>
-                        <input type="email" id="authSignupEmail" placeholder="you@example.com" required autocomplete="email">
+                        <input type="email" id="authSignupEmail" placeholder="you@company.com" required autocomplete="email">
                     </div>
                     <div class="auth-field">
                         <label for="authSignupPassword">Password</label>
@@ -12244,7 +12256,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                     </div>
                     <div class="auth-field">
                         <label for="authSignupConfirm">Confirm Password</label>
-                        <input type="password" id="authSignupConfirm" placeholder="Confirm your password" required minlength="6" autocomplete="new-password">
+                        <input type="password" id="authSignupConfirm" placeholder="Re-enter your password" required minlength="6" autocomplete="new-password">
                     </div>
                     <div class="auth-error" style="display:none"></div>
                     <button type="submit" class="btn-auth btn-auth-primary">Create Account</button>
@@ -12258,12 +12270,12 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             <div class="auth-view" data-auth-view="reset" style="display:none">
                 <div class="auth-modal-header">
                     <h3>Reset Password</h3>
-                    <p class="auth-subtitle">We'll send you a reset link</p>
+                    <p class="auth-subtitle">Enter your email and we'll send you a reset link</p>
                 </div>
                 <form class="auth-form" onsubmit="Auth.handleResetSubmit(event)">
                     <div class="auth-field">
-                        <label for="authResetEmail">Email</label>
-                        <input type="email" id="authResetEmail" placeholder="you@example.com" required autocomplete="email">
+                        <label for="authResetEmail">Email Address</label>
+                        <input type="email" id="authResetEmail" placeholder="you@company.com" required autocomplete="email">
                     </div>
                     <div class="auth-error" style="display:none"></div>
                     <div class="auth-success" style="display:none"></div>
@@ -12277,6 +12289,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             <!-- Account View (signed in) -->
             <div class="auth-view" data-auth-view="account" style="display:none">
                 <div class="auth-modal-header">
+                    <div class="auth-account-avatar" id="authAccountAvatar">A</div>
                     <h3>Your Account</h3>
                 </div>
                 <div class="auth-account-info">
@@ -12286,17 +12299,20 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                     </div>
                     <div class="auth-field">
                         <label for="authAccountName">Display Name</label>
-                        <input type="text" id="authAccountName" placeholder="Your name">
-                        <button class="btn-auth btn-auth-small" onclick="Auth.updateName(document.getElementById('authAccountName').value)">Update</button>
+                        <div style="display:flex;gap:0.5rem;align-items:stretch">
+                            <input type="text" id="authAccountName" placeholder="Your name" style="flex:1">
+                            <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="Auth.updateName(document.getElementById('authAccountName').value)" style="white-space:nowrap">Update</button>
+                        </div>
                     </div>
+                    <div class="auth-divider">sync</div>
                     <div class="auth-sync-status">
                         <span id="authSyncStatus">Ready to sync</span>
-                        <button class="btn-auth btn-auth-small" onclick="CloudSync.fullSync()">Sync Now</button>
+                        <button class="btn-auth btn-auth-small btn-auth-primary" style="margin-top:0;width:auto;padding:0.4rem 1rem" onclick="CloudSync.fullSync()">Sync Now</button>
                     </div>
                 </div>
                 <div class="auth-account-actions">
                     <button class="btn-auth btn-auth-secondary" onclick="Auth.logout()">Sign Out</button>
-                    <button class="btn-auth btn-auth-danger" onclick="CloudSync.deleteCloudData()">Delete Cloud Data</button>
+                    <button class="btn-auth btn-auth-danger btn-auth-small" onclick="CloudSync.deleteCloudData()">Delete Cloud Data</button>
                 </div>
             </div>
         </div>

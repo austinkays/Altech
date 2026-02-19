@@ -278,6 +278,7 @@ body.dark-mode .logo-icon:hover {
 body.dark-mode .dark-mode-toggle {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.10);
+    color: #fff;
 }
 body.dark-mode .dark-mode-toggle:hover {
     background: rgba(255, 255, 255, 0.15);
