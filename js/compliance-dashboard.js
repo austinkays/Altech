@@ -1840,8 +1840,8 @@ const ComplianceDashboard = {
 
             const matchesStatus =
                 filterStatus === 'all' ||
-                (filterStatus === 'critical' && policy.status === 'critical') ||
-                (filterStatus === 'expiring-soon' && policy.status === 'expiring-soon') ||
+                (filterStatus === 'critical' && policy.daysUntilExpiration >= 0 && policy.daysUntilExpiration <= 14) ||
+                (filterStatus === 'expiring-soon' && (policy.status === 'expiring-soon' || (policy.status === 'critical' && policy.daysUntilExpiration > 14))) ||
                 (filterStatus === 'expired' && policy.status === 'expired') ||
                 (filterStatus === 'manual-verification' && policy.requiresManualVerification) ||
                 (filterStatus === 'not-updated' && !this.verifiedPolicies[policy.policyNumber]) ||
@@ -2028,8 +2028,8 @@ const ComplianceDashboard = {
     updateStats() {
         const visiblePolicies = this.policies.filter(p => !this.isHidden(p.policyNumber) && !this.hiddenTypes.includes(p.policyType || 'cgl'));
         document.getElementById('statTotal').textContent = visiblePolicies.length;
-        document.getElementById('statCritical').textContent = visiblePolicies.filter(p => p.status === 'critical').length;
-        document.getElementById('statExpiring').textContent = visiblePolicies.filter(p => p.status === 'expiring-soon').length;
+        document.getElementById('statCritical').textContent = visiblePolicies.filter(p => p.daysUntilExpiration >= 0 && p.daysUntilExpiration <= 14).length;
+        document.getElementById('statExpiring').textContent = visiblePolicies.filter(p => p.status === 'expiring-soon' || (p.status === 'critical' && p.daysUntilExpiration > 14)).length;
         document.getElementById('statExpired').textContent = visiblePolicies.filter(p => p.status === 'expired').length;
         document.getElementById('statManual').textContent = visiblePolicies.filter(p => p.requiresManualVerification).length;
         document.getElementById('statUpdated').textContent = Object.keys(this.verifiedPolicies).length;
