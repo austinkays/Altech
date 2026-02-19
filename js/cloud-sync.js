@@ -134,7 +134,7 @@ const CloudSync = (() => {
      */
     async function _pushDoc(docPath, localData, docType) {
         const ref = _userDoc(docPath);
-        if (!ref || localData === null) return;
+        if (!ref || localData == null) return { ok: true, skipped: true };
 
         try {
             await ref.set({
@@ -144,9 +144,10 @@ const CloudSync = (() => {
                 docType
             }, { merge: true });
             _markSynced(docType);
+            return { ok: true };
         } catch (e) {
-            console.error(`[CloudSync] Push failed for ${docPath}:`, e);
-            throw e;
+            console.error(`[CloudSync] Push failed for ${docPath}:`, e.code || e.message || e);
+            return { ok: false, docPath, error: e };
         }
     }
 
@@ -330,8 +331,8 @@ const CloudSync = (() => {
                     return;
                 }
 
-                // Push all data types in parallel
-                await Promise.all([
+                // Push all data types in parallel (tolerant of individual failures)
+                const results = await Promise.allSettled([
                     _pushDoc('settings', local.settings, 'settings'),
                     _pushDoc('currentForm', local.currentForm, 'currentForm'),
                     _pushDoc('cglState', local.cglState, 'cglState'),
@@ -341,12 +342,31 @@ const CloudSync = (() => {
                     local.quotes?.length ? _pushQuotes(local.quotes) : Promise.resolve()
                 ]);
 
-                _lastSyncTime = Date.now();
-                _notify('☁️ Synced to cloud', 'success');
+                const failures = results.filter(r => r.status === 'rejected' || (r.value && r.value.ok === false));
+                if (failures.length > 0) {
+                    console.warn(`[CloudSync] ${failures.length}/${results.length} doc(s) failed to push`);
+                    failures.forEach(f => {
+                        const detail = f.reason || f.value?.error;
+                        if (detail) console.warn('[CloudSync] Failure detail:', detail.code || detail.message || detail);
+                    });
+                }
+
+                // Only show error if ALL non-skipped docs failed
+                const attempted = results.filter(r => !(r.value && r.value.skipped));
+                const succeeded = attempted.filter(r => r.status === 'fulfilled' && r.value && r.value.ok);
+                if (attempted.length > 0 && succeeded.length === 0) {
+                    _notify('Sync failed — changes saved locally', 'error');
+                } else {
+                    _lastSyncTime = Date.now();
+                    if (failures.length === 0) {
+                        _notify('☁️ Synced to cloud', 'success');
+                    }
+                    // Partial success: silently continue (no toast to avoid noise)
+                }
                 console.log('[CloudSync] Push complete');
             } catch (e) {
-                _notify('Sync failed — changes saved locally', 'error');
-                console.error('[CloudSync] Push error:', e);
+                console.error('[CloudSync] Push error:', e.code || e.message || e);
+                // Don't show toast for transient/network errors during background sync
             } finally {
                 _syncing = false;
             }
