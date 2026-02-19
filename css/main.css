@@ -1610,6 +1610,55 @@ footer {
 @media (prefers-reduced-motion: reduce) {
     .hero-btn { animation: none !important; }
 }
+
+/* Export action buttons row (PDF + HawkSoft) */
+.export-btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 0 4px 0;
+}
+.export-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 18px 12px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.export-action-btn:hover {
+    border-color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.04);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+.export-action-btn:active {
+    transform: translateY(0);
+}
+.export-action-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+.export-action-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+.dark-mode .export-action-btn {
+    background: #1C1C1E;
+    border-color: #38383A;
+}
+.dark-mode .export-action-btn:hover {
+    background: #2C2C2E;
+    border-color: var(--apple-blue);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
 .export-stack { display: flex; flex-direction: column; gap: 12px; }
 .export-row { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .export-summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; }

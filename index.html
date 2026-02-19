@@ -2037,63 +2037,36 @@
         <div id="step-6" class="step hidden">
             <div class="card">
                 <h2>✓ Application Complete</h2>
-                <p class="section-subtitle">Choose how you'd like to export this information</p>
+                <p class="section-subtitle">Export this client's data or restore a previous client</p>
             </div>
 
-            <!-- Hero Export Card -->
+            <!-- Export Actions -->
             <div class="card export-card hero-export" id="ezlynx-export-card">
                 <h3>Ready to Export?</h3>
-                <p class="hero-desc">One click sends your intake data straight into EZLynx — no copy-paste, no manual entry.</p>
+                <p class="hero-desc">Send your intake data straight into EZLynx, download a PDF summary, or export to HawkSoft.</p>
                 <button class="hero-btn" onclick="App.launchEZLynxFromExport()">⚡ Auto-Fill EZLynx</button>
                 <p class="hero-hint">Opens EZLynx and fills the new-applicant form automatically</p>
             </div>
 
-            <!-- Secondary actions row -->
-            <div class="secondary-actions">
-                <button class="btn-outline" onclick="App.exportPDF()">📄 Download PDF Summary</button>
+            <!-- Prominent export buttons row -->
+            <div class="export-btn-row">
+                <button class="export-action-btn pdf-btn" onclick="App.exportPDF()">
+                    <span class="export-action-icon">📄</span>
+                    <span class="export-action-label">Download PDF</span>
+                </button>
+                <button class="export-action-btn hawksoft-btn" onclick="App.navigateTo('hawksoft')">
+                    <span class="export-action-icon">📤</span>
+                    <span class="export-action-label">HawkSoft Export</span>
+                </button>
             </div>
 
-            <div class="divider"></div>
-
-            <!-- Quote Library -->
+            <!-- Client History (auto-saved) -->
             <div class="card export-card">
-                <h3 style="margin:0 0 4px 0;">💾 Quote Library</h3>
-                <p class="section-subtitle" style="margin-bottom:12px;">Save drafts and export when ready</p>
-                <div class="export-row" style="margin-bottom:12px;">
-                    <button class="btn btn-secondary" onclick="App.saveQuote()">💾 Save Draft</button>
-                    <button class="btn btn-secondary" onclick="App.startNewDraft()">➕ New Draft</button>
+                <div class="ch-header">
+                    <h3 style="margin:0;">👤 Client History</h3>
                 </div>
-                <div style="margin-bottom:8px;">
-                    <input id="quoteSearch" class="quote-search-input" type="text" placeholder="🔍 Search drafts..." oninput="App.filterQuotes(this.value)">
-                </div>
-                <div id="quoteList" class="quote-list"></div>
-                <div class="export-row" style="margin-top:12px;">
-                    <button class="btn btn-tertiary" onclick="App.selectAllQuotes()">✅ Select All</button>
-                    <button class="btn btn-tertiary" onclick="App.clearQuoteSelection()">✖ Clear</button>
-                </div>
-                <div class="export-row" style="margin-top:8px;">
-                    <button class="btn btn-secondary" onclick="App.exportSelectedZip()">📦 Export Selected ZIP</button>
-                    <button class="btn btn-secondary" onclick="App.exportAllZip()">📦 Export All ZIP</button>
-                </div>
-                <div class="export-row" style="margin-top:8px;">
-                    <button class="btn btn-tertiary" onclick="App.clearAllDrafts()">🧹 Clear All Drafts</button>
-                </div>
-            </div>
-
-            <!-- Batch Import -->
-            <div class="card export-card">
-                <h3 style="margin:0 0 4px 0;">📋 Batch Import</h3>
-                <p class="section-subtitle" style="margin-bottom:12px;">Upload a spreadsheet to create multiple drafts at once</p>
-                <div class="export-row">
-                    <button class="btn btn-secondary" onclick="App.downloadCSVTemplate()">📄 Download CSV Template</button>
-                    <button class="btn btn-secondary" onclick="App.openBatchImport()">⬆️ Import CSV</button>
-                    <input id="batchCsvInput" type="file" accept=".csv" class="hidden" onchange="App.handleBatchImport(this.files[0])" />
-                </div>
-                <div class="hint" style="margin-top:8px;">Required: First Name, Last Name, Address Line 1, City, State Code, Zip Code.</div>
-            </div>
-
-            <div class="card export-card">
-                <button class="btn btn-tertiary btn-full" onclick="App.reset()">🗑️ Clear All Data & Start New</button>
+                <p class="section-subtitle" style="margin-bottom:12px;">Clients are saved automatically — restore any previous client instantly</p>
+                <div id="clientHistoryList"></div>
             </div>
 
             <!-- Export History -->
@@ -2106,19 +2079,6 @@
                         <p>Loading...</p>
                     </div>
                 </details>
-            </div>
-
-            <!-- Client History -->
-            <div class="card export-card">
-                <div class="ch-header">
-                    <h3 style="margin:0;">👤 Client History</h3>
-                    <div class="ch-header-actions">
-                        <button class="btn btn-primary btn-sm" onclick="App.saveClient()">💾 Save for Later</button>
-                        <button class="btn btn-tertiary btn-sm" onclick="App.clearClientHistory()" title="Clear all">🧹</button>
-                    </div>
-                </div>
-                <p class="section-subtitle" style="margin-bottom:12px;">Quickly restore a previous client — all 7 steps filled instantly</p>
-                <div id="clientHistoryList"></div>
             </div>
         </div>
     </main>
@@ -4362,8 +4322,8 @@
                 
                 // Auto-select current data when landing on export page
                 if (curId === 'step-6') {
-                    this.autoSaveCurrentQuote();
-                    this.updateExportButtons();
+                    this.autoSaveClient();
+                    this.renderClientHistory();
                 }
                 
                 // Update step title
@@ -11102,19 +11062,62 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                 this.toast(`✅ Restored ${client.name}`);
             },
 
+            autoSaveClient() {
+                const snapshot = JSON.parse(JSON.stringify(this.data || {}));
+                const firstName = (snapshot.firstName || '').trim();
+                const lastName = (snapshot.lastName || '').trim();
+                if (!firstName && !lastName) return; // No name = nothing to save
+
+                const clients = this.getClientHistory();
+                const name = [firstName, lastName].filter(Boolean).join(' ');
+
+                // Dedup: update existing entry if same name + address combo
+                const addr = `${snapshot.addrStreet || ''} ${snapshot.addrCity || ''} ${snapshot.addrState || ''}`.trim().toLowerCase();
+                const existingIdx = clients.findIndex(c => {
+                    const cName = (c.name || '').toLowerCase();
+                    const cAddr = `${c.data.addrStreet || ''} ${c.data.addrCity || ''} ${c.data.addrState || ''}`.trim().toLowerCase();
+                    return cName === name.toLowerCase() && addr && cAddr === addr;
+                });
+
+                if (existingIdx >= 0) {
+                    // Update existing entry with latest data
+                    clients[existingIdx].data = snapshot;
+                    clients[existingIdx].summary = this.getClientSummary(snapshot);
+                    clients[existingIdx].savedAt = new Date().toISOString();
+                    // Move to top
+                    const [updated] = clients.splice(existingIdx, 1);
+                    clients.unshift(updated);
+                } else {
+                    // New client — add to top
+                    const id = `ch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                    clients.unshift({
+                        id,
+                        name,
+                        summary: this.getClientSummary(snapshot),
+                        savedAt: new Date().toISOString(),
+                        data: snapshot
+                    });
+                }
+
+                // Cap at 50 entries
+                if (clients.length > 50) clients.length = 50;
+                this.saveClientHistory(clients);
+                this.renderClientHistory();
+                // Schedule cloud sync
+                if (typeof CloudSync !== 'undefined') {
+                    try { CloudSync.schedulePush(); } catch(e) { /* ok */ }
+                }
+            },
+
             deleteClientFromHistory(id) {
                 const clients = this.getClientHistory();
                 const filtered = clients.filter(c => c.id !== id);
                 this.saveClientHistory(filtered);
                 this.renderClientHistory();
                 this.toast('🗑️ Client removed');
-            },
-
-            clearClientHistory() {
-                if (!confirm('Clear all saved clients? This cannot be undone.')) return;
-                localStorage.removeItem(this.clientHistoryKey);
-                this.renderClientHistory();
-                this.toast('🧹 Client history cleared');
+                if (typeof CloudSync !== 'undefined') {
+                    try { CloudSync.schedulePush(); } catch(e) { /* ok */ }
+                }
             },
 
             renderClientHistory() {
@@ -11122,7 +11125,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                 if (!container) return;
                 const clients = this.getClientHistory();
                 if (!clients.length) {
-                    container.innerHTML = '<div class="hint" style="text-align:center;padding:24px 0;">No saved clients yet.<br>Click <strong>Save for Later</strong> to remember a client for quick re-quoting.</div>';
+                    container.innerHTML = '<div class="hint" style="text-align:center;padding:24px 0;">No saved clients yet.<br>Clients are saved automatically when you complete the form.</div>';
                     return;
                 }
                 container.innerHTML = clients.map(c => {
