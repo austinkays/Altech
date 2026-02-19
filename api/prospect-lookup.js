@@ -191,7 +191,29 @@ async function searchLIContractor(businessName, ubi) {
       };
     }
 
-    // Get the first (most relevant) result
+    // If searching by name (not UBI) and multiple results found, return list for selection
+    if (!ubi && data.length > 1) {
+      console.log('[L&I Lookup] Multiple results found - returning selection list');
+      return {
+        success: true,
+        available: true,
+        multipleResults: true,
+        source: 'WA Department of Labor & Industries (Socrata API)',
+        count: data.length,
+        results: data.slice(0, 20).map(c => ({
+          businessName: c.businessname || '',
+          ubi: c.ubi || '',
+          licenseNumber: c.contractorlicensenumber || '',
+          status: c.contractorlicensestatus || 'Unknown',
+          licenseType: c.contractorlicensetypecodedesc || 'General Contractor',
+          city: c.city || '',
+          state: c.state || 'WA',
+          expirationDate: c.licenseexpirationdate ? c.licenseexpirationdate.split('T')[0] : ''
+        }))
+      };
+    }
+
+    // Single result or UBI search - return full details
     const contractor = data[0];
 
     // Fetch principal/owner names from secondary dataset if we have UBI
@@ -312,7 +334,29 @@ async function searchORCCBContractor(businessName, licenseNumber) {
       };
     }
 
-    // Get the first (most relevant) result
+    // If searching by name (not license) and multiple results found, return list for selection
+    if (!licenseNumber && data.length > 1) {
+      console.log('[OR CCB Lookup] Multiple results found - returning selection list');
+      return {
+        success: true,
+        available: true,
+        multipleResults: true,
+        source: 'Oregon Construction Contractors Board (Socrata API)',
+        count: data.length,
+        results: data.slice(0, 20).map(c => ({
+          businessName: c.full_name || '',
+          ubi: c.license_number || '',
+          licenseNumber: c.license_number || '',
+          status: c.lic_exp_date ? 'Active' : 'Unknown',
+          licenseType: c.endorsement_text || c.license_type || 'Contractor',
+          city: c.city || '',
+          state: c.state || 'OR',
+          expirationDate: c.lic_exp_date || ''
+        }))
+      };
+    }
+
+    // Single result or license search - return full details
     const contractor = data[0];
 
     // Transform Socrata data to our standard format

@@ -37,9 +37,47 @@
                         this.searchOSHA(businessName, city, state)
                     ]);
 
-                    // Check if SOS returned multiple results
-                    if (sosData.multipleResults) {
-                        this.showBusinessSelection(sosData.results, businessName, city, state);
+                    // Check if either source returned multiple results — let user pick
+                    const liMultiple = liData && liData.multipleResults && liData.results;
+                    const sosMultiple = sosData && sosData.multipleResults && sosData.results;
+
+                    if (liMultiple || sosMultiple) {
+                        // Merge results from both sources, dedup by UBI
+                        const seen = new Set();
+                        const combined = [];
+
+                        // SOS results first (legal entity data)
+                        if (sosMultiple) {
+                            for (const r of sosData.results) {
+                                const key = (r.ubi || r.businessName).toUpperCase();
+                                if (!seen.has(key)) {
+                                    seen.add(key);
+                                    combined.push({ ...r, _source: 'SOS' });
+                                }
+                            }
+                        }
+                        // Then L&I results
+                        if (liMultiple) {
+                            for (const r of liData.results) {
+                                const key = (r.ubi || r.businessName).toUpperCase();
+                                if (!seen.has(key)) {
+                                    seen.add(key);
+                                    combined.push({
+                                        businessName: r.businessName,
+                                        ubi: r.ubi,
+                                        entityType: r.licenseType || 'Contractor',
+                                        status: r.status,
+                                        city: r.city,
+                                        formationDate: '',
+                                        licenseNumber: r.licenseNumber,
+                                        expirationDate: r.expirationDate,
+                                        _source: 'L&I'
+                                    });
+                                }
+                            }
+                        }
+
+                        this.showBusinessSelection(combined, businessName, city, state);
                         return;
                     }
 
@@ -80,27 +118,32 @@
                 // Show selection UI in the SOS section
                 document.getElementById('sosBusinessInfo').innerHTML = `
                     <div style="background: rgba(0, 122, 255, 0.05); border-left: 4px solid var(--apple-blue); padding: 16px; border-radius: 4px; margin-bottom: 20px;">
-                        <h3 style="margin: 0 0 12px 0;">📋 Multiple businesses found - Select one:</h3>
-                        <p style="margin: 0; color: var(--text-secondary);">Found ${results.length} businesses matching "${businessName}". Click to view full details.</p>
+                        <h3 style="margin: 0 0 12px 0;">📋 Multiple businesses found — select one:</h3>
+                        <p style="margin: 0; color: var(--text-secondary);">Found ${results.length} businesses matching "${businessName}". Tap to view full details.</p>
                     </div>
                     <div style="display: grid; gap: 12px;">
                         ${results.map((business, index) => `
                             <div class="business-option" onclick="ProspectInvestigator.selectBusiness('${(business.ubi || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\")}', '${(city || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\")}', '${(state || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\")}')"
-                                 style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; transition: all 0.2s;"
-                                 onmouseover="this.style.borderColor='var(--apple-blue)'; this.style.background='rgba(0,122,255,0.03)'"
-                                 onmouseout="this.style.borderColor='#e0e0e0'; this.style.background='white'">
+                                 style="padding: 16px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s; background: var(--bg-card);"
+                                 onmouseover="this.style.borderColor='var(--apple-blue)'; this.style.boxShadow='0 2px 8px rgba(0,122,255,0.15)'"
+                                 onmouseout="this.style.borderColor='var(--border)'; this.style.boxShadow='none'">
                                 <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start;">
                                     <div>
-                                        <h4 style="margin: 0 0 8px 0; color: var(--apple-blue); font-size: 16px;">${business.businessName}</h4>
-                                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 13px; color: var(--text-secondary);">
-                                            <div><strong>UBI:</strong> ${business.ubi}</div>
-                                            <div><strong>Type:</strong> ${business.entityType}</div>
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                            <h4 style="margin: 0; color: var(--apple-blue); font-size: 16px;">${business.businessName}</h4>
+                                            ${business._source ? `<span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: ${business._source === 'L&I' ? 'rgba(52,199,89,0.15)' : 'rgba(0,122,255,0.1)'}; color: ${business._source === 'L&I' ? 'var(--success)' : 'var(--apple-blue)'}; font-weight: 600;">${business._source}</span>` : ''}
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px; font-size: 13px; color: var(--text-secondary);">
+                                            ${business.ubi ? `<div><strong>UBI:</strong> ${business.ubi}</div>` : ''}
+                                            ${business.licenseNumber ? `<div><strong>License:</strong> ${business.licenseNumber}</div>` : ''}
+                                            <div><strong>Type:</strong> ${business.entityType || 'Unknown'}</div>
                                             ${business.city ? `<div><strong>City:</strong> ${business.city}</div>` : ''}
-                                            <div><strong>Status:</strong> <span style="color: ${business.status.toLowerCase().includes('active') ? 'green' : 'orange'};">${business.status}</span></div>
+                                            <div><strong>Status:</strong> <span style="color: ${(business.status || '').toLowerCase().includes('active') ? 'var(--success)' : 'orange'};">${business.status || 'Unknown'}</span></div>
+                                            ${business.expirationDate ? `<div><strong>Expires:</strong> ${business.expirationDate}</div>` : ''}
                                             ${business.formationDate ? `<div><strong>Formation:</strong> ${business.formationDate.split('T')[0]}</div>` : ''}
                                         </div>
                                     </div>
-                                    <div style="padding: 8px 16px; background: var(--apple-blue); color: white; border-radius: 6px; font-size: 13px; font-weight: 600;">
+                                    <div style="padding: 8px 16px; background: var(--apple-blue); color: white; border-radius: 6px; font-size: 13px; font-weight: 600; white-space: nowrap;">
                                         Select →
                                     </div>
                                 </div>
@@ -136,9 +179,9 @@
 
                     // Store combined data
                     this.currentData = {
-                        businessName: sosData.entity?.businessName || 'Selected Business',
+                        businessName: sosData.entity?.businessName || liData.contractor?.businessName || 'Selected Business',
                         ubi,
-                        city,
+                        city: sosData.entity?.principalOffice?.city || liData.contractor?.address?.city || city,
                         state,
                         li: liData,
                         sos: sosData,
