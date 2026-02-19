@@ -38,6 +38,23 @@ window.HawkSoftExport = (() => {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(_settings));
     }
 
+    function _buildClientHistoryOptions() {
+        if (typeof App === 'undefined' || !App.getClientHistory) return '';
+        const clients = App.getClientHistory();
+        if (!clients.length) return '';
+        return clients.map(c => {
+            const date = new Date(c.savedAt).toLocaleDateString();
+            const addr = [c.data && c.data.addrCity, c.data && c.data.addrState].filter(Boolean).join(', ');
+            const label = `${_escapeAttr(c.name)}${addr ? ' — ' + _escapeAttr(addr) : ''} (${date})`;
+            return `<option value="${_escapeAttr(c.id)}">${label}</option>`;
+        }).join('');
+    }
+
+    function _escapeAttr(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
     // Format date to MM/DD/YYYY for HawkSoft
     function _fmtDate(v) {
         if (!v) return '';
@@ -158,8 +175,24 @@ window.HawkSoftExport = (() => {
         const d = (typeof App !== 'undefined' && App.data) ? App.data : {};
         const drivers = (typeof App !== 'undefined' && App.drivers) ? App.drivers : [];
         const vehicles = (typeof App !== 'undefined' && App.vehicles) ? App.vehicles : [];
+        _loadFromData(d, drivers, vehicles);
+    }
 
-        // Pre-select types based on intake form
+    // ── Load from a Client History entry ─────────────────────
+    function _loadFromHistory(id) {
+        if (typeof App === 'undefined' || !App.getClientHistory) return;
+        const clients = App.getClientHistory();
+        const client = clients.find(c => c.id === id);
+        if (!client || !client.data) return;
+        const d = client.data;
+        const drivers = Array.isArray(d.drivers) ? d.drivers : [];
+        const vehicles = Array.isArray(d.vehicles) ? d.vehicles : [];
+        _loadFromData(d, drivers, vehicles);
+        render();
+        _showToast(`Loaded ${client.name}`, 'success');
+    }
+
+    function _loadFromData(d, drivers, vehicles) {
         const qType = d.qType || 'auto';
         if (qType === 'home') {
             _selectedTypes = { auto: false, home: true, commercial: false };
@@ -1144,6 +1177,9 @@ window.HawkSoftExport = (() => {
         const filledPolicy = [p.company, p.policyNumber, p.effectiveDate, p.term].filter(Boolean).length;
         const selectedCount = [showAuto, showHome, showCommercial].filter(Boolean).length;
 
+        // Build client history dropdown options
+        const clientHistoryOptions = _buildClientHistoryOptions();
+
         container.innerHTML = `
         <div id="hs_toastContainer" class="hs-toast-container"></div>
 
@@ -1159,6 +1195,20 @@ window.HawkSoftExport = (() => {
                 }
             </div>
         </div>
+
+        <!-- Client History Picker -->
+        ${clientHistoryOptions ? `
+        <div class="hs-client-picker">
+            <label class="hs-client-picker-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Load from Client History
+            </label>
+            <select id="hs_clientHistorySelect" class="hs-client-select" onchange="HawkSoftExport.loadFromHistory(this.value)">
+                <option value="">— Select a saved client —</option>
+                ${clientHistoryOptions}
+            </select>
+        </div>
+        ` : ''}
 
         <!-- Export Type Selector (Multi-Select Checkboxes) -->
         <div class="hs-section">
@@ -1642,6 +1692,7 @@ window.HawkSoftExport = (() => {
         toggleSection,
         toggleExportType,
         updateExpiration,
+        loadFromHistory: _loadFromHistory,
         addVehicle,
         removeVehicle,
         addDriver,
