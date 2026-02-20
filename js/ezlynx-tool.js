@@ -202,7 +202,26 @@ const EZLynxTool = {
             // Tauri not available or file not found
         }
 
-        // Neither method worked — not critical, Chrome Extension stores its own schema via scraping
+        // Try 4: localStorage (saved by importScrapedSchema on Vercel/web)
+        try {
+            const stored = localStorage.getItem('altech_ezlynx_schema');
+            if (stored) {
+                const raw = JSON.parse(stored);
+                const allKeys = Object.keys(raw).filter(k => !k.startsWith('_'));
+                const pages = raw._pages || {};
+                renderSchema({
+                    exists: true,
+                    dropdownCount: allKeys.length,
+                    lastModified: null,
+                    pages
+                });
+                return;
+            }
+        } catch (e) {
+            // corrupt localStorage data
+        }
+
+        // No schema found — not critical, Chrome Extension stores its own schema via scraping
         dot.className = 'ez-schema-dot missing';
         label.textContent = 'No schema file found';
         sub.textContent = 'Optional: Use Chrome Extension\'s scrape button on EZLynx pages — schema is stored automatically for smart filling.';
@@ -1016,12 +1035,22 @@ const EZLynxTool = {
                 return;
             }
 
-            // Load existing schema
+            // Load existing schema from any available source
             let existing = {};
             try {
                 const resp = await fetch('/ezlynx_schema.json');
                 if (resp.ok) existing = await resp.json();
-            } catch (e) { /* no existing schema */ }
+            } catch (e) { /* no server schema */ }
+            // Also merge any previously imported localStorage schema
+            try {
+                const stored = localStorage.getItem('altech_ezlynx_schema');
+                if (stored) {
+                    const local = JSON.parse(stored);
+                    for (const [k, v] of Object.entries(local)) {
+                        if (!existing[k]) existing[k] = v;
+                    }
+                }
+            } catch (e) { /* no local schema */ }
 
             let totalNewFields = 0;
             let totalUpdatedFields = 0;
@@ -1093,19 +1122,19 @@ const EZLynxTool = {
 
             if (saved) {
                 App.toast(`✅ Schema updated: ${totalNewFields} new fields, ${totalUpdatedFields} updated from ${filesProcessed} file(s).`);
-                // Refresh the schema status card so user sees the new data
-                this.checkSchema();
             } else {
-                // Last resort: download merged file (no server or Tauri available)
-                const blob = new Blob([mergedJSON], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'ezlynx_schema.json';
-                a.click();
-                URL.revokeObjectURL(url);
-                App.toast(`✅ Merged ${filesProcessed} file(s): ${totalNewFields} new, ${totalUpdatedFields} updated — file downloaded. Replace ezlynx_schema.json in project root.`);
+                // No server/Tauri — save to localStorage so the app can use it
+                try {
+                    localStorage.setItem('altech_ezlynx_schema', mergedJSON);
+                    saved = true;
+                    App.toast(`✅ Schema saved locally: ${totalNewFields} new fields, ${totalUpdatedFields} updated from ${filesProcessed} file(s).`);
+                } catch (e) {
+                    App.toast(`⚠️ Could not save schema: ${e.message}`);
+                }
             }
+
+            // Refresh the schema status card
+            this.checkSchema();
         } catch (err) {
             App.toast('⚠️ ' + err.message);
         }
