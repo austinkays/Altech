@@ -353,27 +353,56 @@
                     document.getElementById('sosBusinessInfo').innerHTML = this.formatSOSData(data.sos);
                 } else {
                     const manualSearchData = data.sos?.manualSearch;
-                    const errorMsg = manualSearchData
-                        ? 'WA SOS requires browser verification — use the link below to search manually.'
-                        : (data.sos?.error || 'No business entity records found');
-                    const isError = !!data.sos?.error;
                     const sosLinks = {
-                        'WA': { url: 'https://ccfs.sos.wa.gov/#/BusinessSearch', label: 'WA SOS Search' },
-                        'OR': { url: 'https://sos.oregon.gov/business/pages/find.aspx', label: 'OR SOS Search' },
-                        'AZ': { url: 'https://ecorp.azcc.gov/BusinessSearch', label: 'AZ Corp Commission' }
+                        'WA': { url: 'https://ccfs.sos.wa.gov/#/BusinessSearch', label: 'WA Secretary of State', tip: 'Complete the captcha, then search for the business name. Results show entity type, status, UBI, and registered agent.' },
+                        'OR': { url: 'https://sos.oregon.gov/business/pages/find.aspx', label: 'OR Secretary of State', tip: 'Enter the business name or registry number to find entity details.' },
+                        'AZ': { url: 'https://ecorp.azcc.gov/BusinessSearch', label: 'AZ Corporation Commission', tip: 'Search by entity name to find filing details and status.' }
                     };
                     const sosLink = sosLinks[data.state];
+                    const searchTerm = data.businessName || '';
 
-                    document.getElementById('sosBusinessInfo').innerHTML = `
-                        <div style="padding: 12px 16px; background: ${isError ? 'rgba(255, 59, 48, 0.06)' : 'rgba(255, 149, 0, 0.06)'}; border-left: 4px solid ${isError ? '#FF3B30' : '#FF9500'}; border-radius: 4px;">
-                            <p style="color: var(--text-secondary); margin: 0;">${isError ? '⚠️ ' : '🔗 '}${errorMsg}</p>
-                        </div>
-                        ${sosLink ? `
-                            <a href="${sosLink.url}" target="_blank" class="btn-secondary"
-                               style="display: inline-block; margin-top: 12px; padding: 8px 16px; text-decoration: none;">
-                                🔍 ${sosLink.label}
-                            </a>` : ''}
-                    `;
+                    if (manualSearchData || (data.sos?.error && sosLink)) {
+                        // Captcha-blocked or error with known SOS link — show helpful panel
+                        document.getElementById('sosBusinessInfo').innerHTML = `
+                            <div style="padding: 16px 20px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 12px;">
+                                <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px;">
+                                    <div style="font-size: 28px; flex-shrink: 0;">🔐</div>
+                                    <div>
+                                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">This site requires a quick verification</div>
+                                        <div style="font-size: 13px; color: var(--text-secondary);">The ${data.state} Secretary of State website uses a captcha. Just click the checkbox on their page and the results load instantly.</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 14px;">
+                                    <span style="color: var(--text-secondary); font-size: 13px; white-space: nowrap;">Search for:</span>
+                                    <code style="flex: 1; font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${searchTerm}</code>
+                                    <button onclick="navigator.clipboard.writeText('${searchTerm.replace(/'/g, "\\'")}')"
+                                            style="flex-shrink: 0; padding: 4px 10px; font-size: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--apple-blue); cursor: pointer; font-weight: 600;">Copy</button>
+                                </div>
+                                ${sosLink ? `
+                                    <a href="${sosLink.url}" target="_blank" rel="noopener noreferrer"
+                                       style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 16px; background: var(--apple-blue); color: #fff; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px; transition: opacity 0.2s;"
+                                       onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                                        Open ${sosLink.label} ↗
+                                    </a>
+                                    <div style="margin-top: 10px; padding: 10px 14px; background: rgba(0, 122, 255, 0.04); border-radius: 8px; font-size: 12px; color: var(--text-secondary);">
+                                        💡 ${sosLink.tip}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    } else {
+                        const errorMsg = data.sos?.error || 'No business entity records found';
+                        document.getElementById('sosBusinessInfo').innerHTML = `
+                            <div style="padding: 12px 16px; background: rgba(255, 149, 0, 0.06); border-left: 4px solid #FF9500; border-radius: 4px;">
+                                <p style="color: var(--text-secondary); margin: 0;">⚠️ ${errorMsg}</p>
+                            </div>
+                            ${sosLink ? `
+                                <a href="${sosLink.url}" target="_blank" rel="noopener noreferrer"
+                                   style="display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 10px 18px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; text-decoration: none; color: var(--apple-blue); font-weight: 600; font-size: 13px;">
+                                    🔍 Search ${sosLink.label}
+                                </a>` : ''}
+                        `;
+                    }
                 }
 
                 // OSHA Violations
@@ -720,20 +749,18 @@
 
                 // Generate HTML
                 return `
-                    <div style="display: grid; gap: 12px;">
+                    <div style="display: grid; gap: 10px;">
                         ${links.map(link => `
                             <a href="${link.url}" target="_blank" rel="noopener noreferrer"
-                               style="display: flex; align-items: center; gap: 12px; padding: 12px;
-                                      background: white; border: 1px solid #dee2e6; border-radius: 6px;
-                                      text-decoration: none; color: inherit; transition: all 0.2s;"
-                               onmouseover="this.style.borderColor='${link.color}'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';"
-                               onmouseout="this.style.borderColor='#dee2e6'; this.style.boxShadow='none';">
-                                <div style="font-size: 32px;">${link.icon}</div>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 600; color: ${link.color}; margin-bottom: 2px;">
-                                        ${link.title} →
+                               style="display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+                                      background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px;
+                                      text-decoration: none; color: inherit; transition: all 0.2s;">
+                                <div style="font-size: 24px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--bg-card); flex-shrink: 0;">${link.icon}</div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="font-weight: 600; color: var(--apple-blue); font-size: 13px;">
+                                        ${link.title} <span style="opacity: 0.5;">↗</span>
                                     </div>
-                                    <div style="font-size: 12px; color: var(--text-secondary);">
+                                    <div style="font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                         ${link.description}
                                     </div>
                                 </div>
