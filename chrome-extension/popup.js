@@ -121,7 +121,7 @@ async function pasteFromClipboard() {
         try {
             data = JSON.parse(text);
         } catch (e) {
-            setStatus('Clipboard doesn\'t contain valid JSON. Use "Copy for Extension" in Altech.', 'error');
+            setStatus('Clipboard doesn\'t contain valid JSON. Use "Send to Extension" in Altech.', 'error');
             return;
         }
 

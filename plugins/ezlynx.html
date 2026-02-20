@@ -13,35 +13,10 @@
             <span>EZLynx Quoter</span>
         </div>
     </div>
-    <div class="step-title">Auto-fill EZLynx new applicant forms with fuzzy dropdown matching</div>
+    <div class="step-title">Fill EZLynx forms in seconds — select a client, review, and send to your browser</div>
 </header>
 
 <div class="ez-container">
-    <!-- Schema Status — collapsible accordion -->
-    <details class="ez-accordion" id="ezSchemaCard">
-        <summary onclick="EZLynxTool.toggleSchema && EZLynxTool.toggleSchema()">
-            <div class="ez-schema-dot missing" id="ezSchemaDot"></div>
-            <span>📋 Dropdown Schema</span>
-            <span id="ezSchemaQuickInfo" style="font-size:11px; color:#64748b; white-space:nowrap;"></span>
-            <span class="ez-acc-chevron">▼</span>
-        </summary>
-        <div class="ez-acc-body" id="ezSchemaBody">
-            <p style="font-size:13px; color:#94a3b8; margin:0 0 12px;">Maps every dropdown option so the filler can fuzzy-match your data.</p>
-
-            <div class="ez-schema-status" id="ezSchemaStatus">
-                <div class="ez-schema-info">
-                    <div class="ez-label" id="ezSchemaLabel">Checking...</div>
-                    <div class="ez-sublabel" id="ezSchemaSub"></div>
-                </div>
-                <button class="ez-toolbar-btn primary" onclick="event.stopPropagation(); EZLynxTool.refreshSchema()">
-                    🔄 Refresh
-                </button>
-            </div>
-            <div id="ezSchemaPages" style="margin-top:8px;"></div>
-            <div class="ez-status-box" id="ezSchemaLog"></div>
-        </div>
-    </details>
-
     <!-- Chrome Extension Install Guide -->
     <div class="ez-install-card" id="ezInstallCard">
         <div class="ez-install-header">
@@ -98,12 +73,32 @@
     <div class="ez-glass" style="padding:0;">
         <!-- Toolbar -->
         <div class="ez-toolbar" style="border-radius:16px 16px 0 0;">
-            <button class="ez-toolbar-btn primary" onclick="EZLynxTool.loadFromIntake()" title="Load from intake form">📥 Intake</button>
+            <button class="ez-toolbar-btn primary" onclick="EZLynxTool.showClientPicker()" title="Load a saved client">👤 Select Client</button>
             <button class="ez-toolbar-btn" onclick="EZLynxTool.clearForm()" title="Clear all fields">🗑 Clear</button>
             <div class="ez-toolbar-sep"></div>
-            <button class="ez-toolbar-btn primary" onclick="EZLynxTool.copyForExtension()" title="Copy data for Chrome Extension">📤 Copy for Extension</button>
-            <button class="ez-toolbar-btn" style="border-color:rgba(124,58,237,0.4); color:#a78bfa;" onclick="EZLynxTool.importScrapedSchema()" title="Import scraped JSON schema">📊 Import Schema</button>
+            <button class="ez-toolbar-btn primary" id="ezSendToExtBtn" onclick="EZLynxTool.copyForExtension()" title="Copy client data to your Chrome extension">📤 Send to Extension</button>
         </div>
+
+        <!-- Client Picker (hidden by default) -->
+        <div class="ez-client-picker" id="ezClientPicker" style="display:none;">
+            <div class="ez-picker-header">
+                <span>📋 Select a Client</span>
+                <button class="ez-picker-close" onclick="EZLynxTool.hideClientPicker()">✕</button>
+            </div>
+            <div class="ez-picker-list" id="ezPickerList">
+                <div class="ez-picker-empty">No saved clients yet</div>
+            </div>
+        </div>
+
+        <!-- Client Info Banner -->
+        <div class="ez-client-banner" id="ezClientBanner">
+            <div class="ez-client-avatar" id="ezClientAvatar">?</div>
+            <div class="ez-client-details">
+                <span class="ez-client-name" id="ezClientName">No Client Loaded</span>
+                <span class="ez-client-meta" id="ezClientMeta">Tap "Select Client" to load from saved intake data</span>
+            </div>
+        </div>
+
         <div style="padding:18px 20px 20px;">
 
         <!-- 👤 Client Personal accordion (open by default) -->
@@ -984,7 +979,7 @@
                 <div class="ez-how-steps">
                     <div class="ez-how-step">
                         <span class="ez-how-num">1</span>
-                        <span>Click <strong style="color:#38bdf8;">📤 Copy for Extension</strong> in the toolbar above to copy client data</span>
+                        <span>Click <strong style="color:#38bdf8;">📤 Send to Extension</strong> in the toolbar above to copy client data</span>
                     </div>
                     <div class="ez-how-step">
                         <span class="ez-how-num">2</span>
@@ -1010,7 +1005,7 @@
                     </div>
                     <div class="ez-how-step">
                         <span class="ez-how-num">2</span>
-                        <span>Enter client data or click <strong style="color:#e2e8f0;">📥 Intake</strong> to load from the main form</span>
+                        <span>Enter client data or click <strong style="color:#e2e8f0;">� Select Client</strong> to load a saved client</span>
                     </div>
                     <div class="ez-how-step">
                         <span class="ez-how-num">3</span>
@@ -1025,6 +1020,32 @@
                     Don't have the extension? <a href="/altech-ezlynx-extension.zip" download style="color:#38bdf8; text-decoration:underline;">Download it here</a> — see install steps at the top of this page.
                 </div>
             </div>
+        </div>
+    </details>
+
+    <!-- Advanced: Dropdown Schema (moved to bottom — not needed by most users) -->
+    <details class="ez-accordion" id="ezSchemaCard" style="margin-top:16px;">
+        <summary onclick="EZLynxTool.toggleSchema && EZLynxTool.toggleSchema()">
+            <div class="ez-schema-dot missing" id="ezSchemaDot"></div>
+            <span>⚙️ Dropdown Schema</span>
+            <span id="ezSchemaQuickInfo" style="font-size:11px; color:#64748b; white-space:nowrap;"></span>
+            <span class="ez-acc-chevron">▼</span>
+        </summary>
+        <div class="ez-acc-body" id="ezSchemaBody">
+            <p style="font-size:13px; color:#94a3b8; margin:0 0 12px;">Maps every dropdown option so the filler can fuzzy-match your data. Most users won't need to change this.</p>
+
+            <div class="ez-schema-status" id="ezSchemaStatus">
+                <div class="ez-schema-info">
+                    <div class="ez-label" id="ezSchemaLabel">Checking...</div>
+                    <div class="ez-sublabel" id="ezSchemaSub"></div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="ez-toolbar-btn" style="border-color:rgba(124,58,237,0.4); color:#a78bfa;" onclick="EZLynxTool.importScrapedSchema()" title="Import scraped JSON schema">📊 Import</button>
+                    <button class="ez-toolbar-btn primary" onclick="event.stopPropagation(); EZLynxTool.refreshSchema()">🔄 Refresh</button>
+                </div>
+            </div>
+            <div id="ezSchemaPages" style="margin-top:8px;"></div>
+            <div class="ez-status-box" id="ezSchemaLog"></div>
         </div>
     </details>
 </div>

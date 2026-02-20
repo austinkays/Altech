@@ -4,6 +4,131 @@
 
 .ez-container { max-width: 720px; margin: 0 auto; padding: 0 16px 80px; }
 
+/* ═══════════════════════════════════════════════════ */
+/* Client Info Banner                                 */
+/* ═══════════════════════════════════════════════════ */
+
+.ez-client-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: rgba(0, 0, 0, 0.15);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.ez-client-banner.loaded {
+    background: rgba(56, 189, 248, 0.06);
+    border-bottom-color: rgba(56, 189, 248, 0.12);
+}
+.ez-client-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: #64748b;
+    font-size: 15px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+}
+.ez-client-banner.loaded .ez-client-avatar {
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: #fff;
+    border-color: transparent;
+}
+.ez-client-details {
+    display: flex; flex-direction: column; gap: 1px; min-width: 0;
+}
+.ez-client-name {
+    font-size: 14px; font-weight: 700; color: #94a3b8;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ez-client-banner.loaded .ez-client-name {
+    color: #e2e8f0;
+}
+.ez-client-meta {
+    font-size: 11px; color: #64748b;
+}
+
+/* ═══════════════════════════════════════════════════ */
+/* Client Picker Panel                                */
+/* ═══════════════════════════════════════════════════ */
+
+.ez-client-picker {
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    max-height: 280px;
+    overflow-y: auto;
+}
+.ez-picker-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px 8px;
+    font-size: 12px; font-weight: 700; color: #64748b;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+.ez-picker-close {
+    background: transparent; border: none; color: #64748b;
+    font-size: 14px; cursor: pointer; padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.15s;
+}
+.ez-picker-close:hover {
+    background: rgba(255, 255, 255, 0.06); color: #e2e8f0;
+}
+.ez-picker-list {
+    padding: 0 12px 12px;
+    display: flex; flex-direction: column; gap: 4px;
+}
+.ez-picker-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    transition: all 0.15s;
+}
+.ez-picker-item:hover {
+    background: rgba(56, 189, 248, 0.08);
+    border-color: rgba(56, 189, 248, 0.2);
+}
+.ez-picker-item.ez-picker-current {
+    border-color: rgba(56, 189, 248, 0.15);
+    background: rgba(56, 189, 248, 0.05);
+}
+.ez-picker-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: #fff;
+    font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.ez-picker-info {
+    display: flex; flex-direction: column; gap: 1px; min-width: 0;
+}
+.ez-picker-name {
+    font-size: 13px; font-weight: 600; color: #e2e8f0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ez-picker-detail {
+    font-size: 11px; color: #64748b;
+}
+.ez-picker-badge {
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 6px;
+    letter-spacing: 0.5px; margin-left: auto; flex-shrink: 0;
+}
+.ez-picker-badge.current {
+    background: rgba(56, 189, 248, 0.12); color: #38bdf8;
+}
+.ez-picker-empty {
+    padding: 20px;
+    text-align: center;
+    font-size: 13px;
+    color: #64748b;
+}
+
 /* ── Glass Card ── */
 .ez-glass {
     background: rgba(255, 255, 255, 0.05);

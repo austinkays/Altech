@@ -13,6 +13,7 @@ const EZLynxTool = {
         this.loadFormData();
         this._wireAutoSave();
         this._restoreInstallGuide();
+        this._restoreClientBanner();
     },
 
     // ── Quick Login ──
@@ -491,8 +492,105 @@ const EZLynxTool = {
         document.getElementById('ezDriverSection')?.setAttribute('open', '');
         document.getElementById('ezHomeSection')?.setAttribute('open', '');
         document.getElementById('ezHomeCovSection')?.setAttribute('open', '');
-        this.saveFormData();
-        App.toast('🧪 Demo data loaded (all sections)');
+        this.saveFormData();        this._updateClientBanner('Austin Kays', 'Demo data \u2022 All sections');        App.toast('🧪 Demo data loaded (all sections)');
+    },
+
+    // ── Client Picker ──
+    async showClientPicker() {
+        const picker = document.getElementById('ezClientPicker');
+        const list = document.getElementById('ezPickerList');
+        if (!picker || !list) return;
+
+        // Build list of available clients
+        let html = '';
+
+        // 1) Current intake form (always available if App.data has a name)
+        const d = (typeof App !== 'undefined' && App.data) ? App.data : {};
+        const currentName = [d.firstName, d.lastName].filter(Boolean).join(' ');
+        if (currentName) {
+            const type = (d.qType || '').toUpperCase() || 'QUOTE';
+            html += `<div class="ez-picker-item ez-picker-current" onclick="EZLynxTool.loadClient('intake')">
+                <div class="ez-picker-avatar">${(d.firstName || '?')[0].toUpperCase()}</div>
+                <div class="ez-picker-info">
+                    <span class="ez-picker-name">${this._escHTML(currentName)}</span>
+                    <span class="ez-picker-detail">Current form \u2022 ${type}</span>
+                </div>
+                <span class="ez-picker-badge current">Current</span>
+            </div>`;
+        }
+
+        // 2) Saved quotes/drafts
+        try {
+            const quotes = (typeof App !== 'undefined' && App.getQuotes) ? await App.getQuotes() : [];
+            if (quotes.length > 0) {
+                quotes.forEach(q => {
+                    if (!q || !q.data) return;
+                    const qName = [q.data.firstName, q.data.lastName].filter(Boolean).join(' ') || 'Unnamed';
+                    const qType = (q.data.qType || '').toUpperCase() || 'QUOTE';
+                    const updated = q.updatedAt ? new Date(q.updatedAt).toLocaleDateString() : '';
+                    const initial = (q.data.firstName || q.data.lastName || '?')[0].toUpperCase();
+                    const starred = q.starred ? ' \u2b50' : '';
+                    html += `<div class="ez-picker-item" onclick="EZLynxTool.loadClient('quote','${this._escHTML(q.id)}')">
+                        <div class="ez-picker-avatar">${initial}</div>
+                        <div class="ez-picker-info">
+                            <span class="ez-picker-name">${this._escHTML(qName)}${starred}</span>
+                            <span class="ez-picker-detail">${qType} \u2022 ${updated}</span>
+                        </div>
+                    </div>`;
+                });
+            }
+        } catch (e) { /* quotes not available */ }
+
+        if (!html) {
+            html = '<div class="ez-picker-empty">No saved clients yet \u2014 fill the intake form first</div>';
+        }
+
+        list.innerHTML = html;
+        picker.style.display = 'block';
+    },
+
+    hideClientPicker() {
+        const picker = document.getElementById('ezClientPicker');
+        if (picker) picker.style.display = 'none';
+    },
+
+    async loadClient(source, id) {
+        this.hideClientPicker();
+        if (source === 'intake') {
+            this.loadFromIntake();
+            return;
+        }
+        if (source === 'quote' && id) {
+            try {
+                const quotes = (typeof App !== 'undefined' && App.getQuotes) ? await App.getQuotes() : [];
+                const quote = quotes.find(q => q.id === id);
+                if (quote && quote.data) {
+                    // Temporarily replace App.data to reuse loadFromIntake logic
+                    const origData = (typeof App !== 'undefined') ? App.data : null;
+                    if (typeof App !== 'undefined') App.data = quote.data;
+                    this.loadFromIntake();
+                    if (typeof App !== 'undefined' && origData) App.data = origData;
+                    return;
+                }
+            } catch (e) { /* fallback */ }
+            App.toast('\u26a0\ufe0f Could not load that client');
+        }
+    },
+
+    _updateClientBanner(name, meta) {
+        const nameEl = document.getElementById('ezClientName');
+        const metaEl = document.getElementById('ezClientMeta');
+        const avatarEl = document.getElementById('ezClientAvatar');
+        const banner = document.getElementById('ezClientBanner');
+        if (nameEl) nameEl.textContent = name || 'No Client Loaded';
+        if (metaEl) metaEl.textContent = meta || '';
+        if (avatarEl) avatarEl.textContent = name ? name[0].toUpperCase() : '?';
+        if (banner) banner.classList.toggle('loaded', !!name);
+    },
+
+    _escHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     },
 
     loadFromIntake() {
@@ -630,12 +728,16 @@ const EZLynxTool = {
             document.getElementById('ezExtraCount').textContent = filled - 16;
         }
         this.saveFormData();
-        App.toast('📥 Loaded ' + filled + ' fields from intake form');
+        const clientName = [d.firstName, d.lastName].filter(Boolean).join(' ') || 'Unknown';
+        const lineType = (d.qType || 'quote').toUpperCase();
+        this._updateClientBanner(clientName, `${filled} fields loaded \u2022 ${lineType}`);
+        App.toast('\ud83d\udce5 Loaded ' + filled + ' fields from intake form');
     },
 
     clearForm() {
         this.formFields.forEach(id => this.setField(id, ''));
         try { localStorage.removeItem(this.formStorageKey); } catch (e) { /* ignore */ }
+        this._updateClientBanner('', 'Tap "Select Client" to load from saved intake data');
         App.toast('🗑 Form cleared');
     },
 
@@ -866,6 +968,20 @@ const EZLynxTool = {
             const card = document.getElementById('ezInstallCard');
             if (card) card.classList.add('dismissed');
         }
+    },
+
+    _restoreClientBanner() {
+        // If form has saved data, update the banner to show loaded client
+        try {
+            const raw = localStorage.getItem(this.formStorageKey);
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            const name = [data.ezFirstName, data.ezLastName].filter(Boolean).join(' ');
+            if (name) {
+                const fieldCount = Object.values(data).filter(v => v && String(v).trim()).length;
+                this._updateClientBanner(name, `${fieldCount} fields saved`);
+            }
+        } catch (e) { /* corrupt */ }
     }
 };
 
