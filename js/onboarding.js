@@ -11,6 +11,8 @@ window.Onboarding = (() => {
 
     const STORAGE_KEY = 'altech_onboarded';
     const NAME_KEY = 'altech_user_name';
+    // Access codes — add new codes here as needed
+    const VALID_CODES = ['ALTECH-2026', 'ALTECH2026', 'WELCOME2026'];
     let _currentStep = 1;
     const TOTAL_STEPS = 3;
 
@@ -19,10 +21,7 @@ window.Onboarding = (() => {
      */
     function init() {
         const done = localStorage.getItem(STORAGE_KEY);
-        if (done) {
-            _showInviteBar();
-            return;
-        }
+        if (done) return;
         _show();
     }
 
@@ -105,13 +104,32 @@ window.Onboarding = (() => {
         if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
             CloudSync.schedulePush();
         }
-
-        _showInviteBar();
     }
 
-    function _showInviteBar() {
-        const bar = document.getElementById('teamInviteBar');
-        if (bar) bar.style.display = 'flex';
+    /**
+     * Validate access code and finish onboarding if correct
+     */
+    function validateCode() {
+        const input = document.getElementById('onboardingAccessCode');
+        const errorEl = document.getElementById('onboardingCodeError');
+        const hintEl = document.getElementById('onboardingCodeHint');
+        if (!input) return;
+
+        const code = input.value.trim().toUpperCase().replace(/\s+/g, '');
+        if (VALID_CODES.includes(code)) {
+            // Valid!
+            if (errorEl) errorEl.style.display = 'none';
+            if (hintEl) hintEl.style.display = 'none';
+            input.style.borderColor = 'var(--success, #34C759)';
+            finish();
+        } else {
+            // Invalid
+            if (errorEl) errorEl.style.display = 'block';
+            if (hintEl) hintEl.style.display = 'none';
+            input.style.borderColor = 'var(--danger, #FF3B30)';
+            input.classList.add('shake');
+            setTimeout(() => input.classList.remove('shake'), 400);
+        }
     }
 
     /**
@@ -152,47 +170,52 @@ window.Onboarding = (() => {
     }
 
     /**
-     * Show a share modal from the invite bar (after onboarding is done)
+     * Show a share modal (from account screen)
      */
     function showShareModal() {
-        // Reuse the onboarding overlay in share-only mode
-        const overlay = document.getElementById('onboardingOverlay');
-        if (!overlay) return;
-
-        // Jump directly to step 3 (share step)
-        _currentStep = 3;
-        overlay.style.display = 'flex';
-        _updateStep();
-
-        // Change the "Back" button to close
-        const backBtn = overlay.querySelector('[data-step="3"] .onboarding-btn-secondary');
-        if (backBtn) {
-            backBtn.textContent = 'Close';
-            backBtn.onclick = () => {
-                overlay.classList.add('exit');
-                setTimeout(() => {
-                    overlay.style.display = 'none';
-                    overlay.classList.remove('exit');
-                    backBtn.textContent = 'Back';
-                    backBtn.onclick = () => Onboarding.prev();
-                }, 300);
-            };
+        // Build a lightweight share modal
+        let modal = document.getElementById('shareModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'shareModal';
+            modal.className = 'onboarding-overlay';
+            modal.innerHTML = `
+                <div class="onboarding-card" style="max-width:400px">
+                    <button class="onboarding-close" onclick="document.getElementById('shareModal').style.display='none'">&times;</button>
+                    <div class="onboarding-brand">
+                        <h2>Invite Your Team</h2>
+                        <p>Share this link with colleagues</p>
+                    </div>
+                    <div class="onboarding-share-section">
+                        <div class="onboarding-share-url">
+                            <input type="text" id="shareModalUrl" readonly value="https://altech-app.vercel.app">
+                            <button onclick="Onboarding.copyLink(this)">Copy</button>
+                        </div>
+                    </div>
+                    <ul class="onboarding-features" style="margin-top:12px">
+                        <li>
+                            <div class="onboarding-feature-icon">🔑</div>
+                            <div class="onboarding-feature-text">
+                                <strong>Access Code</strong>
+                                <span>New users will need the team access code to get started</span>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="onboarding-feature-icon">💡</div>
+                            <div class="onboarding-feature-text">
+                                <strong>Pro tip</strong>
+                                <span>On mobile, tap Share → "Add to Home Screen" for an app-like experience</span>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="onboarding-actions" style="margin-top:16px">
+                        <button class="onboarding-btn onboarding-btn-primary" onclick="document.getElementById('shareModal').style.display='none'">Done</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
         }
-
-        // Change finish button text
-        const finishBtn = overlay.querySelector('[data-step="3"] .onboarding-btn-primary');
-        if (finishBtn) {
-            finishBtn.textContent = 'Done';
-            finishBtn.onclick = () => {
-                overlay.classList.add('exit');
-                setTimeout(() => {
-                    overlay.style.display = 'none';
-                    overlay.classList.remove('exit');
-                    finishBtn.textContent = 'Start Using Altech';
-                    finishBtn.onclick = () => Onboarding.finish();
-                }, 300);
-            };
-        }
+        modal.style.display = 'flex';
     }
 
     /**
@@ -223,6 +246,7 @@ window.Onboarding = (() => {
         next,
         prev,
         finish,
+        validateCode,
         copyLink,
         showShareModal,
         getUserName,

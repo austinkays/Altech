@@ -102,31 +102,30 @@
                 </div>
             </div>
 
-            <!-- Step 3: Share with team + finish -->
+            <!-- Step 3: Access Code + finish -->
             <div class="onboarding-step" data-step="3">
                 <div class="onboarding-brand">
-                    <h2>You're all set!</h2>
-                    <p>Share Altech with your team — one link, instant access</p>
+                    <h2>Almost there!</h2>
+                    <p>Enter the access code from your team admin to continue</p>
                 </div>
-                <div class="onboarding-share-section">
-                    <h4>Invite your team</h4>
-                    <div class="onboarding-share-url">
-                        <input type="text" id="onboardingShareUrl" readonly value="https://altech-app.vercel.app">
-                        <button onclick="Onboarding.copyLink(this)">Copy</button>
-                    </div>
+                <div class="onboarding-input-group">
+                    <label for="onboardingAccessCode">Access Code</label>
+                    <input type="text" id="onboardingAccessCode" placeholder="e.g. ALTECH-2026" autocomplete="off" maxlength="30" style="text-transform:uppercase;letter-spacing:2px;text-align:center;font-size:1.1rem">
+                    <div class="onboarding-hint" id="onboardingCodeHint">Ask your manager or team lead for the code</div>
+                    <div class="onboarding-code-error" id="onboardingCodeError" style="display:none">Invalid code — please try again</div>
                 </div>
                 <ul class="onboarding-features" style="margin-top:12px">
                     <li>
-                        <div class="onboarding-feature-icon">💡</div>
+                        <div class="onboarding-feature-icon">🔒</div>
                         <div class="onboarding-feature-text">
-                            <strong>Pro tip</strong>
-                            <span>On your phone, tap Share → "Add to Home Screen" for an app-like experience</span>
+                            <strong>Why a code?</strong>
+                            <span>This protects our tools and data — only authorized team members can access the app</span>
                         </div>
                     </li>
                 </ul>
                 <div class="onboarding-actions">
                     <button class="onboarding-btn onboarding-btn-secondary" onclick="Onboarding.prev()">Back</button>
-                    <button class="onboarding-btn onboarding-btn-primary" onclick="Onboarding.finish()">Start Using Altech</button>
+                    <button class="onboarding-btn onboarding-btn-primary" onclick="Onboarding.validateCode()">Activate</button>
                 </div>
                 <div class="onboarding-dots">
                     <div class="onboarding-dot"></div>
@@ -162,16 +161,6 @@
                 </div>
             </div>
         </section>
-
-        <!-- ── Invite Team Bar (shown for signed-in users) ── -->
-        <div id="teamInviteBar" class="team-invite-bar" style="display:none" onclick="Onboarding.showShareModal()">
-            <div class="team-invite-icon">👥</div>
-            <div class="team-invite-text">
-                <strong>Invite Your Team</strong>
-                <span>Share Altech with colleagues — one link, instant access</span>
-            </div>
-            <div class="team-invite-arrow">›</div>
-        </div>
 
         <!-- ── Section: Bento App Grid ── -->
         <!-- Rendered dynamically from App.toolConfig → renderLandingTools() -->
@@ -12506,8 +12495,21 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                     </div>
                     <div class="auth-divider">sync</div>
                     <div class="auth-sync-status">
-                        <span id="authSyncStatus">Ready to sync</span>
+                        <div class="auth-sync-info">
+                            <span id="authSyncStatus">Ready to sync</span>
+                            <span id="authSyncTimestamp" class="auth-sync-timestamp"></span>
+                        </div>
                         <button class="btn-auth btn-auth-small btn-auth-primary" style="margin-top:0;width:auto;padding:0.4rem 1rem" onclick="CloudSync.fullSync()">Sync Now</button>
+                    </div>
+
+                    <div class="auth-divider">team</div>
+                    <div class="auth-invite-row" onclick="Onboarding.showShareModal()">
+                        <span>👥</span>
+                        <div class="auth-invite-text">
+                            <strong>Invite Your Team</strong>
+                            <span>Share a link so colleagues can access Altech</span>
+                        </div>
+                        <span class="auth-invite-arrow">›</span>
                     </div>
                 </div>
                 <div class="auth-account-actions">

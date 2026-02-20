@@ -63,10 +63,38 @@ const CloudSync = (() => {
     }
 
     // ── Notifications ──
+    function _refreshSyncUI() {
+        const statusEl = document.getElementById('authSyncStatus');
+        const tsEl = document.getElementById('authSyncTimestamp');
+        if (!statusEl) return;
+
+        if (_syncing) {
+            statusEl.textContent = 'Syncing…';
+            return;
+        }
+
+        if (_lastSyncTime) {
+            statusEl.textContent = 'Synced';
+            if (tsEl) {
+                const d = new Date(_lastSyncTime);
+                const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                const today = new Date();
+                const isToday = d.toDateString() === today.toDateString();
+                tsEl.textContent = isToday ? `Today at ${time}` : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} at ${time}`;
+            }
+        } else {
+            statusEl.textContent = 'Ready to sync';
+            if (tsEl) tsEl.textContent = '';
+        }
+    }
+
     function _notify(message, type = 'info') {
         _listeners.forEach(fn => {
             try { fn({ message, type }); } catch (e) { console.error('[CloudSync] Listener error:', e); }
         });
+
+        // Update the account modal sync status
+        _refreshSyncUI();
 
         // Also show a toast if the App toast system exists
         const indicator = document.getElementById('syncIndicator');

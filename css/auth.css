@@ -377,6 +377,58 @@
     border: 1px solid var(--border, rgba(0,0,0,0.06));
 }
 
+.auth-sync-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.auth-sync-timestamp {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #999);
+    opacity: 0.8;
+}
+
+/* ── Invite Row ── */
+.auth-invite-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-input, #f5f5f7);
+    border-radius: 12px;
+    border: 1px solid var(--border, rgba(0,0,0,0.06));
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.auth-invite-row:hover {
+    background: var(--border, rgba(0,0,0,0.08));
+}
+
+.auth-invite-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.auth-invite-text strong {
+    font-size: 0.88rem;
+    color: var(--text, #1a1a1e);
+}
+
+.auth-invite-text span {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #666);
+}
+
+.auth-invite-arrow {
+    font-size: 1.3rem;
+    color: var(--text-secondary, #999);
+    font-weight: 300;
+}
+
 .auth-account-actions {
     display: flex;
     gap: 0.6rem;
@@ -718,6 +770,23 @@ body.dark-mode .auth-divider::after {
 body.dark-mode .auth-sync-status {
     background: #2C2C2E;
     border-color: #38383A;
+    color: #98989D;
+}
+
+body.dark-mode .auth-invite-row {
+    background: #2C2C2E;
+    border-color: #38383A;
+}
+
+body.dark-mode .auth-invite-row:hover {
+    background: #3A3A3C;
+}
+
+body.dark-mode .auth-invite-text strong {
+    color: #FFFFFF;
+}
+
+body.dark-mode .auth-invite-text span {
     color: #98989D;
 }
 
