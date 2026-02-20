@@ -356,6 +356,7 @@ const CloudSync = (() => {
                 if (options.settingsOnly) {
                     await _pushDoc('settings', local.settings, 'settings');
                     _syncing = false;
+                    _refreshSyncUI();
                     return;
                 }
 
@@ -397,6 +398,7 @@ const CloudSync = (() => {
                 // Don't show toast for transient/network errors during background sync
             } finally {
                 _syncing = false;
+                _refreshSyncUI();
             }
         },
 
@@ -507,6 +509,7 @@ const CloudSync = (() => {
             } finally {
                 _isPulling = false;
                 _syncing = false;
+                _refreshSyncUI();
             }
         },
 
