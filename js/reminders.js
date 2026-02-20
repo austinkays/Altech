@@ -96,6 +96,13 @@ window.Reminders = (() => {
         const next = new Date(due);
         while (next <= today) {
             if (freq === 'daily') next.setDate(next.getDate() + 1);
+            else if (freq === 'weekdays') {
+                // Skip to next weekday (Mon–Fri)
+                next.setDate(next.getDate() + 1);
+                while (next.getDay() === 0 || next.getDay() === 6) {
+                    next.setDate(next.getDate() + 1);
+                }
+            }
             else if (freq === 'weekly') next.setDate(next.getDate() + 7);
             else if (freq === 'biweekly') next.setDate(next.getDate() + 14);
             else if (freq === 'monthly') next.setMonth(next.getMonth() + 1);
@@ -118,7 +125,7 @@ window.Reminders = (() => {
             if (lc >= today) return 'completed';
             // For recurring: completed if done since last due cycle started
             if (task.frequency !== 'once') {
-                const cycleDays = task.frequency === 'daily' ? 1 :
+                const cycleDays = (task.frequency === 'daily' || task.frequency === 'weekdays') ? 1 :
                     task.frequency === 'weekly' ? 7 :
                     task.frequency === 'biweekly' ? 14 : 30;
                 const cycleStart = new Date(due);
@@ -327,7 +334,7 @@ window.Reminders = (() => {
                         <div class="rem-task-meta">
                             <span class="rem-badge rem-badge-${status}">${_relativeDate(t.dueDate)}</span>
                             <span class="rem-badge rem-cat">${_escapeHTML(t.category)}</span>
-                            <span class="rem-badge rem-freq">${t.frequency}</span>
+                            <span class="rem-badge rem-freq">${t.frequency === 'weekdays' ? 'Mon–Fri' : t.frequency}</span>
                         </div>
                         ${t.notes ? `<div class="rem-task-notes">${_escapeHTML(t.notes)}</div>` : ''}
                     </div>
