@@ -220,6 +220,8 @@ Object.assign(App, {
         }, true); // capture phase for blur
         // Phone format
         document.getElementById('phone').addEventListener('input', this.fmtPhone);
+        const coPhone = document.getElementById('coPhone');
+        if (coPhone) coPhone.addEventListener('input', this.fmtPhone);
 
         // Segmented control click handler
         document.body.addEventListener('click', (e) => {
