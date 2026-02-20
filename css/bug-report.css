@@ -1,0 +1,245 @@
+/* ═══════════════════════════════════════════════════════
+   Bug Report Modal — Altech
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Overlay ── */
+.bugreport-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: bugreportFadeIn 0.2s ease;
+}
+@keyframes bugreportFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Modal ── */
+.bugreport-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 122, 255, 0.06);
+    animation: bugreportSlideUp 0.25s ease;
+}
+@keyframes bugreportSlideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Header ── */
+.bugreport-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid var(--border);
+}
+.bugreport-header h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text);
+}
+.bugreport-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background 0.15s;
+    line-height: 1;
+}
+.bugreport-close:hover {
+    background: var(--bg-input);
+}
+
+/* ── Body ── */
+.bugreport-body {
+    padding: 16px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.bugreport-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: -4px;
+}
+.bugreport-req {
+    color: var(--danger);
+}
+.bugreport-optional {
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.bugreport-select,
+.bugreport-input,
+.bugreport-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.15s;
+    outline: none;
+}
+.bugreport-select:focus,
+.bugreport-input:focus,
+.bugreport-textarea:focus {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+}
+.bugreport-textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+/* ── Screenshot zone ── */
+.bugreport-screenshot-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+}
+.bugreport-screenshot-zone:hover {
+    border-color: var(--apple-blue);
+}
+.bugreport-screenshot-placeholder {
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.bugreport-screenshot-placeholder:hover {
+    color: var(--apple-blue);
+}
+.bugreport-screenshot-preview {
+    width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 4px;
+}
+
+/* ── Meta info ── */
+.bugreport-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: 4px 0;
+}
+.bugreport-meta strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* ── Actions ── */
+.bugreport-actions {
+    display: flex;
+    gap: 10px;
+    padding-top: 6px;
+}
+.bugreport-btn {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.bugreport-btn-cancel {
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+.bugreport-btn-cancel:hover {
+    color: var(--text);
+    background: var(--bg-card);
+}
+.bugreport-btn-submit {
+    background: linear-gradient(135deg, #007AFF, #5856D6);
+    color: white;
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+}
+.bugreport-btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+}
+.bugreport-btn-submit:active {
+    transform: translateY(0);
+}
+.bugreport-btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ── Landing footer button ── */
+.bugreport-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: all 0.15s;
+    font-family: inherit;
+    opacity: 0.7;
+}
+.bugreport-trigger:hover {
+    opacity: 1;
+    color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.06);
+}
+
+/* ── Dark mode ── */
+body.dark-mode .bugreport-overlay {
+    background: rgba(0, 0, 0, 0.6);
+}
+body.dark-mode .bugreport-modal {
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+body.dark-mode .bugreport-btn-submit {
+    background: linear-gradient(135deg, #0A84FF, #6366F1);
+    box-shadow: 0 4px 14px rgba(10, 132, 255, 0.3);
+}
+
+/* ── Responsive ── */
+@media (max-width: 500px) {
+    .bugreport-modal {
+        max-height: 85vh;
+        border-radius: 14px;
+    }
+    .bugreport-body {
+        padding: 14px 16px 16px;
+    }
+}

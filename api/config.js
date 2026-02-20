@@ -5,11 +5,13 @@
  *   GET  /api/config?type=firebase    → Firebase client config (no auth)
  *   GET  /api/config?type=keys        → Places + Gemini API keys (auth required)
  *   POST /api/config?type=phonetics   → Name pronunciation via Gemini (no auth, rate-limited by securityMiddleware)
+ *   POST /api/config?type=bugreport   → Create GitHub Issue from in-app bug report (auth required)
  * 
  * Environment variables:
  *   FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_PROJECT_ID,
  *   FIREBASE_STORAGE_BUCKET, FIREBASE_MESSAGING_SENDER_ID, FIREBASE_APP_ID
  *   PLACES_API_KEY, GOOGLE_API_KEY
+ *   GITHUB_ISSUES_TOKEN — GitHub PAT with Issues write scope
  */
 
 import { securityMiddleware, verifyFirebaseToken, sanitizeInput } from './_security.js';
@@ -144,6 +146,98 @@ async function handlePhonetics(req, res) {
 
 // ── Router ──────────────────────────────────────────────────────────────
 
+const GITHUB_OWNER = process.env.GITHUB_REPO_OWNER || 'austinkays';
+const GITHUB_REPO  = process.env.GITHUB_REPO_NAME  || 'Altech';
+
+const CATEGORY_LABELS = {
+    bug:     ['bug'],
+    ui:      ['bug', 'ui'],
+    feature: ['enhancement'],
+    question:['question'],
+    other:   ['triage'],
+};
+
+async function handleBugReport(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // Require auth
+    const user = await verifyFirebaseToken(req);
+    if (!user) {
+        return res.status(401).json({ error: 'Authentication required.', requestId: req.requestId });
+    }
+
+    const token = (process.env.GITHUB_ISSUES_TOKEN || '').trim();
+    if (!token) {
+        return res.status(500).json({
+            error: 'GitHub Issues integration not configured',
+            hint: 'Set GITHUB_ISSUES_TOKEN in Vercel environment variables',
+            requestId: req.requestId,
+        });
+    }
+
+    const { title, description, category, steps, screenshot, userAgent, currentPage, appVersion } = req.body || {};
+
+    if (!title || typeof title !== 'string' || title.trim().length < 3) {
+        return res.status(400).json({ error: 'Title is required (min 3 characters)', requestId: req.requestId });
+    }
+
+    const safeTitle       = sanitizeInput(title, 120);
+    const safeDescription = sanitizeInput(description || '', 2000);
+    const safeSteps       = sanitizeInput(steps || '', 1000);
+    const safeCategory    = CATEGORY_LABELS[category] ? category : 'bug';
+    const safePage        = sanitizeInput(currentPage || 'unknown', 100);
+    const safeVersion     = sanitizeInput(appVersion || 'unknown', 20);
+    const safeUA          = sanitizeInput(userAgent || '', 300);
+
+    const body = [
+        `### Description`,
+        safeDescription || '_No description provided_',
+        '',
+        safeSteps ? `### Steps to Reproduce\n${safeSteps}` : '',
+        '',
+        `### Environment`,
+        `| Field | Value |`,
+        `|-------|-------|`,
+        `| **Reporter** | ${user.email || 'unknown'} |`,
+        `| **Page** | ${safePage} |`,
+        `| **App Version** | ${safeVersion} |`,
+        `| **User Agent** | ${safeUA} |`,
+        `| **Timestamp** | ${new Date().toISOString()} |`,
+        '',
+        screenshot ? `### Screenshot\n![screenshot](${screenshot})` : '',
+    ].filter(Boolean).join('\n');
+
+    const labels = CATEGORY_LABELS[safeCategory] || ['bug'];
+
+    try {
+        const ghRes = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github+json',
+                'Content-Type': 'application/json',
+                'X-GitHub-Api-Version': '2022-11-28',
+            },
+            body: JSON.stringify({ title: `[Bug Report] ${safeTitle}`, body, labels }),
+        });
+
+        if (!ghRes.ok) {
+            const errData = await ghRes.json().catch(() => ({}));
+            console.error(`[BugReport] GitHub API error: ${ghRes.status}`, errData.message, `[${req.requestId}]`);
+            return res.status(502).json({ error: 'Failed to create issue on GitHub', detail: errData.message || ghRes.statusText, requestId: req.requestId });
+        }
+
+        const issue = await ghRes.json();
+        console.log(`[BugReport] Created issue #${issue.number} by ${user.email} [${req.requestId}]`);
+        return res.status(201).json({ success: true, issueNumber: issue.number, issueUrl: issue.html_url, requestId: req.requestId });
+    } catch (err) {
+        console.error(`[BugReport] Error:`, err.message, `[${req.requestId}]`);
+        return res.status(500).json({ error: 'Internal error creating bug report', requestId: req.requestId });
+    }
+}
+
 async function router(req, res) {
     const type = (req.query?.type || '').toLowerCase();
 
@@ -154,8 +248,10 @@ async function router(req, res) {
             return handleKeys(req, res);
         case 'phonetics':
             return handlePhonetics(req, res);
+        case 'bugreport':
+            return handleBugReport(req, res);
         default:
-            return res.status(400).json({ error: 'Missing or invalid type parameter. Use ?type=firebase|keys|phonetics' });
+            return res.status(400).json({ error: 'Missing or invalid type parameter. Use ?type=firebase|keys|phonetics|bugreport' });
     }
 }
 

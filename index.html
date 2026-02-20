@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="css/vin-decoder.css">
     <link rel="stylesheet" href="css/onboarding.css">
     <link rel="stylesheet" href="css/paywall.css">
+    <link rel="stylesheet" href="css/bug-report.css">
 
     <!-- Firebase SDK (compat mode — no build step needed) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -217,7 +218,13 @@
 
         <!-- ── Section: Footer ── -->
         <footer id="landingFooter" class="landing-footer" aria-label="Footer">
-            <div style="text-align:center;font-size:10px;color:#94a3b8;opacity:0.5;letter-spacing:0.5px;">v2.18.1</div>
+            <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                <button class="bugreport-trigger" onclick="BugReport.open()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Report a Bug
+                </button>
+                <div style="font-size:10px;color:#94a3b8;opacity:0.5;letter-spacing:0.5px;">v2.18.1</div>
+            </div>
         </footer>
     </div>
 
@@ -2742,6 +2749,7 @@
     <script src="js/vin-decoder.js"></script>
 
 <script src="js/data-backup.js"></script>
+<script src="js/bug-report.js"></script>
 <script src="js/firebase-config.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/cloud-sync.js"></script>

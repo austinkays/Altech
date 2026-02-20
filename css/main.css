@@ -580,8 +580,8 @@ textarea.auto-filled:focus {
 .ch-row {
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 12px; border-radius: 10px;
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--border-light, #e5e5ea);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     margin-bottom: 6px;
     transition: box-shadow 0.15s;
 }
@@ -590,8 +590,8 @@ textarea.auto-filled:focus {
 .ch-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ch-meta { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ch-actions { display: flex; gap: 6px; margin-left: 12px; flex-shrink: 0; }
-.btn-sm { font-size: 12px !important; padding: 5px 10px !important; min-height: 28px !important; }
-.dark-mode .ch-row { background: var(--card-bg); border-color: var(--border-light); }
+.btn-sm { font-size: 12px !important; padding: 5px 10px !important; min-height: 28px !important; flex: 0 0 auto !important; }
+.dark-mode .ch-row { background: var(--bg-card); border-color: var(--border); }
 .dark-mode .ch-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 
 /* ─── Segmented Control ─── */
