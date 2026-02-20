@@ -143,7 +143,7 @@
                 </div>
                 <div class="onboarding-input-group">
                     <label for="onboardingAccessCode">Access Code</label>
-                    <input type="text" id="onboardingAccessCode" placeholder="e.g. ALTECH-2026" autocomplete="off" maxlength="30" style="text-transform:uppercase;letter-spacing:2px;text-align:center;font-size:1.1rem">
+                    <input type="text" id="onboardingAccessCode" placeholder="Enter code" autocomplete="off" maxlength="30" style="text-transform:uppercase;letter-spacing:2px;text-align:center;font-size:1.1rem">
                     <div class="onboarding-hint" id="onboardingCodeHint">Ask your manager or team lead for the code</div>
                     <div class="onboarding-code-error" id="onboardingCodeError" style="display:none">Invalid code — please try again</div>
                 </div>
@@ -2643,6 +2643,10 @@
                     <div class="auth-field">
                         <label for="authSignupEmail">Email</label>
                         <input type="email" id="authSignupEmail" placeholder="you@company.com" required autocomplete="email">
+                    </div>
+                    <div class="auth-field">
+                        <label for="authSignupInviteCode">Invite Code</label>
+                        <input type="text" id="authSignupInviteCode" placeholder="Enter invite code" required autocomplete="off" maxlength="30" style="text-transform:uppercase;letter-spacing:1px">
                     </div>
                     <div class="auth-field">
                         <label for="authSignupPassword">Password</label>

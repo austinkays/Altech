@@ -403,9 +403,18 @@ const Auth = (() => {
             const form = e.target;
             const name = form.querySelector('#authSignupName')?.value?.trim();
             const email = form.querySelector('#authSignupEmail')?.value?.trim();
+            const inviteCode = (form.querySelector('#authSignupInviteCode')?.value || '').trim().toUpperCase().replace(/\s+/g, '');
             const password = form.querySelector('#authSignupPassword')?.value;
             const confirm = form.querySelector('#authSignupConfirm')?.value;
 
+            // Validate invite code (must match onboarding VALID_CODES)
+            const validCodes = typeof Onboarding !== 'undefined' && Onboarding.getValidCodes
+                ? Onboarding.getValidCodes()
+                : ['VANCOUVER'];
+            if (!validCodes.includes(inviteCode)) {
+                _showError('signup', 'Invalid invite code. Ask your team admin for the code.');
+                return;
+            }
             if (password !== confirm) {
                 _showError('signup', 'Passwords do not match.');
                 return;

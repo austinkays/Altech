@@ -12,7 +12,7 @@ window.Onboarding = (() => {
     const STORAGE_KEY = 'altech_onboarded';
     const NAME_KEY = 'altech_user_name';
     // Access codes — add new codes here as needed
-    const VALID_CODES = ['ALTECH-2026', 'ALTECH2026', 'WELCOME2026'];
+    const VALID_CODES = ['VANCOUVER'];
     let _currentStep = 1;
     const TOTAL_STEPS = 4;
 
@@ -276,6 +276,7 @@ window.Onboarding = (() => {
         showShareModal,
         getUserName,
         getAgencyProfile,
+        getValidCodes: () => [...VALID_CODES],
         isComplete,
         reset
     };
