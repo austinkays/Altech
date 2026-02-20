@@ -8,6 +8,9 @@
 // Import the built-in schema so it's available on install/update
 importScripts('defaultSchema.js');
 
+// ── Schema URL — fetched on every startup to auto-sync team schema ──
+const SCHEMA_URL = 'https://altech-app.vercel.app/ezlynx_schema.json';
+
 // Set defaults on install/update — seed knownOptions with built-in schema
 // Only set clientData, lastFillReport, and settings if they don't already exist
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -41,7 +44,60 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
     await chrome.storage.local.set(updates);
     console.log(`[Altech] Extension ${details.reason} — ${Object.keys(merged).length} schema fields ready (${Object.keys(DEFAULT_SCHEMA).length} built-in + ${Object.keys(existing).length} user-scraped).`);
+
+    // After install/update, also fetch latest schema from Vercel
+    fetchRemoteSchema();
 });
+
+// ── Auto-sync schema from Vercel on every service worker startup ──
+// This runs whenever the service worker wakes up (on extension click, message, alarm, etc.)
+fetchRemoteSchema();
+
+async function fetchRemoteSchema() {
+    try {
+        const res = await fetch(SCHEMA_URL, { cache: 'no-cache' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const remote = await res.json();
+
+        // Filter to only flat key→array entries (skip _pages metadata)
+        const remoteSchema = {};
+        for (const [k, v] of Object.entries(remote)) {
+            if (k.startsWith('_')) continue; // skip _pages etc.
+            if (Array.isArray(v) && v.length > 0) remoteSchema[k] = v;
+        }
+
+        if (Object.keys(remoteSchema).length === 0) return;
+
+        // Merge: remote schema is the baseline, then overlay local user scrapes on top
+        // This means admin-published schema is always applied, but local scrapes can add new fields
+        const store = await chrome.storage.local.get('knownOptions');
+        const existing = store.knownOptions || {};
+
+        // Start with built-in defaults, layer remote on top, then local scrapes on top
+        const merged = { ...DEFAULT_SCHEMA, ...remoteSchema, ...existing };
+
+        // But for keys that exist in remote, merge their option arrays (add any new remote options)
+        for (const [k, remoteOptions] of Object.entries(remoteSchema)) {
+            if (existing[k] && Array.isArray(existing[k])) {
+                // Combine: existing options + any new remote options not already present
+                const existingSet = new Set(existing[k].map(o => String(o).toLowerCase()));
+                const combined = [...existing[k]];
+                for (const opt of remoteOptions) {
+                    if (!existingSet.has(String(opt).toLowerCase())) {
+                        combined.push(opt);
+                    }
+                }
+                merged[k] = combined;
+            }
+        }
+
+        await chrome.storage.local.set({ knownOptions: merged });
+        console.log(`[Altech] Schema synced from Vercel — ${Object.keys(merged).length} total fields (${Object.keys(remoteSchema).length} from remote).`);
+    } catch (e) {
+        // Silent fail — extension works fine with built-in + local schema
+        console.log(`[Altech] Remote schema fetch skipped: ${e.message}`);
+    }
+}
 
 // Inject content script programmatically if it's not already loaded
 async function ensureContentScript(tabId) {

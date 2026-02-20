@@ -211,21 +211,6 @@
     margin: 0 4px; flex-shrink: 0;
 }
 
-/* ── Schema Status ── */
-.ez-schema-status {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 14px; border-radius: 10px;
-    background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.06);
-}
-.ez-schema-dot {
-    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-}
-.ez-schema-dot.found { background: #34c759; box-shadow: 0 0 6px rgba(52, 199, 89, 0.4); }
-.ez-schema-dot.missing { background: #ff3b30; box-shadow: 0 0 6px rgba(255, 59, 48, 0.4); }
-.ez-schema-info { flex: 1; }
-.ez-schema-info .ez-label { font-weight: 600; font-size: 14px; color: #e2e8f0; }
-.ez-schema-info .ez-sublabel { font-size: 12px; color: #94a3b8; margin-top: 2px; }
-
 /* ── Form Grid ── */
 .ez-form-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 10px;

@@ -480,7 +480,6 @@ describe('Graceful Degradation for /local/ endpoints', () => {
     { file: 'compliance-dashboard.js', endpoints: ['/local/cgl-state', '/local/cgl-cache'] },
     { file: 'email-composer.js', endpoints: ['/local/email-drafts'] },
     { file: 'quick-ref.js', endpoints: ['/local/quickref-cards'] },
-    { file: 'ezlynx-tool.js', endpoints: ['/local/ezlynx-schema'] },
     { file: 'accounting-export.js', endpoints: ['/local/hawksoft-export'] },
     { file: 'policy-qa.js', endpoints: ['/local/scan-history'] },
   ];

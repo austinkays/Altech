@@ -561,7 +561,7 @@ async function loadSchemaStats() {
     }
 }
 
-// ── Export current schema as JS file (admin use — paste into defaultSchema.js) ──
+// ── Export current schema as JSON file (admin pushes to repo → Vercel → team auto-syncs) ──
 async function exportSchema() {
     try {
         const knownOptions = (await chrome.storage.local.get('knownOptions'))?.knownOptions || {};
@@ -570,30 +570,32 @@ async function exportSchema() {
             return;
         }
 
-        // Filter out internal panel IDs
+        // Filter out internal panel IDs and non-array values
         const cleaned = {};
         for (const [k, v] of Object.entries(knownOptions)) {
             if (k.includes('-panel') || k.includes('mat-select-') || k === '1') continue;
+            if (k.startsWith('_')) continue; // skip metadata keys
             if (Array.isArray(v) && v.length > 0) cleaned[k] = v;
         }
 
-        const date = new Date().toISOString().split('T')[0];
-        const js = `// Auto-generated from EZLynx scrape data \u2014 ${date}\n`
-            + '// This is the built-in schema that ships with the extension.\n'
-            + '// To update: scrape EZLynx pages, then use the Export Schema button in popup.\n'
-            + '// eslint-disable-next-line no-unused-vars\n'
-            + 'const DEFAULT_SCHEMA = ' + JSON.stringify(cleaned, null, 2) + ';\n';
+        // Sort keys alphabetically for clean diffs
+        const sorted = {};
+        for (const k of Object.keys(cleaned).sort()) {
+            sorted[k] = cleaned[k];
+        }
 
-        // Download as file
-        const blob = new Blob([js], { type: 'application/javascript' });
+        const json = JSON.stringify(sorted, null, 2);
+
+        // Download as ezlynx_schema.json — admin commits this to the repo
+        const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'defaultSchema.js';
+        a.download = 'ezlynx_schema.json';
         a.click();
         URL.revokeObjectURL(url);
 
-        setStatus(`\u2705 Exported ${Object.keys(cleaned).length} fields as defaultSchema.js \u2014 replace the file in the extension folder and reload!`, 'success');
+        setStatus(`✅ Exported ${Object.keys(sorted).length} fields as ezlynx_schema.json — commit to repo & push to deploy!`, 'success');
     } catch (e) {
         setStatus(`Export failed: ${e.message}`, 'error');
     }
