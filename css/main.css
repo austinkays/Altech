@@ -2311,10 +2311,38 @@ body:not(.dark-mode) .tool-row:hover .tool-icon.icon-muted    { filter: drop-sha
 
 /* ── Footer ── */
 .landing-footer {
-    padding: 0 16px 24px;
-    max-width: 780px;
-    margin: 0 auto;
-    width: 100%;
+    padding: 24px 16px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.bugreport-pill {
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 16px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    letter-spacing: 0.2px;
+}
+.bugreport-pill:hover {
+    color: var(--apple-blue);
+    border-color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.05);
+}
+body.dark-mode .bugreport-pill:hover {
+    background: rgba(10, 132, 255, 0.1);
+}
+.landing-version {
+    font-size: 9px;
+    color: var(--text-secondary);
+    opacity: 0.35;
+    letter-spacing: 0.5px;
 }
 
 /* ─── Legacy Support (other tools may reference these) ─── */
