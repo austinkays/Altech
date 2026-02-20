@@ -53,6 +53,30 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 // This runs whenever the service worker wakes up (on extension click, message, alarm, etc.)
 fetchRemoteSchema();
 
+// ── Only show extension icon on EZLynx pages ──
+// Disable popup by default, enable per-tab when on ezlynx.com
+chrome.action.disable();
+
+function updateActionForTab(tabId, url) {
+    if (!url) return;
+    if (url.includes('ezlynx.com')) {
+        chrome.action.enable(tabId);
+    } else {
+        chrome.action.disable(tabId);
+    }
+}
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (tab.url) updateActionForTab(tabId, tab.url);
+});
+
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+    try {
+        const tab = await chrome.tabs.get(activeInfo.tabId);
+        updateActionForTab(tab.id, tab.url);
+    } catch (e) { /* tab may have closed */ }
+});
+
 async function fetchRemoteSchema() {
     try {
         const res = await fetch(SCHEMA_URL, { cache: 'no-cache' });
