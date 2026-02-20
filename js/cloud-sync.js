@@ -579,8 +579,8 @@ const CloudSync = (() => {
                 }
                 const cloudNewer = (c.remoteTime || 0) >= (c.localTime || 0);
                 const localNewer = (c.localTime || 0) > (c.remoteTime || 0);
-                const cloudBadge = cloudNewer ? '<span class="conflict-newest">✦ Newest</span>' : '';
-                const localBadge = localNewer ? '<span class="conflict-newest">✦ Newest</span>' : '';
+                const cloudBadge = cloudNewer ? '<span class="conflict-newest">✦ Recommended</span>' : '';
+                const localBadge = localNewer ? '<span class="conflict-newest">✦ Recommended</span>' : '';
                 return `<div class="conflict-item">
                     <div class="conflict-item-header">
                         <span class="conflict-icon">${icon}</span>

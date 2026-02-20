@@ -61,7 +61,7 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
                     const savedKey = localStorage.getItem('gemini_api_key');
                     if (savedKey) {
                         this._geminiApiKey = savedKey;
-                        this.addSystemMessage('✅ Gemini AI key loaded — drop a PDF to get started.');
+                        this.addSystemMessage('✅ Ready — drop a PDF to get started.');
                         return;
                     }
 
@@ -73,7 +73,7 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
                             if (data.geminiKey) {
                                 this._geminiApiKey = data.geminiKey;
                                 console.log('[PolicyQA] Gemini key loaded from /api/places-config');
-                                this.addSystemMessage('✅ Gemini AI ready — drop a PDF to get started.');
+                                this.addSystemMessage('✅ Ready — drop a PDF to get started.');
                                 return;
                             }
                         }
@@ -89,14 +89,14 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
                             if (data.apiKey) {
                                 this._geminiApiKey = data.apiKey;
                                 console.log('[PolicyQA] Gemini key loaded from api/config.json');
-                                this.addSystemMessage('✅ Gemini AI ready — drop a PDF to get started.');
+                                this.addSystemMessage('✅ Ready — drop a PDF to get started.');
                                 return;
                             }
                         }
                     } catch (e) { /* not available locally */ }
 
                     // 4. No key found — prompt user
-                    this.addSystemMessage('⚠️ No AI key found. For AI-powered answers, <a href="#" onclick="PolicyQA.promptGeminiKey(); return false;" style="color:var(--primary-color,#007AFF);text-decoration:underline;">set your Gemini API key</a>.');
+                    this.addSystemMessage('⚠️ No API key configured. For smart answers, <a href="#" onclick="PolicyQA.promptGeminiKey(); return false;" style="color:var(--primary-color,#007AFF);text-decoration:underline;">set your API key</a>.');
                 },
 
                 promptGeminiKey() {
@@ -104,7 +104,7 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
                     if (key && key.trim()) {
                         this._geminiApiKey = key.trim();
                         localStorage.setItem('gemini_api_key', key.trim());
-                        this.addSystemMessage('✅ Gemini API key saved. AI-powered Q&A is now active!');
+                        this.addSystemMessage('✅ API key saved. Smart Q&A is now active!');
                         App.toast('✅ Gemini API key configured');
                     }
                 },
@@ -672,7 +672,7 @@ POLICY TEXT:\n${truncated}`;
                         // Return the first ~2000 chars as a document summary
                         const preview = policyText.slice(0, 2000).trim();
                         return {
-                            text: `Here is a summary of the uploaded document content (no AI available — showing raw extracted text):\n\n---\n${preview}\n---\n\n📄 Total extracted: ${policyText.length} characters. For AI-powered analysis, configure your Gemini API key (Settings → API Keys) or ensure network connectivity.`,
+                            text: `Here is a summary of the uploaded document content (showing raw extracted text):\n\n---\n${preview}\n---\n\n📄 Total extracted: ${policyText.length} characters. For smart analysis, configure your API key (Settings → API Keys) or ensure network connectivity.`,
                             citations: [],
                             confidence: 'medium'
                         };
@@ -698,7 +698,7 @@ POLICY TEXT:\n${truncated}`;
                         if (policyText.length > 0) {
                             const preview = policyText.slice(0, 1500).trim();
                             return {
-                                text: `I couldn't find a direct keyword match for your question. Here's the beginning of the document for context:\n\n---\n${preview}\n---\n\n💡 Tip: Try using specific terms from the policy (e.g., "deductible", "coverage limit", "exclusion"). For AI-powered answers, configure your Gemini API key.`,
+                                text: `I couldn't find a direct keyword match for your question. Here's the beginning of the document for context:\n\n---\n${preview}\n---\n\n💡 Tip: Try using specific terms from the policy (e.g., "deductible", "coverage limit", "exclusion"). For smart answers, configure your API key.`,
                                 citations: [],
                                 confidence: 'low'
                             };
@@ -712,7 +712,7 @@ POLICY TEXT:\n${truncated}`;
 
                     const snippets = top.map((m, i) => `${i + 1}. "${m.line.slice(0, 300)}"`).join('\n\n');
                     return {
-                        text: `Here are the most relevant passages I found (keyword match — no AI available offline):\n\n${snippets}\n\n⚠️ This is a basic search. For AI-powered answers, configure your Gemini API key or ensure network connectivity.`,
+                        text: `Here are the most relevant passages I found (keyword match — offline mode):\n\n${snippets}\n\n⚠️ This is a basic search. For smart answers, configure your API key or ensure network connectivity.`,
                         citations: [],
                         confidence: 'low'
                     };
@@ -960,7 +960,7 @@ POLICY TEXT:\n${truncated}`;
                         return;
                     }
                     const lines = this.messages.map(m => {
-                        const prefix = m.role === 'user' ? 'YOU' : m.role === 'ai' ? 'AI' : 'SYSTEM';
+                        const prefix = m.role === 'user' ? 'YOU' : m.role === 'ai' ? 'ASSISTANT' : 'SYSTEM';
                         const conf = m.confidence ? ` [${m.confidence.toUpperCase()} confidence]` : '';
                         const cites = m.citations?.length ? ` (Refs: ${m.citations.map(c => c.section).join(', ')})` : '';
                         return `[${prefix}]${conf}${cites}\n${m.text}\n`;
