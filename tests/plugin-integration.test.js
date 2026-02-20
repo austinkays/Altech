@@ -374,8 +374,8 @@ describe('JS Module Files', () => {
 
 describe('Gemini API Key Discovery (correctness)', () => {
   test('App._getGeminiKey fetches /api/places-config and reads geminiKey', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-    const getKeyBlock = source.match(/_getGeminiKey\(\)\s*\{[\s\S]*?\n\s{12}\},/);
+    const source = fs.readFileSync(path.join(ROOT, 'js', 'app-core.js'), 'utf8');
+    const getKeyBlock = source.match(/_getGeminiKey\(\)\s*\{[\s\S]*?\n\s{4}\},/);
     expect(getKeyBlock).not.toBeNull();
     expect(getKeyBlock[0]).toContain('/api/places-config');
     expect(getKeyBlock[0]).toContain('geminiKey');
@@ -572,7 +572,7 @@ describe('Export Engines Present', () => {
   let source;
 
   beforeAll(() => {
-    source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    source = fs.readFileSync(path.join(ROOT, 'js', 'app-export.js'), 'utf8');
   });
 
   test('exportCMSMTF function exists', () => {
@@ -802,7 +802,7 @@ describe('Progressive Disclosure: Secondary Heating', () => {
   });
 
   test('syncSegmentedControls restores disclosure state from saved data', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'js', 'app-core.js'), 'utf8');
     // The sync function should check secondaryHeating value and toggle disclosure
     expect(source).toMatch(/syncSegmentedControls[\s\S]*secondaryHeating[\s\S]*disclosure-hidden/);
   });
@@ -1052,7 +1052,7 @@ describe('Home Endorsements Layout', () => {
   });
 
   test('syncSegmentedControls restores earthquake disclosure state', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'js', 'app-core.js'), 'utf8');
     expect(source).toMatch(/syncSegmentedControls[\s\S]*earthquakeDetailsWrapper/);
   });
 
