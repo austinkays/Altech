@@ -11,6 +11,8 @@ const EZLynxTool = {
         this.checkSchema();
         this.loadLogin();
         this.loadFormData();
+        this._loadIncidents();
+        this.renderIncidents();
         this._wireAutoSave();
         this._restoreInstallGuide();
         this._restoreClientBanner();
@@ -141,7 +143,7 @@ const EZLynxTool = {
             }
             sub.textContent = `Last updated: ${timeStr}`;
             pagesDiv.innerHTML = pageHtml;
-            this.collapseSchema();
+            // Don't programmatically collapse — let user control the accordion
         };
 
         // Try 1: local server endpoint (full metadata)
@@ -197,13 +199,13 @@ const EZLynxTool = {
             // Tauri not available or file not found
         }
 
-        // Neither method worked
+        // Neither method worked — not critical, Chrome Extension stores its own schema via scraping
         dot.className = 'ez-schema-dot missing';
-        label.textContent = 'No schema found';
-        sub.textContent = 'Run the scraper to capture EZLynx dropdown options, or start the local server (node server.js).';
-        quickInfo.textContent = 'Not configured';
+        label.textContent = 'No schema file found';
+        sub.textContent = 'Optional: Use Chrome Extension\'s scrape button on EZLynx pages — schema is stored automatically for smart filling.';
+        quickInfo.textContent = 'Auto via extension';
         pagesDiv.innerHTML = '';
-        this.expandSchema();
+        // Don't programmatically expand — let user control the accordion
     },
 
     async refreshSchema() {
@@ -426,6 +428,17 @@ const EZLynxTool = {
                 GaragingCity: v.garagingCity || '',
                 GaragingState: v.garagingState || '',
                 GaragingZip: v.garagingZip ? String(v.garagingZip).replace(/[^0-9]/g, '').slice(0, 5) : ''
+            }));
+        }
+
+        // Append incidents (violations, accidents, claims) — smart skip: omit if empty
+        if (this.incidents && this.incidents.length > 0) {
+            data.Incidents = this.incidents.map(i => ({
+                Type: i.type || 'violation',
+                Subtype: i.subtype || '',
+                Date: i.date || '',
+                Description: i.description || '',
+                Amount: i.amount || ''
             }));
         }
 
@@ -759,6 +772,21 @@ const EZLynxTool = {
         this.formFields.forEach(id => {
             if (document.getElementById(id)?.value) filled++;
         });
+        // Load incidents from App.data if present (from AI scan or manual entry)
+        if (Array.isArray(d.incidents) && d.incidents.length > 0) {
+            this.incidents = d.incidents.map(i => ({
+                id: Date.now() + Math.random(),
+                type: i.type || 'violation',
+                subtype: i.subtype || '',
+                date: i.date || '',
+                description: i.description || '',
+                amount: i.amount || ''
+            }));
+            this._saveIncidents();
+            this.renderIncidents();
+            this._syncIncidentCounts();
+        }
+
         if (d.policyTerm || d.priorCarrier || d.liabilityLimits)
             document.getElementById('ezAutoSection')?.setAttribute('open', '');
         if (veh.vin || veh.year || drv.dlNum)
@@ -767,6 +795,8 @@ const EZLynxTool = {
             document.getElementById('ezHomeSection')?.setAttribute('open', '');
         if (d.homePolicyType || d.dwellingCoverage || d.personalLiability || d.homePriorCarrier)
             document.getElementById('ezHomeCovSection')?.setAttribute('open', '');
+        if (this.incidents.length > 0)
+            document.getElementById('ezIncidentsSection')?.setAttribute('open', '');
 
         const extraEl = document.getElementById('ezExtraLoaded');
         if (extraEl && filled > 16) {
@@ -774,14 +804,91 @@ const EZLynxTool = {
             document.getElementById('ezExtraCount').textContent = filled - 16;
         }
         this.saveFormData();
+        this.renderDriverVehicleSummary();
         const clientName = [d.firstName, d.lastName].filter(Boolean).join(' ') || 'Unknown';
         const lineType = (d.qType || 'quote').toUpperCase();
         this._updateClientBanner(clientName, `${filled} fields loaded \u2022 ${lineType}`);
         App.toast('\ud83d\udce5 Loaded ' + filled + ' fields from intake form');
     },
 
+    renderDriverVehicleSummary() {
+        const wrapper = document.getElementById('ezDVSummary');
+        const content = document.getElementById('ezDVSummaryContent');
+        if (!wrapper || !content) return;
+
+        const drivers = (typeof App !== 'undefined' && Array.isArray(App.drivers)) ? App.drivers : [];
+        const vehicles = (typeof App !== 'undefined' && Array.isArray(App.vehicles)) ? App.vehicles : [];
+
+        // Only show additional drivers (index > 0) and additional vehicles (index > 0)
+        const extraDrivers = drivers.slice(1);
+        const extraVehicles = vehicles.slice(1);
+        const coApplicant = drivers.find(d => d.isCoApplicant);
+
+        if (!extraDrivers.length && !extraVehicles.length && !coApplicant) {
+            wrapper.style.display = 'none';
+            return;
+        }
+
+        let html = '';
+
+        // Co-applicant badge
+        if (coApplicant) {
+            const name = [coApplicant.firstName, coApplicant.lastName].filter(Boolean).join(' ') || 'Unnamed';
+            html += `<div class="ez-dv-card ez-dv-coapplicant">
+                <div class="ez-dv-badge">Co-Applicant</div>
+                <strong>${this._escHTML(name)}</strong>`;
+            if (coApplicant.dob) html += ` <span class="ez-dv-detail">DOB: ${this._escHTML(coApplicant.dob)}</span>`;
+            if (coApplicant.relationship) html += ` <span class="ez-dv-detail">${this._escHTML(coApplicant.relationship)}</span>`;
+            html += `</div>`;
+        }
+
+        // Additional drivers
+        if (extraDrivers.length) {
+            html += `<div class="ez-dv-group-label">\uD83D\uDE97 Additional Drivers (${extraDrivers.length})</div>`;
+            extraDrivers.forEach((drv, i) => {
+                const name = [drv.firstName, drv.lastName].filter(Boolean).join(' ') || `Driver ${i + 2}`;
+                const details = [
+                    drv.dob ? `DOB: ${drv.dob}` : '',
+                    drv.relationship || '',
+                    drv.dlState ? `DL: ${drv.dlState}` : '',
+                    drv.gender === 'M' ? 'Male' : drv.gender === 'F' ? 'Female' : ''
+                ].filter(Boolean).join(' \u2022 ');
+                html += `<div class="ez-dv-card">
+                    <strong>${this._escHTML(name)}</strong>${drv.isCoApplicant ? ' <span class="ez-dv-badge">Co-App</span>' : ''}
+                    ${details ? `<div class="ez-dv-detail">${this._escHTML(details)}</div>` : ''}
+                </div>`;
+            });
+        }
+
+        // Additional vehicles
+        if (extraVehicles.length) {
+            html += `<div class="ez-dv-group-label">\uD83D\uDE9A Additional Vehicles (${extraVehicles.length})</div>`;
+            extraVehicles.forEach((veh, i) => {
+                const label = [veh.year, veh.make, veh.model].filter(Boolean).join(' ') || `Vehicle ${i + 2}`;
+                const details = [
+                    veh.vin ? `VIN: ${veh.vin}` : '',
+                    veh.use || '',
+                    veh.miles ? `${veh.miles} mi/yr` : '',
+                    veh.ownership || ''
+                ].filter(Boolean).join(' \u2022 ');
+                html += `<div class="ez-dv-card">
+                    <strong>${this._escHTML(label)}</strong>
+                    ${details ? `<div class="ez-dv-detail">${this._escHTML(details)}</div>` : ''}
+                </div>`;
+            });
+        }
+
+        content.innerHTML = html;
+        wrapper.style.display = 'block';
+    },
+
     clearForm() {
         this.formFields.forEach(id => this.setField(id, ''));
+        this.incidents = [];
+        this._saveIncidents();
+        this.renderIncidents();
+        const dvWrapper = document.getElementById('ezDVSummary');
+        if (dvWrapper) dvWrapper.style.display = 'none';
         try { localStorage.removeItem(this.formStorageKey); } catch (e) { /* ignore */ }
         this._updateClientBanner('', 'Tap "Select Client" to load from saved intake data');
         App.toast('🗑 Form cleared');
@@ -1028,6 +1135,132 @@ const EZLynxTool = {
                 this._updateClientBanner(name, `${fieldCount} fields saved`);
             }
         } catch (e) { /* corrupt */ }
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ── Incidents (Violations, Accidents, Claims) ──
+    // ═══════════════════════════════════════════════════════════
+    incidentsKey: 'altech_ezlynx_incidents',
+    incidents: [],
+
+    _loadIncidents() {
+        try {
+            const raw = localStorage.getItem(this.incidentsKey);
+            this.incidents = raw ? JSON.parse(raw) : [];
+        } catch (e) { this.incidents = []; }
+    },
+
+    _saveIncidents() {
+        try {
+            localStorage.setItem(this.incidentsKey, JSON.stringify(this.incidents));
+        } catch (e) { /* quota */ }
+        this._updateIncidentCount();
+    },
+
+    _updateIncidentCount() {
+        const el = document.getElementById('ezIncidentCount');
+        if (el) el.textContent = this.incidents.length > 0 ? `(${this.incidents.length})` : '';
+    },
+
+    addIncident(type) {
+        this.incidents.push({
+            id: Date.now(),
+            type: type || 'violation', // violation | accident | claim
+            subtype: '',  // e.g. "Speeding", "At-Fault", "Comprehensive"
+            date: '',
+            description: '',
+            amount: ''    // For claims only
+        });
+        this._saveIncidents();
+        this.renderIncidents();
+        document.getElementById('ezIncidentsSection')?.setAttribute('open', '');
+    },
+
+    removeIncident(id) {
+        this.incidents = this.incidents.filter(i => i.id !== id);
+        this._saveIncidents();
+        this.renderIncidents();
+        // Auto-update the accident/violation counts based on remaining incidents
+        this._syncIncidentCounts();
+    },
+
+    _syncIncidentCounts() {
+        const accCount = this.incidents.filter(i => i.type === 'accident').length;
+        const violCount = this.incidents.filter(i => i.type === 'violation').length;
+        const accEl = document.getElementById('ezAccidents');
+        const violEl = document.getElementById('ezViolations');
+        if (accEl && (accEl.value === '' || !isNaN(parseInt(accEl.value)))) {
+            accEl.value = String(accCount);
+        }
+        if (violEl && (violEl.value === '' || !isNaN(parseInt(violEl.value)))) {
+            violEl.value = String(violCount);
+        }
+    },
+
+    updateIncident(id, field, value) {
+        const incident = this.incidents.find(i => i.id === id);
+        if (incident) {
+            incident[field] = value;
+            this._saveIncidents();
+        }
+    },
+
+    renderIncidents() {
+        const container = document.getElementById('ezIncidentList');
+        if (!container) return;
+
+        if (this.incidents.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:12px; font-size:12px; color:#64748b; opacity:0.7;">No incidents — client has a clean record ✨</div>';
+            return;
+        }
+
+        const typeEmoji = { violation: '🚦', accident: '💥', claim: '📋' };
+        const typeLabel = { violation: 'Violation', accident: 'Accident', claim: 'Claim' };
+        const subtypeOptions = {
+            violation: ['Speeding', 'Running Red Light', 'Running Stop Sign', 'Careless Driving', 'Reckless Driving', 'DUI/DWI', 'Driving Without License', 'Failure to Yield', 'Improper Lane Change', 'Cell Phone/Texting', 'Suspended License', 'No Insurance', 'Other'],
+            accident: ['At-Fault', 'Not-At-Fault', 'At-Fault with Injury', 'Not-At-Fault with Injury', 'Hit and Run', 'Single Vehicle', 'Other'],
+            claim: ['Comprehensive', 'Collision', 'Bodily Injury', 'Property Damage', 'Uninsured Motorist', 'Medical Payments', 'Glass', 'Towing', 'Rental', 'Other']
+        };
+
+        let html = '';
+        this.incidents.forEach((inc, idx) => {
+            const emoji = typeEmoji[inc.type] || '⚠️';
+            const label = typeLabel[inc.type] || inc.type;
+            const opts = subtypeOptions[inc.type] || [];
+            const optionsHtml = opts.map(o =>
+                `<option value="${this._escHTML(o)}" ${inc.subtype === o ? 'selected' : ''}>${this._escHTML(o)}</option>`
+            ).join('');
+            const showAmount = inc.type === 'claim';
+
+            html += `<div class="ez-incident-card" style="background:var(--bg-input, #2C2C2E); border:1px solid var(--border, #38383A); border-radius:10px; padding:10px 12px; margin-bottom:8px; position:relative;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <span style="font-size:13px; font-weight:600;">${emoji} ${label} #${idx + 1}</span>
+                    <button onclick="EZLynxTool.removeIncident(${inc.id})" style="background:none; border:none; color:#FF453A; font-size:16px; cursor:pointer; padding:2px 6px;" title="Remove">✕</button>
+                </div>
+                <div class="ez-form-grid">
+                    <div class="ez-form-field">
+                        <label>Type</label>
+                        <select onchange="EZLynxTool.updateIncident(${inc.id},'subtype',this.value)">
+                            <option value="">— Select —</option>
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                    <div class="ez-form-field">
+                        <label>Date</label>
+                        <input type="text" placeholder="MM/DD/YYYY" value="${this._escHTML(inc.date)}" onchange="EZLynxTool.updateIncident(${inc.id},'date',this.value)">
+                    </div>
+                    ${showAmount ? `<div class="ez-form-field">
+                        <label>Amount ($)</label>
+                        <input type="text" placeholder="5000" value="${this._escHTML(inc.amount)}" onchange="EZLynxTool.updateIncident(${inc.id},'amount',this.value)">
+                    </div>` : ''}
+                    <div class="ez-form-field ${showAmount ? '' : 'ez-form-full'}">
+                        <label>Description</label>
+                        <input type="text" placeholder="Brief description (optional)" value="${this._escHTML(inc.description)}" onchange="EZLynxTool.updateIncident(${inc.id},'description',this.value)">
+                    </div>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
     }
 };
 

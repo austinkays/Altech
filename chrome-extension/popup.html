@@ -114,6 +114,61 @@
         .btn-copy-prop {
             background: #34c759; color: #fff;
         }
+        .btn-export {
+            background: #f2f2f7; color: #5856d6; font-size: 11px;
+        }
+
+        /* Admin section */
+        .admin-zone { display: none; }
+        .admin-zone.visible { display: block; }
+        .admin-toggle {
+            display: flex; align-items: center; justify-content: center;
+            gap: 6px; padding: 6px;
+            font-size: 10px; color: #8e8e93;
+            cursor: pointer; user-select: none;
+            border-top: 1px solid #e5e5ea;
+            margin-top: 4px;
+        }
+        .admin-toggle:hover { color: #007AFF; }
+        .admin-pin {
+            display: flex; gap: 6px; align-items: center;
+            padding: 8px 0;
+        }
+        .admin-pin input {
+            width: 120px; padding: 6px 10px; border: 1px solid #e5e5ea;
+            border-radius: 8px; font-size: 12px; font-family: inherit;
+            text-align: center; letter-spacing: 4px;
+        }
+        .admin-pin .pin-ok {
+            padding: 6px 12px; border: none; border-radius: 8px;
+            background: #007AFF; color: #fff; font-size: 11px;
+            font-weight: 600; cursor: pointer;
+        }
+        .admin-badge {
+            font-size: 9px; font-weight: 700; text-transform: uppercase;
+            padding: 2px 6px; border-radius: 4px;
+            background: rgba(88, 86, 214, 0.12); color: #5856d6;
+            letter-spacing: 0.3px;
+        }
+
+        /* Schema Stats */
+        .schema-stats {
+            background: #fff;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+            border: 1px solid #e5e5ea;
+            font-size: 11px;
+            color: #8e8e93;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .schema-stats strong { color: #1d1d1f; }
+        .schema-stats .schema-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #34c759; flex-shrink: 0;
+        }
 
         /* Property Results */
         .prop-results {
@@ -191,7 +246,7 @@
     <div class="header">
         <span class="header-icon">⚡</span>
         <span class="header-title">Altech EZLynx Filler</span>
-        <span class="header-version">v1.0</span>
+        <span class="header-version">v1.1</span>
     </div>
 
     <div class="content">
@@ -223,8 +278,27 @@
                 <button class="btn btn-refill" id="refillBtn" disabled>🔄 Re-fill</button>
                 <button class="btn btn-clear" id="clearBtn" disabled>🗑 Clear</button>
             </div>
-            <button class="btn btn-scrape" id="scrapeBtn">🔍 Scrape This Page</button>
-            <button class="btn btn-property" id="propertyBtn">🏠 Grab Property Data</button>
+        </div>
+
+        <!-- Admin Tools (hidden behind PIN) -->
+        <div class="admin-toggle" id="adminToggle">🔒 Admin Tools</div>
+        <div id="adminPinArea" style="display:none;">
+            <div class="admin-pin">
+                <input type="password" id="adminPinInput" maxlength="4" placeholder="PIN">
+                <button class="pin-ok" id="adminPinBtn">→</button>
+            </div>
+        </div>
+        <div class="admin-zone" id="adminZone">
+            <div class="actions">
+                <button class="btn btn-scrape" id="scrapeBtn">🔍 Scrape This Page <span class="admin-badge">Admin</span></button>
+                <button class="btn btn-property" id="propertyBtn">🏠 Grab Property Data <span class="admin-badge">Admin</span></button>
+            </div>
+            <!-- Schema Stats -->
+            <div class="schema-stats" id="schemaStats">
+                <span class="schema-dot"></span>
+                <span id="schemaStatsText">Loading schema...</span>
+                <button class="btn btn-export" id="exportSchemaBtn" style="margin-left:auto; padding:4px 10px;">📤 Export</button>
+            </div>
         </div>
 
         <!-- Property Results (hidden until scrape) -->
@@ -254,6 +328,7 @@
         In Altech → EZLynx Quoter → click <strong>📤 Send to Extension</strong>
     </div>
 
+    <script src="defaultSchema.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>

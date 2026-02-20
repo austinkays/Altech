@@ -1,14 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Altech EZLynx Filler",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Auto-fill EZLynx personal lines applicant forms with data from Altech insurance intake. Fuzzy-matches dropdowns, handles Angular Material components, works across all EZLynx form pages.",
   "permissions": [
     "activeTab",
     "tabs",
     "storage",
-    "scripting",
-    "clipboardRead"
+    "scripting"
   ],
   "host_permissions": [
     "*://*.ezlynx.com/*"
@@ -26,5 +25,11 @@
   ],
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["defaultSchema.js"],
+      "matches": ["*://*.ezlynx.com/*"]
+    }
+  ]
 }

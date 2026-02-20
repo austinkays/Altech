@@ -396,9 +396,65 @@ function bestMatch(target, candidates, cutoff = 0.4) {
     return bestScore >= cutoff ? { text: best, score: bestScore } : null;
 }
 
-/** Expand abbreviations. */
-function expand(val) {
-    return ABBREVIATIONS[(val || '').toUpperCase()] || val;
+/**
+ * Context-specific abbreviation groups for ambiguous codes.
+ * MA → Massachusetts (state) vs Masters (education)
+ * MD → Maryland (state) vs Medical Degree (education)
+ * S  → Single (marital) vs potential state code confusion
+ */
+const CONTEXT_ABBREVS = {
+    state: {
+        'AL':'Alabama','AK':'Alaska','AZ':'Arizona','AR':'Arkansas',
+        'CA':'California','CO':'Colorado','CT':'Connecticut','DE':'Delaware',
+        'DC':'District of Columbia','FL':'Florida','GA':'Georgia','HI':'Hawaii',
+        'ID':'Idaho','IL':'Illinois','IN':'Indiana','IA':'Iowa',
+        'KS':'Kansas','KY':'Kentucky','LA':'Louisiana','ME':'Maine',
+        'MD':'Maryland','MA':'Massachusetts','MI':'Michigan','MN':'Minnesota',
+        'MS':'Mississippi','MO':'Missouri','MT':'Montana','NE':'Nebraska',
+        'NV':'Nevada','NH':'New Hampshire','NJ':'New Jersey','NM':'New Mexico',
+        'NY':'New York','NC':'North Carolina','ND':'North Dakota','OH':'Ohio',
+        'OK':'Oklahoma','OR':'Oregon','PA':'Pennsylvania','RI':'Rhode Island',
+        'SC':'South Carolina','SD':'South Dakota','TN':'Tennessee','TX':'Texas',
+        'UT':'Utah','VT':'Vermont','VA':'Virginia','WA':'Washington',
+        'WV':'West Virginia','WI':'Wisconsin','WY':'Wyoming'
+    },
+    education: {
+        'HS':'High School Diploma','BA':'Bachelors','BS':'Bachelors',
+        'MA':'Masters','PHD':'Phd','GED':'High School Diploma',
+        'JD':'Law Degree','MD':'Medical Degree'
+    },
+    marital: {
+        'S':'Single','D':'Divorced','W':'Widowed',
+        'SEP':'Separated','DP':'Domestic Partner'
+    },
+    gender: { 'M':'Male','F':'Female' }
+};
+
+/** Pattern map: field key substrings → which context to use */
+const FIELD_CONTEXT_MAP = {
+    state:     ['state', 'dlstate', 'licensestate', 'garagingstate'],
+    education: ['education', 'degree'],
+    marital:   ['marital'],
+    gender:    ['gender', 'sex']
+};
+
+/** Expand abbreviations with optional field-key context to resolve ambiguity. */
+function expand(val, fieldKey) {
+    const upper = (val || '').toUpperCase();
+    if (!upper) return val;
+
+    // If field key provided, check for context-specific expansion first
+    if (fieldKey) {
+        const keyLower = fieldKey.toLowerCase();
+        for (const [ctx, patterns] of Object.entries(FIELD_CONTEXT_MAP)) {
+            if (patterns.some(p => keyLower.includes(p))) {
+                if (CONTEXT_ABBREVS[ctx][upper]) return CONTEXT_ABBREVS[ctx][upper];
+                break; // Only match first context
+            }
+        }
+    }
+
+    return ABBREVIATIONS[upper] || val;
 }
 
 /** Check if element is visible. */
@@ -452,6 +508,8 @@ function detectPage() {
 
     // Auto pages
     if (url.includes('/rating/auto/') || url.includes('/auto/')) {
+        if (url.includes('incident') || url.includes('violation') || url.includes('claim') || url.includes('accident'))
+            return 'auto-incident';
         if (url.includes('driver'))   return 'auto-driver';
         if (url.includes('vehicle'))  return 'auto-vehicle';
         if (url.includes('coverage')) return 'auto-coverage';
@@ -484,7 +542,7 @@ function getActiveDropdowns() {
     const active = { ...BASE_DROPDOWN_LABELS };
     // Auto pages
     if (url.includes('/rating/auto/') || url.includes('/auto/') || 
-        page === 'auto-policy' || page === 'auto-driver' || page === 'auto-vehicle' || page === 'auto-coverage') {
+        page === 'auto-policy' || page === 'auto-driver' || page === 'auto-vehicle' || page === 'auto-coverage' || page === 'auto-incident') {
         Object.assign(active, AUTO_DROPDOWN_LABELS);
     }
     // Home pages
@@ -561,10 +619,10 @@ function fillTextByLabel(labelText, value) {
 
 // ─── Native <select> filling with fuzzy match ───
 
-function fillNativeSelect(selectors, value) {
+function fillNativeSelect(selectors, value, fieldKey) {
     if (!value || !String(value).trim()) return false;
     const target = String(value).trim();
-    const expanded = expand(target);
+    const expanded = expand(target, fieldKey);
 
     for (const sel of selectors) {
         try {
@@ -665,10 +723,10 @@ function findDropdownByLabel(labelPatterns) {
 
 // ─── Custom dropdown (Angular Material) filling ───
 
-async function fillCustomDropdown(labelPatterns, value) {
+async function fillCustomDropdown(labelPatterns, value, fieldKey) {
     if (!value || !String(value).trim()) return false;
     const target = String(value).trim();
-    const expanded = expand(target);
+    const expanded = expand(target, fieldKey);
 
     const found = findDropdownByLabel(labelPatterns);
     if (!found) return false;
@@ -844,6 +902,8 @@ function injectToolbar() {
             .btn:active { filter: brightness(0.9); }
             .btn:disabled { opacity: 0.5; cursor: not-allowed; }
             .btn-fill { background: #007AFF; color: #fff; }
+            .btn-report { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.6); font-size: 10px; padding: 4px 8px; }
+            .btn-report:hover { color: #fff; background: rgba(255,255,255,0.2); }
             .btn-close { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.7); }
             .status {
                 color: rgba(255,255,255,0.5); font-size: 10px; max-width: 200px;
@@ -854,19 +914,25 @@ function injectToolbar() {
             <span class="brand">⚡ Altech</span>
             <span class="client" id="tb-client">Loading...</span>
             <button class="btn btn-fill" id="tb-fill">Fill This Page</button>
+            <button class="btn btn-report" id="tb-report" style="display:none;">📋</button>
             <button class="btn btn-close" id="tb-close">✕</button>
             <span class="status" id="tb-status"></span>
         </div>
     `;
 
     // Load client name
-    chrome.storage.local.get('clientData', ({ clientData }) => {
+    chrome.storage.local.get(['clientData', 'lastFillReport'], ({ clientData, lastFillReport }) => {
         const clientEl = shadow.getElementById('tb-client');
         if (clientData) {
             const name = [clientData.FirstName, clientData.LastName].filter(Boolean).join(' ');
             clientEl.textContent = name || 'Client loaded';
         } else {
             clientEl.textContent = 'No client — use extension popup';
+        }
+        // Show report button if previous report exists
+        if (lastFillReport) {
+            const reportBtn = shadow.getElementById('tb-report');
+            if (reportBtn) reportBtn.style.display = '';
         }
     });
 
@@ -894,8 +960,21 @@ function injectToolbar() {
         btn.disabled = false;
         btn.textContent = 'Fill Again';
 
+        // Show report button for quick re-access
+        const reportBtn = shadow.getElementById('tb-report');
+        if (reportBtn) reportBtn.style.display = '';
+
         // Show injection report panel
         showInjectionReport(shadow, result);
+    });
+
+    // Report button (re-open last fill report)
+    shadow.getElementById('tb-report').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const { lastFillReport } = await chrome.storage.local.get('lastFillReport');
+        if (lastFillReport) {
+            showInjectionReport(shadow, lastFillReport);
+        }
     });
 
     // Close button
@@ -929,6 +1008,12 @@ function injectToolbar() {
     });
 }
 
+/** Escape HTML special chars to prevent XSS in innerHTML templates. */
+function escapeHTML(str) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(str || '').replace(/[&<>"']/g, c => map[c]);
+}
+
 /**
  * Show a floating injection report panel inside the toolbar's Shadow DOM.
  * Displays per-field ✅/❌/🔄 status with failure reasons.
@@ -941,17 +1026,29 @@ function showInjectionReport(shadow, result) {
     const total = result.textFilled + result.ddFilled;
     const skipped = result.textSkipped + result.ddSkipped;
 
+    const pageNames = {
+        'applicant': 'Applicant', 'auto-policy': 'Auto Policy',
+        'auto-incident': 'Incidents', 'auto-driver': 'Drivers',
+        'auto-vehicle': 'Vehicles', 'auto-coverage': 'Coverage',
+        'home-dwelling': 'Home Dwelling', 'home-coverage': 'Home Coverage',
+        'lead-info': 'Lead Info',
+    };
+    const pageName = pageNames[result.page] || result.page || 'Unknown';
+
     const rows = (result.details || []).map(d => {
         let icon, cls;
         if (d.status === 'OK') { icon = '✅'; cls = 'ok'; }
         else if (d.status === 'OK_RETRY') { icon = '🔄'; cls = 'retry'; }
+        else if (d.status === 'info') { icon = 'ℹ️'; cls = 'info'; }
         else { icon = '❌'; cls = 'skip'; }
-        const reason = d.reason || (d.status === 'SKIP' ? 'Field not found on page' : '');
+        const reason = d.reason || (d.status === 'SKIP' ? 'Not found on page' : '');
+        const valTrunc = d.value ? (d.value.length > 20 ? d.value.slice(0, 20) + '…' : d.value) : '';
         return `<div class="rpt-row ${cls}">
             <span class="rpt-icon">${icon}</span>
-            <span class="rpt-field">${d.field}</span>
-            <span class="rpt-type">${d.type}</span>
-            ${reason ? `<span class="rpt-reason">${reason}</span>` : ''}
+            <span class="rpt-field">${escapeHTML(d.field)}</span>
+            <span class="rpt-type">${escapeHTML(d.type)}</span>
+            ${valTrunc ? `<span class="rpt-val" title="${escapeHTML(d.value)}">${escapeHTML(valTrunc)}</span>` : ''}
+            ${reason ? `<span class="rpt-reason">${escapeHTML(reason)}</span>` : ''}
         </div>`;
     }).join('');
 
@@ -982,7 +1079,9 @@ function showInjectionReport(shadow, result) {
             .rpt-icon { font-size: 12px; flex-shrink: 0; }
             .rpt-field { font-weight: 600; min-width: 90px; }
             .rpt-type { color: rgba(255,255,255,0.4); font-size: 10px; }
+            .rpt-val { color: rgba(150,200,255,0.7); font-size: 10px; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             .rpt-reason { color: rgba(255,150,150,0.8); font-size: 10px; margin-left: auto; }
+            .rpt-row.info { background: rgba(0,122,255,0.08); }
             .rpt-close { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer;
                 font-size: 16px; line-height: 1; padding: 2px 6px; }
             .rpt-close:hover { color: #fff; }
@@ -991,11 +1090,11 @@ function showInjectionReport(shadow, result) {
         </style>
         <div class="rpt-panel">
             <div class="rpt-header">
-                <h3>📋 Injection Report</h3>
+                <h3>📋 Fill Report — ${escapeHTML(pageName)}</h3>
                 <button class="rpt-close" id="rpt-close-btn">✕</button>
             </div>
             <div class="rpt-summary">
-                ${total} filled${skipped > 0 ? ` · ${skipped} skipped` : ''} · ${result.details?.length || 0} fields attempted
+                ${total} filled${skipped > 0 ? ` · ${skipped} skipped` : ''} · ${result.details?.length || 0} fields attempted${result.timestamp ? ` · ${new Date(result.timestamp).toLocaleTimeString()}` : ''}
             </div>
             <div class="rpt-body">${rows || '<div style="padding:10px;color:rgba(255,255,255,0.4);">No fields attempted</div>'}</div>
         </div>
@@ -1009,8 +1108,6 @@ function showInjectionReport(shadow, result) {
         panel.remove();
     });
 
-    // Auto-close after 30 seconds
-    setTimeout(() => { if (panel.parentNode) panel.remove(); }, 30000);
 }
 
 function updateToolbarStatus(text) {
@@ -1025,7 +1122,7 @@ function updateToolbarStatus(text) {
 // ═══════════════════════════════════════════════════════════════
 
 async function fillPage(clientData) {
-    const report = { textFilled: 0, textSkipped: 0, ddFilled: 0, ddSkipped: 0, details: [] };
+    const report = { textFilled: 0, textSkipped: 0, ddFilled: 0, ddSkipped: 0, details: [], page: detectPage(), timestamp: new Date().toISOString() };
     if (!clientData) return report;
 
     // Load previously scraped options for smarter value translation
@@ -1043,7 +1140,7 @@ async function fillPage(clientData) {
 
     for (const [key, value] of Object.entries(smartData)) {
         if (!value || typeof value !== 'string') continue;
-        const expanded = expand(value);
+        const expanded = expand(value, key);
 
         // Check all known option lists for a better match
         for (const [label, options] of Object.entries(knownOptions)) {
@@ -1072,10 +1169,10 @@ async function fillPage(clientData) {
         const filled = fillText(selectors, value) || fillTextByLabel(key, value);
         if (filled) {
             report.textFilled++;
-            report.details.push({ field: key, type: 'text', status: 'OK' });
+            report.details.push({ field: key, type: 'text', status: 'OK', value: value });
         } else {
             report.textSkipped++;
-            report.details.push({ field: key, type: 'text', status: 'SKIP' });
+            report.details.push({ field: key, type: 'text', status: 'SKIP', value: value });
         }
         await wait(FILL_DELAY);
     }
@@ -1094,19 +1191,19 @@ async function fillPage(clientData) {
         updateToolbarStatus(`Dropdown: ${key}...`);
 
         // Try custom dropdown (label-based) first
-        let filled = await fillCustomDropdown(labelPatterns, value);
+        let filled = await fillCustomDropdown(labelPatterns, value, key);
 
         // Fallback to native <select> selectors
         if (!filled && DROPDOWN_SELECT_MAP[key]) {
-            filled = fillNativeSelect(DROPDOWN_SELECT_MAP[key], value);
+            filled = fillNativeSelect(DROPDOWN_SELECT_MAP[key], value, key);
         }
 
         if (filled) {
             report.ddFilled++;
-            report.details.push({ field: key, type: 'dropdown', status: 'OK' });
+            report.details.push({ field: key, type: 'dropdown', status: 'OK', value: value });
         } else {
             report.ddSkipped++;
-            report.details.push({ field: key, type: 'dropdown', status: 'SKIP' });
+            report.details.push({ field: key, type: 'dropdown', status: 'SKIP', value: value });
             failedDropdowns.push({ key, labelPatterns, value });
         }
         await wait(FILL_DELAY);
@@ -1120,9 +1217,9 @@ async function fillPage(clientData) {
         for (const { key, labelPatterns, value } of failedDropdowns) {
             updateToolbarStatus(`Retry: ${key}...`);
 
-            let filled = await fillCustomDropdown(labelPatterns, value);
+            let filled = await fillCustomDropdown(labelPatterns, value, key);
             if (!filled && DROPDOWN_SELECT_MAP[key]) {
-                filled = fillNativeSelect(DROPDOWN_SELECT_MAP[key], value);
+                filled = fillNativeSelect(DROPDOWN_SELECT_MAP[key], value, key);
             }
 
             if (filled) {
@@ -1136,7 +1233,7 @@ async function fillPage(clientData) {
         }
     }
 
-    // ── Multi-driver / multi-vehicle fill (for pages with arrays in clientData) ──
+    // ── Multi-driver / multi-vehicle / multi-incident fill ──
     const fillPage_page = detectPage();
     if (fillPage_page === 'auto-driver' && clientData.Drivers && clientData.Drivers.length > 1) {
         await fillMultiDrivers(clientData, report);
@@ -1144,12 +1241,23 @@ async function fillPage(clientData) {
     if (fillPage_page === 'auto-vehicle' && clientData.Vehicles && clientData.Vehicles.length > 1) {
         await fillMultiVehicles(clientData, report);
     }
+    // Smart fill: only fill incidents if the client actually has them
+    if (fillPage_page === 'auto-incident' && clientData.Incidents && clientData.Incidents.length > 0) {
+        await fillMultiIncidents(clientData, report);
+    } else if (fillPage_page === 'auto-incident' && (!clientData.Incidents || clientData.Incidents.length === 0)) {
+        updateToolbarStatus('\u2728 No incidents to fill \u2014 client has a clean record');
+        report.details.push({ field: 'Incidents', type: 'info', status: 'SKIP', reason: 'No incidents in client data' });
+    }
 
     const total = report.textFilled + report.ddFilled;
     const skipped = report.textSkipped + report.ddSkipped;
     updateToolbarStatus(`✓ Done! ${total} filled` + (skipped > 0 ? `, ${skipped} skipped` : ''));
 
     console.log(`[Altech Filler] Fill complete: ${total} filled, ${skipped} skipped`, report.details);
+
+    // Persist report for later review
+    try { chrome.storage.local.set({ lastFillReport: report }); } catch (e) { /* ignore */ }
+
     return report;
 }
 
@@ -1165,7 +1273,9 @@ function clickAddButton(type) {
     // EZLynx uses various button patterns
     const patterns = type === 'driver'
         ? ['Add Driver', 'Add Another Driver', 'New Driver', '+ Driver']
-        : ['Add Vehicle', 'Add Another Vehicle', 'New Vehicle', '+ Vehicle'];
+        : type === 'vehicle'
+        ? ['Add Vehicle', 'Add Another Vehicle', 'New Vehicle', '+ Vehicle']
+        : ['Add Incident', 'Add Violation', 'Add Accident', 'Add Claim', 'Add Another', '+ Incident', '+ Violation'];
 
     const buttons = [...document.querySelectorAll('button, a, [role="button"], mat-icon, .mat-button, .mat-raised-button, .mat-flat-button')];
     for (const btn of buttons) {
@@ -1314,6 +1424,224 @@ async function fillMultiVehicles(clientData, report) {
 
 
 // ═══════════════════════════════════════════════════════════════
+// §9c  INCIDENT FILL (Violations, Accidents, Claims)
+// ═══════════════════════════════════════════════════════════════
+//
+// Real EZLynx incident page has three separate sections:
+//   Accidents:   accidentDate-{i}, accident-driver-{i}, accidentDescription-{i},
+//                accident-vehicleInvolved-{i}, pdAmount-{i}, biAmount-{i},
+//                collisionAmount-{i}, mpAmount-{i}
+//   Violations:  violationDate-{i}, violation-driver-{i}, violationDescription-{i}
+//   Comp Losses: compLoss-dateOfLoss-{i}, compLoss-driver-{i},
+//                compLoss-lossDescription-{i}, compLoss-vehicleInvolved-{i}, Amount-{i}
+
+/**
+ * Fill a text field by its EZLynx element ID (exact or partial).
+ * Returns true if successful.
+ */
+function fillById(id, value) {
+    if (!value) return false;
+    const el = document.getElementById(id);
+    if (el && isVisible(el) && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+        setInputValue(el, String(value).trim());
+        return true;
+    }
+    // Fallback: partial ID match (EZLynx sometimes adds prefixes)
+    const partial = document.querySelector(`[id*="${id}"]`);
+    if (partial && isVisible(partial) && (partial.tagName === 'INPUT' || partial.tagName === 'TEXTAREA')) {
+        setInputValue(partial, String(value).trim());
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Fill a single accident entry at the given index.
+ */
+async function fillAccidentFields(incident, idx, report) {
+    const prefix = `Accident${idx + 1}`;
+
+    // Date (text)
+    if (incident.Date) {
+        const filled = fillById(`accidentDate-${idx}`, incident.Date) ||
+                        fillTextByLabel('Date of Accident', incident.Date);
+        report.details.push({ field: `${prefix}.Date`, type: 'text', status: filled ? 'OK' : 'SKIP', value: incident.Date });
+        filled ? report.textFilled++ : report.textSkipped++;
+        await wait(FILL_DELAY);
+    }
+
+    // Driver (dropdown)
+    if (incident.Driver) {
+        const filled = await fillCustomDropdown([`accident-driver-${idx}`, 'accident driver', 'driver'], incident.Driver);
+        report.details.push({ field: `${prefix}.Driver`, type: 'dropdown', status: filled ? 'OK' : 'SKIP', value: incident.Driver });
+        filled ? report.ddFilled++ : report.ddSkipped++;
+        await wait(FILL_DELAY);
+    }
+
+    // Description (dropdown — At Fault With Injury, Not At Fault, etc.)
+    if (incident.Subtype) {
+        const filled = await fillCustomDropdown([`accidentDescription-${idx}`, 'accident description', 'description'], incident.Subtype);
+        report.details.push({ field: `${prefix}.Description`, type: 'dropdown', status: filled ? 'OK' : 'SKIP', value: incident.Subtype });
+        filled ? report.ddFilled++ : report.ddSkipped++;
+        await wait(FILL_DELAY);
+    }
+
+    // Vehicle involved (dropdown)
+    if (incident.Vehicle) {
+        const filled = await fillCustomDropdown([`accident-vehicleInvolved-${idx}`, 'vehicle involved'], incident.Vehicle);
+        report.details.push({ field: `${prefix}.Vehicle`, type: 'dropdown', status: filled ? 'OK' : 'SKIP', value: incident.Vehicle });
+        filled ? report.ddFilled++ : report.ddSkipped++;
+        await wait(FILL_DELAY);
+    }
+
+    // Amount fields (text — PD, BI, Collision, MP)
+    if (incident.Amount) {
+        // Try the specific amount fields
+        const pdFilled = fillById(`pdAmount-${idx}`, incident.Amount);
+        if (pdFilled) {
+            report.textFilled++;
+            report.details.push({ field: `${prefix}.PD Amount`, type: 'text', status: 'OK', value: incident.Amount });
+        }
+        await wait(FILL_DELAY);
+    }
+}
+
+/**
+ * Fill a single violation entry at the given index.
+ */
+async function fillViolationFields(incident, idx, report) {
+    const prefix = `Violation${idx + 1}`;
+
+    // Date (text)
+    if (incident.Date) {
+        const filled = fillById(`violationDate-${idx}`, incident.Date) ||
+                        fillTextByLabel('Date of Violation', incident.Date);
+        report.details.push({ field: `${prefix}.Date`, type: 'text', status: filled ? 'OK' : 'SKIP', value: incident.Date });
+        filled ? report.textFilled++ : report.textSkipped++;
+        await wait(FILL_DELAY);
+    }
+
+    // Driver (dropdown)
+    if (incident.Driver) {
+        const filled = await fillCustomDropdown([`violation-driver-${idx}`, 'violation driver', 'driver'], incident.Driver);
+        report.details.push({ field: `${prefix}.Driver`, type: 'dropdown', status: filled ? 'OK' : 'SKIP', value: incident.Driver });
+        filled ? report.ddFilled++ : report.ddSkipped++;
+        await wait(FILL_DELAY);
+    }
+
+    // Description (dropdown — Speeding, DUI, etc.)
+    if (incident.Subtype) {
+        const filled = await fillCustomDropdown([`violationDescription-${idx}`, 'violation description', 'violation'], incident.Subtype);
+        report.details.push({ field: `${prefix}.Description`, type: 'dropdown', status: filled ? 'OK' : 'SKIP', value: incident.Subtype });
+        filled ? report.ddFilled++ : report.ddSkipped++;
+        await wait(FILL_DELAY);
+    }
+}
+
+/**
+ * Fill a single comprehensive loss entry at the given index.
+ */
+async function fillCompLossFields(incident, idx, report) {
+    const prefix = `CompLoss${idx + 1}`;
+
+    // Date of Loss (text)
+    if (incident.Date) {
+        const filled = fillById(`compLoss-dateOfLoss-${idx}`, incident.Date) ||
+                        fillTextByLabel('Date of Loss', incident.Date);
+        report.details.push({ field: `${prefix}.Date`, type: 'text', status: filled ? 'OK' : 'SKIP', value: incident.Date });
+        filled ? report.textFilled++ : report.textSkipped++;
+        await wait(FILL_DELAY);
+    }
+
+    // Driver (dropdown)
+    if (incident.Driver) {
+        const filled = await fillCustomDropdown([`compLoss-driver-${idx}`, 'comp loss driver', 'driver'], incident.Driver);
+        report.details.push({ field: `${prefix}.Driver`, type: 'dropdown', status: filled ? 'OK' : 'SKIP', value: incident.Driver });
+        filled ? report.ddFilled++ : report.ddSkipped++;
+        await wait(FILL_DELAY);
+    }
+
+    // Loss Description (dropdown — FIRE, HIT ANIMAL, THEFT, etc.)
+    if (incident.Subtype) {
+        const filled = await fillCustomDropdown([`compLoss-lossDescription-${idx}`, 'loss description', 'description'], incident.Subtype);
+        report.details.push({ field: `${prefix}.Description`, type: 'dropdown', status: filled ? 'OK' : 'SKIP', value: incident.Subtype });
+        filled ? report.ddFilled++ : report.ddSkipped++;
+        await wait(FILL_DELAY);
+    }
+
+    // Vehicle Involved (dropdown)
+    if (incident.Vehicle) {
+        const filled = await fillCustomDropdown([`compLoss-vehicleInvolved-${idx}`, 'vehicle involved'], incident.Vehicle);
+        report.details.push({ field: `${prefix}.Vehicle`, type: 'dropdown', status: filled ? 'OK' : 'SKIP', value: incident.Vehicle });
+        filled ? report.ddFilled++ : report.ddSkipped++;
+        await wait(FILL_DELAY);
+    }
+
+    // Amount (text)
+    if (incident.Amount) {
+        const filled = fillById(`Amount-${idx}`, incident.Amount) ||
+                        fillTextByLabel('Amount', incident.Amount);
+        report.details.push({ field: `${prefix}.Amount`, type: 'text', status: filled ? 'OK' : 'SKIP', value: incident.Amount });
+        filled ? report.textFilled++ : report.textSkipped++;
+        await wait(FILL_DELAY);
+    }
+}
+
+/**
+ * Fill all incidents on the EZLynx incidents page.
+ * Separates Incidents[] into accidents, violations, and comp losses,
+ * then fills each section using the real EZLynx indexed field patterns.
+ *
+ * For additional entries (index > 0), clicks the Add button in that section.
+ */
+async function fillMultiIncidents(clientData, report) {
+    const incidents = clientData.Incidents;
+    if (!Array.isArray(incidents) || incidents.length === 0) {
+        updateToolbarStatus('\u2728 No incidents \u2014 skipping');
+        return;
+    }
+
+    // Separate by type
+    const accidents   = incidents.filter(i => (i.Type || '').toLowerCase() === 'accident');
+    const violations  = incidents.filter(i => (i.Type || '').toLowerCase() === 'violation');
+    const compLosses  = incidents.filter(i => (i.Type || '').toLowerCase() === 'claim');
+
+    const total = accidents.length + violations.length + compLosses.length;
+    updateToolbarStatus(`Filling ${total} incident(s): ${accidents.length} accident, ${violations.length} violation, ${compLosses.length} claim...`);
+
+    // Fill accidents
+    for (let i = 0; i < accidents.length; i++) {
+        if (i > 0) {
+            updateToolbarStatus(`Adding accident ${i + 1}...`);
+            clickAddButton('incident'); // "Add Accident" / "Add Another"
+            await wait(RETRY_WAIT);
+        }
+        await fillAccidentFields(accidents[i], i, report);
+    }
+
+    // Fill violations
+    for (let i = 0; i < violations.length; i++) {
+        if (i > 0) {
+            updateToolbarStatus(`Adding violation ${i + 1}...`);
+            clickAddButton('incident');
+            await wait(RETRY_WAIT);
+        }
+        await fillViolationFields(violations[i], i, report);
+    }
+
+    // Fill comp losses
+    for (let i = 0; i < compLosses.length; i++) {
+        if (i > 0) {
+            updateToolbarStatus(`Adding claim ${i + 1}...`);
+            clickAddButton('incident');
+            await wait(RETRY_WAIT);
+        }
+        await fillCompLossFields(compLosses[i], i, report);
+    }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
 // §10  SPA NAVIGATION DETECTION
 // ═══════════════════════════════════════════════════════════════
 
@@ -1336,6 +1664,7 @@ function onPageChange() {
                 const page = detectPage();
                 const pageNames = {
                     'applicant': 'Applicant page', 'auto-policy': 'Auto policy',
+                    'auto-incident': 'Auto incident',
                     'auto-driver': 'Auto driver', 'auto-vehicle': 'Auto vehicle',
                     'auto-coverage': 'Auto coverage', 'home-dwelling': 'Home dwelling',
                     'home-coverage': 'Home coverage', 'lead-info': 'Lead info',
@@ -1389,7 +1718,10 @@ async function scrapePage() {
     const inputs = document.querySelectorAll('input, textarea');
     for (const inp of inputs) {
         if (!isVisible(inp)) continue;
-        if (['hidden', 'submit', 'button', 'reset', 'checkbox', 'radio', 'file'].includes(inp.type)) continue;
+        if (['hidden', 'submit', 'button', 'reset', 'file'].includes(inp.type)) continue;
+
+        // Checkboxes and radios go to their own section
+        if (inp.type === 'checkbox' || inp.type === 'radio') continue;
 
         const label = findLabelFor(inp);
         result.textFields.push({
@@ -1402,6 +1734,82 @@ async function scrapePage() {
             required: inp.required || inp.getAttribute('aria-required') === 'true'
         });
         result.stats.totalInputs++;
+    }
+
+    // ── 1b. Scrape checkboxes, radios, mat-checkboxes, mat-slide-toggles ──
+    result.checkboxes = [];
+    result.stats.totalCheckboxes = 0;
+
+    // Native checkboxes
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    for (const cb of checkboxes) {
+        if (!isVisible(cb)) continue;
+        const label = findLabelFor(cb);
+        result.checkboxes.push({
+            type: 'checkbox',
+            name: cb.name || '',
+            id: cb.id || '',
+            label: label || '',
+            checked: cb.checked,
+            value: cb.value || '',
+            disabled: cb.disabled
+        });
+        result.stats.totalCheckboxes++;
+    }
+
+    // Native radio buttons (group by name)
+    const radios = document.querySelectorAll('input[type="radio"]');
+    const radioGroups = {};
+    for (const rb of radios) {
+        if (!isVisible(rb)) continue;
+        const grp = rb.name || rb.id || 'unknown';
+        if (!radioGroups[grp]) radioGroups[grp] = { type: 'radio-group', name: grp, options: [] };
+        radioGroups[grp].options.push({
+            label: findLabelFor(rb) || rb.value || '',
+            value: rb.value || '',
+            checked: rb.checked,
+            id: rb.id || ''
+        });
+    }
+    result.radioGroups = Object.values(radioGroups);
+    result.stats.totalRadioGroups = result.radioGroups.length;
+
+    // Angular Material checkboxes (mat-checkbox)
+    const matCheckboxes = document.querySelectorAll('mat-checkbox, [class*="mat-checkbox"]');
+    for (const mc of matCheckboxes) {
+        if (!isVisible(mc)) continue;
+        const label = mc.querySelector('.mat-checkbox-label, .mdc-label, label')?.textContent?.trim()
+            || mc.textContent?.trim() || '';
+        const isChecked = mc.classList.contains('mat-checkbox-checked')
+            || mc.classList.contains('mat-mdc-checkbox-checked')
+            || mc.querySelector('input[type="checkbox"]')?.checked || false;
+        result.checkboxes.push({
+            type: 'mat-checkbox',
+            label,
+            id: mc.id || mc.querySelector('input')?.id || '',
+            checked: isChecked,
+            disabled: mc.classList.contains('mat-checkbox-disabled')
+        });
+        result.stats.totalCheckboxes++;
+    }
+
+    // Angular Material slide toggles (mat-slide-toggle)
+    const matToggles = document.querySelectorAll('mat-slide-toggle, [class*="mat-slide-toggle"]');
+    for (const mt of matToggles) {
+        if (!isVisible(mt)) continue;
+        const label = mt.querySelector('.mat-slide-toggle-content, .mdc-label, label')?.textContent?.trim()
+            || mt.textContent?.trim() || '';
+        const isChecked = mt.classList.contains('mat-checked')
+            || mt.classList.contains('mat-mdc-slide-toggle-checked')
+            || mt.querySelector('input[type="checkbox"]')?.checked || false;
+        result.checkboxes.push({
+            type: 'mat-slide-toggle',
+            label,
+            id: mt.id || mt.querySelector('input')?.id || '',
+            checked: isChecked,
+            disabled: mt.classList.contains('mat-disabled')
+        });
+        result.stats.totalCheckboxes++;
     }
 
     // ── 2. Scrape native <select> dropdowns ──

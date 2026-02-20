@@ -1570,6 +1570,14 @@ body.dark-mode .toast { background: rgba(50, 50, 55, 0.8); border-color: rgba(25
 @media (min-width: 720px) and (max-width: 959px) {
     .map-previews { grid-template-columns: 1fr 1fr; }
 }
+/* Sidebar context (desktop): compact images to avoid scrollbar */
+@media (min-width: 960px) {
+    .prop-sidebar .map-preview-img { aspect-ratio: 2/1; }
+    .prop-sidebar .map-preview-item { padding: 8px; }
+    .prop-sidebar .map-preview-label { font-size: 12px; margin-bottom: 4px; }
+    .prop-sidebar .map-preview-actions { margin-top: 6px; }
+    .prop-sidebar .map-preview-actions .btn-utility { font-size: 11px; padding: 5px 10px; }
+}
 .export-card { border: 1px solid var(--border); background: var(--bg-card); }
 #step-6 > .card,
 #step-6 > .export-btn-row { margin-bottom: 8px; }

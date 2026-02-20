@@ -5,18 +5,42 @@
  * and manages extension lifecycle.
  */
 
-// Set defaults on install
-chrome.runtime.onInstalled.addListener(() => {
-    chrome.storage.local.set({
-        clientData: null,
-        lastFillReport: null,
-        settings: {
+// Import the built-in schema so it's available on install/update
+importScripts('defaultSchema.js');
+
+// Set defaults on install/update — seed knownOptions with built-in schema
+// Only set clientData, lastFillReport, and settings if they don't already exist
+chrome.runtime.onInstalled.addListener(async (details) => {
+    const store = await chrome.storage.local.get(['knownOptions', 'clientData', 'lastFillReport', 'settings']);
+
+    // Merge built-in schema with any existing user scrapes (user data wins)
+    const existing = store.knownOptions || {};
+    const merged = { ...DEFAULT_SCHEMA, ...existing };
+
+    const updates = { knownOptions: merged };
+
+    // Only initialize these on fresh install — NOT on updates
+    if (details.reason === 'install') {
+        updates.clientData = null;
+        updates.lastFillReport = null;
+        updates.settings = {
             autoShowToolbar: true,
             fillDelay: 150,
             dropdownWait: 800
+        };
+    } else {
+        // On update, only set settings if none exist yet
+        if (!store.settings) {
+            updates.settings = {
+                autoShowToolbar: true,
+                fillDelay: 150,
+                dropdownWait: 800
+            };
         }
-    });
-    console.log('[Altech] Extension installed — ready to fill EZLynx forms.');
+    }
+
+    await chrome.storage.local.set(updates);
+    console.log(`[Altech] Extension ${details.reason} — ${Object.keys(merged).length} schema fields ready (${Object.keys(DEFAULT_SCHEMA).length} built-in + ${Object.keys(existing).length} user-scraped).`);
 });
 
 // Inject content script programmatically if it's not already loaded
@@ -43,6 +67,14 @@ async function ensureContentScript(tabId) {
 
 // Relay messages between popup and content scripts
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    // Validate sender — only accept messages from our extension or EZLynx pages
+    const isExtension = sender.id === chrome.runtime.id;
+    const isEzlynx = sender.url && sender.url.includes('ezlynx.com');
+    if (!isExtension && !isEzlynx) {
+        console.warn('[Altech] Rejected message from unknown sender:', sender.url);
+        return;
+    }
+
     if (msg.type === 'fillPage') {
         // Popup asks to fill the active tab
         chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {

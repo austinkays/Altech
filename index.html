@@ -555,50 +555,9 @@
                 <div class="grid-addr-row2">
                     <div><label class="label">City</label><input type="text" id="addrCity" placeholder="Vancouver" autocomplete="off"></div>
                     <div><label class="label">State</label><input type="text" id="addrState" value="WA" autocomplete="off"></div>
-                    <div><label class="label">Zip</label><input type="tel" id="addrZip" placeholder="98686"></div>
+                    <div><label class="label">Zip</label><input type="tel" id="addrZip" placeholder="98686" maxlength="5" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,5)"></div>
                     <div><label class="label">County</label>
-                        <select id="county" style="font-size: 13px !important; padding: 8px 8px;">
-                            <option value="">Auto-fills ✨</option>
-                            <option value="Adams">Adams</option>
-                            <option value="Asotin">Asotin</option>
-                            <option value="Benton">Benton</option>
-                            <option value="Chelan">Chelan</option>
-                            <option value="Clallam">Clallam</option>
-                            <option value="Clark">Clark</option>
-                            <option value="Columbia">Columbia</option>
-                            <option value="Cowlitz">Cowlitz</option>
-                            <option value="Douglas">Douglas</option>
-                            <option value="Ferry">Ferry</option>
-                            <option value="Franklin">Franklin</option>
-                            <option value="Garfield">Garfield</option>
-                            <option value="Grant">Grant</option>
-                            <option value="Grays Harbor">Grays Harbor</option>
-                            <option value="Island">Island</option>
-                            <option value="Jefferson">Jefferson</option>
-                            <option value="King">King</option>
-                            <option value="Kitsap">Kitsap</option>
-                            <option value="Kittitas">Kittitas</option>
-                            <option value="Klickitat">Klickitat</option>
-                            <option value="Lewis">Lewis</option>
-                            <option value="Lincoln">Lincoln</option>
-                            <option value="Mason">Mason</option>
-                            <option value="Okanogan">Okanogan</option>
-                            <option value="Pacific">Pacific</option>
-                            <option value="Pend Oreille">Pend Oreille</option>
-                            <option value="Pierce">Pierce</option>
-                            <option value="San Juan">San Juan</option>
-                            <option value="Skagit">Skagit</option>
-                            <option value="Skamania">Skamania</option>
-                            <option value="Snohomish">Snohomish</option>
-                            <option value="Spokane">Spokane</option>
-                            <option value="Stevens">Stevens</option>
-                            <option value="Thurston">Thurston</option>
-                            <option value="Wahkiakum">Wahkiakum</option>
-                            <option value="Walla Walla">Walla Walla</option>
-                            <option value="Whatcom">Whatcom</option>
-                            <option value="Whitman">Whitman</option>
-                            <option value="Yakima">Yakima</option>
-                        </select>
+                        <input type="text" id="county" placeholder="Auto-fills ✨" autocomplete="off" style="font-size: 13px !important; padding: 8px 8px;">
                     </div>
                 </div>
 
@@ -1409,7 +1368,7 @@
                 <div class="card map-preview-card">
                     <h2>Property Views</h2>
                     <p class="section-subtitle">Street &amp; satellite preview</p>
-                    <div class="map-previews" style="grid-template-columns: 1fr;">
+                    <div class="map-previews">
                         <div class="map-preview-item">
                             <div class="map-preview-label">Street View</div>
                             <img id="streetViewImg" class="map-preview-img" alt="Street View preview" />
@@ -2260,7 +2219,8 @@
     <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
     <script>
         // Load Google Places API dynamically with key from server or environment (optional - form works without it)
-        (async function loadPlacesAPI() {
+        // NOTE: Called from window.onload AFTER Auth.init() so authenticated fetch works
+        window.loadPlacesAPI = async function loadPlacesAPI() {
             try {
                 let apiKey = null;
                 
@@ -2305,7 +2265,7 @@
             } catch (err) {
                 console.warn('ℹ️ Places API not available:', err.message);
             }
-        })();
+        };
     </script>
     <script src="js/crypto-helper.js"></script>
     <script>
@@ -2433,11 +2393,20 @@
             // Apply dark mode preference FIRST — before any tool rendering
             App.loadDarkMode();
 
-            // Initialize cloud sync (non-blocking)
+            // Initialize cloud sync (non-blocking), then load Places API (needs Auth for key fetch)
             if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.sdkLoaded) {
                 FirebaseConfig.init().then(() => {
                     if (typeof Auth !== 'undefined') Auth.init();
-                }).catch(e => console.warn('[App] Firebase init skipped:', e.message));
+                    // Load Places API after Auth is available so apiFetch works
+                    if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
+                }).catch(e => {
+                    console.warn('[App] Firebase init skipped:', e.message);
+                    // Still try loading Places API (falls back to unauthenticated fetch)
+                    if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
+                });
+            } else {
+                // No Firebase — still try loading Places API (local dev / placesKey param)
+                if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
             }
 
             // Render landing page tools from config

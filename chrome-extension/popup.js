@@ -7,6 +7,9 @@
 
 const $ = id => document.getElementById(id);
 
+// Admin PIN (change this to your desired PIN)
+const ADMIN_PIN = '0000';
+
 // ── Init ──
 document.addEventListener('DOMContentLoaded', async () => {
     await refreshUI();
@@ -18,11 +21,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('refillBtn').addEventListener('click', () => sendFill());
     $('clearBtn').addEventListener('click', clearData);
     $('manualPasteBtn').addEventListener('click', loadManualPaste);
-    $('scrapeBtn').addEventListener('click', scrapeCurrentPage);
-    $('propertyBtn').addEventListener('click', scrapePropertyData);
     $('copyPropBtn').addEventListener('click', copyPropertyToClipboard);
     $('clearPropBtn').addEventListener('click', clearPropertyData);
+
+    // Admin toggle + PIN
+    $('adminToggle').addEventListener('click', () => {
+        const pinArea = $('adminPinArea');
+        const zone = $('adminZone');
+        // If already unlocked, just toggle visibility
+        if (zone.classList.contains('visible')) {
+            zone.classList.remove('visible');
+            $('adminToggle').textContent = '🔓 Admin Tools';
+            return;
+        }
+        // If PIN area is showing, hide it
+        if (pinArea.style.display !== 'none') {
+            pinArea.style.display = 'none';
+            return;
+        }
+        // Check if already authenticated this session
+        if (sessionStorage.getItem('altechAdmin') === '1') {
+            unlockAdmin();
+            return;
+        }
+        pinArea.style.display = 'block';
+        $('adminPinInput').focus();
+    });
+
+    $('adminPinBtn').addEventListener('click', tryPin);
+    $('adminPinInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') tryPin();
+    });
 });
+
+// ── Admin PIN Logic ──
+function tryPin() {
+    const input = $('adminPinInput');
+    if (input.value === ADMIN_PIN) {
+        sessionStorage.setItem('altechAdmin', '1');
+        unlockAdmin();
+    } else {
+        input.value = '';
+        input.style.borderColor = '#ff3b30';
+        input.placeholder = 'Wrong PIN';
+        setTimeout(() => { input.style.borderColor = ''; input.placeholder = 'PIN'; }, 1500);
+    }
+}
+
+function unlockAdmin() {
+    $('adminPinArea').style.display = 'none';
+    $('adminZone').classList.add('visible');
+    $('adminToggle').textContent = '🔓 Admin Tools';
+    loadSchemaStats();
+    // Wire admin buttons (only after unlock)
+    $('scrapeBtn').addEventListener('click', scrapeCurrentPage);
+    $('propertyBtn').addEventListener('click', scrapePropertyData);
+    $('exportSchemaBtn').addEventListener('click', exportSchema);
+}
 
 // ── Refresh UI from stored data ──
 async function refreshUI() {
@@ -66,6 +121,7 @@ function checkPage() {
     const pageNames = {
         'applicant': '👤 Applicant Form',
         'auto-policy': '🚗 Auto Policy',
+        'auto-incident': '⚠️ Auto Incidents',
         'auto-driver': '🚘 Auto Driver',
         'auto-vehicle': '🚙 Auto Vehicle',
         'auto-coverage': '🛡 Auto Coverage',
@@ -272,7 +328,10 @@ async function scrapeCurrentPage() {
         }
 
         const { stats, page, nativeSelects, dropdowns } = response;
-        const summary = `${stats.totalInputs} inputs, ${stats.totalNativeSelects + stats.totalCustomDropdowns} dropdowns (${stats.totalOptions} options)`;
+        const checkboxCount = (response.checkboxes || []).length;
+        const radioCount = (response.radioGroups || []).length;
+        const summary = `${stats.totalInputs} inputs, ${stats.totalNativeSelects + stats.totalCustomDropdowns} dropdowns (${stats.totalOptions} options)` +
+            (checkboxCount > 0 || radioCount > 0 ? `, ${checkboxCount} checkboxes, ${radioCount} radio groups` : '');
 
         // ── 1. Store scrape in chrome.storage.local (for extension's smart fill) ──
         const storedScrapes = (await chrome.storage.local.get('scrapeHistory'))?.scrapeHistory || {};
@@ -293,32 +352,17 @@ async function scrapeCurrentPage() {
             }
         }
 
-        // Store the flattened schema for smart fill
+        // Store the flattened schema for smart fill — auto-injected, no file needed
         const knownOptions = (await chrome.storage.local.get('knownOptions'))?.knownOptions || {};
         Object.assign(knownOptions, schemaUpdate);
         await chrome.storage.local.set({ knownOptions });
 
-        // ── 3. Download as JSON file (for merging into ezlynx_schema.json) ──
-        const exportData = {
-            _source: 'altech-extension-scraper',
-            _page: page,
-            _url: response.url,
-            _scraped: response.timestamp,
-            _stats: stats,
-            schema: schemaUpdate,
-            textFields: response.textFields,
-            fullData: response
-        };
+        // Count how many pages have been scraped
+        const scrapedPages = Object.keys(storedScrapes).filter(k => storedScrapes[k]?.stats);
+        const totalKnown = Object.keys(knownOptions).length;
 
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `ezlynx_scrape_${page}_${new Date().toISOString().slice(0,10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-
-        setStatus(`✅ Scraped ${summary} — JSON downloaded & options stored for smarter filling!`, 'success');
+        setStatus(`✅ Scraped ${summary}\n📦 Schema stored (${totalKnown} total fields from ${scrapedPages.length} page${scrapedPages.length !== 1 ? 's' : ''}) — auto-used on next fill!`, 'success');
+        loadSchemaStats(); // Refresh the stats display
     });
 }
 
@@ -483,4 +527,74 @@ async function clearPropertyData() {
     await chrome.storage.local.remove('propertyData');
     $('propertyResults').style.display = 'none';
     setStatus('Property data cleared.', '');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCHEMA MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+// ── Show schema stats on popup open ──
+async function loadSchemaStats() {
+    const textEl = $('schemaStatsText');
+    const dotEl = document.querySelector('.schema-dot');
+    try {
+        const knownOptions = (await chrome.storage.local.get('knownOptions'))?.knownOptions || {};
+        const totalFields = Object.keys(knownOptions).length;
+        let totalOptions = 0;
+        for (const v of Object.values(knownOptions)) {
+            if (Array.isArray(v)) totalOptions += v.length;
+        }
+        const builtInCount = (typeof DEFAULT_SCHEMA !== 'undefined') ? Object.keys(DEFAULT_SCHEMA).length : 0;
+        const userAdded = Math.max(0, totalFields - builtInCount);
+
+        if (totalFields > 0) {
+            textEl.innerHTML = `<strong>${totalFields}</strong> dropdown fields (${totalOptions} options)` +
+                (userAdded > 0 ? ` · <strong>${userAdded}</strong> from scrapes` : '');
+            if (dotEl) dotEl.style.background = '#34c759';
+        } else {
+            textEl.textContent = 'No schema loaded';
+            if (dotEl) dotEl.style.background = '#ff3b30';
+        }
+    } catch (e) {
+        textEl.textContent = 'Schema unavailable';
+        if (dotEl) dotEl.style.background = '#ff9500';
+    }
+}
+
+// ── Export current schema as JS file (admin use — paste into defaultSchema.js) ──
+async function exportSchema() {
+    try {
+        const knownOptions = (await chrome.storage.local.get('knownOptions'))?.knownOptions || {};
+        if (Object.keys(knownOptions).length === 0) {
+            setStatus('No schema to export. Scrape some EZLynx pages first.', 'error');
+            return;
+        }
+
+        // Filter out internal panel IDs
+        const cleaned = {};
+        for (const [k, v] of Object.entries(knownOptions)) {
+            if (k.includes('-panel') || k.includes('mat-select-') || k === '1') continue;
+            if (Array.isArray(v) && v.length > 0) cleaned[k] = v;
+        }
+
+        const date = new Date().toISOString().split('T')[0];
+        const js = `// Auto-generated from EZLynx scrape data \u2014 ${date}\n`
+            + '// This is the built-in schema that ships with the extension.\n'
+            + '// To update: scrape EZLynx pages, then use the Export Schema button in popup.\n'
+            + '// eslint-disable-next-line no-unused-vars\n'
+            + 'const DEFAULT_SCHEMA = ' + JSON.stringify(cleaned, null, 2) + ';\n';
+
+        // Download as file
+        const blob = new Blob([js], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'defaultSchema.js';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        setStatus(`\u2705 Exported ${Object.keys(cleaned).length} fields as defaultSchema.js \u2014 replace the file in the extension folder and reload!`, 'success');
+    } catch (e) {
+        setStatus(`Export failed: ${e.message}`, 'error');
+    }
 }

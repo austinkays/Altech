@@ -398,6 +398,23 @@
         </details>
 
         <hr class="ez-divider">
+        <div class="ez-section-label">Incidents (Violations, Accidents & Claims)</div>
+        <details class="ez-details" id="ezIncidentsSection">
+            <summary>Incident Details <span id="ezIncidentCount" style="font-size:11px; opacity:0.6; margin-left:6px;"></span></summary>
+            <div style="padding:4px 0 8px;">
+                <p style="font-size:12px; color:#94a3b8; margin:0 0 10px;">
+                    Add individual violations, at-fault accidents, or claims. Leave empty if none — the filler will skip incident pages automatically.
+                </p>
+                <div id="ezIncidentList"></div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button class="ez-toolbar-btn" onclick="EZLynxTool.addIncident('violation')" style="flex:1; font-size:12px;">+ Violation</button>
+                    <button class="ez-toolbar-btn" onclick="EZLynxTool.addIncident('accident')" style="flex:1; font-size:12px;">+ Accident</button>
+                    <button class="ez-toolbar-btn" onclick="EZLynxTool.addIncident('claim')" style="flex:1; font-size:12px;">+ Claim</button>
+                </div>
+            </div>
+        </details>
+
+        <hr class="ez-divider">
         <div class="ez-section-label">Driver & Vehicle</div>
         <details class="ez-details" id="ezDriverSection">
             <summary>Driver & Vehicle Details</summary>
@@ -429,6 +446,17 @@
                 </div>
             </div>
         </details>
+
+        <!-- Additional Drivers & Vehicles from Intake -->
+        <div id="ezDVSummary" style="display:none; margin-top:12px;">
+            <hr class="ez-divider">
+            <div class="ez-section-label">Additional Drivers & Vehicles from Intake</div>
+            <p style="font-size:11px; color:var(--text-secondary); margin:0 0 8px;">
+                These are automatically included in the payload sent to the Chrome Extension filler.
+                Edit them in the main intake form if changes are needed.
+            </p>
+            <div id="ezDVSummaryContent"></div>
+        </div>
 
             </div><!-- /ez-acc-body Auto Policy -->
         </details>
@@ -1025,7 +1053,7 @@
 
     <!-- Advanced: Dropdown Schema (moved to bottom — not needed by most users) -->
     <details class="ez-accordion" id="ezSchemaCard" style="margin-top:16px;">
-        <summary onclick="EZLynxTool.toggleSchema && EZLynxTool.toggleSchema()">
+        <summary>
             <div class="ez-schema-dot missing" id="ezSchemaDot"></div>
             <span>⚙️ Dropdown Schema</span>
             <span id="ezSchemaQuickInfo" style="font-size:11px; color:#64748b; white-space:nowrap;"></span>
