@@ -1565,9 +1565,9 @@ body.dark-mode .toast { background: rgba(50, 50, 55, 0.8); border-color: rgba(25
 .map-previews { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .map-preview-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
 .map-preview-label { font-weight: 600; color: var(--text); margin-bottom: 8px; }
-.map-preview-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-input); cursor: pointer; display: block; }
+.map-preview-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-input); cursor: pointer; display: block; }
 .map-preview-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
-@media (min-width: 720px) {
+@media (min-width: 720px) and (max-width: 959px) {
     .map-previews { grid-template-columns: 1fr 1fr; }
 }
 .export-card { border: 1px solid var(--border); background: var(--bg-card); }
