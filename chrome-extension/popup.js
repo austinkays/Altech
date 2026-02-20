@@ -106,6 +106,7 @@ async function refreshUI() {
         fillBtn.disabled = false;
         refillBtn.disabled = false;
         clearBtn.disabled = false;
+        setStatus(`✅ ${name} ready — navigate to an EZLynx form and click Fill`, 'success');
     } else {
         nameEl.textContent = 'No client loaded';
         nameEl.classList.add('empty');

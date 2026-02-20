@@ -768,16 +768,66 @@ const EZLynxTool = {
         }
     },
 
-    // ── Copy for Chrome Extension ──
+    // ── Send to Chrome Extension ──
     async copyForExtension() {
         const clientData = this.getFormData();
         const fieldCount = Object.values(clientData).filter(v => v && String(v).trim()).length;
 
         if (fieldCount === 0) {
-            App.toast('⚠️ No data to copy — fill the form first');
+            App.toast('⚠️ No data to send — fill the form first');
             return;
         }
 
+        const btn = document.getElementById('ezSendToExtBtn');
+        const origText = btn ? btn.textContent : '';
+
+        // Try direct bridge (extension content script on this page)
+        const extensionDetected = document.documentElement.hasAttribute('data-altech-extension');
+        if (extensionDetected) {
+            if (btn) { btn.textContent = '⏳ Sending...'; btn.disabled = true; }
+            try {
+                await this._sendViaBridge(clientData, fieldCount);
+                if (btn) { btn.textContent = '✅ Sent!'; setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2000); }
+                return;
+            } catch (e) {
+                // Bridge failed — fall through to clipboard
+                if (btn) { btn.textContent = origText; btn.disabled = false; }
+            }
+        }
+
+        // Fallback: clipboard copy
+        await this._clipboardFallback(clientData, fieldCount);
+    },
+
+    _sendViaBridge(clientData, fieldCount) {
+        return new Promise((resolve, reject) => {
+            const handler = (event) => {
+                if (event.data?.type !== 'ALTECH_EXTENSION_ACK') return;
+                window.removeEventListener('message', handler);
+                clearTimeout(timeout);
+                if (event.data.success) {
+                    App.toast(`✅ Sent ${fieldCount} fields to extension — open the popup and click Fill`);
+                    resolve();
+                } else {
+                    reject(new Error(event.data.error || 'Bridge error'));
+                }
+            };
+            window.addEventListener('message', handler);
+
+            const timeout = setTimeout(() => {
+                window.removeEventListener('message', handler);
+                reject(new Error('timeout'));
+            }, 3000);
+
+            window.postMessage({
+                type: 'ALTECH_CLIENT_DATA',
+                clientData,
+                timestamp: new Date().toISOString()
+            }, '*');
+        });
+    },
+
+    async _clipboardFallback(clientData, fieldCount) {
         const payload = JSON.stringify({
             _altech_extension: true,
             clientData,
@@ -787,9 +837,8 @@ const EZLynxTool = {
 
         try {
             await navigator.clipboard.writeText(payload);
-            App.toast(`📤 Copied ${fieldCount} fields for ${clientData.FirstName || ''} ${clientData.LastName || ''} — paste in the Chrome extension`);
+            App.toast(`📋 Copied ${fieldCount} fields — open the extension and click "Paste from Clipboard"`);
         } catch (e) {
-            // Fallback for older browsers
             const ta = document.createElement('textarea');
             ta.value = payload;
             ta.style.cssText = 'position:fixed;top:-9999px;';
@@ -797,7 +846,7 @@ const EZLynxTool = {
             ta.select();
             document.execCommand('copy');
             document.body.removeChild(ta);
-            App.toast(`📤 Copied ${fieldCount} fields — paste in the Chrome extension`);
+            App.toast(`📋 Copied ${fieldCount} fields — paste in the Chrome extension`);
         }
     },
 

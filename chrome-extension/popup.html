@@ -246,7 +246,7 @@
     <div class="header">
         <span class="header-icon">⚡</span>
         <span class="header-title">Altech EZLynx Filler</span>
-        <span class="header-version">v1.1</span>
+        <span class="header-version">v1.3.0</span>
     </div>
 
     <div class="content">
@@ -272,12 +272,12 @@
 
         <!-- Actions -->
         <div class="actions">
-            <button class="btn btn-paste" id="pasteBtn">📋 Paste from Altech</button>
             <button class="btn btn-fill" id="fillBtn" disabled>⚡ Fill This Page</button>
             <div class="btn-row">
                 <button class="btn btn-refill" id="refillBtn" disabled>🔄 Re-fill</button>
                 <button class="btn btn-clear" id="clearBtn" disabled>🗑 Clear</button>
             </div>
+            <button class="btn" id="pasteBtn" style="background:#f2f2f7; color:#007AFF; font-size:11px;">📋 Paste from Clipboard</button>
         </div>
 
         <!-- Admin Tools (hidden behind PIN) -->
@@ -323,12 +323,12 @@
 
         <!-- Status -->
         <div class="status" id="status">
-            Copy client data from Altech, then paste it here to get started.
+            In Altech → EZLynx Quoter → click <strong>Send to Extension</strong>. Data loads automatically.
         </div>
     </div>
 
     <div class="footer">
-        In Altech → EZLynx Quoter → click <strong>📤 Send to Extension</strong>
+        Data auto-syncs from Altech · <a href="https://altech-app.vercel.app" target="_blank">Open Altech</a>
     </div>
 
     <script src="defaultSchema.js"></script>
