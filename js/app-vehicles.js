@@ -16,12 +16,14 @@ Object.assign(App, {
         };
         this.drivers.push(driver);
         this.renderDrivers();
+        this.renderVehicles();
         this.saveDriversVehicles();
     },
 
     removeDriver(id) {
         this.drivers = this.drivers.filter(d => d.id !== id);
         this.renderDrivers();
+        this.renderVehicles();
         this.saveDriversVehicles();
     },
 
@@ -31,6 +33,8 @@ Object.assign(App, {
             // Normalize license # and state to uppercase
             if (field === 'dlNum' || field === 'dlState') value = (value || '').toUpperCase();
             driver[field] = value;
+            // Re-render vehicle dropdowns when driver name changes
+            if (field === 'firstName' || field === 'lastName') this.renderVehicles();
             this.saveDriversVehicles();
         }
     },
@@ -575,11 +579,11 @@ Object.assign(App, {
             return;
         }
         
+        container.innerHTML = this.vehicles.map((vehicle, index) => {
         const driverOptions = this.drivers.map(d => 
-            `<option value="${d.id}">${this._escapeAttr(d.firstName)} ${this._escapeAttr(d.lastName)}</option>`
+            `<option value="${d.id}" ${vehicle.primaryDriver === d.id ? 'selected' : ''}>${this._escapeAttr(d.firstName)} ${this._escapeAttr(d.lastName)}</option>`
         ).join('');
-        
-        container.innerHTML = this.vehicles.map((vehicle, index) => `
+        return `
             <div class="driver-vehicle-card">
                 <div class="driver-vehicle-header">
                     <h3>Vehicle ${index + 1} ${vehicle.year && vehicle.make ? `— ${this._escapeAttr(vehicle.year)} ${this._escapeAttr(vehicle.make)}` : ''}</h3>
@@ -747,7 +751,7 @@ Object.assign(App, {
                     ${driverOptions}
                 </select>
             </div>
-        `).join('');
+        `}).join('');
     },
 
     async saveDriversVehicles() {
