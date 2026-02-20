@@ -2414,6 +2414,15 @@
             console.error('[Global Error]', e.message, e.filename, e.lineno);
         });
 
+        // ── ServiceWorker Registration (offline app shell) ──
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').then((reg) => {
+                console.log('[SW] Registered, scope:', reg.scope);
+            }).catch((err) => {
+                console.warn('[SW] Registration failed:', err.message);
+            });
+        }
+
         window.onload = async () => {
             // Apply dark mode preference FIRST — before any tool rendering
             App.loadDarkMode();

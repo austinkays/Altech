@@ -387,20 +387,9 @@ function getCommercialPolicyType(policy) {
   return 'commercial'; // generic commercial fallback
 }
 
-export default async function handler(req, res) {
-  // CORS headers — restrict to known app origins
-  const origin = req.headers.origin;
-  const allowed = (process.env.ALLOWED_ORIGINS || 'https://altech-insurance.vercel.app,http://localhost:8000,http://localhost:3000').split(',').map(o => o.trim());
-  if (origin && allowed.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+import { securityMiddleware } from './_security.js';
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -773,3 +762,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default securityMiddleware(handler);

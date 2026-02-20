@@ -2,19 +2,23 @@
  * Security Middleware for Altech API Endpoints
  * 
  * Provides:
- * - Rate limiting per IP (configurable via RATE_LIMIT_MAX env var)
+ * - Rate limiting per IP (anonymous) and per UID (authenticated)
  * - Security headers
  * - CORS (configurable via ALLOWED_ORIGINS env var)
+ * - X-Request-ID correlation header for end-to-end tracing
  * - Input validation
  * - Firebase ID token verification for multi-tenant isolation
  * - Request logging (anonymized)
  */
 
-const rateLimits = new Map(); // IP → { count, resetTime }
+import { randomUUID } from 'crypto';
+
+const rateLimits = new Map(); // key → { count, resetTime }  (key = IP or uid:UID)
 
 // ── Configuration from environment ──────────────────────────────
 const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX, 10) || 20;
 const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 60000;
+const RATE_LIMIT_AUTH_MAX = parseInt(process.env.RATE_LIMIT_AUTH_MAX, 10) || 60; // Higher limit for authenticated users
 const CLEANUP_AGE_MS = 5 * 60 * 1000; // 5 minutes
 
 // Parse allowed origins from env (comma-separated) or fall back to safe defaults
@@ -32,6 +36,11 @@ function getAllowedOrigins() {
 
 export function securityMiddleware(handler) {
   return async (req, res) => {
+    // ── X-Request-ID correlation ──
+    const requestId = req.headers['x-request-id'] || randomUUID();
+    res.setHeader('X-Request-ID', requestId);
+    req.requestId = requestId;
+
     // Security headers
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
@@ -45,7 +54,7 @@ export function securityMiddleware(handler) {
     if (allowedOrigins.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-ID');
     }
 
     // Handle preflight
@@ -54,16 +63,33 @@ export function securityMiddleware(handler) {
       return;
     }
 
-    // Rate limiting
+    // ── Rate limiting (per-UID if authenticated, per-IP otherwise) ──
     const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
     const now = Date.now();
-    const limit = rateLimits.get(ip);
 
+    // Try to extract UID from auth header for per-UID limiting
+    let rateLimitKey = ip;
+    let rateLimitMax = RATE_LIMIT_MAX;
+    const authHeader = req.headers.authorization || '';
+    if (authHeader.startsWith('Bearer ')) {
+      // Quick decode of Firebase ID token (JWT) to get UID without a network call
+      try {
+        const payload = JSON.parse(Buffer.from(authHeader.slice(7).split('.')[1], 'base64url').toString());
+        if (payload.user_id || payload.sub) {
+          rateLimitKey = `uid:${payload.user_id || payload.sub}`;
+          rateLimitMax = RATE_LIMIT_AUTH_MAX; // Authenticated users get higher limits
+        }
+      } catch {
+        // Invalid token — fall back to IP-based limiting
+      }
+    }
+
+    const limit = rateLimits.get(rateLimitKey);
     if (limit) {
       if (now < limit.resetTime) {
-        if (limit.count >= RATE_LIMIT_MAX) {
-          console.log(`[Security] Rate limit exceeded for IP: ${ip.substring(0, 10)}...`);
-          res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
+        if (limit.count >= rateLimitMax) {
+          console.log(`[Security] Rate limit exceeded for ${rateLimitKey.substring(0, 15)}... [${requestId}]`);
+          res.status(429).json({ error: 'Too many requests. Please wait a moment.', requestId });
           return;
         }
         limit.count++;
@@ -73,7 +99,7 @@ export function securityMiddleware(handler) {
         limit.resetTime = now + RATE_LIMIT_WINDOW_MS;
       }
     } else {
-      rateLimits.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+      rateLimits.set(rateLimitKey, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
     }
 
     // Clean old entries every 1000 requests
@@ -132,7 +158,7 @@ export function requireAuth(handler) {
   return securityMiddleware(async (req, res) => {
     const user = await verifyFirebaseToken(req);
     if (!user) {
-      return res.status(401).json({ error: 'Authentication required.' });
+      return res.status(401).json({ error: 'Authentication required.', requestId: req.requestId });
     }
     req.user = user;
     return handler(req, res);

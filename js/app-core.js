@@ -649,6 +649,7 @@ Object.assign(App, {
             if (token !== this.saveToken) return;
 
             const dataToSave = JSON.parse(JSON.stringify(this.data || {}));
+            dataToSave._schemaVersion = this.CURRENT_SCHEMA_VERSION;
 
             if (this.encryptionEnabled) {
                 const encrypted = await CryptoHelper.encrypt(dataToSave);
@@ -673,19 +674,50 @@ Object.assign(App, {
         if (this.encryptionEnabled) {
             const decrypted = await CryptoHelper.decrypt(s);
             if (decrypted) {
-                this.applyData(decrypted);
+                this.applyData(this._migrateSchema(decrypted));
             } else {
                 console.warn('[App.load] Decryption returned null — stored data may be corrupt or key changed');
                 this.toast('⚠️ Could not decrypt saved data. It may need to be re-entered.');
             }
         } else {
             try {
-                this.applyData(JSON.parse(s));
+                this.applyData(this._migrateSchema(JSON.parse(s)));
             } catch (e) {
                 console.error('[App.load] Corrupt JSON in localStorage:', e);
                 this.toast('⚠️ Saved data was corrupted. Starting fresh.');
             }
         }
+    },
+
+    /**
+     * Schema migration runner.
+     * Current version: 1. Bumps data through sequential migrations
+     * when adding a new migration, increment CURRENT_SCHEMA_VERSION
+     * and add an entry to the migrations array below.
+     */
+    CURRENT_SCHEMA_VERSION: 1,
+
+    _migrateSchema(data) {
+        if (!data || typeof data !== 'object') return data || {};
+        const v = data._schemaVersion || 0;
+        if (v >= this.CURRENT_SCHEMA_VERSION) return data;
+
+        // Sequential migrations — each takes data at version N → N+1
+        const migrations = [
+            // v0 → v1: Add schema version field (no-op, just stamps it)
+            (d) => { d._schemaVersion = 1; return d; },
+            // Future: v1 → v2 example:
+            // (d) => { if (d.oldField) { d.newField = d.oldField; delete d.oldField; } d._schemaVersion = 2; return d; },
+        ];
+
+        let migrated = { ...data };
+        for (let i = v; i < this.CURRENT_SCHEMA_VERSION; i++) {
+            if (migrations[i]) {
+                console.log(`[Schema] Migrating v${i} → v${i + 1}`);
+                migrated = migrations[i](migrated);
+            }
+        }
+        return migrated;
     },
 
     applyData(data) {

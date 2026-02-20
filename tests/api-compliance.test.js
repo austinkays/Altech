@@ -22,8 +22,10 @@ function loadComplianceFunctions() {
   // Everything before the handler export is pure function definitions + constants
   const preamble = source.split(/^export\s+default\s+/m)[0];
 
-  // Clean remaining export keywords (if any)
-  const cleaned = preamble.replace(/^export\s+/gm, '');
+  // Clean import statements and remaining export keywords
+  const cleaned = preamble
+    .replace(/^import\s+.*$/gm, '')
+    .replace(/^export\s+/gm, '');
 
   const extractFn = new Function(`
     ${cleaned}
@@ -494,16 +496,16 @@ describe('compliance.js — Handler Structure', () => {
     require('path').join(__dirname, '../api/compliance.js'), 'utf8'
   );
 
-  test('handler is exported as default', () => {
-    expect(source).toMatch(/^export\s+default\s+async\s+function\s+handler/m);
+  test('handler is exported as default (wrapped with securityMiddleware)', () => {
+    expect(source).toMatch(/^export\s+default\s+securityMiddleware\(handler\)/m);
   });
 
   test('handler returns 405 for non-GET methods', () => {
     expect(source).toContain("res.status(405).json({ error: 'Method not allowed' })");
   });
 
-  test('handler returns 200 for OPTIONS preflight', () => {
-    expect(source).toMatch(/req\.method\s*===\s*'OPTIONS'[\s\S]*?res\.status\(200\)/);
+  test('OPTIONS preflight is handled by securityMiddleware', () => {
+    expect(source).toMatch(/import\s*\{\s*securityMiddleware\s*\}\s*from/);
   });
 
   test('handler returns 500 when credentials are missing', () => {
