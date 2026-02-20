@@ -7,6 +7,7 @@
  */
 
 import { readFileSync } from 'fs';
+import { securityMiddleware } from './_security.js';
 
 // Helper: resolve Google API key from environment variables only
 // Used for Gemini AI calls (generative language API)
@@ -1257,12 +1258,7 @@ async function handleFireStation(req, res) {
 // MAIN HANDLER — Routes by ?mode= query parameter
 // ===========================================================================
 
-export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed. Use POST.' });
 
@@ -1291,3 +1287,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default securityMiddleware(handler);

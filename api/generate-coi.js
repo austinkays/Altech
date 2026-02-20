@@ -9,6 +9,7 @@ import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { securityMiddleware } from './_security.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,13 +37,7 @@ function findPython() {
     return null;
 }
 
-export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -107,4 +102,6 @@ export default async function handler(req, res) {
       detail: error.stderr ? error.stderr.toString().trim() : undefined
     });
   }
-};
+}
+
+export default securityMiddleware(handler);

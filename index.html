@@ -2225,7 +2225,7 @@
                 
                 // Try fetching from server endpoint first (Vercel production)
                 try {
-                    const res = await fetch('/api/places-config.js');
+                    const res = await (typeof Auth !== 'undefined' ? Auth.apiFetch('/api/places-config.js') : fetch('/api/places-config.js'));
                     if (res.ok) {
                         const data = await res.json();
                         apiKey = data.apiKey;
@@ -2639,7 +2639,7 @@
                     return this._geminiApiKey;
                 }
                 try {
-                    const res = await fetch('/api/places-config');
+                    const res = await (typeof Auth !== 'undefined' ? Auth.apiFetch('/api/places-config') : fetch('/api/places-config'));
                     if (res.ok) {
                         const data = await res.json();
                         if (data.geminiKey) { this._geminiApiKey = data.geminiKey; return data.geminiKey; }
@@ -4797,7 +4797,7 @@
                 if (this.mapApiKey) return this.mapApiKey;
                 try {
                     // Try fetching from Vercel serverless function first
-                    let res = await fetch('/api/places-config.js');
+                    let res = await (typeof Auth !== 'undefined' ? Auth.apiFetch('/api/places-config.js') : fetch('/api/places-config.js'));
                     if (res.ok) {
                         const { apiKey } = await res.json();
                         if (apiKey) {

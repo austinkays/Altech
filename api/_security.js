@@ -6,6 +6,7 @@
  * - Security headers
  * - CORS (configurable via ALLOWED_ORIGINS env var)
  * - Input validation
+ * - Firebase ID token verification for multi-tenant isolation
  * - Request logging (anonymized)
  */
 
@@ -44,7 +45,7 @@ export function securityMiddleware(handler) {
     if (allowedOrigins.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     }
 
     // Handle preflight
@@ -87,6 +88,55 @@ export function securityMiddleware(handler) {
     // Call actual handler
     return handler(req, res);
   };
+}
+
+/**
+ * Extract and verify a Firebase ID token from the Authorization header.
+ *
+ * Uses the Firebase Auth REST API (accounts:lookup) — no firebase-admin needed.
+ * Returns the Firebase user object on success, or null on failure/missing token.
+ *
+ * Requires FIREBASE_API_KEY env var (the web API key from Firebase console).
+ */
+export async function verifyFirebaseToken(req) {
+  const authHeader = req.headers.authorization || '';
+  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  if (!idToken) return null;
+
+  const firebaseApiKey = (process.env.FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '').trim();
+  if (!firebaseApiKey) return null;
+
+  try {
+    const resp = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${firebaseApiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      }
+    );
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.users?.[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Wraps a handler to require a valid Firebase ID token.
+ * Returns 401 if the token is missing or invalid.
+ * Injects the verified user as req.user for the inner handler.
+ */
+export function requireAuth(handler) {
+  return securityMiddleware(async (req, res) => {
+    const user = await verifyFirebaseToken(req);
+    if (!user) {
+      return res.status(401).json({ error: 'Authentication required.' });
+    }
+    req.user = user;
+    return handler(req, res);
+  });
 }
 
 export function sanitizeInput(input, maxLength = 500) {

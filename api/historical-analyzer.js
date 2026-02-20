@@ -1,4 +1,5 @@
 // Dynamic import — @google/generative-ai may not be installed
+import { securityMiddleware } from './_security.js';
 let GoogleGenerativeAI;
 
 /**
@@ -621,8 +622,7 @@ Return JSON:
 /**
  * Vercel serverless handler
  */
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
+async function handler(req, res) {  if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -693,3 +693,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default securityMiddleware(handler);

@@ -67,7 +67,7 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
 
                     // 2. Try places-config endpoint (Vercel serves both keys)
                     try {
-                        const res = await fetch('/api/places-config');
+                        const res = await (typeof Auth !== 'undefined' ? Auth.apiFetch('/api/places-config') : fetch('/api/places-config'));
                         if (res.ok) {
                             const data = await res.json();
                             if (data.geminiKey) {

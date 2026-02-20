@@ -1,0 +1,71 @@
+rules_version = '2';
+
+// ── Altech Multi-Tenant Firestore Security Rules ──────────────────────────
+//
+// Data model:
+//   users/{uid}/sync/{docType}   — per-user sync documents
+//   users/{uid}/quotes/{quoteId} — per-user quote drafts
+//
+// Principle: authenticated users can only read/write their own data.
+// No cross-tenant data access is possible regardless of client-side code.
+//
+// Deploy:  firebase deploy --only firestore:rules
+// Test:    firebase emulators:start --only firestore
+// ──────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ────────────────────────────────────────────────
+
+    // User must be authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Requesting user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Ensure incoming writes contain only allowed fields (no field injection)
+    function hasOnlyAllowedFields(allowedFields) {
+      return request.resource.data.keys().hasOnly(allowedFields);
+    }
+
+    // Reject writes that are suspiciously large (> 1 MB encoded JSON)
+    function isReasonableSize() {
+      return request.resource.data.size() < 1048576;
+    }
+
+    // ── User data ────────────────────────────────────────────────────────
+
+    // All documents under users/{uid}/** are strictly per-tenant
+    match /users/{userId} {
+      // Deny direct access to the user root document
+      allow read, write: if false;
+    }
+
+    // Sync documents: settings, currentForm, cglState, clientHistory, etc.
+    match /users/{userId}/sync/{docType} {
+      allow read:  if isOwner(userId);
+      allow write: if isOwner(userId) && isReasonableSize();
+
+      // Deny deletion of system docs by accident — only explicit action allowed
+      allow delete: if isOwner(userId);
+    }
+
+    // Quote drafts
+    match /users/{userId}/quotes/{quoteId} {
+      allow read:   if isOwner(userId);
+      allow create: if isOwner(userId) && isReasonableSize();
+      allow update: if isOwner(userId) && isReasonableSize();
+      allow delete: if isOwner(userId);
+    }
+
+    // ── Catch-all: deny everything not explicitly allowed ────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
