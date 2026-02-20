@@ -12,7 +12,8 @@ Object.assign(App, {
             dob: '',
             dlNum: '',
             dlState: 'WA',
-            relationship: 'Self'
+            relationship: 'Self',
+            isCoApplicant: false
         };
         this.drivers.push(driver);
         this.renderDrivers();
@@ -21,6 +22,16 @@ Object.assign(App, {
     },
 
     removeDriver(id) {
+        const driver = this.drivers.find(d => d.id === id);
+        // If removing a synced co-applicant driver, uncheck the co-applicant toggle
+        if (driver && driver.isCoApplicant) {
+            const cb = document.getElementById('hasCoApplicant');
+            const section = document.getElementById('coApplicantSection');
+            if (cb) cb.checked = false;
+            if (section) section.classList.remove('visible');
+            this.data.hasCoApplicant = '';
+            this.save({});
+        }
         this.drivers = this.drivers.filter(d => d.id !== id);
         this.renderDrivers();
         this.renderVehicles();
@@ -30,6 +41,9 @@ Object.assign(App, {
     updateDriver(id, field, value) {
         const driver = this.drivers.find(d => d.id === id);
         if (driver) {
+            // Prevent manual overwrite of synced co-applicant locked fields
+            const LOCKED_FIELDS = ['firstName', 'lastName', 'dob', 'gender', 'relationship'];
+            if (driver.isCoApplicant && LOCKED_FIELDS.includes(field)) return;
             // Normalize license # and state to uppercase
             if (field === 'dlNum' || field === 'dlState') value = (value || '').toUpperCase();
             driver[field] = value;
@@ -265,6 +279,10 @@ Object.assign(App, {
         
         container.innerHTML = this.drivers.map((driver, index) => {
             const isPrimary = index === 0;
+            const isSynced = driver.isCoApplicant === true;
+            const lockedAttr = isSynced ? 'readonly style="opacity:0.6;cursor:not-allowed;"' : '';
+            const lockedSelAttr = isSynced ? 'disabled style="opacity:0.6;cursor:not-allowed;"' : '';
+            const syncedBadge = isSynced ? '<span style="background:var(--apple-blue);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px;">🔗 Synced from Co-Applicant</span>' : '';
             const relationshipLabel = driver.relationship
                 ? (driver.relationship === 'Self' && isPrimary ? '• Self' : (driver.relationship !== 'Self' ? `• ${driver.relationship}` : ''))
                 : '';
@@ -272,7 +290,7 @@ Object.assign(App, {
             return `
             <div class="driver-vehicle-card">
                 <div class="driver-vehicle-header">
-                    <h3>Driver ${index + 1} ${relationshipLabel}</h3>
+                    <h3>Driver ${index + 1} ${relationshipLabel}${syncedBadge}</h3>
                     <button class="remove-btn" onclick="App.removeDriver('${driver.id}')" title="Remove driver">×</button>
                 </div>
                 
@@ -281,13 +299,13 @@ Object.assign(App, {
                         <label class="label">First Name</label>
                         <input type="text" value="${this._escapeAttr(driver.firstName || '')}" 
                             onchange="App.updateDriver('${driver.id}', 'firstName', this.value)" 
-                            placeholder="First name">
+                            placeholder="First name" ${lockedAttr}>
                     </div>
                     <div>
                         <label class="label">Last Name</label>
                         <input type="text" value="${this._escapeAttr(driver.lastName || '')}" 
                             onchange="App.updateDriver('${driver.id}', 'lastName', this.value)" 
-                            placeholder="Last name">
+                            placeholder="Last name" ${lockedAttr}>
                     </div>
                 </div>
                 
@@ -295,11 +313,11 @@ Object.assign(App, {
                     <div>
                         <label class="label">Date of Birth</label>
                         <input type="date" value="${driver.dob || ''}" 
-                            onchange="App.updateDriver('${driver.id}', 'dob', this.value)">
+                            onchange="App.updateDriver('${driver.id}', 'dob', this.value)" ${lockedAttr}>
                     </div>
                     <div>
                         <label class="label">Relationship</label>
-                        <select onchange="App.updateDriver('${driver.id}', 'relationship', this.value)">
+                        <select onchange="App.updateDriver('${driver.id}', 'relationship', this.value)" ${lockedSelAttr}>
                             ${isPrimary ? `<option value="Self" ${driver.relationship === 'Self' ? 'selected' : ''}>Self (Primary)</option>` : ''}
                             <option value="Spouse" ${driver.relationship === 'Spouse' ? 'selected' : ''}>Spouse / Partner</option>
                             <option value="Child" ${driver.relationship === 'Child' ? 'selected' : ''}>Child</option>
@@ -312,7 +330,7 @@ Object.assign(App, {
                 <div class="grid-2">
                     <div>
                         <label class="label">Gender</label>
-                        <select onchange="App.updateDriver('${driver.id}', 'gender', this.value)">
+                        <select onchange="App.updateDriver('${driver.id}', 'gender', this.value)" ${lockedSelAttr}>
                             <option value="">Select...</option>
                             <option value="M" ${driver.gender === 'M' ? 'selected' : ''}>Male</option>
                             <option value="F" ${driver.gender === 'F' ? 'selected' : ''}>Female</option>

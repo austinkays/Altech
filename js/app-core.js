@@ -373,6 +373,7 @@ Object.assign(App, {
                 locality: '',
                 postal_town: '',
                 administrative_area_level_1: '',
+                administrative_area_level_2: '',
                 postal_code: ''
             };
 
@@ -387,11 +388,17 @@ Object.assign(App, {
             const city = parts.locality || parts.postal_town || '';
             const state = parts.administrative_area_level_1 || '';
             const zip = parts.postal_code || '';
+            // County: Google returns "Clark County" — strip " County" suffix for EZLynx
+            let county = parts.administrative_area_level_2 || '';
+            county = county.replace(/\s*County$/i, '').trim();
 
             this.setFieldValue('addrStreet', street || place.formatted_address || '', { autoFilled: true, source: 'places' });
             this.setFieldValue('addrCity', city, { autoFilled: true, source: 'places' });
             this.setFieldValue('addrState', state, { autoFilled: true, source: 'places' });
             this.setFieldValue('addrZip', zip, { autoFilled: true, source: 'places' });
+            if (county) {
+                this.setFieldValue('county', county, { autoFilled: true, source: 'places' });
+            }
 
             this.scheduleMapPreviewUpdate();
 
@@ -952,6 +959,60 @@ Object.assign(App, {
         section.classList.toggle('visible', show);
         this.data.hasCoApplicant = show ? 'yes' : '';
         this.save({});
+
+        // Sync co-applicant as Driver 2 for auto/both quotes
+        const qType = (document.querySelector('input[name="qType"]:checked') || {}).value || 'both';
+        const isAuto = qType === 'auto' || qType === 'both';
+        if (isAuto) {
+            if (show) {
+                this.syncCoApplicantToDriver();
+            } else {
+                // Remove synced driver
+                this.drivers = this.drivers.filter(d => !d.isCoApplicant);
+                this.renderDrivers();
+                this.renderVehicles();
+                this.saveDriversVehicles();
+            }
+        }
+    },
+
+    /**
+     * Syncs co-applicant form data to a paired driver entry.
+     * Only locks Name, DOB, Gender — other fields (DL status, etc.) stay editable.
+     */
+    syncCoApplicantToDriver() {
+        const coFirst = (this.data.coFirstName || '').trim();
+        const coLast = (this.data.coLastName || '').trim();
+        const coDob = (this.data.coDob || '').trim();
+        const coGender = (this.data.coGender || '').trim();
+        const coRelationship = (this.data.coRelationship || 'Spouse').trim();
+
+        // Find existing synced driver or create one
+        let synced = this.drivers.find(d => d.isCoApplicant);
+        if (!synced) {
+            synced = {
+                id: `coapp_${Date.now()}`,
+                firstName: '',
+                lastName: '',
+                dob: '',
+                dlNum: '',
+                dlState: 'WA',
+                relationship: 'Spouse',
+                isCoApplicant: true
+            };
+            this.drivers.push(synced);
+        }
+
+        // Only overwrite locked fields (Name, DOB, Gender, Relationship)
+        synced.firstName = coFirst;
+        synced.lastName = coLast;
+        synced.dob = coDob;
+        synced.gender = coGender;
+        synced.relationship = coRelationship === 'Domestic Partner' ? 'Spouse' : (coRelationship || 'Spouse');
+
+        this.renderDrivers();
+        this.renderVehicles();
+        this.saveDriversVehicles();
     },
 
     restoreCoApplicantUI() {
@@ -961,6 +1022,36 @@ Object.assign(App, {
         const show = this.data.hasCoApplicant === 'yes';
         cb.checked = show;
         section.classList.toggle('visible', show);
+
+        // Attach co-applicant → driver sync listeners (idempotent)
+        const syncFields = ['coFirstName', 'coLastName', 'coDob', 'coGender', 'coRelationship'];
+        syncFields.forEach(fieldId => {
+            const el = document.getElementById(fieldId);
+            if (el && !el.dataset.coSyncBound) {
+                el.dataset.coSyncBound = '1';
+                el.addEventListener('change', () => {
+                    if (this.data.hasCoApplicant === 'yes') {
+                        this.syncCoApplicantToDriver();
+                    }
+                });
+                if (el.tagName === 'INPUT') {
+                    el.addEventListener('blur', () => {
+                        if (this.data.hasCoApplicant === 'yes') {
+                            this.syncCoApplicantToDriver();
+                        }
+                    });
+                }
+            }
+        });
+
+        // If already enabled and has auto workflow, ensure synced driver exists
+        if (show) {
+            const qType = (document.querySelector('input[name="qType"]:checked') || {}).value || 'both';
+            if (qType === 'auto' || qType === 'both') {
+                const hasSynced = this.drivers && this.drivers.some(d => d.isCoApplicant);
+                if (!hasSynced) this.syncCoApplicantToDriver();
+            }
+        }
     },
 
     async generateNamePronunciation() {

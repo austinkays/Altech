@@ -1,4 +1,4 @@
-// js/app-export.js — Export engines (PDF, XML, CMSMTF, Text/CSV)
+﻿// js/app-export.js — Export engines (PDF, CMSMTF, Text/CSV)
 // Extracted from index.html during Phase 2 monolith decomposition
 'use strict';
 
@@ -7,14 +7,14 @@ Object.assign(App, {
         const result = await this.buildPDF(this.data);
         this.downloadBlob(result.blob, result.filename);
         this.logExport('PDF', result.filename);
-        this.toast('✓ PDF downloaded successfully');
+        this.toast('âœ“ PDF downloaded successfully');
     },
 
     exportText() {
         const result = this.buildText(this.data);
         this.downloadFile(result.content, result.filename, result.mime);
         this.logExport('Text', result.filename);
-        this.toast('📝 Text summary downloaded');
+        this.toast('ðŸ“ Text summary downloaded');
     },
 
     async buildPDF(data) {
@@ -42,7 +42,7 @@ Object.assign(App, {
             return '';
         };
 
-        // ─── Color palette ───
+        // â”€â”€â”€ Color palette â”€â”€â”€
         const C = {
             brand:    [0, 102, 204],     // Professional blue
             brandLt:  [230, 241, 252],   // Light blue tint
@@ -77,7 +77,7 @@ Object.assign(App, {
             return `${formatDate(d)} ${hours}:${minutes} ${ampm}`;
         };
 
-        // ─── Layout helpers ───
+        // â”€â”€â”€ Layout helpers â”€â”€â”€
         let y = 0;
 
         const checkPage = (needed = 20) => {
@@ -213,9 +213,9 @@ Object.assign(App, {
             y += 5;
         };
 
-        // ═══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  PAGE 1: HEADER
-        // ═══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         const address = this.getFullAddress(data);
         const [mapImages, logoImg] = await Promise.all([
             this.getMapImages(address),
@@ -263,7 +263,7 @@ Object.assign(App, {
         doc.line(margin, y, pageW - margin, y);
         y += 5;
 
-        // Street View banner (clean — no overlay text)
+        // Street View banner (clean â€” no overlay text)
         if (mapImages?.streetView?.dataUrl) {
             const bannerH = 46;
             doc.addImage(mapImages.streetView.dataUrl, mapImages.streetView.format, margin, y, contentW, bannerH);
@@ -301,16 +301,16 @@ Object.assign(App, {
             doc.setTextColor(...C.dark);
         }
 
-        // ═══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  DATA SECTIONS
-        // ═══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         const quoteType = (data.qType || '').toLowerCase();
         const showHome = quoteType === 'home' || quoteType === 'both' || !quoteType;
         const showAuto = quoteType === 'auto' || quoteType === 'both' || !quoteType;
         const drivers = (data.drivers && data.drivers.length) ? data.drivers : (this.drivers || []);
         const vehicles = (data.vehicles && data.vehicles.length) ? data.vehicles : (this.vehicles || []);
 
-        // ── Applicant ──
+        // â”€â”€ Applicant â”€â”€
         sectionHeader('Applicant');
         kvTable([
             ['Full Name', clientName],
@@ -326,7 +326,7 @@ Object.assign(App, {
             ['Pronunciation', this.getNamePronunciation(data)],
         ]);
 
-        // ── Co-Applicant (if provided) ──
+        // â”€â”€ Co-Applicant (if provided) â”€â”€
         if (data.hasCoApplicant === 'yes' && (data.coFirstName || data.coLastName)) {
             sectionHeader('Co-Applicant / Spouse');
             kvTable([
@@ -339,7 +339,7 @@ Object.assign(App, {
             ]);
         }
 
-        // ── Property Address ──
+        // â”€â”€ Property Address â”€â”€
         sectionHeader('Property Address');
         kvTable([
             ['Street Address', v('addrStreet')],
@@ -351,7 +351,7 @@ Object.assign(App, {
         ]);
 
         if (showHome) {
-            // ── Property Details ──
+            // â”€â”€ Property Details â”€â”€
             sectionHeader('Property Details');
             kvTable([
                 ['Year Built', v('yrBuilt')],
@@ -376,7 +376,7 @@ Object.assign(App, {
                 ['Purchase Date', formatDate(v('purchaseDate'))],
             ]);
 
-            // ── Building Systems ──
+            // â”€â”€ Building Systems â”€â”€
             sectionHeader('Building Systems');
             kvTable([
                 ['Roof Type', v('roofType')],
@@ -391,7 +391,7 @@ Object.assign(App, {
                 ['Water Source', v('waterSource')],
             ]);
 
-            // ── Risk & Protection ──
+            // â”€â”€ Risk & Protection â”€â”€
             sectionHeader('Risk & Protection');
             kvTable([
                 ['Burglar Alarm', v('burglarAlarm')],
@@ -410,7 +410,7 @@ Object.assign(App, {
                 ['Protection Class', v('protectionClass')],
             ]);
 
-            // ── Home Coverage ──
+            // â”€â”€ Home Coverage â”€â”€
             sectionHeader('Home Coverage');
             kvTable([
                 ['Policy Type', v('homePolicyType')],
@@ -432,7 +432,7 @@ Object.assign(App, {
         }
 
         if (showAuto) {
-            // ── Drivers ──
+            // â”€â”€ Drivers â”€â”€
             if (drivers.length) {
                 sectionHeader('Drivers');
                 const driverRows = drivers.map((d, i) => {
@@ -452,7 +452,7 @@ Object.assign(App, {
                 detailTable(driverRows);
             }
 
-            // ── Vehicles ──
+            // â”€â”€ Vehicles â”€â”€
             if (vehicles.length) {
                 sectionHeader('Vehicles');
                 const vehicleRows = vehicles.map((v, i) => {
@@ -480,7 +480,7 @@ Object.assign(App, {
                 ]);
             }
 
-            // ── Auto Coverage ──
+            // â”€â”€ Auto Coverage â”€â”€
             sectionHeader('Auto Coverage');
             kvTable([
                 ['Auto Policy Type', v('autoPolicyType')],
@@ -499,7 +499,7 @@ Object.assign(App, {
             ]);
         }
 
-        // ── Policy & Prior Insurance ──
+        // â”€â”€ Policy & Prior Insurance â”€â”€
         sectionHeader('Policy & Prior Insurance');
         const pdfPriorRows = [
             ['Policy Term', v('policyTerm')],
@@ -529,7 +529,7 @@ Object.assign(App, {
         );
         kvTable(pdfPriorRows);
 
-        // ── Additional Information ──
+        // â”€â”€ Additional Information â”€â”€
         sectionHeader('Additional Information');
         kvTable([
             ['Additional Insureds', v('additionalInsureds')],
@@ -539,7 +539,7 @@ Object.assign(App, {
             ['TCPA Consent', data.tcpaConsent ? 'Yes' : 'No'],
         ], 2);
 
-        // ─── Footer on every page ───
+        // â”€â”€â”€ Footer on every page â”€â”€â”€
         drawFooter();
 
         const fileName = `Insurance_Application_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -556,7 +556,7 @@ Object.assign(App, {
         const result = this.buildCSV(this.data);
         this.downloadFile(result.content, result.filename, result.mime);
         this.logExport('CSV', result.filename);
-        this.toast('📥 CSV Generated!');
+        this.toast('ðŸ“¥ CSV Generated!');
     },
 
     buildCSV(data) {
@@ -586,7 +586,7 @@ Object.assign(App, {
         ].map(v => `"${v}"`).join(',');
         const content = `${headers.join(',')}\n${sample}`;
         this.downloadFile(content, 'Altech_Batch_Template.csv', 'text/csv');
-        this.toast('📄 CSV template downloaded');
+        this.toast('ðŸ“„ CSV template downloaded');
     },
 
     openBatchImport() {
@@ -601,7 +601,7 @@ Object.assign(App, {
         const text = await file.text();
         const parsed = this.parseCSV(text);
         if (!parsed || !parsed.rows.length) {
-            this.toast('⚠️ CSV has no rows.');
+            this.toast('âš ï¸ CSV has no rows.');
             return;
         }
 
@@ -633,11 +633,11 @@ Object.assign(App, {
         await this.renderQuoteList();
 
         if (created) {
-            this.toast(`✅ Imported ${created} draft${created > 1 ? 's' : ''}`);
+            this.toast(`âœ… Imported ${created} draft${created > 1 ? 's' : ''}`);
         }
         if (errors.length) {
             console.warn('Batch import warnings:', errors);
-            this.toast('⚠️ Some rows were skipped.');
+            this.toast('âš ï¸ Some rows were skipped.');
         }
     },
 
@@ -729,7 +729,7 @@ Object.assign(App, {
         const result = this.buildCMSMTF(this.data);
         this.downloadFile(result.content, result.filename, result.mime);
         this.logExport('CMSMTF', result.filename);
-        this.toast('📥 HawkSoft File Generated!');
+        this.toast('ðŸ“¥ HawkSoft File Generated!');
     },
 
     buildCMSMTF(data) {
@@ -738,7 +738,7 @@ Object.assign(App, {
         const includeAuto = qType === 'auto' || qType === 'both';
         
         const fields = [
-            // ── Core Contact ──
+            // â”€â”€ Core Contact â”€â”€
             { tag: 'NAM', value: `${data.firstName || ''} ${data.lastName || ''}`.trim() },
             { tag: 'ADD', value: data.addrStreet },
             { tag: 'CTY', value: data.addrCity },
@@ -752,7 +752,7 @@ Object.assign(App, {
             { tag: 'INDUSTRY', value: data.industry },
         ];
 
-        // ── Co-Applicant ──
+        // â”€â”€ Co-Applicant â”€â”€
         if (data.hasCoApplicant === 'yes' && (data.coFirstName || data.coLastName)) {
             fields.push(
                 { tag: 'CO_NAM', value: `${data.coFirstName || ''} ${data.coLastName || ''}`.trim() },
@@ -764,7 +764,7 @@ Object.assign(App, {
             );
         }
 
-        // ── Home/Property (only when quoting home) ──
+        // â”€â”€ Home/Property (only when quoting home) â”€â”€
         if (includeHome) {
             fields.push(
                 { tag: 'L1', value: data.roofYr },
@@ -799,7 +799,7 @@ Object.assign(App, {
             );
         }
 
-        // ── Auto/Vehicle (only when quoting auto) ──
+        // â”€â”€ Auto/Vehicle (only when quoting auto) â”€â”€
         if (includeAuto) {
             fields.push(
                 { tag: 'C1', value: data.liabilityLimits },
@@ -818,7 +818,7 @@ Object.assign(App, {
             );
         }
 
-        // ── Prior Insurance (split by line of business) ──
+        // â”€â”€ Prior Insurance (split by line of business) â”€â”€
         if (includeAuto) {
             fields.push(
                 { tag: 'C2', value: data.priorCarrier },
@@ -832,7 +832,7 @@ Object.assign(App, {
             );
         }
 
-        // ── Shared fields ──
+        // â”€â”€ Shared fields â”€â”€
         fields.push(
             { tag: 'R1', value: includeHome && includeAuto
                 ? `Home: ${data.homeDeductible || ''} / Auto: ${data.autoDeductible || ''}`
@@ -851,105 +851,7 @@ Object.assign(App, {
         return { content, filename: `Lead_${data.lastName || 'Export'}.cmsmtf`, mime: 'text/plain;charset=utf-8' };
     },
 
-    exportXML() {
-        const result = this.buildXML(this.data);
-        if (!result.ok) {
-            this.toast(result.error);
-            return;
-        }
-        this.downloadFile(result.content, result.filename, result.mime);
-        this.logExport('XML', result.filename);
-        this.toast('📥 EZLynx Auto XML File Generated!');
-    },
-
-    updateExportButtons() {
-        const qType = (document.querySelector('input[name="qType"]:checked') || {}).value || 'both';
-        const autoBtn = document.getElementById('ezlynx-auto-btn');
-        const homeBtn = document.getElementById('ezlynx-home-btn');
-        const bothBtn = document.getElementById('ezlynx-both-btn');
-        if (!autoBtn || !homeBtn || !bothBtn) return;
-
-        if (qType === 'home') {
-            autoBtn.style.display = 'none';
-            homeBtn.style.display = 'block';
-            bothBtn.style.display = 'none';
-        } else if (qType === 'auto') {
-            autoBtn.style.display = 'block';
-            homeBtn.style.display = 'none';
-            bothBtn.style.display = 'none';
-        } else {
-            // 'both'
-            autoBtn.style.display = 'block';
-            homeBtn.style.display = 'block';
-            bothBtn.style.display = 'block';
-        }
-    },
-
-    launchEZLynxFromExport() {
-        // Navigate to EZLynx Quoter tool, auto-load intake data, and launch filler
-        this.openTool('ezlynx');
-        // Give tool time to render, then load data and launch
-        setTimeout(() => {
-            if (typeof EZLynxTool !== 'undefined') {
-                EZLynxTool.loadFromIntake();
-                // Small delay so user can see the loaded data before launching
-                setTimeout(() => {
-                    EZLynxTool.launch();
-                }, 500);
-            }
-        }, 300);
-    },
-
-    async exportBothXML() {
-        const autoResult = this.buildXML(this.data);
-        const homeResult = this.buildHomeXML(this.data);
-        if (!autoResult.ok) {
-            this.toast(autoResult.error);
-            return;
-        }
-        if (!homeResult.ok) {
-            this.toast(homeResult.error);
-            return;
-        }
-        // Use JSZip to bundle both files
-        if (typeof JSZip === 'undefined') {
-            // Fallback: download individually
-            this.downloadFile(autoResult.content, autoResult.filename, autoResult.mime);
-            setTimeout(() => {
-                this.downloadFile(homeResult.content, homeResult.filename, homeResult.mime);
-            }, 500);
-            this.toast('📦 Both XML files downloaded!');
-            return;
-        }
-        const zip = new JSZip();
-        zip.file(autoResult.filename, autoResult.content);
-        zip.file(homeResult.filename, homeResult.content);
-        const lastName = this.data.lastName || 'Lead';
-        const blob = await zip.generateAsync({ type: 'blob' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${lastName}_EZLynx_Bundle.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        this.logExport('BothXML', `${lastName}_EZLynx_Bundle.zip`);
-        this.toast('📦 Auto + Home XML Bundle Downloaded!');
-    },
-
-    // ─── Shared XML Export Helpers ────────────────────────────
-    // Used by both buildXML (auto) and buildHomeXML (home)
-
-    _escapeXML(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&apos;');
-    },
+    // â”€â”€â”€ Shared Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     // Escape for safe HTML attribute/text content insertion
     _escapeAttr(str) {
@@ -1035,984 +937,6 @@ Object.assign(App, {
                 quality_issues: { type: 'array', items: { type: 'string' } }
             },
             required: ['fields']
-        };
-    },
-
-    _mapGender(g) {
-        if (g === 'M') return 'Male';
-        if (g === 'F') return 'Female';
-        return g || '';
-    },
-
-    _mapMaritalStatus(m) {
-        const valid = ['Single','Married','Divorced','Widowed','Separated','Domestic Partner'];
-        if (!m) return '';
-        const match = valid.find(v => v.toLowerCase() === m.toLowerCase());
-        return match || m;
-    },
-
-    _normalizeDate(dateStr) {
-        if (!dateStr) return '';
-        const d = new Date(dateStr);
-        if (Number.isNaN(d.getTime())) return '';
-        const year = d.getUTCFullYear();
-        if (year < 1900 || year > 2100) return '';
-        return d.toISOString().split('T')[0];
-    },
-
-    _splitZip(zip) {
-        const raw = (zip || '').toString().trim();
-        if (!raw) return { zip5: '', zip4: '' };
-        const digits = raw.replace(/[^0-9]/g, '');
-        if (digits.length >= 9) {
-            return { zip5: digits.slice(0, 5), zip4: digits.slice(5, 9) };
-        }
-        return { zip5: digits.slice(0, 5), zip4: '' };
-    },
-
-    buildXML(data) {
-        const escapeXML = this._escapeXML;
-        const mapGender = this._mapGender;
-        const mapMaritalStatus = this._mapMaritalStatus;
-        const normalizeDate = this._normalizeDate;
-        const splitZip = this._splitZip;
-
-        const parseLimits = (value) => {
-            if (!value) return { bi: '', pd: '' };
-            const cleaned = String(value).replace(/\s+/g, '');
-            const parts = cleaned.split('/').filter(Boolean);
-            if (parts.length >= 2) {
-                return { bi: `${parts[0]}/${parts[1]}`, pd: parts[2] || '' };
-            }
-            return { bi: cleaned, pd: '' };
-        };
-
-        // Use arrays if available, otherwise fall back to flat fields
-        const drivers = (data.drivers && data.drivers.length > 0) ? data.drivers : null;
-        const vehicles = (data.vehicles && data.vehicles.length > 0) ? data.vehicles : null;
-
-        // Get primary applicant info (use first driver if array exists, otherwise use flat fields)
-        const primaryDriver = drivers ? drivers[0] : data;
-        const firstName = primaryDriver.firstName || data.firstName || '';
-        const lastName = primaryDriver.lastName || data.lastName || '';
-        const dob = normalizeDate(primaryDriver.dob || data.dob);
-
-        // Validation
-        if (!firstName || !lastName) {
-            return { ok: false, error: '⚠️ First and last name are required for EZLynx XML.' };
-        }
-        const state = (data.addrState || '').trim().toUpperCase();
-        if (!state || !/^[A-Z]{2}$/.test(state)) {
-            return { ok: false, error: '⚠️ A valid 2-letter state is required for EZLynx XML.' };
-        }
-        if (!dob) {
-            return { ok: false, error: '⚠️ A valid DOB is required for EZLynx XML.' };
-        }
-
-        // VIN is optional for EZLynx XML export, but each vehicle needs VIN or year/make/model
-        const isAutoPolicy = data.qType === 'auto' || data.qType === 'both';
-        if (isAutoPolicy) {
-            if (vehicles && vehicles.length) {
-                const invalidVehicles = vehicles.filter(v => {
-                    const hasVin = v.vin && v.vin.trim().length > 0;
-                    const hasDetails = (v.year && v.make && v.model);
-                    return !hasVin && !hasDetails;
-                });
-                if (invalidVehicles.length) {
-                    return { ok: false, error: '⚠️ Each vehicle needs a VIN or Year/Make/Model for EZLynx XML.' };
-                }
-            } else {
-                const hasVin = data.vin && data.vin.trim().length > 0;
-                const hasDesc = data.vehDesc && data.vehDesc.trim().length > 0;
-                if (!hasVin && !hasDesc) {
-                    return { ok: false, error: '⚠️ Add at least one vehicle (VIN or Year/Make/Model) for EZLynx XML.' };
-                }
-                if (!hasVin && hasDesc) {
-                    const match = data.vehDesc.match(/(\d{4})\s+([A-Z]+)\s+(.+)/i);
-                    if (!match) {
-                        return { ok: false, error: '⚠️ Vehicle description should be "YEAR MAKE MODEL" if no VIN is provided.' };
-                    }
-                }
-            }
-        }
-
-        const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
-        const streetRaw = (data.addrStreet || '').trim();
-        const streetMatch = streetRaw.match(/^(\d+)\s+(.*)$/);
-        const streetNumber = streetMatch?.[1] || '';
-        const streetName = streetMatch?.[2] || streetRaw;
-        const { zip5, zip4 } = splitZip(data.addrZip);
-        const gender = mapGender(data.gender);
-        const marital = mapMaritalStatus(data.maritalStatus);
-
-        let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
-        xml += '<EZAUTO xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200">\n';
-
-        // Applicant section (primary contact info)
-        xml += '  <Applicant>\n';
-        xml += '    <ApplicantType>Applicant</ApplicantType>\n';
-        xml += '    <PersonalInfo>\n';
-        xml += '      <Name>\n';
-        xml += `        <FirstName>${escapeXML(firstName)}</FirstName>\n`;
-        xml += '        <MiddleName></MiddleName>\n';
-        xml += `        <LastName>${escapeXML(lastName)}</LastName>\n`;
-        xml += '      </Name>\n';
-        xml += `      <DOB>${dob}</DOB>\n`;
-        if (gender) {
-            xml += `      <Gender>${escapeXML(gender)}</Gender>\n`;
-        }
-        if (marital) {
-            xml += `      <MaritalStatus>${escapeXML(marital)}</MaritalStatus>\n`;
-        }
-        xml += '      <Relation>Insured</Relation>\n';
-        xml += '    </PersonalInfo>\n';
-        xml += '    <Address>\n';
-        xml += '      <AddressCode>StreetAddress</AddressCode>\n';
-        xml += '      <Addr1>\n';
-        xml += `        <StreetName>${escapeXML(streetName)}</StreetName>\n`;
-        xml += `        <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
-        xml += '      </Addr1>\n';
-        xml += `      <City>${escapeXML(data.addrCity)}</City>\n`;
-        xml += `      <StateCode>${escapeXML(state)}</StateCode>\n`;
-        const county = this.getCountyFromCity(data.addrCity, state);
-        if (county) {
-            xml += `      <County>${escapeXML(county)}</County>\n`;
-        }
-        xml += `      <Zip5>${escapeXML(zip5)}</Zip5>\n`;
-        if (phone) {
-            xml += '      <Phone id="1">\n';
-            xml += '        <PhoneType>Mobile</PhoneType>\n';
-            xml += `        <PhoneNumber>${escapeXML(phone)}</PhoneNumber>\n`;
-            xml += '        <Extension></Extension>\n';
-            xml += '      </Phone>\n';
-        }
-        if (data.email) {
-            xml += `      <Email>${escapeXML(data.email)}</Email>\n`;
-        }
-        xml += '    </Address>\n';
-        xml += '  </Applicant>\n';
-
-        // Co-Applicant section (if provided)
-        if (data.hasCoApplicant === 'yes' && (data.coFirstName || data.coLastName)) {
-            const coDob = normalizeDate(data.coDob);
-            const coGender = mapGender(data.coGender);
-            xml += '  <Applicant>\n';
-            xml += '    <ApplicantType>CoApplicant</ApplicantType>\n';
-            xml += '    <PersonalInfo>\n';
-            xml += '      <Name>\n';
-            xml += `        <FirstName>${escapeXML(data.coFirstName || '')}</FirstName>\n`;
-            xml += '        <MiddleName></MiddleName>\n';
-            xml += `        <LastName>${escapeXML(data.coLastName || '')}</LastName>\n`;
-            xml += '      </Name>\n';
-            if (coDob) xml += `      <DOB>${coDob}</DOB>\n`;
-            if (coGender) xml += `      <Gender>${escapeXML(coGender)}</Gender>\n`;
-            if (marital) xml += `      <MaritalStatus>${escapeXML(marital)}</MaritalStatus>\n`;
-            xml += `      <Relation>${escapeXML(data.coRelationship === 'Domestic Partner' ? 'Domestic Partner' : 'Spouse')}</Relation>\n`;
-            xml += '    </PersonalInfo>\n';
-            xml += '    <Address>\n';
-            xml += '      <AddressCode>StreetAddress</AddressCode>\n';
-            xml += '      <Addr1>\n';
-            xml += `        <StreetName>${escapeXML(streetName)}</StreetName>\n`;
-            xml += `        <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
-            xml += '      </Addr1>\n';
-            xml += `      <City>${escapeXML(data.addrCity)}</City>\n`;
-            xml += `      <StateCode>${escapeXML(state)}</StateCode>\n`;
-            if (county) xml += `      <County>${escapeXML(county)}</County>\n`;
-            xml += `      <Zip5>${escapeXML(zip5)}</Zip5>\n`;
-            const coPhone = data.coPhone ? data.coPhone.replace(/\D/g, '') : '';
-            if (coPhone) {
-                xml += '      <Phone id="1">\n';
-                xml += '        <PhoneType>Mobile</PhoneType>\n';
-                xml += `        <PhoneNumber>${escapeXML(coPhone)}</PhoneNumber>\n`;
-                xml += '        <Extension></Extension>\n';
-                xml += '      </Phone>\n';
-            }
-            if (data.coEmail) xml += `      <Email>${escapeXML(data.coEmail)}</Email>\n`;
-            xml += '    </Address>\n';
-            xml += '  </Applicant>\n';
-        }
-
-        // PriorPolicyInfo — only emit child date/text elements when they have values
-        const priorExp = normalizeDate(data.priorExp);
-        xml += '  <PriorPolicyInfo>\n';
-        if (data.priorCarrier) {
-            xml += `    <PriorCarrier>${escapeXML(data.priorCarrier)}</PriorCarrier>\n`;
-        }
-        if (data.priorPolicyTerm) {
-            xml += `    <PriorPolicyTerm>${escapeXML(data.priorPolicyTerm)}</PriorPolicyTerm>\n`;
-        }
-        if (priorExp) {
-            xml += `    <Expiration>${priorExp}</Expiration>\n`;
-        }
-        if (data.priorYears) {
-            xml += '    <YearsWithPriorCarrier>\n';
-            xml += `      <Years>${escapeXML(data.priorYears)}</Years>\n`;
-            xml += '    </YearsWithPriorCarrier>\n';
-        }
-        xml += '  </PriorPolicyInfo>\n';
-
-        // PolicyInfo — only emit when values present
-        const effectiveDate = normalizeDate(data.effectiveDate);
-        xml += '  <PolicyInfo>\n';
-        if (data.policyTerm) {
-            xml += `    <PolicyTerm>${escapeXML(data.policyTerm)}</PolicyTerm>\n`;
-        }
-        if (effectiveDate) {
-            xml += `    <Effective>${effectiveDate}</Effective>\n`;
-        }
-        xml += '  </PolicyInfo>\n';
-
-        // ResidenceInfo section (garage location = mailing address by default)
-        xml += '  <ResidenceInfo>\n';
-        xml += '    <GarageLocation>\n';
-        xml += '      <Address>\n';
-        xml += '        <AddressCode>StreetAddress</AddressCode>\n';
-        xml += '        <Addr1>\n';
-        xml += `          <StreetName>${escapeXML(streetName)}</StreetName>\n`;
-        xml += `          <StreetNumber>${escapeXML(streetNumber)}</StreetNumber>\n`;
-        xml += '        </Addr1>\n';
-        xml += `        <City>${escapeXML(data.addrCity)}</City>\n`;
-        xml += `        <StateCode>${escapeXML(state)}</StateCode>\n`;
-        if (county) {
-            xml += `        <County>${escapeXML(county)}</County>\n`;
-        }
-        xml += `        <Zip5>${escapeXML(zip5)}</Zip5>\n`;
-        xml += '      </Address>\n';
-        xml += '    </GarageLocation>\n';
-        xml += '  </ResidenceInfo>\n';
-
-        // Drivers section - iterate over drivers array or use flat fields
-        xml += '  <Drivers>\n';
-        if (drivers) {
-            // Use drivers array
-            drivers.forEach((driver, index) => {
-                const driverDob = normalizeDate(driver.dob);
-                const driverId = index + 1;
-                const isFirstDriver = index === 0;
-                const driverGender = mapGender(driver.gender || data.gender);
-                const driverMarital = mapMaritalStatus(driver.maritalStatus || data.maritalStatus);
-
-                xml += `    <Driver id="${driverId}">\n`;
-                const driverFirst = driver.firstName || (isFirstDriver ? (data.firstName || '') : '');
-                const driverLast = driver.lastName || (isFirstDriver ? (data.lastName || '') : '');
-                xml += '      <Name>\n';
-                xml += `        <FirstName>${escapeXML(driverFirst)}</FirstName>\n`;
-                xml += `        <LastName>${escapeXML(driverLast)}</LastName>\n`;
-                xml += '      </Name>\n';
-                if (driverGender) {
-                    xml += `      <Gender>${escapeXML(driverGender)}</Gender>\n`;
-                }
-                if (driverDob) {
-                    xml += `      <DOB>${driverDob}</DOB>\n`;
-                }
-                if (driver.dlNum) {
-                    xml += `      <DLNumber>${escapeXML((driver.dlNum || '').toUpperCase())}</DLNumber>\n`;
-                }
-                xml += `      <DLState>${escapeXML((driver.dlState || state).toUpperCase())}</DLState>\n`;
-                if (driverMarital) {
-                    xml += `      <MaritalStatus>${escapeXML(driverMarital)}</MaritalStatus>\n`;
-                }
-                if (isFirstDriver) {
-                    xml += '      <Relation>Insured</Relation>\n';
-                }
-                xml += '      <GoodStudent>No</GoodStudent>\n';
-                xml += '      <MATDriver>No</MATDriver>\n';
-                xml += '      <Rated>Rated</Rated>\n';
-                xml += '    </Driver>\n';
-            });
-        } else {
-            // Fallback to flat fields for backward compatibility
-            xml += '    <Driver id="1">\n';
-            xml += '      <Name>\n';
-            xml += `        <FirstName>${escapeXML(data.firstName)}</FirstName>\n`;
-            xml += `        <LastName>${escapeXML(data.lastName)}</LastName>\n`;
-            xml += '      </Name>\n';
-            if (gender) {
-                xml += `      <Gender>${escapeXML(gender)}</Gender>\n`;
-            }
-            xml += `      <DOB>${dob}</DOB>\n`;
-            if (data.dlNum) {
-                xml += `      <DLNumber>${escapeXML((data.dlNum || '').toUpperCase())}</DLNumber>\n`;
-            }
-            xml += `      <DLState>${escapeXML((data.dlState || state).toUpperCase())}</DLState>\n`;
-            if (marital) {
-                xml += `      <MaritalStatus>${escapeXML(marital)}</MaritalStatus>\n`;
-            }
-            xml += '      <Relation>Insured</Relation>\n';
-            xml += '      <GoodStudent>No</GoodStudent>\n';
-            xml += '      <MATDriver>No</MATDriver>\n';
-            xml += '      <Rated>Rated</Rated>\n';
-            xml += '    </Driver>\n';
-        }
-        xml += '  </Drivers>\n';
-
-        // Vehicles section — only emit if there are vehicles
-        const hasVehicles = vehicles ? vehicles.length > 0 : !!(data.vin || data.vehDesc);
-        if (hasVehicles) {
-            xml += '  <Vehicles>\n';
-            if (vehicles) {
-                vehicles.forEach((vehicle, index) => {
-                    const vehicleId = index + 1;
-                    const hasVin = vehicle.vin && vehicle.vin.trim().length > 0;
-                    xml += `    <Vehicle id="${vehicleId}">\n`;
-                    xml += `      <UseVinLookup>${hasVin ? 'Yes' : 'No'}</UseVinLookup>\n`;
-                    xml += `      <Year>${escapeXML(vehicle.year || '')}</Year>\n`;
-                    xml += `      <Vin>${escapeXML(vehicle.vin || '')}</Vin>\n`;
-                    xml += `      <Make>${escapeXML(vehicle.make || '')}</Make>\n`;
-                    xml += `      <Model>${escapeXML(vehicle.model || '')}</Model>\n`;
-                    xml += '      <Anti-Theft>None</Anti-Theft>\n';
-                    xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
-                    xml += '    </Vehicle>\n';
-                });
-            } else if (data.vin || data.vehDesc) {
-                const parseVehicle = (desc) => {
-                    const match = desc?.match(/(\d{4})\s+([A-Z]+)\s+(.+)/i);
-                    return {
-                        year: match?.[1] || '',
-                        make: match?.[2] || '',
-                        model: match?.[3]?.trim() || ''
-                    };
-                };
-                const { year, make, model } = parseVehicle(data.vehDesc);
-                const hasVin = data.vin && data.vin.trim().length > 0;
-                xml += '    <Vehicle id="1">\n';
-                xml += `      <UseVinLookup>${hasVin ? 'Yes' : 'No'}</UseVinLookup>\n`;
-                xml += `      <Year>${escapeXML(year)}</Year>\n`;
-                xml += `      <Vin>${escapeXML(data.vin || '')}</Vin>\n`;
-                xml += `      <Make>${escapeXML(make)}</Make>\n`;
-                xml += `      <Model>${escapeXML(model)}</Model>\n`;
-                xml += '      <Anti-Theft>None</Anti-Theft>\n';
-                xml += '      <PassiveRestraints>None</PassiveRestraints>\n';
-                xml += '    </Vehicle>\n';
-            }
-            xml += '  </Vehicles>\n';
-
-            // VehiclesUse section
-            xml += '  <VehiclesUse>\n';
-            if (vehicles) {
-                vehicles.forEach((vehicle, index) => {
-                    const vehicleId = index + 1;
-                    const miles = vehicle.miles || '12000';
-                    xml += `    <VehicleUse id="${vehicleId}">\n`;
-                    xml += `      <AnnualMiles>${escapeXML(miles)}</AnnualMiles>\n`;
-                    xml += '    </VehicleUse>\n';
-                });
-            } else if (data.vin || data.vehDesc) {
-                xml += '    <VehicleUse id="1">\n';
-                xml += `      <AnnualMiles>${escapeXML(data.miles || '12000')}</AnnualMiles>\n`;
-                xml += '    </VehicleUse>\n';
-            }
-            xml += '  </VehiclesUse>\n';
-
-            // Coverages section
-            const vehCount = vehicles ? vehicles.length : 1;
-            const liab = parseLimits(data.liabilityLimits);
-            const um = parseLimits(data.umLimits);
-            const uim = parseLimits(data.uimLimits);
-            const pdValue = data.pdLimit || liab.pd || '100000';
-            xml += '  <Coverages>\n';
-            xml += '    <GeneralCoverage>\n';
-            xml += `      <BI>${escapeXML(liab.bi || data.liabilityLimits || '100/300')}</BI>\n`;
-            xml += `      <PD>${escapeXML(pdValue)}</PD>\n`;
-            xml += `      <UM>${escapeXML(um.bi || data.umLimits || '100/300')}</UM>\n`;
-            xml += `      <UIM>${escapeXML(uim.bi || data.uimLimits || '100/300')}</UIM>\n`;
-            xml += `      <Multicar>${vehCount > 1 ? 'Yes' : 'No'}</Multicar>\n`;
-            xml += '    </GeneralCoverage>\n';
-
-            // VehicleCoverage per vehicle
-            for (let i = 1; i <= vehCount; i++) {
-                xml += `    <VehicleCoverage id="${i}">\n`;
-                xml += `      <OtherCollisionDeductible>${escapeXML(data.compDeductible || 'No Coverage')}</OtherCollisionDeductible>\n`;
-                xml += `      <CollisionDeductible>${escapeXML(data.autoDeductible || 'No Coverage')}</CollisionDeductible>\n`;
-                xml += `      <TowingDeductible>${escapeXML(data.towingDeductible || 'No Coverage')}</TowingDeductible>\n`;
-                xml += `      <RentalDeductible>${escapeXML(data.rentalDeductible || 'No Coverage')}</RentalDeductible>\n`;
-                xml += '    </VehicleCoverage>\n';
-            }
-
-            // StateSpecificCoverage
-            if (state === 'WA') {
-                xml += '    <StateSpecificCoverage>\n';
-                xml += '      <WA-Coverages>\n';
-                xml += `        <WA-UMPD>${escapeXML(data.umPd || data.pdLimit || liab.pd || '25000')}</WA-UMPD>\n`;
-                xml += '        <WA-PIP>10000</WA-PIP>\n';
-                xml += '      </WA-Coverages>\n';
-                xml += '    </StateSpecificCoverage>\n';
-            }
-
-            xml += '  </Coverages>\n';
-
-            // VehicleAssignments section
-            xml += '  <VehicleAssignments>\n';
-            const driverCount = drivers ? drivers.length : 1;
-            for (let i = 1; i <= vehCount; i++) {
-                xml += `    <VehicleAssignment id="${i}">\n`;
-                let assignedDriver = ((i - 1) % driverCount) + 1;
-                if (vehicles && vehicles[i-1]?.primaryDriver && drivers) {
-                    const driverIdx = drivers.findIndex(d => d.id === vehicles[i-1].primaryDriver);
-                    if (driverIdx >= 0) assignedDriver = driverIdx + 1;
-                }
-                xml += `      <DriverAssignment>${assignedDriver}</DriverAssignment>\n`;
-                xml += '    </VehicleAssignment>\n';
-            }
-            xml += '  </VehicleAssignments>\n';
-        }
-
-        xml += '</EZAUTO>\n';
-
-        return {
-            ok: true,
-            content: xml,
-            filename: `${lastName || 'Lead'}_EZLynx.xml`,
-            mime: 'application/xml;charset=utf-8'
-        };
-    },
-
-    exportHomeXML() {
-        const result = this.buildHomeXML(this.data);
-        if (!result.ok) {
-            this.toast(result.error);
-            return;
-        }
-        this.downloadFile(result.content, result.filename, result.mime);
-        this.logExport('HomeXML', result.filename);
-        this.toast('🏠 EZLynx Home XML File Generated!');
-    },
-
-    buildHomeXML(data) {
-        // ─── Shared helpers (from App._xxx methods) ───
-        const escapeXML = this._escapeXML;
-        const mapMaritalStatus = this._mapMaritalStatus;
-        const mapGender = this._mapGender;
-        const normalizeDate = this._normalizeDate;
-        const splitZip = this._splitZip;
-        const cleanNum = (v) => (v || '').toString().replace(/[$,\s]/g, '').trim();
-
-        // ─── Mapping helpers (EZLynx exact values from reference sample) ───
-        const mapConstruction = (style) => {
-            if (!style) return '';
-            const map = { 'Frame': 'Frame', 'Vinyl Siding': 'Siding, Vinyl', 'Masonry Veneer': 'Masonry Veneer', 'Masonry': 'Masonry', 'Stucco': 'Stucco', 'Log': 'Log', 'Adobe': 'Adobe', 'Brick': 'Brick' };
-            return map[style] || style;
-        };
-        const mapDwelling = (dt) => {
-            if (!dt) return 'One Family';
-            const map = { 'Single Family': 'One Family', 'Condo': 'Condo', 'Townhome': 'Townhouse', 'Duplex': 'Two Family', 'Triplex': 'Three Family', 'Fourplex': 'Four Family' };
-            return map[dt] || dt;
-        };
-        const mapStructure = (dt) => {
-            if (!dt) return '';
-            const map = { 'Single Family': 'Ranch', 'Condo': 'Condo', 'Townhome': 'Townhouse', 'Colonial': 'Colonial', 'Ranch': 'Ranch', 'Split Level': 'Split Level', 'Cape Cod': 'Cape Cod', 'Victorian': 'Victorian' };
-            return map[dt] || dt;
-        };
-        const mapRoof = (rt) => {
-            if (!rt) return '';
-            const map = { 'Asphalt/Composite Shingle': 'COMPOSITION', 'Architectural Shingle': 'ARCHITECTURAL SHINGLE', 'Metal': 'METAL', 'Clay Tile': 'CLAY TILE', 'Concrete Tile': 'CONCRETE TILE', 'Wood Shake': 'WOOD SHAKE', 'Slate': 'SLATE', 'Tar & Gravel': 'TAR AND GRAVEL' };
-            return map[rt] || rt.toUpperCase();
-        };
-        const mapFoundation = (f) => {
-            if (!f) return '';
-            const map = { 'Slab': 'Slab', 'Crawlspace': 'Crawlspace', 'Basement (Finished)': 'Basement - Finished', 'Basement (Unfinished)': 'Basement - Unfinished', 'Pier/Pile': 'Pier' };
-            return map[f] || f;
-        };
-        const mapHeating = (h) => {
-            if (!h) return '';
-            const map = { 'Forced Air - Gas': 'Gas', 'Forced Air - Electric': 'Electric', 'Heat Pump': 'Heat Pump', 'Boiler (Steam/Water)': 'Hot Water/Steam', 'Electric Baseboard': 'Electric', 'Oil/Kerosene': 'Oil' };
-            return map[h] || h;
-        };
-        const mapDwellingUse = (u) => {
-            if (!u) return 'Primary';
-            const map = { 'Primary': 'Primary', 'Secondary': 'Secondary', 'Seasonal': 'Seasonal', 'Rental': 'Tenant Occupied', 'Vacant': 'Vacant' };
-            return map[u] || u;
-        };
-        const mapOccupancy = (o) => {
-            if (!o) return 'Owner Occupied';
-            const map = { 'Owner': 'Owner Occupied', 'Tenant': 'Tenant', 'Vacant': 'Vacant' };
-            return map[o] || o;
-        };
-        // Map form industry values to valid EZLynx/ACORD Industry names.
-        // Employment statuses (Retired, Disabled, etc.) are NOT industries
-        // and crash .NET enum deserialization — omit them.
-        const mapIndustry = (val) => {
-            if (!val) return '';
-            const notIndustry = ['Retired','Disabled','Unemployed','Student','Homemaker/House person'];
-            if (notIndustry.includes(val)) return '';
-            const map = {
-                'Agriculture/Forestry/Fishing': 'Agriculture/Forestry/Fishing',
-                'Art/Design/Media': 'Art/Design/Media',
-                'Banking/Finance/Real Estate': 'Banking/Finance/Real Estate',
-                'Business/Sales/Office': 'Business/Sales/Office',
-                'Construction/Energy Trades': 'Construction/Energy Trades',
-                'Education/Library': 'Education/Library',
-                'Engineer/Architect/Science/Math': 'Engineer/Architect/Science/Math',
-                'Government/Military': 'Government/Military',
-                'Information Technology': 'Information Technology',
-                'Insurance': 'Insurance',
-                'Legal/Law Enforcement/Security': 'Legal/Law Enforcement/Security',
-                'Maintenance/Repair/Housekeeping': 'Maintenance/Repair/Housekeeping',
-                'Manufacturing/Production': 'Manufacturing/Production',
-                'Medical/Social Services/Religion': 'Medical/Social Services/Religion',
-                'Personal Care/Service': 'Personal Care/Service',
-                'Restaurant/Hotel Services': 'Restaurant/Hotel Services',
-                'Sports/Recreation': 'Sports/Recreation',
-                'Travel/Transportation/Warehousing': 'Travel/Transportation/Warehousing',
-                'Other': 'Other'
-            };
-            return map[val] || '';
-        };
-        // Determine update status from year
-        const updateStatus = (yr, builtYr) => {
-            if (!yr) return 'NOT UPDATED';
-            const y = parseInt(yr, 10);
-            const b = parseInt(builtYr, 10) || 0;
-            if (y >= b + 5) return 'PARTIAL UPDATE';
-            return 'NOT UPDATED';
-        };
-
-        // ─── Primary applicant resolution ───
-        const drivers = (data.drivers && data.drivers.length > 0) ? data.drivers : null;
-        const primaryDriver = drivers ? drivers[0] : data;
-        const firstName = primaryDriver.firstName || data.firstName || '';
-        const lastName = primaryDriver.lastName || data.lastName || '';
-        const dob = normalizeDate(primaryDriver.dob || data.dob);
-
-        // ─── Validation ───
-        if (!firstName || !lastName) {
-            return { ok: false, error: '⚠️ First and last name are required for EZLynx Home XML.' };
-        }
-        const state = (data.addrState || '').trim().toUpperCase();
-        if (!state || !/^[A-Z]{2}$/.test(state)) {
-            return { ok: false, error: '⚠️ A valid 2-letter state is required for EZLynx Home XML.' };
-        }
-        if (!dob) {
-            return { ok: false, error: '⚠️ A valid DOB is required for EZLynx Home XML.' };
-        }
-
-        // ─── Shared address/contact fields ───
-        const phone = data.phone ? data.phone.replace(/\D/g, '') : '';
-        const streetRaw = (data.addrStreet || '').trim();
-        const streetMatch = streetRaw.match(/^(\d+)\s+(.*)$/);
-        const streetNumber = streetMatch?.[1] || '';
-        const streetName = streetMatch?.[2] || streetRaw;
-        const { zip5, zip4 } = splitZip(data.addrZip);
-        const gender = mapGender(primaryDriver.gender || data.gender);
-        const marital = mapMaritalStatus(primaryDriver.maritalStatus || data.maritalStatus);
-        const county = this.getCountyFromCity(data.addrCity, state);
-
-        // ════════════════════════════════════════
-        // START XML — Pretty-printed EZHOME V200 format
-        // Structural twin of John_Smith_Home.xml reference
-        // ════════════════════════════════════════
-        const I = '  ';   // 2-space indent (matches reference file)
-        const I2 = I+I, I3 = I2+I, I4 = I3+I;
-        const L = '\n';   // newline between elements
-
-        let xml = '<?xml version="1.0" encoding="utf-8"?>' + L;
-        xml += '<EZHOME xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">' + L;
-
-        // ── Applicant ──
-        xml += I + '<Applicant>' + L;
-        xml += I2 + '<ApplicantType>Applicant</ApplicantType>' + L;
-        xml += I2 + '<PersonalInfo>' + L;
-        xml += I3 + '<Name>' + L;
-        xml += I4 + `<FirstName>${escapeXML(firstName)}</FirstName>` + L;
-        xml += I4 + '<MiddleName />' + L;
-        xml += I4 + `<LastName>${escapeXML(lastName)}</LastName>` + L;
-        xml += I3 + '</Name>' + L;
-        xml += I3 + `<DOB>${dob}</DOB>` + L;
-        if (gender) xml += I3 + `<Gender>${escapeXML(gender)}</Gender>` + L;
-        if (marital) xml += I3 + `<MaritalStatus>${escapeXML(marital)}</MaritalStatus>` + L;
-        xml += I3 + '<Relation>Insured</Relation>' + L;
-        const industry = mapIndustry(data.industry);
-        if (industry) xml += I3 + `<Industry>${escapeXML(industry)}</Industry>` + L;
-        if (data.occupation) xml += I3 + `<Occupation>${escapeXML(data.occupation)}</Occupation>` + L;
-        xml += I2 + '</PersonalInfo>' + L;
-        xml += I2 + '<Address>' + L;
-        xml += I3 + '<AddressCode>StreetAddress</AddressCode>' + L;
-        xml += I3 + '<Addr1>' + L;
-        xml += I4 + `<StreetName>${escapeXML(streetName)}</StreetName>` + L;
-        xml += I4 + `<StreetNumber>${escapeXML(streetNumber)}</StreetNumber>` + L;
-        xml += I4 + '<UnitNumber />' + L;
-        xml += I3 + '</Addr1>' + L;
-        xml += I3 + '<Addr2 />' + L;
-        xml += I3 + `<City>${escapeXML(data.addrCity || '')}</City>` + L;
-        xml += I3 + `<StateCode>${escapeXML(state)}</StateCode>` + L;
-        if (county) xml += I3 + `<County>${escapeXML(county)}</County>` + L;
-        xml += I3 + `<Zip5>${escapeXML(zip5)}</Zip5>` + L;
-        if (phone) {
-            xml += I3 + '<Phone>' + L;
-            xml += I4 + '<PhoneType>Mobile</PhoneType>' + L;
-            xml += I4 + `<PhoneNumber>${escapeXML(phone)}</PhoneNumber>` + L;
-            xml += I3 + '</Phone>' + L;
-        }
-        if (data.email) xml += I3 + `<Email>${escapeXML(data.email)}</Email>` + L;
-        xml += I3 + '<BridgeEmailToCarriers>No</BridgeEmailToCarriers>' + L;
-        xml += I3 + '<PreferredContactMethod>Phone (Mobile)</PreferredContactMethod>' + L;
-        if (data.yearsAtAddress) xml += I3 + `<YearsAtAddress>${escapeXML(data.yearsAtAddress)}</YearsAtAddress>` + L;
-        xml += I3 + '<Validation>Valid</Validation>' + L;
-        xml += I2 + '</Address>' + L;
-        xml += I + '</Applicant>' + L;
-
-        // ── Co-Applicant (if provided) ──
-        if (data.hasCoApplicant === 'yes' && (data.coFirstName || data.coLastName)) {
-            const coDob = normalizeDate(data.coDob);
-            const coGender = mapGender(data.coGender);
-            xml += I + '<Applicant>' + L;
-            xml += I2 + '<ApplicantType>CoApplicant</ApplicantType>' + L;
-            xml += I2 + '<PersonalInfo>' + L;
-            xml += I3 + '<Name>' + L;
-            xml += I4 + `<FirstName>${escapeXML(data.coFirstName || '')}</FirstName>` + L;
-            xml += I4 + '<MiddleName />' + L;
-            xml += I4 + `<LastName>${escapeXML(data.coLastName || '')}</LastName>` + L;
-            xml += I3 + '</Name>' + L;
-            if (coDob) xml += I3 + `<DOB>${coDob}</DOB>` + L;
-            if (coGender) xml += I3 + `<Gender>${escapeXML(coGender)}</Gender>` + L;
-            if (marital) xml += I3 + `<MaritalStatus>${escapeXML(marital)}</MaritalStatus>` + L;
-            xml += I3 + `<Relation>${escapeXML(data.coRelationship === 'Domestic Partner' ? 'Domestic Partner' : 'Spouse')}</Relation>` + L;
-            xml += I2 + '</PersonalInfo>' + L;
-            xml += I2 + '<Address>' + L;
-            xml += I3 + '<AddressCode>StreetAddress</AddressCode>' + L;
-            xml += I3 + '<Addr1>' + L;
-            xml += I4 + `<StreetName>${escapeXML(streetName)}</StreetName>` + L;
-            xml += I4 + `<StreetNumber>${escapeXML(streetNumber)}</StreetNumber>` + L;
-            xml += I4 + '<UnitNumber />' + L;
-            xml += I3 + '</Addr1>' + L;
-            xml += I3 + '<Addr2 />' + L;
-            xml += I3 + `<City>${escapeXML(data.addrCity || '')}</City>` + L;
-            xml += I3 + `<StateCode>${escapeXML(state)}</StateCode>` + L;
-            if (county) xml += I3 + `<County>${escapeXML(county)}</County>` + L;
-            xml += I3 + `<Zip5>${escapeXML(zip5)}</Zip5>` + L;
-            const coPhone = data.coPhone ? data.coPhone.replace(/\D/g, '') : '';
-            if (coPhone) {
-                xml += I3 + '<Phone>' + L;
-                xml += I4 + '<PhoneType>Mobile</PhoneType>' + L;
-                xml += I4 + `<PhoneNumber>${escapeXML(coPhone)}</PhoneNumber>` + L;
-                xml += I3 + '</Phone>' + L;
-            }
-            if (data.coEmail) xml += I3 + `<Email>${escapeXML(data.coEmail)}</Email>` + L;
-            xml += I3 + '<Validation>Valid</Validation>' + L;
-            xml += I2 + '</Address>' + L;
-            xml += I + '</Applicant>' + L;
-        }
-
-        // ── PriorPolicyInfo (home-specific fields) ──
-        const homePriorCarrier = data.homePriorCarrier || data.priorCarrier || '';
-        const homePriorYears = data.homePriorYears || data.priorYears || '';
-        const homePriorExpDate = normalizeDate(data.homePriorExp || data.priorExp);
-        xml += I + '<PriorPolicyInfo>' + L;
-        if (homePriorCarrier) xml += I2 + `<PriorCarrier>${escapeXML(homePriorCarrier)}</PriorCarrier>` + L;
-        if (homePriorExpDate) xml += I2 + `<Expiration>${homePriorExpDate}</Expiration>` + L;
-        if (homePriorYears) {
-            const yearsInt = parseInt(String(homePriorYears).replace(/[^0-9]/g, ''), 10) || 0;
-            xml += I2 + '<YearsWithPriorCarrier>' + L;
-            xml += I3 + `<Years>${yearsInt}</Years>` + L;
-            xml += I3 + '<Months>0</Months>' + L;
-            xml += I2 + '</YearsWithPriorCarrier>' + L;
-            xml += I2 + '<YearsWithContinuousCoverage>' + L;
-            xml += I3 + `<Years>${yearsInt}</Years>` + L;
-            xml += I3 + '<Months>0</Months>' + L;
-            xml += I2 + '</YearsWithContinuousCoverage>' + L;
-        }
-        xml += I + '</PriorPolicyInfo>' + L;
-
-        // ── PolicyInfo ──
-        const effectiveDate = normalizeDate(data.effectiveDate) || new Date().toISOString().split('T')[0];
-        const policyType = data.homePolicyType || 'HO3';
-        xml += I + '<PolicyInfo>' + L;
-        xml += I2 + `<PolicyTerm>${escapeXML(data.policyTerm || '12 Month')}</PolicyTerm>` + L;
-        xml += I2 + `<PolicyType>${escapeXML(policyType)}</PolicyType>` + L;
-        xml += I2 + '<Package>No</Package>' + L;
-        xml += I2 + `<Effective>${effectiveDate}</Effective>` + L;
-        xml += I2 + '<CreditCheckAuth>Yes</CreditCheckAuth>' + L;
-        xml += I + '</PolicyInfo>' + L;
-
-        // ── RatingInfo (strict positional sequence from John_Smith reference) ──
-        const yrBuilt = data.yrBuilt || '';
-        xml += I + '<RatingInfo>' + L;
-        xml += I2 + '<PropertyInsCancelledLapsed>No</PropertyInsCancelledLapsed>' + L;
-        if (yrBuilt) xml += I2 + `<YearBuilt>${escapeXML(yrBuilt)}</YearBuilt>` + L;
-        xml += I2 + `<Dwelling>${escapeXML(mapDwelling(data.dwellingType))}</Dwelling>` + L;
-        xml += I2 + `<NumberOfOccupants>${escapeXML(data.numOccupants || '1')}</NumberOfOccupants>` + L;
-        xml += I2 + `<DwellingUse>${escapeXML(mapDwellingUse(data.dwellingUsage))}</DwellingUse>` + L;
-        xml += I2 + `<DwellingOccupancy>${escapeXML(mapOccupancy(data.occupancyType))}</DwellingOccupancy>` + L;
-
-        // Fire protection — all tags always present for positional deserializer
-        if (data.fireHydrantFeet) xml += I2 + `<DistanceToFireHydrant>${escapeXML(data.fireHydrantFeet)}</DistanceToFireHydrant>` + L;
-        xml += I2 + '<WithinCityLimits>No</WithinCityLimits>' + L;
-        if (data.fireStationDist) {
-            // Round to integer — V200 schema expects int for DistanceToFireStation
-            const fireDist = Math.round(parseFloat(data.fireStationDist)) || data.fireStationDist;
-            xml += I2 + `<DistanceToFireStation>${escapeXML(String(fireDist))}</DistanceToFireStation>` + L;
-        }
-        // Omit DistanceToFireStation entirely when no data — self-closing
-        // <DistanceToFireStation /> crashes .NET int deserialization
-        xml += I2 + '<WithinFireDistrict>No</WithinFireDistrict>' + L;
-        if (data.protectionClass) xml += I2 + `<ProtectionClass>${escapeXML(data.protectionClass)}</ProtectionClass>` + L;
-
-        // Structure — always present
-        xml += I2 + `<NumberOfStories>${escapeXML(data.numStories || '1')}</NumberOfStories>` + L;
-        if (data.fullBaths) xml += I2 + `<NumberOfFullBaths>${escapeXML(data.fullBaths)}</NumberOfFullBaths>` + L;
-        if (data.halfBaths && data.halfBaths !== '0') xml += I2 + `<NumberOfHalfBaths>${escapeXML(data.halfBaths)}</NumberOfHalfBaths>` + L;
-
-        const construction = mapConstruction(data.constructionStyle || data.exteriorWalls);
-        if (construction) xml += I2 + `<Construction>${escapeXML(construction)}</Construction>` + L;
-        const structure = mapStructure(data.dwellingType);
-        if (structure) xml += I2 + `<Structure>${escapeXML(structure)}</Structure>` + L;
-        const roof = mapRoof(data.roofType);
-        if (roof) xml += I2 + `<Roof>${escapeXML(roof)}</Roof>` + L;
-
-        // Pool & Dogs — right after Roof
-        xml += I2 + `<SwimmingPool>${(data.pool && data.pool !== 'None') ? 'Yes' : 'No'}</SwimmingPool>` + L;
-        xml += I2 + `<SwimmingPoolFenced>${(data.pool && data.pool.includes('Ground')) ? 'Yes' : 'No'}</SwimmingPoolFenced>` + L;
-        xml += I2 + `<DogOnPremises>${data.dogInfo ? 'Yes' : 'No'}</DogOnPremises>` + L;
-
-        // Heating type
-        const heating = mapHeating(data.heatingType);
-        if (heating) xml += I2 + `<HeatingType>${escapeXML(heating)}</HeatingType>` + L;
-
-        // System updates — always emit UpdateYear (default to yrBuilt)
-        xml += I2 + `<RoofingUpdate>${updateStatus(data.roofYr, yrBuilt)}</RoofingUpdate>` + L;
-        xml += I2 + `<RoofingUpdateYear>${escapeXML(data.roofYr || yrBuilt)}</RoofingUpdateYear>` + L;
-        xml += I2 + `<ElectricalUpdate>${updateStatus(data.elecYr, yrBuilt)}</ElectricalUpdate>` + L;
-        xml += I2 + `<ElectricalUpdateYear>${escapeXML(data.elecYr || yrBuilt)}</ElectricalUpdateYear>` + L;
-        xml += I2 + `<PlumbingUpdate>${updateStatus(data.plumbYr, yrBuilt)}</PlumbingUpdate>` + L;
-        xml += I2 + `<PlumbingUpdateYear>${escapeXML(data.plumbYr || yrBuilt)}</PlumbingUpdateYear>` + L;
-        xml += I2 + `<HeatingUpdate>${updateStatus(data.heatYr, yrBuilt)}</HeatingUpdate>` + L;
-        xml += I2 + `<HeatingUpdateYear>${escapeXML(data.heatYr || yrBuilt)}</HeatingUpdateYear>` + L;
-
-        xml += I2 + '<UnderConstruction>No</UnderConstruction>' + L;
-        if (data.sqFt) xml += I2 + `<SquareFootage>${escapeXML(data.sqFt)}</SquareFootage>` + L;
-        const purchaseDate = normalizeDate(data.purchaseDate);
-        if (purchaseDate) xml += I2 + `<PurchaseDate>${purchaseDate}</PurchaseDate>` + L;
-
-        xml += I2 + `<Trampoline>${(data.trampoline && data.trampoline !== 'None') ? 'Yes' : 'No'}</Trampoline>` + L;
-        xml += I2 + `<BusinessOnPremises>${data.businessOnProperty ? 'Yes' : 'No'}</BusinessOnPremises>` + L;
-        xml += I2 + `<FirstMortgagee>${data.mortgagee ? 'Yes' : 'No'}</FirstMortgagee>` + L;
-        xml += I2 + '<SecondMortgagee>No</SecondMortgagee>' + L;
-        xml += I2 + '<ThirdMortgagee>No</ThirdMortgagee>' + L;
-        xml += I2 + '<EquityLineOfCredit>No</EquityLineOfCredit>' + L;
-        xml += I2 + '<CoSigner>No</CoSigner>' + L;
-        xml += I2 + '<NumberOfOtherInterests>0</NumberOfOtherInterests>' + L;
-
-        const foundation = mapFoundation(data.foundation);
-        if (foundation) xml += I2 + `<Foundation>${escapeXML(foundation)}</Foundation>` + L;
-        if (data.roofShape) xml += I2 + `<RoofDesign>${escapeXML(data.roofShape)}</RoofDesign>` + L;
-        xml += I + '</RatingInfo>' + L;
-
-        // ── ReplacementCost — always emit dwelling value (default 0) ──
-        xml += I + '<ReplacementCost>' + L;
-        const dwellingCov = cleanNum(data.dwellingCoverage) || '0';
-        xml += I2 + `<ReplacementCost>${escapeXML(dwellingCov)}</ReplacementCost>` + L;
-        xml += I2 + `<Dwelling>${escapeXML(dwellingCov)}</Dwelling>` + L;
-        xml += I2 + '<LossOfUse>0</LossOfUse>' + L;
-        const liability = cleanNum(data.personalLiability) || '0';
-        xml += I2 + `<PersonalLiability>${escapeXML(liability)}</PersonalLiability>` + L;
-        const medPay = cleanNum(data.medicalPayments) || '0';
-        xml += I2 + `<MedicalPayments>${escapeXML(medPay)}</MedicalPayments>` + L;
-        const deductible = cleanNum(data.homeDeductible);
-        xml += I2 + '<DeductibeInfo>' + L;
-        xml += I3 + `<Deductible>${escapeXML(deductible || '1000')}</Deductible>` + L;
-        xml += I2 + '</DeductibeInfo>' + L;
-        xml += I2 + '<RatingCredits>' + L;
-        xml += I3 + '<RetireesCredit>No</RetireesCredit>' + L;
-        xml += I3 + '<MatureDiscount>No</MatureDiscount>' + L;
-        xml += I3 + '<RetirementCommunity>No</RetirementCommunity>' + L;
-        xml += I3 + '<LimitedAccessCommunity>No</LimitedAccessCommunity>' + L;
-        xml += I3 + '<GatedCommunity>No</GatedCommunity>' + L;
-        xml += I3 + '<Multipolicy>No</Multipolicy>' + L;
-        xml += I3 + '<NonSmoker>Yes</NonSmoker>' + L;
-        xml += I2 + '</RatingCredits>' + L;
-        xml += I + '</ReplacementCost>' + L;
-
-        // ── Endorsements ──
-        xml += I + '<Endorsements>' + L;
-        xml += I2 + '<SpecialPersonalProperty>No</SpecialPersonalProperty>' + L;
-        xml += I2 + '<ProtectiveDevices>' + L;
-        xml += I3 + '<BurglarAlarm>' + L;
-        const hasDeadbolt = (data.burglarAlarm && data.burglarAlarm !== 'None') ? 'Yes' : 'No';
-        xml += I4 + `<DeadBolt>${hasDeadbolt}</DeadBolt>` + L;
-        xml += I4 + '<VisibleToNeighbor>No</VisibleToNeighbor>' + L;
-        xml += I4 + '<MannedSecurity>No</MannedSecurity>' + L;
-        xml += I3 + '</BurglarAlarm>' + L;
-        xml += I2 + '</ProtectiveDevices>' + L;
-        xml += I2 + '<Sinkhole>' + L;
-        xml += I3 + '<SinkholeCollapse>No</SinkholeCollapse>' + L;
-        xml += I2 + '</Sinkhole>' + L;
-        xml += I + '</Endorsements>' + L;
-
-        // ── GeneralInfo ──
-        xml += I + '<GeneralInfo>' + L;
-        xml += I2 + `<RatingStateCode>${escapeXML(state)}</RatingStateCode>` + L;
-        xml += I + '</GeneralInfo>' + L;
-
-        // ── ExtendedInfo blocks (agency credentials for WA rater) ──
-        xml += I + '<ExtendedInfo name="ICQ|CARRIERS|ST_WA">' + L;
-        xml += I2 + '<valuepair name="carriers_list">' + L;
-        xml += I3 + '<value>1029,835,1157,388,429</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I + '</ExtendedInfo>' + L;
-
-        xml += I + '<ExtendedInfo name="ICQ|CROSSREF|ST_WA">' + L;
-        xml += I2 + '<valuepair name="343">' + L;
-        xml += I3 + '<value>1029</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="225">' + L;
-        xml += I3 + '<value>835</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="377">' + L;
-        xml += I3 + '<value>1157</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="35">' + L;
-        xml += I3 + '<value>388</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="13">' + L;
-        xml += I3 + '<value>429</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I + '</ExtendedInfo>' + L;
-
-        xml += I + '<ExtendedInfo name="ICQ|NAME_VALUE_PAIRS">' + L;
-        xml += I2 + '<valuepair name="coverage_paperless_common">' + L;
-        xml += I3 + '<value>Yes</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="prior_liabilityasiMI">' + L;
-        xml += I3 + '<value>org.asicorp_301K+</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="paidinfullasixmlny">' + L;
-        xml += I3 + '<value>org.asicorp_MortgageBilled</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="booktransfer">' + L;
-        xml += I3 + '<value />' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="textPurchaseDate">' + L;
-        xml += I3 + '<value />' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="textInspectionDate">' + L;
-        xml += I3 + '<value />' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="endorsements_equipbreakdown_common">' + L;
-        xml += I3 + '<value>No</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="endorsements_serviceline_common">' + L;
-        xml += I3 + '<value>No</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="textOrdinanceOrLawPercent">' + L;
-        xml += I3 + '<value />' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="bicycleamt">' + L;
-        xml += I3 + '<value />' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="homeshieldUT_asi">' + L;
-        xml += I3 + '<value>None</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="packagesafecoWA">' + L;
-        xml += I3 + '<value>A</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="packagexmlKY">' + L;
-        xml += I3 + '<value>org.asicorp_PPDNone</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="coverage_winddeductible__377">' + L;
-        xml += I3 + '<value>1000</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="acvxml3__377">' + L;
-        xml += I3 + '<value>org.asicorp_RC</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="agentcode__343">' + L;
-        xml += I3 + '<value>0057</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="cyber_common__343">' + L;
-        xml += I3 + '<value>N</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="graduate__225">' + L;
-        xml += I3 + '<value>N</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="agentid__35">' + L;
-        xml += I3 + '<value>013575</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="producername__35">' + L;
-        xml += I3 + '<value />' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="safeco_personalproperty__35">' + L;
-        xml += I3 + '<value>No</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="agencycode__13">' + L;
-        xml += I3 + '<value>0cfj97</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="coveragelevel__13">' + L;
-        xml += I3 + '<value />' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="solarpanels__13">' + L;
-        xml += I3 + '<value />' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="carstall__13">' + L;
-        xml += I3 + '<value />' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="autopolicylimit__13">' + L;
-        xml += I3 + '<value />' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="accidentsaz__13">' + L;
-        xml += I3 + '<value>0</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I + '</ExtendedInfo>' + L;
-
-        xml += I + '<ExtendedInfo name="ICQ|CARRIERSTAB|ST_WA">' + L;
-        xml += I2 + '<valuepair name="coverage_winddeductible__377">' + L;
-        xml += I3 + '<value>1157</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="acvxml3__377">' + L;
-        xml += I3 + '<value>1157</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="agentcode__343">' + L;
-        xml += I3 + '<value>1029</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="cyber_common__343">' + L;
-        xml += I3 + '<value>1029</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="graduate__225">' + L;
-        xml += I3 + '<value>835</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="agentid__35">' + L;
-        xml += I3 + '<value>388</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="producername__35">' + L;
-        xml += I3 + '<value>388</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="safeco_personalproperty__35">' + L;
-        xml += I3 + '<value>388</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="agencycode__13">' + L;
-        xml += I3 + '<value>429</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="coveragelevel__13">' + L;
-        xml += I3 + '<value>429</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="solarpanels__13">' + L;
-        xml += I3 + '<value>429</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="carstall__13">' + L;
-        xml += I3 + '<value>429</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="autopolicylimit__13">' + L;
-        xml += I3 + '<value>429</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="accidentsaz__13">' + L;
-        xml += I3 + '<value>429</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="__completed__">' + L;
-        xml += I3 + '<value>true</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="__carriers_list_at_last_run__">' + L;
-        xml += I3 + '<value>1029,835,1157,388,429</value>' + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I2 + '<valuepair name="__last_run_datetime__">' + L;
-        xml += I3 + `<value>${new Date().toISOString().split('.')[0]}</value>` + L;
-        xml += I2 + '</valuepair>' + L;
-        xml += I + '</ExtendedInfo>' + L;
-
-        xml += '</EZHOME>' + L;
-
-        return {
-            ok: true,
-            content: xml,
-            filename: `${lastName || 'Lead'}_EZLynx_Home.xml`,
-            mime: 'application/xml;charset=utf-8'
         };
     },
 });

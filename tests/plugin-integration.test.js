@@ -579,20 +579,8 @@ describe('Export Engines Present', () => {
     expect(source).toContain('exportCMSMTF');
   });
 
-  test('exportXML function exists (buildXML)', () => {
-    expect(source).toContain('buildXML');
-  });
-
   test('exportPDF function exists', () => {
     expect(source).toContain('exportPDF');
-  });
-
-  test('XML escaping uses escapeXML helper', () => {
-    expect(source).toMatch(/escapeXML/);
-  });
-
-  test('XML namespace is correct for EZLynx', () => {
-    expect(source).toContain('xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200"');
   });
 });
 

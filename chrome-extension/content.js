@@ -12,9 +12,9 @@
 // §1  CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
-const FILL_DELAY    = 120;   // ms between field fills
-const DROPDOWN_WAIT = 700;   // ms to wait for overlay after click
-const RETRY_WAIT    = 1200;  // ms before retrying failed dropdowns
+const FILL_DELAY    = 250;   // ms between field fills (was 120 — too fast for Angular)
+const DROPDOWN_WAIT = 1000;  // ms to wait for overlay after click (was 700)
+const RETRY_WAIT    = 1800;  // ms before retrying failed dropdowns (was 1200)
 
 // ═══════════════════════════════════════════════════════════════
 // §2  ABBREVIATION EXPANSIONS
@@ -893,6 +893,9 @@ function injectToolbar() {
         status.textContent = `✓ ${total} filled` + (skipped > 0 ? `, ${skipped} skipped` : '');
         btn.disabled = false;
         btn.textContent = 'Fill Again';
+
+        // Show injection report panel
+        showInjectionReport(shadow, result);
     });
 
     // Close button
@@ -926,6 +929,90 @@ function injectToolbar() {
     });
 }
 
+/**
+ * Show a floating injection report panel inside the toolbar's Shadow DOM.
+ * Displays per-field ✅/❌/🔄 status with failure reasons.
+ */
+function showInjectionReport(shadow, result) {
+    // Remove existing report
+    const existing = shadow.getElementById('injection-report');
+    if (existing) existing.remove();
+
+    const total = result.textFilled + result.ddFilled;
+    const skipped = result.textSkipped + result.ddSkipped;
+
+    const rows = (result.details || []).map(d => {
+        let icon, cls;
+        if (d.status === 'OK') { icon = '✅'; cls = 'ok'; }
+        else if (d.status === 'OK_RETRY') { icon = '🔄'; cls = 'retry'; }
+        else { icon = '❌'; cls = 'skip'; }
+        const reason = d.reason || (d.status === 'SKIP' ? 'Field not found on page' : '');
+        return `<div class="rpt-row ${cls}">
+            <span class="rpt-icon">${icon}</span>
+            <span class="rpt-field">${d.field}</span>
+            <span class="rpt-type">${d.type}</span>
+            ${reason ? `<span class="rpt-reason">${reason}</span>` : ''}
+        </div>`;
+    }).join('');
+
+    const panel = document.createElement('div');
+    panel.id = 'injection-report';
+    panel.innerHTML = `
+        <style>
+            #injection-report .rpt-panel {
+                position: fixed; top: 50px; right: 12px; width: 340px; max-height: 60vh;
+                background: rgba(22, 33, 62, 0.97); color: #fff; border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.5); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                overflow: hidden; pointer-events: auto; z-index: 2147483647;
+                border: 1px solid rgba(255,255,255,0.15);
+            }
+            .rpt-header {
+                padding: 10px 14px; background: rgba(255,255,255,0.08);
+                display: flex; justify-content: space-between; align-items: center;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+            }
+            .rpt-header h3 { font-size: 13px; font-weight: 700; }
+            .rpt-summary { font-size: 11px; color: rgba(255,255,255,0.6); padding: 6px 14px;
+                border-bottom: 1px solid rgba(255,255,255,0.06); }
+            .rpt-body { max-height: calc(60vh - 80px); overflow-y: auto; padding: 4px 0; }
+            .rpt-row { display: flex; align-items: center; gap: 6px; padding: 4px 14px; font-size: 11px;
+                border-bottom: 1px solid rgba(255,255,255,0.04); }
+            .rpt-row.skip { background: rgba(255,59,48,0.08); }
+            .rpt-row.retry { background: rgba(255,204,0,0.08); }
+            .rpt-icon { font-size: 12px; flex-shrink: 0; }
+            .rpt-field { font-weight: 600; min-width: 90px; }
+            .rpt-type { color: rgba(255,255,255,0.4); font-size: 10px; }
+            .rpt-reason { color: rgba(255,150,150,0.8); font-size: 10px; margin-left: auto; }
+            .rpt-close { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer;
+                font-size: 16px; line-height: 1; padding: 2px 6px; }
+            .rpt-close:hover { color: #fff; }
+            .rpt-body::-webkit-scrollbar { width: 5px; }
+            .rpt-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+        </style>
+        <div class="rpt-panel">
+            <div class="rpt-header">
+                <h3>📋 Injection Report</h3>
+                <button class="rpt-close" id="rpt-close-btn">✕</button>
+            </div>
+            <div class="rpt-summary">
+                ${total} filled${skipped > 0 ? ` · ${skipped} skipped` : ''} · ${result.details?.length || 0} fields attempted
+            </div>
+            <div class="rpt-body">${rows || '<div style="padding:10px;color:rgba(255,255,255,0.4);">No fields attempted</div>'}</div>
+        </div>
+    `;
+
+    shadow.appendChild(panel);
+
+    // Close button
+    shadow.getElementById('rpt-close-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        panel.remove();
+    });
+
+    // Auto-close after 30 seconds
+    setTimeout(() => { if (panel.parentNode) panel.remove(); }, 30000);
+}
+
 function updateToolbarStatus(text) {
     if (!toolbarShadow) return;
     const el = toolbarShadow.getElementById('tb-status');
@@ -950,6 +1037,10 @@ async function fillPage(clientData) {
 
     // Pre-process client data: if we have scraped option lists, find closest matches
     const smartData = { ...clientData };
+
+    // Truncate ZIP to 5 digits — EZLynx rejects ZIP+4
+    if (smartData.Zip) smartData.Zip = String(smartData.Zip).replace(/[^0-9]/g, '').slice(0, 5);
+
     for (const [key, value] of Object.entries(smartData)) {
         if (!value || typeof value !== 'string') continue;
         const expanded = expand(value);
@@ -1045,12 +1136,180 @@ async function fillPage(clientData) {
         }
     }
 
+    // ── Multi-driver / multi-vehicle fill (for pages with arrays in clientData) ──
+    const fillPage_page = detectPage();
+    if (fillPage_page === 'auto-driver' && clientData.Drivers && clientData.Drivers.length > 1) {
+        await fillMultiDrivers(clientData, report);
+    }
+    if (fillPage_page === 'auto-vehicle' && clientData.Vehicles && clientData.Vehicles.length > 1) {
+        await fillMultiVehicles(clientData, report);
+    }
+
     const total = report.textFilled + report.ddFilled;
     const skipped = report.textSkipped + report.ddSkipped;
     updateToolbarStatus(`✓ Done! ${total} filled` + (skipped > 0 ? `, ${skipped} skipped` : ''));
 
     console.log(`[Altech Filler] Fill complete: ${total} filled, ${skipped} skipped`, report.details);
     return report;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §9b  MULTI-DRIVER / MULTI-VEHICLE FILL
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Click the "Add Driver" or "Add Vehicle" button on the current EZLynx page.
+ * Returns true if a button was found and clicked.
+ */
+function clickAddButton(type) {
+    // EZLynx uses various button patterns
+    const patterns = type === 'driver'
+        ? ['Add Driver', 'Add Another Driver', 'New Driver', '+ Driver']
+        : ['Add Vehicle', 'Add Another Vehicle', 'New Vehicle', '+ Vehicle'];
+
+    const buttons = [...document.querySelectorAll('button, a, [role="button"], mat-icon, .mat-button, .mat-raised-button, .mat-flat-button')];
+    for (const btn of buttons) {
+        const text = (btn.textContent || '').trim();
+        if (patterns.some(p => text.toLowerCase().includes(p.toLowerCase()))) {
+            btn.click();
+            console.log(`[Altech Filler] Clicked "${text}" button`);
+            return true;
+        }
+    }
+    // Fallback: find by aria-label
+    for (const pattern of patterns) {
+        const btn = document.querySelector(`[aria-label*="${pattern}" i], [title*="${pattern}" i]`);
+        if (btn) {
+            btn.click();
+            console.log(`[Altech Filler] Clicked add button by aria-label: ${pattern}`);
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Fill a single driver's fields on the current page.
+ * `driver` is an object from clientData.Drivers[].
+ */
+async function fillDriverFields(driver, index, report) {
+    if (!driver) return;
+    const driverData = {
+        FirstName: driver.FirstName,
+        LastName: driver.LastName,
+        DOB: driver.DOB,
+        Gender: driver.Gender,
+        MaritalStatus: driver.MaritalStatus,
+        Relationship: driver.Relationship,
+        Occupation: driver.Occupation,
+        Education: driver.Education,
+        LicenseNumber: driver.LicenseNumber,
+        DLState: driver.DLState,
+        AgeLicensed: driver.AgeLicensed
+    };
+
+    for (const [key, value] of Object.entries(driverData)) {
+        if (!value) continue;
+        const selectors = TEXT_FIELD_MAP[key];
+        if (selectors) {
+            const filled = fillText(selectors, value) || fillTextByLabel(key, value);
+            if (filled) {
+                report.textFilled++;
+                report.details.push({ field: `Driver${index + 1}.${key}`, type: 'text', status: 'OK' });
+            } else {
+                report.textSkipped++;
+                report.details.push({ field: `Driver${index + 1}.${key}`, type: 'text', status: 'SKIP' });
+            }
+            await wait(FILL_DELAY);
+        }
+    }
+}
+
+/**
+ * Fill a single vehicle's fields on the current page.
+ * `vehicle` is an object from clientData.Vehicles[].
+ */
+async function fillVehicleFields(vehicle, index, report) {
+    if (!vehicle) return;
+    const vehicleData = {
+        VIN: vehicle.VIN,
+        VehicleYear: vehicle.Year,
+        VehicleMake: vehicle.Make,
+        VehicleModel: vehicle.Model,
+        VehicleUse: vehicle.Use,
+        AnnualMiles: vehicle.AnnualMiles,
+        OwnershipType: vehicle.Ownership
+    };
+
+    for (const [key, value] of Object.entries(vehicleData)) {
+        if (!value) continue;
+        const selectors = TEXT_FIELD_MAP[key];
+        if (selectors) {
+            const filled = fillText(selectors, value) || fillTextByLabel(key, value);
+            if (filled) {
+                report.textFilled++;
+                report.details.push({ field: `Vehicle${index + 1}.${key}`, type: 'text', status: 'OK' });
+            } else {
+                report.textSkipped++;
+                report.details.push({ field: `Vehicle${index + 1}.${key}`, type: 'text', status: 'SKIP' });
+            }
+            await wait(FILL_DELAY);
+        }
+    }
+}
+
+/**
+ * Fill all drivers from clientData.Drivers[] on an auto-driver page.
+ * Clicks "Add Driver" for each additional driver beyond the first.
+ */
+async function fillMultiDrivers(clientData, report) {
+    const drivers = clientData.Drivers;
+    if (!Array.isArray(drivers) || drivers.length === 0) return;
+
+    updateToolbarStatus(`Filling ${drivers.length} driver(s)...`);
+
+    for (let i = 0; i < drivers.length; i++) {
+        if (i > 0) {
+            // Click "Add Driver" for additional drivers
+            updateToolbarStatus(`Adding driver ${i + 1}...`);
+            const clicked = clickAddButton('driver');
+            if (!clicked) {
+                report.details.push({ field: `Driver${i + 1}`, type: 'action', status: 'SKIP', reason: 'Add Driver button not found' });
+                console.warn(`[Altech Filler] Could not find "Add Driver" button for driver ${i + 1}`);
+                continue;
+            }
+            // Wait for the new form to render
+            await wait(RETRY_WAIT);
+        }
+        await fillDriverFields(drivers[i], i, report);
+    }
+}
+
+/**
+ * Fill all vehicles from clientData.Vehicles[] on an auto-vehicle page.
+ * Clicks "Add Vehicle" for each additional vehicle beyond the first.
+ */
+async function fillMultiVehicles(clientData, report) {
+    const vehicles = clientData.Vehicles;
+    if (!Array.isArray(vehicles) || vehicles.length === 0) return;
+
+    updateToolbarStatus(`Filling ${vehicles.length} vehicle(s)...`);
+
+    for (let i = 0; i < vehicles.length; i++) {
+        if (i > 0) {
+            // Click "Add Vehicle" for additional vehicles
+            updateToolbarStatus(`Adding vehicle ${i + 1}...`);
+            const clicked = clickAddButton('vehicle');
+            if (!clicked) {
+                report.details.push({ field: `Vehicle${i + 1}`, type: 'action', status: 'SKIP', reason: 'Add Vehicle button not found' });
+                console.warn(`[Altech Filler] Could not find "Add Vehicle" button for vehicle ${i + 1}`);
+                continue;
+            }
+            // Wait for the new form to render
+            await wait(RETRY_WAIT);
+        }
+        await fillVehicleFields(vehicles[i], i, report);
+    }
 }
 
 

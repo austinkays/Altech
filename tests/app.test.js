@@ -190,23 +190,6 @@ describe('Altech App Tests', () => {
       expect(d.toISOString().split('T')[0]).toBe('1990-05-15');
     });
 
-    test('escapeXML handles special characters', () => {
-      const escapeXML = (str) => {
-        if (!str) return '';
-        return String(str)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&apos;');
-      };
-      expect(escapeXML("O'Brien & Co.")).toBe("O&apos;Brien &amp; Co.");
-      expect(escapeXML('<script>')).toBe('&lt;script&gt;');
-      expect(escapeXML('Say "Hello"')).toBe('Say &quot;Hello&quot;');
-      expect(escapeXML(null)).toBe('');
-      expect(escapeXML('')).toBe('');
-    });
-
     test('sanitizeFilename removes invalid characters', () => {
       const sanitize = (name) => name.replace(/[<>:"/\\|?*]/g, '_').replace(/\s+/g, '_');
       expect(sanitize('John Doe')).toBe('John_Doe');
@@ -368,108 +351,6 @@ describe('Altech App Tests', () => {
       // Should not contain personal info tags
       expect(result.content).not.toContain('[NAM]');
       expect(result.content).not.toContain('[EML]');
-    });
-  });
-
-  // ════════════════════════════════════════
-  // 5. XML Export (EZLynx)
-  // ════════════════════════════════════════
-
-  describe('XML Export', () => {
-    test('buildXML returns ok:true with complete data', () => {
-      const result = App.buildXML(SAMPLE_DATA);
-      expect(result.ok).toBe(true);
-      expect(result.content).toBeDefined();
-      expect(result.filename).toMatch(/\.xml$/);
-    });
-
-    test('buildXML has correct EZLynx namespace', () => {
-      const result = App.buildXML(SAMPLE_DATA);
-      expect(result.content).toContain('xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200"');
-    });
-
-    test('buildXML includes applicant data', () => {
-      const result = App.buildXML(SAMPLE_DATA);
-      expect(result.content).toContain('John');
-      expect(result.content).toContain('Doe');
-      expect(result.content).toContain('1990-05-15');
-    });
-
-    test('buildXML escapes special characters', () => {
-      const data = { ...SAMPLE_DATA, firstName: "O'Brien", lastName: 'Smith & Sons' };
-      const result = App.buildXML(data);
-      expect(result.ok).toBe(true);
-      expect(result.content).not.toContain("O'Brien");
-      expect(result.content).toContain('O&apos;Brien');
-      expect(result.content).not.toMatch(/Smith & Sons/);
-      expect(result.content).toContain('Smith &amp; Sons');
-    });
-
-    test('buildXML rejects missing firstName/lastName', () => {
-      const result = App.buildXML({ dob: '1990-01-01', addrState: 'WA', qType: 'home' });
-      expect(result.ok).toBe(false);
-      expect(result.error).toContain('name');
-    });
-
-    test('buildXML rejects invalid state', () => {
-      const result = App.buildXML({ firstName: 'A', lastName: 'B', dob: '1990-01-01', addrState: 'XYZ', qType: 'home' });
-      expect(result.ok).toBe(false);
-      expect(result.error).toContain('state');
-    });
-
-    test('buildXML rejects missing DOB', () => {
-      const result = App.buildXML({ firstName: 'A', lastName: 'B', addrState: 'WA', qType: 'home' });
-      expect(result.ok).toBe(false);
-      expect(result.error).toContain('DOB');
-    });
-
-    test('buildXML rejects auto policy without vehicle info', () => {
-      const result = App.buildXML({
-        firstName: 'A', lastName: 'B', dob: '1990-01-01', addrState: 'WA', qType: 'auto'
-      });
-      expect(result.ok).toBe(false);
-      expect(result.error).toContain('vehicle');
-    });
-
-    test('buildXML accepts home policy without vehicle info', () => {
-      const result = App.buildXML(MINIMAL_HOME_DATA);
-      expect(result.ok).toBe(true);
-    });
-
-    test('buildXML handles minimal auto data', () => {
-      const result = App.buildXML(MINIMAL_AUTO_DATA);
-      expect(result.ok).toBe(true);
-      expect(result.content).toContain('Jane');
-    });
-
-    test('buildXML filename includes lastName', () => {
-      const result = App.buildXML(SAMPLE_DATA);
-      expect(result.filename).toContain('Doe');
-    });
-
-    test('buildXML handles drivers array', () => {
-      const data = {
-        ...SAMPLE_DATA,
-        drivers: [
-          { id: 'd1', firstName: 'John', lastName: 'Doe', dob: '1990-05-15', dlNum: 'DOE1234', dlState: 'WA', relationship: 'Self' },
-          { id: 'd2', firstName: 'Jane', lastName: 'Doe', dob: '1992-08-20', dlNum: 'DOE5678', dlState: 'WA', relationship: 'Spouse' }
-        ]
-      };
-      const result = App.buildXML(data);
-      expect(result.ok).toBe(true);
-      expect(result.content).toContain('Jane');
-    });
-
-    test('buildXML handles vehicles array', () => {
-      const data = {
-        ...SAMPLE_DATA,
-        vehicles: [
-          { id: 'v1', vin: '1N4AL3AP5FC123456', year: '2015', make: 'NISSAN', model: 'Rogue', use: 'Commute', miles: '12000' }
-        ]
-      };
-      const result = App.buildXML(data);
-      expect(result.ok).toBe(true);
-      expect(result.content).toContain('1N4AL3AP5FC123456');
     });
   });
 
@@ -777,6 +658,137 @@ describe('Altech App Tests', () => {
         expect(driver.firstName).toBe('Alice');
       }
     });
+
+    test('addDriver includes isCoApplicant: false by default', () => {
+      App.addDriver();
+      const newDriver = App.drivers[App.drivers.length - 1];
+      expect(newDriver.isCoApplicant).toBe(false);
+    });
+
+    test('updateDriver blocks locked fields on synced co-applicant driver', () => {
+      // Create a synced driver manually
+      const synced = {
+        id: 'coapp_test', firstName: 'Jane', lastName: 'Doe',
+        dob: '1990-01-01', gender: 'F', relationship: 'Spouse',
+        dlNum: '', dlState: 'WA', isCoApplicant: true
+      };
+      App.drivers.push(synced);
+      // Try to change locked fields — should be rejected
+      App.updateDriver('coapp_test', 'firstName', 'CHANGED');
+      App.updateDriver('coapp_test', 'gender', 'M');
+      expect(synced.firstName).toBe('Jane');
+      expect(synced.gender).toBe('F');
+      // Non-locked fields should still work
+      App.updateDriver('coapp_test', 'dlNum', 'ABC123');
+      expect(synced.dlNum).toBe('ABC123');
+      // Clean up
+      App.drivers = App.drivers.filter(d => d.id !== 'coapp_test');
+    });
+  });
+
+  // ════════════════════════════════════════
+  // 14b. Co-Applicant → Driver Sync
+  // ════════════════════════════════════════
+
+  describe('Co-Applicant Driver Sync', () => {
+    test('syncCoApplicantToDriver creates a synced driver', () => {
+      if (typeof App.syncCoApplicantToDriver !== 'function') return;
+      App.data.coFirstName = 'Sarah';
+      App.data.coLastName = 'Smith';
+      App.data.coDob = '1985-06-15';
+      App.data.coGender = 'F';
+      App.data.coRelationship = 'Spouse';
+      App.syncCoApplicantToDriver();
+      const synced = App.drivers.find(d => d.isCoApplicant);
+      expect(synced).toBeDefined();
+      expect(synced.firstName).toBe('Sarah');
+      expect(synced.lastName).toBe('Smith');
+      expect(synced.dob).toBe('1985-06-15');
+      expect(synced.gender).toBe('F');
+      expect(synced.relationship).toBe('Spouse');
+      // Clean up
+      App.drivers = App.drivers.filter(d => !d.isCoApplicant);
+    });
+
+    test('syncCoApplicantToDriver updates existing synced driver without duplicating', () => {
+      if (typeof App.syncCoApplicantToDriver !== 'function') return;
+      App.data.coFirstName = 'Sarah';
+      App.data.coLastName = 'Smith';
+      App.data.coDob = '1985-06-15';
+      App.data.coGender = 'F';
+      App.syncCoApplicantToDriver();
+      const count1 = App.drivers.filter(d => d.isCoApplicant).length;
+      expect(count1).toBe(1);
+      // Update and re-sync
+      App.data.coFirstName = 'Sara';
+      App.syncCoApplicantToDriver();
+      const count2 = App.drivers.filter(d => d.isCoApplicant).length;
+      expect(count2).toBe(1);
+      const synced = App.drivers.find(d => d.isCoApplicant);
+      expect(synced.firstName).toBe('Sara');
+      // Clean up
+      App.drivers = App.drivers.filter(d => !d.isCoApplicant);
+    });
+
+    test('toggleCoApplicant off removes the synced driver', () => {
+      if (typeof App.toggleCoApplicant !== 'function') return;
+      // Set up: enable co-applicant with auto quote type
+      const cb = document.getElementById('hasCoApplicant');
+      const section = document.getElementById('coApplicantSection');
+      const autoRadio = document.querySelector('input[name="qType"][value="auto"]');
+      if (!cb || !section || !autoRadio) return;
+      autoRadio.checked = true;
+      cb.checked = true;
+      App.data.coFirstName = 'Sarah';
+      App.data.coLastName = 'Smith';
+      App.toggleCoApplicant();
+      expect(App.drivers.some(d => d.isCoApplicant)).toBe(true);
+      // Now uncheck
+      cb.checked = false;
+      App.toggleCoApplicant();
+      expect(App.drivers.some(d => d.isCoApplicant)).toBe(false);
+    });
+
+    test('removeDriver for synced driver unchecks co-applicant', () => {
+      if (typeof App.syncCoApplicantToDriver !== 'function') return;
+      const cb = document.getElementById('hasCoApplicant');
+      if (!cb) return;
+      cb.checked = true;
+      App.data.hasCoApplicant = 'yes';
+      App.data.coFirstName = 'Test';
+      App.data.coLastName = 'Driver';
+      App.syncCoApplicantToDriver();
+      const synced = App.drivers.find(d => d.isCoApplicant);
+      expect(synced).toBeDefined();
+      App.removeDriver(synced.id);
+      expect(App.data.hasCoApplicant).toBe('');
+      expect(cb.checked).toBe(false);
+    });
+
+    test('synced driver preserves non-locked fields', () => {
+      if (typeof App.syncCoApplicantToDriver !== 'function') return;
+      App.data.coFirstName = 'Sarah';
+      App.data.coLastName = 'Smith';
+      App.data.coDob = '1985-06-15';
+      App.data.coGender = 'F';
+      App.syncCoApplicantToDriver();
+      const synced = App.drivers.find(d => d.isCoApplicant);
+      // Manually set non-locked fields
+      synced.dlNum = 'WDL123456';
+      synced.dlState = 'OR';
+      synced.maritalStatus = 'Married';
+      // Re-sync (simulating co-applicant field change)
+      App.data.coFirstName = 'Sara';
+      App.syncCoApplicantToDriver();
+      // Locked fields should update
+      expect(synced.firstName).toBe('Sara');
+      // Non-locked fields should be preserved
+      expect(synced.dlNum).toBe('WDL123456');
+      expect(synced.dlState).toBe('OR');
+      expect(synced.maritalStatus).toBe('Married');
+      // Clean up
+      App.drivers = App.drivers.filter(d => !d.isCoApplicant);
+    });
   });
 
   // ════════════════════════════════════════
@@ -881,30 +893,6 @@ describe('Altech App Tests', () => {
       expect(result.filename).toContain('Export');
     });
 
-    test('buildXML rejects all-empty data', () => {
-      const result = App.buildXML({});
-      expect(result.ok).toBe(false);
-    });
-
-    test('buildXML handles very long names', () => {
-      const result = App.buildXML({
-        ...SAMPLE_DATA,
-        firstName: 'A'.repeat(200),
-        lastName: 'B'.repeat(200)
-      });
-      expect(result.ok).toBe(true);
-    });
-
-    test('buildXML handles state with extra whitespace', () => {
-      const result = App.buildXML({ ...SAMPLE_DATA, addrState: '  WA  ' });
-      expect(result.ok).toBe(true);
-    });
-
-    test('buildXML rejects state with 3+ letters', () => {
-      const result = App.buildXML({ ...SAMPLE_DATA, addrState: 'WAX' });
-      expect(result.ok).toBe(false);
-    });
-
     test('buildCMSMTF does not have XSS or injection risk', () => {
       const result = App.buildCMSMTF({ firstName: '<script>alert(1)</script>', lastName: 'Test' });
       expect(result.content).toContain('[NAM]');
@@ -946,48 +934,7 @@ describe('Altech App Tests', () => {
   });
 
   // ════════════════════════════════════════
-  // 20. Home XML Export
-  // ════════════════════════════════════════
-
-  describe('Home XML Export', () => {
-    test('buildHomeXML returns ok:true with complete data', () => {
-      if (typeof App.buildHomeXML === 'function') {
-        const result = App.buildHomeXML(SAMPLE_DATA);
-        expect(result.ok).toBe(true);
-        expect(result.content).toBeDefined();
-        expect(result.filename).toMatch(/\.xml$/);
-      }
-    });
-
-    test('buildHomeXML includes dwelling info', () => {
-      if (typeof App.buildHomeXML === 'function') {
-        const result = App.buildHomeXML(SAMPLE_DATA);
-        if (result.ok) {
-          expect(result.content).toContain('2005');
-        }
-      }
-    });
-
-    test('buildHomeXML rejects missing name', () => {
-      if (typeof App.buildHomeXML === 'function') {
-        const result = App.buildHomeXML({ dob: '1990-01-01', addrState: 'WA' });
-        expect(result.ok).toBe(false);
-      }
-    });
-
-    test('buildHomeXML escapes XML special chars', () => {
-      if (typeof App.buildHomeXML === 'function') {
-        const data = { ...SAMPLE_DATA, firstName: "O'Brien" };
-        const result = App.buildHomeXML(data);
-        if (result.ok) {
-          expect(result.content).toContain('O&apos;Brien');
-        }
-      }
-    });
-  });
-
-  // ════════════════════════════════════════
-  // 21. Resolve Driver Name
+  // 20. Resolve Driver Name
   // ════════════════════════════════════════
 
   describe('Resolve Driver Name', () => {
@@ -1252,10 +1199,6 @@ describe('Altech App Tests', () => {
       expect(typeof App.exportCMSMTF).toBe('function');
     });
 
-    test('exportXML function exists', () => {
-      expect(typeof App.exportXML).toBe('function');
-    });
-
     test('buildPDF function exists', () => {
       expect(typeof App.buildPDF).toBe('function');
     });
@@ -1265,18 +1208,6 @@ describe('Altech App Tests', () => {
       expect(result.content).toBeDefined();
       expect(result.filename).toBeDefined();
       expect(result.content.length).toBeGreaterThan(50);
-    });
-
-    test('buildXML with full data returns ok:true', () => {
-      const result = App.buildXML(SAMPLE_DATA);
-      expect(result.ok).toBe(true);
-      expect(result.content).toBeDefined();
-      expect(result.filename).toBeDefined();
-    });
-
-    test('buildHomeXML with full home data returns ok:true', () => {
-      const result = App.buildHomeXML(MINIMAL_HOME_DATA);
-      expect(result.ok).toBe(true);
     });
 
     test('buildText with full data includes key fields', () => {
@@ -1336,56 +1267,7 @@ describe('Altech App Tests', () => {
   });
 
   // ════════════════════════════════════════
-  // 23. XML Export — Advanced Validation
-  // ════════════════════════════════════════
-
-  describe('XML Export Advanced', () => {
-    test('buildXML includes DOB in YYYY-MM-DD format', () => {
-      const result = App.buildXML(SAMPLE_DATA);
-      if (result.ok) {
-        expect(result.content).toContain('1990-05-15');
-      }
-    });
-
-    test('buildXML includes address components', () => {
-      const result = App.buildXML(SAMPLE_DATA);
-      if (result.ok) {
-        expect(result.content).toContain('Vancouver');
-        expect(result.content).toContain('WA');
-        expect(result.content).toContain('98685');
-      }
-    });
-
-    test('buildXML with both qType includes vehicles', () => {
-      const result = App.buildXML(SAMPLE_DATA);
-      if (result.ok) {
-        expect(result.content).toContain('Vehicle');
-      }
-    });
-
-    test('buildXML with home qType does not require VIN', () => {
-      const result = App.buildXML(MINIMAL_HOME_DATA);
-      // Home policies should not fail just because no VIN
-      if (result.ok) {
-        expect(result.content).toBeDefined();
-      }
-    });
-
-    test('buildXML escapes ampersand in names', () => {
-      const result = App.buildXML({
-        ...SAMPLE_DATA,
-        firstName: 'John',
-        lastName: "O'Brien & Sons"
-      });
-      if (result.ok) {
-        expect(result.content).not.toContain("& Sons");
-        expect(result.content).toContain("&amp;");
-      }
-    });
-  });
-
-  // ════════════════════════════════════════
-  // 24. CMSMTF Export — Advanced Validation
+  // 23. CMSMTF Export — Advanced Validation
   // ════════════════════════════════════════
 
   describe('CMSMTF Export Advanced', () => {
@@ -1792,16 +1674,6 @@ describe('Altech App Tests', () => {
       App.applyData(specialData);
       expect(App.data.firstName).toBe('<script>alert("xss")</script>');
       expect(App.data.lastName).toBe("O'Brien & \"Sons\"");
-    });
-
-    test('buildXML rejects empty firstName and lastName', () => {
-      const result = App.buildXML({ firstName: '', lastName: '', dob: '1990-01-01', addrState: 'WA', qType: 'auto', vin: '12345678901234567' });
-      expect(result.ok).toBe(false);
-    });
-
-    test('buildXML rejects single-char state', () => {
-      const result = App.buildXML({ ...SAMPLE_DATA, addrState: 'W' });
-      expect(result.ok).toBe(false);
     });
   });
 });

@@ -387,7 +387,56 @@ const EZLynxTool = {
             const county = App.getCountyFromCity(data.City, data.State.toUpperCase());
             if (county) data.County = county;
         }
+
+        // Truncate ZIP to 5 digits for Chrome extension
+        if (data.Zip) data.Zip = String(data.Zip).replace(/[^0-9]/g, '').slice(0, 5);
+
+        // Append multi-driver array from App.drivers
+        if (typeof App !== 'undefined' && Array.isArray(App.drivers) && App.drivers.length > 0) {
+            data.Drivers = App.drivers.map(d => ({
+                FirstName: d.firstName || '',
+                LastName: d.lastName || '',
+                DOB: d.dob ? this._fmtDateForEZ(d.dob) : '',
+                Gender: d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : (d.gender || ''),
+                MaritalStatus: d.maritalStatus || '',
+                Relationship: d.relationship || '',
+                Occupation: d.occupationIndustry || '',
+                Education: d.education || '',
+                LicenseNumber: d.dlNum || '',
+                DLState: d.dlState || '',
+                AgeLicensed: d.ageLicensed || '',
+                LicenseStatus: d.dlStatus || '',
+                SR22: d.sr22 || '',
+                GoodDriver: d.goodDriver || '',
+                IsCoApplicant: d.isCoApplicant || false
+            }));
+        }
+
+        // Append multi-vehicle array from App.vehicles
+        if (typeof App !== 'undefined' && Array.isArray(App.vehicles) && App.vehicles.length > 0) {
+            data.Vehicles = App.vehicles.map(v => ({
+                VIN: v.vin || '',
+                Year: v.year || '',
+                Make: v.make || '',
+                Model: v.model || '',
+                Use: v.use || '',
+                AnnualMiles: v.miles || '',
+                Ownership: v.ownership || '',
+                GaragingAddress: v.garagingAddr || '',
+                GaragingCity: v.garagingCity || '',
+                GaragingState: v.garagingState || '',
+                GaragingZip: v.garagingZip ? String(v.garagingZip).replace(/[^0-9]/g, '').slice(0, 5) : ''
+            }));
+        }
+
         return data;
+    },
+
+    /** Convert YYYY-MM-DD → MM/DD/YYYY for EZLynx */
+    _fmtDateForEZ(v) {
+        if (!v) return '';
+        const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        return m ? `${m[2]}/${m[3]}/${m[1]}` : v;
     },
 
     setField(id, val) {
@@ -598,12 +647,7 @@ const EZLynxTool = {
         const d = (typeof App !== 'undefined' && App.data) ? App.data : {};
         const drv = (typeof App !== 'undefined' && Array.isArray(App.drivers) && App.drivers[0]) ? App.drivers[0] : {};
         const veh = (typeof App !== 'undefined' && Array.isArray(App.vehicles) && App.vehicles[0]) ? App.vehicles[0] : {};
-        // Helper: convert YYYY-MM-DD → MM/DD/YYYY for EZLynx
-        const fmtDate = (v) => {
-            if (!v) return '';
-            const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            return m ? `${m[2]}/${m[3]}/${m[1]}` : v;
-        };
+        const fmtDate = (v) => this._fmtDateForEZ(v);
 
         // Personal
         this.setField('ezFirstName', d.firstName || '');
@@ -619,7 +663,9 @@ const EZLynxTool = {
         this.setField('ezAddress', d.addrStreet || '');
         this.setField('ezCity', d.addrCity || '');
         this.setField('ezState', d.addrState || '');
-        this.setField('ezZip', d.addrZip || '');
+        // Truncate ZIP to 5 digits
+        const zip5 = (d.addrZip || '').replace(/[^0-9]/g, '').slice(0, 5);
+        this.setField('ezZip', zip5);
         // County: derive from intake field or auto-derive from city+state
         let county = d.county || '';
         if (!county && d.addrCity && d.addrState && typeof App !== 'undefined' && App.getCountyFromCity) {
