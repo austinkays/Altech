@@ -29,6 +29,10 @@ const Auth = (() => {
             if (typeof CloudSync !== 'undefined' && CloudSync.pullFromCloud) {
                 CloudSync.pullFromCloud().catch(e => console.error('[Auth] Initial sync failed:', e));
             }
+            // Load subscription state for paywall
+            if (typeof Paywall !== 'undefined' && Paywall.loadSubscription) {
+                Paywall.loadSubscription().catch(e => console.warn('[Auth] Subscription load failed:', e));
+            }
         } else {
             console.log('[Auth] Signed out');
         }
@@ -133,6 +137,7 @@ const Auth = (() => {
         get uid() { return _user?.uid || null; },
         get email() { return _user?.email || null; },
         get displayName() { return _user?.displayName || null; },
+        get isEmailVerified() { return _user?.emailVerified || false; },
 
         /**
          * Get the current user's Firebase ID token for authenticating API calls.
@@ -246,6 +251,13 @@ const Auth = (() => {
                         App.updateLandingGreeting();
                     }
                 }
+                // Send email verification
+                try {
+                    await cred.user.sendEmailVerification();
+                    console.log('[Auth] Verification email sent to', email);
+                } catch (e) {
+                    console.warn('[Auth] Email verification send failed:', e.message);
+                }
                 this.closeModal();
             } catch (e) {
                 _showError('signup', _friendlyError(e.code));
@@ -327,6 +339,24 @@ const Auth = (() => {
                 this.closeModal();
             } catch (e) {
                 console.error('[Auth] Logout failed:', e);
+            }
+        },
+
+        /**
+         * Resend email verification (for signed-in users who haven't verified)
+         */
+        async resendVerification() {
+            if (!_user) return;
+            try {
+                await _user.sendEmailVerification();
+                if (typeof App !== 'undefined' && App.toast) {
+                    App.toast('Verification email sent. Check your inbox.', 3000);
+                }
+            } catch (e) {
+                console.error('[Auth] Resend verification failed:', e);
+                if (typeof App !== 'undefined' && App.toast) {
+                    App.toast('Could not send verification email. Try again later.', { type: 'error', duration: 4000 });
+                }
             }
         },
 

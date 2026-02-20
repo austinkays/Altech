@@ -155,14 +155,16 @@ export async function verifyFirebaseToken(req) {
  * Injects the verified user as req.user for the inner handler.
  */
 export function requireAuth(handler) {
-  return securityMiddleware(async (req, res) => {
+  return async (req, res) => {
     const user = await verifyFirebaseToken(req);
     if (!user) {
       return res.status(401).json({ error: 'Authentication required.', requestId: req.requestId });
     }
     req.user = user;
+    req.uid = user.localId;
+    req.userEmail = user.email;
     return handler(req, res);
-  });
+  };
 }
 
 export function sanitizeInput(input, maxLength = 500) {

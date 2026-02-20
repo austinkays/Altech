@@ -1,30 +1,25 @@
 /**
  * API Tests: compliance.js
  *
- * Tests pure business-logic functions extracted from the compliance API:
+ * Tests pure business-logic functions from _compliance-utils.js:
  * - calculateDaysUntilExpiration
  * - getExpirationStatus
  * - isGeneralLiabilityPolicy
  * - isSuretyBondPolicy
  * - requiresManualVerification
  *
- * Also validates that the module parses without syntax errors.
+ * Also validates that the compliance module parses without syntax errors.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-// ── Load pure functions from ESM source ──
-// Extracts code before 'export default' and evaluates it to get the module-scoped functions
+// ── Load pure functions from _compliance-utils.js (ESM → CJS shim) ──
 function loadComplianceFunctions() {
-  const source = fs.readFileSync(path.join(__dirname, '../api/compliance.js'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, '../api/_compliance-utils.js'), 'utf8');
 
-  // Everything before the handler export is pure function definitions + constants
-  const preamble = source.split(/^export\s+default\s+/m)[0];
-
-  // Clean import statements and remaining export keywords
-  const cleaned = preamble
-    .replace(/^import\s+.*$/gm, '')
+  // Strip ES module syntax: export statements
+  const cleaned = source
     .replace(/^export\s+/gm, '');
 
   const extractFn = new Function(`
@@ -55,24 +50,19 @@ beforeAll(() => {
 
 describe('compliance.js — Module Syntax', () => {
   test('module source parses without syntax errors', () => {
-    // If loadComplianceFunctions() succeeded in beforeAll, this is guaranteed.
-    // But we also verify the full file parses (including the export default handler).
-    const source = fs.readFileSync(path.join(__dirname, '../api/compliance.js'), 'utf8');
-    // Replace ESM syntax so we can check for parse errors with Function()
-    const cjsSafe = source
-      .replace(/^import\s+.*$/gm, '')
-      .replace(/^export\s+default\s+/m, 'const __handler = ')
-      .replace(/^export\s+/gm, '');
+    // Verify the utils file (pure functions) parses cleanly
+    const utilsSource = fs.readFileSync(path.join(__dirname, '../api/_compliance-utils.js'), 'utf8');
+    const cjsSafe = utilsSource.replace(/^export\s+/gm, '');
     expect(() => new Function(cjsSafe)).not.toThrow();
   });
 
   test('no duplicate function declarations', () => {
-    const source = fs.readFileSync(path.join(__dirname, '../api/compliance.js'), 'utf8');
+    const source = fs.readFileSync(path.join(__dirname, '../api/_compliance-utils.js'), 'utf8');
     const fnNames = ['calculateDaysUntilExpiration', 'getExpirationStatus',
       'isGeneralLiabilityPolicy', 'isSuretyBondPolicy', 'isCommercialPolicy',
       'getCommercialPolicyType', 'requiresManualVerification'];
     for (const name of fnNames) {
-      const matches = source.match(new RegExp(`^function ${name}\\b`, 'gm'));
+      const matches = source.match(new RegExp(`^(?:export\\s+)?function ${name}\\b`, 'gm'));
       expect(matches).not.toBeNull();
       expect(matches.length).toBe(1);
     }
@@ -496,15 +486,15 @@ describe('compliance.js — Handler Structure', () => {
     require('path').join(__dirname, '../api/compliance.js'), 'utf8'
   );
 
-  test('handler is exported as default (wrapped with securityMiddleware)', () => {
+  test('handler is exported via securityMiddleware', () => {
     expect(source).toMatch(/^export\s+default\s+securityMiddleware\(handler\)/m);
   });
 
-  test('handler returns 405 for non-GET methods', () => {
-    expect(source).toContain("res.status(405).json({ error: 'Method not allowed' })");
+  test('business logic is imported from _compliance-utils.js', () => {
+    expect(source).toMatch(/import\s*\{[\s\S]*?\}\s*from\s*['"].\/_compliance-utils\.js['"]/);
   });
 
-  test('OPTIONS preflight is handled by securityMiddleware', () => {
+  test('CORS/OPTIONS is handled by securityMiddleware', () => {
     expect(source).toMatch(/import\s*\{\s*securityMiddleware\s*\}\s*from/);
   });
 

@@ -4,13 +4,12 @@
  * Usage:
  *   if (!Paywall.canUse('ai')) { Paywall.show('ai'); return; }
  *
- * Current behavior (pre-Stripe):
- *   - Free tier: all features unlocked (no gate)
- *   - When Stripe is wired: check Auth.user.plan / custom claims
+ * Behavior:
+ *   - When PAYWALL_ENABLED = false: all features unlocked (beta mode)
+ *   - When PAYWALL_ENABLED = true: checks Firestore subscription doc
  *
  * The show() method renders a modal with plan benefits and a CTA.
- * The gate is intentionally soft during beta — calling canUse() always
- * returns true until PAYWALL_ENABLED is flipped to true.
+ * upgrade() creates a Stripe Checkout session via /api/create-checkout.
  */
 window.Paywall = (() => {
     'use strict';
@@ -23,8 +22,36 @@ window.Paywall = (() => {
         prospect: { plan: 'pro', label: 'Prospect Intelligence' },
     };
 
-    // Master switch — set to true when Stripe is connected
+    // Master switch — flip to true when Stripe products are configured
     const PAYWALL_ENABLED = false;
+
+    // Cached subscription state (loaded from Firestore on auth)
+    let _subscription = null;
+
+    /**
+     * Load subscription data from Firestore.
+     * Called automatically when user signs in.
+     */
+    async function loadSubscription() {
+        _subscription = null;
+        if (typeof FirebaseConfig === 'undefined' || !FirebaseConfig.isReady) return;
+        if (typeof Auth === 'undefined' || !Auth.isSignedIn) return;
+
+        try {
+            const doc = await FirebaseConfig.db
+                .collection('users')
+                .doc(Auth.uid)
+                .collection('sync')
+                .doc('subscription')
+                .get();
+
+            if (doc.exists) {
+                _subscription = doc.data();
+            }
+        } catch (e) {
+            console.warn('[Paywall] Failed to load subscription:', e.message);
+        }
+    }
 
     /**
      * Check if the current user can use a feature.
@@ -39,9 +66,12 @@ window.Paywall = (() => {
         // Check auth state
         if (typeof Auth === 'undefined' || !Auth.isSignedIn) return false;
 
-        // Check custom claims (set by Stripe webhook → Firebase Cloud Function)
-        const claims = Auth.user?._tokenResult?.claims || {};
-        return claims.plan === tier.plan && claims.active === true;
+        // Check subscription from Firestore
+        if (_subscription && _subscription.active && _subscription.plan === tier.plan) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -113,10 +143,9 @@ window.Paywall = (() => {
 
     /**
      * Handle upgrade button click.
-     * Pre-Stripe: show sign-in or a "coming soon" toast.
-     * Post-Stripe: redirect to Stripe checkout session.
+     * Creates a Stripe Checkout session and redirects to it.
      */
-    function upgrade() {
+    async function upgrade() {
         dismiss();
 
         if (!PAYWALL_ENABLED) {
@@ -127,15 +156,61 @@ window.Paywall = (() => {
             return;
         }
 
-        // When Stripe is wired, this will create a checkout session:
-        // window.location.href = `/api/create-checkout?uid=${Auth.uid}`;
-        if (typeof Auth !== 'undefined' && !Auth.isSignedIn) {
+        // Must be signed in to subscribe
+        if (typeof Auth === 'undefined' || !Auth.isSignedIn) {
             Auth.showModal();
-        } else {
-            if (typeof App !== 'undefined' && App.toast) {
-                App.toast('Redirecting to checkout...', 2000);
+            return;
+        }
+
+        if (typeof App !== 'undefined' && App.toast) {
+            App.toast('Creating checkout session...', 2000);
+        }
+
+        try {
+            const resp = await Auth.apiFetch('/api/create-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            });
+
+            const data = await resp.json();
+
+            if (resp.ok && data.url) {
+                window.location.href = data.url;
+            } else {
+                if (typeof App !== 'undefined' && App.toast) {
+                    App.toast(data.error || 'Checkout failed. Please try again.', { type: 'error', duration: 4000 });
+                }
             }
-            // TODO: Stripe checkout redirect
+        } catch (e) {
+            console.error('[Paywall] Checkout error:', e);
+            if (typeof App !== 'undefined' && App.toast) {
+                App.toast('Network error. Please try again.', { type: 'error', duration: 4000 });
+            }
+        }
+    }
+
+    /**
+     * Open Stripe Customer Portal for subscription management.
+     */
+    async function manageBilling() {
+        if (typeof Auth === 'undefined' || !Auth.isSignedIn) return;
+
+        try {
+            const resp = await Auth.apiFetch('/api/customer-portal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const data = await resp.json();
+            if (resp.ok && data.url) {
+                window.location.href = data.url;
+            } else {
+                if (typeof App !== 'undefined' && App.toast) {
+                    App.toast(data.error || 'Unable to open billing portal.', { type: 'error', duration: 4000 });
+                }
+            }
+        } catch (e) {
+            console.error('[Paywall] Billing portal error:', e);
         }
     }
 
@@ -144,6 +219,10 @@ window.Paywall = (() => {
         show,
         dismiss,
         upgrade,
+        manageBilling,
+        loadSubscription,
         get enabled() { return PAYWALL_ENABLED; },
+        get subscription() { return _subscription; },
+        get isPro() { return _subscription?.active && _subscription?.plan === 'pro'; },
     };
 })();

@@ -38,6 +38,14 @@ service cloud.firestore {
       return request.resource.data.size() < 1048576;
     }
 
+    // Check if the user has an active Pro subscription
+    // Usage: isPaidSubscriber(request.auth.uid) in premium-gated rules
+    function isPaidSubscriber(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)/sync/subscription)
+        && get(/databases/$(database)/documents/users/$(userId)/sync/subscription).data.active == true
+        && get(/databases/$(database)/documents/users/$(userId)/sync/subscription).data.plan == 'pro';
+    }
+
     // ── User data ────────────────────────────────────────────────────────
 
     // All documents under users/{uid}/** are strictly per-tenant
@@ -48,11 +56,12 @@ service cloud.firestore {
 
     // Sync documents: settings, currentForm, cglState, clientHistory, etc.
     match /users/{userId}/sync/{docType} {
+      // Subscription doc is server-managed (Stripe webhook) — read-only for owner
       allow read:  if isOwner(userId);
-      allow write: if isOwner(userId) && isReasonableSize();
+      allow write: if isOwner(userId) && isReasonableSize() && docType != 'subscription';
 
       // Deny deletion of system docs by accident — only explicit action allowed
-      allow delete: if isOwner(userId);
+      allow delete: if isOwner(userId) && docType != 'subscription';
     }
 
     // Quote drafts
