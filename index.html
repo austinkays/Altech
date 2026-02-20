@@ -213,9 +213,25 @@
     <main id="mainContainer">
         <!-- STEP 0: QUICK START -->
         <div id="step-0" class="step">
+            <!-- New Client & Recent Clients (primary action — first) -->
+            <div class="card" id="step0ClientCard">
+                <h2>👤 Begin Intake</h2>
+                <p class="section-subtitle">Start a new client or restore a previous one</p>
+                <button class="btn btn-primary" onclick="App.startFresh()" style="width:100%;margin-bottom:12px;">✨ New Client</button>
+                <div id="step0ClientHistoryList"></div>
+            </div>
+
+            <!-- Saved Drafts (Quick Load) -->
+            <div class="card" id="quickStartDraftsCard" style="display:none;">
+                <h2>📋 Saved Drafts</h2>
+                <p class="section-subtitle">Tap a draft to resume editing</p>
+                <div id="quickStartDraftList"></div>
+            </div>
+
+            <!-- Smart Scan -->
             <div class="card">
-                <h2>🚀 Quick Start</h2>
-                <p class="section-subtitle">Upload a policy document or driver license to auto-fill the form, or skip to start manually.</p>
+                <h2>🚀 Smart Scan</h2>
+                <p class="section-subtitle">Upload a policy document or driver license to auto-fill the form</p>
 
                 <!-- Desktop drag-and-drop zone for policy documents -->
                 <div id="scanDropZone" class="scan-drop-zone" style="display:none;">
@@ -245,21 +261,6 @@
                 <div id="docIntelResults"></div>
                 
                 <div id="scanCoverage" class="hint" style="margin-top:12px; display:none;">Scan coverage: 0/0 fields applied</div>
-            </div>
-
-            <!-- Recent Clients & Fresh Start -->
-            <div class="card" id="step0ClientCard">
-                <h2>👤 Begin Intake</h2>
-                <p class="section-subtitle">Start fresh or restore a previous client</p>
-                <button class="btn btn-primary" onclick="App.startFresh()" style="width:100%;margin-bottom:12px;">✨ New Client — Start Fresh</button>
-                <div id="step0ClientHistoryList"></div>
-            </div>
-
-            <!-- Saved Drafts (Quick Load) -->
-            <div class="card" id="quickStartDraftsCard" style="display:none;">
-                <h2>📋 Saved Drafts</h2>
-                <p class="section-subtitle">Tap a draft to resume editing</p>
-                <div id="quickStartDraftList"></div>
             </div>
         </div>
 
@@ -11454,65 +11455,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             /**
              * Shows a session dialog when opening the intake tool with existing data.
              * Returns: 'continue' | 'fresh' | 'save-fresh'
+             * Disabled: always continues with existing data silently.
+             * User can start fresh from the "New Client" button on step 0.
              */
             _showIntakeSessionDialog() {
-                return new Promise(resolve => {
-                    // Check if there's meaningful data worth prompting about
-                    const raw = localStorage.getItem(this.storageKey);
-                    if (!raw) return resolve('continue'); // No data — go straight to form
-                    let parsed;
-                    try { parsed = JSON.parse(raw); } catch { return resolve('continue'); }
-                    const hasName = (parsed.firstName || '').trim() || (parsed.lastName || '').trim();
-                    const hasAddress = (parsed.addrStreet || '').trim();
-                    const hasType = (parsed.qType || '').trim();
-                    if (!hasName && !hasAddress && !hasType) return resolve('continue'); // Trivial data
-
-                    // Build display info
-                    const name = [parsed.firstName, parsed.lastName].filter(Boolean).join(' ') || 'Unnamed client';
-                    const type = (parsed.qType || '').toUpperCase() || 'QUOTE';
-                    const addr = parsed.addrStreet ? `${parsed.addrStreet}, ${parsed.addrCity || ''} ${parsed.addrState || ''}`.replace(/,\s*$/, '') : '';
-
-                    const overlay = document.createElement('div');
-                    overlay.className = 'auth-modal-overlay';
-                    overlay.id = 'intakeSessionDialog';
-                    overlay.style.display = 'flex';
-                    overlay.innerHTML = `
-                        <div class="auth-modal intake-session-modal">
-                            <div class="intake-session-icon">📋</div>
-                            <div class="auth-modal-header">
-                                <h3>Existing Intake Found</h3>
-                                <p class="auth-subtitle">You have an in-progress intake</p>
-                            </div>
-                            <div class="intake-session-preview">
-                                <div class="intake-session-name">${this._escapeHTML(name)}</div>
-                                <div class="intake-session-meta">
-                                    ${type}${addr ? ' · ' + this._escapeHTML(addr) : ''}
-                                </div>
-                            </div>
-                            <div class="intake-session-actions">
-                                <button class="btn-auth btn-auth-primary intake-session-btn" data-choice="continue">
-                                    Continue Editing
-                                </button>
-                                <button class="btn-auth btn-auth-secondary intake-session-btn" data-choice="save-fresh">
-                                    Save Draft & Start Fresh
-                                </button>
-                                <button class="btn-auth btn-auth-ghost intake-session-btn" data-choice="fresh">
-                                    Discard & Start Fresh
-                                </button>
-                            </div>
-                        </div>
-                    `;
-
-                    overlay.addEventListener('click', (e) => {
-                        const btn = e.target.closest('[data-choice]');
-                        if (!btn) return;
-                        const choice = btn.dataset.choice;
-                        overlay.remove();
-                        resolve(choice);
-                    });
-
-                    document.body.appendChild(overlay);
-                });
+                return Promise.resolve('continue');
             },
 
             /** Save current form data as a named draft (used by session dialog) */
