@@ -9,7 +9,7 @@
  *   - When PAYWALL_ENABLED = true: checks Firestore subscription doc
  *
  * The show() method renders a modal with plan benefits and a CTA.
- * upgrade() creates a Stripe Checkout session via /api/create-checkout.
+ * upgrade() creates a Stripe Checkout session via /api/stripe?action=checkout.
  */
 window.Paywall = (() => {
     'use strict';
@@ -167,7 +167,7 @@ window.Paywall = (() => {
         }
 
         try {
-            const resp = await Auth.apiFetch('/api/create-checkout', {
+            const resp = await Auth.apiFetch('/api/stripe?action=checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({}),
@@ -197,7 +197,7 @@ window.Paywall = (() => {
         if (typeof Auth === 'undefined' || !Auth.isSignedIn) return;
 
         try {
-            const resp = await Auth.apiFetch('/api/customer-portal', {
+            const resp = await Auth.apiFetch('/api/stripe?action=portal', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
             });

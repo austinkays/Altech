@@ -2264,7 +2264,7 @@
                 
                 // Try fetching from server endpoint first (Vercel production)
                 try {
-                    const res = await (typeof Auth !== 'undefined' ? Auth.apiFetch('/api/places-config.js') : fetch('/api/places-config.js'));
+                    const res = await (typeof Auth !== 'undefined' ? Auth.apiFetch('/api/config?type=keys') : fetch('/api/config?type=keys'));
                     if (res.ok) {
                         const data = await res.json();
                         apiKey = data.apiKey;

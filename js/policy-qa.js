@@ -65,20 +65,20 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
                         return;
                     }
 
-                    // 2. Try places-config endpoint (Vercel serves both keys)
+                    // 2. Try config endpoint (Vercel serves both keys)
                     try {
-                        const res = await (typeof Auth !== 'undefined' ? Auth.apiFetch('/api/places-config') : fetch('/api/places-config'));
+                        const res = await (typeof Auth !== 'undefined' ? Auth.apiFetch('/api/config?type=keys') : fetch('/api/config?type=keys'));
                         if (res.ok) {
                             const data = await res.json();
                             if (data.geminiKey) {
                                 this._geminiApiKey = data.geminiKey;
-                                console.log('[PolicyQA] Gemini key loaded from /api/places-config');
+                                console.log('[PolicyQA] Gemini key loaded from /api/config?type=keys');
                                 this.addSystemMessage('✅ Ready — drop a PDF to get started.');
                                 return;
                             }
                         }
                     } catch (e) {
-                        console.warn('[PolicyQA] Could not load /api/places-config:', e);
+                        console.warn('[PolicyQA] Could not load /api/config?type=keys:', e);
                     }
 
                     // 3. Fallback: try api/config.json (local dev only)

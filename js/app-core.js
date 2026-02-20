@@ -300,7 +300,7 @@ Object.assign(App, {
             return this._geminiApiKey;
         }
         try {
-            const res = await (typeof Auth !== 'undefined' ? Auth.apiFetch('/api/places-config') : fetch('/api/places-config'));
+            const res = await (typeof Auth !== 'undefined' ? Auth.apiFetch('/api/config?type=keys') : fetch('/api/config?type=keys'));
             if (res.ok) {
                 const data = await res.json();
                 if (data.geminiKey) { this._geminiApiKey = data.geminiKey; return data.geminiKey; }
@@ -976,7 +976,7 @@ Object.assign(App, {
             // Try 1: Server API (works on Vercel / local server)
             let payload = null;
             try {
-                const res = await fetch('/api/name-phonetics', {
+                const res = await fetch('/api/config?type=phonetics', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ firstName, lastName })

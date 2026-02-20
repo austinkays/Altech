@@ -2,7 +2,7 @@
  * Firebase Configuration
  * 
  * Config resolution order:
- * 1. Fetches from /api/firebase-client-config (env-var driven, production)
+ * 1. Fetches from /api/config?type=firebase (env-var driven, production)
  * 2. Falls back to hardcoded values below (local dev)
  * 
  * To use env vars, set in Vercel Dashboard → Environment Variables:
@@ -23,7 +23,7 @@
 
 const FirebaseConfig = (() => {
     // Hardcoded fallback — used when env-based API config is unavailable (local dev)
-    // In production, set FIREBASE_* env vars in Vercel and this code fetches from /api/firebase-client-config
+    // In production, set FIREBASE_* env vars in Vercel and this code fetches from /api/config?type=firebase
     const _fallbackConfig = {
         apiKey: 'AIzaSyBoLK7NcAZwdRKNanGDi42lubXg2UlEL1U',
         authDomain: 'altech-app-5f3d0.firebaseapp.com',
@@ -39,12 +39,12 @@ const FirebaseConfig = (() => {
     let _db = null;
 
     /**
-     * Try to load config from /api/firebase-client-config (env-var driven).
+     * Try to load config from /api/config?type=firebase (env-var driven).
      * Falls back to hardcoded _fallbackConfig if the API is unavailable.
      */
     async function _resolveConfig() {
         try {
-            const resp = await fetch('/api/firebase-client-config');
+            const resp = await fetch('/api/config?type=firebase');
             if (resp.ok) {
                 const data = await resp.json();
                 if (data.apiKey && data.projectId) {

@@ -3,7 +3,7 @@
     "api/compliance.js": {
       "maxDuration": 60
     },
-    "api/stripe-webhook.js": {
+    "api/stripe.js": {
       "maxDuration": 30
     }
   },
