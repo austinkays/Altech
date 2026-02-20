@@ -2748,5 +2748,50 @@
 <script src="js/paywall.js"></script>
 <script src="js/onboarding.js"></script>
 
+<!-- 3D Tilt Effect for Tool Cards -->
+<script>
+(() => {
+    'use strict';
+    const MAX_TILT = 8; // degrees
+    function handleMove(card, clientX, clientY) {
+        const r = card.getBoundingClientRect();
+        const x = (clientX - r.left) / r.width;
+        const y = (clientY - r.top) / r.height;
+        const rx = (x - 0.5) * MAX_TILT;
+        const ry = (0.5 - y) * MAX_TILT;
+        card.style.setProperty('--rx', rx + 'deg');
+        card.style.setProperty('--ry', ry + 'deg');
+        card.style.setProperty('--shine-x', (x * 100) + '%');
+        card.style.setProperty('--shine-y', (y * 100) + '%');
+    }
+    function resetCard(card) {
+        card.style.setProperty('--rx', '0deg');
+        card.style.setProperty('--ry', '0deg');
+        card.style.setProperty('--shine-x', '50%');
+        card.style.setProperty('--shine-y', '50%');
+    }
+    document.addEventListener('mousemove', e => {
+        const card = e.target.closest('.tool-row');
+        if (card) handleMove(card, e.clientX, e.clientY);
+    }, { passive: true });
+    document.addEventListener('mouseleave', e => {
+        if (e.target.classList && e.target.classList.contains('tool-row')) resetCard(e.target);
+    }, true);
+    document.addEventListener('mouseout', e => {
+        const card = e.target.closest('.tool-row');
+        if (card && !card.contains(e.relatedTarget)) resetCard(card);
+    }, { passive: true });
+    // Touch support
+    document.addEventListener('touchmove', e => {
+        const t = e.touches[0];
+        const card = document.elementFromPoint(t.clientX, t.clientY)?.closest('.tool-row');
+        if (card) handleMove(card, t.clientX, t.clientY);
+    }, { passive: true });
+    document.addEventListener('touchend', () => {
+        document.querySelectorAll('.tool-row').forEach(resetCard);
+    }, { passive: true });
+})();
+</script>
+
 </body>
 </html>
