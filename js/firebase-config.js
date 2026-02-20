@@ -1,12 +1,13 @@
 147931/**
  * Firebase Configuration
  * 
- * Setup instructions:
- * 1. Go to https://console.firebase.google.com
- * 2. Create a new project (or use existing)
- * 3. Enable Authentication → Email/Password provider
- * 4. Create Firestore Database (start in production mode)
- * 5. Copy your config values below OR set them as Vercel env vars
+ * Config resolution order:
+ * 1. Fetches from /api/firebase-client-config (env-var driven, production)
+ * 2. Falls back to hardcoded values below (local dev)
+ * 
+ * To use env vars, set in Vercel Dashboard → Environment Variables:
+ *   FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_PROJECT_ID,
+ *   FIREBASE_STORAGE_BUCKET, FIREBASE_MESSAGING_SENDER_ID, FIREBASE_APP_ID
  * 
  * Firestore Security Rules (paste in Firebase Console → Firestore → Rules):
  * 
@@ -21,9 +22,9 @@
  */
 
 const FirebaseConfig = (() => {
-    // Firebase project configuration
-    // Set these values directly OR use Vercel environment variables via /api/firebase-config
-    const _config = {
+    // Hardcoded fallback — used when env-based API config is unavailable (local dev)
+    // In production, set FIREBASE_* env vars in Vercel and this code fetches from /api/firebase-client-config
+    const _fallbackConfig = {
         apiKey: 'AIzaSyBoLK7NcAZwdRKNanGDi42lubXg2UlEL1U',
         authDomain: 'altech-app-5f3d0.firebaseapp.com',
         projectId: 'altech-app-5f3d0',
@@ -37,16 +38,37 @@ const FirebaseConfig = (() => {
     let _auth = null;
     let _db = null;
 
+    /**
+     * Try to load config from /api/firebase-client-config (env-var driven).
+     * Falls back to hardcoded _fallbackConfig if the API is unavailable.
+     */
+    async function _resolveConfig() {
+        try {
+            const resp = await fetch('/api/firebase-client-config');
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.apiKey && data.projectId) {
+                    console.log('[Firebase] Config loaded from environment');
+                    return data;
+                }
+            }
+        } catch (_) {
+            // Network error or local dev — fall through
+        }
+        console.log('[Firebase] Using fallback config');
+        return { ..._fallbackConfig };
+    }
+
     return {
         /**
          * Initialize Firebase with config.
-         * Uses the hardcoded config values above.
+         * Tries env-var API first, then falls back to hardcoded values.
          */
         async init() {
             if (_initialized) return true;
 
             try {
-                const config = { ..._config };
+                const config = await _resolveConfig();
 
                 if (!config.apiKey || !config.projectId) {
                     console.warn('[Firebase] No configuration found. Set values in js/firebase-config.js. Cloud sync disabled.');

@@ -14,7 +14,7 @@ window.Onboarding = (() => {
     // Access codes — add new codes here as needed
     const VALID_CODES = ['ALTECH-2026', 'ALTECH2026', 'WELCOME2026'];
     let _currentStep = 1;
-    const TOTAL_STEPS = 3;
+    const TOTAL_STEPS = 4;
 
     /**
      * Check if user needs onboarding and show overlay if so
@@ -59,6 +59,11 @@ window.Onboarding = (() => {
             if (name) {
                 localStorage.setItem(NAME_KEY, name);
             }
+        }
+
+        // On step 3, save agency profile
+        if (_currentStep === 3) {
+            _saveAgencyProfile();
         }
 
         if (_currentStep < TOTAL_STEPS) {
@@ -233,6 +238,26 @@ window.Onboarding = (() => {
     }
 
     /**
+     * Save agency profile from onboarding step 3
+     */
+    function _saveAgencyProfile() {
+        const agencyName = document.getElementById('onboardingAgencyName')?.value?.trim() || '';
+        const agencyState = document.getElementById('onboardingAgencyState')?.value?.trim() || '';
+        const licenseNum = document.getElementById('onboardingLicenseNum')?.value?.trim() || '';
+        const profile = { agencyName, agencyState, licenseNum };
+        localStorage.setItem('altech_agency_profile', JSON.stringify(profile));
+    }
+
+    /**
+     * Get saved agency profile
+     */
+    function getAgencyProfile() {
+        try {
+            return JSON.parse(localStorage.getItem('altech_agency_profile') || '{}');
+        } catch { return {}; }
+    }
+
+    /**
      * Reset onboarding (for testing or re-onboarding)
      */
     function reset() {
@@ -250,6 +275,7 @@ window.Onboarding = (() => {
         copyLink,
         showShareModal,
         getUserName,
+        getAgencyProfile,
         isComplete,
         reset
     };
