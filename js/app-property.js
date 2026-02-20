@@ -59,6 +59,30 @@ Object.assign(App, {
         if (hint) hint.textContent = ' ';
     },
 
+    async ensureMapApiKey() {
+        if (this.mapApiKey) return this.mapApiKey;
+        // Check if the Places loader already cached the key
+        if (window.__CACHED_MAP_API_KEY__) {
+            this.mapApiKey = window.__CACHED_MAP_API_KEY__;
+            return this.mapApiKey;
+        }
+        try {
+            const res = await (typeof Auth !== 'undefined' && Auth.apiFetch
+                ? Auth.apiFetch('/api/config?type=keys')
+                : fetch('/api/config?type=keys'));
+            if (res.ok) {
+                const data = await res.json();
+                if (data.apiKey) {
+                    this.mapApiKey = data.apiKey;
+                    return data.apiKey;
+                }
+            }
+        } catch (e) {
+            console.warn('[Maps] Could not fetch API key:', e.message);
+        }
+        return null;
+    },
+
     scheduleMapPreviewUpdate() {
         clearTimeout(this.mapPreviewTimer);
         this.mapPreviewTimer = setTimeout(() => this.updateMapPreviews(), 450);

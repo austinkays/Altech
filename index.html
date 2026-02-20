@@ -2291,6 +2291,10 @@
                     return;
                 }
                 
+                // Cache key for map previews (Street View + Satellite)
+                if (typeof App !== 'undefined') App.mapApiKey = apiKey;
+                else window.__CACHED_MAP_API_KEY__ = apiKey;
+                
                 const script = document.createElement('script');
                 script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initPlaces`;
                 script.async = true;
