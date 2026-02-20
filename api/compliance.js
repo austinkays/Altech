@@ -388,10 +388,14 @@ function getCommercialPolicyType(policy) {
 }
 
 export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS headers — restrict to known app origins
+  const origin = req.headers.origin;
+  const allowed = (process.env.ALLOWED_ORIGINS || 'https://altech-insurance.vercel.app,http://localhost:8000,http://localhost:3000').split(',').map(o => o.trim());
+  if (origin && allowed.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();

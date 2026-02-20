@@ -3,7 +3,9 @@
  * Accepts inline document data (images/PDFs) and returns structured insights
  */
 
-export default async function handler(req, res) {
+import { securityMiddleware } from './_security.js';
+
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -102,3 +104,5 @@ If unsure, return best-effort details.`;
     });
   }
 }
+
+export default securityMiddleware(handler);

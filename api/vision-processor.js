@@ -15,6 +15,8 @@
  * Uses REST API directly (no SDK dependencies needed)
  */
 
+import { securityMiddleware } from './_security.js';
+
 const GEMINI_API_KEY = (process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '').trim();
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -735,7 +737,7 @@ function consolidateVisionData(visionResults) {
 /**
  * Vercel serverless handler
  */
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -801,3 +803,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default securityMiddleware(handler);

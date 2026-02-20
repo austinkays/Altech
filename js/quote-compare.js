@@ -152,7 +152,7 @@ You have access to the full quote data. Reference specific numbers, carriers, an
                     if (stored) return stored;
                     // Try places-config endpoint (serves both Places + Gemini keys)
                     try {
-                        const res = await fetch('/api/places-config');
+                        const res = await (typeof Auth !== 'undefined' ? Auth.apiFetch('/api/places-config') : fetch('/api/places-config'));
                         if (res.ok) {
                             const cfg = await res.json();
                             return cfg.geminiKey || null;
