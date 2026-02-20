@@ -1,0 +1,131 @@
+/* === Subscription Gate / Paywall UI === */
+
+/* Overlay backdrop */
+.paywall-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: paywall-fadein 0.2s ease;
+}
+@keyframes paywall-fadein {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Card */
+.paywall-card {
+    background: var(--bg-card);
+    border-radius: 20px;
+    max-width: 420px;
+    width: 90vw;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+.paywall-close {
+    position: absolute;
+    top: 12px; right: 14px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+}
+.paywall-close:hover { color: var(--text); }
+
+.paywall-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+}
+
+.paywall-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+}
+
+.paywall-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+/* Feature list */
+.paywall-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5rem;
+    text-align: left;
+}
+.paywall-features li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 0.9rem;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+}
+.paywall-features li:last-child { border-bottom: none; }
+.paywall-features li .check {
+    color: var(--success);
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+/* CTA buttons */
+.paywall-cta {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 10px;
+}
+.paywall-cta-primary {
+    background: var(--apple-blue);
+    color: #fff;
+}
+.paywall-cta-primary:hover {
+    filter: brightness(1.1);
+}
+.paywall-cta-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+.paywall-cta-secondary:hover {
+    color: var(--text);
+}
+
+/* Sign-in prompt variant */
+.paywall-signin-note {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+.paywall-signin-note a {
+    color: var(--apple-blue);
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 600;
+}
+.paywall-signin-note a:hover { text-decoration: underline; }

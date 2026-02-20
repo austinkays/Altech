@@ -1134,13 +1134,24 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
     // ── Utilities ──
     toast(msg, duration, useHtml) {
         const t = document.getElementById('toast');
+        // Support 2nd arg as options object: toast('msg', { type: 'error', duration: 4000 })
+        let ms = 2500;
+        let type = null;
+        if (typeof duration === 'object' && duration !== null) {
+            ms = duration.duration || 2500;
+            type = duration.type || null;
+        } else if (typeof duration === 'number') {
+            ms = duration;
+        }
+        t.classList.remove('toast-error', 'toast-success');
+        if (type) t.classList.add(`toast-${type}`);
         if (useHtml) {
             t.innerHTML = msg;
         } else {
             t.innerText = msg;
         }
         t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), duration || 2500);
+        setTimeout(() => { t.classList.remove('show', 'toast-error', 'toast-success'); }, ms);
     },
 
     downloadFile(content, filename, mime) {
@@ -1328,6 +1339,10 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
 
         // Lazy-load plugin HTML from external file on first access
         if (entry.htmlFile && !tool.dataset.loaded) {
+            // Show standardized loading spinner while fetching
+            tool.classList.add('active');
+            tool.style.display = 'block';
+            tool.dataset.loading = 'true';
             try {
                 const resp = await fetch(entry.htmlFile);
                 if (resp.ok) {
@@ -1353,6 +1368,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                     </button>
                 </div>`;
             }
+            delete tool.dataset.loading;
         }
 
         tool.classList.add('active');
@@ -1390,6 +1406,22 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             }
         } catch(e) {
             console.error('[navigateTo] init error for', toolName, e);
+            this.toast(`⚠️ ${entry.title || toolName} failed to initialize`, { type: 'error', duration: 4000 });
+            // Show inline error with retry button
+            const existingErr = tool.querySelector('.plugin-init-error');
+            if (!existingErr) {
+                const errDiv = document.createElement('div');
+                errDiv.className = 'plugin-init-error';
+                errDiv.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-secondary)">
+                    <p style="font-size:1.1rem;margin-bottom:0.5rem">⚠️ ${entry.title || toolName} encountered an error</p>
+                    <p style="font-size:0.85rem;margin-bottom:1rem;opacity:0.7">${e.message || 'Unknown error'}</p>
+                    <button onclick="this.closest('.plugin-init-error').remove(); App.navigateTo('${entry.key}')"
+                        style="padding:0.5rem 1.5rem;border-radius:8px;border:none;background:var(--apple-blue);color:#fff;cursor:pointer;font-size:0.95rem">
+                        Retry
+                    </button>
+                </div>`;
+                tool.prepend(errDiv);
+            }
         }
 
         if (options.syncHash !== false) {
@@ -1448,7 +1480,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         const renderCard = (t) => {
             const badgeHtml = t.badge ? `<span class="tool-notify-badge" id="${t.badge}"></span>` : '';
             const safeTitle = t.title.replace(/&/g, '&amp;');
-            return `<div class="tool-row" onclick="App.navigateTo('${t.key}')">
+            return `<div class="tool-row" tabindex="0" role="button" aria-label="${safeTitle}"
+                onclick="App.navigateTo('${t.key}')"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigateTo('${t.key}')}">
                 <div class="tool-icon ${t.color}">${t.icon}</div>${badgeHtml}
                 <div class="tool-row-content"><div class="tool-title">${safeTitle}</div></div>
             </div>`;

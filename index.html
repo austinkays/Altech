@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="css/hawksoft.css">
     <link rel="stylesheet" href="css/vin-decoder.css">
     <link rel="stylesheet" href="css/onboarding.css">
+    <link rel="stylesheet" href="css/paywall.css">
 
     <!-- Firebase SDK (compat mode — no build step needed) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -77,6 +78,7 @@
                     <div class="onboarding-dot active"></div>
                     <div class="onboarding-dot"></div>
                     <div class="onboarding-dot"></div>
+                    <div class="onboarding-dot"></div>
                 </div>
             </div>
 
@@ -99,11 +101,42 @@
                     <div class="onboarding-dot"></div>
                     <div class="onboarding-dot active"></div>
                     <div class="onboarding-dot"></div>
+                    <div class="onboarding-dot"></div>
                 </div>
             </div>
 
-            <!-- Step 3: Access Code + finish -->
+            <!-- Step 3: Agency Profile -->
             <div class="onboarding-step" data-step="3">
+                <div class="onboarding-brand">
+                    <h2>Your Agency</h2>
+                    <p>Help us tailor the experience for your agency</p>
+                </div>
+                <div class="onboarding-input-group">
+                    <label for="onboardingAgencyName">Agency name</label>
+                    <input type="text" id="onboardingAgencyName" placeholder="e.g. Pacific Shield Insurance" autocomplete="organization" maxlength="80">
+                </div>
+                <div class="onboarding-input-group">
+                    <label for="onboardingAgencyState">State</label>
+                    <input type="text" id="onboardingAgencyState" placeholder="e.g. CA" autocomplete="address-level1" maxlength="2" style="text-transform:uppercase;letter-spacing:1px;width:80px">
+                </div>
+                <div class="onboarding-input-group">
+                    <label for="onboardingLicenseNum">License number <span style="font-weight:400;color:var(--text-secondary)">(optional)</span></label>
+                    <input type="text" id="onboardingLicenseNum" placeholder="e.g. 0K12345" autocomplete="off" maxlength="30">
+                </div>
+                <div class="onboarding-actions">
+                    <button class="onboarding-btn onboarding-btn-secondary" onclick="Onboarding.prev()">Back</button>
+                    <button class="onboarding-btn onboarding-btn-primary" onclick="Onboarding.next()">Continue</button>
+                </div>
+                <div class="onboarding-dots">
+                    <div class="onboarding-dot"></div>
+                    <div class="onboarding-dot"></div>
+                    <div class="onboarding-dot active"></div>
+                    <div class="onboarding-dot"></div>
+                </div>
+            </div>
+
+            <!-- Step 4: Access Code + finish -->
+            <div class="onboarding-step" data-step="4">
                 <div class="onboarding-brand">
                     <h2>Almost there!</h2>
                     <p>Enter the access code from your team admin to continue</p>
@@ -128,6 +161,7 @@
                     <button class="onboarding-btn onboarding-btn-primary" onclick="Onboarding.validateCode()">Activate</button>
                 </div>
                 <div class="onboarding-dots">
+                    <div class="onboarding-dot"></div>
                     <div class="onboarding-dot"></div>
                     <div class="onboarding-dot"></div>
                     <div class="onboarding-dot active"></div>
@@ -167,7 +201,12 @@
         <!-- Each category gets a labeled group; cards are self-contained components -->
         <section id="landingAppGrid" class="landing-app-grid" aria-label="Tool grid">
             <div class="tools-container" id="toolsGrid">
-                <!-- JS injects .bento-category groups here -->
+                <!-- Skeleton placeholders — replaced by renderLandingTools() -->
+                <div class="skeleton-grid" aria-hidden="true">
+                    <div class="skeleton-card"></div><div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div><div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div><div class="skeleton-card"></div>
+                </div>
             </div>
         </section>
 
@@ -2361,6 +2400,20 @@
     <script>
         window.initPlaces = () => App.initPlaces();
 
+        // ── Global Error Boundaries ──
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('[Unhandled Rejection]', e.reason);
+            if (typeof App !== 'undefined' && App.toast) {
+                App.toast(`Unexpected error: ${e.reason?.message || 'Something went wrong'}`, { type: 'error', duration: 4000 });
+            }
+        });
+        window.addEventListener('error', (e) => {
+            // Ignore script-load errors (have their own handlers) and ResizeObserver
+            if (e.message === 'ResizeObserver loop limit exceeded') return;
+            if (e.message?.includes('ResizeObserver loop')) return;
+            console.error('[Global Error]', e.message, e.filename, e.lineno);
+        });
+
         window.onload = async () => {
             // Apply dark mode preference FIRST — before any tool rendering
             App.loadDarkMode();
@@ -2415,6 +2468,45 @@
                     App.goHome();
                 } else {
                     await App.navigateTo(toolId, { syncHash: false });
+                }
+            });
+
+            // ── Desktop Keyboard Shortcuts ──
+            document.addEventListener('keydown', (e) => {
+                // Don't intercept when typing in an input/textarea
+                const tag = document.activeElement?.tagName;
+                const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable;
+                const mod = e.metaKey || e.ctrlKey;
+
+                // Cmd/Ctrl+S → Save current form
+                if (mod && e.key === 's') {
+                    e.preventDefault();
+                    if (App.initialized && App.save) App.save();
+                    App.toast('💾 Saved');
+                    return;
+                }
+                // Escape → Go home (unless in a modal/popup)
+                if (e.key === 'Escape' && !isInput) {
+                    const modal = document.querySelector('.paywall-overlay, .onboarding-overlay[style*="flex"], [class*="popup"][style*="flex"]');
+                    if (!modal) {
+                        App.goHome();
+                    }
+                    return;
+                }
+                // Cmd/Ctrl+K → Focus search (future: command palette)
+                if (mod && e.key === 'k') {
+                    e.preventDefault();
+                    // For now, navigate home to show the tool grid
+                    App.goHome();
+                    return;
+                }
+                // Enter in wizard steps → advance to next step
+                if (e.key === 'Enter' && !isInput && App.initialized) {
+                    const activeStep = document.querySelector('.step:not(.hidden)');
+                    if (activeStep) {
+                        e.preventDefault();
+                        App.next();
+                    }
                 }
             });
         };
@@ -2640,6 +2732,7 @@
 <script src="js/firebase-config.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/cloud-sync.js"></script>
+<script src="js/paywall.js"></script>
 <script src="js/onboarding.js"></script>
 
 </body>
