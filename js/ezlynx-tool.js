@@ -115,6 +115,9 @@ const EZLynxTool = {
         const quickInfo = document.getElementById('ezSchemaQuickInfo');
         const pagesDiv = document.getElementById('ezSchemaPages');
 
+        // Bail out if elements aren't in the DOM yet (plugin HTML not loaded)
+        if (!dot || !label || !sub) return;
+
         // Helper to render schema data into the UI
         const renderSchema = (data) => {
             dot.className = 'ez-schema-dot found';
@@ -139,10 +142,10 @@ const EZLynxTool = {
                 quickInfo.textContent = `${data.dropdownCount} dropdowns, ${pageKeys.length} pages`;
             } else {
                 label.textContent = `Schema loaded — ${data.dropdownCount} dropdowns`;
-                quickInfo.textContent = `${data.dropdownCount} dropdowns`;
+                if (quickInfo) quickInfo.textContent = `${data.dropdownCount} dropdowns`;
             }
             sub.textContent = `Last updated: ${timeStr}`;
-            pagesDiv.innerHTML = pageHtml;
+            if (pagesDiv) pagesDiv.innerHTML = pageHtml;
             // Don't programmatically collapse — let user control the accordion
         };
 
@@ -203,8 +206,8 @@ const EZLynxTool = {
         dot.className = 'ez-schema-dot missing';
         label.textContent = 'No schema file found';
         sub.textContent = 'Optional: Use Chrome Extension\'s scrape button on EZLynx pages — schema is stored automatically for smart filling.';
-        quickInfo.textContent = 'Auto via extension';
-        pagesDiv.innerHTML = '';
+        if (quickInfo) quickInfo.textContent = 'Auto via extension';
+        if (pagesDiv) pagesDiv.innerHTML = '';
         // Don't programmatically expand — let user control the accordion
     },
 
