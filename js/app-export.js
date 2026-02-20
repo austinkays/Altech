@@ -1179,9 +1179,6 @@ Object.assign(App, {
             xml += `      <County>${escapeXML(county)}</County>\n`;
         }
         xml += `      <Zip5>${escapeXML(zip5)}</Zip5>\n`;
-        if (zip4) {
-            xml += `      <Zip4>${escapeXML(zip4)}</Zip4>\n`;
-        }
         if (phone) {
             xml += '      <Phone id="1">\n';
             xml += '        <PhoneType>Mobile</PhoneType>\n';
@@ -1222,7 +1219,6 @@ Object.assign(App, {
             xml += `      <StateCode>${escapeXML(state)}</StateCode>\n`;
             if (county) xml += `      <County>${escapeXML(county)}</County>\n`;
             xml += `      <Zip5>${escapeXML(zip5)}</Zip5>\n`;
-            if (zip4) xml += `      <Zip4>${escapeXML(zip4)}</Zip4>\n`;
             const coPhone = data.coPhone ? data.coPhone.replace(/\D/g, '') : '';
             if (coPhone) {
                 xml += '      <Phone id="1">\n';
@@ -1281,9 +1277,6 @@ Object.assign(App, {
             xml += `        <County>${escapeXML(county)}</County>\n`;
         }
         xml += `        <Zip5>${escapeXML(zip5)}</Zip5>\n`;
-        if (zip4) {
-            xml += `        <Zip4>${escapeXML(zip4)}</Zip4>\n`;
-        }
         xml += '      </Address>\n';
         xml += '    </GarageLocation>\n';
         xml += '  </ResidenceInfo>\n';
@@ -1644,7 +1637,6 @@ Object.assign(App, {
         xml += I3 + `<StateCode>${escapeXML(state)}</StateCode>` + L;
         if (county) xml += I3 + `<County>${escapeXML(county)}</County>` + L;
         xml += I3 + `<Zip5>${escapeXML(zip5)}</Zip5>` + L;
-        if (zip4) xml += I3 + `<Zip4>${escapeXML(zip4)}</Zip4>` + L;
         if (phone) {
             xml += I3 + '<Phone>' + L;
             xml += I4 + '<PhoneType>Mobile</PhoneType>' + L;
@@ -1688,7 +1680,6 @@ Object.assign(App, {
             xml += I3 + `<StateCode>${escapeXML(state)}</StateCode>` + L;
             if (county) xml += I3 + `<County>${escapeXML(county)}</County>` + L;
             xml += I3 + `<Zip5>${escapeXML(zip5)}</Zip5>` + L;
-            if (zip4) xml += I3 + `<Zip4>${escapeXML(zip4)}</Zip4>` + L;
             const coPhone = data.coPhone ? data.coPhone.replace(/\D/g, '') : '';
             if (coPhone) {
                 xml += I3 + '<Phone>' + L;

@@ -1204,6 +1204,22 @@ Object.assign(App, {
             results.appendChild(warn);
         }
 
+        // ── Merge mode toggle ──
+        const mergeDiv = document.createElement('div');
+        mergeDiv.style.cssText = 'display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; padding: 10px 12px; background: var(--bg-input); border-radius: 10px; border: 1px solid var(--border);';
+        const mergeCheck = document.createElement('input');
+        mergeCheck.type = 'checkbox';
+        mergeCheck.id = 'scanMergeMode';
+        mergeCheck.checked = true;
+        mergeCheck.style.cssText = 'width: 18px; height: 18px; accent-color: var(--apple-blue);';
+        const mergeLabel = document.createElement('label');
+        mergeLabel.htmlFor = 'scanMergeMode';
+        mergeLabel.style.cssText = 'font-size: 13px; color: var(--text); cursor: pointer; user-select: none;';
+        mergeLabel.textContent = '🛡️ Protect existing data (only fill empty fields)';
+        mergeDiv.appendChild(mergeCheck);
+        mergeDiv.appendChild(mergeLabel);
+        results.appendChild(mergeDiv);
+
         const renderField = (id, label, value) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'scan-field';
@@ -1216,6 +1232,24 @@ Object.assign(App, {
             input.type = 'text';
             input.value = value || '';
             input.dataset.field = id;
+
+            // Show current form value if it differs from extraction
+            const currentValue = (this.data && this.data[id]) ? this.data[id].toString().trim() : '';
+            const extractedValue = (value || '').toString().trim();
+
+            if (currentValue && extractedValue && currentValue !== extractedValue) {
+                const conflictBadge = document.createElement('span');
+                conflictBadge.className = 'confidence-pill confidence-low';
+                conflictBadge.textContent = `⚠️ Current: "${currentValue}"`;
+                conflictBadge.title = `Form currently has "${currentValue}" — extraction found "${extractedValue}"`;
+                wrapper.appendChild(conflictBadge);
+            } else if (currentValue && !extractedValue) {
+                const keepBadge = document.createElement('span');
+                keepBadge.className = 'confidence-pill confidence-high';
+                keepBadge.textContent = `✓ Keeping: "${currentValue}"`;
+                keepBadge.title = `Extraction found nothing — keeping existing value`;
+                wrapper.appendChild(keepBadge);
+            }
 
             const conf = typeof confidence[id] === 'number' ? confidence[id] : null;
             if (conf !== null) {
@@ -1436,22 +1470,61 @@ Object.assign(App, {
         const results = document.getElementById('scanResults');
         if (!results) return;
         const inputs = results.querySelectorAll('input[data-field]');
+        const mergeMode = document.getElementById('scanMergeMode')?.checked ?? true;
         let appliedCount = 0;
+        let skippedCount = 0;
+        let emptyCount = 0;
         let hasCoApplicant = false;
         let additionalVehiclesText = '';
         let additionalDriversText = '';
+
+        // ── Extraction debug log ──
+        const log = [];
+        console.group('[PolicyScan] 📋 Applying extracted data (merge=' + (mergeMode ? 'protect' : 'overwrite') + ')');
+
         inputs.forEach((input) => {
-            if (input.value) {
-                const field = input.dataset.field;
-                // Track co-applicant presence
-                if (field === 'coFirstName' || field === 'coLastName') hasCoApplicant = true;
-                // Capture additional vehicles/drivers text for parsing below
-                if (field === 'additionalVehicles') { additionalVehiclesText = input.value; return; }
-                if (field === 'additionalDrivers') { additionalDriversText = input.value; return; }
-                this.setFieldValue(field, input.value, { autoFilled: true, source: 'scan' });
-                appliedCount++;
+            const field = input.dataset.field;
+            const extractedValue = (input.value || '').trim();
+            const currentValue = (this.data && this.data[field]) ? this.data[field].toString().trim() : '';
+
+            // Skip empty extracted values
+            if (!extractedValue) {
+                log.push({ field, action: 'skip-empty', extracted: '', current: currentValue });
+                emptyCount++;
+                return;
             }
+
+            // Track co-applicant presence
+            if (field === 'coFirstName' || field === 'coLastName') hasCoApplicant = true;
+
+            // Capture additional vehicles/drivers text for parsing below
+            if (field === 'additionalVehicles') { additionalVehiclesText = extractedValue; return; }
+            if (field === 'additionalDrivers') { additionalDriversText = extractedValue; return; }
+
+            // Smart merge: protect existing data if merge mode is on
+            if (mergeMode && currentValue && currentValue !== extractedValue) {
+                log.push({ field, action: 'skip-protected', extracted: extractedValue, current: currentValue });
+                console.log(`  🛡️ PROTECTED "${field}": keeping "${currentValue}" (AI wanted "${extractedValue}")`);
+                skippedCount++;
+                return;
+            }
+
+            // Apply the value
+            log.push({ field, action: 'applied', extracted: extractedValue, current: currentValue });
+            if (currentValue && currentValue !== extractedValue) {
+                console.log(`  ✏️ OVERWRITE "${field}": "${currentValue}" → "${extractedValue}"`);
+            } else if (!currentValue) {
+                console.log(`  ✅ FILL "${field}": "${extractedValue}"`);
+            } else {
+                console.log(`  ✓ SAME "${field}": "${extractedValue}"`);
+            }
+
+            this.setFieldValue(field, input.value, { autoFilled: true, source: 'scan' });
+            appliedCount++;
         });
+
+        console.log(`\n📊 Summary: ${appliedCount} applied, ${skippedCount} protected, ${emptyCount} empty`);
+        console.groupEnd();
         
         // Auto-enable co-applicant section if co-applicant data found
         if (hasCoApplicant) {
@@ -1461,12 +1534,47 @@ Object.assign(App, {
             this.restoreCoApplicantUI();
         }
         
-        // Clear the review UI after applying
+        // Clear the review UI after applying — replace with extraction log
         results.innerHTML = '';
         const status = document.getElementById('scanStatus');
         if (status) {
-            status.textContent = `✅ ${appliedCount} field(s) applied to form`;
+            let statusMsg = `✅ ${appliedCount} field(s) applied`;
+            if (skippedCount > 0) statusMsg += ` · ${skippedCount} protected`;
+            if (emptyCount > 0) statusMsg += ` · ${emptyCount} empty`;
+            status.textContent = statusMsg;
         }
+
+        // ── Visible extraction log (collapsible) ──
+        const logDetails = document.createElement('details');
+        logDetails.style.cssText = 'margin-top: 8px; background: var(--bg-input); border-radius: 10px; padding: 8px 12px; border: 1px solid var(--border);';
+        const logSummary = document.createElement('summary');
+        logSummary.style.cssText = 'font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; user-select: none;';
+        logSummary.textContent = `📋 Extraction Log (${log.length} fields)`;
+        logDetails.appendChild(logSummary);
+        const logList = document.createElement('div');
+        logList.style.cssText = 'margin-top: 8px; font-size: 12px; font-family: monospace; max-height: 300px; overflow-y: auto;';
+        const actionIcons = { 'applied': '✅', 'skip-protected': '🛡️', 'skip-empty': '⬜' };
+        const actionColors = { 'applied': 'var(--success)', 'skip-protected': '#FF9500', 'skip-empty': 'var(--text-secondary)' };
+        log.filter(e => e.action !== 'skip-empty').forEach(entry => {
+            const row = document.createElement('div');
+            row.style.cssText = `padding: 3px 0; border-bottom: 1px solid var(--border); color: ${actionColors[entry.action] || 'var(--text)'};`;
+            if (entry.action === 'applied' && entry.current) {
+                row.textContent = `${actionIcons[entry.action]} ${entry.field}: "${entry.current}" → "${entry.extracted}"`;
+            } else if (entry.action === 'applied') {
+                row.textContent = `${actionIcons[entry.action]} ${entry.field}: "${entry.extracted}"`;
+            } else if (entry.action === 'skip-protected') {
+                row.textContent = `${actionIcons[entry.action]} ${entry.field}: kept "${entry.current}" (AI: "${entry.extracted}")`;
+            }
+            logList.appendChild(row);
+        });
+        if (logList.children.length === 0) {
+            const noEntries = document.createElement('div');
+            noEntries.style.cssText = 'padding: 6px 0; color: var(--text-secondary);';
+            noEntries.textContent = 'No notable actions (all fields were either applied or empty).';
+            logList.appendChild(noEntries);
+        }
+        logDetails.appendChild(logList);
+        results.appendChild(logDetails);
         
         // --- Sync scanned vehicle data into vehicles array ---
         // Helper: parse "YYYY Make Model" text into vehicle object
@@ -1577,6 +1685,8 @@ Object.assign(App, {
         this.updateScanCoverage();
         const totalVeh = this.vehicles ? this.vehicles.length : 0;
         const totalDrv = this.drivers ? this.drivers.length : 0;
-        this.toast(`✅ ${appliedCount} fields + ${totalVeh} vehicle(s) + ${totalDrv} driver(s) applied`);
+        let toastMsg = `✅ ${appliedCount} fields + ${totalVeh} vehicle(s) + ${totalDrv} driver(s) applied`;
+        if (skippedCount > 0) toastMsg += ` (${skippedCount} protected)`;
+        this.toast(toastMsg);
     },
 });
