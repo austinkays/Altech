@@ -335,6 +335,13 @@ Object.assign(App, {
     },
 
     toggleDarkMode() {
+        // Professional theme locks dark mode on — ignore toggle
+        if (document.body.classList.contains('theme-pro')) {
+            if (typeof App !== 'undefined' && App.toast) {
+                App.toast('Dark mode is locked in Professional theme', { duration: 2000 });
+            }
+            return;
+        }
         document.body.classList.toggle('dark-mode');
         const isDark = document.body.classList.contains('dark-mode');
         localStorage.setItem('altech_dark_mode', isDark);
@@ -343,6 +350,59 @@ Object.assign(App, {
         if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
             CloudSync.schedulePush();
         }
+    },
+
+    // ── Theme Style (Playful vs Professional) ──
+    loadThemeStyle() {
+        const style = localStorage.getItem('altech_theme_style') || 'playful';
+        if (style === 'professional') {
+            document.body.classList.add('theme-pro', 'dark-mode');
+            this.updateDarkModeIcons(true);
+        }
+        this.updateThemeStyleIcons(style);
+    },
+
+    toggleThemeStyle() {
+        // Smooth transition class
+        document.body.classList.add('theme-transitioning');
+        setTimeout(() => document.body.classList.remove('theme-transitioning'), 500);
+
+        const isPro = document.body.classList.contains('theme-pro');
+        if (isPro) {
+            // Switch to playful — remove pro, restore user's dark mode preference
+            document.body.classList.remove('theme-pro');
+            const wasDark = localStorage.getItem('altech_dark_mode');
+            const shouldBeDark = wasDark === null ? true : wasDark === 'true';
+            if (!shouldBeDark) {
+                document.body.classList.remove('dark-mode');
+            }
+            localStorage.setItem('altech_theme_style', 'playful');
+            this.updateDarkModeIcons(document.body.classList.contains('dark-mode'));
+            this.updateThemeStyleIcons('playful');
+        } else {
+            // Switch to professional — force dark mode on
+            document.body.classList.add('theme-pro', 'dark-mode');
+            localStorage.setItem('altech_theme_style', 'professional');
+            this.updateDarkModeIcons(true);
+            this.updateThemeStyleIcons('professional');
+        }
+        // Sync preference to cloud
+        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
+            CloudSync.schedulePush();
+        }
+    },
+
+    updateThemeStyleIcons(style) {
+        // Playful = grid icon (current), Professional = sparkle/minimal icon
+        const playfulSVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
+        const proSVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
+        document.querySelectorAll('.theme-style-icon').forEach(icon => {
+            icon.innerHTML = style === 'professional' ? playfulSVG : proSVG;
+        });
+        // Update title tooltips
+        document.querySelectorAll('.theme-style-toggle').forEach(btn => {
+            btn.title = style === 'professional' ? 'Switch to Playful theme' : 'Switch to Professional theme';
+        });
     },
 
     initPlaces() {

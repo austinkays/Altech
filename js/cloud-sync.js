@@ -124,6 +124,7 @@ const CloudSync = (() => {
             reminders: tryParse('altech_reminders'),
             settings: {
                 darkMode: localStorage.getItem('altech_dark_mode') === 'true',
+                themeStyle: localStorage.getItem('altech_theme_style') || 'playful',
             }
         };
     }
@@ -421,6 +422,10 @@ const CloudSync = (() => {
                     if (settingsResult.data.darkMode !== undefined) {
                         localStorage.setItem('altech_dark_mode', settingsResult.data.darkMode);
                         if (typeof App !== 'undefined' && App.loadDarkMode) App.loadDarkMode();
+                    }
+                    if (settingsResult.data.themeStyle) {
+                        localStorage.setItem('altech_theme_style', settingsResult.data.themeStyle);
+                        if (typeof App !== 'undefined' && App.loadThemeStyle) App.loadThemeStyle();
                     }
                 }
 

@@ -1,0 +1,309 @@
+/* ═══════════════════════════════════════════════════════
+   Professional Theme — Apple-esque minimal UI
+   Activated by body.theme-pro (dark-mode must also be on)
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Force dark mode variables for pro theme ── */
+body.theme-pro {
+    --bg: #000000;
+    --bg-card: #1C1C1E;
+    --bg-input: #2C2C2E;
+    --text: #F5F5F7;
+    --text-secondary: #86868B;
+    --border: rgba(255, 255, 255, 0.08);
+    --shadow: none;
+    --apple-blue: #0A84FF;
+    --apple-blue-hover: #409CFF;
+    --success: #30D158;
+    --danger: #FF453A;
+}
+
+/* ── Landing page — kill all aurora / gradient backgrounds ── */
+body.theme-pro .landing-page,
+body.theme-pro.dark-mode .landing-page {
+    background: #000000 !important;
+}
+body.theme-pro .landing-page::before,
+body.theme-pro .landing-page::after {
+    display: none !important;
+}
+
+/* ── Header pill — clean glass panel ── */
+body.theme-pro .landing-header-pill,
+body.theme-pro.dark-mode .landing-header-pill {
+    background: rgba(28, 28, 30, 0.75);
+    backdrop-filter: blur(40px) saturate(1.2);
+    -webkit-backdrop-filter: blur(40px) saturate(1.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+body.theme-pro .landing-header-pill::before {
+    display: none !important;
+}
+
+/* ── Brand text — clean white, no shimmer ── */
+body.theme-pro .landing-brand-name,
+body.theme-pro.dark-mode .landing-brand-name {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    -webkit-text-fill-color: #F5F5F7 !important;
+    background-clip: unset !important;
+    animation: none !important;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+body.theme-pro .landing-brand-tagline,
+body.theme-pro.dark-mode .landing-brand-tagline {
+    color: #86868B !important;
+}
+body.theme-pro .landing-greeting,
+body.theme-pro.dark-mode .landing-header-right .landing-greeting {
+    color: #86868B !important;
+}
+
+/* ── Bento category labels ── */
+body.theme-pro .bento-label,
+body.theme-pro.dark-mode .bento-label {
+    color: #86868B !important;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    font-size: 11px;
+}
+
+/* ══════════════════════════════════════════
+   Tool Cards — crisp glass panels
+   ══════════════════════════════════════════ */
+body.theme-pro .tool-row,
+body.theme-pro.dark-mode .tool-row {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    box-shadow: none;
+    transform-style: flat;
+}
+body.theme-pro .tool-row:hover,
+body.theme-pro.dark-mode .tool-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.14);
+    transform: translateY(-4px) scale(1.02) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+body.theme-pro .tool-row:active {
+    transform: translateY(-1px) scale(0.98) !important;
+    box-shadow: none;
+}
+
+/* Kill the shine/gloss overlay */
+body.theme-pro .tool-row::after {
+    display: none !important;
+}
+
+/* ── Tool titles ── */
+body.theme-pro .tool-row .tool-title {
+    color: #F5F5F7;
+    font-weight: 600;
+}
+
+/* ══════════════════════════════════════════
+   Tool Icons — monochromatic, no gradient squares
+   ══════════════════════════════════════════ */
+body.theme-pro .tool-icon,
+body.theme-pro .tool-icon[class*="icon-"] {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    box-shadow: none !important;
+    filter: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+}
+body.theme-pro .tool-row:hover .tool-icon,
+body.theme-pro .tool-row:hover .tool-icon[class*="icon-"] {
+    background: rgba(255, 255, 255, 0.10) !important;
+    color: #FFFFFF !important;
+    transform: scale(1.06) !important;
+    box-shadow: none !important;
+    filter: none !important;
+}
+
+/* ══════════════════════════════════════════
+   Inner page cards (.card) — clean panels
+   ══════════════════════════════════════════ */
+body.theme-pro .card {
+    background: #1C1C1E;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+    border-radius: 16px;
+}
+body.theme-pro .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ── Legacy tool-card ── */
+body.theme-pro .tool-card {
+    background: #1C1C1E;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+}
+body.theme-pro .tool-card::before {
+    display: none;
+}
+body.theme-pro .tool-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* ══════════════════════════════════════════
+   Header bar (quoting tool) — clean
+   ══════════════════════════════════════════ */
+body.theme-pro header .header-top {
+    background: rgba(28, 28, 30, 0.85);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+body.theme-pro .progress-fill {
+    background: var(--apple-blue);
+    box-shadow: none;
+}
+body.theme-pro .progress-track {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* ══════════════════════════════════════════
+   Buttons — crisp, flat
+   ══════════════════════════════════════════ */
+body.theme-pro .btn-primary,
+body.theme-pro .btn {
+    border-radius: 12px;
+    box-shadow: none;
+    font-weight: 600;
+}
+
+/* ── Form inputs ── */
+body.theme-pro input,
+body.theme-pro select,
+body.theme-pro textarea {
+    background: #2C2C2E;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #F5F5F7;
+    border-radius: 10px;
+}
+body.theme-pro input:focus,
+body.theme-pro select:focus,
+body.theme-pro textarea:focus {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+}
+body.theme-pro input::placeholder,
+body.theme-pro textarea::placeholder {
+    color: #48484A;
+}
+
+/* ══════════════════════════════════════════
+   Dark mode toggle & theme toggle — pro style
+   ══════════════════════════════════════════ */
+body.theme-pro .dark-mode-toggle,
+body.theme-pro .landing-theme-toggle {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #86868B;
+}
+body.theme-pro .dark-mode-toggle:hover,
+body.theme-pro .landing-theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #F5F5F7;
+}
+
+/* ── Theme style toggle button ── */
+.theme-style-toggle {
+    background: rgba(0, 60, 140, 0.06);
+    border: 1px solid rgba(0, 60, 140, 0.08);
+    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+    position: relative;
+    z-index: 2;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+.theme-style-toggle:hover {
+    background: rgba(0, 60, 140, 0.12);
+}
+body.dark-mode .theme-style-toggle {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+body.dark-mode .theme-style-toggle:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+body.theme-pro .theme-style-toggle {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #86868B;
+}
+body.theme-pro .theme-style-toggle:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #F5F5F7;
+}
+
+/* ══════════════════════════════════════════
+   Auth modal — pro glass
+   ══════════════════════════════════════════ */
+body.theme-pro .auth-modal-content {
+    background: #1C1C1E;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+
+/* ══════════════════════════════════════════
+   Toasts — subtle
+   ══════════════════════════════════════════ */
+body.theme-pro .toast {
+    background: #2C2C2E;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #F5F5F7;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ══════════════════════════════════════════
+   Badge overrides
+   ══════════════════════════════════════════ */
+body.theme-pro .tool-badge.badge-ready {
+    background: rgba(48, 209, 88, 0.12);
+    color: #30D158;
+}
+
+/* ══════════════════════════════════════════
+   Scrollbar — minimal
+   ══════════════════════════════════════════ */
+body.theme-pro ::-webkit-scrollbar {
+    width: 6px;
+}
+body.theme-pro ::-webkit-scrollbar-track {
+    background: transparent;
+}
+body.theme-pro ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+body.theme-pro ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ══════════════════════════════════════════
+   Transition for switching themes
+   ══════════════════════════════════════════ */
+body.theme-transitioning,
+body.theme-transitioning * {
+    transition-duration: 0.4s !important;
+}

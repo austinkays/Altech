@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="css/quote-compare.css">
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/theme-professional.css">
     <link rel="stylesheet" href="css/reminders.css">
     <link rel="stylesheet" href="css/hawksoft.css">
     <link rel="stylesheet" href="css/vin-decoder.css">
@@ -190,6 +191,9 @@
                     <button class="dark-mode-toggle landing-theme-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
                         <span class="dark-mode-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
                     </button>
+                    <button class="theme-style-toggle landing-theme-toggle" onclick="App.toggleThemeStyle()" title="Toggle theme style" aria-label="Toggle theme style">
+                        <span class="theme-style-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+                    </button>
                     <button id="authUserBtn" class="auth-user-btn" onclick="Auth.showModal()" title="Sign in to sync across devices" aria-label="Account">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     </button>
@@ -240,6 +244,9 @@
                     </a>
                     <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
                         <span class="dark-mode-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+                    </button>
+                    <button class="theme-style-toggle" onclick="App.toggleThemeStyle()" title="Toggle theme style" aria-label="Toggle theme style">
+                        <span class="theme-style-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
                     </button>
                 </span>
                 <span>Insurance Intake</span>
@@ -2379,6 +2386,7 @@
         window.onload = async () => {
             // Apply dark mode preference FIRST — before any tool rendering
             App.loadDarkMode();
+            App.loadThemeStyle();
 
             // Initialize cloud sync (non-blocking), then load Places API (needs Auth for key fetch)
             if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.sdkLoaded) {
