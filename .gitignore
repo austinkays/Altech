@@ -1,5 +1,6 @@
 # Documentation and reference files
 *.pdf
+!Resources/ACORD 25 fillable.pdf
 *.xls
 *.xlsx
 *.doc
