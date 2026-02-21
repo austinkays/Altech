@@ -2616,9 +2616,9 @@ async function scrapePage() {
         }
     }
 
-    // ── 3c. DEPENDENT SEQUENCE: Industry → Occupation ("Retired" auto-fill hack) ──
-    // Temporarily "fill" Industry with "Retired" to unlock the Occupation list,
-    // scrape both option sets, then restore Industry to blank.
+    // ── 3c. DEPENDENT SEQUENCE: Industry → Occupation (uses existing filler logic) ──
+    // Use fillCustomDropdown to set Industry to "Retired", which unlocks Occupation.
+    // Scrape both option sets, then restore Industry to blank.
     result.dependentSequence = { industry: null, occupation: null, triggered: false };
 
     // Helper: returns true if a mat-option is blank / placeholder
@@ -2633,14 +2633,13 @@ async function scrapePage() {
     const industryEl = document.querySelector("mat-select[formcontrolname='industry']");
 
     if (industryEl && isVisible(industryEl)) {
-        console.log('[Altech Scraper] Found Industry dropdown — starting "Retired" auto-fill hack...');
+        console.log('[Altech Scraper] Found Industry dropdown — scraping options then auto-filling "Retired"...');
 
         let industryOptions = [];
-        let triggerText = null;
         let sequenceFailed = false;
 
+        // 1. Scrape Industry options first (open → read → close)
         try {
-            // 1. Force-open Industry and scrape all options
             industryEl.click();
             await wait(800);
 
@@ -2661,31 +2660,32 @@ async function scrapePage() {
 
             console.log(`[Altech Scraper] Industry: ${allOptEls.length} total options, ${industryOptions.length} valid`);
 
-            // 2. Find the "Retired" mat-option (case-insensitive) and click it
-            const retiredOpt = allOptEls.find(el => {
-                const t = (el.textContent || '').trim().toLowerCase();
-                return t === 'retired' || t.includes('retired');
-            });
-
-            if (retiredOpt) {
-                triggerText = retiredOpt.textContent.trim();
-                retiredOpt.click();   // Standard .click() — Angular picks it up
-                console.log(`[Altech Scraper] Auto-filled Industry with "${triggerText}"`);
-            } else {
-                console.warn('[Altech Scraper] "Retired" option not found in Industry — aborting sequence');
-                industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-                sequenceFailed = true;
-            }
+            // Close without selecting
+            industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            await wait(200);
         } catch (e) {
-            console.warn('[Altech Scraper] Industry open/select failed:', e.message);
+            console.warn('[Altech Scraper] Industry scrape failed:', e.message);
             nukeOverlays();
+        }
+
+        // 2. Use existing fillCustomDropdown to set Industry to "Retired"
+        const filled = await fillCustomDropdown(
+            BASE_DROPDOWN_LABELS.Industry || ['occupation industry', 'industry'],
+            'Retired',
+            'Industry'
+        );
+
+        if (filled) {
+            console.log('[Altech Scraper] fillCustomDropdown set Industry to "Retired" — waiting for Occupation XHR...');
+        } else {
+            console.warn('[Altech Scraper] fillCustomDropdown failed for Industry "Retired" — aborting sequence');
             sequenceFailed = true;
         }
 
         result.dependentSequence.industry = {
             options: industryOptions,
             optionCount: industryOptions.length,
-            triggerValue: triggerText
+            triggerValue: filled ? 'Retired' : null
         };
 
         const industryLabel = findLabelFor(industryEl) || 'Industry';
@@ -2698,7 +2698,7 @@ async function scrapePage() {
             currentValue: ''
         };
 
-        if (triggerText && !sequenceFailed) {
+        if (filled && !sequenceFailed) {
             // 3. Wait for backend to unlock Occupation via XHR
             await wait(1500);
 
@@ -2740,7 +2740,7 @@ async function scrapePage() {
                     options: occOptions,
                     optionCount: occOptions.length,
                     dependsOn: 'Industry',
-                    triggerValue: triggerText
+                    triggerValue: 'Retired'
                 };
 
                 const occLabel = findLabelFor(occupationEl) || 'Occupation';
@@ -2768,7 +2768,7 @@ async function scrapePage() {
                     document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
                 );
                 if (restoreOpts.length > 0) {
-                    restoreOpts[0].click();   // First option is the blank/null placeholder
+                    restoreOpts[0].click();   // First option = blank/null placeholder
                     console.log('[Altech Scraper] Restored Industry to first (blank) option');
                     await wait(200);
                 } else {
