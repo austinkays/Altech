@@ -26,12 +26,15 @@
             }
 
             try {
-                await chrome.storage.local.set({ clientData });
+                // Store clientData + isAdmin flag (set by Firebase auth in the web app)
+                const isAdmin = msg.isAdmin === true;
+                await chrome.storage.local.set({ clientData, isAdmin });
                 const fieldCount = Object.values(clientData).filter(v => v && String(v).trim()).length;
                 window.postMessage({
                     type: 'ALTECH_EXTENSION_ACK',
                     success: true,
                     fieldCount,
+                    isAdmin,
                     name: [clientData.FirstName, clientData.LastName].filter(Boolean).join(' ')
                 }, '*');
             } catch (e) {

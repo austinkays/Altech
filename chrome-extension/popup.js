@@ -7,14 +7,12 @@
 
 const $ = id => document.getElementById(id);
 
-// Admin PIN (change this to your desired PIN)
-const ADMIN_PIN = '0000';
-
 // ── Init ──
 document.addEventListener('DOMContentLoaded', async () => {
     await refreshUI();
     checkPage();
     loadStoredPropertyData();
+    await checkAdminStatus();
 
     $('pasteBtn').addEventListener('click', pasteFromClipboard);
     $('fillBtn').addEventListener('click', () => sendFill());
@@ -24,54 +22,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('copyPropBtn').addEventListener('click', copyPropertyToClipboard);
     $('clearPropBtn').addEventListener('click', clearPropertyData);
 
-    // Admin toggle + PIN
+    // Admin toggle — just toggles visibility when already unlocked
     $('adminToggle').addEventListener('click', () => {
-        const pinArea = $('adminPinArea');
         const zone = $('adminZone');
-        // If already unlocked, just toggle visibility
         if (zone.classList.contains('visible')) {
             zone.classList.remove('visible');
             $('adminToggle').textContent = '🔓 Admin Tools';
-            return;
+        } else {
+            zone.classList.add('visible');
+            $('adminToggle').textContent = '🔓 Admin Tools ▲';
+            loadSchemaStats();
         }
-        // If PIN area is showing, hide it
-        if (pinArea.style.display !== 'none') {
-            pinArea.style.display = 'none';
-            return;
-        }
-        // Check if already authenticated this session
-        if (sessionStorage.getItem('altechAdmin') === '1') {
-            unlockAdmin();
-            return;
-        }
-        pinArea.style.display = 'block';
-        $('adminPinInput').focus();
-    });
-
-    $('adminPinBtn').addEventListener('click', tryPin);
-    $('adminPinInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') tryPin();
     });
 });
 
-// ── Admin PIN Logic ──
-function tryPin() {
-    const input = $('adminPinInput');
-    if (input.value === ADMIN_PIN) {
-        sessionStorage.setItem('altechAdmin', '1');
-        unlockAdmin();
-    } else {
-        input.value = '';
-        input.style.borderColor = '#ff3b30';
-        input.placeholder = 'Wrong PIN';
-        setTimeout(() => { input.style.borderColor = ''; input.placeholder = 'PIN'; }, 1500);
+// ── Admin Auth (role-based via isAdmin flag from Altech web app) ──
+async function checkAdminStatus() {
+    try {
+        const { isAdmin } = await chrome.storage.local.get('isAdmin');
+        if (isAdmin === true) {
+            unlockAdmin();
+        }
+    } catch (e) {
+        console.warn('[Altech Popup] Could not check admin status:', e.message);
     }
 }
 
 function unlockAdmin() {
-    $('adminPinArea').style.display = 'none';
-    $('adminZone').classList.add('visible');
-    $('adminToggle').textContent = '🔓 Admin Tools';
+    const toggle = $('adminToggle');
+    const zone = $('adminZone');
+    toggle.classList.add('visible');
+    toggle.textContent = '🔓 Admin Tools';
+    zone.classList.add('visible');
     loadSchemaStats();
     // Wire admin buttons (only after unlock)
     $('scrapeBtn').addEventListener('click', scrapeCurrentPage);

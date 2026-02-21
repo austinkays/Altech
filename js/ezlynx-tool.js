@@ -713,7 +713,10 @@ const EZLynxTool = {
                 window.removeEventListener('message', handler);
                 reject(new Error('Bridge timeout — extension may not be responding'));
             }, 2000);
-            window.postMessage({ type: 'ALTECH_CLIENT_DATA', clientData }, '*');
+            // Include isAdmin flag — bridge stores it for popup to auto-unlock admin tools
+            const user = typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser;
+            const isAdmin = user?.email === 'austin@altechinsurance.com';
+            window.postMessage({ type: 'ALTECH_CLIENT_DATA', clientData, isAdmin }, '*');
         });
     },
 

@@ -497,8 +497,172 @@ function setInputValue(el, value) {
 
 
 // ═══════════════════════════════════════════════════════════════
-// §6  PAGE DETECTION
+// §5.5  YES/NO TOGGLE FILLER (activates hidden Angular sections)
 // ═══════════════════════════════════════════════════════════════
+
+/**
+ * Map of clientData boolean/yes-no keys → label search patterns on EZLynx.
+ * Each entry: labels (to locate the toggle), trueValues (data values meaning "on").
+ */
+const TOGGLE_MAP = {
+    Pool:               { labels: ['swimming pool', 'pool'], trueValues: ['yes', 'in ground', 'in-ground', 'above ground', 'true'] },
+    Trampoline:         { labels: ['trampoline'], trueValues: ['yes', 'true'] },
+    WoodStove:          { labels: ['wood stove', 'wood burning stove', 'wood burning'], trueValues: ['yes', 'true'] },
+    CoApplicant:        { labels: ['co-applicant', 'coapplicant', 'co applicant', 'is there a co-applicant'], trueValues: ['yes', 'true'] },
+    PriorInsurance:     { labels: ['prior insurance', 'currently insured', 'prior coverage'], trueValues: ['yes', 'true'] },
+    SR22Required:       { labels: ['sr-22', 'sr22', 'sr-22 required'], trueValues: ['yes', 'true'] },
+    GoodStudent:        { labels: ['good student'], trueValues: ['yes', 'true'] },
+    DogOnPremises:      { labels: ['dog', 'dog on premises', 'aggressive dog', 'animal'], trueValues: ['yes', 'true'] },
+    BusinessOnPremises: { labels: ['business on premises', 'home business', 'business conducted'], trueValues: ['yes', 'true'] },
+    Smoker:             { labels: ['smoker', 'tobacco', 'tobacco user'], trueValues: ['yes', 'true'] },
+    DayCare:            { labels: ['day care', 'daycare', 'child care', 'childcare'], trueValues: ['yes', 'true'] },
+    Farming:            { labels: ['farming', 'farm activities', 'farm use'], trueValues: ['yes', 'true'] },
+    Fence:              { labels: ['fence', 'fenced'], trueValues: ['yes', 'true'] },
+    DeadBolts:          { labels: ['dead bolt', 'deadbolt', 'dead bolts'], trueValues: ['yes', 'true'] },
+    GatedCommunity:     { labels: ['gated community', 'gated'], trueValues: ['yes', 'true'] },
+    NewPurchase:        { labels: ['new purchase', 'newly purchased', 'recent purchase'], trueValues: ['yes', 'true'] },
+    MultiPolicy:        { labels: ['multi-policy', 'multipolicy', 'multi policy', 'package discount'], trueValues: ['yes', 'true'] },
+};
+
+/**
+ * Find a mat-slide-toggle, mat-checkbox, or mat-radio-button (Yes option)
+ * near a label matching the given patterns.
+ * Returns { element, type, isActive } or null.
+ */
+function findToggleByLabel(labelPatterns) {
+    const norm = s => (s || '').replace(/[*:]/g, '').trim().toLowerCase();
+
+    for (const pattern of labelPatterns) {
+        const pat = pattern.toLowerCase();
+
+        // Search mat-slide-toggles
+        for (const toggle of document.querySelectorAll('mat-slide-toggle, [class*="mat-slide-toggle"]')) {
+            if (!isVisible(toggle)) continue;
+            const text = norm(toggle.textContent);
+            if (text.includes(pat) || pat.includes(text)) {
+                const isActive = toggle.classList.contains('mat-checked') ||
+                                 toggle.classList.contains('mat-mdc-slide-toggle-checked') ||
+                                 toggle.querySelector('input[type="checkbox"]')?.checked || false;
+                return { element: toggle, type: 'mat-slide-toggle', isActive };
+            }
+        }
+
+        // Search mat-checkbox (some yes/no fields use checkboxes)
+        for (const cb of document.querySelectorAll('mat-checkbox, [class*="mat-checkbox"]')) {
+            if (!isVisible(cb)) continue;
+            const text = norm(cb.textContent);
+            if (text.includes(pat) || pat.includes(text)) {
+                const isActive = cb.classList.contains('mat-checkbox-checked') ||
+                                 cb.classList.contains('mat-mdc-checkbox-checked') ||
+                                 cb.querySelector('input[type="checkbox"]')?.checked || false;
+                return { element: cb, type: 'mat-checkbox', isActive };
+            }
+        }
+
+        // Search labels near mat-radio-buttons (for Yes/No radio pairs)
+        for (const lbl of document.querySelectorAll('label, legend, [class*="label"], .mat-form-field-label')) {
+            const text = norm(lbl.textContent);
+            if (!text || text.length > 60) continue;
+            if (!text.includes(pat) && !pat.includes(text)) continue;
+
+            const container = lbl.closest(
+                '.mat-form-field, fieldset, .form-group, [class*="form-field"], ' +
+                '[class*="form-group"], .field-wrapper, .col, [class*="col-"]'
+            ) || lbl.parentElement;
+
+            if (container) {
+                const radios = container.querySelectorAll('mat-radio-button, [class*="mat-radio-button"]');
+                if (radios.length > 0) {
+                    // Find the "Yes" radio
+                    for (const radio of radios) {
+                        const radioText = norm(radio.textContent);
+                        if (radioText === 'yes' || radioText.includes('yes')) {
+                            const isActive = radio.classList.contains('mat-radio-checked') ||
+                                             radio.classList.contains('mat-mdc-radio-checked');
+                            return { element: radio, type: 'mat-radio-button', isActive };
+                        }
+                    }
+                }
+            }
+        }
+
+        // Also search native checkboxes near matching labels
+        for (const lbl of document.querySelectorAll('label')) {
+            const text = norm(lbl.textContent);
+            if (!text || text.length > 60) continue;
+            if (!text.includes(pat) && !pat.includes(text)) continue;
+
+            const forId = lbl.getAttribute('for') || lbl.htmlFor;
+            if (forId) {
+                const el = document.getElementById(forId);
+                if (el && el.type === 'checkbox' && isVisible(el)) {
+                    return { element: el, type: 'native-checkbox', isActive: el.checked };
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Click a toggle/checkbox/radio to its desired state.
+ */
+function clickToggle(found) {
+    if (found.type === 'mat-slide-toggle') {
+        const input = found.element.querySelector('input[type="checkbox"]');
+        if (input) input.click();
+        else found.element.click();
+    } else if (found.type === 'mat-checkbox') {
+        const input = found.element.querySelector('input[type="checkbox"]');
+        if (input) input.click();
+        else found.element.click();
+    } else if (found.type === 'mat-radio-button') {
+        const input = found.element.querySelector('input[type="radio"]');
+        if (input) input.click();
+        else found.element.click();
+    } else if (found.type === 'native-checkbox') {
+        found.element.click();
+    }
+}
+
+/**
+ * Fill Yes/No toggles BEFORE text/dropdown fields.
+ * Clicks toggles to reveal hidden Angular sections so their fields
+ * are present in the DOM when fillText/fillCustomDropdown runs.
+ */
+async function fillYesNoToggles(smartData, report) {
+    updateToolbarStatus('Activating Yes/No toggles...');
+
+    for (const [key, config] of Object.entries(TOGGLE_MAP)) {
+        const value = smartData[key];
+        if (!value) continue;
+
+        const shouldBeOn = config.trueValues.includes(String(value).toLowerCase());
+        if (!shouldBeOn) continue; // Only activate toggles, never deactivate
+
+        const found = findToggleByLabel(config.labels);
+        if (!found) {
+            report.details.push({ field: key, type: 'toggle', status: 'SKIP', value, reason: 'Toggle not found on page' });
+            continue;
+        }
+
+        if (found.isActive) {
+            report.details.push({ field: key, type: 'toggle', status: 'OK', value, reason: 'Already active' });
+            continue;
+        }
+
+        // Click the toggle to activate it
+        updateToolbarStatus(`Toggle: ${key}...`);
+        clickToggle(found);
+
+        // Wait for Angular to render the newly revealed fields
+        await wait(500);
+
+        report.details.push({ field: key, type: 'toggle', status: 'OK', value });
+        report.textFilled++; // Count toggles as filled fields
+    }
+}
 
 function detectPage() {
     const url = location.href.toLowerCase();
@@ -1172,6 +1336,9 @@ async function fillPage(clientData) {
             }
         }
     }
+
+    // ── Yes/No toggles (reveal hidden Angular sections FIRST) ──
+    await fillYesNoToggles(smartData, report);
 
     // ── Text fields ──
     updateToolbarStatus('Filling text fields...');
@@ -1967,6 +2134,195 @@ async function scrapePage() {
         result.stats.totalCustomDropdowns++;
         result.stats.totalOptions += options.length;
     }
+
+    // ── 4. DEEP SCRAPE: Toggle inactive controls to reveal hidden fields ──
+    // Click every inactive toggle/checkbox, wait for Angular to render,
+    // scrape newly revealed fields, then restore the original state.
+    result.deepScrape = { revealedFields: [], togglesExpanded: 0 };
+
+    // Collect all inactive toggles and checkboxes
+    const inactiveToggles = [];
+
+    // mat-slide-toggles that are OFF
+    for (const toggle of document.querySelectorAll('mat-slide-toggle, [class*="mat-slide-toggle"]')) {
+        if (!isVisible(toggle)) continue;
+        if (toggle.classList.contains('mat-disabled')) continue;
+        const isChecked = toggle.classList.contains('mat-checked') ||
+                          toggle.classList.contains('mat-mdc-slide-toggle-checked') ||
+                          toggle.querySelector('input[type="checkbox"]')?.checked || false;
+        if (!isChecked) {
+            const label = toggle.querySelector('.mat-slide-toggle-content, .mdc-label, label')?.textContent?.trim()
+                || toggle.textContent?.trim() || '';
+            inactiveToggles.push({ element: toggle, type: 'mat-slide-toggle', label });
+        }
+    }
+
+    // mat-checkboxes that are OFF
+    for (const cb of document.querySelectorAll('mat-checkbox, [class*="mat-checkbox"]')) {
+        if (!isVisible(cb)) continue;
+        if (cb.classList.contains('mat-checkbox-disabled')) continue;
+        const isChecked = cb.classList.contains('mat-checkbox-checked') ||
+                          cb.classList.contains('mat-mdc-checkbox-checked') ||
+                          cb.querySelector('input[type="checkbox"]')?.checked || false;
+        if (!isChecked) {
+            const label = cb.querySelector('.mat-checkbox-label, .mdc-label, label')?.textContent?.trim()
+                || cb.textContent?.trim() || '';
+            inactiveToggles.push({ element: cb, type: 'mat-checkbox', label });
+        }
+    }
+
+    // mat-radio-button groups — find "Yes" options that are not selected
+    const processedRadioGroups = new Set();
+    for (const lbl of document.querySelectorAll('label, legend, [class*="label"]')) {
+        const container = lbl.closest(
+            '.mat-form-field, fieldset, .form-group, [class*="form-field"], ' +
+            '[class*="form-group"], .field-wrapper, .col, [class*="col-"]'
+        ) || lbl.parentElement;
+        if (!container) continue;
+        // Avoid processing the same container twice
+        if (processedRadioGroups.has(container)) continue;
+
+        const radios = container.querySelectorAll('mat-radio-button, [class*="mat-radio-button"]');
+        if (radios.length < 2) continue;
+        processedRadioGroups.add(container);
+
+        // Find "Yes" radio that is NOT currently selected
+        for (const radio of radios) {
+            const radioText = (radio.textContent || '').trim().toLowerCase();
+            if (radioText === 'yes' || radioText.includes('yes')) {
+                const isActive = radio.classList.contains('mat-radio-checked') ||
+                                 radio.classList.contains('mat-mdc-radio-checked');
+                if (!isActive) {
+                    const groupLabel = lbl.textContent?.replace(/[*:]/g, '').trim() || '';
+                    inactiveToggles.push({ element: radio, type: 'mat-radio-button', label: groupLabel });
+                }
+                break;
+            }
+        }
+    }
+
+    console.log(`[Altech Deep Scrape] Found ${inactiveToggles.length} inactive toggles to expand`);
+
+    // Snapshot existing field IDs/names before expansion
+    const existingFieldIds = new Set();
+    document.querySelectorAll('input, select, textarea, mat-select').forEach(el => {
+        if (el.id) existingFieldIds.add(el.id);
+        if (el.name) existingFieldIds.add(el.name);
+    });
+
+    // Click each inactive toggle, scrape new fields, then click back
+    for (const item of inactiveToggles) {
+        try {
+            // Click to activate
+            const input = item.element.querySelector('input[type="checkbox"], input[type="radio"]');
+            if (input) input.click();
+            else item.element.click();
+
+            await wait(500); // Let Angular render
+
+            // Scrape any newly-appeared fields
+            const newInputs = document.querySelectorAll('input, textarea');
+            for (const inp of newInputs) {
+                if (!isVisible(inp)) continue;
+                if (['hidden', 'submit', 'button', 'reset', 'file', 'checkbox', 'radio'].includes(inp.type)) continue;
+                if (inp.id && existingFieldIds.has(inp.id)) continue;
+                if (inp.name && existingFieldIds.has(inp.name)) continue;
+
+                const fieldLabel = findLabelFor(inp);
+                result.deepScrape.revealedFields.push({
+                    revealedBy: item.label,
+                    type: inp.type || 'text',
+                    name: inp.name || '',
+                    id: inp.id || '',
+                    label: fieldLabel || '',
+                    placeholder: inp.placeholder || '',
+                    required: inp.required || inp.getAttribute('aria-required') === 'true'
+                });
+                // Track so we don't re-add
+                if (inp.id) existingFieldIds.add(inp.id);
+                if (inp.name) existingFieldIds.add(inp.name);
+            }
+
+            // Also scrape any new dropdowns (native + Angular Material)
+            const newSelects = document.querySelectorAll('select');
+            for (const sel of newSelects) {
+                if (!isVisible(sel)) continue;
+                const selKey = sel.name || sel.id;
+                if (selKey && existingFieldIds.has(selKey)) continue;
+
+                const selLabel = findLabelFor(sel);
+                const options = Array.from(sel.options)
+                    .map(o => o.text.trim())
+                    .filter(t => t && !['', 'select', 'select one', '-- select --', '--select--', 'choose'].includes(t.toLowerCase()));
+
+                if (options.length > 0) {
+                    const key = selLabel || selKey || `revealed_select_${result.deepScrape.revealedFields.length}`;
+                    result.nativeSelects[key] = {
+                        name: sel.name || '', id: sel.id || '', label: selLabel || '',
+                        options, currentValue: '', required: sel.required,
+                        revealedBy: item.label
+                    };
+                    result.stats.totalNativeSelects++;
+                    result.stats.totalOptions += options.length;
+                }
+                if (sel.id) existingFieldIds.add(sel.id);
+                if (sel.name) existingFieldIds.add(sel.name);
+            }
+
+            const newMatSelects = document.querySelectorAll('mat-select, [role="listbox"], [role="combobox"]');
+            for (const ms of newMatSelects) {
+                if (!isVisible(ms)) continue;
+                const msKey = ms.id || ms.getAttribute('aria-label');
+                if (msKey && existingFieldIds.has(msKey)) continue;
+
+                const msLabel = findLabelFor(ms);
+                result.deepScrape.revealedFields.push({
+                    revealedBy: item.label,
+                    type: 'mat-select',
+                    id: ms.id || '',
+                    label: msLabel || '',
+                    ariaLabel: ms.getAttribute('aria-label') || ''
+                });
+                if (ms.id) existingFieldIds.add(ms.id);
+            }
+
+            result.deepScrape.togglesExpanded++;
+
+            // Click back to restore original state
+            if (item.type === 'mat-radio-button') {
+                // For radios, find and click the "No" or first non-Yes option to deselect
+                const container = item.element.closest(
+                    '.mat-form-field, fieldset, .form-group, [class*="form-field"], ' +
+                    '[class*="form-group"], .field-wrapper, .col, [class*="col-"]'
+                ) || item.element.parentElement;
+                if (container) {
+                    const radios = container.querySelectorAll('mat-radio-button, [class*="mat-radio-button"]');
+                    for (const radio of radios) {
+                        const radioText = (radio.textContent || '').trim().toLowerCase();
+                        if (radioText === 'no' || radioText.includes('no')) {
+                            const noInput = radio.querySelector('input[type="radio"]');
+                            if (noInput) noInput.click();
+                            else radio.click();
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // Toggles/checkboxes: click again to deactivate
+                if (input) input.click();
+                else item.element.click();
+            }
+
+            await wait(300); // Let Angular tear down the section
+
+        } catch (e) {
+            console.warn(`[Altech Deep Scrape] Error expanding toggle "${item.label}":`, e.message);
+        }
+    }
+
+    result.stats.deepScrapeToggles = inactiveToggles.length;
+    result.stats.deepScrapeRevealed = result.deepScrape.revealedFields.length;
+    console.log(`[Altech Deep Scrape] Expanded ${result.deepScrape.togglesExpanded} toggles, found ${result.deepScrape.revealedFields.length} hidden fields`);
 
     // ── Final cleanup: nuke all overlays and reset page state ──
     nukeOverlays();
