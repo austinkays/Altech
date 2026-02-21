@@ -104,6 +104,17 @@ const Auth = (() => {
             _isAdmin = user.email === 'austin@altechinsurance.com';
             _isBlocked = false;
         }
+
+        // Update admin UI sections if modal is already open (handles async timing)
+        _refreshAdminVisibility();
+    }
+
+    /** Show/hide admin-only sections based on current _isAdmin state */
+    function _refreshAdminVisibility() {
+        const inviteSection = document.getElementById('authInviteSection');
+        if (inviteSection) inviteSection.style.display = _isAdmin ? '' : 'none';
+        const adminSection = document.getElementById('authAdminSection');
+        if (adminSection) adminSection.style.display = _isAdmin ? '' : 'none';
     }
 
     // ── Header UI ──
@@ -302,10 +313,7 @@ const Auth = (() => {
                 if (avatarEl) avatarEl.textContent = (_user.displayName || _user.email || '?')[0].toUpperCase();
 
                 // Only admins can see the "Invite Your Team" and admin panel sections
-                const inviteSection = document.getElementById('authInviteSection');
-                if (inviteSection) inviteSection.style.display = Auth.isAdmin ? '' : 'none';
-                const adminSection = document.getElementById('authAdminSection');
-                if (adminSection) adminSection.style.display = Auth.isAdmin ? '' : 'none';
+                _refreshAdminVisibility();
             } else {
                 _showView('login');
             }
