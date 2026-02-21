@@ -14,7 +14,7 @@
  *   GITHUB_ISSUES_TOKEN — GitHub PAT with Issues write scope
  */
 
-import { securityMiddleware, verifyFirebaseToken, sanitizeInput } from './_security.js';
+import { securityMiddleware, verifyFirebaseToken, sanitizeInput } from '../lib/security.js';
 
 // ── Firebase Config ─────────────────────────────────────────────────────
 

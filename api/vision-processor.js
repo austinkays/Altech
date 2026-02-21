@@ -15,7 +15,7 @@
  * Uses REST API directly (no SDK dependencies needed)
  */
 
-import { securityMiddleware } from './_security.js';
+import { securityMiddleware } from '../lib/security.js';
 
 const GEMINI_API_KEY = (process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '').trim();
 const GEMINI_MODEL = 'gemini-2.5-flash';

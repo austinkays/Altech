@@ -9,7 +9,7 @@
  * Routes requests based on 'type' query parameter: li, sos, or osha
  */
 
-import { securityMiddleware } from './_security.js';
+import { securityMiddleware } from '../lib/security.js';
 
 /**
  * Main handler function

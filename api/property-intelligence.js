@@ -7,7 +7,7 @@
  */
 
 import { readFileSync } from 'fs';
-import { securityMiddleware } from './_security.js';
+import { securityMiddleware } from '../lib/security.js';
 
 // Helper: resolve Google API key from environment variables only
 // Used for Gemini AI calls (generative language API)

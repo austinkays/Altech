@@ -1,5 +1,5 @@
 // Dynamic import — @google/generative-ai may not be installed
-import { securityMiddleware } from './_security.js';
+import { securityMiddleware } from '../lib/security.js';
 let GoogleGenerativeAI;
 
 /**

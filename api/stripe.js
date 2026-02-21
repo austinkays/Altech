@@ -16,7 +16,7 @@
  */
 
 import Stripe from 'stripe';
-import { securityMiddleware, requireAuth } from './_security.js';
+import { securityMiddleware, requireAuth } from '../lib/security.js';
 
 // ── Checkout Handler ────────────────────────────────────────────────────
 

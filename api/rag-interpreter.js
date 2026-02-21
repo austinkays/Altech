@@ -1,4 +1,4 @@
-import { securityMiddleware } from './_security.js';
+import { securityMiddleware } from '../lib/security.js';
 /**
  * RAG (Retrieval-Augmented Generation) Interpreter
  * 

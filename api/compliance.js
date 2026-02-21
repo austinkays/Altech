@@ -4,7 +4,7 @@
  * Vercel Serverless Function
  */
 
-import { securityMiddleware } from './_security.js';
+import { securityMiddleware } from '../lib/security.js';
 import {
   NON_SYNCING_CARRIERS,
   calculateDaysUntilExpiration,
@@ -14,7 +14,7 @@ import {
   requiresManualVerification,
   isCommercialPolicy,
   getCommercialPolicyType,
-} from './_compliance-utils.js';
+} from '../lib/compliance-utils.js';
 
 async function handler(req, res) {
   if (req.method !== 'GET') {

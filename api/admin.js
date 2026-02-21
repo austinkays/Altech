@@ -11,7 +11,7 @@
  * Requires: FIREBASE_API_KEY env var
  */
 
-import { securityMiddleware, verifyFirebaseToken } from './_security.js';
+import { securityMiddleware, verifyFirebaseToken } from '../lib/security.js';
 
 // ── Firebase Admin-Lite (REST API, no firebase-admin SDK) ──────────────
 

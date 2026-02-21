@@ -23,7 +23,7 @@
  */
 
 import Redis from 'ioredis';
-import { securityMiddleware } from './_security.js';
+import { securityMiddleware } from '../lib/security.js';
 
 // Reuse connection across warm function invocations
 let client = null;

@@ -12,7 +12,7 @@
  * - HTTPS enforced by Vercel
  */
 
-import { securityMiddleware } from './_security.js';
+import { securityMiddleware } from '../lib/security.js';
 
 export const config = {
   api: {
