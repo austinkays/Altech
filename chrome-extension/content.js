@@ -542,6 +542,11 @@ const TOGGLE_MAP = {
 function findToggleByLabel(labelPatterns) {
     const norm = s => (s || '').replace(/[*:]/g, '').trim().toLowerCase();
 
+    // Poison words: if the element's text contains ANY of these, skip it entirely.
+    // This prevents sibling toggles (e.g. "Client Center Access") from hijacking
+    // the match when we're looking for "Co-Applicant".
+    const POISON_WORDS = ['client center', 'clientcenter'];
+
     for (const pattern of labelPatterns) {
         const pat = pattern.toLowerCase();
 
@@ -549,6 +554,7 @@ function findToggleByLabel(labelPatterns) {
         for (const toggle of document.querySelectorAll('mat-slide-toggle, [class*="mat-slide-toggle"]')) {
             if (!isVisible(toggle)) continue;
             const text = norm(toggle.textContent);
+            if (POISON_WORDS.some(pw => text.includes(pw))) continue;
             if (text.includes(pat) || pat.includes(text)) {
                 const isActive = toggle.classList.contains('mat-checked') ||
                                  toggle.classList.contains('mat-mdc-slide-toggle-checked') ||
@@ -561,6 +567,7 @@ function findToggleByLabel(labelPatterns) {
         for (const cb of document.querySelectorAll('mat-checkbox, [class*="mat-checkbox"]')) {
             if (!isVisible(cb)) continue;
             const text = norm(cb.textContent);
+            if (POISON_WORDS.some(pw => text.includes(pw))) continue;
             if (text.includes(pat) || pat.includes(text)) {
                 const isActive = cb.classList.contains('mat-checkbox-checked') ||
                                  cb.classList.contains('mat-mdc-checkbox-checked') ||
@@ -1729,17 +1736,36 @@ async function fillPage(clientData) {
                 console.log('[Altech Filler] Found Co-Applicant container:', coApContainer.className);
 
                 // Step 3: Mark as Co-Applicant (checkbox / toggle / radio)
-                const coApLabelPatterns = ['co-applicant', 'coapplicant', 'make this contact co', 'co applicant', 'type.*co'];
+                // STRICT targeting: must match "co-applicant" AND must NOT contain "client center"
+                const coApLabelPatterns = ['co-applicant', 'coapplicant', 'make this contact co', 'co applicant'];
+                const coApPoisonWords = ['client center', 'clientcenter'];
                 let markedCoAp = false;
 
-                // Try checkboxes / toggles / radio buttons inside the container
-                for (const ctrl of coApContainer.querySelectorAll('mat-checkbox, mat-slide-toggle, mat-radio-button, input[type="checkbox"], input[type="radio"], label')) {
-                    const ctrlText = (ctrl.textContent || ctrl.getAttribute('aria-label') || '').toLowerCase();
-                    if (coApLabelPatterns.some(p => ctrlText.includes(p) || new RegExp(p).test(ctrlText))) {
-                        ctrl.click();
+                // Try mat-slide-toggles first (most common for this field)
+                for (const toggle of coApContainer.querySelectorAll('mat-slide-toggle, [class*="mat-slide-toggle"]')) {
+                    if (!isVisible(toggle)) continue;
+                    const toggleText = (toggle.textContent || '').toLowerCase();
+                    if (coApPoisonWords.some(pw => toggleText.includes(pw))) continue;
+                    if (coApLabelPatterns.some(p => toggleText.includes(p))) {
+                        const input = toggle.querySelector('input[type="checkbox"]');
+                        if (input) input.click(); else toggle.click();
                         markedCoAp = true;
-                        console.log('[Altech Filler] Marked Co-Applicant checkbox/toggle');
+                        console.log('[Altech Filler] Marked Co-Applicant via mat-slide-toggle');
                         break;
+                    }
+                }
+
+                // Fallback: checkboxes / radio buttons inside the container
+                if (!markedCoAp) {
+                    for (const ctrl of coApContainer.querySelectorAll('mat-checkbox, mat-radio-button, input[type="checkbox"], input[type="radio"], label')) {
+                        const ctrlText = (ctrl.textContent || ctrl.getAttribute('aria-label') || '').toLowerCase();
+                        if (coApPoisonWords.some(pw => ctrlText.includes(pw))) continue;
+                        if (coApLabelPatterns.some(p => ctrlText.includes(p))) {
+                            ctrl.click();
+                            markedCoAp = true;
+                            console.log('[Altech Filler] Marked Co-Applicant checkbox/toggle');
+                            break;
+                        }
                     }
                 }
 
@@ -2590,67 +2616,73 @@ async function scrapePage() {
         }
     }
 
-    // ── 3c. DEPENDENT SEQUENCE: Industry → Occupation ──
+    // ── 3c. DEPENDENT SEQUENCE: Industry → Occupation (bulletproof) ──
     // Occupation options depend on the selected Industry value in EZLynx.
-    // Force-select a common Industry, scrape the dependent Occupation list, then restore.
+    // We must select a REAL (non-empty) Industry option, wait for the XHR,
+    // then scrape Occupation, and finally restore Industry to clean state.
     result.dependentSequence = { industry: null, occupation: null, triggered: false };
 
-    let industryEl = document.querySelector("mat-select[formcontrolname='industry']");
-    if (!industryEl) {
-        const found = findDropdownByLabel(BASE_DROPDOWN_LABELS.Industry || ['occupation industry', 'industry']);
-        if (found && found.el && found.type !== 'native') industryEl = found.el;
-    }
+    // Helper: returns true if an option looks like a blank/placeholder
+    const isBlankOption = (el) => {
+        const t = (el.textContent || '').trim();
+        if (!t) return true;
+        const low = t.toLowerCase();
+        return ['', 'select', 'select one', '-- select --', '--select--',
+                'choose', 'none', 'select...', '—'].includes(low) || low.length < 2;
+    };
+
+    const industryEl = document.querySelector("mat-select[formcontrolname='industry']");
 
     if (industryEl && isVisible(industryEl)) {
         console.log('[Altech Scraper] Found Industry dropdown — starting dependent sequence scrape...');
 
-        // Capture original display value so we can restore it
+        // Capture original display value so we can restore later
         const origIndustryText = industryEl.querySelector(
             '.mat-select-value-text, .mat-mdc-select-value-text, [class*="select-value"]'
         )?.textContent?.trim() || '';
 
         let industryOptions = [];
         let triggerText = null;
+        let sequenceFailed = false;
 
         try {
-            // Open Industry
+            // 1. Open Industry mat-select
             industryEl.click();
-            await wait(DROPDOWN_WAIT);
+            await wait(800);
 
-            const panelId = industryEl.getAttribute('aria-owns') || industryEl.getAttribute('aria-controls');
-            let optEls = [];
-            if (panelId) {
-                const panel = document.getElementById(panelId);
-                if (panel) optEls = Array.from(panel.querySelectorAll('mat-option, [role="option"]'));
+            // 2. Collect all mat-option elements from the CDK overlay
+            let allOptEls = Array.from(
+                document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
+            );
+            // Also try aria-owns panel
+            if (allOptEls.length === 0) {
+                const panelId = industryEl.getAttribute('aria-owns') || industryEl.getAttribute('aria-controls');
+                if (panelId) {
+                    const panel = document.getElementById(panelId);
+                    if (panel) allOptEls = Array.from(panel.querySelectorAll('mat-option, [role="option"]'));
+                }
             }
-            if (optEls.length === 0) {
-                const panes = document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane');
-                if (panes.length > 0) optEls = Array.from(panes[panes.length - 1].querySelectorAll('mat-option, [role="option"]'));
-            }
 
-            industryOptions = optEls.map(el => el.textContent.trim())
-                .filter(t => t && !['', 'select', 'select one', '--select--'].includes(t.toLowerCase()));
+            // 3. Filter out blank/placeholder options
+            const validOpts = allOptEls.filter(el => !isBlankOption(el));
+            industryOptions = validOpts.map(el => el.textContent.trim());
 
-            // Pick a trigger value: prefer 'Professional/Technical', then common substantive options
-            const triggerTargets = ['professional/technical', 'professional', 'technology', 'business'];
-            let triggerOpt = null;
-            for (const target of triggerTargets) {
-                triggerOpt = optEls.find(el => el.textContent.trim().toLowerCase().includes(target));
-                if (triggerOpt) break;
-            }
-            // Fallback: pick the second option (first is usually a placeholder)
-            if (!triggerOpt && optEls.length > 1) triggerOpt = optEls[1];
+            console.log(`[Altech Scraper] Industry: ${allOptEls.length} total options, ${validOpts.length} valid`);
 
-            if (triggerOpt) {
-                triggerText = triggerOpt.textContent.trim();
-                triggerOpt.click();
-                await wait(200);
+            // 4. Click the FIRST VALID (non-empty) option
+            if (validOpts.length > 0) {
+                triggerText = validOpts[0].textContent.trim();
+                validOpts[0].click();
+                console.log(`[Altech Scraper] Selected Industry trigger: "${triggerText}"`);
             } else {
-                await closeDropdown(industryEl);
+                console.warn('[Altech Scraper] No valid Industry options found — aborting sequence');
+                industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                sequenceFailed = true;
             }
         } catch (e) {
+            console.warn('[Altech Scraper] Industry open/select failed:', e.message);
             nukeOverlays();
-            await wait(50);
+            sequenceFailed = true;
         }
 
         result.dependentSequence.industry = {
@@ -2659,7 +2691,7 @@ async function scrapePage() {
             triggerValue: triggerText
         };
 
-        // Also update the main dropdowns record for Industry
+        // Update main dropdowns record for Industry
         const industryLabel = findLabelFor(industryEl) || 'Industry';
         result.dropdowns[industryLabel] = {
             ...(result.dropdowns[industryLabel] || {}),
@@ -2670,38 +2702,43 @@ async function scrapePage() {
             currentValue: origIndustryText
         };
 
-        if (triggerText) {
-            // Wait for Angular to populate Occupation based on selected Industry
-            await wait(1000);
+        if (triggerText && !sequenceFailed) {
+            // 5. CRITICAL WAIT — Angular needs time to fetch Occupation via XHR
+            await wait(1500);
 
-            // Find and scrape Occupation
-            let occupationEl = document.querySelector("mat-select[formcontrolname='occupation']");
-            if (!occupationEl) {
-                const found = findDropdownByLabel(BASE_DROPDOWN_LABELS.Occupation || ['occupation title', 'occupation']);
-                if (found && found.el && found.type !== 'native') occupationEl = found.el;
-            }
+            // 6. Open Occupation mat-select
+            const occupationEl = document.querySelector("mat-select[formcontrolname='occupation']");
 
             if (occupationEl && isVisible(occupationEl)) {
                 let occOptions = [];
                 try {
                     occupationEl.click();
-                    await wait(DROPDOWN_WAIT);
-                    const panelId = occupationEl.getAttribute('aria-owns') || occupationEl.getAttribute('aria-controls');
-                    let optEls = [];
-                    if (panelId) {
-                        const panel = document.getElementById(panelId);
-                        if (panel) optEls = Array.from(panel.querySelectorAll('mat-option, [role="option"]'));
+                    await wait(800);
+
+                    // 7. Scrape all mat-option elements from the active overlay
+                    let occOptEls = Array.from(
+                        document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
+                    );
+                    if (occOptEls.length === 0) {
+                        const panelId = occupationEl.getAttribute('aria-owns') || occupationEl.getAttribute('aria-controls');
+                        if (panelId) {
+                            const panel = document.getElementById(panelId);
+                            if (panel) occOptEls = Array.from(panel.querySelectorAll('mat-option, [role="option"]'));
+                        }
                     }
-                    if (optEls.length === 0) {
-                        const panes = document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane');
-                        if (panes.length > 0) optEls = Array.from(panes[panes.length - 1].querySelectorAll('mat-option, [role="option"]'));
-                    }
-                    occOptions = optEls.map(el => el.textContent.trim())
-                        .filter(t => t && !['', 'select', 'select one', '--select--'].includes(t.toLowerCase()));
-                    await closeDropdown(occupationEl);
+
+                    occOptions = occOptEls
+                        .filter(el => !isBlankOption(el))
+                        .map(el => el.textContent.trim());
+
+                    console.log(`[Altech Scraper] Occupation: ${occOptEls.length} total, ${occOptions.length} valid options`);
+
+                    // 8. Close with Escape keydown
+                    occupationEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                    await wait(200);
                 } catch (e) {
+                    console.warn('[Altech Scraper] Occupation open/scrape failed:', e.message);
                     nukeOverlays();
-                    await wait(50);
                 }
 
                 result.dependentSequence.occupation = {
@@ -2722,35 +2759,45 @@ async function scrapePage() {
                     dependsOn: 'Industry'
                 };
                 result.stats.totalOptions += occOptions.length;
+            } else {
+                console.warn('[Altech Scraper] Occupation mat-select not found after Industry trigger');
             }
 
-            // Restore Industry to original value (or clear)
+            // 9. Restore Industry to empty/unselected state
+            nukeOverlays();
+            await wait(100);
             try {
                 industryEl.click();
-                await wait(DROPDOWN_WAIT);
-                const overlaySels = ['.cdk-overlay-container mat-option', '.cdk-overlay-container [role="option"]'];
-                let restoreEls = [];
-                for (const osel of overlaySels) {
-                    const els = document.querySelectorAll(osel);
-                    if (els.length > 0) { restoreEls = Array.from(els); break; }
-                }
+                await wait(800);
+                // Find all options in the overlay and pick the blank/placeholder to clear
+                const restoreOpts = Array.from(
+                    document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
+                );
                 if (origIndustryText) {
-                    const origOpt = restoreEls.find(el => el.textContent.trim() === origIndustryText);
+                    // Restore to original if there was one
+                    const origOpt = restoreOpts.find(el => el.textContent.trim() === origIndustryText);
                     if (origOpt) { origOpt.click(); await wait(200); }
-                    else { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await wait(100); }
+                    else {
+                        // Try the blank/first option to clear
+                        const blank = restoreOpts.find(el => isBlankOption(el));
+                        if (blank) { blank.click(); await wait(200); }
+                        else { industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await wait(100); }
+                    }
                 } else {
-                    // Select placeholder/first to clear
-                    if (restoreEls[0]) { restoreEls[0].click(); await wait(200); }
-                    else { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await wait(100); }
+                    // Was empty — pick blank/placeholder to clear, or first option
+                    const blank = restoreOpts.find(el => isBlankOption(el));
+                    if (blank) { blank.click(); await wait(200); }
+                    else if (restoreOpts[0]) { restoreOpts[0].click(); await wait(200); }
+                    else { industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await wait(100); }
                 }
             } catch (e) {
-                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
             }
         }
 
         nukeOverlays();
         await wait(200);
-        result.dependentSequence.triggered = true;
+        result.dependentSequence.triggered = !sequenceFailed;
 
         console.log(`[Altech Scraper] Dependent sequence: Industry (${industryOptions.length} opts) → Occupation (${result.dependentSequence.occupation?.optionCount || 0} opts)`);
     } else {
