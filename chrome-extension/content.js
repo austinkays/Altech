@@ -2534,6 +2534,229 @@ async function scrapePage() {
         result.stats.totalOptions += options.length;
     }
 
+    // ── 3b. PRIORITY TARGET FORCE-OPEN: Ensure key dropdowns are scraped ──
+    // Some dropdowns (prefix, suffix, driverLicenseState, relationship) use
+    // direct formcontrolname selectors. If the general phase-3 sweep missed them
+    // (e.g. label mismatch), force-open each one here by its PRIORITY_SELECTORS entry.
+    const priorityKeys = Object.keys(PRIORITY_SELECTORS);
+    for (const pKey of priorityKeys) {
+        // Check if already captured under any label in result.dropdowns
+        const alreadyCaptured = Object.values(result.dropdowns).some(d =>
+            d.options && d.options.length > 0 &&
+            (d.label || '').toLowerCase().includes(pKey.toLowerCase())
+        );
+        if (alreadyCaptured) continue;
+
+        const pEl = document.querySelector(PRIORITY_SELECTORS[pKey]);
+        if (!pEl || !isVisible(pEl)) continue;
+
+        const pLabel = findLabelFor(pEl) || pKey;
+        const pCurrent = pEl.querySelector('.mat-select-value-text, .mat-mdc-select-value-text, [class*="select-value"]')?.textContent?.trim() || '';
+
+        let pOptions = [];
+        try {
+            pEl.click();
+            await wait(350);
+            const panelId = pEl.getAttribute('aria-owns') || pEl.getAttribute('aria-controls');
+            let optEls = [];
+            if (panelId) {
+                const panel = document.getElementById(panelId);
+                if (panel) optEls = panel.querySelectorAll('mat-option, [role="option"]');
+            }
+            if (optEls.length === 0) {
+                const panes = document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane');
+                if (panes.length > 0) optEls = panes[panes.length - 1].querySelectorAll('mat-option, [role="option"]');
+            }
+            pOptions = Array.from(optEls).map(el => el.textContent.trim()).filter(t => t && !['', 'select', 'select one', '--select--'].includes(t.toLowerCase()));
+            await closeDropdown(pEl);
+        } catch (e) {
+            nukeOverlays();
+            await wait(50);
+        }
+
+        if (pOptions.length > 0) {
+            result.dropdowns[pLabel] = {
+                id: pEl.id || '',
+                ariaLabel: pEl.getAttribute('aria-label') || '',
+                label: pLabel,
+                options: pOptions,
+                currentValue: pCurrent,
+                optionCount: pOptions.length,
+                source: 'priority-selector'
+            };
+            result.stats.totalCustomDropdowns++;
+            result.stats.totalOptions += pOptions.length;
+            console.log(`[Altech Scraper] Priority target "${pKey}" force-opened: ${pOptions.length} options`);
+        }
+    }
+
+    // ── 3c. DEPENDENT SEQUENCE: Industry → Occupation ──
+    // Occupation options depend on the selected Industry value in EZLynx.
+    // Force-select a common Industry, scrape the dependent Occupation list, then restore.
+    result.dependentSequence = { industry: null, occupation: null, triggered: false };
+
+    let industryEl = document.querySelector("mat-select[formcontrolname='industry']");
+    if (!industryEl) {
+        const found = findDropdownByLabel(BASE_DROPDOWN_LABELS.Industry || ['occupation industry', 'industry']);
+        if (found && found.el && found.type !== 'native') industryEl = found.el;
+    }
+
+    if (industryEl && isVisible(industryEl)) {
+        console.log('[Altech Scraper] Found Industry dropdown — starting dependent sequence scrape...');
+
+        // Capture original display value so we can restore it
+        const origIndustryText = industryEl.querySelector(
+            '.mat-select-value-text, .mat-mdc-select-value-text, [class*="select-value"]'
+        )?.textContent?.trim() || '';
+
+        let industryOptions = [];
+        let triggerText = null;
+
+        try {
+            // Open Industry
+            industryEl.click();
+            await wait(DROPDOWN_WAIT);
+
+            const panelId = industryEl.getAttribute('aria-owns') || industryEl.getAttribute('aria-controls');
+            let optEls = [];
+            if (panelId) {
+                const panel = document.getElementById(panelId);
+                if (panel) optEls = Array.from(panel.querySelectorAll('mat-option, [role="option"]'));
+            }
+            if (optEls.length === 0) {
+                const panes = document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane');
+                if (panes.length > 0) optEls = Array.from(panes[panes.length - 1].querySelectorAll('mat-option, [role="option"]'));
+            }
+
+            industryOptions = optEls.map(el => el.textContent.trim())
+                .filter(t => t && !['', 'select', 'select one', '--select--'].includes(t.toLowerCase()));
+
+            // Pick a trigger value: prefer 'Professional/Technical', then common substantive options
+            const triggerTargets = ['professional/technical', 'professional', 'technology', 'business'];
+            let triggerOpt = null;
+            for (const target of triggerTargets) {
+                triggerOpt = optEls.find(el => el.textContent.trim().toLowerCase().includes(target));
+                if (triggerOpt) break;
+            }
+            // Fallback: pick the second option (first is usually a placeholder)
+            if (!triggerOpt && optEls.length > 1) triggerOpt = optEls[1];
+
+            if (triggerOpt) {
+                triggerText = triggerOpt.textContent.trim();
+                triggerOpt.click();
+                await wait(200);
+            } else {
+                await closeDropdown(industryEl);
+            }
+        } catch (e) {
+            nukeOverlays();
+            await wait(50);
+        }
+
+        result.dependentSequence.industry = {
+            options: industryOptions,
+            optionCount: industryOptions.length,
+            triggerValue: triggerText
+        };
+
+        // Also update the main dropdowns record for Industry
+        const industryLabel = findLabelFor(industryEl) || 'Industry';
+        result.dropdowns[industryLabel] = {
+            ...(result.dropdowns[industryLabel] || {}),
+            id: industryEl.id || '',
+            label: industryLabel,
+            options: industryOptions,
+            optionCount: industryOptions.length,
+            currentValue: origIndustryText
+        };
+
+        if (triggerText) {
+            // Wait for Angular to populate Occupation based on selected Industry
+            await wait(1000);
+
+            // Find and scrape Occupation
+            let occupationEl = document.querySelector("mat-select[formcontrolname='occupation']");
+            if (!occupationEl) {
+                const found = findDropdownByLabel(BASE_DROPDOWN_LABELS.Occupation || ['occupation title', 'occupation']);
+                if (found && found.el && found.type !== 'native') occupationEl = found.el;
+            }
+
+            if (occupationEl && isVisible(occupationEl)) {
+                let occOptions = [];
+                try {
+                    occupationEl.click();
+                    await wait(DROPDOWN_WAIT);
+                    const panelId = occupationEl.getAttribute('aria-owns') || occupationEl.getAttribute('aria-controls');
+                    let optEls = [];
+                    if (panelId) {
+                        const panel = document.getElementById(panelId);
+                        if (panel) optEls = Array.from(panel.querySelectorAll('mat-option, [role="option"]'));
+                    }
+                    if (optEls.length === 0) {
+                        const panes = document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane');
+                        if (panes.length > 0) optEls = Array.from(panes[panes.length - 1].querySelectorAll('mat-option, [role="option"]'));
+                    }
+                    occOptions = optEls.map(el => el.textContent.trim())
+                        .filter(t => t && !['', 'select', 'select one', '--select--'].includes(t.toLowerCase()));
+                    await closeDropdown(occupationEl);
+                } catch (e) {
+                    nukeOverlays();
+                    await wait(50);
+                }
+
+                result.dependentSequence.occupation = {
+                    options: occOptions,
+                    optionCount: occOptions.length,
+                    dependsOn: 'Industry',
+                    triggerValue: triggerText
+                };
+
+                const occLabel = findLabelFor(occupationEl) || 'Occupation';
+                result.dropdowns[occLabel] = {
+                    ...(result.dropdowns[occLabel] || {}),
+                    id: occupationEl.id || '',
+                    label: occLabel,
+                    options: occOptions,
+                    optionCount: occOptions.length,
+                    currentValue: '',
+                    dependsOn: 'Industry'
+                };
+                result.stats.totalOptions += occOptions.length;
+            }
+
+            // Restore Industry to original value (or clear)
+            try {
+                industryEl.click();
+                await wait(DROPDOWN_WAIT);
+                const overlaySels = ['.cdk-overlay-container mat-option', '.cdk-overlay-container [role="option"]'];
+                let restoreEls = [];
+                for (const osel of overlaySels) {
+                    const els = document.querySelectorAll(osel);
+                    if (els.length > 0) { restoreEls = Array.from(els); break; }
+                }
+                if (origIndustryText) {
+                    const origOpt = restoreEls.find(el => el.textContent.trim() === origIndustryText);
+                    if (origOpt) { origOpt.click(); await wait(200); }
+                    else { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await wait(100); }
+                } else {
+                    // Select placeholder/first to clear
+                    if (restoreEls[0]) { restoreEls[0].click(); await wait(200); }
+                    else { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await wait(100); }
+                }
+            } catch (e) {
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            }
+        }
+
+        nukeOverlays();
+        await wait(200);
+        result.dependentSequence.triggered = true;
+
+        console.log(`[Altech Scraper] Dependent sequence: Industry (${industryOptions.length} opts) → Occupation (${result.dependentSequence.occupation?.optionCount || 0} opts)`);
+    } else {
+        console.log('[Altech Scraper] Industry dropdown not found — skipping dependent sequence');
+    }
+
     // ── 4. DEEP SCRAPE: Toggle inactive controls to reveal hidden fields ──
     // Click every inactive toggle/checkbox, wait for Angular to render,
     // scrape newly revealed fields, then restore the original state.
