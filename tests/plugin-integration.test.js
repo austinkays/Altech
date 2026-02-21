@@ -123,6 +123,19 @@ function createPluginTestDOM() {
     onopen: null
   }));
 
+  // Mock Auth so the auth gate in navigateTo() passes.
+  // Auth.user is a getter returning a private _user (null in tests),
+  // so we must override the getter via Object.defineProperty.
+  if (window.Auth) {
+    Object.defineProperty(window.Auth, 'user', {
+      get: () => ({ uid: 'test-user', email: 'test@test.com' }),
+      configurable: true
+    });
+    if (!window.Auth.showModal) window.Auth.showModal = jest.fn();
+  } else {
+    window.Auth = { user: { uid: 'test-user', email: 'test@test.com' }, showModal: jest.fn() };
+  }
+
   return { dom, window };
 }
 

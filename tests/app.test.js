@@ -84,6 +84,17 @@ function createTestDOM() {
     });
   }
 
+  // Mock Auth so the auth gate in navigateTo() passes
+  if (window.Auth) {
+    Object.defineProperty(window.Auth, 'user', {
+      get: () => ({ uid: 'test-user', email: 'test@test.com' }),
+      configurable: true
+    });
+    if (!window.Auth.showModal) window.Auth.showModal = jest.fn();
+  } else {
+    window.Auth = { user: { uid: 'test-user', email: 'test@test.com' }, showModal: jest.fn() };
+  }
+
   return { dom, window, document: window.document, App: window.App };
 }
 

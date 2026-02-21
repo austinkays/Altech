@@ -585,3 +585,6 @@ const Auth = (() => {
         }
     };
 })();
+
+// Expose on window for testability and consistency with other modules
+window.Auth = Auth;

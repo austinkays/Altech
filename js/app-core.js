@@ -1462,6 +1462,13 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         const entry = this.toolConfig.find(t => t.key === toolName);
         if (!entry) return;
 
+        // ── Auth gate: require sign-in to access any tool ──
+        if (typeof Auth !== 'undefined' && !Auth.user) {
+            Auth.showModal();
+            this.toast('Please sign in to access tools', { type: 'info', duration: 3000 });
+            return;
+        }
+
         document.getElementById('landingPage').style.display = 'none';
 
         // Remove quoting-active when switching away from quoting tool
