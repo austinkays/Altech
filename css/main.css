@@ -2503,9 +2503,9 @@ body.dark-mode #backToHome:hover {
 body.tool-active #backToHome {
     display: flex;
 }
-/* When quoting tool shows its own footer, push exit button above it */
+/* Quoting tool has its own header home button + footer nav — hide the floating exit button */
 body.tool-active.quoting-active #backToHome {
-    bottom: calc(env(safe-area-inset-bottom) + 76px);
+    display: none;
 }
 #breadcrumbBar {
     display: none;
