@@ -358,6 +358,16 @@ const DROPDOWN_SELECT_MAP = {
     YearsAtAddress: ["select[name*='YearsAtAddress' i]", "select[name*='YearsAt' i]", "select[formcontrolname*='yearsAt' i]"],
 };
 
+// Direct mat-select[formcontrolname] selectors — tried BEFORE label-based lookup
+// These bypass the label search entirely when the Angular formcontrolname is known.
+const PRIORITY_SELECTORS = {
+    Prefix:       "mat-select[formcontrolname='prefix']",
+    Suffix:       "mat-select[formcontrolname='suffix']",
+    DLState:      "mat-select[formcontrolname='driverLicenseState']",
+    // Relationship is Co-Applicant-scoped — used by fillScopedDropdown, not global fill
+    Relationship: "mat-select[formcontrolname='relationship']",
+};
+
 
 // ═══════════════════════════════════════════════════════════════
 // §5  UTILITY FUNCTIONS
@@ -892,6 +902,60 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
     const target = String(value).trim();
     const expanded = expand(target, fieldKey);
 
+    // ── Priority selector: try direct formcontrolname match first ──
+    if (fieldKey && PRIORITY_SELECTORS[fieldKey]) {
+        const priorityEl = document.querySelector(PRIORITY_SELECTORS[fieldKey]);
+        if (priorityEl && isVisible(priorityEl)) {
+            console.log(`[Altech Filler] Using priority selector for ${fieldKey}`);
+            // It's always a mat-select (custom dropdown)
+            try {
+                priorityEl.click();
+                priorityEl.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                await wait(DROPDOWN_WAIT);
+
+                const overlaySels = [
+                    '.cdk-overlay-container mat-option',
+                    '.cdk-overlay-container [role="option"]',
+                    '.mat-select-panel mat-option',
+                ];
+                let optionEls = [];
+                for (const osel of overlaySels) {
+                    const els = document.querySelectorAll(osel);
+                    if (els.length > 0) { optionEls = Array.from(els); break; }
+                }
+                if (optionEls.length > 0) {
+                    const optionTexts = optionEls.map(el => el.textContent.trim()).filter(t => t);
+                    let bestOpt = null;
+                    for (const attempt of [target, expanded]) {
+                        for (const ot of optionTexts) {
+                            if (ot.toLowerCase() === attempt.toLowerCase()) { bestOpt = ot; break; }
+                        }
+                        if (bestOpt) break;
+                    }
+                    if (!bestOpt) {
+                        const m = bestMatch(expanded, optionTexts) || bestMatch(target, optionTexts);
+                        if (m) bestOpt = m.text;
+                    }
+                    if (bestOpt) {
+                        for (const el of optionEls) {
+                            if (el.textContent.trim() === bestOpt) {
+                                el.click();
+                                await wait(200);
+                                return true;
+                            }
+                        }
+                    }
+                }
+                // Close overlay if priority attempt didn't match
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                await wait(100);
+            } catch (e) {
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            }
+            // Fall through to label-based lookup if priority selector didn't work
+        }
+    }
+
     const found = findDropdownByLabel(labelPatterns);
     if (!found) return false;
 
@@ -1103,43 +1167,55 @@ async function fillScopedDropdown(container, labelPatterns, value, fieldKey) {
     let ddEl = null;
     let ddType = null;
 
-    // Search for dropdown within the container only
-    for (const pattern of labelPatterns) {
-        const pat = pattern.toLowerCase();
-        for (const lbl of container.querySelectorAll(
-            'label, legend, .mat-form-field-label, [class*="label"], ' +
-            '[class*="form-field"] > span, [class*="form-field"] > div'
-        )) {
-            const text = norm(lbl.textContent);
-            if (!text || text.length > 60) continue;
-            if (text !== pat && !text.includes(pat)) continue;
+    // Priority selector: try direct formcontrolname match WITHIN the container first
+    if (fieldKey && PRIORITY_SELECTORS[fieldKey]) {
+        const priorityEl = container.querySelector(PRIORITY_SELECTORS[fieldKey]);
+        if (priorityEl && isVisible(priorityEl)) {
+            ddEl = priorityEl;
+            ddType = 'custom';
+            console.log(`[Altech Filler] Scoped priority selector hit for ${fieldKey}`);
+        }
+    }
 
-            // label[for]
-            const forId = lbl.getAttribute('for') || lbl.htmlFor;
-            if (forId) {
-                const el = document.getElementById(forId);
-                if (el && container.contains(el)) {
-                    if (el.tagName === 'SELECT') { ddEl = el; ddType = 'native'; break; }
-                    if (el.tagName === 'MAT-SELECT' || el.getAttribute('role') === 'listbox' || el.getAttribute('role') === 'combobox') {
-                        ddEl = el; ddType = 'custom'; break;
+    // Label-based search within the container
+    if (!ddEl) {
+        for (const pattern of labelPatterns) {
+            const pat = pattern.toLowerCase();
+            for (const lbl of container.querySelectorAll(
+                'label, legend, .mat-form-field-label, [class*="label"], ' +
+                '[class*="form-field"] > span, [class*="form-field"] > div'
+            )) {
+                const text = norm(lbl.textContent);
+                if (!text || text.length > 60) continue;
+                if (text !== pat && !text.includes(pat)) continue;
+
+                // label[for]
+                const forId = lbl.getAttribute('for') || lbl.htmlFor;
+                if (forId) {
+                    const el = document.getElementById(forId);
+                    if (el && container.contains(el)) {
+                        if (el.tagName === 'SELECT') { ddEl = el; ddType = 'native'; break; }
+                        if (el.tagName === 'MAT-SELECT' || el.getAttribute('role') === 'listbox' || el.getAttribute('role') === 'combobox') {
+                            ddEl = el; ddType = 'custom'; break;
+                        }
                     }
                 }
-            }
 
-            const wrapper = lbl.closest(
-                '.mat-form-field, fieldset, .form-group, .form-field, ' +
-                '[class*="form-field"], [class*="form-group"], .field-wrapper, ' +
-                '.col, .column, [class*="col-"]'
-            ) || lbl.parentElement;
+                const wrapper = lbl.closest(
+                    '.mat-form-field, fieldset, .form-group, .form-field, ' +
+                    '[class*="form-field"], [class*="form-group"], .field-wrapper, ' +
+                    '.col, .column, [class*="col-"]'
+                ) || lbl.parentElement;
 
-            if (wrapper && container.contains(wrapper)) {
-                const sel = wrapper.querySelector('select');
-                if (sel && isVisible(sel)) { ddEl = sel; ddType = 'native'; break; }
-                const matSel = wrapper.querySelector('mat-select, [role="listbox"], [role="combobox"]');
-                if (matSel) { ddEl = matSel; ddType = 'custom'; break; }
+                if (wrapper && container.contains(wrapper)) {
+                    const sel = wrapper.querySelector('select');
+                    if (sel && isVisible(sel)) { ddEl = sel; ddType = 'native'; break; }
+                    const matSel = wrapper.querySelector('mat-select, [role="listbox"], [role="combobox"]');
+                    if (matSel) { ddEl = matSel; ddType = 'custom'; break; }
+                }
             }
+            if (ddEl) break;
         }
-        if (ddEl) break;
     }
 
     if (!ddEl) return false;
@@ -2855,6 +2931,250 @@ async function scrapePage() {
     }
 
     result.stats.buttonExpansionRevealed = result.buttonExpansion.revealedFields.length;
+
+    // ── 6. PRIOR ADDRESS REVEAL: Inject low value into 'Years At Address' to trigger 'Previous Address' section ──
+    result.priorAddressReveal = { triggered: false, revealedFields: [] };
+
+    // Find the 'Years At Address' dropdown (mat-select or native select)
+    let yearsAtAddrEl = null;
+    let yearsAtAddrType = null; // 'native' | 'custom'
+    let originalYearsValue = null;
+
+    // Try native select first
+    for (const sel of (DROPDOWN_SELECT_MAP.YearsAtAddress || [])) {
+        try {
+            const el = document.querySelector(sel);
+            if (el && el.tagName === 'SELECT' && isVisible(el)) {
+                yearsAtAddrEl = el;
+                yearsAtAddrType = 'native';
+                originalYearsValue = el.value;
+                break;
+            }
+        } catch (e) { /* skip */ }
+    }
+
+    // Try mat-select by label
+    if (!yearsAtAddrEl) {
+        const found = findDropdownByLabel(BASE_DROPDOWN_LABELS.YearsAtAddress || ['years at address']);
+        if (found && found.el && isVisible(found.el)) {
+            yearsAtAddrEl = found.el;
+            yearsAtAddrType = found.type;
+            if (yearsAtAddrType === 'native') {
+                originalYearsValue = yearsAtAddrEl.value;
+            } else {
+                // Capture current display text for mat-select
+                originalYearsValue = yearsAtAddrEl.querySelector('.mat-select-value-text, .mat-mdc-select-value-text, [class*="select-value"]')?.textContent?.trim() || '';
+            }
+        }
+    }
+
+    if (yearsAtAddrEl) {
+        console.log(`[Altech Scraper] Found Years At Address (${yearsAtAddrType}), original value: "${originalYearsValue}". Injecting "1" to reveal Prior Address...`);
+
+        // Snapshot current fields
+        const prePriorFields = new Set();
+        document.querySelectorAll('input, select, textarea, mat-select').forEach(el => {
+            if (el.id) prePriorFields.add(el.id);
+            if (el.name) prePriorFields.add(el.name);
+        });
+
+        // Inject a low value ("1" or first non-empty option) to trigger the reveal
+        if (yearsAtAddrType === 'native') {
+            // Find the option for "1" or the lowest numeric value
+            const options = Array.from(yearsAtAddrEl.options).filter(o => o.text.trim());
+            const targetOpt = options.find(o => o.text.trim() === '1' || o.value === '1')
+                || options.find(o => /^[012]$/.test(o.text.trim()))
+                || options[1]; // Skip first (usually placeholder)
+            if (targetOpt) {
+                yearsAtAddrEl.value = targetOpt.value;
+                yearsAtAddrEl.dispatchEvent(new Event('change', { bubbles: true }));
+                yearsAtAddrEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        } else {
+            // mat-select: open, find "1" option, click it
+            try {
+                yearsAtAddrEl.click();
+                await wait(DROPDOWN_WAIT);
+                const overlaySels = [
+                    '.cdk-overlay-container mat-option',
+                    '.cdk-overlay-container [role="option"]',
+                    '.mat-select-panel mat-option',
+                ];
+                let optEls = [];
+                for (const osel of overlaySels) {
+                    const els = document.querySelectorAll(osel);
+                    if (els.length > 0) { optEls = Array.from(els); break; }
+                }
+                const oneOpt = optEls.find(el => {
+                    const t = el.textContent.trim();
+                    return t === '1' || t === '0' || t === '2' || /^[012]\s/.test(t);
+                }) || optEls[1]; // Skip first placeholder
+                if (oneOpt) {
+                    oneOpt.click();
+                    await wait(200);
+                } else {
+                    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                    await wait(100);
+                }
+            } catch (e) {
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            }
+        }
+
+        await wait(800); // Let Angular render Prior Address section
+
+        // Check if a 'Previous Address' / 'Prior Address' section appeared
+        const priorSection = document.querySelector(
+            '[class*="prior-address" i], [class*="previous-address" i], ' +
+            '[class*="priorAddress" i], [class*="previousAddress" i], ' +
+            '[data-section*="prior" i], [data-section*="previous" i]'
+        );
+
+        // Also check for newly appeared inputs with prior/previous labels
+        const newInputs = document.querySelectorAll('input, textarea');
+        let foundPriorFields = false;
+        for (const inp of newInputs) {
+            if (!isVisible(inp)) continue;
+            if (['hidden', 'submit', 'button', 'reset', 'file', 'checkbox', 'radio'].includes(inp.type)) continue;
+            if (inp.id && prePriorFields.has(inp.id)) continue;
+            if (inp.name && prePriorFields.has(inp.name)) continue;
+
+            const fieldLabel = findLabelFor(inp);
+            result.priorAddressReveal.revealedFields.push({
+                revealedBy: 'Years At Address = 1',
+                type: inp.type || 'text',
+                name: inp.name || '', id: inp.id || '',
+                label: fieldLabel || '', placeholder: inp.placeholder || '',
+                required: inp.required || inp.getAttribute('aria-required') === 'true'
+            });
+            result.textFields.push({
+                type: inp.type || 'text', name: inp.name || '', id: inp.id || '',
+                placeholder: inp.placeholder || '', label: fieldLabel || '',
+                value: '', required: inp.required || inp.getAttribute('aria-required') === 'true',
+                source: 'prior-address-reveal'
+            });
+            result.stats.totalInputs++;
+            foundPriorFields = true;
+            if (inp.id) prePriorFields.add(inp.id);
+            if (inp.name) prePriorFields.add(inp.name);
+        }
+
+        // Scrape new native selects
+        for (const sel of document.querySelectorAll('select')) {
+            if (!isVisible(sel)) continue;
+            const selKey = sel.name || sel.id;
+            if (selKey && prePriorFields.has(selKey)) continue;
+
+            const selLabel = findLabelFor(sel);
+            const options = Array.from(sel.options)
+                .map(o => o.text.trim())
+                .filter(t => t && !['', 'select', 'select one', '-- select --', '--select--', 'choose'].includes(t.toLowerCase()));
+
+            if (options.length > 0) {
+                const key = selLabel || selKey || `prior_select_${result.priorAddressReveal.revealedFields.length}`;
+                result.nativeSelects[key] = {
+                    name: sel.name || '', id: sel.id || '', label: selLabel || '',
+                    options, currentValue: '', required: sel.required,
+                    revealedBy: 'Years At Address = 1'
+                };
+                result.stats.totalNativeSelects++;
+                result.stats.totalOptions += options.length;
+            }
+            result.priorAddressReveal.revealedFields.push({
+                revealedBy: 'Years At Address = 1', type: 'select',
+                name: sel.name || '', id: sel.id || '', label: selLabel || ''
+            });
+            foundPriorFields = true;
+            if (sel.id) prePriorFields.add(sel.id);
+            if (sel.name) prePriorFields.add(sel.name);
+        }
+
+        // Scrape new mat-selects
+        for (const ms of document.querySelectorAll('mat-select, [role="listbox"], [role="combobox"]')) {
+            if (!isVisible(ms)) continue;
+            const msKey = ms.id || ms.getAttribute('aria-label');
+            if (msKey && prePriorFields.has(msKey)) continue;
+
+            const msLabel = findLabelFor(ms);
+
+            let options = [];
+            try {
+                ms.click();
+                await wait(350);
+                const panelId = ms.getAttribute('aria-owns') || ms.getAttribute('aria-controls');
+                let optEls = [];
+                if (panelId) {
+                    const panel = document.getElementById(panelId);
+                    if (panel) optEls = panel.querySelectorAll('mat-option, [role="option"]');
+                }
+                if (optEls.length === 0) {
+                    const panes = document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane');
+                    if (panes.length > 0) optEls = panes[panes.length - 1].querySelectorAll('mat-option, [role="option"]');
+                }
+                options = Array.from(optEls).map(el => el.textContent.trim()).filter(t => t && t.toLowerCase() !== '' && t.toLowerCase() !== 'select');
+                await closeDropdown(ms);
+            } catch (e) { nukeOverlays(); await wait(50); }
+
+            const ddKey = msLabel || msKey || `prior_dd_${result.priorAddressReveal.revealedFields.length}`;
+            result.dropdowns[ddKey] = {
+                id: ms.id || '', ariaLabel: ms.getAttribute('aria-label') || '',
+                label: msLabel || '', options, currentValue: '',
+                optionCount: options.length, revealedBy: 'Years At Address = 1'
+            };
+            result.stats.totalCustomDropdowns++;
+            result.stats.totalOptions += options.length;
+            result.priorAddressReveal.revealedFields.push({
+                revealedBy: 'Years At Address = 1', type: 'mat-select',
+                id: ms.id || '', label: msLabel || '', options
+            });
+            foundPriorFields = true;
+            if (ms.id) prePriorFields.add(ms.id);
+        }
+
+        result.priorAddressReveal.triggered = foundPriorFields || !!priorSection;
+
+        // ── Restore original value ──
+        if (yearsAtAddrType === 'native') {
+            if (originalYearsValue !== null) {
+                yearsAtAddrEl.value = originalYearsValue;
+                yearsAtAddrEl.dispatchEvent(new Event('change', { bubbles: true }));
+                yearsAtAddrEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        } else {
+            // mat-select: re-open and pick the original value, or clear
+            try {
+                yearsAtAddrEl.click();
+                await wait(DROPDOWN_WAIT);
+                const overlaySels = [
+                    '.cdk-overlay-container mat-option',
+                    '.cdk-overlay-container [role="option"]',
+                ];
+                let optEls = [];
+                for (const osel of overlaySels) {
+                    const els = document.querySelectorAll(osel);
+                    if (els.length > 0) { optEls = Array.from(els); break; }
+                }
+                if (originalYearsValue) {
+                    const origOpt = optEls.find(el => el.textContent.trim() === originalYearsValue);
+                    if (origOpt) { origOpt.click(); await wait(200); }
+                    else { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await wait(100); }
+                } else {
+                    // Select first/placeholder option to clear
+                    if (optEls[0]) { optEls[0].click(); await wait(200); }
+                    else { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await wait(100); }
+                }
+            } catch (e) {
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            }
+        }
+
+        await wait(300); // Let Angular tear down the Prior Address section
+        console.log(`[Altech Scraper] Prior Address reveal: triggered=${result.priorAddressReveal.triggered}, fields=${result.priorAddressReveal.revealedFields.length}`);
+    } else {
+        console.log('[Altech Scraper] Years At Address dropdown not found — skipping Prior Address reveal');
+    }
+
+    result.stats.priorAddressRevealed = result.priorAddressReveal.revealedFields.length;
 
     // ── Final cleanup: nuke all overlays and reset page state ──
     nukeOverlays();
