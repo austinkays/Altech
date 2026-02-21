@@ -3107,49 +3107,8 @@ async function scrapePage() {
 
         result.buttonExpansion.buttonsExpanded = 1;
 
-        // ── Clean up: delete the empty Co-Applicant container ──
-        // Find the delete/trash button STRICTLY inside the new container
-        let deletedContact = false;
-        if (newContainer) {
-            // Look for delete/trash button inside the container
-            const deletePatterns = ['delete', 'remove', 'trash', 'close', 'cancel'];
-            for (const btn of newContainer.querySelectorAll('button, [role="button"], a, .mat-icon-button')) {
-                const text = (btn.textContent || '').trim().toLowerCase();
-                const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
-                const title = (btn.getAttribute('title') || '').toLowerCase();
-                const hasIcon = btn.querySelector('mat-icon, [class*="trash"], [class*="delete"], [class*="remove"], [class*="close"]');
-
-                if (deletePatterns.some(p => text.includes(p) || ariaLabel.includes(p) || title.includes(p)) || hasIcon) {
-                    btn.click();
-                    deletedContact = true;
-                    console.log('[Altech Scraper] Deleted empty Co-Applicant container');
-                    break;
-                }
-            }
-
-            // Fallback: look for a "Remove contact" or trash icon button near/after the container
-            if (!deletedContact) {
-                const nextSibling = newContainer.nextElementSibling;
-                if (nextSibling) {
-                    for (const btn of [nextSibling, ...nextSibling.querySelectorAll('button, [role="button"]')]) {
-                        const text = (btn.textContent || '').trim().toLowerCase();
-                        if (deletePatterns.some(p => text.includes(p))) {
-                            btn.click();
-                            deletedContact = true;
-                            console.log('[Altech Scraper] Deleted empty Co-Applicant via sibling button');
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (deletedContact) {
-            await wait(500); // Let Angular tear down
-        } else {
-            console.warn('[Altech Scraper] Could not find delete button for empty Co-Applicant — page may need manual cleanup');
-        }
-
+        // Note: Co-Applicant container is left on the page after scraping.
+        // Deletion is skipped — the user or a subsequent fill operation will manage it.
         console.log(`[Altech Scraper] Button expansion revealed ${result.buttonExpansion.revealedFields.length} Co-Applicant fields`);
     }
 
