@@ -8,6 +8,8 @@
 
 const Auth = (() => {
     let _user = null;
+    let _isAdmin = false;
+    let _isBlocked = false;
     let _listeners = [];
     let _modalEl = null;
 
@@ -30,6 +32,8 @@ const Auth = (() => {
 
         if (user) {
             console.log('[Auth] Signed in:', user.email);
+            // Upsert user profile to Firestore and check admin/blocked status
+            _syncUserProfile(user).catch(e => console.warn('[Auth] Profile sync failed:', e));
             // Trigger cloud sync on login
             if (typeof CloudSync !== 'undefined' && CloudSync.pullFromCloud) {
                 CloudSync.pullFromCloud().catch(e => console.error('[Auth] Initial sync failed:', e));
@@ -39,7 +43,66 @@ const Auth = (() => {
                 Paywall.loadSubscription().catch(e => console.warn('[Auth] Subscription load failed:', e));
             }
         } else {
+            _isAdmin = false;
+            _isBlocked = false;
             console.log('[Auth] Signed out');
+        }
+    }
+
+    // ── Firestore Profile Sync ──
+    // Upserts the user's profile doc on login, reads back admin/blocked flags.
+    // isAdmin and isBlocked are server-managed fields — never set from the client.
+    // Bootstrap: After first deploy, manually set isAdmin=true on your user doc
+    // in Firebase Console → Firestore → users/{your-uid}.
+    async function _syncUserProfile(user) {
+        if (!user || !FirebaseConfig.isReady) return;
+        const db = FirebaseConfig.db;
+        const uid = user.uid;
+        const profileRef = db.collection('users').doc(uid);
+
+        try {
+            const snap = await profileRef.get();
+            const now = new Date().toISOString();
+
+            if (snap.exists) {
+                // Update lastLogin + displayName
+                const data = snap.data();
+                await profileRef.update({
+                    lastLogin: now,
+                    displayName: user.displayName || data.displayName || '',
+                    email: user.email || data.email || '',
+                });
+                _isAdmin = data.isAdmin === true;
+                _isBlocked = data.isBlocked === true;
+            } else {
+                // First login — create profile doc (no admin/blocked fields — those are managed via admin panel)
+                const profile = {
+                    email: user.email || '',
+                    displayName: user.displayName || '',
+                    createdAt: now,
+                    lastLogin: now,
+                };
+                await profileRef.set(profile);
+                _isAdmin = false;
+                _isBlocked = false;
+            }
+
+            // If blocked, sign them out immediately
+            if (_isBlocked) {
+                console.warn('[Auth] User is blocked — signing out');
+                await FirebaseConfig.auth.signOut();
+                if (typeof App !== 'undefined' && App.toast) {
+                    App.toast('Your account has been blocked. Contact your administrator.', { type: 'error', duration: 6000 });
+                }
+                return;
+            }
+
+            console.log(`[Auth] Profile synced — isAdmin: ${_isAdmin}`);
+        } catch (e) {
+            // Firestore may not be reachable (offline) — fall back to email check
+            console.warn('[Auth] Profile sync error, falling back to email check:', e.message);
+            _isAdmin = user.email === 'austin@altechinsurance.com';
+            _isBlocked = false;
         }
     }
 
@@ -143,7 +206,8 @@ const Auth = (() => {
         get email() { return _user?.email || null; },
         get displayName() { return _user?.displayName || null; },
         get isEmailVerified() { return _user?.emailVerified || false; },
-        get isAdmin() { return _user?.email === 'austin@altechinsurance.com'; },
+        get isAdmin() { return _isAdmin; },
+        get isBlocked() { return _isBlocked; },
 
         /** Promise that resolves once the initial auth state is known (user or null). */
         ready() { return _authReady; },
@@ -237,9 +301,11 @@ const Auth = (() => {
                 if (nameEl) nameEl.value = _user.displayName || '';
                 if (avatarEl) avatarEl.textContent = (_user.displayName || _user.email || '?')[0].toUpperCase();
 
-                // Only admins can see the "Invite Your Team" section
+                // Only admins can see the "Invite Your Team" and admin panel sections
                 const inviteSection = document.getElementById('authInviteSection');
                 if (inviteSection) inviteSection.style.display = Auth.isAdmin ? '' : 'none';
+                const adminSection = document.getElementById('authAdminSection');
+                if (adminSection) adminSection.style.display = Auth.isAdmin ? '' : 'none';
             } else {
                 _showView('login');
             }

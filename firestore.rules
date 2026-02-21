@@ -50,8 +50,27 @@ service cloud.firestore {
 
     // All documents under users/{uid}/** are strictly per-tenant
     match /users/{userId} {
-      // Deny direct access to the user root document
-      allow read, write: if false;
+      // Users can read/write their own profile doc (email, displayName, isAdmin, isBlocked, etc.)
+      // isAdmin and isBlocked are server-managed — block client writes to those fields
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && isReasonableSize()
+        && !('isAdmin' in request.resource.data)
+        && !('isBlocked' in request.resource.data);
+      allow update: if isOwner(userId)
+        && isReasonableSize()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isBlocked']);
+
+      // Admins can read any user profile (for the admin panel user list)
+      allow read: if isAuthenticated()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+
+      // Admins can update any user's isAdmin/isBlocked fields
+      allow update: if isAuthenticated()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isAdmin', 'isBlocked']);
     }
 
     // Sync documents: settings, currentForm, cglState, clientHistory, etc.
