@@ -345,57 +345,6 @@ Object.assign(App, {
         }
     },
 
-    // ── Layout State (Grid vs Sidebar) ──
-    loadLayout() {
-        const layout = localStorage.getItem('altech_layout') || 'grid';
-        if (layout === 'sidebar') {
-            document.body.classList.add('layout-sidebar');
-            this.renderSidebarNav();
-            this.renderSidebarCards();
-            this.updateSidebarGreeting();
-        } else {
-            document.body.classList.remove('layout-sidebar');
-        }
-        this.updateLayoutIcons(layout);
-    },
-
-    toggleLayout() {
-        // Smooth transition class
-        document.body.classList.add('layout-transitioning');
-        setTimeout(() => document.body.classList.remove('layout-transitioning'), 500);
-
-        const isSidebar = document.body.classList.contains('layout-sidebar');
-        if (isSidebar) {
-            document.body.classList.remove('layout-sidebar');
-            localStorage.setItem('altech_layout', 'grid');
-            this.updateLayoutIcons('grid');
-        } else {
-            document.body.classList.add('layout-sidebar');
-            localStorage.setItem('altech_layout', 'sidebar');
-            this.renderSidebarNav();
-            this.renderSidebarCards();
-            this.updateSidebarGreeting();
-            this.updateLayoutIcons('sidebar');
-        }
-        // Sync preference to cloud
-        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
-            CloudSync.schedulePush();
-        }
-    },
-
-    updateLayoutIcons(layout) {
-        // Grid icon = 4 squares, Sidebar icon = panel with divider
-        const gridSVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
-        const sidebarSVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>';
-        document.querySelectorAll('.layout-toggle-icon').forEach(icon => {
-            // Show the opposite icon (what you'll switch TO)
-            icon.innerHTML = layout === 'sidebar' ? gridSVG : sidebarSVG;
-        });
-        document.querySelectorAll('.layout-toggle').forEach(btn => {
-            btn.title = layout === 'sidebar' ? 'Switch to grid layout' : 'Switch to sidebar layout';
-        });
-    },
-
     initPlaces() {
         const streetInput = document.getElementById('addrStreet');
         if (!streetInput || !window.google?.maps?.places) return;
@@ -1704,109 +1653,6 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                 .map(renderCard).join('');
         }
 
-        // Also render sidebar views if layout is sidebar
-        if (document.body.classList.contains('layout-sidebar')) {
-            this.renderSidebarNav();
-            this.renderSidebarCards();
-            this.updateSidebarGreeting();
-        }
-    },
-
-    // ── Sidebar Layout Renderers ──
-    renderSidebarNav() {
-        const container = document.getElementById('sidebarNavItems');
-        if (!container) return;
-
-        const categoryLabels = {
-            quoting: 'Quoting & Sales',
-            docs: 'Documents & Compliance',
-            ops: 'Operations',
-            ref: 'Reference'
-        };
-
-        const visible = this.toolConfig.filter(t => !t.hidden);
-        const seen = [];
-        const groups = {};
-        visible.forEach(t => {
-            const cat = t.category || 'other';
-            if (!groups[cat]) { groups[cat] = []; seen.push(cat); }
-            groups[cat].push(t);
-        });
-
-        container.innerHTML = seen.map(cat => {
-            const label = categoryLabels[cat] || cat;
-            const items = groups[cat].map(t => {
-                const badgeHtml = t.badge ? `<span class="sidebar-badge" id="sidebar_${t.badge}"></span>` : '';
-                return `<button class="sidebar-nav-item" onclick="App.navigateTo('${t.key}')" title="${t.title}">
-                    <span class="sidebar-nav-icon">${t.icon}</span>
-                    <span class="sidebar-nav-label">${t.title}</span>${badgeHtml}
-                </button>`;
-            }).join('');
-            return `<div class="sidebar-nav-group">
-                <div class="sidebar-nav-group-label">${label}</div>
-                ${items}
-            </div>`;
-        }).join('');
-    },
-
-    renderSidebarCards() {
-        const container = document.getElementById('sidebarCardsArea');
-        if (!container) return;
-
-        const categoryLabels = {
-            quoting: 'Quoting & Sales',
-            docs: 'Documents & Compliance',
-            ops: 'Operations',
-            ref: 'Reference'
-        };
-
-        const visible = this.toolConfig.filter(t => !t.hidden);
-        const seen = [];
-        const groups = {};
-        visible.forEach(t => {
-            const cat = t.category || 'other';
-            if (!groups[cat]) { groups[cat] = []; seen.push(cat); }
-            groups[cat].push(t);
-        });
-
-        container.innerHTML = seen.map(cat => {
-            const label = categoryLabels[cat] || cat;
-            const cards = groups[cat].map(t => {
-                const badgeHtml = t.badge ? `<span class="sidebar-card-badge" id="sidecard_${t.badge}"></span>` : '';
-                return `<div class="sidebar-tool-card" tabindex="0" role="button" aria-label="${t.title}"
-                    onclick="App.navigateTo('${t.key}')"
-                    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigateTo('${t.key}')}">
-                    <div class="sidebar-card-icon">${t.icon}</div>${badgeHtml}
-                    <div class="sidebar-card-title">${t.title}</div>
-                </div>`;
-            }).join('');
-            return `<div class="sidebar-category-section">
-                <h3 class="sidebar-category-label">${label}</h3>
-                <div class="sidebar-cards-grid">${cards}</div>
-            </div>`;
-        }).join('');
-    },
-
-    updateSidebarGreeting() {
-        const el = document.getElementById('sidebarGreeting');
-        if (!el) return;
-        const h = new Date().getHours();
-        const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-
-        const user = typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser;
-        if (user) {
-            const rawName = user.displayName || user.email.split('@')[0];
-            const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-            el.textContent = greeting + ', ' + name;
-        } else {
-            const onboardName = typeof Onboarding !== 'undefined' ? Onboarding.getUserName() : '';
-            if (onboardName) {
-                const name = onboardName.charAt(0).toUpperCase() + onboardName.slice(1);
-                el.textContent = greeting + ', ' + name;
-            } else {
-                el.textContent = greeting;
-            }
-        }
     },
 
     updateCGLBadge() {
@@ -1871,7 +1717,6 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
 
         // Update greeting
         this.updateLandingGreeting();
-        this.updateSidebarGreeting();
 
         // Update CGL badge
         this.updateCGLBadge();
