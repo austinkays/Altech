@@ -2616,13 +2616,12 @@ async function scrapePage() {
         }
     }
 
-    // ── 3c. DEPENDENT SEQUENCE: Industry → Occupation (bulletproof) ──
-    // Occupation options depend on the selected Industry value in EZLynx.
-    // We must select a REAL (non-empty) Industry option, wait for the XHR,
-    // then scrape Occupation, and finally restore Industry to clean state.
+    // ── 3c. DEPENDENT SEQUENCE: Industry → Occupation ("Retired" hack) ──
+    // Occupation options depend on the selected Industry in EZLynx.
+    // We use the hardcoded "Retired" trigger which reliably unlocks the Occupation list.
     result.dependentSequence = { industry: null, occupation: null, triggered: false };
 
-    // Helper: returns true if an option looks like a blank/placeholder
+    // Helper: returns true if a mat-option is blank / placeholder
     const isBlankOption = (el) => {
         const t = (el.textContent || '').trim();
         if (!t) return true;
@@ -2634,27 +2633,20 @@ async function scrapePage() {
     const industryEl = document.querySelector("mat-select[formcontrolname='industry']");
 
     if (industryEl && isVisible(industryEl)) {
-        console.log('[Altech Scraper] Found Industry dropdown — starting dependent sequence scrape...');
-
-        // Capture original display value so we can restore later
-        const origIndustryText = industryEl.querySelector(
-            '.mat-select-value-text, .mat-mdc-select-value-text, [class*="select-value"]'
-        )?.textContent?.trim() || '';
+        console.log('[Altech Scraper] Found Industry dropdown — starting "Retired" hack sequence...');
 
         let industryOptions = [];
         let triggerText = null;
         let sequenceFailed = false;
 
         try {
-            // 1. Open Industry mat-select
+            // 1. Open Industry and scrape all options
             industryEl.click();
             await wait(800);
 
-            // 2. Collect all mat-option elements from the CDK overlay
             let allOptEls = Array.from(
                 document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
             );
-            // Also try aria-owns panel
             if (allOptEls.length === 0) {
                 const panelId = industryEl.getAttribute('aria-owns') || industryEl.getAttribute('aria-controls');
                 if (panelId) {
@@ -2663,19 +2655,24 @@ async function scrapePage() {
                 }
             }
 
-            // 3. Filter out blank/placeholder options
-            const validOpts = allOptEls.filter(el => !isBlankOption(el));
-            industryOptions = validOpts.map(el => el.textContent.trim());
+            industryOptions = allOptEls
+                .filter(el => !isBlankOption(el))
+                .map(el => el.textContent.trim());
 
-            console.log(`[Altech Scraper] Industry: ${allOptEls.length} total options, ${validOpts.length} valid`);
+            console.log(`[Altech Scraper] Industry: ${allOptEls.length} total options, ${industryOptions.length} valid`);
 
-            // 4. Click the FIRST VALID (non-empty) option
-            if (validOpts.length > 0) {
-                triggerText = validOpts[0].textContent.trim();
-                validOpts[0].click();
+            // 2. Find and click the "Retired" option (case-insensitive)
+            const retiredOpt = allOptEls.find(el => {
+                const t = (el.textContent || '').trim().toLowerCase();
+                return t === 'retired' || t.includes('retired');
+            });
+
+            if (retiredOpt) {
+                triggerText = retiredOpt.textContent.trim();
+                retiredOpt.click();
                 console.log(`[Altech Scraper] Selected Industry trigger: "${triggerText}"`);
             } else {
-                console.warn('[Altech Scraper] No valid Industry options found — aborting sequence');
+                console.warn('[Altech Scraper] "Retired" option not found in Industry — aborting sequence');
                 industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
                 sequenceFailed = true;
             }
@@ -2691,7 +2688,6 @@ async function scrapePage() {
             triggerValue: triggerText
         };
 
-        // Update main dropdowns record for Industry
         const industryLabel = findLabelFor(industryEl) || 'Industry';
         result.dropdowns[industryLabel] = {
             ...(result.dropdowns[industryLabel] || {}),
@@ -2699,14 +2695,14 @@ async function scrapePage() {
             label: industryLabel,
             options: industryOptions,
             optionCount: industryOptions.length,
-            currentValue: origIndustryText
+            currentValue: ''
         };
 
         if (triggerText && !sequenceFailed) {
-            // 5. CRITICAL WAIT — Angular needs time to fetch Occupation via XHR
+            // 3. CRITICAL WAIT — Angular fetches Occupation list via XHR
             await wait(1500);
 
-            // 6. Open Occupation mat-select
+            // 4. Open Occupation mat-select and scrape
             const occupationEl = document.querySelector("mat-select[formcontrolname='occupation']");
 
             if (occupationEl && isVisible(occupationEl)) {
@@ -2715,7 +2711,6 @@ async function scrapePage() {
                     occupationEl.click();
                     await wait(800);
 
-                    // 7. Scrape all mat-option elements from the active overlay
                     let occOptEls = Array.from(
                         document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
                     );
@@ -2733,7 +2728,7 @@ async function scrapePage() {
 
                     console.log(`[Altech Scraper] Occupation: ${occOptEls.length} total, ${occOptions.length} valid options`);
 
-                    // 8. Close with Escape keydown
+                    // 5. Close Occupation overlay with Escape
                     occupationEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
                     await wait(200);
                 } catch (e) {
@@ -2763,32 +2758,23 @@ async function scrapePage() {
                 console.warn('[Altech Scraper] Occupation mat-select not found after Industry trigger');
             }
 
-            // 9. Restore Industry to empty/unselected state
+            // 6. Restore Industry — re-open and click the empty/null first option
             nukeOverlays();
             await wait(100);
             try {
                 industryEl.click();
                 await wait(800);
-                // Find all options in the overlay and pick the blank/placeholder to clear
                 const restoreOpts = Array.from(
                     document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
                 );
-                if (origIndustryText) {
-                    // Restore to original if there was one
-                    const origOpt = restoreOpts.find(el => el.textContent.trim() === origIndustryText);
-                    if (origOpt) { origOpt.click(); await wait(200); }
-                    else {
-                        // Try the blank/first option to clear
-                        const blank = restoreOpts.find(el => isBlankOption(el));
-                        if (blank) { blank.click(); await wait(200); }
-                        else { industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await wait(100); }
-                    }
+                // The first mat-option is typically the blank/null placeholder
+                if (restoreOpts.length > 0) {
+                    restoreOpts[0].click();
+                    console.log('[Altech Scraper] Restored Industry to first (blank) option');
+                    await wait(200);
                 } else {
-                    // Was empty — pick blank/placeholder to clear, or first option
-                    const blank = restoreOpts.find(el => isBlankOption(el));
-                    if (blank) { blank.click(); await wait(200); }
-                    else if (restoreOpts[0]) { restoreOpts[0].click(); await wait(200); }
-                    else { industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await wait(100); }
+                    industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                    await wait(100);
                 }
             } catch (e) {
                 industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -2993,7 +2979,7 @@ async function scrapePage() {
     result.stats.deepScrapeRevealed = result.deepScrape.revealedFields.length;
     console.log(`[Altech Deep Scrape] Expanded ${result.deepScrape.togglesExpanded} toggles, found ${result.deepScrape.revealedFields.length} hidden fields`);
 
-    // ── 5. BUTTON-EXPANSION SCRAPE: Click "Add contact" to reveal Co-Applicant fields ──
+    // ── 5. BUTTON-EXPANSION SCRAPE: Click "Add contact", activate Co-Applicant toggle, THEN scrape ──
     result.buttonExpansion = { revealedFields: [], buttonsExpanded: 0 };
 
     const addContactPatterns = ['add contact', 'add another contact', '+ contact', 'new contact'];
@@ -3025,15 +3011,62 @@ async function scrapePage() {
             if (el.name) preClickFields.add(el.name);
         });
 
+        // Step 1: Click "Add contact" and wait for Angular to render
         addContactBtn.click();
-        await wait(1200); // Let Angular render the new contact container
+        await wait(1000);
 
-        // Find the newly created container (last expansion panel / contact block)
+        // Step 2: Find the newly created container (last expansion panel / contact block)
         const panels = document.querySelectorAll(
             'mat-expansion-panel, .mat-expansion-panel, [class*="expansion-panel"], ' +
             '[class*="contact-panel"], [class*="co-applicant"], [class*="additional-contact"]'
         );
         const newContainer = panels.length > 0 ? panels[panels.length - 1] : null;
+
+        // Step 3: IMMEDIATELY click the "Make this contact Co-Applicant" toggle
+        // This must happen BEFORE scraping so the Relationship dropdown renders.
+        const coApPoisonWords = ['client center', 'clientcenter'];
+        const coApTogglePatterns = ['co-applicant', 'coapplicant', 'make this contact co', 'co applicant'];
+        let activatedCoAp = false;
+
+        if (newContainer) {
+            // Prefer mat-slide-toggle (most common for this field on EZLynx)
+            for (const toggle of newContainer.querySelectorAll('mat-slide-toggle, [class*="mat-slide-toggle"]')) {
+                if (!isVisible(toggle)) continue;
+                const toggleText = (toggle.textContent || '').toLowerCase();
+                if (coApPoisonWords.some(pw => toggleText.includes(pw))) continue;
+                if (coApTogglePatterns.some(p => toggleText.includes(p))) {
+                    const input = toggle.querySelector('input[type="checkbox"]');
+                    if (input) input.click(); else toggle.click();
+                    activatedCoAp = true;
+                    console.log('[Altech Scraper] Clicked Co-Applicant toggle inside new container');
+                    break;
+                }
+            }
+            // Fallback: checkboxes, radios, labels
+            if (!activatedCoAp) {
+                for (const ctrl of newContainer.querySelectorAll('mat-checkbox, mat-radio-button, input[type="checkbox"], input[type="radio"], label')) {
+                    const ctrlText = (ctrl.textContent || ctrl.getAttribute('aria-label') || '').toLowerCase();
+                    if (coApPoisonWords.some(pw => ctrlText.includes(pw))) continue;
+                    if (coApTogglePatterns.some(p => ctrlText.includes(p))) {
+                        ctrl.click();
+                        activatedCoAp = true;
+                        console.log('[Altech Scraper] Clicked Co-Applicant checkbox/control inside new container');
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Step 4: Wait for Relationship dropdown (and other Co-Ap fields) to render
+        if (activatedCoAp) {
+            await wait(1000);
+            console.log('[Altech Scraper] Co-Applicant toggle active — Relationship dropdown should be rendered');
+        } else {
+            console.warn('[Altech Scraper] Could not find Co-Applicant toggle — scraping without it');
+            await wait(500);
+        }
+
+        // Step 5: NOW run the full scrape on the container (baseScrape)
 
         // Scrape new text inputs
         const postInputs = document.querySelectorAll('input, textarea');
@@ -3053,7 +3086,6 @@ async function scrapePage() {
                 placeholder: inp.placeholder || '',
                 required: inp.required || inp.getAttribute('aria-required') === 'true'
             });
-            // Also add to main textFields list
             result.textFields.push({
                 type: inp.type || 'text', name: inp.name || '', id: inp.id || '',
                 placeholder: inp.placeholder || '', label: fieldLabel || '',
@@ -3154,8 +3186,44 @@ async function scrapePage() {
 
         result.buttonExpansion.buttonsExpanded = 1;
 
-        // Note: Co-Applicant container is left on the page after scraping.
-        // Deletion is skipped — the user or a subsequent fill operation will manage it.
+        // Step 6: Clean up — delete the Co-Applicant container so the form stays clean
+        let deletedContact = false;
+        if (newContainer) {
+            const deletePatterns = ['delete', 'remove', 'trash', 'close'];
+            for (const btn of newContainer.querySelectorAll('button, [role="button"], a, .mat-icon-button')) {
+                const text = (btn.textContent || '').trim().toLowerCase();
+                const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+                const title = (btn.getAttribute('title') || '').toLowerCase();
+                const hasIcon = btn.querySelector('mat-icon, [class*="trash"], [class*="delete"], [class*="remove"], [class*="close"]');
+                if (deletePatterns.some(p => text.includes(p) || ariaLabel.includes(p) || title.includes(p)) || hasIcon) {
+                    btn.click();
+                    deletedContact = true;
+                    console.log('[Altech Scraper] Deleted Co-Applicant container after scrape');
+                    break;
+                }
+            }
+            // Fallback: sibling button
+            if (!deletedContact) {
+                const nextSib = newContainer.nextElementSibling;
+                if (nextSib) {
+                    for (const btn of [nextSib, ...nextSib.querySelectorAll('button, [role="button"]')]) {
+                        const text = (btn.textContent || '').trim().toLowerCase();
+                        if (deletePatterns.some(p => text.includes(p))) {
+                            btn.click();
+                            deletedContact = true;
+                            console.log('[Altech Scraper] Deleted Co-Applicant via sibling button');
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (deletedContact) {
+            await wait(500);
+        } else {
+            console.warn('[Altech Scraper] Could not find delete button — Co-Applicant container left on page');
+        }
+
         console.log(`[Altech Scraper] Button expansion revealed ${result.buttonExpansion.revealedFields.length} Co-Applicant fields`);
     }
 
