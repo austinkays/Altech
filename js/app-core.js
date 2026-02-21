@@ -1387,7 +1387,10 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             return window.getComputedStyle(container).display !== 'none';
         });
 
-        backButton.style.display = anyActive ? 'flex' : 'none';
+        // Quoting tool has its own header home button — hide the floating exit button
+        const quotingActive = document.body.classList.contains('quoting-active');
+        const showBack = anyActive && !quotingActive;
+        backButton.style.display = showBack ? 'flex' : 'none';
         document.body.classList.toggle('tool-active', anyActive);
         this.updateBreadcrumb();
     },
