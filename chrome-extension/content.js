@@ -1662,8 +1662,12 @@ async function fillMultiIncidents(clientData, report) {
 let lastUrl = location.href;
 
 function onPageChange() {
+    // Auto-show toolbar when navigating to the personal lines create page
+    if (location.href.includes('/web/account/create/personal') && !document.getElementById('altech-filler-host')) {
+        injectToolbar();
+    }
     // Re-inject toolbar if it was removed by Angular DOM rebuild AND was previously shown
-    if (toolbarWasShown && !document.getElementById('altech-filler-host')) {
+    else if (toolbarWasShown && !document.getElementById('altech-filler-host')) {
         injectToolbar();
     }
     // Update client name in toolbar
@@ -2080,9 +2084,11 @@ if (window.__altechFillerLoaded) {
 } else {
     window.__altechFillerLoaded = true;
 
-    // Toolbar is NOT auto-shown. It appears after a fill is triggered
-    // (from the extension popup or programmatically). This keeps the page
-    // clean until the user actually needs the filler UI.
+    // Auto-show toolbar only on the EZLynx personal lines create page.
+    // On all other EZLynx pages, the toolbar appears after a fill is triggered.
+    if (location.href.includes('/web/account/create/personal')) {
+        setTimeout(injectToolbar, 1500);
+    }
 
     console.log('[Altech Filler] Content script loaded on', location.href, '| Page:', detectPage());
 }
