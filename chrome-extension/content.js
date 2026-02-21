@@ -1020,6 +1020,206 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
 }
 
 
+// ─── §7b  SCOPED FILL UTILITIES (Container-restricted) ───
+
+/**
+ * Fill a text input WITHIN a container element, not the global document.
+ * Searches by CSS selectors first, then by label proximity inside the container.
+ * Returns true if a field was filled.
+ */
+function fillScopedText(container, selectors, value) {
+    if (!container || !value || !String(value).trim()) return false;
+    const val = String(value).trim();
+
+    // Strategy 1: CSS selectors scoped to container
+    if (Array.isArray(selectors)) {
+        for (const sel of selectors) {
+            try {
+                const el = container.querySelector(sel);
+                if (el && isVisible(el) && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+                    setInputValue(el, val);
+                    return true;
+                }
+            } catch (e) { /* skip invalid selector */ }
+        }
+    }
+    return false;
+}
+
+/**
+ * Fill a text input WITHIN a container by finding it near a label inside that container.
+ * Like fillTextByLabel but limited to the given container.
+ */
+function fillScopedTextByLabel(container, labelText, value) {
+    if (!container || !value || !String(value).trim()) return false;
+    const val = String(value).trim();
+    const norm = s => (s || '').replace(/[*:]/g, '').trim().toLowerCase();
+    const pat = labelText.toLowerCase();
+
+    for (const lbl of container.querySelectorAll('label, legend, [class*="label"]')) {
+        const text = norm(lbl.textContent);
+        if (!text || text.length > 60) continue;
+        if (text !== pat && !text.includes(pat)) continue;
+
+        // label[for]
+        const forId = lbl.getAttribute('for') || lbl.htmlFor;
+        if (forId) {
+            const el = document.getElementById(forId);
+            if (el && container.contains(el) && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && isVisible(el)) {
+                setInputValue(el, val);
+                return true;
+            }
+        }
+
+        // Nearest input inside label's form-field wrapper
+        const wrapper = lbl.closest(
+            '.mat-form-field, fieldset, .form-group, [class*="form-field"], ' +
+            '[class*="form-group"], .field-wrapper, .col, [class*="col-"]'
+        ) || lbl.parentElement;
+
+        if (wrapper && container.contains(wrapper)) {
+            const inp = wrapper.querySelector('input, textarea');
+            if (inp && isVisible(inp)) {
+                setInputValue(inp, val);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Fill a dropdown WITHIN a container element.
+ * Finds a mat-select or native <select> near a label inside the container,
+ * then opens it and picks the best match from the CDK overlay.
+ * Returns true if filled.
+ */
+async function fillScopedDropdown(container, labelPatterns, value, fieldKey) {
+    if (!container || !value || !String(value).trim()) return false;
+    const target = String(value).trim();
+    const expanded = expand(target, fieldKey);
+    const norm = s => (s || '').replace(/[*:]/g, '').trim().toLowerCase();
+
+    let ddEl = null;
+    let ddType = null;
+
+    // Search for dropdown within the container only
+    for (const pattern of labelPatterns) {
+        const pat = pattern.toLowerCase();
+        for (const lbl of container.querySelectorAll(
+            'label, legend, .mat-form-field-label, [class*="label"], ' +
+            '[class*="form-field"] > span, [class*="form-field"] > div'
+        )) {
+            const text = norm(lbl.textContent);
+            if (!text || text.length > 60) continue;
+            if (text !== pat && !text.includes(pat)) continue;
+
+            // label[for]
+            const forId = lbl.getAttribute('for') || lbl.htmlFor;
+            if (forId) {
+                const el = document.getElementById(forId);
+                if (el && container.contains(el)) {
+                    if (el.tagName === 'SELECT') { ddEl = el; ddType = 'native'; break; }
+                    if (el.tagName === 'MAT-SELECT' || el.getAttribute('role') === 'listbox' || el.getAttribute('role') === 'combobox') {
+                        ddEl = el; ddType = 'custom'; break;
+                    }
+                }
+            }
+
+            const wrapper = lbl.closest(
+                '.mat-form-field, fieldset, .form-group, .form-field, ' +
+                '[class*="form-field"], [class*="form-group"], .field-wrapper, ' +
+                '.col, .column, [class*="col-"]'
+            ) || lbl.parentElement;
+
+            if (wrapper && container.contains(wrapper)) {
+                const sel = wrapper.querySelector('select');
+                if (sel && isVisible(sel)) { ddEl = sel; ddType = 'native'; break; }
+                const matSel = wrapper.querySelector('mat-select, [role="listbox"], [role="combobox"]');
+                if (matSel) { ddEl = matSel; ddType = 'custom'; break; }
+            }
+        }
+        if (ddEl) break;
+    }
+
+    if (!ddEl) return false;
+
+    // Native select
+    if (ddType === 'native') {
+        const options = Array.from(ddEl.options)
+            .filter(o => o.text.trim() && !['', 'select', 'select one', '-- select --'].includes(o.text.trim().toLowerCase()))
+            .map(o => ({ text: o.text.trim(), value: o.value }));
+        for (const attempt of [target, expanded]) {
+            for (const opt of options) {
+                if (opt.text.toLowerCase() === attempt.toLowerCase() || opt.value.toLowerCase() === attempt.toLowerCase()) {
+                    ddEl.value = opt.value;
+                    ddEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    return true;
+                }
+            }
+        }
+        const optTexts = options.map(o => o.text);
+        const match = bestMatch(expanded, optTexts) || bestMatch(target, optTexts);
+        if (match) {
+            const opt = options.find(o => o.text === match.text);
+            if (opt) { ddEl.value = opt.value; ddEl.dispatchEvent(new Event('change', { bubbles: true })); return true; }
+        }
+        return false;
+    }
+
+    // Custom dropdown (Angular Material) — click to open overlay (overlay is global, not in container)
+    try { ddEl.click(); ddEl.dispatchEvent(new MouseEvent('click', { bubbles: true })); } catch (e) { return false; }
+    await wait(DROPDOWN_WAIT);
+
+    const overlaySels = [
+        '.cdk-overlay-container mat-option',
+        '.cdk-overlay-container [role="option"]',
+        '[role="listbox"] [role="option"]',
+        '.mat-select-panel mat-option',
+        '.mat-option',
+    ];
+
+    let optionEls = [];
+    for (const osel of overlaySels) {
+        const els = document.querySelectorAll(osel);
+        if (els.length > 0) { optionEls = Array.from(els); break; }
+    }
+
+    if (!optionEls.length) {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        return false;
+    }
+
+    const optionTexts = optionEls.map(el => el.textContent.trim()).filter(t => t && !['', 'select', 'select one'].includes(t.toLowerCase()));
+
+    let bestOpt = null;
+    for (const attempt of [target, expanded]) {
+        for (const ot of optionTexts) {
+            if (ot.toLowerCase() === attempt.toLowerCase()) { bestOpt = ot; break; }
+        }
+        if (bestOpt) break;
+    }
+    if (!bestOpt) {
+        const m = bestMatch(expanded, optionTexts) || bestMatch(target, optionTexts);
+        if (m) bestOpt = m.text;
+    }
+
+    if (bestOpt) {
+        for (const el of optionEls) {
+            if (el.textContent.trim() === bestOpt) {
+                el.click();
+                await wait(200);
+                return true;
+            }
+        }
+    }
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await wait(100);
+    return false;
+}
+
+
 // ═══════════════════════════════════════════════════════════════
 // §8  FLOATING TOOLBAR (Shadow DOM isolated)
 // ═══════════════════════════════════════════════════════════════
@@ -1411,6 +1611,129 @@ async function fillPage(clientData) {
                 if (entry) entry.status = 'OK_RETRY';
             }
             await wait(FILL_DELAY);
+        }
+    }
+
+    // ── Co-Applicant injection (Applicant page only) ──
+    const coApPage = detectPage();
+    const coApp = smartData.CoApplicant || clientData.CoApplicant;
+    if (coApPage === 'applicant' && coApp && coApp.FirstName) {
+        updateToolbarStatus('Adding Co-Applicant...');
+        console.log('[Altech Filler] Co-Applicant detected, injecting:', coApp);
+
+        // Step 1: Click "Add contact" button
+        let addContactClicked = false;
+        const addBtnPatterns = ['Add contact', 'Add Contact', 'Add another contact', 'Add Another Contact', '+ Contact', 'New Contact'];
+        const allBtns = [...document.querySelectorAll('button, a, [role="button"], .mat-button, .mat-raised-button, .mat-flat-button, .mat-icon-button')];
+        for (const btn of allBtns) {
+            const text = (btn.textContent || '').trim();
+            if (addBtnPatterns.some(p => text.toLowerCase().includes(p.toLowerCase()))) {
+                btn.click();
+                addContactClicked = true;
+                console.log(`[Altech Filler] Clicked "${text}" for Co-Applicant`);
+                break;
+            }
+        }
+        // Fallback: aria-label / title
+        if (!addContactClicked) {
+            for (const pat of addBtnPatterns) {
+                const btn = document.querySelector(`[aria-label*="${pat}" i], [title*="${pat}" i]`);
+                if (btn) { btn.click(); addContactClicked = true; console.log(`[Altech Filler] Clicked add-contact by aria-label: ${pat}`); break; }
+            }
+        }
+
+        if (addContactClicked) {
+            await wait(1200); // Wait for Angular expansion animation
+
+            // Step 2: Find the LAST expansion panel (the new Co-Applicant section)
+            const panels = document.querySelectorAll('mat-expansion-panel, .mat-expansion-panel, [class*="expansion-panel"], [class*="contact-panel"], [class*="co-applicant"], [class*="additional-contact"]');
+            const coApContainer = panels.length > 0 ? panels[panels.length - 1] : null;
+
+            if (coApContainer) {
+                console.log('[Altech Filler] Found Co-Applicant container:', coApContainer.className);
+
+                // Step 3: Mark as Co-Applicant (checkbox / toggle / radio)
+                const coApLabelPatterns = ['co-applicant', 'coapplicant', 'make this contact co', 'co applicant', 'type.*co'];
+                let markedCoAp = false;
+
+                // Try checkboxes / toggles / radio buttons inside the container
+                for (const ctrl of coApContainer.querySelectorAll('mat-checkbox, mat-slide-toggle, mat-radio-button, input[type="checkbox"], input[type="radio"], label')) {
+                    const ctrlText = (ctrl.textContent || ctrl.getAttribute('aria-label') || '').toLowerCase();
+                    if (coApLabelPatterns.some(p => ctrlText.includes(p) || new RegExp(p).test(ctrlText))) {
+                        ctrl.click();
+                        markedCoAp = true;
+                        console.log('[Altech Filler] Marked Co-Applicant checkbox/toggle');
+                        break;
+                    }
+                }
+
+                // Fallback: check for a dropdown labeled "Contact Type" or "Type" with a Co-Applicant option
+                if (!markedCoAp) {
+                    const typeLabels = ['contact type', 'type', 'role'];
+                    const filled = await fillScopedDropdown(coApContainer, typeLabels, 'Co-Applicant', 'ContactType');
+                    if (filled) {
+                        markedCoAp = true;
+                        console.log('[Altech Filler] Set Contact Type dropdown to Co-Applicant');
+                    }
+                }
+
+                await wait(800); // Wait for Co-Applicant fields to render
+
+                // Step 4: Scoped fill — Co-Applicant fields WITHIN this container only
+                const coApFields = {
+                    FirstName:    { selectors: TEXT_FIELD_MAP.FirstName,  label: 'first name' },
+                    LastName:     { selectors: TEXT_FIELD_MAP.LastName,   label: 'last name' },
+                    DOB:          { selectors: TEXT_FIELD_MAP.DOB,        label: 'date of birth' },
+                    SSN:          { selectors: TEXT_FIELD_MAP.SSN,        label: 'ssn' },
+                };
+                const coApDropdowns = {
+                    Gender:       { labels: ['gender', 'sex'],              key: 'Gender' },
+                    Relationship: { labels: ['relationship', 'relation'],   key: 'Relationship' },
+                    MaritalStatus:{ labels: ['marital', 'marital status'],  key: 'MaritalStatus' },
+                };
+
+                // Fill scoped text fields
+                for (const [field, cfg] of Object.entries(coApFields)) {
+                    const val = coApp[field];
+                    if (!val) continue;
+                    updateToolbarStatus(`CoApp: ${field}...`);
+                    const filled = fillScopedText(coApContainer, cfg.selectors, val) ||
+                                   fillScopedTextByLabel(coApContainer, cfg.label, val);
+                    if (filled) {
+                        report.textFilled++;
+                        report.details.push({ field: `CoApp.${field}`, type: 'text', status: 'OK', value: val });
+                    } else {
+                        report.textSkipped++;
+                        report.details.push({ field: `CoApp.${field}`, type: 'text', status: 'SKIP', value: val });
+                    }
+                    await wait(FILL_DELAY);
+                }
+
+                // Fill scoped dropdowns
+                for (const [field, cfg] of Object.entries(coApDropdowns)) {
+                    const val = coApp[field];
+                    if (!val) continue;
+                    updateToolbarStatus(`CoApp: ${field}...`);
+                    const filled = await fillScopedDropdown(coApContainer, cfg.labels, val, cfg.key);
+                    if (filled) {
+                        report.ddFilled++;
+                        report.details.push({ field: `CoApp.${field}`, type: 'dropdown', status: 'OK', value: val });
+                    } else {
+                        report.ddSkipped++;
+                        report.details.push({ field: `CoApp.${field}`, type: 'dropdown', status: 'SKIP', value: val });
+                    }
+                    await wait(FILL_DELAY);
+                }
+
+                report.details.push({ field: 'CoApplicant', type: 'info', status: markedCoAp ? 'OK' : 'WARN', reason: markedCoAp ? 'Injected & marked' : 'Injected but could not mark as Co-Applicant' });
+                updateToolbarStatus('Co-Applicant filled');
+            } else {
+                console.warn('[Altech Filler] Could not find Co-Applicant container after clicking Add contact');
+                report.details.push({ field: 'CoApplicant', type: 'info', status: 'FAIL', reason: 'Container not found after add click' });
+            }
+        } else {
+            console.warn('[Altech Filler] No "Add contact" button found on applicant page');
+            report.details.push({ field: 'CoApplicant', type: 'info', status: 'FAIL', reason: 'Add contact button not found' });
         }
     }
 
@@ -2323,6 +2646,215 @@ async function scrapePage() {
     result.stats.deepScrapeToggles = inactiveToggles.length;
     result.stats.deepScrapeRevealed = result.deepScrape.revealedFields.length;
     console.log(`[Altech Deep Scrape] Expanded ${result.deepScrape.togglesExpanded} toggles, found ${result.deepScrape.revealedFields.length} hidden fields`);
+
+    // ── 5. BUTTON-EXPANSION SCRAPE: Click "Add contact" to reveal Co-Applicant fields ──
+    result.buttonExpansion = { revealedFields: [], buttonsExpanded: 0 };
+
+    const addContactPatterns = ['add contact', 'add another contact', '+ contact', 'new contact'];
+    const allButtons = [...document.querySelectorAll('button, a, [role="button"], .mat-button, .mat-raised-button, .mat-flat-button, .mat-icon-button')];
+    let addContactBtn = null;
+
+    for (const btn of allButtons) {
+        const text = (btn.textContent || '').trim().toLowerCase();
+        if (addContactPatterns.some(p => text.includes(p))) {
+            addContactBtn = btn;
+            break;
+        }
+    }
+    // Fallback: aria-label / title
+    if (!addContactBtn) {
+        for (const pat of addContactPatterns) {
+            const btn = document.querySelector(`[aria-label*="${pat}" i], [title*="${pat}" i]`);
+            if (btn) { addContactBtn = btn; break; }
+        }
+    }
+
+    if (addContactBtn) {
+        console.log('[Altech Scraper] Found "Add contact" button, expanding for Co-Applicant scrape...');
+
+        // Snapshot existing field IDs/names before expansion
+        const preClickFields = new Set();
+        document.querySelectorAll('input, select, textarea, mat-select').forEach(el => {
+            if (el.id) preClickFields.add(el.id);
+            if (el.name) preClickFields.add(el.name);
+        });
+
+        addContactBtn.click();
+        await wait(1200); // Let Angular render the new contact container
+
+        // Find the newly created container (last expansion panel / contact block)
+        const panels = document.querySelectorAll(
+            'mat-expansion-panel, .mat-expansion-panel, [class*="expansion-panel"], ' +
+            '[class*="contact-panel"], [class*="co-applicant"], [class*="additional-contact"]'
+        );
+        const newContainer = panels.length > 0 ? panels[panels.length - 1] : null;
+
+        // Scrape new text inputs
+        const postInputs = document.querySelectorAll('input, textarea');
+        for (const inp of postInputs) {
+            if (!isVisible(inp)) continue;
+            if (['hidden', 'submit', 'button', 'reset', 'file', 'checkbox', 'radio'].includes(inp.type)) continue;
+            if (inp.id && preClickFields.has(inp.id)) continue;
+            if (inp.name && preClickFields.has(inp.name)) continue;
+
+            const fieldLabel = findLabelFor(inp);
+            result.buttonExpansion.revealedFields.push({
+                revealedBy: 'Add contact',
+                type: inp.type || 'text',
+                name: inp.name || '',
+                id: inp.id || '',
+                label: fieldLabel || '',
+                placeholder: inp.placeholder || '',
+                required: inp.required || inp.getAttribute('aria-required') === 'true'
+            });
+            // Also add to main textFields list
+            result.textFields.push({
+                type: inp.type || 'text', name: inp.name || '', id: inp.id || '',
+                placeholder: inp.placeholder || '', label: fieldLabel || '',
+                value: '', required: inp.required || inp.getAttribute('aria-required') === 'true',
+                source: 'button-expansion'
+            });
+            result.stats.totalInputs++;
+            if (inp.id) preClickFields.add(inp.id);
+            if (inp.name) preClickFields.add(inp.name);
+        }
+
+        // Scrape new native selects
+        const postSelects = document.querySelectorAll('select');
+        for (const sel of postSelects) {
+            if (!isVisible(sel)) continue;
+            const selKey = sel.name || sel.id;
+            if (selKey && preClickFields.has(selKey)) continue;
+
+            const selLabel = findLabelFor(sel);
+            const options = Array.from(sel.options)
+                .map(o => o.text.trim())
+                .filter(t => t && !['', 'select', 'select one', '-- select --', '--select--', 'choose'].includes(t.toLowerCase()));
+
+            if (options.length > 0) {
+                const key = selLabel || selKey || `contact_select_${result.buttonExpansion.revealedFields.length}`;
+                result.nativeSelects[key] = {
+                    name: sel.name || '', id: sel.id || '', label: selLabel || '',
+                    options, currentValue: '', required: sel.required,
+                    revealedBy: 'Add contact'
+                };
+                result.stats.totalNativeSelects++;
+                result.stats.totalOptions += options.length;
+            }
+            result.buttonExpansion.revealedFields.push({
+                revealedBy: 'Add contact', type: 'select',
+                name: sel.name || '', id: sel.id || '', label: selLabel || ''
+            });
+            if (sel.id) preClickFields.add(sel.id);
+            if (sel.name) preClickFields.add(sel.name);
+        }
+
+        // Scrape new Angular Material dropdowns
+        const postMatSelects = document.querySelectorAll('mat-select, [role="listbox"], [role="combobox"]');
+        for (const ms of postMatSelects) {
+            if (!isVisible(ms)) continue;
+            const msKey = ms.id || ms.getAttribute('aria-label');
+            if (msKey && preClickFields.has(msKey)) continue;
+
+            const msLabel = findLabelFor(ms);
+
+            // Open to capture options
+            let options = [];
+            try {
+                ms.click();
+                await wait(350);
+                const panelId = ms.getAttribute('aria-owns') || ms.getAttribute('aria-controls');
+                let optionEls = [];
+                if (panelId) {
+                    const panel = document.getElementById(panelId);
+                    if (panel) optionEls = panel.querySelectorAll('mat-option, [role="option"]');
+                }
+                if (optionEls.length === 0) {
+                    const panes = document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane');
+                    if (panes.length > 0) optionEls = panes[panes.length - 1].querySelectorAll('mat-option, [role="option"]');
+                }
+                options = Array.from(optionEls).map(el => el.textContent.trim()).filter(t => t && t.toLowerCase() !== '' && t.toLowerCase() !== 'select');
+                await closeDropdown(ms);
+            } catch (e) { nukeOverlays(); await wait(50); }
+
+            const ddKey = msLabel || msKey || `contact_dd_${result.buttonExpansion.revealedFields.length}`;
+            result.dropdowns[ddKey] = {
+                id: ms.id || '', ariaLabel: ms.getAttribute('aria-label') || '',
+                label: msLabel || '', options, currentValue: '',
+                optionCount: options.length, revealedBy: 'Add contact'
+            };
+            result.stats.totalCustomDropdowns++;
+            result.stats.totalOptions += options.length;
+            result.buttonExpansion.revealedFields.push({
+                revealedBy: 'Add contact', type: 'mat-select',
+                id: ms.id || '', label: msLabel || '', options
+            });
+            if (ms.id) preClickFields.add(ms.id);
+        }
+
+        // Scrape new checkboxes / toggles / radios inside the contact container
+        if (newContainer) {
+            for (const ctrl of newContainer.querySelectorAll('mat-checkbox, mat-slide-toggle, mat-radio-button, input[type="checkbox"], input[type="radio"]')) {
+                if (!isVisible(ctrl)) continue;
+                const ctrlLabel = ctrl.querySelector('.mat-checkbox-label, .mat-slide-toggle-content, .mdc-label, label')?.textContent?.trim()
+                    || ctrl.textContent?.trim() || findLabelFor(ctrl) || '';
+                result.buttonExpansion.revealedFields.push({
+                    revealedBy: 'Add contact',
+                    type: ctrl.tagName?.toLowerCase() || 'control',
+                    label: ctrlLabel
+                });
+            }
+        }
+
+        result.buttonExpansion.buttonsExpanded = 1;
+
+        // ── Clean up: delete the empty Co-Applicant container ──
+        // Find the delete/trash button STRICTLY inside the new container
+        let deletedContact = false;
+        if (newContainer) {
+            // Look for delete/trash button inside the container
+            const deletePatterns = ['delete', 'remove', 'trash', 'close', 'cancel'];
+            for (const btn of newContainer.querySelectorAll('button, [role="button"], a, .mat-icon-button')) {
+                const text = (btn.textContent || '').trim().toLowerCase();
+                const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+                const title = (btn.getAttribute('title') || '').toLowerCase();
+                const hasIcon = btn.querySelector('mat-icon, [class*="trash"], [class*="delete"], [class*="remove"], [class*="close"]');
+
+                if (deletePatterns.some(p => text.includes(p) || ariaLabel.includes(p) || title.includes(p)) || hasIcon) {
+                    btn.click();
+                    deletedContact = true;
+                    console.log('[Altech Scraper] Deleted empty Co-Applicant container');
+                    break;
+                }
+            }
+
+            // Fallback: look for a "Remove contact" or trash icon button near/after the container
+            if (!deletedContact) {
+                const nextSibling = newContainer.nextElementSibling;
+                if (nextSibling) {
+                    for (const btn of [nextSibling, ...nextSibling.querySelectorAll('button, [role="button"]')]) {
+                        const text = (btn.textContent || '').trim().toLowerCase();
+                        if (deletePatterns.some(p => text.includes(p))) {
+                            btn.click();
+                            deletedContact = true;
+                            console.log('[Altech Scraper] Deleted empty Co-Applicant via sibling button');
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (deletedContact) {
+            await wait(500); // Let Angular tear down
+        } else {
+            console.warn('[Altech Scraper] Could not find delete button for empty Co-Applicant — page may need manual cleanup');
+        }
+
+        console.log(`[Altech Scraper] Button expansion revealed ${result.buttonExpansion.revealedFields.length} Co-Applicant fields`);
+    }
+
+    result.stats.buttonExpansionRevealed = result.buttonExpansion.revealedFields.length;
 
     // ── Final cleanup: nuke all overlays and reset page state ──
     nukeOverlays();
