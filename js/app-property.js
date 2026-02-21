@@ -36,6 +36,7 @@ Object.assign(App, {
             return;
         }
 
+        if (typeof this.ensureMapApiKey !== 'function') return;
         const apiKey = await this.ensureMapApiKey();
         if (!apiKey) {
             if (hint) hint.textContent = 'Map previews unavailable (API key not configured).';

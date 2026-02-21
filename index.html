@@ -2155,37 +2155,23 @@
 
         <!-- STEP 6: REVIEW & EXPORT -->
         <div id="step-6" class="step hidden">
-            <div class="card">
-                <h2>✓ Application Complete</h2>
-                <p class="section-subtitle">Export this client's data or restore a previous client</p>
-            </div>
-
-            <!-- Export Actions -->
+            <!-- Hero Export Card -->
             <div class="card export-card hero-export" id="ezlynx-export-card">
-                <h3>Ready to Export?</h3>
-                <p class="hero-desc">Send your intake data straight into EZLynx, download a PDF summary, or export to HawkSoft.</p>
-                <button class="hero-btn" onclick="App.openTool('ezlynx')">⚡ Auto-Fill EZLynx</button>
-                <p class="hero-hint">Opens the EZLynx Filler tool to send data to EZLynx</p>
+                <h3>✓ Intake Complete</h3>
+                <p class="hero-desc">Your client data is ready — send it to EZLynx with one tap</p>
+                <button class="hero-btn" onclick="App.openTool('ezlynx')">⚡ Send to EZLynx</button>
+                <div class="hero-secondary-row">
+                    <button class="hero-secondary-btn" onclick="App.exportPDF()">📄 Download PDF</button>
+                    <button class="hero-secondary-btn" onclick="App.navigateTo('hawksoft')">📤 HawkSoft</button>
+                </div>
             </div>
 
-            <!-- Prominent export buttons row -->
-            <div class="export-btn-row">
-                <button class="export-action-btn pdf-btn" onclick="App.exportPDF()">
-                    <span class="export-action-icon">📄</span>
-                    <span class="export-action-label">Download PDF</span>
-                </button>
-                <button class="export-action-btn hawksoft-btn" onclick="App.navigateTo('hawksoft')">
-                    <span class="export-action-icon">📤</span>
-                    <span class="export-action-label">HawkSoft Export</span>
-                </button>
-            </div>
-
-            <!-- Client History (auto-saved) -->
+            <!-- Saved Clients -->
             <div class="card export-card">
                 <div class="ch-header">
-                    <h3 style="margin:0;">👤 Client History</h3>
+                    <h3 style="margin:0;">👤 Saved Clients</h3>
                 </div>
-                <p class="section-subtitle" style="margin-bottom:12px;">Clients are saved automatically — restore any previous client instantly</p>
+                <p class="section-subtitle" style="margin-bottom:12px;">Tap any client to reload their data</p>
                 <div id="clientHistoryList"></div>
             </div>
 

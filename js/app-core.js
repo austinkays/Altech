@@ -268,17 +268,21 @@ Object.assign(App, {
             });
         }
 
-        // Map previews: update when address fields change
-        ['addrStreet', 'addrCity', 'addrState', 'addrZip'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('input', () => this.scheduleMapPreviewUpdate());
-                el.addEventListener('change', () => this.scheduleMapPreviewUpdate());
-            }
-        });
+        // Map previews: update when address fields change (guard: app-property.js may not be loaded)
+        if (typeof this.scheduleMapPreviewUpdate === 'function') {
+            ['addrStreet', 'addrCity', 'addrState', 'addrZip'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', () => this.scheduleMapPreviewUpdate());
+                    el.addEventListener('change', () => this.scheduleMapPreviewUpdate());
+                }
+            });
+        }
 
         // Initial preview render if address already exists
-        this.updateMapPreviews();
+        if (typeof this.updateMapPreviews === 'function') {
+            this.updateMapPreviews();
+        }
 
         this.initialized = true;
         console.log('[App.init] Complete. flow:', this.flow.length, 'steps');
