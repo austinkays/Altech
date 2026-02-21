@@ -143,6 +143,7 @@ const Auth = (() => {
         get email() { return _user?.email || null; },
         get displayName() { return _user?.displayName || null; },
         get isEmailVerified() { return _user?.emailVerified || false; },
+        get isAdmin() { return _user?.email === 'austin@altechinsurance.com'; },
 
         /** Promise that resolves once the initial auth state is known (user or null). */
         ready() { return _authReady; },
@@ -235,6 +236,10 @@ const Auth = (() => {
                 if (emailEl) emailEl.textContent = _user.email;
                 if (nameEl) nameEl.value = _user.displayName || '';
                 if (avatarEl) avatarEl.textContent = (_user.displayName || _user.email || '?')[0].toUpperCase();
+
+                // Only admins can see the "Invite Your Team" section
+                const inviteSection = document.getElementById('authInviteSection');
+                if (inviteSection) inviteSection.style.display = Auth.isAdmin ? '' : 'none';
             } else {
                 _showView('login');
             }
