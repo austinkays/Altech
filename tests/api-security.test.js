@@ -14,7 +14,7 @@ const path = require('path');
 
 // ── Load functions from ESM source ──
 function loadSecurityFunctions() {
-  const source = fs.readFileSync(path.join(__dirname, '../api/_security.js'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, '../lib/security.js'), 'utf8');
   const cleaned = source
     .replace(/^import\s+.*$/gm, '')
     .replace(/^export\s+default\s+/m, 'const __defaultExport = ')

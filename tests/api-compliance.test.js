@@ -16,7 +16,7 @@ const path = require('path');
 
 // ── Load pure functions from _compliance-utils.js (ESM → CJS shim) ──
 function loadComplianceFunctions() {
-  const source = fs.readFileSync(path.join(__dirname, '../api/_compliance-utils.js'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, '../lib/compliance-utils.js'), 'utf8');
 
   // Strip ES module syntax: export statements
   const cleaned = source
@@ -51,13 +51,13 @@ beforeAll(() => {
 describe('compliance.js — Module Syntax', () => {
   test('module source parses without syntax errors', () => {
     // Verify the utils file (pure functions) parses cleanly
-    const utilsSource = fs.readFileSync(path.join(__dirname, '../api/_compliance-utils.js'), 'utf8');
+    const utilsSource = fs.readFileSync(path.join(__dirname, '../lib/compliance-utils.js'), 'utf8');
     const cjsSafe = utilsSource.replace(/^export\s+/gm, '');
     expect(() => new Function(cjsSafe)).not.toThrow();
   });
 
   test('no duplicate function declarations', () => {
-    const source = fs.readFileSync(path.join(__dirname, '../api/_compliance-utils.js'), 'utf8');
+    const source = fs.readFileSync(path.join(__dirname, '../lib/compliance-utils.js'), 'utf8');
     const fnNames = ['calculateDaysUntilExpiration', 'getExpirationStatus',
       'isGeneralLiabilityPolicy', 'isSuretyBondPolicy', 'isCommercialPolicy',
       'getCommercialPolicyType', 'requiresManualVerification'];
@@ -491,7 +491,7 @@ describe('compliance.js — Handler Structure', () => {
   });
 
   test('business logic is imported from _compliance-utils.js', () => {
-    expect(source).toMatch(/import\s*\{[\s\S]*?\}\s*from\s*['"].\/_compliance-utils\.js['"]/);
+    expect(source).toMatch(/import\s*\{[\s\S]*?\}\s*from\s*['"]\.\.\/(lib\/compliance-utils|_compliance-utils)\.js['"]/);
   });
 
   test('CORS/OPTIONS is handled by securityMiddleware', () => {

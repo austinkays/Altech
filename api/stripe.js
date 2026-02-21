@@ -24,7 +24,7 @@ async function handleCheckout(req, res, stripe) {
     const uid = req.uid;
     const email = req.userEmail;
     const priceId = req.body?.priceId || process.env.STRIPE_PRICE_ID;
-    const appUrl = process.env.APP_URL || 'https://altech-insurance.vercel.app';
+    const appUrl = process.env.APP_URL || 'https://altech.agency';
 
     if (!priceId) {
         return res.status(400).json({ error: 'No price ID configured' });
@@ -66,7 +66,7 @@ async function handleCheckout(req, res, stripe) {
 
 async function handlePortal(req, res, stripe) {
     const email = req.userEmail;
-    const appUrl = process.env.APP_URL || 'https://altech-insurance.vercel.app';
+    const appUrl = process.env.APP_URL || 'https://altech.agency';
 
     try {
         const customers = await stripe.customers.list({ email, limit: 1 });

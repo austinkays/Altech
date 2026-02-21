@@ -306,7 +306,6 @@ describe('API Endpoint Files Exist', () => {
     'compliance.js',
     'kv-store.js',
     'prospect-lookup.js',
-    'generate-coi.js',
     'policy-scan.js',
     'vision-processor.js',
     'rag-interpreter.js',
@@ -315,8 +314,11 @@ describe('API Endpoint Files Exist', () => {
     'property-intelligence.js',
   ];
 
-  // _security.js uses named exports (utility module), not export default
-  const namedExportAPIs = ['_security.js'];
+  // Shared helpers live in lib/ (not counted as serverless functions)
+  const sharedHelpers = [
+    { file: 'lib/security.js', label: 'security.js' },
+    { file: 'lib/compliance-utils.js', label: 'compliance-utils.js' },
+  ];
 
   test.each(requiredAPIs)('api/%s exists', (filename) => {
     const filePath = path.join(ROOT, 'api', filename);
@@ -329,8 +331,8 @@ describe('API Endpoint Files Exist', () => {
     expect(source).toMatch(/export\s+default/);
   });
 
-  test.each(namedExportAPIs)('api/%s uses named exports (utility module)', (filename) => {
-    const filePath = path.join(ROOT, 'api', filename);
+  test.each(sharedHelpers)('$file exists and uses named exports', ({ file }) => {
+    const filePath = path.join(ROOT, file);
     expect(fs.existsSync(filePath)).toBe(true);
     const source = fs.readFileSync(filePath, 'utf8');
     expect(source).toMatch(/export\s+function/);
