@@ -38,6 +38,7 @@ Thumbs.db
 
 # Large binary files
 *.pdf
+!Resources/ACORD 25 fillable.pdf
 *.xls
 *.xlsx
 *.doc
