@@ -404,7 +404,7 @@ Object.assign(App, {
                 this.setFieldValue('county', county, { autoFilled: true, source: 'places' });
             }
 
-            this.scheduleMapPreviewUpdate();
+            if (typeof this.scheduleMapPreviewUpdate === 'function') this.scheduleMapPreviewUpdate();
 
             refreshSessionToken();
         });

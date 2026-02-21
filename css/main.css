@@ -2896,6 +2896,39 @@ body.dark-mode .coi-legal { background: rgba(255,255,255,0.04); }
 /* Hide old acord-* classes (unused now) */
 .acord-header, .acord-two-column, .acord-box-label { display: none; }
 
+/* Google Places autocomplete dropdown — must be above footer (z-index 1000) and overlays */
+.pac-container {
+    z-index: 10001 !important;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    margin-top: 4px;
+}
+.pac-item {
+    padding: 8px 12px;
+    font-size: 14px;
+    border-top: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+}
+.pac-item:first-child { border-top: none; }
+.pac-item:hover, .pac-item-selected { background: var(--bg-input); }
+.pac-icon { display: none; }
+.pac-item-query { color: var(--text); font-weight: 500; }
+body.dark-mode .pac-container {
+    background: #1C1C1E;
+    border-color: #38383A;
+}
+body.dark-mode .pac-item {
+    border-color: #38383A;
+    color: #FFFFFF;
+}
+body.dark-mode .pac-item:hover,
+body.dark-mode .pac-item-selected { background: #2C2C2E; }
+body.dark-mode .pac-item-query { color: #FFFFFF; }
+body.dark-mode .pac-matched { color: #0A84FF; }
+
 /* === PRINT STYLES FOR ACORD 25 === */
 @media print {
     body { background: white; margin: 0; }

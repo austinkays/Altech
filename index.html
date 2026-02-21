@@ -2381,9 +2381,13 @@
 
             // Initialize cloud sync (non-blocking), then load Places API (needs Auth for key fetch)
             if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.sdkLoaded) {
-                FirebaseConfig.init().then(() => {
-                    if (typeof Auth !== 'undefined') Auth.init();
-                    // Load Places API after Auth is available so apiFetch works
+                FirebaseConfig.init().then(async () => {
+                    if (typeof Auth !== 'undefined') {
+                        Auth.init();
+                        // Wait for Firebase to resolve auth state so token is available for API key fetch
+                        try { await Auth.ready(); } catch (_) { /* continue anyway */ }
+                    }
+                    // Load Places API after auth state is known
                     if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
                 }).catch(e => {
                     console.warn('[App] Firebase init skipped:', e.message);

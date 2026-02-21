@@ -11,8 +11,13 @@ const Auth = (() => {
     let _listeners = [];
     let _modalEl = null;
 
+    // Promise that resolves once Firebase auth state is first known (signed in or out)
+    let _authReadyResolve;
+    const _authReady = new Promise(resolve => { _authReadyResolve = resolve; });
+
     // ── Auth state change callback ──
     function _onAuthStateChanged(user) {
+        if (_authReadyResolve) { _authReadyResolve(user); _authReadyResolve = null; }
         _user = user;
         _updateHeaderUI(user);
         // Refresh landing greeting with user's name
@@ -138,6 +143,9 @@ const Auth = (() => {
         get email() { return _user?.email || null; },
         get displayName() { return _user?.displayName || null; },
         get isEmailVerified() { return _user?.emailVerified || false; },
+
+        /** Promise that resolves once the initial auth state is known (user or null). */
+        ready() { return _authReady; },
 
         /**
          * Get the current user's Firebase ID token for authenticating API calls.
