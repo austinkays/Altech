@@ -2676,6 +2676,28 @@
                         <button class="btn-auth btn-auth-small btn-auth-primary" style="margin-top:0;width:auto;padding:0.4rem 1rem" onclick="CloudSync.fullSync()">Sync Now</button>
                     </div>
 
+                    <div class="auth-divider">security</div>
+                    <div id="authChangePasswordSection">
+                        <button type="button" class="btn-auth btn-auth-secondary" style="width:100%;margin-bottom:0" onclick="document.getElementById('authChangePwForm').style.display = document.getElementById('authChangePwForm').style.display === 'none' ? 'block' : 'none'">Change Password</button>
+                        <form id="authChangePwForm" class="auth-form" style="display:none;margin-top:0.75rem" onsubmit="Auth.handleChangePasswordSubmit(event)">
+                            <div class="auth-field">
+                                <label for="authCurrentPassword">Current Password</label>
+                                <input type="password" id="authCurrentPassword" placeholder="Current password" required autocomplete="current-password">
+                            </div>
+                            <div class="auth-field">
+                                <label for="authNewPassword">New Password</label>
+                                <input type="password" id="authNewPassword" placeholder="New password (min 6 chars)" required minlength="6" autocomplete="new-password">
+                            </div>
+                            <div class="auth-field">
+                                <label for="authConfirmNewPassword">Confirm New Password</label>
+                                <input type="password" id="authConfirmNewPassword" placeholder="Confirm new password" required minlength="6" autocomplete="new-password">
+                            </div>
+                            <div class="auth-error" style="display:none"></div>
+                            <div class="auth-success" style="display:none"></div>
+                            <button type="submit" class="btn-auth btn-auth-primary" style="margin-top:0.25rem">Update Password</button>
+                        </form>
+                    </div>
+
                     <div id="authInviteSection" style="display:none">
                     <div class="auth-divider">team</div>
                     <div class="auth-invite-row" onclick="Onboarding.showShareModal()">

@@ -442,6 +442,72 @@ const Auth = (() => {
             e.preventDefault();
             const email = e.target.querySelector('#authResetEmail')?.value?.trim();
             if (email) this.resetPassword(email);
+        },
+
+        /**
+         * Change password for signed-in user (re-authenticates first)
+         */
+        async changePassword(currentPassword, newPassword) {
+            if (!_user || !FirebaseConfig.isReady) return;
+
+            const form = document.getElementById('authChangePwForm');
+            const errEl = form?.querySelector('.auth-error');
+            const successEl = form?.querySelector('.auth-success');
+            const submitBtn = form?.querySelector('button[type="submit"]');
+
+            // Clear previous messages
+            if (errEl) { errEl.textContent = ''; errEl.style.display = 'none'; }
+            if (successEl) { successEl.textContent = ''; successEl.style.display = 'none'; }
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Please wait...'; }
+
+            try {
+                // Re-authenticate with current password
+                const credential = firebase.auth.EmailAuthProvider.credential(_user.email, currentPassword);
+                await _user.reauthenticateWithCredential(credential);
+
+                // Update to new password
+                await _user.updatePassword(newPassword);
+
+                // Show success
+                if (successEl) {
+                    successEl.textContent = 'Password updated successfully.';
+                    successEl.style.display = 'block';
+                }
+                // Clear form fields
+                if (form) {
+                    form.querySelector('#authCurrentPassword').value = '';
+                    form.querySelector('#authNewPassword').value = '';
+                    form.querySelector('#authConfirmNewPassword').value = '';
+                }
+                console.log('[Auth] Password changed successfully');
+            } catch (e) {
+                const msg = e.code === 'auth/wrong-password' ? 'Current password is incorrect.'
+                    : e.code === 'auth/weak-password' ? 'New password must be at least 6 characters.'
+                    : e.code === 'auth/requires-recent-login' ? 'Session expired. Please sign out and sign back in, then try again.'
+                    : _friendlyError(e.code);
+                if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+                console.error('[Auth] Change password failed:', e.code);
+            } finally {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Update Password'; }
+            }
+        },
+
+        /**
+         * Handle change password form submission
+         */
+        handleChangePasswordSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const current = form.querySelector('#authCurrentPassword')?.value;
+            const newPw = form.querySelector('#authNewPassword')?.value;
+            const confirm = form.querySelector('#authConfirmNewPassword')?.value;
+            const errEl = form.querySelector('.auth-error');
+
+            if (newPw !== confirm) {
+                if (errEl) { errEl.textContent = 'New passwords do not match.'; errEl.style.display = 'block'; }
+                return;
+            }
+            if (current && newPw) this.changePassword(current, newPw);
         }
     };
 })();
