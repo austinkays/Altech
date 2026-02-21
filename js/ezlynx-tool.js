@@ -7,73 +7,14 @@ const EZLynxTool = {
     init() {
         if (this.initialized) return;
         this.initialized = true;
-        this.loadLogin();
         this.loadFormData();
         this._loadIncidents();
         this.renderIncidents();
         this._wireAutoSave();
-        this._restoreInstallGuide();
         this._restoreClientBanner();
     },
 
-    // ── Quick Login ──
-    loginStorageKey: 'altech_ezlynx_login',
     formStorageKey: 'altech_ezlynx_formdata',
-
-    saveLogin() {
-        const u = document.getElementById('ezLoginUser');
-        const p = document.getElementById('ezLoginPass');
-        try {
-            localStorage.setItem(this.loginStorageKey, JSON.stringify({
-                user: u ? u.value : '',
-                pass: p ? p.value : ''
-            }));
-        } catch (e) { /* quota */ }
-    },
-
-    // Hardcoded defaults — always restored even after cache clear
-    _defaultLogin: { user: 'austinkays', pass: 'PLT5PtX&Yh2dyUzW&%Un^6' },
-
-    loadLogin() {
-        const u = document.getElementById('ezLoginUser');
-        const p = document.getElementById('ezLoginPass');
-        // Try localStorage first, fall back to hardcoded defaults
-        try {
-            const raw = localStorage.getItem(this.loginStorageKey);
-            if (raw) {
-                const d = JSON.parse(raw);
-                if (u && d.user) u.value = d.user;
-                if (p && d.pass) p.value = d.pass;
-                return;
-            }
-        } catch (e) { /* corrupt */ }
-        // Fallback: hardcoded defaults
-        if (u) u.value = this._defaultLogin.user;
-        if (p) p.value = this._defaultLogin.pass;
-    },
-
-    toggleLoginPw() {
-        const f = document.getElementById('ezLoginPass');
-        const b = document.getElementById('ezLoginPwToggle');
-        if (!f) return;
-        const show = f.type === 'password';
-        f.type = show ? 'text' : 'password';
-        if (b) b.textContent = show ? '🙈' : '👁';
-    },
-
-    copyPassword() {
-        const f = document.getElementById('ezLoginPass');
-        const pw = f ? f.value : '';
-        if (!pw) { App.toast('⚠️ No password saved'); return; }
-        navigator.clipboard.writeText(pw).then(() => {
-            const btn = document.getElementById('ezCopyPwBtn');
-            if (btn) {
-                btn.textContent = '✅ Copied!';
-                setTimeout(() => { btn.textContent = '📋 Copy'; }, 1500);
-            }
-            App.toast('📋 Password copied to clipboard');
-        }).catch(() => App.toast('❌ Clipboard access denied'));
-    },
 
     // ── Form Data Persistence ──
     saveFormData() {
@@ -710,64 +651,6 @@ const EZLynxTool = {
         App.toast('🗑 Form cleared');
     },
 
-    // ── Launch Filler ──
-    async launch() {
-        const btn = document.getElementById('ezLaunchBtn');
-        const status = document.getElementById('ezFillStatus');
-        const clientData = this.getFormData();
-
-        if (!clientData.FirstName && !clientData.LastName) {
-            App.toast('⚠️ Enter at least a first or last name');
-            return;
-        }
-
-        const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-        if (!isLocal) {
-            App.toast('⚠️ EZLynx Auto-Fill requires the local desktop app (node server.js)');
-            return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = '⏳ Launching...';
-        status.textContent = '🔄 Preparing client data and launching browser...';
-
-        try {
-            const res = await fetch('/local/ezlynx-fill', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ clientData })
-            });
-            const data = await res.json();
-
-            if (!res.ok || data.error) {
-                throw new Error(data.error || 'Failed to launch filler');
-            }
-
-            status.textContent = '✅ EZLynx filler launched!\n\n' +
-                '1. Check your taskbar for the Chromium window\n' +
-                '2. Log in to EZLynx manually\n' +
-                '3. Navigate to the New Applicant form\n' +
-                '4. The script will auto-fill fields automatically\n\n' +
-                'The script will auto-fill text fields and fuzzy-match dropdowns.\n' +
-                `Filling: ${clientData.FirstName || ''} ${clientData.LastName || ''}`;
-
-            btn.textContent = '⚡ Running...';
-            App.toast('⚡ EZLynx filler launched — check your taskbar');
-
-            // Re-enable after a delay (the script runs async)
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.textContent = '🚀 Auto-Fill EZLynx';
-            }, 10000);
-
-        } catch (err) {
-            status.textContent = '❌ Error: ' + err.message;
-            App.toast('❌ ' + err.message);
-            btn.disabled = false;
-            btn.textContent = '🚀 Auto-Fill EZLynx';
-        }
-    },
-
     // ── Send to Chrome Extension ──
     async copyForExtension() {
         try {
@@ -846,21 +729,6 @@ const EZLynxTool = {
             ta.select();
             document.execCommand('copy');
             document.body.removeChild(ta);
-        }
-    },
-
-    // ── Extension Install Guide ──
-    dismissInstallGuide() {
-        const card = document.getElementById('ezInstallCard');
-        if (card) card.classList.add('dismissed');
-        try { localStorage.setItem('altech_ez_install_dismissed', '1'); } catch (e) { }
-    },
-
-    _restoreInstallGuide() {
-        const dismissed = localStorage.getItem('altech_ez_install_dismissed');
-        if (dismissed) {
-            const card = document.getElementById('ezInstallCard');
-            if (card) card.classList.add('dismissed');
         }
     },
 

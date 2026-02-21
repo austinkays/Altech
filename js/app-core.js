@@ -564,6 +564,9 @@ Object.assign(App, {
         back.disabled = this.step === 0;
         next.textContent = this.step === this.flow.length - 1 ? 'Finish' : 'Next';
         
+        // Mark quoting-active on body so footer/exit-button don't overlap
+        document.body.classList.add('quoting-active');
+
         document.getElementById('mainContainer').scrollTo(0,0);
     },
 
@@ -1454,6 +1457,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
 
         document.getElementById('landingPage').style.display = 'none';
 
+        // Remove quoting-active when switching away from quoting tool
+        if (toolName !== 'quoting') {
+            document.body.classList.remove('quoting-active');
+        }
+
         document.querySelectorAll('.plugin-container').forEach(tool => {
             tool.classList.remove('active');
             tool.style.display = 'none';
@@ -1689,6 +1697,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
 
         this.updateBackButtonVisibility();
         document.body.classList.remove('tool-active');
+        document.body.classList.remove('quoting-active');
         const backButton = document.getElementById('backToHome');
         if (backButton) backButton.style.display = 'none';
         const breadcrumb = document.getElementById('breadcrumbBar');

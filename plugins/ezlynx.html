@@ -17,15 +17,14 @@
 </header>
 
 <div class="ez-container">
-    <!-- Chrome Extension Install Guide -->
+    <!-- Chrome Extension Install Guide — always visible -->
     <div class="ez-install-card" id="ezInstallCard">
         <div class="ez-install-header">
             <div class="ez-install-icon">🧩</div>
             <div>
                 <h2 class="ez-install-title">Get the Chrome Extension</h2>
-                <p class="ez-install-subtitle">Required for auto-filling EZLynx from the web app</p>
+                <p class="ez-install-subtitle">One-time setup — takes under 2 minutes</p>
             </div>
-            <button class="ez-install-dismiss" onclick="EZLynxTool.dismissInstallGuide()" title="Dismiss">✕</button>
         </div>
 
         <a href="/altech-ezlynx-extension.zip" download class="ez-install-download-btn">
@@ -37,25 +36,18 @@
                 <div class="ez-step-number">1</div>
                 <div class="ez-step-content">
                     <strong>Download & Unzip</strong>
-                    <span>Click the button above, then unzip the downloaded file to a folder you'll keep (e.g. Desktop)</span>
+                    <span>Click the button above, then unzip the file</span>
                 </div>
             </div>
             <div class="ez-install-step">
                 <div class="ez-step-number">2</div>
                 <div class="ez-step-content">
                     <strong>Open Chrome Extensions</strong>
-                    <span>Type <code>chrome://extensions</code> in your address bar and press Enter</span>
+                    <span>Go to <code>chrome://extensions</code> and enable <strong>Developer mode</strong></span>
                 </div>
             </div>
             <div class="ez-install-step">
                 <div class="ez-step-number">3</div>
-                <div class="ez-step-content">
-                    <strong>Enable Developer Mode</strong>
-                    <span>Toggle the <strong>Developer mode</strong> switch in the top-right corner</span>
-                </div>
-            </div>
-            <div class="ez-install-step">
-                <div class="ez-step-number">4</div>
                 <div class="ez-step-content">
                     <strong>Load the Extension</strong>
                     <span>Click <strong>Load unpacked</strong> → select the unzipped folder → Done!</span>
@@ -66,6 +58,28 @@
         <div class="ez-install-verify" id="ezExtensionStatus">
             <span class="ez-install-verify-dot"></span>
             <span>After installing, refresh this page — the extension will connect automatically</span>
+        </div>
+    </div>
+
+    <!-- How It Works — simple 3-step flow -->
+    <div class="ez-how-it-works-card">
+        <h3 class="ez-how-title">⚡ How It Works</h3>
+        <div class="ez-how-steps">
+            <div class="ez-how-step">
+                <span class="ez-how-num">1</span>
+                <span><strong>Select a client</strong> from your saved intakes, or fill the form below</span>
+            </div>
+            <div class="ez-how-step">
+                <span class="ez-how-num">2</span>
+                <span>Hit <strong>📤 Send to Extension</strong> — data transfers instantly</span>
+            </div>
+            <div class="ez-how-step">
+                <span class="ez-how-num">3</span>
+                <span>Open EZLynx, click the extension icon, then <strong>⚡ Fill This Page</strong></span>
+            </div>
+        </div>
+        <div class="ez-how-hint">
+            💡 The extension auto-matches dropdowns — <code>WA → Washington</code>, <code>HO3 → HO3 - Dwelling</code>, etc.
         </div>
     </div>
 
@@ -960,77 +974,4 @@
 
         </div><!-- /padding wrapper -->
     </div><!-- /ez-glass client data -->
-
-    <!-- Auto-Fill Launch -->
-    <div class="ez-launch-card">
-        <h2>🚀 Auto-Fill EZLynx</h2>
-        <p class="section-subtitle">Opens Chromium, waits for login, then fills the current page with matching data.</p>
-
-        <!-- Quick Login -->
-        <div class="ez-login-box" style="text-align:left; margin-bottom:20px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                <span style="font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#64748b;">🔑 Quick Login</span>
-                <span style="font-size:10px; color:#475569;">Stored locally only</span>
-            </div>
-            <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
-                <div style="flex:1; min-width:120px;">
-                    <label>Username</label>
-                    <input type="text" id="ezLoginUser" placeholder="agent@example.com" oninput="EZLynxTool.saveLogin()">
-                </div>
-                <div style="flex:1; min-width:120px;">
-                    <label>Password</label>
-                    <div style="display:flex; gap:0;">
-                        <input type="password" id="ezLoginPass" placeholder="••••••••" oninput="EZLynxTool.saveLogin()" style="border-radius:8px 0 0 8px; border-right:none;">
-                        <button type="button" onclick="EZLynxTool.toggleLoginPw()" title="Show/hide" id="ezLoginPwToggle" style="border-radius:0; font-size:14px; min-width:36px;">👁</button>
-                        <button type="button" onclick="EZLynxTool.copyPassword()" title="Copy password" id="ezCopyPwBtn" style="border-radius:0 8px 8px 0; background:linear-gradient(135deg, #2563eb, #7c3aed); border-color:transparent; color:#fff; font-weight:700; font-size:11px; letter-spacing:0.5px; white-space:nowrap; padding:7px 14px;">📋 Copy</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <button class="ez-launch-btn" id="ezLaunchBtn" onclick="EZLynxTool.launch()">
-            🚀 Auto-Fill EZLynx
-        </button>
-
-        <div class="ez-status-box" id="ezFillStatus"></div>
-    </div>
-
-    <!-- How It Works -->
-    <details class="ez-accordion" style="margin-top:16px;">
-        <summary>
-            ℹ️ How It Works
-            <span class="ez-acc-chevron">▼</span>
-        </summary>
-        <div class="ez-acc-body">
-            <div class="ez-info-card" style="margin-top:0; border:none; background:transparent; padding:0;">
-                <h3 style="margin:0 0 12px; font-size:14px; color:#38bdf8;">🧩 Chrome Extension (Recommended)</h3>
-                <div class="ez-how-steps">
-                    <div class="ez-how-step">
-                        <span class="ez-how-num">1</span>
-                        <span>Click <strong style="color:#38bdf8;">📤 Send to Extension</strong> in the toolbar above to copy client data</span>
-                    </div>
-                    <div class="ez-how-step">
-                        <span class="ez-how-num">2</span>
-                        <span>Open <strong style="color:#e2e8f0;">EZLynx</strong> in your browser and navigate to the applicant form</span>
-                    </div>
-                    <div class="ez-how-step">
-                        <span class="ez-how-num">3</span>
-                        <span>Click the <strong style="color:#e2e8f0;">Altech extension icon</strong> in your browser toolbar → <strong style="color:#38bdf8;">📋 Paste from Altech</strong></span>
-                    </div>
-                    <div class="ez-how-step">
-                        <span class="ez-how-num">4</span>
-                        <span>On each form page, click <strong style="color:#38bdf8;">⚡ Fill This Page</strong> — dropdowns are fuzzy-matched automatically</span>
-                    </div>
-                </div>
-
-                <div style="margin-top:16px; padding:10px 14px; background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.15); border-radius:10px; font-size:12px; color:#94a3b8;">
-                    💡 <strong style="color:#e2e8f0;">Smart Matching:</strong> The extension fuzzy-matches dropdowns — <code>WA → Washington</code>, <code>HO3 → HO3 - Dwelling</code>, <code>Commute → To/From Work</code>
-                </div>
-                <div style="margin-top:8px; font-size:12px; color:#64748b;">
-                    Don't have the extension? <a href="/altech-ezlynx-extension.zip" download style="color:#38bdf8; text-decoration:underline;">Download it here</a> — see install steps at the top of this page.
-                </div>
-            </div>
-        </div>
-    </details>
-
 

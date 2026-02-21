@@ -2517,6 +2517,10 @@ body.dark-mode #backToHome:hover {
 body.tool-active #backToHome {
     display: flex;
 }
+/* When quoting tool shows its own footer, push exit button above it */
+body.tool-active.quoting-active #backToHome {
+    bottom: calc(env(safe-area-inset-bottom) + 76px);
+}
 #breadcrumbBar {
     display: none;
     position: fixed;
