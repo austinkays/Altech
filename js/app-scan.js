@@ -965,10 +965,10 @@ Object.assign(App, {
                 inlineData.push(await this.fileToInlineData(file));
             }
 
-            const response = await fetch('/api/document-intel.js', {
+            const response = await fetch('/api/vision-processor.js', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ files: inlineData })
+                body: JSON.stringify({ action: 'documentIntel', files: inlineData })
             });
 
             if (!response.ok) {

@@ -312,7 +312,6 @@ describe('API Endpoint Files Exist', () => {
     'rag-interpreter.js',
     'historical-analyzer.js',
     'stripe.js',
-    'document-intel.js',
     'property-intelligence.js',
   ];
 
@@ -434,7 +433,6 @@ describe('API Env Var Trimming', () => {
     { file: 'policy-scan.js', envVars: ['GOOGLE_API_KEY'] },
     { file: 'rag-interpreter.js', envVars: ['GOOGLE_API_KEY'] },
     { file: 'config.js', envVars: ['GOOGLE_API_KEY'] },
-    { file: 'document-intel.js', envVars: ['GOOGLE_API_KEY'] },
     { file: 'property-intelligence.js', envVars: ['GOOGLE_API_KEY'] },
   ];
 

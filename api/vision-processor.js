@@ -735,6 +735,96 @@ function consolidateVisionData(visionResults) {
 }
 
 /**
+ * Process document intelligence (merged from document-intel.js)
+ * Accepts inline document data (images/PDFs) and returns structured insights
+ */
+async function processDocumentIntel(files) {
+  if (!files.length) {
+    return { success: false, error: 'No documents provided' };
+  }
+
+  if (!GEMINI_API_KEY) {
+    return {
+      success: true,
+      summary: 'Document intake ready. Set GOOGLE_API_KEY to enable AI extraction.',
+      documents: files.map((f, idx) => ({
+        title: `Document ${idx + 1}`,
+        type: f?.mimeType || 'unknown',
+        details: 'AI extraction not enabled (missing GOOGLE_API_KEY).'
+      }))
+    };
+  }
+
+  const geminiUrl = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
+  const prompt = `You are an insurance document analyst. Extract structured fields from each document.
+Return ONLY JSON with this shape:
+{
+  "summary": "...",
+  "fields": {
+    "yearBuilt": "",
+    "assessedValue": "",
+    "ownerName": "",
+    "policyNumber": "",
+    "effectiveDate": "",
+    "expirationDate": "",
+    "mortgagee": "",
+    "addressLine1": "",
+    "city": "",
+    "state": "",
+    "zip": "",
+    "source": "doc-intel"
+  },
+  "documents": [
+    {"title":"Tax Document","type":"tax","details":"key fields extracted"}
+  ]
+}
+If unsure, return best-effort details.`;
+
+  const parts = [{ text: prompt }];
+  for (const file of files) {
+    if (file?.data) {
+      parts.push({ inlineData: { mimeType: file.mimeType || 'application/octet-stream', data: file.data } });
+    }
+  }
+
+  const geminiRes = await fetch(geminiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
+    })
+  });
+
+  if (!geminiRes.ok) {
+    return {
+      success: false,
+      summary: 'AI extraction failed. Try again later.',
+      documents: []
+    };
+  }
+
+  const geminiResult = await geminiRes.json();
+  const text = geminiResult?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return {
+      success: true,
+      summary: 'Analysis completed, but structured data was not returned.',
+      documents: []
+    };
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  return {
+    success: true,
+    summary: parsed.summary || 'Document analysis complete.',
+    fields: parsed.fields || {},
+    documents: parsed.documents || []
+  };
+}
+
+/**
  * Vercel serverless handler
  */
 async function handler(req, res) {
@@ -788,6 +878,10 @@ async function handler(req, res) {
       case 'consolidate':
         result = consolidateVisionData(req.body.visionResults);
         result.success = true;
+        break;
+
+      case 'documentIntel':
+        result = await processDocumentIntel(req.body.files || []);
         break;
 
       default:
