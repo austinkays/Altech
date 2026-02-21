@@ -59,7 +59,7 @@ chrome.action.disable();
 
 function updateActionForTab(tabId, url) {
     if (!url) return;
-    if (url.includes('ezlynx.com')) {
+    if (url.includes('ezlynx.com') || url.includes('altech-app.vercel.app') || url.includes('localhost')) {
         chrome.action.enable(tabId);
     } else {
         chrome.action.disable(tabId);

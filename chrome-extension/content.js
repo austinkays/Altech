@@ -861,8 +861,10 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
 // ═══════════════════════════════════════════════════════════════
 
 let toolbarShadow = null;
+let toolbarWasShown = false;
 
 function injectToolbar() {
+    toolbarWasShown = true;
     if (document.getElementById('altech-filler-host')) return;
 
     const host = document.createElement('div');
@@ -1132,14 +1134,24 @@ async function fillPage(clientData) {
         knownOptions = stored?.knownOptions || {};
     } catch (e) { /* no scrape data yet */ }
 
-    // Pre-process client data: if we have scraped option lists, find closest matches
+    // Pre-process client data: for DROPDOWN fields only, find closest matches
+    // from scraped option lists. Text fields (DOB, Phone, Address, etc.) are
+    // left untouched — matching them against dropdown options corrupts values.
     const smartData = { ...clientData };
 
     // Truncate ZIP to 5 digits — EZLynx rejects ZIP+4
     if (smartData.Zip) smartData.Zip = String(smartData.Zip).replace(/[^0-9]/g, '').slice(0, 5);
 
+    // Keys that are text fields — must NOT be fuzzy-matched against dropdown options
+    const _textFieldKeys = new Set(Object.keys(TEXT_FIELD_MAP));
+
     for (const [key, value] of Object.entries(smartData)) {
         if (!value || typeof value !== 'string') continue;
+        // Skip text fields — their values are free-form, not dropdown selections
+        if (_textFieldKeys.has(key)) continue;
+        // Skip arrays/objects (Drivers, Vehicles, Incidents)
+        if (Array.isArray(value) || typeof value === 'object') continue;
+
         const expanded = expand(value, key);
 
         // Check all known option lists for a better match
@@ -1148,11 +1160,13 @@ async function fillPage(clientData) {
             // Only try if label seems related to this key
             const labelLower = label.toLowerCase().replace(/[^a-z]/g, '');
             const keyLower = key.toLowerCase().replace(/[^a-z]/g, '');
+            // Require minimum 3-char overlap to prevent false matches on short keys
+            if (keyLower.length < 3 || labelLower.length < 3) continue;
             if (!labelLower.includes(keyLower) && !keyLower.includes(labelLower)) continue;
 
             // Try to find exact or fuzzy match in known options
             const match = bestMatch(expanded, options) || bestMatch(value, options);
-            if (match && match.score >= 0.5) {
+            if (match && match.score >= 0.6) {
                 smartData[key] = match.text;
                 break;
             }
@@ -1648,8 +1662,8 @@ async function fillMultiIncidents(clientData, report) {
 let lastUrl = location.href;
 
 function onPageChange() {
-    // Re-inject toolbar if it was removed by Angular DOM rebuild
-    if (!document.getElementById('altech-filler-host')) {
+    // Re-inject toolbar if it was removed by Angular DOM rebuild AND was previously shown
+    if (toolbarWasShown && !document.getElementById('altech-filler-host')) {
         injectToolbar();
     }
     // Update client name in toolbar
@@ -1689,7 +1703,7 @@ window.addEventListener('hashchange', onPageChange);
 
 // Watch for major DOM changes (Angular route changes rebuild body)
 const bodyObserver = new MutationObserver(() => {
-    if (!document.getElementById('altech-filler-host') && toolbarShadow) {
+    if (toolbarWasShown && !document.getElementById('altech-filler-host') && toolbarShadow) {
         toolbarShadow = null;
         injectToolbar();
     }
@@ -2013,6 +2027,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     if (msg.type === 'fillPage') {
         fillPage(msg.clientData).then(report => {
+            // Show toolbar with fill report after popup-triggered fill
+            injectToolbar();
+            if (toolbarShadow) {
+                const btn = toolbarShadow.getElementById('tb-fill');
+                const status = toolbarShadow.getElementById('tb-status');
+                const reportBtn = toolbarShadow.getElementById('tb-report');
+                const total = report.textFilled + report.ddFilled;
+                const skipped = report.textSkipped + report.ddSkipped;
+                if (status) status.textContent = `\u2713 ${total} filled` + (skipped > 0 ? `, ${skipped} skipped` : '');
+                if (btn) { btn.disabled = false; btn.textContent = 'Fill Again'; }
+                if (reportBtn) reportBtn.style.display = '';
+                showInjectionReport(toolbarShadow, report);
+            }
             sendResponse(report);
         });
         return true; // async
@@ -2053,13 +2080,9 @@ if (window.__altechFillerLoaded) {
 } else {
     window.__altechFillerLoaded = true;
 
-    // Auto-inject toolbar when content script loads
-    chrome.storage.local.get('settings', ({ settings }) => {
-        if (!settings || settings.autoShowToolbar !== false) {
-            // Small delay to let Angular finish rendering
-            setTimeout(injectToolbar, 1500);
-        }
-    });
+    // Toolbar is NOT auto-shown. It appears after a fill is triggered
+    // (from the extension popup or programmatically). This keeps the page
+    // clean until the user actually needs the filler UI.
 
     console.log('[Altech Filler] Content script loaded on', location.href, '| Page:', detectPage());
 }
