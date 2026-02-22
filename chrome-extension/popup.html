@@ -12,6 +12,12 @@
             font-size: 13px;
         }
 
+        /* ── Dark Mode ── */
+        body.dark {
+            background: #1c1c1e;
+            color: #f2f2f7;
+        }
+
         /* Header */
         .header {
             background: linear-gradient(135deg, #1a2140, #2a3a6a);
@@ -23,6 +29,14 @@
         .header-title { font-weight: 700; font-size: 15px; }
         .header-version { font-size: 10px; opacity: 0.5; margin-left: auto; }
 
+        /* Theme toggle button */
+        .theme-toggle {
+            background: transparent; border: none; cursor: pointer;
+            font-size: 14px; opacity: 0.7; padding: 2px 4px;
+            border-radius: 4px; transition: opacity 0.15s;
+        }
+        .theme-toggle:hover { opacity: 1; }
+
         /* Content */
         .content { padding: 12px; }
 
@@ -33,6 +47,10 @@
             padding: 14px;
             margin-bottom: 10px;
             border: 1px solid #e5e5ea;
+        }
+        body.dark .client-card {
+            background: #2c2c2e;
+            border-color: #38383a;
         }
         .client-label {
             font-size: 10px;
@@ -48,6 +66,7 @@
             color: #1d1d1f;
             margin-bottom: 6px;
         }
+        body.dark .client-name { color: #f2f2f7; }
         .client-name.empty { color: #8e8e93; font-weight: 400; font-style: italic; }
         .client-fields {
             display: flex; gap: 12px; flex-wrap: wrap;
@@ -58,6 +77,7 @@
         .client-stat strong {
             color: #1d1d1f; font-weight: 600;
         }
+        body.dark .client-stat strong { color: #f2f2f7; }
 
         /* Page Info */
         .page-card {
@@ -68,6 +88,10 @@
             border: 1px solid #e5e5ea;
             display: flex; align-items: center; gap: 8px;
         }
+        body.dark .page-card {
+            background: #2c2c2e;
+            border-color: #38383a;
+        }
         .page-dot {
             width: 8px; height: 8px; border-radius: 50%;
             background: #ff3b30; flex-shrink: 0;
@@ -75,6 +99,7 @@
         .page-dot.connected { background: #34c759; }
         .page-label { font-size: 12px; color: #6c757d; }
         .page-label strong { color: #1d1d1f; }
+        body.dark .page-label strong { color: #f2f2f7; }
 
         /* Buttons */
         .actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
@@ -102,8 +127,14 @@
         .btn-clear {
             background: #f2f2f7; color: #ff3b30;
         }
+        body.dark .btn-clear {
+            background: #3a3a3c; color: #ff453a;
+        }
         .btn-refill {
             background: #f2f2f7; color: #007AFF;
+        }
+        body.dark .btn-refill {
+            background: #3a3a3c; color: #0a84ff;
         }
         .btn-scrape {
             background: #5856d6; color: #fff;
@@ -117,6 +148,9 @@
         .btn-export {
             background: #f2f2f7; color: #5856d6; font-size: 11px;
         }
+        body.dark .btn-export {
+            background: #3a3a3c; color: #5e5ce6;
+        }
 
         /* Admin section */
         .admin-zone { display: none; }
@@ -129,6 +163,7 @@
             border-top: 1px solid #e5e5ea;
             margin-top: 4px;
         }
+        body.dark .admin-toggle { border-top-color: #38383a; }
         .admin-toggle.visible {
             display: flex;
         }
@@ -153,7 +188,12 @@
             align-items: center;
             gap: 8px;
         }
+        body.dark .schema-stats {
+            background: #2c2c2e;
+            border-color: #38383a;
+        }
         .schema-stats strong { color: #1d1d1f; }
+        body.dark .schema-stats strong { color: #f2f2f7; }
         .schema-stats .schema-dot {
             width: 8px; height: 8px; border-radius: 50%;
             background: #34c759; flex-shrink: 0;
@@ -168,6 +208,10 @@
             border: 1px solid #e5e5ea;
             max-height: 240px;
             overflow-y: auto;
+        }
+        body.dark .prop-results {
+            background: #2c2c2e;
+            border-color: #38383a;
         }
         .prop-results .prop-header {
             display: flex; align-items: center; gap: 6px;
@@ -191,6 +235,7 @@
             font-size: 11px;
             border-bottom: 1px solid #f2f2f7;
         }
+        body.dark .prop-field { border-bottom-color: #38383a; }
         .prop-field:last-child { border-bottom: none; }
         .prop-field .prop-label {
             color: #8e8e93; font-weight: 500; flex-shrink: 0;
@@ -200,10 +245,12 @@
             color: #1d1d1f; font-weight: 600; text-align: right;
             word-break: break-word;
         }
+        body.dark .prop-field .prop-value { color: #f2f2f7; }
         .prop-address {
             font-size: 13px; font-weight: 700; color: #1d1d1f;
             margin-bottom: 6px;
         }
+        body.dark .prop-address { color: #f2f2f7; }
 
         /* Status */
         .status {
@@ -215,8 +262,22 @@
             color: #6c757d;
             min-height: 36px;
         }
+        body.dark .status {
+            background: #2c2c2e;
+            border-color: #38383a;
+            color: #98989d;
+        }
         .status.success { border-color: rgba(52,199,89,0.3); background: rgba(52,199,89,0.06); color: #248a3d; }
+        body.dark .status.success { color: #32d74b; background: rgba(52,199,89,0.08); }
         .status.error { border-color: rgba(255,59,48,0.3); background: rgba(255,59,48,0.06); color: #d70015; }
+        body.dark .status.error { color: #ff453a; background: rgba(255,69,58,0.08); }
+
+        /* Paste area */
+        body.dark #pasteTextarea {
+            background: #2c2c2e; color: #f2f2f7;
+            border-color: #38383a !important;
+        }
+        body.dark #pasteTextarea::placeholder { color: #636366; }
 
         /* Footer */
         .footer {
@@ -226,16 +287,19 @@
             color: #8e8e93;
             border-top: 1px solid #e5e5ea;
         }
+        body.dark .footer { border-top-color: #38383a; }
         .footer a {
             color: #007AFF; text-decoration: none;
         }
+        body.dark .footer a { color: #0a84ff; }
     </style>
 </head>
 <body>
     <div class="header">
         <span class="header-icon">⚡</span>
         <span class="header-title">Altech EZLynx Filler</span>
-        <span class="header-version">v1.4.0</span>
+        <span class="header-version">v1.5.0</span>
+        <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">🌙</button>
     </div>
 
     <div class="content">

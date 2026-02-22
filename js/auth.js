@@ -99,9 +99,9 @@ const Auth = (() => {
 
             console.log(`[Auth] Profile synced — isAdmin: ${_isAdmin}`);
         } catch (e) {
-            // Firestore may not be reachable (offline) — fall back to email check
-            console.warn('[Auth] Profile sync error, falling back to email check:', e.message);
-            _isAdmin = user.email === 'austin@altechinsurance.com';
+            // Firestore may not be reachable (offline) — fail safe: no admin access
+            console.warn('[Auth] Profile sync error, admin access unavailable offline:', e.message);
+            _isAdmin = false;
             _isBlocked = false;
         }
 
