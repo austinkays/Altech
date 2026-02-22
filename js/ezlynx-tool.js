@@ -714,8 +714,7 @@ const EZLynxTool = {
                 reject(new Error('Bridge timeout — extension may not be responding'));
             }, 2000);
             // Include isAdmin flag — bridge stores it for popup to auto-unlock admin tools
-            const user = typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser;
-            const isAdmin = user?.email === 'austin@altechinsurance.com';
+            const isAdmin = typeof Auth !== 'undefined' && Auth.isAdmin === true;
             window.postMessage({ type: 'ALTECH_CLIENT_DATA', clientData, isAdmin }, '*');
         });
     },
