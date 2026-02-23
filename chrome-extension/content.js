@@ -12,7 +12,7 @@
 // §1  CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
-const EXTENSION_VERSION = '0.6.1';
+const EXTENSION_VERSION = '0.6.2';
 const FILL_DELAY    = 250;   // ms between field fills (was 120 — too fast for Angular)
 const DROPDOWN_WAIT = 1000;  // ms to wait for overlay after click (was 700)
 const RETRY_WAIT    = 1800;  // ms before retrying failed dropdowns (was 1200)
@@ -2637,9 +2637,11 @@ async function scrapePage() {
     // Try multiple formcontrolname variants, then label-based fallback
     let industryEl = document.querySelector("mat-select[formcontrolname='industry']")
         || document.querySelector("mat-select[formcontrolname='industryCode']")
-        || document.querySelector("mat-select[formcontrolname='occupationIndustry']");
+        || document.querySelector("mat-select[formcontrolname='occupationIndustry']")
+        || document.querySelector("mat-select[formcontrolname='occupationIndustryCode']")
+        || document.querySelector("mat-select[formcontrolname='applicantIndustry']");
 
-    // Label-based fallback: scan all mat-selects for a matching label
+    // Label-based fallback: scan all mat-selects for a matching label via findLabelFor
     if (!industryEl || !isVisible(industryEl)) {
         const industryLabels = BASE_DROPDOWN_LABELS.Industry || ['occupation industry', 'industry'];
         for (const dd of document.querySelectorAll('mat-select')) {
@@ -2647,8 +2649,56 @@ async function scrapePage() {
             const lbl = (findLabelFor(dd) || '').toLowerCase();
             if (industryLabels.some(l => lbl.includes(l))) {
                 industryEl = dd;
+                console.log(`[Altech Scraper] Industry found via findLabelFor: "${lbl}"`);
                 break;
             }
+        }
+    }
+
+    // Broader label search: check mat-select placeholder text, trigger text, aria-label,
+    // mat-form-field wrapper label, and mat-label inside the wrapper.
+    // EZLynx Angular Material may use these instead of standard <label> elements.
+    if (!industryEl || !isVisible(industryEl)) {
+        const industryPatterns = ['industry'];
+        for (const dd of document.querySelectorAll('mat-select')) {
+            if (!isVisible(dd)) continue;
+            // Check placeholder attribute
+            const placeholder = (dd.getAttribute('placeholder') || '').toLowerCase();
+            // Check aria-label
+            const ariaLabel = (dd.getAttribute('aria-label') || '').toLowerCase();
+            // Check aria-labelledby
+            let labelledByText = '';
+            const ariaLabelledBy = dd.getAttribute('aria-labelledby');
+            if (ariaLabelledBy) {
+                const lblEl = document.getElementById(ariaLabelledBy);
+                labelledByText = (lblEl?.textContent || '').toLowerCase();
+            }
+            // Check mat-select-placeholder span inside the trigger
+            const phSpan = dd.querySelector('.mat-select-placeholder, .mat-mdc-select-placeholder, [class*="select-placeholder"]');
+            const phText = (phSpan?.textContent || '').toLowerCase();
+            // Check mat-form-field wrapper for mat-label or label
+            const formField = dd.closest('mat-form-field, .mat-form-field, .mat-mdc-form-field, [class*="form-field"]');
+            let wrapperLabelText = '';
+            if (formField) {
+                const matLabel = formField.querySelector('mat-label, .mat-form-field-label, .mdc-floating-label, [class*="form-field-label"]');
+                wrapperLabelText = (matLabel?.textContent || '').replace(/[*:]/g, '').trim().toLowerCase();
+            }
+
+            const allTexts = [placeholder, ariaLabel, labelledByText, phText, wrapperLabelText].filter(t => t);
+            if (allTexts.some(t => industryPatterns.some(p => t.includes(p)))) {
+                industryEl = dd;
+                console.log(`[Altech Scraper] Industry found via broad label search: placeholder="${placeholder}" aria="${ariaLabel}" wrapper="${wrapperLabelText}" ph="${phText}"`);
+                break;
+            }
+        }
+    }
+
+    // Try the filler's findDropdownByLabel as another fallback (different DOM traversal)
+    if (!industryEl || !isVisible(industryEl)) {
+        const fdbResult = findDropdownByLabel(BASE_DROPDOWN_LABELS.Industry || ['occupation industry', 'industry']);
+        if (fdbResult && fdbResult.el && isVisible(fdbResult.el)) {
+            industryEl = fdbResult.el;
+            console.log(`[Altech Scraper] Industry found via findDropdownByLabel (type: ${fdbResult.type})`);
         }
     }
 
@@ -2664,9 +2714,22 @@ async function scrapePage() {
         }
     }
 
-    // Log what we found (or didn't)
+    // Log what we found (or didn't) — with full diagnostic dump if not found
     if (!industryEl || !isVisible(industryEl)) {
-        console.log('[Altech Scraper] Industry dropdown not found — checking if Occupation is directly accessible...');
+        console.log('[Altech Scraper] Industry dropdown NOT FOUND by any method — dumping all mat-selects for diagnosis:');
+        const allMatSelects = document.querySelectorAll('mat-select');
+        allMatSelects.forEach((ms, i) => {
+            const fcn = ms.getAttribute('formcontrolname') || '';
+            const lbl = findLabelFor(ms) || '';
+            const ph = ms.getAttribute('placeholder') || '';
+            const ariaL = ms.getAttribute('aria-label') || '';
+            const vis = isVisible(ms);
+            const ff = ms.closest('mat-form-field, .mat-form-field, [class*="form-field"]');
+            const wrapLabel = ff?.querySelector('mat-label, .mat-form-field-label, .mdc-floating-label')?.textContent?.trim() || '';
+            const triggerText = ms.querySelector('.mat-select-value, .mat-mdc-select-value, [class*="select-value"]')?.textContent?.trim() || '';
+            console.log(`  [${i}] fcn="${fcn}" label="${lbl}" wrapper="${wrapLabel}" ph="${ph}" aria="${ariaL}" trigger="${triggerText}" vis=${vis}`);
+        });
+        console.log('[Altech Scraper] Checking if Occupation is directly accessible...');
 
         // Direct Occupation check: if Occupation exists and is NOT disabled, scrape it directly
         let directOccEl = document.querySelector("mat-select[formcontrolname='occupation']")
@@ -2748,18 +2811,73 @@ async function scrapePage() {
 
             // Close without selecting
             industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            await wait(300);
+            nukeOverlays();
             await wait(200);
         } catch (e) {
             console.warn('[Altech Scraper] Industry scrape failed:', e.message);
             nukeOverlays();
         }
 
-        // 2. Use existing fillCustomDropdown to set Industry to "Retired"
-        const filled = await fillCustomDropdown(
-            BASE_DROPDOWN_LABELS.Industry || ['occupation industry', 'industry'],
-            'Retired',
-            'Industry'
-        );
+        // 2. Select "Retired" directly on the industryEl we already have
+        //    (Don't use fillCustomDropdown — it re-searches the DOM and may not find the same element)
+        let filled = false;
+        try {
+            // Determine if industryEl is a native <select> or mat-select
+            const isNativeSelect = industryEl.tagName === 'SELECT';
+
+            if (isNativeSelect) {
+                // Native <select>: find the "Retired" option and set it
+                const retiredOpt = Array.from(industryEl.options).find(o =>
+                    o.text.toLowerCase().includes('retired') || o.value.toLowerCase().includes('retired')
+                );
+                if (retiredOpt) {
+                    industryEl.value = retiredOpt.value;
+                    industryEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    filled = true;
+                    console.log(`[Altech Scraper] Selected "Retired" on native <select> (value: "${retiredOpt.value}")`);
+                } else {
+                    console.warn('[Altech Scraper] "Retired" option not found in native Industry <select>');
+                }
+            } else {
+                // mat-select: click to open, find "Retired", click it
+                industryEl.click();
+                industryEl.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                await wait(800);
+
+                let optEls = Array.from(
+                    document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
+                );
+                if (optEls.length === 0) {
+                    const panelId = industryEl.getAttribute('aria-owns') || industryEl.getAttribute('aria-controls');
+                    if (panelId) {
+                        const panel = document.getElementById(panelId);
+                        if (panel) optEls = Array.from(panel.querySelectorAll('mat-option, [role="option"]'));
+                    }
+                }
+
+                // Find "Retired" option (exact match first, then substring)
+                let retiredEl = optEls.find(el => (el.textContent || '').trim().toLowerCase() === 'retired');
+                if (!retiredEl) {
+                    retiredEl = optEls.find(el => (el.textContent || '').trim().toLowerCase().includes('retired'));
+                }
+
+                if (retiredEl) {
+                    retiredEl.click();
+                    await wait(300);
+                    filled = true;
+                    console.log(`[Altech Scraper] Clicked "Retired" option: "${(retiredEl.textContent || '').trim()}"`);
+                } else {
+                    console.warn(`[Altech Scraper] "Retired" not found among ${optEls.length} Industry options: ${optEls.slice(0, 5).map(el => el.textContent.trim()).join(', ')}...`);
+                    // Close the overlay
+                    industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                    await wait(200);
+                }
+            }
+        } catch (e) {
+            console.warn('[Altech Scraper] Industry "Retired" selection failed:', e.message);
+            nukeOverlays();
+        }
 
         if (filled) {
             console.log('[Altech Scraper] fillCustomDropdown set Industry to "Retired" — waiting for Occupation XHR...');
@@ -2791,9 +2909,10 @@ async function scrapePage() {
             // 4. Force-open Occupation and scrape its options
             let occupationEl = document.querySelector("mat-select[formcontrolname='occupation']")
                 || document.querySelector("mat-select[formcontrolname='occupationCode']")
-                || document.querySelector("mat-select[formcontrolname='occupationTitle']");
+                || document.querySelector("mat-select[formcontrolname='occupationTitle']")
+                || document.querySelector("mat-select[formcontrolname='applicantOccupation']");
 
-            // Label-based fallback for Occupation
+            // Label-based fallback for Occupation via findLabelFor
             if (!occupationEl || !isVisible(occupationEl)) {
                 const occLabels = BASE_DROPDOWN_LABELS.Occupation || ['occupation title', 'occupation'];
                 for (const dd of document.querySelectorAll('mat-select')) {
@@ -2804,6 +2923,40 @@ async function scrapePage() {
                         occupationEl = dd;
                         break;
                     }
+                }
+            }
+
+            // Broader label search: aria-label, wrapper label, placeholder
+            if (!occupationEl || !isVisible(occupationEl)) {
+                const occPatterns = ['occupation'];
+                for (const dd of document.querySelectorAll('mat-select')) {
+                    if (!isVisible(dd)) continue;
+                    if (dd === industryEl) continue;
+                    const ariaLabel = (dd.getAttribute('aria-label') || '').toLowerCase();
+                    const ph = (dd.getAttribute('placeholder') || '').toLowerCase();
+                    const ff = dd.closest('mat-form-field, .mat-form-field, .mat-mdc-form-field, [class*="form-field"]');
+                    const wrapLabel = ff?.querySelector('mat-label, .mat-form-field-label, .mdc-floating-label')?.textContent?.trim()?.toLowerCase() || '';
+                    let lblById = '';
+                    const alby = dd.getAttribute('aria-labelledby');
+                    if (alby) { lblById = (document.getElementById(alby)?.textContent || '').toLowerCase(); }
+                    const allTexts = [ariaLabel, ph, wrapLabel, lblById].filter(t => t);
+                    if (allTexts.some(t => occPatterns.some(p => t.includes(p)))) {
+                        occupationEl = dd;
+                        console.log(`[Altech Scraper] Occupation found via broad search after Industry trigger`);
+                        break;
+                    }
+                }
+            }
+
+            // Check if Occupation is still disabled (needs more wait time)
+            if (occupationEl && isVisible(occupationEl)) {
+                const isDisabled = occupationEl.classList.contains('mat-select-disabled') ||
+                    occupationEl.classList.contains('mat-mdc-select-disabled') ||
+                    occupationEl.getAttribute('aria-disabled') === 'true' ||
+                    occupationEl.hasAttribute('disabled');
+                if (isDisabled) {
+                    console.log('[Altech Scraper] Occupation still disabled after 1.5s — waiting 2s more...');
+                    await wait(2000);
                 }
             }
 
