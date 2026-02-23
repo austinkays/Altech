@@ -18,6 +18,18 @@
         const msg = event.data;
         if (!msg || typeof msg !== 'object') return;
 
+        // Fired by auth.js immediately after Firestore confirms admin status —
+        // no need to click "Send to Extension" to unlock admin tools in the popup.
+        if (msg.type === 'ALTECH_ADMIN_UPDATE') {
+            try {
+                await chrome.storage.local.set({ isAdmin: msg.isAdmin === true });
+                console.log('[Altech Bridge] Admin status updated:', msg.isAdmin);
+            } catch (e) {
+                console.warn('[Altech Bridge] Could not store admin status:', e.message);
+            }
+            return;
+        }
+
         if (msg.type === 'ALTECH_CLIENT_DATA') {
             const clientData = msg.clientData;
             if (!clientData || typeof clientData !== 'object') {

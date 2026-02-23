@@ -98,6 +98,11 @@ const Auth = (() => {
             }
 
             console.log(`[Auth] Profile synced — isAdmin: ${_isAdmin}`);
+
+            // Push admin status to the Chrome extension immediately after Firestore confirms it.
+            // This means the extension popup unlocks as soon as the user signs in on altech.agency
+            // — no need to click "Send to Extension" first.
+            window.postMessage({ type: 'ALTECH_ADMIN_UPDATE', isAdmin: _isAdmin }, '*');
         } catch (e) {
             // Firestore may not be reachable (offline) — fail safe: no admin access
             console.warn('[Auth] Profile sync error, admin access unavailable offline:', e.message);
