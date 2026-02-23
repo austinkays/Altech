@@ -308,123 +308,364 @@ const COI = {
         return fields;
     },
 
-    // Export filled ACORD 25 PDF (client-side via pdf-lib)
+    // Export ACORD 25 PDF (generated via jsPDF — no template dependency)
     async exportPDF() {
         const data = this.getData();
         const insuredName = data.insured?.name || 'Certificate';
 
         try {
             const btn = document.querySelector('[onclick="COI.exportPDF()"]');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = '⏳ Generating...';
-            }
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating...'; }
 
-            // Ensure pdf-lib is loaded (lazy-load from CDN if missing)
-            if (!window.PDFLib) {
-                console.warn('[COI] pdf-lib not found, attempting dynamic load...');
+            // Ensure jsPDF is loaded (lazy-load from CDN if missing)
+            if (!window.jspdf && !window.jsPDF) {
                 await new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
-                    script.onload = () => resolve();
-                    script.onerror = () => reject(new Error('Failed to load PDF library from CDN. Check your internet connection and try again.'));
-                    document.head.appendChild(script);
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                    s.onload = () => resolve();
+                    s.onerror = () => reject(new Error('Failed to load PDF library. Check your internet connection.'));
+                    document.head.appendChild(s);
                 });
-                if (!window.PDFLib) {
-                    throw new Error('PDF library failed to initialize. Please refresh the page and try again.');
+            }
+            const jsPDFConstructor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+            if (!jsPDFConstructor) throw new Error('PDF library not available. Please refresh the page.');
+
+            const doc = new jsPDFConstructor({ unit: 'pt', format: 'letter' }); // 612 x 792
+            const W = 612, H = 792;
+            const M = 18; // margin
+            let y = M;
+
+            // ── Colors ──
+            const DARK = [0, 0, 0];
+            const GRAY = [100, 100, 100];
+            const LIGHT_GRAY = [200, 200, 200];
+            const HEADER_BG = [0, 51, 102]; // #003366
+            const WHITE = [255, 255, 255];
+
+            const setColor = (c) => doc.setTextColor(...c);
+            const setDraw = (c) => doc.setDrawColor(...c);
+            const setFill = (c) => doc.setFillColor(...c);
+
+            // Helper: draw labeled field (label above, value below)
+            const field = (x, yPos, w, label, value) => {
+                setColor(GRAY);
+                doc.setFontSize(6);
+                doc.text(label, x + 2, yPos + 7);
+                setColor(DARK);
+                doc.setFontSize(8);
+                doc.text(String(value || ''), x + 2, yPos + 16, { maxWidth: w - 4 });
+                setDraw(LIGHT_GRAY);
+                doc.rect(x, yPos, w, 20);
+            };
+
+            // Helper: section header bar
+            const sectionHeader = (yPos, title) => {
+                setFill(HEADER_BG);
+                doc.rect(M, yPos, W - 2 * M, 14, 'F');
+                setColor(WHITE);
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'bold');
+                doc.text(title, M + 4, yPos + 10);
+                doc.setFont('helvetica', 'normal');
+                setColor(DARK);
+                return yPos + 14;
+            };
+
+            // Helper: checkbox indicator
+            const chkMark = (x, yPos, label, checked) => {
+                doc.setFontSize(7);
+                setDraw(DARK);
+                doc.rect(x, yPos, 7, 7);
+                if (checked) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('X', x + 1.5, yPos + 6);
+                    doc.setFont('helvetica', 'normal');
                 }
-                console.log('[COI] pdf-lib loaded dynamically');
-            }
+                setColor(DARK);
+                doc.text(label, x + 10, yPos + 6);
+            };
 
-            // Fetch the ACORD 25 fillable template
-            const templateUrl = '/Resources/ACORD%2025%20fillable.pdf';
-            const templateResponse = await fetch(templateUrl);
-            if (!templateResponse.ok) {
-                throw new Error(`Could not load ACORD 25 template (HTTP ${templateResponse.status}). Contact support.`);
-            }
-            const templateBytes = await templateResponse.arrayBuffer();
+            const fd = (v) => this._formatDate(v);
+            const cw = W - 2 * M; // content width
 
-            // Load the PDF with pdf-lib
-            const { PDFDocument, PDFName, PDFString } = PDFLib;
-            const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
+            // ═══════════════════════════════════════════════
+            // HEADER
+            // ═══════════════════════════════════════════════
+            setFill(HEADER_BG);
+            doc.rect(M, y, cw, 28, 'F');
+            setColor(WHITE);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('CERTIFICATE OF LIABILITY INSURANCE', M + 4, y + 12);
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            doc.text('ACORD 25 FORMAT', M + 4, y + 22);
 
-            // Build field map from form data
-            const fieldMap = this._buildFieldMap(data);
-            let filledCount = 0;
+            // Date / Cert # / Rev # in header right
+            doc.setFontSize(7);
+            doc.text(`DATE: ${fd(data.date)}`, W - M - 160, y + 10);
+            doc.text(`CERTIFICATE NUMBER: ${data.certNumber || ''}`, W - M - 160, y + 18);
+            doc.text(`REVISION: ${data.revNumber || '0'}`, W - M - 60, y + 18);
+            setColor(DARK);
+            y += 30;
 
-            // Strategy 1: Try pdf-lib's high-level form API
-            try {
-                const form = pdfDoc.getForm();
-                const allFields = form.getFields();
+            doc.setFontSize(6);
+            setColor(GRAY);
+            doc.text('THIS CERTIFICATE IS ISSUED AS A MATTER OF INFORMATION ONLY AND CONFERS NO RIGHTS UPON THE CERTIFICATE HOLDER.', M, y + 7, { maxWidth: cw });
+            doc.text('THIS CERTIFICATE DOES NOT AFFIRMATIVELY OR NEGATIVELY AMEND, EXTEND OR ALTER THE COVERAGE AFFORDED BY THE POLICIES BELOW.', M, y + 13, { maxWidth: cw });
+            doc.text('THIS CERTIFICATE OF INSURANCE DOES NOT CONSTITUTE A CONTRACT BETWEEN THE ISSUING INSURER(S), AUTHORIZED REPRESENTATIVE OR PRODUCER, AND THE CERTIFICATE HOLDER.', M, y + 19, { maxWidth: cw });
+            setColor(DARK);
+            y += 23;
 
-                // Build lookup by leaf name (last segment after dots) and full name
-                const fieldLookup = {};
-                allFields.forEach(field => {
-                    const fullName = field.getName();
-                    const leaf = fullName.includes('.') ? fullName.split('.').pop() : fullName;
-                    fieldLookup[leaf] = field;
-                    fieldLookup[fullName] = field;
-                });
+            // ═══════════════════════════════════════════════
+            // PRODUCER / INSURED (side by side)
+            // ═══════════════════════════════════════════════
+            y = sectionHeader(y, 'PRODUCER');
+            const prodY = y;
+            const halfW = (cw - 4) / 2;
+            const p = data.producer || {};
+            const ins = data.insured || {};
 
-                for (const [fieldName, value] of Object.entries(fieldMap)) {
-                    const field = fieldLookup[fieldName];
-                    if (!field) continue;
-                    try {
-                        if (typeof field.setText === 'function') {
-                            field.setText(String(value));
-                            filledCount++;
-                        } else if (typeof field.check === 'function') {
-                            if (value === 'X' || value === 'Y' || value === true) {
-                                field.check();
-                                filledCount++;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('[COI] Could not fill field via form API:', fieldName, e.message);
-                    }
-                }
+            // Producer box (left)
+            setDraw(LIGHT_GRAY);
+            doc.rect(M, y, halfW, 60);
+            doc.setFontSize(8);
+            doc.text(p.name || '', M + 3, y + 10);
+            doc.text(p.address || '', M + 3, y + 19);
+            doc.text(`${p.city || ''}, ${p.state || ''} ${p.zip || ''}`.trim(), M + 3, y + 28);
+            doc.setFontSize(7);
+            setColor(GRAY);
+            doc.text('PHONE:', M + 3, y + 40); setColor(DARK); doc.text(p.phone || '', M + 35, y + 40);
+            setColor(GRAY);
+            doc.text('FAX:', M + halfW / 2, y + 40); setColor(DARK); doc.text(p.fax || '', M + halfW / 2 + 22, y + 40);
+            setColor(GRAY);
+            doc.text('E-MAIL:', M + 3, y + 49); setColor(DARK); doc.text(p.email || '', M + 35, y + 49);
 
-                console.log(`[COI] Form API filled ${filledCount}/${Object.keys(fieldMap).length} fields`);
-            } catch (formErr) {
-                console.warn('[COI] Form API unavailable:', formErr.message);
-            }
+            // Insured box (right)
+            const rx = M + halfW + 4;
+            setFill(HEADER_BG);
+            doc.rect(rx, prodY - 14, halfW, 14, 'F');
+            setColor(WHITE);
+            doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+            doc.text('INSURED', rx + 4, prodY - 4);
+            doc.setFont('helvetica', 'normal');
+            setColor(DARK);
 
-            // Strategy 2: If form API filled nothing, try raw annotation manipulation
-            if (filledCount === 0) {
-                console.log('[COI] Falling back to raw annotation fill...');
-                const pages = pdfDoc.getPages();
-                for (const page of pages) {
-                    const annots = page.node.lookup(PDFName.of('Annots'));
-                    if (!annots) continue;
-                    const annotsArray = annots.asArray ? annots.asArray() : (annots.array || []);
-                    for (const annotRef of annotsArray) {
-                        const annot = annotRef.asMap ? annotRef : (typeof pdfDoc.context.lookup === 'function' ? pdfDoc.context.lookup(annotRef) : null);
-                        if (!annot) continue;
-                        const tObj = annot.get ? annot.get(PDFName.of('T')) : null;
-                        if (!tObj) continue;
-                        const leafName = typeof tObj.decodeText === 'function' ? tObj.decodeText() : String(tObj);
-                        if (fieldMap[leafName]) {
-                            annot.set(PDFName.of('V'), PDFString.of(fieldMap[leafName]));
-                            filledCount++;
-                        }
-                    }
-                }
-                console.log(`[COI] Raw annotation fill: ${filledCount} fields`);
-            }
+            setDraw(LIGHT_GRAY);
+            doc.rect(rx, y, halfW, 60);
+            doc.setFontSize(8);
+            doc.text(ins.name || '', rx + 3, y + 10);
+            doc.text(ins.address || '', rx + 3, y + 19);
+            doc.text(`${ins.city || ''}, ${ins.state || ''} ${ins.zip || ''}`.trim(), rx + 3, y + 28);
 
-            // Save and trigger download
-            const pdfBytes = await pdfDoc.save();
-            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `COI-${insuredName.replace(/[^a-zA-Z0-9 ]/g, '')}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            y += 62;
 
-            console.log(`[COI] ACORD 25 PDF exported successfully (${filledCount} fields filled, client-side)`);
+            // ═══════════════════════════════════════════════
+            // INSURERS AFFORDING COVERAGE
+            // ═══════════════════════════════════════════════
+            y = sectionHeader(y, 'INSURERS AFFORDING COVERAGE                                                                                                                                   NAIC #');
+            const insurers = data.insurers || {};
+            ['a', 'b', 'c', 'd', 'e', 'f'].forEach(letter => {
+                const i = insurers[letter] || {};
+                if (!i.name && !i.naic) return;
+                setDraw(LIGHT_GRAY);
+                doc.rect(M, y, cw, 12);
+                doc.setFontSize(7); setColor(GRAY);
+                doc.text(`INSURER ${letter.toUpperCase()}:`, M + 3, y + 9);
+                setColor(DARK); doc.setFontSize(8);
+                doc.text(i.name || '', M + 55, y + 9);
+                doc.text(i.naic || '', W - M - 50, y + 9);
+                y += 12;
+            });
+
+            // ═══════════════════════════════════════════════
+            // COVERAGES
+            // ═══════════════════════════════════════════════
+            y = sectionHeader(y, 'COVERAGES        CERTIFICATE NUMBER: ' + (data.certNumber || '') + '        REVISION NUMBER: ' + (data.revNumber || '0'));
+            doc.setFontSize(5.5);
+            setColor(GRAY);
+            doc.text('THIS IS TO CERTIFY THAT THE POLICIES OF INSURANCE LISTED BELOW HAVE BEEN ISSUED TO THE INSURED NAMED ABOVE FOR THE POLICY PERIOD INDICATED.', M, y + 7, { maxWidth: cw });
+            setColor(DARK);
+            y += 11;
+
+            // Column headers
+            const colX = { type: M, ltr: M + 120, pol: M + 140, eff: M + 260, exp: M + 310, limits: M + 360 };
+            setDraw(LIGHT_GRAY);
+            doc.rect(M, y, cw, 12);
+            doc.setFontSize(6); setColor(GRAY);
+            doc.text('TYPE OF INSURANCE', colX.type + 3, y + 9);
+            doc.text('INSR\nLTR', colX.ltr, y + 5);
+            doc.text('POLICY NUMBER', colX.pol + 3, y + 9);
+            doc.text('EFF\n(MM/DD/YYYY)', colX.eff, y + 5);
+            doc.text('EXP\n(MM/DD/YYYY)', colX.exp, y + 5);
+            doc.text('LIMITS', colX.limits + 3, y + 9);
+            setColor(DARK);
+            y += 12;
+
+            // ── General Liability Row ──
+            const gl = data.gl || {};
+            const glH = 55;
+            setDraw(LIGHT_GRAY);
+            doc.rect(M, y, cw, glH);
+            // Vertical dividers
+            [colX.ltr, colX.pol, colX.eff, colX.exp, colX.limits].forEach(x => {
+                doc.line(x, y, x, y + glH);
+            });
+
+            doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+            doc.text('COMMERCIAL GENERAL LIABILITY', colX.type + 3, y + 9);
+            doc.setFont('helvetica', 'normal');
+            chkMark(colX.type + 5, y + 13, 'CLAIMS-MADE', gl.claimsMade);
+            chkMark(colX.type + 70, y + 13, 'OCCUR', gl.occur);
+            chkMark(colX.type + 5, y + 25, 'ADDL INSD', gl.addl);
+            chkMark(colX.type + 70, y + 25, 'SUBR WVD', gl.subr);
+
+            doc.setFontSize(7);
+            doc.text(gl.insurerLetter || '', colX.ltr + 5, y + 9);
+            doc.text(gl.policy || '', colX.pol + 3, y + 9, { maxWidth: 115 });
+            doc.text(fd(gl.effective), colX.eff + 2, y + 9);
+            doc.text(fd(gl.expiration), colX.exp + 2, y + 9);
+
+            // Limits column
+            doc.setFontSize(6);
+            let ly = y + 4;
+            const limRow = (label, val) => { setColor(GRAY); doc.text(label, colX.limits + 3, ly + 5); setColor(DARK); doc.text(val || '', W - M - 3, ly + 5, { align: 'right' }); ly += 9; };
+            limRow('EACH OCCURRENCE', gl.occurrence);
+            limRow('DAMAGE TO RENTED PREMISES', gl.rented);
+            limRow('MED EXP (Any one person)', gl.med);
+            limRow('PERSONAL & ADV INJURY', gl.personal);
+            limRow('GENERAL AGGREGATE', gl.aggregate);
+            limRow('PRODUCTS - COMP/OP AGG', gl.products);
+            y += glH;
+
+            // ── Auto Liability Row ──
+            const auto = data.auto || {};
+            const autoH = 50;
+            setDraw(LIGHT_GRAY);
+            doc.rect(M, y, cw, autoH);
+            [colX.ltr, colX.pol, colX.eff, colX.exp, colX.limits].forEach(x => doc.line(x, y, x, y + autoH));
+
+            doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+            doc.text('AUTOMOBILE LIABILITY', colX.type + 3, y + 9);
+            doc.setFont('helvetica', 'normal');
+            chkMark(colX.type + 5, y + 13, 'ANY AUTO', auto.anyAuto);
+            chkMark(colX.type + 5, y + 23, 'OWNED AUTOS', auto.owned);
+            chkMark(colX.type + 70, y + 23, 'SCHEDULED', auto.scheduled);
+            chkMark(colX.type + 5, y + 33, 'HIRED AUTOS', auto.hired);
+            chkMark(colX.type + 70, y + 33, 'NON-OWNED', auto.nonOwned);
+
+            doc.setFontSize(7);
+            doc.text(auto.insurerLetter || '', colX.ltr + 5, y + 9);
+            doc.text(auto.policy || '', colX.pol + 3, y + 9, { maxWidth: 115 });
+            doc.text(fd(auto.effective), colX.eff + 2, y + 9);
+            doc.text(fd(auto.expiration), colX.exp + 2, y + 9);
+
+            doc.setFontSize(6); ly = y + 4;
+            limRow('COMBINED SINGLE LIMIT', auto.csl);
+            limRow('BODILY INJURY (Per person)', auto.bodyPerson);
+            limRow('BODILY INJURY (Per accident)', auto.bodyAccident);
+            limRow('PROPERTY DAMAGE', auto.prop);
+            y += autoH;
+
+            // ── Umbrella / Excess Row ──
+            const umb = data.umbrella || {};
+            const umbH = 35;
+            setDraw(LIGHT_GRAY);
+            doc.rect(M, y, cw, umbH);
+            [colX.ltr, colX.pol, colX.eff, colX.exp, colX.limits].forEach(x => doc.line(x, y, x, y + umbH));
+
+            doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+            doc.text('UMBRELLA LIAB / EXCESS LIAB', colX.type + 3, y + 9);
+            doc.setFont('helvetica', 'normal');
+            chkMark(colX.type + 5, y + 13, 'OCCUR', umb.occur);
+            chkMark(colX.type + 50, y + 13, 'CLAIMS-MADE', umb.claimsMade);
+            chkMark(colX.type + 5, y + 23, 'ADDL INSD', umb.addl);
+            chkMark(colX.type + 70, y + 23, 'SUBR WVD', umb.subr);
+
+            doc.setFontSize(7);
+            doc.text(umb.insurerLetter || '', colX.ltr + 5, y + 9);
+            doc.text(umb.policy || '', colX.pol + 3, y + 9, { maxWidth: 115 });
+            doc.text(fd(umb.effective), colX.eff + 2, y + 9);
+            doc.text(fd(umb.expiration), colX.exp + 2, y + 9);
+
+            doc.setFontSize(6); ly = y + 4;
+            limRow('EACH OCCURRENCE', umb.occurrence);
+            limRow('AGGREGATE', umb.aggregate);
+            limRow('DED / RETENTION', umb.ded || umb.ret);
+            y += umbH;
+
+            // ── Workers Comp Row ──
+            const wc = data.wc || {};
+            const wcH = 35;
+            setDraw(LIGHT_GRAY);
+            doc.rect(M, y, cw, wcH);
+            [colX.ltr, colX.pol, colX.eff, colX.exp, colX.limits].forEach(x => doc.line(x, y, x, y + wcH));
+
+            doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+            doc.text("WORKERS COMPENSATION\nAND EMPLOYERS' LIABILITY", colX.type + 3, y + 9);
+            doc.setFont('helvetica', 'normal');
+            chkMark(colX.type + 5, y + 23, 'EXCL', wc.excl);
+            chkMark(colX.type + 40, y + 23, 'SUBR WVD', wc.subr);
+
+            doc.setFontSize(7);
+            doc.text(wc.insurerLetter || '', colX.ltr + 5, y + 9);
+            doc.text(wc.policy || '', colX.pol + 3, y + 9, { maxWidth: 115 });
+            doc.text(fd(wc.effective), colX.eff + 2, y + 9);
+            doc.text(fd(wc.expiration), colX.exp + 2, y + 9);
+
+            doc.setFontSize(6); ly = y + 4;
+            limRow('E.L. EACH ACCIDENT', wc.accident);
+            limRow('E.L. DISEASE - EA EMPLOYEE', wc.employee);
+            limRow('E.L. DISEASE - POLICY LIMIT', wc.diseasePolicyLimit || wc.disease);
+            y += wcH;
+
+            // ═══════════════════════════════════════════════
+            // DESCRIPTION OF OPERATIONS
+            // ═══════════════════════════════════════════════
+            y = sectionHeader(y, 'DESCRIPTION OF OPERATIONS / LOCATIONS / VEHICLES (ACORD 101, Additional Remarks Schedule, may be attached if more space is required)');
+            setDraw(LIGHT_GRAY);
+            const descH = 50;
+            doc.rect(M, y, cw, descH);
+            doc.setFontSize(7); setColor(DARK);
+            doc.text(data.description || '', M + 3, y + 9, { maxWidth: cw - 6 });
+            y += descH;
+
+            // ═══════════════════════════════════════════════
+            // CERTIFICATE HOLDER
+            // ═══════════════════════════════════════════════
+            y = sectionHeader(y, 'CERTIFICATE HOLDER                                                                                                              CANCELLATION');
+            const holder = data.holder || {};
+            const holderH = 55;
+            const holderW = halfW;
+            setDraw(LIGHT_GRAY);
+            doc.rect(M, y, holderW, holderH);
+            doc.rect(M + holderW, y, cw - holderW, holderH);
+            doc.setFontSize(8);
+            doc.text(holder.name || '', M + 3, y + 12);
+            doc.text(holder.address || '', M + 3, y + 22);
+            doc.text(`${holder.city || ''}, ${holder.state || ''} ${holder.zip || ''}`.trim(), M + 3, y + 32);
+
+            // Cancellation text (right side)
+            doc.setFontSize(6); setColor(GRAY);
+            doc.text('SHOULD ANY OF THE ABOVE DESCRIBED POLICIES BE CANCELLED BEFORE THE\nEXPIRATION DATE THEREOF, NOTICE WILL BE DELIVERED IN ACCORDANCE\nWITH THE POLICY PROVISIONS.', M + holderW + 3, y + 10, { maxWidth: cw - holderW - 6 });
+
+            // Authorized rep
+            setColor(GRAY); doc.setFontSize(6);
+            doc.text('AUTHORIZED REPRESENTATIVE', M + holderW + 3, y + 35);
+            setColor(DARK); doc.setFontSize(8);
+            doc.text(data.authorizedRep || '', M + holderW + 3, y + 46);
+            y += holderH;
+
+            // ═══════════════════════════════════════════════
+            // FOOTER
+            // ═══════════════════════════════════════════════
+            doc.setFontSize(5); setColor(GRAY);
+            doc.text('ACORD 25 (2016/03)    Generated by Altech Insurance Agency    © 1988-2026 ACORD CORPORATION. All rights reserved.', M, H - 10);
+            doc.text('The ACORD name and logo are registered marks of ACORD', W - M - 180, H - 10);
+
+            // ── Download ──
+            doc.save(`COI-${insuredName.replace(/[^a-zA-Z0-9 ]/g, '')}.pdf`);
+            console.log('[COI] ACORD 25 PDF generated successfully (jsPDF)');
 
             if (btn) {
                 btn.textContent = '✅ Downloaded!';
