@@ -9,7 +9,7 @@
  * Routes requests based on 'type' query parameter: li, sos, or osha
  */
 
-import { securityMiddleware } from '../lib/security.js';
+import { securityMiddleware, verifyFirebaseToken } from '../lib/security.js';
 
 /**
  * Main handler function
@@ -27,7 +27,7 @@ async function handler(req, res) {
     if (!type) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required parameter: type (must be "li", "sos", or "osha")'
+        error: 'Missing required parameter: type (must be "li", "sos", "osha", or "ai-analysis")'
       });
     }
 
@@ -46,10 +46,16 @@ async function handler(req, res) {
       case 'osha':
         result = await handleOSHALookup(req.query);
         break;
+      case 'ai-analysis':
+        result = await handleAIAnalysis(req, res);
+        break;
+      case 'sam':
+        result = await handleSAMLookup(req.query);
+        break;
       default:
         return res.status(400).json({
           success: false,
-          error: `Invalid type: ${type}. Must be "li", "sos", "or-ccb", or "osha"`
+          error: `Invalid type: ${type}. Must be "li", "sos", "or-ccb", "osha", "ai-analysis", or "sam"`
         });
     }
 
@@ -1031,4 +1037,292 @@ function parseViolations(rawViolations) {
     description: v.standard_description || '',
     abatementStatus: v.abate_complete === 'Y' ? 'Completed' : 'Pending'
   }));
+}
+
+// ============================================================================
+// SAM.GOV ENTITY LOOKUP (Federal contracts & exclusions)
+// ============================================================================
+
+async function handleSAMLookup(query) {
+  const { name, state } = query;
+
+  if (!name) {
+    return { success: false, error: 'Missing required parameter: name' };
+  }
+
+  console.log('[SAM Lookup] Searching for:', { name, state });
+
+  try {
+    const samApiKey = (process.env.SAM_GOV_API_KEY || '').trim();
+
+    // SAM.gov Entity Management API v3
+    const params = new URLSearchParams({
+      api_key: samApiKey || 'DEMO_KEY',
+      legalBusinessName: name,
+      registrationStatus: 'A', // Active registrations
+    });
+    if (state) params.append('physicalAddress.stateOrProvinceCode', state);
+
+    const apiUrl = `https://api.sam.gov/entity-information/v3/entities?${params.toString()}`;
+
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Altech-Insurance-Platform/1.0'
+      }
+    });
+
+    if (!response.ok) {
+      console.warn(`[SAM Lookup] API returned ${response.status}`);
+      return {
+        success: true,
+        available: false,
+        source: 'SAM.gov (System for Award Management)',
+        entities: [],
+        note: 'SAM.gov lookup unavailable — business may not have federal registrations'
+      };
+    }
+
+    const data = await response.json();
+    const entities = (data.entityData || []).slice(0, 5);
+
+    return {
+      success: true,
+      available: true,
+      source: 'SAM.gov (System for Award Management)',
+      totalRecords: data.totalRecords || 0,
+      entities: entities.map(e => {
+        const reg = e.entityRegistration || {};
+        const core = e.coreData || {};
+        const addr = core.physicalAddress || {};
+        const naics = (core.naicsCode || []).map(n => ({ code: n.naicsCode, isPrimary: n.naicsPrimary }));
+        return {
+          ueiSAM: reg.ueiSAM || '',
+          cageCode: reg.cageCode || '',
+          legalBusinessName: reg.legalBusinessName || '',
+          dbaName: reg.dbaName || '',
+          registrationStatus: reg.registrationStatus || '',
+          activationDate: reg.activationDate || '',
+          expirationDate: reg.registrationExpirationDate || '',
+          entityType: core.entityInformation?.entityTypeDesc || '',
+          entityStructure: core.entityInformation?.entityStructureDesc || '',
+          profitStructure: core.entityInformation?.profitStructureDesc || '',
+          organizationStructure: core.entityInformation?.organizationStructureDesc || '',
+          stateOfIncorporation: core.entityInformation?.stateOfIncorporation || '',
+          address: {
+            street: addr.addressLine1 || '',
+            city: addr.city || '',
+            state: addr.stateOrProvinceCode || '',
+            zip: addr.zipCode || '',
+            country: addr.countryCode || 'US'
+          },
+          naicsCodes: naics,
+          congressionalDistrict: core.congressionalDistrict || '',
+        };
+      })
+    };
+  } catch (error) {
+    console.error('[SAM Lookup] Error:', error);
+    return {
+      success: true,
+      available: false,
+      source: 'SAM.gov (System for Award Management)',
+      entities: [],
+      note: 'SAM.gov lookup failed — business may not have federal registrations'
+    };
+  }
+}
+
+// ============================================================================
+// AI-POWERED RISK ANALYSIS (Gemini)
+// ============================================================================
+
+async function handleAIAnalysis(req, res) {
+  if (req.method !== 'POST') {
+    return { success: false, error: 'POST method required for AI analysis' };
+  }
+
+  // Require auth for AI analysis (uses Gemini quota)
+  const user = await verifyFirebaseToken(req);
+  if (!user) {
+    return { success: false, error: 'Authentication required for AI analysis.' };
+  }
+
+  const geminiKey = (process.env.GOOGLE_API_KEY || '').trim();
+  if (!geminiKey) {
+    return { success: false, error: 'AI analysis not configured (missing GOOGLE_API_KEY)' };
+  }
+
+  let body;
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  } catch {
+    return { success: false, error: 'Invalid JSON body' };
+  }
+
+  const { businessName, state, li, sos, osha, sam } = body;
+
+  // Build a comprehensive prompt with all available data
+  const dataContext = buildDataContext(businessName, state, li, sos, osha, sam);
+
+  const prompt = `You are an expert commercial insurance underwriter and risk analyst. A producer has investigated a prospective commercial client using public records. Analyze ALL of the following data and produce a comprehensive underwriting intelligence report.
+
+## Business Under Investigation
+${dataContext}
+
+## Instructions
+Produce a JSON response with these exact keys (all values are strings):
+
+{
+  "executiveSummary": "2-3 sentence overview of this business as an insurance prospect. Include business type, years in operation, and overall risk posture.",
+  "businessProfile": "Detailed business description: what they do, entity structure, ownership, years in business, and scope of operations.",
+  "riskAssessment": "Thorough risk analysis. Cover: license/compliance status, OSHA history, entity standing, financial stability indicators, operational risks. Rate overall risk as LOW / MODERATE / ELEVATED / HIGH / CRITICAL with justification.",
+  "redFlags": "List specific concerns: expired licenses, OSHA violations, inactive status, recent formation, missing data, etc. If none, say 'No significant red flags identified.'",
+  "recommendedCoverages": "Based on the business type and risk profile, recommend specific commercial insurance coverages: GL limits ($X/$Y occurrence/aggregate), WC, commercial auto, umbrella, professional liability, builders risk, inland marine, cyber liability, EPLI, etc. Include suggested limits where applicable.",
+  "glClassification": "Suggest the most likely GL class code(s) and description(s) based on the business type, NAICS/SIC codes, and operations described. Format: 'XXXXX - Description'",
+  "naicsAnalysis": "If NAICS/SIC codes are available, explain what they indicate about the business operations and insurance implications.",
+  "underwritingNotes": "Key items the underwriter should verify or request: loss runs, safety programs, prior carrier info, subcontractor management, etc.",
+  "competitiveIntel": "Any insights about the business's insurance needs, price sensitivity, or market positioning based on their size, operations, and risk profile."
+}
+
+Return ONLY valid JSON. No markdown, no code fences, no extra text.`;
+
+  try {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
+
+    const geminiRes = await fetch(geminiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 4096,
+          responseMimeType: 'application/json'
+        }
+      })
+    });
+
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      console.error('[AI Analysis] Gemini error:', geminiRes.status, errText);
+      return { success: false, error: `AI analysis failed (${geminiRes.status})` };
+    }
+
+    const geminiData = await geminiRes.json();
+    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // Parse the JSON response (strip any markdown fences if present)
+    let analysis;
+    try {
+      const cleaned = rawText.replace(/^```(?:json)?\n?/g, '').replace(/\n?```$/g, '').trim();
+      analysis = JSON.parse(cleaned);
+    } catch {
+      console.error('[AI Analysis] Failed to parse Gemini response:', rawText.substring(0, 200));
+      return { success: false, error: 'AI returned invalid response format' };
+    }
+
+    return {
+      success: true,
+      source: 'Gemini AI (Commercial Underwriting Analysis)',
+      analysis
+    };
+
+  } catch (error) {
+    console.error('[AI Analysis] Error:', error);
+    return { success: false, error: `AI analysis failed: ${error.message}` };
+  }
+}
+
+/**
+ * Build a detailed data context string from all investigation sources
+ */
+function buildDataContext(businessName, state, li, sos, osha, sam) {
+  const sections = [`**Business Name:** ${businessName || 'Unknown'}`, `**State:** ${state || 'Unknown'}`];
+
+  // L&I / Contractor data
+  if (li && !li.error && li.contractor) {
+    const c = li.contractor;
+    sections.push(`\n### Contractor License (${state === 'OR' ? 'OR CCB' : 'WA L&I'})`);
+    sections.push(`- License #: ${c.licenseNumber || 'N/A'}`);
+    sections.push(`- Status: ${c.status || 'Unknown'}`);
+    sections.push(`- Type: ${c.licenseType || 'N/A'}`);
+    sections.push(`- Classifications: ${(c.classifications || []).join(', ') || 'N/A'}`);
+    sections.push(`- Expiration: ${c.expirationDate || 'N/A'}`);
+    sections.push(`- Registration Date: ${c.registrationDate || 'N/A'}`);
+    if (c.bondAmount) sections.push(`- Bond Amount: ${c.bondAmount}`);
+    if (c.bondCompany) sections.push(`- Bond Company: ${c.bondCompany}`);
+    if (c.insuranceCompany) sections.push(`- Insurance Company: ${c.insuranceCompany}`);
+    if (c.insuranceAmount) sections.push(`- Insurance Amount: ${c.insuranceAmount}`);
+    if (c.owners && c.owners.length > 0) {
+      const ownerNames = c.owners.map(o => typeof o === 'string' ? o : o.name).filter(Boolean);
+      sections.push(`- Owners/Principals: ${ownerNames.join(', ')}`);
+    }
+    if (c.address) sections.push(`- Address: ${c.address.street || ''}, ${c.address.city || ''} ${c.address.state || ''} ${c.address.zip || ''}`);
+    if (c.violations && c.violations.length > 0) sections.push(`- ⚠️ Violations: ${c.violations.join('; ')}`);
+  } else if (li && li.error) {
+    sections.push(`\n### Contractor License: ${li.error}`);
+  } else {
+    sections.push(`\n### Contractor License: No data available`);
+  }
+
+  // Secretary of State
+  if (sos && !sos.error && sos.entity) {
+    const e = sos.entity;
+    sections.push(`\n### Secretary of State — Business Entity`);
+    sections.push(`- UBI: ${e.ubi || 'N/A'}`);
+    sections.push(`- Entity Type: ${e.entityType || 'N/A'}`);
+    sections.push(`- Status: ${e.status || 'Unknown'}`);
+    sections.push(`- Formation Date: ${e.formationDate || 'N/A'}`);
+    sections.push(`- Jurisdiction: ${e.jurisdiction || 'N/A'}`);
+    if (e.businessActivity) sections.push(`- Business Activity: ${e.businessActivity}`);
+    if (e.registeredAgent?.name) sections.push(`- Registered Agent: ${e.registeredAgent.name}`);
+    if (e.governors && e.governors.length > 0) {
+      sections.push(`- Governors/Officers: ${e.governors.map(g => `${g.name} (${g.title || 'Governor'})`).join(', ')}`);
+    }
+  } else if (sos && sos.error) {
+    sections.push(`\n### Business Entity: ${sos.error}`);
+  }
+
+  // OSHA
+  if (osha && !osha.error && osha.summary) {
+    sections.push(`\n### OSHA Inspection History`);
+    sections.push(`- Total Inspections: ${osha.summary.totalInspections || 0}`);
+    sections.push(`- Serious Violations: ${osha.summary.seriousViolations || 0}`);
+    sections.push(`- Willful Violations: ${osha.summary.willfulViolations || 0}`);
+    sections.push(`- Repeat Violations: ${osha.summary.repeatViolations || 0}`);
+    sections.push(`- Total Penalties: $${(osha.summary.totalPenalties || 0).toLocaleString()}`);
+    if (osha.inspections && osha.inspections.length > 0) {
+      const latest = osha.inspections[0];
+      sections.push(`- Most Recent Inspection: ${latest.inspectionDate || 'N/A'} (${latest.inspectionType || 'Unknown'})`);
+      if (latest.naicsCode) sections.push(`- NAICS Code: ${latest.naicsCode} (${latest.naicsDescription || ''})`);
+      if (latest.sicCode) sections.push(`- SIC Code: ${latest.sicCode} (${latest.sicDescription || ''})`);
+    }
+  } else if (osha && osha.error) {
+    sections.push(`\n### OSHA: ${osha.error}`);
+  } else {
+    sections.push(`\n### OSHA: No violations found`);
+  }
+
+  // SAM.gov
+  if (sam && sam.available && sam.entities && sam.entities.length > 0) {
+    const e = sam.entities[0];
+    sections.push(`\n### SAM.gov — Federal Registration`);
+    sections.push(`- UEI: ${e.ueiSAM || 'N/A'}`);
+    sections.push(`- CAGE Code: ${e.cageCode || 'N/A'}`);
+    sections.push(`- Entity Type: ${e.entityType || 'N/A'}`);
+    sections.push(`- Structure: ${e.entityStructure || 'N/A'}`);
+    sections.push(`- Profit Structure: ${e.profitStructure || 'N/A'}`);
+    sections.push(`- Registration Status: ${e.registrationStatus || 'N/A'}`);
+    sections.push(`- Activation: ${e.activationDate || 'N/A'}`);
+    sections.push(`- Expiration: ${e.expirationDate || 'N/A'}`);
+    if (e.naicsCodes && e.naicsCodes.length > 0) {
+      sections.push(`- NAICS Codes: ${e.naicsCodes.map(n => `${n.code}${n.isPrimary ? ' (primary)' : ''}`).join(', ')}`);
+    }
+  } else {
+    sections.push(`\n### SAM.gov: No federal registration found (business may not have federal contracts)`);
+  }
+
+  return sections.join('\n');
 }

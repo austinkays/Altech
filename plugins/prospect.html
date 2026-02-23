@@ -1,3 +1,7 @@
+<style>
+    .ai-pulse { animation: aiPulse 2s ease-in-out infinite; }
+    @keyframes aiPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.05); } }
+</style>
 <header>
     <div class="header-top">
         <div class="logo tool-header-brand">
@@ -12,15 +16,12 @@
             <span>Prospect Investigator</span>
         </div>
         <div style="display: flex; gap: 12px; align-items: center;">
-            <button id="generateCOIBtn" class="btn-secondary" onclick="ProspectInvestigator.generateCOI()" style="font-size: 14px; padding: 8px 16px; display: none;">
-                📄 Generate COI
-            </button>
             <button class="btn-utility" onclick="ProspectInvestigator.exportReport()" style="font-size: 14px; padding: 8px 16px;">
                 🖨️ Print Report
             </button>
         </div>
     </div>
-    <div class="step-title">Commercial Business Intelligence & Public Records</div>
+    <div class="step-title">AI-Powered Commercial Intelligence · WA / OR / AZ</div>
     <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
 </header>
 
@@ -79,9 +80,21 @@
             <div id="businessSummary"></div>
         </div>
 
+        <!-- AI ANALYSIS (Gemini-powered — shows after data loads) -->
+        <div id="aiAnalysisSection" class="card" style="display: none; border: 2px solid rgba(0,122,255,0.2); background: linear-gradient(135deg, var(--bg-card), rgba(0,122,255,0.02));">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                <span style="font-size: 24px;">🧠</span>
+                <div>
+                    <h2 style="margin: 0; font-size: 18px;">AI Underwriting Analysis</h2>
+                    <p style="margin: 0; font-size: 12px; color: var(--text-secondary);">Gemini-powered risk intelligence</p>
+                </div>
+            </div>
+            <div id="aiAnalysisContent"></div>
+        </div>
+
         <!-- L&I CONTRACTOR INFO -->
         <div class="card">
-            <h2>🔨 WA L&I Contractor License</h2>
+            <h2>🔨 Contractor License</h2>
             <div id="liContractorInfo"></div>
         </div>
 
@@ -97,7 +110,16 @@
             <div id="oshaViolations"></div>
         </div>
 
-        <!-- BUSINESS CLASSIFICATION -->
+        <!-- SAM.GOV FEDERAL REGISTRATION -->
+        <div id="samGovSection" class="card" style="display: none;">
+            <h2>🏛️ SAM.gov Federal Registration</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 12px; font-size: 13px;">
+                Federal entity registration, CAGE codes, and government contracting eligibility
+            </p>
+            <div id="samGovInfo"></div>
+        </div>
+
+        <!-- RISK CLASSIFICATION -->
         <div class="card">
             <h2>📊 Risk Classification</h2>
             <div id="riskClassification"></div>
