@@ -174,7 +174,251 @@ ${ai.underwritingNotes || 'N/A'}`;
 
     function exportReport() {
         if (!currentData) { _toast('Run a search first'); return; }
-        window.print();
+
+        // Try jsPDF first, fall back to window.print()
+        if (typeof window.jspdf === 'undefined' && typeof jspdf === 'undefined') {
+            window.print();
+            return;
+        }
+
+        try {
+            const { jsPDF } = window.jspdf || jspdf;
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+            const d = currentData;
+            const ai = aiAnalysis;
+            const pageW = doc.internal.pageSize.getWidth();
+            const pageH = doc.internal.pageSize.getHeight();
+            const margin = 50;
+            const usable = pageW - margin * 2;
+            let y = margin;
+
+            // ── Helpers ──
+            function checkPage(needed) {
+                if (y + needed > pageH - 60) {
+                    doc.addPage();
+                    y = margin;
+                    return true;
+                }
+                return false;
+            }
+
+            function heading(text, size, color) {
+                checkPage(30);
+                doc.setFontSize(size || 14);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...(color || [0, 0, 0]));
+                doc.text(text, margin, y);
+                y += size ? size + 4 : 18;
+            }
+
+            function hr() {
+                doc.setDrawColor(200, 200, 200);
+                doc.line(margin, y, pageW - margin, y);
+                y += 10;
+            }
+
+            function body(text, opts = {}) {
+                if (!text) return;
+                doc.setFontSize(opts.size || 10);
+                doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
+                doc.setTextColor(opts.color?.[0] || 60, opts.color?.[1] || 60, opts.color?.[2] || 60);
+                const lines = doc.splitTextToSize(String(text), usable - (opts.indent || 0));
+                for (const line of lines) {
+                    checkPage(14);
+                    doc.text(line, margin + (opts.indent || 0), y);
+                    y += 13;
+                }
+            }
+
+            function labelValue(label, value) {
+                if (!value || value === 'N/A') return;
+                checkPage(16);
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(80, 80, 80);
+                doc.text(label + ':', margin + 8, y);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(40, 40, 40);
+                doc.text(String(value), margin + 8 + doc.getTextWidth(label + ':  '), y);
+                y += 14;
+            }
+
+            // ── Title ──
+            doc.setFontSize(20);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0, 0, 0);
+            doc.text('Prospect Investigation Report', margin, y);
+            y += 14;
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(120, 120, 120);
+            doc.text(`${d.businessName} · ${d.state} · ${new Date(d.timestamp).toLocaleDateString()}`, margin, y);
+            y += 8;
+            hr();
+
+            // ── Business Summary ──
+            heading('Business Summary');
+            labelValue('Business Name', d.businessName);
+            labelValue('UBI', d.ubi);
+            labelValue('Location', (d.city ? d.city + ', ' : '') + d.state);
+            labelValue('Report Date', new Date(d.timestamp).toLocaleDateString());
+            y += 6;
+
+            // ── AI Analysis ──
+            if (ai) {
+                hr();
+                heading('AI Underwriting Analysis', 14, [168, 85, 247]);
+                y += 2;
+
+                if (ai.executiveSummary) {
+                    heading('Executive Summary', 11, [0, 122, 255]);
+                    body(ai.executiveSummary);
+                    y += 6;
+                }
+
+                if (ai.businessProfile) {
+                    heading('Business Profile', 11);
+                    body(ai.businessProfile);
+                    y += 6;
+                }
+
+                if (ai.riskAssessment) {
+                    heading('Risk Assessment', 11, [220, 80, 40]);
+                    body(ai.riskAssessment);
+                    y += 6;
+                }
+
+                if (ai.redFlags) {
+                    heading('Red Flags & Concerns', 11, [255, 59, 48]);
+                    body(ai.redFlags);
+                    y += 6;
+                }
+
+                if (ai.glClassification) {
+                    heading('GL Classification', 11);
+                    body(ai.glClassification, { bold: true });
+                    y += 4;
+                }
+
+                if (ai.naicsAnalysis) {
+                    heading('NAICS / Industry', 11);
+                    body(ai.naicsAnalysis);
+                    y += 4;
+                }
+
+                if (ai.recommendedCoverages) {
+                    heading('Recommended Coverages', 11, [52, 199, 89]);
+                    body(ai.recommendedCoverages);
+                    y += 6;
+                }
+
+                if (ai.underwritingNotes) {
+                    heading('Underwriting Notes', 11);
+                    body(ai.underwritingNotes);
+                    y += 6;
+                }
+
+                if (ai.competitiveIntel) {
+                    heading('Competitive Intel & Strategy', 11, [88, 86, 214]);
+                    body(ai.competitiveIntel);
+                    y += 6;
+                }
+            }
+
+            // ── Contractor License ──
+            const c = d.li?.contractor;
+            if (c) {
+                hr();
+                heading('Contractor License');
+                labelValue('License #', c.licenseNumber);
+                labelValue('Status', c.status);
+                labelValue('Business Name', c.businessName);
+                labelValue('License Type', c.licenseType);
+                labelValue('Classifications', (c.classifications || []).join(', '));
+                labelValue('Owners', _formatOwners(c.owners));
+                labelValue('Expiration', c.expirationDate);
+                labelValue('Registration', c.registrationDate);
+                labelValue('Bond', c.bondAmount);
+                labelValue('Bond Company', c.bondCompany);
+                labelValue('Insurance Co', c.insuranceCompany);
+                labelValue('Insurance Amt', c.insuranceAmount);
+                if (c.address) labelValue('Address', [c.address.street, c.address.city, c.address.state, c.address.zip].filter(Boolean).join(', '));
+                if (c.violations?.length) {
+                    y += 4;
+                    body('Violations: ' + c.violations.join('; '), { color: [200, 60, 40] });
+                }
+                y += 6;
+            }
+
+            // ── Business Entity ──
+            const e = d.sos?.entity;
+            if (e) {
+                hr();
+                heading('Business Entity Records');
+                labelValue('UBI/Entity #', e.ubi);
+                labelValue('Entity Type', e.entityType);
+                labelValue('Status', e.status);
+                labelValue('Formation', e.formationDate);
+                labelValue('Jurisdiction', e.jurisdiction);
+                labelValue('Business Activity', e.businessActivity);
+                if (e.registeredAgent?.name) labelValue('Registered Agent', e.registeredAgent.name);
+                const govs = e.governors || e.officers || [];
+                if (govs.length) labelValue('Officers', govs.map(g => `${g.name} (${g.title || 'Governor'})`).join(', '));
+                y += 6;
+            }
+
+            // ── OSHA ──
+            if (d.osha?.inspections?.length) {
+                hr();
+                heading('OSHA Inspection History');
+                const s = d.osha.summary || {};
+                labelValue('Total Inspections', s.totalInspections);
+                labelValue('Serious Violations', s.seriousViolations);
+                labelValue('Willful Violations', s.willfulViolations);
+                labelValue('Total Penalties', '$' + (s.totalPenalties || 0).toLocaleString());
+                y += 6;
+            } else {
+                hr();
+                heading('OSHA Inspection History');
+                body('No OSHA violations found in public records.', { color: [52, 199, 89] });
+                y += 6;
+            }
+
+            // ── SAM.gov ──
+            if (d.sam?.available && d.sam.entities?.length) {
+                hr();
+                heading('SAM.gov Federal Registration');
+                const se = d.sam.entities[0];
+                labelValue('Legal Name', se.legalBusinessName);
+                labelValue('UEI', se.ueiSAM);
+                labelValue('CAGE Code', se.cageCode);
+                labelValue('Entity Type', se.entityType);
+                labelValue('Structure', se.entityStructure);
+                labelValue('Status', se.registrationStatus);
+                if (se.naicsCodes?.length) labelValue('NAICS', se.naicsCodes.map(n => n.code + (n.isPrimary ? ' (primary)' : '')).join(', '));
+                y += 6;
+            }
+
+            // ── Footer on every page ──
+            const totalPages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(160, 160, 160);
+                doc.text(`Altech · altech.agency · Confidential`, margin, pageH - 30);
+                doc.text(`Page ${i} of ${totalPages}`, pageW - margin - 60, pageH - 30);
+            }
+
+            const filename = `Prospect_${d.businessName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(filename);
+            _toast('PDF exported: ' + filename);
+
+        } catch (err) {
+            console.error('[Prospect] PDF export error:', err);
+            // Fallback to browser print
+            window.print();
+        }
     }
 
     // ── Data Source Fetchers ────────────────────────────────────
@@ -284,101 +528,65 @@ ${ai.underwritingNotes || 'N/A'}`;
         const el = document.getElementById('aiAnalysisContent');
         if (!el) return;
 
+        /** Convert a long text string into formatted HTML — detects bullet-like patterns */
+        function _formatAIText(text) {
+            if (!text) return '';
+            // Split on common list separators: numbered lists, dashes, bullets, newlines with capital letters
+            const lines = text.split(/(?:\n|(?<=\.)\s+(?=\d+\.|[-•]\s|[A-Z]))/g).map(l => l.trim()).filter(Boolean);
+            if (lines.length > 1) {
+                return '<ul style="margin:0;padding-left:20px;">' +
+                    lines.map(l => '<li style="margin-bottom:6px;line-height:1.6;">' + _esc(l.replace(/^[-•\d]+[.)]\s*/, '')) + '</li>').join('') +
+                    '</ul>';
+            }
+            return '<p style="margin:0;line-height:1.7;">' + _esc(text) + '</p>';
+        }
+
+        /** Build a content block with icon, title, optional accent color, and formatted body */
+        function _block(icon, title, text, opts = {}) {
+            if (!text) return '';
+            const bg = opts.bg || 'transparent';
+            const borderColor = opts.border || 'transparent';
+            const titleColor = opts.titleColor || 'inherit';
+            const padded = bg !== 'transparent' || borderColor !== 'transparent';
+            return `
+                <div class="ai-content-block" style="${padded ? `padding:16px;border-radius:12px;background:${bg};border:1px solid ${borderColor};` : ''}">
+                    <h4 style="color:${titleColor};">
+                        <span style="font-size:18px;">${icon}</span> ${title}
+                    </h4>
+                    ${_formatAIText(text)}
+                </div>`;
+        }
+
         el.innerHTML = `
-            <!-- Executive Summary -->
-            <div class="ai-section" style="margin-bottom: 20px; padding: 16px; background: rgba(0,122,255,0.04); border-radius: 12px; border: 1px solid rgba(0,122,255,0.12);">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 18px;">\uD83D\uDCCB</span>
-                    <h4 style="margin: 0; font-size: 14px; color: var(--apple-blue);">Executive Summary</h4>
-                </div>
-                <p style="margin: 0; font-size: 14px; line-height: 1.6;">${_esc(a.executiveSummary || '')}</p>
-            </div>
+            ${_block('\uD83D\uDCCB', 'Executive Summary', a.executiveSummary, { bg: 'rgba(0,122,255,0.04)', border: 'rgba(0,122,255,0.12)', titleColor: 'var(--apple-blue)' })}
 
-            <!-- Risk Assessment -->
-            ${a.riskAssessment ? `
-            <div class="ai-section" style="margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 18px;">${_riskIcon(a.riskAssessment)}</span>
-                    <h4 style="margin: 0; font-size: 14px;">Risk Assessment</h4>
-                </div>
-                <p style="margin: 0; font-size: 13px; line-height: 1.6; color: var(--text-secondary);">${_esc(a.riskAssessment)}</p>
-            </div>` : ''}
+            ${_block(_riskIcon(a.riskAssessment), 'Risk Assessment', a.riskAssessment)}
 
-            <!-- Red Flags -->
-            ${a.redFlags ? `
-            <div class="ai-section" style="margin-bottom: 20px; padding: 14px; background: rgba(255,59,48,0.04); border-radius: 10px; border: 1px solid rgba(255,59,48,0.12);">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 18px;">\uD83D\uDEA9</span>
-                    <h4 style="margin: 0; font-size: 14px; color: var(--danger);">Red Flags</h4>
-                </div>
-                <p style="margin: 0; font-size: 13px; line-height: 1.6;">${_esc(a.redFlags)}</p>
-            </div>` : ''}
+            ${_block('\uD83D\uDEA9', 'Red Flags & Concerns', a.redFlags, { bg: 'rgba(255,59,48,0.04)', border: 'rgba(255,59,48,0.12)', titleColor: 'var(--danger)' })}
 
-            <!-- Two-column grid for classifications -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-                <!-- GL Classification -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
                 ${a.glClassification ? `
-                <div class="ai-section" style="padding: 14px; background: var(--bg-input); border-radius: 10px;">
-                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-                        <span style="font-size: 16px;">\uD83C\uDFF7\uFE0F</span>
-                        <h4 style="margin: 0; font-size: 13px;">GL Classification</h4>
-                    </div>
-                    <p style="margin: 0; font-size: 13px; line-height: 1.5; font-weight: 500;">${_esc(a.glClassification)}</p>
+                <div class="ai-content-block" style="padding:14px;background:var(--bg-input);border-radius:10px;margin-bottom:0;">
+                    <h4><span style="font-size:16px;">\uD83C\uDFF7\uFE0F</span> GL Classification</h4>
+                    <p style="margin:0;font-size:13px;line-height:1.5;font-weight:600;">${_esc(a.glClassification)}</p>
                 </div>` : '<div></div>'}
-
-                <!-- NAICS Analysis -->
                 ${a.naicsAnalysis ? `
-                <div class="ai-section" style="padding: 14px; background: var(--bg-input); border-radius: 10px;">
-                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-                        <span style="font-size: 16px;">\uD83D\uDCCA</span>
-                        <h4 style="margin: 0; font-size: 13px;">NAICS / Industry</h4>
-                    </div>
-                    <p style="margin: 0; font-size: 13px; line-height: 1.5;">${_esc(a.naicsAnalysis)}</p>
+                <div class="ai-content-block" style="padding:14px;background:var(--bg-input);border-radius:10px;margin-bottom:0;">
+                    <h4><span style="font-size:16px;">\uD83D\uDCCA</span> NAICS / Industry</h4>
+                    ${_formatAIText(a.naicsAnalysis)}
                 </div>` : '<div></div>'}
             </div>
 
-            <!-- Recommended Coverages -->
-            ${a.recommendedCoverages ? `
-            <div class="ai-section" style="margin-bottom: 20px; padding: 16px; background: rgba(52,199,89,0.04); border-radius: 12px; border: 1px solid rgba(52,199,89,0.12);">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                    <span style="font-size: 18px;">\uD83D\uDEE1\uFE0F</span>
-                    <h4 style="margin: 0; font-size: 14px; color: var(--success);">Recommended Coverages</h4>
-                </div>
-                <p style="margin: 0; font-size: 13px; line-height: 1.7; white-space: pre-line;">${_esc(a.recommendedCoverages)}</p>
-            </div>` : ''}
+            ${_block('\uD83D\uDEE1\uFE0F', 'Recommended Coverages', a.recommendedCoverages, { bg: 'rgba(52,199,89,0.04)', border: 'rgba(52,199,89,0.12)', titleColor: 'var(--success)' })}
 
-            <!-- Business Profile -->
-            ${a.businessProfile ? `
-            <div class="ai-section" style="margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 18px;">\uD83C\uDFE2</span>
-                    <h4 style="margin: 0; font-size: 14px;">Business Profile</h4>
-                </div>
-                <p style="margin: 0; font-size: 13px; line-height: 1.6; color: var(--text-secondary);">${_esc(a.businessProfile)}</p>
-            </div>` : ''}
+            ${_block('\uD83C\uDFE2', 'Business Profile', a.businessProfile)}
 
-            <!-- Underwriting Notes -->
-            ${a.underwritingNotes ? `
-            <div class="ai-section" style="margin-bottom: 20px; padding: 14px; background: var(--bg-input); border-radius: 10px;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 18px;">\uD83D\uDCDD</span>
-                    <h4 style="margin: 0; font-size: 14px;">Underwriting Notes</h4>
-                </div>
-                <p style="margin: 0; font-size: 13px; line-height: 1.6;">${_esc(a.underwritingNotes)}</p>
-            </div>` : ''}
+            ${_block('\uD83D\uDCDD', 'Underwriting Notes', a.underwritingNotes, { bg: 'var(--bg-input)', border: 'var(--border)' })}
 
-            <!-- Competitive Intel -->
-            ${a.competitiveIntel ? `
-            <div class="ai-section" style="margin-bottom: 12px; padding: 14px; background: rgba(88,86,214,0.04); border-radius: 10px; border: 1px solid rgba(88,86,214,0.12);">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 18px;">\uD83D\uDCA1</span>
-                    <h4 style="margin: 0; font-size: 14px; color: #5856D6;">Competitive Intel</h4>
-                </div>
-                <p style="margin: 0; font-size: 13px; line-height: 1.6;">${_esc(a.competitiveIntel)}</p>
-            </div>` : ''}
+            ${_block('\uD83D\uDCA1', 'Competitive Intel & Strategy', a.competitiveIntel, { bg: 'rgba(88,86,214,0.04)', border: 'rgba(88,86,214,0.12)', titleColor: '#5856D6' })}
 
-            <div style="text-align: right; font-size: 11px; color: var(--text-secondary); opacity: 0.6; margin-top: 8px;">
-                Powered by Gemini AI${grounded ? ' + Google Search' : ''} \u00B7 Analysis generated ${new Date().toLocaleTimeString()}
+            <div style="text-align:right;font-size:11px;color:var(--text-secondary);opacity:0.6;margin-top:8px;">
+                Powered by Gemini AI${grounded ? ' + Google Search' : ''} \u00B7 ${new Date().toLocaleTimeString()}
             </div>
         `;
     }
