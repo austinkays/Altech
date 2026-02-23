@@ -2321,6 +2321,7 @@ async function scrapePage() {
         textFields: [],
         dropdowns: {},
         nativeSelects: {},
+        cascadeSequences: [],
         stats: { totalInputs: 0, totalNativeSelects: 0, totalCustomDropdowns: 0, totalOptions: 0 }
     };
 
@@ -2788,6 +2789,276 @@ async function scrapePage() {
     } else {
         console.log('[Altech Scraper] Industry dropdown not found — skipping dependent sequence');
     }
+
+    // ── 3d. CASCADE SEQUENCES — fill parent dropdowns to unlock greyed-out children ──
+    // On the home page (and some auto pages), certain dropdowns are disabled until
+    // a parent dropdown is selected first.  We fill the parent with a representative
+    // trigger value, wait for the child to become enabled, scrape the child's options,
+    // then restore the parent to blank.
+
+    const CASCADE_DEFS = [
+        // ── Home page cascades ──
+        {
+            name: 'Garage Type → Garage Spaces',
+            pages: ['home-dwelling', 'home-coverage'],
+            parentFormControlNames: ['garageType', 'garageStyle'],
+            parentLabels: HOME_DROPDOWN_LABELS.GarageType,
+            triggerValue: 'Attached',
+            childFormControlNames: ['garageStalls', 'numberOfGarageStalls', 'garageSpaces', 'numGarageStalls', 'numOfGarageStalls'],
+            childLabels: HOME_DROPDOWN_LABELS.GarageSpaces,
+            childKey: 'Garage Spaces',
+            waitMs: 900
+        },
+        {
+            name: 'Dwelling Type → Number of Stories',
+            pages: ['home-dwelling', 'home-coverage'],
+            parentFormControlNames: ['dwellingType', 'dwellingStyle', 'dwelling'],
+            parentLabels: HOME_DROPDOWN_LABELS.DwellingType,
+            triggerValue: 'One Family',
+            childFormControlNames: ['numberOfStories', 'numStories', 'stories', 'numOfStories', 'storyType'],
+            childLabels: HOME_DROPDOWN_LABELS.NumStories,
+            childKey: 'Number of Stories',
+            waitMs: 900
+        },
+        {
+            name: 'Dwelling Type → Construction Style',
+            pages: ['home-dwelling', 'home-coverage'],
+            parentFormControlNames: ['dwellingType', 'dwellingStyle', 'dwelling'],
+            parentLabels: HOME_DROPDOWN_LABELS.DwellingType,
+            triggerValue: 'One Family',
+            childFormControlNames: ['constructionStyle', 'styleOfHome', 'homeStyle', 'architecturalStyle', 'constructionType'],
+            childLabels: HOME_DROPDOWN_LABELS.ConstructionStyle,
+            childKey: 'Construction Style',
+            waitMs: 900
+        },
+        {
+            name: 'Roof Type → Roof Design',
+            pages: ['home-dwelling', 'home-coverage'],
+            parentFormControlNames: ['roofType', 'roofMaterial', 'roofingMaterial'],
+            parentLabels: HOME_DROPDOWN_LABELS.RoofType,
+            triggerValue: 'Asphalt shingles',
+            childFormControlNames: ['roofShape', 'roofDesign', 'roofStyle'],
+            childLabels: HOME_DROPDOWN_LABELS.RoofDesign,
+            childKey: 'Roof Design',
+            waitMs: 800
+        },
+        // ── Applicant page cascades ──
+        {
+            // Our arch-nemesis: Industry unlocks Occupation via XHR.
+            // §3c handles this with dedicated logic, but this entry acts as a
+            // safety-net fallback for any page where §3c didn't fire or failed.
+            name: 'Industry → Occupation',
+            pages: ['applicant', 'lead-info', 'ezlynx', 'unknown'],
+            parentFormControlNames: ['industry'],
+            parentLabels: BASE_DROPDOWN_LABELS.Industry,
+            triggerValue: 'Retired',
+            childFormControlNames: ['occupation'],
+            childLabels: BASE_DROPDOWN_LABELS.Occupation,
+            childKey: 'Occupation',
+            waitMs: 1500  // XHR round-trip — needs more time than local Angular changes
+        },
+        // ── Auto page cascades ──
+        {
+            name: 'Vehicle Year → Vehicle Make',
+            pages: ['auto-vehicle'],
+            parentFormControlNames: ['year', 'vehicleYear', 'modelYear'],
+            parentLabels: AUTO_DROPDOWN_LABELS.VehicleYear || ['year'],
+            triggerValue: '2020',
+            childFormControlNames: ['make', 'vehicleMake'],
+            childLabels: ['make', 'vehicle make'],
+            childKey: 'Vehicle Make',
+            waitMs: 1200
+        },
+    ];
+
+    // Helper: find a mat-select by ordered list of formcontrolname values
+    const findDropdownByFormControl = (names) => {
+        for (const name of names) {
+            const el = document.querySelector(`mat-select[formcontrolname='${name}']`);
+            if (el && isVisible(el)) return el;
+        }
+        return null;
+    };
+
+    // Helper: find a mat-select by label match
+    const findDropdownByLabel = (labels) => {
+        for (const dd of document.querySelectorAll('mat-select')) {
+            if (!isVisible(dd)) continue;
+            const lbl = (findLabelFor(dd) || '').toLowerCase();
+            if (labels.some(l => lbl.includes(l.toLowerCase()) || l.toLowerCase().includes(lbl))) return dd;
+        }
+        return null;
+    };
+
+    // Helper: check if a mat-select is disabled (greyed out)
+    const isMatSelectDisabled = (el) => {
+        if (!el) return true;
+        return el.classList.contains('mat-select-disabled') ||
+               el.classList.contains('mat-mdc-select-disabled') ||
+               el.getAttribute('aria-disabled') === 'true' ||
+               el.hasAttribute('disabled');
+    };
+
+    // Helper: open a mat-select and collect its option texts
+    const scrapeDropdownOptions = async (el) => {
+        let options = [];
+        try {
+            el.click();
+            await wait(500);
+            const panelId = el.getAttribute('aria-owns') || el.getAttribute('aria-controls');
+            let optEls = [];
+            if (panelId) {
+                const panel = document.getElementById(panelId);
+                if (panel) optEls = panel.querySelectorAll('mat-option, [role="option"]');
+            }
+            if (optEls.length === 0) {
+                const panes = document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane');
+                if (panes.length > 0) optEls = panes[panes.length - 1].querySelectorAll('mat-option, [role="option"]');
+            }
+            options = Array.from(optEls)
+                .map(e => e.textContent.trim())
+                .filter(t => t && !['', 'select', 'select one', '--select--'].includes(t.toLowerCase()));
+            await closeDropdown(el);
+        } catch (e) {
+            nukeOverlays();
+            await wait(50);
+        }
+        return options;
+    };
+
+    // Track parents already filled so we only trigger each parent once
+    // (multiple children may share the same parent, e.g. DwellingType → Stories + Style)
+    const cascadeParentsFilled = new Set();
+
+    for (const seq of CASCADE_DEFS) {
+        // Only run sequences relevant to the current page
+        if (seq.pages && seq.pages.length > 0 && !seq.pages.includes(page)) continue;
+
+        // Skip if an earlier dedicated sequence (e.g. §3c Industry→Occupation) already
+        // captured this child's options — avoid redundant XHR-triggering fills.
+        const childAlreadyCaptured = Object.values(result.dropdowns).some(d =>
+            d.options && d.options.length > 0 &&
+            seq.childLabels.some(l => (d.label || '').toLowerCase().includes(l.toLowerCase()))
+        );
+        if (childAlreadyCaptured) {
+            console.log(`[Altech Cascade] "${seq.name}" — child already captured by earlier sequence, skipping`);
+            continue;
+        }
+
+        const parentEl = findDropdownByFormControl(seq.parentFormControlNames)
+                      || findDropdownByLabel(seq.parentLabels);
+        if (!parentEl) {
+            console.log(`[Altech Cascade] "${seq.name}" — parent not found, skipping`);
+            continue;
+        }
+
+        const childEl = findDropdownByFormControl(seq.childFormControlNames)
+                     || findDropdownByLabel(seq.childLabels);
+        if (!childEl) {
+            console.log(`[Altech Cascade] "${seq.name}" — child not found, skipping`);
+            continue;
+        }
+
+        // If child is already enabled, its options were captured in §3 — no cascade needed
+        if (!isMatSelectDisabled(childEl)) {
+            console.log(`[Altech Cascade] "${seq.name}" — child already enabled, skipping cascade`);
+            continue;
+        }
+
+        // Fill parent if we haven't already (handles multi-child parents)
+        const parentId = parentEl.getAttribute('formcontrolname') || parentEl.id || seq.name;
+        if (!cascadeParentsFilled.has(parentId)) {
+            console.log(`[Altech Cascade] "${seq.name}" — filling parent with "${seq.triggerValue}"...`);
+            const filled = await fillCustomDropdown(seq.parentLabels, seq.triggerValue, seq.name.split('→')[0].trim());
+            if (!filled) {
+                console.warn(`[Altech Cascade] "${seq.name}" — parent fill failed, skipping`);
+                result.cascadeSequences.push({ name: seq.name, status: 'parent-fill-failed' });
+                continue;
+            }
+            cascadeParentsFilled.add(parentId);
+            await wait(seq.waitMs);
+        } else {
+            // Parent was already set by an earlier cascade for this parent — give it a moment
+            await wait(300);
+        }
+
+        // Re-query child after parent was filled — it should now be enabled
+        const unlockedChild = findDropdownByFormControl(seq.childFormControlNames)
+                           || findDropdownByLabel(seq.childLabels);
+
+        if (!unlockedChild || isMatSelectDisabled(unlockedChild)) {
+            console.warn(`[Altech Cascade] "${seq.name}" — child still disabled after parent fill`);
+            result.cascadeSequences.push({ name: seq.name, status: 'child-still-disabled' });
+            continue;
+        }
+
+        // Scrape the now-enabled child
+        const childOptions = await scrapeDropdownOptions(unlockedChild);
+        const childLabel = findLabelFor(unlockedChild) || seq.childKey;
+
+        // Store/overwrite in result.dropdowns (child may have had 0 options from §3)
+        result.dropdowns[childLabel] = {
+            id: unlockedChild.id || '',
+            ariaLabel: unlockedChild.getAttribute('aria-label') || '',
+            label: childLabel,
+            options: childOptions,
+            currentValue: '',
+            optionCount: childOptions.length,
+            source: 'cascade-scrape',
+            unlockedBy: seq.name
+        };
+        result.stats.totalOptions += childOptions.length;
+
+        result.cascadeSequences.push({
+            name: seq.name,
+            status: 'success',
+            parentTrigger: seq.triggerValue,
+            childKey: childLabel,
+            optionsScraped: childOptions.length
+        });
+
+        console.log(`[Altech Cascade] "${seq.name}" — scraped ${childOptions.length} options from "${childLabel}"`);
+    }
+
+    // Restore all cascade-filled parent dropdowns back to blank
+    if (cascadeParentsFilled.size > 0) {
+        // Deduplicate: only restore each unique parent once
+        const restoredIds = new Set();
+        for (const seq of CASCADE_DEFS) {
+            const parentEl = findDropdownByFormControl(seq.parentFormControlNames)
+                          || findDropdownByLabel(seq.parentLabels);
+            if (!parentEl) continue;
+            const parentId = parentEl.getAttribute('formcontrolname') || parentEl.id || seq.name;
+            if (!cascadeParentsFilled.has(parentId) || restoredIds.has(parentId)) continue;
+            restoredIds.add(parentId);
+
+            nukeOverlays();
+            await wait(100);
+            try {
+                parentEl.click();
+                await wait(700);
+                const allOpts = Array.from(
+                    document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
+                );
+                if (allOpts.length > 0) {
+                    const blankOpt = allOpts.find(o => isBlankOption(o)) || allOpts[0];
+                    blankOpt.click();
+                    await wait(300);
+                    console.log(`[Altech Cascade] Restored parent for "${seq.name}" to blank`);
+                } else {
+                    parentEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                    await wait(100);
+                }
+            } catch (e) {
+                nukeOverlays();
+            }
+        }
+    }
+
+    nukeOverlays();
+    await wait(200);
+    const cascadeSuccess = result.cascadeSequences.filter(s => s.status === 'success').length;
+    console.log(`[Altech Cascade] ${result.cascadeSequences.length} sequence(s) processed, ${cascadeSuccess} successful`);
 
     // ── 4. DEEP SCRAPE: Toggle inactive controls to reveal hidden fields ──
     // Click every inactive toggle/checkbox, wait for Angular to render,
