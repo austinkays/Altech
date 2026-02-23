@@ -12,7 +12,7 @@
 // §1  CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
-const EXTENSION_VERSION = '0.6.2';
+const EXTENSION_VERSION = '0.6.3';
 const FILL_DELAY    = 250;   // ms between field fills (was 120 — too fast for Angular)
 const DROPDOWN_WAIT = 1000;  // ms to wait for overlay after click (was 700)
 const RETRY_WAIT    = 1800;  // ms before retrying failed dropdowns (was 1200)
@@ -2782,107 +2782,119 @@ async function scrapePage() {
     }
 
     if (industryEl && isVisible(industryEl)) {
-        console.log('[Altech Scraper] Found Industry dropdown — scraping options then auto-filling "Retired"...');
+        console.log(`[Altech Scraper] Found Industry dropdown (tag: ${industryEl.tagName}) — single-open: scrape + fill "Retired"...`);
 
         let industryOptions = [];
         let sequenceFailed = false;
-
-        // 1. Scrape Industry options first (open → read → close)
-        try {
-            industryEl.click();
-            await wait(800);
-
-            let allOptEls = Array.from(
-                document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
-            );
-            if (allOptEls.length === 0) {
-                const panelId = industryEl.getAttribute('aria-owns') || industryEl.getAttribute('aria-controls');
-                if (panelId) {
-                    const panel = document.getElementById(panelId);
-                    if (panel) allOptEls = Array.from(panel.querySelectorAll('mat-option, [role="option"]'));
-                }
-            }
-
-            industryOptions = allOptEls
-                .filter(el => !isBlankOption(el))
-                .map(el => el.textContent.trim());
-
-            console.log(`[Altech Scraper] Industry: ${allOptEls.length} total options, ${industryOptions.length} valid`);
-
-            // Close without selecting
-            industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-            await wait(300);
-            nukeOverlays();
-            await wait(200);
-        } catch (e) {
-            console.warn('[Altech Scraper] Industry scrape failed:', e.message);
-            nukeOverlays();
-        }
-
-        // 2. Select "Retired" directly on the industryEl we already have
-        //    (Don't use fillCustomDropdown — it re-searches the DOM and may not find the same element)
         let filled = false;
-        try {
-            // Determine if industryEl is a native <select> or mat-select
-            const isNativeSelect = industryEl.tagName === 'SELECT';
 
-            if (isNativeSelect) {
-                // Native <select>: find the "Retired" option and set it
-                const retiredOpt = Array.from(industryEl.options).find(o =>
-                    o.text.toLowerCase().includes('retired') || o.value.toLowerCase().includes('retired')
-                );
-                if (retiredOpt) {
-                    industryEl.value = retiredOpt.value;
-                    industryEl.dispatchEvent(new Event('change', { bubbles: true }));
-                    filled = true;
-                    console.log(`[Altech Scraper] Selected "Retired" on native <select> (value: "${retiredOpt.value}")`);
-                } else {
-                    console.warn('[Altech Scraper] "Retired" option not found in native Industry <select>');
-                }
+        const isNativeSelect = industryEl.tagName === 'SELECT';
+
+        if (isNativeSelect) {
+            // ── Native <select> path ──
+            industryOptions = Array.from(industryEl.options)
+                .filter(o => o.text.trim() && !['', 'select', 'select one', '-- select --'].includes(o.text.trim().toLowerCase()))
+                .map(o => o.text.trim());
+            console.log(`[Altech Scraper] Industry (native): ${industryOptions.length} options`);
+
+            const retiredOpt = Array.from(industryEl.options).find(o =>
+                o.text.toLowerCase().includes('retired') || o.value.toLowerCase().includes('retired')
+            );
+            if (retiredOpt) {
+                industryEl.value = retiredOpt.value;
+                industryEl.dispatchEvent(new Event('change', { bubbles: true }));
+                filled = true;
+                console.log(`[Altech Scraper] Selected "Retired" on native <select>`);
             } else {
-                // mat-select: click to open, find "Retired", click it
-                industryEl.click();
-                industryEl.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                await wait(800);
+                console.warn('[Altech Scraper] "Retired" not in native Industry options');
+            }
+        } else {
+            // ── mat-select path: SINGLE OPEN — scrape + click "Retired" in one go ──
+            try {
+                // Ensure no stale overlays
+                nukeOverlays();
+                await wait(200);
 
-                let optEls = Array.from(
+                // Open the dropdown
+                industryEl.click();
+                await wait(1000);
+
+                // Collect options from overlay
+                let allOptEls = Array.from(
                     document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
                 );
-                if (optEls.length === 0) {
+
+                // Fallback: try panel by aria-owns/controls
+                if (allOptEls.length === 0) {
                     const panelId = industryEl.getAttribute('aria-owns') || industryEl.getAttribute('aria-controls');
                     if (panelId) {
                         const panel = document.getElementById(panelId);
-                        if (panel) optEls = Array.from(panel.querySelectorAll('mat-option, [role="option"]'));
+                        if (panel) allOptEls = Array.from(panel.querySelectorAll('mat-option, [role="option"]'));
                     }
                 }
 
-                // Find "Retired" option (exact match first, then substring)
-                let retiredEl = optEls.find(el => (el.textContent || '').trim().toLowerCase() === 'retired');
+                // Fallback: try mat-select-panel class
+                if (allOptEls.length === 0) {
+                    allOptEls = Array.from(document.querySelectorAll('.mat-select-panel mat-option, .mat-mdc-select-panel mat-option'));
+                }
+
+                // Fallback: broader overlay scan (any mat-option anywhere in overlays)
+                if (allOptEls.length === 0) {
+                    allOptEls = Array.from(document.querySelectorAll('.cdk-overlay-container mat-option'));
+                }
+
+                // If still 0, try dispatching a second click and waiting longer
+                if (allOptEls.length === 0) {
+                    console.log('[Altech Scraper] Industry: 0 options on first try — retrying with focus+click...');
+                    industryEl.focus();
+                    industryEl.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+                    industryEl.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+                    industryEl.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                    await wait(1200);
+                    allOptEls = Array.from(
+                        document.querySelectorAll('.cdk-overlay-container mat-option, .mat-select-panel mat-option, .mat-mdc-select-panel mat-option, [role="option"]')
+                    ).filter(el => isVisible(el));
+                }
+
+                industryOptions = allOptEls
+                    .filter(el => !isBlankOption(el))
+                    .map(el => el.textContent.trim());
+
+                console.log(`[Altech Scraper] Industry: ${allOptEls.length} total option elements, ${industryOptions.length} valid. First 5: ${industryOptions.slice(0, 5).join(', ')}`);
+
+                // Find "Retired" and click it IN THE SAME OVERLAY (no close/reopen)
+                let retiredEl = allOptEls.find(el => (el.textContent || '').trim().toLowerCase() === 'retired');
                 if (!retiredEl) {
-                    retiredEl = optEls.find(el => (el.textContent || '').trim().toLowerCase().includes('retired'));
+                    retiredEl = allOptEls.find(el => (el.textContent || '').trim().toLowerCase().includes('retired'));
                 }
 
                 if (retiredEl) {
                     retiredEl.click();
-                    await wait(300);
+                    await wait(400);
                     filled = true;
-                    console.log(`[Altech Scraper] Clicked "Retired" option: "${(retiredEl.textContent || '').trim()}"`);
+                    console.log(`[Altech Scraper] Clicked "Retired": "${(retiredEl.textContent || '').trim()}"`);
+                } else if (allOptEls.length > 0) {
+                    // "Retired" not found — pick any non-blank option to trigger Occupation
+                    const fallbackOpt = allOptEls.find(el => !isBlankOption(el));
+                    if (fallbackOpt) {
+                        fallbackOpt.click();
+                        await wait(400);
+                        filled = true;
+                        console.log(`[Altech Scraper] "Retired" not found — used fallback: "${(fallbackOpt.textContent || '').trim()}"`);
+                    }
                 } else {
-                    console.warn(`[Altech Scraper] "Retired" not found among ${optEls.length} Industry options: ${optEls.slice(0, 5).map(el => el.textContent.trim()).join(', ')}...`);
-                    // Close the overlay
+                    console.warn(`[Altech Scraper] Industry overlay has 0 options — overlay may not have opened`);
                     industryEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
                     await wait(200);
                 }
+            } catch (e) {
+                console.warn('[Altech Scraper] Industry open/fill failed:', e.message);
+                nukeOverlays();
             }
-        } catch (e) {
-            console.warn('[Altech Scraper] Industry "Retired" selection failed:', e.message);
-            nukeOverlays();
         }
 
-        if (filled) {
-            console.log('[Altech Scraper] fillCustomDropdown set Industry to "Retired" — waiting for Occupation XHR...');
-        } else {
-            console.warn('[Altech Scraper] fillCustomDropdown failed for Industry "Retired" — aborting sequence');
+        if (!filled) {
+            console.warn('[Altech Scraper] Industry fill failed — aborting dependent sequence');
             sequenceFailed = true;
         }
 
@@ -3760,6 +3772,114 @@ async function scrapePage() {
             if (ms.id) preClickFields.add(ms.id);
         }
 
+        // ── Co-Applicant Industry → Occupation dependency ──
+        // If the co-applicant section has an Industry dropdown, fill it with "Retired"
+        // so the Occupation dropdown unlocks, then scrape Occupation options.
+        if (newContainer || true) {
+            const coApScope = newContainer || document;
+            // Find Co-Applicant Industry (must be a NEW mat-select not in the primary applicant's §3c)
+            let coApIndustry = null;
+            for (const ms of coApScope.querySelectorAll('mat-select')) {
+                if (!isVisible(ms)) continue;
+                const lbl = (findLabelFor(ms) || '').toLowerCase();
+                const wf = ms.closest('mat-form-field, [class*="form-field"]');
+                const wrapLbl = wf?.querySelector('mat-label, .mat-form-field-label, .mdc-floating-label')?.textContent?.trim()?.toLowerCase() || '';
+                const ariaLbl = (ms.getAttribute('aria-label') || '').toLowerCase();
+                if ([lbl, wrapLbl, ariaLbl].some(t => t.includes('industry'))) {
+                    // Make sure it's a NEW one (not the primary we already handled in §3c)
+                    const msId = ms.id || ms.getAttribute('formcontrolname') || '';
+                    if (msId && preClickFields.has(msId)) continue; // skip primary
+                    coApIndustry = ms;
+                    break;
+                }
+            }
+
+            if (coApIndustry) {
+                console.log('[Altech Scraper] Found Co-Applicant Industry — filling "Retired" to unlock Occupation...');
+                try {
+                    nukeOverlays();
+                    await wait(200);
+                    coApIndustry.click();
+                    await wait(1000);
+
+                    let coApIndOpts = Array.from(
+                        document.querySelectorAll('.cdk-overlay-container mat-option, .mat-select-panel mat-option, [role="option"]')
+                    ).filter(el => isVisible(el));
+
+                    // Click "Retired"
+                    let retiredEl = coApIndOpts.find(el => (el.textContent || '').trim().toLowerCase() === 'retired');
+                    if (!retiredEl) retiredEl = coApIndOpts.find(el => (el.textContent || '').trim().toLowerCase().includes('retired'));
+                    if (!retiredEl && coApIndOpts.length > 0) retiredEl = coApIndOpts.find(el => !isBlankOption(el)); // any non-blank
+
+                    if (retiredEl) {
+                        retiredEl.click();
+                        await wait(1500); // Wait for Occupation XHR
+
+                        // Now find and scrape Co-Applicant Occupation
+                        let coApOcc = null;
+                        for (const ms of coApScope.querySelectorAll('mat-select')) {
+                            if (!isVisible(ms) || ms === coApIndustry) continue;
+                            const lbl = (findLabelFor(ms) || '').toLowerCase();
+                            const wf = ms.closest('mat-form-field, [class*="form-field"]');
+                            const wrapLbl = wf?.querySelector('mat-label, .mat-form-field-label, .mdc-floating-label')?.textContent?.trim()?.toLowerCase() || '';
+                            const ariaLbl = (ms.getAttribute('aria-label') || '').toLowerCase();
+                            if ([lbl, wrapLbl, ariaLbl].some(t => t.includes('occupation'))) {
+                                coApOcc = ms;
+                                break;
+                            }
+                        }
+
+                        if (coApOcc && isVisible(coApOcc)) {
+                            let occOpts = [];
+                            try {
+                                coApOcc.click();
+                                await wait(500);
+                                let optEls = Array.from(
+                                    document.querySelectorAll('.cdk-overlay-container mat-option, [role="option"]')
+                                ).filter(el => isVisible(el));
+                                occOpts = optEls.filter(el => !isBlankOption(el)).map(el => el.textContent.trim());
+                                await closeDropdown(coApOcc);
+                            } catch (e) { nukeOverlays(); }
+
+                            if (occOpts.length > 0) {
+                                const occLabel = findLabelFor(coApOcc) || 'Co-Applicant Occupation';
+                                result.dropdowns[occLabel] = {
+                                    id: coApOcc.id || '', label: occLabel,
+                                    options: occOpts, optionCount: occOpts.length,
+                                    currentValue: '', revealedBy: 'Add contact',
+                                    dependsOn: 'Co-Applicant Industry'
+                                };
+                                result.stats.totalOptions += occOpts.length;
+                                console.log(`[Altech Scraper] Co-Applicant Occupation: ${occOpts.length} options`);
+                            }
+                        }
+
+                        // Restore Co-Applicant Industry to blank
+                        nukeOverlays();
+                        await wait(100);
+                        try {
+                            coApIndustry.click();
+                            await wait(800);
+                            const restoreOpts = Array.from(
+                                document.querySelectorAll('.cdk-overlay-container mat-option, [role="option"]')
+                            ).filter(el => isVisible(el));
+                            if (restoreOpts.length > 0) {
+                                restoreOpts[0].click();
+                                await wait(200);
+                            } else {
+                                coApIndustry.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                            }
+                        } catch (e) { nukeOverlays(); }
+                    } else {
+                        coApIndustry.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                    }
+                } catch (e) {
+                    console.warn('[Altech Scraper] Co-Applicant Industry/Occupation failed:', e.message);
+                    nukeOverlays();
+                }
+            }
+        }
+
         // Scrape new checkboxes / toggles / radios inside the contact container
         if (newContainer) {
             for (const ctrl of newContainer.querySelectorAll('mat-checkbox, mat-slide-toggle, mat-radio-button, input[type="checkbox"], input[type="radio"]')) {
@@ -3778,40 +3898,82 @@ async function scrapePage() {
 
         // Step 6: Clean up — delete the Co-Applicant container so the form stays clean
         let deletedContact = false;
+        const deletePatterns = ['delete', 'remove', 'trash', 'close', 'cancel', 'x'];
+
+        // 6a. Search inside the new container
         if (newContainer) {
-            const deletePatterns = ['delete', 'remove', 'trash', 'close'];
-            for (const btn of newContainer.querySelectorAll('button, [role="button"], a, .mat-icon-button')) {
+            for (const btn of newContainer.querySelectorAll('button, [role="button"], a, .mat-icon-button, mat-icon, [class*="icon"]')) {
                 const text = (btn.textContent || '').trim().toLowerCase();
                 const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
                 const title = (btn.getAttribute('title') || '').toLowerCase();
                 const hasIcon = btn.querySelector('mat-icon, [class*="trash"], [class*="delete"], [class*="remove"], [class*="close"]');
-                if (deletePatterns.some(p => text.includes(p) || ariaLabel.includes(p) || title.includes(p)) || hasIcon) {
+                const matIconText = btn.tagName === 'MAT-ICON' ? text : '';
+                if (deletePatterns.some(p => text.includes(p) || ariaLabel.includes(p) || title.includes(p) || matIconText.includes(p)) || hasIcon) {
                     btn.click();
                     deletedContact = true;
-                    console.log('[Altech Scraper] Deleted Co-Applicant container after scrape');
+                    console.log(`[Altech Scraper] Clicked delete in container: "${text.slice(0, 30)}"`);
                     break;
                 }
             }
-            // Fallback: sibling button
-            if (!deletedContact) {
-                const nextSib = newContainer.nextElementSibling;
-                if (nextSib) {
-                    for (const btn of [nextSib, ...nextSib.querySelectorAll('button, [role="button"]')]) {
-                        const text = (btn.textContent || '').trim().toLowerCase();
-                        if (deletePatterns.some(p => text.includes(p))) {
-                            btn.click();
-                            deletedContact = true;
-                            console.log('[Altech Scraper] Deleted Co-Applicant via sibling button');
-                            break;
-                        }
+        }
+
+        // 6b. Search sibling elements
+        if (!deletedContact && newContainer) {
+            const nextSib = newContainer.nextElementSibling;
+            const prevSib = newContainer.previousElementSibling;
+            for (const sib of [nextSib, prevSib].filter(Boolean)) {
+                for (const btn of [sib, ...sib.querySelectorAll('button, [role="button"], a, mat-icon')]) {
+                    const text = (btn.textContent || '').trim().toLowerCase();
+                    const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+                    if (deletePatterns.some(p => text.includes(p) || ariaLabel.includes(p))) {
+                        btn.click();
+                        deletedContact = true;
+                        console.log(`[Altech Scraper] Clicked delete in sibling: "${text.slice(0, 30)}"`);
+                        break;
                     }
+                }
+                if (deletedContact) break;
+            }
+        }
+
+        // 6c. Search parent expansion panel header for collapse/delete
+        if (!deletedContact && newContainer) {
+            const parent = newContainer.closest('mat-expansion-panel, .mat-expansion-panel, [class*="expansion"]');
+            if (parent) {
+                for (const btn of parent.querySelectorAll('.mat-expansion-panel-header button, mat-panel-title button, button, [role="button"]')) {
+                    const text = (btn.textContent || '').trim().toLowerCase();
+                    const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+                    if (deletePatterns.some(p => text.includes(p) || ariaLabel.includes(p))) {
+                        btn.click();
+                        deletedContact = true;
+                        console.log(`[Altech Scraper] Clicked delete in parent panel: "${text.slice(0, 30)}"`);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 6d. Handle confirmation dialog that may appear after clicking delete
+        if (deletedContact) {
+            await wait(500);
+            const confirmBtns = document.querySelectorAll(
+                '.mat-dialog-actions button, .mat-mdc-dialog-actions button, ' +
+                '.cdk-overlay-container button, [class*="dialog"] button, [class*="modal"] button'
+            );
+            for (const btn of confirmBtns) {
+                const text = (btn.textContent || '').trim().toLowerCase();
+                if (['yes', 'ok', 'confirm', 'delete', 'remove', 'continue'].some(p => text.includes(p))) {
+                    btn.click();
+                    console.log(`[Altech Scraper] Confirmed delete dialog: "${text}"`);
+                    await wait(500);
+                    break;
                 }
             }
         }
         if (deletedContact) {
             await wait(500);
         } else {
-            console.warn('[Altech Scraper] Could not find delete button — Co-Applicant container left on page');
+            console.log('[Altech Scraper] No delete button found for Co-Applicant container — user may need to remove manually');
         }
 
         console.log(`[Altech Scraper] Button expansion revealed ${result.buttonExpansion.revealedFields.length} Co-Applicant fields`);
