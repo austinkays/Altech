@@ -2631,7 +2631,23 @@ async function scrapePage() {
                 'choose', 'none', 'select...', '—'].includes(low) || low.length < 2;
     };
 
-    const industryEl = document.querySelector("mat-select[formcontrolname='industry']");
+    // Try multiple formcontrolname variants, then label-based fallback
+    let industryEl = document.querySelector("mat-select[formcontrolname='industry']")
+        || document.querySelector("mat-select[formcontrolname='industryCode']")
+        || document.querySelector("mat-select[formcontrolname='occupationIndustry']");
+
+    // Label-based fallback: scan all mat-selects for a matching label
+    if (!industryEl || !isVisible(industryEl)) {
+        const industryLabels = BASE_DROPDOWN_LABELS.Industry || ['occupation industry', 'industry'];
+        for (const dd of document.querySelectorAll('mat-select')) {
+            if (!isVisible(dd)) continue;
+            const lbl = (findLabelFor(dd) || '').toLowerCase();
+            if (industryLabels.some(l => lbl.includes(l))) {
+                industryEl = dd;
+                break;
+            }
+        }
+    }
 
     if (industryEl && isVisible(industryEl)) {
         console.log('[Altech Scraper] Found Industry dropdown — scraping options then auto-filling "Retired"...');
@@ -2704,7 +2720,23 @@ async function scrapePage() {
             await wait(1500);
 
             // 4. Force-open Occupation and scrape its options
-            const occupationEl = document.querySelector("mat-select[formcontrolname='occupation']");
+            let occupationEl = document.querySelector("mat-select[formcontrolname='occupation']")
+                || document.querySelector("mat-select[formcontrolname='occupationCode']")
+                || document.querySelector("mat-select[formcontrolname='occupationTitle']");
+
+            // Label-based fallback for Occupation
+            if (!occupationEl || !isVisible(occupationEl)) {
+                const occLabels = BASE_DROPDOWN_LABELS.Occupation || ['occupation title', 'occupation'];
+                for (const dd of document.querySelectorAll('mat-select')) {
+                    if (!isVisible(dd)) continue;
+                    if (dd === industryEl) continue; // Skip the Industry element itself
+                    const lbl = (findLabelFor(dd) || '').toLowerCase();
+                    if (occLabels.some(l => lbl.includes(l))) {
+                        occupationEl = dd;
+                        break;
+                    }
+                }
+            }
 
             if (occupationEl && isVisible(occupationEl)) {
                 let occOptions = [];
@@ -2936,10 +2968,17 @@ async function scrapePage() {
 
         // Skip if an earlier dedicated sequence (e.g. §3c Industry→Occupation) already
         // captured this child's options — avoid redundant XHR-triggering fills.
-        const childAlreadyCaptured = Object.values(result.dropdowns).some(d =>
-            d.options && d.options.length > 0 &&
-            seq.childLabels.some(l => (d.label || '').toLowerCase().includes(l.toLowerCase()))
-        );
+        // Guard: exclude dropdowns whose label ALSO matches a parent label to prevent
+        // false positives (e.g. "Occupation Industry" label contains "occupation" but
+        // is the parent, not the child).
+        const childAlreadyCaptured = Object.values(result.dropdowns).some(d => {
+            if (!d.options || d.options.length === 0) return false;
+            const lbl = (d.label || '').toLowerCase();
+            const matchesChild = seq.childLabels.some(l => lbl.includes(l.toLowerCase()));
+            if (!matchesChild) return false;
+            const matchesParent = seq.parentLabels.some(l => lbl.includes(l.toLowerCase()));
+            return !matchesParent;  // Only count as captured if NOT also a parent match
+        });
         if (childAlreadyCaptured) {
             console.log(`[Altech Cascade] "${seq.name}" — child already captured by earlier sequence, skipping`);
             continue;
@@ -3292,18 +3331,44 @@ async function scrapePage() {
         );
         const newContainer = panels.length > 0 ? panels[panels.length - 1] : null;
 
-        // Step 3: Click the FIRST mat-slide-toggle inside the container (index-based).
-        // Text-based label search fails — the first toggle IS the Co-Applicant toggle.
+        // Step 3: Click the Co-Applicant toggle (label-based with POISON_WORDS).
+        // Mirrors the filler's findToggleByLabel approach — match 'co-applicant'
+        // while skipping toggles whose text contains 'client center'.
         let activatedCoAp = false;
 
         if (newContainer) {
             const toggles = newContainer.querySelectorAll('mat-slide-toggle');
-            if (toggles.length > 0) {
-                toggles[0].click();
+            const CO_AP_PATTERNS = ['co-applicant', 'coapplicant', 'co applicant'];
+            const TOGGLE_POISON = ['client center', 'clientcenter'];
+            let coApToggle = null;
+
+            // Primary: find toggle whose label matches Co-Applicant patterns
+            for (const toggle of toggles) {
+                const text = (toggle.textContent || '').trim().toLowerCase();
+                if (TOGGLE_POISON.some(pw => text.includes(pw))) continue;
+                if (CO_AP_PATTERNS.some(pat => text.includes(pat))) {
+                    coApToggle = toggle;
+                    break;
+                }
+            }
+
+            // Fallback: first non-poisoned toggle (if label search fails)
+            if (!coApToggle) {
+                for (const toggle of toggles) {
+                    const text = (toggle.textContent || '').trim().toLowerCase();
+                    if (TOGGLE_POISON.some(pw => text.includes(pw))) continue;
+                    coApToggle = toggle;
+                    break;
+                }
+            }
+
+            if (coApToggle) {
+                coApToggle.click();
                 activatedCoAp = true;
-                console.log(`[Altech Scraper] Clicked first mat-slide-toggle (index 0) inside new container (${toggles.length} toggles found)`);
+                const toggleText = (coApToggle.textContent || '').trim().slice(0, 50);
+                console.log(`[Altech Scraper] Clicked Co-Applicant toggle (label: "${toggleText}") inside container (${toggles.length} toggles found)`);
             } else {
-                console.warn('[Altech Scraper] No mat-slide-toggle found inside new contact container');
+                console.warn('[Altech Scraper] No suitable mat-slide-toggle found inside new contact container');
             }
         }
 
@@ -3480,31 +3545,113 @@ async function scrapePage() {
     result.stats.buttonExpansionRevealed = result.buttonExpansion.revealedFields.length;
 
     // ── 6. PRIOR ADDRESS REVEAL: Primary Applicant only ──
-    // Use document.querySelector (NOT querySelectorAll) to target ONLY the FIRST
-    // 'Years At Address' input on the page — the Primary Applicant's field.
+    // Years At Address can be a text <input>, a <mat-select>, or a native <select>.
+    // We detect the element type, set a low value to trigger the Prior Address section,
+    // scrape newly revealed fields, then restore the original state.
     result.priorAddressReveal = { triggered: false, revealedFields: [] };
 
-    // Strict singular selector — first match = Primary Applicant
-    const yearsAtAddrInput = document.querySelector(
+    // ── 6a. Find Years At Address element (input → mat-select → native select) ──
+    let yaElement = null;
+    let yaType = null; // 'input' | 'mat-select' | 'native-select'
+
+    // Try text input first
+    const yaInput = document.querySelector(
         "input[formcontrolname='yearsAtAddress'], " +
+        "input[formcontrolname='yearsAtCurrentAddress'], " +
         "input[name*='YearsAtAddress' i], " +
         "input[name*='yearsAt' i], " +
         "input[id*='yearsAtAddress' i]"
     );
+    if (yaInput && isVisible(yaInput)) {
+        yaElement = yaInput;
+        yaType = 'input';
+    }
 
-    if (yearsAtAddrInput && isVisible(yearsAtAddrInput)) {
-        const originalYearsValue = yearsAtAddrInput.value || '';
-        console.log(`[Altech Scraper] Found Primary Years At Address input, original value: "${originalYearsValue}". Injecting "1"...`);
+    // Try mat-select
+    if (!yaElement) {
+        let yaMat = document.querySelector("mat-select[formcontrolname='yearsAtAddress']")
+            || document.querySelector("mat-select[formcontrolname='yearsAtCurrentAddress']");
 
-        // Snapshot current fields before inject
+        // Label-based fallback for mat-select
+        if (!yaMat || !isVisible(yaMat)) {
+            const yaLabels = BASE_DROPDOWN_LABELS.YearsAtAddress || ['years at address'];
+            for (const dd of document.querySelectorAll('mat-select')) {
+                if (!isVisible(dd)) continue;
+                const lbl = (findLabelFor(dd) || '').toLowerCase();
+                if (yaLabels.some(l => lbl.includes(l))) { yaMat = dd; break; }
+            }
+        }
+        if (yaMat && isVisible(yaMat)) {
+            yaElement = yaMat;
+            yaType = 'mat-select';
+        }
+    }
+
+    // Try native select
+    if (!yaElement) {
+        for (const sel of (DROPDOWN_SELECT_MAP.YearsAtAddress || [])) {
+            const found = document.querySelector(sel);
+            if (found && isVisible(found)) { yaElement = found; yaType = 'native-select'; break; }
+        }
+    }
+
+    if (yaElement) {
+        let originalYearsValue = '';
+        console.log(`[Altech Scraper] Found Primary Years At Address (${yaType})`);
+
+        // Snapshot current fields before injection
         const prePriorFields = new Set();
         document.querySelectorAll('input, select, textarea, mat-select').forEach(el => {
             if (el.id) prePriorFields.add(el.id);
             if (el.name) prePriorFields.add(el.name);
         });
 
-        // Inject '1' using Angular-compatible protocol
-        setInputValue(yearsAtAddrInput, '1');
+        // ── 6b. Set a low value to trigger Prior Address reveal ──
+        if (yaType === 'input') {
+            originalYearsValue = yaElement.value || '';
+            console.log(`[Altech Scraper] Years At Address input, original: "${originalYearsValue}". Injecting "1"...`);
+            setInputValue(yaElement, '1');
+        } else if (yaType === 'mat-select') {
+            originalYearsValue = yaElement.querySelector('.mat-select-value-text, .mat-mdc-select-value-text, [class*="select-value"]')?.textContent?.trim() || '';
+            console.log(`[Altech Scraper] Years At Address mat-select, original: "${originalYearsValue}". Selecting low value...`);
+            try {
+                yaElement.click();
+                await wait(500);
+                const yaOptEls = Array.from(
+                    document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
+                );
+                // Find a low-value option: "0", "1", "Less than 1", etc.
+                const lowOption = yaOptEls.find(o => {
+                    const t = (o.textContent || '').trim().toLowerCase();
+                    return ['0', '1', 'less than 1', '< 1', 'less than 3', '0-2'].some(v => t === v || t.startsWith(v));
+                }) || yaOptEls.find(o => /^[0-2]$/.test((o.textContent || '').trim()));
+                if (lowOption) {
+                    lowOption.click();
+                    await wait(200);
+                    console.log(`[Altech Scraper] Selected low option: "${(lowOption.textContent || '').trim()}"`);
+                } else if (yaOptEls.length > 1) {
+                    yaOptEls[1].click(); // Second option (first is usually blank/placeholder)
+                    await wait(200);
+                    console.log('[Altech Scraper] Selected second option as fallback');
+                } else {
+                    yaElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                    await wait(100);
+                }
+            } catch (e) {
+                console.warn('[Altech Scraper] Years At Address mat-select open failed:', e.message);
+                nukeOverlays();
+            }
+        } else if (yaType === 'native-select') {
+            originalYearsValue = yaElement.value;
+            const lowOpt = Array.from(yaElement.options).find(o => /^[0-2]$/.test(o.value.trim()) || o.text.toLowerCase().includes('less'));
+            if (lowOpt) {
+                yaElement.value = lowOpt.value;
+            } else if (yaElement.options.length > 1) {
+                yaElement.value = yaElement.options[1].value;
+            }
+            yaElement.dispatchEvent(new Event('change', { bubbles: true }));
+            console.log(`[Altech Scraper] Years At Address native select, original: "${originalYearsValue}"`);
+        }
 
         // Wait for Angular to render the Previous Address section
         await wait(1000);
@@ -3619,13 +3766,45 @@ async function scrapePage() {
 
         result.priorAddressReveal.triggered = foundPriorFields || !!priorSection;
 
-        // Restore original value
-        setInputValue(yearsAtAddrInput, originalYearsValue);
+        // ── 6d. Restore original value ──
+        if (yaType === 'input') {
+            setInputValue(yaElement, originalYearsValue);
+        } else if (yaType === 'mat-select') {
+            nukeOverlays();
+            await wait(100);
+            try {
+                yaElement.click();
+                await wait(500);
+                const restoreOpts = Array.from(
+                    document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
+                );
+                if (originalYearsValue) {
+                    const origOpt = restoreOpts.find(o => (o.textContent || '').trim() === originalYearsValue);
+                    if (origOpt) {
+                        origOpt.click();
+                        await wait(200);
+                    } else if (restoreOpts.length > 0) {
+                        restoreOpts[0].click(); // First option (blank/placeholder)
+                        await wait(200);
+                    }
+                } else if (restoreOpts.length > 0) {
+                    restoreOpts[0].click(); // First option (blank/placeholder)
+                    await wait(200);
+                } else {
+                    yaElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                }
+            } catch (e) {
+                nukeOverlays();
+            }
+        } else if (yaType === 'native-select') {
+            yaElement.value = originalYearsValue;
+            yaElement.dispatchEvent(new Event('change', { bubbles: true }));
+        }
 
         await wait(300); // Let Angular tear down the Prior Address section
-        console.log(`[Altech Scraper] Prior Address reveal: triggered=${result.priorAddressReveal.triggered}, fields=${result.priorAddressReveal.revealedFields.length}`);
+        console.log(`[Altech Scraper] Prior Address reveal (${yaType}): triggered=${result.priorAddressReveal.triggered}, fields=${result.priorAddressReveal.revealedFields.length}`);
     } else {
-        console.log('[Altech Scraper] Primary Years At Address input not found — skipping Prior Address reveal');
+        console.log('[Altech Scraper] Primary Years At Address element not found (tried input, mat-select, native select) — skipping Prior Address reveal');
     }
 
     result.stats.priorAddressRevealed = result.priorAddressReveal.revealedFields.length;
