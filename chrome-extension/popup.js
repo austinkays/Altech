@@ -9,6 +9,11 @@ const $ = id => document.getElementById(id);
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', async () => {
+    // Show version from manifest
+    const manifest = chrome.runtime.getManifest();
+    const versionEl = $('extVersion');
+    if (versionEl && manifest.version) versionEl.textContent = `v${manifest.version}`;
+
     await refreshUI();
     checkPage();
     loadStoredPropertyData();

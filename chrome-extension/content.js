@@ -12,6 +12,7 @@
 // §1  CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
+const EXTENSION_VERSION = '0.6.0';
 const FILL_DELAY    = 250;   // ms between field fills (was 120 — too fast for Angular)
 const DROPDOWN_WAIT = 1000;  // ms to wait for overlay after click (was 700)
 const RETRY_WAIT    = 1800;  // ms before retrying failed dropdowns (was 1200)
@@ -1571,6 +1572,7 @@ function updateToolbarStatus(text) {
 // ═══════════════════════════════════════════════════════════════
 
 async function fillPage(clientData) {
+    console.log(`[Altech Filler v${EXTENSION_VERSION}] Starting fill...`);
     const report = { textFilled: 0, textSkipped: 0, ddFilled: 0, ddSkipped: 0, details: [], page: detectPage(), timestamp: new Date().toISOString() };
     if (!clientData) return report;
 
@@ -2312,6 +2314,7 @@ bodyObserver.observe(document.body, { childList: true });
 // ═══════════════════════════════════════════════════════════════
 
 async function scrapePage() {
+    console.log(`[Altech Scraper v${EXTENSION_VERSION}] Starting scrape...`);
     const page = detectPage();
     const url = location.href;
     const result = {
@@ -3332,44 +3335,57 @@ async function scrapePage() {
         const newContainer = panels.length > 0 ? panels[panels.length - 1] : null;
 
         // Step 3: Click the Co-Applicant toggle (label-based with POISON_WORDS).
+        // Search inside the new container first, then fall back to the full document.
         // Mirrors the filler's findToggleByLabel approach — match 'co-applicant'
         // while skipping toggles whose text contains 'client center'.
         let activatedCoAp = false;
+        const CO_AP_PATTERNS = ['co-applicant', 'coapplicant', 'co applicant', 'is there a co-applicant'];
+        const TOGGLE_POISON = ['client center', 'clientcenter'];
 
-        if (newContainer) {
-            const toggles = newContainer.querySelectorAll('mat-slide-toggle');
-            const CO_AP_PATTERNS = ['co-applicant', 'coapplicant', 'co applicant'];
-            const TOGGLE_POISON = ['client center', 'clientcenter'];
-            let coApToggle = null;
-
-            // Primary: find toggle whose label matches Co-Applicant patterns
+        // Helper: search a scope for the Co-Applicant toggle
+        const findCoApToggle = (scope) => {
+            const toggles = scope.querySelectorAll('mat-slide-toggle');
+            // Primary: label-based match
             for (const toggle of toggles) {
+                if (!isVisible(toggle)) continue;
                 const text = (toggle.textContent || '').trim().toLowerCase();
                 if (TOGGLE_POISON.some(pw => text.includes(pw))) continue;
-                if (CO_AP_PATTERNS.some(pat => text.includes(pat))) {
-                    coApToggle = toggle;
-                    break;
-                }
+                if (CO_AP_PATTERNS.some(pat => text.includes(pat))) return toggle;
             }
-
-            // Fallback: first non-poisoned toggle (if label search fails)
-            if (!coApToggle) {
-                for (const toggle of toggles) {
-                    const text = (toggle.textContent || '').trim().toLowerCase();
-                    if (TOGGLE_POISON.some(pw => text.includes(pw))) continue;
-                    coApToggle = toggle;
-                    break;
-                }
+            // Fallback: first non-poisoned toggle in scope
+            for (const toggle of toggles) {
+                if (!isVisible(toggle)) continue;
+                const text = (toggle.textContent || '').trim().toLowerCase();
+                if (TOGGLE_POISON.some(pw => text.includes(pw))) continue;
+                return toggle;
             }
+            return null;
+        };
 
-            if (coApToggle) {
+        // 3a. Try inside the new container first
+        let coApToggle = newContainer ? findCoApToggle(newContainer) : null;
+
+        // 3b. Fall back to full document if not found in container
+        if (!coApToggle) {
+            console.log('[Altech Scraper] Co-Applicant toggle not in expansion panel — searching full page...');
+            coApToggle = findCoApToggle(document);
+        }
+
+        if (coApToggle) {
+            // Check if already active (avoid double-toggle)
+            const isAlreadyActive = coApToggle.classList.contains('mat-checked') ||
+                coApToggle.classList.contains('mat-mdc-slide-toggle-checked') ||
+                coApToggle.querySelector('input[type="checkbox"]')?.checked || false;
+
+            if (!isAlreadyActive) {
                 coApToggle.click();
-                activatedCoAp = true;
-                const toggleText = (coApToggle.textContent || '').trim().slice(0, 50);
-                console.log(`[Altech Scraper] Clicked Co-Applicant toggle (label: "${toggleText}") inside container (${toggles.length} toggles found)`);
+                console.log(`[Altech Scraper] Clicked Co-Applicant toggle (label: "${(coApToggle.textContent || '').trim().slice(0, 50)}")`);
             } else {
-                console.warn('[Altech Scraper] No suitable mat-slide-toggle found inside new contact container');
+                console.log('[Altech Scraper] Co-Applicant toggle already active — skipping click');
             }
+            activatedCoAp = true;
+        } else {
+            console.warn('[Altech Scraper] Co-Applicant toggle not found anywhere on page');
         }
 
         // Step 4: Wait for Relationship dropdown (and other Co-Ap fields) to render
