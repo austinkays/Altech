@@ -12,7 +12,7 @@
 // §1  CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
-const EXTENSION_VERSION = '0.6.0';
+const EXTENSION_VERSION = '0.6.1';
 const FILL_DELAY    = 250;   // ms between field fills (was 120 — too fast for Angular)
 const DROPDOWN_WAIT = 1000;  // ms to wait for overlay after click (was 700)
 const RETRY_WAIT    = 1800;  // ms before retrying failed dropdowns (was 1200)
@@ -2652,6 +2652,72 @@ async function scrapePage() {
         }
     }
 
+    // Also check native <select> elements for Industry
+    if (!industryEl || !isVisible(industryEl)) {
+        for (const sel of (DROPDOWN_SELECT_MAP.Industry || [])) {
+            const found = document.querySelector(sel);
+            if (found && isVisible(found)) {
+                console.log('[Altech Scraper] Found Industry as native <select>');
+                industryEl = found;
+                break;
+            }
+        }
+    }
+
+    // Log what we found (or didn't)
+    if (!industryEl || !isVisible(industryEl)) {
+        console.log('[Altech Scraper] Industry dropdown not found — checking if Occupation is directly accessible...');
+
+        // Direct Occupation check: if Occupation exists and is NOT disabled, scrape it directly
+        let directOccEl = document.querySelector("mat-select[formcontrolname='occupation']")
+            || document.querySelector("mat-select[formcontrolname='occupationCode']")
+            || document.querySelector("mat-select[formcontrolname='occupationTitle']");
+
+        if (!directOccEl || !isVisible(directOccEl)) {
+            const occLabels = BASE_DROPDOWN_LABELS.Occupation || ['occupation title', 'occupation'];
+            for (const dd of document.querySelectorAll('mat-select')) {
+                if (!isVisible(dd)) continue;
+                const lbl = (findLabelFor(dd) || '').toLowerCase();
+                if (occLabels.some(l => lbl.includes(l))) { directOccEl = dd; break; }
+            }
+        }
+
+        if (directOccEl && isVisible(directOccEl)) {
+            const isDisabled = directOccEl.classList.contains('mat-select-disabled') ||
+                directOccEl.classList.contains('mat-mdc-select-disabled') ||
+                directOccEl.getAttribute('aria-disabled') === 'true' ||
+                directOccEl.hasAttribute('disabled');
+
+            if (!isDisabled) {
+                console.log('[Altech Scraper] Occupation is directly accessible (not disabled) — scraping without Industry trigger');
+                let occOptions = [];
+                try {
+                    directOccEl.click();
+                    await wait(500);
+                    let optEls = Array.from(
+                        document.querySelectorAll('.cdk-overlay-container .cdk-overlay-pane mat-option, .cdk-overlay-container .cdk-overlay-pane [role="option"]')
+                    );
+                    occOptions = optEls.filter(el => !isBlankOption(el)).map(el => el.textContent.trim());
+                    directOccEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                    await wait(200);
+                } catch (e) { nukeOverlays(); }
+
+                if (occOptions.length > 0) {
+                    const occLabel = findLabelFor(directOccEl) || 'Occupation';
+                    result.dropdowns[occLabel] = {
+                        id: directOccEl.id || '', label: occLabel,
+                        options: occOptions, currentValue: '',
+                        optionCount: occOptions.length, source: 'direct-occupation'
+                    };
+                    result.stats.totalOptions += occOptions.length;
+                    console.log(`[Altech Scraper] Direct Occupation: ${occOptions.length} options`);
+                }
+            } else {
+                console.log('[Altech Scraper] Occupation exists but is disabled — needs Industry trigger (not found on page)');
+            }
+        }
+    }
+
     if (industryEl && isVisible(industryEl)) {
         console.log('[Altech Scraper] Found Industry dropdown — scraping options then auto-filling "Retired"...');
 
@@ -3334,58 +3400,98 @@ async function scrapePage() {
         );
         const newContainer = panels.length > 0 ? panels[panels.length - 1] : null;
 
-        // Step 3: Click the Co-Applicant toggle (label-based with POISON_WORDS).
-        // Search inside the new container first, then fall back to the full document.
-        // Mirrors the filler's findToggleByLabel approach — match 'co-applicant'
-        // while skipping toggles whose text contains 'client center'.
+        // Step 3: Find and activate the Co-Applicant toggle/checkbox.
+        // "Make this contact Co-Applicant" may be a mat-slide-toggle, mat-checkbox,
+        // native checkbox, or even a button — search ALL types.
+        // Skip any element whose text contains POISON words (e.g. "Client Center Access").
         let activatedCoAp = false;
-        const CO_AP_PATTERNS = ['co-applicant', 'coapplicant', 'co applicant', 'is there a co-applicant'];
+        const CO_AP_PATTERNS = ['co-applicant', 'coapplicant', 'co applicant',
+                                'is there a co-applicant', 'make this contact co'];
         const TOGGLE_POISON = ['client center', 'clientcenter'];
+        const norm = s => (s || '').replace(/[*:]/g, '').trim().toLowerCase();
 
-        // Helper: search a scope for the Co-Applicant toggle
-        const findCoApToggle = (scope) => {
-            const toggles = scope.querySelectorAll('mat-slide-toggle');
-            // Primary: label-based match
-            for (const toggle of toggles) {
-                if (!isVisible(toggle)) continue;
-                const text = (toggle.textContent || '').trim().toLowerCase();
+        // Helper: search a scope for ANY clickable Co-Applicant element
+        const findCoApElement = (scope) => {
+            // 1. mat-slide-toggles
+            for (const el of scope.querySelectorAll('mat-slide-toggle, [class*="mat-slide-toggle"]')) {
+                if (!isVisible(el)) continue;
+                const text = norm(el.textContent);
                 if (TOGGLE_POISON.some(pw => text.includes(pw))) continue;
-                if (CO_AP_PATTERNS.some(pat => text.includes(pat))) return toggle;
+                if (CO_AP_PATTERNS.some(pat => text.includes(pat))) {
+                    const isActive = el.classList.contains('mat-checked') ||
+                        el.classList.contains('mat-mdc-slide-toggle-checked') ||
+                        el.querySelector('input[type="checkbox"]')?.checked || false;
+                    return { element: el, type: 'mat-slide-toggle', isActive };
+                }
             }
-            // Fallback: first non-poisoned toggle in scope
-            for (const toggle of toggles) {
-                if (!isVisible(toggle)) continue;
-                const text = (toggle.textContent || '').trim().toLowerCase();
+            // 2. mat-checkboxes
+            for (const el of scope.querySelectorAll('mat-checkbox, [class*="mat-checkbox"]')) {
+                if (!isVisible(el)) continue;
+                const text = norm(el.textContent);
                 if (TOGGLE_POISON.some(pw => text.includes(pw))) continue;
-                return toggle;
+                if (CO_AP_PATTERNS.some(pat => text.includes(pat))) {
+                    const isActive = el.classList.contains('mat-checkbox-checked') ||
+                        el.classList.contains('mat-mdc-checkbox-checked') ||
+                        el.querySelector('input[type="checkbox"]')?.checked || false;
+                    return { element: el, type: 'mat-checkbox', isActive };
+                }
+            }
+            // 3. Buttons / links with Co-Applicant text
+            for (const el of scope.querySelectorAll('button, a, [role="button"], [role="switch"]')) {
+                if (!isVisible(el)) continue;
+                const text = norm(el.textContent);
+                if (TOGGLE_POISON.some(pw => text.includes(pw))) continue;
+                if (CO_AP_PATTERNS.some(pat => text.includes(pat))) {
+                    const isActive = el.classList.contains('active') ||
+                        el.getAttribute('aria-checked') === 'true' ||
+                        el.getAttribute('aria-pressed') === 'true';
+                    return { element: el, type: 'button', isActive };
+                }
+            }
+            // 4. Native checkboxes near a matching label
+            for (const lbl of scope.querySelectorAll('label')) {
+                const text = norm(lbl.textContent);
+                if (!text || text.length > 80) continue;
+                if (TOGGLE_POISON.some(pw => text.includes(pw))) continue;
+                if (!CO_AP_PATTERNS.some(pat => text.includes(pat))) continue;
+                const forId = lbl.getAttribute('for') || lbl.htmlFor;
+                if (forId) {
+                    const cb = document.getElementById(forId);
+                    if (cb && cb.type === 'checkbox' && isVisible(cb)) {
+                        return { element: cb, type: 'native-checkbox', isActive: cb.checked };
+                    }
+                }
+                // Check sibling/child checkbox
+                const parent = lbl.closest('.form-group, .field-wrapper, [class*="form-field"]') || lbl.parentElement;
+                if (parent) {
+                    const cb = parent.querySelector('input[type="checkbox"]');
+                    if (cb && isVisible(cb)) {
+                        return { element: cb, type: 'native-checkbox', isActive: cb.checked };
+                    }
+                }
             }
             return null;
         };
 
         // 3a. Try inside the new container first
-        let coApToggle = newContainer ? findCoApToggle(newContainer) : null;
+        let coApResult = newContainer ? findCoApElement(newContainer) : null;
 
         // 3b. Fall back to full document if not found in container
-        if (!coApToggle) {
-            console.log('[Altech Scraper] Co-Applicant toggle not in expansion panel — searching full page...');
-            coApToggle = findCoApToggle(document);
+        if (!coApResult) {
+            console.log('[Altech Scraper] Co-Applicant element not in expansion panel — searching full page...');
+            coApResult = findCoApElement(document);
         }
 
-        if (coApToggle) {
-            // Check if already active (avoid double-toggle)
-            const isAlreadyActive = coApToggle.classList.contains('mat-checked') ||
-                coApToggle.classList.contains('mat-mdc-slide-toggle-checked') ||
-                coApToggle.querySelector('input[type="checkbox"]')?.checked || false;
-
-            if (!isAlreadyActive) {
-                coApToggle.click();
-                console.log(`[Altech Scraper] Clicked Co-Applicant toggle (label: "${(coApToggle.textContent || '').trim().slice(0, 50)}")`);
+        if (coApResult) {
+            if (!coApResult.isActive) {
+                coApResult.element.click();
+                console.log(`[Altech Scraper] Clicked Co-Applicant ${coApResult.type} (label: "${norm(coApResult.element.textContent).slice(0, 60)}")`);
             } else {
-                console.log('[Altech Scraper] Co-Applicant toggle already active — skipping click');
+                console.log(`[Altech Scraper] Co-Applicant ${coApResult.type} already active — skipping click`);
             }
             activatedCoAp = true;
         } else {
-            console.warn('[Altech Scraper] Co-Applicant toggle not found anywhere on page');
+            console.warn('[Altech Scraper] Co-Applicant element not found (searched mat-slide-toggle, mat-checkbox, button, native-checkbox)');
         }
 
         // Step 4: Wait for Relationship dropdown (and other Co-Ap fields) to render
@@ -3586,7 +3692,9 @@ async function scrapePage() {
     // Try mat-select
     if (!yaElement) {
         let yaMat = document.querySelector("mat-select[formcontrolname='yearsAtAddress']")
-            || document.querySelector("mat-select[formcontrolname='yearsAtCurrentAddress']");
+            || document.querySelector("mat-select[formcontrolname='yearsAtCurrentAddress']")
+            || document.querySelector("mat-select[formcontrolname='yearsAtCurrentRes']")
+            || document.querySelector("mat-select[formcontrolname='yearsAt']");
 
         // Label-based fallback for mat-select
         if (!yaMat || !isVisible(yaMat)) {
@@ -3597,6 +3705,26 @@ async function scrapePage() {
                 if (yaLabels.some(l => lbl.includes(l))) { yaMat = dd; break; }
             }
         }
+
+        // Broader label search: also check aria-label and placeholder text
+        if (!yaMat || !isVisible(yaMat)) {
+            for (const dd of document.querySelectorAll('mat-select')) {
+                if (!isVisible(dd)) continue;
+                const ariaLabel = (dd.getAttribute('aria-label') || '').toLowerCase();
+                const ariaLabelledBy = dd.getAttribute('aria-labelledby');
+                let labelledByText = '';
+                if (ariaLabelledBy) {
+                    const lblEl = document.getElementById(ariaLabelledBy);
+                    labelledByText = (lblEl?.textContent || '').toLowerCase();
+                }
+                if (ariaLabel.includes('years at address') || labelledByText.includes('years at address') ||
+                    ariaLabel.includes('years at current') || labelledByText.includes('years at current')) {
+                    yaMat = dd;
+                    break;
+                }
+            }
+        }
+
         if (yaMat && isVisible(yaMat)) {
             yaElement = yaMat;
             yaType = 'mat-select';
@@ -3820,7 +3948,16 @@ async function scrapePage() {
         await wait(300); // Let Angular tear down the Prior Address section
         console.log(`[Altech Scraper] Prior Address reveal (${yaType}): triggered=${result.priorAddressReveal.triggered}, fields=${result.priorAddressReveal.revealedFields.length}`);
     } else {
-        console.log('[Altech Scraper] Primary Years At Address element not found (tried input, mat-select, native select) — skipping Prior Address reveal');
+        // Diagnostic: log what mat-selects ARE on the page to help debug
+        const allMatSelects = document.querySelectorAll('mat-select');
+        console.log(`[Altech Scraper] Primary Years At Address element not found (tried input, mat-select, native select) — skipping Prior Address reveal`);
+        console.log(`[Altech Scraper] DEBUG: ${allMatSelects.length} mat-selects on page. Labels:`);
+        allMatSelects.forEach((ms, i) => {
+            const lbl = findLabelFor(ms) || '';
+            const fcn = ms.getAttribute('formcontrolname') || '';
+            const vis = isVisible(ms);
+            console.log(`  [${i}] formcontrolname="${fcn}" label="${lbl}" visible=${vis}`);
+        });
     }
 
     result.stats.priorAddressRevealed = result.priorAddressReveal.revealedFields.length;
