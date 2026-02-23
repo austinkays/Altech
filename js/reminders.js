@@ -103,12 +103,27 @@ window.Reminders = (() => {
                     next.setDate(next.getDate() + 1);
                 }
             }
-            else if (freq === 'weekly') next.setDate(next.getDate() + 7);
+            else if (freq === 'weekly') {
+                // Advance to next Monday (start of work week)
+                const dayOfWeek = next.getDay(); // 0=Sun … 6=Sat
+                const daysUntilMon = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
+                next.setDate(next.getDate() + daysUntilMon);
+            }
             else if (freq === 'biweekly') next.setDate(next.getDate() + 14);
             else if (freq === 'monthly') next.setMonth(next.getMonth() + 1);
             else break; // 'once' — don't advance
         }
         return next.toISOString().split('T')[0];
+    }
+
+    // Returns the most recent Monday at midnight (start of current work week)
+    function _getMostRecentMonday() {
+        const today = _today();
+        const day = today.getDay(); // 0=Sun … 6=Sat
+        const diff = day === 0 ? 6 : day - 1; // days since last Monday
+        const monday = new Date(today);
+        monday.setDate(monday.getDate() - diff);
+        return monday;
     }
 
     function _getStatus(task) {
@@ -123,14 +138,19 @@ window.Reminders = (() => {
             const lc = new Date(lastCompletion);
             lc.setHours(0, 0, 0, 0);
             if (lc >= today) return 'completed';
-            // For recurring: completed if done since last due cycle started
+            // For recurring: completed if done since current cycle started
             if (task.frequency !== 'once') {
-                const cycleDays = (task.frequency === 'daily' || task.frequency === 'weekdays') ? 1 :
-                    task.frequency === 'weekly' ? 7 :
-                    task.frequency === 'biweekly' ? 14 : 30;
-                const cycleStart = new Date(due);
-                cycleStart.setDate(cycleStart.getDate() - cycleDays);
-                if (lc > cycleStart) return 'completed';
+                let cycleStart;
+                if (task.frequency === 'weekly') {
+                    // Weekly tasks reset on Monday — completed only if done THIS work week
+                    cycleStart = _getMostRecentMonday();
+                } else {
+                    const cycleDays = (task.frequency === 'daily' || task.frequency === 'weekdays') ? 1 :
+                        task.frequency === 'biweekly' ? 14 : 30;
+                    cycleStart = new Date(due);
+                    cycleStart.setDate(cycleStart.getDate() - cycleDays);
+                }
+                if (lc >= cycleStart) return 'completed';
             }
         }
 
