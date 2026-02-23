@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Altech pre-commit hook — rebuilds the extension zip whenever
+# any chrome-extension/* file is staged for commit.
+
+set -e
+
+STAGED=$(git diff --cached --name-only)
+
+if echo "$STAGED" | grep -q "^chrome-extension/"; then
+    echo "[Altech] chrome-extension/* changed — rebuilding altech-ezlynx-extension.zip..."
+
+    # Use PowerShell on Windows, zip on macOS/Linux
+    if command -v powershell.exe &>/dev/null; then
+        powershell.exe -NoProfile -Command "
+            Remove-Item -Force 'altech-ezlynx-extension.zip' -ErrorAction SilentlyContinue
+            Compress-Archive -Path 'chrome-extension\*' -DestinationPath 'altech-ezlynx-extension.zip'
+        "
+    elif command -v zip &>/dev/null; then
+        rm -f altech-ezlynx-extension.zip
+        cd chrome-extension && zip -r ../altech-ezlynx-extension.zip . && cd ..
+    else
+        echo "[Altech] WARNING: Could not rebuild zip — neither powershell.exe nor zip found."
+        exit 0
+    fi
+
+    git add altech-ezlynx-extension.zip
+    echo "[Altech] altech-ezlynx-extension.zip updated and staged."
+fi
