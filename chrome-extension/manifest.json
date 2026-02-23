@@ -11,7 +11,9 @@
   ],
   "host_permissions": [
     "*://*.ezlynx.com/*",
-    "https://altech-app.vercel.app/*"
+    "https://altech-app.vercel.app/*",
+    "https://altech.agency/*",
+    "https://www.altech.agency/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -24,7 +26,7 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://altech-app.vercel.app/*", "http://localhost/*"],
+      "matches": ["https://altech-app.vercel.app/*", "https://altech.agency/*", "https://www.altech.agency/*", "http://localhost/*"],
       "js": ["altech-bridge.js"],
       "run_at": "document_idle"
     }

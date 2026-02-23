@@ -9,7 +9,7 @@
 importScripts('defaultSchema.js');
 
 // ── Schema URL — fetched on every startup to auto-sync team schema ──
-const SCHEMA_URL = 'https://altech-app.vercel.app/ezlynx_schema.json';
+const SCHEMA_URL = 'https://altech.agency/ezlynx_schema.json';
 
 // Set defaults on install/update — seed knownOptions with built-in schema
 // Only set clientData, lastFillReport, and settings if they don't already exist
@@ -59,7 +59,7 @@ chrome.action.disable();
 
 function updateActionForTab(tabId, url) {
     if (!url) return;
-    if (url.includes('ezlynx.com') || url.includes('altech-app.vercel.app') || url.includes('localhost')) {
+    if (url.includes('ezlynx.com') || url.includes('altech-app.vercel.app') || url.includes('altech.agency') || url.includes('localhost')) {
         chrome.action.enable(tabId);
     } else {
         chrome.action.disable(tabId);
