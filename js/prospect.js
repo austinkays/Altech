@@ -234,8 +234,9 @@ ${ai.underwritingNotes || 'N/A'}`;
         aiEl.innerHTML = `
             <div style="text-align: center; padding: 32px;">
                 <div class="ai-pulse" style="font-size: 36px; margin-bottom: 12px;">🧠</div>
-                <div style="font-weight: 600; margin-bottom: 4px;">AI Analyzing Business...</div>
-                <div style="font-size: 13px; color: var(--text-secondary);">Generating underwriting intelligence, coverage recommendations, and risk assessment</div>
+                <div style="font-weight: 600; margin-bottom: 4px;">Researching Business...</div>
+                <div style="font-size: 13px; color: var(--text-secondary);">Gemini is searching the web and analyzing public records to build your underwriting intelligence report</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px; opacity: 0.6;">This typically takes 10–20 seconds</div>
             </div>`;
 
         // Show the section
@@ -268,7 +269,7 @@ ${ai.underwritingNotes || 'N/A'}`;
             }
 
             aiAnalysis = data.analysis;
-            _renderAIAnalysis(data.analysis);
+            _renderAIAnalysis(data.analysis, data.groundedSearch);
 
         } catch (error) {
             console.error('[Prospect] AI analysis error:', error);
@@ -279,7 +280,7 @@ ${ai.underwritingNotes || 'N/A'}`;
         }
     }
 
-    function _renderAIAnalysis(a) {
+    function _renderAIAnalysis(a, grounded) {
         const el = document.getElementById('aiAnalysisContent');
         if (!el) return;
 
@@ -377,7 +378,7 @@ ${ai.underwritingNotes || 'N/A'}`;
             </div>` : ''}
 
             <div style="text-align: right; font-size: 11px; color: var(--text-secondary); opacity: 0.6; margin-top: 8px;">
-                Powered by Gemini AI \u00B7 Analysis generated ${new Date().toLocaleTimeString()}
+                Powered by Gemini AI${grounded ? ' + Google Search' : ''} \u00B7 Analysis generated ${new Date().toLocaleTimeString()}
             </div>
         `;
     }
@@ -420,6 +421,9 @@ ${ai.underwritingNotes || 'N/A'}`;
                 `).join('')}
                 <span style="font-size: 11px; padding: 3px 10px; border-radius: 12px; background: rgba(0,122,255,0.08); color: var(--apple-blue); font-weight: 600;">
                     ${okCount}/${sources.length} sources
+                </span>
+                <span style="font-size: 11px; padding: 3px 10px; border-radius: 12px; background: rgba(168,85,247,0.1); color: #A855F7; font-weight: 600;">
+                    \uD83E\uDDE0 Gemini AI
                 </span>
             </div>
         `);

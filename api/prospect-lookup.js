@@ -1166,40 +1166,58 @@ async function handleAIAnalysis(req, res) {
   // Build a comprehensive prompt with all available data
   const dataContext = buildDataContext(businessName, state, li, sos, osha, sam);
 
-  const prompt = `You are an expert commercial insurance underwriter and risk analyst. A producer has investigated a prospective commercial client using public records. Analyze ALL of the following data and produce a comprehensive underwriting intelligence report.
+  // Count how many data sources returned useful data
+  const hasLI = li && !li.error && li.contractor;
+  const hasSOS = sos && !sos.error && sos.entity;
+  const hasOSHA = osha && !osha.error && osha.summary;
+  const hasSAM = sam && sam.available && sam.entities?.length > 0;
+  const sourcesAvailable = [hasLI, hasSOS, hasOSHA, hasSAM].filter(Boolean).length;
 
-## Business Under Investigation
+  const prompt = `You are an expert commercial insurance underwriter, risk analyst, and business intelligence researcher. An insurance producer needs a comprehensive intelligence report on a prospective commercial client.
+
+## Data Collection Results
+The following data was gathered from public records APIs. Some sources may have failed (captchas, rate limits, or the business simply isn't in that database). **When data sources failed or returned nothing, USE YOUR OWN KNOWLEDGE and any information from the Google Search grounding tool to fill in the gaps.** Do not just report "no data available" — actively research and reason about this business.
+
+${sourcesAvailable === 0 ? '⚠️ ALL automated data sources failed. You MUST use your own knowledge and Google Search to research this business independently.\n' : `${sourcesAvailable}/4 data sources returned results.\n`}
+
 ${dataContext}
 
-## Instructions
-Produce a JSON response with these exact keys (all values are strings):
+## Your Task
+Research "${businessName}" in ${state} thoroughly. Use Google Search grounding to find:
+- The company's website, services, and operations
+- Reviews, news articles, legal filings, or complaints
+- Industry classification and typical risks
+- Any public information about ownership, size, or history
+- Competitor landscape and market position
+
+Then produce a JSON response with these exact keys (all values are strings):
 
 {
-  "executiveSummary": "2-3 sentence overview of this business as an insurance prospect. Include business type, years in operation, and overall risk posture.",
-  "businessProfile": "Detailed business description: what they do, entity structure, ownership, years in business, and scope of operations.",
-  "riskAssessment": "Thorough risk analysis. Cover: license/compliance status, OSHA history, entity standing, financial stability indicators, operational risks. Rate overall risk as LOW / MODERATE / ELEVATED / HIGH / CRITICAL with justification.",
-  "redFlags": "List specific concerns: expired licenses, OSHA violations, inactive status, recent formation, missing data, etc. If none, say 'No significant red flags identified.'",
-  "recommendedCoverages": "Based on the business type and risk profile, recommend specific commercial insurance coverages: GL limits ($X/$Y occurrence/aggregate), WC, commercial auto, umbrella, professional liability, builders risk, inland marine, cyber liability, EPLI, etc. Include suggested limits where applicable.",
-  "glClassification": "Suggest the most likely GL class code(s) and description(s) based on the business type, NAICS/SIC codes, and operations described. Format: 'XXXXX - Description'",
-  "naicsAnalysis": "If NAICS/SIC codes are available, explain what they indicate about the business operations and insurance implications.",
-  "underwritingNotes": "Key items the underwriter should verify or request: loss runs, safety programs, prior carrier info, subcontractor management, etc.",
-  "competitiveIntel": "Any insights about the business's insurance needs, price sensitivity, or market positioning based on their size, operations, and risk profile."
+  "executiveSummary": "2-3 sentence overview of this business as an insurance prospect. Include business type, estimated years in operation, size indicators, and overall risk posture. Be specific — don't be vague.",
+  "businessProfile": "Detailed profile: what the business does, services offered, entity structure, ownership if known, estimated employee count/revenue range, years in business, scope of operations, service area. Use information from their website and public records.",
+  "riskAssessment": "Thorough risk analysis covering: license/compliance status, OSHA history, entity standing, financial stability indicators, operational risks, industry-specific hazards, litigation exposure. Rate overall risk as LOW / MODERATE / ELEVATED / HIGH / CRITICAL with clear justification.",
+  "redFlags": "List ALL specific concerns: expired/missing licenses, OSHA violations, inactive status, recent formation, negative reviews, lawsuits, high-risk operations, missing data that should exist, etc. If genuinely none, say 'No significant red flags identified.' Be thorough.",
+  "recommendedCoverages": "Specific commercial insurance recommendations with suggested limits. Include as applicable: GL ($X/$Y per-occurrence/aggregate), WC, Commercial Auto, Umbrella/Excess, Professional Liability/E&O, Builders Risk, Inland Marine, Cyber Liability, EPLI, D&O, Commercial Property, Business Income, Equipment Breakdown, Pollution Liability. Tailor to the specific business type.",
+  "glClassification": "The most likely ISO GL class code(s) with descriptions, e.g. '91302 - Janitorial Services' or '58122 - Restaurants'. If multiple operations, list each. Format: 'XXXXX - Description'.",
+  "naicsAnalysis": "Primary and secondary NAICS codes with descriptions. Explain what they indicate about operations and insurance implications. If codes were found in data, analyze them. If not, assign the most likely codes based on your research.",
+  "underwritingNotes": "Specific items the underwriter should verify: loss runs (how many years), safety programs, prior carrier info, subcontractor management (certificates, additional insured requirements), fleet size, payroll by class code, square footage, revenue breakdown, contractual obligations. Be actionable.",
+  "competitiveIntel": "Business intelligence: estimated premium range for their risk profile, likely current coverage gaps, price sensitivity indicators, growth trajectory, best approach for the producer, key selling points, what competitors might be offering."
 }
 
 Return ONLY valid JSON. No markdown, no code fences, no extra text.`;
 
   try {
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
 
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
+        tools: [{ google_search: {} }],
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 4096,
-          responseMimeType: 'application/json'
+          maxOutputTokens: 8192
         }
       })
     });
@@ -1211,7 +1229,22 @@ Return ONLY valid JSON. No markdown, no code fences, no extra text.`;
     }
 
     const geminiData = await geminiRes.json();
-    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // Extract text from all parts (grounding may return multiple parts)
+    let rawText = '';
+    const parts = geminiData.candidates?.[0]?.content?.parts || [];
+    for (const part of parts) {
+      if (part.text) rawText += part.text;
+    }
+
+    if (!rawText) {
+      console.error('[AI Analysis] Empty Gemini response:', JSON.stringify(geminiData).substring(0, 500));
+      return { success: false, error: 'AI returned empty response' };
+    }
+
+    // Extract grounding metadata if available
+    const groundingMeta = geminiData.candidates?.[0]?.groundingMetadata;
+    const searchQueries = groundingMeta?.searchEntryPoint?.renderedContent ? true : false;
 
     // Parse the JSON response (strip any markdown fences if present)
     let analysis;
@@ -1219,13 +1252,25 @@ Return ONLY valid JSON. No markdown, no code fences, no extra text.`;
       const cleaned = rawText.replace(/^```(?:json)?\n?/g, '').replace(/\n?```$/g, '').trim();
       analysis = JSON.parse(cleaned);
     } catch {
-      console.error('[AI Analysis] Failed to parse Gemini response:', rawText.substring(0, 200));
-      return { success: false, error: 'AI returned invalid response format' };
+      // If JSON parse fails, try to extract JSON from the response
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          analysis = JSON.parse(jsonMatch[0]);
+        } catch {
+          console.error('[AI Analysis] Failed to parse Gemini response:', rawText.substring(0, 500));
+          return { success: false, error: 'AI returned invalid response format' };
+        }
+      } else {
+        console.error('[AI Analysis] No JSON found in Gemini response:', rawText.substring(0, 500));
+        return { success: false, error: 'AI returned invalid response format' };
+      }
     }
 
     return {
       success: true,
       source: 'Gemini AI (Commercial Underwriting Analysis)',
+      groundedSearch: searchQueries,
       analysis
     };
 
