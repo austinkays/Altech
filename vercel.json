@@ -5,6 +5,18 @@
     },
     "api/stripe.js": {
       "maxDuration": 30
+    },
+    "api/property-intelligence.js": {
+      "maxDuration": 60
+    },
+    "api/prospect-lookup.js": {
+      "maxDuration": 60
+    },
+    "api/vision-processor.js": {
+      "maxDuration": 60
+    },
+    "api/historical-analyzer.js": {
+      "maxDuration": 60
     }
   },
   "rewrites": [

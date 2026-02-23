@@ -13,7 +13,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkPage();
     loadStoredPropertyData();
     await checkAdminStatus();
+    initTheme();
 
+    $('themeToggle').addEventListener('click', toggleTheme);
     $('pasteBtn').addEventListener('click', pasteFromClipboard);
     $('fillBtn').addEventListener('click', () => sendFill());
     $('refillBtn').addEventListener('click', () => sendFill());
@@ -61,7 +63,41 @@ function unlockAdmin() {
     $('exportSchemaBtn').addEventListener('click', exportSchema);
 }
 
-// ── Refresh UI from stored data ──
+// ── Theme Management (dark / light, persisted via chrome.storage.local) ──
+async function initTheme() {
+    try {
+        const { darkMode } = await chrome.storage.local.get('darkMode');
+        // Default to system preference if no stored preference
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const useDark = darkMode !== undefined ? darkMode === true : prefersDark;
+        applyTheme(useDark);
+    } catch (e) {
+        // Fallback to system preference
+        applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+}
+
+function applyTheme(dark) {
+    document.body.classList.toggle('dark', dark);
+    $('themeToggle').textContent = dark ? '☀️' : '🌙';
+    $('themeToggle').title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+    // Style the clipboard paste button to match theme
+    const pasteBtn = $('pasteBtn');
+    if (pasteBtn) {
+        pasteBtn.style.background = dark ? '#3a3a3c' : '#f2f2f7';
+        pasteBtn.style.color = dark ? '#0a84ff' : '#007AFF';
+    }
+}
+
+async function toggleTheme() {
+    const isDark = document.body.classList.contains('dark');
+    applyTheme(!isDark);
+    try {
+        await chrome.storage.local.set({ darkMode: !isDark });
+    } catch (e) { /* storage unavailable */ }
+}
+
+
 async function refreshUI() {
     const { clientData } = await chrome.storage.local.get('clientData');
     const nameEl = $('clientName');

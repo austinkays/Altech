@@ -67,3 +67,6 @@ test-stdout.txt
 *.bak
 .vercel
 .env*.local
+
+# Nested repo / accidental submodule
+Altech/
