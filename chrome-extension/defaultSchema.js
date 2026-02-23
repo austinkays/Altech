@@ -1,20 +1,29 @@
-// Auto-generated from EZLynx scrape data  2026-02-20
+// Auto-generated from EZLynx scrape data  2026-02-23
 // This is the built-in schema that ships with the extension.
 // To update: scrape EZLynx pages, then use the Export Schema button in popup.
 // eslint-disable-next-line no-unused-vars
 const DEFAULT_SCHEMA = {
-  "Prefix": [
-    "MR",
-    "MRS",
-    "MS",
-    "DR"
-  ],
-  "Suffix": [
-    "JR",
-    "SR",
-    "I",
-    "II",
-    "III"
+  "# of Wood Burning Stoves": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20"
   ],
   "Address State": [
     "AK",
@@ -69,27 +78,211 @@ const DEFAULT_SCHEMA = {
     "WV",
     "WY"
   ],
-  "Gender": [
-    "Female",
-    "Male",
-    "Not Specified"
+  "Address Type": [
+    "Home",
+    "Mailing",
+    "Office",
+    "Billing",
+    "Seasonal",
+    "Rental",
+    "Other",
+    "Business"
   ],
-  "Marital Status": [
-    "Single",
-    "Married",
-    "Domestic Partner",
-    "Widowed",
-    "Separated",
-    "Divorced"
+  "Age Licensed": [
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21+"
   ],
-  "DL Status": [
-    "Valid",
-    "Permit",
-    "Expired",
-    "Suspended",
-    "Cancelled",
-    "Not Licensed",
-    "Permanently Revoked"
+  "All Perils Deductible": [
+    "1/2%",
+    "1%",
+    "100",
+    "250",
+    "500",
+    "750",
+    "1000",
+    "1500",
+    "2000",
+    "2500",
+    "3000",
+    "4000",
+    "5000"
+  ],
+  "Anti-Lock Brakes": [
+    "Yes",
+    "No"
+  ],
+  "Anti-Theft": [
+    "Active",
+    "Alarm Only",
+    "Passive",
+    "Vehicle Recovery System",
+    "Both Active and Passive",
+    "VIN# Etching"
+  ],
+  "Applicant Type": [
+    "Unknown",
+    "Prospect/Lead",
+    "Active Client",
+    "Inactive Client"
+  ],
+  "Base": [
+    "Base",
+    "Named Operator Policy"
+  ],
+  "Bodily Injury": [
+    "State Minimum",
+    "25/50",
+    "50/50",
+    "50/100",
+    "100/100",
+    "100/300",
+    "250/500",
+    "300/300",
+    "500/500",
+    "1000/1000",
+    "55 CSL -or- 50/50/50",
+    "100 CSL -or- 100/100/100",
+    "300 CSL -or- 300/300/250",
+    "500 CSL -or- 500/500/500"
+  ],
+  "Burglar Alarm": [
+    "Central",
+    "Direct",
+    "Local"
+  ],
+  "Car Pool": [
+    "Yes",
+    "No"
+  ],
+  "Collision": [
+    "No Coverage",
+    "0",
+    "50",
+    "100",
+    "200",
+    "250",
+    "500",
+    "1000",
+    "2000",
+    "2500"
+  ],
+  "Combo Auto": [
+    "Combo Auto",
+    "GrandProtect Auto"
+  ],
+  "Comprehensive": [
+    "No Coverage",
+    "0",
+    "50",
+    "100",
+    "200",
+    "250",
+    "500",
+    "1000",
+    "2000",
+    "2500"
+  ],
+  "Construction Style": [
+    "Apartment",
+    "Backsplit",
+    "Bi-Level",
+    "Bi-Level/Row Center",
+    "Bi-Level/Row End",
+    "Bungalow",
+    "Cape Cod",
+    "Colonial",
+    "Condo",
+    "Coop",
+    "Contemporary",
+    "Cottage",
+    "Dwelling",
+    "Federal Colonial",
+    "Mediterranean",
+    "Ornate Victorian",
+    "Queen Anne",
+    "Raised Ranch",
+    "Rambler",
+    "Ranch",
+    "Rowhouse",
+    "Rowhouse Center",
+    "Rowhouse End",
+    "Southwest Adobe",
+    "Split Foyer",
+    "Split Level",
+    "Substandard",
+    "Townhouse",
+    "Townhouse Center",
+    "Townhouse End",
+    "Tri-Level",
+    "Tri-Level Center",
+    "Victorian"
+  ],
+  "Contact Method": [
+    "Mobile Phone",
+    "Email"
+  ],
+  "Contact Method (2)": [
+    "Mobile Phone"
+  ],
+  "Contact Time": [
+    "Morning",
+    "Afternoon",
+    "Evening",
+    "Anytime"
+  ],
+  "County": [
+    "Adams",
+    "Asotin",
+    "Benton",
+    "Chelan",
+    "Clallam",
+    "Clark",
+    "Columbia",
+    "Cowlitz",
+    "Douglas",
+    "Ferry",
+    "Franklin",
+    "Garfield",
+    "Grant",
+    "Grays Harbor",
+    "Island",
+    "Jefferson",
+    "King",
+    "Kitsap",
+    "Kittitas",
+    "Klickitat",
+    "Lewis",
+    "Lincoln",
+    "Mason",
+    "Okanogan",
+    "Pacific",
+    "Pend Oreille",
+    "Pierce",
+    "San Juan",
+    "Skagit",
+    "Skamania",
+    "Snohomish",
+    "Spokane",
+    "Stevens",
+    "Thurston",
+    "Wahkiakum",
+    "Walla Walla",
+    "Whatcom",
+    "Whitman",
+    "Yakima"
+  ],
+  "Cov A Plus": [
+    "Cov A Plus",
+    "Ext Limits",
+    "Repl Cost"
+  ],
+  "Credit Check and Other Underwriting Reports Authorized": [
+    "Yes",
+    "No"
   ],
   "DL State": [
     "AK",
@@ -147,6 +340,69 @@ const DEFAULT_SCHEMA = {
     "Mexico",
     "International"
   ],
+  "DL Status": [
+    "Valid",
+    "Permit",
+    "Expired",
+    "Suspended",
+    "Cancelled",
+    "Not Licensed",
+    "Permanently Revoked"
+  ],
+  "DL Status (2)": [
+    "Valid",
+    "Permit",
+    "Expired",
+    "Suspended",
+    "Cancelled",
+    "Permanently Revoked"
+  ],
+  "Daytime Running Lights": [
+    "Yes",
+    "No"
+  ],
+  "Deductible": [
+    "5%",
+    "10%",
+    "15%",
+    "20%",
+    "25%"
+  ],
+  "Distance To Tidal Water(miles)": [
+    "0-.5",
+    ".5-1",
+    "1-2",
+    "2-5",
+    "more than 5"
+  ],
+  "Driver Education": [
+    "Yes",
+    "No"
+  ],
+  "Dwelling Type": [
+    "One Family",
+    "Two Family",
+    "Three Family",
+    "Four Family"
+  ],
+  "Dwelling Usage": [
+    "Primary",
+    "Secondary",
+    "Seasonal",
+    "Farm",
+    "COC"
+  ],
+  "Earthquake Zone": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
   "Education": [
     "No High School Diploma",
     "High School Diploma",
@@ -158,6 +414,153 @@ const DEFAULT_SCHEMA = {
     "Phd",
     "Medical Degree",
     "Law Degree"
+  ],
+  "Electrical Update": [
+    "Not Updated",
+    "Partial Update",
+    "Complete Update"
+  ],
+  "Email Type": [
+    "Primary",
+    "Secondary"
+  ],
+  "Essential": [
+    "Essential",
+    "NewQualityPlus",
+    "Optimum"
+  ],
+  "Exterior Walls": [
+    "Adobe",
+    "Aluminum/Vinyl",
+    "Barn Plank",
+    "Brick",
+    "Brick on Block",
+    "Brick on Block, Custom",
+    "Brick Veneer",
+    "Brick Veneer, Custom",
+    "Cement Fiber Shingles",
+    "Clapboard",
+    "Concrete Decorative Block, Painted",
+    "Ext Insul and Finish Sys (EIFS)",
+    "Fire Resistant",
+    "Logs",
+    "Poured Concrete",
+    "Siding, Aluminum",
+    "Siding, Hardboard",
+    "Siding, Plywood",
+    "Siding, Steel",
+    "Siding, T-111",
+    "Siding, Vinyl",
+    "Siding, Wood",
+    "Slump Block",
+    "Solid Brick",
+    "Solid Brick, Custom",
+    "Solid Brownstone",
+    "Solid Stone",
+    "Solid Stone, Custom",
+    "Stone on Block",
+    "Stone on Block, Custom Stone",
+    "Stone Veneer",
+    "Stone Veneer, Custom",
+    "Stucco",
+    "Stucco on Block",
+    "Stucco on Frame",
+    "Victorian Scalloped Shakes",
+    "Window Wall",
+    "Wood Shakes"
+  ],
+  "FR-44 Required": [
+    "Yes",
+    "No"
+  ],
+  "Feet From Hydrant": [
+    "1-500",
+    "501-600",
+    "601-1000",
+    "1001-1100",
+    "1101-1200",
+    "1201-1300",
+    "1301-1400",
+    "1401-1500",
+    "1501 and Greater",
+    "None in Area"
+  ],
+  "Fire Detection": [
+    "Central",
+    "Direct",
+    "Local"
+  ],
+  "Foundation Type": [
+    "Basement - Finished",
+    "Basement - Partially Finished",
+    "Basement - Unfinished",
+    "Basement - Walkout",
+    "Crawl Space - Enclosed",
+    "Crawl Space - Open",
+    "Daylight Basement - Finished",
+    "Daylight Basement - Partially Finished",
+    "Daylight Basement - Unfinished",
+    "Hillside Foundation",
+    "Other",
+    "Piers",
+    "Pilings/stilts",
+    "Slab"
+  ],
+  "Gender": [
+    "Female",
+    "Male",
+    "Not Specified"
+  ],
+  "Gender (2)": [
+    "Male",
+    "Female",
+    "Not Specified"
+  ],
+  "Good Driver": [
+    "Yes",
+    "No"
+  ],
+  "Heating Type": [
+    "Electric",
+    "Gas",
+    "Gas - Forced Air",
+    "Gas - Hot Water",
+    "Oil",
+    "Oil - Forced Air",
+    "Oil - Hot Water",
+    "Other",
+    "Other - Forced Air",
+    "Other - Hot Water",
+    "Solid Fuel"
+  ],
+  "Heating Update": [
+    "Not Updated",
+    "Partial Update",
+    "Complete Update"
+  ],
+  "Increased Coverage on Credit Card": [
+    "1,000",
+    "2,500",
+    "5,000",
+    "7,500",
+    "10,000"
+  ],
+  "Increased Limit on Jewelry,Watches and Furs": [
+    "2500",
+    "3000",
+    "4000",
+    "5000"
+  ],
+  "Increased Mold Property Damage": [
+    "25000",
+    "50000",
+    "75000",
+    "100000"
+  ],
+  "Increased Replacement Cost Dwelling Percentage": [
+    "125",
+    "150",
+    "200"
   ],
   "Industry": [
     "Homemaker/House person",
@@ -184,12 +587,6 @@ const DEFAULT_SCHEMA = {
     "Sports/Recreation",
     "Travel/Transportation/Warehousing",
     "Other"
-  ],
-  "Applicant Type": [
-    "Unknown",
-    "Prospect/Lead",
-    "Active Client",
-    "Inactive Client"
   ],
   "Lead source": [
     "Ad - Mailing Campaign",
@@ -241,6 +638,307 @@ const DEFAULT_SCHEMA = {
     "Yahoo",
     "Zapier"
   ],
+  "License Sus/Rev (Last 5 years)": [
+    "Yes",
+    "No"
+  ],
+  "Loss Assessment": [
+    "5000",
+    "10000",
+    "25000",
+    "50000",
+    "75000",
+    "100000"
+  ],
+  "Marital Status": [
+    "Single",
+    "Married",
+    "Domestic Partner",
+    "Widowed",
+    "Separated",
+    "Divorced"
+  ],
+  "Mature Driver": [
+    "Yes",
+    "No"
+  ],
+  "Medical Payments": [
+    "1000",
+    "2000",
+    "3000",
+    "4000",
+    "5000"
+  ],
+  "Medical Payments (2)": [
+    "500",
+    "1000",
+    "2000",
+    "2500",
+    "5000",
+    "10000",
+    "15000",
+    "25000",
+    "50000",
+    "100000"
+  ],
+  "Mobile_PhoneType-type": [
+    "Home",
+    "Work",
+    "Fax",
+    "Mobile"
+  ],
+  "Months": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11"
+  ],
+  "Months At Address": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11"
+  ],
+  "Mortgage Billed": [
+    "Mortgage Billed",
+    "Insured Full Pay",
+    "Insured Pay Plan"
+  ],
+  "NO": [
+    "NO",
+    "YES"
+  ],
+  "New": [
+    "New",
+    "Renewal",
+    "Assigned",
+    "Quoted/Active",
+    "Price not competitive",
+    "Pending Sale",
+    "Proposed",
+    "Campaign Email",
+    "Campaign Phone",
+    "Refused",
+    "Responded",
+    "Sold",
+    "Future Prospect",
+    "Bad Lead",
+    "Ineligible",
+    "Dead Lead",
+    "Duplicate"
+  ],
+  "New Policy Term": [
+    "6 Month",
+    "12 Month"
+  ],
+  "No": [
+    "No",
+    "Yes"
+  ],
+  "No Coverage": [
+    "No Coverage",
+    "10000",
+    "25000",
+    "50000"
+  ],
+  "None": [
+    "1",
+    "2",
+    "3"
+  ],
+  "None (2)": [
+    "Class 1",
+    "Class 2",
+    "Class 3",
+    "Class 4"
+  ],
+  "None (2) (2)": [
+    "$25,000",
+    "$50,000",
+    "$100,000"
+  ],
+  "None (3)": [
+    "HomeShield Package",
+    "HomeShield Plus Package",
+    "Platinum Package"
+  ],
+  "None (4)": [
+    "Insured/Spouse",
+    "Extended Family"
+  ],
+  "Number Of Full Baths": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10+"
+  ],
+  "Number Of Half Baths": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5+"
+  ],
+  "Number of Occupants": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9 or more"
+  ],
+  "Number of Stories": [
+    "1",
+    "1.5",
+    "2",
+    "2.5",
+    "3",
+    "3.5",
+    "4",
+    "Bi-Level",
+    "Tri-Level"
+  ],
+  "Occupancy Type": [
+    "Owner Occupied",
+    "Renter Occupied",
+    "Unoccupied",
+    "Vacant"
+  ],
+  "Occupation": [
+    "Retired"
+  ],
+  "Occupation Industry": [
+    "Homemaker/House person",
+    "Retired",
+    "Disabled",
+    "Unemployed",
+    "Student",
+    "Agriculture/Forestry/Fishing",
+    "Art/Design/Media",
+    "Banking/Finance/Real Estate",
+    "Business/Sales/Office",
+    "Construction/Energy Trades",
+    "Education/Library",
+    "Engineer/Architect/Science/Math",
+    "Government/Military",
+    "Information Technology",
+    "Insurance",
+    "Legal/Law Enforcement/Security",
+    "Maintenance/Repair/Housekeeping",
+    "Manufacturing/Production",
+    "Medical/Social Services/Religion",
+    "Personal Care/Service",
+    "Restaurant/Hotel Services",
+    "Sports/Recreation",
+    "Travel/Transportation/Warehousing",
+    "Other"
+  ],
+  "Occupation Title": [
+    "Accountant/Auditor",
+    "Actuarial Clerk",
+    "Actuary",
+    "Administrative Assistant",
+    "Agent/Broker",
+    "Analyst",
+    "Attorney",
+    "Claims Adjuster",
+    "Clerk",
+    "Commissioner",
+    "Customer Service Representative",
+    "Director/Administrator",
+    "Executive",
+    "Other",
+    "Product Manager",
+    "Receptionist/Secretary",
+    "Sales Representative",
+    "Underwriter"
+  ],
+  "Ordinance or Law": [
+    "10",
+    "25",
+    "50",
+    "75",
+    "100"
+  ],
+  "Ownership Type": [
+    "Owned",
+    "Leased",
+    "Lien"
+  ],
+  "Package": [
+    "Yes",
+    "No"
+  ],
+  "Passive Restraints": [
+    "Automatic Seatbelts",
+    "Airbag (Drvr Side)",
+    "Auto Stbelts/Drvr Airbag",
+    "Airbag Both Sides",
+    "Auto Stbelts/Airbag Both"
+  ],
+  "Performance": [
+    "Standard",
+    "Sports",
+    "Intermediate",
+    "High Performance"
+  ],
+  "Personal Liability": [
+    "25000",
+    "50000",
+    "100000",
+    "200000",
+    "300000",
+    "400000",
+    "500000",
+    "1000000"
+  ],
+  "Phone Type": [
+    "Home",
+    "Work",
+    "Fax",
+    "Mobile"
+  ],
+  "Plumbing Update": [
+    "Not Updated",
+    "Partial Update",
+    "Complete Update"
+  ],
+  "Policy Type": [
+    "Standard",
+    "NonOwners",
+    "BroadForm"
+  ],
+  "Policy/Form Type": [
+    "HO3 - Dwelling",
+    "HO4 - Renters",
+    "HO5",
+    "HO6 - Condo"
+  ],
   "Preferred Language": [
     "Amharic",
     "Arabic",
@@ -290,175 +988,11 @@ const DEFAULT_SCHEMA = {
     "Vietnamese",
     "Yoruba"
   ],
-  "Address Type": [
-    "Home",
-    "Mailing",
-    "Office",
-    "Billing",
-    "Seasonal",
-    "Rental",
-    "Other",
-    "Business"
-  ],
-  "State": [
-    "AK",
-    "AL",
-    "AR",
-    "AZ",
-    "CA",
-    "CO",
-    "CT",
-    "DC",
-    "DE",
-    "FL",
-    "GA",
-    "HI",
-    "IA",
-    "ID",
-    "IL",
-    "IN",
-    "KS",
-    "KY",
-    "LA",
-    "MA",
-    "MD",
-    "ME",
-    "MI",
-    "MN",
-    "MO",
+  "Prefix": [
+    "MR",
+    "MRS",
     "MS",
-    "MT",
-    "NC",
-    "ND",
-    "NE",
-    "NH",
-    "NJ",
-    "NM",
-    "NV",
-    "NY",
-    "OH",
-    "OK",
-    "OR",
-    "PA",
-    "RI",
-    "SC",
-    "SD",
-    "TN",
-    "TX",
-    "UT",
-    "VA",
-    "VT",
-    "WA",
-    "WI",
-    "WV",
-    "WY"
-  ],
-  "Years At Address": [
-    "0",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "11",
-    "12",
-    "13",
-    "14",
-    "15"
-  ],
-  "Months At Address": [
-    "0",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "11"
-  ],
-  "Phone Type": [
-    "Home",
-    "Work",
-    "Fax",
-    "Mobile"
-  ],
-  "Email Type": [
-    "Primary",
-    "Secondary"
-  ],
-  "Contact Method": [
-    "Mobile Phone",
-    "Email"
-  ],
-  "Occupation": [
-    "Accountant/Auditor",
-    "Actuarial Clerk",
-    "Actuary",
-    "Administrative Assistant",
-    "Agent/Broker",
-    "Analyst",
-    "Attorney",
-    "Claims Adjuster",
-    "Clerk",
-    "Commissioner",
-    "Customer Service Representative",
-    "Director/Administrator",
-    "Executive",
-    "Other",
-    "Product Manager",
-    "Receptionist/Secretary",
-    "Sales Representative",
-    "Underwriter"
-  ],
-  "County": [
-    "Adams",
-    "Asotin",
-    "Benton",
-    "Chelan",
-    "Clallam",
-    "Clark",
-    "Columbia",
-    "Cowlitz",
-    "Douglas",
-    "Ferry",
-    "Franklin",
-    "Garfield",
-    "Grant",
-    "Grays Harbor",
-    "Island",
-    "Jefferson",
-    "King",
-    "Kitsap",
-    "Kittitas",
-    "Klickitat",
-    "Lewis",
-    "Lincoln",
-    "Mason",
-    "Okanogan",
-    "Pacific",
-    "Pend Oreille",
-    "Pierce",
-    "San Juan",
-    "Skagit",
-    "Skamania",
-    "Snohomish",
-    "Spokane",
-    "Stevens",
-    "Thurston",
-    "Wahkiakum",
-    "Walla Walla",
-    "Whatcom",
-    "Whitman",
-    "Yakima"
+    "DR"
   ],
   "Prior Carrier": [
     "Other Standard",
@@ -760,208 +1294,6 @@ const DEFAULT_SCHEMA = {
     "Worth Casualty Insurance Company",
     "Zurich"
   ],
-  "Prior Liability Limits": [
-    "State Minimum",
-    "25/50",
-    "50/50",
-    "50/100",
-    "100/100",
-    "100/300",
-    "250/500",
-    "300/300",
-    "500/500",
-    "1000/1000",
-    "55CSL",
-    "100CSL",
-    "300CSL",
-    "500CSL"
-  ],
-  "Prior Policy Term": [
-    "6 Month",
-    "12 Month"
-  ],
-  "Years with Prior Carrier": [
-    "0",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "11",
-    "12",
-    "13",
-    "14",
-    "15",
-    "More than 15"
-  ],
-  "Months": [
-    "0",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "11"
-  ],
-  "Years with Continuous Coverage": [
-    "0",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "11",
-    "12",
-    "13",
-    "14",
-    "15",
-    "More than 15"
-  ],
-  "Credit Check and Other Underwriting Reports Authorized": [
-    "Yes",
-    "No"
-  ],
-  "New Policy Term": [
-    "6 Month",
-    "12 Month"
-  ],
-  "Package": [
-    "Yes",
-    "No"
-  ],
-  "Yes": [
-    "Yes",
-    "No"
-  ],
-  "Base": [
-    "Base",
-    "Named Operator Policy"
-  ],
-  "Gender (2)": [
-    "Male",
-    "Female",
-    "Not Specified"
-  ],
-  "Occupation Industry": [
-    "Homemaker/House person",
-    "Retired",
-    "Disabled",
-    "Unemployed",
-    "Student",
-    "Agriculture/Forestry/Fishing",
-    "Art/Design/Media",
-    "Banking/Finance/Real Estate",
-    "Business/Sales/Office",
-    "Construction/Energy Trades",
-    "Education/Library",
-    "Engineer/Architect/Science/Math",
-    "Government/Military",
-    "Information Technology",
-    "Insurance",
-    "Legal/Law Enforcement/Security",
-    "Maintenance/Repair/Housekeeping",
-    "Manufacturing/Production",
-    "Medical/Social Services/Religion",
-    "Personal Care/Service",
-    "Restaurant/Hotel Services",
-    "Sports/Recreation",
-    "Travel/Transportation/Warehousing",
-    "Other"
-  ],
-  "Occupation Title": [
-    "Accountant/Auditor",
-    "Actuarial Clerk",
-    "Actuary",
-    "Administrative Assistant",
-    "Agent/Broker",
-    "Analyst",
-    "Attorney",
-    "Claims Adjuster",
-    "Clerk",
-    "Commissioner",
-    "Customer Service Representative",
-    "Director/Administrator",
-    "Executive",
-    "Other",
-    "Product Manager",
-    "Receptionist/Secretary",
-    "Sales Representative",
-    "Underwriter"
-  ],
-  "DL Status (2)": [
-    "Valid",
-    "Permit",
-    "Expired",
-    "Suspended",
-    "Cancelled",
-    "Permanently Revoked"
-  ],
-  "Age Licensed": [
-    "16",
-    "17",
-    "18",
-    "19",
-    "20",
-    "21+"
-  ],
-  "License Sus/Rev (Last 5 years)": [
-    "Yes",
-    "No"
-  ],
-  "SR-22 Required": [
-    "Yes",
-    "No"
-  ],
-  "FR-44 Required": [
-    "Yes",
-    "No"
-  ],
-  "Driver Education": [
-    "Yes",
-    "No"
-  ],
-  "Mature Driver": [
-    "Yes",
-    "No"
-  ],
-  "Good Driver": [
-    "Yes",
-    "No"
-  ],
-  "Policy Type": [
-    "Standard",
-    "NonOwners",
-    "BroadForm"
-  ],
-  "questionModel": [
-    "No",
-    "Yes"
-  ],
-  "No": [
-    "No",
-    "Yes"
-  ],
-  "Policy/Form Type": [
-    "HO3 - Dwelling",
-    "HO4 - Renters",
-    "HO5",
-    "HO6 - Condo"
-  ],
   "Prior Carrier (2)": [
     "Other Standard",
     "Other Non-Standard",
@@ -1228,52 +1560,37 @@ const DEFAULT_SCHEMA = {
     "Wisconsin Mutual Insurance Company",
     "Zurich"
   ],
-  "Quote as Package": [
-    "Yes",
-    "No"
+  "Prior Liability Limits": [
+    "State Minimum",
+    "25/50",
+    "50/50",
+    "50/100",
+    "100/100",
+    "100/300",
+    "250/500",
+    "300/300",
+    "500/500",
+    "1000/1000",
+    "55CSL",
+    "100CSL",
+    "300CSL",
+    "500CSL"
   ],
-  "None": [
-    "1",
-    "2",
-    "3"
+  "Prior Policy Term": [
+    "6 Month",
+    "12 Month"
   ],
-  "questionModel (2)": [
-    "Greater than $300,000",
-    "$300,000",
-    "Less than $300,000",
-    "First Time Home Buyer",
-    "Lapse in Coverage (30 days or less)",
-    "No Prior or Lapse Greater Than 30 Days"
+  "Property Damage": [
+    "State Minimum",
+    "10000",
+    "15000",
+    "25000",
+    "50000",
+    "100000",
+    "250000",
+    "500000"
   ],
-  "Mortgage Billed": [
-    "Mortgage Billed",
-    "Insured Full Pay",
-    "Insured Pay Plan"
-  ],
-  "questionModel (2) (2)": [
-    "No",
-    "Yes"
-  ],
-  "Dwelling Usage": [
-    "Primary",
-    "Secondary",
-    "Seasonal",
-    "Farm",
-    "COC"
-  ],
-  "Occupancy Type": [
-    "Owner Occupied",
-    "Renter Occupied",
-    "Unoccupied",
-    "Vacant"
-  ],
-  "Dwelling Type": [
-    "One Family",
-    "Two Family",
-    "Three Family",
-    "Four Family"
-  ],
-  "Number of Occupants": [
+  "Protection class": [
     "1",
     "2",
     "3",
@@ -1282,53 +1599,66 @@ const DEFAULT_SCHEMA = {
     "6",
     "7",
     "8",
-    "9 or more"
+    "9",
+    "10"
   ],
-  "Number of Stories": [
-    "1",
-    "1.5",
-    "2",
-    "2.5",
-    "3",
-    "3.5",
-    "4",
-    "Bi-Level",
-    "Tri-Level"
+  "Quote as Package": [
+    "Yes",
+    "No"
   ],
-  "Construction Style": [
+  "Reject": [
+    "Reject",
+    "$100",
+    "$200",
+    "$300",
+    "$400",
+    "$500",
+    "$600",
+    "$700",
+    "$800",
+    "$900",
+    "$1000",
+    "$1100",
+    "$1200",
+    "$1300",
+    "$1400",
+    "$1500",
+    "$1600",
+    "$1700",
+    "$1800",
+    "$1900",
+    "$2000",
+    "$2100",
+    "$2200",
+    "$2300",
+    "$2400",
+    "$2500",
+    "$2600",
+    "$2700",
+    "$2800",
+    "$2900",
+    "$3000"
+  ],
+  "Residence is": [
+    "Home (owned)",
+    "Condo (owned)",
     "Apartment",
-    "Backsplit",
-    "Bi-Level",
-    "Bi-Level/Row Center",
-    "Bi-Level/Row End",
-    "Bungalow",
-    "Cape Cod",
-    "Colonial",
-    "Condo",
-    "Coop",
-    "Contemporary",
-    "Cottage",
-    "Dwelling",
-    "Federal Colonial",
-    "Mediterranean",
-    "Ornate Victorian",
-    "Queen Anne",
-    "Raised Ranch",
-    "Rambler",
-    "Ranch",
-    "Rowhouse",
-    "Rowhouse Center",
-    "Rowhouse End",
-    "Southwest Adobe",
-    "Split Foyer",
-    "Split Level",
-    "Substandard",
-    "Townhouse",
-    "Townhouse Center",
-    "Townhouse End",
-    "Tri-Level",
-    "Tri-Level Center",
-    "Victorian"
+    "Rental Home/Condo",
+    "Mobile Home",
+    "Live With Parents",
+    "Other"
+  ],
+  "Roof Design": [
+    "Dormer",
+    "Flat",
+    "Gable",
+    "Gambrel",
+    "Hip",
+    "Mansard",
+    "Other",
+    "Pyramid",
+    "Shed",
+    "Turret"
   ],
   "Roof Type (main material)": [
     "Architectural Shingles",
@@ -1367,127 +1697,14 @@ const DEFAULT_SCHEMA = {
     "Wood Shake",
     "Wood Shingles"
   ],
-  "Foundation Type": [
-    "Basement - Finished",
-    "Basement - Partially Finished",
-    "Basement - Unfinished",
-    "Basement - Walkout",
-    "Crawl Space - Enclosed",
-    "Crawl Space - Open",
-    "Daylight Basement - Finished",
-    "Daylight Basement - Partially Finished",
-    "Daylight Basement - Unfinished",
-    "Hillside Foundation",
-    "Other",
-    "Piers",
-    "Pilings/stilts",
-    "Slab"
+  "Roofing Update": [
+    "Not Updated",
+    "Partial Update",
+    "Complete Update"
   ],
-  "Roof Design": [
-    "Dormer",
-    "Flat",
-    "Gable",
-    "Gambrel",
-    "Hip",
-    "Mansard",
-    "Other",
-    "Pyramid",
-    "Shed",
-    "Turret"
-  ],
-  "Exterior Walls": [
-    "Adobe",
-    "Aluminum/Vinyl",
-    "Barn Plank",
-    "Brick",
-    "Brick on Block",
-    "Brick on Block, Custom",
-    "Brick Veneer",
-    "Brick Veneer, Custom",
-    "Cement Fiber Shingles",
-    "Clapboard",
-    "Concrete Decorative Block, Painted",
-    "Ext Insul and Finish Sys (EIFS)",
-    "Fire Resistant",
-    "Logs",
-    "Poured Concrete",
-    "Siding, Aluminum",
-    "Siding, Hardboard",
-    "Siding, Plywood",
-    "Siding, Steel",
-    "Siding, T-111",
-    "Siding, Vinyl",
-    "Siding, Wood",
-    "Slump Block",
-    "Solid Brick",
-    "Solid Brick, Custom",
-    "Solid Brownstone",
-    "Solid Stone",
-    "Solid Stone, Custom",
-    "Stone on Block",
-    "Stone on Block, Custom Stone",
-    "Stone Veneer",
-    "Stone Veneer, Custom",
-    "Stucco",
-    "Stucco on Block",
-    "Stucco on Frame",
-    "Victorian Scalloped Shakes",
-    "Window Wall",
-    "Wood Shakes"
-  ],
-  "Number Of Full Baths": [
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10+"
-  ],
-  "Number Of Half Baths": [
-    "1",
-    "2",
-    "3",
-    "4",
-    "5+"
-  ],
-  "# of Wood Burning Stoves": [
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "11",
-    "12",
-    "13",
-    "14",
-    "15",
-    "16",
-    "17",
-    "18",
-    "19",
-    "20"
-  ],
-  "Heating Type": [
-    "Electric",
-    "Gas",
-    "Gas - Forced Air",
-    "Gas - Hot Water",
-    "Oil",
-    "Oil - Forced Air",
-    "Oil - Hot Water",
-    "Other",
-    "Other - Forced Air",
-    "Other - Hot Water",
-    "Solid Fuel"
+  "SR-22 Required": [
+    "Yes",
+    "No"
   ],
   "Secondary Heating Source Type": [
     "Coal Non-Professionally Installed",
@@ -1506,12 +1723,7 @@ const DEFAULT_SCHEMA = {
     "Wood Non-Professionally Installed",
     "Wood Professionally Installed"
   ],
-  "Burglar Alarm": [
-    "Central",
-    "Direct",
-    "Local"
-  ],
-  "Fire Detection": [
+  "Smoke Detector": [
     "Central",
     "Direct",
     "Local"
@@ -1520,168 +1732,97 @@ const DEFAULT_SCHEMA = {
     "Partial",
     "Full"
   ],
-  "Smoke Detector": [
-    "Central",
-    "Direct",
-    "Local"
+  "State": [
+    "AK",
+    "AL",
+    "AR",
+    "AZ",
+    "CA",
+    "CO",
+    "CT",
+    "DC",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "IA",
+    "ID",
+    "IL",
+    "IN",
+    "KS",
+    "KY",
+    "LA",
+    "MA",
+    "MD",
+    "ME",
+    "MI",
+    "MN",
+    "MO",
+    "MS",
+    "MT",
+    "NC",
+    "ND",
+    "NE",
+    "NH",
+    "NJ",
+    "NM",
+    "NV",
+    "NY",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VA",
+    "VT",
+    "WA",
+    "WI",
+    "WV",
+    "WY"
   ],
-  "Feet From Hydrant": [
-    "1-500",
-    "501-600",
-    "601-1000",
-    "1001-1100",
-    "1101-1200",
-    "1201-1300",
-    "1301-1400",
-    "1401-1500",
-    "1501 and Greater",
-    "None in Area"
+  "Suffix": [
+    "JR",
+    "SR",
+    "I",
+    "II",
+    "III"
   ],
-  "Distance To Tidal Water(miles)": [
-    "0-.5",
-    ".5-1",
-    "1-2",
-    "2-5",
-    "more than 5"
-  ],
-  "Protection class": [
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10"
-  ],
-  "Heating Update": [
-    "Not Updated",
-    "Partial Update",
-    "Complete Update"
-  ],
-  "Electrical Update": [
-    "Not Updated",
-    "Partial Update",
-    "Complete Update"
-  ],
-  "Plumbing Update": [
-    "Not Updated",
-    "Partial Update",
-    "Complete Update"
-  ],
-  "Roofing Update": [
-    "Not Updated",
-    "Partial Update",
-    "Complete Update"
-  ],
-  "questionModel (3)": [
-    "Progressive Auto 250/500",
-    "Progressive Auto 100/300",
-    "Progressive Auto 50/100",
-    "Progressive Auto Less than 50/100",
-    "Flood"
-  ],
-  "None (2)": [
-    "Class 1",
-    "Class 2",
-    "Class 3",
-    "Class 4"
-  ],
-  "NO": [
-    "NO",
-    "YES"
-  ],
-  "Personal Liability": [
-    "25000",
-    "50000",
-    "100000",
-    "200000",
-    "300000",
-    "400000",
-    "500000",
-    "1000000"
-  ],
-  "Medical Payments": [
-    "1000",
-    "2000",
-    "3000",
-    "4000",
-    "5000"
-  ],
-  "All Perils Deductible": [
-    "1/2%",
-    "1%",
-    "100",
-    "250",
-    "500",
-    "750",
-    "1000",
-    "1500",
-    "2000",
-    "2500",
-    "3000",
-    "4000",
-    "5000"
+  "Telematics": [
+    "Yes",
+    "No"
   ],
   "Theft Deductible": [
     "500",
     "1500"
   ],
-  "Wind Deductible": [
-    "100",
-    "250",
-    "500",
-    "1000",
-    "1500",
-    "2000",
-    "2500",
-    "5000",
+  "Transportation Network Company": [
+    "Yes",
+    "No"
+  ],
+  "Uninsured Motorist Property Damage": [
+    "No Coverage",
+    "State Minimum",
     "10000",
-    "1%",
-    "2%",
-    "3%",
-    "4%",
-    "5%"
-  ],
-  "Cov A Plus": [
-    "Cov A Plus",
-    "Ext Limits",
-    "Repl Cost"
-  ],
-  "Increased Replacement Cost Dwelling Percentage": [
-    "125",
-    "150",
-    "200"
-  ],
-  "Loss Assessment": [
-    "5000",
-    "10000",
+    "15000",
     "25000",
     "50000",
-    "75000",
     "100000"
   ],
-  "Ordinance or Law": [
-    "10",
-    "25",
-    "50",
-    "75",
-    "100"
+  "Vehicle Use": [
+    "Business",
+    "Farming",
+    "Pleasure",
+    "To/From Work",
+    "To/From School"
   ],
-  "Increased Coverage on Credit Card": [
-    "1,000",
-    "2,500",
-    "5,000",
-    "7,500",
-    "10,000"
-  ],
-  "Increased Limit on Jewelry,Watches and Furs": [
-    "2500",
-    "3000",
-    "4000",
-    "5000"
+  "Was the car new?": [
+    "Yes",
+    "No"
   ],
   "Water Backup": [
     "1000",
@@ -1699,72 +1840,21 @@ const DEFAULT_SCHEMA = {
     "25000",
     "50000"
   ],
-  "Increased Mold Property Damage": [
-    "25000",
-    "50000",
-    "75000",
-    "100000"
-  ],
-  "Earthquake Zone": [
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9"
-  ],
-  "Deductible": [
-    "5%",
-    "10%",
-    "15%",
-    "20%",
-    "25%"
-  ],
-  "None (3)": [
-    "HomeShield Package",
-    "HomeShield Plus Package",
-    "Platinum Package"
-  ],
-  "Essential": [
-    "Essential",
-    "NewQualityPlus",
-    "Optimum"
-  ],
-  "None (2) (2)": [
-    "$25,000",
-    "$50,000",
-    "$100,000"
-  ],
-  "New": [
-    "New",
-    "Renewal",
-    "Assigned",
-    "Quoted/Active",
-    "Price not competitive",
-    "Pending Sale",
-    "Proposed",
-    "Campaign Email",
-    "Campaign Phone",
-    "Refused",
-    "Responded",
-    "Sold",
-    "Future Prospect",
-    "Bad Lead",
-    "Ineligible",
-    "Dead Lead",
-    "Duplicate"
-  ],
-  "Contact Method (2)": [
-    "Mobile Phone"
-  ],
-  "Contact Time": [
-    "Morning",
-    "Afternoon",
-    "Evening",
-    "Anytime"
+  "Wind Deductible": [
+    "100",
+    "250",
+    "500",
+    "1000",
+    "1500",
+    "2000",
+    "2500",
+    "5000",
+    "10000",
+    "1%",
+    "2%",
+    "3%",
+    "4%",
+    "5%"
   ],
   "Year": [
     "2026",
@@ -1829,188 +1919,1141 @@ const DEFAULT_SCHEMA = {
     "1967",
     "1966"
   ],
-  "Passive Restraints": [
-    "Automatic Seatbelts",
-    "Airbag (Drvr Side)",
-    "Auto Stbelts/Drvr Airbag",
-    "Airbag Both Sides",
-    "Auto Stbelts/Airbag Both"
+  "Years At Address": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15"
   ],
-  "Anti-Lock Brakes": [
+  "Years with Continuous Coverage": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "More than 15"
+  ],
+  "Years with Prior Carrier": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "More than 15"
+  ],
+  "Yes": [
     "Yes",
     "No"
   ],
-  "Daytime Running Lights": [
-    "Yes",
-    "No"
+  "applicant-drivers-license-state": [
+    "AK",
+    "AL",
+    "AR",
+    "AZ",
+    "CA",
+    "CO",
+    "CT",
+    "DC",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "IA",
+    "ID",
+    "IL",
+    "IN",
+    "KS",
+    "KY",
+    "LA",
+    "MA",
+    "MD",
+    "ME",
+    "MI",
+    "MN",
+    "MO",
+    "MS",
+    "MT",
+    "NC",
+    "ND",
+    "NE",
+    "NH",
+    "NJ",
+    "NM",
+    "NV",
+    "NY",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VA",
+    "VT",
+    "WA",
+    "WI",
+    "WV",
+    "WY",
+    "Canada",
+    "Mexico",
+    "International"
   ],
-  "Anti-Theft": [
-    "Active",
-    "Alarm Only",
-    "Passive",
-    "Vehicle Recovery System",
-    "Both Active and Passive",
-    "VIN# Etching"
+  "applicant-drivers-license-status": [
+    "Valid",
+    "Permit",
+    "Expired",
+    "Suspended",
+    "Cancelled",
+    "Not Licensed",
+    "Permanently Revoked"
   ],
-  "Vehicle Use": [
-    "Business",
-    "Farming",
-    "Pleasure",
-    "To/From Work",
-    "To/From School"
+  "applicant-education": [
+    "No High School Diploma",
+    "High School Diploma",
+    "Some College - No Degree",
+    "Vocational/Technical Degree",
+    "Associates Degree",
+    "Bachelors",
+    "Masters",
+    "Phd",
+    "Medical Degree",
+    "Law Degree"
   ],
-  "Performance": [
-    "Standard",
-    "Sports",
-    "Intermediate",
-    "High Performance"
+  "applicant-email-0-type": [
+    "Primary",
+    "Secondary"
   ],
-  "Was the car new?": [
-    "Yes",
-    "No"
+  "applicant-gender": [
+    "Female",
+    "Male",
+    "Not Specified"
   ],
-  "Ownership Type": [
-    "Owned",
-    "Leased",
-    "Lien"
-  ],
-  "Car Pool": [
-    "Yes",
-    "No"
-  ],
-  "Telematics": [
-    "Yes",
-    "No"
-  ],
-  "Transportation Network Company": [
-    "Yes",
-    "No"
-  ],
-  "Bodily Injury": [
-    "State Minimum",
-    "25/50",
-    "50/50",
-    "50/100",
-    "100/100",
-    "100/300",
-    "250/500",
-    "300/300",
-    "500/500",
-    "1000/1000",
-    "55 CSL -or- 50/50/50",
-    "100 CSL -or- 100/100/100",
-    "300 CSL -or- 300/300/250",
-    "500 CSL -or- 500/500/500"
-  ],
-  "Property Damage": [
-    "State Minimum",
-    "10000",
-    "15000",
-    "25000",
-    "50000",
-    "100000",
-    "250000",
-    "500000"
-  ],
-  "Medical Payments (2)": [
-    "500",
-    "1000",
-    "2000",
-    "2500",
-    "5000",
-    "10000",
-    "15000",
-    "25000",
-    "50000",
-    "100000"
-  ],
-  "Uninsured Motorist Property Damage": [
-    "No Coverage",
-    "State Minimum",
-    "10000",
-    "15000",
-    "25000",
-    "50000",
-    "100000"
-  ],
-  "Residence is": [
-    "Home (owned)",
-    "Condo (owned)",
-    "Apartment",
-    "Rental Home/Condo",
-    "Mobile Home",
-    "Live With Parents",
+  "applicant-industry": [
+    "Homemaker/House person",
+    "Retired",
+    "Disabled",
+    "Unemployed",
+    "Student",
+    "Agriculture/Forestry/Fishing",
+    "Art/Design/Media",
+    "Banking/Finance/Real Estate",
+    "Business/Sales/Office",
+    "Construction/Energy Trades",
+    "Education/Library",
+    "Engineer/Architect/Science/Math",
+    "Government/Military",
+    "Information Technology",
+    "Insurance",
+    "Legal/Law Enforcement/Security",
+    "Maintenance/Repair/Housekeeping",
+    "Manufacturing/Production",
+    "Medical/Social Services/Religion",
+    "Personal Care/Service",
+    "Restaurant/Hotel Services",
+    "Sports/Recreation",
+    "Travel/Transportation/Warehousing",
     "Other"
   ],
-  "Comprehensive": [
-    "No Coverage",
+  "applicant-lead-channel": [
+    "Ad - Mailing Campaign",
+    "Ad - Other",
+    "Ad - Print",
+    "Ad - Television",
+    "Agency Mgmt System",
+    "Agency Website",
+    "AgentInsure",
+    "AgentInsure Call Me",
+    "Bank Rate",
+    "Bing",
+    "CAP Web Services",
+    "Client Center",
+    "Conversion",
+    "Email",
+    "EverQuote,Inc.",
+    "EZLynx Consumer Lead Portal",
+    "EZLynx Consumer Quoting",
+    "EZLynx Consumer Quoting Live",
+    "EZUpload",
+    "Facebook Consumer Quoting App",
+    "Friends/Family",
+    "Google",
+    "Insurance Quote Exchange",
+    "Lead Generator",
+    "Lead Generator - Insuranceagents.com",
+    "Lead Generator - InsuranceLeads",
+    "Lead Generator - InsureMe",
+    "Lead Generator - Insweb",
+    "Lead Generator - NetQuote",
+    "Lead Generator - QuoteWizard",
+    "Lead Generator - ZipSearch",
+    "Other",
+    "Other Search Engine",
+    "Phone",
+    "Public Relations",
+    "Referral - Agent",
+    "Referral - Client",
+    "Referral - Client Center",
+    "Referral - Employee",
+    "Referral - External",
+    "Referral - Other",
+    "Referral - Partner",
+    "Sales Center X-Date",
+    "Underground Elephant",
+    "Web",
+    "Word of Mouth",
+    "Yahoo",
+    "Zapier"
+  ],
+  "applicant-marital-status": [
+    "Single",
+    "Married",
+    "Domestic Partner",
+    "Widowed",
+    "Separated",
+    "Divorced"
+  ],
+  "applicant-name-suffix": [
+    "JR",
+    "SR",
+    "I",
+    "II",
+    "III"
+  ],
+  "applicant-preferred-contact-method": [
+    "Mobile Phone",
+    "Email"
+  ],
+  "applicant-preferred-contact-time": [
+    "Morning",
+    "Afternoon",
+    "Evening",
+    "Anytime"
+  ],
+  "applicant-prefix": [
+    "MR",
+    "MRS",
+    "MS",
+    "DR"
+  ],
+  "applicant-previous-address-addressCounty": [
+    "--Select--"
+  ],
+  "applicant-previous-address-addressState": [
+    "--Select--",
+    "AK",
+    "AL",
+    "AR",
+    "AZ",
+    "CA",
+    "CO",
+    "CT",
+    "DC",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "IA",
+    "ID",
+    "IL",
+    "IN",
+    "KS",
+    "KY",
+    "LA",
+    "MA",
+    "MD",
+    "ME",
+    "MI",
+    "MN",
+    "MO",
+    "MS",
+    "MT",
+    "NC",
+    "ND",
+    "NE",
+    "NH",
+    "NJ",
+    "NM",
+    "NV",
+    "NY",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VA",
+    "VT",
+    "WA",
+    "WI",
+    "WV",
+    "WY"
+  ],
+  "applicant-previous-address-monthsAtAddress": [
+    "--Select--",
     "0",
-    "50",
-    "100",
-    "200",
-    "250",
-    "500",
-    "1000",
-    "2000",
-    "2500"
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11"
   ],
-  "Collision": [
-    "No Coverage",
+  "applicant-previous-address-yearsAtAddress": [
+    "--Select--",
     "0",
-    "50",
-    "100",
-    "200",
-    "250",
-    "500",
-    "1000",
-    "2000",
-    "2500"
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15"
   ],
-  "Reject": [
-    "Reject",
-    "$100",
-    "$200",
-    "$300",
-    "$400",
-    "$500",
-    "$600",
-    "$700",
-    "$800",
-    "$900",
-    "$1000",
-    "$1100",
-    "$1200",
-    "$1300",
-    "$1400",
-    "$1500",
-    "$1600",
-    "$1700",
-    "$1800",
-    "$1900",
-    "$2000",
-    "$2100",
-    "$2200",
-    "$2300",
-    "$2400",
-    "$2500",
-    "$2600",
-    "$2700",
-    "$2800",
-    "$2900",
-    "$3000"
+  "applicant-primary-address-addressState": [
+    "AK",
+    "AL",
+    "AR",
+    "AZ",
+    "CA",
+    "CO",
+    "CT",
+    "DC",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "IA",
+    "ID",
+    "IL",
+    "IN",
+    "KS",
+    "KY",
+    "LA",
+    "MA",
+    "MD",
+    "ME",
+    "MI",
+    "MN",
+    "MO",
+    "MS",
+    "MT",
+    "NC",
+    "ND",
+    "NE",
+    "NH",
+    "NJ",
+    "NM",
+    "NV",
+    "NY",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VA",
+    "VT",
+    "WA",
+    "WI",
+    "WV",
+    "WY"
   ],
-  "None (4)": [
-    "Insured/Spouse",
-    "Extended Family"
+  "applicant-primary-address-applicantAddressType": [
+    "Home",
+    "Mailing",
+    "Office",
+    "Billing",
+    "Seasonal",
+    "Rental",
+    "Other",
+    "Business"
   ],
-  "Combo Auto": [
-    "Combo Auto",
-    "GrandProtect Auto"
+  "applicant-primary-address-monthsAtAddress": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11"
   ],
-  "No Coverage": [
-    "No Coverage",
-    "10000",
-    "25000",
-    "50000"
+  "applicant-primary-address-yearsAtAddress": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15"
+  ],
+  "applicant-rating-state": [
+    "AK",
+    "AL",
+    "AR",
+    "AZ",
+    "CA",
+    "CO",
+    "CT",
+    "DC",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "IA",
+    "ID",
+    "IL",
+    "IN",
+    "KS",
+    "KY",
+    "LA",
+    "MA",
+    "MD",
+    "ME",
+    "MI",
+    "MN",
+    "MO",
+    "MS",
+    "MT",
+    "NC",
+    "ND",
+    "NE",
+    "NH",
+    "NJ",
+    "NM",
+    "NV",
+    "NY",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VA",
+    "VT",
+    "WA",
+    "WI",
+    "WV",
+    "WY"
+  ],
+  "applicant-type": [
+    "Unknown",
+    "Prospect/Lead",
+    "Active Client",
+    "Inactive Client"
+  ],
+  "contact-0-email-0-type": [
+    "Primary",
+    "Secondary"
+  ],
+  "contact-address-0-addressCounty": [
+    "--Select--"
+  ],
+  "contact-address-0-addressState": [
+    "--Select--",
+    "AK",
+    "AL",
+    "AR",
+    "AZ",
+    "CA",
+    "CO",
+    "CT",
+    "DC",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "IA",
+    "ID",
+    "IL",
+    "IN",
+    "KS",
+    "KY",
+    "LA",
+    "MA",
+    "MD",
+    "ME",
+    "MI",
+    "MN",
+    "MO",
+    "MS",
+    "MT",
+    "NC",
+    "ND",
+    "NE",
+    "NH",
+    "NJ",
+    "NM",
+    "NV",
+    "NY",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VA",
+    "VT",
+    "WA",
+    "WI",
+    "WV",
+    "WY"
+  ],
+  "contact-address-0-monthsAtAddress": [
+    "--Select--",
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11"
+  ],
+  "contact-address-0-yearsAtAddress": [
+    "--Select--",
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15"
+  ],
+  "contact-drivers-license-status-0": [
+    "Valid",
+    "Permit",
+    "Expired",
+    "Suspended",
+    "Cancelled",
+    "Not Licensed",
+    "Permanently Revoked"
+  ],
+  "contact-education-0": [
+    "No High School Diploma",
+    "High School Diploma",
+    "Some College - No Degree",
+    "Vocational/Technical Degree",
+    "Associates Degree",
+    "Bachelors",
+    "Masters",
+    "Phd",
+    "Medical Degree",
+    "Law Degree"
+  ],
+  "contact-gender-0": [
+    "Female",
+    "Male",
+    "Not Specified"
+  ],
+  "contact-industry-0": [
+    "Homemaker/House person",
+    "Retired",
+    "Disabled",
+    "Unemployed",
+    "Student",
+    "Agriculture/Forestry/Fishing",
+    "Art/Design/Media",
+    "Banking/Finance/Real Estate",
+    "Business/Sales/Office",
+    "Construction/Energy Trades",
+    "Education/Library",
+    "Engineer/Architect/Science/Math",
+    "Government/Military",
+    "Information Technology",
+    "Insurance",
+    "Legal/Law Enforcement/Security",
+    "Maintenance/Repair/Housekeeping",
+    "Manufacturing/Production",
+    "Medical/Social Services/Religion",
+    "Personal Care/Service",
+    "Restaurant/Hotel Services",
+    "Sports/Recreation",
+    "Travel/Transportation/Warehousing",
+    "Other"
+  ],
+  "contact-marital-statuses-0": [
+    "Single",
+    "Married",
+    "Domestic Partner",
+    "Widowed",
+    "Separated",
+    "Divorced"
+  ],
+  "contact-occupation-0": [
+    "Homemaker/House person"
+  ],
+  "contact-preferred-contact-method-0": [
+    "Mobile Phone",
+    "Email"
+  ],
+  "contact-preferred-contact-time-0": [
+    "Morning",
+    "Afternoon",
+    "Evening",
+    "Anytime"
+  ],
+  "contact-prefixes-0": [
+    "MR",
+    "MRS",
+    "MS",
+    "DR"
+  ],
+  "contact-relationships-0": [
+    "Child",
+    "Domestic Partner",
+    "Employee",
+    "Other",
+    "Parent",
+    "Relative",
+    "Spouse"
+  ],
+  "contact-suffix-0": [
+    "JR",
+    "SR",
+    "I",
+    "II",
+    "III"
+  ],
+  "contactdrivers-license-state-0": [
+    "AK",
+    "AL",
+    "AR",
+    "AZ",
+    "CA",
+    "CO",
+    "CT",
+    "DC",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "IA",
+    "ID",
+    "IL",
+    "IN",
+    "KS",
+    "KY",
+    "LA",
+    "MA",
+    "MD",
+    "ME",
+    "MI",
+    "MN",
+    "MO",
+    "MS",
+    "MT",
+    "NC",
+    "ND",
+    "NE",
+    "NH",
+    "NJ",
+    "NM",
+    "NV",
+    "NY",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VA",
+    "VT",
+    "WA",
+    "WI",
+    "WV",
+    "WY",
+    "Canada",
+    "Mexico",
+    "International"
+  ],
+  "driver-0-ageLicensed": [
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21+"
+  ],
+  "driver-0-driversLicenseStatus": [
+    "Valid",
+    "Permit",
+    "Expired",
+    "Suspended",
+    "Cancelled",
+    "Permanently Revoked"
+  ],
+  "driver-0-gender": [
+    "Male",
+    "Female",
+    "Not Specified"
+  ],
+  "driver-0-hasLicensedBeenSuspendedRecently": [
+    "Yes",
+    "No"
+  ],
+  "driver-0-hasTakenDriversEducation": [
+    "Yes",
+    "No"
+  ],
+  "driver-0-isFR44Required": [
+    "Yes",
+    "No"
+  ],
+  "driver-0-isGoodDriver": [
+    "Yes",
+    "No"
+  ],
+  "driver-0-isMatureDriver": [
+    "Yes",
+    "No"
+  ],
+  "driver-0-isSR22Required": [
+    "Yes",
+    "No"
+  ],
+  "driver-0-maritalStatus": [
+    "Single",
+    "Married",
+    "Domestic Partner",
+    "Widowed",
+    "Separated",
+    "Divorced"
+  ],
+  "driver-0-occupationIndustry": [
+    "Homemaker/House person",
+    "Retired",
+    "Disabled",
+    "Unemployed",
+    "Student",
+    "Agriculture/Forestry/Fishing",
+    "Art/Design/Media",
+    "Banking/Finance/Real Estate",
+    "Business/Sales/Office",
+    "Construction/Energy Trades",
+    "Education/Library",
+    "Engineer/Architect/Science/Math",
+    "Government/Military",
+    "Information Technology",
+    "Insurance",
+    "Legal/Law Enforcement/Security",
+    "Maintenance/Repair/Housekeeping",
+    "Manufacturing/Production",
+    "Medical/Social Services/Religion",
+    "Personal Care/Service",
+    "Restaurant/Hotel Services",
+    "Sports/Recreation",
+    "Travel/Transportation/Warehousing",
+    "Other"
+  ],
+  "driver-0-occupationTitle": [
+    "Accountant/Auditor",
+    "Actuarial Clerk",
+    "Actuary",
+    "Administrative Assistant",
+    "Agent/Broker",
+    "Analyst",
+    "Attorney",
+    "Claims Adjuster",
+    "Clerk",
+    "Commissioner",
+    "Customer Service Representative",
+    "Director/Administrator",
+    "Executive",
+    "Other",
+    "Product Manager",
+    "Receptionist/Secretary",
+    "Sales Representative",
+    "Underwriter"
+  ],
+  "driver-1-ageLicensed": [
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21+"
+  ],
+  "driver-1-driversLicenseStatus": [
+    "Valid",
+    "Permit",
+    "Expired",
+    "Suspended",
+    "Cancelled",
+    "Not Licensed",
+    "Permanently Revoked"
+  ],
+  "driver-1-gender": [
+    "Male",
+    "Female",
+    "Not Specified"
+  ],
+  "driver-1-hasLicensedBeenSuspendedRecently": [
+    "Yes",
+    "No"
+  ],
+  "driver-1-hasTakenDriversEducation": [
+    "Yes",
+    "No"
+  ],
+  "driver-1-isFR44Required": [
+    "Yes",
+    "No"
+  ],
+  "driver-1-isGoodDriver": [
+    "Yes",
+    "No"
+  ],
+  "driver-1-isMatureDriver": [
+    "Yes",
+    "No"
+  ],
+  "driver-1-isSR22Required": [
+    "Yes",
+    "No"
+  ],
+  "driver-1-maritalStatus": [
+    "Single",
+    "Married",
+    "Domestic Partner",
+    "Widowed",
+    "Separated",
+    "Divorced"
+  ],
+  "driver-1-occupationIndustry": [
+    "Homemaker/House person",
+    "Retired",
+    "Disabled",
+    "Unemployed",
+    "Student",
+    "Agriculture/Forestry/Fishing",
+    "Art/Design/Media",
+    "Banking/Finance/Real Estate",
+    "Business/Sales/Office",
+    "Construction/Energy Trades",
+    "Education/Library",
+    "Engineer/Architect/Science/Math",
+    "Government/Military",
+    "Information Technology",
+    "Insurance",
+    "Legal/Law Enforcement/Security",
+    "Maintenance/Repair/Housekeeping",
+    "Manufacturing/Production",
+    "Medical/Social Services/Religion",
+    "Personal Care/Service",
+    "Restaurant/Hotel Services",
+    "Sports/Recreation",
+    "Travel/Transportation/Warehousing",
+    "Other"
+  ],
+  "driver-1-ratedDriver": [
+    "Rated",
+    "Excluded",
+    "Non Rated",
+    "Never Licensed"
+  ],
+  "driver-1-relationship": [
+    "Child",
+    "Domestic Partner",
+    "Employee",
+    "Other",
+    "Parent",
+    "Relative"
+  ],
+  "driver_d1telematics_common": [
+    "Yes",
+    "No"
+  ],
+  "driver_d2telematics_common": [
+    "Yes",
+    "No"
+  ],
+  "drpD1DLState": [
+    "AK",
+    "AL",
+    "AR",
+    "AZ",
+    "CA",
+    "CO",
+    "CT",
+    "DC",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "IA",
+    "ID",
+    "IL",
+    "IN",
+    "KS",
+    "KY",
+    "LA",
+    "MA",
+    "MD",
+    "ME",
+    "MI",
+    "MN",
+    "MO",
+    "MS",
+    "MT",
+    "NC",
+    "ND",
+    "NE",
+    "NH",
+    "NJ",
+    "NM",
+    "NV",
+    "NY",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VA",
+    "VT",
+    "WA",
+    "WI",
+    "WV",
+    "WY",
+    "Canada",
+    "Mexico",
+    "International"
+  ],
+  "drpD2DLState": [
+    "AK",
+    "AL",
+    "AR",
+    "AZ",
+    "CA",
+    "CO",
+    "CT",
+    "DC",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "IA",
+    "ID",
+    "IL",
+    "IN",
+    "KS",
+    "KY",
+    "LA",
+    "MA",
+    "MD",
+    "ME",
+    "MI",
+    "MN",
+    "MO",
+    "MS",
+    "MT",
+    "NC",
+    "ND",
+    "NE",
+    "NH",
+    "NJ",
+    "NM",
+    "NV",
+    "NY",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VA",
+    "VT",
+    "WA",
+    "WI",
+    "WV",
+    "WY",
+    "Canada",
+    "Mexico",
+    "International"
+  ],
+  "extended1": [
+    "No",
+    "Yes"
+  ],
+  "extended2": [
+    "No",
+    "Yes"
+  ],
+  "preferred-language": [
+    "Amharic",
+    "Arabic",
+    "Armenian",
+    "Bengali",
+    "Cambodian",
+    "Chinese - Cantonese",
+    "Chinese - Mandarin",
+    "Dari",
+    "Dutch",
+    "English",
+    "Farsi",
+    "Filipino",
+    "French",
+    "French Creole",
+    "German",
+    "Greek",
+    "Gujarati",
+    "Haitian Creole",
+    "Hebrew",
+    "Hindi",
+    "Hmong",
+    "Ilocano",
+    "Italian",
+    "Japanese",
+    "Khmer",
+    "Korean",
+    "Laotian",
+    "Navajo",
+    "Persian",
+    "Polish",
+    "Portuguese",
+    "Punjabi",
+    "Romanian",
+    "Russian",
+    "Samoan",
+    "Serbo-Croatian",
+    "Spanish",
+    "Swahili",
+    "Tagalog",
+    "Tajik",
+    "Tamil",
+    "Telugu",
+    "Thai",
+    "Ukrainian",
+    "Urdu",
+    "Vietnamese",
+    "Yoruba"
+  ],
+  "questionModel": [
+    "No",
+    "Yes"
+  ],
+  "questionModel (2)": [
+    "Greater than $300,000",
+    "$300,000",
+    "Less than $300,000",
+    "First Time Home Buyer",
+    "Lapse in Coverage (30 days or less)",
+    "No Prior or Lapse Greater Than 30 Days"
+  ],
+  "questionModel (2) (2)": [
+    "No",
+    "Yes"
+  ],
+  "questionModel (3)": [
+    "Progressive Auto 250/500",
+    "Progressive Auto 100/300",
+    "Progressive Auto 50/100",
+    "Progressive Auto Less than 50/100",
+    "Flood"
   ]
 };
