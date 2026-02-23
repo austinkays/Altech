@@ -57,6 +57,16 @@ fetchRemoteSchema();
 // Disable popup by default, enable per-tab when on ezlynx.com
 chrome.action.disable();
 
+// On service worker (re)start, check the active tab immediately.
+// Without this, the action stays disabled if the worker restarts while
+// the user is already on an EZLynx / Altech page (no tab event fires).
+(async () => {
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.url) updateActionForTab(tab.id, tab.url);
+    } catch (e) { /* tabs API may not be available yet */ }
+})();
+
 function updateActionForTab(tabId, url) {
     if (!url) return;
     if (url.includes('ezlynx.com') || url.includes('altech-app.vercel.app') || url.includes('altech.agency') || url.includes('localhost')) {
