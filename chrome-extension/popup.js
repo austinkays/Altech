@@ -50,7 +50,19 @@ async function checkAdminStatus() {
     }
 }
 
+// Live-update: if isAdmin arrives in storage while the popup is already open
+// (e.g. the bridge just injected and received the handshake), unlock immediately.
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes.isAdmin && changes.isAdmin.newValue === true) {
+        unlockAdmin();
+    }
+});
+
+let _adminUnlocked = false;
 function unlockAdmin() {
+    if (_adminUnlocked) return; // Prevent duplicate event listener registration
+    _adminUnlocked = true;
     const toggle = $('adminToggle');
     const zone = $('adminZone');
     toggle.classList.add('visible');

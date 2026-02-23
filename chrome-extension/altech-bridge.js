@@ -54,4 +54,12 @@
             }
         }
     });
+
+    // ── Bridge-Ready Handshake ──
+    // Firebase auth (onAuthStateChanged) often fires BEFORE document_idle, meaning
+    // the ALTECH_ADMIN_UPDATE message fires before this script is even listening.
+    // Announcing "ready" causes auth.js to immediately re-send the current admin
+    // state so we never miss it — regardless of which side initializes first.
+    window.postMessage({ type: 'ALTECH_BRIDGE_READY' }, '*');
+    console.log('[Altech Bridge] Injected — requesting admin status from auth.js');
 })();

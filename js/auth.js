@@ -114,6 +114,19 @@ const Auth = (() => {
         _refreshAdminVisibility();
     }
 
+    // ── Bridge-Ready Handshake ──
+    // When the bridge content script loads (document_idle), it fires ALTECH_BRIDGE_READY.
+    // We respond immediately with whichever _isAdmin value we currently have.
+    // This solves the race: if Firebase auth already ran, the bridge gets the answer
+    // instantly. If auth hasn't run yet, the reply sends _isAdmin=false (safe default),
+    // and a second ALTECH_ADMIN_UPDATE fires once Firestore confirms the real value.
+    window.addEventListener('message', (event) => {
+        if (event.source !== window) return;
+        if (!event.data || event.data.type !== 'ALTECH_BRIDGE_READY') return;
+        window.postMessage({ type: 'ALTECH_ADMIN_UPDATE', isAdmin: _isAdmin }, '*');
+        console.log('[Auth] Bridge ready — replied with isAdmin:', _isAdmin);
+    });
+
     /** Show/hide admin-only sections based on current _isAdmin state */
     function _refreshAdminVisibility() {
         const inviteSection = document.getElementById('authInviteSection');
