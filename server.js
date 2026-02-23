@@ -264,7 +264,7 @@ const PORT = process.env.PORT || 8000;
 
 const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://localhost:${PORT}`);
-    const pathname = url.pathname;
+    const pathname = decodeURIComponent(url.pathname);
 
     // CORS headers — restrict to local development + Tauri
     const allowedOrigins = [`http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`, 'tauri://localhost', 'https://tauri.localhost'];

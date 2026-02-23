@@ -320,9 +320,20 @@ const COI = {
                 btn.textContent = '⏳ Generating...';
             }
 
-            // Ensure pdf-lib is loaded
+            // Ensure pdf-lib is loaded (lazy-load from CDN if missing)
             if (!window.PDFLib) {
-                throw new Error('PDF library not loaded. Please refresh the page and try again.');
+                console.warn('[COI] pdf-lib not found, attempting dynamic load...');
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+                    script.onload = () => resolve();
+                    script.onerror = () => reject(new Error('Failed to load PDF library from CDN. Check your internet connection and try again.'));
+                    document.head.appendChild(script);
+                });
+                if (!window.PDFLib) {
+                    throw new Error('PDF library failed to initialize. Please refresh the page and try again.');
+                }
+                console.log('[COI] pdf-lib loaded dynamically');
             }
 
             // Fetch the ACORD 25 fillable template
