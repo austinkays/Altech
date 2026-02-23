@@ -47,25 +47,18 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
     // After install/update, also fetch latest schema from Vercel
     fetchRemoteSchema();
+
+    // Enable the action icon on any already-open EZLynx / Altech tabs
+    enableForMatchingTabs();
 });
 
 // ── Auto-sync schema from Vercel on every service worker startup ──
 // This runs whenever the service worker wakes up (on extension click, message, alarm, etc.)
 fetchRemoteSchema();
 
-// ── Only show extension icon on EZLynx pages ──
-// Disable popup by default, enable per-tab when on ezlynx.com
+// ── Only show extension icon on supported pages ──
+// Default state: disabled. Enabled per-tab for EZLynx / Altech / localhost.
 chrome.action.disable();
-
-// On service worker (re)start, check the active tab immediately.
-// Without this, the action stays disabled if the worker restarts while
-// the user is already on an EZLynx / Altech page (no tab event fires).
-(async () => {
-    try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab?.url) updateActionForTab(tab.id, tab.url);
-    } catch (e) { /* tabs API may not be available yet */ }
-})();
 
 function updateActionForTab(tabId, url) {
     if (!url) return;
@@ -75,6 +68,23 @@ function updateActionForTab(tabId, url) {
         chrome.action.disable(tabId);
     }
 }
+
+// Scan ALL open tabs and enable the action for any that match.
+// Called on every service worker (re)start AND on install/update,
+// because tabs.onUpdated does NOT fire for tabs that are already loaded.
+async function enableForMatchingTabs() {
+    try {
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+            if (tab.id && tab.url) updateActionForTab(tab.id, tab.url);
+        }
+    } catch (e) {
+        console.warn('[Altech] Tab scan failed:', e.message);
+    }
+}
+
+// Run on every service worker wake (startup, click, alarm, message, etc.)
+enableForMatchingTabs();
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (tab.url) updateActionForTab(tabId, tab.url);
