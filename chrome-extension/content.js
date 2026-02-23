@@ -12,7 +12,7 @@
 // §1  CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
-const EXTENSION_VERSION = '0.6.6';
+const EXTENSION_VERSION = '0.6.7';
 const FILL_DELAY    = 250;   // ms between field fills (was 120 — too fast for Angular)
 const DROPDOWN_WAIT = 1000;  // ms to wait for overlay after click (was 700)
 const RETRY_WAIT    = 1800;  // ms before retrying failed dropdowns (was 1200)
@@ -3957,6 +3957,155 @@ async function scrapePage() {
             await wait(500);
         }
 
+        // Step 4b: Mini-Cascade — Co-Applicant Industry → Occupation
+        // These dropdowns only appear AFTER the toggle flip (they weren't in the
+        // DOM when §3d's Cascade Engine ran). We use fillCustomDropdown's pattern:
+        // open dropdown → fuzzy-match "Retired" → click option. This unlocks
+        // Occupation via XHR. We scrape it, mark both in preClickFields so the
+        // baseScrape below skips them, then restore Industry to blank.
+        if (activatedCoAp) {
+            const coApScope = newContainer || document;
+            let coApIndustry = null;
+            const coApMatSelects = coApScope.querySelectorAll('mat-select');
+            console.log(`[Altech Scraper] Mini-Cascade: searching ${coApMatSelects.length} mat-selects in CoAp scope for Industry...`);
+
+            for (const ms of coApMatSelects) {
+                if (!isVisible(ms)) continue;
+                const lbl = (findLabelFor(ms) || '').toLowerCase();
+                const wf = ms.closest('mat-form-field, [class*="form-field"]');
+                const wrapLbl = wf?.querySelector('mat-label, .mat-form-field-label, .mdc-floating-label')?.textContent?.trim()?.toLowerCase() || '';
+                const ariaLbl = (ms.getAttribute('aria-label') || '').toLowerCase();
+                console.log(`  mat-select: lbl="${lbl}" wrapLbl="${wrapLbl}" ariaLbl="${ariaLbl}"`);
+                if ([lbl, wrapLbl, ariaLbl].some(t => t.includes('industry'))) {
+                    // Ensure it's a NEW one (not the primary already handled in §3c)
+                    const msId = ms.id || ms.getAttribute('formcontrolname') || '';
+                    if (msId && preClickFields.has(msId)) { console.log(`    → skipped (primary, id="${msId}")`); continue; }
+                    coApIndustry = ms;
+                    break;
+                }
+            }
+
+            if (coApIndustry) {
+                console.log('[Altech Scraper] Mini-Cascade: filling Co-Applicant Industry → "Retired" to unlock Occupation...');
+                try {
+                    nukeOverlays();
+                    await wait(200);
+
+                    // ── Open Industry dropdown (same pattern fillCustomDropdown uses) ──
+                    coApIndustry.click();
+                    await wait(1000);
+
+                    let coApIndOpts = Array.from(
+                        document.querySelectorAll('.cdk-overlay-container mat-option, .mat-select-panel mat-option, [role="option"]')
+                    ).filter(el => isVisible(el));
+
+                    // Capture Industry options while the overlay is open
+                    const indOptions = coApIndOpts.filter(el => !isBlankOption(el)).map(el => (el.textContent || '').trim());
+
+                    // ── Fuzzy-match "Retired" (exact → includes → any non-blank) ──
+                    let retiredEl = coApIndOpts.find(el => (el.textContent || '').trim().toLowerCase() === 'retired');
+                    if (!retiredEl) retiredEl = coApIndOpts.find(el => (el.textContent || '').trim().toLowerCase().includes('retired'));
+                    if (!retiredEl && coApIndOpts.length > 0) retiredEl = coApIndOpts.find(el => !isBlankOption(el));
+
+                    if (retiredEl) {
+                        retiredEl.click();
+                        console.log(`[Altech Scraper] Mini-Cascade: selected "${(retiredEl.textContent || '').trim()}" → waiting 1500 ms for Occupation XHR...`);
+                        await wait(1500);
+
+                        // ── Scrape the now-unlocked Co-Applicant Occupation ──
+                        let coApOcc = null;
+                        for (const ms of coApScope.querySelectorAll('mat-select')) {
+                            if (!isVisible(ms) || ms === coApIndustry) continue;
+                            const lbl = (findLabelFor(ms) || '').toLowerCase();
+                            const wf = ms.closest('mat-form-field, [class*="form-field"]');
+                            const wrapLbl = wf?.querySelector('mat-label, .mat-form-field-label, .mdc-floating-label')?.textContent?.trim()?.toLowerCase() || '';
+                            const ariaLbl = (ms.getAttribute('aria-label') || '').toLowerCase();
+                            if ([lbl, wrapLbl, ariaLbl].some(t => t.includes('occupation'))) {
+                                coApOcc = ms;
+                                break;
+                            }
+                        }
+
+                        if (coApOcc && isVisible(coApOcc)) {
+                            let occOpts = [];
+                            try {
+                                coApOcc.click();
+                                await wait(500);
+                                let optEls = Array.from(
+                                    document.querySelectorAll('.cdk-overlay-container mat-option, [role="option"]')
+                                ).filter(el => isVisible(el));
+                                occOpts = optEls.filter(el => !isBlankOption(el)).map(el => el.textContent.trim());
+                                await closeDropdown(coApOcc);
+                            } catch (e) { nukeOverlays(); }
+
+                            if (occOpts.length > 0) {
+                                const occLabel = findLabelFor(coApOcc) || 'Co-Applicant Occupation';
+                                result.dropdowns[occLabel] = {
+                                    id: coApOcc.id || '', label: occLabel,
+                                    options: occOpts, optionCount: occOpts.length,
+                                    currentValue: '', revealedBy: 'Add contact',
+                                    dependsOn: 'Co-Applicant Industry',
+                                    source: 'mini-cascade'
+                                };
+                                result.stats.totalCustomDropdowns++;
+                                result.stats.totalOptions += occOpts.length;
+                                console.log(`[Altech Scraper] Mini-Cascade: Co-Applicant Occupation unlocked — ${occOpts.length} options`);
+                            }
+                            // Mark Occupation in preClickFields → baseScrape will skip it
+                            if (coApOcc.id) preClickFields.add(coApOcc.id);
+                            const occAriaLabel = coApOcc.getAttribute('aria-label');
+                            if (occAriaLabel) preClickFields.add(occAriaLabel);
+                        } else {
+                            console.log('[Altech Scraper] Mini-Cascade: Co-Applicant Occupation not found after Industry fill');
+                        }
+
+                        // Store Industry options in result
+                        const indLabel = findLabelFor(coApIndustry) || 'Co-Applicant Industry';
+                        result.dropdowns[indLabel] = {
+                            id: coApIndustry.id || '', label: indLabel,
+                            options: indOptions, optionCount: indOptions.length,
+                            currentValue: '', revealedBy: 'Add contact',
+                            source: 'mini-cascade'
+                        };
+                        result.stats.totalCustomDropdowns++;
+                        result.stats.totalOptions += indOptions.length;
+
+                        // Mark Industry in preClickFields → baseScrape will skip it
+                        if (coApIndustry.id) preClickFields.add(coApIndustry.id);
+                        const indAriaLabel = coApIndustry.getAttribute('aria-label');
+                        if (indAriaLabel) preClickFields.add(indAriaLabel);
+
+                        // ── Restore Co-Applicant Industry to blank ──
+                        nukeOverlays();
+                        await wait(100);
+                        try {
+                            coApIndustry.click();
+                            await wait(800);
+                            const restoreOpts = Array.from(
+                                document.querySelectorAll('.cdk-overlay-container mat-option, [role="option"]')
+                            ).filter(el => isVisible(el));
+                            if (restoreOpts.length > 0) {
+                                restoreOpts[0].click();
+                                await wait(200);
+                            } else {
+                                coApIndustry.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                            }
+                        } catch (e) { nukeOverlays(); }
+
+                        console.log('[Altech Scraper] Mini-Cascade: Industry restored to blank, Occupation options captured');
+                    } else {
+                        coApIndustry.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                        console.log('[Altech Scraper] Mini-Cascade: "Retired" not found in Co-Applicant Industry — Occupation stays locked');
+                    }
+                } catch (e) {
+                    console.warn('[Altech Scraper] Mini-Cascade failed:', e.message);
+                    nukeOverlays();
+                }
+            } else {
+                console.log('[Altech Scraper] Mini-Cascade: Co-Applicant Industry not found — Occupation will remain locked');
+            }
+        }
+
         // Step 5: NOW run the full scrape on the container (baseScrape)
 
         // Scrape new text inputs
@@ -4061,118 +4210,6 @@ async function scrapePage() {
             if (ms.id) preClickFields.add(ms.id);
         }
 
-        // ── Co-Applicant Industry → Occupation dependency ──
-        // If the co-applicant section has an Industry dropdown, fill it with "Retired"
-        // so the Occupation dropdown unlocks, then scrape Occupation options.
-        if (activatedCoAp) {
-            const coApScope = newContainer || document;
-            // Find Co-Applicant Industry (must be a NEW mat-select not in the primary applicant's §3c)
-            let coApIndustry = null;
-            const allCoApMatSelects = coApScope.querySelectorAll('mat-select');
-            console.log(`[Altech Scraper] Searching ${allCoApMatSelects.length} mat-selects in CoAp scope for Industry...`);
-            for (const ms of allCoApMatSelects) {
-                if (!isVisible(ms)) continue;
-                const lbl = (findLabelFor(ms) || '').toLowerCase();
-                const wf = ms.closest('mat-form-field, [class*="form-field"]');
-                const wrapLbl = wf?.querySelector('mat-label, .mat-form-field-label, .mdc-floating-label')?.textContent?.trim()?.toLowerCase() || '';
-                const ariaLbl = (ms.getAttribute('aria-label') || '').toLowerCase();
-                console.log(`  mat-select: lbl="${lbl}" wrapLbl="${wrapLbl}" ariaLbl="${ariaLbl}" visible=${isVisible(ms)}`);
-                if ([lbl, wrapLbl, ariaLbl].some(t => t.includes('industry'))) {
-                    // Make sure it's a NEW one (not the primary we already handled in §3c)
-                    const msId = ms.id || ms.getAttribute('formcontrolname') || '';
-                    if (msId && preClickFields.has(msId)) { console.log(`    → skipped (primary, id="${msId}")`); continue; }
-                    coApIndustry = ms;
-                    break;
-                }
-            }
-
-            if (coApIndustry) {
-                console.log('[Altech Scraper] Found Co-Applicant Industry — filling "Retired" to unlock Occupation...');
-                try {
-                    nukeOverlays();
-                    await wait(200);
-                    coApIndustry.click();
-                    await wait(1000);
-
-                    let coApIndOpts = Array.from(
-                        document.querySelectorAll('.cdk-overlay-container mat-option, .mat-select-panel mat-option, [role="option"]')
-                    ).filter(el => isVisible(el));
-
-                    // Click "Retired"
-                    let retiredEl = coApIndOpts.find(el => (el.textContent || '').trim().toLowerCase() === 'retired');
-                    if (!retiredEl) retiredEl = coApIndOpts.find(el => (el.textContent || '').trim().toLowerCase().includes('retired'));
-                    if (!retiredEl && coApIndOpts.length > 0) retiredEl = coApIndOpts.find(el => !isBlankOption(el)); // any non-blank
-
-                    if (retiredEl) {
-                        retiredEl.click();
-                        await wait(1500); // Wait for Occupation XHR
-
-                        // Now find and scrape Co-Applicant Occupation
-                        let coApOcc = null;
-                        for (const ms of coApScope.querySelectorAll('mat-select')) {
-                            if (!isVisible(ms) || ms === coApIndustry) continue;
-                            const lbl = (findLabelFor(ms) || '').toLowerCase();
-                            const wf = ms.closest('mat-form-field, [class*="form-field"]');
-                            const wrapLbl = wf?.querySelector('mat-label, .mat-form-field-label, .mdc-floating-label')?.textContent?.trim()?.toLowerCase() || '';
-                            const ariaLbl = (ms.getAttribute('aria-label') || '').toLowerCase();
-                            if ([lbl, wrapLbl, ariaLbl].some(t => t.includes('occupation'))) {
-                                coApOcc = ms;
-                                break;
-                            }
-                        }
-
-                        if (coApOcc && isVisible(coApOcc)) {
-                            let occOpts = [];
-                            try {
-                                coApOcc.click();
-                                await wait(500);
-                                let optEls = Array.from(
-                                    document.querySelectorAll('.cdk-overlay-container mat-option, [role="option"]')
-                                ).filter(el => isVisible(el));
-                                occOpts = optEls.filter(el => !isBlankOption(el)).map(el => el.textContent.trim());
-                                await closeDropdown(coApOcc);
-                            } catch (e) { nukeOverlays(); }
-
-                            if (occOpts.length > 0) {
-                                const occLabel = findLabelFor(coApOcc) || 'Co-Applicant Occupation';
-                                result.dropdowns[occLabel] = {
-                                    id: coApOcc.id || '', label: occLabel,
-                                    options: occOpts, optionCount: occOpts.length,
-                                    currentValue: '', revealedBy: 'Add contact',
-                                    dependsOn: 'Co-Applicant Industry'
-                                };
-                                result.stats.totalOptions += occOpts.length;
-                                console.log(`[Altech Scraper] Co-Applicant Occupation: ${occOpts.length} options`);
-                            }
-                        }
-
-                        // Restore Co-Applicant Industry to blank
-                        nukeOverlays();
-                        await wait(100);
-                        try {
-                            coApIndustry.click();
-                            await wait(800);
-                            const restoreOpts = Array.from(
-                                document.querySelectorAll('.cdk-overlay-container mat-option, [role="option"]')
-                            ).filter(el => isVisible(el));
-                            if (restoreOpts.length > 0) {
-                                restoreOpts[0].click();
-                                await wait(200);
-                            } else {
-                                coApIndustry.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-                            }
-                        } catch (e) { nukeOverlays(); }
-                    } else {
-                        coApIndustry.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-                    }
-                } catch (e) {
-                    console.warn('[Altech Scraper] Co-Applicant Industry/Occupation failed:', e.message);
-                    nukeOverlays();
-                }
-            } else {
-                console.log('[Altech Scraper] Co-Applicant Industry dropdown not found in scope — may not be rendered yet or labels differ');
-            }
-        }
         if (newContainer) {
             for (const ctrl of newContainer.querySelectorAll('mat-checkbox, mat-slide-toggle, mat-radio-button, input[type="checkbox"], input[type="radio"]')) {
                 if (!isVisible(ctrl)) continue;
