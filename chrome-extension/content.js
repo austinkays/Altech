@@ -12,7 +12,7 @@
 // §1  CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
-const EXTENSION_VERSION = '0.6.5';
+const EXTENSION_VERSION = '0.6.6';
 const FILL_DELAY    = 250;   // ms between field fills (was 120 — too fast for Angular)
 const DROPDOWN_WAIT = 1000;  // ms to wait for overlay after click (was 700)
 const RETRY_WAIT    = 1800;  // ms before retrying failed dropdowns (was 1200)
@@ -3861,252 +3861,97 @@ async function scrapePage() {
         );
         const newContainer = panels.length > 0 ? panels[panels.length - 1] : null;
 
-        // Step 3: Find and activate the Co-Applicant toggle/checkbox.
-        // "Make this contact Co-Applicant" may be a mat-slide-toggle, mat-checkbox,
-        // native checkbox, or even a button — search ALL types.
-        // Skip any element whose text contains POISON words (e.g. "Client Center Access").
+        // Step 3: Find and activate the Co-Applicant toggle by TEXT CONTENT.
+        // Angular DOM order ≠ visual order, so we NEVER rely on index.
+        // The toggle text literally contains "Co-Applicant" — just find it.
         let activatedCoAp = false;
-        const CO_AP_PATTERNS = [
-            'co-applicant', 'coapplicant', 'co applicant', 'co-app',
-            'is there a co-applicant', 'is there a co applicant',
-            'make this contact co', 'make this a co',
-            'co-insured', 'coinsured', 'additional insured',
-            'spouse', 'joint applicant'
-        ];
-        const TOGGLE_POISON = ['client center', 'clientcenter', 'client access'];
-        const norm = s => (s || '').replace(/[*:•·]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
 
-        // Fuzzy match: checks if normalized text contains any co-applicant keyword
-        const matchesCoAp = (text) => {
-            const t = norm(text);
-            if (!t || t.length > 120) return false;
-            if (TOGGLE_POISON.some(pw => t.includes(pw))) return false;
-            return CO_AP_PATTERNS.some(pat => t.includes(pat));
-        };
-
-        // Helper: search a scope for ANY clickable Co-Applicant element
-        const findCoApElement = (scope, logPrefix = '') => {
-            // 1. mat-slide-toggles
-            const toggles = [...scope.querySelectorAll('mat-slide-toggle, [class*="mat-slide-toggle"], [class*="slide-toggle"]')];
-            for (const el of toggles) {
-                if (!isVisible(el)) continue;
-                if (matchesCoAp(el.textContent)) {
-                    const isActive = el.classList.contains('mat-checked') ||
-                        el.classList.contains('mat-mdc-slide-toggle-checked') ||
-                        el.querySelector('input[type="checkbox"]')?.checked || false;
-                    return { element: el, type: 'mat-slide-toggle', isActive };
-                }
-            }
-            // 2. mat-checkboxes
-            const checkboxes = [...scope.querySelectorAll('mat-checkbox, [class*="mat-checkbox"]')];
-            for (const el of checkboxes) {
-                if (!isVisible(el)) continue;
-                if (matchesCoAp(el.textContent)) {
-                    const isActive = el.classList.contains('mat-checkbox-checked') ||
-                        el.classList.contains('mat-mdc-checkbox-checked') ||
-                        el.querySelector('input[type="checkbox"]')?.checked || false;
-                    return { element: el, type: 'mat-checkbox', isActive };
-                }
-            }
-            // 3. Buttons / links / switches with Co-Applicant text
-            for (const el of scope.querySelectorAll('button, a, [role="button"], [role="switch"], [role="checkbox"]')) {
-                if (!isVisible(el)) continue;
-                // Check textContent, aria-label, and title
-                if (matchesCoAp(el.textContent) || matchesCoAp(el.getAttribute('aria-label')) || matchesCoAp(el.getAttribute('title'))) {
-                    const isActive = el.classList.contains('active') ||
-                        el.getAttribute('aria-checked') === 'true' ||
-                        el.getAttribute('aria-pressed') === 'true';
-                    return { element: el, type: 'button', isActive };
-                }
-            }
-            // 4. Native checkboxes near a matching label
-            for (const lbl of scope.querySelectorAll('label')) {
-                if (!matchesCoAp(lbl.textContent)) continue;
-                const forId = lbl.getAttribute('for') || lbl.htmlFor;
-                if (forId) {
-                    const cb = document.getElementById(forId);
-                    if (cb && cb.type === 'checkbox' && isVisible(cb)) {
-                        return { element: cb, type: 'native-checkbox', isActive: cb.checked };
-                    }
-                }
-                // Check sibling/child checkbox
-                const parent = lbl.closest('.form-group, .field-wrapper, [class*="form-field"]') || lbl.parentElement;
-                if (parent) {
-                    const cb = parent.querySelector('input[type="checkbox"]');
-                    if (cb && isVisible(cb)) {
-                        return { element: cb, type: 'native-checkbox', isActive: cb.checked };
-                    }
-                }
-            }
-            // 5. Wild-card: ANY visible element containing "co-applicant" in its DIRECT text
-            //    (walk the tree and check only elements whose own childNodes include matching text)
-            const walker = document.createTreeWalker(scope, NodeFilter.SHOW_ELEMENT, {
-                acceptNode: (node) => {
-                    if (!isVisible(node)) return NodeFilter.FILTER_REJECT;
-                    // Only consider elements that ARE interactive or contain interactive children
-                    const tag = node.tagName?.toLowerCase() || '';
-                    if (['mat-slide-toggle', 'mat-checkbox', 'button', 'a', 'input', 'label'].includes(tag) ||
-                        node.getAttribute('role') === 'switch' || node.getAttribute('role') === 'checkbox' ||
-                        node.classList?.contains('mat-slide-toggle') || node.classList?.contains('mat-checkbox')) {
-                        return NodeFilter.FILTER_ACCEPT;
-                    }
-                    return NodeFilter.FILTER_SKIP;
-                }
+        // Search a scope for the Co-Applicant toggle by text content
+        const findCoApToggle = (scope) => {
+            // Gather all mat-slide-toggles and mat-checkboxes
+            const allToggles = [
+                ...scope.querySelectorAll('mat-slide-toggle'),
+                ...scope.querySelectorAll('mat-checkbox')
+            ];
+            // Log what we see for diagnostics
+            console.log(`[Altech Scraper] Searching ${allToggles.length} toggles for "Co-Applicant":`);
+            allToggles.forEach((el, i) => {
+                const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+                console.log(`  [${i}] <${el.tagName.toLowerCase()}> text="${t.slice(0, 80)}" visible=${isVisible(el)}`);
             });
-            let walkerNode;
-            while ((walkerNode = walker.nextNode())) {
-                const ariaLabel = walkerNode.getAttribute('aria-label') || '';
-                const titleAttr = walkerNode.getAttribute('title') || '';
-                const directText = walkerNode.textContent || '';
-                if (matchesCoAp(directText) || matchesCoAp(ariaLabel) || matchesCoAp(titleAttr)) {
-                    const isActive = walkerNode.classList?.contains('mat-checked') ||
-                        walkerNode.classList?.contains('mat-mdc-slide-toggle-checked') ||
-                        walkerNode.classList?.contains('mat-checkbox-checked') ||
-                        walkerNode.getAttribute('aria-checked') === 'true' ||
-                        walkerNode.querySelector?.('input[type="checkbox"]')?.checked || false;
-                    return { element: walkerNode, type: `wild-${walkerNode.tagName?.toLowerCase()}`, isActive };
-                }
+
+            // Primary: find toggle whose text includes "Co-Applicant" (case-insensitive)
+            const byText = allToggles.find(t =>
+                isVisible(t) && /co.?applicant/i.test(t.textContent)
+            );
+            if (byText) return byText;
+
+            // Fallback: process of elimination — exclude "Client Center" toggles
+            const nonClientCenter = allToggles.filter(t =>
+                isVisible(t) && !/client\s*center/i.test(t.textContent)
+            );
+            if (nonClientCenter.length === 1) {
+                console.log('[Altech Scraper] Fallback: 1 non-Client-Center toggle → assuming Co-Applicant');
+                return nonClientCenter[0];
             }
 
-            if (logPrefix) {
-                console.log(`${logPrefix} Diagnostic dump — toggles: ${toggles.length}, checkboxes: ${checkboxes.length}`);
-                toggles.forEach((el, i) => console.log(`  toggle[${i}]: visible=${isVisible(el)} text="${norm(el.textContent).slice(0, 80)}"`));
-                checkboxes.forEach((el, i) => console.log(`  checkbox[${i}]: visible=${isVisible(el)} text="${norm(el.textContent).slice(0, 80)}"`));
-                // Also dump any element with "co" in its text for debugging
-                const coEls = [...scope.querySelectorAll('*')].filter(el => {
-                    const t = norm(el.textContent);
-                    return t.includes('co-app') || t.includes('coapp') || t.includes('co applicant') || t.includes('make this');
-                }).slice(0, 10);
-                if (coEls.length > 0) {
-                    console.log(`  Elements with co-applicant-like text (${coEls.length}):`);
-                    coEls.forEach((el, i) => console.log(`    [${i}] <${el.tagName?.toLowerCase()}> class="${(el.className || '').toString().slice(0, 60)}" text="${norm(el.textContent).slice(0, 80)}" visible=${isVisible(el)}`));
-                }
-            }
             return null;
         };
 
-        // 3a. Try inside the new container first
-        let coApResult = newContainer ? findCoApElement(newContainer) : null;
-
-        // 3b. Fall back to full document if not found in container
-        if (!coApResult) {
-            console.log('[Altech Scraper] Co-Applicant element not in expansion panel — searching full page...');
-            coApResult = findCoApElement(document);
+        // 3a. Search inside the new container first, then full page
+        let coApToggle = newContainer ? findCoApToggle(newContainer) : null;
+        if (!coApToggle) {
+            console.log('[Altech Scraper] Co-Applicant toggle not in container — searching full page...');
+            coApToggle = findCoApToggle(document);
         }
 
-        // 3c. Retry: Maybe the toggle hasn't rendered yet — wait extra and try again
-        if (!coApResult) {
-            console.log('[Altech Scraper] Co-Applicant not found on first pass — waiting 2s for render and retrying...');
+        // 3b. Retry with extra wait if Angular hasn't rendered it yet
+        if (!coApToggle) {
+            console.log('[Altech Scraper] Co-Applicant toggle not found — waiting 2s and retrying...');
             await wait(2000);
-            coApResult = newContainer ? findCoApElement(newContainer) : null;
-            if (!coApResult) coApResult = findCoApElement(document);
+            coApToggle = newContainer ? findCoApToggle(newContainer) : null;
+            if (!coApToggle) coApToggle = findCoApToggle(document);
         }
 
-        // 3d. PROCESS OF ELIMINATION: If text-based search failed, find ALL toggles/checkboxes
-        //     in the expansion panel, exclude poisoned ones (Client Center), and click whatever's left.
-        //     In EZLynx, the new contact panel typically has exactly 2 toggles:
-        //     "Make this contact Co-Applicant" and "Client Center Access".
-        if (!coApResult && newContainer) {
-            console.log('[Altech Scraper] Text-based search failed — trying process-of-elimination...');
-            const allTogglesInPanel = [
-                ...newContainer.querySelectorAll('mat-slide-toggle, [class*="mat-slide-toggle"], [class*="slide-toggle"]'),
-                ...newContainer.querySelectorAll('mat-checkbox, [class*="mat-checkbox"]')
-            ].filter(el => isVisible(el));
+        // 3c. Click the toggle (inner checkbox first — matches filler behavior)
+        if (coApToggle) {
+            const alreadyChecked = coApToggle.classList.contains('mat-checked') ||
+                coApToggle.classList.contains('mat-mdc-slide-toggle-checked') ||
+                coApToggle.classList.contains('mat-checkbox-checked') ||
+                coApToggle.querySelector('input[type="checkbox"]')?.checked || false;
 
-            console.log(`[Altech Scraper] Found ${allTogglesInPanel.length} visible toggles/checkboxes in expansion panel:`);
-            allTogglesInPanel.forEach((el, i) => {
-                const t = norm(el.textContent);
-                console.log(`  [${i}] <${el.tagName?.toLowerCase()}> text="${t.slice(0, 80)}" poisoned=${TOGGLE_POISON.some(pw => t.includes(pw))}`);
-            });
-
-            // Filter out poisoned toggles
-            const unpoisoned = allTogglesInPanel.filter(el => {
-                const t = norm(el.textContent);
-                return !TOGGLE_POISON.some(pw => t.includes(pw));
-            });
-
-            if (unpoisoned.length === 1) {
-                // Only ONE non-Client-Center toggle — must be the Co-Applicant toggle
-                const el = unpoisoned[0];
-                const isActive = el.classList.contains('mat-checked') ||
-                    el.classList.contains('mat-mdc-slide-toggle-checked') ||
-                    el.classList.contains('mat-checkbox-checked') ||
-                    el.classList.contains('mat-mdc-checkbox-checked') ||
-                    el.querySelector('input[type="checkbox"]')?.checked || false;
-                coApResult = { element: el, type: `elimination-${el.tagName?.toLowerCase()}`, isActive };
-                console.log(`[Altech Scraper] Process-of-elimination: 1 unpoisoned toggle found → assuming Co-Applicant`);
-            } else if (unpoisoned.length > 1) {
-                // Multiple unpoisoned toggles — pick the one most likely to be Co-Applicant
-                // Prefer elements with formcontrolname containing "co" or "applicant"
-                const byFcn = unpoisoned.find(el => {
-                    const fcn = (el.getAttribute('formcontrolname') || '').toLowerCase();
-                    return fcn.includes('co') || fcn.includes('applicant') || fcn.includes('coap');
-                });
-                const picked = byFcn || unpoisoned[0]; // First non-poisoned if no formcontrolname match
-                const isActive = picked.classList.contains('mat-checked') ||
-                    picked.classList.contains('mat-mdc-slide-toggle-checked') ||
-                    picked.classList.contains('mat-checkbox-checked') ||
-                    picked.querySelector('input[type="checkbox"]')?.checked || false;
-                coApResult = { element: picked, type: `elimination-guessed-${picked.tagName?.toLowerCase()}`, isActive };
-                console.log(`[Altech Scraper] Process-of-elimination: ${unpoisoned.length} unpoisoned toggles — picked first/best guess`);
-            }
-        }
-
-        // 3e. LAST RESORT: search the full document for unpoisoned toggles that appeared AFTER clicking Add contact
-        if (!coApResult) {
-            console.log('[Altech Scraper] Trying full-document process-of-elimination...');
-            const allDocToggles = [
-                ...document.querySelectorAll('mat-slide-toggle, [class*="mat-slide-toggle"]'),
-                ...document.querySelectorAll('mat-checkbox, [class*="mat-checkbox"]')
-            ].filter(el => isVisible(el));
-
-            console.log(`[Altech Scraper] FULL DIAGNOSTIC — ${allDocToggles.length} toggles/checkboxes on entire page:`);
-            allDocToggles.forEach((el, i) => {
-                const t = norm(el.textContent);
-                const fcn = el.getAttribute('formcontrolname') || '';
-                const cls = (el.className || '').toString().slice(0, 60);
-                console.log(`  [${i}] <${el.tagName?.toLowerCase()}> fcn="${fcn}" class="${cls}" text="${t.slice(0, 80)}" visible=${isVisible(el)}`);
-            });
-        }
-
-        // Click the toggle if found
-        if (coApResult) {
-            if (!coApResult.isActive) {
-                // Click the inner checkbox input FIRST (Angular Material best practice from filler)
-                const innerInput = coApResult.element.querySelector('input[type="checkbox"]');
-                if (innerInput && !innerInput.checked) {
-                    innerInput.click();
-                    console.log(`[Altech Scraper] Clicked inner checkbox for ${coApResult.type} (label: "${norm(coApResult.element.textContent).slice(0, 60)}")`);
+            if (!alreadyChecked) {
+                const innerCb = coApToggle.querySelector('input[type="checkbox"]');
+                if (innerCb) {
+                    innerCb.click();
+                    console.log(`[Altech Scraper] Clicked Co-Applicant inner checkbox: "${(coApToggle.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 60)}"`);
                 } else {
-                    coApResult.element.click();
-                    console.log(`[Altech Scraper] Clicked outer ${coApResult.type} (label: "${norm(coApResult.element.textContent).slice(0, 60)}")`);
+                    coApToggle.click();
+                    console.log(`[Altech Scraper] Clicked Co-Applicant toggle element`);
                 }
-                // Double-check: if still not checked after 200ms, try the other click target
-                await wait(200);
-                const nowChecked = coApResult.element.classList.contains('mat-checked') ||
-                    coApResult.element.classList.contains('mat-mdc-slide-toggle-checked') ||
-                    coApResult.element.classList.contains('mat-checkbox-checked') ||
-                    coApResult.element.querySelector('input[type="checkbox"]')?.checked || false;
-                if (!nowChecked) {
-                    console.log('[Altech Scraper] Toggle still unchecked — trying alternate click target...');
-                    if (innerInput) coApResult.element.click(); else innerInput?.click();
-                    // Also try dispatching a change event
-                    coApResult.element.dispatchEvent(new Event('change', { bubbles: true }));
-                    const toggleInput = coApResult.element.querySelector('input');
-                    if (toggleInput) toggleInput.dispatchEvent(new Event('change', { bubbles: true }));
+                // Verify click took effect after 300ms; try outer click if not
+                await wait(300);
+                const verified = coApToggle.classList.contains('mat-checked') ||
+                    coApToggle.classList.contains('mat-mdc-slide-toggle-checked') ||
+                    coApToggle.classList.contains('mat-checkbox-checked') ||
+                    coApToggle.querySelector('input[type="checkbox"]')?.checked || false;
+                if (!verified) {
+                    console.log('[Altech Scraper] Toggle still unchecked — trying alternate click...');
+                    coApToggle.click();
+                    await wait(200);
                 }
             } else {
-                console.log(`[Altech Scraper] Co-Applicant ${coApResult.type} already active — skipping click`);
+                console.log('[Altech Scraper] Co-Applicant toggle already active — skipping click');
             }
             activatedCoAp = true;
         } else {
-            console.warn('[Altech Scraper] Co-Applicant element NOT FOUND after all strategies. Full diagnostic dump logged above.');
+            console.warn('[Altech Scraper] Co-Applicant toggle NOT FOUND after 2 attempts');
         }
 
-        // Step 4: Wait for Relationship dropdown (and other Co-Ap fields) to render
+        // Step 4: Wait for Co-Applicant fields (Relationship, Industry, etc.) to render
         if (activatedCoAp) {
             await wait(1500);
-            console.log('[Altech Scraper] Co-Applicant toggle active — Relationship dropdown should be rendered');
+            console.log('[Altech Scraper] Co-Applicant toggle active — fields should be rendered');
         } else {
             console.warn('[Altech Scraper] Could not activate Co-Applicant toggle — scraping without it');
             await wait(500);
@@ -4219,20 +4064,23 @@ async function scrapePage() {
         // ── Co-Applicant Industry → Occupation dependency ──
         // If the co-applicant section has an Industry dropdown, fill it with "Retired"
         // so the Occupation dropdown unlocks, then scrape Occupation options.
-        if (newContainer || true) {
+        if (activatedCoAp) {
             const coApScope = newContainer || document;
             // Find Co-Applicant Industry (must be a NEW mat-select not in the primary applicant's §3c)
             let coApIndustry = null;
-            for (const ms of coApScope.querySelectorAll('mat-select')) {
+            const allCoApMatSelects = coApScope.querySelectorAll('mat-select');
+            console.log(`[Altech Scraper] Searching ${allCoApMatSelects.length} mat-selects in CoAp scope for Industry...`);
+            for (const ms of allCoApMatSelects) {
                 if (!isVisible(ms)) continue;
                 const lbl = (findLabelFor(ms) || '').toLowerCase();
                 const wf = ms.closest('mat-form-field, [class*="form-field"]');
                 const wrapLbl = wf?.querySelector('mat-label, .mat-form-field-label, .mdc-floating-label')?.textContent?.trim()?.toLowerCase() || '';
                 const ariaLbl = (ms.getAttribute('aria-label') || '').toLowerCase();
+                console.log(`  mat-select: lbl="${lbl}" wrapLbl="${wrapLbl}" ariaLbl="${ariaLbl}" visible=${isVisible(ms)}`);
                 if ([lbl, wrapLbl, ariaLbl].some(t => t.includes('industry'))) {
                     // Make sure it's a NEW one (not the primary we already handled in §3c)
                     const msId = ms.id || ms.getAttribute('formcontrolname') || '';
-                    if (msId && preClickFields.has(msId)) continue; // skip primary
+                    if (msId && preClickFields.has(msId)) { console.log(`    → skipped (primary, id="${msId}")`); continue; }
                     coApIndustry = ms;
                     break;
                 }
@@ -4321,10 +4169,10 @@ async function scrapePage() {
                     console.warn('[Altech Scraper] Co-Applicant Industry/Occupation failed:', e.message);
                     nukeOverlays();
                 }
+            } else {
+                console.log('[Altech Scraper] Co-Applicant Industry dropdown not found in scope — may not be rendered yet or labels differ');
             }
         }
-
-        // Scrape new checkboxes / toggles / radios inside the contact container
         if (newContainer) {
             for (const ctrl of newContainer.querySelectorAll('mat-checkbox, mat-slide-toggle, mat-radio-button, input[type="checkbox"], input[type="radio"]')) {
                 if (!isVisible(ctrl)) continue;
