@@ -692,8 +692,10 @@ window.DashboardWidgets = (() => {
     function showDashboard() {
         const dv = document.getElementById('dashboardView');
         const pv = document.getElementById('pluginViewport');
+        const lp = document.getElementById('landingPage');
         if (dv) dv.style.display = '';
         if (pv) { pv.style.display = 'none'; pv.classList.remove('active'); }
+        if (lp) lp.style.display = 'none';
         setActiveSidebarItem('home');
         updateBreadcrumb(null);
         _closeMobileSidebar();
@@ -714,8 +716,10 @@ window.DashboardWidgets = (() => {
     function hideDashboard(toolKey, toolTitle) {
         const dv = document.getElementById('dashboardView');
         const pv = document.getElementById('pluginViewport');
+        const lp = document.getElementById('landingPage');
         if (dv) dv.style.display = 'none';
         if (pv) { pv.style.display = 'block'; pv.classList.add('active'); }
+        if (lp) lp.style.display = 'none';
         setActiveSidebarItem(toolKey);
         updateBreadcrumb(toolKey, toolTitle);
         _closeMobileSidebar();

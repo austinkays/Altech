@@ -35,20 +35,20 @@ body.dark-mode {
     --apple-gray: #98989D;
     --success: #32D74B;
     --danger: #FF453A;
-    --bg: #0A0A0F;
-    --bg-card: rgba(28, 28, 32, 0.85);
+    --bg: #000000;
+    --bg-card: #1C1C1E;
     --bg-input: #2C2C2E;
     --text: #FFFFFF;
     --text-secondary: #98989D;
-    --text-tertiary: #6E6E73;
-    --border: #2A2A2E;
-    --border-subtle: rgba(255, 255, 255, 0.06);
-    --shadow: rgba(0, 0, 0, 0.3);
+    --text-tertiary: #8E8E93;
+    --border: #38383A;
+    --border-subtle: #2C2C2E;
+    --shadow: rgba(0, 0, 0, 0.4);
 
     /* Desktop Command Center tokens — dark */
-    --bg-sidebar: rgba(18, 18, 22, 0.90);
-    --bg-widget-hover: rgba(38, 38, 44, 0.90);
-    --sidebar-active: rgba(10, 132, 255, 0.15);
+    --bg-sidebar: #1C1C1E;
+    --bg-widget-hover: #2C2C2E;
+    --sidebar-active: rgba(10, 132, 255, 0.25);
     --accent-gradient: linear-gradient(135deg, #0A84FF, #5E5CE6);
     --accent-gradient-text: linear-gradient(135deg, #0A84FF, #5E5CE6);
 }
