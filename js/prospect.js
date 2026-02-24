@@ -724,7 +724,7 @@ ${ai.underwritingNotes || 'N/A'}`;
             <div style="text-align: center; padding: 32px;">
                 <div class="ai-pulse" style="font-size: 36px; margin-bottom: 12px;">🧠</div>
                 <div style="font-weight: 600; margin-bottom: 4px;">Researching Business...</div>
-                <div style="font-size: 13px; color: var(--text-secondary);">Gemini is searching the web and analyzing public records to build your underwriting intelligence report</div>
+                <div style="font-size: 13px; color: var(--text-secondary);">AI is searching the web and analyzing public records to build your underwriting intelligence report</div>
                 <div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px; opacity: 0.6;">This typically takes 10–20 seconds</div>
             </div>`;
 
@@ -744,7 +744,8 @@ ${ai.underwritingNotes || 'N/A'}`;
                     sos: currentData.sos,
                     osha: currentData.osha,
                     sam: currentData.sam,
-                    places: currentData.places
+                    places: currentData.places,
+                    aiSettings: window.AIProvider?.getSettings()
                 })
             });
 

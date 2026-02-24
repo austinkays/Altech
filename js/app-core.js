@@ -1102,7 +1102,29 @@ Object.assign(App, {
                 }
             } catch (_) { /* server unavailable – fall through */ }
 
-            // Try 2: Direct Gemini API (works in Tauri / offline / no server)
+            // Try 2: AIProvider (supports all providers)
+            if (!payload && typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) {
+                try {
+                    const systemPrompt = 'You are a linguistics expert who generates phonetic pronunciation guides. Return only valid JSON.';
+                    const userMessage =
+                        'Generate phonetic pronunciations for the provided name(s).\n' +
+                        'Rules:\n' +
+                        '- Return plain ASCII with syllable breaks using hyphens.\n' +
+                        '- Use uppercase for the stressed syllable.\n' +
+                        '- If unsure, provide a best-effort guess.\n' +
+                        'Return ONLY JSON: {"firstNamePhonetic":"","lastNamePhonetic":""}\n\n' +
+                        `First Name: ${firstName}\nLast Name: ${lastName}`;
+                    const result = await AIProvider.ask(systemPrompt, userMessage, {
+                        temperature: 0.2, maxTokens: 256, responseFormat: 'json'
+                    });
+                    if (result.text) {
+                        const parsed = AIProvider.extractJSON(result.text);
+                        if (parsed && (parsed.firstNamePhonetic || parsed.lastNamePhonetic)) payload = parsed;
+                    }
+                } catch (e) { console.warn('[Pronunciation] AIProvider failed:', e); }
+            }
+
+            // Try 3: Direct Gemini API fallback (works in Tauri / offline / no server)
             if (!payload) {
                 const key = await this._getGeminiKey();
 

@@ -387,6 +387,161 @@ window.AIProvider = (() => {
         }
     }
 
+    // ── Robust JSON Extraction ───────────────────────────────────
+
+    /**
+     * Extract and parse JSON from an AI response string.
+     * Handles: clean JSON, markdown-fenced JSON, nested objects, trailing commas.
+     * @param {string} text - Raw AI response text
+     * @returns {Object|Array|null} Parsed JSON or null
+     */
+    function extractJSON(text) {
+        if (!text) return null;
+        const trimmed = text.trim();
+
+        // 1. Direct parse (cleanest path)
+        try { return JSON.parse(trimmed); } catch (_) {}
+
+        // 2. Strip markdown code fences: ```json ... ``` or ``` ... ```
+        const fenced = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+        if (fenced) {
+            try { return JSON.parse(fenced[1].trim()); } catch (_) {}
+        }
+
+        // 3. Find outermost JSON object or array (handles nested)
+        const firstBrace = trimmed.indexOf('{');
+        const firstBracket = trimmed.indexOf('[');
+        let start, open, close;
+
+        if (firstBrace === -1 && firstBracket === -1) return null;
+        if (firstBracket === -1 || (firstBrace !== -1 && firstBrace < firstBracket)) {
+            start = firstBrace; open = '{'; close = '}';
+        } else {
+            start = firstBracket; open = '['; close = ']';
+        }
+
+        let depth = 0;
+        let inString = false;
+        let escape = false;
+        let end = -1;
+
+        for (let i = start; i < trimmed.length; i++) {
+            const ch = trimmed[i];
+            if (escape) { escape = false; continue; }
+            if (ch === '\\') { escape = true; continue; }
+            if (ch === '"') { inString = !inString; continue; }
+            if (inString) continue;
+            if (ch === open) depth++;
+            if (ch === close) { depth--; if (depth === 0) { end = i; break; } }
+        }
+
+        if (end === -1) return null;
+        const candidate = trimmed.slice(start, end + 1);
+
+        try { return JSON.parse(candidate); } catch (_) {}
+
+        // 4. Fix trailing commas before } or ] and retry
+        const cleaned = candidate.replace(/,\s*([}\]])/g, '$1');
+        try { return JSON.parse(cleaned); } catch (_) {}
+
+        return null;
+    }
+
+    // ── Multi-Turn Chat ──────────────────────────────────────────
+
+    /**
+     * Send a multi-turn conversation to the configured provider.
+     * @param {string} systemPrompt - System instructions
+     * @param {Array<{role: string, content: string}>} messages - Conversation history
+     *   Each message has `role` ('user' or 'assistant') and `content` (text).
+     * @param {Object} opts - { temperature, maxTokens }
+     * @returns {Promise<{text: string, raw: Object}>}
+     */
+    async function chat(systemPrompt, messages, opts = {}) {
+        const provider = getProvider();
+        const model = getModel();
+        const apiKey = getApiKey();
+
+        if (!apiKey) {
+            throw new Error('No API key configured. Open your account settings to add one.');
+        }
+
+        const temperature = opts.temperature ?? 0.5;
+        const maxTokens = opts.maxTokens ?? 2048;
+
+        switch (provider) {
+            case 'google':
+                return _chatGoogle(apiKey, model, systemPrompt, messages, { temperature, maxTokens });
+            case 'openrouter':
+            case 'openai':
+                return _chatOpenAI(apiKey, model, systemPrompt, messages, { temperature, maxTokens }, provider);
+            case 'anthropic':
+                return _chatAnthropic(apiKey, model, systemPrompt, messages, { temperature, maxTokens });
+            default:
+                throw new Error(`Unknown AI provider: ${provider}`);
+        }
+    }
+
+    async function _chatGoogle(apiKey, model, systemPrompt, messages, opts) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const contents = messages.map(m => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.content }]
+        }));
+        const body = {
+            contents,
+            generationConfig: { temperature: opts.temperature, maxOutputTokens: opts.maxTokens }
+        };
+        if (systemPrompt) {
+            body.systemInstruction = { role: 'system', parts: [{ text: systemPrompt }] };
+        }
+        const res = await fetch(url, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err?.error?.message || `Google API error (${res.status})`);
+        }
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        return { text, raw: data };
+    }
+
+    async function _chatOpenAI(apiKey, model, systemPrompt, messages, opts, provider) {
+        const isOpenRouter = provider === 'openrouter';
+        const url = isOpenRouter ? 'https://openrouter.ai/api/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
+        const msgs = [];
+        if (systemPrompt) msgs.push({ role: 'system', content: systemPrompt });
+        messages.forEach(m => msgs.push({ role: m.role, content: m.content }));
+        const body = { model, messages: msgs, temperature: opts.temperature, max_tokens: opts.maxTokens };
+        const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
+        if (isOpenRouter) { headers['HTTP-Referer'] = window.location.origin; headers['X-Title'] = 'Altech Insurance'; }
+        const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err?.error?.message || `${provider} API error (${res.status})`);
+        }
+        const data = await res.json();
+        const text = data?.choices?.[0]?.message?.content || '';
+        return { text, raw: data };
+    }
+
+    async function _chatAnthropic(apiKey, model, systemPrompt, messages, opts) {
+        const url = '/api/anthropic-proxy';
+        const msgs = messages.map(m => ({ role: m.role, content: m.content }));
+        const body = { model, system: systemPrompt || '', messages: msgs, max_tokens: opts.maxTokens, temperature: opts.temperature, apiKey };
+        const fetchFn = (typeof Auth !== 'undefined' && Auth.apiFetch) ? Auth.apiFetch.bind(Auth) : fetch;
+        const res = await fetchFn(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err?.error?.message || `Anthropic API error (${res.status})`);
+        }
+        const data = await res.json();
+        const text = data?.content?.[0]?.text || '';
+        return { text, raw: data };
+    }
+
     // ── Public API ───────────────────────────────────────────────
 
     return {
@@ -399,6 +554,8 @@ window.AIProvider = (() => {
         getApiKey,
         isConfigured,
         ask,
+        chat,
+        extractJSON,
         testConnection
     };
 })();

@@ -296,7 +296,7 @@
     border: 1px solid rgba(52, 199, 89, 0.2);
 }
 
-/* ── Auth Divider ── */
+/* ── Auth Divider (legacy) ── */
 .auth-divider {
     display: flex;
     align-items: center;
@@ -314,6 +314,141 @@
     flex: 1;
     height: 1px;
     background: var(--border, #eee);
+}
+
+/* ── Settings Accordion Sections ── */
+.settings-section {
+    border: 1px solid var(--border, #BEC5D4);
+    border-radius: 12px;
+    background: var(--bg-card, rgba(255,255,255,0.92));
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+
+.settings-section[open] {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.settings-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text, #1a1a1e);
+    letter-spacing: 0.02em;
+    transition: background 0.15s ease;
+}
+
+.settings-section-header::-webkit-details-marker {
+    display: none;
+}
+
+.settings-section-header::marker {
+    display: none;
+    content: '';
+}
+
+.settings-section-header:hover {
+    background: var(--bg-input, #EDF0F8);
+}
+
+.settings-section-header:active {
+    background: var(--border, #BEC5D4);
+}
+
+.settings-section-icon {
+    font-size: 1rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.settings-section-title {
+    flex: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.72rem;
+    color: var(--text-secondary, #556070);
+}
+
+.settings-section-badge {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: var(--apple-blue, #007AFF);
+    color: #fff;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.settings-section-badge:empty {
+    display: none;
+}
+
+.settings-section-chevron {
+    font-size: 1.1rem;
+    font-weight: 300;
+    color: var(--text-secondary, #556070);
+    transition: transform 0.25s ease;
+    line-height: 1;
+}
+
+.settings-section[open] > .settings-section-header .settings-section-chevron {
+    transform: rotate(90deg);
+}
+
+.settings-section-body {
+    padding: 0 0.85rem 0.85rem;
+    animation: settingsSlideIn 0.2s ease;
+}
+
+@keyframes settingsSlideIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Refined select inside settings */
+.settings-select {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border-radius: 10px;
+    border: 1.5px solid var(--border, #BEC5D4);
+    background: var(--bg-input, #EDF0F8);
+    color: var(--text);
+    font-size: 13px;
+    appearance: auto;
+    transition: border-color 0.2s ease;
+}
+
+.settings-select:focus {
+    border-color: var(--apple-blue, #007AFF);
+    outline: none;
+}
+
+/* AI Model Info Card (inside settings) */
+.ai-model-info-card {
+    margin: -0.15rem 0 0.4rem;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--bg-input, #EDF0F8);
+    border: 1px solid var(--border, #BEC5D4);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* AI Cost Card */
+.ai-cost-card {
+    margin: -0.15rem 0 0.4rem;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--bg-input, #EDF0F8);
+    border: 1px solid var(--border, #BEC5D4);
+    font-size: 11px;
+    line-height: 1.6;
 }
 
 /* ── Auth Links ── */

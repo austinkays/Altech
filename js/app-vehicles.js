@@ -138,7 +138,8 @@ Object.assign(App, {
                         body: JSON.stringify({
                             action: 'scanDriverLicense',
                             base64Data,
-                            mimeType
+                            mimeType,
+                            aiSettings: window.AIProvider?.getSettings()
                         })
                     });
 

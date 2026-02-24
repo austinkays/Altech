@@ -373,7 +373,8 @@ Object.assign(App, {
                             base64Data: base64Data,
                             mimeType: imageFile.type || 'image/jpeg',
                             imageType: 'property',
-                            county: this.getCountyFromCity(this.data.addrCity, this.data.addrState)
+                            county: this.getCountyFromCity(this.data.addrCity, this.data.addrState),
+                            aiSettings: window.AIProvider?.getSettings()
                         })
                     });
                     
@@ -408,7 +409,8 @@ Object.assign(App, {
                             action: 'processPDF',
                             base64Data: base64Data,
                             documentType: documentType,
-                            county: this.getCountyFromCity(this.data.addrCity, this.data.addrState)
+                            county: this.getCountyFromCity(this.data.addrCity, this.data.addrState),
+                            aiSettings: window.AIProvider?.getSettings()
                         })
                     });
                     
@@ -453,7 +455,8 @@ Object.assign(App, {
                                 base64Data: base64Data,
                                 lat: lat,
                                 lng: lng,
-                                county: this.getCountyFromCity(this.data.addrCity, this.data.addrState)
+                                county: this.getCountyFromCity(this.data.addrCity, this.data.addrState),
+                                aiSettings: window.AIProvider?.getSettings()
                             })
                         });
                         
@@ -665,7 +668,8 @@ Object.assign(App, {
                     city: city,
                     state: state,
                     county: county,
-                    yearBuilt: yearBuilt ? parseInt(yearBuilt) : null
+                    yearBuilt: yearBuilt ? parseInt(yearBuilt) : null,
+                    aiSettings: window.AIProvider?.getSettings()
                 })
             });
             
@@ -719,7 +723,8 @@ Object.assign(App, {
                     city: city,
                     state: state,
                     county: county,
-                    riskLevel: 'all'
+                    riskLevel: 'all',
+                    aiSettings: window.AIProvider?.getSettings()
                 })
             });
             
@@ -778,7 +783,8 @@ Object.assign(App, {
                     county: county,
                     propertyValue: propertyValue,
                     yearBuilt: yearBuilt ? parseInt(yearBuilt) : null,
-                    sqft: sqft
+                    sqft: sqft,
+                    aiSettings: window.AIProvider?.getSettings()
                 })
             });
             
@@ -838,7 +844,8 @@ Object.assign(App, {
                     county: county,
                     yearBuilt: yearBuilt ? parseInt(yearBuilt) : null,
                     propertyValue: propertyValue,
-                    sqft: sqft
+                    sqft: sqft,
+                    aiSettings: window.AIProvider?.getSettings()
                 })
             });
             

@@ -2720,6 +2720,7 @@
                     <h3>Your Account</h3>
                 </div>
                 <div class="auth-account-info">
+                    <!-- Profile -->
                     <div class="auth-field">
                         <label>Email</label>
                         <p id="authAccountEmail" class="auth-readonly"></p>
@@ -2731,102 +2732,132 @@
                             <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="Auth.updateName(document.getElementById('authAccountName').value)" style="white-space:nowrap">Update</button>
                         </div>
                     </div>
-                    <div class="auth-divider">sync</div>
-                    <div class="auth-sync-status">
-                        <div class="auth-sync-info">
-                            <span id="authSyncStatus">Ready to sync</span>
-                            <span id="authSyncTimestamp" class="auth-sync-timestamp"></span>
-                        </div>
-                        <button class="btn-auth btn-auth-small btn-auth-primary" style="margin-top:0;width:auto;padding:0.4rem 1rem" onclick="CloudSync.fullSync()">Sync Now</button>
-                    </div>
 
-                    <div class="auth-divider">ai model</div>
-                    <div id="aiSettingsSection">
-                        <div class="auth-field">
-                            <label for="aiProviderSelect">AI Provider</label>
-                            <select id="aiProviderSelect" onchange="App.onAIProviderChange()" style="width:100%;padding:0.6rem 0.75rem;border-radius:10px;border:1.5px solid var(--border,#BEC5D4);background:var(--bg-input,#EDF0F8);color:var(--text);font-size:14px;appearance:auto">
-                                <option value="google">Google Gemini (default)</option>
-                                <option value="openrouter">OpenRouter (100+ models)</option>
-                                <option value="openai">OpenAI</option>
-                                <option value="anthropic">Anthropic (Claude)</option>
-                            </select>
-                        </div>
-                        <div class="auth-field">
-                            <label for="aiModelSelect">Model</label>
-                            <select id="aiModelSelect" onchange="App.onAIModelChange()" style="width:100%;padding:0.6rem 0.75rem;border-radius:10px;border:1.5px solid var(--border,#BEC5D4);background:var(--bg-input,#EDF0F8);color:var(--text);font-size:14px;appearance:auto">
-                            </select>
-                        </div>
-                        <div id="aiModelInfo" style="display:none;margin:-0.25rem 0 0.5rem;padding:10px 12px;border-radius:10px;background:var(--bg-input,#EDF0F8);border:1px solid var(--border,#BEC5D4);font-size:12px;line-height:1.5">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                                <strong id="aiModelInfoName" style="font-size:13px;color:var(--text)"></strong>
-                                <span id="aiModelInfoCost" style="font-weight:600;color:var(--apple-blue);font-size:12px"></span>
-                            </div>
-                            <div id="aiModelInfoContext" style="color:var(--text-secondary);font-size:11px;margin-bottom:5px"></div>
-                            <div id="aiModelInfoTags" style="display:flex;flex-wrap:wrap;gap:4px"></div>
-                            <button id="aiCostToggle" onclick="App.toggleCostEstimates()" style="display:block;margin-top:6px;background:none;border:none;color:var(--apple-blue);font-size:11px;cursor:pointer;padding:0;font-weight:500">▼ Show cost per tool</button>
-                        </div>
-                        <div id="aiCostEstimates" style="display:none;margin:-0.25rem 0 0.5rem;padding:10px 12px;border-radius:10px;background:var(--bg-input,#EDF0F8);border:1px solid var(--border,#BEC5D4);font-size:11px;line-height:1.6">
-                            <div style="font-weight:600;font-size:12px;color:var(--text);margin-bottom:6px">💰 Estimated Cost Per Tool</div>
-                            <table id="aiCostTable" style="width:100%;border-collapse:collapse">
-                            </table>
-                            <p style="margin:6px 0 0;font-size:10px;color:var(--text-secondary);line-height:1.4">Estimates assume typical usage. Actual costs vary with document length, image count, and response complexity. Image-based tools use ~1.5K tokens per photo.</p>
-                        </div>
-                        <div class="auth-field">
-                            <label for="aiApiKeyInput">API Key <a id="aiKeyLink" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="font-weight:400;font-size:11px;color:var(--apple-blue)">(get key)</a></label>
-                            <div style="display:flex;gap:0.5rem;align-items:stretch">
-                                <input type="password" id="aiApiKeyInput" placeholder="AIza..." style="flex:1" autocomplete="off">
-                                <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="App.toggleAIKeyVisibility()" style="white-space:nowrap;padding:0.4rem 0.6rem" title="Show/hide key">👁</button>
+                    <!-- ☁️ Sync -->
+                    <details class="settings-section" open>
+                        <summary class="settings-section-header">
+                            <span class="settings-section-icon">☁️</span>
+                            <span class="settings-section-title">Sync</span>
+                            <span class="settings-section-chevron">›</span>
+                        </summary>
+                        <div class="settings-section-body">
+                            <div class="auth-sync-status">
+                                <div class="auth-sync-info">
+                                    <span id="authSyncStatus">Ready to sync</span>
+                                    <span id="authSyncTimestamp" class="auth-sync-timestamp"></span>
+                                </div>
+                                <button class="btn-auth btn-auth-small btn-auth-primary" style="margin-top:0;width:auto;padding:0.4rem 1rem" onclick="CloudSync.fullSync()">Sync Now</button>
                             </div>
                         </div>
-                        <div style="display:flex;gap:0.5rem;margin-top:0.25rem">
-                            <button class="btn-auth btn-auth-small btn-auth-primary" onclick="App.saveAISettings()" style="flex:1;margin-top:0">Save</button>
-                            <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="App.testAIConnection()" id="aiTestBtn" style="flex:1;margin-top:0">Test Connection</button>
-                        </div>
-                        <div id="aiTestResult" style="display:none;margin-top:0.5rem;padding:8px 12px;border-radius:8px;font-size:12px"></div>
-                        <p id="aiProviderHint" style="margin:0.5rem 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">Gemini 2.5 Flash is used by default for policy scanning, Q&A, and AI analysis. Add your own key for any provider to use premium models like Claude Opus or GPT-4o.</p>
-                    </div>
+                    </details>
 
-                    <div class="auth-divider">security</div>
-                    <div id="authChangePasswordSection">
-                        <button type="button" class="btn-auth btn-auth-secondary" style="width:100%;margin-bottom:0" onclick="document.getElementById('authChangePwForm').style.display = document.getElementById('authChangePwForm').style.display === 'none' ? 'block' : 'none'">Change Password</button>
-                        <form id="authChangePwForm" class="auth-form" style="display:none;margin-top:0.75rem" onsubmit="Auth.handleChangePasswordSubmit(event)">
+                    <!-- 🤖 AI Model -->
+                    <details class="settings-section" open>
+                        <summary class="settings-section-header">
+                            <span class="settings-section-icon">🤖</span>
+                            <span class="settings-section-title">AI Model</span>
+                            <span id="aiSettingsBadge" class="settings-section-badge"></span>
+                            <span class="settings-section-chevron">›</span>
+                        </summary>
+                        <div class="settings-section-body" id="aiSettingsSection">
                             <div class="auth-field">
-                                <label for="authCurrentPassword">Current Password</label>
-                                <input type="password" id="authCurrentPassword" placeholder="Current password" required autocomplete="current-password">
+                                <label for="aiProviderSelect">Provider</label>
+                                <select id="aiProviderSelect" onchange="App.onAIProviderChange()" class="settings-select">
+                                    <option value="google">Google Gemini (default)</option>
+                                    <option value="openrouter">OpenRouter (100+ models)</option>
+                                    <option value="openai">OpenAI</option>
+                                    <option value="anthropic">Anthropic (Claude)</option>
+                                </select>
                             </div>
                             <div class="auth-field">
-                                <label for="authNewPassword">New Password</label>
-                                <input type="password" id="authNewPassword" placeholder="New password (min 6 chars)" required minlength="6" autocomplete="new-password">
+                                <label for="aiModelSelect">Model</label>
+                                <select id="aiModelSelect" onchange="App.onAIModelChange()" class="settings-select">
+                                </select>
+                            </div>
+                            <div id="aiModelInfo" class="ai-model-info-card" style="display:none">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                                    <strong id="aiModelInfoName" style="font-size:13px;color:var(--text)"></strong>
+                                    <span id="aiModelInfoCost" style="font-weight:600;color:var(--apple-blue);font-size:12px"></span>
+                                </div>
+                                <div id="aiModelInfoContext" style="color:var(--text-secondary);font-size:11px;margin-bottom:5px"></div>
+                                <div id="aiModelInfoTags" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+                                <button id="aiCostToggle" onclick="App.toggleCostEstimates()" style="display:block;margin-top:6px;background:none;border:none;color:var(--apple-blue);font-size:11px;cursor:pointer;padding:0;font-weight:500">▼ Show cost per tool</button>
+                            </div>
+                            <div id="aiCostEstimates" class="ai-cost-card" style="display:none">
+                                <div style="font-weight:600;font-size:12px;color:var(--text);margin-bottom:6px">💰 Estimated Cost Per Tool</div>
+                                <table id="aiCostTable" style="width:100%;border-collapse:collapse"></table>
+                                <p style="margin:6px 0 0;font-size:10px;color:var(--text-secondary);line-height:1.4">Estimates assume typical usage. Actual costs vary with document length, image count, and response complexity.</p>
                             </div>
                             <div class="auth-field">
-                                <label for="authConfirmNewPassword">Confirm New Password</label>
-                                <input type="password" id="authConfirmNewPassword" placeholder="Confirm new password" required minlength="6" autocomplete="new-password">
+                                <label for="aiApiKeyInput">API Key <a id="aiKeyLink" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="font-weight:400;font-size:11px;color:var(--apple-blue)">(get key)</a></label>
+                                <div style="display:flex;gap:0.5rem;align-items:stretch">
+                                    <input type="password" id="aiApiKeyInput" placeholder="AIza..." style="flex:1" autocomplete="off">
+                                    <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="App.toggleAIKeyVisibility()" style="white-space:nowrap;padding:0.4rem 0.6rem" title="Show/hide key">👁</button>
+                                </div>
                             </div>
-                            <div class="auth-error" style="display:none"></div>
-                            <div class="auth-success" style="display:none"></div>
-                            <button type="submit" class="btn-auth btn-auth-primary" style="margin-top:0.25rem">Update Password</button>
-                        </form>
-                    </div>
+                            <div style="display:flex;gap:0.5rem;margin-top:0.25rem">
+                                <button class="btn-auth btn-auth-small btn-auth-primary" onclick="App.saveAISettings()" style="flex:1;margin-top:0">Save</button>
+                                <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="App.testAIConnection()" id="aiTestBtn" style="flex:1;margin-top:0">Test Connection</button>
+                            </div>
+                            <div id="aiTestResult" style="display:none;margin-top:0.5rem;padding:8px 12px;border-radius:8px;font-size:12px"></div>
+                            <p id="aiProviderHint" style="margin:0.5rem 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">Gemini 2.5 Flash is used by default. Add your own key for any provider to use premium models.</p>
+                        </div>
+                    </details>
 
-                    <div id="authInviteSection" style="display:none">
-                    <div class="auth-divider">team</div>
-                    <div class="auth-invite-row" onclick="Onboarding.showShareModal()">
-                        <span>👥</span>
-                        <div class="auth-invite-text">
-                            <strong>Invite Your Team</strong>
-                            <span>Share a link so colleagues can access Altech</span>
+                    <!-- 🔒 Security -->
+                    <details class="settings-section">
+                        <summary class="settings-section-header">
+                            <span class="settings-section-icon">🔒</span>
+                            <span class="settings-section-title">Security</span>
+                            <span class="settings-section-chevron">›</span>
+                        </summary>
+                        <div class="settings-section-body" id="authChangePasswordSection">
+                            <form id="authChangePwForm" class="auth-form" onsubmit="Auth.handleChangePasswordSubmit(event)">
+                                <div class="auth-field">
+                                    <label for="authCurrentPassword">Current Password</label>
+                                    <input type="password" id="authCurrentPassword" placeholder="Current password" required autocomplete="current-password">
+                                </div>
+                                <div class="auth-field">
+                                    <label for="authNewPassword">New Password</label>
+                                    <input type="password" id="authNewPassword" placeholder="New password (min 6 chars)" required minlength="6" autocomplete="new-password">
+                                </div>
+                                <div class="auth-field">
+                                    <label for="authConfirmNewPassword">Confirm New Password</label>
+                                    <input type="password" id="authConfirmNewPassword" placeholder="Confirm new password" required minlength="6" autocomplete="new-password">
+                                </div>
+                                <div class="auth-error" style="display:none"></div>
+                                <div class="auth-success" style="display:none"></div>
+                                <button type="submit" class="btn-auth btn-auth-primary" style="margin-top:0.25rem">Update Password</button>
+                            </form>
                         </div>
-                        <span class="auth-invite-arrow">›</span>
-                    </div>
-                    <div id="authAdminSection" class="auth-invite-row" style="display:none;margin-top:0.5rem" onclick="AdminPanel.open()">
-                        <span>🛡️</span>
-                        <div class="auth-invite-text">
-                            <strong>User Management</strong>
-                            <span>View users, grant admin, block accounts</span>
+                    </details>
+
+                    <!-- 👥 Team -->
+                    <details class="settings-section" id="authInviteSection" style="display:none">
+                        <summary class="settings-section-header">
+                            <span class="settings-section-icon">👥</span>
+                            <span class="settings-section-title">Team</span>
+                            <span class="settings-section-chevron">›</span>
+                        </summary>
+                        <div class="settings-section-body">
+                            <div class="auth-invite-row" onclick="Onboarding.showShareModal()">
+                                <span>👥</span>
+                                <div class="auth-invite-text">
+                                    <strong>Invite Your Team</strong>
+                                    <span>Share a link so colleagues can access Altech</span>
+                                </div>
+                                <span class="auth-invite-arrow">›</span>
+                            </div>
+                            <div id="authAdminSection" class="auth-invite-row" style="display:none;margin-top:0.5rem" onclick="AdminPanel.open()">
+                                <span>🛡️</span>
+                                <div class="auth-invite-text">
+                                    <strong>User Management</strong>
+                                    <span>View users, grant admin, block accounts</span>
+                                </div>
+                                <span class="auth-invite-arrow">›</span>
+                            </div>
                         </div>
-                        <span class="auth-invite-arrow">›</span>
-                    </div>
-                    </div>
+                    </details>
                 </div>
                 <div class="auth-account-actions">
                     <button class="btn-auth btn-auth-secondary" onclick="Auth.logout()">Sign Out</button>

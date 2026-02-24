@@ -1,6 +1,5 @@
-// Dynamic import — @google/generative-ai may not be installed
 import { securityMiddleware } from '../lib/security.js';
-let GoogleGenerativeAI;
+import { createRouter, extractJSON } from './_ai-router.js';
 
 /**
  * Phase 5: Historical Data & Comparative Analysis
@@ -13,27 +12,14 @@ let GoogleGenerativeAI;
  * - Market conditions timeline
  * - Risk assessment changes
  * 
- * Temperature: 0.3 (analysis-based, slightly more reasoning)
- * Model: gemini-2.0-flash-001
+ * Routes through user's chosen AI provider via _ai-router.js.
+ * Falls back to Google Gemini via env key when no user settings provided.
+ * 
+ * IMPORTANT DISCLAIMERS:
+ * - Historical values are AI estimates based on regional trends, NOT official appraisals
+ * - Insurance rate projections are directional, not quotes
+ * - Always verify with actual market data and professional appraisals
  */
-
-let genAI = null;
-
-async function getGenAI() {
-    if (genAI) return genAI;
-    const apiKey = (process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '').trim();
-    if (!apiKey) throw new Error('GOOGLE_API_KEY not configured');
-    if (!GoogleGenerativeAI) {
-        try {
-            const mod = await import('@google/generative-ai');
-            GoogleGenerativeAI = mod.GoogleGenerativeAI;
-        } catch {
-            throw new Error('@google/generative-ai package not installed');
-        }
-    }
-    genAI = new GoogleGenerativeAI(apiKey);
-    return genAI;
-}
 
 /**
  * Analyze historical property values
@@ -47,7 +33,7 @@ async function getGenAI() {
  * @param {string} options.county - County name
  * @returns {Promise<Object>} Historical value analysis
  */
-async function analyzeValueHistory(options) {
+async function analyzeValueHistory(options, ai) {
   const { address, city, state, yearBuilt, lastKnownValue, county } = options;
 
   if (!address || !city || !state) {
@@ -59,43 +45,27 @@ async function analyzeValueHistory(options) {
   }
 
   try {
-    const ai = await getGenAI();
-    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    const systemPrompt = `You are a real estate market analyst specializing in residential property valuation. Provide data-driven estimates based on regional market trends, economic indicators, and historical patterns.
 
-    const prompt = `You are a real estate market analyst. Based on historical data patterns and market knowledge, analyze property value trends.
+CRITICAL DISCLAIMERS TO INCLUDE:
+- All values are AI estimates based on regional trends, NOT official appraisals
+- Actual values may differ significantly based on property condition, improvements, and micro-market factors
+- Always verify with a licensed appraiser for official valuations
 
-Property Details:
+Return ONLY valid JSON — no markdown, no code fences.`;
+
+    const prompt = `Analyze property value trends for:
 - Address: ${address}, ${city}, ${state}
 - Year Built: ${yearBuilt || 'Unknown'}
 - Last Known Value: ${lastKnownValue ? `$${lastKnownValue}` : 'Unknown'}
 - County: ${county || 'Unknown'}
 
-Provide Analysis:
-
-1. ESTIMATED VALUE HISTORY (5-year intervals if possible)
-   - Estimate values for: 10 years ago, 5 years ago, 3 years ago, 1 year ago, current
-   - Base estimates on regional market trends
-   - Consider inflation, property age, market cycles
-
-2. APPRECIATION RATE
-   - Annual appreciation percentage (typical for this area)
-   - Compare to county and state averages
-   - Account for market cycles
-
-3. MARKET CONDITIONS TIMELINE
-   - Major economic events affecting real estate (2008 crash, 2020 pandemic, etc.)
-   - How they impacted this county/region
-   - Current market trend (rising/stable/declining)
-
-4. RISK FACTORS OVER TIME
-   - How flood risk has changed (climate, building codes)
-   - How wildfire risk has changed (climate, vegetation)
-   - Historical insurance rate trends
-
-5. COMPARABLE PROPERTIES
-   - Similar properties in neighborhood
-   - Price range for same year/size/condition
-   - Market positioning (above/below average)
+Provide a comprehensive value history analysis covering:
+1. Estimated values at 10yr, 5yr, 3yr, 1yr ago, and current (based on regional trends)
+2. Annual appreciation rate vs county/state averages
+3. Major economic events affecting this region's real estate
+4. How flood/wildfire risk trends have changed
+5. Comparable property price ranges
 
 Return JSON:
 {
@@ -110,62 +80,46 @@ Return JSON:
     "annualAverage": 0.065,
     "fiveYearRate": 0.31,
     "tenYearRate": 0.57,
-    "comparison": "Above county average (3.2% annually)"
+    "comparison": "comparison to county average"
   },
   "marketTimeline": [
-    { "year": 2016, "event": "Post-2008 recovery", "impact": "slow growth" },
-    { "year": 2020, "event": "COVID-19 pandemic", "impact": "surge in demand" },
-    { "year": 2024, "event": "Interest rate increases", "impact": "cooling market" }
+    { "year": 2016, "event": "description", "impact": "effect on values" }
   ],
-  "currentTrend": "stable with slight upward pressure",
+  "currentTrend": "stable|rising|declining with detail",
   "riskAssessment": {
-    "floodRisk": { "trend": "increasing", "reason": "Climate change, increased precipitation" },
-    "wildfireRisk": { "trend": "stable", "reason": "Distance from wildland interface" }
+    "floodRisk": { "trend": "increasing|stable|decreasing", "reason": "explanation" },
+    "wildfireRisk": { "trend": "increasing|stable|decreasing", "reason": "explanation" }
   },
   "comparables": {
     "neighborhood": { "avgValue": 525000, "range": "450000 - 650000" },
     "county": { "avgValue": 485000, "range": "300000 - 750000" },
-    "positioning": "Slightly above neighborhood average"
+    "positioning": "where this property sits relative to averages"
   },
+  "disclaimer": "These are AI-generated estimates based on regional trends. Not an official appraisal.",
   "confidence": 0.75,
   "sources": ["Regional market data", "Historical trends", "Economic indicators"]
 }`;
 
-    const response = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 2048
-      }
-    });
+    const responseText = await ai.ask(systemPrompt, prompt, { temperature: 0.3, maxTokens: 2048 });
 
-    const responseText = response.content.parts[0].text;
-
-    try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsedData = JSON.parse(jsonMatch[0]);
-        return {
-          success: true,
-          data: parsedData,
-          confidence: parsedData.confidence || 0.75,
-          dataSource: "phase5-historical-values",
-          timestamp: new Date().toISOString()
-        };
-      }
-    } catch (parseError) {
+    const parsedData = extractJSON(responseText);
+    if (parsedData) {
       return {
         success: true,
-        data: { raw_response: responseText },
-        confidence: 0.65,
-        dataSource: "phase5-historical-values"
+        data: parsedData,
+        confidence: parsedData.confidence || 0.75,
+        dataSource: "phase5-historical-values",
+        aiProvider: ai.provider,
+        timestamp: new Date().toISOString()
       };
     }
+
+    return {
+      success: true,
+      data: { raw_response: responseText },
+      confidence: 0.65,
+      dataSource: "phase5-historical-values"
+    };
   } catch (error) {
     console.error("Value history analysis error:", error.message);
     return {
@@ -187,7 +141,7 @@ Return JSON:
  * @param {string} options.riskLevel - flood|wildfire|wind|all
  * @returns {Promise<Object>} Insurance history and trends
  */
-async function analyzeInsuranceHistory(options) {
+async function analyzeInsuranceHistory(options, ai) {
   const { address, city, state, county, riskLevel = 'all' } = options;
 
   if (!county || !state) {
@@ -199,124 +153,72 @@ async function analyzeInsuranceHistory(options) {
   }
 
   try {
-    const ai = await getGenAI();
-    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    const systemPrompt = `You are an insurance market analyst with deep knowledge of P&C insurance trends, NFIP rate changes, state regulatory actions, and catastrophe modeling. Provide specific, data-driven analysis.
 
-    const prompt = `You are an insurance expert analyzing historical insurance trends and risk.
+IMPORTANT: Base analysis on known insurance market trends and regulatory changes. Clearly distinguish between historical facts and projections. Return ONLY valid JSON.`;
 
-Property Location: ${address || 'General'}, ${city || 'Area'}, ${state}, ${county} County
+    const prompt = `Analyze insurance trends for property at: ${address || 'General area'}, ${city || ''}, ${state}, ${county} County.
+Risk focus: ${riskLevel}
 
-Risk Assessment Type: ${riskLevel}
-
-Analyze historical insurance trends:
-
-1. HOMEOWNERS INSURANCE TRENDS
-   - Average rates 10 years ago, 5 years ago, 1 year ago, current
-   - Rate increase/decrease percentage
-   - Factors driving changes (claims, market competition, regulations)
-
-2. FLOOD INSURANCE HISTORY
-   - Has FEMA flood maps changed for this area?
-   - Historical flood claims in county
-   - Insurance availability and cost trends
-   - Future outlook (climate change, development)
-
-3. WILDFIRE INSURANCE
-   - Availability trends (especially in high-risk areas)
-   - Rate changes over time
-   - Company participation changes
-   - Risk outlook
-
-4. WIND/WEATHER INSURANCE
-   - Hurricane/wind insurance availability
-   - Cost trends
-   - Risk factors for this location
-
-5. RATE PREDICTIONS
-   - Likely insurance rate trends (next 3-5 years)
-   - Factors that could accelerate/mitigate increases
-   - Recommendations for property owner
+Provide analysis on:
+1. Homeowners insurance rate trends (10yr, 5yr, 1yr, current averages for this county)
+2. FEMA flood map changes and NFIP rate evolution (Risk Rating 2.0 impacts)
+3. Wildfire insurance availability and carrier restrictions
+4. Wind/weather insurance trends
+5. 3-5 year rate predictions with specific actionable mitigations
 
 Return JSON:
 {
   "homeownersInsurance": {
     "historicalRates": [
-      { "year": 2016, "avgRate": 1100, "avgValue": 350000, "ratePercent": 0.314 },
-      { "year": 2020, "avgRate": 1400, "avgValue": 420000, "ratePercent": 0.333 },
-      { "year": 2025, "avgRate": 1800, "avgValue": 520000, "ratePercent": 0.346 },
-      { "year": 2026, "avgRate": 1950, "avgValue": 550000, "ratePercent": 0.355 }
+      { "year": 2016, "avgRate": 1100, "avgValue": 350000, "ratePercent": 0.314 }
     ],
-    "trend": "increasing",
-    "causes": ["Material cost inflation", "Increased claims frequency", "Market consolidation"]
+    "trend": "increasing|stable|decreasing",
+    "causes": ["specific cause 1", "specific cause 2"]
   },
   "floodInsurance": {
     "available": true,
-    "historicalRates": [
-      { "year": 2016, "avgRate": 650 },
-      { "year": 2026, "avgRate": 950 }
-    ],
-    "trend": "increasing significantly",
-    "reason": "NFIP rate adjustments, climate risk",
-    "mapChanges": "Potential future updates based on climate models"
+    "historicalRates": [{ "year": 2016, "avgRate": 650 }],
+    "trend": "description",
+    "reason": "NFIP Risk Rating 2.0, climate risk",
+    "mapChanges": "specific FEMA map change info for this area"
   },
   "wildfireInsurance": {
     "available": true,
-    "riskLevel": "moderate",
-    "trend": "rates increasing, some carriers restricting coverage",
-    "outlook": "Continued restrictions likely in high-risk areas"
+    "riskLevel": "low|moderate|high|very_high",
+    "trend": "description of carrier behavior",
+    "outlook": "future outlook"
   },
   "ratePrediction": {
-    "nextThreeYears": "6-8% annual increase likely",
-    "factors": [
-      "Climate change impacts",
-      "Increased claim frequency",
-      "Reinsurance cost increases"
-    ],
-    "mitigation": [
-      "Home hardening improvements",
-      "Reduce wildfire risk (defensible space)",
-      "Shop competitors annually"
-    ]
+    "nextThreeYears": "X-Y% annual increase likely",
+    "factors": ["factor 1", "factor 2"],
+    "mitigation": ["actionable step 1", "actionable step 2"]
   },
+  "disclaimer": "Rate estimates based on market trends. Not a quote. Consult licensed agents for actual rates.",
   "confidence": 0.70,
-  "sources": ["Insurance industry data", "Rate trends", "Risk modeling"]
+  "sources": ["Insurance industry data", "Rate trends"]
 }`;
 
-    const response = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 2048
-      }
-    });
+    const responseText = await ai.ask(systemPrompt, prompt, { temperature: 0.3, maxTokens: 2048 });
 
-    const responseText = response.content.parts[0].text;
-
-    try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsedData = JSON.parse(jsonMatch[0]);
-        return {
-          success: true,
-          data: parsedData,
-          confidence: parsedData.confidence || 0.70,
-          dataSource: "phase5-insurance-history",
-          timestamp: new Date().toISOString()
-        };
-      }
-    } catch (parseError) {
+    const parsedData = extractJSON(responseText);
+    if (parsedData) {
       return {
         success: true,
-        data: { raw_response: responseText },
-        confidence: 0.65,
-        dataSource: "phase5-insurance-history"
+        data: parsedData,
+        confidence: parsedData.confidence || 0.70,
+        dataSource: "phase5-insurance-history",
+        aiProvider: ai.provider,
+        timestamp: new Date().toISOString()
       };
     }
+
+    return {
+      success: true,
+      data: { raw_response: responseText },
+      confidence: 0.65,
+      dataSource: "phase5-insurance-history"
+    };
   } catch (error) {
     console.error("Insurance history error:", error.message);
     return {
@@ -339,7 +241,7 @@ Return JSON:
  * @param {string} options.county - County
  * @returns {Promise<Object>} Comparison analysis
  */
-async function compareToMarketBaseline(options) {
+async function compareToMarketBaseline(options, ai) {
   const { propertyValue, yearBuilt, sqft, city, state, county } = options;
 
   if (!propertyValue || !city || !state) {
@@ -351,119 +253,74 @@ async function compareToMarketBaseline(options) {
   }
 
   try {
-    const ai = await getGenAI();
-    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    const systemPrompt = `You are a real estate market analyst producing comparative market analyses. Base estimates on regional market data and economic indicators. Return ONLY valid JSON — no markdown.`;
 
-    const prompt = `You are a real estate market analyst. Compare this property to market baselines.
-
-Property:
+    const prompt = `Compare this property to market baselines:
 - Estimated Value: $${propertyValue}
 - Year Built: ${yearBuilt || 'Unknown'}
 - Square Footage: ${sqft || 'Unknown'} sq ft
 - Location: ${city}, ${state}, ${county} County
 
-Provide Market Comparison:
-
-1. VALUATION ASSESSMENT
-   - Fair market value estimate
-   - Overvalued/undervalued assessment
-   - Price per square foot comparison
-
-2. NEIGHBORHOOD POSITIONING
-   - Compared to similar properties
-   - Price trends in neighborhood
-   - Buyer demand factors
-
-3. MARKET SEGMENT
-   - Entry-level / Mid-range / Luxury
-   - Target buyer demographics
-   - Days on market typical for this segment
-
-4. INVESTMENT POTENTIAL
-   - Appreciation likelihood
-   - Rental potential (if applicable)
-   - Risk factors
-   - Opportunities for improvement
-
-5. RECOMMENDATIONS
-   - Best use cases for this property
-   - Suggested improvements
-   - Timing considerations
-   - Risk mitigation strategies
+Provide:
+1. Fair market value assessment and price/sqft comparison
+2. Neighborhood positioning vs similar properties
+3. Market segment classification and days-on-market typical
+4. Investment potential: appreciation likelihood, rental potential, improvements ROI
+5. Actionable recommendations
 
 Return JSON:
 {
   "valuationAssessment": {
     "estimatedFairValue": 560000,
-    "comparison": "Fairly valued, in line with market",
+    "comparison": "assessment text",
     "pricePerSqft": 302,
     "marketAverage": 295,
-    "assessment": "Slightly above average (typical for quality)"
+    "assessment": "detailed assessment"
   },
   "neighborhoodPositioning": {
     "similar": { "range": "480000 - 620000", "median": 550000 },
-    "yourProperty": "At market median",
-    "trend": "Steady appreciation 3-4% annually",
-    "demandLevel": "High (good schools, proximity to employment)"
+    "yourProperty": "position description",
+    "trend": "trend description",
+    "demandLevel": "demand factors"
   },
   "marketSegment": {
-    "segment": "Mid-range residential",
-    "targetBuyers": "Growing families, professionals",
+    "segment": "segment name",
+    "targetBuyers": "buyer description",
     "typicalDaysOnMarket": 28,
-    "competitivePosition": "Moderate (good value, established neighborhood)"
+    "competitivePosition": "position description"
   },
   "investmentPotential": {
-    "appreciationLikelihood": "Moderate (3-4% annually expected)",
-    "rentalPotential": "Good (neighborhood attracts renters)",
-    "riskFactors": ["Interest rate sensitivity", "School district changes"],
-    "improvements": ["Kitchen update", "Exterior refresh"],
-    "roiIfImproved": "6-8% over 5 years with $20k improvements"
+    "appreciationLikelihood": "outlook",
+    "rentalPotential": "assessment",
+    "riskFactors": ["factor 1"],
+    "improvements": ["recommended improvement 1"],
+    "roiIfImproved": "ROI estimate"
   },
-  "recommendations": [
-    "Good buy at current price point",
-    "Prioritize kitchen and exterior updates",
-    "Lock in rate before anticipated increases",
-    "Monitor flood insurance rates (increasing 5%+ annually)"
-  ],
-  "confidence": 0.80,
-  "sources": ["Market data", "Comparable sales", "Economic indicators"]
+  "recommendations": ["recommendation 1", "recommendation 2"],
+  "disclaimer": "AI-generated market comparison. Not an official appraisal.",
+  "confidence": 0.80
 }`;
 
-    const response = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 2048
-      }
-    });
+    const responseText = await ai.ask(systemPrompt, prompt, { temperature: 0.3, maxTokens: 2048 });
 
-    const responseText = response.content.parts[0].text;
-
-    try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsedData = JSON.parse(jsonMatch[0]);
-        return {
-          success: true,
-          data: parsedData,
-          confidence: parsedData.confidence || 0.80,
-          dataSource: "phase5-market-comparison",
-          timestamp: new Date().toISOString()
-        };
-      }
-    } catch (parseError) {
+    const parsedData = extractJSON(responseText);
+    if (parsedData) {
       return {
         success: true,
-        data: { raw_response: responseText },
-        confidence: 0.70,
-        dataSource: "phase5-market-comparison"
+        data: parsedData,
+        confidence: parsedData.confidence || 0.80,
+        dataSource: "phase5-market-comparison",
+        aiProvider: ai.provider,
+        timestamp: new Date().toISOString()
       };
     }
+
+    return {
+      success: true,
+      data: { raw_response: responseText },
+      confidence: 0.70,
+      dataSource: "phase5-market-comparison"
+    };
   } catch (error) {
     console.error("Market comparison error:", error.message);
     return {
@@ -480,135 +337,62 @@ Return JSON:
  * @param {Object} options - All above combined
  * @returns {Promise<Object>} Comprehensive timeline analysis
  */
-async function generateTimelineReport(options) {
+async function generateTimelineReport(options, ai) {
   const { address, city, state, county, yearBuilt, propertyValue, sqft } = options;
 
   try {
-    const ai = await getGenAI();
-    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    const systemPrompt = `You are a property historian and insurance advisor creating comprehensive property timelines. Combine construction era knowledge, economic history, and insurance trends into actionable insights. Return ONLY valid JSON.`;
 
-    const prompt = `Create a comprehensive property timeline report.
+    const prompt = `Create a comprehensive property timeline report:
+- Property: ${address || 'Property'}, ${city}, ${state}, ${county} County
+- Year Built: ${yearBuilt || 'Unknown'}
+- Current Value: $${propertyValue || 'Unknown'}
+- Square Footage: ${sqft || 'Unknown'}
 
-Property: ${address || 'Property'}, ${city}, ${state}, ${county} County
-Year Built: ${yearBuilt || 'Unknown'}
-Current Value: $${propertyValue || 'Unknown'}
-
-Generate a timeline covering:
-
-1. CONSTRUCTION ERA
-   - Building code standards of the time
-   - Common issues for properties built in ${yearBuilt}
-   - Major upgrades likely needed by now
-
-2. ECONOMIC/MARKET HISTORY
-   - Market conditions when built
-   - Major events affecting property values
-   - Current market position in cycle
-
-3. RISK EVOLUTION
-   - How flood/wildfire/wind risk has changed
-   - Building code improvements since construction
-   - Mitigation opportunities
-
-4. INSURANCE EVOLUTION
-   - Product availability changes
-   - Rate trend history
-   - Future outlook
-
-5. FUTURE OUTLOOK (Next 5-10 years)
-   - Value projections
-   - Risk projections
-   - Insurance cost projections
+Cover: construction era standards/common issues, economic/market history, risk evolution, insurance evolution, and 5-10 year outlook.
 
 Return JSON:
 {
   "timeline": [
-    {
-      "year": 1985,
-      "event": "Property constructed",
-      "context": "Post-1984 building codes, common construction methods",
-      "relevance": "Likely needs roof/HVAC updates by now"
-    },
-    {
-      "year": 2008,
-      "event": "Financial crisis",
-      "context": "Real estate market crash, property values declined 20%+",
-      "relevance": "If purchased then, excellent value positioning"
-    },
-    {
-      "year": 2020,
-      "event": "COVID-19 pandemic",
-      "context": "Remote work boom, property values surged",
-      "relevance": "Significant appreciation occurred"
-    },
-    {
-      "year": 2024,
-      "event": "Interest rate normalization",
-      "context": "Market cooling after 2020-2023 surge",
-      "relevance": "Current buyer market conditions favorable"
-    }
+    { "year": 1985, "event": "event description", "context": "background", "relevance": "insurance relevance" }
   ],
-  "constructionEraIssues": [
-    "Single-pane windows (consider upgrade)",
-    "Older HVAC systems (replacement due)",
-    "Asbestos potential (pre-1980s)",
-    "Foundation settling common (inspect)"
-  ],
+  "constructionEraIssues": ["issue 1 (specific to the year built)", "issue 2"],
   "valueProjection": {
     "current": 550000,
     "fiveYears": 640000,
     "tenYears": 740000,
-    "assumptions": ["3.5% annual appreciation", "No major economic crisis"]
+    "assumptions": ["assumption 1"]
   },
   "riskProjection": {
-    "flood": "Increasing due to climate change",
-    "insurance": "Costs up 5-7% annually",
-    "physical": "Roof/HVAC replacement likely within 5 years"
+    "flood": "trend description",
+    "insurance": "cost trend description",
+    "physical": "maintenance needs description"
   },
-  "recommendations": [
-    "Proactive maintenance to protect value",
-    "Consider improvements to offset insurance increases",
-    "Monitor flood insurance changes (likely to increase)",
-    "Plan major system replacements (roof, HVAC)"
-  ],
+  "recommendations": ["actionable recommendation 1", "recommendation 2"],
+  "disclaimer": "AI-generated estimates. Verify with professionals.",
   "confidence": 0.75
 }`;
 
-    const response = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 2048
-      }
-    });
+    const responseText = await ai.ask(systemPrompt, prompt, { temperature: 0.3, maxTokens: 2048 });
 
-    const responseText = response.content.parts[0].text;
-
-    try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsedData = JSON.parse(jsonMatch[0]);
-        return {
-          success: true,
-          data: parsedData,
-          confidence: parsedData.confidence || 0.75,
-          dataSource: "phase5-timeline-report",
-          timestamp: new Date().toISOString()
-        };
-      }
-    } catch (parseError) {
+    const parsedData = extractJSON(responseText);
+    if (parsedData) {
       return {
         success: true,
-        data: { raw_response: responseText },
-        confidence: 0.70,
-        dataSource: "phase5-timeline-report"
+        data: parsedData,
+        confidence: parsedData.confidence || 0.75,
+        dataSource: "phase5-timeline-report",
+        aiProvider: ai.provider,
+        timestamp: new Date().toISOString()
       };
     }
+
+    return {
+      success: true,
+      data: { raw_response: responseText },
+      confidence: 0.70,
+      dataSource: "phase5-timeline-report"
+    };
   } catch (error) {
     console.error("Timeline report error:", error.message);
     return {
@@ -627,11 +411,13 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { action, address, city, state, county, yearBuilt, propertyValue, sqft, riskLevel } = req.body;
+  const { action, address, city, state, county, yearBuilt, propertyValue, sqft, riskLevel, aiSettings } = req.body;
 
   if (!action) {
     return res.status(400).json({ error: 'Action required' });
   }
+
+  const ai = createRouter(aiSettings);
 
   try {
     let result;
@@ -645,7 +431,7 @@ async function handler(req, res) {
           yearBuilt: yearBuilt || null,
           lastKnownValue: propertyValue || null,
           county: county || ''
-        });
+        }, ai);
         break;
 
       case 'analyzeInsurance':
@@ -655,7 +441,7 @@ async function handler(req, res) {
           state: state || '',
           county: county || '',
           riskLevel: riskLevel || 'all'
-        });
+        }, ai);
         break;
 
       case 'compareMarket':
@@ -666,7 +452,7 @@ async function handler(req, res) {
           city: city || '',
           state: state || '',
           county: county || ''
-        });
+        }, ai);
         break;
 
       case 'generateTimeline':
@@ -678,7 +464,7 @@ async function handler(req, res) {
           yearBuilt: yearBuilt || null,
           propertyValue: propertyValue || null,
           sqft: sqft || null
-        });
+        }, ai);
         break;
 
       default:

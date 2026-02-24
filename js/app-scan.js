@@ -810,7 +810,10 @@ Object.assign(App, {
 
             if (!raw) throw new Error('No extraction result returned');
 
-            const result = JSON.parse(raw);
+            const result = (typeof AIProvider !== 'undefined' && AIProvider.extractJSON)
+                ? AIProvider.extractJSON(raw)
+                : JSON.parse(raw);
+            if (!result) throw new Error('Failed to parse extraction result as JSON');
             this.extractedData = result;
             this.renderExtractionReview(result);
             if (status) status.textContent = `✅ ${fileName} — extraction complete. Review below.`;
@@ -883,7 +886,7 @@ Object.assign(App, {
                         temperature: 0.1, responseFormat: 'json', schema, parts
                     });
                     if (aiResult.text) {
-                        result = JSON.parse(aiResult.text);
+                        result = AIProvider.extractJSON(aiResult.text);
                         console.log('[PolicyScan] AIProvider extraction successful');
                     }
                 } catch (e) {
@@ -920,7 +923,7 @@ Object.assign(App, {
                             const geminiData = await geminiRes.json();
                             const raw = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
                             if (raw) {
-                                result = JSON.parse(raw);
+                                result = (typeof AIProvider !== 'undefined' && AIProvider.extractJSON) ? AIProvider.extractJSON(raw) : JSON.parse(raw);
                                 console.log('[PolicyScan] Direct Gemini extraction successful');
                             }
                         } else {
@@ -938,7 +941,7 @@ Object.assign(App, {
                 const response = await fetch('/api/policy-scan.js', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ files: inlineData })
+                    body: JSON.stringify({ files: inlineData, aiSettings: window.AIProvider?.getSettings() })
                 });
                 if (!response.ok) {
                     const err = await response.json().catch(() => ({}));
@@ -980,7 +983,7 @@ Object.assign(App, {
             const response = await fetch('/api/vision-processor.js', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'documentIntel', files: inlineData })
+                body: JSON.stringify({ action: 'documentIntel', files: inlineData, aiSettings: window.AIProvider?.getSettings() })
             });
 
             if (!response.ok) {

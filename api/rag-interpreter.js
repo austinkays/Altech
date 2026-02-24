@@ -1,4 +1,6 @@
 import { securityMiddleware } from '../lib/security.js';
+import { createRouter, extractJSON } from './_ai-router.js';
+
 /**
  * RAG (Retrieval-Augmented Generation) Interpreter
  * 
@@ -6,82 +8,73 @@ import { securityMiddleware } from '../lib/security.js';
  * 
  * This endpoint implements the RAG pattern for property data interpretation.
  * Instead of asking AI to "find" data (which leads to hallucinations),
- * we fetch official data first, then ask Gemini to interpret and standardize it.
+ * we fetch official data first, then ask AI to interpret and standardize it.
  * 
  * WORKFLOW:
  * 1. Phase 1/2 fetches official parcel data (raw format)
- * 2. Phase 3 sends raw data to Gemini with interpretation prompt
- * 3. Gemini standardizes values, extracts key fields, fixes errors
+ * 2. Phase 3 sends raw data to AI with interpretation prompt
+ * 3. AI standardizes values, extracts key fields, fixes errors
  * 4. Returns interpreted data with 99%+ confidence
- * 5. Gemini never invents data - only interprets what it receives
+ * 5. AI never invents data - only interprets what it receives
  * 
- * CONFIDENCE IMPROVEMENT:
- * - Phase 1 (API): 95% confidence (official but may have typos/inconsistencies)
- * - Phase 2 (Browser): 85% confidence (extracted HTML, parsing errors possible)
- * - Phase 3 (RAG): 99% confidence (Gemini interprets + standardizes)
- * 
- * KEY INSIGHT:
- * Gemini is excellent at interpretation and standardization, but terrible
- * at finding information. This endpoint uses it correctly by giving it
- * the data first, then asking it to interpret.
+ * Routes through user's chosen AI provider via _ai-router.js.
+ * Falls back to Google Gemini via env key when no user settings provided.
  */
 
 /**
- * Gemini RAG prompt for standardizing property data
- * This prompt tells Gemini to interpret and extract from official data,
- * never to invent or guess.
+ * System prompt for the RAG interpreter — establishes role and rules.
+ * The user prompt will contain the actual raw data.
  */
-const RAG_PROMPT_TEMPLATE = `You are a property data standardization expert for insurance applications.
-You will receive raw parcel data from a county assessor's office with potentially inconsistent codes and abbreviations.
+const RAG_SYSTEM_PROMPT = `You are a property data standardization expert for insurance applications.
+You receive raw parcel data from county assessor offices with inconsistent codes and abbreviations.
 Your job is to interpret this raw data and map it to standardized insurance form fields.
 
 CRITICAL RULES:
-1. ONLY use data provided below. NEVER invent or guess.
-2. If a field is missing or unclear, return "Unknown" - do NOT estimate.
-3. Interpret county codes and abbreviations (e.g., "COMP" → "Asphalt Shingle", "FRC" → "Forced Air")
-4. Map values to EXACT options from the form field lists below
-5. Handle common variations and typos
-6. Return JSON format ONLY (no markdown, no code blocks)
+1. ONLY use data provided. NEVER invent or guess.
+2. If a field is missing or unclear, return "Unknown" or 0 — do NOT estimate.
+3. Interpret county codes and abbreviations using the mappings below.
+4. Map values to EXACT options from the form field lists.
+5. Handle common variations and typos.
+6. Return valid JSON ONLY (no markdown, no code blocks, no explanation).
 
-RAW DATA FROM COUNTY:
-{{RAW_DATA}}
-
-FORM FIELD OPTIONS (map to these EXACT values):
+FORM FIELD MAPPINGS:
 
 Foundation Type: ["Slab", "Crawl Space", "Basement", "Pier", "Combination", "Unknown"]
-- Common codes: SLAB/SLB → Slab, CRAW/CRWL → Crawl Space, BSMT/BASE → Basement, PIER/POST → Pier
+  SLAB/SLB → Slab, CRAW/CRWL → Crawl Space, BSMT/BASE → Basement, PIER/POST → Pier
 
 Roof Type: ["Asphalt Shingle", "Metal", "Tile", "Wood Shake", "Slate", "Flat", "Other", "Unknown"]
-- Common codes: ASPH/COMP/ASPHALT → Asphalt Shingle, MTL/METAL → Metal, TILE/CLY → Tile, SHAK/WOOD → Wood Shake
+  ASPH/COMP/ASPHALT → Asphalt Shingle, MTL/METAL → Metal, TILE/CLY → Tile, SHAK/WOOD → Wood Shake
 
 Heating Type: ["Forced Air", "Electric Baseboard", "Heat Pump", "Hot Water", "Steam", "Gravity", "Other", "Unknown"]
-- Common codes: FRC/FA/GAS → Forced Air, ELEC/EB → Electric Baseboard, HP/HEATPUMP → Heat Pump, HW/HOT WATER → Hot Water
+  FRC/FA/GAS → Forced Air, ELEC/EB → Electric Baseboard, HP/HEATPUMP → Heat Pump, HW → Hot Water
 
 Construction Style: ["Frame", "Masonry", "Brick Veneer", "Stone", "Stucco", "Log", "Adobe", "Metal", "Other", "Unknown"]
-- Common codes: FRM/FRAME/WOOD → Frame, MSNRY/BRK → Masonry, BRKV → Brick Veneer, STUC → Stucco
+  FRM/FRAME/WOOD → Frame, MSNRY/BRK → Masonry, BRKV → Brick Veneer, STUC → Stucco
 
 Garage Type: ["Attached", "Detached", "Built-in", "Carport", "None", "Unknown"]
-- Common codes: ATT/ATTG → Attached, DET/DETG → Detached, BLTIN → Built-in, CRPT → Carport
+  ATT/ATTG → Attached, DET/DETG → Detached, BLTIN → Built-in, CRPT → Carport
 
-STANDARDIZATION RULES:
-- yearBuilt: YYYY integer, 1800-2026, else 0
+NUMERIC FIELD RULES:
+- yearBuilt: YYYY integer 1800-2026, else 0
 - stories: Integer 1-5, else 0
 - lotSizeAcres: Decimal > 0, else 0
 - totalSqft: Integer > 0, else 0
 - basementSqft: Integer >= 0, else 0
 - garageSqft: Integer >= 0, else 0
-- garageSpaces: Integer 0-5 (calculate from sqft if needed: 1 space ≈ 180-200 sqft), else 0
+- garageSpaces: Integer 0-5 (1 space ≈ 180-200 sqft), else 0
 - bedrooms: Integer 0-10, else 0
-- bathrooms: Decimal 0-10 (e.g., 2.5), else 0
-- foundationType: Map code → EXACT option from list above, else "Unknown"
-- roofType: Map code → EXACT option from list above, else "Unknown"
-- heatingType: Map code → EXACT option from list above, else "Unknown"
-- constructionStyle: Map code → EXACT option from list above, else "Unknown"
-- garageType: Map code → EXACT option from list above, else "Unknown"
-- parcelId: Clean alphanumeric string
-- landUse: Text description
+- bathrooms: Decimal 0-10, else 0`;
 
-RETURN THIS EXACT JSON STRUCTURE (valid JSON only, no markdown):
+/**
+ * Build the user prompt with actual raw data
+ */
+function buildRAGUserPrompt(rawDataString) {
+  return `Interpret this raw county assessor data and return standardized JSON:
+
+RAW DATA:
+${rawDataString}
+
+Return this EXACT JSON structure:
 {
   "parcelId": "string",
   "yearBuilt": 0,
@@ -93,98 +86,45 @@ RETURN THIS EXACT JSON STRUCTURE (valid JSON only, no markdown):
   "garageSpaces": 0,
   "bedrooms": 0,
   "bathrooms": 0.0,
-  "foundationType": "Slab",
-  "roofType": "Asphalt Shingle",
-  "heatingType": "Forced Air",
-  "constructionStyle": "Frame",
-  "garageType": "Attached",
-  "landUse": "Residential Single Family",
+  "foundationType": "Unknown",
+  "roofType": "Unknown",
+  "heatingType": "Unknown",
+  "constructionStyle": "Unknown",
+  "garageType": "Unknown",
+  "landUse": "Unknown",
   "interpretation_notes": "Brief note about any code interpretations made",
   "data_quality": "complete"
 }`;
+}
 
 /**
- * Interpret raw parcel data using Gemini's RAG pattern
- * Sends official data to Gemini, gets back standardized interpretation
+ * Interpret raw parcel data using the RAG pattern.
+ * Routes through user's chosen AI provider for standardization.
  */
-async function interpretParcelData(rawParcelData, countyName) {
+async function interpretParcelData(rawParcelData, countyName, ai) {
   try {
-    const googleApiKey = (process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '').trim();
-    if (!googleApiKey) {
-      return {
-        success: false,
-        error: 'Google API key not configured',
-        fallback: true,
-        parcelData: rawParcelData // Fall back to raw data
-      };
-    }
-
-    // Format raw data for Gemini prompt
+    // Format raw data for prompt
     const rawDataString = Object.entries(rawParcelData)
       .map(([key, value]) => `${key}: ${value}`)
       .join('\n');
 
-    const prompt = RAG_PROMPT_TEMPLATE.replace('{{RAW_DATA}}', rawDataString);
+    const userPrompt = buildRAGUserPrompt(rawDataString);
 
-    // Call Gemini API
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${googleApiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.3, // Low temperature for consistent, predictable output
-          topP: 0.95,
-          maxOutputTokens: 2048
-        }
-      }),
-      timeout: 30000
+    const responseText = await ai.ask(RAG_SYSTEM_PROMPT, userPrompt, {
+      temperature: 0.3,
+      maxTokens: 2048
     });
 
-    if (!response.ok) {
+    const interpretedData = extractJSON(responseText);
+
+    if (!interpretedData) {
       return {
         success: false,
-        error: `Gemini API error: ${response.status}`,
+        error: 'Could not parse JSON from AI response',
         fallback: true,
         parcelData: rawParcelData
       };
     }
-
-    const data = await response.json();
-
-    if (!data.candidates || !data.candidates[0]) {
-      return {
-        success: false,
-        error: 'No response from Gemini',
-        fallback: true,
-        parcelData: rawParcelData
-      };
-    }
-
-    // Extract JSON from response
-    const responseText = data.candidates[0].content.parts[0].text;
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-
-    if (!jsonMatch) {
-      return {
-        success: false,
-        error: 'Could not parse JSON from Gemini response',
-        fallback: true,
-        parcelData: rawParcelData
-      };
-    }
-
-    const interpretedData = JSON.parse(jsonMatch[0]);
 
     // Validate output structure
     const requiredFields = ['parcelId', 'yearBuilt', 'stories', 'lotSizeAcres', 'totalSqft', 'garageSpaces'];
@@ -193,7 +133,7 @@ async function interpretParcelData(rawParcelData, countyName) {
     if (!hasAllFields) {
       return {
         success: false,
-        error: 'Gemini response missing required fields',
+        error: 'AI response missing required fields',
         fallback: true,
         parcelData: rawParcelData
       };
@@ -227,8 +167,9 @@ async function interpretParcelData(rawParcelData, countyName) {
       county: countyName,
       parcelData: cleaned,
       method: 'rag-interpreter',
-      confidence: 0.99, // RAG pattern: 99% confidence
-      source: 'Gemini interpretation of official data'
+      confidence: 0.99,
+      source: 'AI interpretation of official data',
+      aiProvider: ai.provider
     };
 
   } catch (error) {
@@ -246,9 +187,9 @@ async function interpretParcelData(rawParcelData, countyName) {
  * Batch interpret multiple properties
  * Useful for quote library exports
  */
-async function batchInterpretData(parcelDataArray, countyName) {
+async function batchInterpretData(parcelDataArray, countyName, ai) {
   const results = await Promise.all(
-    parcelDataArray.map(data => interpretParcelData(data, countyName))
+    parcelDataArray.map(data => interpretParcelData(data, countyName, ai))
   );
   return results;
 }
@@ -298,7 +239,7 @@ async function handler(req, res) {
   }
 
   try {
-    const { rawParcelData, county } = req.body;
+    const { rawParcelData, county, aiSettings } = req.body;
 
     // Validate inputs
     if (!rawParcelData || !county) {
@@ -316,8 +257,10 @@ async function handler(req, res) {
       });
     }
 
+    const ai = createRouter(aiSettings);
+
     // Interpret data using RAG
-    const result = await interpretParcelData(rawParcelData, county);
+    const result = await interpretParcelData(rawParcelData, county, ai);
 
     // Validate output if successful
     if (result.success) {

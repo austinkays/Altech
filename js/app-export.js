@@ -882,9 +882,17 @@ Object.assign(App, {
             'You recognize home policy types: HO-3 (standard homeowner), HO-5 (comprehensive), HO-4 (renter), HO-6 (condo), DP-1/DP-3 (dwelling/landlord). ' +
             'When reading multi-page documents, you extract data from ALL pages and merge/reconcile. If there are conflicts between pages, prefer the dec page. ' +
             'You handle poor quality scans, rotated pages, faxed documents, and partially obscured text by inferring from context when possible. ' +
-            'Return only JSON matching the schema. Use empty strings for any data not found. ' +
-            'Provide confidence scores (0\u20131) based on how clearly you can read each value and how certain you are of the mapping. ' +
-            'Report quality issues like blurry text, missing pages, or ambiguous data in the quality_issues array.';
+            '\n\nCRITICAL FORMATTING RULES:\n' +
+            '- Return ONLY valid JSON — no markdown fences, no commentary before or after the JSON.\n' +
+            '- Use empty strings "" for any data not found. Never use null.\n' +
+            '- Normalize ALL dates to YYYY-MM-DD format (e.g., "01/15/2024" → "2024-01-15").\n' +
+            '- Normalize currency to plain numbers without $ or commas (e.g., "$1,250" → "1250").\n' +
+            '- State abbreviations must be 2-letter codes (e.g., "Washington" → "WA").\n' +
+            '- Confidence scores: 0.0 (not found/guessed) to 1.0 (clearly readable). Use 0.5-0.7 for inferred values.\n' +
+            '- quality_issues array: list any blurry text, missing pages, ambiguous data, or low-confidence extractions.\n' +
+            '\nEXAMPLE OUTPUT STRUCTURE:\n' +
+            '{"fields":{"firstName":"John","lastName":"Smith","dob":"1985-03-15","addrStreet":"123 Main St","addrCity":"Seattle","addrState":"WA","addrZip":"98101",...},' +
+            '"confidence":{"firstName":0.95,"lastName":0.95,"dob":0.8,...},"quality_issues":["Page 2 was partially cut off","Prior carrier name unclear"]}';
     },
 
     // Shared Gemini scan schema (used by processScan + processScanFromText)

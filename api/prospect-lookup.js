@@ -1,15 +1,19 @@
 /**
  * Commercial Prospect Investigator - Consolidated API
  *
- * Single serverless function that handles all three public records lookups:
+ * Single serverless function that handles all public records lookups:
  * - WA L&I Contractor Registry
  * - Secretary of State Business Entities (WA, OR, AZ)
  * - OSHA Inspection Database
+ * - SAM.gov Federal Registration
+ * - Google Places Business Profile
+ * - AI-Powered Risk Analysis (multi-provider via _ai-router.js)
  *
- * Routes requests based on 'type' query parameter: li, sos, or osha
+ * Routes requests based on 'type' query parameter: li, sos, osha, sam, places, ai-analysis
  */
 
 import { securityMiddleware, verifyFirebaseToken } from '../lib/security.js';
+import { createRouter, extractJSON } from './_ai-router.js';
 
 /**
  * Main handler function
@@ -1248,15 +1252,10 @@ async function handleAIAnalysis(req, res) {
     return { success: false, error: 'POST method required for AI analysis' };
   }
 
-  // Require auth for AI analysis (uses Gemini quota)
+  // Require auth for AI analysis (uses AI quota)
   const user = await verifyFirebaseToken(req);
   if (!user) {
     return { success: false, error: 'Authentication required for AI analysis.' };
-  }
-
-  const geminiKey = (process.env.GOOGLE_API_KEY || '').trim();
-  if (!geminiKey) {
-    return { success: false, error: 'AI analysis not configured (missing GOOGLE_API_KEY)' };
   }
 
   let body;
@@ -1266,7 +1265,8 @@ async function handleAIAnalysis(req, res) {
     return { success: false, error: 'Invalid JSON body' };
   }
 
-  const { businessName, state, li, sos, osha, sam, places } = body;
+  const { businessName, state, li, sos, osha, sam, places, aiSettings } = body;
+  const ai = createRouter(aiSettings);
 
   // Build a comprehensive prompt with all available data
   const dataContext = buildDataContext(businessName, state, li, sos, osha, sam, places);
@@ -1279,17 +1279,17 @@ async function handleAIAnalysis(req, res) {
   const hasPlaces = places && places.available && places.profile;
   const sourcesAvailable = [hasLI, hasSOS, hasOSHA, hasSAM, hasPlaces].filter(Boolean).length;
 
-  const prompt = `You are an expert commercial insurance underwriter, risk analyst, and comprehensive business intelligence researcher. An insurance producer needs a COMPLETE dossier on a prospective commercial client — far more than just insurance data.
+  const systemPrompt = `You are an expert commercial insurance underwriter, risk analyst, and business intelligence researcher. You produce thorough prospect dossiers for insurance producers. ${ai.isGoogle ? 'Use Google Search grounding to research the business independently beyond the provided data.' : 'Augment the provided data with your own knowledge where possible.'} Return ONLY valid JSON — no markdown, no code fences.`;
 
-## Data Collection Results
-The following data was gathered from public records APIs and Google Places. Some sources may have failed (captchas, rate limits, or the business simply isn't in that database). **When data sources failed or returned nothing, USE YOUR OWN KNOWLEDGE and the Google Search grounding tool to fill every gap.** Do not just report "no data available" — actively research this business from every angle.
+  const userPrompt = `## Data Collection Results
+The following data was gathered from public records APIs and Google Places. Some sources may have failed (captchas, rate limits, or the business simply isn't in that database). **When data sources failed or returned nothing, use your knowledge to fill gaps.** Do not just report "no data available" — actively analyze this business from every angle.
 
-${sourcesAvailable === 0 ? '⚠️ ALL automated data sources failed. You MUST use your own knowledge and Google Search to research this business independently.\n' : `${sourcesAvailable}/5 data sources returned results.\n`}
+${sourcesAvailable === 0 ? '⚠️ ALL automated data sources failed. You MUST use your own knowledge to research this business independently.\n' : `${sourcesAvailable}/5 data sources returned results.\n`}
 
 ${dataContext}
 
 ## Your Task
-Research "${businessName}" in ${state} THOROUGHLY. Use Google Search grounding to find EVERYTHING about this business:
+Research "${businessName}" in ${state} THOROUGHLY. Find everything about this business:
 - Website URL, social media accounts (Facebook, LinkedIn, Instagram, Yelp, BBB, etc.)
 - Physical location details: building type, estimated square footage, owned vs leased
 - Services offered, service area/geographic coverage
@@ -1307,7 +1307,7 @@ Produce a JSON response with these EXACT keys (all string values — be detailed
   "executiveSummary": "3-4 sentence overview of this business as an insurance prospect. Include business type, years in operation, size indicators (employees, revenue range), reputation, and overall risk posture. Be specific and actionable.",
   "businessProfile": "Comprehensive profile: what the business does day-to-day, all services offered, specialties, entity structure, ownership details, management team if known, estimated employee count, estimated annual revenue range, years in business, growth trajectory. Paint a full picture.",
   "serviceArea": "Geographic coverage: cities, counties, or regions they serve. If a contractor, where they typically work. If multi-location, list all locations. Include any out-of-state work. Be specific to their market.",
-  "website": "The business's primary website URL. If you found it via Google Search, include it. If no website exists, say 'No website found'.",
+  "website": "The business's primary website URL. If no website exists, say 'No website found'.",
   "socialMedia": "All social media and online presences found: Facebook page URL, LinkedIn company URL, Instagram handle, Yelp page, BBB listing, Google Business Profile, Angi/HomeAdvisor, Nextdoor, any industry-specific directories. List each with the URL or handle.",
   "buildingInfo": "Physical premises details: building type (office, warehouse, retail, mixed-use), estimated square footage, owned vs leased, any notable features (yard, shop, warehouse space), parking, signage. If they work from a commercial location vs home-based. Multiple locations if applicable.",
   "businessHistory": "Founding story and timeline: when established, by whom, major milestones, mergers/acquisitions, name changes, ownership transitions, notable projects, growth phases, any periods of difficulty. Include dates where possible.",
@@ -1319,75 +1319,32 @@ Produce a JSON response with these EXACT keys (all string values — be detailed
   "naicsAnalysis": "Primary and secondary NAICS codes with descriptions. Explain what they indicate about operations and insurance implications.",
   "underwritingNotes": "Specific items the underwriter should verify: loss runs (how many years), safety programs, prior carrier info, subcontractor management (certificates, additional insured requirements), fleet size, payroll by class code, square footage, revenue breakdown, contractual obligations, employee count by location. Be actionable and thorough.",
   "competitiveIntel": "Business intelligence: estimated premium range for their risk profile, likely current coverage gaps, price sensitivity indicators, growth trajectory, best approach for the producer, key selling points, renewal timing estimates, what competitors might be offering, any leverage points."
-}
-
-Return ONLY valid JSON. No markdown, no code fences, no extra text.`;
+}`;
 
   try {
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
-
-    const geminiRes = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        tools: [{ google_search: {} }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 8192
-        }
-      })
+    // askWithSearch uses Google Search grounding on Google provider,
+    // falls back to regular ask() for other providers
+    const rawText = await ai.askWithSearch(systemPrompt, userPrompt, {
+      temperature: 0.3,
+      maxTokens: 8192
     });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      console.error('[AI Analysis] Gemini error:', geminiRes.status, errText);
-      return { success: false, error: `AI analysis failed (${geminiRes.status})` };
-    }
-
-    const geminiData = await geminiRes.json();
-
-    // Extract text from all parts (grounding may return multiple parts)
-    let rawText = '';
-    const parts = geminiData.candidates?.[0]?.content?.parts || [];
-    for (const part of parts) {
-      if (part.text) rawText += part.text;
-    }
-
     if (!rawText) {
-      console.error('[AI Analysis] Empty Gemini response:', JSON.stringify(geminiData).substring(0, 500));
+      console.error('[AI Analysis] Empty AI response');
       return { success: false, error: 'AI returned empty response' };
     }
 
-    // Extract grounding metadata if available
-    const groundingMeta = geminiData.candidates?.[0]?.groundingMetadata;
-    const searchQueries = groundingMeta?.searchEntryPoint?.renderedContent ? true : false;
-
-    // Parse the JSON response (strip any markdown fences if present)
-    let analysis;
-    try {
-      const cleaned = rawText.replace(/^```(?:json)?\n?/g, '').replace(/\n?```$/g, '').trim();
-      analysis = JSON.parse(cleaned);
-    } catch {
-      // If JSON parse fails, try to extract JSON from the response
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          analysis = JSON.parse(jsonMatch[0]);
-        } catch {
-          console.error('[AI Analysis] Failed to parse Gemini response:', rawText.substring(0, 500));
-          return { success: false, error: 'AI returned invalid response format' };
-        }
-      } else {
-        console.error('[AI Analysis] No JSON found in Gemini response:', rawText.substring(0, 500));
-        return { success: false, error: 'AI returned invalid response format' };
-      }
+    const analysis = extractJSON(rawText);
+    if (!analysis) {
+      console.error('[AI Analysis] Failed to parse AI response:', rawText.substring(0, 500));
+      return { success: false, error: 'AI returned invalid response format' };
     }
 
     return {
       success: true,
-      source: 'Gemini AI (Commercial Underwriting Analysis)',
-      groundedSearch: searchQueries,
+      source: `${ai.provider} AI (Commercial Underwriting Analysis)`,
+      groundedSearch: ai.isGoogle,
+      aiProvider: ai.provider,
       analysis
     };
 
