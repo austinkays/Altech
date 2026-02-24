@@ -18,6 +18,9 @@
 
 <main style="padding: 16px 16px 80px;">
 
+    <!-- Progress Dashboard -->
+    <div id="iaProgressDashboard" class="ia-progress-dashboard" style="display:none;"></div>
+
     <!-- Chat card -->
     <div class="ia-card">
         <div class="ia-card-header">
@@ -30,16 +33,19 @@
 
         <div id="iaChatMessages" class="ia-messages"></div>
 
-        <!-- Quick-start chips -->
-        <div class="ia-chip-row">
+        <!-- Smart context-aware chips (dynamically updated) -->
+        <div id="iaSmartChips" class="ia-chip-row">
             <button class="ia-chip" onclick="IntakeAssist.quickStart('home &amp; auto bundle')">🏠 Home + Auto</button>
             <button class="ia-chip" onclick="IntakeAssist.quickStart('homeowners')">🏡 Home Only</button>
             <button class="ia-chip" onclick="IntakeAssist.quickStart('auto')">🚗 Auto Only</button>
-            <button class="ia-chip" onclick="IntakeAssist.applyAndSend()" style="display:none" id="iaDoneChip">✅ Done — Apply</button>
         </div>
 
-        <!-- Input row -->
+        <!-- Input row with DL upload -->
         <div class="ia-input-row">
+            <button class="ia-upload-btn" onclick="IntakeAssist.triggerDlUpload()" title="Scan driver's license">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+            </button>
+            <input type="file" id="iaDlUpload" accept="image/*" capture="environment" style="display:none;">
             <textarea
                 id="iaInput"
                 class="ia-input"
@@ -52,7 +58,13 @@
         </div>
     </div>
 
-    <!-- Extracted data preview (shown once AI returns structured data) -->
-    <div id="iaExtractedPreview" class="ia-extracted-card" style="display:none;"></div>
+    <!-- Property Intelligence Panel (auto-populated) -->
+    <div id="iaPropertyIntel" class="ia-intel-card" style="display:none;"></div>
+
+    <!-- Risk Assessment Badges -->
+    <div id="iaRiskBadges" class="ia-risk-container" style="display:none;"></div>
+
+    <!-- Categorized Extracted Data Cards -->
+    <div id="iaDataCards" class="ia-datacards-container" style="display:none;"></div>
 
 </main>
