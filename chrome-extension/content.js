@@ -12,7 +12,7 @@
 // §1  CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
-const EXTENSION_VERSION = '0.7.1';
+const EXTENSION_VERSION = '0.7.2';
 const FILL_DELAY    = 400;   // ms between field fills (was 250 — Angular needs time to digest)
 const DROPDOWN_WAIT = 1200;  // ms to wait for overlay after click (was 1000)
 const RETRY_WAIT    = 2000;  // ms before retrying failed dropdowns (was 1800)
@@ -1085,7 +1085,11 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
 
 /**
  * Fill a text input WITHIN a container element, not the global document.
- * Searches by CSS selectors first, then by label proximity inside the container.
+ * Uses three strategies:
+ *   1. CSS selectors scoped to container
+ *   2. formcontrolname targeting — find the LAST occurrence globally
+ *      (Co-Applicant fields share formcontrolname with Primary, but render later in DOM)
+ *   3. Label-proximity fallback inside the container
  * Returns true if a field was filled.
  */
 function fillScopedText(container, selectors, value) {
@@ -1098,18 +1102,45 @@ function fillScopedText(container, selectors, value) {
             try {
                 const el = container.querySelector(sel);
                 if (el && isVisible(el) && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
-                    setInputValue(el, val);
-                    return true;
+                    // Check if this input is still empty (avoid re-filling Primary's field)
+                    if (!el.value || el.value.trim() === '') {
+                        setInputValue(el, val);
+                        return true;
+                    }
                 }
             } catch (e) { /* skip invalid selector */ }
         }
     }
+
+    // Strategy 2: formcontrolname LAST-occurrence (Co-App fields are duplicates
+    // of Primary fields but rendered later in the DOM)
+    if (Array.isArray(selectors)) {
+        for (const sel of selectors) {
+            if (!sel.includes('formcontrolname')) continue;
+            try {
+                const allMatches = document.querySelectorAll(sel);
+                if (allMatches.length >= 2) {
+                    // Pick the LAST one — it's the Co-Applicant's field
+                    const lastEl = allMatches[allMatches.length - 1];
+                    if (lastEl && isVisible(lastEl) && (lastEl.tagName === 'INPUT' || lastEl.tagName === 'TEXTAREA')) {
+                        if (!lastEl.value || lastEl.value.trim() === '') {
+                            setInputValue(lastEl, val);
+                            console.log(`[Altech Filler] CoApp scoped: filled LAST ${sel}`);
+                            return true;
+                        }
+                    }
+                }
+            } catch (e) { /* skip */ }
+        }
+    }
+
     return false;
 }
 
 /**
  * Fill a text input WITHIN a container by finding it near a label inside that container.
  * Like fillTextByLabel but limited to the given container.
+ * Includes Angular Material mat-form-field labels and mat-label elements.
  */
 function fillScopedTextByLabel(container, labelText, value) {
     if (!container || !value || !String(value).trim()) return false;
@@ -1117,7 +1148,10 @@ function fillScopedTextByLabel(container, labelText, value) {
     const norm = s => (s || '').replace(/[*:]/g, '').trim().toLowerCase();
     const pat = labelText.toLowerCase();
 
-    for (const lbl of container.querySelectorAll('label, legend, [class*="label"]')) {
+    // Expanded label selectors to catch Angular Material's label structure
+    const labelSels = 'label, legend, mat-label, .mat-form-field-label, [class*="label"], [class*="form-field"] > span';
+
+    for (const lbl of container.querySelectorAll(labelSels)) {
         const text = norm(lbl.textContent);
         if (!text || text.length > 60) continue;
         if (text !== pat && !text.includes(pat)) continue;
@@ -1127,23 +1161,37 @@ function fillScopedTextByLabel(container, labelText, value) {
         if (forId) {
             const el = document.getElementById(forId);
             if (el && container.contains(el) && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && isVisible(el)) {
-                setInputValue(el, val);
-                return true;
+                if (!el.value || el.value.trim() === '') {
+                    setInputValue(el, val);
+                    return true;
+                }
             }
         }
 
         // Nearest input inside label's form-field wrapper
         const wrapper = lbl.closest(
-            '.mat-form-field, fieldset, .form-group, [class*="form-field"], ' +
+            'mat-form-field, .mat-form-field, fieldset, .form-group, [class*="form-field"], ' +
             '[class*="form-group"], .field-wrapper, .col, [class*="col-"]'
         ) || lbl.parentElement;
 
         if (wrapper && container.contains(wrapper)) {
             const inp = wrapper.querySelector('input, textarea');
-            if (inp && isVisible(inp)) {
+            if (inp && isVisible(inp) && (!inp.value || inp.value.trim() === '')) {
                 setInputValue(inp, val);
                 return true;
             }
+        }
+    }
+
+    // Last resort: find ALL inputs in the container, try formcontrolname that
+    // loosely matches the label pattern
+    const fcnGuess = pat.replace(/\s+/g, '');
+    for (const inp of container.querySelectorAll('input, textarea')) {
+        const fcn = (inp.getAttribute('formcontrolname') || '').toLowerCase();
+        if (fcn && fcn.includes(fcnGuess) && isVisible(inp) && (!inp.value || inp.value.trim() === '')) {
+            setInputValue(inp, val);
+            console.log(`[Altech Filler] CoApp label fallback: filled ${fcn} via pattern '${pat}'`);
+            return true;
         }
     }
     return false;
@@ -1760,11 +1808,58 @@ async function fillPage(clientData) {
         }
 
         if (addContactClicked) {
-            await wait(1200); // Wait for Angular expansion animation
+            await wait(1500); // Wait for Angular expansion animation (bumped from 1200)
 
-            // Step 2: Find the LAST expansion panel (the new Co-Applicant section)
-            const panels = document.querySelectorAll('mat-expansion-panel, .mat-expansion-panel, [class*="expansion-panel"], [class*="contact-panel"], [class*="co-applicant"], [class*="additional-contact"]');
-            const coApContainer = panels.length > 0 ? panels[panels.length - 1] : null;
+            // Step 2: Find the Co-Applicant container using DOM snapshot diff
+            // Strategy A: grab the LAST expansion panel (most reliable)
+            const panelSels = [
+                'mat-expansion-panel',
+                '.mat-expansion-panel',
+                '[class*="expansion-panel"]',
+                '[class*="contact-panel"]',
+                '[class*="co-applicant"]',
+                '[class*="additional-contact"]',
+                '[class*="contact-form"]',
+                '[class*="contact-card"]',
+                'form[class*="contact"]',
+            ];
+            let coApContainer = null;
+            for (const sel of panelSels) {
+                const panels = document.querySelectorAll(sel);
+                if (panels.length >= 2) {
+                    // The LAST one is the newly added Co-Applicant
+                    coApContainer = panels[panels.length - 1];
+                    console.log(`[Altech Filler] CoApp container via '${sel}' (${panels.length} panels, using last)`);
+                    break;
+                }
+            }
+
+            // Strategy B: if no duplicate panels found, try by aria/text content
+            if (!coApContainer) {
+                const allSections = document.querySelectorAll('[class*="panel"], [class*="card"], [class*="section"], form, fieldset');
+                for (const sec of allSections) {
+                    const txt = (sec.textContent || '').toLowerCase();
+                    if ((txt.includes('co-applicant') || txt.includes('additional contact') || txt.includes('contact 2')) && sec.querySelector('input')) {
+                        coApContainer = sec;
+                        console.log('[Altech Filler] CoApp container via text content match:', sec.className);
+                        break;
+                    }
+                }
+            }
+
+            // Strategy C: fallback to last form or fieldset with an empty firstName input
+            if (!coApContainer) {
+                const allForms = document.querySelectorAll('form, fieldset, [class*="form"]');
+                for (let i = allForms.length - 1; i >= 0; i--) {
+                    const f = allForms[i];
+                    const fnInput = f.querySelector("input[formcontrolname*='firstName' i]");
+                    if (fnInput && isVisible(fnInput) && (!fnInput.value || fnInput.value.trim() === '')) {
+                        coApContainer = f;
+                        console.log('[Altech Filler] CoApp container via empty firstName input:', f.className);
+                        break;
+                    }
+                }
+            }
 
             if (coApContainer) {
                 console.log('[Altech Filler] Found Co-Applicant container:', coApContainer.className);
@@ -1813,28 +1908,54 @@ async function fillPage(clientData) {
                     }
                 }
 
-                await wait(800); // Wait for Co-Applicant fields to render
+                await wait(1000); // Wait for Co-Applicant fields to render (bumped from 800)
 
                 // Step 4: Scoped fill — Co-Applicant fields WITHIN this container only
+                // Use both container scoping AND last-occurrence strategy for shared formcontrolnames
                 const coApFields = {
                     FirstName:    { selectors: BASE_TEXT_FIELDS.FirstName,  label: 'first name' },
                     LastName:     { selectors: BASE_TEXT_FIELDS.LastName,   label: 'last name' },
                     DOB:          { selectors: BASE_TEXT_FIELDS.DOB,        label: 'date of birth' },
                     SSN:          { selectors: BASE_TEXT_FIELDS.SSN,        label: 'ssn' },
+                    Email:        { selectors: BASE_TEXT_FIELDS.Email,      label: 'email' },
                 };
                 const coApDropdowns = {
                     Gender:       { labels: ['gender', 'sex'],              key: 'Gender' },
                     Relationship: { labels: ['relationship', 'relation'],   key: 'Relationship' },
                     MaritalStatus:{ labels: ['marital', 'marital status'],  key: 'MaritalStatus' },
+                    Suffix:       { labels: ['suffix', 'name suffix'],      key: 'Suffix' },
                 };
 
-                // Fill scoped text fields
+                // Fill scoped text fields — sequential with pacing
                 for (const [field, cfg] of Object.entries(coApFields)) {
                     const val = coApp[field];
                     if (!val) continue;
                     updateToolbarStatus(`CoApp: ${field}...`);
-                    const filled = fillScopedText(coApContainer, cfg.selectors, val) ||
+
+                    // Try container-scoped first, then label-based in container
+                    let filled = fillScopedText(coApContainer, cfg.selectors, val) ||
                                    fillScopedTextByLabel(coApContainer, cfg.label, val);
+
+                    // Strategy: if container scope failed, try last-occurrence globally
+                    // (Co-App fields share formcontrolname with Primary)
+                    if (!filled && cfg.selectors) {
+                        for (const sel of cfg.selectors) {
+                            if (!sel.includes('formcontrolname')) continue;
+                            try {
+                                const allMatches = document.querySelectorAll(sel);
+                                if (allMatches.length >= 2) {
+                                    const lastEl = allMatches[allMatches.length - 1];
+                                    if (lastEl && isVisible(lastEl) && (!lastEl.value || lastEl.value.trim() === '')) {
+                                        setInputValue(lastEl, val);
+                                        filled = true;
+                                        console.log(`[Altech Filler] CoApp fallback: filled LAST global ${sel}`);
+                                        break;
+                                    }
+                                }
+                            } catch (e) { /* skip */ }
+                        }
+                    }
+
                     if (filled) {
                         report.textFilled++;
                         report.details.push({ field: `CoApp.${field}`, type: 'text', status: 'OK', value: val });
@@ -1845,12 +1966,75 @@ async function fillPage(clientData) {
                     await wait(FILL_DELAY);
                 }
 
-                // Fill scoped dropdowns
+                // Fill scoped dropdowns — sequential with pacing + overlay cleanup
                 for (const [field, cfg] of Object.entries(coApDropdowns)) {
                     const val = coApp[field];
                     if (!val) continue;
                     updateToolbarStatus(`CoApp: ${field}...`);
-                    const filled = await fillScopedDropdown(coApContainer, cfg.labels, val, cfg.key);
+
+                    // Try container-scoped dropdown first
+                    let filled = await fillScopedDropdown(coApContainer, cfg.labels, val, cfg.key);
+
+                    // Fallback: for fields like Gender that are duplicated,
+                    // try finding the LAST mat-select with matching formcontrolname globally
+                    if (!filled && cfg.key) {
+                        const fcnGuess = cfg.key.charAt(0).toLowerCase() + cfg.key.slice(1);
+                        const allSelects = document.querySelectorAll(
+                            `mat-select[formcontrolname*='${fcnGuess}' i], ` +
+                            `select[formcontrolname*='${fcnGuess}' i]`
+                        );
+                        if (allSelects.length >= 2) {
+                            const lastSelect = allSelects[allSelects.length - 1];
+                            if (lastSelect && isVisible(lastSelect)) {
+                                console.log(`[Altech Filler] CoApp dropdown fallback: last-occurrence for ${cfg.key}`);
+                                await dismissOverlay();
+                                if (lastSelect.tagName === 'SELECT') {
+                                    // Native select
+                                    const options = Array.from(lastSelect.options)
+                                        .filter(o => o.text.trim())
+                                        .map(o => ({ text: o.text.trim(), value: o.value }));
+                                    const expanded = expand(val, cfg.key);
+                                    for (const attempt of [val, expanded]) {
+                                        for (const opt of options) {
+                                            if (opt.text.toLowerCase() === attempt.toLowerCase()) {
+                                                lastSelect.value = opt.value;
+                                                lastSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                                                filled = true; break;
+                                            }
+                                        }
+                                        if (filled) break;
+                                    }
+                                } else {
+                                    // mat-select — click and pick
+                                    lastSelect.click();
+                                    await wait(DROPDOWN_WAIT);
+                                    const optEls = document.querySelectorAll('.cdk-overlay-container mat-option, .cdk-overlay-container [role="option"]');
+                                    if (optEls.length > 0) {
+                                        const optTexts = Array.from(optEls).map(el => el.textContent.trim()).filter(Boolean);
+                                        const expanded = expand(val, cfg.key);
+                                        let pick = null;
+                                        for (const attempt of [val, expanded]) {
+                                            for (const ot of optTexts) {
+                                                if (ot.toLowerCase() === attempt.toLowerCase()) { pick = ot; break; }
+                                            }
+                                            if (pick) break;
+                                        }
+                                        if (!pick) {
+                                            const m = bestMatch(expanded, optTexts) || bestMatch(val, optTexts);
+                                            if (m) pick = m.text;
+                                        }
+                                        if (pick) {
+                                            for (const el of optEls) {
+                                                if (el.textContent.trim() === pick) { el.click(); filled = true; break; }
+                                            }
+                                        }
+                                    }
+                                    if (!filled) await dismissOverlay();
+                                }
+                            }
+                        }
+                    }
+
                     if (filled) {
                         report.ddFilled++;
                         report.details.push({ field: `CoApp.${field}`, type: 'dropdown', status: 'OK', value: val });
