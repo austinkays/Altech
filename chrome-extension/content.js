@@ -12,7 +12,7 @@
 // §1  CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
-const EXTENSION_VERSION = '0.6.7';
+const EXTENSION_VERSION = '0.7.0';
 const FILL_DELAY    = 250;   // ms between field fills (was 120 — too fast for Angular)
 const DROPDOWN_WAIT = 1000;  // ms to wait for overlay after click (was 700)
 const RETRY_WAIT    = 1800;  // ms before retrying failed dropdowns (was 1200)
@@ -395,13 +395,20 @@ function bestMatch(target, candidates, cutoff = 0.4) {
         const s = similarity(target, c);
         if (s > bestScore) { bestScore = s; best = c; }
     }
-    // Also try substring match
+    // Also try substring match — with tie-breaking by raw Dice similarity
+    // (prevents 'HI' beating 'WA' when both are substrings of 'Washington')
     const tl = target.toLowerCase();
+    let bestRawSim = best ? similarity(target, best) : 0;
     for (const c of candidates) {
         const cl = c.toLowerCase();
         if (cl.includes(tl) || tl.includes(cl)) {
-            const s = Math.max(similarity(target, c), 0.6);
-            if (s > bestScore) { bestScore = s; best = c; }
+            const rawSim = similarity(target, c);
+            const s = Math.max(rawSim, 0.6);
+            if (s > bestScore || (s === bestScore && rawSim > bestRawSim)) {
+                bestScore = s;
+                bestRawSim = rawSim;
+                best = c;
+            }
         }
     }
     return bestScore >= cutoff ? { text: best, score: bestScore } : null;
@@ -1604,6 +1611,10 @@ async function fillPage(clientData) {
         const expanded = expand(value, key);
 
         // Check all known option lists for a better match
+        // Collect ALL candidate labels and pick the best one, not just the first match
+        let bestCandidate = null;
+        let bestCandidateKeyScore = 0;
+
         for (const [label, options] of Object.entries(knownOptions)) {
             if (!Array.isArray(options) || options.length === 0) continue;
             // Only try if label seems related to this key
@@ -1611,14 +1622,34 @@ async function fillPage(clientData) {
             const keyLower = key.toLowerCase().replace(/[^a-z]/g, '');
             // Require minimum 3-char overlap to prevent false matches on short keys
             if (keyLower.length < 3 || labelLower.length < 3) continue;
-            if (!labelLower.includes(keyLower) && !keyLower.includes(labelLower)) continue;
 
-            // Try to find exact or fuzzy match in known options
-            const match = bestMatch(expanded, options) || bestMatch(value, options);
-            if (match && match.score >= 0.6) {
-                smartData[key] = match.text;
-                break;
+            // Guard: require the shorter string to be at least 40% the length of
+            // the longer. Prevents generic labels like "Year" (4 chars) from
+            // hijacking long keys like "YearsAtAddress" (14 chars).
+            const shorter = Math.min(keyLower.length, labelLower.length);
+            const longer  = Math.max(keyLower.length, labelLower.length);
+            if (shorter / longer < 0.4) continue;
+
+            if (!labelLower.includes(keyLower) && !keyLower.includes(labelLower)) {
+                // Fallback: check Dice similarity between key and label
+                if (similarity(keyLower, labelLower) < 0.5) continue;
             }
+
+            // Score how well this label matches the key (prefer more specific labels)
+            const keyScore = similarity(keyLower, labelLower);
+
+            // Try raw value FIRST — preserves already-correct values like state
+            // abbreviations (WA) instead of expanding them (Washington) and then
+            // fuzzy-matching to a wrong option (HI).
+            const match = bestMatch(value, options) || bestMatch(expanded, options);
+            if (match && match.score >= 0.6 && keyScore > bestCandidateKeyScore) {
+                bestCandidate = match.text;
+                bestCandidateKeyScore = keyScore;
+            }
+        }
+
+        if (bestCandidate) {
+            smartData[key] = bestCandidate;
         }
     }
 
@@ -1650,7 +1681,18 @@ async function fillPage(clientData) {
 
     const failedDropdowns = [];
 
-    for (const [key, labelPatterns] of Object.entries(activeDropdowns)) {
+    // Explicit fill order for dependent dropdowns:
+    // - State BEFORE County (county list depends on state selection)
+    // - Industry BEFORE Occupation (occupation list loads based on industry)
+    const DROPDOWN_PRIORITY = ['State', 'Industry', 'Occupation', 'County'];
+    const dropdownKeys = Object.keys(activeDropdowns);
+    const orderedKeys = [
+        ...DROPDOWN_PRIORITY.filter(k => dropdownKeys.includes(k)),
+        ...dropdownKeys.filter(k => !DROPDOWN_PRIORITY.includes(k)),
+    ];
+
+    for (const key of orderedKeys) {
+        const labelPatterns = activeDropdowns[key];
         const value = smartData[key];
         if (!value) continue;
 
@@ -1673,6 +1715,13 @@ async function fillPage(clientData) {
             failedDropdowns.push({ key, labelPatterns, value });
         }
         await wait(FILL_DELAY);
+
+        // Extra delay after parent dropdowns so child options can load
+        // State → County (county list populates based on state)
+        // Industry → Occupation (occupation list loads based on industry)
+        if (filled && (key === 'State' || key === 'Industry')) {
+            await wait(800);
+        }
     }
 
     // ── Retry failed dropdowns (dependent dropdowns may have loaded now) ──
