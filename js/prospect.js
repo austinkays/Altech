@@ -12,6 +12,7 @@ const ProspectInvestigator = (() => {
 
     let currentData = null;
     let aiAnalysis = null;
+    let _discoveredCandidates = [];
     const STORAGE_KEY = 'altech_saved_prospects';
 
     // ── Public API ──────────────────────────────────────────────
@@ -23,7 +24,7 @@ const ProspectInvestigator = (() => {
         console.log('[Prospect] Initialized');
     }
 
-    /** Main one-click investigation — runs all searches + AI analysis */
+    /** Phase 1: Discovery — find candidate businesses, let user pick the right one */
     async function search() {
         const businessName = document.getElementById('prospectBusinessName')?.value.trim();
         const ubi = document.getElementById('prospectUBI')?.value.trim();
@@ -35,11 +36,98 @@ const ProspectInvestigator = (() => {
             return;
         }
 
-        _showLoading('Searching public records...', 'Querying L&I, Secretary of State, OSHA, and SAM.gov');
+        _showLoading('Finding matching businesses...', 'Searching L&I, Secretary of State, and Google');
         _hideResults();
 
         try {
-            // Phase 1: Run all data-source searches in parallel
+            // Phase 1: Quick discovery search — L&I, SOS, and Places (discover mode)
+            const [liData, sosData, placesData] = await Promise.all([
+                _searchLI(businessName, ubi, state),
+                _searchSOS(businessName, ubi, state),
+                _searchPlacesDiscover(businessName, city, state)
+            ]);
+
+            // Collect all candidate businesses from every source
+            const candidates = _collectCandidates(liData, sosData, placesData, businessName, state);
+            _discoveredCandidates = candidates;
+
+            if (candidates.length === 0) {
+                _hideLoading();
+                _toast('No businesses found. Try a different name or state.');
+                return;
+            }
+
+            // Always show selection UI so user can verify the right business
+            _showBusinessSelection(candidates, businessName, city, state);
+
+        } catch (error) {
+            console.error('[Prospect] Search error:', error);
+            _toast('Error searching business records. Please try again.');
+        } finally {
+            _hideLoading();
+        }
+    }
+
+    /** Phase 2: Deep investigation on confirmed business */
+    async function selectBusiness(index) {
+        const candidate = _discoveredCandidates[index];
+        if (!candidate) return;
+
+        const name = candidate.businessName || '';
+        const ubi = candidate.ubi || '';
+        const city = candidate.city || '';
+        const state = candidate.state || document.getElementById('prospectState')?.value || 'WA';
+        const placeId = candidate.placeId || '';
+
+        _showLoading('Running Full Investigation...', `Querying all databases for ${name}`);
+
+        try {
+            // Phase 2: Run ALL 5 data sources with confirmed business info
+            const [liData, sosData, oshaData, samData, placesData] = await Promise.all([
+                _searchLI(name, ubi, state),
+                _searchSOS(name, ubi, state),
+                _searchOSHA(name, city, state),
+                _searchSAM(name, state),
+                _searchPlaces(name, city, state, placeId)
+            ]);
+
+            // Store combined data
+            currentData = {
+                businessName: name,
+                ubi,
+                city: sosData?.entity?.principalOffice?.city || liData?.contractor?.address?.city || city,
+                state,
+                li: liData,
+                sos: sosData,
+                osha: oshaData,
+                sam: samData,
+                places: placesData,
+                timestamp: new Date().toISOString()
+            };
+            currentData.displayName = _resolveDisplayName(currentData);
+
+            // Display results and run AI analysis
+            _displayResults();
+            _runAIAnalysis();
+
+        } catch (error) {
+            console.error('[Prospect] Investigation error:', error);
+            _toast('Error loading business details. Please try again.');
+        } finally {
+            _hideLoading();
+        }
+    }
+
+    /** Skip selection — investigate with original search terms */
+    async function investigateManual() {
+        const businessName = document.getElementById('prospectBusinessName')?.value.trim();
+        const ubi = document.getElementById('prospectUBI')?.value.trim();
+        const city = document.getElementById('prospectCity')?.value.trim();
+        const state = document.getElementById('prospectState')?.value || 'WA';
+
+        _showLoading('Running Full Investigation...', `Searching all databases for "${businessName}"`);
+
+        try {
             const [liData, sosData, oshaData, samData, placesData] = await Promise.all([
                 _searchLI(businessName, ubi, state),
                 _searchSOS(businessName, ubi, state),
@@ -48,19 +136,6 @@ const ProspectInvestigator = (() => {
                 _searchPlaces(businessName, city, state)
             ]);
 
-            // Check if either L&I or SOS returned multiple results — let user pick
-            const liMultiple = liData?.multipleResults && liData.results;
-            const sosMultiple = sosData?.multipleResults && sosData.results;
-
-            if (liMultiple || sosMultiple) {
-                _showBusinessSelection(
-                    _mergeMultipleResults(liMultiple ? liData.results : [], sosMultiple ? sosData.results : []),
-                    businessName, city, state
-                );
-                return;
-            }
-
-            // Store combined data
             currentData = {
                 businessName,
                 ubi,
@@ -73,57 +148,14 @@ const ProspectInvestigator = (() => {
                 places: placesData,
                 timestamp: new Date().toISOString()
             };
-            // Resolve the best display name from data sources
             currentData.displayName = _resolveDisplayName(currentData);
 
-            // Phase 2: Display raw results immediately
             _displayResults();
-
-            // Phase 3: Run AI analysis in background
             _runAIAnalysis();
 
         } catch (error) {
-            console.error('[Prospect] Search error:', error);
+            console.error('[Prospect] Manual investigation error:', error);
             _toast('Error searching business records. Please try again.');
-        } finally {
-            _hideLoading();
-        }
-    }
-
-    /** Handle business selection from multi-result list */
-    async function selectBusiness(ubi, city, state) {
-        _showLoading('Loading business details...', 'Fetching full records for selected entity');
-
-        try {
-            const [liData, sosData, oshaData, samData, placesData] = await Promise.all([
-                _searchLI('', ubi, state),
-                _searchSOS('', ubi, state),
-                _searchOSHA('', city, state),
-                _searchSAM('', state),
-                _searchPlaces('', city, state)
-            ]);
-
-            currentData = {
-                businessName: sosData?.entity?.businessName || liData?.contractor?.businessName || 'Selected Business',
-                ubi,
-                city: sosData?.entity?.principalOffice?.city || liData?.contractor?.address?.city || city,
-                state,
-                li: liData,
-                sos: sosData,
-                osha: oshaData,
-                sam: samData,
-                places: placesData,
-                timestamp: new Date().toISOString()
-            };
-            // Resolve the best display name from data sources
-            currentData.displayName = _resolveDisplayName(currentData);
-
-            _displayResults();
-            _runAIAnalysis();
-
-        } catch (error) {
-            console.error('[Prospect] Selection error:', error);
-            _toast('Error loading business details. Please try again.');
         } finally {
             _hideLoading();
         }
@@ -704,12 +736,25 @@ ${ai.underwritingNotes || 'N/A'}`;
         }
     }
 
-    async function _searchPlaces(businessName, city, state) {
+    async function _searchPlaces(businessName, city, state, placeId) {
         try {
-            const res = await fetch(`/api/prospect-lookup?type=places&name=${encodeURIComponent(businessName)}&city=${encodeURIComponent(city || '')}&state=${state}`);
+            let url = `/api/prospect-lookup?type=places&name=${encodeURIComponent(businessName)}&city=${encodeURIComponent(city || '')}&state=${state}`;
+            if (placeId) url += `&placeId=${encodeURIComponent(placeId)}`;
+            const res = await fetch(url);
             return await res.json();
         } catch (e) {
             console.error('[Prospect] Places error:', e);
+            return { available: false };
+        }
+    }
+
+    /** Discovery mode: return multiple Places candidates (Phase 1) */
+    async function _searchPlacesDiscover(businessName, city, state) {
+        try {
+            const res = await fetch(`/api/prospect-lookup?type=places&discover=true&name=${encodeURIComponent(businessName)}&city=${encodeURIComponent(city || '')}&state=${state}`);
+            return await res.json();
+        } catch (e) {
+            console.error('[Prospect] Places discover error:', e);
             return { available: false };
         }
     }
@@ -1323,76 +1368,215 @@ ${ai.underwritingNotes || 'N/A'}`;
 
     // ── Multi-result Selection ──────────────────────────────────
 
-    function _mergeMultipleResults(liResults, sosResults) {
-        const seen = new Set();
-        const combined = [];
+    /** Collect candidate businesses from all Phase 1 discovery sources */
+    function _collectCandidates(liData, sosData, placesData, searchName, searchState) {
+        const candidates = [];
 
-        for (const r of sosResults) {
-            const key = (r.ubi || r.businessName).toUpperCase();
-            if (!seen.has(key)) { seen.add(key); combined.push({ ...r, _source: 'SOS' }); }
+        // From L&I — multiple results
+        if (liData?.multipleResults && liData.results) {
+            for (const r of liData.results) {
+                candidates.push({
+                    businessName: r.businessName || searchName,
+                    ubi: r.ubi || '',
+                    city: r.city || '',
+                    state: searchState,
+                    entityType: r.licenseType || 'Contractor',
+                    status: r.status || '',
+                    source: 'L&I',
+                    licenseNumber: r.licenseNumber || '',
+                    stateMatch: true
+                });
+            }
+        } else if (liData?.contractor && liData.available !== false && !liData.error) {
+            // Single L&I result
+            const c = liData.contractor;
+            candidates.push({
+                businessName: c.businessName || searchName,
+                ubi: c.ubi || '',
+                city: c.address?.city || '',
+                state: searchState,
+                entityType: c.licenseType || 'Contractor',
+                status: c.status || '',
+                source: 'L&I',
+                licenseNumber: c.licenseNumber || '',
+                stateMatch: true
+            });
         }
-        for (const r of liResults) {
-            const key = (r.ubi || r.businessName).toUpperCase();
-            if (!seen.has(key)) {
-                seen.add(key);
-                combined.push({
-                    businessName: r.businessName, ubi: r.ubi, entityType: r.licenseType || 'Contractor',
-                    status: r.status, city: r.city, formationDate: '', licenseNumber: r.licenseNumber,
-                    expirationDate: r.expirationDate, _source: 'L&I'
+
+        // From SOS — multiple results
+        if (sosData?.multipleResults && sosData.results) {
+            for (const r of sosData.results) {
+                candidates.push({
+                    businessName: r.businessName || searchName,
+                    ubi: r.ubi || '',
+                    city: r.city || '',
+                    state: searchState,
+                    entityType: r.entityType || 'Business Entity',
+                    status: r.status || '',
+                    source: 'SOS',
+                    stateMatch: true
+                });
+            }
+        } else if (sosData?.entity && !sosData.entity?.multipleResults && sosData.available !== false && !sosData.error) {
+            // Single SOS result
+            const e = sosData.entity;
+            candidates.push({
+                businessName: e.businessName || searchName,
+                ubi: e.ubi || '',
+                city: e.principalOffice?.city || '',
+                state: searchState,
+                entityType: e.entityType || 'Business Entity',
+                status: e.status || '',
+                source: 'SOS',
+                stateMatch: true
+            });
+        }
+
+        // From Places — discover mode returns multiple
+        if (placesData?.multipleResults && placesData.results) {
+            for (const r of placesData.results) {
+                candidates.push({
+                    businessName: r.name || searchName,
+                    city: r.city || '',
+                    state: r.state || '',
+                    address: r.address || '',
+                    placeId: r.placeId || '',
+                    source: 'Google',
+                    rating: r.rating || null,
+                    totalReviews: r.totalReviews || 0,
+                    stateMatch: r.stateMatch === true
                 });
             }
         }
-        return combined;
+
+        // Deduplicate: merge candidates that look like the same business
+        return _deduplicateCandidates(candidates, searchState);
     }
 
-    function _showBusinessSelection(results, businessName, city, state) {
+    /** Merge candidates with very similar names from the same state/city */
+    function _deduplicateCandidates(candidates, searchState) {
+        const result = [];
+        const seen = new Set();
+
+        for (const c of candidates) {
+            // Normalize key: lowercase name + state
+            const normName = (c.businessName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const key = normName + '|' + (c.state || searchState);
+
+            if (seen.has(key)) {
+                // Merge source into existing entry
+                const existing = result.find(r =>
+                    (r.businessName || '').toUpperCase().replace(/[^A-Z0-9]/g, '') === normName &&
+                    (r.state || searchState) === (c.state || searchState)
+                );
+                if (existing) {
+                    existing.sources = existing.sources || [existing.source];
+                    if (!existing.sources.includes(c.source)) existing.sources.push(c.source);
+                    // Prefer more specific data
+                    if (!existing.ubi && c.ubi) existing.ubi = c.ubi;
+                    if (!existing.placeId && c.placeId) existing.placeId = c.placeId;
+                    if (!existing.address && c.address) existing.address = c.address;
+                    if (!existing.rating && c.rating) existing.rating = c.rating;
+                    if (!existing.licenseNumber && c.licenseNumber) existing.licenseNumber = c.licenseNumber;
+                }
+                continue;
+            }
+
+            seen.add(key);
+            c.sources = [c.source];
+            result.push(c);
+        }
+
+        // Sort: state-matching first, then by number of sources (more = better)
+        result.sort((a, b) => {
+            if (a.stateMatch && !b.stateMatch) return -1;
+            if (!a.stateMatch && b.stateMatch) return 1;
+            return (b.sources?.length || 1) - (a.sources?.length || 1);
+        });
+
+        return result;
+    }
+
+    function _showBusinessSelection(candidates, businessName, city, state) {
         _hideLoading();
         const resultsEl = document.getElementById('prospectResults');
         if (resultsEl) resultsEl.style.display = 'block';
 
-        // Hide other sections & open SOS accordion
+        // Hide deep investigation sections
         _setHtml('liContractorInfo', '');
         _setHtml('oshaViolations', '');
         _setHtml('riskClassification', '');
+        const aiSection = document.getElementById('aiAnalysisSection');
+        if (aiSection) aiSection.style.display = 'none';
         const sosAccordion = document.getElementById('sosSection');
         if (sosAccordion) sosAccordion.setAttribute('open', '');
 
-        // Show selection UI
+        const stateNames = { WA: 'Washington', OR: 'Oregon', AZ: 'Arizona', CA: 'California', ID: 'Idaho', NV: 'Nevada' };
+        const matchCount = candidates.filter(c => c.stateMatch).length;
+        const mismatchCount = candidates.length - matchCount;
+
         _setHtml('sosBusinessInfo', `
             <div style="background: rgba(0,122,255,0.05); border-left: 4px solid var(--apple-blue); padding: 16px; border-radius: 4px; margin-bottom: 20px;">
-                <h3 style="margin: 0 0 12px 0;">\uD83D\uDCCB Multiple businesses found \u2014 select one:</h3>
-                <p style="margin: 0; color: var(--text-secondary);">Found ${results.length} businesses matching "${_esc(businessName)}"</p>
+                <h3 style="margin: 0 0 8px 0;">\uD83D\uDD0E Select the right business to investigate</h3>
+                <p style="margin: 0; color: var(--text-secondary); font-size: 13px;">
+                    Found ${candidates.length} result${candidates.length !== 1 ? 's' : ''} for "${_esc(businessName)}"
+                    ${mismatchCount > 0 ? ` \u2014 <span style="color: var(--danger);">${mismatchCount} outside ${_esc(stateNames[state] || state)}</span>` : ''}
+                </p>
             </div>
             <div style="display: grid; gap: 12px;">
-                ${results.map(b => `
-                    <div onclick="ProspectInvestigator.selectBusiness('${(b.ubi || '').replace(/'/g, "\\'")}', '${(city || '').replace(/'/g, "\\'")}', '${(state || '').replace(/'/g, "\\'")}');"
-                         style="padding: 16px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s; background: var(--bg-card);"
-                         onmouseover="this.style.borderColor='var(--apple-blue)'" onmouseout="this.style.borderColor='var(--border)'">
+                ${candidates.map((b, i) => {
+                    const isWrongState = !b.stateMatch;
+                    const borderColor = isWrongState ? 'rgba(255,149,0,0.4)' : 'var(--border)';
+                    const bgExtra = isWrongState ? 'background: rgba(255,149,0,0.03);' : '';
+                    const sourceBadges = (b.sources || [b.source]).map(s => {
+                        const colors = { 'L&I': { bg: 'rgba(52,199,89,0.15)', fg: 'var(--success)' },
+                                          'SOS': { bg: 'rgba(0,122,255,0.1)', fg: 'var(--apple-blue)' },
+                                          'Google': { bg: 'rgba(251,188,4,0.15)', fg: '#B8860B' } };
+                        const c = colors[s] || { bg: 'rgba(0,0,0,0.05)', fg: 'var(--text-secondary)' };
+                        return `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:${c.bg};color:${c.fg};font-weight:600;">${_esc(s)}</span>`;
+                    }).join(' ');
+
+                    const location = b.address || (b.city ? `${b.city}, ${b.state || state}` : (b.state || state));
+
+                    return `
+                    <div onclick="ProspectInvestigator.selectBusiness(${i});"
+                         style="padding: 16px; border: 2px solid ${borderColor}; border-radius: 8px; cursor: pointer; transition: all 0.2s; ${bgExtra}"
+                         onmouseover="this.style.borderColor='var(--apple-blue)'" onmouseout="this.style.borderColor='${borderColor}'">
+                        ${isWrongState ? '<div style="font-size:11px;color:#FF9500;font-weight:600;margin-bottom:8px;">\u26A0\uFE0F Different state than search</div>' : ''}
                         <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start;">
                             <div>
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
                                     <h4 style="margin: 0; color: var(--apple-blue); font-size: 16px;">${_esc(b.businessName)}</h4>
-                                    ${b._source ? '<span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: ' + (b._source === 'L&I' ? 'rgba(52,199,89,0.15)' : 'rgba(0,122,255,0.1)') + '; color: ' + (b._source === 'L&I' ? 'var(--success)' : 'var(--apple-blue)') + '; font-weight: 600;">' + _esc(b._source) + '</span>' : ''}
+                                    ${sourceBadges}
                                 </div>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px; font-size: 13px; color: var(--text-secondary);">
-                                    ${b.ubi ? '<div><strong>UBI:</strong> ' + _esc(b.ubi) + '</div>' : ''}
-                                    ${b.licenseNumber ? '<div><strong>License:</strong> ' + _esc(b.licenseNumber) + '</div>' : ''}
-                                    <div><strong>Type:</strong> ${_esc(b.entityType || 'Unknown')}</div>
-                                    ${b.city ? '<div><strong>City:</strong> ' + _esc(b.city) + '</div>' : ''}
-                                    <div><strong>Status:</strong> <span style="color: ${_statusColor(b.status)};">${_esc(b.status || 'Unknown')}</span></div>
+                                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">
+                                    \uD83D\uDCCD ${_esc(location)}
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-secondary);">
+                                    ${b.ubi ? '<span><strong>UBI:</strong> ' + _esc(b.ubi) + '</span>' : ''}
+                                    ${b.licenseNumber ? '<span><strong>License:</strong> ' + _esc(b.licenseNumber) + '</span>' : ''}
+                                    ${b.entityType ? '<span><strong>Type:</strong> ' + _esc(b.entityType) + '</span>' : ''}
+                                    ${b.status ? '<span><strong>Status:</strong> <span style="color:' + _statusColor(b.status) + ';">' + _esc(b.status) + '</span></span>' : ''}
+                                    ${b.rating ? '<span>\u2B50 ' + b.rating + (b.totalReviews ? ' (' + b.totalReviews + ')' : '') + '</span>' : ''}
                                 </div>
                             </div>
-                            <div style="padding: 8px 16px; background: var(--apple-blue); color: white; border-radius: 6px; font-size: 13px; font-weight: 600;">Select \u2192</div>
+                            <div style="padding: 8px 16px; background: var(--apple-blue); color: white; border-radius: 6px; font-size: 13px; font-weight: 600; white-space: nowrap;">Investigate \u2192</div>
                         </div>
-                    </div>
-                `).join('')}
+                    </div>`;
+                }).join('')}
+            </div>
+            <div style="margin-top: 16px; text-align: center;">
+                <button onclick="ProspectInvestigator.investigateManual();"
+                    style="background: none; border: 1px solid var(--border); color: var(--text-secondary); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                    None of these \u2014 search with original name anyway
+                </button>
             </div>`);
 
         _setHtml('businessSummary', `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 14px;">
                 <div><strong>Search Term:</strong> ${_esc(businessName)}</div>
-                <div><strong>Results:</strong> ${results.length} businesses</div>
-                <div><strong>Location:</strong> ${_esc(city ? city + ', ' : '')}${_esc(state)}</div>
+                <div><strong>Results:</strong> ${candidates.length} business${candidates.length !== 1 ? 'es' : ''}</div>
+                <div><strong>Location:</strong> ${_esc(city ? city + ', ' : '')}${_esc(stateNames[state] || state)}</div>
                 <div><strong>Status:</strong> Awaiting selection</div>
             </div>`);
     }
@@ -1621,6 +1805,7 @@ ${ai.underwritingNotes || 'N/A'}`;
         init,
         search,
         selectBusiness,
+        investigateManual,
         copyToQuote,
         exportReport,
         saveProspect,

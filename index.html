@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="css/onboarding.css">
     <link rel="stylesheet" href="css/paywall.css">
     <link rel="stylesheet" href="css/bug-report.css">
+    <link rel="stylesheet" href="css/security-info.css">
 
     <!-- Firebase SDK (compat mode — no build step needed) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -221,9 +222,100 @@
 
         <!-- ── Section: Footer ── -->
         <footer id="landingFooter" class="landing-footer" aria-label="Footer">
-            <button class="bugreport-pill" onclick="BugReport.open()">🐛 Report a Bug</button>
+            <div class="landing-footer-pills">
+                <button class="bugreport-pill" onclick="BugReport.open()">🐛 Report a Bug</button>
+                <button class="bugreport-pill" onclick="SecurityInfo.open()">🔒 Security & Privacy</button>
+            </div>
             <div class="landing-version">v2.18.1</div>
         </footer>
+
+        <!-- Security & Privacy Info Modal -->
+        <div id="securityInfoOverlay" class="secinfo-overlay" style="display:none" onclick="if(event.target===this)SecurityInfo.close()">
+            <div class="secinfo-modal" role="dialog" aria-label="Security & Privacy">
+                <div class="secinfo-header">
+                    <h3>🔒 Security & Privacy</h3>
+                    <button class="secinfo-close" onclick="SecurityInfo.close()" aria-label="Close">✕</button>
+                </div>
+                <div class="secinfo-body">
+                    <p class="secinfo-intro">Altech is built with enterprise-grade security at every layer. Your client data is protected from browser to cloud.</p>
+
+                    <div class="secinfo-section">
+                        <div class="secinfo-section-icon">🔐</div>
+                        <div class="secinfo-section-content">
+                            <h4>Authentication</h4>
+                            <p>Powered by <strong>Firebase Authentication</strong> with email & password. Tokens are verified server-side on every API call. Session management follows industry best practices.</p>
+                        </div>
+                    </div>
+
+                    <div class="secinfo-section">
+                        <div class="secinfo-section-icon">🛡️</div>
+                        <div class="secinfo-section-content">
+                            <h4>Data Isolation</h4>
+                            <p><strong>Multi-tenant Firestore rules</strong> enforce strict per-user data isolation. Each account can only read and write its own documents — no cross-tenant access is possible regardless of client-side code. A catch-all deny rule blocks all unspecified paths.</p>
+                        </div>
+                    </div>
+
+                    <div class="secinfo-section">
+                        <div class="secinfo-section-icon">🔑</div>
+                        <div class="secinfo-section-content">
+                            <h4>Encryption</h4>
+                            <p>Sensitive local data is encrypted with <strong>AES-256-GCM</strong> via the Web Crypto API. Encryption keys are derived using PBKDF2 with SHA-256 and a per-device salt. All cloud communication uses <strong>TLS 1.3</strong> with HSTS enforcement.</p>
+                        </div>
+                    </div>
+
+                    <div class="secinfo-section">
+                        <div class="secinfo-section-icon">🚦</div>
+                        <div class="secinfo-section-content">
+                            <h4>API Protection</h4>
+                            <p>Every API endpoint is wrapped in security middleware with <strong>per-user rate limiting</strong>, CORS origin whitelisting, and request ID correlation for end-to-end tracing. Authenticated users receive higher rate limits while anonymous requests are throttled.</p>
+                        </div>
+                    </div>
+
+                    <div class="secinfo-section">
+                        <div class="secinfo-section-icon">🧱</div>
+                        <div class="secinfo-section-content">
+                            <h4>Security Headers</h4>
+                            <ul class="secinfo-list">
+                                <li><strong>Strict-Transport-Security</strong> — forces HTTPS</li>
+                                <li><strong>Content-Security-Policy</strong> — prevents code injection</li>
+                                <li><strong>X-Frame-Options: DENY</strong> — blocks clickjacking</li>
+                                <li><strong>X-Content-Type-Options</strong> — prevents MIME sniffing</li>
+                                <li><strong>Referrer-Policy</strong> — limits referrer leakage</li>
+                                <li><strong>Permissions-Policy</strong> — disables camera, mic, geolocation</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="secinfo-section">
+                        <div class="secinfo-section-icon">🧹</div>
+                        <div class="secinfo-section-content">
+                            <h4>Input Validation & Sanitization</h4>
+                            <p>All user inputs are sanitized server-side to prevent XSS and injection attacks. Dedicated validators verify <strong>email, phone, SSN, and ZIP</strong> formats. Field injection is blocked at the Firestore rules layer with explicit allowlists.</p>
+                        </div>
+                    </div>
+
+                    <div class="secinfo-section">
+                        <div class="secinfo-section-icon">🖥️</div>
+                        <div class="secinfo-section-content">
+                            <h4>Server Hardening</h4>
+                            <p>Path traversal attacks are blocked. Dotfiles, hidden directories, and sensitive paths return 403. Payloads are size-limited to prevent abuse. Static files are served with no-cache headers.</p>
+                        </div>
+                    </div>
+
+                    <div class="secinfo-section">
+                        <div class="secinfo-section-icon">📋</div>
+                        <div class="secinfo-section-content">
+                            <h4>Data Handling</h4>
+                            <p>Client data is stored locally in your browser and syncs to your private cloud namespace when signed in. <strong>No data is shared between accounts.</strong> Exported files (CMSMTF, XML, PDF) are generated client-side and never pass through our servers. You can delete all cloud data at any time from Settings.</p>
+                        </div>
+                    </div>
+
+                    <div class="secinfo-footer-note">
+                        <p>Questions about security? <a href="mailto:austin@altech.agency">Contact us</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- BACK BUTTON (shared across all plugins) -->
@@ -2741,7 +2833,7 @@
                     </div>
 
                     <!-- ☁️ Sync -->
-                    <details class="settings-section" open>
+                    <details class="settings-section">
                         <summary class="settings-section-header">
                             <span class="settings-section-icon">☁️</span>
                             <span class="settings-section-title">Sync</span>
@@ -2759,7 +2851,7 @@
                     </details>
 
                     <!-- 🤖 AI Model -->
-                    <details class="settings-section" open>
+                    <details class="settings-section">
                         <summary class="settings-section-header">
                             <span class="settings-section-icon">🤖</span>
                             <span class="settings-section-title">AI Model</span>
@@ -2892,6 +2984,18 @@
 
 <script src="js/data-backup.js"></script>
 <script src="js/bug-report.js"></script>
+<script>
+// Security & Privacy Info Modal
+window.SecurityInfo = (() => {
+    'use strict';
+    const open = () => { document.getElementById('securityInfoOverlay').style.display = 'flex'; };
+    const close = () => { document.getElementById('securityInfoOverlay').style.display = 'none'; };
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && document.getElementById('securityInfoOverlay').style.display === 'flex') close();
+    });
+    return { open, close };
+})();
+</script>
 <script src="js/firebase-config.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/admin-panel.js"></script>

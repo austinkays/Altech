@@ -141,12 +141,15 @@ window.Reminders = (() => {
             // For recurring: completed if done since current cycle started
             if (task.frequency !== 'once') {
                 let cycleStart;
-                if (task.frequency === 'weekly') {
+                if (task.frequency === 'daily' || task.frequency === 'weekdays') {
+                    // Daily/weekday tasks reset at midnight each day —
+                    // only "completed" if done TODAY (not yesterday)
+                    cycleStart = today;
+                } else if (task.frequency === 'weekly') {
                     // Weekly tasks reset on Monday — completed only if done THIS work week
                     cycleStart = _getMostRecentMonday();
                 } else {
-                    const cycleDays = (task.frequency === 'daily' || task.frequency === 'weekdays') ? 1 :
-                        task.frequency === 'biweekly' ? 14 : 30;
+                    const cycleDays = task.frequency === 'biweekly' ? 14 : 30;
                     cycleStart = new Date(due);
                     cycleStart.setDate(cycleStart.getDate() - cycleDays);
                 }

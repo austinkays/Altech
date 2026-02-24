@@ -79,7 +79,8 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         _showTyping();
 
         try {
-            if (typeof AIProvider === 'undefined' || !AIProvider.isConfigured()) {
+            const aiAvailable = typeof AIProvider !== 'undefined' && (AIProvider.isConfigured() || await AIProvider.isAvailable());
+            if (!aiAvailable) {
                 _hideTyping();
                 _appendMsg('ai', '⚠️ No AI provider configured. Open **Settings → AI Model** and add your API key to use this feature.');
                 return;

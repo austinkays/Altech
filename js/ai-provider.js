@@ -175,8 +175,44 @@ window.AIProvider = (() => {
         return '';
     }
 
+    /**
+     * Async key resolution — tries local key first, then server-side Gemini key.
+     * This ensures features work with just the server GOOGLE_API_KEY deployed on Vercel
+     * even when the user hasn't configured a personal key in Settings.
+     */
+    let _serverKeyCache = null;
+    async function resolveApiKey() {
+        // 1. Check local key (user-configured or legacy)
+        const localKey = getApiKey();
+        if (localKey) return localKey;
+        // 2. For Google provider, try server-side key
+        if ((getProvider()) === 'google') {
+            if (_serverKeyCache) return _serverKeyCache;
+            try {
+                const fetchFn = (typeof Auth !== 'undefined' && Auth.apiFetch) ? Auth.apiFetch.bind(Auth) : fetch;
+                const res = await fetchFn('/api/config?type=keys');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.geminiKey) {
+                        _serverKeyCache = data.geminiKey;
+                        return data.geminiKey;
+                    }
+                }
+            } catch (_) {}
+        }
+        return '';
+    }
+
     function isConfigured() {
         return !!getApiKey();
+    }
+
+    /**
+     * Async check — true if any key is available (local or server-side).
+     */
+    async function isAvailable() {
+        const key = await resolveApiKey();
+        return !!key;
     }
 
     // ── Unified API Call ─────────────────────────────────────────
@@ -194,7 +230,7 @@ window.AIProvider = (() => {
     async function ask(systemPrompt, userMessage, opts = {}) {
         const provider = getProvider();
         const model = getModel();
-        const apiKey = getApiKey();
+        const apiKey = await resolveApiKey();
 
         if (!apiKey) {
             throw new Error('No API key configured. Open your account settings to add one.');
@@ -460,7 +496,7 @@ window.AIProvider = (() => {
     async function chat(systemPrompt, messages, opts = {}) {
         const provider = getProvider();
         const model = getModel();
-        const apiKey = getApiKey();
+        const apiKey = await resolveApiKey();
 
         if (!apiKey) {
             throw new Error('No API key configured. Open your account settings to add one.');
@@ -553,6 +589,8 @@ window.AIProvider = (() => {
         getModel,
         getApiKey,
         isConfigured,
+        isAvailable,
+        resolveApiKey,
         ask,
         chat,
         extractJSON,
