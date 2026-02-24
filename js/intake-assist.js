@@ -809,6 +809,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         _renderProgress();
         _renderDataCards();
+        _assessRisks();
         _renderRiskBadges();
         _updateSmartChips();
 
@@ -925,6 +926,11 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                 extractedData = (parsed.data && typeof parsed.data === 'object') ? parsed.data : {};
                 propertyIntel = parsed.propertyIntel || null;
                 riskFlags = Array.isArray(parsed.riskFlags) ? parsed.riskFlags : [];
+            } else {
+                chatHistory = [];
+                extractedData = {};
+                propertyIntel = null;
+                riskFlags = [];
             }
         } catch (_) {
             chatHistory = [];
