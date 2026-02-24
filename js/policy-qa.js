@@ -582,12 +582,29 @@ RULES:
 
 POLICY TEXT:\n${truncated}`;
 
-                    // Try 1: Direct Gemini REST API call (works in Tauri desktop — no server needed)
+                    // Try 1: AIProvider (supports Google, OpenRouter, OpenAI, Anthropic)
+                    if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) {
+                        try {
+                            const result = await AIProvider.ask(
+                                systemPrompt,
+                                'USER QUESTION: ' + question,
+                                { temperature: 0.2, maxTokens: 2048 }
+                            );
+                            if (result.text) {
+                                console.log('[PolicyQA] AIProvider response received (' + AIProvider.getProvider() + '/' + AIProvider.getModel() + ')');
+                                return this.parseAIResponse(result.text);
+                            }
+                        } catch (e) {
+                            console.warn('[PolicyQA] AIProvider call failed:', e);
+                        }
+                    }
+
+                    // Try 1b: Legacy direct Gemini fallback (when AIProvider not configured)
                     const geminiKey = this._geminiApiKey || localStorage.getItem('gemini_api_key');
-                    if (geminiKey) {
+                    if (geminiKey && (typeof AIProvider === 'undefined' || !AIProvider.isConfigured())) {
                         try {
                             const geminiRes = await fetch(
-                                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+                                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
                                 {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },

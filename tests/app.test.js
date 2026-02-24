@@ -936,7 +936,7 @@ describe('Altech App Tests', () => {
       expect(App.toolNames).toBeDefined();
       expect(App.toolNames.quoting).toBe('Personal Intake');
       expect(App.toolNames.email).toBe('Email Composer');
-      expect(App.toolNames.ezlynx).toBe('EZLynx Quoter');
+      expect(App.toolNames.ezlynx).toBe('EZLynx Export');
     });
 
     test('storageKey is altech_v6', () => {

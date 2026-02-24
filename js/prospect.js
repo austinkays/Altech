@@ -12,12 +12,14 @@ const ProspectInvestigator = (() => {
 
     let currentData = null;
     let aiAnalysis = null;
+    const STORAGE_KEY = 'altech_saved_prospects';
 
     // ── Public API ──────────────────────────────────────────────
 
     function init() {
         const stateEl = document.getElementById('prospectState');
         if (stateEl && !stateEl.value) stateEl.value = 'WA';
+        _renderSavedList();
         console.log('[Prospect] Initialized');
     }
 
@@ -71,6 +73,8 @@ const ProspectInvestigator = (() => {
                 places: placesData,
                 timestamp: new Date().toISOString()
             };
+            // Resolve the best display name from data sources
+            currentData.displayName = _resolveDisplayName(currentData);
 
             // Phase 2: Display raw results immediately
             _displayResults();
@@ -111,6 +115,8 @@ const ProspectInvestigator = (() => {
                 places: placesData,
                 timestamp: new Date().toISOString()
             };
+            // Resolve the best display name from data sources
+            currentData.displayName = _resolveDisplayName(currentData);
 
             _displayResults();
             _runAIAnalysis();
@@ -137,7 +143,7 @@ const ProspectInvestigator = (() => {
 Generated: ${new Date(d.timestamp).toLocaleDateString()}
 ${'─'.repeat(50)}
 
-BUSINESS: ${d.businessName}
+BUSINESS: ${d.displayName || d.businessName}
 UBI: ${d.ubi || 'N/A'}
 Location: ${d.city || 'N/A'}, ${d.state}`;
 
@@ -404,7 +410,7 @@ ${ai.underwritingNotes || 'N/A'}`;
             doc.setFontSize(11);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(120, 120, 120);
-            doc.text(`${d.businessName} · ${d.state} · ${new Date(d.timestamp).toLocaleDateString()}`, margin, y);
+            doc.text(`${d.displayName || d.businessName} · ${d.state} · ${new Date(d.timestamp).toLocaleDateString()}`, margin, y);
             y += 8;
             hr();
 
@@ -639,7 +645,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                 doc.text(`Page ${i} of ${totalPages}`, pageW - margin - 60, pageH - 30);
             }
 
-            const filename = `Prospect_${d.businessName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+            const filename = `Prospect_${(d.displayName || d.businessName).replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
             doc.save(filename);
             _toast('PDF exported: ' + filename);
 
@@ -732,7 +738,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    businessName: currentData.businessName,
+                    businessName: currentData.displayName || currentData.businessName,
                     state: currentData.state,
                     li: currentData.li,
                     sos: currentData.sos,
@@ -894,7 +900,7 @@ ${ai.underwritingNotes || 'N/A'}`;
 
         _setHtml('businessSummary', `
             <div style="margin-bottom: 12px;">
-                <div style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">${_esc(data.businessName)}</div>
+                <div style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">${_esc(data.displayName || data.businessName)}</div>
                 ${address ? `<div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 6px;">\uD83D\uDCCD ${_esc(address)}</div>` : `<div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 6px;">\uD83D\uDCCD ${_esc(data.city ? data.city + ', ' : '')}${_esc(data.state)}</div>`}
                 <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px;">
                     ${phone ? `<a href="tel:${_esc(phone)}" style="color:var(--apple-blue);text-decoration:none;">\uD83D\uDCDE ${_esc(phone)}</a>` : ''}
@@ -1439,6 +1445,41 @@ ${ai.underwritingNotes || 'N/A'}`;
         if (el) el.innerHTML = html;
     }
 
+    /** Pick the best display name: Google Places > SOS > L&I > user input.
+     *  Government DBs often return ALL CAPS — smart-case those. */
+    function _resolveDisplayName(data) {
+        const placesName = data.places?.profile?.name;
+        const sosName = data.sos?.entity?.businessName;
+        const liName = data.li?.contractor?.businessName;
+        const userInput = data.businessName;
+        // Prefer sources in order: Google (publicly-facing), user input, SOS, L&I
+        // Google Places almost always has the correct public casing
+        if (placesName) return placesName;
+        // Government records are often ALL CAPS — detect and title-case
+        if (sosName && sosName !== sosName.toUpperCase()) return sosName;
+        if (liName && liName !== liName.toUpperCase()) return liName;
+        // If user typed something with mixed case, trust it
+        if (userInput && userInput !== userInput.toLowerCase()) return userInput;
+        // Government ALL-CAPS → smart title case
+        const capsName = sosName || liName;
+        if (capsName) return _smartTitleCase(capsName);
+        // Last resort: title-case the user input
+        return userInput ? _smartTitleCase(userInput) : 'Unknown Business';
+    }
+
+    /** Title-case with awareness of common business suffixes */
+    function _smartTitleCase(str) {
+        if (!str) return '';
+        const lowercase = new Set(['of', 'the', 'and', 'in', 'at', 'for', 'to', 'a', 'an', 'on', 'by', 'or']);
+        const uppercase = new Set(['LLC', 'INC', 'DBA', 'LLP', 'PLLC', 'PC', 'PA', 'LP', 'NW', 'NE', 'SW', 'SE', 'II', 'III', 'IV']);
+        return str.split(/\s+/).map((word, i) => {
+            const upper = word.toUpperCase();
+            if (uppercase.has(upper)) return upper;
+            if (i > 0 && lowercase.has(word.toLowerCase())) return word.toLowerCase();
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        }).join(' ');
+    }
+
     function _esc(str) {
         if (!str) return '';
         const div = document.createElement('div');
@@ -1472,6 +1513,107 @@ ${ai.underwritingNotes || 'N/A'}`;
         else alert(msg);
     }
 
+    // ── Save / Load / Delete Prospects ──────────────────────────
+
+    function _getSavedProspects() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+        catch { return []; }
+    }
+
+    function _setSavedProspects(list) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) CloudSync.schedulePush();
+    }
+
+    function saveProspect() {
+        if (!currentData) { _toast('Run a search first'); return; }
+        const saved = _getSavedProspects();
+        const id = currentData.timestamp || new Date().toISOString();
+        // Check for duplicate by timestamp
+        const existingIdx = saved.findIndex(s => s.id === id);
+        const entry = {
+            id,
+            displayName: currentData.displayName || currentData.businessName,
+            businessName: currentData.businessName,
+            state: currentData.state,
+            city: currentData.city || '',
+            ubi: currentData.ubi || '',
+            savedAt: new Date().toISOString(),
+            data: currentData,
+            aiAnalysis: aiAnalysis || null
+        };
+        if (existingIdx >= 0) {
+            saved[existingIdx] = entry;
+        } else {
+            saved.unshift(entry);
+        }
+        _setSavedProspects(saved);
+        _renderSavedList();
+        _toast(`${entry.displayName} saved`);
+    }
+
+    function loadProspect(id) {
+        const saved = _getSavedProspects();
+        const entry = saved.find(s => s.id === id);
+        if (!entry) { _toast('Saved prospect not found'); return; }
+        currentData = entry.data;
+        aiAnalysis = entry.aiAnalysis || null;
+        _displayResults();
+        if (aiAnalysis) {
+            _renderAIAnalysis(aiAnalysis);
+            const aiSection = document.getElementById('aiAnalysisSection');
+            if (aiSection) aiSection.style.display = 'block';
+        } else {
+            // Run fresh AI analysis if none was saved
+            _runAIAnalysis();
+        }
+        // Scroll to results
+        const resultsEl = document.getElementById('prospectResults');
+        if (resultsEl) resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        _toast(`Loaded ${entry.displayName}`);
+    }
+
+    function deleteProspect(id) {
+        const saved = _getSavedProspects();
+        const entry = saved.find(s => s.id === id);
+        const name = entry?.displayName || 'Prospect';
+        const updated = saved.filter(s => s.id !== id);
+        _setSavedProspects(updated);
+        _renderSavedList();
+        _toast(`${name} deleted`);
+    }
+
+    function _renderSavedList() {
+        const container = document.getElementById('savedProspectsList');
+        if (!container) return;
+
+        const saved = _getSavedProspects();
+        if (!saved.length) {
+            container.innerHTML = `
+                <p style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 16px 0;">
+                    No saved prospects yet. Run an investigation and tap Save.
+                </p>`;
+            return;
+        }
+
+        container.innerHTML = saved.map(s => {
+            const date = new Date(s.savedAt).toLocaleDateString();
+            const hasAI = s.aiAnalysis ? '<span style="font-size:10px;padding:2px 6px;border-radius:6px;background:rgba(168,85,247,0.1);color:#A855F7;font-weight:600;margin-left:6px;">AI</span>' : '';
+            return `
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;"
+                     onclick="ProspectInvestigator.loadProspect('${_esc(s.id)}')">
+                    <div style="font-size:22px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:rgba(0,122,255,0.08);border-radius:10px;flex-shrink:0;">🏢</div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_esc(s.displayName)}${hasAI}</div>
+                        <div style="font-size:12px;color:var(--text-secondary);">${_esc(s.state)}${s.city ? ' \u00B7 ' + _esc(s.city) : ''} \u00B7 ${date}</div>
+                    </div>
+                    <button onclick="event.stopPropagation(); ProspectInvestigator.deleteProspect('${_esc(s.id)}');"
+                            style="background:none;border:none;color:var(--danger);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;"
+                            title="Delete saved prospect">&times;</button>
+                </div>`;
+        }).join('');
+    }
+
     // ── Expose Public API ───────────────────────────────────────
 
     return {
@@ -1480,6 +1622,9 @@ ${ai.underwritingNotes || 'N/A'}`;
         selectBusiness,
         copyToQuote,
         exportReport,
+        saveProspect,
+        loadProspect,
+        deleteProspect,
         get currentData() { return currentData; },
         get aiAnalysis() { return aiAnalysis; }
     };

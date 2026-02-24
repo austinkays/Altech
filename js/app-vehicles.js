@@ -490,9 +490,11 @@ Object.assign(App, {
                         onchange="App.updateDriver('${driver.id}', 'dlNum', this.value)" 
                         style="text-transform:uppercase;font-family:monospace" 
                         placeholder="License #">
-                    <input type="text" value="${this._escapeAttr(driver.dlState || 'WA')}" 
-                        onchange="App.updateDriver('${driver.id}', 'dlState', this.value)" 
-                        placeholder="State" maxlength="2" style="text-transform:uppercase">
+                    <select onchange="App.updateDriver('${driver.id}', 'dlState', this.value)">
+                        ${['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(s =>
+                            `<option value="${s}" ${(driver.dlState || 'WA') === s ? 'selected' : ''}>${s}</option>`
+                        ).join('')}
+                    </select>
                 </div>
             </div>
         `;

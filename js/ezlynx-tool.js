@@ -11,7 +11,9 @@ const EZLynxTool = {
         this._loadIncidents();
         this.renderIncidents();
         this._wireAutoSave();
+        this._initEzOccupationDropdown();
         this._restoreClientBanner();
+        this._detectExtension();
     },
 
     formStorageKey: 'altech_ezlynx_formdata',
@@ -150,6 +152,69 @@ const EZLynxTool = {
         // Truncate ZIP to 5 digits for Chrome extension
         if (data.Zip) data.Zip = String(data.Zip).replace(/[^0-9]/g, '').slice(0, 5);
 
+        // ── Pass-through fields from App.data not in the EZ form ──
+        const appData = (typeof App !== 'undefined' && App.data) ? App.data : {};
+
+        // Personal extras
+        if (appData.prefix) data.Prefix = appData.prefix;
+        if (appData.suffix) data.Suffix = appData.suffix;
+
+        // Auto policy extras
+        if (appData.autoPolicyType) data.AutoPolicyType = appData.autoPolicyType;
+        if (appData.umpdLimit) data.UMPD_PD = appData.umpdLimit;
+        if (appData.uimLimits) data.UIM = appData.uimLimits;
+        if (appData.rentalDeductible) data.RentalReimbursement = appData.rentalDeductible;
+        if (appData.towingDeductible) data.TowingLabor = appData.towingDeductible;
+        if (appData.studentGPA) data.StudentGPA = appData.studentGPA;
+        if (appData.priorExp) data.PriorExpiration = this._fmtDateForEZ(appData.priorExp);
+
+        // Home property extras
+        if (appData.purchaseDate) data.PurchaseDate = this._fmtDateForEZ(appData.purchaseDate);
+        if (appData.secondaryHeating) data.SecondaryHeating = appData.secondaryHeating;
+        if (appData.kitchenQuality) data.KitchenQuality = appData.kitchenQuality;
+        if (appData.sewer) data.Sewer = appData.sewer;
+        if (appData.waterSource) data.WaterSource = appData.waterSource;
+        if (appData.flooring) data.Flooring = appData.flooring;
+        if (appData.fireStationDist) data.FireStationDist = appData.fireStationDist;
+        if (appData.tidalWaterDist) data.TidalWaterDist = appData.tidalWaterDist;
+        if (appData.heatYr) data.HeatingUpdateYear = appData.heatYr;
+        if (appData.plumbYr) data.PlumbingUpdateYear = appData.plumbYr;
+        if (appData.elecYr) data.ElectricalUpdateYear = appData.elecYr;
+        if (appData.roofUpdate) data.RoofUpdateYear = appData.roofUpdate;
+
+        // Home hazards / toggles (extension uses Yes/No toggles for these)
+        if (appData.woodStove && appData.woodStove !== 'No') data.WoodStove = appData.woodStove;
+        if (appData.dogInfo) data.DogOnPremises = 'Yes';
+        if (appData.businessOnProperty) data.BusinessOnPremises = 'Yes';
+
+        // Home coverage endorsements
+        if (appData.increasedReplacementCost) data.IncreasedReplacementCost = appData.increasedReplacementCost;
+        if (appData.ordinanceOrLaw) data.OrdinanceOrLaw = appData.ordinanceOrLaw;
+        if (appData.waterBackup) data.WaterBackup = appData.waterBackup;
+        if (appData.lossAssessment) data.LossAssessment = appData.lossAssessment;
+        if (appData.animalLiability) data.AnimalLiability = appData.animalLiability;
+        if (appData.jewelryLimit) data.JewelryLimit = appData.jewelryLimit;
+        if (appData.creditCardCoverage) data.CreditCardCoverage = appData.creditCardCoverage;
+        if (appData.moldDamage) data.MoldDamage = appData.moldDamage;
+        if (appData.equipmentBreakdown === 'Yes') data.EquipmentBreakdown = 'Yes';
+        if (appData.serviceLine === 'Yes') data.ServiceLine = 'Yes';
+        if (appData.earthquakeCoverage === 'Yes') {
+            data.EarthquakeCoverage = 'Yes';
+            if (appData.earthquakeZone) data.EarthquakeZone = appData.earthquakeZone;
+            if (appData.earthquakeDeductible) data.EarthquakeDeductible = appData.earthquakeDeductible;
+        }
+
+        // Prior insurance extras
+        if (appData.homePriorLiability) data.HomePriorLiability = appData.homePriorLiability;
+
+        // Contact preferences
+        if (appData.contactTime) data.ContactTime = appData.contactTime;
+        if (appData.contactMethod) data.ContactMethod = appData.contactMethod;
+        if (appData.referralSource) data.LeadSource = appData.referralSource;
+
+        // Additional info
+        if (appData.additionalInsureds) data.AdditionalInsureds = appData.additionalInsureds;
+
         // Append multi-driver array from App.drivers
         if (typeof App !== 'undefined' && Array.isArray(App.drivers) && App.drivers.length > 0) {
             data.Drivers = App.drivers.map(d => ({
@@ -159,16 +224,37 @@ const EZLynxTool = {
                 Gender: d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : (d.gender || ''),
                 MaritalStatus: d.maritalStatus || '',
                 Relationship: d.relationship || '',
-                Occupation: d.occupationIndustry || '',
+                Occupation: d.occupation || '',
                 Education: d.education || '',
                 LicenseNumber: d.dlNum || '',
                 DLState: d.dlState || '',
                 AgeLicensed: d.ageLicensed || '',
                 LicenseStatus: d.dlStatus || '',
                 SR22: d.sr22 || '',
+                FR44: d.fr44 || '',
                 GoodDriver: d.goodDriver || '',
+                MatureDriver: d.matureDriver || '',
+                DriverEducation: d.driverEducation || '',
+                LicenseSusRev: d.licenseSusRev || '',
                 IsCoApplicant: d.isCoApplicant || false
             }));
+
+            // Build top-level CoApplicant object for extension co-app injection
+            const coAppDriver = data.Drivers.find(d => d.IsCoApplicant);
+            if (coAppDriver) {
+                data.CoApplicant = {
+                    FirstName: coAppDriver.FirstName,
+                    LastName: coAppDriver.LastName,
+                    DOB: coAppDriver.DOB,
+                    Gender: coAppDriver.Gender,
+                    MaritalStatus: coAppDriver.MaritalStatus,
+                    Relationship: coAppDriver.Relationship,
+                    Email: appData.coEmail || '',
+                    Phone: appData.coPhone || '',
+                    Suffix: appData.suffix || '',
+                    SSN: '',
+                };
+            }
         }
 
         // Append multi-vehicle array from App.vehicles
@@ -180,7 +266,17 @@ const EZLynxTool = {
                 Model: v.model || '',
                 Use: v.use || '',
                 AnnualMiles: v.miles || '',
-                Ownership: v.ownership || '',
+                Ownership: v.ownershipType || '',
+                Performance: v.performance || '',
+                AntiTheft: v.antiTheft || '',
+                PassiveRestraints: v.passiveRestraints || '',
+                AntiLockBrakes: v.antiLockBrakes || '',
+                DaytimeRunningLights: v.daytimeRunningLights || '',
+                NewVehicle: v.carNew || '',
+                Telematics: v.telematics || '',
+                CarPool: v.carPool || '',
+                TNC: v.tnc || '',
+                PrimaryDriver: v.primaryDriver || '',
                 GaragingAddress: v.garagingAddr || '',
                 GaragingCity: v.garagingCity || '',
                 GaragingState: v.garagingState || '',
@@ -231,8 +327,11 @@ const EZLynxTool = {
         this.setField('ezCounty', 'Clark');
         this.setField('ezYearsAtAddress', '5');
         this.setField('ezEducation', 'Bachelors');
-        this.setField('ezOccupation', 'Insurance Agent');
+        // Set Industry BEFORE Occupation so dynamic dropdown populates
         this.setField('ezIndustry', 'Insurance');
+        const demoIndustrySel = document.getElementById('ezIndustry');
+        if (demoIndustrySel) demoIndustrySel.dispatchEvent(new Event('change'));
+        this.setField('ezOccupation', 'Agent/Broker');
         this.setField('ezLicenseNumber', 'KAYSAB123XY');
         // Auto Policy
         this.setField('ezPolicyTerm', '12 Month');
@@ -245,11 +344,11 @@ const EZLynxTool = {
         this.setField('ezComprehensive', '500');
         this.setField('ezCollision', '500');
         this.setField('ezMedPaymentsAuto', '5000');
-        this.setField('ezUMPD', '100/300');
+        this.setField('ezUMPD', '100000');
         this.setField('ezPriorLiabilityLimits', '50/100');
         this.setField('ezYearsContinuousCoverage', '5');
         this.setField('ezNumResidents', '2');
-        this.setField('ezResidenceIs', 'Own Home');
+        this.setField('ezResidenceIs', 'Home (owned)');
         this.setField('ezAccidents', '0');
         this.setField('ezViolations', '0');
         // Driver & Vehicle
@@ -444,8 +543,12 @@ const EZLynxTool = {
         this.setField('ezCounty', county);
         this.setField('ezYearsAtAddress', d.yearsAtAddress || '');
         this.setField('ezEducation', d.education || '');
-        this.setField('ezOccupation', d.occupation || '');
+        // Set Industry BEFORE Occupation so the dynamic dropdown populates
         this.setField('ezIndustry', d.industry || '');
+        // Trigger change event so _initEzOccupationDropdown repopulates options
+        const industrySel = document.getElementById('ezIndustry');
+        if (industrySel) industrySel.dispatchEvent(new Event('change'));
+        this.setField('ezOccupation', d.occupation || '');
         this.setField('ezLicenseNumber', drv.dlNum || '');
 
         // Auto Policy & Coverage (from auto prior insurance fields)
@@ -459,7 +562,7 @@ const EZLynxTool = {
         this.setField('ezComprehensive', d.compDeductible || '');
         this.setField('ezCollision', d.autoDeductible || '');
         this.setField('ezMedPaymentsAuto', d.medPayments || '');
-        this.setField('ezUMPD', d.umLimits || d.uimLimits || '');
+        this.setField('ezUMPD', d.umpdLimit || '');
         this.setField('ezPriorLiabilityLimits', d.priorLiabilityLimits || '');
         this.setField('ezYearsContinuousCoverage', d.continuousCoverage || '');
         this.setField('ezNumResidents', d.numOccupants || '');
@@ -476,7 +579,7 @@ const EZLynxTool = {
         this.setField('ezVehicleModel', veh.model || '');
         this.setField('ezVehicleUse', veh.use || '');
         this.setField('ezAnnualMiles', veh.miles || '');
-        this.setField('ezOwnershipType', veh.ownership || '');
+        this.setField('ezOwnershipType', veh.ownershipType || '');
 
         // Home Dwelling
         this.setField('ezDwellingUsage', d.dwellingUsage || '');
@@ -872,6 +975,86 @@ const EZLynxTool = {
             </div>`;
         });
         container.innerHTML = html;
+    },
+
+    // ── Extension Detection ──
+    _detectExtension() {
+        const isConnected = document.documentElement.hasAttribute('data-altech-extension');
+        // Also check if user previously confirmed installation
+        const userConfirmed = localStorage.getItem('altech_ezlynx_ext_confirmed') === 'true';
+        this._updateExtensionUI(isConnected || userConfirmed, isConnected);
+    },
+
+    _updateExtensionUI(installed, liveDetected) {
+        const connectedEl = document.getElementById('ezStatusConnected');
+        const notConnectedEl = document.getElementById('ezStatusNotConnected');
+        const detailsEl = document.getElementById('ezInstallDetails');
+        const statusBar = document.getElementById('ezStatusBar');
+
+        if (!statusBar) return;
+
+        if (installed) {
+            // Show connected banner, completely hide install guide
+            if (connectedEl) connectedEl.style.display = 'flex';
+            if (notConnectedEl) notConnectedEl.style.display = 'none';
+            if (detailsEl) detailsEl.style.display = 'none';
+            statusBar.classList.add('connected');
+            statusBar.classList.remove('not-connected');
+        } else {
+            // Show not-connected state, show install guide
+            if (connectedEl) connectedEl.style.display = 'none';
+            if (notConnectedEl) notConnectedEl.style.display = 'flex';
+            if (detailsEl) detailsEl.style.display = 'block';
+            statusBar.classList.remove('connected');
+            statusBar.classList.add('not-connected');
+        }
+    },
+
+    confirmExtensionInstalled() {
+        // Re-check live detection
+        const liveDetected = document.documentElement.hasAttribute('data-altech-extension');
+        if (liveDetected) {
+            localStorage.setItem('altech_ezlynx_ext_confirmed', 'true');
+            this._updateExtensionUI(true, true);
+            App.toast('✅ Extension connected! You\'re all set.');
+        } else {
+            // Not detected yet — tell user to refresh
+            App.toast('⚠️ Extension not detected — try refreshing the page after installing');
+        }
+    },
+
+    // ── Dynamic EZ Occupation Dropdown ──
+    _initEzOccupationDropdown() {
+        const industrySel = document.getElementById('ezIndustry');
+        const occupationSel = document.getElementById('ezOccupation');
+        if (!industrySel || !occupationSel) return;
+
+        // Reuse the occupation mapping from App (if available) or use a local copy
+        const getOccupations = (industry) => {
+            if (typeof App !== 'undefined' && App._OCCUPATIONS_BY_INDUSTRY) {
+                return App._OCCUPATIONS_BY_INDUSTRY[industry] || [];
+            }
+            return [];
+        };
+
+        const populate = () => {
+            const industry = industrySel.value;
+            const currentVal = occupationSel.value;
+            const titles = getOccupations(industry);
+            let html = '<option value="">—</option>';
+            titles.forEach(t => {
+                const sel = (t === currentVal) ? ' selected' : '';
+                html += `<option value="${t}"${sel}>${t}</option>`;
+            });
+            if (currentVal && !titles.includes(currentVal)) {
+                html += `<option value="${currentVal}" selected>${currentVal}</option>`;
+            }
+            occupationSel.innerHTML = html;
+        };
+
+        industrySel.addEventListener('change', populate);
+        // Initial population from current form state
+        populate();
     }
 };
 

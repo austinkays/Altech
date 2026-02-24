@@ -332,6 +332,9 @@ const Auth = (() => {
 
                 // Only admins can see the "Invite Your Team" and admin panel sections
                 _refreshAdminVisibility();
+
+                // Load AI settings into the form
+                if (typeof App !== 'undefined' && App.loadAISettings) App.loadAISettings();
             } else {
                 _showView('login');
             }

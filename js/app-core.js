@@ -155,6 +155,9 @@ Object.assign(App, {
         // Carrier autocomplete
         this.initCarrierAutocomplete();
 
+        // Dynamic occupation dropdown — populate based on industry selection
+        this._initOccupationDropdown();
+
         // Sync "Same as Home Carrier" when home carrier changes
         const _homeCarrierInput = document.getElementById('homePriorCarrier');
         if (_homeCarrierInput) {
@@ -297,7 +300,17 @@ Object.assign(App, {
     },
 
     // Centralized Gemini API key retrieval — use this everywhere
+    // Now checks AIProvider first, then falls back to legacy key chain
     async _getGeminiKey() {
+        // Check AIProvider for any configured key (supports all providers)
+        if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) {
+            // For Google provider, return the key directly for legacy callers
+            if (AIProvider.getProvider() === 'google') {
+                return AIProvider.getApiKey();
+            }
+            // For non-Google providers, callers should use AIProvider.ask() instead
+            // but still return any available Google key as fallback
+        }
         if (this._geminiApiKey) return this._geminiApiKey;
         const saved = localStorage.getItem('gemini_api_key');
         if (saved) { this._geminiApiKey = saved; return saved; }
@@ -757,6 +770,8 @@ Object.assign(App, {
         this.updateNamePronunciationUI();
         this.restoreCoApplicantUI();
         this.syncSegmentedControls();
+        // Refresh dynamic occupation dropdown for loaded industry
+        this._populateOccupation(this.data.industry || '', this.data.occupation || '');
         // Restore drivers/vehicles arrays and render cards
         this.loadDriversVehicles();
     },
@@ -1620,6 +1635,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         // Category labels for bento section headers
         const categoryLabels = {
             quoting: 'Quoting & Sales',
+            export: 'Export & Integration',
             docs: 'Documents & Compliance',
             ops: 'Operations'
         };
@@ -1984,5 +2000,292 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         this.next();
 
         this.toast('🧪 Demo client loaded — Sarah & David Mitchell');
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    // ── Dynamic Occupation Dropdown (Industry → Occupation) ──
+    // ═══════════════════════════════════════════════════════════
+    // Occupation titles sourced from EZLynx schema to ensure exact match on auto-fill.
+
+    _OCCUPATIONS_BY_INDUSTRY: {
+        'Homemaker/House person': ['Homemaker'],
+        'Retired': ['Retired'],
+        'Disabled': ['Disabled'],
+        'Unemployed': ['Unemployed'],
+        'Student': ['Student'],
+        'Agriculture/Forestry/Fishing': ['Farm/Ranch Owner', 'Farm/Ranch Worker', 'Fisherman', 'Forester', 'Laborer', 'Landscaper/Groundskeeper', 'Logger', 'Nursery Worker', 'Rancher', 'Supervisor', 'Other'],
+        'Art/Design/Media': ['Actor', 'Announcer/Broadcaster', 'Artist', 'Author/Writer', 'Dancer', 'Designer', 'Director', 'Editor', 'Journalist/Reporter', 'Musician', 'Photographer', 'Printer', 'Producer', 'Other'],
+        'Banking/Finance/Real Estate': ['Accountant/Auditor', 'Analyst', 'Appraiser', 'Bank Teller', 'Banker', 'Branch Manager', 'Broker', 'Clerk', 'Controller', 'Financial Planner', 'Investment Banker', 'Loan Officer', 'Real Estate Agent/Broker', 'Tax Preparer', 'Trader', 'Underwriter', 'Other'],
+        'Business/Sales/Office': ['Account Executive', 'Administrative Assistant', 'Buyer', 'Cashier/Checker', 'Clerk', 'Customer Service Representative', 'Director/Administrator', 'Executive', 'Human Resources', 'Manager', 'Marketing', 'Office Manager', 'Receptionist/Secretary', 'Sales Representative', 'Supervisor', 'Other'],
+        'Construction/Energy Trades': ['Carpenter', 'Contractor', 'Electrician', 'Foreman/Supervisor', 'Handyman', 'HVAC Technician', 'Laborer', 'Painter', 'Plumber', 'Project Manager', 'Roofer', 'Utility Worker', 'Welder', 'Other'],
+        'Education/Library': ['College Professor', 'Counselor', 'Instructor', 'Librarian', 'Principal', 'School Administrator', 'Teacher', 'Teacher Aide', 'Tutor', 'Other'],
+        'Engineer/Architect/Science/Math': ['Actuary', 'Architect', 'Chemist', 'Drafter', 'Engineer', 'Lab Technician', 'Mathematician', 'Research Analyst', 'Scientist', 'Surveyor', 'Technician', 'Other'],
+        'Government/Military': ['Commissioned Officer', 'Enlisted', 'Federal Worker', 'Fire Fighter', 'Letter Carrier/Mail', 'Military - Enlisted', 'Military - Officer', 'Postal Worker', 'State/Local Worker', 'Other'],
+        'Information Technology': ['Analyst', 'Computer Programmer', 'Database Administrator', 'Help Desk', 'IT Manager', 'Network Administrator', 'Software Developer', 'Systems Administrator', 'Technical Support', 'Web Developer', 'Other'],
+        'Insurance': ['Accountant/Auditor', 'Actuarial Clerk', 'Actuary', 'Administrative Assistant', 'Agent/Broker', 'Analyst', 'Attorney', 'Claims Adjuster', 'Clerk', 'Commissioner', 'Customer Service Representative', 'Director/Administrator', 'Executive', 'Product Manager', 'Receptionist/Secretary', 'Sales Representative', 'Underwriter', 'Other'],
+        'Legal/Law Enforcement/Security': ['Attorney', 'Bailiff', 'Corrections Officer', 'Court Clerk', 'Detective', 'Guard', 'Judge', 'Legal Assistant/Paralegal', 'Police Officer', 'Security Guard', 'Sheriff', 'Other'],
+        'Maintenance/Repair/Housekeeping': ['Custodian/Janitor', 'Housekeeper', 'Maintenance Worker', 'Mechanic', 'Other'],
+        'Manufacturing/Production': ['Assembler', 'Factory Worker', 'Foreman/Supervisor', 'Inspector', 'Machine Operator', 'Packer', 'Plant Manager', 'Quality Control', 'Technician', 'Warehouse Worker', 'Other'],
+        'Medical/Social Services/Religion': ['Chiropractor', 'Clergy', 'Counselor', 'Dental Hygienist', 'Dentist', 'EMT/Paramedic', 'Lab Technician', 'Nurse - Licensed', 'Nurse - Registered', 'Optometrist', 'Pharmacist', 'Physician/Surgeon', 'Social Worker', 'Therapist', 'Veterinarian', 'Other'],
+        'Personal Care/Service': ['Barber/Hairstylist', 'Child/Day Care Worker', 'Cosmetologist', 'Fitness Trainer', 'Funeral Director', 'Pet Groomer', 'Other'],
+        'Restaurant/Hotel Services': ['Baker', 'Bartender', 'Bus Person', 'Chef/Cook', 'Desk Clerk', 'Host/Hostess', 'Hotel Manager', 'Restaurant Manager', 'Server', 'Wait Staff', 'Other'],
+        'Sports/Recreation': ['Athlete', 'Coach', 'Fitness Instructor', 'Lifeguard', 'Official/Referee', 'Recreation Worker', 'Other'],
+        'Travel/Transportation/Warehousing': ['Air Traffic Controller', 'Bus Driver', 'Dispatcher', 'Driver/Trucker', 'Flight Attendant', 'Forklift Operator', 'Messenger/Courier', 'Mover', 'Pilot', 'Ship Captain/Officer', 'Taxi/Limo Driver', 'Travel Agent', 'Warehouse Worker', 'Other'],
+        'Other': ['Accountant/Auditor', 'Administrative Assistant', 'Agent/Broker', 'Analyst', 'Clerk', 'Contractor', 'Customer Service Representative', 'Director/Administrator', 'Engineer', 'Executive', 'Laborer', 'Manager', 'Nurse - Registered', 'Sales Representative', 'Teacher', 'Other']
+    },
+
+    _initOccupationDropdown() {
+        const industrySel = document.getElementById('industry');
+        const occupationSel = document.getElementById('occupation');
+        if (!industrySel || !occupationSel) return;
+
+        // When industry changes → repopulate occupation select
+        industrySel.addEventListener('change', () => {
+            const savedOccupation = this.data.occupation || '';
+            this._populateOccupation(industrySel.value, savedOccupation);
+        });
+
+        // Initial population based on loaded data
+        const currentIndustry = this.data.industry || industrySel.value || '';
+        const currentOccupation = this.data.occupation || '';
+        this._populateOccupation(currentIndustry, currentOccupation);
+    },
+
+    _populateOccupation(industry, currentValue) {
+        const occupationSel = document.getElementById('occupation');
+        if (!occupationSel) return;
+
+        const titles = this._OCCUPATIONS_BY_INDUSTRY[industry] || [];
+        let html = '<option value="">Select...</option>';
+        titles.forEach(t => {
+            const selected = (t === currentValue) ? ' selected' : '';
+            html += `<option value="${t}"${selected}>${t}</option>`;
+        });
+
+        // If saved value doesn't match any option (legacy free-text), add it as a custom option
+        if (currentValue && !titles.includes(currentValue)) {
+            html += `<option value="${currentValue}" selected>${currentValue}</option>`;
+        }
+
+        occupationSel.innerHTML = html;
+    },
+
+    // ── AI Settings Management ───────────────────────────────────
+
+    /** Load saved AI settings into the settings UI */
+    loadAISettings() {
+        if (typeof AIProvider === 'undefined') return;
+        const s = AIProvider.getSettings();
+        const providerSel = document.getElementById('aiProviderSelect');
+        const modelSel = document.getElementById('aiModelSelect');
+        const keyInput = document.getElementById('aiApiKeyInput');
+        if (providerSel) providerSel.value = s.provider || 'google';
+        this._populateAIModels(s.provider || 'google');
+        if (modelSel) modelSel.value = s.model || AIProvider.PROVIDERS[s.provider || 'google'].defaultModel;
+        if (keyInput) keyInput.value = s.apiKey || '';
+        this._updateAIProviderHint(s.provider || 'google');
+    },
+
+    /** Called when provider dropdown changes */
+    onAIProviderChange() {
+        const provider = document.getElementById('aiProviderSelect')?.value || 'google';
+        this._populateAIModels(provider);
+        this._updateAIProviderHint(provider);
+        // Update key placeholder
+        const keyInput = document.getElementById('aiApiKeyInput');
+        const keyLink = document.getElementById('aiKeyLink');
+        if (typeof AIProvider !== 'undefined') {
+            const p = AIProvider.PROVIDERS[provider];
+            if (keyInput) keyInput.placeholder = p?.keyPlaceholder || '';
+            if (keyLink) {
+                keyLink.href = p?.keyUrl || '#';
+                keyLink.textContent = '(get key)';
+            }
+        }
+    },
+
+    /** Called when model dropdown changes */
+    onAIModelChange() {
+        const provider = document.getElementById('aiProviderSelect')?.value || 'google';
+        this._updateModelInfo(provider);
+    },
+
+    /** Populate model dropdown based on selected provider */
+    _populateAIModels(provider) {
+        const sel = document.getElementById('aiModelSelect');
+        if (!sel || typeof AIProvider === 'undefined') return;
+        const models = AIProvider.PROVIDERS[provider]?.models || [];
+        sel.innerHTML = models.map(m => {
+            const cost = (m.costIn != null && m.costOut != null)
+                ? ` [$${m.costIn}/$${m.costOut}/M]`
+                : '';
+            return `<option value="${m.id}">${m.label}${cost} — ${m.desc}</option>`;
+        }).join('');
+        this._updateModelInfo(provider);
+    },
+
+    /** Toggle the cost estimates panel */
+    toggleCostEstimates() {
+        const panel = document.getElementById('aiCostEstimates');
+        const btn = document.getElementById('aiCostToggle');
+        if (!panel) return;
+        const show = panel.style.display === 'none';
+        panel.style.display = show ? 'block' : 'none';
+        if (btn) btn.textContent = show ? '▲ Hide cost per tool' : '▼ Show cost per tool';
+    },
+
+    // Token usage estimates per tool (inputTokens, outputTokens, hasImages, imageCount)
+    _toolTokenEstimates: [
+        { tool: 'Policy Scan (photo)',   icon: '📸', inputBase: 2500,  outputAvg: 2000, images: 2,  note: '1–10 page dec page scan' },
+        { tool: 'Policy Scan (text)',    icon: '📄', inputBase: 10000, outputAvg: 2000, images: 0,  note: 'Desktop text import' },
+        { tool: 'Policy Q&A (1 question)', icon: '💬', inputBase: 15000, outputAvg: 1000, images: 0, note: 'Varies with policy length' },
+        { tool: 'GIS Property Extract',  icon: '🏠', inputBase: 1300,  outputAvg: 1000, images: 1,  note: 'County assessor screenshot' },
+        { tool: 'Driver License Scan',   icon: '🪪', inputBase: 300,   outputAvg: 300,  images: 1,  note: 'Single DL photo' },
+        { tool: 'Property Image Analysis',icon: '📷', inputBase: 800,   outputAvg: 400,  images: 1,  note: 'Roof/exterior photo' },
+        { tool: 'Aerial Hazard Check',   icon: '🛰️', inputBase: 600,   outputAvg: 600,  images: 1,  note: 'Satellite imagery' },
+        { tool: 'PDF Document Analysis', icon: '📋', inputBase: 800,   outputAvg: 600,  images: 1,  note: 'Tax/deed PDF page' },
+        { tool: 'Prospect AI Dossier',   icon: '🔍', inputBase: 3500,  outputAvg: 6000, images: 0,  note: 'Full risk analysis' },
+        { tool: 'Full Quote Intake',     icon: '⚡', inputBase: 18100, outputAvg: 6700, images: 5,  note: 'Scan + DL + property + Q&A' }
+    ],
+
+    /** Build cost estimate table for the selected model */
+    _updateCostEstimates(model) {
+        const table = document.getElementById('aiCostTable');
+        if (!table) return;
+        if (!model || model.costIn == null || model.costOut == null) {
+            table.innerHTML = '<tr><td style="color:var(--text-secondary)">Select a model to see cost estimates</td></tr>';
+            return;
+        }
+        const imgTokens = 1500; // avg tokens per image
+        const fmt = (cents) => {
+            if (cents < 0.01) return '<$0.01';
+            if (cents < 1) return '$' + cents.toFixed(3);
+            return '$' + cents.toFixed(2);
+        };
+        let html = '<tr style="border-bottom:1px solid var(--border,#BEC5D4)">' +
+            '<td style="padding:3px 0;font-weight:600;color:var(--text)">Tool</td>' +
+            '<td style="padding:3px 4px;font-weight:600;color:var(--text);text-align:right">Est. Cost</td>' +
+            '<td style="padding:3px 0;font-weight:600;color:var(--text);text-align:right">Tokens</td></tr>';
+
+        this._toolTokenEstimates.forEach(t => {
+            const totalIn = t.inputBase + (t.images * imgTokens);
+            const totalOut = t.outputAvg;
+            const costIn = (totalIn / 1_000_000) * model.costIn;
+            const costOut = (totalOut / 1_000_000) * model.costOut;
+            const total = costIn + costOut;
+            const totalTokens = totalIn + totalOut;
+            const tokenStr = totalTokens >= 1000 ? (totalTokens / 1000).toFixed(1) + 'K' : totalTokens;
+            const isLast = t.tool === 'Full Quote Intake';
+            const rowStyle = isLast ? 'border-top:1px solid var(--border,#BEC5D4);font-weight:600' : '';
+            html += `<tr style="${rowStyle}">` +
+                `<td style="padding:2px 0;color:var(--text)">${t.icon} ${t.tool}</td>` +
+                `<td style="padding:2px 4px;text-align:right;color:var(--apple-blue);font-weight:600;white-space:nowrap">${fmt(total)}</td>` +
+                `<td style="padding:2px 0;text-align:right;color:var(--text-secondary);white-space:nowrap">~${tokenStr}</td></tr>`;
+        });
+
+        table.innerHTML = html;
+    },
+
+    /** Show model details card for selected model */
+    _updateModelInfo(provider) {
+        const panel = document.getElementById('aiModelInfo');
+        if (!panel || typeof AIProvider === 'undefined') return;
+        const modelId = document.getElementById('aiModelSelect')?.value;
+        const models = AIProvider.PROVIDERS[provider]?.models || [];
+        const m = models.find(x => x.id === modelId);
+        if (!m) { panel.style.display = 'none'; return; }
+
+        panel.style.display = 'block';
+        const nameEl = document.getElementById('aiModelInfoName');
+        const costEl = document.getElementById('aiModelInfoCost');
+        const ctxEl = document.getElementById('aiModelInfoContext');
+        const tagsEl = document.getElementById('aiModelInfoTags');
+
+        if (nameEl) nameEl.textContent = m.label;
+        if (costEl) {
+            costEl.textContent = (m.costIn != null && m.costOut != null)
+                ? `$${m.costIn} in / $${m.costOut} out per M tokens`
+                : 'Pricing varies';
+        }
+        if (ctxEl) ctxEl.textContent = m.context ? `Context: ${m.context} tokens` : '';
+
+        if (tagsEl) {
+            const TAG_LABELS = (typeof AIProvider !== 'undefined' && AIProvider.TAG_LABELS) ? AIProvider.TAG_LABELS : {};
+            tagsEl.innerHTML = (m.tags || []).map(t => {
+                const lbl = TAG_LABELS[t] || t;
+                return `<span style="display:inline-block;padding:2px 7px;border-radius:6px;background:var(--bg-card,#fff);border:1px solid var(--border,#BEC5D4);font-size:10px;color:var(--text-secondary);white-space:nowrap">${lbl}</span>`;
+            }).join('');
+        }
+
+        // Update cost estimates table
+        this._updateCostEstimates(m);
+
+        // Show/reset the toggle button
+        const toggle = document.getElementById('aiCostToggle');
+        if (toggle) toggle.style.display = 'block';
+    },
+
+    /** Update the hint text below settings */
+    _updateAIProviderHint(provider) {
+        const hint = document.getElementById('aiProviderHint');
+        if (!hint) return;
+        const hints = {
+            google: 'Gemini 2.5 Flash is used by default. Free tier available at aistudio.google.com.',
+            openrouter: 'OpenRouter gives you access to 100+ models with one API key — including Claude Opus, GPT-4o, Llama, and more. Pay per token at openrouter.ai.',
+            openai: 'Use your OpenAI API key for GPT-4o and o3-mini. Requires an OpenAI account with billing enabled.',
+            anthropic: 'Claude models from Anthropic. Requires a CORS proxy (routed through /api/anthropic-proxy). Best-in-class for document analysis.'
+        };
+        hint.textContent = hints[provider] || '';
+    },
+
+    /** Save AI settings from the form */
+    saveAISettings() {
+        if (typeof AIProvider === 'undefined') return;
+        const provider = document.getElementById('aiProviderSelect')?.value || 'google';
+        const model = document.getElementById('aiModelSelect')?.value || '';
+        const apiKey = document.getElementById('aiApiKeyInput')?.value?.trim() || '';
+        AIProvider.saveSettings({ provider, model, apiKey });
+        // Reset cached key so _getGeminiKey re-resolves
+        this._geminiApiKey = null;
+        this.toast('\u2705 AI settings saved — ' + (AIProvider.PROVIDERS[provider]?.name || provider));
+    },
+
+    /** Toggle visibility of the API key field */
+    toggleAIKeyVisibility() {
+        const input = document.getElementById('aiApiKeyInput');
+        if (!input) return;
+        input.type = input.type === 'password' ? 'text' : 'password';
+    },
+
+    /** Test connection to the configured AI provider */
+    async testAIConnection() {
+        if (typeof AIProvider === 'undefined') return;
+        const btn = document.getElementById('aiTestBtn');
+        const result = document.getElementById('aiTestResult');
+        if (btn) { btn.disabled = true; btn.textContent = 'Testing...'; }
+        // Temporarily save current form values for the test
+        const provider = document.getElementById('aiProviderSelect')?.value || 'google';
+        const model = document.getElementById('aiModelSelect')?.value || '';
+        const apiKey = document.getElementById('aiApiKeyInput')?.value?.trim() || '';
+        const prev = AIProvider.getSettings();
+        AIProvider.saveSettings({ provider, model, apiKey });
+
+        const test = await AIProvider.testConnection();
+
+        if (result) {
+            result.style.display = 'block';
+            if (test.success) {
+                result.style.background = 'rgba(52,199,89,0.1)';
+                result.style.color = 'var(--success, #34C759)';
+                result.textContent = '\u2705 Connected! Response: ' + (test.text || 'OK').slice(0, 50);
+            } else {
+                result.style.background = 'rgba(255,59,48,0.1)';
+                result.style.color = 'var(--danger, #FF3B30)';
+                result.textContent = '\u274C ' + (test.error || 'Connection failed');
+                // Restore previous settings on failure
+                AIProvider.saveSettings(prev);
+            }
+        }
+        if (btn) { btn.disabled = false; btn.textContent = 'Test Connection'; }
     }
 });

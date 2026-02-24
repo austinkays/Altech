@@ -10,76 +10,70 @@
                     <span class="dark-mode-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
                 </button>
             </span>
-            <span>EZLynx Quoter</span>
+            <span>EZLynx Export</span>
         </div>
     </div>
-    <div class="step-title">Fill EZLynx forms in seconds — select a client, review, and send to your browser</div>
+    <div class="step-title">Auto-fill EZLynx forms — select a client, review, and send to your browser</div>
 </header>
 
 <div class="ez-container">
-    <!-- Chrome Extension Install Guide — always visible -->
-    <div class="ez-install-card" id="ezInstallCard">
-        <div class="ez-install-header">
-            <div class="ez-install-icon">🧩</div>
-            <div>
-                <h2 class="ez-install-title">Get the Chrome Extension</h2>
-                <p class="ez-install-subtitle">One-time setup — takes under 2 minutes</p>
+
+    <!-- Extension Status — inline pill shown when connected, hidden install guide when not -->
+    <div class="ez-status-bar" id="ezStatusBar">
+        <!-- Connected state -->
+        <div class="ez-status-connected" id="ezStatusConnected" style="display:none;">
+            <div class="ez-status-dot connected"></div>
+            <div class="ez-status-text">
+                <strong>Extension Connected</strong>
+                <span>Select a client, review, and hit Send — it's that easy</span>
             </div>
+            <button class="ez-status-help-btn" onclick="document.getElementById('ezInstallDetails').style.display=document.getElementById('ezInstallDetails').style.display==='none'?'block':'none'" title="Setup help">?</button>
         </div>
-
-        <a href="/altech-ezlynx-extension.zip" download class="ez-install-download-btn">
-            ⬇️ Download Extension (.zip)
-        </a>
-
-        <div class="ez-install-steps">
-            <div class="ez-install-step">
-                <div class="ez-step-number">1</div>
-                <div class="ez-step-content">
-                    <strong>Download & Unzip</strong>
-                    <span>Click the button above, then unzip the file</span>
-                </div>
+        <!-- Not connected state -->
+        <div class="ez-status-not-connected" id="ezStatusNotConnected">
+            <div class="ez-status-dot"></div>
+            <div class="ez-status-text">
+                <strong>Extension Not Detected</strong>
+                <span>Install the Chrome extension to auto-fill EZLynx forms</span>
             </div>
-            <div class="ez-install-step">
-                <div class="ez-step-number">2</div>
-                <div class="ez-step-content">
-                    <strong>Open Chrome Extensions</strong>
-                    <span>Go to <code>chrome://extensions</code> and enable <strong>Developer mode</strong></span>
-                </div>
-            </div>
-            <div class="ez-install-step">
-                <div class="ez-step-number">3</div>
-                <div class="ez-step-content">
-                    <strong>Load the Extension</strong>
-                    <span>Click <strong>Load unpacked</strong> → select the unzipped folder → Done!</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="ez-install-verify" id="ezExtensionStatus">
-            <span class="ez-install-verify-dot"></span>
-            <span>After installing, refresh this page — the extension will connect automatically</span>
         </div>
     </div>
 
-    <!-- How It Works — simple 3-step flow -->
-    <div class="ez-how-it-works-card">
-        <h3 class="ez-how-title">⚡ How It Works</h3>
-        <div class="ez-how-steps">
-            <div class="ez-how-step">
-                <span class="ez-how-num">1</span>
-                <span><strong>Select a client</strong> from your saved intakes, or fill the form below</span>
+    <!-- Install Guide — completely hidden when extension connected -->
+    <div class="ez-install-card" id="ezInstallDetails">
+        <div class="ez-install-body">
+            <a href="/altech-ezlynx-extension.zip" download class="ez-install-download-btn">
+                ⬇️ Download Extension (.zip)
+            </a>
+            <div class="ez-install-steps">
+                <div class="ez-install-step">
+                    <div class="ez-step-number">1</div>
+                    <div class="ez-step-content">
+                        <strong>Download & Unzip</strong>
+                        <span>Click the button above, then unzip the file</span>
+                    </div>
+                </div>
+                <div class="ez-install-step">
+                    <div class="ez-step-number">2</div>
+                    <div class="ez-step-content">
+                        <strong>Open Chrome Extensions</strong>
+                        <span>Go to <code>chrome://extensions</code> and enable <strong>Developer mode</strong></span>
+                    </div>
+                </div>
+                <div class="ez-install-step">
+                    <div class="ez-step-number">3</div>
+                    <div class="ez-step-content">
+                        <strong>Load the Extension</strong>
+                        <span>Click <strong>Load unpacked</strong> → select the unzipped folder → refresh this page</span>
+                    </div>
+                </div>
             </div>
-            <div class="ez-how-step">
-                <span class="ez-how-num">2</span>
-                <span>Hit <strong>📤 Send to Extension</strong> — data transfers instantly</span>
+            <div class="ez-how-hint">
+                💡 <strong>How it works:</strong> Select a client → hit <strong>Send to Extension</strong> → open EZLynx → click the extension icon → <strong>Fill This Page</strong>. Dropdowns auto-match (<code>WA → Washington</code>, <code>HO3 → HO3 - Dwelling</code>).
             </div>
-            <div class="ez-how-step">
-                <span class="ez-how-num">3</span>
-                <span>Open EZLynx, click the extension icon, then <strong>⚡ Fill This Page</strong></span>
-            </div>
-        </div>
-        <div class="ez-how-hint">
-            💡 The extension auto-matches dropdowns — <code>WA → Washington</code>, <code>HO3 → HO3 - Dwelling</code>, etc.
+            <button class="ez-got-it-btn" id="ezGotItBtn" onclick="EZLynxTool.confirmExtensionInstalled()">
+                ✅ I've installed it — check connection
+            </button>
         </div>
     </div>
 
@@ -90,7 +84,7 @@
             <button class="ez-toolbar-btn primary" onclick="EZLynxTool.showClientPicker()" title="Load a saved client">👤 Select Client</button>
             <button class="ez-toolbar-btn" onclick="EZLynxTool.clearForm()" title="Clear all fields">🗑 Clear</button>
             <div class="ez-toolbar-sep"></div>
-            <button class="ez-toolbar-btn primary" id="ezSendToExtBtn" onclick="EZLynxTool.copyForExtension()" title="Send client data directly to the Chrome extension">📤 Send to Extension</button>
+            <button class="ez-toolbar-btn send-hero" id="ezSendToExtBtn" onclick="EZLynxTool.copyForExtension()" title="Send client data directly to the Chrome extension">⚡ Send to Extension</button>
         </div>
 
         <!-- Client Picker (hidden by default) -->
@@ -190,7 +184,22 @@
             </div>
             <div class="ez-form-field">
                 <label>State</label>
-                <input type="text" id="ezState" placeholder="WA" maxlength="2" style="text-transform:uppercase;">
+                <select id="ezState">
+                    <option value="">—</option>
+                    <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option>
+                    <option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option>
+                    <option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option>
+                    <option value="IL">IL</option><option value="IN">IN</option><option value="IA">IA</option><option value="KS">KS</option>
+                    <option value="KY">KY</option><option value="LA">LA</option><option value="ME">ME</option><option value="MD">MD</option>
+                    <option value="MA">MA</option><option value="MI">MI</option><option value="MN">MN</option><option value="MS">MS</option>
+                    <option value="MO">MO</option><option value="MT">MT</option><option value="NE">NE</option><option value="NV">NV</option>
+                    <option value="NH">NH</option><option value="NJ">NJ</option><option value="NM">NM</option><option value="NY">NY</option>
+                    <option value="NC">NC</option><option value="ND">ND</option><option value="OH">OH</option><option value="OK">OK</option>
+                    <option value="OR">OR</option><option value="PA">PA</option><option value="RI">RI</option><option value="SC">SC</option>
+                    <option value="SD">SD</option><option value="TN">TN</option><option value="TX">TX</option><option value="UT">UT</option>
+                    <option value="VT">VT</option><option value="VA">VA</option><option value="WA">WA</option><option value="WV">WV</option>
+                    <option value="WI">WI</option><option value="WY">WY</option><option value="DC">DC</option>
+                </select>
             </div>
             <div class="ez-form-field">
                 <label>Zip Code</label>
@@ -202,7 +211,13 @@
             </div>
             <div class="ez-form-field">
                 <label>Years at Address</label>
-                <input type="text" id="ezYearsAtAddress" placeholder="5">
+                <select id="ezYearsAtAddress">
+                    <option value="">—</option>
+                    <option value="Less than 1 year">&lt;1</option>
+                    <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                    <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                    <option value="11-15">11-15</option><option value="16-20">16-20</option><option value="20+">20+</option>
+                </select>
             </div>
         </div>
 
@@ -227,11 +242,39 @@
             </div>
             <div class="ez-form-field">
                 <label>Occupation</label>
-                <input type="text" id="ezOccupation" placeholder="Insurance Agent">
+                <select id="ezOccupation">
+                    <option value="">—</option>
+                </select>
             </div>
             <div class="ez-form-field">
                 <label>Industry</label>
-                <input type="text" id="ezIndustry" placeholder="Insurance">
+                <select id="ezIndustry">
+                    <option value="">—</option>
+                    <option value="Homemaker/House person">Homemaker/House person</option>
+                    <option value="Retired">Retired</option>
+                    <option value="Disabled">Disabled</option>
+                    <option value="Unemployed">Unemployed</option>
+                    <option value="Student">Student</option>
+                    <option value="Agriculture/Forestry/Fishing">Agriculture/Forestry/Fishing</option>
+                    <option value="Art/Design/Media">Art/Design/Media</option>
+                    <option value="Banking/Finance/Real Estate">Banking/Finance/Real Estate</option>
+                    <option value="Business/Sales/Office">Business/Sales/Office</option>
+                    <option value="Construction/Energy Trades">Construction/Energy Trades</option>
+                    <option value="Education/Library">Education/Library</option>
+                    <option value="Engineer/Architect/Science/Math">Engineer/Architect/Science/Math</option>
+                    <option value="Government/Military">Government/Military</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Legal/Law Enforcement/Security">Legal/Law Enforcement/Security</option>
+                    <option value="Maintenance/Repair/Housekeeping">Maintenance/Repair/Housekeeping</option>
+                    <option value="Manufacturing/Production">Manufacturing/Production</option>
+                    <option value="Medical/Social Services/Religion">Medical/Social Services/Religion</option>
+                    <option value="Personal Care/Service">Personal Care/Service</option>
+                    <option value="Restaurant/Hotel Services">Restaurant/Hotel Services</option>
+                    <option value="Sports/Recreation">Sports/Recreation</option>
+                    <option value="Travel/Transportation/Warehousing">Travel/Transportation/Warehousing</option>
+                    <option value="Other">Other</option>
+                </select>
             </div>
             <div class="ez-form-field">
                 <label>License #</label>
@@ -392,8 +435,22 @@
                         <option value="1000/1000">1000/1000</option>
                     </select>
                 </div>
-                <div class="ez-form-field"><label>Yrs Continuous Cov</label><input type="text" id="ezYearsContinuousCoverage" placeholder="5"></div>
-                <div class="ez-form-field"><label># Residents</label><input type="text" id="ezNumResidents" placeholder="2"></div>
+                <div class="ez-form-field"><label>Yrs Continuous Cov</label>
+                    <select id="ezYearsContinuousCoverage">
+                        <option value="">—</option>
+                        <option value="Less Than 1 Year">&lt;1</option>
+                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                        <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                        <option value="More Than 10 Years">10+</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label># Residents</label>
+                    <select id="ezNumResidents">
+                        <option value="">—</option>
+                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                        <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10+</option>
+                    </select>
+                </div>
                 <div class="ez-form-field"><label>Residence Is</label>
                     <select id="ezResidenceIs">
                         <option value="">—</option>
@@ -433,8 +490,31 @@
         <details class="ez-details" id="ezDriverSection">
             <summary>Driver & Vehicle Details</summary>
             <div class="ez-form-grid">
-                <div class="ez-form-field"><label>DL State</label><input type="text" id="ezDLState" placeholder="WA" maxlength="2" style="text-transform:uppercase;"></div>
-                <div class="ez-form-field"><label>Age Licensed</label><input type="text" id="ezAgeLicensed" placeholder="16"></div>
+                <div class="ez-form-field"><label>DL State</label>
+                    <select id="ezDLState">
+                        <option value="">—</option>
+                        <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option>
+                        <option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option>
+                        <option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option>
+                        <option value="IL">IL</option><option value="IN">IN</option><option value="IA">IA</option><option value="KS">KS</option>
+                        <option value="KY">KY</option><option value="LA">LA</option><option value="ME">ME</option><option value="MD">MD</option>
+                        <option value="MA">MA</option><option value="MI">MI</option><option value="MN">MN</option><option value="MS">MS</option>
+                        <option value="MO">MO</option><option value="MT">MT</option><option value="NE">NE</option><option value="NV">NV</option>
+                        <option value="NH">NH</option><option value="NJ">NJ</option><option value="NM">NM</option><option value="NY">NY</option>
+                        <option value="NC">NC</option><option value="ND">ND</option><option value="OH">OH</option><option value="OK">OK</option>
+                        <option value="OR">OR</option><option value="PA">PA</option><option value="RI">RI</option><option value="SC">SC</option>
+                        <option value="SD">SD</option><option value="TN">TN</option><option value="TX">TX</option><option value="UT">UT</option>
+                        <option value="VT">VT</option><option value="VA">VA</option><option value="WA">WA</option><option value="WV">WV</option>
+                        <option value="WI">WI</option><option value="WY">WY</option><option value="DC">DC</option>
+                    </select>
+                </div>
+                <div class="ez-form-field"><label>Age Licensed</label>
+                    <select id="ezAgeLicensed">
+                        <option value="">—</option>
+                        <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+                        <option value="19">19</option><option value="20">20</option><option value="21+">21+</option>
+                    </select>
+                </div>
                 <div class="ez-form-field ez-form-full"><label>VIN</label><input type="text" id="ezVIN" placeholder="1HGBH41JXMN109186" maxlength="17" style="text-transform:uppercase;"></div>
                 <div class="ez-form-field"><label>Vehicle Year</label><input type="text" id="ezVehicleYear" placeholder="2022"></div>
                 <div class="ez-form-field"><label>Vehicle Make</label><input type="text" id="ezVehicleMake" placeholder="Honda"></div>
@@ -443,6 +523,7 @@
                     <select id="ezVehicleUse">
                         <option value="">—</option>
                         <option value="Business">Business</option>
+                        <option value="Commute">To/From Work</option>
                         <option value="Farming">Farming</option>
                         <option value="Pleasure">Pleasure</option>
                         <option value="To/From Work">To/From Work</option>
@@ -701,7 +782,17 @@
                         <option value="Solid Fuel">Solid Fuel</option>
                     </select>
                 </div>
-                <div class="ez-form-field"><label>Cooling</label><input type="text" id="ezCooling" placeholder="Central Air"></div>
+                <div class="ez-form-field"><label>Cooling</label>
+                    <select id="ezCooling">
+                        <option value="">—</option>
+                        <option value="Central Air">Central Air</option>
+                        <option value="Evaporative Cooler">Evaporative Cooler</option>
+                        <option value="Wall Unit">Wall Unit</option>
+                        <option value="Window Unit">Window Unit</option>
+                        <option value="None">None</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
                 <div class="ez-form-field"><label>Burglar Alarm</label>
                     <select id="ezBurglarAlarm">
                         <option value="">—</option>
@@ -891,7 +982,15 @@
                         <option value="12 Month">12 Month</option>
                     </select>
                 </div>
-                <div class="ez-form-field"><label>Prior Years</label><input type="text" id="ezHomePriorYears" placeholder="4"></div>
+                <div class="ez-form-field"><label>Prior Years</label>
+                    <select id="ezHomePriorYears">
+                        <option value="">—</option>
+                        <option value="Less Than 1 Year">&lt;1</option>
+                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                        <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                        <option value="More Than 10 Years">10+</option>
+                    </select>
+                </div>
                 <div class="ez-form-field"><label>Prior Expiration</label><input type="text" id="ezHomePriorExp" placeholder="MM/DD/YYYY"></div>
                 <div class="ez-form-field"><label>Dwelling (Cov A)</label><input type="text" id="ezDwellingCoverage" placeholder="350000"></div>
                 <div class="ez-form-field"><label>Personal Liability</label>
@@ -939,6 +1038,7 @@
                     <select id="ezTheftDeductible">
                         <option value="">—</option>
                         <option value="500">$500</option>
+                        <option value="1000">$1,000</option>
                         <option value="1500">$1,500</option>
                     </select>
                 </div>

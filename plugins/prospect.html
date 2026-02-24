@@ -163,7 +163,7 @@
         <div class="grid-2">
             <div>
                 <label class="label">Business Name</label>
-                <input type="text" id="prospectBusinessName" placeholder="e.g., ABC Construction LLC" style="text-transform: capitalize;">
+                <input type="text" id="prospectBusinessName" placeholder="e.g., ABC Construction LLC">
             </div>
             <div>
                 <label class="label">UBI / CCB# (Optional)</label>
@@ -190,6 +190,18 @@
             <span style="font-size: 10px; width: 10px; height: 10px; background: #34C759; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px rgba(52,199,89,0.6);"></span>
             Run Full Investigation
         </button>
+    </div>
+
+    <!-- SAVED PROSPECTS -->
+    <div class="card">
+        <div class="prospect-section-header">
+            <div class="prospect-section-icon" style="background: rgba(52,199,89,0.08);">💾</div>
+            <div>
+                <h2 class="prospect-section-title">Saved Prospects</h2>
+                <p class="prospect-section-sub">Tap to reload a previous investigation</p>
+            </div>
+        </div>
+        <div id="savedProspectsList"></div>
     </div>
 
     <!-- LOADING INDICATOR -->
@@ -308,7 +320,8 @@
                     <h3 style="margin: 0 0 4px 0; font-size: 16px;">Export Options</h3>
                     <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">Save or share this investigation report</p>
                 </div>
-                <div style="display: flex; gap: 12px;">
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button class="btn" onclick="ProspectInvestigator.saveProspect()" style="font-size: 14px; background: var(--success); color: #fff; border: none; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-weight: 600;">💾 Save Prospect</button>
                     <button class="btn-secondary" onclick="ProspectInvestigator.copyToQuote()" style="font-size: 14px;">📋 Copy to Clipboard</button>
                     <button class="btn-utility" onclick="ProspectInvestigator.exportReport()" style="font-size: 14px;">📄 Export PDF</button>
                 </div>

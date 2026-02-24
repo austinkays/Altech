@@ -299,41 +299,147 @@
 }
 
 /* ═══════════════════════════════════════════════════ */
-/* Chrome Extension Install Guide                     */
+/* Extension Status Bar & Install Guide               */
 /* ═══════════════════════════════════════════════════ */
 
-.ez-install-card {
-    background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(124, 58, 237, 0.06));
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(56, 189, 248, 0.2);
-    border-radius: 16px;
-    padding: 22px 20px;
-    margin-bottom: 16px;
-    position: relative;
+/* Status bar — slim top bar */
+.ez-status-bar {
+    border-radius: 14px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    transition: all 0.3s ease;
+}
+.ez-status-bar.connected {
+    border-color: rgba(52, 199, 89, 0.3);
+    background: rgba(52, 199, 89, 0.04);
+}
+.ez-status-bar.not-connected {
+    border-color: rgba(255, 149, 0, 0.25);
+    background: rgba(255, 149, 0, 0.04);
 }
 
-.ez-install-header {
+.ez-status-connected,
+.ez-status-not-connected {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
+    padding: 14px 18px;
 }
-.ez-install-icon {
-    font-size: 28px;
-    line-height: 1;
+
+.ez-status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
     flex-shrink: 0;
+    background: #FF9500;
+    transition: all 0.3s;
 }
-.ez-install-title {
-    margin: 0;
-    font-size: 17px;
+.ez-status-dot.connected {
+    background: #34C759;
+    box-shadow: 0 0 8px rgba(52, 199, 89, 0.5);
+    animation: ezPulseGreen 2s ease-in-out infinite;
+}
+@keyframes ezPulseGreen {
+    0%, 100% { box-shadow: 0 0 8px rgba(52, 199, 89, 0.5); }
+    50% { box-shadow: 0 0 14px rgba(52, 199, 89, 0.8); }
+}
+
+.ez-status-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+}
+.ez-status-text strong {
+    font-size: 14px;
     font-weight: 700;
-    color: #e2e8f0;
+    color: var(--text);
 }
-.ez-install-subtitle {
-    margin: 2px 0 0;
+.ez-status-text span {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.ez-status-help-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text-secondary);
     font-size: 13px;
-    color: #94a3b8;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+.ez-status-help-btn:hover {
+    background: var(--apple-blue);
+    color: #fff;
+    border-color: var(--apple-blue);
+}
+
+/* Install card (replaces <details> — fully hidden when extension connected) */
+.ez-install-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    background: var(--bg-card);
+}
+.ez-install-card .ez-install-body {
+    padding: 18px;
+}
+
+/* Send to Extension hero button in toolbar */
+.ez-toolbar-btn.send-hero {
+    border-color: rgba(52, 199, 89, 0.4);
+    color: #34C759;
+    font-weight: 700;
+}
+.ez-toolbar-btn.send-hero:hover {
+    background: rgba(52, 199, 89, 0.1);
+    border-color: rgba(52, 199, 89, 0.6);
+    box-shadow: 0 0 10px rgba(52, 199, 89, 0.15);
+}
+.dark-mode .ez-toolbar-btn.send-hero {
+    color: #32D74B;
+    border-color: rgba(50, 215, 75, 0.4);
+}
+.dark-mode .ez-toolbar-btn.send-hero:hover {
+    background: rgba(50, 215, 75, 0.1);
+    border-color: rgba(50, 215, 75, 0.6);
+    box-shadow: 0 0 10px rgba(50, 215, 75, 0.15);
+}
+.ez-install-body {
+    padding: 4px 18px 18px;
+}
+
+/* Got It button */
+.ez-got-it-btn {
+    display: block;
+    width: 100%;
+    margin-top: 14px;
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.08);
+    border: 1px solid rgba(0, 122, 255, 0.2);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.ez-got-it-btn:hover {
+    background: rgba(0, 122, 255, 0.14);
+    border-color: rgba(0, 122, 255, 0.35);
 }
 
 .ez-install-download-btn {
@@ -353,7 +459,7 @@
     background: linear-gradient(135deg, #2563eb, #7c3aed);
     box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
     transition: transform 0.2s, box-shadow 0.2s;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
 }
 .ez-install-download-btn:hover {
     transform: translateY(-1px);
@@ -366,7 +472,7 @@
 .ez-install-steps {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     margin-bottom: 14px;
 }
 .ez-install-step {
@@ -375,8 +481,8 @@
     gap: 12px;
     padding: 10px 14px;
     border-radius: 10px;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
 }
 .ez-step-number {
     width: 26px;
@@ -399,11 +505,11 @@
 }
 .ez-step-content strong {
     font-size: 13px;
-    color: #e2e8f0;
+    color: var(--text);
 }
 .ez-step-content span {
     font-size: 12px;
-    color: #94a3b8;
+    color: var(--text-secondary);
     line-height: 1.5;
 }
 .ez-step-content code {
@@ -414,53 +520,18 @@
     font-size: 11px;
 }
 
-.ez-install-verify {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.15);
-    font-size: 12px;
-    color: #64748b;
-}
-.ez-install-verify-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #64748b;
-    flex-shrink: 0;
-}
-.ez-install-verify.connected .ez-install-verify-dot {
-    background: #34c759;
-    box-shadow: 0 0 6px rgba(52, 199, 89, 0.4);
-}
-.ez-install-verify.connected {
-    color: #94a3b8;
-}
+/* (verify/status integrated into status bar above) */
 
-/* ── How It Works Card (top of page) ── */
-.ez-how-it-works-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 18px 20px;
-    margin-bottom: 16px;
-}
-.ez-how-title {
-    margin: 0 0 12px;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text);
-}
+/* ── How It Works hint (reused in install body) ── */
 .ez-how-hint {
     margin-top: 12px;
-    padding: 8px 12px;
+    padding: 10px 14px;
     background: rgba(56, 189, 248, 0.06);
     border: 1px solid rgba(56, 189, 248, 0.12);
     border-radius: 10px;
     font-size: 12px;
     color: var(--text-secondary);
+    line-height: 1.6;
 }
 .ez-how-hint code {
     background: rgba(56, 189, 248, 0.1);
@@ -470,35 +541,7 @@
     font-size: 11px;
 }
 
-/* ── How It Works Steps ── */
-.ez-how-steps {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-.ez-how-step {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 6px 0;
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-}
-.ez-how-num {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: rgba(56, 189, 248, 0.12);
-    color: #38bdf8;
-    font-size: 11px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-top: 1px;
-}
+/* (How It Works steps removed — merged into install guide) */
 
 /* ── Driver / Vehicle Summary Cards ── */
 .ez-dv-group-label {

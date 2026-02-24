@@ -506,7 +506,9 @@
                     </div>
                     <div>
                         <label class="label">Occupation</label>
-                        <input type="text" id="occupation" placeholder="e.g. Insurance Agent" oninput="App.save(event)">
+                        <select id="occupation">
+                            <option value="">Select...</option>
+                        </select>
                     </div>
                     <div>
                         <label class="label">Industry</label>
@@ -557,7 +559,23 @@
                 </div>
                 <div class="grid-addr-row2">
                     <div><label class="label">City</label><input type="text" id="addrCity" placeholder="Vancouver" autocomplete="off"></div>
-                    <div><label class="label">State</label><input type="text" id="addrState" value="WA" autocomplete="off"></div>
+                    <div><label class="label">State</label>
+                    <select id="addrState">
+                        <option value="">—</option>
+                        <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option>
+                        <option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option>
+                        <option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option>
+                        <option value="IL">IL</option><option value="IN">IN</option><option value="IA">IA</option><option value="KS">KS</option>
+                        <option value="KY">KY</option><option value="LA">LA</option><option value="ME">ME</option><option value="MD">MD</option>
+                        <option value="MA">MA</option><option value="MI">MI</option><option value="MN">MN</option><option value="MS">MS</option>
+                        <option value="MO">MO</option><option value="MT">MT</option><option value="NE">NE</option><option value="NV">NV</option>
+                        <option value="NH">NH</option><option value="NJ">NJ</option><option value="NM">NM</option><option value="NY">NY</option>
+                        <option value="NC">NC</option><option value="ND">ND</option><option value="OH">OH</option><option value="OK">OK</option>
+                        <option value="OR">OR</option><option value="PA">PA</option><option value="RI">RI</option><option value="SC">SC</option>
+                        <option value="SD">SD</option><option value="TN">TN</option><option value="TX">TX</option><option value="UT">UT</option>
+                        <option value="VT">VT</option><option value="VA">VA</option><option value="WA" selected>WA</option><option value="WV">WV</option>
+                        <option value="WI">WI</option><option value="WY">WY</option><option value="DC">DC</option>
+                    </select></div>
                     <div><label class="label">Zip</label><input type="tel" id="addrZip" placeholder="98686" maxlength="5" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,5)"></div>
                     <div><label class="label">County</label>
                         <input type="text" id="county" placeholder="Auto-fills ✨" autocomplete="off" style="font-size: 13px !important; padding: 8px 8px;">
@@ -638,8 +656,14 @@
                 </div>
 
                 <div class="grid-2">
-                    <div><label class="label">Full Bathrooms</label><input type="number" id="fullBaths" min="1" max="10" value="2"></div>
-                    <div><label class="label">Half Bathrooms</label><input type="number" id="halfBaths" min="0" max="5" value="0"></div>
+                    <div><label class="label">Full Bathrooms</label>
+                    <select id="fullBaths">
+                        <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8+</option>
+                    </select></div>
+                    <div><label class="label">Half Bathrooms</label>
+                    <select id="halfBaths">
+                        <option value="0" selected>0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5+</option>
+                    </select></div>
                 </div>
                 
                 <div class="grid-2">
@@ -649,14 +673,27 @@
 
                 <div class="grid-2">
                     <div><label class="label">Lot Size (acres)</label><input type="text" id="lotSize" placeholder="0.25"></div>
-                    <div><label class="label">Number of Occupants</label><input type="number" id="numOccupants" min="1" max="20" placeholder="2"></div>
+                    <div><label class="label">Number of Occupants</label>
+                    <select id="numOccupants">
+                        <option value="">Select...</option>
+                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                        <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                        <option value="9">9</option><option value="10">10+</option>
+                    </select></div>
                 </div>
                 
                 <div class="grid-2">
                     <div><label class="label">Home Purchase Date</label>
                     <input type="date" id="purchaseDate" onchange="App.calculateResidenceTime()">
                     <span id="residenceTimeDisplay" style="font-size: 12px; color: var(--text-secondary); margin-top: 2px; display: block;"></span></div>
-                    <div><label class="label">Years at Address</label><input type="text" id="yearsAtAddress" placeholder="5"></div>
+                    <div><label class="label">Years at Address</label>
+                    <select id="yearsAtAddress">
+                        <option value="">Select...</option>
+                        <option value="Less than 1 year">Less than 1 year</option>
+                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                        <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                        <option value="11-15">11-15</option><option value="16-20">16-20</option><option value="20+">20+</option>
+                    </select></div>
                 </div>
             </div>
 
@@ -788,7 +825,10 @@
                         <option value="None">None</option>
                     </select></div>
                     <div><label class="label">Garage Spaces</label>
-                    <input type="number" id="garageSpaces" min="0" max="10" placeholder="2"></div>
+                    <select id="garageSpaces">
+                        <option value="">—</option>
+                        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5+</option>
+                    </select></div>
                 </div>
 
                 <div class="divider" style="margin:12px 0;"></div>
@@ -989,7 +1029,9 @@
                             </select>
                         </div>
                         <div><label class="label">Number of Fireplaces</label>
-                            <input type="number" id="numFireplaces" min="0" max="5" placeholder="0">
+                            <select id="numFireplaces">
+                                <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5+</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -1018,7 +1060,12 @@
                             <option value="None in Area">None in Area</option>
                         </select>
                     </div>
-                    <div><label class="label">Protection Class (1-10)</label><input type="number" id="protectionClass" min="1" max="10" placeholder="5"></div>
+                    <div><label class="label">Protection Class (1-10)</label>
+                    <select id="protectionClass">
+                        <option value="">Select...</option>
+                        <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                        <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+                    </select></div>
                 </div>
                 
                 <label class="label">Burglar Alarm</label>
@@ -2161,11 +2208,23 @@
             <!-- Hero Export Card -->
             <div class="card export-card hero-export" id="ezlynx-export-card">
                 <h3>✓ Intake Complete</h3>
-                <p class="hero-desc">Your client data is ready — send it to EZLynx with one tap</p>
-                <button class="hero-btn" onclick="App.openTool('ezlynx')">⚡ Send to EZLynx</button>
-                <div class="hero-secondary-row">
-                    <button class="hero-secondary-btn" onclick="App.exportPDF()">📄 Download PDF</button>
-                    <button class="hero-secondary-btn" onclick="App.navigateTo('hawksoft')">📤 HawkSoft</button>
+                <p class="hero-desc">Your client data is ready to export</p>
+                <div class="hero-export-grid">
+                    <button class="hero-export-option" onclick="App.openTool('ezlynx')">
+                        <span class="hero-export-icon">⚡</span>
+                        <span class="hero-export-label">EZLynx</span>
+                        <span class="hero-export-hint">Auto-fill browser forms</span>
+                    </button>
+                    <button class="hero-export-option" onclick="App.navigateTo('hawksoft')">
+                        <span class="hero-export-icon">📤</span>
+                        <span class="hero-export-label">HawkSoft</span>
+                        <span class="hero-export-hint">Download .CMSMTF file</span>
+                    </button>
+                    <button class="hero-export-option" onclick="App.exportPDF()">
+                        <span class="hero-export-icon">📄</span>
+                        <span class="hero-export-label">PDF</span>
+                        <span class="hero-export-hint">Client summary</span>
+                    </button>
                 </div>
             </div>
 
@@ -2296,7 +2355,8 @@
                 email: 'Email Composer',
                 quickref: 'Quick Reference',
                 accounting: 'Accounting Export',
-                ezlynx: 'EZLynx Quoter',
+                hawksoft: 'HawkSoft Export',
+                ezlynx: 'EZLynx Export',
                 quotecompare: 'Quote Compare'
             },
 
@@ -2307,6 +2367,9 @@
                 { key: 'quoting',      icon: '🏠', color: 'icon-blue',    title: 'Personal Lines',  name: 'Personal Intake',       containerId: 'quotingTool',      category: 'quoting' },
                 { key: 'qna',          icon: '💬', color: 'icon-rose',    title: 'Policy Q&A',      name: 'Policy Q&A',            containerId: 'qnaTool',          initModule: 'PolicyQA',          htmlFile: 'plugins/qna.html',         category: 'quoting' },
                 { key: 'quotecompare', icon: '⚖️', color: 'icon-emerald', title: 'Quote Compare',   name: 'Quote Compare',          containerId: 'quoteCompareTool', initModule: 'QuoteCompare',      htmlFile: 'plugins/quotecompare.html', category: 'quoting' },
+                // ── Export & Integration ──
+                { key: 'ezlynx',       icon: '⚡', color: 'icon-indigo',  title: 'EZLynx Export',   name: 'EZLynx Export',          containerId: 'ezlynxTool',       initModule: 'EZLynxTool',        htmlFile: 'plugins/ezlynx.html',     category: 'export' },
+                { key: 'hawksoft',     icon: '📤', color: 'icon-blue',    title: 'HawkSoft Export', name: 'HawkSoft Export',        containerId: 'hawksoftTool',     initModule: 'HawkSoftExport',    htmlFile: 'plugins/hawksoft.html',    category: 'export' },
                 // ── Documents & Compliance ──
                 { key: 'coi',          icon: '📋', color: 'icon-teal',    title: 'COI Generator',   name: 'COI Generator',          containerId: 'coiTool',          initModule: 'COI',               htmlFile: 'plugins/coi.html',         category: 'docs', hidden: true },
                 { key: 'compliance',   icon: '🛡️', color: 'icon-indigo',  title: 'CGL & Bonds',     name: 'CGL Compliance',         containerId: 'complianceTool',   initModule: 'ComplianceDashboard', badge: 'cglBadge', htmlFile: 'plugins/compliance.html', category: 'docs' },
@@ -2315,11 +2378,8 @@
                 { key: 'prospect',     icon: '🔍', color: 'icon-amber',   title: 'Prospect Intel',  name: 'Prospect Investigator',  containerId: 'prospectTool',     initModule: 'ProspectInvestigator', htmlFile: 'plugins/prospect.html', category: 'ops' },
                 { key: 'email',        icon: '✉️', color: 'icon-violet',  title: 'Email Composer',  name: 'Email Composer',         containerId: 'emailTool',        initModule: 'EmailComposer',     htmlFile: 'plugins/email.html',       category: 'ops' },
                 { key: 'accounting',   icon: '💰', color: 'icon-amber',   title: 'Accounting',      name: 'Accounting Export',      containerId: 'accountingTool',   initModule: 'AccountingExport',  htmlFile: 'plugins/accounting.html',  category: 'ops' },
-                { key: 'hawksoft',     icon: '📤', color: 'icon-blue',    title: 'HawkSoft Export', name: 'HawkSoft Export',        containerId: 'hawksoftTool',     initModule: 'HawkSoftExport',    htmlFile: 'plugins/hawksoft.html',    category: 'ops' },
                 { key: 'quickref',     icon: '📖', color: 'icon-teal',    title: 'Quick Reference', name: 'Quick Reference',        containerId: 'quickrefTool',     initModule: 'QuickRef',          htmlFile: 'plugins/quickref.html',    category: 'ops' },
                 { key: 'vindecoder',   icon: '🚗', color: 'icon-emerald', title: 'VIN Decoder',     name: 'VIN Decoder',            containerId: 'vinDecoderTool',   initModule: 'VinDecoder',        htmlFile: 'plugins/vin-decoder.html', category: 'ops' },
-                // ── Hidden / internal ──
-                { key: 'ezlynx',       icon: '📊', color: 'icon-blue',    title: 'EZLynx Quoter',   name: 'EZLynx Quoter',          containerId: 'ezlynxTool',       initModule: 'EZLynxTool',        htmlFile: 'plugins/ezlynx.html',     hidden: true },
                 // ┌────────────────────────────────────────────────────────────┐
                 // │  ADD NEW TOOLS HERE                                        │
                 // │  Copy a line above and set: key, icon, color, title,    │
@@ -2680,6 +2740,52 @@
                         <button class="btn-auth btn-auth-small btn-auth-primary" style="margin-top:0;width:auto;padding:0.4rem 1rem" onclick="CloudSync.fullSync()">Sync Now</button>
                     </div>
 
+                    <div class="auth-divider">ai model</div>
+                    <div id="aiSettingsSection">
+                        <div class="auth-field">
+                            <label for="aiProviderSelect">AI Provider</label>
+                            <select id="aiProviderSelect" onchange="App.onAIProviderChange()" style="width:100%;padding:0.6rem 0.75rem;border-radius:10px;border:1.5px solid var(--border,#BEC5D4);background:var(--bg-input,#EDF0F8);color:var(--text);font-size:14px;appearance:auto">
+                                <option value="google">Google Gemini (default)</option>
+                                <option value="openrouter">OpenRouter (100+ models)</option>
+                                <option value="openai">OpenAI</option>
+                                <option value="anthropic">Anthropic (Claude)</option>
+                            </select>
+                        </div>
+                        <div class="auth-field">
+                            <label for="aiModelSelect">Model</label>
+                            <select id="aiModelSelect" onchange="App.onAIModelChange()" style="width:100%;padding:0.6rem 0.75rem;border-radius:10px;border:1.5px solid var(--border,#BEC5D4);background:var(--bg-input,#EDF0F8);color:var(--text);font-size:14px;appearance:auto">
+                            </select>
+                        </div>
+                        <div id="aiModelInfo" style="display:none;margin:-0.25rem 0 0.5rem;padding:10px 12px;border-radius:10px;background:var(--bg-input,#EDF0F8);border:1px solid var(--border,#BEC5D4);font-size:12px;line-height:1.5">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                                <strong id="aiModelInfoName" style="font-size:13px;color:var(--text)"></strong>
+                                <span id="aiModelInfoCost" style="font-weight:600;color:var(--apple-blue);font-size:12px"></span>
+                            </div>
+                            <div id="aiModelInfoContext" style="color:var(--text-secondary);font-size:11px;margin-bottom:5px"></div>
+                            <div id="aiModelInfoTags" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+                            <button id="aiCostToggle" onclick="App.toggleCostEstimates()" style="display:block;margin-top:6px;background:none;border:none;color:var(--apple-blue);font-size:11px;cursor:pointer;padding:0;font-weight:500">▼ Show cost per tool</button>
+                        </div>
+                        <div id="aiCostEstimates" style="display:none;margin:-0.25rem 0 0.5rem;padding:10px 12px;border-radius:10px;background:var(--bg-input,#EDF0F8);border:1px solid var(--border,#BEC5D4);font-size:11px;line-height:1.6">
+                            <div style="font-weight:600;font-size:12px;color:var(--text);margin-bottom:6px">💰 Estimated Cost Per Tool</div>
+                            <table id="aiCostTable" style="width:100%;border-collapse:collapse">
+                            </table>
+                            <p style="margin:6px 0 0;font-size:10px;color:var(--text-secondary);line-height:1.4">Estimates assume typical usage. Actual costs vary with document length, image count, and response complexity. Image-based tools use ~1.5K tokens per photo.</p>
+                        </div>
+                        <div class="auth-field">
+                            <label for="aiApiKeyInput">API Key <a id="aiKeyLink" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="font-weight:400;font-size:11px;color:var(--apple-blue)">(get key)</a></label>
+                            <div style="display:flex;gap:0.5rem;align-items:stretch">
+                                <input type="password" id="aiApiKeyInput" placeholder="AIza..." style="flex:1" autocomplete="off">
+                                <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="App.toggleAIKeyVisibility()" style="white-space:nowrap;padding:0.4rem 0.6rem" title="Show/hide key">👁</button>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;margin-top:0.25rem">
+                            <button class="btn-auth btn-auth-small btn-auth-primary" onclick="App.saveAISettings()" style="flex:1;margin-top:0">Save</button>
+                            <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="App.testAIConnection()" id="aiTestBtn" style="flex:1;margin-top:0">Test Connection</button>
+                        </div>
+                        <div id="aiTestResult" style="display:none;margin-top:0.5rem;padding:8px 12px;border-radius:8px;font-size:12px"></div>
+                        <p id="aiProviderHint" style="margin:0.5rem 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">Gemini 2.5 Flash is used by default for policy scanning, Q&A, and AI analysis. Add your own key for any provider to use premium models like Claude Opus or GPT-4o.</p>
+                    </div>
+
                     <div class="auth-divider">security</div>
                     <div id="authChangePasswordSection">
                         <button type="button" class="btn-auth btn-auth-secondary" style="width:100%;margin-bottom:0" onclick="document.getElementById('authChangePwForm').style.display = document.getElementById('authChangePwForm').style.display === 'none' ? 'block' : 'none'">Change Password</button>
@@ -2729,6 +2835,9 @@
             </div>
         </div>
     </div>
+
+    <!-- AI Provider (must load before plugins that use it) -->
+    <script src="js/ai-provider.js"></script>
 
     <!-- Plugin scripts (loaded after DOM) -->
     <script src="js/quick-ref.js"></script>

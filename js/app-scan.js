@@ -218,34 +218,44 @@ Object.assign(App, {
                 inlineData.map(f => ({ inlineData: { mimeType: f.mimeType, data: f.data } }))
             );
 
-            const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ role: 'user', parts }],
-                        systemInstruction: { role: 'system', parts: [{ text:
-                            'You are an expert at reading county assessor and GIS property records. ' +
-                            'Extract structured property data from screenshots and PDFs of county assessor websites, tax records, and GIS maps. ' +
-                            'Return only JSON matching the schema. If data is not visible, return empty strings. ' +
-                            'Provide confidence scores (0-1) for each field.'
-                        }]},
-                        generationConfig: { temperature: 0.1, response_mime_type: 'application/json', response_schema: gisSchema }
-                    })
-                }
-            );
+            const gisSystemPrompt = 'You are an expert at reading county assessor and GIS property records. ' +
+                'Extract structured property data from screenshots and PDFs of county assessor websites, tax records, and GIS maps. ' +
+                'Return only JSON matching the schema. If data is not visible, return empty strings. ' +
+                'Provide confidence scores (0-1) for each field.';
 
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData?.error?.message || `Gemini API error (${res.status})`);
+            let gisText;
+
+            // Use AIProvider if configured as Google (vision needs parts/multimodal support)
+            if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured() && AIProvider.getProvider() === 'google') {
+                const result = await AIProvider.ask(gisSystemPrompt, prompt, {
+                    temperature: 0.1, responseFormat: 'json', schema: gisSchema, parts
+                });
+                gisText = result.text;
+            } else {
+                const res = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ role: 'user', parts }],
+                            systemInstruction: { role: 'system', parts: [{ text: gisSystemPrompt }]},
+                            generationConfig: { temperature: 0.1, response_mime_type: 'application/json', response_schema: gisSchema }
+                        })
+                    }
+                );
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData?.error?.message || `Gemini API error (${res.status})`);
+                }
+
+                const data = await res.json();
+                gisText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!gisText) throw new Error('No response from Gemini');
             }
 
-            const data = await res.json();
-            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!text) throw new Error('No response from Gemini');
-
-            const parsed = JSON.parse(text);
+            const parsed = JSON.parse(gisText);
             this.renderGISExtractionReview(parsed);
 
             if (status) status.textContent = '✅ Property data extracted! Review below and approve.';
@@ -719,14 +729,9 @@ Object.assign(App, {
         });
     },
 
-    // Process already-extracted text through Gemini for structured field extraction (desktop drag-drop)
+    // Process already-extracted text through AI for structured field extraction (desktop drag-drop)
     async processScanFromText(text, fileName) {
         const status = document.getElementById('scanStatus');
-        const apiKey = await this._getGeminiKey();
-        if (!apiKey) {
-            if (status) status.textContent = '⚠️ No Gemini API key available. Set GOOGLE_API_KEY on Vercel or enter key in Policy Q&A.';
-            return;
-        }
 
         try {
             const userPrompt =
@@ -758,44 +763,51 @@ Object.assign(App, {
                 '- If data is unclear or missing, note it in quality_issues\n\n' +
                 '--- DOCUMENT TEXT ---\n' + text.substring(0, 30000);
 
-            const schema = this._getScanSchema();
+            const scanSystemPrompt = this._getScanSystemPrompt();
+            let raw;
 
-            const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-                        systemInstruction: { role: 'system', parts: [{ text:
-                            'You are a senior insurance underwriter and document analyst with 20+ years experience reading policies from every major US carrier ' +
-                            '(State Farm, Allstate, Progressive, GEICO, Farmers, Safeco, Liberty Mutual, Nationwide, USAA, Erie, Travelers, Hartford, Auto-Owners, ' +
-                            'American Family, Encompass, MetLife, Kemper, Mercury, Bristol West, National General, Foremost, Stillwater, and many others). ' +
-                            'You have deep expertise in reading Declarations Pages (dec pages), policy jackets, renewal notices, endorsement pages, and binders. ' +
-                            'You understand that every carrier formats their documents differently — some use tables, some use flowing text, some use numbered sections. ' +
-                            'You know that the DECLARATIONS PAGE is the most data-rich page and typically contains: named insured, policy number, effective/expiration dates, ' +
-                            'coverages with limits, deductibles, vehicles with VINs, listed drivers, premium breakdowns, property address, and mortgagee/lienholder info. ' +
-                            'You can distinguish between AGENT/AGENCY information and INSURED/POLICYHOLDER information — these are different people. ' +
-                            'The insured is the customer; the agent is the seller. Only extract the INSURED\'s personal info. ' +
-                            'You understand that "Named Insured", "Policyholder", "Insured", "Primary Insured", and "First Named Insured" all refer to the same person. ' +
-                            'You know coverage terminology: "BI" = Bodily Injury, "PD" = Property Damage, "UM/UIM" = Uninsured/Underinsured Motorist, ' +
-                            '"Comp" = Comprehensive, "Coll" = Collision, "Med Pay" = Medical Payments, "PIP" = Personal Injury Protection. ' +
-                            'For limits shown as "100/300/100" you know this means $100k BI per person / $300k BI per accident / $100k PD. ' +
-                            'You recognize home policy types: HO-3 (standard homeowner), HO-5 (comprehensive), HO-4 (renter), HO-6 (condo), DP-1/DP-3 (dwelling/landlord). ' +
-                            'When reading multi-page documents, you extract data from ALL pages and merge/reconcile. If there are conflicts between pages, prefer the dec page. ' +
-                            'You handle poor quality scans, rotated pages, faxed documents, and partially obscured text by inferring from context when possible. ' +
-                            'Return only JSON matching the schema. Use empty strings for any data not found. ' +
-                            'Provide confidence scores (0–1) based on how clearly you can read each value and how certain you are of the mapping. ' +
-                            'Report quality issues like blurry text, missing pages, or ambiguous data in the quality_issues array.'
-                        }]},
-                        generationConfig: { temperature: 0.1, response_mime_type: 'application/json', response_schema: schema }
-                    })
+            // Try AIProvider first (supports all providers for text-based extraction)
+            if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) {
+                try {
+                    const schema = AIProvider.getProvider() === 'google' ? this._getScanSchema() : null;
+                    const result = await AIProvider.ask(scanSystemPrompt, userPrompt, {
+                        temperature: 0.1,
+                        maxTokens: 8192,
+                        responseFormat: 'json',
+                        schema: schema
+                    });
+                    raw = result.text;
+                    console.log('[ProcessScanFromText] AIProvider extraction successful (' + AIProvider.getProvider() + ')');
+                } catch (e) {
+                    console.warn('[ProcessScanFromText] AIProvider failed, trying legacy Gemini:', e);
                 }
-            );
+            }
 
-            if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
-            const data = await res.json();
-            const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            // Fallback: direct Gemini API
+            if (!raw) {
+                const apiKey = await this._getGeminiKey();
+                if (!apiKey) {
+                    if (status) status.textContent = '⚠️ No API key configured. Open account settings to add an AI key.';
+                    return;
+                }
+                const schema = this._getScanSchema();
+                const res = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+                            systemInstruction: { role: 'system', parts: [{ text: scanSystemPrompt }]},
+                            generationConfig: { temperature: 0.1, response_mime_type: 'application/json', response_schema: schema }
+                        })
+                    }
+                );
+                if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
+                const data = await res.json();
+                raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            }
+
             if (!raw) throw new Error('No extraction result returned');
 
             const result = JSON.parse(raw);
@@ -826,97 +838,97 @@ Object.assign(App, {
 
             let result = null;
 
-            // Try 1: Direct Gemini API (works locally in Tauri — no server needed)
-            const apiKey = await this._getGeminiKey();
+            // ── Build the shared prompt & parts ──
+            const scanSystemPrompt = this._getScanSystemPrompt();
+            const userPrompt =
+                'Analyze these insurance policy document(s) and extract ALL available information:\n\n' +
+                '**POLICYHOLDER/INSURED:** Prefix (Mr/Mrs/Ms/Dr), first name, last name, suffix (Jr/Sr/III), date of birth, gender (M/F), marital status, phone, email, education, occupation, industry\n' +
+                '**CO-APPLICANT/SPOUSE:** First name, last name, date of birth, gender, email, phone, relationship (if listed)\n' +
+                '**ADDRESS:** Street address, city, state (2-letter code), ZIP, county, years at address\n' +
+                '**PROPERTY:** Dwelling usage (primary/secondary/seasonal), occupancy type (owner/renter/vacant), year built, square footage, dwelling type (single family, condo, townhouse, mobile home, etc.), ' +
+                'stories, occupants, bedrooms, full baths, half baths, construction style, exterior walls (vinyl, brick, stucco, wood, etc.), foundation, ' +
+                'garage type (attached, detached, carport, none), garage spaces, kitchen/bath quality, flooring, fireplaces, lot size (acres), purchase date, ' +
+                'roof type, roof shape (gable, hip, flat, etc.), roof updated year, heating type (gas forced air, electric, oil, etc.), heating updated year, cooling type, ' +
+                'plumbing updated year, electrical updated year, sewer type, water source, ' +
+                'pool (yes/no/fenced/unfenced), trampoline (yes/no), wood stove (yes/no), dog info (breed if mentioned), business on property (yes/no)\n' +
+                '**SAFETY & PROTECTION:** Burglar alarm, fire alarm, sprinklers, smoke detector, fire station distance (miles), fire hydrant distance (feet), protection class\n' +
+                '**HOME COVERAGE:** Policy type (HO-3, HO-5, HO-4, HO-6, DP-1, DP-3), dwelling coverage amount, personal liability, medical payments, deductible, wind/hail deductible, mortgagee/lender name\n' +
+                '**VEHICLES:** VIN number(s) and vehicle description (year/make/model). If multiple vehicles, put each extra one in additionalVehicles separated by semicolons, format: "YYYY Make Model VIN: XXXXX; YYYY Make Model VIN: XXXXX"\n' +
+                '**AUTO COVERAGE:** Auto policy type, liability limits (e.g., 100/300/100), property damage limit, UM limits, UIM limits, comprehensive deductible, collision deductible, med pay (auto), rental reimbursement, towing/roadside, student GPA discount\n' +
+                '**DRIVERS:** Additional drivers beyond primary insured in additionalDrivers separated by semicolons, format: "FirstName LastName DOB: YYYY-MM-DD; FirstName LastName DOB: YYYY-MM-DD"\n' +
+                '**POLICY INFO:** Policy number, effective date, policy term (6 month/12 month/annual), prior carrier name, prior expiration date, prior policy term, prior liability limits, years with prior carrier, continuous coverage, accidents, violations. ' +
+                'If separate home/auto carriers, use homePriorCarrier/homePriorExp/homePriorPolicyTerm/homePriorYears for home.\n' +
+                '**ADDITIONAL:** Additional insureds, best contact time, referral source\n\n' +
+                'IMPORTANT NOTES:\n' +
+                '- Different carriers use different labels: "Named Insured", "Policyholder", "Insured", "Primary Insured" all mean the same thing\n' +
+                '- Ignore agent/agency information — we only want the INSURED\'s info\n' +
+                '- Coverage labels vary: "BI/PD", "Bodily Injury/Property Damage", "Liability Limits" all refer to liability coverage\n' +
+                '- Look for the declarations page (dec page) which has the most complete information\n' +
+                '- Multi-page policies: extract from ALL pages provided\n' +
+                '- Normalize dates to YYYY-MM-DD format when possible\n' +
+                '- Normalize currency to plain numbers (no $ or commas)\n' +
+                '- If image quality is poor or data is unclear, note it in quality_issues\n\n' +
+                'Return structured JSON with the extracted fields.';
 
-            if (apiKey) {
+            const parts = [{ text: userPrompt }].concat(
+                inlineData.map(f => ({ inlineData: { mimeType: f.mimeType, data: f.data } }))
+            );
+
+            // Try 1: AIProvider (for Google provider — supports vision/multimodal with parts)
+            if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured() && AIProvider.getProvider() === 'google') {
                 try {
-                    console.log('[PolicyScan] Trying direct Gemini API...');
+                    console.log('[PolicyScan] Trying AIProvider (Google)...');
                     const schema = this._getScanSchema();
-
-                    const userPrompt =
-                        'Analyze these insurance policy document(s) and extract ALL available information:\n\n' +
-                        '**POLICYHOLDER/INSURED:** Prefix (Mr/Mrs/Ms/Dr), first name, last name, suffix (Jr/Sr/III), date of birth, gender (M/F), marital status, phone, email, education, occupation, industry\n' +
-                        '**CO-APPLICANT/SPOUSE:** First name, last name, date of birth, gender, email, phone, relationship (if listed)\n' +
-                        '**ADDRESS:** Street address, city, state (2-letter code), ZIP, county, years at address\n' +
-                        '**PROPERTY:** Dwelling usage (primary/secondary/seasonal), occupancy type (owner/renter/vacant), year built, square footage, dwelling type (single family, condo, townhouse, mobile home, etc.), ' +
-                        'stories, occupants, bedrooms, full baths, half baths, construction style, exterior walls (vinyl, brick, stucco, wood, etc.), foundation, ' +
-                        'garage type (attached, detached, carport, none), garage spaces, kitchen/bath quality, flooring, fireplaces, lot size (acres), purchase date, ' +
-                        'roof type, roof shape (gable, hip, flat, etc.), roof updated year, heating type (gas forced air, electric, oil, etc.), heating updated year, cooling type, ' +
-                        'plumbing updated year, electrical updated year, sewer type, water source, ' +
-                        'pool (yes/no/fenced/unfenced), trampoline (yes/no), wood stove (yes/no), dog info (breed if mentioned), business on property (yes/no)\n' +
-                        '**SAFETY & PROTECTION:** Burglar alarm, fire alarm, sprinklers, smoke detector, fire station distance (miles), fire hydrant distance (feet), protection class\n' +
-                        '**HOME COVERAGE:** Policy type (HO-3, HO-5, HO-4, HO-6, DP-1, DP-3), dwelling coverage amount, personal liability, medical payments, deductible, wind/hail deductible, mortgagee/lender name\n' +
-                        '**VEHICLES:** VIN number(s) and vehicle description (year/make/model). If multiple vehicles, put each extra one in additionalVehicles separated by semicolons, format: "YYYY Make Model VIN: XXXXX; YYYY Make Model VIN: XXXXX"\n' +
-                        '**AUTO COVERAGE:** Auto policy type, liability limits (e.g., 100/300/100), property damage limit, UM limits, UIM limits, comprehensive deductible, collision deductible, med pay (auto), rental reimbursement, towing/roadside, student GPA discount\n' +
-                        '**DRIVERS:** Additional drivers beyond primary insured in additionalDrivers separated by semicolons, format: "FirstName LastName DOB: YYYY-MM-DD; FirstName LastName DOB: YYYY-MM-DD"\n' +
-                        '**POLICY INFO:** Policy number, effective date, policy term (6 month/12 month/annual), prior carrier name, prior expiration date, prior policy term, prior liability limits, years with prior carrier, continuous coverage, accidents, violations. ' +
-                        'If separate home/auto carriers, use homePriorCarrier/homePriorExp/homePriorPolicyTerm/homePriorYears for home.\n' +
-                        '**ADDITIONAL:** Additional insureds, best contact time, referral source\n\n' +
-                        'IMPORTANT NOTES:\n' +
-                        '- Different carriers use different labels: "Named Insured", "Policyholder", "Insured", "Primary Insured" all mean the same thing\n' +
-                        '- Ignore agent/agency information — we only want the INSURED\'s info\n' +
-                        '- Coverage labels vary: "BI/PD", "Bodily Injury/Property Damage", "Liability Limits" all refer to liability coverage\n' +
-                        '- Look for the declarations page (dec page) which has the most complete information\n' +
-                        '- Multi-page policies: extract from ALL pages provided\n' +
-                        '- Normalize dates to YYYY-MM-DD format when possible\n' +
-                        '- Normalize currency to plain numbers (no $ or commas)\n' +
-                        '- If image quality is poor or data is unclear, note it in quality_issues\n\n' +
-                        'Return structured JSON with the extracted fields.';
-
-                    const parts = [{ text: userPrompt }].concat(
-                        inlineData.map(f => ({ inlineData: { mimeType: f.mimeType, data: f.data } }))
-                    );
-
-                    const geminiRes = await fetch(
-                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-                        {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{ role: 'user', parts }],
-                                systemInstruction: { role: 'system', parts: [{ text:
-                                    'You are a senior insurance underwriter and document analyst with 20+ years experience reading policies from every major US carrier ' +
-                                    '(State Farm, Allstate, Progressive, GEICO, Farmers, Safeco, Liberty Mutual, Nationwide, USAA, Erie, Travelers, Hartford, Auto-Owners, ' +
-                                    'American Family, Encompass, MetLife, Kemper, Mercury, Bristol West, National General, Foremost, Stillwater, and many others). ' +
-                                    'You have deep expertise in reading Declarations Pages (dec pages), policy jackets, renewal notices, endorsement pages, and binders. ' +
-                                    'You understand that every carrier formats their documents differently — some use tables, some use flowing text, some use numbered sections. ' +
-                                    'You know that the DECLARATIONS PAGE is the most data-rich page and typically contains: named insured, policy number, effective/expiration dates, ' +
-                                    'coverages with limits, deductibles, vehicles with VINs, listed drivers, premium breakdowns, property address, and mortgagee/lienholder info. ' +
-                                    'You can distinguish between AGENT/AGENCY information and INSURED/POLICYHOLDER information — these are different people. ' +
-                                    'The insured is the customer; the agent is the seller. Only extract the INSURED\'s personal info. ' +
-                                    'You understand that "Named Insured", "Policyholder", "Insured", "Primary Insured", and "First Named Insured" all refer to the same person. ' +
-                                    'You know coverage terminology: "BI" = Bodily Injury, "PD" = Property Damage, "UM/UIM" = Uninsured/Underinsured Motorist, ' +
-                                    '"Comp" = Comprehensive, "Coll" = Collision, "Med Pay" = Medical Payments, "PIP" = Personal Injury Protection. ' +
-                                    'For limits shown as "100/300/100" you know this means $100k BI per person / $300k BI per accident / $100k PD. ' +
-                                    'You recognize home policy types: HO-3 (standard homeowner), HO-5 (comprehensive), HO-4 (renter), HO-6 (condo), DP-1/DP-3 (dwelling/landlord). ' +
-                                    'When reading multi-page documents, you extract data from ALL pages and merge/reconcile. If there are conflicts between pages, prefer the dec page. ' +
-                                    'You handle poor quality scans, rotated pages, faxed documents, and partially obscured text by inferring from context when possible. ' +
-                                    'Return only JSON matching the schema. Use empty strings for any data not found. ' +
-                                    'Provide confidence scores (0–1) based on how clearly you can read each value and how certain you are of the mapping. ' +
-                                    'Report quality issues like blurry text, missing pages, or ambiguous data in the quality_issues array.'
-                                }]},
-                                generationConfig: {
-                                    temperature: 0.1,
-                                    response_mime_type: 'application/json',
-                                    response_schema: schema
-                                }
-                            })
-                        }
-                    );
-
-                    if (geminiRes.ok) {
-                        const geminiData = await geminiRes.json();
-                        const raw = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
-                        if (raw) {
-                            result = JSON.parse(raw);
-                            console.log('[PolicyScan] Direct Gemini extraction successful');
-                        }
-                    } else {
-                        console.warn('[PolicyScan] Gemini API returned', geminiRes.status);
+                    const aiResult = await AIProvider.ask(scanSystemPrompt, userPrompt, {
+                        temperature: 0.1, responseFormat: 'json', schema, parts
+                    });
+                    if (aiResult.text) {
+                        result = JSON.parse(aiResult.text);
+                        console.log('[PolicyScan] AIProvider extraction successful');
                     }
                 } catch (e) {
-                    console.warn('[PolicyScan] Direct Gemini failed:', e);
+                    console.warn('[PolicyScan] AIProvider failed:', e);
+                }
+            }
+
+            // Try 1b: Direct Gemini API fallback (when AIProvider not configured or non-Google)
+            if (!result) {
+                const apiKey = await this._getGeminiKey();
+                if (apiKey) {
+                    try {
+                        console.log('[PolicyScan] Trying direct Gemini API...');
+                        const schema = this._getScanSchema();
+
+                        const geminiRes = await fetch(
+                            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                            {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    contents: [{ role: 'user', parts }],
+                                    systemInstruction: { role: 'system', parts: [{ text: scanSystemPrompt }]},
+                                    generationConfig: {
+                                        temperature: 0.1,
+                                        response_mime_type: 'application/json',
+                                        response_schema: schema
+                                    }
+                                })
+                            }
+                        );
+
+                        if (geminiRes.ok) {
+                            const geminiData = await geminiRes.json();
+                            const raw = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+                            if (raw) {
+                                result = JSON.parse(raw);
+                                console.log('[PolicyScan] Direct Gemini extraction successful');
+                            }
+                        } else {
+                            console.warn('[PolicyScan] Gemini API returned', geminiRes.status);
+                        }
+                    } catch (e) {
+                        console.warn('[PolicyScan] Direct Gemini failed:', e);
+                    }
                 }
             }
 
