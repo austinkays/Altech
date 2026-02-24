@@ -13,51 +13,70 @@
             <span>AI Intake</span>
         </div>
     </div>
-    <div class="step-title">Describe your client in plain English — I'll extract the data and fill the form</div>
 </header>
 
-<main style="padding: 16px 16px 80px;">
+<!-- Mobile tab bar (hidden on desktop via CSS) -->
+<div class="ia-tab-bar" id="iaTabBar">
+    <button class="ia-tab ia-tab-active" data-tab="chat" onclick="IntakeAssist.switchTab('chat')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Chat
+    </button>
+    <button class="ia-tab" data-tab="data" onclick="IntakeAssist.switchTab('data')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Data
+        <span id="iaTabBadge" class="ia-tab-badge">0%</span>
+    </button>
+</div>
 
-    <!-- Chat card -->
-    <div class="ia-card">
-        <div class="ia-card-header">
-            <span class="ia-card-icon">🤖</span>
-            <span class="ia-card-title">AI Intake Assistant</span>
-            <button class="ia-clear-btn" onclick="IntakeAssist.clearChat()" title="Clear conversation">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            </button>
+<main class="ia-main">
+    <div class="ia-layout">
+
+        <!-- ═══ Chat Pane ═══ -->
+        <div class="ia-chat-pane" id="iaChatPane">
+            <div class="ia-card ia-chat-card">
+                <div class="ia-card-header">
+                    <span class="ia-card-icon">🤖</span>
+                    <span class="ia-card-title">AI Intake</span>
+                    <button class="ia-clear-btn" onclick="IntakeAssist.clearChat()" title="Clear conversation">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    </button>
+                </div>
+
+                <div id="iaChatMessages" class="ia-messages"></div>
+
+                <!-- Smart suggestion chips -->
+                <div id="iaChipRow" class="ia-chip-row"></div>
+
+                <!-- Input row -->
+                <div class="ia-input-row">
+                    <textarea
+                        id="iaInput"
+                        class="ia-input"
+                        placeholder="Describe your client..."
+                        rows="1"
+                    ></textarea>
+                    <button id="iaSendBtn" class="ia-send-btn" onclick="IntakeAssist.sendMessage()" title="Send (Enter)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <div id="iaChatMessages" class="ia-messages"></div>
+        <!-- ═══ Sidebar Pane (Data + Intel) ═══ -->
+        <div class="ia-sidebar-pane" id="iaSidebarPane">
 
-        <!-- Smart suggestion chips (dynamically populated) -->
-        <div id="iaChipRow" class="ia-chip-row"></div>
-
-        <!-- Input row -->
-        <div class="ia-input-row">
-            <textarea
-                id="iaInput"
-                class="ia-input"
-                placeholder="e.g. &quot;John Smith, born March 5 1985, needs home and auto, 123 Main St Vancouver WA 98686&quot;"
-                rows="1"
-            ></textarea>
-            <button id="iaSendBtn" class="ia-send-btn" onclick="IntakeAssist.sendMessage()" title="Send (Enter)">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
-        </div>
-    </div>
-
-    <!-- Extracted data preview (shown once AI returns structured data) -->
-    <div id="iaExtractedPreview" class="ia-extracted-card" style="display:none;"></div>
-
-    <!-- Intelligence Panel — real-time visual context -->
-    <div id="iaIntelPanel" class="ia-intel-panel" style="display:none;">
-
-        <!-- Progress Ring + Field Tracker -->
-        <div class="ia-intel-card">
-            <div class="ia-intel-header">
-                <span>📊 Form Progress</span>
-                <div class="ia-progress-actions">
+            <!-- Sidebar Header: Progress + Actions -->
+            <div class="ia-sidebar-header" id="iaSidebarHeader" style="display:none;">
+                <div class="ia-sidebar-progress">
+                    <svg class="ia-ring-sm" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="15" fill="none" stroke="var(--border)" stroke-width="3"/>
+                        <circle id="iaProgressArc" cx="18" cy="18" r="15" fill="none" stroke="var(--apple-blue)" stroke-width="3"
+                                stroke-dasharray="94.2" stroke-dashoffset="94.2" stroke-linecap="round"
+                                transform="rotate(-90 18 18)" style="transition: stroke-dashoffset 0.5s ease;"/>
+                    </svg>
+                    <span class="ia-sidebar-pct"><span id="iaProgressPercent">0</span>%</span>
+                </div>
+                <div class="ia-sidebar-actions">
                     <button class="ia-export-btn" onclick="IntakeAssist.exportSnapshot()" title="Export current data">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         Export
@@ -65,53 +84,48 @@
                     <button class="ia-populate-btn-sm" onclick="IntakeAssist.populateForm()" title="Fill intake form">⚡ Populate</button>
                 </div>
             </div>
-            <div class="ia-progress-body">
-                <div class="ia-progress-ring-wrap">
-                    <svg class="ia-progress-ring" viewBox="0 0 80 80">
-                        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" stroke-width="6"/>
-                        <circle id="iaProgressArc" cx="40" cy="40" r="34" fill="none" stroke="var(--apple-blue)" stroke-width="6"
-                                stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round"
-                                transform="rotate(-90 40 40)" style="transition: stroke-dashoffset 0.5s ease;"/>
-                    </svg>
-                    <div class="ia-progress-text">
-                        <span id="iaProgressPercent">0</span><span class="ia-progress-pct">%</span>
+
+            <!-- Collapsible Data Sections (populated by JS) -->
+            <div id="iaExtractedPreview" class="ia-sections-wrap"></div>
+
+            <!-- Map Panel -->
+            <div id="iaMapPanel" class="ia-sidebar-card" style="display:none;">
+                <div class="ia-sidebar-card-header">
+                    <span>🗺️ Property View</span>
+                    <button class="ia-map-expand-btn" onclick="IntakeAssist.openFullMap()" title="Open in Google Maps">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </button>
+                </div>
+                <div class="ia-map-grid">
+                    <div class="ia-map-frame">
+                        <div class="ia-map-label">Street View</div>
+                        <img id="iaStreetView" class="ia-map-img" alt="Street view" />
+                        <div id="iaStreetViewEmpty" class="ia-map-empty">Awaiting address...</div>
+                    </div>
+                    <div class="ia-map-frame">
+                        <div class="ia-map-label">Satellite</div>
+                        <img id="iaSatelliteView" class="ia-map-img" alt="Satellite view" />
+                        <div id="iaSatelliteEmpty" class="ia-map-empty">Awaiting address...</div>
                     </div>
                 </div>
-                <div id="iaFieldChecklist" class="ia-field-checklist"></div>
+                <div id="iaMapAddress" class="ia-map-address"></div>
             </div>
-        </div>
 
-        <!-- Map Views (shown when address detected) -->
-        <div id="iaMapPanel" class="ia-intel-card" style="display:none;">
-            <div class="ia-intel-header">
-                <span>🗺️ Property View</span>
-                <button class="ia-map-expand-btn" onclick="IntakeAssist.openFullMap()" title="Open in Google Maps">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                </button>
-            </div>
-            <div class="ia-map-grid">
-                <div class="ia-map-frame">
-                    <div class="ia-map-label">Street View</div>
-                    <img id="iaStreetView" class="ia-map-img" alt="Street view" />
-                    <div id="iaStreetViewEmpty" class="ia-map-empty">Awaiting address...</div>
+            <!-- Vehicle Panel -->
+            <div id="iaVehiclePanel" class="ia-sidebar-card" style="display:none;">
+                <div class="ia-sidebar-card-header">
+                    <span>🚗 Vehicle Info</span>
                 </div>
-                <div class="ia-map-frame">
-                    <div class="ia-map-label">Satellite</div>
-                    <img id="iaSatelliteView" class="ia-map-img" alt="Satellite view" />
-                    <div id="iaSatelliteEmpty" class="ia-map-empty">Awaiting address...</div>
-                </div>
+                <div id="iaVehicleInfo" class="ia-vehicle-info"></div>
             </div>
-            <div id="iaMapAddress" class="ia-map-address"></div>
-        </div>
 
-        <!-- Vehicle Card (shown when vehicle data detected) -->
-        <div id="iaVehiclePanel" class="ia-intel-card" style="display:none;">
-            <div class="ia-intel-header">
-                <span>🚗 Vehicle Info</span>
+            <!-- Empty state -->
+            <div id="iaSidebarEmpty" class="ia-sidebar-empty">
+                <div class="ia-sidebar-empty-icon">📋</div>
+                <div class="ia-sidebar-empty-text">Data will appear here as you chat</div>
             </div>
-            <div id="iaVehicleInfo" class="ia-vehicle-info"></div>
+
         </div>
 
     </div>
-
 </main>

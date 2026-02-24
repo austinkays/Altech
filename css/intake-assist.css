@@ -1,23 +1,135 @@
-/* ── AI Intake Assistant ──────────────────────────────────── */
+/* ── AI Intake Assistant — Split Layout Redesign ──────────── */
+
+/* ═══ Layout ═══ */
+
+.ia-main {
+    padding: 0;
+    height: calc(100vh - 56px); /* below header */
+    overflow: hidden;
+}
+
+.ia-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    height: 100%;
+    overflow: hidden;
+}
+
+@media (min-width: 768px) {
+    .ia-layout {
+        grid-template-columns: 1fr 380px;
+        gap: 0;
+    }
+}
+
+@media (min-width: 1024px) {
+    .ia-layout {
+        grid-template-columns: 1fr 420px;
+    }
+}
+
+/* ═══ Mobile Tab Bar ═══ */
+
+.ia-tab-bar {
+    display: flex;
+    gap: 2px;
+    padding: 6px 12px;
+    background: var(--bg-input);
+    border-bottom: 1px solid var(--border);
+}
+
+@media (min-width: 768px) {
+    .ia-tab-bar { display: none !important; }
+}
+
+.ia-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.ia-tab.ia-tab-active {
+    background: var(--bg-card);
+    color: var(--apple-blue);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.ia-tab:hover:not(.ia-tab-active) {
+    color: var(--text);
+}
+
+.ia-tab-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: var(--apple-blue);
+    color: #fff;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* Mobile: show/hide panes based on active tab */
+@media (max-width: 767px) {
+    .ia-layout[data-active-tab="data"] .ia-chat-pane { display: none; }
+    .ia-layout[data-active-tab="data"] .ia-sidebar-pane { display: flex; }
+    .ia-layout[data-active-tab="chat"] .ia-chat-pane { display: flex; }
+    .ia-layout[data-active-tab="chat"] .ia-sidebar-pane { display: none; }
+    .ia-layout:not([data-active-tab]) .ia-sidebar-pane { display: none; }
+}
+
+/* ═══ Chat Pane ═══ */
+
+.ia-chat-pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    padding: 12px;
+}
+
+@media (min-width: 768px) {
+    .ia-chat-pane {
+        border-right: 1px solid var(--border);
+        padding: 16px;
+    }
+}
+
+.ia-chat-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
 
 .ia-card {
     background: var(--bg-card);
     border: 1.5px solid var(--border);
     border-radius: 16px;
     overflow: hidden;
-    margin-bottom: 16px;
 }
 
 .ia-card-header {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 14px 16px;
+    padding: 12px 16px;
     background: var(--bg-input);
     border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
 }
 
-.ia-card-icon { font-size: 20px; }
+.ia-card-icon { font-size: 18px; }
 
 .ia-card-title {
     font-weight: 700;
@@ -42,24 +154,32 @@
     background: rgba(255, 59, 48, 0.08);
 }
 
-/* Messages list */
+/* Messages */
 .ia-messages {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 16px;
-    min-height: 200px;
-    max-height: 400px;
+    gap: 10px;
+    padding: 12px 14px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
 }
 
 .ia-msg {
-    max-width: 86%;
+    max-width: 88%;
     padding: 10px 14px;
     border-radius: 16px;
     font-size: 14px;
-    line-height: 1.65;
+    line-height: 1.6;
     word-wrap: break-word;
+    animation: iaMsgIn 0.2s ease;
+}
+
+@keyframes iaMsgIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .ia-msg-ai {
@@ -85,17 +205,8 @@
 }
 body.dark-mode .ia-msg-ai code { background: rgba(255,255,255,0.1); }
 
-.ia-code {
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 12px;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    margin: 6px 0 0;
-}
-body.dark-mode .ia-code { background: #111; }
+/* Hide any remaining code blocks in chat (JSON data) */
+.ia-msg .ia-code { display: none; }
 
 /* Typing dots */
 .ia-typing {
@@ -120,12 +231,13 @@ body.dark-mode .ia-code { background: #111; }
     30% { transform: translateY(-6px); opacity: 1; }
 }
 
-/* Quick-start chips */
+/* Suggestion chips */
 .ia-chip-row {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
-    padding: 0 16px 12px;
+    padding: 0 14px 10px;
+    flex-shrink: 0;
     opacity: 0;
     transform: translateY(4px);
     transition: opacity 0.25s ease, transform 0.25s ease;
@@ -152,7 +264,6 @@ body.dark-mode .ia-code { background: #111; }
     color: var(--apple-blue);
 }
 
-/* Suggestion chip — blue accent for contextual suggestions */
 .ia-chip-suggestion {
     border-color: var(--apple-blue);
     color: var(--apple-blue);
@@ -162,7 +273,6 @@ body.dark-mode .ia-code { background: #111; }
     color: #fff;
 }
 
-/* Done chip — green accent for apply action */
 .ia-chip-done {
     border-color: var(--success);
     color: var(--success);
@@ -176,10 +286,11 @@ body.dark-mode .ia-code { background: #111; }
 .ia-input-row {
     display: flex;
     gap: 8px;
-    padding: 12px 16px;
+    padding: 10px 14px;
     border-top: 1px solid var(--border);
     background: var(--bg-input);
     align-items: flex-end;
+    flex-shrink: 0;
 }
 
 .ia-input {
@@ -193,7 +304,7 @@ body.dark-mode .ia-code { background: #111; }
     font-family: inherit;
     resize: none;
     min-height: 20px;
-    max-height: 120px;
+    max-height: 100px;
     line-height: 1.5;
 }
 .ia-input:focus {
@@ -204,8 +315,8 @@ body.dark-mode .ia-code { background: #111; }
 .ia-input:disabled { opacity: 0.5; }
 
 .ia-send-btn {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
     border: none;
     background: var(--apple-blue);
@@ -220,125 +331,59 @@ body.dark-mode .ia-code { background: #111; }
 .ia-send-btn:hover { filter: brightness(1.12); }
 .ia-send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Extracted data preview */
-.ia-extracted-card {
-    background: var(--bg-card);
-    border: 1.5px solid var(--success, #34C759);
-    border-radius: 16px;
-    overflow: hidden;
-    animation: iaSlideIn 0.25s ease;
+
+/* ═══ Sidebar Pane ═══ */
+
+.ia-sidebar-pane {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--bg);
+    min-height: 0;
 }
 
-@keyframes iaSlideIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
+@media (min-width: 768px) {
+    .ia-sidebar-pane {
+        display: flex;
+        padding: 16px 14px;
+    }
 }
 
-.ia-preview-header {
+/* Sidebar Header: compact progress + actions */
+.ia-sidebar-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
-    background: rgba(52, 199, 89, 0.08);
-    border-bottom: 1px solid rgba(52, 199, 89, 0.2);
-    font-weight: 700;
-    font-size: 14px;
-    color: var(--text);
-}
-body.dark-mode .ia-preview-header {
-    background: rgba(50, 215, 75, 0.1);
-    border-bottom-color: rgba(50, 215, 75, 0.2);
-}
-
-.ia-populate-btn {
-    padding: 8px 16px;
-    border-radius: 10px;
-    border: none;
-    background: var(--success, #34C759);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: filter 0.15s;
-}
-.ia-populate-btn:hover { filter: brightness(1.1); }
-
-.ia-field-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    padding: 8px 0;
-}
-
-.ia-field-row {
-    display: flex;
-    flex-direction: column;
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--border);
-}
-.ia-field-row:nth-child(odd) { background: transparent; }
-.ia-field-row:nth-child(even) { background: rgba(0,0,0,0.05); }
-body.dark-mode .ia-field-row:nth-child(even) { background: rgba(255,255,255,0.05); }
-
-.ia-field-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    margin-bottom: 2px;
-}
-
-.ia-field-value {
-    font-size: 14px;
-    color: var(--text);
-    font-weight: 500;
-    word-break: break-word;
-}
-
-.ia-vehicles-note {
-    margin: 0;
-    padding: 10px 16px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    border-top: 1px solid var(--border);
-}
-
-/* Responsive: single column on very small screens */
-@media (max-width: 400px) {
-    .ia-field-grid { grid-template-columns: 1fr; }
-}
-
-/* ── Intelligence Panel ─────────────────────────────────── */
-
-.ia-intel-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 12px;
-    animation: iaSlideIn 0.3s ease;
-}
-
-.ia-intel-card {
+    gap: 10px;
+    padding: 10px 14px;
     background: var(--bg-card);
     border: 1.5px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
+    border-radius: 12px;
+    flex-shrink: 0;
 }
 
-.ia-intel-header {
+.ia-sidebar-progress {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    background: var(--bg-input);
-    border-bottom: 1px solid var(--border);
-    font-weight: 700;
+    gap: 8px;
+}
+
+.ia-ring-sm {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+.ia-sidebar-pct {
     font-size: 14px;
+    font-weight: 800;
     color: var(--text);
 }
 
-.ia-progress-actions {
+.ia-sidebar-actions {
     display: flex;
     gap: 6px;
     align-items: center;
@@ -348,7 +393,7 @@ body.dark-mode .ia-field-row:nth-child(even) { background: rgba(255,255,255,0.05
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 5px 10px;
+    padding: 6px 10px;
     border-radius: 8px;
     border: 1.5px solid var(--border);
     background: var(--bg-card);
@@ -364,7 +409,7 @@ body.dark-mode .ia-field-row:nth-child(even) { background: rgba(255,255,255,0.05
 }
 
 .ia-populate-btn-sm {
-    padding: 5px 10px;
+    padding: 6px 12px;
     border-radius: 8px;
     border: none;
     background: var(--success, #34C759);
@@ -376,98 +421,162 @@ body.dark-mode .ia-field-row:nth-child(even) { background: rgba(255,255,255,0.05
 }
 .ia-populate-btn-sm:hover { filter: brightness(1.1); }
 
-/* Progress ring */
-.ia-progress-body {
-    display: flex;
-    gap: 16px;
-    padding: 16px;
-    align-items: flex-start;
-}
-
-.ia-progress-ring-wrap {
-    position: relative;
-    width: 80px;
-    height: 80px;
-    flex-shrink: 0;
-}
-
-.ia-progress-ring {
-    width: 80px;
-    height: 80px;
-}
-
-.ia-progress-text {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 20px;
-    color: var(--text);
-}
-
-.ia-progress-pct {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-left: 1px;
-}
-
-/* Field checklist */
-.ia-field-checklist {
-    flex: 1;
+/* Sidebar empty state */
+.ia-sidebar-empty {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 40px 20px;
+    text-align: center;
+    flex: 1;
+}
+.ia-sidebar-empty-icon { font-size: 32px; opacity: 0.5; }
+.ia-sidebar-empty-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
-.ia-checklist-row {
+
+/* ═══ Collapsible Data Sections ═══ */
+
+.ia-sections-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ia-section {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    animation: iaSectionIn 0.25s ease;
+}
+
+@keyframes iaSectionIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.ia-section-done {
+    border-color: rgba(52, 199, 89, 0.35);
+}
+
+.ia-section-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    transition: all 0.2s;
-}
-
-.ia-checklist-row.ia-done {
-    color: var(--success, #34C759);
-}
-
-.ia-checklist-row.ia-partial {
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
     color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    text-align: left;
+    transition: background 0.15s;
+}
+.ia-section-header:hover {
+    background: var(--bg-input);
 }
 
-.ia-checklist-icon {
-    font-size: 14px;
-    flex-shrink: 0;
-}
+.ia-section-icon { font-size: 15px; flex-shrink: 0; }
 
-.ia-checklist-label {
-    flex: 1;
-    font-weight: 600;
-}
+.ia-section-title { flex: 1; }
 
-.ia-checklist-count {
+.ia-section-badge {
     font-size: 11px;
-    font-weight: 600;
-    padding: 1px 6px;
-    border-radius: 4px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
     background: var(--bg-input);
     color: var(--text-secondary);
 }
-
-.ia-checklist-row.ia-done .ia-checklist-count {
+.ia-section-done .ia-section-badge {
     background: rgba(52, 199, 89, 0.12);
     color: var(--success, #34C759);
 }
-.ia-checklist-row.ia-partial .ia-checklist-count {
+.ia-section-partial .ia-section-badge {
     background: rgba(0, 122, 255, 0.08);
     color: var(--apple-blue);
+}
+
+.ia-section-chevron {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+    color: var(--text-secondary);
+}
+
+/* Collapsed state */
+.ia-section.ia-collapsed .ia-section-body {
+    display: none;
+}
+.ia-section.ia-collapsed .ia-section-chevron {
+    transform: rotate(-90deg);
+}
+
+.ia-section-body {
+    border-top: 1px solid var(--border);
+    padding: 4px 0;
+}
+
+.ia-section-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 5px 14px;
+    gap: 8px;
+}
+.ia-section-field + .ia-section-field {
+    border-top: 1px solid rgba(0,0,0,0.04);
+}
+body.dark-mode .ia-section-field + .ia-section-field {
+    border-top-color: rgba(255,255,255,0.04);
+}
+
+.ia-section-field-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.ia-section-field-value {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    text-align: right;
+    word-break: break-word;
+    min-width: 0;
+}
+
+
+/* ═══ Sidebar Cards (Maps, Vehicles) ═══ */
+
+.ia-sidebar-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.ia-sidebar-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text);
 }
 
 /* Map views */
@@ -481,7 +590,7 @@ body.dark-mode .ia-field-row:nth-child(even) { background: rgba(255,255,255,0.05
 .ia-map-frame {
     position: relative;
     background: var(--bg-input);
-    min-height: 110px;
+    min-height: 100px;
     overflow: hidden;
 }
 
@@ -512,14 +621,14 @@ body.dark-mode .ia-field-row:nth-child(even) { background: rgba(255,255,255,0.05
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 110px;
+    height: 100px;
     font-size: 12px;
     color: var(--text-secondary);
     font-style: italic;
 }
 
 .ia-map-address {
-    padding: 8px 16px;
+    padding: 8px 14px;
     font-size: 12px;
     color: var(--text-secondary);
     border-top: 1px solid var(--border);
@@ -549,21 +658,21 @@ body.dark-mode .ia-field-row:nth-child(even) { background: rgba(255,255,255,0.05
 
 /* Vehicle panel */
 .ia-vehicle-info {
-    padding: 12px 16px;
+    padding: 10px 14px;
 }
 
 .ia-vehicle-row {
-    padding: 8px 0;
+    padding: 6px 0;
 }
 .ia-vehicle-row + .ia-vehicle-row {
     border-top: 1px solid var(--border);
 }
 
 .ia-vehicle-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .ia-vehicle-vin {
@@ -578,8 +687,22 @@ body.dark-mode .ia-field-row:nth-child(even) { background: rgba(255,255,255,0.05
     letter-spacing: 0.5px;
 }
 
-/* Responsive: stack map views on small screens */
+/* ═══ Responsive ═══ */
+
 @media (max-width: 480px) {
     .ia-map-grid { grid-template-columns: 1fr; }
-    .ia-progress-body { flex-direction: column; align-items: center; }
 }
+
+@media (max-width: 767px) {
+    .ia-main {
+        height: calc(100vh - 56px - 44px); /* header + tab bar */
+    }
+    .ia-chat-pane { padding: 8px; }
+    .ia-sidebar-pane { padding: 8px; }
+}
+
+/* ═══ Legacy compat (keep for any external references) ═══ */
+.ia-intel-panel { display: none !important; }
+.ia-extracted-card { display: none !important; }
+.ia-populate-btn { display: none; }
+.ia-code { display: none; }

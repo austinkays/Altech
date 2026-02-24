@@ -52,7 +52,7 @@ CRITICAL RULES:
 6. Use common sense and general knowledge. If the user mentions a well-known city, you likely know its zip code, state, and area codes — use that knowledge.
 7. For coverage selections, suggest common defaults when the agent doesn't specify (e.g. "I'll note 100/300 liability — want different limits?"). This keeps the conversation fast.
 
-Ask 2-3 questions at a time to keep the pace fast. Group related questions together (e.g. ask all deductibles at once, ask coverage limits together). Keep replies concise and friendly.
+Ask just ONE question at a time — keep the conversation focused and easy to follow. Keep replies short and friendly.
 
 IMPORTANT — AFTER EVERY REPLY, append a JSON code block containing ALL fields collected SO FAR (not just what was gathered in this turn). This allows real-time progress tracking. Use EXACTLY these keys:
 \`\`\`json
@@ -139,7 +139,6 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             if (extracted && typeof extracted === 'object' && !Array.isArray(extracted)) {
                 extractedData = Object.assign(extractedData, extracted);
                 _saveHistory();
-                _renderPreview();
                 _updateIntelPanel();
             }
             _updateSuggestionChips();
@@ -407,7 +406,6 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         }
 
         if (Object.keys(extractedData).length > 0) {
-            _renderPreview();
             _updateIntelPanel();
         }
         _updateSuggestionChips();
@@ -419,7 +417,8 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         const div = document.createElement('div');
         div.className = 'ia-msg ia-msg-' + role;
-        div.innerHTML = _renderMarkdown(text);
+        const displayText = role === 'ai' ? _stripJSONBlocks(text) : text;
+        div.innerHTML = _renderMarkdown(displayText);
         msgs.appendChild(div);
 
         if (scroll) msgs.scrollTop = msgs.scrollHeight;
@@ -474,8 +473,8 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     }
 
     function _renderPreview() {
-        const preview = document.getElementById('iaExtractedPreview');
-        if (!preview) return;
+        const container = document.getElementById('iaExtractedPreview');
+        if (!container) return;
 
         const labels = {
             firstName: 'First Name', lastName: 'Last Name', prefix: 'Prefix',
@@ -503,34 +502,72 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             accidents: 'Accidents', violations: 'Violations'
         };
 
-        const rows = Object.entries(extractedData)
-            .filter(([k, v]) => v && k !== 'vehicles' && k !== 'drivers' && labels[k])
-            .map(([k, v]) => `<div class="ia-field-row">
-                <span class="ia-field-label">${labels[k]}</span>
-                <span class="ia-field-value">${_esc(String(v))}</span>
-            </div>`)
-            .join('');
+        const qType = extractedData.qType || '';
+        const groups = FIELD_GROUPS.filter(g => {
+            if ((g.label === 'Home Coverage' || g.label === 'Home Details') && qType === 'auto') return false;
+            if ((g.label === 'Auto Coverage' || g.label === 'Vehicles' || g.label === 'Drivers') && qType === 'home') return false;
+            return true;
+        });
 
-        if (!rows) return;
+        let html = '';
+        for (const g of groups) {
+            const filled = g.keys.filter(k => _hasField(k)).length;
+            if (filled === 0) continue;
+            const total = g.keys.length;
+            const done = filled === total;
+            const statusClass = done ? 'ia-section-done' : 'ia-section-partial';
 
-        const vehicleNote = Array.isArray(extractedData.vehicles) && extractedData.vehicles.length
-            ? `<p class="ia-vehicles-note">🚗 ${extractedData.vehicles.length} vehicle(s) detected</p>`
-            : '';
+            let rowsHtml = '';
+            for (const k of g.keys) {
+                if (!_hasField(k)) continue;
+                if (k === 'vehicles') {
+                    for (const v of (extractedData.vehicles || [])) {
+                        if (!v.vin && !v.year && !v.make) continue;
+                        rowsHtml += `<div class="ia-section-field"><span class="ia-section-field-label">Vehicle</span><span class="ia-section-field-value">${_esc([v.year, v.make, v.model].filter(Boolean).join(' '))}</span></div>`;
+                    }
+                    continue;
+                }
+                if (k === 'drivers') {
+                    for (const d of (extractedData.drivers || [])) {
+                        if (!d.firstName && !d.lastName && !d.dob) continue;
+                        rowsHtml += `<div class="ia-section-field"><span class="ia-section-field-label">Driver</span><span class="ia-section-field-value">${_esc([d.firstName, d.lastName].filter(Boolean).join(' '))}</span></div>`;
+                    }
+                    continue;
+                }
+                const val = extractedData[k] || (k === 'constructionStyle' ? extractedData.constructionType : '');
+                if (!val) continue;
+                rowsHtml += `<div class="ia-section-field"><span class="ia-section-field-label">${labels[k] || k}</span><span class="ia-section-field-value">${_esc(String(val))}</span></div>`;
+            }
 
-        const driverNote = Array.isArray(extractedData.drivers) && extractedData.drivers.length
-            ? `<p class="ia-vehicles-note">🪪 ${extractedData.drivers.length} driver(s) detected</p>`
-            : '';
+            html += `<div class="ia-section ${statusClass}">
+                <button class="ia-section-header" onclick="this.parentElement.classList.toggle('ia-collapsed')">
+                    <span class="ia-section-icon">${g.icon}</span>
+                    <span class="ia-section-title">${g.label}</span>
+                    <span class="ia-section-badge">${filled}/${total}</span>
+                    <svg class="ia-section-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="ia-section-body">${rowsHtml}</div>
+            </div>`;
+        }
 
-        preview.style.display = 'block';
-        preview.innerHTML = `
-            <div class="ia-preview-header">
-                <span>📋 Extracted Fields</span>
-                <button class="ia-populate-btn" onclick="IntakeAssist.populateForm()">⚡ Populate Form</button>
-            </div>
-            <div class="ia-field-grid">${rows}</div>
-            ${vehicleNote}
-            ${driverNote}
-        `;
+        container.innerHTML = html;
+        container.style.display = html ? '' : 'none';
+    }
+
+    /** Check if a field has data (handles arrays and construction aliases) */
+    function _hasField(k) {
+        if (k === 'vehicles') {
+            return Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0
+                && (extractedData.vehicles[0].vin || extractedData.vehicles[0].year || extractedData.vehicles[0].make);
+        }
+        if (k === 'drivers') {
+            return Array.isArray(extractedData.drivers) && extractedData.drivers.length > 0
+                && (extractedData.drivers[0].firstName || extractedData.drivers[0].dob || extractedData.drivers[0].dlNum);
+        }
+        if (k === 'constructionStyle' || k === 'constructionType') {
+            return !!(extractedData.constructionStyle || extractedData.constructionType);
+        }
+        return !!extractedData[k];
     }
 
     // ── Private: helpers ──────────────────────────────────────────
@@ -941,15 +978,16 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
     /** Master update — called after every AI reply that yields data */
     function _updateIntelPanel() {
-        const panel = document.getElementById('iaIntelPanel');
-        if (!panel) return;
+        const header = document.getElementById('iaSidebarHeader');
+        const empty = document.getElementById('iaSidebarEmpty');
 
         const hasData = Object.keys(extractedData).length > 0;
-        panel.style.display = hasData ? 'block' : 'none';
+        if (header) header.style.display = hasData ? '' : 'none';
+        if (empty) empty.style.display = hasData ? 'none' : '';
         if (!hasData) return;
 
         _updateProgressRing();
-        _updateFieldChecklist();
+        _renderPreview();
         _updateMapViews();
         _updateVehiclePanel();
     }
@@ -963,14 +1001,19 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         const arc = document.getElementById('iaProgressArc');
         const label = document.getElementById('iaProgressPercent');
         if (arc) {
-            const circumference = 2 * Math.PI * 34; // r=34
+            const circumference = 2 * Math.PI * 15; // r=15 (compact sidebar ring)
             arc.setAttribute('stroke-dashoffset', String(circumference - (circumference * pct / 100)));
-            // Color: blue → green as it fills
             if (pct >= 80) arc.setAttribute('stroke', 'var(--success)');
-            else if (pct >= 50) arc.setAttribute('stroke', 'var(--apple-blue)');
             else arc.setAttribute('stroke', 'var(--apple-blue)');
         }
         if (label) label.textContent = String(pct);
+
+        // Update mobile tab badge
+        const badge = document.getElementById('iaTabBadge');
+        if (badge) {
+            badge.textContent = pct + '%';
+            badge.style.display = pct > 0 ? '' : 'none';
+        }
     }
 
     function _countTotalExpected() {
@@ -1306,16 +1349,27 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         });
     }
 
-    /** Reset intelligence panel on chat clear */
+    /** Reset sidebar on chat clear */
     function _resetIntelPanel() {
         _lastMapAddress = '';
-        const panel = document.getElementById('iaIntelPanel');
-        if (panel) panel.style.display = 'none';
+        const header = document.getElementById('iaSidebarHeader');
+        if (header) header.style.display = 'none';
+        const empty = document.getElementById('iaSidebarEmpty');
+        if (empty) empty.style.display = '';
+        const preview = document.getElementById('iaExtractedPreview');
+        if (preview) { preview.innerHTML = ''; preview.style.display = 'none'; }
         const mapPanel = document.getElementById('iaMapPanel');
         if (mapPanel) mapPanel.style.display = 'none';
         const vehPanel = document.getElementById('iaVehiclePanel');
         if (vehPanel) vehPanel.style.display = 'none';
-        // Reset images
+        // Reset progress ring
+        const arc = document.getElementById('iaProgressArc');
+        if (arc) arc.setAttribute('stroke-dashoffset', '94.2');
+        const pctLabel = document.getElementById('iaProgressPercent');
+        if (pctLabel) pctLabel.textContent = '0';
+        const badge = document.getElementById('iaTabBadge');
+        if (badge) { badge.textContent = '0%'; badge.style.display = 'none'; }
+        // Reset map images
         for (const id of ['iaStreetView', 'iaSatelliteView']) {
             const img = document.getElementById(id);
             if (img) { img.removeAttribute('src'); img.style.display = 'none'; }
@@ -1326,5 +1380,21 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         }
     }
 
-    return { init, sendMessage, quickStart, applyAndSend, populateForm, clearChat, exportSnapshot, openFullMap, chipSend };
+    /** Mobile tab switching (chat ↔ data) */
+    function switchTab(tab) {
+        const layout = document.querySelector('.ia-layout');
+        if (!layout) return;
+        layout.setAttribute('data-active-tab', tab);
+        document.querySelectorAll('.ia-tab').forEach(t => {
+            t.classList.toggle('ia-tab-active', t.getAttribute('data-tab') === tab);
+        });
+    }
+
+    /** Strip JSON code blocks from AI messages before display */
+    function _stripJSONBlocks(text) {
+        if (!text) return text;
+        return text.replace(/```(?:json)?\s*\n?\{[\s\S]*?\}\n?```/g, '').trim();
+    }
+
+    return { init, sendMessage, quickStart, applyAndSend, populateForm, clearChat, exportSnapshot, openFullMap, chipSend, switchTab };
 })();
