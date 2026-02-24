@@ -444,11 +444,16 @@ describe('API Env Var Trimming', () => {
     { file: 'compliance.js', envVars: ['HAWKSOFT_CLIENT_ID', 'HAWKSOFT_CLIENT_SECRET', 'HAWKSOFT_AGENCY_ID'] },
     { file: 'config.js', envVars: ['PLACES_API_KEY', 'GOOGLE_API_KEY'] },
     { file: 'vision-processor.js', envVars: ['GOOGLE_API_KEY'] },
-    { file: 'historical-analyzer.js', envVars: ['GOOGLE_API_KEY'] },
+    { file: '_ai-router.js', envVars: ['GOOGLE_API_KEY'] },
     { file: 'policy-scan.js', envVars: ['GOOGLE_API_KEY'] },
-    { file: 'rag-interpreter.js', envVars: ['GOOGLE_API_KEY'] },
     { file: 'config.js', envVars: ['GOOGLE_API_KEY'] },
     { file: 'property-intelligence.js', envVars: ['GOOGLE_API_KEY'] },
+  ];
+
+  // Files that delegate env var handling to _ai-router.js (which does the trim)
+  const delegatedFiles = [
+    { file: 'historical-analyzer.js', delegatesTo: '_ai-router.js' },
+    { file: 'rag-interpreter.js', delegatesTo: '_ai-router.js' },
   ];
 
   test.each(apiFilesWithEnvVars)('api/$file trims env vars: $envVars', ({ file, envVars }) => {
@@ -459,6 +464,12 @@ describe('API Env Var Trimming', () => {
       const envPattern = new RegExp(`process\\.env\\.${envVar}[^;]*\\.trim\\(\\)`);
       expect(source).toMatch(envPattern);
     }
+  });
+
+  test.each(delegatedFiles)('api/$file delegates env var handling to $delegatesTo', ({ file, delegatesTo }) => {
+    const source = fs.readFileSync(path.join(ROOT, 'api', file), 'utf8');
+    // File imports from the router module which handles env var trimming
+    expect(source).toContain(`from './${delegatesTo}'`);
   });
 });
 

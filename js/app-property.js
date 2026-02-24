@@ -478,7 +478,7 @@ Object.assign(App, {
             const hazardResponse = await fetch('/api/property-intelligence?mode=satellite', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ address, city, state, zip })
+                body: JSON.stringify({ address, city, state, zip, aiSettings: window.AIProvider?.getSettings() })
             });
 
             if (!hazardResponse.ok) {
@@ -528,7 +528,7 @@ Object.assign(App, {
             const ragResponse = await fetch('/api/rag-interpreter', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rawParcelData: arcgisData.parcelData, county })
+                body: JSON.stringify({ rawParcelData: arcgisData.parcelData, county, aiSettings: window.AIProvider?.getSettings() })
             });
             if (ragResponse.ok) {
                 const ragData = await ragResponse.json();
@@ -557,7 +557,7 @@ Object.assign(App, {
             const resp = await fetch('/api/property-intelligence?mode=zillow', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ address, city, state, zip })
+                body: JSON.stringify({ address, city, state, zip, aiSettings: window.AIProvider?.getSettings() })
             });
             if (!resp.ok) return null;
             const result = await resp.json();
@@ -1347,7 +1347,7 @@ IMPORTANT: Use null for any field you cannot find. Only include data for THIS SP
             const resp = await fetch('/api/property-intelligence?mode=zillow', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ address, city, state, zip })
+                body: JSON.stringify({ address, city, state, zip, aiSettings: window.AIProvider?.getSettings() })
             });
             if (!resp.ok) {
                 console.warn(`[Zillow] API returned HTTP ${resp.status}`);

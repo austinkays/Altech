@@ -475,7 +475,8 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
                             body: JSON.stringify({
                                 image: base64,
                                 mimeType: file.type,
-                                prompt: 'Extract all text from this insurance policy document. Return the raw text only.'
+                                prompt: 'Extract all text from this insurance policy document. Return the raw text only.',
+                                aiSettings: window.AIProvider?.getSettings()
                             })
                         });
                         if (res.ok) {
@@ -570,15 +571,27 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
                     // Truncate to ~100k chars to stay within API limits
                     const truncated = policyText.slice(0, 100000);
 
-                    const systemPrompt = `You are a helpful insurance policy analyst. The user has uploaded policy documents. Answer their question based ONLY on the provided policy text.
+                    const systemPrompt = `You are a helpful insurance policy analyst assisting an insurance agent. The user has uploaded policy documents. Answer their question based ONLY on the provided policy text.
 
 RULES:
-1. ALWAYS cite specific sections, pages, or paragraphs (e.g., "Found in Section 4.2" or "See page 3, paragraph 2").
-2. If you are not confident about a claim, say so explicitly and provide a confidence level.
-3. For exclusion questions, ALWAYS include a confidence score: HIGH (directly stated), MEDIUM (implied/inferred), or LOW (not clearly addressed).
-4. NEVER hallucinate or invent coverage details. If the policy text doesn't address the question, say "This does not appear to be addressed in the provided policy text."
-5. Use professional but friendly language suitable for an insurance agent.
-6. Format your response clearly with citations inline like [Section X.X] or [Page N].
+1. ALWAYS cite specific sections, pages, or paragraphs using inline brackets: [Section 4.2], [Page 3], [Declarations Page].
+2. If the answer requires interpretation or inference, state your confidence level explicitly: HIGH (directly stated in text), MEDIUM (implied or reasonably inferred), LOW (not clearly addressed).
+3. For coverage and exclusion questions, ALWAYS include a confidence level.
+4. NEVER hallucinate or invent coverage details. If the policy text doesn't address the question, say: "This does not appear to be addressed in the provided policy text."
+5. Use professional but friendly language suitable for an insurance agent reviewing data.
+6. When quoting specific limits, deductibles, or dollar amounts, format them clearly (e.g., "$100,000/$300,000 BI limits").
+7. If multiple documents contain conflicting information, note the conflict and indicate which document is likely more authoritative (dec page > endorsement > general provisions).
+
+EXAMPLE RESPONSES:
+
+User: "Is water backup covered?"
+Good: "Yes, water backup coverage is included as an endorsement [Page 4, Endorsement HO-34]. The limit is $10,000 with a $500 deductible [Declarations Page]. Confidence: HIGH — this is explicitly listed."
+
+User: "What's the wind deductible?"
+Good: "The wind/hail deductible is 2% of the dwelling coverage amount ($350,000), which equals $7,000 [Declarations Page, line 'Wind/Hail Ded']. Note this is separate from the all-perils deductible of $1,000. Confidence: HIGH."
+
+User: "Am I covered if my dog bites someone?"
+Good: "Based on the policy text, personal liability coverage is $300,000 [Declarations Page]. However, I don't see a specific dog breed exclusion in the provided documents. Many carriers exclude certain breeds — you should verify with the carrier directly. Confidence: MEDIUM — liability coverage exists but breed-specific exclusions may not be in the dec page."
 
 POLICY TEXT:\n${truncated}`;
 
@@ -637,7 +650,8 @@ POLICY TEXT:\n${truncated}`;
                             body: JSON.stringify({
                                 prompt: question,
                                 systemPrompt: systemPrompt,
-                                mode: 'text-analysis'
+                                mode: 'text-analysis',
+                                aiSettings: window.AIProvider?.getSettings()
                             })
                         });
 

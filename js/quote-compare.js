@@ -170,9 +170,15 @@ You have access to the full quote data. Reference specific numbers, carriers, an
                 },
 
                 async extractWithGemini(parts, apiKey) {
-                    const prompt = `You are an expert insurance analyst. Analyze this EZLynx quote document and extract ALL carrier quotes into structured JSON.
+                    const systemPrompt = 'You are an expert insurance analyst who specializes in parsing EZLynx comparative rater output documents. ' +
+                        'You extract structured quote data with precision, never hallucinating carriers or numbers. ' +
+                        'You understand insurance terminology: HO3/HO5 policies, ordinance or law coverage, loss assessment, water backup, replacement cost, ' +
+                        'all perils vs named perils deductibles, payment plan structures, and carrier rating messages. ' +
+                        'Return valid JSON only — no markdown fences, no commentary.';
 
-Return ONLY valid JSON with this exact structure (no markdown, no commentary):
+                    const prompt = `Analyze this EZLynx quote document and extract ALL carrier quotes into structured JSON.
+
+Return ONLY valid JSON with this exact structure:
 {
   "applicant": {
     "name": "Full Name",
@@ -249,12 +255,14 @@ IMPORTANT:
 
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                     const body = {
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
                         contents: [{
                             parts: [...parts, { text: prompt }]
                         }],
                         generationConfig: {
                             temperature: 0.1,
-                            maxOutputTokens: 8192
+                            maxOutputTokens: 8192,
+                            response_mime_type: 'application/json'
                         }
                     };
 
@@ -278,11 +286,12 @@ IMPORTANT:
                         const data = await res.json();
                         const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-                        // Extract JSON from response
-                        const jsonMatch = text.match(/\{[\s\S]*\}/);
-                        if (!jsonMatch) throw new Error('No valid JSON in Gemini response');
-
-                        return JSON.parse(jsonMatch[0]);
+                        // Use robust JSON extractor
+                        const parsed = (typeof AIProvider !== 'undefined' && AIProvider.extractJSON)
+                            ? AIProvider.extractJSON(text)
+                            : JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || '{}');
+                        if (!parsed) throw new Error('No valid JSON in response');
+                        return parsed;
                     } finally {
                         clearTimeout(timeout);
                     }
@@ -333,12 +342,20 @@ IMPORTANT:
                         return `${q.carrier}: $${q.premium12Month}/yr, ${endorsements.length} endorsements included (${endorsements.join(', ')}), discounts: ${(q.discounts || []).map(d => d.name).join(', ') || 'none'}, ${q.ratingMessages?.length || 0} rating messages`;
                     }).join('\n');
 
-                    const prompt = `You are a sharp insurance analyst giving a thoughtful, non-obvious recommendation. The user can already SEE the premiums, carrier names, and basic coverage amounts — do NOT restate those. Instead, provide insights they would NOT get from just reading the table.
+                    const systemPrompt = `You are a sharp insurance analyst giving a thoughtful, non-obvious recommendation. The user can already SEE the premiums, carrier names, and basic coverage amounts — do NOT restate those. Instead, provide insights they would NOT get from just reading the table.
 
-Here are the quotes:
+Rules:
+- Do NOT restate premiums or coverage limits the user can already see in the comparison table
+- Do NOT start with greetings, preambles, or "Let's dive in" — start with the insight
+- Bold carrier names with **asterisks**
+- Use plain language but respect the reader's intelligence — no need to define basic terms
+- Be specific with dollar amounts when calculating value differences
+- If a cheaper option is genuinely the best pick, say so — don't upsell for the sake of it`;
+
+                    const userMessage = `Here are the quotes:
 ${summaryForAI}
 
-Property info: ${extracted.dwelling?.sqft || '?'}sqft, built ${extracted.dwelling?.yearBuilt || '?'}, ${extracted.dwelling?.constructionType || '?'} construction, ${extracted.dwelling?.roofType || '?'} roof
+Property info: ${extracted.dwelling?.sqft || '?'}sqft, built ${extracted.dwelling?.yearBuilt || '?'}, ${extracted.dwelling?.constructionType || '?'} construction, ${extracted.dwelling?.roofType || '?'} roof, protection class ${extracted.dwelling?.protectionClass || '?'}
 Prior carrier: ${extracted.applicant?.priorCarrier || 'Unknown'}
 Years insured: ${extracted.applicant?.yearsWithCarrier || 'Unknown'}
 
@@ -350,19 +367,27 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
 
 3. **Red flags & deal-breakers** — Any rating messages, missing endorsements, or exclusions that are genuinely concerning for THIS specific property (age, construction type, location). Don't just list them — explain why they matter for this home.
 
-4. **Bottom line** — One clear sentence: which carrier and why, from a "protect your biggest asset" perspective, not just price.
+4. **Bottom line** — One clear sentence: which carrier and why, from a "protect your biggest asset" perspective, not just price.`;
 
-Rules:
-- Do NOT restate premiums or coverage limits the user can already see in the comparison table
-- Do NOT start with greetings, preambles, or "Let's dive in" — start with the insight
-- Bold carrier names with **asterisks**
-- Use plain language but respect the reader's intelligence — no need to define basic terms
-- Be specific with dollar amounts when calculating value differences
-- If a cheaper option is genuinely the best pick, say so — don't upsell for the sake of it`;
+                    // Try AIProvider first (supports all providers)
+                    if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) {
+                        try {
+                            const result = await AIProvider.ask(systemPrompt, userMessage, {
+                                temperature: 0.5,
+                                maxTokens: 2048
+                            });
+                            if (result.text) return result.text;
+                        } catch (e) {
+                            console.warn('[QuoteCompare] AIProvider recommendation failed:', e);
+                        }
+                    }
 
+                    // Fallback: direct Gemini
+                    if (!apiKey) return 'Unable to generate recommendation.';
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                     const body = {
-                        contents: [{ parts: [{ text: prompt }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        contents: [{ parts: [{ text: userMessage }] }],
                         generationConfig: { temperature: 0.5, maxOutputTokens: 2048 }
                     };
 
@@ -787,34 +812,56 @@ Rules:
                     messagesDiv.appendChild(typing);
                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-                    // Build conversation for Gemini
+                    // Build conversation in normalized format
                     this.chatHistory.push({ role: 'user', parts: [{ text: userMsg }] });
 
                     try {
-                        const apiKey = await this.getApiKey();
-                        if (!apiKey) throw new Error('No API key');
-
                         const quoteContext = this.buildQuoteContext();
                         const systemInstruction = this.SYSTEM_PROMPT + '\n\nHere is the full quote data you\'re discussing:\n\n' + quoteContext;
 
-                        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-                        const body = {
-                            systemInstruction: { parts: [{ text: systemInstruction }] },
-                            contents: this.chatHistory,
-                            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
-                        };
+                        let reply = '';
 
-                        const res = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(body)
-                        });
+                        // Try AIProvider.chat() first (supports all providers)
+                        if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured() && AIProvider.chat) {
+                            try {
+                                // Convert Gemini-style history to normalized format
+                                const normalizedHistory = this.chatHistory.map(m => ({
+                                    role: m.role === 'model' ? 'assistant' : m.role,
+                                    content: m.parts?.[0]?.text || m.content || ''
+                                }));
+                                const result = await AIProvider.chat(systemInstruction, normalizedHistory, {
+                                    temperature: 0.7,
+                                    maxTokens: 2048
+                                });
+                                reply = result.text || '';
+                            } catch (e) {
+                                console.warn('[QuoteCompare] AIProvider.chat failed, trying fallback:', e);
+                            }
+                        }
 
-                        if (!res.ok) throw new Error('API error');
-                        const data = await res.json();
-                        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I couldn\'t generate a response.';
+                        // Fallback: direct Gemini API
+                        if (!reply) {
+                            const apiKey = await this.getApiKey();
+                            if (!apiKey) throw new Error('No API key');
+                            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                            const body = {
+                                systemInstruction: { parts: [{ text: systemInstruction }] },
+                                contents: this.chatHistory,
+                                generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+                            };
+                            const res = await fetch(url, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(body)
+                            });
+                            if (!res.ok) throw new Error('API error');
+                            const data = await res.json();
+                            reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I couldn\'t generate a response.';
+                        }
 
-                        // Save to history
+                        if (!reply) reply = 'Sorry, I couldn\'t generate a response.';
+
+                        // Save to history (keep Gemini format for backward compat)
                         this.chatHistory.push({ role: 'model', parts: [{ text: reply }] });
 
                         // Remove typing, add response

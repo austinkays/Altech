@@ -30,6 +30,8 @@ const EMAIL_STORAGE_KEY = 'altech_email_drafts';
                 // ─── API Key ─────────────────────
 
                 async resolveGeminiKey() {
+                    // AIProvider handles key management. Keep legacy fallback.
+                    if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) return;
                     const saved = localStorage.getItem('gemini_api_key');
                     if (saved) { this._geminiApiKey = saved; return; }
                     try {
@@ -42,14 +44,18 @@ const EMAIL_STORAGE_KEY = 'altech_email_drafts';
                     } catch (e) {}
                 },
 
+                _hasAIKey() {
+                    return (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) || !!this._geminiApiKey;
+                },
+
                 // ─── Compose ─────────────────────
 
                 async compose() {
                     const draft = document.getElementById('emailDraftInput').value.trim();
                     if (!draft) { App.toast('⚠️ Paste your draft first'); return; }
 
-                    if (!this._geminiApiKey) {
-                        const key = prompt('Enter your Google Gemini API key (get one at https://aistudio.google.com/apikey):');
+                    if (!this._hasAIKey()) {
+                        const key = prompt('Enter your API key (Google Gemini, OpenRouter, or OpenAI):');
                         if (key && key.trim()) {
                             this._geminiApiKey = key.trim();
                             localStorage.setItem('gemini_api_key', key.trim());
@@ -113,32 +119,43 @@ TASK: Rewrite the following rough draft into a polished, professional email. Kee
                     this.setProgress(30);
 
                     try {
-                        const response = await fetch(
-                            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this._geminiApiKey}`,
-                            {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    contents: [
-                                        { role: 'user', parts: [{ text: systemPrompt + '\n\n---\n\nROUGH DRAFT:\n' + draft }] }
-                                    ],
-                                    generationConfig: {
-                                        temperature: 0.7,
-                                        maxOutputTokens: 2048
-                                    }
-                                })
+                        let text = '';
+
+                        // Try AIProvider first (all providers)
+                        if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) {
+                            try {
+                                const result = await AIProvider.ask(
+                                    systemPrompt,
+                                    'ROUGH DRAFT:\n' + draft,
+                                    { temperature: 0.7, maxTokens: 2048 }
+                                );
+                                text = result.text || '';
+                            } catch (e) {
+                                console.warn('[EmailComposer] AIProvider failed, trying legacy:', e);
                             }
-                        );
-
-                        this.setProgress(70);
-
-                        if (!response.ok) {
-                            const err = await response.text();
-                            throw new Error(`Gemini API error: ${response.status} — ${err.slice(0, 200)}`);
                         }
 
-                        const data = await response.json();
-                        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                        // Fallback: direct Gemini
+                        if (!text && this._geminiApiKey) {
+                            const response = await fetch(
+                                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this._geminiApiKey}`,
+                                {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                                        contents: [{ role: 'user', parts: [{ text: 'ROUGH DRAFT:\n' + draft }] }],
+                                        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+                                    })
+                                }
+                            );
+                            if (!response.ok) {
+                                const err = await response.text();
+                                throw new Error(`Gemini API error: ${response.status} — ${err.slice(0, 200)}`);
+                            }
+                            const data = await response.json();
+                            text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                        }
 
                         if (!text) throw new Error('Empty response from AI');
 
@@ -185,26 +202,47 @@ TASK: Rewrite the following rough draft into a polished, professional email. Kee
                 },
 
                 async generateSubject(draft, polished, recipientName) {
-                    if (!this._geminiApiKey) return;
                     try {
-                        const res = await fetch(
-                            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this._geminiApiKey}`,
-                            {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    contents: [{ role: 'user', parts: [{ text: `Generate a concise, professional email subject line for this email to ${recipientName}. Output ONLY the subject line, nothing else.\n\nEMAIL:\n${polished.slice(0, 500)}` }] }],
-                                    generationConfig: { temperature: 0.5, maxOutputTokens: 100 }
-                                })
+                        const systemPrompt = 'You are an email subject line generator. Output ONLY the subject line text — no quotes, no "Subject:", no commentary.';
+                        const userMessage = `Generate a concise, professional email subject line for this insurance-related email to ${recipientName}.\n\nEMAIL:\n${polished.slice(0, 500)}`;
+
+                        let subj = '';
+
+                        // Try AIProvider first
+                        if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) {
+                            try {
+                                const result = await AIProvider.ask(systemPrompt, userMessage, {
+                                    temperature: 0.5, maxTokens: 100
+                                });
+                                subj = result.text?.trim() || '';
+                            } catch (_) {}
+                        }
+
+                        // Fallback: direct Gemini
+                        if (!subj && this._geminiApiKey) {
+                            const res = await fetch(
+                                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this._geminiApiKey}`,
+                                {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                                        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+                                        generationConfig: { temperature: 0.5, maxOutputTokens: 100 }
+                                    })
+                                }
+                            );
+                            if (res.ok) {
+                                const d = await res.json();
+                                subj = d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
                             }
-                        );
-                        if (res.ok) {
-                            const d = await res.json();
-                            const subj = d.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-                            if (subj) {
-                                document.getElementById('emailSubjectOutput').textContent = subj;
-                                document.getElementById('emailSubjectLine').style.display = 'block';
-                            }
+                        }
+
+                        if (subj) {
+                            // Strip surrounding quotes if the model added them
+                            subj = subj.replace(/^["']|["']$/g, '');
+                            document.getElementById('emailSubjectOutput').textContent = subj;
+                            document.getElementById('emailSubjectLine').style.display = 'block';
                         }
                     } catch (e) {}
                 },

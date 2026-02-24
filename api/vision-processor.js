@@ -16,6 +16,7 @@
  */
 
 import { securityMiddleware } from '../lib/security.js';
+import { createRouter, extractJSON } from './_ai-router.js';
 
 const GEMINI_API_KEY = (process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '').trim();
 const GEMINI_MODEL = 'gemini-2.5-flash';
@@ -69,7 +70,7 @@ async function callGeminiVision(prompt, imageData, config = {}) {
  * @param {string} options.county - County name for context
  * @returns {Promise<Object>} Extracted property data {roofType, condition, color, etc.}
  */
-async function processPropertyImage(options) {
+async function processPropertyImage(options, ai) {
   const { base64Data, mimeType, imageType, county } = options;
 
   if (!base64Data) {
@@ -81,72 +82,80 @@ async function processPropertyImage(options) {
   }
 
   try {
-    const prompt = `You are a property assessment expert analyzing property images.
+    const systemPrompt = `You are an expert property insurance image analyst. Analyze images with precision for underwriting purposes. Return ONLY valid JSON — no markdown, no code fences, no explanation text.`;
 
-Given a ${imageType} image, extract and standardize the following information:
+    const prompt = `Analyze this ${imageType} property image${county ? ` in ${county} county` : ''}.
 
 EXTRACTION RULES:
 1. ONLY extract information VISIBLE in the image
-2. Do NOT guess or estimate
+2. Do NOT guess or estimate values you cannot see
 3. If unclear, return "N/A"
-4. Be specific and precise
+4. Be specific — insurance underwriters need precise details
 
-FOR ROOF IMAGES:
-- Roof type: [asphalt, metal, tile, slate, wood, composition, flat, other]
-- Material condition: [excellent, good, fair, poor]
-- Estimated age: [new, recent, moderate, aged, unknown]
-- Color: [black, gray, brown, red, tan, other]
-- Visible damage: [yes/no, describe briefly]
-- Pitch: [low, medium, steep]
+${imageType === 'roof' ? `ROOF ANALYSIS:
+- roof_type: "asphalt_shingle" | "architectural_shingle" | "metal" | "tile" | "slate" | "wood_shake" | "flat_membrane" | "composition" | "unknown"
+- material_condition: "excellent" | "good" | "fair" | "poor"
+- estimated_age: "new (0-5yr)" | "recent (5-10yr)" | "moderate (10-20yr)" | "aged (20+yr)" | "unknown"
+- color: specific color
+- visible_damage: true/false, damage_description if true
+- pitch: "low" | "medium" | "steep"
+- moss_algae: true/false
+- missing_shingles: true/false` :
+  imageType === 'foundation' ? `FOUNDATION ANALYSIS:
+- foundation_type: "poured_concrete" | "cinder_block" | "brick" | "stone" | "wood" | "unknown"
+- material_condition: "good" | "fair" | "poor"
+- visible_cracks: true/false, crack_severity: "hairline" | "moderate" | "structural" if true
+- water_damage: true/false, water_description if true
+- efflorescence: true/false
+- height_exposure: estimated inches visible above grade` :
+  imageType === 'exterior' ? `EXTERIOR ANALYSIS:
+- siding_type: "vinyl" | "brick" | "wood" | "stucco" | "fiber_cement" | "stone" | "composite" | "other"
+- paint_condition: "good" | "fair" | "poor" | "needs_painting"
+- visible_defects: [list any issues: "peeling paint", "rot", "cracks", etc.]
+- stories_visible: number
+- windows_condition: "good" | "fair" | "poor"
+- gutters_present: true/false` :
+  `SATELLITE/AERIAL ANALYSIS:
+- lot_size_estimate: "small (<0.25ac)" | "medium (0.25-0.5ac)" | "large (0.5-1ac)" | "very_large (1+ac)"
+- structure_count: number of buildings visible
+- tree_coverage: "minimal" | "moderate" | "heavy"
+- tree_overhang_roof: true/false
+- visible_features: ["pool", "shed", "detached_garage", "deck", "driveway", etc.]
+- terrain: "flat" | "sloped" | "hilly"
+- water_proximity: true/false, description if true`}
 
-FOR FOUNDATION IMAGES:
-- Foundation type: [concrete, brick, stone, wood, unknown]
-- Material condition: [good, fair, poor]
-- Visible cracks: [yes/no, severity if yes]
-- Water damage: [yes/no]
+Return JSON:
+{
+  ...extracted fields above...,
+  "confidence": 0-100,
+  "underwriter_notes": "1-2 sentence summary of key observations for insurance"
+}`;
 
-FOR EXTERIOR IMAGES:
-- Siding type: [vinyl, brick, wood, stucco, composite, other]
-- Paint condition: [good, fair, poor, needs painting]
-- Visible defects: [list any major issues]
-- Estimated age: [rough estimate]
-
-FOR SATELLITE/AERIAL IMAGES:
-- Lot size estimate: [small, medium, large, very large]
-- Neighboring structures: [describe]
-- Tree coverage: [minimal, moderate, heavy]
-- Visible additions/structures: [pool, shed, garage, etc.]
-
-Return JSON with extracted values and confidence (0-100).`;
-
-    const responseText = await callGeminiVision(prompt, {
-      mime_type: mimeType,
-      data: base64Data
-    });
+    let responseText;
+    if (ai) {
+      responseText = await ai.askVision(systemPrompt, [{ base64Data, mimeType }], prompt, { temperature: 0.2, maxTokens: 2048 });
+    } else {
+      responseText = await callGeminiVision(prompt, { mime_type: mimeType, data: base64Data });
+    }
     
-    // Try to parse JSON response
-    try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsedData = JSON.parse(jsonMatch[0]);
-        return {
-          success: true,
-          rawData: parsedData,
-          confidence: parsedData.confidence || 80,
-          dataSource: "phase4-vision",
-          imageType: imageType
-        };
-      }
-    } catch (parseError) {
-      // If JSON parsing fails, extract key-value pairs manually
+    const parsedData = extractJSON(responseText);
+    if (parsedData) {
       return {
         success: true,
-        rawData: { raw_response: responseText },
-        confidence: 70,
+        rawData: parsedData,
+        confidence: parsedData.confidence || 80,
         dataSource: "phase4-vision",
         imageType: imageType
       };
     }
+
+    return {
+      success: true,
+      rawData: { raw_response: responseText },
+      confidence: 70,
+      dataSource: "phase4-vision",
+      imageType: imageType
+    };
   } catch (error) {
     console.error(`Vision processing error for ${imageType}:`, error.message);
     return {
@@ -226,34 +235,38 @@ Return JSON with:
   "warnings": [ any data quality issues ]
 }`;
 
-    const responseText = await callGeminiVision(prompt, {
-      mime_type: "application/pdf",
-      data: base64Data
-    });
+    let responseText;
+    if (options._ai) {
+      responseText = await options._ai.askVision(
+        'You are an expert insurance document analyst. Extract data precisely as stated in documents. Return ONLY valid JSON.',
+        [{ base64Data, mimeType: 'application/pdf' }],
+        prompt,
+        { temperature: 0.2, maxTokens: 2048 }
+      );
+    } else {
+      responseText = await callGeminiVision(prompt, { mime_type: "application/pdf", data: base64Data });
+    }
     
-    try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsedData = JSON.parse(jsonMatch[0]);
-        return {
-          success: true,
-          rawData: parsedData.data || parsedData,
-          confidence: parsedData.confidence || 85,
-          dataSource: "phase4-vision-pdf",
-          documentType: documentType,
-          missingFields: parsedData.missingFields || [],
-          warnings: parsedData.warnings || []
-        };
-      }
-    } catch (parseError) {
+    const parsedData = extractJSON(responseText);
+    if (parsedData) {
       return {
         success: true,
-        rawData: { raw_response: responseText },
-        confidence: 70,
+        rawData: parsedData.data || parsedData,
+        confidence: parsedData.confidence || 85,
         dataSource: "phase4-vision-pdf",
-        documentType: documentType
+        documentType: documentType,
+        missingFields: parsedData.missingFields || [],
+        warnings: parsedData.warnings || []
       };
     }
+
+    return {
+      success: true,
+      rawData: { raw_response: responseText },
+      confidence: 70,
+      dataSource: "phase4-vision-pdf",
+      documentType: documentType
+    };
   } catch (error) {
     console.error(`PDF processing error:`, error.message);
     return {
@@ -274,7 +287,7 @@ Return JSON with:
  * @param {string} options.county - County name
  * @returns {Promise<Object>} Hazard assessment data
  */
-async function analyzeAerialImage(options) {
+async function analyzeAerialImage(options, ai) {
   const { base64Data, lat, lng, county } = options;
 
   if (!base64Data) {
@@ -286,74 +299,75 @@ async function analyzeAerialImage(options) {
   }
 
   try {
-    const prompt = `You are an aerial image analyst for property risk assessment.
+    const systemPrompt = `You are an expert aerial image analyst specializing in property risk assessment for insurance underwriting. Identify hazards with specificity. Return ONLY valid JSON.`;
 
-Analyze this satellite/aerial image of property near ${lat}, ${lng} in ${county} county.
+    const prompt = `Analyze this satellite/aerial image of property near ${lat}, ${lng} in ${county} county.
 
-IDENTIFY AND ASSESS:
+IDENTIFY AND ASSESS ALL HAZARDS:
 
 FLOOD HAZARDS:
-- Proximity to water bodies (streams, lakes, ponds)
-- Topography (low areas, flood plains)
-- Storm drain visibility
-- Wetland indicators
+- Proximity to water bodies (streams, lakes, ponds, rivers)
+- Topographic indicators (low areas, flood plains, drainage patterns)
+- Visible storm drains or drainage infrastructure
+- Wetland indicators (discolored vegetation, standing water)
 
 WILDFIRE HAZARDS:
-- Vegetation density
-- Forest proximity
-- Defensible space
-- Access roads
+- Vegetation density and type (grass, brush, forest)
+- Defensible space clearance around structures
+- Proximity to wildland-urban interface
+- Access road width and condition
 
 WIND HAZARDS:
-- Open exposure
-- Wind break features
-- Nearby trees
+- Open exposure (no windbreaks)
+- Tall trees that could fall on structures
+- Loose outdoor items visible
 
 STRUCTURAL OBSERVATIONS:
-- Building footprint
-- Roof condition (if visible)
-- Outbuildings/structures
-- Lot characteristics
+- Building footprint size and shape
+- Roof condition from above (discoloration, debris, damage)
+- Outbuildings, sheds, detached structures
+- Driveway, parking areas
+- Pool, trampoline, or other liability features
 
 Return JSON:
 {
   "hazards": [
-    { "type": "flood|wildfire|wind|other", "severity": "low|moderate|high", "description": "" }
+    { "type": "flood|wildfire|wind|liability|structural", "severity": "low|moderate|high", "description": "specific finding" }
   ],
   "lotCharacteristics": {
     "terrain": "flat|rolling|steep",
-    "coverage": "open|partial|heavily vegetated",
-    "structureCount": number
+    "coverage": "open|partial|heavily_vegetated",
+    "structureCount": number,
+    "estimatedLotAcres": number_or_null
   },
   "confidence": 0-100,
-  "caveats": "image age/clarity notes"
+  "caveats": "note any image quality or age concerns"
 }`;
 
-    const responseText = await callGeminiVision(prompt, {
-      mime_type: "image/jpeg",
-      data: base64Data
-    });
+    let responseText;
+    if (ai) {
+      responseText = await ai.askVision(systemPrompt, [{ base64Data, mimeType: 'image/jpeg' }], prompt, { temperature: 0.2, maxTokens: 2048 });
+    } else {
+      responseText = await callGeminiVision(prompt, { mime_type: "image/jpeg", data: base64Data });
+    }
     
-    try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsedData = JSON.parse(jsonMatch[0]);
-        return {
-          success: true,
-          hazards: parsedData.hazards || [],
-          lotCharacteristics: parsedData.lotCharacteristics || {},
-          confidence: parsedData.confidence || 75,
-          dataSource: "phase4-vision-aerial"
-        };
-      }
-    } catch (parseError) {
+    const parsedData = extractJSON(responseText);
+    if (parsedData) {
       return {
         success: true,
-        rawData: { raw_response: responseText },
-        confidence: 65,
+        hazards: parsedData.hazards || [],
+        lotCharacteristics: parsedData.lotCharacteristics || {},
+        confidence: parsedData.confidence || 75,
         dataSource: "phase4-vision-aerial"
       };
     }
+
+    return {
+      success: true,
+      rawData: { raw_response: responseText },
+      confidence: 65,
+      dataSource: "phase4-vision-aerial"
+    };
   } catch (error) {
     console.error(`Aerial analysis error:`, error.message);
     return {
@@ -368,7 +382,7 @@ Return JSON:
  * Process a driver's license image
  * Extracts name, DOB, license number/state, and address
  */
-async function processDriverLicense(options) {
+async function processDriverLicense(options, ai) {
   const { base64Data, mimeType } = options;
 
   if (!base64Data) {
@@ -402,9 +416,9 @@ async function processDriverLicense(options) {
 
   console.log(`[DL Scan] Processing image: ${normalizedMimeType}, data length: ${base64Data.length}`);
 
-  // Verify API key is present
-  if (!GEMINI_API_KEY) {
-    console.error('[DL Scan] GOOGLE_API_KEY not configured');
+  // Check for API key availability
+  if (!ai && !GEMINI_API_KEY) {
+    console.error('[DL Scan] No API key configured');
     return {
       success: false,
       error: 'API key not configured. Please contact support. (Error 303)',
@@ -414,6 +428,8 @@ async function processDriverLicense(options) {
   }
 
   try {
+    const systemPrompt = `You are an expert OCR system specialized in reading US driver's licenses. Extract all fields with maximum accuracy. Return ONLY valid JSON \u2014 no markdown, no explanation.`;
+
     const prompt = `Extract data from this US driver's license image and return ONLY valid JSON with this exact structure:
 {
   "firstName": "",
@@ -431,143 +447,89 @@ async function processDriverLicense(options) {
 
 Rules:
 - Use empty string for any missing fields
-- Format DOB as YYYY-MM-DD
+- Format DOB as YYYY-MM-DD (convert any format you see)
 - Gender should be "M", "F", or "" if not visible
-- Use 2-letter state codes
-- Set confidence 0-100 based on image quality
+- Use 2-letter state codes (e.g., "WA", "OR", "CA")
+- licenseState = the STATE that ISSUED the license (from the card header)
+- state = the state in the ADDRESS on the card
+- Set confidence 0-100 based on image quality and readability
 - Return only the JSON object, no other text`;
 
-    const requestBody = {
-      contents: [
-        {
+    let responseText;
+
+    if (ai) {
+      // Use user's chosen AI provider via router
+      responseText = await ai.askVision(
+        systemPrompt,
+        [{ base64Data, mimeType: normalizedMimeType }],
+        prompt,
+        { temperature: 0.1, maxTokens: 2048 }
+      );
+    } else {
+      // Legacy direct Gemini call with detailed error handling
+      const requestBody = {
+        contents: [{
           parts: [
-            {
-              text: prompt
-            },
-            {
-              inline_data: {
-                mime_type: normalizedMimeType,
-                data: base64Data
-              }
-            }
+            { text: prompt },
+            { inline_data: { mime_type: normalizedMimeType, data: base64Data } }
           ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 2048
+        }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+      };
+
+      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[DL Scan] API error:', response.status, errorData);
+        return {
+          success: false,
+          error: `API error (${response.status}): ${errorData.error?.message || 'Unknown error'} (Error 304)`,
+          errorCode: 304,
+          httpStatus: response.status,
+          data: {}
+        };
       }
-    };
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    });
+      const data = await response.json();
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('[DL Scan] API error:', response.status, errorData);
-      return {
-        success: false,
-        error: `API error (${response.status}): ${errorData.error?.message || 'Unknown error'} (Error 304)`,
-        errorCode: 304,
-        httpStatus: response.status,
-        data: {}
-      };
+      if (data.error) {
+        return { success: false, error: `Vision API error: ${data.error.message || 'Unknown error'} (Error 305)`, errorCode: 305, data: {} };
+      }
+      if (!data.candidates || data.candidates.length === 0) {
+        return { success: false, error: 'Image could not be processed. It may be blocked by safety filters or unreadable. (Error 306)', errorCode: 306, data: {} };
+      }
+
+      const candidate = data.candidates[0];
+      if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+        return { success: false, error: `Processing stopped: ${candidate.finishReason}. Please try a different image. (Error 307)`, errorCode: 307, data: {} };
+      }
+
+      responseText = candidate?.content?.parts?.[0]?.text;
+      if (!responseText) {
+        return { success: false, error: 'No response from vision API. The image may be unreadable. (Error 308)', errorCode: 308, data: {} };
+      }
     }
 
-    const data = await response.json();
-    console.log('[DL Scan] Full API response:', JSON.stringify(data, null, 2));
+    console.log('[DL Scan] AI response text:', responseText.substring(0, 200));
 
-    // Check for API-level errors in the response
-    if (data.error) {
-      console.error('[DL Scan] API returned error:', data.error);
-      return {
-        success: false,
-        error: `Vision API error: ${data.error.message || 'Unknown error'} (Error 305)`,
-        errorCode: 305,
-        data: {},
-        apiError: data.error
-      };
-    }
+    // Parse with robust JSON extraction
+    const parsed = extractJSON(responseText);
 
-    // Check if candidates were blocked
-    if (!data.candidates || data.candidates.length === 0) {
-      console.error('[DL Scan] No candidates in response. Prompt feedback:', data.promptFeedback);
-      return {
-        success: false,
-        error: 'Image could not be processed. It may be blocked by safety filters or unreadable. (Error 306)',
-        errorCode: 306,
-        data: {},
-        promptFeedback: data.promptFeedback
-      };
-    }
-
-    const candidate = data.candidates[0];
-    
-    // Check finish reason
-    if (candidate.finishReason && candidate.finishReason !== 'STOP') {
-      console.error('[DL Scan] Unusual finish reason:', candidate.finishReason);
-      return {
-        success: false,
-        error: `Processing stopped: ${candidate.finishReason}. Please try a different image. (Error 307)`,
-        errorCode: 307,
-        data: {},
-        finishReason: candidate.finishReason
-      };
-    }
-
-    const responseText = candidate?.content?.parts?.[0]?.text;
-
-    if (!responseText) {
-      console.error('[DL Scan] Empty response text from Gemini API');
-      return {
-        success: false,
-        error: 'No response from vision API. The image may be unreadable. (Error 308)',
-        errorCode: 308,
-        data: {}
-      };
-    }
-
-    console.log('[DL Scan] Gemini response text:', responseText.substring(0, 200));
-
-    // Try to extract JSON from response
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error('[DL Scan] No JSON found in response:', responseText);
+    if (!parsed || typeof parsed !== 'object') {
+      console.error('[DL Scan] Could not extract JSON from response');
       return {
         success: false,
         error: 'Unable to parse license data. The image may be blurry or not a driver\'s license. (Error 309)',
         errorCode: 309,
         data: {},
-        rawResponse: responseText.substring(0, 500)
+        rawResponse: responseText?.substring(0, 500)
       };
     }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(jsonMatch[0]);
-    } catch (parseError) {
-      console.error('[DL Scan] JSON parse error:', parseError.message);
-      console.error('[DL Scan] Failed JSON string:', jsonMatch[0].substring(0, 500));
-      return {
-        success: false,
-        error: 'Failed to parse API response. Please try again. (Error 310)',
-        errorCode: 310,
-        data: {},
-        rawResponse: jsonMatch[0].substring(0, 500)
-      };
-    }
-    
-    // Validate parsed data has expected fields
-    if (!parsed || typeof parsed !== 'object') {
-      console.error('[DL Scan] Parsed data is not an object:', parsed);
-      return {
-        success: false,
-        error: 'Invalid data format from API. Please try again. (Error 311)',
         errorCode: 311,
         data: {}
       };
@@ -738,12 +700,12 @@ function consolidateVisionData(visionResults) {
  * Process document intelligence (merged from document-intel.js)
  * Accepts inline document data (images/PDFs) and returns structured insights
  */
-async function processDocumentIntel(files) {
+async function processDocumentIntel(files, ai) {
   if (!files.length) {
     return { success: false, error: 'No documents provided' };
   }
 
-  if (!GEMINI_API_KEY) {
+  if (!ai && !GEMINI_API_KEY) {
     return {
       success: true,
       summary: 'Document intake ready. Set GOOGLE_API_KEY to enable AI extraction.',
@@ -755,11 +717,13 @@ async function processDocumentIntel(files) {
     };
   }
 
-  const geminiUrl = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
-  const prompt = `You are an insurance document analyst. Extract structured fields from each document.
-Return ONLY JSON with this shape:
+  const systemPrompt = `You are an expert insurance document analyst. Extract structured data from insurance and property documents with high precision. Return ONLY valid JSON — no markdown, no code fences.`;
+
+  const prompt = `Analyze the provided insurance/property documents. Extract every available field.
+
+Return JSON:
 {
-  "summary": "...",
+  "summary": "Brief overview of documents analyzed",
   "fields": {
     "yearBuilt": "",
     "assessedValue": "",
@@ -775,53 +739,63 @@ Return ONLY JSON with this shape:
     "source": "doc-intel"
   },
   "documents": [
-    {"title":"Tax Document","type":"tax","details":"key fields extracted"}
+    {"title": "Document Title", "type": "tax|assessment|deed|policy|other", "details": "key fields extracted"}
   ]
 }
-If unsure, return best-effort details.`;
+Use empty string for any field not found. Be precise — do not guess values.`;
 
-  const parts = [{ text: prompt }];
-  for (const file of files) {
-    if (file?.data) {
-      parts.push({ inlineData: { mimeType: file.mimeType || 'application/octet-stream', data: file.data } });
+  try {
+    let responseText;
+
+    if (ai) {
+      // Use AI router with user's provider
+      const images = files.filter(f => f?.data).map(f => ({
+        base64Data: f.data,
+        mimeType: f.mimeType || 'application/octet-stream'
+      }));
+      if (images.length === 0) {
+        return { success: false, error: 'No valid document data provided' };
+      }
+      responseText = await ai.askVision(systemPrompt, images, prompt, { temperature: 0.2, maxTokens: 2048 });
+    } else {
+      // Legacy Gemini direct call
+      const geminiUrl = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
+      const parts = [{ text: prompt }];
+      for (const file of files) {
+        if (file?.data) {
+          parts.push({ inlineData: { mimeType: file.mimeType || 'application/octet-stream', data: file.data } });
+        }
+      }
+      const geminiRes = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
+        })
+      });
+      if (!geminiRes.ok) {
+        return { success: false, summary: 'AI extraction failed. Try again later.', documents: [] };
+      }
+      const geminiResult = await geminiRes.json();
+      responseText = geminiResult?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     }
-  }
 
-  const geminiRes = await fetch(geminiUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts }],
-      generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
-    })
-  });
+    const parsed = extractJSON(responseText);
+    if (!parsed) {
+      return { success: true, summary: 'Analysis completed, but structured data was not returned.', documents: [] };
+    }
 
-  if (!geminiRes.ok) {
-    return {
-      success: false,
-      summary: 'AI extraction failed. Try again later.',
-      documents: []
-    };
-  }
-
-  const geminiResult = await geminiRes.json();
-  const text = geminiResult?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
     return {
       success: true,
-      summary: 'Analysis completed, but structured data was not returned.',
-      documents: []
+      summary: parsed.summary || 'Document analysis complete.',
+      fields: parsed.fields || {},
+      documents: parsed.documents || []
     };
+  } catch (error) {
+    console.error('Document intel error:', error.message);
+    return { success: false, summary: 'AI extraction failed.', documents: [] };
   }
-
-  const parsed = JSON.parse(jsonMatch[0]);
-  return {
-    success: true,
-    summary: parsed.summary || 'Document analysis complete.',
-    fields: parsed.fields || {},
-    documents: parsed.documents || []
-  };
 }
 
 /**
@@ -832,11 +806,14 @@ async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { action, base64Data, mimeType, imageType, documentType, county, lat, lng } = req.body;
+  const { action, base64Data, mimeType, imageType, documentType, county, lat, lng, aiSettings } = req.body;
 
   if (!action) {
     return res.status(400).json({ error: 'Action required' });
   }
+
+  // Create AI router from user settings (falls back to env GOOGLE_API_KEY)
+  const ai = createRouter(aiSettings);
 
   try {
     let result;
@@ -848,14 +825,15 @@ async function handler(req, res) {
           mimeType: mimeType || 'image/jpeg',
           imageType: imageType || 'other',
           county: county || 'unknown'
-        });
+        }, ai);
         break;
 
       case 'processPDF':
         result = await processPDFDocument({
           base64Data,
           documentType: documentType || 'other',
-          county: county || 'unknown'
+          county: county || 'unknown',
+          _ai: ai
         });
         break;
 
@@ -865,14 +843,14 @@ async function handler(req, res) {
           lat: lat || '0',
           lng: lng || '0',
           county: county || 'unknown'
-        });
+        }, ai);
         break;
 
       case 'scanDriverLicense':
         result = await processDriverLicense({
           base64Data,
           mimeType: mimeType || 'image/jpeg'
-        });
+        }, ai);
         break;
 
       case 'consolidate':
@@ -881,7 +859,7 @@ async function handler(req, res) {
         break;
 
       case 'documentIntel':
-        result = await processDocumentIntel(req.body.files || []);
+        result = await processDocumentIntel(req.body.files || [], ai);
         break;
 
       default:

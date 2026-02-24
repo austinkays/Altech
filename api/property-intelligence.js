@@ -1,13 +1,19 @@
 /**
  * Property Intelligence - Unified Property Data Endpoint
- * Combines: ArcGIS County Data, Satellite Analysis, Gemini Search Grounding
+ * Combines: ArcGIS County Data, Satellite Analysis, AI Search Grounding
  *
  * Usage: POST /api/property-intelligence?mode=arcgis|satellite|zillow|firestation
- * Body: JSON with { address, city, state, zip?, county? }
+ * Body: JSON with { address, city, state, zip?, county?, aiSettings? }
+ * 
+ * Routes AI calls through user's chosen provider via _ai-router.js.
+ * Falls back to Google Gemini via env key when no user settings provided.
+ * Google Search grounding (zillow mode) is Google-only — other providers
+ * use their general knowledge instead.
  */
 
 import { readFileSync } from 'fs';
 import { securityMiddleware } from '../lib/security.js';
+import { createRouter, extractJSON } from './_ai-router.js';
 
 // Helper: resolve Google API key from environment variables only
 // Used for Gemini AI calls (generative language API)
@@ -469,13 +475,15 @@ async function handleSatellite(req, res) {
     console.log('[Smart Extract] Street View not available for this address');
   }
 
-  // Call Gemini Vision API with both images
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey || mapsKey}`;
+  // Call AI Vision for property analysis
+  const ai = createRouter(req.body.aiSettings);
 
-  const prompt = `You are an insurance property underwriter. Analyze ${svBase64 ? 'these two images' : 'this satellite image'} of the property at: ${fullAddress}
+  const systemPrompt = `You are an insurance property underwriter with expertise in visual risk assessment. Analyze property images for roof condition, construction type, hazards, and underwriting factors. Return ONLY valid JSON.`;
+
+  const userPrompt = `Analyze ${svBase64 ? 'these two images' : 'this satellite image'} of the property at: ${fullAddress}
 ${svBase64 ? 'Image 1: Satellite/aerial view. Image 2: Street-level view.' : ''}
 
-Evaluate for insurance risk underwriting. Return ONLY valid JSON (no markdown, no explanation):
+Evaluate for insurance risk underwriting. Return JSON:
 {
   "roof_material": "composition_shingle|architectural_shingle|metal|clay_tile|concrete_tile|wood_shake|slate|flat_membrane|unknown",
   "roof_condition_score": 1-10 integer or null,
@@ -485,7 +493,7 @@ Evaluate for insurance risk underwriting. Return ONLY valid JSON (no markdown, n
   "has_trampoline": true/false/null,
   "stories": integer or null,
   "garage_doors": integer or null,
-  "visible_hazards": ["list of observed risks: dead trees, debris, damaged siding, sagging roof, etc."],
+  "visible_hazards": ["list of observed risks"],
   "deck_or_patio": true/false/null,
   "tree_overhang_roof": true/false/null,
   "brush_clearance_adequate": true/false/null,
@@ -494,66 +502,47 @@ Evaluate for insurance risk underwriting. Return ONLY valid JSON (no markdown, n
 
 Scoring guide for roof_condition_score: 10=new/excellent, 7-9=good/minor wear, 4-6=aging/moss/staining, 1-3=visible damage/sagging/missing shingles. Use null if roof not clearly visible.`;
 
-  // Build image parts array
-  const imageParts = [
-    { inline_data: { mime_type: 'image/png', data: satBase64 } }
-  ];
+  // Build image array for AI router
+  const images = [{ base64: satBase64, mimeType: 'image/png' }];
   if (svBase64) {
-    imageParts.push({ inline_data: { mime_type: 'image/jpeg', data: svBase64 } });
+    images.push({ base64: svBase64, mimeType: 'image/jpeg' });
   }
 
-  const geminiRes = await fetch(geminiUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { text: prompt },
-          ...imageParts
-        ]
-      }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 2048
-      }
-    })
-  });
+  try {
+    const responseText = await ai.askVision(systemPrompt, images, userPrompt, {
+      temperature: 0.1,
+      maxTokens: 2048
+    });
 
-  if (!geminiRes.ok) {
-    const errorText = await geminiRes.text().catch(() => 'Unknown error');
+    const extracted = extractJSON(responseText);
+
+    if (!extracted) {
+      return res.status(200).json({
+        success: false,
+        data: {},
+        satelliteImage: satBase64,
+        streetViewImage: svBase64,
+        notes: 'Could not extract data. Showing images for review.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: extracted,
+      satelliteImage: satBase64,
+      streetViewImage: svBase64,
+      aiProvider: ai.provider,
+      notes: 'Satellite + Street View analysis - verify all data with public records'
+    });
+  } catch (err) {
     return res.status(200).json({
       success: false,
       data: {},
       satelliteImage: satBase64,
       streetViewImage: svBase64,
-      notes: `AI analysis failed (${geminiRes.status}). Image shown for manual review.`,
-      error: errorText
+      notes: `AI analysis failed: ${err.message}. Image shown for manual review.`
     });
   }
-
-  const result = await geminiRes.json();
-  const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-
-  const jsonMatch = text.match(/\{[^{}]*\}/);
-  if (!jsonMatch) {
-    return res.status(200).json({
-      success: false,
-      data: {},
-      satelliteImage: satBase64,
-      streetViewImage: svBase64,
-      notes: 'Could not extract data. Showing images for review.'
-    });
-  }
-
-  const extracted = JSON.parse(jsonMatch[0]);
-
-  res.status(200).json({
-    success: true,
-    data: extracted,
-    satelliteImage: satBase64,
-    streetViewImage: svBase64,
-    notes: 'Satellite + Street View analysis - verify all data with public records'
-  });
 }
 
 // ===========================================================================
@@ -869,21 +858,17 @@ function mapZillowToAltech(raw) {
 // Gemini Search Grounding — Property Data via Google's Search Index
 // ===========================================================================
 
-async function fetchViaGeminiSearch(address, city, state, zip, diag) {
-  const apiKey = getGoogleApiKey();
-  if (!apiKey) {
-    diag.geminiSearchError = 'No API key';
-    return null;
-  }
-
+async function fetchViaGeminiSearch(address, city, state, zip, diag, ai) {
   const fullAddress = `${address}, ${city}, ${state}${zip ? ' ' + zip : ''}`.trim();
-  console.log(`[Zillow] Gemini Search for "${fullAddress}"`);
+  console.log(`[Zillow] AI Search for "${fullAddress}" (provider: ${ai.provider})`);
 
-  const prompt = `Find detailed property/home facts for this specific address: ${fullAddress}
+  const systemPrompt = `You are a property data researcher for insurance underwriting. Search for and extract detailed property facts from real estate listings and public records. Return ONLY valid JSON — no markdown, no code fences, no explanation.`;
+
+  const userPrompt = `Find detailed property/home facts for this specific address: ${fullAddress}
 
 Search real estate listings, public records, and property databases for this exact property. I need EVERY available construction and feature detail for insurance underwriting.
 
-Return ONLY valid JSON (no markdown, no code fences) with this exact structure:
+Return ONLY valid JSON with this exact structure:
 {
   "heating": "heating system type (e.g. Forced Air, Baseboard, Heat Pump, Boiler, Radiant, Electric)",
   "cooling": "cooling system type (e.g. Central Air, Window Units, None)",
@@ -911,65 +896,35 @@ Return ONLY valid JSON (no markdown, no code fences) with this exact structure:
 
 IMPORTANT: Look in the listing description text for renovation info like "New roof 2024" → set roofYearUpdated. Check "Facts & Features" sections thoroughly. Use null for any field you cannot find. Only include data for THIS SPECIFIC address.`;
 
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
-
   try {
-    const resp = await fetch(geminiUrl, {
-      signal: controller.signal,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        tools: [{ google_search: {} }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 4096
-        }
-      })
+    // askWithSearch uses Google Search grounding when on Google provider,
+    // falls back to regular ask() for other providers
+    const text = await ai.askWithSearch(systemPrompt, userPrompt, {
+      temperature: 0.1,
+      maxTokens: 4096
     });
 
-    diag.geminiSearchStatus = resp.status;
-    console.log(`[Zillow] Gemini HTTP ${resp.status}`);
-
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => '');
-      console.log(`[Zillow] Gemini failed: ${resp.status}, body: ${errText.substring(0, 300)}`);
-      diag.geminiSearchBody = errText.substring(0, 300);
-      return null;
-    }
-
-    const result = await resp.json();
-    // Gemini with google_search tool returns multiple parts:
-    // parts[0] may be a functionCall (tool invocation), text is in later parts
-    const allParts = result.candidates?.[0]?.content?.parts || [];
-    const text = allParts.map(p => p.text || '').filter(Boolean).join('');
-    diag.geminiSearchResponseLength = text.length;
-    diag.geminiSearchPartsCount = allParts.length;
-    console.log(`[Zillow] Gemini response (${text.length} chars, ${allParts.length} parts): ${text.substring(0, 200)}`);
-    console.log(`[Zillow] Part types: ${allParts.map(p => p.text ? 'text' : p.functionCall ? 'functionCall' : 'other').join(', ')}`);
+    diag.searchResponseLength = text.length;
+    diag.aiProvider = ai.provider;
+    console.log(`[Zillow] AI response (${text.length} chars): ${text.substring(0, 200)}`);
 
     if (!text) {
-      console.log('[Zillow] Empty Gemini response');
+      console.log('[Zillow] Empty AI response');
       return null;
     }
 
-    // Extract JSON from response (may be wrapped in markdown code fences)
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.log('[Zillow] No JSON found in Gemini response');
-      diag.geminiSearchNoJson = true;
+    const raw = extractJSON(text);
+    if (!raw) {
+      console.log('[Zillow] No JSON found in AI response');
+      diag.searchNoJson = true;
       return null;
     }
 
-    const raw = JSON.parse(jsonMatch[0]);
     const nonNullKeys = Object.keys(raw).filter(k => raw[k] != null && k !== 'notes');
 
     if (nonNullKeys.length < 2) {
       console.log(`[Zillow] Only ${nonNullKeys.length} non-null fields, skipping`);
-      diag.geminiSearchFieldCount = nonNullKeys.length;
+      diag.searchFieldCount = nonNullKeys.length;
       return null;
     }
 
@@ -1001,20 +956,18 @@ IMPORTANT: Look in the listing description text for renovation info like "New ro
 
     return {
       raw: normalized,
-      source: 'gemini-search',
+      source: ai.isGoogle ? 'gemini-search' : `${ai.provider}-search`,
       zillowUrl: `https://www.zillow.com/homes/${buildSlug(address, city, state, zip || '')}_rb/`
     };
   } catch (err) {
-    diag.geminiSearchError = err.name === 'AbortError' ? 'timeout' : err.message;
-    console.log(`[Zillow] Gemini error: ${diag.geminiSearchError}`);
+    diag.searchError = err.message;
+    console.log(`[Zillow] AI error: ${err.message}`);
     return null;
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
 async function handleZillow(req, res) {
-  const { address, city, state, zip } = req.body;
+  const { address, city, state, zip, aiSettings } = req.body;
 
   if (!address || !city || !state) {
     return res.status(400).json({
@@ -1027,8 +980,10 @@ async function handleZillow(req, res) {
   const startTime = Date.now();
   const diag = {};
 
+  const ai = createRouter(aiSettings);
+
   try {
-    const result = await fetchViaGeminiSearch(address, city, state, zip || '', diag);
+    const result = await fetchViaGeminiSearch(address, city, state, zip || '', diag, ai);
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
 
     if (!result || !result.raw) {
