@@ -6,20 +6,18 @@
  * 
  * POST /api/anthropic-proxy
  * Body: { model, system, messages, max_tokens, temperature, apiKey }
+ * 
+ * SECURITY:
+ * - Requires Firebase authentication (Bearer token)
+ * - Rate limited via securityMiddleware (20 req/min/IP, 60/min authenticated)
+ * - CORS restricted to allowed origins only
  */
+
+import { securityMiddleware, requireAuth } from '../lib/security.js';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
-module.exports = async function handler(req, res) {
-    // CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-
+async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -29,6 +27,11 @@ module.exports = async function handler(req, res) {
 
         if (!apiKey) {
             return res.status(400).json({ error: 'Missing Anthropic API key' });
+        }
+
+        // Validate API key is a non-empty string that looks like an Anthropic key
+        if (typeof apiKey !== 'string' || !apiKey.startsWith('sk-ant-')) {
+            return res.status(400).json({ error: 'Invalid Anthropic API key format' });
         }
 
         if (!messages || !messages.length) {
@@ -64,7 +67,9 @@ module.exports = async function handler(req, res) {
 
         return res.status(200).json(data);
     } catch (err) {
-        console.error('[anthropic-proxy] Error:', err);
+        console.error('[anthropic-proxy] Error:', err.message || 'Unknown error');
         return res.status(500).json({ error: { message: err.message || 'Internal server error' } });
     }
-};
+}
+
+export default securityMiddleware(requireAuth(handler));

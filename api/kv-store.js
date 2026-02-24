@@ -23,7 +23,7 @@
  */
 
 import Redis from 'ioredis';
-import { securityMiddleware } from '../lib/security.js';
+import { securityMiddleware, requireAuth } from '../lib/security.js';
 
 // Reuse connection across warm function invocations
 let client = null;
@@ -65,6 +65,10 @@ async function handler(req, res) {
         });
     }
 
+    // Prefix all Redis keys with the authenticated user's UID for per-user isolation
+    const uid = req.uid;
+    const keyPrefix = `uid:${uid}:`;
+
     // Allowed keys (prevent arbitrary key access)
     const ALLOWED_KEYS = ['cgl_state', 'cgl_cache', 'email_drafts', 'export_history'];
 
@@ -79,7 +83,7 @@ async function handler(req, res) {
             if (!key || !ALLOWED_KEYS.includes(key)) {
                 return res.status(400).json({ error: 'Invalid key. Allowed: ' + ALLOWED_KEYS.join(', ') });
             }
-            const result = await redis.get(key);
+            const result = await redis.get(keyPrefix + key);
             if (result === null || result === undefined) {
                 return res.status(404).json({ error: 'Key not found', key });
             }
@@ -104,7 +108,7 @@ async function handler(req, res) {
                 return res.status(413).json({ error: `Value too large: ${(serialized.length / 1024).toFixed(0)}KB (max 1MB)` });
             }
 
-            await redis.set(key, serialized);
+            await redis.set(keyPrefix + key, serialized);
             return res.status(200).json({ ok: true, key, size: serialized.length });
         }
 
@@ -113,7 +117,7 @@ async function handler(req, res) {
             if (!key || !ALLOWED_KEYS.includes(key)) {
                 return res.status(400).json({ error: 'Invalid key. Allowed: ' + ALLOWED_KEYS.join(', ') });
             }
-            await redis.del(key);
+            await redis.del(keyPrefix + key);
             return res.status(200).json({ ok: true, key });
         }
 
@@ -128,4 +132,4 @@ async function handler(req, res) {
     }
 }
 
-export default securityMiddleware(handler);
+export default securityMiddleware(requireAuth(handler));

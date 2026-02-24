@@ -22,7 +22,7 @@ function loadSecurityFunctions() {
 
   const extractFn = new Function(`
     ${cleaned}
-    return { sanitizeInput, validateEmail, validatePhone };
+    return { sanitizeInput, validateEmail, validatePhone, validateSSN, validateZip };
   `);
   return extractFn();
 }
@@ -79,7 +79,7 @@ describe('sanitizeInput', () => {
     expect(fns.sanitizeInput('')).toBe('');
   });
 
-  test('preserves normal text', () => {
+  test('preserves normal text including special characters', () => {
     expect(fns.sanitizeInput("O'Brien & Co.")).toBe("O'Brien & Co.");
   });
 });
@@ -172,5 +172,97 @@ describe('validatePhone', () => {
 
   test('rejects non-string', () => {
     expect(fns.validatePhone(12345)).toBe(false);
+  });
+});
+
+// ────────────────────────────────────────────────────
+// validateSSN
+// ────────────────────────────────────────────────────
+
+describe('validateSSN', () => {
+  test('accepts valid SSN with dashes', () => {
+    expect(fns.validateSSN('123-45-6789')).toBe(true);
+  });
+
+  test('accepts valid SSN without dashes', () => {
+    expect(fns.validateSSN('123456789')).toBe(true);
+  });
+
+  test('rejects area 000', () => {
+    expect(fns.validateSSN('000-45-6789')).toBe(false);
+  });
+
+  test('rejects area 666', () => {
+    expect(fns.validateSSN('666-45-6789')).toBe(false);
+  });
+
+  test('rejects ITIN (area 900+)', () => {
+    expect(fns.validateSSN('900-45-6789')).toBe(false);
+    expect(fns.validateSSN('999-45-6789')).toBe(false);
+  });
+
+  test('rejects group 00', () => {
+    expect(fns.validateSSN('123-00-6789')).toBe(false);
+  });
+
+  test('rejects serial 0000', () => {
+    expect(fns.validateSSN('123-45-0000')).toBe(false);
+  });
+
+  test('rejects all-same-digit pattern', () => {
+    expect(fns.validateSSN('111-11-1111')).toBe(false);
+    expect(fns.validateSSN('999-99-9999')).toBe(false);
+  });
+
+  test('rejects too short', () => {
+    expect(fns.validateSSN('12345')).toBe(false);
+  });
+
+  test('rejects empty string', () => {
+    expect(fns.validateSSN('')).toBe(false);
+  });
+
+  test('rejects null/undefined', () => {
+    expect(fns.validateSSN(null)).toBe(false);
+    expect(fns.validateSSN(undefined)).toBe(false);
+  });
+
+  test('rejects non-string', () => {
+    expect(fns.validateSSN(123456789)).toBe(false);
+  });
+});
+
+// ────────────────────────────────────────────────────
+// validateZip
+// ────────────────────────────────────────────────────
+
+describe('validateZip', () => {
+  test('accepts 5-digit ZIP', () => {
+    expect(fns.validateZip('98001')).toBe(true);
+  });
+
+  test('accepts ZIP+4 format', () => {
+    expect(fns.validateZip('98001-1234')).toBe(true);
+  });
+
+  test('rejects ZIP with letters', () => {
+    expect(fns.validateZip('9800A')).toBe(false);
+  });
+
+  test('rejects 4-digit ZIP', () => {
+    expect(fns.validateZip('9800')).toBe(false);
+  });
+
+  test('rejects 6-digit ZIP', () => {
+    expect(fns.validateZip('980011')).toBe(false);
+  });
+
+  test('rejects empty string', () => {
+    expect(fns.validateZip('')).toBe(false);
+  });
+
+  test('rejects null/undefined', () => {
+    expect(fns.validateZip(null)).toBe(false);
+    expect(fns.validateZip(undefined)).toBe(false);
   });
 });
