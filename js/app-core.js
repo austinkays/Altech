@@ -2255,7 +2255,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             google: 'Gemini 2.5 Flash is used by default. Free tier available at aistudio.google.com.',
             openrouter: 'OpenRouter gives you access to 100+ models with one API key — including Claude Opus, GPT-4o, Llama, and more. Pay per token at openrouter.ai.',
             openai: 'Use your OpenAI API key for GPT-4o and o3-mini. Requires an OpenAI account with billing enabled.',
-            anthropic: 'Claude models from Anthropic. Requires a CORS proxy (routed through /api/anthropic-proxy). Best-in-class for document analysis.'
+            anthropic: 'Claude models from Anthropic. Requires a CORS proxy (routed through /api/config). Best-in-class for document analysis.'
         };
         hint.textContent = hints[provider] || '';
     },

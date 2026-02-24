@@ -6,6 +6,7 @@
  *   GET  /api/config?type=keys        → Places + Gemini API keys (auth required)
  *   POST /api/config?type=phonetics   → Name pronunciation via Gemini (no auth, rate-limited by securityMiddleware)
  *   POST /api/config?type=bugreport   → Create GitHub Issue from in-app bug report (auth required)
+ *   POST /api/config?type=anthropic   → Proxy to Anthropic Messages API (user supplies their own key)
  * 
  * Environment variables:
  *   FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_PROJECT_ID,
@@ -238,6 +239,62 @@ async function handleBugReport(req, res) {
     }
 }
 
+// ── Anthropic Proxy ─────────────────────────────────────────────────────
+
+const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+
+async function handleAnthropic(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { model, system, messages, max_tokens, temperature, apiKey } = req.body || {};
+
+    if (!apiKey) {
+        return res.status(400).json({ error: 'Missing Anthropic API key' });
+    }
+
+    if (!messages || !messages.length) {
+        return res.status(400).json({ error: 'Missing messages' });
+    }
+
+    const body = {
+        model: model || 'claude-sonnet-4-20250514',
+        messages,
+        max_tokens: max_tokens || 4096
+    };
+
+    if (system) body.system = system;
+    if (typeof temperature === 'number') body.temperature = temperature;
+
+    try {
+        const response = await fetch(ANTHROPIC_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            return res.status(response.status).json({
+                error: data?.error || { message: `Anthropic API error (${response.status})` }
+            });
+        }
+
+        return res.status(200).json(data);
+    } catch (err) {
+        console.error('[config/anthropic] Error:', err);
+        return res.status(500).json({ error: { message: err.message || 'Internal server error' } });
+    }
+}
+
+// ── Router ──────────────────────────────────────────────────────────────
+
 async function router(req, res) {
     const type = (req.query?.type || '').toLowerCase();
 
@@ -250,8 +307,10 @@ async function router(req, res) {
             return handlePhonetics(req, res);
         case 'bugreport':
             return handleBugReport(req, res);
+        case 'anthropic':
+            return handleAnthropic(req, res);
         default:
-            return res.status(400).json({ error: 'Missing or invalid type parameter. Use ?type=firebase|keys|phonetics|bugreport' });
+            return res.status(400).json({ error: 'Missing or invalid type parameter. Use ?type=firebase|keys|phonetics|bugreport|anthropic' });
     }
 }
 
