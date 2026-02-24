@@ -30,13 +30,8 @@
 
         <div id="iaChatMessages" class="ia-messages"></div>
 
-        <!-- Quick-start chips -->
-        <div class="ia-chip-row">
-            <button class="ia-chip" onclick="IntakeAssist.quickStart('home &amp; auto bundle')">🏠 Home + Auto</button>
-            <button class="ia-chip" onclick="IntakeAssist.quickStart('homeowners')">🏡 Home Only</button>
-            <button class="ia-chip" onclick="IntakeAssist.quickStart('auto')">🚗 Auto Only</button>
-            <button class="ia-chip" onclick="IntakeAssist.applyAndSend()" style="display:none" id="iaDoneChip">✅ Done — Apply</button>
-        </div>
+        <!-- Smart suggestion chips (dynamically populated) -->
+        <div id="iaChipRow" class="ia-chip-row"></div>
 
         <!-- Input row -->
         <div class="ia-input-row">

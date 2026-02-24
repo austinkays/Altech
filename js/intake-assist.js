@@ -86,6 +86,10 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         _showTyping();
 
+        // Hide suggestion chips while AI is thinking
+        const _chipRow = document.getElementById('iaChipRow');
+        if (_chipRow) { _chipRow.innerHTML = ''; _chipRow.style.display = 'none'; }
+
         try {
             // Enrich: detect VINs and decode via NHTSA before sending to AI
             const vinEnrichment = await _enrichVINs(text);
@@ -98,6 +102,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             if (!aiAvailable) {
                 _hideTyping();
                 _appendMsg('ai', '⚠️ No AI provider configured. Open **Settings → AI Model** and add your API key to use this feature.');
+                _updateSuggestionChips();
                 return;
             }
 
@@ -121,9 +126,11 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                 _renderPreview();
                 _updateIntelPanel();
             }
+            _updateSuggestionChips();
         } catch (err) {
             _hideTyping();
             _appendMsg('ai', '⚠️ ' + (err.message || 'Could not reach AI. Please check your settings.'));
+            _updateSuggestionChips();
         }
     }
 
@@ -271,6 +278,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         if (preview) preview.style.display = 'none';
 
         _resetIntelPanel();
+        _updateSuggestionChips();
 
         _appendMsg('ai', "Chat cleared! Tell me about your next client — start with their name and what coverage they need.");
     }
@@ -297,6 +305,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             _renderPreview();
             _updateIntelPanel();
         }
+        _updateSuggestionChips();
     }
 
     function _appendMsg(role, text, scroll = true) {
@@ -539,6 +548,108 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         { label: 'History', icon: '📁', keys: ['priorCarrier', 'priorYears'] },
     ];
 
+    /** AI-response triggers — when the AI asks about these topics, show quick-reply chips */
+    const RESPONSE_TRIGGERS = [
+        {
+            pattern: /deductible/i,
+            chips: [
+                { label: '$500', text: 'Deductible: $500' },
+                { label: '$1,000', text: 'Deductible: $1,000' },
+                { label: '$2,500', text: 'Deductible: $2,500' },
+                { label: '$5,000', text: 'Deductible: $5,000' },
+            ]
+        },
+        {
+            pattern: /liability|bodily injury.*limit|coverage limit/i,
+            chips: [
+                { label: '50/100/50', text: 'Liability limits: 50/100/50' },
+                { label: '100/300/100', text: 'Liability limits: 100/300/100' },
+                { label: '250/500/250', text: 'Liability limits: 250/500/250' },
+            ]
+        },
+        {
+            pattern: /construction\s*type/i,
+            chips: [
+                { label: '🏗️ Frame', text: 'Frame construction' },
+                { label: '🧱 Masonry', text: 'Masonry construction' },
+                { label: '🏛️ Superior', text: 'Superior construction' },
+            ]
+        },
+        {
+            pattern: /how many (stories|floors|levels)/i,
+            chips: [
+                { label: '1 story', text: '1 story' },
+                { label: '2 stories', text: '2 stories' },
+                { label: '3+ stories', text: '3 stories' },
+            ]
+        },
+        {
+            pattern: /roof\b.*\b(year|age|old|replaced|updated|condition)/i,
+            chips: () => {
+                const y = new Date().getFullYear();
+                return [
+                    { label: String(y), text: 'Roof year: ' + y },
+                    { label: String(y - 3), text: 'Roof year: ' + (y - 3) },
+                    { label: String(y - 8), text: 'Roof year: ' + (y - 8) },
+                    { label: String(y - 15), text: 'Roof year: ' + (y - 15) },
+                ];
+            }
+        },
+        {
+            pattern: /square\s*foot|sq\.?\s*ft|home\s*size|how (big|large)/i,
+            chips: [
+                { label: '1,200 sqft', text: '1,200 square feet' },
+                { label: '1,800 sqft', text: '1,800 square feet' },
+                { label: '2,400 sqft', text: '2,400 square feet' },
+                { label: '3,000+ sqft', text: '3,000 square feet' },
+            ]
+        },
+        {
+            pattern: /year\s*(built|constructed|was\s*(the\s*)?home)|when\s*(was|were).*built/i,
+            chips: () => {
+                const y = new Date().getFullYear();
+                return [
+                    { label: '2020s', text: 'Built in ' + (y - 2) },
+                    { label: '2010s', text: 'Built in 2015' },
+                    { label: '2000s', text: 'Built in 2005' },
+                    { label: '1990s', text: 'Built in 1995' },
+                    { label: 'Older', text: 'Built in 1980' },
+                ];
+            }
+        },
+        {
+            pattern: /prior\s*(insurance|carrier|company)|current\s*(insurance|carrier|provider)|who\s*(is|was).*insured\s*with/i,
+            chips: [
+                { label: 'State Farm', text: 'Prior carrier: State Farm' },
+                { label: 'Allstate', text: 'Prior carrier: Allstate' },
+                { label: 'Progressive', text: 'Prior carrier: Progressive' },
+                { label: 'GEICO', text: 'Prior carrier: GEICO' },
+                { label: 'No prior', text: 'No prior insurance' },
+            ]
+        },
+        {
+            pattern: /mortgage|lender|loan\s*company|who\s*holds\s*the\s*mortgage/i,
+            chips: [
+                { label: 'No mortgage', text: 'No mortgage — home is paid off' },
+            ]
+        },
+        {
+            pattern: /co.?applicant|spouse|additional\s*(insured|named)|anyone\s*else\s*on\s*the\s*policy/i,
+            chips: [
+                { label: 'No co-applicant', text: 'No co-applicant' },
+            ]
+        },
+        {
+            pattern: /how\s*(many\s*)?years?\s*(insured|with|of\s*coverage)/i,
+            chips: [
+                { label: '1-2 years', text: '2 years of prior coverage' },
+                { label: '3-5 years', text: '5 years of prior coverage' },
+                { label: '5+ years', text: '8 years of prior coverage' },
+                { label: 'New', text: 'No prior coverage — new to insurance' },
+            ]
+        },
+    ];
+
     let _lastMapAddress = '';
 
     /** Master update — called after every AI reply that yields data */
@@ -713,6 +824,92 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         `).join('');
     }
 
+    // ── Smart Suggestion Chips ──────────────────────────────────
+
+    /** Get the last AI message content (for response triggers) */
+    function _getLastAiMessage() {
+        for (let i = chatHistory.length - 1; i >= 0; i--) {
+            if (chatHistory[i].role === 'assistant') return chatHistory[i].content;
+        }
+        return null;
+    }
+
+    /** Determine which chips to show based on conversation state */
+    function _computeSuggestionChips() {
+        const chips = [];
+
+        // Stage 1: Quick-start if no quote type known yet
+        if (!extractedData.qType) {
+            return [
+                { label: '🏠 Home + Auto', qsType: 'home & auto bundle', type: 'start' },
+                { label: '🏡 Home Only', qsType: 'homeowners', type: 'start' },
+                { label: '🚗 Auto Only', qsType: 'auto', type: 'start' },
+            ];
+        }
+
+        // Stage 2: Response-triggered suggestions from last AI message
+        const lastAiMsg = _getLastAiMessage();
+        if (lastAiMsg) {
+            for (const trigger of RESPONSE_TRIGGERS) {
+                if (trigger.pattern.test(lastAiMsg)) {
+                    const tc = typeof trigger.chips === 'function' ? trigger.chips() : trigger.chips;
+                    for (const c of tc) chips.push({ ...c, type: 'suggestion' });
+                }
+            }
+            // Cap at 5 to avoid clutter
+            if (chips.length > 5) chips.length = 5;
+        }
+
+        // Stage 3: "Done — Apply" when enough fields collected
+        if (_countFilled() >= 8) {
+            chips.push({ label: '✅ Done — Apply', action: 'apply', type: 'done' });
+        }
+
+        return chips;
+    }
+
+    /** Render suggestion chips into the chip row */
+    function _updateSuggestionChips() {
+        const row = document.getElementById('iaChipRow');
+        if (!row) return;
+
+        const chips = _computeSuggestionChips();
+        row.innerHTML = '';
+
+        for (const chip of chips) {
+            const btn = document.createElement('button');
+            btn.className = 'ia-chip' + (chip.type ? ' ia-chip-' + chip.type : '');
+            btn.textContent = chip.label;
+
+            if (chip.action === 'apply') {
+                btn.onclick = () => applyAndSend();
+            } else if (chip.qsType) {
+                btn.onclick = () => quickStart(chip.qsType);
+            } else if (chip.text) {
+                btn.onclick = () => chipSend(chip.text);
+            }
+            row.appendChild(btn);
+        }
+
+        if (chips.length > 0) {
+            row.style.display = '';
+            row.classList.remove('ia-chips-visible');
+            void row.offsetWidth; // Force reflow for CSS transition
+            row.classList.add('ia-chips-visible');
+        } else {
+            row.style.display = 'none';
+        }
+    }
+
+    /** Click a suggestion chip — pre-fill and auto-send */
+    function chipSend(text) {
+        const input = document.getElementById('iaInput');
+        if (!input) return;
+        input.value = text;
+        _autoResize(input);
+        sendMessage();
+    }
+
     /** Open the current address in Google Maps */
     function openFullMap() {
         const address = _lastMapAddress;
@@ -792,5 +989,5 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         }
     }
 
-    return { init, sendMessage, quickStart, applyAndSend, populateForm, clearChat, exportSnapshot, openFullMap };
+    return { init, sendMessage, quickStart, applyAndSend, populateForm, clearChat, exportSnapshot, openFullMap, chipSend };
 })();

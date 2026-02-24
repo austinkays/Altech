@@ -126,6 +126,13 @@ body.dark-mode .ia-code { background: #111; }
     gap: 6px;
     flex-wrap: wrap;
     padding: 0 16px 12px;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.ia-chip-row.ia-chips-visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .ia-chip {
@@ -137,12 +144,32 @@ body.dark-mode .ia-code { background: #111; }
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
     white-space: nowrap;
 }
 .ia-chip:hover {
     border-color: var(--apple-blue);
     color: var(--apple-blue);
+}
+
+/* Suggestion chip — blue accent for contextual suggestions */
+.ia-chip-suggestion {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+}
+.ia-chip-suggestion:hover {
+    background: var(--apple-blue);
+    color: #fff;
+}
+
+/* Done chip — green accent for apply action */
+.ia-chip-done {
+    border-color: var(--success);
+    color: var(--success);
+}
+.ia-chip-done:hover {
+    background: var(--success);
+    color: #fff;
 }
 
 /* Input row */
