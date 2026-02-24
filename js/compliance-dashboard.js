@@ -140,9 +140,9 @@ const ComplianceDashboard = {
     async _checkKV() {
         if (this._kvAvailable !== null) return this._kvAvailable;
         try {
-            const res = await fetch('/api/kv-store?key=cgl_state', { signal: AbortSignal.timeout(3000) });
-            // 404 = KV works but no data yet, 501 = KV not configured
-            this._kvAvailable = res.status !== 501;
+            const res = await Auth.apiFetch('/api/kv-store?key=cgl_state', { signal: AbortSignal.timeout(3000) });
+            // 404 = KV works but no data yet, 501 = KV not configured, 401 = not authenticated
+            this._kvAvailable = res.status !== 501 && res.status !== 401;
         } catch (e) {
             this._kvAvailable = false;
         }
@@ -158,7 +158,7 @@ const ComplianceDashboard = {
             try {
                 const ok = await this._checkKV();
                 if (!ok) return;
-                await fetch('/api/kv-store', {
+                await Auth.apiFetch('/api/kv-store', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ key, value })
@@ -173,7 +173,7 @@ const ComplianceDashboard = {
         try {
             const ok = await this._checkKV();
             if (!ok) return null;
-            const res = await fetch(`/api/kv-store?key=${key}`, { signal: AbortSignal.timeout(5000) });
+            const res = await Auth.apiFetch(`/api/kv-store?key=${key}`, { signal: AbortSignal.timeout(5000) });
             if (res.ok) {
                 const data = await res.json();
                 console.log('[CGL] ☁️ KV loaded:', key);

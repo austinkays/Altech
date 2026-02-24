@@ -57,11 +57,21 @@ const CryptoHelper = {
     },
 
     generateUUID() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
+        // Use the Web Crypto API for cryptographically secure UUIDs
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        // Fallback using getRandomValues for environments without crypto.randomUUID
+        if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+            const arr = new Uint8Array(16);
+            crypto.getRandomValues(arr);
+            arr[6] = (arr[6] & 0x0f) | 0x40; // version 4
+            arr[8] = (arr[8] & 0x3f) | 0x80; // variant 10
+            const hex = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+            return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+        }
+        // Last resort: timestamp + random (not cryptographically secure)
+        return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
     },
 
     async encrypt(data) {
