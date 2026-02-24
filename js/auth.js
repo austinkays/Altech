@@ -515,11 +515,11 @@ const Auth = (() => {
             const password = form.querySelector('#authSignupPassword')?.value;
             const confirm = form.querySelector('#authSignupConfirm')?.value;
 
-            // Validate invite code (must match onboarding VALID_CODES)
-            const validCodes = typeof Onboarding !== 'undefined' && Onboarding.getValidCodes
-                ? Onboarding.getValidCodes()
-                : ['VANCOUVER'];
-            if (!validCodes.includes(inviteCode)) {
+            // Validate invite code — supports both legacy static codes and generated invite codes
+            const codeValid = typeof Onboarding !== 'undefined' && Onboarding.isValidCode
+                ? Onboarding.isValidCode(inviteCode)
+                : false;
+            if (!codeValid) {
                 _showError('signup', 'Invalid invite code. Ask your team admin for the code.');
                 return;
             }
