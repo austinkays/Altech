@@ -244,15 +244,109 @@ ${ai.underwritingNotes || 'N/A'}`;
 
             function body(text, opts = {}) {
                 if (!text) return;
-                doc.setFontSize(opts.size || 10);
-                doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
-                doc.setTextColor(opts.color?.[0] || 60, opts.color?.[1] || 60, opts.color?.[2] || 60);
-                const lines = doc.splitTextToSize(String(text), usable - (opts.indent || 0));
-                for (const line of lines) {
-                    checkPage(14);
-                    doc.text(line, margin + (opts.indent || 0), y);
-                    y += 13;
+                const baseSize = opts.size || 10;
+                const baseBold = opts.bold || false;
+                const baseColor = opts.color || [60, 60, 60];
+                const indent = opts.indent || 0;
+                const lineH = baseSize + 3;
+
+                // Split into logical lines
+                const rawText = String(text);
+                let lines = rawText.split(/\n/);
+
+                // If single long line, try detecting inline bullet patterns
+                if (lines.length === 1 && rawText.length > 120) {
+                    const split = rawText.split(/(?=\s*[-•]\s+(?=[A-Z*]))/);
+                    if (split.length > 1) lines = split;
                 }
+
+                let lastWasList = false;
+
+                for (const rawLine of lines) {
+                    const trimmed = rawLine.trim();
+                    if (!trimmed) { y += 5; lastWasList = false; continue; }
+
+                    // Strip markdown bold markers
+                    const clean = trimmed.replace(/\*\*(.+?)\*\*/g, '$1');
+
+                    // Detect bullet: -, •, *
+                    const bulletMatch = clean.match(/^[-•*]\s+(.+)/);
+                    // Detect numbered: 1. or 1)
+                    const numMatch = clean.match(/^(\d+)[.)]\s+(.+)/);
+
+                    if (bulletMatch) {
+                        const itemText = bulletMatch[1];
+                        checkPage(16);
+                        // Bullet marker
+                        doc.setFontSize(baseSize);
+                        doc.setFont('helvetica', 'normal');
+                        doc.setTextColor(...baseColor);
+                        doc.text('\u2022', margin + indent + 8, y);
+                        // Item text — check for Label: Value pattern
+                        const textIndent = indent + 20;
+                        const labelPat = itemText.match(/^([^:]{1,35}):\s*(.+)/);
+                        if (labelPat) {
+                            doc.setFont('helvetica', 'bold');
+                            doc.setTextColor(40, 40, 40);
+                            const lbl = labelPat[1] + ': ';
+                            doc.text(lbl, margin + textIndent, y);
+                            const lblW = doc.getTextWidth(lbl);
+                            doc.setFont('helvetica', 'normal');
+                            doc.setTextColor(...baseColor);
+                            const rest = doc.splitTextToSize(labelPat[2], usable - textIndent - lblW);
+                            if (rest.length > 0) {
+                                doc.text(rest[0], margin + textIndent + lblW, y);
+                                y += lineH;
+                                for (let i = 1; i < rest.length; i++) {
+                                    checkPage(14);
+                                    doc.text(rest[i], margin + textIndent, y);
+                                    y += lineH;
+                                }
+                            } else { y += lineH; }
+                        } else {
+                            const wrapped = doc.splitTextToSize(itemText, usable - textIndent);
+                            for (let i = 0; i < wrapped.length; i++) {
+                                if (i > 0) checkPage(14);
+                                doc.text(wrapped[i], margin + textIndent, y);
+                                y += lineH;
+                            }
+                        }
+                        lastWasList = true;
+
+                    } else if (numMatch) {
+                        const num = numMatch[1];
+                        const itemText = numMatch[2];
+                        checkPage(16);
+                        doc.setFontSize(baseSize);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(40, 40, 40);
+                        doc.text(num + '.', margin + indent + 8, y);
+                        doc.setFont('helvetica', 'normal');
+                        doc.setTextColor(...baseColor);
+                        const textIndent = indent + 22;
+                        const wrapped = doc.splitTextToSize(clean.replace(/^\d+[.)]\s+/, '').replace(/\*\*(.+?)\*\*/g, '$1'), usable - textIndent);
+                        for (let i = 0; i < wrapped.length; i++) {
+                            if (i > 0) checkPage(14);
+                            doc.text(wrapped[i], margin + textIndent, y);
+                            y += lineH;
+                        }
+                        lastWasList = true;
+
+                    } else {
+                        if (lastWasList) y += 4;
+                        doc.setFontSize(baseSize);
+                        doc.setFont('helvetica', baseBold ? 'bold' : 'normal');
+                        doc.setTextColor(...baseColor);
+                        const wrapped = doc.splitTextToSize(clean, usable - indent);
+                        for (const wl of wrapped) {
+                            checkPage(14);
+                            doc.text(wl, margin + indent, y);
+                            y += lineH;
+                        }
+                        lastWasList = false;
+                    }
+                }
+                y += 3;
             }
 
             function labelValue(label, value) {
@@ -266,6 +360,39 @@ ${ai.underwritingNotes || 'N/A'}`;
                 doc.setTextColor(40, 40, 40);
                 doc.text(String(value), margin + 8 + doc.getTextWidth(label + ':  '), y);
                 y += 14;
+            }
+
+            /** AI section heading with colored left accent bar */
+            function aiHeading(text, color) {
+                checkPage(28);
+                y += 4;
+                const c = color || [0, 0, 0];
+                // Colored accent bar
+                doc.setFillColor(...c);
+                doc.rect(margin, y - 10, 3, 14, 'F');
+                // Heading text
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...c);
+                doc.text(text, margin + 10, y);
+                y += 16;
+            }
+
+            /** Major section heading with full-width colored underline */
+            function majorHeading(text, color) {
+                checkPage(36);
+                y += 6;
+                const c = color || [0, 0, 0];
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...c);
+                doc.text(text, margin, y);
+                y += 4;
+                doc.setDrawColor(...c);
+                doc.setLineWidth(1.5);
+                doc.line(margin, y, margin + doc.getTextWidth(text), y);
+                doc.setLineWidth(0.5);
+                y += 10;
             }
 
             // ── Title ──
@@ -305,92 +432,126 @@ ${ai.underwritingNotes || 'N/A'}`;
             // ── AI Analysis ──
             if (ai) {
                 hr();
-                heading('AI Underwriting Analysis', 14, [168, 85, 247]);
-                y += 2;
+                majorHeading('AI Underwriting Analysis', [168, 85, 247]);
 
+                // ── Executive Summary (highlighted box) ──
                 if (ai.executiveSummary) {
-                    heading('Executive Summary', 11, [0, 122, 255]);
-                    body(ai.executiveSummary);
-                    y += 6;
+                    checkPage(60);
+                    // Light background box
+                    const summaryText = String(ai.executiveSummary).replace(/\*\*(.+?)\*\*/g, '$1');
+                    const summaryLines = doc.splitTextToSize(summaryText, usable - 24);
+                    const boxH = summaryLines.length * 13 + 16;
+                    checkPage(boxH + 10);
+                    doc.setFillColor(245, 247, 255);
+                    doc.setDrawColor(0, 122, 255);
+                    doc.setLineWidth(0.5);
+                    doc.roundedRect(margin, y - 4, usable, boxH, 4, 4, 'FD');
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(0, 90, 200);
+                    doc.text('EXECUTIVE SUMMARY', margin + 10, y + 8);
+                    y += 20;
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(40, 40, 40);
+                    for (const sl of summaryLines) {
+                        doc.text(sl, margin + 10, y);
+                        y += 13;
+                    }
+                    y += 10;
                 }
 
-                if (ai.businessProfile) {
-                    heading('Business Profile', 11);
-                    body(ai.businessProfile);
-                    y += 6;
+                // ── Risk & Coverage Group ──
+                if (ai.riskAssessment || ai.redFlags || ai.recommendedCoverages || ai.glClassification || ai.naicsAnalysis) {
+                    majorHeading('Risk & Coverage', [220, 80, 40]);
+
+                    if (ai.riskAssessment) {
+                        aiHeading('Risk Assessment', [220, 80, 40]);
+                        body(ai.riskAssessment);
+                        y += 4;
+                    }
+
+                    if (ai.redFlags) {
+                        aiHeading('Red Flags & Concerns', [255, 59, 48]);
+                        body(ai.redFlags);
+                        y += 4;
+                    }
+
+                    if (ai.glClassification) {
+                        aiHeading('GL Classification', [80, 80, 80]);
+                        body(ai.glClassification, { bold: true });
+                        y += 4;
+                    }
+
+                    if (ai.naicsAnalysis) {
+                        aiHeading('NAICS / Industry', [80, 80, 80]);
+                        body(ai.naicsAnalysis);
+                        y += 4;
+                    }
+
+                    if (ai.recommendedCoverages) {
+                        aiHeading('Recommended Coverages', [52, 199, 89]);
+                        body(ai.recommendedCoverages);
+                        y += 4;
+                    }
                 }
 
-                if (ai.riskAssessment) {
-                    heading('Risk Assessment', 11, [220, 80, 40]);
-                    body(ai.riskAssessment);
-                    y += 6;
+                // ── Business Intelligence Group ──
+                if (ai.businessProfile || ai.businessHistory || ai.keyPersonnel || ai.serviceArea || ai.buildingInfo) {
+                    majorHeading('Business Intelligence', [0, 100, 200]);
+
+                    if (ai.businessProfile) {
+                        aiHeading('Business Profile', [0, 100, 200]);
+                        body(ai.businessProfile);
+                        y += 4;
+                    }
+
+                    if (ai.businessHistory) {
+                        aiHeading('Business History', [0, 100, 200]);
+                        body(ai.businessHistory);
+                        y += 4;
+                    }
+
+                    if (ai.keyPersonnel) {
+                        aiHeading('Key Personnel', [52, 160, 80]);
+                        body(ai.keyPersonnel);
+                        y += 4;
+                    }
+
+                    if (ai.serviceArea) {
+                        aiHeading('Service Area & Territory', [80, 80, 80]);
+                        body(ai.serviceArea);
+                        y += 4;
+                    }
+
+                    if (ai.buildingInfo) {
+                        aiHeading('Building & Premises', [200, 120, 0]);
+                        body(ai.buildingInfo);
+                        y += 4;
+                    }
                 }
 
-                if (ai.redFlags) {
-                    heading('Red Flags & Concerns', 11, [255, 59, 48]);
-                    body(ai.redFlags);
-                    y += 6;
-                }
+                // ── Strategy & Notes Group ──
+                if (ai.underwritingNotes || ai.competitiveIntel || ai.website || ai.socialMedia) {
+                    majorHeading('Strategy & Notes', [88, 86, 214]);
 
-                if (ai.glClassification) {
-                    heading('GL Classification', 11);
-                    body(ai.glClassification, { bold: true });
-                    y += 4;
-                }
+                    if (ai.underwritingNotes) {
+                        aiHeading('Underwriting Notes', [80, 80, 80]);
+                        body(ai.underwritingNotes);
+                        y += 4;
+                    }
 
-                if (ai.naicsAnalysis) {
-                    heading('NAICS / Industry', 11);
-                    body(ai.naicsAnalysis);
-                    y += 4;
-                }
+                    if (ai.competitiveIntel) {
+                        aiHeading('Competitive Intel & Strategy', [88, 86, 214]);
+                        body(ai.competitiveIntel);
+                        y += 4;
+                    }
 
-                if (ai.recommendedCoverages) {
-                    heading('Recommended Coverages', 11, [52, 199, 89]);
-                    body(ai.recommendedCoverages);
-                    y += 6;
-                }
-
-                if (ai.underwritingNotes) {
-                    heading('Underwriting Notes', 11);
-                    body(ai.underwritingNotes);
-                    y += 6;
-                }
-
-                if (ai.competitiveIntel) {
-                    heading('Competitive Intel & Strategy', 11, [88, 86, 214]);
-                    body(ai.competitiveIntel);
-                    y += 6;
-                }
-
-                if (ai.businessHistory) {
-                    heading('Business History', 11, [0, 100, 200]);
-                    body(ai.businessHistory);
-                    y += 6;
-                }
-
-                if (ai.keyPersonnel) {
-                    heading('Key Personnel', 11, [52, 160, 80]);
-                    body(ai.keyPersonnel);
-                    y += 6;
-                }
-
-                if (ai.serviceArea) {
-                    heading('Service Area & Territory', 11);
-                    body(ai.serviceArea);
-                    y += 6;
-                }
-
-                if (ai.buildingInfo) {
-                    heading('Building & Premises', 11, [200, 120, 0]);
-                    body(ai.buildingInfo);
-                    y += 6;
-                }
-
-                if (ai.website || ai.socialMedia) {
-                    heading('Online Presence', 11, [88, 86, 214]);
-                    if (ai.website) body('Website: ' + ai.website);
-                    if (ai.socialMedia) body(ai.socialMedia);
-                    y += 6;
+                    if (ai.website || ai.socialMedia) {
+                        aiHeading('Online Presence', [88, 86, 214]);
+                        if (ai.website) body('Website: ' + ai.website);
+                        if (ai.socialMedia) body(ai.socialMedia);
+                        y += 4;
+                    }
                 }
             }
 
