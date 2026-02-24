@@ -12,10 +12,10 @@
 // §1  CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
-const EXTENSION_VERSION = '0.7.0';
-const FILL_DELAY    = 250;   // ms between field fills (was 120 — too fast for Angular)
-const DROPDOWN_WAIT = 1000;  // ms to wait for overlay after click (was 700)
-const RETRY_WAIT    = 1800;  // ms before retrying failed dropdowns (was 1200)
+const EXTENSION_VERSION = '0.7.1';
+const FILL_DELAY    = 400;   // ms between field fills (was 250 — Angular needs time to digest)
+const DROPDOWN_WAIT = 1200;  // ms to wait for overlay after click (was 1000)
+const RETRY_WAIT    = 2000;  // ms before retrying failed dropdowns (was 1800)
 
 // ═══════════════════════════════════════════════════════════════
 // §2  ABBREVIATION EXPANSIONS
@@ -518,6 +518,20 @@ function isVisible(el) {
 /** Wait ms. */
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
+/**
+ * Dismiss any stuck Angular Material overlay before opening a new dropdown.
+ * Clicks the backdrop if present, then fires Escape, then waits for cleanup.
+ */
+async function dismissOverlay() {
+    const backdrop = document.querySelector('.cdk-overlay-backdrop');
+    if (backdrop) {
+        backdrop.click();
+        await wait(150);
+    }
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await wait(150);
+}
+
 /** Set value on an input and dispatch Angular-compatible events. */
 function setInputValue(el, value) {
     // Focus the element
@@ -954,64 +968,86 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
     const target = String(value).trim();
     const expanded = expand(target, fieldKey);
 
+    // ── Helper: open a mat-select, find options, pick best match ──
+    async function openAndPick(ddEl) {
+        // ALWAYS dismiss any stuck overlay before opening a new dropdown
+        await dismissOverlay();
+
+        // Single click only — double-click causes Angular race conditions
+        ddEl.click();
+        await wait(DROPDOWN_WAIT);
+
+        // Find options in CDK overlay
+        const overlaySels = [
+            '.cdk-overlay-container mat-option',
+            '.cdk-overlay-container [role="option"]',
+            '[role="listbox"] [role="option"]',
+            '.mat-select-panel mat-option',
+            '.mat-option',
+            '.cdk-overlay-pane mat-option',
+            '[class*="overlay"] [role="option"]',
+            '[class*="dropdown"] li',
+            '[class*="select-panel"] [class*="option"]',
+        ];
+
+        let optionEls = [];
+        for (const osel of overlaySels) {
+            const els = document.querySelectorAll(osel);
+            if (els.length > 0) { optionEls = Array.from(els); break; }
+        }
+
+        if (!optionEls.length) {
+            await dismissOverlay();
+            return false;
+        }
+
+        const optionTexts = optionEls
+            .map(el => el.textContent.trim())
+            .filter(t => t && !['', 'select', 'select one'].includes(t.toLowerCase()));
+
+        // Find best match: exact first, then fuzzy
+        let bestOpt = null;
+        for (const attempt of [target, expanded]) {
+            for (const ot of optionTexts) {
+                if (ot.toLowerCase() === attempt.toLowerCase()) { bestOpt = ot; break; }
+            }
+            if (bestOpt) break;
+        }
+        if (!bestOpt) {
+            const m = bestMatch(expanded, optionTexts) || bestMatch(target, optionTexts);
+            if (m) bestOpt = m.text;
+        }
+
+        if (bestOpt) {
+            for (const el of optionEls) {
+                if (el.textContent.trim() === bestOpt) {
+                    el.click();
+                    await wait(FILL_DELAY);
+                    return true;
+                }
+            }
+        }
+
+        // No match — close overlay cleanly
+        await dismissOverlay();
+        return false;
+    }
+
     // ── Priority selector: try direct formcontrolname match first ──
     if (fieldKey && PRIORITY_SELECTORS[fieldKey]) {
         const priorityEl = document.querySelector(PRIORITY_SELECTORS[fieldKey]);
         if (priorityEl && isVisible(priorityEl)) {
             console.log(`[Altech Filler] Using priority selector for ${fieldKey}`);
-            // It's always a mat-select (custom dropdown)
-            try {
-                priorityEl.click();
-                priorityEl.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                await wait(DROPDOWN_WAIT);
-
-                const overlaySels = [
-                    '.cdk-overlay-container mat-option',
-                    '.cdk-overlay-container [role="option"]',
-                    '.mat-select-panel mat-option',
-                ];
-                let optionEls = [];
-                for (const osel of overlaySels) {
-                    const els = document.querySelectorAll(osel);
-                    if (els.length > 0) { optionEls = Array.from(els); break; }
-                }
-                if (optionEls.length > 0) {
-                    const optionTexts = optionEls.map(el => el.textContent.trim()).filter(t => t);
-                    let bestOpt = null;
-                    for (const attempt of [target, expanded]) {
-                        for (const ot of optionTexts) {
-                            if (ot.toLowerCase() === attempt.toLowerCase()) { bestOpt = ot; break; }
-                        }
-                        if (bestOpt) break;
-                    }
-                    if (!bestOpt) {
-                        const m = bestMatch(expanded, optionTexts) || bestMatch(target, optionTexts);
-                        if (m) bestOpt = m.text;
-                    }
-                    if (bestOpt) {
-                        for (const el of optionEls) {
-                            if (el.textContent.trim() === bestOpt) {
-                                el.click();
-                                await wait(200);
-                                return true;
-                            }
-                        }
-                    }
-                }
-                // Close overlay if priority attempt didn't match
-                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-                await wait(100);
-            } catch (e) {
-                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-            }
-            // Fall through to label-based lookup if priority selector didn't work
+            const result = await openAndPick(priorityEl);
+            if (result) return true;
+            // Fall through to label-based lookup
         }
     }
 
     const found = findDropdownByLabel(labelPatterns);
     if (!found) return false;
 
-    // If it's a native select, handle directly
+    // Native <select> — no overlay issues
     if (found.type === 'native') {
         const selectEl = found.el;
         const options = Array.from(selectEl.options)
@@ -1040,99 +1076,8 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
         return false;
     }
 
-    // Custom dropdown: click to open overlay
-    const ddEl = found.el;
-    try {
-        ddEl.click();
-        ddEl.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    } catch (e) { return false; }
-
-    await wait(DROPDOWN_WAIT);
-
-    // Try keyboard shortcut first (Angular Material supports typeahead)
-    try {
-        const typeVal = expanded !== target ? expanded : target;
-        for (const char of typeVal) {
-            document.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true }));
-            document.dispatchEvent(new KeyboardEvent('keypress', { key: char, bubbles: true }));
-            await wait(40);
-        }
-        await wait(200);
-
-        // Check if overlay closed (selection made)
-        const overlayGone = !document.querySelector('.cdk-overlay-container mat-option, .cdk-overlay-container [role="option"]');
-        if (overlayGone) return true;
-
-        // Press Escape if keyboard didn't work, we'll try click method
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-        await wait(200);
-
-        // Re-open the dropdown
-        ddEl.click();
-        await wait(DROPDOWN_WAIT);
-    } catch (e) { /* continue to manual method */ }
-
-    // Find options in CDK overlay
-    const overlaySels = [
-        '.cdk-overlay-container mat-option',
-        '.cdk-overlay-container [role="option"]',
-        '[role="listbox"] [role="option"]',
-        '.mat-select-panel mat-option',
-        '.mat-option',
-        '.cdk-overlay-pane mat-option',
-        '[class*="overlay"] [role="option"]',
-        '[class*="dropdown"] li',
-        '[class*="select-panel"] [class*="option"]',
-    ];
-
-    let optionEls = [];
-    for (const osel of overlaySels) {
-        const els = document.querySelectorAll(osel);
-        if (els.length > 0) { optionEls = Array.from(els); break; }
-    }
-
-    if (!optionEls.length) {
-        // Close and bail
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-        return false;
-    }
-
-    const optionTexts = optionEls
-        .map(el => el.textContent.trim())
-        .filter(t => t && !['', 'select', 'select one'].includes(t.toLowerCase()));
-
-    // Find best match
-    let bestOpt = null;
-
-    // Exact
-    for (const attempt of [target, expanded]) {
-        for (const ot of optionTexts) {
-            if (ot.toLowerCase() === attempt.toLowerCase()) { bestOpt = ot; break; }
-        }
-        if (bestOpt) break;
-    }
-
-    // Fuzzy
-    if (!bestOpt) {
-        const m = bestMatch(expanded, optionTexts) || bestMatch(target, optionTexts);
-        if (m) bestOpt = m.text;
-    }
-
-    if (bestOpt) {
-        // Click the matching option
-        for (const el of optionEls) {
-            if (el.textContent.trim() === bestOpt) {
-                el.click();
-                await wait(200);
-                return true;
-            }
-        }
-    }
-
-    // Close overlay if no match
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    await wait(100);
-    return false;
+    // Custom dropdown — use the shared open-and-pick logic
+    return await openAndPick(found.el);
 }
 
 
@@ -1295,8 +1240,9 @@ async function fillScopedDropdown(container, labelPatterns, value, fieldKey) {
         return false;
     }
 
-    // Custom dropdown (Angular Material) — click to open overlay (overlay is global, not in container)
-    try { ddEl.click(); ddEl.dispatchEvent(new MouseEvent('click', { bubbles: true })); } catch (e) { return false; }
+    // Custom dropdown (Angular Material) — dismiss any stuck overlay first, then open
+    await dismissOverlay();
+    try { ddEl.click(); } catch (e) { return false; }
     await wait(DROPDOWN_WAIT);
 
     const overlaySels = [
@@ -1314,7 +1260,7 @@ async function fillScopedDropdown(container, labelPatterns, value, fieldKey) {
     }
 
     if (!optionEls.length) {
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await dismissOverlay();
         return false;
     }
 
@@ -1336,14 +1282,13 @@ async function fillScopedDropdown(container, labelPatterns, value, fieldKey) {
         for (const el of optionEls) {
             if (el.textContent.trim() === bestOpt) {
                 el.click();
-                await wait(200);
+                await wait(FILL_DELAY);
                 return true;
             }
         }
     }
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    await wait(100);
+    await dismissOverlay();
     return false;
 }
 
@@ -1758,7 +1703,7 @@ async function fillPage(clientData) {
         // State → County (county list populates based on state)
         // Industry → Occupation (occupation list loads based on industry)
         if (filled && (key === 'State' || key === 'Industry')) {
-            await wait(800);
+            await wait(1200);
         }
     }
 
