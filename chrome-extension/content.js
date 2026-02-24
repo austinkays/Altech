@@ -119,10 +119,11 @@ const ABBREVIATIONS = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// §3  TEXT FIELD MAPPINGS (data key → CSS selector arrays)
+// §3  TEXT FIELD MAPPINGS (data key → CSS selector arrays, page-aware)
 // ═══════════════════════════════════════════════════════════════
 
-const TEXT_FIELD_MAP = {
+// Base text fields — present on applicant / lead pages (and safe on any page)
+const BASE_TEXT_FIELDS = {
     FirstName: [
         "input[name*='FirstName' i]", "input[id*='FirstName' i]",
         "input[placeholder*='First Name' i]", "input[formcontrolname*='firstName' i]",
@@ -177,6 +178,10 @@ const TEXT_FIELD_MAP = {
         "input[name*='License' i]", "input[name*='DLNumber' i]",
         "input[id*='License' i]", "input[formcontrolname*='license' i]",
     ],
+};
+
+// Auto-specific text fields — only on /rating/auto/ pages
+const AUTO_TEXT_FIELDS = {
     VIN: [
         "input[name*='VIN' i]", "input[id*='VIN' i]",
         "input[placeholder*='VIN' i]", "input[formcontrolname*='vin' i]",
@@ -193,6 +198,14 @@ const TEXT_FIELD_MAP = {
         "input[name*='Miles' i]", "input[name*='Mileage' i]",
         "input[name*='AnnualMileage' i]", "input[formcontrolname*='annualMileage' i]",
     ],
+    EffectiveDate: [
+        "input[name*='EffectiveDate' i]", "input[name*='InceptionDate' i]",
+        "input[formcontrolname*='effectiveDate' i]",
+    ],
+};
+
+// Home-specific text fields — only on /rating/home/ pages
+const HOME_TEXT_FIELDS = {
     SqFt: [
         "input[name*='SqFt' i]", "input[name*='SquareFeet' i]",
         "input[name*='LivingArea' i]", "input[formcontrolname*='squareFeet' i]",
@@ -239,11 +252,31 @@ const TEXT_FIELD_MAP = {
         "input[name*='Fireplace' i]", "input[id*='Fireplace' i]",
         "input[formcontrolname*='fireplace' i]",
     ],
-    EffectiveDate: [
-        "input[name*='EffectiveDate' i]", "input[name*='InceptionDate' i]",
-        "input[formcontrolname*='effectiveDate' i]",
-    ],
 };
+
+/** Build the page-aware text field map, same pattern as getActiveDropdowns(). */
+function getActiveTextFields() {
+    const page = detectPage();
+    const active = { ...BASE_TEXT_FIELDS };
+    // Auto pages
+    if (page === 'auto-policy' || page === 'auto-driver' || page === 'auto-vehicle' ||
+        page === 'auto-coverage' || page === 'auto-incident') {
+        Object.assign(active, AUTO_TEXT_FIELDS);
+    }
+    // Home pages
+    if (page === 'home-dwelling' || page === 'home-coverage') {
+        Object.assign(active, HOME_TEXT_FIELDS);
+    }
+    return active;
+}
+
+// Combined set for smartData preprocessing (must include ALL keys so
+// the fuzzy pre-matcher knows which keys are text vs dropdown)
+const _ALL_TEXT_FIELD_KEYS = new Set([
+    ...Object.keys(BASE_TEXT_FIELDS),
+    ...Object.keys(AUTO_TEXT_FIELDS),
+    ...Object.keys(HOME_TEXT_FIELDS),
+]);
 
 // ═══════════════════════════════════════════════════════════════
 // §4  DROPDOWN LABEL MAPPINGS (page-aware)
@@ -739,11 +772,15 @@ function getActiveDropdowns() {
         page === 'home-dwelling' || page === 'home-coverage') {
         Object.assign(active, HOME_DROPDOWN_LABELS);
     }
-    // On applicant page, include home dropdowns too since some appear there
+    // On the applicant page, only include a few auto fields that
+    // sometimes appear (DL-related). Home/auto dwelling/coverage dropdowns
+    // live on separate EZLynx pages and should NOT be attempted here.
     if (page === 'applicant') {
-        // Some home/auto fields can appear on the main applicant form
-        Object.assign(active, HOME_DROPDOWN_LABELS);
-        Object.assign(active, AUTO_DROPDOWN_LABELS);
+        // DL fields can appear on applicant page alongside personal info
+        const APPLICANT_AUTO_FIELDS = ['DLState', 'AgeLicensed'];
+        for (const k of APPLICANT_AUTO_FIELDS) {
+            if (AUTO_DROPDOWN_LABELS[k]) active[k] = AUTO_DROPDOWN_LABELS[k];
+        }
     }
     return active;
 }
@@ -1599,7 +1636,7 @@ async function fillPage(clientData) {
     if (smartData.Zip) smartData.Zip = String(smartData.Zip).replace(/[^0-9]/g, '').slice(0, 5);
 
     // Keys that are text fields — must NOT be fuzzy-matched against dropdown options
-    const _textFieldKeys = new Set(Object.keys(TEXT_FIELD_MAP));
+    const _textFieldKeys = _ALL_TEXT_FIELD_KEYS;
 
     for (const [key, value] of Object.entries(smartData)) {
         if (!value || typeof value !== 'string') continue;
@@ -1656,9 +1693,10 @@ async function fillPage(clientData) {
     // ── Yes/No toggles (reveal hidden Angular sections FIRST) ──
     await fillYesNoToggles(smartData, report);
 
-    // ── Text fields ──
+    // ── Text fields (page-aware) ──
+    const activeTextFields = getActiveTextFields();
     updateToolbarStatus('Filling text fields...');
-    for (const [key, selectors] of Object.entries(TEXT_FIELD_MAP)) {
+    for (const [key, selectors] of Object.entries(activeTextFields)) {
         const value = smartData[key];
         if (!value) continue;
 
@@ -1834,10 +1872,10 @@ async function fillPage(clientData) {
 
                 // Step 4: Scoped fill — Co-Applicant fields WITHIN this container only
                 const coApFields = {
-                    FirstName:    { selectors: TEXT_FIELD_MAP.FirstName,  label: 'first name' },
-                    LastName:     { selectors: TEXT_FIELD_MAP.LastName,   label: 'last name' },
-                    DOB:          { selectors: TEXT_FIELD_MAP.DOB,        label: 'date of birth' },
-                    SSN:          { selectors: TEXT_FIELD_MAP.SSN,        label: 'ssn' },
+                    FirstName:    { selectors: BASE_TEXT_FIELDS.FirstName,  label: 'first name' },
+                    LastName:     { selectors: BASE_TEXT_FIELDS.LastName,   label: 'last name' },
+                    DOB:          { selectors: BASE_TEXT_FIELDS.DOB,        label: 'date of birth' },
+                    SSN:          { selectors: BASE_TEXT_FIELDS.SSN,        label: 'ssn' },
                 };
                 const coApDropdowns = {
                     Gender:       { labels: ['gender', 'sex'],              key: 'Gender' },
@@ -1975,9 +2013,11 @@ async function fillDriverFields(driver, index, report) {
         AgeLicensed: driver.AgeLicensed
     };
 
+    // Combine base + auto text fields for driver page
+    const driverTextFields = { ...BASE_TEXT_FIELDS, ...AUTO_TEXT_FIELDS };
     for (const [key, value] of Object.entries(driverData)) {
         if (!value) continue;
-        const selectors = TEXT_FIELD_MAP[key];
+        const selectors = driverTextFields[key];
         if (selectors) {
             const filled = fillText(selectors, value) || fillTextByLabel(key, value);
             if (filled) {
@@ -2008,9 +2048,11 @@ async function fillVehicleFields(vehicle, index, report) {
         OwnershipType: vehicle.Ownership
     };
 
+    // Combine base + auto text fields for vehicle page
+    const vehicleTextFields = { ...BASE_TEXT_FIELDS, ...AUTO_TEXT_FIELDS };
     for (const [key, value] of Object.entries(vehicleData)) {
         if (!value) continue;
-        const selectors = TEXT_FIELD_MAP[key];
+        const selectors = vehicleTextFields[key];
         if (selectors) {
             const filled = fillText(selectors, value) || fillTextByLabel(key, value);
             if (filled) {
