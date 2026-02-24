@@ -281,28 +281,25 @@ ${ai.underwritingNotes || 'N/A'}`;
             y += 8;
             hr();
 
-            // ── Business Summary ──
-            heading('Business Summary');
-            labelValue('Business Name', d.businessName);
+            // ── Business Overview ──
+            heading('Business Overview');
             labelValue('UBI', d.ubi);
             labelValue('Location', (d.city ? d.city + ', ' : '') + d.state);
             labelValue('Report Date', new Date(d.timestamp).toLocaleDateString());
 
-            // Google Places profile data
+            // Consolidated contact info from best source
             const gp = d.places?.profile;
-            if (gp) {
-                if (gp.phone) labelValue('Phone', gp.phone);
-                if (gp.website) labelValue('Website', gp.website);
-                if (gp.address) labelValue('Address', gp.address);
-                if (gp.rating) labelValue('Google Rating', gp.rating + '/5 (' + (gp.totalReviews || 0) + ' reviews)');
-                if (gp.businessStatus) labelValue('Business Status', gp.businessStatus.replace(/_/g, ' '));
-                if (gp.types?.length) labelValue('Categories', gp.types.map(t => t.replace(/_/g, ' ')).join(', '));
-                if (gp.hours?.length) {
-                    y += 4;
-                    body('Business Hours:', { bold: true });
-                    gp.hours.forEach(h => body(h, { indent: 12 }));
-                }
-            }
+            const _c = d.li?.contractor || {};
+            const _e = d.sos?.entity || {};
+            const bestPhone = gp?.phone || _c.phone || '';
+            const bestWebsite = gp?.website || '';
+            const bestAddress = gp?.address || (_c.address ? [_c.address.street, _c.address.city, _c.address.state, _c.address.zip].filter(Boolean).join(', ') : '') || (_e.principalOffice ? [_e.principalOffice.street, _e.principalOffice.city, _e.principalOffice.state, _e.principalOffice.zip].filter(Boolean).join(', ') : '');
+            if (bestPhone) labelValue('Phone', bestPhone);
+            if (bestWebsite) labelValue('Website', bestWebsite);
+            if (bestAddress) labelValue('Address', bestAddress);
+            if (gp?.rating) labelValue('Google Rating', gp.rating + '/5 (' + (gp.totalReviews || 0) + ' reviews)');
+            if (gp?.businessStatus) labelValue('Business Status', gp.businessStatus.replace(/_/g, ' '));
+            if (gp?.types?.length) labelValue('Categories', gp.types.map(t => t.replace(/_/g, ' ')).join(', '));
             y += 6;
 
             // ── AI Analysis ──
@@ -404,7 +401,6 @@ ${ai.underwritingNotes || 'N/A'}`;
                 heading('Contractor License');
                 labelValue('License #', c.licenseNumber);
                 labelValue('Status', c.status);
-                labelValue('Business Name', c.businessName);
                 labelValue('License Type', c.licenseType);
                 labelValue('Classifications', (c.classifications || []).join(', '));
                 labelValue('Owners', _formatOwners(c.owners));
@@ -611,10 +607,8 @@ ${ai.underwritingNotes || 'N/A'}`;
         const el = document.getElementById('aiAnalysisContent');
         if (!el) return;
 
-        /** Convert a long text string into formatted HTML — detects bullet-like patterns */
         function _formatAIText(text) {
             if (!text) return '';
-            // Split on common list separators: numbered lists, dashes, bullets, newlines with capital letters
             const lines = text.split(/(?:\n|(?<=\.)\s+(?=\d+\.|[-•]\s|[A-Z]))/g).map(l => l.trim()).filter(Boolean);
             if (lines.length > 1) {
                 return '<ul style="margin:0;padding-left:20px;">' +
@@ -624,7 +618,6 @@ ${ai.underwritingNotes || 'N/A'}`;
             return '<p style="margin:0;line-height:1.7;">' + _esc(text) + '</p>';
         }
 
-        /** Build a content block with icon, title, optional accent color, and formatted body */
         function _block(icon, title, text, opts = {}) {
             if (!text) return '';
             const bg = opts.bg || 'transparent';
@@ -640,12 +633,20 @@ ${ai.underwritingNotes || 'N/A'}`;
                 </div>`;
         }
 
+        // Count items for group badges
+        const riskItems = [a.riskAssessment, a.redFlags, a.recommendedCoverages].filter(Boolean).length;
+        const bizItems = [a.businessProfile, a.businessHistory, a.keyPersonnel, a.serviceArea, a.buildingInfo, (a.website || a.socialMedia) ? 'x' : ''].filter(Boolean).length;
+        const stratItems = [a.underwritingNotes, a.competitiveIntel].filter(Boolean).length;
+
+        const onlineBlock = (a.website || a.socialMedia) ? `
+            <div class="ai-content-block" style="padding:16px;border-radius:12px;background:rgba(88,86,214,0.03);border:1px solid rgba(88,86,214,0.08);">
+                <h4><span style="font-size:18px;">\uD83C\uDF10</span> Online Presence</h4>
+                ${a.website ? '<p style="margin:0 0 8px 0;line-height:1.7;"><strong>Website:</strong> <a href="' + _esc(a.website.startsWith('http') ? a.website : 'https://' + a.website) + '" target="_blank" rel="noopener" style="color:var(--apple-blue);text-decoration:none;">' + _esc(a.website) + ' \u2197</a></p>' : ''}
+                ${a.socialMedia ? _formatAIText(a.socialMedia) : ''}
+            </div>` : '';
+
         el.innerHTML = `
             ${_block('\uD83D\uDCCB', 'Executive Summary', a.executiveSummary, { bg: 'rgba(0,122,255,0.04)', border: 'rgba(0,122,255,0.12)', titleColor: 'var(--apple-blue)' })}
-
-            ${_block(_riskIcon(a.riskAssessment), 'Risk Assessment', a.riskAssessment)}
-
-            ${_block('\uD83D\uDEA9', 'Red Flags & Concerns', a.redFlags, { bg: 'rgba(255,59,48,0.04)', border: 'rgba(255,59,48,0.12)', titleColor: 'var(--danger)' })}
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
                 ${a.glClassification ? `
@@ -660,28 +661,37 @@ ${ai.underwritingNotes || 'N/A'}`;
                 </div>` : '<div></div>'}
             </div>
 
-            ${_block('\uD83D\uDEE1\uFE0F', 'Recommended Coverages', a.recommendedCoverages, { bg: 'rgba(52,199,89,0.04)', border: 'rgba(52,199,89,0.12)', titleColor: 'var(--success)' })}
+            ${riskItems ? `
+            <details class="ai-group" open>
+                <summary>\uD83D\uDEE1\uFE0F Risk & Coverage <span class="group-count">${riskItems}</span></summary>
+                <div class="ai-group-body">
+                    ${_block(_riskIcon(a.riskAssessment), 'Risk Assessment', a.riskAssessment)}
+                    ${_block('\uD83D\uDEA9', 'Red Flags & Concerns', a.redFlags, { bg: 'rgba(255,59,48,0.04)', border: 'rgba(255,59,48,0.12)', titleColor: 'var(--danger)' })}
+                    ${_block('\uD83D\uDEE1\uFE0F', 'Recommended Coverages', a.recommendedCoverages, { bg: 'rgba(52,199,89,0.04)', border: 'rgba(52,199,89,0.12)', titleColor: 'var(--success)' })}
+                </div>
+            </details>` : ''}
 
-            ${_block('\uD83C\uDFE2', 'Business Profile', a.businessProfile)}
+            ${bizItems ? `
+            <details class="ai-group">
+                <summary>\uD83C\uDFE2 Business Intelligence <span class="group-count">${bizItems}</span></summary>
+                <div class="ai-group-body">
+                    ${_block('\uD83C\uDFE2', 'Business Profile', a.businessProfile)}
+                    ${a.businessHistory ? _block('\uD83D\uDCDC', 'Business History', a.businessHistory) : ''}
+                    ${a.keyPersonnel ? _block('\uD83D\uDC65', 'Key Personnel', a.keyPersonnel) : ''}
+                    ${a.serviceArea ? _block('\uD83D\uDDFA\uFE0F', 'Service Area & Territory', a.serviceArea) : ''}
+                    ${a.buildingInfo ? _block('\uD83C\uDFD7\uFE0F', 'Building & Premises', a.buildingInfo) : ''}
+                    ${onlineBlock}
+                </div>
+            </details>` : ''}
 
-            ${a.businessHistory ? _block('\uD83D\uDCDC', 'Business History', a.businessHistory, { bg: 'rgba(0,122,255,0.03)', border: 'rgba(0,122,255,0.08)' }) : ''}
-
-            ${a.keyPersonnel ? _block('\uD83D\uDC65', 'Key Personnel', a.keyPersonnel, { bg: 'rgba(52,199,89,0.03)', border: 'rgba(52,199,89,0.08)' }) : ''}
-
-            ${a.serviceArea ? _block('\uD83D\uDDFA\uFE0F', 'Service Area & Territory', a.serviceArea) : ''}
-
-            ${a.buildingInfo ? _block('\uD83C\uDFD7\uFE0F', 'Building & Premises', a.buildingInfo, { bg: 'rgba(255,149,0,0.03)', border: 'rgba(255,149,0,0.08)' }) : ''}
-
-            ${(a.website || a.socialMedia) ? `
-                <div class="ai-content-block" style="padding:16px;border-radius:12px;background:rgba(88,86,214,0.03);border:1px solid rgba(88,86,214,0.08);">
-                    <h4><span style="font-size:18px;">\uD83C\uDF10</span> Online Presence</h4>
-                    ${a.website ? '<p style="margin:0 0 8px 0;line-height:1.7;"><strong>Website:</strong> <a href="' + _esc(a.website.startsWith('http') ? a.website : 'https://' + a.website) + '" target="_blank" rel="noopener" style="color:var(--apple-blue);text-decoration:none;">' + _esc(a.website) + ' \u2197</a></p>' : ''}
-                    ${a.socialMedia ? _formatAIText(a.socialMedia) : ''}
-                </div>` : ''}
-
-            ${_block('\uD83D\uDCDD', 'Underwriting Notes', a.underwritingNotes, { bg: 'var(--bg-input)', border: 'var(--border)' })}
-
-            ${_block('\uD83D\uDCA1', 'Competitive Intel & Strategy', a.competitiveIntel, { bg: 'rgba(88,86,214,0.04)', border: 'rgba(88,86,214,0.12)', titleColor: '#5856D6' })}
+            ${stratItems ? `
+            <details class="ai-group">
+                <summary>\uD83D\uDCA1 Strategy & Notes <span class="group-count">${stratItems}</span></summary>
+                <div class="ai-group-body">
+                    ${_block('\uD83D\uDCDD', 'Underwriting Notes', a.underwritingNotes)}
+                    ${_block('\uD83D\uDCA1', 'Competitive Intel & Strategy', a.competitiveIntel, { bg: 'rgba(88,86,214,0.04)', border: 'rgba(88,86,214,0.12)', titleColor: '#5856D6' })}
+                </div>
+            </details>` : ''}
 
             <div style="text-align:right;font-size:11px;color:var(--text-secondary);opacity:0.6;margin-top:8px;">
                 Powered by Gemini AI${grounded ? ' + Google Search' : ''} \u00B7 ${new Date().toLocaleTimeString()}
@@ -711,19 +721,28 @@ ${ai.underwritingNotes || 'N/A'}`;
         ];
         const okCount = sources.filter(s => s.ok).length;
 
-        // Business Summary — include web profile data if places came back
+        // ── Business Overview (consolidated from all sources) ──
         const p = placesOk ? data.places.profile : null;
+        const c = data.li?.contractor || {};
+        const e = data.sos?.entity || {};
+        const phone = p?.phone || c.phone || '';
+        const website = p?.website || '';
+        const address = p?.address
+            || (c.address ? [c.address.street, c.address.city, c.address.state, c.address.zip].filter(Boolean).join(', ') : '')
+            || (e.principalOffice ? [e.principalOffice.street, e.principalOffice.city, e.principalOffice.state, e.principalOffice.zip].filter(Boolean).join(', ') : '');
+
         _setHtml('businessSummary', `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
-                <div><strong>Business Name:</strong> ${_esc(data.businessName)}</div>
-                <div><strong>UBI:</strong> ${_esc(data.ubi || 'Not provided')}</div>
-                <div><strong>Location:</strong> ${_esc(data.city ? data.city + ', ' : '')}${_esc(data.state)}</div>
-                <div><strong>Report Date:</strong> ${new Date(data.timestamp).toLocaleDateString()}</div>
-                ${p?.phone ? `<div><strong>Phone:</strong> <a href="tel:${_esc(p.phone)}" style="color:var(--apple-blue);text-decoration:none;">${_esc(p.phone)}</a></div>` : ''}
-                ${p?.website ? `<div><strong>Website:</strong> <a href="${_esc(p.website)}" target="_blank" rel="noopener" style="color:var(--apple-blue);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">${_esc(p.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''))}</a></div>` : ''}
+            <div style="margin-bottom: 12px;">
+                <div style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">${_esc(data.businessName)}</div>
+                ${address ? `<div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 6px;">\uD83D\uDCCD ${_esc(address)}</div>` : `<div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 6px;">\uD83D\uDCCD ${_esc(data.city ? data.city + ', ' : '')}${_esc(data.state)}</div>`}
+                <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px;">
+                    ${phone ? `<a href="tel:${_esc(phone)}" style="color:var(--apple-blue);text-decoration:none;">\uD83D\uDCDE ${_esc(phone)}</a>` : ''}
+                    ${website ? `<a href="${_esc(website)}" target="_blank" rel="noopener" style="color:var(--apple-blue);text-decoration:none;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;">\uD83C\uDF10 ${_esc(website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''))}</a>` : ''}
+                    ${data.ubi ? `<span style="color:var(--text-secondary);">UBI: ${_esc(data.ubi)}</span>` : ''}
+                </div>
             </div>
             ${p?.rating ? `
-            <div style="margin-top:12px;display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-input);border-radius:10px;">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-input);border-radius:10px;margin-bottom:12px;">
                 <div style="font-size:24px;font-weight:700;color:#FBBC04;">${p.rating}</div>
                 <div>
                     <div style="font-size:14px;color:#FBBC04;">${'\u2605'.repeat(Math.round(p.rating))}${'☆'.repeat(5 - Math.round(p.rating))}</div>
@@ -731,7 +750,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                 </div>
                 ${p.googleMapsUrl ? `<a href="${_esc(p.googleMapsUrl)}" target="_blank" rel="noopener" style="margin-left:auto;font-size:12px;color:var(--apple-blue);text-decoration:none;">View on Maps \u2197</a>` : ''}
             </div>` : ''}
-            <div style="margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap;">
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                 ${sources.map(s => `
                     <span style="font-size: 11px; padding: 3px 10px; border-radius: 12px;
                                  background: ${s.ok ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)'};
@@ -748,54 +767,64 @@ ${ai.underwritingNotes || 'N/A'}`;
             </div>
         `);
 
-        // Google Business Profile card
-        const placesEl = document.getElementById('googleProfileInfo');
-        const placesSection = document.getElementById('googleProfileSection');
-        if (placesEl && placesSection) {
-            if (placesOk) {
-                placesSection.style.display = 'block';
-                placesEl.innerHTML = _formatPlacesData(data.places);
-            } else {
-                placesSection.style.display = 'none';
-            }
+        // ── Source Record Status Pills ──
+        _setStatusPill('liStatusPill', liOk && c.status ? c.status : 'Not found',
+            liOk && c.status?.toLowerCase().includes('active') ? 'green' : (!liOk ? 'gray' : 'red'));
+
+        _setStatusPill('sosStatusPill',
+            sosOk && e.status ? (e.entityType ? e.entityType + ' \u00B7 ' : '') + e.status : (data.sos?.manualSearch ? 'Manual search' : 'Not found'),
+            sosOk && e.status?.toLowerCase().includes('active') ? 'green' : (data.sos?.manualSearch ? 'orange' : (!sosOk ? 'gray' : 'red')));
+
+        _setStatusPill('oshaStatusPill',
+            oshaOk && data.osha.inspections?.length > 0 ? data.osha.inspections.length + ' inspection' + (data.osha.inspections.length > 1 ? 's' : '') : '\u2713 No violations',
+            oshaOk && data.osha.inspections?.length > 0 ? 'red' : 'green');
+
+        // Google accordion
+        const googleSection = document.getElementById('googleProfileSection');
+        if (placesOk && googleSection) {
+            googleSection.style.display = '';
+            _setStatusPill('googleStatusPill',
+                (p?.rating ? p.rating + '\u2605 \u00B7 ' : '') + (p?.totalReviews || 0) + ' reviews', 'gold');
+            const placesEl = document.getElementById('googleProfileInfo');
+            if (placesEl) placesEl.innerHTML = _formatPlacesData(data.places);
+        } else if (googleSection) {
+            googleSection.style.display = 'none';
         }
 
-        // L&I Contractor Info
+        // SAM.gov accordion
+        const samSection = document.getElementById('samGovSection');
+        const samEl = document.getElementById('samGovInfo');
+        if (samOk && samSection) {
+            samSection.style.display = '';
+            _setStatusPill('samStatusPill', 'Registered', 'purple');
+            if (samEl) samEl.innerHTML = _formatSAMData(data.sam);
+        } else if (data.sam?.note && samSection) {
+            samSection.style.display = '';
+            _setStatusPill('samStatusPill', 'Info available', 'blue');
+            if (samEl) samEl.innerHTML = '<p style="color: var(--text-secondary); font-size: 13px;">\u2139\uFE0F ' + _esc(data.sam.note) + '</p>';
+        } else if (samSection) {
+            samSection.style.display = 'none';
+        }
+
+        // ── Populate source record bodies ──
         if (liOk && data.li.contractor) {
             _setHtml('liContractorInfo', _formatLIData(data.li));
         } else {
             _setHtml('liContractorInfo', _formatSourceError(data.li, data.state, 'contractor'));
         }
 
-        // Secretary of State
         if (sosOk && data.sos.entity) {
             _setHtml('sosBusinessInfo', _formatSOSData(data.sos));
         } else {
             _setHtml('sosBusinessInfo', _formatSOSError(data));
         }
 
-        // OSHA
         if (oshaOk && data.osha.inspections?.length > 0) {
             _setHtml('oshaViolations', _formatOSHAData(data.osha));
         } else if (!oshaOk) {
             _setHtml('oshaViolations', _formatSourceError(data.osha, data.state, 'osha'));
         } else {
             _setHtml('oshaViolations', '<p style="color: var(--success);">\u2713 No OSHA violations found in public records</p>');
-        }
-
-        // SAM.gov
-        const samEl = document.getElementById('samGovInfo');
-        const samSection = document.getElementById('samGovSection');
-        if (samEl) {
-            if (samOk) {
-                if (samSection) samSection.style.display = 'block';
-                samEl.innerHTML = _formatSAMData(data.sam);
-            } else if (data.sam?.note) {
-                if (samSection) samSection.style.display = 'block';
-                samEl.innerHTML = '<p style="color: var(--text-secondary); font-size: 13px;">\u2139\uFE0F ' + _esc(data.sam.note) + '</p>';
-            } else {
-                if (samSection) samSection.style.display = 'none';
-            }
         }
 
         // Risk Classification (algorithmic)
@@ -926,15 +955,10 @@ ${ai.underwritingNotes || 'N/A'}`;
         `).join('');
 
         return `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
-                ${p.phone ? `<div><strong>Phone:</strong> <a href="tel:${_esc(p.phone)}" style="color:var(--apple-blue);text-decoration:none;">${_esc(p.phone)}</a></div>` : ''}
-                ${p.website ? `<div style="overflow:hidden;"><strong>Website:</strong> <a href="${_esc(p.website)}" target="_blank" rel="noopener" style="color:var(--apple-blue);text-decoration:none;">${_esc(p.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''))}</a></div>` : ''}
-                ${p.address ? `<div style="grid-column:1/-1;"><strong>Address:</strong> ${_esc(p.address)}</div>` : ''}
-                ${p.businessStatus ? `<div><strong>Status:</strong> <span style="color:${p.businessStatus === 'OPERATIONAL' ? 'var(--success)' : 'var(--danger)'};">${_esc(p.businessStatus.replace(/_/g, ' '))}</span></div>` : ''}
-            </div>
-            ${typeBadges ? `<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">${typeBadges}</div>` : ''}
+            ${p.businessStatus ? `<div style="font-size:13px;margin-bottom:10px;"><strong>Status:</strong> <span style="color:${p.businessStatus === 'OPERATIONAL' ? 'var(--success)' : 'var(--danger)'};">${_esc(p.businessStatus.replace(/_/g, ' '))}</span></div>` : ''}
+            ${typeBadges ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">${typeBadges}</div>` : ''}
             ${p.hours?.length ? `
-                <details style="margin-top:12px;cursor:pointer;">
+                <details style="margin-bottom:12px;cursor:pointer;">
                     <summary style="font-weight:600;font-size:13px;color:var(--text);">
                         \uD83D\uDD54 Business Hours ${p.isOpen === true ? '<span style="color:var(--success);font-size:12px;font-weight:500;margin-left:6px;">Open now</span>' : p.isOpen === false ? '<span style="color:var(--danger);font-size:12px;font-weight:500;margin-left:6px;">Closed</span>' : ''}
                     </summary>
@@ -943,7 +967,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                     </div>
                 </details>` : ''}
             ${reviewsHtml ? `
-                <div style="margin-top:16px;">
+                <div>
                     <div style="font-weight:600;font-size:13px;margin-bottom:8px;">\uD83D\uDCAC Recent Reviews</div>
                     ${reviewsHtml}
                 </div>` : ''}
@@ -1158,10 +1182,12 @@ ${ai.underwritingNotes || 'N/A'}`;
         const resultsEl = document.getElementById('prospectResults');
         if (resultsEl) resultsEl.style.display = 'block';
 
-        // Hide other sections
+        // Hide other sections & open SOS accordion
         _setHtml('liContractorInfo', '');
         _setHtml('oshaViolations', '');
         _setHtml('riskClassification', '');
+        const sosAccordion = document.getElementById('sosSection');
+        if (sosAccordion) sosAccordion.setAttribute('open', '');
 
         // Show selection UI
         _setHtml('sosBusinessInfo', `
@@ -1204,6 +1230,23 @@ ${ai.underwritingNotes || 'N/A'}`;
     }
 
     // ── Utilities ────────────────────────────────────────────────
+
+    function _setStatusPill(id, text, color) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = text;
+        const colors = {
+            green: { bg: 'rgba(52,199,89,0.1)', fg: '#34C759' },
+            red: { bg: 'rgba(255,59,48,0.1)', fg: '#FF3B30' },
+            orange: { bg: 'rgba(255,149,0,0.1)', fg: '#FF9500' },
+            gray: { bg: 'rgba(0,0,0,0.05)', fg: 'var(--text-secondary)' },
+            gold: { bg: 'rgba(251,188,4,0.12)', fg: '#B8860B' },
+            purple: { bg: 'rgba(88,86,214,0.1)', fg: '#5856D6' },
+            blue: { bg: 'rgba(0,122,255,0.08)', fg: 'var(--apple-blue)' }
+        };
+        const c = colors[color] || colors.gray;
+        el.style.cssText = `font-size:11px;padding:2px 10px;border-radius:10px;font-weight:500;white-space:nowrap;background:${c.bg};color:${c.fg};`;
+    }
 
     function _showLoading(title, subtitle) {
         const el = document.getElementById('prospectLoading');

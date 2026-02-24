@@ -20,6 +20,57 @@
     .prospect-stat-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
     .prospect-stat { font-size: 12px; padding: 5px 12px; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
 
+    /* Collapsible records accordion */
+    .prospect-accordion { border-top: 1px solid var(--border); }
+    .prospect-accordion summary {
+        display: flex; align-items: center; gap: 10px; padding: 14px 0;
+        font-weight: 600; font-size: 14px; cursor: pointer; list-style: none;
+        color: var(--text); user-select: none;
+    }
+    .prospect-accordion summary::-webkit-details-marker { display: none; }
+    .prospect-accordion summary::after {
+        content: '›'; margin-left: auto; font-size: 18px; color: var(--text-secondary);
+        transition: transform 0.2s ease; font-weight: 400;
+    }
+    .prospect-accordion[open] summary::after { transform: rotate(90deg); }
+    .prospect-accordion .accordion-body { padding-bottom: 14px; }
+    .prospect-accordion .status-pill {
+        font-size: 11px; padding: 2px 10px; border-radius: 10px; font-weight: 500; white-space: nowrap;
+    }
+
+    /* AI collapsible groups */
+    .ai-group { margin-bottom: 8px; border-radius: 12px; }
+    .ai-group summary {
+        display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+        font-weight: 600; font-size: 14px; cursor: pointer;
+        background: var(--bg-input); border-radius: 12px;
+        list-style: none; color: var(--text); user-select: none;
+    }
+    .ai-group summary::-webkit-details-marker { display: none; }
+    .ai-group summary .group-count {
+        font-size: 11px; font-weight: 500; color: var(--text-secondary);
+        background: var(--bg-card); padding: 1px 8px; border-radius: 8px;
+    }
+    .ai-group summary::after {
+        content: '▾'; margin-left: auto; font-size: 12px; color: var(--text-secondary);
+        transition: transform 0.2s ease;
+    }
+    .ai-group:not([open]) summary::after { transform: rotate(-90deg); }
+    .ai-group[open] summary { border-radius: 12px 12px 0 0; }
+    .ai-group .ai-group-body { padding: 16px; background: var(--bg-input); border-radius: 0 0 12px 12px; }
+
+    /* Collapsible card */
+    .collapsible-card > summary {
+        display: flex; align-items: center; gap: 10px; cursor: pointer;
+        list-style: none; user-select: none;
+    }
+    .collapsible-card > summary::-webkit-details-marker { display: none; }
+    .collapsible-card > summary::after {
+        content: '›'; margin-left: auto; font-size: 18px; color: var(--text-secondary);
+        transition: transform 0.2s ease;
+    }
+    .collapsible-card[open] > summary::after { transform: rotate(90deg); }
+
     /* Print styles */
     @media print {
         /* Hide everything except the prospect results */
@@ -70,6 +121,12 @@
         }
 
         /* Page setup */
+        /* Force all collapsible sections open */
+        details > *:not(summary) { display: block !important; }
+        .prospect-accordion summary::after,
+        .ai-group summary::after,
+        .collapsible-card > summary::after { display: none !important; }
+
         @page { margin: 0.6in; size: letter; }
     }
 </style>
@@ -145,31 +202,19 @@
     <!-- RESULTS SECTION -->
     <div id="prospectResults" style="display: none;">
 
-        <!-- BUSINESS SUMMARY -->
+        <!-- BUSINESS OVERVIEW (consolidated) -->
         <div class="card">
             <div class="prospect-section-header">
                 <div class="prospect-section-icon" style="background: rgba(0,122,255,0.08);">🏢</div>
                 <div>
-                    <h2 class="prospect-section-title">Business Summary</h2>
-                    <p class="prospect-section-sub">Overview and data source status</p>
+                    <h2 class="prospect-section-title">Business Overview</h2>
+                    <p class="prospect-section-sub">Consolidated profile from all data sources</p>
                 </div>
             </div>
             <div id="businessSummary"></div>
         </div>
 
-        <!-- GOOGLE BUSINESS PROFILE -->
-        <div id="googleProfileSection" class="card" style="display: none;">
-            <div class="prospect-section-header">
-                <div class="prospect-section-icon" style="background: rgba(66,133,244,0.08);">🌐</div>
-                <div>
-                    <h2 class="prospect-section-title">Google Business Profile</h2>
-                    <p class="prospect-section-sub">Website, reviews, hours, and online presence</p>
-                </div>
-            </div>
-            <div id="googleProfileInfo"></div>
-        </div>
-
-        <!-- AI ANALYSIS (Gemini-powered — shows after data loads) -->
+        <!-- AI ANALYSIS -->
         <div id="aiAnalysisSection" class="card" style="display: none; border: 2px solid rgba(168,85,247,0.25); background: linear-gradient(135deg, var(--bg-card), rgba(168,85,247,0.03));">
             <div class="prospect-section-header">
                 <div class="prospect-section-icon" style="background: rgba(168,85,247,0.1);">🧠</div>
@@ -179,54 +224,6 @@
                 </div>
             </div>
             <div id="aiAnalysisContent"></div>
-        </div>
-
-        <!-- L&I CONTRACTOR INFO -->
-        <div class="card">
-            <div class="prospect-section-header">
-                <div class="prospect-section-icon" style="background: rgba(255,149,0,0.08);">🔨</div>
-                <div>
-                    <h2 class="prospect-section-title">Contractor License</h2>
-                    <p class="prospect-section-sub">State licensing, bond, and insurance records</p>
-                </div>
-            </div>
-            <div id="liContractorInfo"></div>
-        </div>
-
-        <!-- SECRETARY OF STATE -->
-        <div class="card">
-            <div class="prospect-section-header">
-                <div class="prospect-section-icon" style="background: rgba(52,199,89,0.08);">📋</div>
-                <div>
-                    <h2 class="prospect-section-title">Business Entity Records</h2>
-                    <p class="prospect-section-sub">Secretary of State filings and registration</p>
-                </div>
-            </div>
-            <div id="sosBusinessInfo"></div>
-        </div>
-
-        <!-- OSHA VIOLATIONS -->
-        <div class="card">
-            <div class="prospect-section-header">
-                <div class="prospect-section-icon" style="background: rgba(255,59,48,0.08);">⚠️</div>
-                <div>
-                    <h2 class="prospect-section-title">OSHA Inspection History</h2>
-                    <p class="prospect-section-sub">Workplace safety violations and penalties</p>
-                </div>
-            </div>
-            <div id="oshaViolations"></div>
-        </div>
-
-        <!-- SAM.GOV FEDERAL REGISTRATION -->
-        <div id="samGovSection" class="card" style="display: none;">
-            <div class="prospect-section-header">
-                <div class="prospect-section-icon" style="background: rgba(88,86,214,0.08);">🏛️</div>
-                <div>
-                    <h2 class="prospect-section-title">SAM.gov Federal Registration</h2>
-                    <p class="prospect-section-sub">Federal entity registration and government contracting eligibility</p>
-                </div>
-            </div>
-            <div id="samGovInfo"></div>
         </div>
 
         <!-- RISK CLASSIFICATION -->
@@ -241,34 +238,79 @@
             <div id="riskClassification"></div>
         </div>
 
-        <!-- INVESTIGATION LINKS -->
+        <!-- SOURCE RECORDS (accordion) -->
         <div class="card">
             <div class="prospect-section-header">
-                <div class="prospect-section-icon" style="background: rgba(0,122,255,0.08);">🔗</div>
+                <div class="prospect-section-icon" style="background: rgba(255,149,0,0.08);">📁</div>
                 <div>
-                    <h2 class="prospect-section-title">Manual Investigation Links</h2>
-                    <p class="prospect-section-sub">Open official records for detailed review</p>
+                    <h2 class="prospect-section-title">Source Records</h2>
+                    <p class="prospect-section-sub">Detailed data from each public database</p>
                 </div>
             </div>
-            <div id="investigationLinks"></div>
+
+            <details class="prospect-accordion" id="liSection">
+                <summary>
+                    <span>🔨 Contractor License</span>
+                    <span class="status-pill" id="liStatusPill"></span>
+                </summary>
+                <div class="accordion-body" id="liContractorInfo"></div>
+            </details>
+
+            <details class="prospect-accordion" id="sosSection">
+                <summary>
+                    <span>📋 Business Entity</span>
+                    <span class="status-pill" id="sosStatusPill"></span>
+                </summary>
+                <div class="accordion-body" id="sosBusinessInfo"></div>
+            </details>
+
+            <details class="prospect-accordion" id="oshaSection">
+                <summary>
+                    <span>⚠️ OSHA Inspection History</span>
+                    <span class="status-pill" id="oshaStatusPill"></span>
+                </summary>
+                <div class="accordion-body" id="oshaViolations"></div>
+            </details>
+
+            <details class="prospect-accordion" id="googleProfileSection" style="display: none;">
+                <summary>
+                    <span>🌐 Google Business Profile</span>
+                    <span class="status-pill" id="googleStatusPill"></span>
+                </summary>
+                <div class="accordion-body" id="googleProfileInfo"></div>
+            </details>
+
+            <details class="prospect-accordion" id="samGovSection" style="display: none;">
+                <summary>
+                    <span>🏛️ SAM.gov Federal Registration</span>
+                    <span class="status-pill" id="samStatusPill"></span>
+                </summary>
+                <div class="accordion-body" id="samGovInfo"></div>
+            </details>
         </div>
+
+        <!-- INVESTIGATION LINKS (collapsible) -->
+        <details class="card collapsible-card">
+            <summary>
+                <div class="prospect-section-icon" style="background: rgba(0,122,255,0.08); flex-shrink: 0;">🔗</div>
+                <div>
+                    <h2 class="prospect-section-title" style="margin: 0;">Investigation Links</h2>
+                    <p class="prospect-section-sub">Open official records for manual review</p>
+                </div>
+            </summary>
+            <div id="investigationLinks" style="padding-top: 14px;"></div>
+        </details>
 
         <!-- EXPORT ACTIONS -->
         <div class="card" style="border: 2px dashed var(--border);">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                 <div>
                     <h3 style="margin: 0 0 4px 0; font-size: 16px;">Export Options</h3>
-                    <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">
-                        Save or share this investigation report
-                    </p>
+                    <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">Save or share this investigation report</p>
                 </div>
                 <div style="display: flex; gap: 12px;">
-                    <button class="btn-secondary" onclick="ProspectInvestigator.copyToQuote()" style="font-size: 14px;">
-                        📋 Copy to Clipboard
-                    </button>
-                    <button class="btn-utility" onclick="ProspectInvestigator.exportReport()" style="font-size: 14px;">
-                        📄 Export PDF
-                    </button>
+                    <button class="btn-secondary" onclick="ProspectInvestigator.copyToQuote()" style="font-size: 14px;">📋 Copy to Clipboard</button>
+                    <button class="btn-utility" onclick="ProspectInvestigator.exportReport()" style="font-size: 14px;">📄 Export PDF</button>
                 </div>
             </div>
         </div>
