@@ -5,11 +5,13 @@
  * Bumping CACHE_VERSION invalidates the old cache on the next page load.
  */
 
-const CACHE_VERSION = 'altech-v1';
+const CACHE_VERSION = 'altech-v2';
 const APP_SHELL = [
     '/',
     '/index.html',
     '/css/main.css',
+    '/css/sidebar.css',
+    '/css/dashboard.css',
     '/css/accounting.css',
     '/css/auth.css',
     '/css/compliance.css',
@@ -49,6 +51,7 @@ const APP_SHELL = [
     '/js/reminders.js',
     '/js/accounting-export.js',
     '/js/vin-decoder.js',
+    '/js/dashboard-widgets.js',
 ];
 
 // Plugin HTML files — cache on first access (lazy)

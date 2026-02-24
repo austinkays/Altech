@@ -3,6 +3,18 @@
    States: expanded (240px) | collapsed icon rail (64px) | hidden (mobile)
    ══════════════════════════════════════════════════════════════ */
 
+/* ── Sidebar Overlay (hidden by default, shown on tablet when sidebar opens) ── */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 99;
+}
+.sidebar-overlay.active {
+    display: block;
+}
+
 /* ── App Shell Grid ── */
 .app-shell {
     display: grid;
@@ -659,17 +671,6 @@ body.dark-mode .sidebar-footer-btn:hover {
     }
     .mobile-menu-btn {
         display: flex;
-    }
-    /* Overlay when sidebar is open on tablet */
-    .sidebar-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.3);
-        z-index: 99;
-    }
-    .sidebar-overlay.active {
-        display: block;
     }
 }
 
