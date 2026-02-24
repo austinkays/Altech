@@ -897,12 +897,13 @@ Return ONLY valid JSON with this exact structure:
 IMPORTANT: Look in the listing description text for renovation info like "New roof 2024" → set roofYearUpdated. Check "Facts & Features" sections thoroughly. Use null for any field you cannot find. Only include data for THIS SPECIFIC address.`;
 
   try {
-    // askWithSearch uses Google Search grounding when on Google provider,
-    // falls back to regular ask() for other providers
-    const text = await ai.askWithSearch(systemPrompt, userPrompt, {
+    // askWithSearch returns { text, grounded, groundingMetadata }
+    const searchResult = await ai.askWithSearch(systemPrompt, userPrompt, {
       temperature: 0.1,
       maxTokens: 4096
     });
+
+    const text = searchResult?.text || (typeof searchResult === 'string' ? searchResult : '');
 
     diag.searchResponseLength = text.length;
     diag.aiProvider = ai.provider;

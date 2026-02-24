@@ -1415,12 +1415,13 @@ Produce a JSON response with these EXACT keys (all string values — be detailed
 }`;
 
   try {
-    // askWithSearch uses Google Search grounding on Google provider,
-    // falls back to regular ask() for other providers
-    const rawText = await ai.askWithSearch(systemPrompt, userPrompt, {
+    // askWithSearch returns { text, grounded, groundingMetadata }
+    const searchResult = await ai.askWithSearch(systemPrompt, userPrompt, {
       temperature: 0.3,
       maxTokens: 8192
     });
+
+    const rawText = searchResult?.text || (typeof searchResult === 'string' ? searchResult : '');
 
     if (!rawText) {
       console.error('[AI Analysis] Empty AI response');
@@ -1436,7 +1437,7 @@ Produce a JSON response with these EXACT keys (all string values — be detailed
     return {
       success: true,
       source: `${ai.provider} AI (Commercial Underwriting Analysis)`,
-      groundedSearch: ai.isGoogle,
+      groundedSearch: searchResult?.grounded || ai.isGoogle,
       aiProvider: ai.provider,
       analysis
     };
