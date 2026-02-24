@@ -697,7 +697,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             if (c.action === 'fetchProperty') {
                 return '<button class="ia-chip ia-chip-intel" onclick="IntakeAssist.fetchPropertyData()">' + c.label + '</button>';
             }
-            return '<button class="ia-chip" onclick="IntakeAssist.quickStart(\'' + _esc(c.msg).replace(/'/g, "\\'") + '\')">' + c.label + '</button>';
+            return '<button class="ia-chip" onclick="IntakeAssist.quickStart(\'' + _esc(c.msg).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')">' + c.label + '</button>';
         }).join('');
     }
 
