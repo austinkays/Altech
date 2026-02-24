@@ -342,7 +342,7 @@ window.AIProvider = (() => {
     async function _callAnthropic(apiKey, model, systemPrompt, userMessage, opts) {
         // Anthropic doesn't allow browser-direct calls (no CORS).
         // Route through our Vercel serverless proxy.
-        const url = '/api/anthropic-proxy';
+        const url = '/api/config?type=anthropic';
 
         const messages = [{ role: 'user', content: userMessage }];
 
@@ -528,7 +528,7 @@ window.AIProvider = (() => {
     }
 
     async function _chatAnthropic(apiKey, model, systemPrompt, messages, opts) {
-        const url = '/api/anthropic-proxy';
+        const url = '/api/config?type=anthropic';
         const msgs = messages.map(m => ({ role: m.role, content: m.content }));
         const body = { model, system: systemPrompt || '', messages: msgs, max_tokens: opts.maxTokens, temperature: opts.temperature, apiKey };
         const fetchFn = (typeof Auth !== 'undefined' && Auth.apiFetch) ? Auth.apiFetch.bind(Auth) : fetch;
