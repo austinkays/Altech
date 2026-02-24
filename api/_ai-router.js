@@ -32,7 +32,7 @@ const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
  * @returns {Object|Array|null} Parsed JSON or null
  */
 export function extractJSON(text) {
-    if (!text) return null;
+    if (!text || typeof text !== 'string') return null;
     const trimmed = text.trim();
 
     // 1. Direct parse
