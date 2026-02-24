@@ -918,6 +918,12 @@ ${ai.underwritingNotes || 'N/A'}`;
         const data = currentData;
         if (!data) return;
 
+        // Restore cards that were hidden during the selection phase
+        for (const id of ['riskScoreCard', 'sourceRecordsCard', 'investigationLinksCard', 'exportActionsCard']) {
+            const card = document.getElementById(id);
+            if (card) card.style.display = '';
+        }
+
         const liOk = data.li && data.li.available !== false && !data.li.error;
         const sosOk = data.sos && data.sos.available !== false && !data.sos.error;
         const oshaOk = data.osha && data.osha.available !== false && !data.osha.error;
@@ -1502,20 +1508,25 @@ ${ai.underwritingNotes || 'N/A'}`;
         const resultsEl = document.getElementById('prospectResults');
         if (resultsEl) resultsEl.style.display = 'block';
 
-        // Hide deep investigation sections
+        // Hide all deep-investigation cards — only show Business Overview with selection UI
         _setHtml('liContractorInfo', '');
         _setHtml('oshaViolations', '');
         _setHtml('riskClassification', '');
+        _setHtml('sosBusinessInfo', '');
         const aiSection = document.getElementById('aiAnalysisSection');
         if (aiSection) aiSection.style.display = 'none';
-        const sosAccordion = document.getElementById('sosSection');
-        if (sosAccordion) sosAccordion.setAttribute('open', '');
+        // Hide lower cards during selection
+        for (const id of ['riskScoreCard', 'sourceRecordsCard', 'investigationLinksCard', 'exportActionsCard']) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        }
 
         const stateNames = { WA: 'Washington', OR: 'Oregon', AZ: 'Arizona', CA: 'California', ID: 'Idaho', NV: 'Nevada' };
         const matchCount = candidates.filter(c => c.stateMatch).length;
         const mismatchCount = candidates.length - matchCount;
 
-        _setHtml('sosBusinessInfo', `
+        // Render selection UI directly in businessSummary (first visible card)
+        _setHtml('businessSummary', `
             <div style="background: rgba(0,122,255,0.05); border-left: 4px solid var(--apple-blue); padding: 16px; border-radius: 4px; margin-bottom: 20px;">
                 <h3 style="margin: 0 0 8px 0;">\uD83D\uDD0E Select the right business to investigate</h3>
                 <p style="margin: 0; color: var(--text-secondary); font-size: 13px;">
@@ -1571,14 +1582,6 @@ ${ai.underwritingNotes || 'N/A'}`;
                     None of these \u2014 search with original name anyway
                 </button>
             </div>`);
-
-        _setHtml('businessSummary', `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 14px;">
-                <div><strong>Search Term:</strong> ${_esc(businessName)}</div>
-                <div><strong>Results:</strong> ${candidates.length} business${candidates.length !== 1 ? 'es' : ''}</div>
-                <div><strong>Location:</strong> ${_esc(city ? city + ', ' : '')}${_esc(stateNames[state] || state)}</div>
-                <div><strong>Status:</strong> Awaiting selection</div>
-            </div>`);
     }
 
     // ── Utilities ────────────────────────────────────────────────
@@ -1623,6 +1626,11 @@ ${ai.underwritingNotes || 'N/A'}`;
         const aiEl = document.getElementById('aiAnalysisSection');
         if (aiEl) aiEl.style.display = 'none';
         aiAnalysis = null;
+        // Restore any cards hidden during selection phase
+        for (const id of ['riskScoreCard', 'sourceRecordsCard', 'investigationLinksCard', 'exportActionsCard']) {
+            const card = document.getElementById(id);
+            if (card) card.style.display = '';
+        }
     }
 
     function _setHtml(id, html) {
