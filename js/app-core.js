@@ -1737,5 +1737,252 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
 
         // Scroll to top
         window.scrollTo(0, 0);
+    },
+
+    // ── Demo Client Loader ──────────────────────────────────
+    // Populates the entire intake form with realistic sample data
+    // so you can demonstrate HawkSoft, EZLynx, and PDF exports.
+    loadDemoClient() {
+        // Clear first
+        this.data = {};
+        this.drivers = [];
+        this.vehicles = [];
+
+        const demo = {
+            // ── Step 1: Client Information ──
+            prefix: 'MRS',
+            firstName: 'Sarah',
+            lastName: 'Mitchell',
+            suffix: '',
+            dob: '1985-07-22',
+            gender: 'F',
+            maritalStatus: 'Married',
+            email: 'sarah.mitchell@example.com',
+            phone: '3605559876',
+            // Co-Applicant
+            hasCoApplicant: 'yes',
+            coFirstName: 'David',
+            coLastName: 'Mitchell',
+            coDob: '1983-03-15',
+            coGender: 'M',
+            coEmail: 'david.mitchell@example.com',
+            coPhone: '3605559877',
+            coRelationship: 'Spouse',
+
+            // ── Step 2: Coverage Type & Demographics ──
+            qType: 'both',
+            education: 'Bachelors',
+            occupation: 'Marketing Manager',
+            industry: 'Advertising',
+
+            // ── Step 3: Property Details ──
+            addrStreet: '2847 Evergreen Terrace',
+            addrCity: 'Vancouver',
+            addrState: 'WA',
+            addrZip: '98686',
+            county: 'Clark',
+            yearsAtAddress: '6',
+            dwellingUsage: 'Primary',
+            occupancyType: 'Owner',
+            dwellingType: 'Single Family',
+            numStories: '2',
+            bedrooms: '4',
+            fullBaths: '2',
+            halfBaths: '1',
+            sqFt: '2200',
+            yrBuilt: '2003',
+            lotSize: '0.28',
+            numOccupants: '4',
+            purchaseDate: '2019-08-15',
+            constructionStyle: 'Colonial',
+            exteriorWalls: 'Siding, Vinyl',
+            foundation: 'Full Basement',
+            kitchenQuality: 'Standard',
+            garageType: 'Attached',
+            garageSpaces: '2',
+            roofType: 'Architectural Shingles',
+            roofShape: 'Gable',
+            roofYr: '2018',
+            heatingType: 'Gas - Forced Air',
+            cooling: 'Central Air',
+            sewer: 'Public',
+            waterSource: 'Public',
+            flooring: 'Hardwood',
+            numFireplaces: '1',
+            fireStationDist: '3',
+            fireHydrantFeet: '1-500',
+            protectionClass: '4',
+            burglarAlarm: 'Local',
+            fireAlarm: 'Local',
+            sprinklers: 'None',
+            smokeDetector: 'Local',
+            pool: 'No',
+            trampoline: 'No',
+            woodStove: 'No',
+            dogInfo: '',
+            businessOnProperty: '',
+            // Home Coverage
+            homePolicyType: 'HO3',
+            dwellingCoverage: '425000',
+            personalLiability: '300000',
+            medicalPayments: '5000',
+            homeDeductible: '1000',
+            windDeductible: '2%',
+            mortgagee: 'US Bank NA',
+
+            // ── Step 4: Auto & Driving ──
+            accidents: '0',
+            violations: '0',
+            autoPolicyType: 'Standard',
+            liabilityLimits: '100/300',
+            pdLimit: '100000',
+            umLimits: '100/300',
+            uimLimits: '100/300',
+            compDeductible: '500',
+            autoDeductible: '500',
+            medPayments: '5000',
+            rentalDeductible: '50/day',
+            towingDeductible: '100',
+
+            // ── Step 5: Insurance History ──
+            policyTerm: '12 Month',
+            effectiveDate: '2026-04-01',
+            homePriorCarrier: 'Safeco',
+            homePriorPolicyTerm: '12 Month',
+            homePriorYears: '4',
+            homePriorExp: '2026-03-31',
+            priorCarrier: 'State Farm',
+            priorPolicyTerm: '6 Month',
+            priorLiabilityLimits: '50/100',
+            priorYears: '6',
+            continuousCoverage: '8',
+            priorExp: '2026-03-31',
+            additionalInsureds: '',
+            contactTime: 'Morning',
+            contactMethod: 'Email',
+            referralSource: 'Referral',
+            tcpaConsent: true,
+        };
+
+        // Apply all form data
+        this.applyData(demo);
+
+        // Set qType radio button
+        const qTypeRadio = document.querySelector('input[name="qType"][value="both"]');
+        if (qTypeRadio) qTypeRadio.checked = true;
+        this.handleType();
+
+        // Show co-applicant section
+        const coCheck = document.getElementById('hasCoApplicant');
+        if (coCheck) {
+            coCheck.checked = true;
+            this.toggleCoApplicant();
+        }
+
+        // ── Demo Drivers ──
+        this.drivers = [
+            {
+                id: 'driver_demo_1',
+                firstName: 'Sarah',
+                lastName: 'Mitchell',
+                dob: '1985-07-22',
+                gender: 'F',
+                maritalStatus: 'Married',
+                dlNum: 'MITCSA385RG',
+                dlState: 'WA',
+                dlStatus: 'Valid',
+                relationship: 'Self',
+                isCoApplicant: false,
+                occupation: 'Marketing Manager',
+                education: 'Bachelors',
+                ageLicensed: '16',
+                sr22: 'No',
+                fr44: 'No',
+                goodDriver: 'Yes',
+                matureDriver: 'No',
+                licenseSusRev: 'No',
+                driverEducation: 'No'
+            },
+            {
+                id: 'driver_demo_2',
+                firstName: 'David',
+                lastName: 'Mitchell',
+                dob: '1983-03-15',
+                gender: 'M',
+                maritalStatus: 'Married',
+                dlNum: 'MITCDA383QK',
+                dlState: 'WA',
+                dlStatus: 'Valid',
+                relationship: 'Spouse',
+                isCoApplicant: true,
+                occupation: 'Software Engineer',
+                education: 'Masters',
+                ageLicensed: '16',
+                sr22: 'No',
+                fr44: 'No',
+                goodDriver: 'Yes',
+                matureDriver: 'No',
+                licenseSusRev: 'No',
+                driverEducation: 'No'
+            }
+        ];
+
+        // ── Demo Vehicles ──
+        this.vehicles = [
+            {
+                id: 'vehicle_demo_1',
+                vin: '1HGCV1F34LA012345',
+                year: '2020',
+                make: 'Honda',
+                model: 'Accord',
+                use: 'Commute',
+                miles: '14000',
+                primaryDriver: 'driver_demo_1',
+                ownershipType: 'Owned',
+                performance: 'Standard',
+                antiTheft: 'Active',
+                passiveRestraints: 'Both Front & Side',
+                antiLockBrakes: 'Yes',
+                daytimeRunningLights: 'Yes',
+                carNew: 'No',
+                telematics: 'No',
+                carPool: 'No',
+                tnc: 'No'
+            },
+            {
+                id: 'vehicle_demo_2',
+                vin: '5YFBURHE1LP987654',
+                year: '2022',
+                make: 'Toyota',
+                model: 'Camry',
+                use: 'Commute',
+                miles: '11000',
+                primaryDriver: 'driver_demo_2',
+                ownershipType: 'Lien',
+                performance: 'Standard',
+                antiTheft: 'Alarm Only',
+                passiveRestraints: 'Both Front & Side',
+                antiLockBrakes: 'Yes',
+                daytimeRunningLights: 'Yes',
+                carNew: 'No',
+                telematics: 'Yes',
+                carPool: 'No',
+                tnc: 'No'
+            }
+        ];
+
+        // Save drivers/vehicles into App.data and render cards
+        this.saveDriversVehicles();
+        if (typeof this.renderDriverCards === 'function') this.renderDriverCards();
+        if (typeof this.renderVehicleCards === 'function') this.renderVehicleCards();
+
+        // Save to localStorage
+        this.save();
+
+        // Navigate to step 1 (Client Info)
+        this.step = 0;
+        this.next();
+
+        this.toast('🧪 Demo client loaded — Sarah & David Mitchell');
     }
 });
