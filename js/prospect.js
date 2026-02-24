@@ -91,6 +91,9 @@ const ProspectInvestigator = (() => {
                 _searchPlaces(name, city, state, placeId)
             ]);
 
+            // Discard Google Places data if it returned a business in a different state
+            _validatePlacesState(placesData, state);
+
             // Store combined data
             currentData = {
                 businessName: name,
@@ -135,6 +138,9 @@ const ProspectInvestigator = (() => {
                 _searchSAM(businessName, state),
                 _searchPlaces(businessName, city, state)
             ]);
+
+            // Discard Google Places data if it returned a business in a different state
+            _validatePlacesState(placesData, state);
 
             currentData = {
                 businessName,
@@ -946,9 +952,10 @@ ${ai.underwritingNotes || 'N/A'}`;
         const e = data.sos?.entity || {};
         const phone = p?.phone || c.phone || '';
         const website = p?.website || '';
-        const address = p?.address
-            || (c.address ? [c.address.street, c.address.city, c.address.state, c.address.zip].filter(Boolean).join(', ') : '')
-            || (e.principalOffice ? [e.principalOffice.street, e.principalOffice.city, e.principalOffice.state, e.principalOffice.zip].filter(Boolean).join(', ') : '');
+        // Prefer L&I / SOS addresses (state-specific databases) over Google Places
+        const liAddress = c.address ? [c.address.street, c.address.city, c.address.state, c.address.zip].filter(Boolean).join(', ') : '';
+        const sosAddress = e.principalOffice ? [e.principalOffice.street, e.principalOffice.city, e.principalOffice.state, e.principalOffice.zip].filter(Boolean).join(', ') : '';
+        const address = liAddress || sosAddress || p?.address || '';
 
         _setHtml('businessSummary', `
             <div style="margin-bottom: 12px;">
@@ -1678,6 +1685,30 @@ ${ai.underwritingNotes || 'N/A'}`;
         const div = document.createElement('div');
         div.textContent = String(str);
         return div.innerHTML;
+    }
+
+    /** Extract 2-letter state code from a formatted address string */
+    function _extractStateFromAddress(address) {
+        if (!address) return '';
+        const m = address.match(/,\s*([A-Z]{2})\s+\d{5}/);
+        if (m) return m[1];
+        const parts = address.split(',').map(s => s.trim());
+        for (const p of parts) {
+            const sm = p.match(/^([A-Z]{2})\s+\d{5}/);
+            if (sm) return sm[1];
+        }
+        return '';
+    }
+
+    /** If Places returned an address in a different state, discard it */
+    function _validatePlacesState(placesData, expectedState) {
+        if (!placesData?.available || !placesData?.profile?.address || !expectedState) return;
+        const placesState = _extractStateFromAddress(placesData.profile.address);
+        if (placesState && placesState !== expectedState) {
+            console.warn(`[Prospect] Places returned ${placesState} but expected ${expectedState} — discarding Google Places data`);
+            placesData.available = false;
+            placesData._stateMismatch = true;
+        }
     }
 
     function _statusColor(status) {
