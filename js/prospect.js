@@ -38,11 +38,12 @@ const ProspectInvestigator = (() => {
 
         try {
             // Phase 1: Run all data-source searches in parallel
-            const [liData, sosData, oshaData, samData] = await Promise.all([
+            const [liData, sosData, oshaData, samData, placesData] = await Promise.all([
                 _searchLI(businessName, ubi, state),
                 _searchSOS(businessName, ubi, state),
                 _searchOSHA(businessName, city, state),
-                _searchSAM(businessName, state)
+                _searchSAM(businessName, state),
+                _searchPlaces(businessName, city, state)
             ]);
 
             // Check if either L&I or SOS returned multiple results — let user pick
@@ -67,6 +68,7 @@ const ProspectInvestigator = (() => {
                 sos: sosData,
                 osha: oshaData,
                 sam: samData,
+                places: placesData,
                 timestamp: new Date().toISOString()
             };
 
@@ -89,11 +91,12 @@ const ProspectInvestigator = (() => {
         _showLoading('Loading business details...', 'Fetching full records for selected entity');
 
         try {
-            const [liData, sosData, oshaData, samData] = await Promise.all([
+            const [liData, sosData, oshaData, samData, placesData] = await Promise.all([
                 _searchLI('', ubi, state),
                 _searchSOS('', ubi, state),
                 _searchOSHA('', city, state),
-                _searchSAM('', state)
+                _searchSAM('', state),
+                _searchPlaces('', city, state)
             ]);
 
             currentData = {
@@ -105,6 +108,7 @@ const ProspectInvestigator = (() => {
                 sos: sosData,
                 osha: oshaData,
                 sam: samData,
+                places: placesData,
                 timestamp: new Date().toISOString()
             };
 
@@ -127,6 +131,7 @@ const ProspectInvestigator = (() => {
         const c = d.li?.contractor || {};
         const e = d.sos?.entity || {};
         const ai = aiAnalysis;
+        const gp = d.places?.profile;
 
         let text = `COMMERCIAL PROSPECT INVESTIGATION
 Generated: ${new Date(d.timestamp).toLocaleDateString()}
@@ -134,8 +139,19 @@ ${'─'.repeat(50)}
 
 BUSINESS: ${d.businessName}
 UBI: ${d.ubi || 'N/A'}
-Location: ${d.city || 'N/A'}, ${d.state}
+Location: ${d.city || 'N/A'}, ${d.state}`;
 
+        if (gp) {
+            text += `\n\nGOOGLE BUSINESS PROFILE:
+  Phone: ${gp.phone || 'N/A'}
+  Website: ${gp.website || 'N/A'}
+  Address: ${gp.address || 'N/A'}
+  Rating: ${gp.rating ? gp.rating + '/5 (' + (gp.totalReviews || 0) + ' reviews)' : 'N/A'}
+  Status: ${gp.businessStatus ? gp.businessStatus.replace(/_/g, ' ') : 'N/A'}
+  Categories: ${gp.types?.length ? gp.types.map(t => t.replace(/_/g, ' ')).join(', ') : 'N/A'}`;
+        }
+
+        text += `\n
 CONTRACTOR LICENSE:
   License #: ${c.licenseNumber || 'N/A'}
   Status: ${c.status || 'N/A'}
@@ -165,6 +181,15 @@ ${ai.glClassification || 'N/A'}
 
 UNDERWRITING NOTES:
 ${ai.underwritingNotes || 'N/A'}`;
+
+            if (ai.businessHistory) text += `\n\nBUSINESS HISTORY:\n${ai.businessHistory}`;
+            if (ai.keyPersonnel) text += `\n\nKEY PERSONNEL:\n${ai.keyPersonnel}`;
+            if (ai.serviceArea) text += `\n\nSERVICE AREA:\n${ai.serviceArea}`;
+            if (ai.buildingInfo) text += `\n\nBUILDING & PREMISES:\n${ai.buildingInfo}`;
+            if (ai.website) text += `\n\nWEBSITE: ${ai.website}`;
+            if (ai.socialMedia) text += `\n\nSOCIAL MEDIA:\n${ai.socialMedia}`;
+            if (ai.riskAssessment) text += `\n\nRISK ASSESSMENT:\n${ai.riskAssessment}`;
+            if (ai.competitiveIntel) text += `\n\nCOMPETITIVE INTEL:\n${ai.competitiveIntel}`;
         }
 
         navigator.clipboard.writeText(text).then(() => {
@@ -262,6 +287,22 @@ ${ai.underwritingNotes || 'N/A'}`;
             labelValue('UBI', d.ubi);
             labelValue('Location', (d.city ? d.city + ', ' : '') + d.state);
             labelValue('Report Date', new Date(d.timestamp).toLocaleDateString());
+
+            // Google Places profile data
+            const gp = d.places?.profile;
+            if (gp) {
+                if (gp.phone) labelValue('Phone', gp.phone);
+                if (gp.website) labelValue('Website', gp.website);
+                if (gp.address) labelValue('Address', gp.address);
+                if (gp.rating) labelValue('Google Rating', gp.rating + '/5 (' + (gp.totalReviews || 0) + ' reviews)');
+                if (gp.businessStatus) labelValue('Business Status', gp.businessStatus.replace(/_/g, ' '));
+                if (gp.types?.length) labelValue('Categories', gp.types.map(t => t.replace(/_/g, ' ')).join(', '));
+                if (gp.hours?.length) {
+                    y += 4;
+                    body('Business Hours:', { bold: true });
+                    gp.hours.forEach(h => body(h, { indent: 12 }));
+                }
+            }
             y += 6;
 
             // ── AI Analysis ──
@@ -321,6 +362,37 @@ ${ai.underwritingNotes || 'N/A'}`;
                 if (ai.competitiveIntel) {
                     heading('Competitive Intel & Strategy', 11, [88, 86, 214]);
                     body(ai.competitiveIntel);
+                    y += 6;
+                }
+
+                if (ai.businessHistory) {
+                    heading('Business History', 11, [0, 100, 200]);
+                    body(ai.businessHistory);
+                    y += 6;
+                }
+
+                if (ai.keyPersonnel) {
+                    heading('Key Personnel', 11, [52, 160, 80]);
+                    body(ai.keyPersonnel);
+                    y += 6;
+                }
+
+                if (ai.serviceArea) {
+                    heading('Service Area & Territory', 11);
+                    body(ai.serviceArea);
+                    y += 6;
+                }
+
+                if (ai.buildingInfo) {
+                    heading('Building & Premises', 11, [200, 120, 0]);
+                    body(ai.buildingInfo);
+                    y += 6;
+                }
+
+                if (ai.website || ai.socialMedia) {
+                    heading('Online Presence', 11, [88, 86, 214]);
+                    if (ai.website) body('Website: ' + ai.website);
+                    if (ai.socialMedia) body(ai.socialMedia);
                     y += 6;
                 }
             }
@@ -469,6 +541,16 @@ ${ai.underwritingNotes || 'N/A'}`;
         }
     }
 
+    async function _searchPlaces(businessName, city, state) {
+        try {
+            const res = await fetch(`/api/prospect-lookup?type=places&name=${encodeURIComponent(businessName)}&city=${encodeURIComponent(city || '')}&state=${state}`);
+            return await res.json();
+        } catch (e) {
+            console.error('[Prospect] Places error:', e);
+            return { available: false };
+        }
+    }
+
     // ── AI Analysis ─────────────────────────────────────────────
 
     async function _runAIAnalysis() {
@@ -498,7 +580,8 @@ ${ai.underwritingNotes || 'N/A'}`;
                     li: currentData.li,
                     sos: currentData.sos,
                     osha: currentData.osha,
-                    sam: currentData.sam
+                    sam: currentData.sam,
+                    places: currentData.places
                 })
             });
 
@@ -581,6 +664,21 @@ ${ai.underwritingNotes || 'N/A'}`;
 
             ${_block('\uD83C\uDFE2', 'Business Profile', a.businessProfile)}
 
+            ${a.businessHistory ? _block('\uD83D\uDCDC', 'Business History', a.businessHistory, { bg: 'rgba(0,122,255,0.03)', border: 'rgba(0,122,255,0.08)' }) : ''}
+
+            ${a.keyPersonnel ? _block('\uD83D\uDC65', 'Key Personnel', a.keyPersonnel, { bg: 'rgba(52,199,89,0.03)', border: 'rgba(52,199,89,0.08)' }) : ''}
+
+            ${a.serviceArea ? _block('\uD83D\uDDFA\uFE0F', 'Service Area & Territory', a.serviceArea) : ''}
+
+            ${a.buildingInfo ? _block('\uD83C\uDFD7\uFE0F', 'Building & Premises', a.buildingInfo, { bg: 'rgba(255,149,0,0.03)', border: 'rgba(255,149,0,0.08)' }) : ''}
+
+            ${(a.website || a.socialMedia) ? `
+                <div class="ai-content-block" style="padding:16px;border-radius:12px;background:rgba(88,86,214,0.03);border:1px solid rgba(88,86,214,0.08);">
+                    <h4><span style="font-size:18px;">\uD83C\uDF10</span> Online Presence</h4>
+                    ${a.website ? '<p style="margin:0 0 8px 0;line-height:1.7;"><strong>Website:</strong> <a href="' + _esc(a.website.startsWith('http') ? a.website : 'https://' + a.website) + '" target="_blank" rel="noopener" style="color:var(--apple-blue);text-decoration:none;">' + _esc(a.website) + ' \u2197</a></p>' : ''}
+                    ${a.socialMedia ? _formatAIText(a.socialMedia) : ''}
+                </div>` : ''}
+
             ${_block('\uD83D\uDCDD', 'Underwriting Notes', a.underwritingNotes, { bg: 'var(--bg-input)', border: 'var(--border)' })}
 
             ${_block('\uD83D\uDCA1', 'Competitive Intel & Strategy', a.competitiveIntel, { bg: 'rgba(88,86,214,0.04)', border: 'rgba(88,86,214,0.12)', titleColor: '#5856D6' })}
@@ -601,24 +699,38 @@ ${ai.underwritingNotes || 'N/A'}`;
         const sosOk = data.sos && data.sos.available !== false && !data.sos.error;
         const oshaOk = data.osha && data.osha.available !== false && !data.osha.error;
         const samOk = data.sam && data.sam.available && data.sam.entities?.length > 0;
+        const placesOk = data.places && data.places.available && data.places.profile;
 
         // Source status badges
         const sources = [
             { name: 'L&I', ok: liOk },
             { name: 'SOS', ok: sosOk },
             { name: 'OSHA', ok: oshaOk },
-            { name: 'SAM.gov', ok: samOk }
+            { name: 'SAM.gov', ok: samOk },
+            { name: 'Google', ok: placesOk }
         ];
         const okCount = sources.filter(s => s.ok).length;
 
-        // Business Summary
+        // Business Summary — include web profile data if places came back
+        const p = placesOk ? data.places.profile : null;
         _setHtml('businessSummary', `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
                 <div><strong>Business Name:</strong> ${_esc(data.businessName)}</div>
                 <div><strong>UBI:</strong> ${_esc(data.ubi || 'Not provided')}</div>
                 <div><strong>Location:</strong> ${_esc(data.city ? data.city + ', ' : '')}${_esc(data.state)}</div>
                 <div><strong>Report Date:</strong> ${new Date(data.timestamp).toLocaleDateString()}</div>
+                ${p?.phone ? `<div><strong>Phone:</strong> <a href="tel:${_esc(p.phone)}" style="color:var(--apple-blue);text-decoration:none;">${_esc(p.phone)}</a></div>` : ''}
+                ${p?.website ? `<div><strong>Website:</strong> <a href="${_esc(p.website)}" target="_blank" rel="noopener" style="color:var(--apple-blue);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">${_esc(p.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''))}</a></div>` : ''}
             </div>
+            ${p?.rating ? `
+            <div style="margin-top:12px;display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-input);border-radius:10px;">
+                <div style="font-size:24px;font-weight:700;color:#FBBC04;">${p.rating}</div>
+                <div>
+                    <div style="font-size:14px;color:#FBBC04;">${'\u2605'.repeat(Math.round(p.rating))}${'☆'.repeat(5 - Math.round(p.rating))}</div>
+                    <div style="font-size:12px;color:var(--text-secondary);">${(p.totalReviews || 0).toLocaleString()} Google reviews</div>
+                </div>
+                ${p.googleMapsUrl ? `<a href="${_esc(p.googleMapsUrl)}" target="_blank" rel="noopener" style="margin-left:auto;font-size:12px;color:var(--apple-blue);text-decoration:none;">View on Maps \u2197</a>` : ''}
+            </div>` : ''}
             <div style="margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap;">
                 ${sources.map(s => `
                     <span style="font-size: 11px; padding: 3px 10px; border-radius: 12px;
@@ -635,6 +747,18 @@ ${ai.underwritingNotes || 'N/A'}`;
                 </span>
             </div>
         `);
+
+        // Google Business Profile card
+        const placesEl = document.getElementById('googleProfileInfo');
+        const placesSection = document.getElementById('googleProfileSection');
+        if (placesEl && placesSection) {
+            if (placesOk) {
+                placesSection.style.display = 'block';
+                placesEl.innerHTML = _formatPlacesData(data.places);
+            } else {
+                placesSection.style.display = 'none';
+            }
+        }
 
         // L&I Contractor Info
         if (liOk && data.li.contractor) {
@@ -780,6 +904,50 @@ ${ai.underwritingNotes || 'N/A'}`;
                 ${e.address ? '<div style="grid-column: 1/-1;"><strong>Address:</strong> ' + _esc([e.address.street, e.address.city, e.address.state, e.address.zip].filter(Boolean).join(', ')) + '</div>' : ''}
             </div>
         `).join('');
+    }
+
+    function _formatPlacesData(placesData) {
+        const p = placesData.profile;
+        if (!p) return '<p style="color: var(--text-secondary);">No Google Business profile found</p>';
+
+        const typeBadges = (p.types || []).map(t =>
+            `<span style="font-size:11px;padding:2px 8px;border-radius:8px;background:rgba(0,122,255,0.06);color:var(--apple-blue);font-weight:500;">${_esc(t.replace(/_/g, ' '))}</span>`
+        ).join(' ');
+
+        const reviewsHtml = (p.reviews || []).map(r => `
+            <div style="padding:10px 14px;background:var(--bg-input);border-radius:10px;margin-bottom:8px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                    <strong style="font-size:13px;">${_esc(r.author)}</strong>
+                    <span style="color:#FBBC04;font-size:12px;">${'\u2605'.repeat(r.rating || 0)}</span>
+                    <span style="font-size:11px;color:var(--text-secondary);margin-left:auto;">${_esc(r.time)}</span>
+                </div>
+                <div style="font-size:13px;line-height:1.6;color:var(--text-secondary);">${_esc(r.text)}</div>
+            </div>
+        `).join('');
+
+        return `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+                ${p.phone ? `<div><strong>Phone:</strong> <a href="tel:${_esc(p.phone)}" style="color:var(--apple-blue);text-decoration:none;">${_esc(p.phone)}</a></div>` : ''}
+                ${p.website ? `<div style="overflow:hidden;"><strong>Website:</strong> <a href="${_esc(p.website)}" target="_blank" rel="noopener" style="color:var(--apple-blue);text-decoration:none;">${_esc(p.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''))}</a></div>` : ''}
+                ${p.address ? `<div style="grid-column:1/-1;"><strong>Address:</strong> ${_esc(p.address)}</div>` : ''}
+                ${p.businessStatus ? `<div><strong>Status:</strong> <span style="color:${p.businessStatus === 'OPERATIONAL' ? 'var(--success)' : 'var(--danger)'};">${_esc(p.businessStatus.replace(/_/g, ' '))}</span></div>` : ''}
+            </div>
+            ${typeBadges ? `<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">${typeBadges}</div>` : ''}
+            ${p.hours?.length ? `
+                <details style="margin-top:12px;cursor:pointer;">
+                    <summary style="font-weight:600;font-size:13px;color:var(--text);">
+                        \uD83D\uDD54 Business Hours ${p.isOpen === true ? '<span style="color:var(--success);font-size:12px;font-weight:500;margin-left:6px;">Open now</span>' : p.isOpen === false ? '<span style="color:var(--danger);font-size:12px;font-weight:500;margin-left:6px;">Closed</span>' : ''}
+                    </summary>
+                    <div style="margin-top:8px;padding:10px 14px;background:var(--bg-input);border-radius:10px;font-size:13px;line-height:1.8;">
+                        ${p.hours.map(h => _esc(h)).join('<br>')}
+                    </div>
+                </details>` : ''}
+            ${reviewsHtml ? `
+                <div style="margin-top:16px;">
+                    <div style="font-weight:600;font-size:13px;margin-bottom:8px;">\uD83D\uDCAC Recent Reviews</div>
+                    ${reviewsHtml}
+                </div>` : ''}
+        `;
     }
 
     function _formatSourceError(srcData, state, type) {

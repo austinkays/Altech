@@ -52,10 +52,13 @@ async function handler(req, res) {
       case 'sam':
         result = await handleSAMLookup(req.query);
         break;
+      case 'places':
+        result = await handlePlacesLookup(req.query);
+        break;
       default:
         return res.status(400).json({
           success: false,
-          error: `Invalid type: ${type}. Must be "li", "sos", "or-ccb", "osha", "ai-analysis", or "sam"`
+          error: `Invalid type: ${type}. Must be "li", "sos", "or-ccb", "osha", "ai-analysis", "sam", or "places"`
         });
     }
 
@@ -1135,6 +1138,108 @@ async function handleSAMLookup(query) {
 }
 
 // ============================================================================
+// GOOGLE PLACES — Business Profile, Website, Phone, Reviews, Hours
+// ============================================================================
+
+async function handlePlacesLookup(query) {
+  const { name, city, state } = query;
+
+  if (!name) {
+    return { success: false, available: false, error: 'Missing required parameter: name' };
+  }
+
+  const apiKey = (process.env.PLACES_API_KEY || process.env.GOOGLE_PLACES_API_KEY || '').trim();
+  if (!apiKey) {
+    return { success: true, available: false, note: 'Google Places not configured' };
+  }
+
+  console.log('[Places Lookup] Searching for:', { name, city, state });
+
+  try {
+    // Step 1: Text Search to find the business
+    const searchQuery = `${name}${city ? ' ' + city : ''}${state ? ' ' + state : ''}`;
+    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&key=${apiKey}`;
+
+    const searchRes = await fetch(searchUrl);
+    if (!searchRes.ok) {
+      console.warn('[Places] Text Search failed:', searchRes.status);
+      return { success: true, available: false, note: 'Google Places search failed' };
+    }
+
+    const searchData = await searchRes.json();
+    if (!searchData.results?.length) {
+      return { success: true, available: false, note: 'Business not found on Google Maps' };
+    }
+
+    const placeId = searchData.results[0].place_id;
+    const basicResult = searchData.results[0];
+
+    // Step 2: Place Details for rich data
+    const detailFields = [
+      'name', 'formatted_address', 'formatted_phone_number', 'international_phone_number',
+      'website', 'url', 'rating', 'user_ratings_total', 'reviews',
+      'opening_hours', 'business_status', 'types', 'price_level',
+      'address_components', 'geometry', 'photos', 'plus_code'
+    ].join(',');
+
+    const detailUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${detailFields}&key=${apiKey}`;
+
+    const detailRes = await fetch(detailUrl);
+    let detail = {};
+    if (detailRes.ok) {
+      const detailData = await detailRes.json();
+      detail = detailData.result || {};
+    }
+
+    // Build clean response
+    const reviews = (detail.reviews || []).slice(0, 5).map(r => ({
+      author: r.author_name || 'Anonymous',
+      rating: r.rating,
+      text: (r.text || '').substring(0, 300),
+      time: r.relative_time_description || '',
+      profileUrl: r.author_url || ''
+    }));
+
+    // Extract photo references (first 3)
+    const photos = (detail.photos || []).slice(0, 3).map(p => ({
+      reference: p.photo_reference,
+      width: p.width,
+      height: p.height,
+      attribution: (p.html_attributions || [])[0] || ''
+    }));
+
+    return {
+      success: true,
+      available: true,
+      source: 'Google Places',
+      profile: {
+        name: detail.name || basicResult.name || name,
+        address: detail.formatted_address || basicResult.formatted_address || '',
+        phone: detail.formatted_phone_number || '',
+        internationalPhone: detail.international_phone_number || '',
+        website: detail.website || '',
+        googleMapsUrl: detail.url || `https://www.google.com/maps/place/?q=place_id:${placeId}`,
+        rating: detail.rating || basicResult.rating || null,
+        totalReviews: detail.user_ratings_total || basicResult.user_ratings_total || 0,
+        businessStatus: detail.business_status || basicResult.business_status || '',
+        types: (detail.types || basicResult.types || []).filter(t => !t.startsWith('point_of_interest') && t !== 'establishment'),
+        priceLevel: detail.price_level ?? null,
+        hours: detail.opening_hours?.weekday_text || [],
+        isOpen: detail.opening_hours?.open_now ?? null,
+        reviews,
+        photos,
+        placeId,
+        location: detail.geometry?.location || basicResult.geometry?.location || null
+      }
+    };
+
+  } catch (error) {
+    console.error('[Places Lookup] Error:', error);
+    return { success: true, available: false, note: 'Google Places lookup failed' };
+  }
+}
+
+// ============================================================================
 // AI-POWERED RISK ANALYSIS (Gemini)
 // ============================================================================
 
@@ -1161,47 +1266,59 @@ async function handleAIAnalysis(req, res) {
     return { success: false, error: 'Invalid JSON body' };
   }
 
-  const { businessName, state, li, sos, osha, sam } = body;
+  const { businessName, state, li, sos, osha, sam, places } = body;
 
   // Build a comprehensive prompt with all available data
-  const dataContext = buildDataContext(businessName, state, li, sos, osha, sam);
+  const dataContext = buildDataContext(businessName, state, li, sos, osha, sam, places);
 
   // Count how many data sources returned useful data
   const hasLI = li && !li.error && li.contractor;
   const hasSOS = sos && !sos.error && sos.entity;
   const hasOSHA = osha && !osha.error && osha.summary;
   const hasSAM = sam && sam.available && sam.entities?.length > 0;
-  const sourcesAvailable = [hasLI, hasSOS, hasOSHA, hasSAM].filter(Boolean).length;
+  const hasPlaces = places && places.available && places.profile;
+  const sourcesAvailable = [hasLI, hasSOS, hasOSHA, hasSAM, hasPlaces].filter(Boolean).length;
 
-  const prompt = `You are an expert commercial insurance underwriter, risk analyst, and business intelligence researcher. An insurance producer needs a comprehensive intelligence report on a prospective commercial client.
+  const prompt = `You are an expert commercial insurance underwriter, risk analyst, and comprehensive business intelligence researcher. An insurance producer needs a COMPLETE dossier on a prospective commercial client — far more than just insurance data.
 
 ## Data Collection Results
-The following data was gathered from public records APIs. Some sources may have failed (captchas, rate limits, or the business simply isn't in that database). **When data sources failed or returned nothing, USE YOUR OWN KNOWLEDGE and any information from the Google Search grounding tool to fill in the gaps.** Do not just report "no data available" — actively research and reason about this business.
+The following data was gathered from public records APIs and Google Places. Some sources may have failed (captchas, rate limits, or the business simply isn't in that database). **When data sources failed or returned nothing, USE YOUR OWN KNOWLEDGE and the Google Search grounding tool to fill every gap.** Do not just report "no data available" — actively research this business from every angle.
 
-${sourcesAvailable === 0 ? '⚠️ ALL automated data sources failed. You MUST use your own knowledge and Google Search to research this business independently.\n' : `${sourcesAvailable}/4 data sources returned results.\n`}
+${sourcesAvailable === 0 ? '⚠️ ALL automated data sources failed. You MUST use your own knowledge and Google Search to research this business independently.\n' : `${sourcesAvailable}/5 data sources returned results.\n`}
 
 ${dataContext}
 
 ## Your Task
-Research "${businessName}" in ${state} thoroughly. Use Google Search grounding to find:
-- The company's website, services, and operations
-- Reviews, news articles, legal filings, or complaints
-- Industry classification and typical risks
-- Any public information about ownership, size, or history
-- Competitor landscape and market position
+Research "${businessName}" in ${state} THOROUGHLY. Use Google Search grounding to find EVERYTHING about this business:
+- Website URL, social media accounts (Facebook, LinkedIn, Instagram, Yelp, BBB, etc.)
+- Physical location details: building type, estimated square footage, owned vs leased
+- Services offered, service area/geographic coverage
+- Business history: founding date, milestones, growth trajectory, acquisitions
+- Ownership structure, key personnel, number of employees
+- Revenue estimates, fleet size, number of projects, equipment
+- Customer reviews, reputation, complaints, BBB rating
+- News articles, press releases, awards, certifications
+- Legal filings, lawsuits, judgments
+- Competitor landscape and market position in their area
 
-Then produce a JSON response with these exact keys (all values are strings):
+Produce a JSON response with these EXACT keys (all string values — be detailed and specific, never vague):
 
 {
-  "executiveSummary": "2-3 sentence overview of this business as an insurance prospect. Include business type, estimated years in operation, size indicators, and overall risk posture. Be specific — don't be vague.",
-  "businessProfile": "Detailed profile: what the business does, services offered, entity structure, ownership if known, estimated employee count/revenue range, years in business, scope of operations, service area. Use information from their website and public records.",
-  "riskAssessment": "Thorough risk analysis covering: license/compliance status, OSHA history, entity standing, financial stability indicators, operational risks, industry-specific hazards, litigation exposure. Rate overall risk as LOW / MODERATE / ELEVATED / HIGH / CRITICAL with clear justification.",
-  "redFlags": "List ALL specific concerns: expired/missing licenses, OSHA violations, inactive status, recent formation, negative reviews, lawsuits, high-risk operations, missing data that should exist, etc. If genuinely none, say 'No significant red flags identified.' Be thorough.",
-  "recommendedCoverages": "Specific commercial insurance recommendations with suggested limits. Include as applicable: GL ($X/$Y per-occurrence/aggregate), WC, Commercial Auto, Umbrella/Excess, Professional Liability/E&O, Builders Risk, Inland Marine, Cyber Liability, EPLI, D&O, Commercial Property, Business Income, Equipment Breakdown, Pollution Liability. Tailor to the specific business type.",
+  "executiveSummary": "3-4 sentence overview of this business as an insurance prospect. Include business type, years in operation, size indicators (employees, revenue range), reputation, and overall risk posture. Be specific and actionable.",
+  "businessProfile": "Comprehensive profile: what the business does day-to-day, all services offered, specialties, entity structure, ownership details, management team if known, estimated employee count, estimated annual revenue range, years in business, growth trajectory. Paint a full picture.",
+  "serviceArea": "Geographic coverage: cities, counties, or regions they serve. If a contractor, where they typically work. If multi-location, list all locations. Include any out-of-state work. Be specific to their market.",
+  "website": "The business's primary website URL. If you found it via Google Search, include it. If no website exists, say 'No website found'.",
+  "socialMedia": "All social media and online presences found: Facebook page URL, LinkedIn company URL, Instagram handle, Yelp page, BBB listing, Google Business Profile, Angi/HomeAdvisor, Nextdoor, any industry-specific directories. List each with the URL or handle.",
+  "buildingInfo": "Physical premises details: building type (office, warehouse, retail, mixed-use), estimated square footage, owned vs leased, any notable features (yard, shop, warehouse space), parking, signage. If they work from a commercial location vs home-based. Multiple locations if applicable.",
+  "businessHistory": "Founding story and timeline: when established, by whom, major milestones, mergers/acquisitions, name changes, ownership transitions, notable projects, growth phases, any periods of difficulty. Include dates where possible.",
+  "keyPersonnel": "Owners, officers, principals, and key management with their titles/roles. Include any professional licenses, certifications, or notable qualifications. Cross-reference with SOS governors, L&I owners, and web presence.",
+  "riskAssessment": "Thorough risk analysis covering: license/compliance status, OSHA history, entity standing, financial stability indicators, operational risks, industry-specific hazards, litigation exposure, reputation risks. Rate overall risk as LOW / MODERATE / ELEVATED / HIGH / CRITICAL with clear justification.",
+  "redFlags": "List ALL specific concerns: expired/missing licenses, OSHA violations, inactive status, recent formation, negative reviews, lawsuits, high-risk operations, missing data that should exist, BBB complaints, legal actions, liens, judgments. If genuinely none, say 'No significant red flags identified.' Be thorough.",
+  "recommendedCoverages": "Specific commercial insurance recommendations with suggested limits. Include as applicable: GL ($X/$Y per-occurrence/aggregate), WC (by class code), Commercial Auto (fleet details), Umbrella/Excess, Professional Liability/E&O, Builders Risk, Inland Marine, Cyber Liability, EPLI, D&O, Commercial Property (building + BPP values), Business Income, Equipment Breakdown, Pollution Liability, Installation Floater. Tailor to the specific business type and size.",
   "glClassification": "The most likely ISO GL class code(s) with descriptions, e.g. '91302 - Janitorial Services' or '58122 - Restaurants'. If multiple operations, list each. Format: 'XXXXX - Description'.",
-  "naicsAnalysis": "Primary and secondary NAICS codes with descriptions. Explain what they indicate about operations and insurance implications. If codes were found in data, analyze them. If not, assign the most likely codes based on your research.",
-  "underwritingNotes": "Specific items the underwriter should verify: loss runs (how many years), safety programs, prior carrier info, subcontractor management (certificates, additional insured requirements), fleet size, payroll by class code, square footage, revenue breakdown, contractual obligations. Be actionable.",
-  "competitiveIntel": "Business intelligence: estimated premium range for their risk profile, likely current coverage gaps, price sensitivity indicators, growth trajectory, best approach for the producer, key selling points, what competitors might be offering."
+  "naicsAnalysis": "Primary and secondary NAICS codes with descriptions. Explain what they indicate about operations and insurance implications.",
+  "underwritingNotes": "Specific items the underwriter should verify: loss runs (how many years), safety programs, prior carrier info, subcontractor management (certificates, additional insured requirements), fleet size, payroll by class code, square footage, revenue breakdown, contractual obligations, employee count by location. Be actionable and thorough.",
+  "competitiveIntel": "Business intelligence: estimated premium range for their risk profile, likely current coverage gaps, price sensitivity indicators, growth trajectory, best approach for the producer, key selling points, renewal timing estimates, what competitors might be offering, any leverage points."
 }
 
 Return ONLY valid JSON. No markdown, no code fences, no extra text.`;
@@ -1283,7 +1400,7 @@ Return ONLY valid JSON. No markdown, no code fences, no extra text.`;
 /**
  * Build a detailed data context string from all investigation sources
  */
-function buildDataContext(businessName, state, li, sos, osha, sam) {
+function buildDataContext(businessName, state, li, sos, osha, sam, places) {
   const sections = [`**Business Name:** ${businessName || 'Unknown'}`, `**State:** ${state || 'Unknown'}`];
 
   // L&I / Contractor data
@@ -1367,6 +1484,28 @@ function buildDataContext(businessName, state, li, sos, osha, sam) {
     }
   } else {
     sections.push(`\n### SAM.gov: No federal registration found (business may not have federal contracts)`);
+  }
+
+  // Google Places
+  if (places && places.available && places.profile) {
+    const p = places.profile;
+    sections.push(`\n### Google Places — Business Profile`);
+    if (p.name) sections.push(`- Google Business Name: ${p.name}`);
+    if (p.address) sections.push(`- Address: ${p.address}`);
+    if (p.phone) sections.push(`- Phone: ${p.phone}`);
+    if (p.website) sections.push(`- Website: ${p.website}`);
+    if (p.rating) sections.push(`- Google Rating: ${p.rating}/5 (${p.totalReviews || 0} reviews)`);
+    if (p.businessStatus) sections.push(`- Business Status: ${p.businessStatus}`);
+    if (p.types?.length) sections.push(`- Categories: ${p.types.join(', ')}`);
+    if (p.hours?.length) sections.push(`- Hours: ${p.hours.join('; ')}`);
+    if (p.reviews?.length) {
+      sections.push(`- Recent Reviews:`);
+      for (const r of p.reviews.slice(0, 3)) {
+        sections.push(`  - ${r.rating}★ by ${r.author}: "${r.text.substring(0, 150)}${r.text.length > 150 ? '...' : ''}"`);
+      }
+    }
+  } else {
+    sections.push(`\n### Google Places: Not available or business not found on Google Maps`);
   }
 
   return sections.join('\n');
