@@ -20,13 +20,20 @@ window.IntakeAssist = (() => {
 Collect these fields as the conversation progresses:
 - Full name (first, last, prefix: Mr./Ms./Mrs./Dr.)
 - Date of birth (output as YYYY-MM-DD)
-- Email and phone
+- Email and phone (if user says "no email" or similar, skip it — don't re-ask)
 - Current address (street, city, state 2-letter abbreviation, zip)
 - Quote type: "home" (home only), "auto" (auto only), or "both" (home + auto bundle)
 - For HOME: year built, square footage, stories, construction type (Frame/Masonry/Superior), roof year, mortgage company
 - For AUTO: vehicle details (year, make, model, VIN), each driver (name, DOB, license number)
 - Co-applicant info if any (first name, last name)
 - Prior insurance carrier and years insured
+
+IMPORTANT RULES:
+1. NEVER ask for information you can deduce. If the user gives a VIN and a system note provides the decoded year/make/model, USE that data — do NOT ask for year, make, or model again.
+2. If you know the zip code for a US city (e.g. Happy Valley OR = 97086, Vancouver WA = 98660), fill it in and confirm rather than asking.
+3. When the user says "no" to a field (e.g. "no email"), accept it and move on — never re-ask.
+4. Parse everything the user gives you in each message. If they provide multiple pieces of data in one reply, acknowledge ALL of them.
+5. System notes in [brackets] contain enrichment data (e.g. VIN decodes). Trust and use this data directly.
 
 Ask 2-3 questions at a time to keep the pace fast. Keep your replies concise and friendly.
 
@@ -79,6 +86,13 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         _showTyping();
 
         try {
+            // Enrich: detect VINs and decode via NHTSA before sending to AI
+            const vinEnrichment = await _enrichVINs(text);
+            if (vinEnrichment) {
+                // Inject decoded VIN data as a system-level note the AI can use
+                chatHistory.push({ role: 'user', content: vinEnrichment });
+            }
+
             const aiAvailable = typeof AIProvider !== 'undefined' && (AIProvider.isConfigured() || await AIProvider.isAvailable());
             if (!aiAvailable) {
                 _hideTyping();
@@ -193,6 +207,37 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             }
         }
 
+        // Vehicles — merge into App's vehicle array via app-vehicles.js
+        if (Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0) {
+            const vm = (typeof App !== 'undefined') ? App : null;
+            if (vm && Array.isArray(vm.vehicles)) {
+                for (const v of extractedData.vehicles) {
+                    if (!v.vin && !v.year && !v.make) continue; // skip empty
+                    const id = `vehicle_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+                    const vehicle = {
+                        id,
+                        vin: v.vin || '',
+                        year: v.year || '',
+                        make: v.make || '',
+                        model: v.model || '',
+                        use: 'Commute',
+                        miles: '12000',
+                        primaryDriver: ''
+                    };
+                    // Replace the default empty vehicle, or append
+                    const emptyIdx = vm.vehicles.findIndex(ev => !ev.vin && !ev.year && !ev.make && !ev.model);
+                    if (emptyIdx !== -1) {
+                        vm.vehicles[emptyIdx] = vehicle;
+                    } else {
+                        vm.vehicles.push(vehicle);
+                    }
+                    populated++;
+                }
+                if (typeof vm.renderVehicles === 'function') vm.renderVehicles();
+                if (typeof vm.saveDriversVehicles === 'function') vm.saveDriversVehicles();
+            }
+        }
+
         // Persist to App storage
         if (typeof App !== 'undefined' && typeof App.save === 'function') {
             App.save();
@@ -237,6 +282,8 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             _appendMsg('ai', "Hi! 👋 I'm your AI intake assistant. Tell me about your client — start with their name and what type of insurance they need (home, auto, or both)!");
         } else {
             for (const m of chatHistory) {
+                // Skip system enrichment notes (VIN decode, etc.) — AI-only context
+                if (m.content && m.content.startsWith('[System note')) continue;
                 _appendMsg(m.role === 'user' ? 'user' : 'ai', m.content, false);
             }
         }
@@ -389,6 +436,60 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
     function _esc(str) {
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    /**
+     * Detect VIN patterns in user text and decode via NHTSA API.
+     * Returns an enrichment string to inject into the chat context,
+     * or null if no VINs found.
+     */
+    async function _enrichVINs(text) {
+        // VIN regex: 17 alphanumeric chars (no I, O, Q)
+        const vinRegex = /\b([A-HJ-NPR-Z0-9]{17})\b/gi;
+        const matches = [...new Set((text.match(vinRegex) || []).map(v => v.toUpperCase()))];
+        if (matches.length === 0) return null;
+
+        const results = [];
+        for (const vin of matches) {
+            try {
+                const decoded = await _decodeVIN(vin);
+                if (decoded) {
+                    results.push(`VIN ${vin} → ${decoded.year} ${decoded.make} ${decoded.model}`);
+                }
+            } catch (_) {
+                // Silently skip failed decodes — AI can still ask
+            }
+        }
+
+        if (results.length === 0) return null;
+        return `[System note — VIN decoded from NHTSA database: ${results.join('; ')}. Use this data directly, do not ask for year/make/model.]`;
+    }
+
+    /** Call NHTSA vPIC API to decode a VIN. Returns { year, make, model } or null. */
+    async function _decodeVIN(vin) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        try {
+            const resp = await fetch(
+                `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vin}?format=json`,
+                { signal: controller.signal }
+            );
+            clearTimeout(timeoutId);
+            if (!resp.ok) return null;
+
+            const data = await resp.json();
+            const r = data?.Results?.[0];
+            if (!r || !r.ModelYear) return null;
+
+            return {
+                year: r.ModelYear || '',
+                make: r.Make || '',
+                model: r.Model || ''
+            };
+        } catch (_) {
+            clearTimeout(timeoutId);
+            return null;
+        }
     }
 
     /** Resolve a US state to its 2-letter code. Accepts full names or abbreviations. */
