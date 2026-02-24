@@ -28,21 +28,22 @@ Collect these fields as the conversation progresses:
 - Co-applicant info if any (first name, last name)
 - Prior insurance carrier and years insured
 
-IMPORTANT RULES:
+CRITICAL RULES:
 1. NEVER ask for information you can deduce. If the user gives a VIN and a system note provides the decoded year/make/model, USE that data — do NOT ask for year, make, or model again.
 2. If you know the zip code for a US city (e.g. Happy Valley OR = 97086, Vancouver WA = 98660), fill it in and confirm rather than asking.
 3. When the user says "no" to a field (e.g. "no email"), accept it and move on — never re-ask.
 4. Parse everything the user gives you in each message. If they provide multiple pieces of data in one reply, acknowledge ALL of them.
 5. System notes in [brackets] contain enrichment data (e.g. VIN decodes). Trust and use this data directly.
+6. Use common sense and general knowledge. If the user mentions a well-known city, you likely know its zip code, state, and area codes — use that knowledge.
 
 Ask 2-3 questions at a time to keep the pace fast. Keep your replies concise and friendly.
 
-When you have gathered all relevant data (or the agent says "done" / "that's it" / "apply"), output:
-1. A brief confirmation sentence
-2. A JSON code block with ALL collected fields using EXACTLY these keys:
+IMPORTANT — AFTER EVERY REPLY, append a JSON code block containing ALL fields collected SO FAR (not just what was gathered in this turn). This allows real-time progress tracking. Use EXACTLY these keys:
+\`\`\`json
 {"firstName":"","lastName":"","prefix":"","dob":"YYYY-MM-DD","email":"","phone":"","addrStreet":"","addrCity":"","addrState":"XX","addrZip":"","qType":"home|auto|both","yearBuilt":"","sqFt":"","stories":"","constructionType":"","roofYear":"","mortgagee":"","coFirstName":"","coLastName":"","priorCarrier":"","priorYears":"","vehicles":[{"year":"","make":"","model":"","vin":""}]}
+\`\`\`
 
-Only include keys for which you have data. Omit empty fields. Use 2-letter state codes. Format DOB as YYYY-MM-DD.`;
+Only include keys for which you have data. Omit empty fields. Use 2-letter state codes. Format DOB as YYYY-MM-DD. Include this JSON block in EVERY response, even partial ones — this is how the form tracks progress in real time.`;
 
     // ── Public API ────────────────────────────────────────────────
 
@@ -116,7 +117,9 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             const extracted = _tryExtractJSON(reply);
             if (extracted && typeof extracted === 'object' && !Array.isArray(extracted)) {
                 extractedData = Object.assign(extractedData, extracted);
+                _saveHistory();
                 _renderPreview();
+                _updateIntelPanel();
             }
         } catch (err) {
             _hideTyping();
@@ -267,6 +270,8 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         const preview = document.getElementById('iaExtractedPreview');
         if (preview) preview.style.display = 'none';
 
+        _resetIntelPanel();
+
         _appendMsg('ai', "Chat cleared! Tell me about your next client — start with their name and what coverage they need.");
     }
 
@@ -290,6 +295,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         if (Object.keys(extractedData).length > 0) {
             _renderPreview();
+            _updateIntelPanel();
         }
     }
 
@@ -520,5 +526,271 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         }
     }
 
-    return { init, sendMessage, quickStart, applyAndSend, populateForm, clearChat };
+    // ── Intelligence Panel (real-time visual context) ─────────────
+
+    /** All trackable field categories with their keys and labels */
+    const FIELD_GROUPS = [
+        { label: 'Client', icon: '👤', keys: ['firstName', 'lastName', 'dob'] },
+        { label: 'Contact', icon: '📞', keys: ['phone', 'email'] },
+        { label: 'Address', icon: '📍', keys: ['addrStreet', 'addrCity', 'addrState', 'addrZip'] },
+        { label: 'Coverage', icon: '📋', keys: ['qType'] },
+        { label: 'Home', icon: '🏠', keys: ['yearBuilt', 'sqFt', 'stories', 'constructionType', 'roofYear'] },
+        { label: 'Auto', icon: '🚗', keys: ['vehicles'] },
+        { label: 'History', icon: '📁', keys: ['priorCarrier', 'priorYears'] },
+    ];
+
+    let _lastMapAddress = '';
+
+    /** Master update — called after every AI reply that yields data */
+    function _updateIntelPanel() {
+        const panel = document.getElementById('iaIntelPanel');
+        if (!panel) return;
+
+        const hasData = Object.keys(extractedData).length > 0;
+        panel.style.display = hasData ? 'block' : 'none';
+        if (!hasData) return;
+
+        _updateProgressRing();
+        _updateFieldChecklist();
+        _updateMapViews();
+        _updateVehiclePanel();
+    }
+
+    /** Compute and animate the progress ring */
+    function _updateProgressRing() {
+        const totalFields = _countTotalExpected();
+        const filledFields = _countFilled();
+        const pct = totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0;
+
+        const arc = document.getElementById('iaProgressArc');
+        const label = document.getElementById('iaProgressPercent');
+        if (arc) {
+            const circumference = 2 * Math.PI * 34; // r=34
+            arc.setAttribute('stroke-dashoffset', String(circumference - (circumference * pct / 100)));
+            // Color: blue → green as it fills
+            if (pct >= 80) arc.setAttribute('stroke', 'var(--success)');
+            else if (pct >= 50) arc.setAttribute('stroke', 'var(--apple-blue)');
+            else arc.setAttribute('stroke', 'var(--apple-blue)');
+        }
+        if (label) label.textContent = String(pct);
+    }
+
+    function _countTotalExpected() {
+        // Dynamic based on qType
+        const qType = extractedData.qType || '';
+        let total = 3 + 2 + 4 + 1 + 2; // client(3) + contact(2) + address(4) + coverage(1) + history(2)
+        if (qType === 'home' || qType === 'both') total += 5; // home fields
+        if (qType === 'auto' || qType === 'both') total += 1; // at least 1 vehicle
+        if (!qType) total += 3; // estimate — assume some home + auto
+        return total;
+    }
+
+    function _countFilled() {
+        let count = 0;
+        const simple = ['firstName', 'lastName', 'dob', 'phone', 'email',
+            'addrStreet', 'addrCity', 'addrState', 'addrZip', 'qType',
+            'yearBuilt', 'sqFt', 'stories', 'constructionType', 'roofYear',
+            'priorCarrier', 'priorYears'];
+        for (const k of simple) {
+            if (extractedData[k]) count++;
+        }
+        if (Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0) {
+            const v = extractedData.vehicles[0];
+            if (v.vin || v.year || v.make) count++;
+        }
+        return count;
+    }
+
+    /** Render the field group checklist */
+    function _updateFieldChecklist() {
+        const container = document.getElementById('iaFieldChecklist');
+        if (!container) return;
+
+        const qType = extractedData.qType || '';
+        const groups = FIELD_GROUPS.filter(g => {
+            if (g.label === 'Home' && qType === 'auto') return false;
+            if (g.label === 'Auto' && qType === 'home') return false;
+            return true;
+        });
+
+        container.innerHTML = groups.map(g => {
+            const filled = g.keys.filter(k => {
+                if (k === 'vehicles') {
+                    return Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0
+                        && (extractedData.vehicles[0].vin || extractedData.vehicles[0].year || extractedData.vehicles[0].make);
+                }
+                return !!extractedData[k];
+            }).length;
+            const total = g.keys.length;
+            const done = filled === total;
+            const partial = filled > 0 && !done;
+
+            return `<div class="ia-checklist-row ${done ? 'ia-done' : partial ? 'ia-partial' : ''}">
+                <span class="ia-checklist-icon">${done ? '✅' : partial ? '🔶' : '⬜'}</span>
+                <span class="ia-checklist-label">${g.icon} ${g.label}</span>
+                <span class="ia-checklist-count">${filled}/${total}</span>
+            </div>`;
+        }).join('');
+    }
+
+    /** Load street view + satellite when we have an address */
+    async function _updateMapViews() {
+        const street = extractedData.addrStreet || '';
+        const city = extractedData.addrCity || '';
+        const state = extractedData.addrState || '';
+        const zip = extractedData.addrZip || '';
+
+        // Need at least city+state or street+city to show maps
+        if (!city && !street) return;
+
+        const address = [street, city, state, zip].filter(Boolean).join(', ');
+        if (address === _lastMapAddress) return; // Don't re-fetch same address
+        _lastMapAddress = address;
+
+        const mapPanel = document.getElementById('iaMapPanel');
+        if (mapPanel) mapPanel.style.display = 'block';
+
+        const addrLabel = document.getElementById('iaMapAddress');
+        if (addrLabel) addrLabel.textContent = address;
+
+        // Get API key via App's existing infrastructure
+        let apiKey = null;
+        if (typeof App !== 'undefined' && typeof App.ensureMapApiKey === 'function') {
+            apiKey = await App.ensureMapApiKey();
+        }
+        if (!apiKey && window.__CACHED_MAP_API_KEY__) {
+            apiKey = window.__CACHED_MAP_API_KEY__;
+        }
+
+        if (!apiKey) {
+            // Show placeholder message
+            const emptyS = document.getElementById('iaStreetViewEmpty');
+            const emptyE = document.getElementById('iaSatelliteEmpty');
+            if (emptyS) emptyS.textContent = 'Map key unavailable';
+            if (emptyE) emptyE.textContent = 'Map key unavailable';
+            return;
+        }
+
+        const encoded = encodeURIComponent(address);
+        const streetUrl = `https://maps.googleapis.com/maps/api/streetview?size=400x220&location=${encoded}&fov=80&pitch=0&key=${apiKey}`;
+        const satUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${encoded}&zoom=19&size=400x220&maptype=satellite&key=${apiKey}`;
+
+        const streetImg = document.getElementById('iaStreetView');
+        const satImg = document.getElementById('iaSatelliteView');
+        const emptyStreet = document.getElementById('iaStreetViewEmpty');
+        const emptySat = document.getElementById('iaSatelliteEmpty');
+
+        if (streetImg) {
+            streetImg.src = streetUrl;
+            streetImg.onload = () => { if (emptyStreet) emptyStreet.style.display = 'none'; streetImg.style.display = 'block'; };
+            streetImg.onerror = () => { if (emptyStreet) emptyStreet.textContent = 'No street view available'; };
+        }
+        if (satImg) {
+            satImg.src = satUrl;
+            satImg.onload = () => { if (emptySat) emptySat.style.display = 'none'; satImg.style.display = 'block'; };
+            satImg.onerror = () => { if (emptySat) emptySat.textContent = 'No satellite view available'; };
+        }
+    }
+
+    /** Show decoded vehicle info */
+    function _updateVehiclePanel() {
+        const vehicles = extractedData.vehicles;
+        if (!Array.isArray(vehicles) || vehicles.length === 0) return;
+
+        const panel = document.getElementById('iaVehiclePanel');
+        const info = document.getElementById('iaVehicleInfo');
+        if (!panel || !info) return;
+
+        const hasData = vehicles.some(v => v.vin || v.year || v.make);
+        if (!hasData) return;
+
+        panel.style.display = 'block';
+        info.innerHTML = vehicles.filter(v => v.vin || v.year || v.make).map(v => `
+            <div class="ia-vehicle-row">
+                <div class="ia-vehicle-title">${_esc([v.year, v.make, v.model].filter(Boolean).join(' ') || 'Vehicle')}</div>
+                ${v.vin ? `<div class="ia-vehicle-vin">VIN: <code>${_esc(v.vin)}</code></div>` : ''}
+            </div>
+        `).join('');
+    }
+
+    /** Open the current address in Google Maps */
+    function openFullMap() {
+        const address = _lastMapAddress;
+        if (address) {
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+        }
+    }
+
+    /** Export current snapshot as formatted text to clipboard */
+    function exportSnapshot() {
+        if (!extractedData || Object.keys(extractedData).length === 0) {
+            _toast('No data to export yet');
+            return;
+        }
+
+        const lines = ['=== Insurance Intake Snapshot ===', `Generated: ${new Date().toLocaleString()}`, ''];
+
+        const labels = {
+            firstName: 'First Name', lastName: 'Last Name', prefix: 'Prefix',
+            dob: 'Date of Birth', email: 'Email', phone: 'Phone',
+            addrStreet: 'Street', addrCity: 'City', addrState: 'State', addrZip: 'Zip',
+            qType: 'Quote Type', yearBuilt: 'Year Built', sqFt: 'Sq Ft',
+            stories: 'Stories', constructionType: 'Construction',
+            roofYear: 'Roof Year', mortgagee: 'Mortgagee',
+            coFirstName: 'Co-Applicant First', coLastName: 'Co-Applicant Last',
+            priorCarrier: 'Prior Carrier', priorYears: 'Prior Years'
+        };
+
+        for (const [k, label] of Object.entries(labels)) {
+            if (extractedData[k]) {
+                lines.push(`${label}: ${extractedData[k]}`);
+            }
+        }
+
+        if (Array.isArray(extractedData.vehicles)) {
+            for (let i = 0; i < extractedData.vehicles.length; i++) {
+                const v = extractedData.vehicles[i];
+                if (!v.vin && !v.year && !v.make) continue;
+                lines.push('');
+                lines.push(`--- Vehicle ${i + 1} ---`);
+                if (v.year) lines.push(`Year: ${v.year}`);
+                if (v.make) lines.push(`Make: ${v.make}`);
+                if (v.model) lines.push(`Model: ${v.model}`);
+                if (v.vin) lines.push(`VIN: ${v.vin}`);
+            }
+        }
+
+        const pct = _countTotalExpected() > 0 ? Math.round((_countFilled() / _countTotalExpected()) * 100) : 0;
+        lines.push('');
+        lines.push(`Progress: ${pct}% complete (${_countFilled()} of ${_countTotalExpected()} fields)`);
+
+        const txt = lines.join('\n');
+        navigator.clipboard.writeText(txt).then(() => {
+            _toast('📋 Snapshot copied to clipboard!');
+        }).catch(() => {
+            _toast('Failed to copy — check clipboard permissions');
+        });
+    }
+
+    /** Reset intelligence panel on chat clear */
+    function _resetIntelPanel() {
+        _lastMapAddress = '';
+        const panel = document.getElementById('iaIntelPanel');
+        if (panel) panel.style.display = 'none';
+        const mapPanel = document.getElementById('iaMapPanel');
+        if (mapPanel) mapPanel.style.display = 'none';
+        const vehPanel = document.getElementById('iaVehiclePanel');
+        if (vehPanel) vehPanel.style.display = 'none';
+        // Reset images
+        for (const id of ['iaStreetView', 'iaSatelliteView']) {
+            const img = document.getElementById(id);
+            if (img) { img.removeAttribute('src'); img.style.display = 'none'; }
+        }
+        for (const id of ['iaStreetViewEmpty', 'iaSatelliteEmpty']) {
+            const el = document.getElementById(id);
+            if (el) { el.textContent = 'Awaiting address...'; el.style.display = ''; }
+        }
+    }
+
+    return { init, sendMessage, quickStart, applyAndSend, populateForm, clearChat, exportSnapshot, openFullMap };
 })();

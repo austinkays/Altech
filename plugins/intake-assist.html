@@ -55,4 +55,68 @@
     <!-- Extracted data preview (shown once AI returns structured data) -->
     <div id="iaExtractedPreview" class="ia-extracted-card" style="display:none;"></div>
 
+    <!-- Intelligence Panel — real-time visual context -->
+    <div id="iaIntelPanel" class="ia-intel-panel" style="display:none;">
+
+        <!-- Progress Ring + Field Tracker -->
+        <div class="ia-intel-card">
+            <div class="ia-intel-header">
+                <span>📊 Form Progress</span>
+                <div class="ia-progress-actions">
+                    <button class="ia-export-btn" onclick="IntakeAssist.exportSnapshot()" title="Export current data">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Export
+                    </button>
+                    <button class="ia-populate-btn-sm" onclick="IntakeAssist.populateForm()" title="Fill intake form">⚡ Populate</button>
+                </div>
+            </div>
+            <div class="ia-progress-body">
+                <div class="ia-progress-ring-wrap">
+                    <svg class="ia-progress-ring" viewBox="0 0 80 80">
+                        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" stroke-width="6"/>
+                        <circle id="iaProgressArc" cx="40" cy="40" r="34" fill="none" stroke="var(--apple-blue)" stroke-width="6"
+                                stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round"
+                                transform="rotate(-90 40 40)" style="transition: stroke-dashoffset 0.5s ease;"/>
+                    </svg>
+                    <div class="ia-progress-text">
+                        <span id="iaProgressPercent">0</span><span class="ia-progress-pct">%</span>
+                    </div>
+                </div>
+                <div id="iaFieldChecklist" class="ia-field-checklist"></div>
+            </div>
+        </div>
+
+        <!-- Map Views (shown when address detected) -->
+        <div id="iaMapPanel" class="ia-intel-card" style="display:none;">
+            <div class="ia-intel-header">
+                <span>🗺️ Property View</span>
+                <button class="ia-map-expand-btn" onclick="IntakeAssist.openFullMap()" title="Open in Google Maps">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </button>
+            </div>
+            <div class="ia-map-grid">
+                <div class="ia-map-frame">
+                    <div class="ia-map-label">Street View</div>
+                    <img id="iaStreetView" class="ia-map-img" alt="Street view" />
+                    <div id="iaStreetViewEmpty" class="ia-map-empty">Awaiting address...</div>
+                </div>
+                <div class="ia-map-frame">
+                    <div class="ia-map-label">Satellite</div>
+                    <img id="iaSatelliteView" class="ia-map-img" alt="Satellite view" />
+                    <div id="iaSatelliteEmpty" class="ia-map-empty">Awaiting address...</div>
+                </div>
+            </div>
+            <div id="iaMapAddress" class="ia-map-address"></div>
+        </div>
+
+        <!-- Vehicle Card (shown when vehicle data detected) -->
+        <div id="iaVehiclePanel" class="ia-intel-card" style="display:none;">
+            <div class="ia-intel-header">
+                <span>🚗 Vehicle Info</span>
+            </div>
+            <div id="iaVehicleInfo" class="ia-vehicle-info"></div>
+        </div>
+
+    </div>
+
 </main>

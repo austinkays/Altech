@@ -281,3 +281,278 @@ body.dark-mode .ia-field-row:nth-child(even) { background: rgba(255,255,255,0.05
 @media (max-width: 400px) {
     .ia-field-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Intelligence Panel ─────────────────────────────────── */
+
+.ia-intel-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+    animation: iaSlideIn 0.3s ease;
+}
+
+.ia-intel-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.ia-intel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-input);
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.ia-progress-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.ia-export-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.ia-export-btn:hover {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+}
+
+.ia-populate-btn-sm {
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: none;
+    background: var(--success, #34C759);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+.ia-populate-btn-sm:hover { filter: brightness(1.1); }
+
+/* Progress ring */
+.ia-progress-body {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    align-items: flex-start;
+}
+
+.ia-progress-ring-wrap {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+}
+
+.ia-progress-ring {
+    width: 80px;
+    height: 80px;
+}
+
+.ia-progress-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--text);
+}
+
+.ia-progress-pct {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-left: 1px;
+}
+
+/* Field checklist */
+.ia-field-checklist {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.ia-checklist-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.ia-checklist-row.ia-done {
+    color: var(--success, #34C759);
+}
+
+.ia-checklist-row.ia-partial {
+    color: var(--text);
+}
+
+.ia-checklist-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.ia-checklist-label {
+    flex: 1;
+    font-weight: 600;
+}
+
+.ia-checklist-count {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+}
+
+.ia-checklist-row.ia-done .ia-checklist-count {
+    background: rgba(52, 199, 89, 0.12);
+    color: var(--success, #34C759);
+}
+.ia-checklist-row.ia-partial .ia-checklist-count {
+    background: rgba(0, 122, 255, 0.08);
+    color: var(--apple-blue);
+}
+
+/* Map views */
+.ia-map-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    background: var(--border);
+}
+
+.ia-map-frame {
+    position: relative;
+    background: var(--bg-input);
+    min-height: 110px;
+    overflow: hidden;
+}
+
+.ia-map-label {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 2;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+}
+
+.ia-map-img {
+    display: none;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: pointer;
+}
+
+.ia-map-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 110px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.ia-map-address {
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.ia-map-address::before {
+    content: '📍';
+    font-size: 13px;
+}
+
+.ia-map-expand-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+}
+.ia-map-expand-btn:hover {
+    color: var(--apple-blue);
+}
+
+/* Vehicle panel */
+.ia-vehicle-info {
+    padding: 12px 16px;
+}
+
+.ia-vehicle-row {
+    padding: 8px 0;
+}
+.ia-vehicle-row + .ia-vehicle-row {
+    border-top: 1px solid var(--border);
+}
+
+.ia-vehicle-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.ia-vehicle-vin {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.ia-vehicle-vin code {
+    background: var(--bg-input);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+/* Responsive: stack map views on small screens */
+@media (max-width: 480px) {
+    .ia-map-grid { grid-template-columns: 1fr; }
+    .ia-progress-body { flex-direction: column; align-items: center; }
+}
