@@ -1506,6 +1506,10 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             return;
         }
 
+        // Hide dashboard view, show plugin viewport (command center layout)
+        if (typeof DashboardWidgets !== 'undefined') {
+            DashboardWidgets.hideDashboard(toolName, entry.title || entry.name);
+        }
         document.getElementById('landingPage').style.display = 'none';
 
         // Remove quoting-active when switching away from quoting tool
@@ -1756,11 +1760,15 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         const breadcrumb = document.getElementById('breadcrumbBar');
         if (breadcrumb) breadcrumb.style.display = 'none';
 
-        // Show landing page
-        const lp = document.getElementById('landingPage');
-        if (lp) lp.style.display = 'flex';
+        // Show command center dashboard (or fall back to legacy landing page)
+        if (typeof DashboardWidgets !== 'undefined') {
+            DashboardWidgets.showDashboard();
+        } else {
+            const lp = document.getElementById('landingPage');
+            if (lp) lp.style.display = 'flex';
+        }
 
-        // Update greeting
+        // Update greeting (legacy)
         this.updateLandingGreeting();
 
         // Update CGL badge

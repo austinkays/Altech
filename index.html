@@ -25,6 +25,8 @@
     <link rel="stylesheet" href="css/paywall.css">
     <link rel="stylesheet" href="css/bug-report.css">
     <link rel="stylesheet" href="css/security-info.css">
+    <link rel="stylesheet" href="css/sidebar.css">
+    <link rel="stylesheet" href="css/dashboard.css">
 
     <!-- Firebase SDK (compat mode — no build step needed) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -176,10 +178,37 @@
     </div>
 
     <!-- ╔══════════════════════════════════════════════════════════╗ -->
-    <!-- ║  LANDING PAGE — Dashboard Shell                          ║ -->
-    <!-- ║  Sections: Header · App Grid · Quick Reference · Footer  ║ -->
+    <!-- ║  APP SHELL — Desktop Command Center Layout                ║ -->
     <!-- ╚══════════════════════════════════════════════════════════╝ -->
-    <div id="landingPage" class="landing-page">
+    <div class="app-shell">
+        <aside id="appSidebar" class="app-sidebar"></aside>
+        <div id="sidebarOverlay" class="sidebar-overlay" onclick="DashboardWidgets.toggleMobileSidebar()"></div>
+
+        <main class="app-main">
+            <header id="appHeader" class="app-header"></header>
+
+            <div class="app-content">
+
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  DASHBOARD VIEW — Bento Widget Grid (replaces landing)   ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
+    <div id="dashboardView" class="dashboard-view">
+        <div class="dashboard-ambient-orb orb-1"></div>
+        <div class="dashboard-ambient-orb orb-2"></div>
+        <div id="dashboardGreeting" class="dashboard-greeting"></div>
+        <div class="bento-grid">
+            <div id="widgetReminders" class="widget-card widget-reminders"></div>
+            <div id="widgetDrafts" class="widget-card widget-drafts"></div>
+            <div id="widgetCompliance" class="widget-card widget-compliance"></div>
+            <div id="widgetQuickActions" class="widget-card widget-quick-actions"></div>
+            <div id="widgetQuickLaunch" class="widget-card widget-quick-launch"></div>
+        </div>
+    </div>
+
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  LEGACY LANDING PAGE (hidden, kept for test compat)      ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
+    <div id="landingPage" class="landing-page" style="display:none">
 
         <!-- ── Section: Hero Header ── -->
         <section id="landingHero" class="landing-header" aria-label="Dashboard header">
@@ -318,9 +347,14 @@
         </div>
     </div>
 
-    <!-- BACK BUTTON (shared across all plugins) -->
-    <a id="backToHome" href="#home" onclick="App.goHome(); return false;">← Exit Tool</a>
-    <div id="breadcrumbBar"></div>
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  PLUGIN VIEWPORT — Contains all tool containers          ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
+    <div id="pluginViewport" class="plugin-viewport" style="display:none">
+
+    <!-- BACK BUTTON (legacy, hidden — sidebar provides navigation) -->
+    <a id="backToHome" href="#home" onclick="App.goHome(); return false;" style="display:none">← Exit Tool</a>
+    <div id="breadcrumbBar" style="display:none"></div>
 
     <!-- QUOTING TOOL CONTAINER -->
     <div id="quotingTool" class="plugin-container">
@@ -2557,10 +2591,10 @@
                 if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
             }
 
-            // Render landing page tools from config
+            // Render landing page tools from config (legacy, for backwards compat)
             App.renderLandingTools();
 
-            // Set landing greeting
+            // Set landing greeting (legacy)
             App.updateLandingGreeting();
             App.updateCGLBadge();
 
@@ -2573,6 +2607,11 @@
             if (typeof Reminders !== 'undefined') {
                 Reminders.init();
                 Reminders.checkAlerts();
+            }
+
+            // Initialize desktop command center dashboard
+            if (typeof DashboardWidgets !== 'undefined') {
+                DashboardWidgets.init();
             }
 
             // Don't auto-init the quoting tool anymore
@@ -2712,6 +2751,15 @@
     <div id="remindersTool" class="plugin-container">
         <!-- Plugin HTML loaded dynamically from plugins/ -->
     </div>
+
+    </div><!-- /pluginViewport -->
+
+    </div><!-- /app-content -->
+    </main>
+    </div><!-- /app-shell -->
+
+    <!-- Mobile Bottom Nav (rendered by DashboardWidgets) -->
+    <nav id="mobileBottomNav" class="mobile-bottom-nav"></nav>
 
     <!-- Sync indicator toast -->
     <div id="syncIndicator" class="sync-indicator" style="display:none"></div>
@@ -2968,6 +3016,9 @@
 
     <!-- AI Provider (must load before plugins that use it) -->
     <script src="js/ai-provider.js"></script>
+
+    <!-- Dashboard widgets (command center bento layout) -->
+    <script src="js/dashboard-widgets.js"></script>
 
     <!-- Plugin scripts (loaded after DOM) -->
     <script src="js/quick-ref.js"></script>

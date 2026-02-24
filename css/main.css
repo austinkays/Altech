@@ -5,15 +5,27 @@
     --apple-gray: #6e6e73;
     --success: #34C759;
     --danger: #FF3B30;
-    --bg: #FBF8F5;
-    --bg-card: rgba(255, 255, 255, 0.90);
+    --bg: #FAF7F4;
+    --bg-card: rgba(255, 255, 255, 0.85);
     --bg-input: #F5F0EC;
     --text: #1a1a1e;
     --text-secondary: #7A6E65;
-    --border: #E8DDD4;
+    --text-tertiary: #A89888;
+    --border: #E5DAD0;
+    --border-subtle: rgba(200, 170, 140, 0.15);
     --shadow: rgba(0, 0, 0, 0.12);
     --transition-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Desktop Command Center tokens */
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 64px;
+    --header-height: 56px;
+    --bg-sidebar: rgba(255, 252, 248, 0.80);
+    --bg-widget-hover: rgba(255, 248, 240, 0.95);
+    --sidebar-active: rgba(255, 180, 80, 0.12);
+    --accent-gradient: linear-gradient(135deg, #FF9F43, #FF6B6B);
+    --accent-gradient-text: linear-gradient(135deg, #D4743C, #C44E4E);
 }
 
 /* === DARK MODE === */
@@ -23,13 +35,22 @@ body.dark-mode {
     --apple-gray: #98989D;
     --success: #32D74B;
     --danger: #FF453A;
-    --bg: #000000;
-    --bg-card: #1C1C1E;
+    --bg: #0A0A0F;
+    --bg-card: rgba(28, 28, 32, 0.85);
     --bg-input: #2C2C2E;
     --text: #FFFFFF;
     --text-secondary: #98989D;
-    --border: #38383A;
+    --text-tertiary: #6E6E73;
+    --border: #2A2A2E;
+    --border-subtle: rgba(255, 255, 255, 0.06);
     --shadow: rgba(0, 0, 0, 0.3);
+
+    /* Desktop Command Center tokens — dark */
+    --bg-sidebar: rgba(18, 18, 22, 0.90);
+    --bg-widget-hover: rgba(38, 38, 44, 0.90);
+    --sidebar-active: rgba(10, 132, 255, 0.15);
+    --accent-gradient: linear-gradient(135deg, #0A84FF, #5E5CE6);
+    --accent-gradient-text: linear-gradient(135deg, #0A84FF, #5E5CE6);
 }
 
 body.dark-mode .landing-header {

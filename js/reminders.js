@@ -251,6 +251,27 @@ window.Reminders = (() => {
         return counts;
     }
 
+    /**
+     * Get upcoming (non-completed) tasks sorted by due date, for dashboard widget.
+     * @param {number} limit - Maximum tasks to return (default 5)
+     * @returns {Array<{id, title, dueDate, category, priority, status}>}
+     */
+    function getUpcomingTasks(limit = 5) {
+        return _state.tasks
+            .map(t => ({ ...t, status: _getStatus(t) }))
+            .filter(t => t.status !== 'completed')
+            .sort((a, b) => {
+                // Overdue first, then due-today, then due-soon, then upcoming, then no-date
+                const order = { 'overdue': 0, 'due-today': 1, 'due-soon': 2, 'upcoming': 3, 'no-date': 4 };
+                const diff = (order[a.status] ?? 5) - (order[b.status] ?? 5);
+                if (diff !== 0) return diff;
+                // Within same status, sort by due date ascending
+                if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
+                return a.dueDate ? -1 : 1;
+            })
+            .slice(0, limit);
+    }
+
     // ── Badge ──
 
     function _updateBadge() {
@@ -520,6 +541,7 @@ window.Reminders = (() => {
         addCategory,
         checkAlerts,
         getCounts,
+        getUpcomingTasks,
 
         // For cloud sync
         get state() { return _state; },

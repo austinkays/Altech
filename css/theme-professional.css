@@ -16,6 +16,15 @@ body.theme-pro {
     --apple-blue-hover: #409CFF;
     --success: #30D158;
     --danger: #FF453A;
+
+    /* Command center overrides */
+    --bg-sidebar: #0A0A0A;
+    --bg-widget-hover: rgba(255, 255, 255, 0.04);
+    --sidebar-active: rgba(10, 132, 255, 0.14);
+    --accent-gradient: linear-gradient(135deg, #0A84FF, #5E5CE6);
+    --accent-gradient-text: linear-gradient(135deg, #0A84FF, #5E5CE6);
+    --text-tertiary: #48484A;
+    --border-subtle: rgba(255, 255, 255, 0.04);
 }
 
 /* ── Landing page — kill all aurora / gradient backgrounds ── */
@@ -298,6 +307,38 @@ body.theme-pro ::-webkit-scrollbar-thumb {
 }
 body.theme-pro ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.2);
+}
+
+/* ══════════════════════════════════════════
+   Command Center — Pro theme overrides
+   ══════════════════════════════════════════ */
+body.theme-pro .app-sidebar {
+    background: rgba(10, 10, 10, 0.92);
+    border-right-color: rgba(255, 255, 255, 0.06);
+}
+body.theme-pro .sidebar-brand-logo {
+    background: var(--accent-gradient);
+}
+body.theme-pro .widget-card {
+    background: #1C1C1E;
+    border-color: rgba(255, 255, 255, 0.06);
+}
+body.theme-pro .widget-card:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+body.theme-pro .app-header {
+    background: rgba(0, 0, 0, 0.8);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+body.theme-pro .dashboard-view {
+    background: #000000;
+}
+body.theme-pro .dashboard-ambient-orb {
+    display: none;
+}
+body.theme-pro .mobile-bottom-nav {
+    background: rgba(10, 10, 10, 0.95);
+    border-top-color: rgba(255, 255, 255, 0.06);
 }
 
 /* ══════════════════════════════════════════

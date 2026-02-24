@@ -1148,8 +1148,14 @@ describe('Altech App Tests', () => {
 
     test('goHome shows landing page', () => {
       App.goHome();
+      // New command center layout: goHome shows dashboardView (or falls back to landingPage)
+      const dashboard = document.getElementById('dashboardView');
       const landing = document.getElementById('landingPage');
-      if (landing) {
+      if (dashboard) {
+        // Dashboard view should be visible (not display:none)
+        expect(dashboard.style.display).not.toBe('none');
+      } else if (landing) {
+        // Legacy fallback: landing page visible
         expect(landing.style.display).not.toBe('none');
       }
     });

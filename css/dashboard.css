@@ -1,0 +1,687 @@
+/* ══════════════════════════════════════════════════════════════
+   DASHBOARD — Bento box widget layout for the command center
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Dashboard View ── */
+.dashboard-view {
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    min-height: calc(100dvh - var(--header-height));
+}
+
+/* Ambient background — warm golden-hour (from landing page) */
+.dashboard-view::before {
+    content: '';
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    top: -80px;
+    right: -60px;
+    background: radial-gradient(circle, rgba(255, 159, 67, 0.08) 0%, rgba(255, 107, 107, 0.04) 40%, transparent 70%);
+    border-radius: 50%;
+    filter: blur(50px);
+    pointer-events: none;
+    animation: dashOrb1 20s ease-in-out infinite;
+    z-index: 0;
+}
+.dashboard-view::after {
+    content: '';
+    position: absolute;
+    width: 350px;
+    height: 350px;
+    bottom: -40px;
+    left: -40px;
+    background: radial-gradient(circle, rgba(0, 122, 255, 0.06) 0%, rgba(255, 159, 67, 0.03) 40%, transparent 70%);
+    border-radius: 50%;
+    filter: blur(50px);
+    pointer-events: none;
+    animation: dashOrb2 25s ease-in-out infinite;
+    z-index: 0;
+}
+body.dark-mode .dashboard-view::before {
+    background: radial-gradient(circle, rgba(10, 132, 255, 0.06) 0%, rgba(94, 92, 230, 0.04) 40%, transparent 70%);
+}
+body.dark-mode .dashboard-view::after {
+    background: radial-gradient(circle, rgba(94, 92, 230, 0.05) 0%, rgba(10, 132, 255, 0.03) 40%, transparent 70%);
+}
+@keyframes dashOrb1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-40px, 30px) scale(1.1); }
+    66% { transform: translate(20px, -20px) scale(0.95); }
+}
+@keyframes dashOrb2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -25px) scale(1.05); }
+    66% { transform: translate(-20px, 15px) scale(0.9); }
+}
+
+/* ── Dashboard Greeting ── */
+.dashboard-greeting {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 24px;
+}
+.dashboard-greeting h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 4px;
+}
+.dashboard-greeting h1 .greeting-name {
+    background: var(--accent-gradient-text);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.dashboard-greeting p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* ── Bento Grid ── */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: minmax(90px, auto);
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Widget Card Base ── */
+.widget-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px) saturate(1.6);
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    padding: 20px;
+    position: relative;
+    transition: transform 0.3s var(--transition-smooth), box-shadow 0.3s ease, border-color 0.3s ease;
+    cursor: pointer;
+
+    /* Subtle gradient top accent */
+    border-top: 2px solid transparent;
+    background-clip: padding-box;
+}
+.widget-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent-gradient);
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+.widget-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 180, 80, 0.30);
+    box-shadow: 0 8px 32px rgba(245, 150, 70, 0.10), 0 2px 8px var(--shadow);
+}
+.widget-card:hover::before {
+    opacity: 1;
+}
+body.dark-mode .widget-card:hover {
+    border-color: rgba(10, 132, 255, 0.25);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(10, 132, 255, 0.08);
+}
+
+/* Widget Header */
+.widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+.widget-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-tertiary);
+}
+.widget-title svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.75;
+}
+.widget-action {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--apple-blue);
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: opacity 0.2s ease;
+}
+.widget-action:hover {
+    opacity: 0.8;
+}
+
+/* ═══════════════════════════════════════
+   Widget 1: Reminders (Hero — 6col × 2row)
+   ═══════════════════════════════════════ */
+.widget-reminders {
+    grid-column: span 6;
+    grid-row: span 2;
+}
+
+/* Stat Pills Row */
+.reminder-stats {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.reminder-stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+}
+.reminder-stat-pill .stat-count {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+}
+.reminder-stat-pill .stat-label {
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.8;
+}
+.stat-pill-overdue {
+    background: rgba(255, 59, 48, 0.10);
+    color: var(--danger);
+}
+.stat-pill-overdue .stat-count {
+    color: var(--danger);
+}
+.stat-pill-today {
+    background: rgba(255, 159, 67, 0.10);
+    color: #E8850C;
+}
+body.dark-mode .stat-pill-today {
+    color: #FFB340;
+}
+.stat-pill-soon {
+    background: rgba(0, 122, 255, 0.08);
+    color: var(--apple-blue);
+}
+.stat-pill-completed {
+    background: rgba(52, 199, 89, 0.10);
+    color: var(--success);
+}
+
+/* Task List */
+.reminder-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+    max-height: 220px;
+    scrollbar-width: thin;
+}
+.reminder-task-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px;
+    border-radius: 10px;
+    transition: background 0.15s ease;
+}
+.reminder-task-row:hover {
+    background: var(--bg-input);
+}
+.reminder-task-check {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.reminder-task-check:hover {
+    border-color: var(--apple-blue);
+}
+.reminder-task-check.checked {
+    background: var(--success);
+    border-color: var(--success);
+}
+.reminder-task-check.checked::after {
+    content: '';
+    width: 6px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translateY(-1px);
+}
+.reminder-task-priority {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.priority-high { background: var(--danger); }
+.priority-normal { background: #FF9F43; }
+.priority-low { background: var(--text-tertiary); }
+
+.reminder-task-info {
+    flex: 1;
+    min-width: 0;
+}
+.reminder-task-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.reminder-task-category {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+.reminder-task-due {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.reminder-task-due.overdue {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+/* Empty state */
+.widget-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    color: var(--text-tertiary);
+    gap: 8px;
+}
+.widget-empty-icon {
+    font-size: 32px;
+    opacity: 0.5;
+}
+.widget-empty-text {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* ═══════════════════════════════════════
+   Widget 2: Recent Drafts (3col × 2row)
+   ═══════════════════════════════════════ */
+.widget-drafts {
+    grid-column: span 3;
+    grid-row: span 2;
+}
+.draft-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.draft-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px;
+    border-radius: 10px;
+    transition: background 0.15s ease;
+    cursor: pointer;
+}
+.draft-row:hover {
+    background: var(--bg-input);
+}
+.draft-star {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+.draft-star.starred {
+    color: #FFB340;
+}
+.draft-star svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.75;
+}
+.draft-star.starred svg {
+    fill: currentColor;
+}
+.draft-info {
+    flex: 1;
+    min-width: 0;
+}
+.draft-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.draft-time {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════
+   Widget 3: CGL Compliance (3col × 1row)
+   ═══════════════════════════════════════ */
+.widget-compliance {
+    grid-column: span 3;
+    grid-row: span 1;
+}
+.compliance-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.compliance-indicator {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.compliance-indicator svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 2;
+}
+.compliance-indicator.status-ok {
+    background: rgba(52, 199, 89, 0.12);
+    color: var(--success);
+}
+.compliance-indicator.status-ok svg { stroke: var(--success); fill: none; }
+.compliance-indicator.status-warning {
+    background: rgba(255, 159, 67, 0.12);
+    color: #E8850C;
+}
+body.dark-mode .compliance-indicator.status-warning { color: #FFB340; }
+.compliance-indicator.status-warning svg { stroke: currentColor; fill: none; }
+.compliance-indicator.status-critical {
+    background: rgba(255, 59, 48, 0.12);
+    color: var(--danger);
+    animation: compliancePulse 2s ease-in-out infinite;
+}
+.compliance-indicator.status-critical svg { stroke: var(--danger); fill: none; }
+@keyframes compliancePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.2); }
+    50% { box-shadow: 0 0 0 6px rgba(255, 59, 48, 0); }
+}
+.compliance-text {
+    flex: 1;
+}
+.compliance-text .compliance-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+.compliance-text .compliance-detail {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* Severity left border accent */
+.widget-compliance.severity-ok {
+    border-left: 4px solid var(--success);
+}
+.widget-compliance.severity-warning {
+    border-left: 4px solid #FFB340;
+}
+.widget-compliance.severity-critical {
+    border-left: 4px solid var(--danger);
+}
+
+/* ═══════════════════════════════════════
+   Quick Actions Mini-Widget (3col × 1row)
+   ═══════════════════════════════════════ */
+.widget-quick-actions {
+    grid-column: span 3;
+    grid-row: span 1;
+}
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 8px;
+    border-radius: 12px;
+    background: var(--bg-input);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s var(--transition-spring);
+    text-align: center;
+}
+.quick-action-btn:hover {
+    background: var(--bg-widget-hover);
+    border-color: var(--border);
+    transform: scale(1.02);
+}
+.quick-action-btn svg {
+    width: 22px;
+    height: 22px;
+    stroke: var(--apple-blue);
+    fill: none;
+    stroke-width: 1.75;
+}
+.quick-action-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════
+   Quick Launch Strip (full width, 1 row)
+   ═══════════════════════════════════════ */
+.widget-quick-launch {
+    grid-column: 1 / -1;
+    padding: 16px 20px;
+}
+.quick-launch-strip {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    padding-bottom: 4px;
+}
+.quick-launch-strip::-webkit-scrollbar {
+    height: 4px;
+}
+.quick-launch-strip::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+.quick-launch-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    scroll-snap-align: start;
+    border: none;
+    background: none;
+    min-width: 72px;
+    transition: background 0.2s ease, transform 0.2s var(--transition-spring);
+}
+.quick-launch-item:hover {
+    background: var(--bg-input);
+    transform: scale(1.06);
+}
+.quick-launch-item svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--text-secondary);
+    fill: none;
+    stroke-width: 1.75;
+    transition: stroke 0.2s ease;
+}
+.quick-launch-item:hover svg {
+    stroke: var(--apple-blue);
+}
+.quick-launch-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.quick-launch-item:hover .quick-launch-label {
+    color: var(--text);
+}
+.quick-launch-divider {
+    width: 1px;
+    background: var(--border);
+    margin: 4px 4px;
+    flex-shrink: 0;
+    align-self: stretch;
+}
+
+/* ═══════════════════════════════════════
+   Dashboard Entrance Animations
+   ═══════════════════════════════════════ */
+.widget-card {
+    animation: widgetFadeIn 0.5s var(--transition-smooth) both;
+}
+.bento-grid .widget-card:nth-child(1) { animation-delay: 0.05s; }
+.bento-grid .widget-card:nth-child(2) { animation-delay: 0.10s; }
+.bento-grid .widget-card:nth-child(3) { animation-delay: 0.15s; }
+.bento-grid .widget-card:nth-child(4) { animation-delay: 0.20s; }
+.bento-grid .widget-card:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes widgetFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ═══════════════════════════════════════
+   Responsive Overrides
+   ═══════════════════════════════════════ */
+
+/* 1024px–1279px — Narrower bento grid */
+@media (min-width: 1024px) and (max-width: 1279px) {
+    .widget-reminders {
+        grid-column: span 5;
+    }
+    .widget-drafts {
+        grid-column: span 4;
+    }
+    .widget-compliance {
+        grid-column: span 3;
+    }
+    .widget-quick-actions {
+        grid-column: span 3;
+    }
+}
+
+/* 768px–1023px — 2 column layout */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .bento-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-auto-rows: auto;
+    }
+    .widget-reminders {
+        grid-column: span 2;
+        grid-row: span 1;
+    }
+    .widget-drafts {
+        grid-column: span 1;
+    }
+    .widget-compliance {
+        grid-column: span 1;
+    }
+    .widget-quick-actions {
+        grid-column: span 1;
+    }
+    .widget-quick-launch {
+        grid-column: span 2;
+    }
+    .dashboard-view {
+        padding: 20px;
+    }
+}
+
+/* <768px — Single column stacked */
+@media (max-width: 767px) {
+    .bento-grid {
+        grid-template-columns: 1fr;
+        grid-auto-rows: auto;
+    }
+    .widget-reminders,
+    .widget-drafts,
+    .widget-compliance,
+    .widget-quick-actions,
+    .widget-quick-launch {
+        grid-column: span 1;
+        grid-row: span 1;
+    }
+    .dashboard-view {
+        padding: 16px;
+    }
+    .dashboard-greeting h1 {
+        font-size: 22px;
+    }
+    .reminder-stats {
+        gap: 6px;
+    }
+    .reminder-stat-pill {
+        padding: 4px 8px;
+    }
+    .reminder-stat-pill .stat-count {
+        font-size: 16px;
+    }
+}
