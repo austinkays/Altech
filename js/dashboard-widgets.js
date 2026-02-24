@@ -677,14 +677,14 @@ window.DashboardWidgets = (() => {
     // ── Refresh All Widgets ──
 
     function refreshAll() {
-        renderGreeting();
-        renderRemindersWidget();
-        renderDraftsWidget();
-        renderComplianceWidget();
-        renderQuickActions();
-        renderQuickLaunch();
-        updateBadges();
-        renderHeader();
+        try { renderGreeting(); } catch (e) { console.error('[DashboardWidgets] renderGreeting error:', e); }
+        try { renderRemindersWidget(); } catch (e) { console.error('[DashboardWidgets] renderRemindersWidget error:', e); }
+        try { renderDraftsWidget(); } catch (e) { console.error('[DashboardWidgets] renderDraftsWidget error:', e); }
+        try { renderComplianceWidget(); } catch (e) { console.error('[DashboardWidgets] renderComplianceWidget error:', e); }
+        try { renderQuickActions(); } catch (e) { console.error('[DashboardWidgets] renderQuickActions error:', e); }
+        try { renderQuickLaunch(); } catch (e) { console.error('[DashboardWidgets] renderQuickLaunch error:', e); }
+        try { updateBadges(); } catch (e) { console.error('[DashboardWidgets] updateBadges error:', e); }
+        try { renderHeader(); } catch (e) { console.error('[DashboardWidgets] renderHeader error:', e); }
     }
 
     // ── Show/Hide Dashboard ──
@@ -744,6 +744,7 @@ window.DashboardWidgets = (() => {
     function init() {
         if (_initialized) return;
         _initialized = true;
+        console.log('[DashboardWidgets] init() started');
 
         // Restore sidebar collapsed preference
         try {
@@ -758,10 +759,13 @@ window.DashboardWidgets = (() => {
             document.body.classList.add('sidebar-collapsed');
         }
 
-        renderSidebar();
-        renderHeader();
-        renderMobileNav();
-        refreshAll();
+        // Each render wrapped in try-catch to prevent cascade failure
+        try { renderSidebar(); } catch (e) { console.error('[DashboardWidgets] renderSidebar error:', e); }
+        try { renderHeader(); } catch (e) { console.error('[DashboardWidgets] renderHeader error:', e); }
+        try { renderMobileNav(); } catch (e) { console.error('[DashboardWidgets] renderMobileNav error:', e); }
+        try { refreshAll(); } catch (e) { console.error('[DashboardWidgets] refreshAll error:', e); }
+
+        console.log('[DashboardWidgets] init() completed');
     }
 
     // ── Public API ──

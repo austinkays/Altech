@@ -2563,6 +2563,18 @@
             console.error('[Global Error]', e.message, e.filename, e.lineno);
         });
 
+        // ── Fallback: If window.onload never fires, try rendering dashboard after 5s ──
+        setTimeout(() => {
+            try {
+                const greeting = document.getElementById('dashboardGreeting');
+                if (greeting && !greeting.innerHTML.trim() && typeof DashboardWidgets !== 'undefined') {
+                    console.warn('[Boot] Fallback: window.onload may not have fired, force-rendering dashboard');
+                    try { App.loadDarkMode(); } catch (_) {}
+                    DashboardWidgets.init();
+                    App.goHome();
+                }
+            } catch (e) { console.error('[Boot] Fallback error:', e); }
+        }, 5000);
         // ── ServiceWorker Registration (offline app shell) ──
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').then((reg) => {
@@ -2573,55 +2585,63 @@
         }
 
         window.onload = async () => {
+            console.log('[Boot] window.onload fired');
+
             // Apply dark mode preference FIRST — before any tool rendering
-            App.loadDarkMode();
+            try { App.loadDarkMode(); } catch (e) { console.error('[Boot] loadDarkMode error:', e); }
 
             // Initialize cloud sync (non-blocking), then load Places API (needs Auth for key fetch)
-            if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.sdkLoaded) {
-                FirebaseConfig.init().then(async () => {
-                    if (typeof Auth !== 'undefined') {
-                        Auth.init();
-                        // Wait for Firebase to resolve auth state so token is available for API key fetch
-                        try { await Auth.ready(); } catch (_) { /* continue anyway */ }
-                    }
-                    // Load Places API after auth state is known
+            try {
+                if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.sdkLoaded) {
+                    FirebaseConfig.init().then(async () => {
+                        if (typeof Auth !== 'undefined') {
+                            Auth.init();
+                            try { await Auth.ready(); } catch (_) { /* continue anyway */ }
+                        }
+                        if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
+                    }).catch(e => {
+                        console.warn('[App] Firebase init skipped:', e.message);
+                        if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
+                    });
+                } else {
                     if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
-                }).catch(e => {
-                    console.warn('[App] Firebase init skipped:', e.message);
-                    // Still try loading Places API (falls back to unauthenticated fetch)
-                    if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
-                });
-            } else {
-                // No Firebase — still try loading Places API (local dev / placesKey param)
-                if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
-            }
+                }
+            } catch (e) { console.error('[Boot] Firebase/Places init error:', e); }
 
             // Render landing page tools from config (legacy, for backwards compat)
-            App.renderLandingTools();
+            try { App.renderLandingTools(); } catch (e) { console.error('[Boot] renderLandingTools error:', e); }
 
             // Set landing greeting (legacy)
-            App.updateLandingGreeting();
-            App.updateCGLBadge();
+            try { App.updateLandingGreeting(); } catch (e) { console.error('[Boot] updateLandingGreeting error:', e); }
+            try { App.updateCGLBadge(); } catch (e) { console.error('[Boot] updateCGLBadge error:', e); }
 
             // First-run onboarding for new users
-            if (typeof Onboarding !== 'undefined') {
-                Onboarding.init();
-            }
+            try {
+                if (typeof Onboarding !== 'undefined') Onboarding.init();
+            } catch (e) { console.error('[Boot] Onboarding.init error:', e); }
 
             // Show reminder badges + check for alerts
-            if (typeof Reminders !== 'undefined') {
-                Reminders.init();
-                Reminders.checkAlerts();
-            }
+            try {
+                if (typeof Reminders !== 'undefined') {
+                    Reminders.init();
+                    Reminders.checkAlerts();
+                }
+            } catch (e) { console.error('[Boot] Reminders init error:', e); }
 
             // Initialize desktop command center dashboard
-            if (typeof DashboardWidgets !== 'undefined') {
-                DashboardWidgets.init();
-            }
+            try {
+                if (typeof DashboardWidgets !== 'undefined') {
+                    console.log('[Boot] Calling DashboardWidgets.init()');
+                    DashboardWidgets.init();
+                    console.log('[Boot] DashboardWidgets.init() completed');
+                } else {
+                    console.warn('[Boot] DashboardWidgets is undefined — script may not have loaded');
+                }
+            } catch (e) { console.error('[Boot] DashboardWidgets.init error:', e); }
 
             // Don't auto-init the quoting tool anymore
             // It will init when user clicks the card
-            App.observePluginVisibility();
+            try { App.observePluginVisibility(); } catch (e) { console.error('[Boot] observePluginVisibility error:', e); }
 
             // ── Hash Router: initial route ──
             const hash = window.location.hash.replace('#', '');
@@ -2630,11 +2650,26 @@
                 if (window.location.hash !== '#home') {
                     history.replaceState(null, '', '#home');
                 }
-                App.goHome();
+                try { App.goHome(); } catch (e) { console.error('[Boot] goHome error:', e); }
             } else {
                 // Deep-link into a specific tool
-                await App.navigateTo(hash, { syncHash: false });
+                try { await App.navigateTo(hash, { syncHash: false }); } catch (e) { console.error('[Boot] navigateTo error:', e); }
             }
+
+            // ── Safety Net: Force-render dashboard widgets if still empty after 2s ──
+            setTimeout(() => {
+                try {
+                    const dv = document.getElementById('dashboardView');
+                    const greeting = document.getElementById('dashboardGreeting');
+                    if (dv && dv.style.display !== 'none' && greeting && !greeting.innerHTML.trim()) {
+                        console.warn('[Boot] Safety net: widgets still empty after 2s, force-rendering');
+                        if (typeof DashboardWidgets !== 'undefined') {
+                            DashboardWidgets.refreshAll();
+                            DashboardWidgets.renderHeader();
+                        }
+                    }
+                } catch (e) { console.error('[Boot] Safety net error:', e); }
+            }, 2000);
 
             // ── Hash Router: handle back/forward & hash changes ──
             window.addEventListener('hashchange', async () => {
