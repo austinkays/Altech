@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="css/accounting.css">
     <link rel="stylesheet" href="css/ezlynx.css">
     <link rel="stylesheet" href="css/quote-compare.css">
+    <link rel="stylesheet" href="css/intake-assist.css">
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/admin.css">
     <link rel="stylesheet" href="css/theme-professional.css">
@@ -2365,6 +2366,7 @@
             toolConfig: [
                 // ── Quoting & Sales ──
                 { key: 'quoting',      icon: '🏠', color: 'icon-blue',    title: 'Personal Lines',  name: 'Personal Intake',       containerId: 'quotingTool',      category: 'quoting' },
+                { key: 'intake',       icon: '🤖', color: 'icon-violet',  title: 'AI Intake',       name: 'AI Intake',             containerId: 'intakeTool',       initModule: 'IntakeAssist',      htmlFile: 'plugins/intake-assist.html', category: 'quoting' },
                 { key: 'qna',          icon: '💬', color: 'icon-rose',    title: 'Policy Q&A',      name: 'Policy Q&A',            containerId: 'qnaTool',          initModule: 'PolicyQA',          htmlFile: 'plugins/qna.html',         category: 'quoting' },
                 { key: 'quotecompare', icon: '⚖️', color: 'icon-emerald', title: 'Quote Compare',   name: 'Quote Compare',          containerId: 'quoteCompareTool', initModule: 'QuoteCompare',      htmlFile: 'plugins/quotecompare.html', category: 'quoting' },
                 // ── Export & Integration ──
@@ -2571,6 +2573,11 @@
 
     <!-- POLICY Q&A ASSISTANT TOOL CONTAINER -->
     <div id="qnaTool" class="plugin-container">
+        <!-- Plugin HTML loaded dynamically from plugins/ -->
+    </div>
+
+    <!-- AI INTAKE ASSISTANT TOOL CONTAINER -->
+    <div id="intakeTool" class="plugin-container">
         <!-- Plugin HTML loaded dynamically from plugins/ -->
     </div>
 
@@ -2876,6 +2883,7 @@
     <script src="js/compliance-dashboard.js?v=20260217j"></script>
     <script src="js/ezlynx-tool.js"></script>
     <script src="js/quote-compare.js"></script>
+    <script src="js/intake-assist.js"></script>
     <script src="js/email-composer.js"></script>
     <script src="js/policy-qa.js"></script>
     <script src="js/reminders.js"></script>
