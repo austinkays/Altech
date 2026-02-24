@@ -223,6 +223,22 @@
     background: var(--border);
 }
 
+/* ── Sign-in link for returning users ── */
+.onboarding-signin-link {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.onboarding-signin-link a {
+    color: var(--apple-blue);
+    text-decoration: none;
+    font-weight: 600;
+}
+.onboarding-signin-link a:hover {
+    text-decoration: underline;
+}
+
 /* ── Progress dots ── */
 .onboarding-dots {
     display: flex;

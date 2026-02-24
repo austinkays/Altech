@@ -360,6 +360,31 @@ window.Onboarding = (() => {
     }
 
     /**
+     * Skip onboarding and open the sign-in modal for returning users.
+     */
+    function signInExisting() {
+        // Mark onboarding complete so it won't show again
+        localStorage.setItem(STORAGE_KEY, Date.now().toString());
+
+        // Hide the overlay
+        const overlay = document.getElementById('onboardingOverlay');
+        if (overlay) {
+            overlay.classList.add('exit');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                overlay.classList.remove('exit');
+            }, 300);
+        }
+
+        // Open the auth sign-in modal
+        setTimeout(() => {
+            if (typeof Auth !== 'undefined' && Auth.showModal) {
+                Auth.showModal();
+            }
+        }, 350);
+    }
+
+    /**
      * Reset onboarding (for testing or re-onboarding)
      */
     function reset() {
@@ -376,6 +401,7 @@ window.Onboarding = (() => {
         validateCode,
         copyLink,
         showShareModal,
+        signInExisting,
         getUserName,
         getAgencyProfile,
         isValidCode: (code) => _isValidCode((code || '').toUpperCase().replace(/\s+/g, '')),
