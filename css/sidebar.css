@@ -525,6 +525,50 @@ body.dark-mode .sidebar-footer-btn:hover {
     display: block;
 }
 
+/* ── Merge Plugin Headers with App Shell ──
+   The app-header breadcrumb bar already shows the plugin name + navigation,
+   so plugin-level headers are reduced to just their action buttons (if any).
+   Progress bars (.progress-track) are preserved. */
+.app-shell .plugin-container header {
+    position: static;
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 8px 20px 0;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    margin: 0;
+    z-index: auto;
+    min-height: 0;
+}
+.app-shell .plugin-container header::after {
+    display: none;
+}
+.app-shell .plugin-container header .tool-header-brand {
+    display: none;
+}
+.app-shell .plugin-container header .step-title {
+    display: none;
+}
+.app-shell .plugin-container header .header-top {
+    margin-bottom: 0;
+    justify-content: flex-end;
+}
+/* Collapse header-top when brand is the only child (no action buttons) */
+.app-shell .plugin-container header .tool-header-brand:only-child {
+    margin: 0;
+    padding: 0;
+}
+.app-shell .plugin-container header .header-top:has(> :only-child) {
+    display: none;
+    padding: 0;
+}
+/* Remove plugin header padding when fully collapsed */
+.app-shell .plugin-container header:has(.header-top:has(> :only-child)):not(:has(.progress-track)) {
+    padding: 0;
+}
+
 /* ── Mobile Bottom Nav (≤768px) ── */
 .mobile-bottom-nav {
     display: none;

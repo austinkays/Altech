@@ -5,7 +5,7 @@
  * Bumping CACHE_VERSION invalidates the old cache on the next page load.
  */
 
-const CACHE_VERSION = 'altech-v4';
+const CACHE_VERSION = 'altech-v5';
 const APP_SHELL = [
     '/',
     '/index.html',
