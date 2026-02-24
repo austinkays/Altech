@@ -15,27 +15,40 @@ window.IntakeAssist = (() => {
     let extractedData = {};
     let initialized = false;
 
-    const SYSTEM_PROMPT = `You are a fast, friendly intake assistant for an insurance agent. Your job is to gather client information through a natural conversation.
+    const SYSTEM_PROMPT = `You are a fast, friendly intake assistant for an insurance agent. Your job is to gather client information through a natural conversation, organized in phases.
 
-Collect these fields as the conversation progresses:
+**Phase 1 — Identity & Contact**
 - Full name (first, last, prefix: Mr./Ms./Mrs./Dr.)
 - Date of birth (output as YYYY-MM-DD)
 - Email and phone
 - Current address (street, city, state 2-letter abbreviation, zip)
 - Quote type: "home" (home only), "auto" (auto only), or "both" (home + auto bundle)
-- For HOME: year built, square footage, stories, construction type (Frame/Masonry/Superior), roof year, mortgage company
+
+**Phase 2 — Demographics & Employment**
+- Gender (M / F / X)
+- Marital status (Single / Married / Domestic Partner / Widowed / Separated / Divorced)
+- Education level (e.g. High School Diploma, Associate Degree, Bachelors Degree, Masters Degree)
+- Occupation (job title)
+- Industry (e.g. Information Technology, Construction/Energy Trades, Education/Library, etc.)
+
+**Phase 3 — Property & Vehicle Details**
+- For HOME: year built, square footage, number of stories, exterior wall type (e.g. Aluminum/Vinyl, Brick, Stucco, Siding, Stone), year roof updated, mortgage company
 - For AUTO: vehicle details (year, make, model, VIN), each driver (name, DOB, license number)
 - Co-applicant info if any (first name, last name)
-- Prior insurance carrier and years insured
 
-Ask 2-3 questions at a time to keep the pace fast. Keep your replies concise and friendly.
+**Phase 4 — Prior Insurance**
+- Requested effective date (YYYY-MM-DD)
+- For HOME quotes: prior home carrier name, years with prior home carrier (0-15 or "More than 15")
+- For AUTO quotes: prior auto carrier name, years with prior auto carrier (0-15 or "More than 15")
+
+Ask 2-3 questions at a time to keep the pace fast. Work through phases in order but don't announce phase numbers to the user. Keep your replies concise and friendly.
 
 When you have gathered all relevant data (or the agent says "done" / "that's it" / "apply"), output:
 1. A brief confirmation sentence
 2. A JSON code block with ALL collected fields using EXACTLY these keys:
-{"firstName":"","lastName":"","prefix":"","dob":"YYYY-MM-DD","email":"","phone":"","addrStreet":"","addrCity":"","addrState":"XX","addrZip":"","qType":"home|auto|both","yearBuilt":"","sqFt":"","stories":"","constructionType":"","roofYear":"","mortgagee":"","coFirstName":"","coLastName":"","priorCarrier":"","priorYears":"","vehicles":[{"year":"","make":"","model":"","vin":""}]}
+{"firstName":"","lastName":"","prefix":"","dob":"YYYY-MM-DD","email":"","phone":"","addrStreet":"","addrCity":"","addrState":"XX","addrZip":"","qType":"home|auto|both","gender":"M|F|X","maritalStatus":"","education":"","occupation":"","industry":"","yrBuilt":"","sqFt":"","numStories":"","exteriorWalls":"","roofYr":"","mortgagee":"","coFirstName":"","coLastName":"","effectiveDate":"YYYY-MM-DD","homePriorCarrier":"","homePriorYears":"","priorCarrier":"","priorYears":"","vehicles":[{"year":"","make":"","model":"","vin":""}]}
 
-Only include keys for which you have data. Omit empty fields. Use 2-letter state codes. Format DOB as YYYY-MM-DD.`;
+Only include keys for which you have data. Omit empty fields. Use 2-letter state codes. Format dates as YYYY-MM-DD.`;
 
     // ── Public API ────────────────────────────────────────────────
 
@@ -140,8 +153,8 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         const simpleFields = [
             'firstName', 'lastName', 'dob', 'email', 'phone',
             'addrStreet', 'addrCity', 'addrZip',
-            'yearBuilt', 'sqFt', 'stories', 'constructionType',
-            'roofYear', 'mortgagee', 'coFirstName', 'coLastName'
+            'yrBuilt', 'sqFt', 'mortgagee', 'coFirstName', 'coLastName',
+            'effectiveDate', 'roofYr', 'occupation'
         ];
         for (const key of simpleFields) {
             if (extractedData[key]) {
@@ -151,6 +164,25 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                     el.dispatchEvent(new Event('input', { bubbles: true }));
                     el.dispatchEvent(new Event('change', { bubbles: true }));
                     populated++;
+                }
+            }
+        }
+
+        // Select fields — set value and dispatch change
+        const selectFields = [
+            'gender', 'maritalStatus', 'education', 'industry',
+            'numStories', 'exteriorWalls',
+            'homePriorCarrier', 'homePriorYears', 'priorCarrier', 'priorYears'
+        ];
+        for (const key of selectFields) {
+            if (extractedData[key]) {
+                const el = document.getElementById(key);
+                if (el) {
+                    el.value = extractedData[key];
+                    if (el.value === extractedData[key]) {
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        populated++;
+                    }
                 }
             }
         }
@@ -313,11 +345,15 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             firstName: 'First Name', lastName: 'Last Name', prefix: 'Prefix',
             dob: 'Date of Birth', email: 'Email', phone: 'Phone',
             addrStreet: 'Street', addrCity: 'City', addrState: 'State', addrZip: 'Zip',
-            qType: 'Quote Type', yearBuilt: 'Year Built', sqFt: 'Sq Ft',
-            stories: 'Stories', constructionType: 'Construction',
-            roofYear: 'Roof Year', mortgagee: 'Mortgagee',
+            qType: 'Quote Type', gender: 'Gender', maritalStatus: 'Marital Status',
+            education: 'Education', occupation: 'Occupation', industry: 'Industry',
+            yrBuilt: 'Year Built', sqFt: 'Sq Ft',
+            numStories: 'Stories', exteriorWalls: 'Exterior Walls',
+            roofYr: 'Roof Year', mortgagee: 'Mortgagee',
             coFirstName: 'Co-First Name', coLastName: 'Co-Last Name',
-            priorCarrier: 'Prior Carrier', priorYears: 'Prior Years'
+            effectiveDate: 'Effective Date',
+            homePriorCarrier: 'Home Prior Carrier', homePriorYears: 'Home Prior Years',
+            priorCarrier: 'Auto Prior Carrier', priorYears: 'Auto Prior Years'
         };
 
         const rows = Object.entries(extractedData)
