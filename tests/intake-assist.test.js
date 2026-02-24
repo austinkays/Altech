@@ -185,7 +185,7 @@ describe('IntakeAssist preview labels', () => {
         const labelsMatch = source.match(/const labels = \{[\s\S]*?\};/);
         expect(labelsMatch).not.toBeNull();
         expect(labelsMatch[0]).not.toContain('yearBuilt');
-        expect(labelsMatch[0]).not.toContain("stories:");
+        expect(labelsMatch[0]).not.toContain('stories:');
         expect(labelsMatch[0]).not.toContain('roofYear');
         expect(labelsMatch[0]).not.toContain('constructionType');
     });
