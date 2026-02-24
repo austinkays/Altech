@@ -35,7 +35,8 @@ function loadHTML(indexPath) {
                 quickrefTool: 'quickref',
                 accountingTool: 'accounting',
                 ezlynxTool: 'ezlynx',
-                quoteCompareTool: 'quotecompare'
+                quoteCompareTool: 'quotecompare',
+                intakeTool: 'intake-assist'
             };
 
             const pluginName = pluginMap[containerId];
