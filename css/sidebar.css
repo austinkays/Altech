@@ -568,6 +568,10 @@ body.dark-mode .sidebar-footer-btn:hover {
 .app-shell .plugin-container header:has(.header-top:has(> :only-child)):not(:has(.progress-track)) {
     padding: 0;
 }
+/* Hide the floating "← Exit Tool" button — sidebar handles navigation */
+.app-shell #backToHome {
+    display: none !important;
+}
 
 /* ── Mobile Bottom Nav (≤768px) ── */
 .mobile-bottom-nav {
