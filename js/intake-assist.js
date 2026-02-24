@@ -193,10 +193,10 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         const mergedData = Object.assign({}, extractedData);
         if (propertyIntel) {
             if (propertyIntel.yearBuilt && !mergedData.yearBuilt) mergedData.yearBuilt = String(propertyIntel.yearBuilt);
-            if (propertyIntel.sqFt && !mergedData.sqFt) mergedData.sqFt = String(propertyIntel.sqFt);
+            if ((propertyIntel.sqftGross || propertyIntel.sqFt) && !mergedData.sqFt) mergedData.sqFt = String(propertyIntel.sqftGross || propertyIntel.sqFt);
             if (propertyIntel.stories && !mergedData.stories) mergedData.stories = String(propertyIntel.stories);
             if (propertyIntel.constructionType && !mergedData.constructionType) mergedData.constructionType = propertyIntel.constructionType;
-            if (propertyIntel.roofType && !mergedData.constructionType) mergedData.constructionType = propertyIntel.roofType;
+
         }
 
         // Simple text/date fields
@@ -533,7 +533,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
                 // Auto-merge intel data into extractedData where missing
                 if (result.data.yearBuilt && !extractedData.yearBuilt) extractedData.yearBuilt = String(result.data.yearBuilt);
-                if (result.data.sqftGross && !extractedData.sqFt) extractedData.sqFt = String(result.data.sqftGross);
+                if ((result.data.sqftGross || result.data.sqFt) && !extractedData.sqFt) extractedData.sqFt = String(result.data.sqftGross || result.data.sqFt);
                 if (result.data.stories && !extractedData.stories) extractedData.stories = String(result.data.stories);
                 _saveHistory();
                 _renderProgress();
