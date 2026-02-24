@@ -72,6 +72,13 @@ function createPluginTestDOM() {
 
   // Mock fetch to prevent real network calls during init
   window.fetch = jest.fn().mockImplementation((url) => {
+    // Return plugin HTML files from disk (safety net if dataset.loaded is missing)
+    if (typeof url === 'string' && url.startsWith('plugins/')) {
+      const pluginPath = path.resolve(ROOT, url);
+      if (fs.existsSync(pluginPath)) {
+        return Promise.resolve({ ok: true, text: () => Promise.resolve(fs.readFileSync(pluginPath, 'utf8')), json: () => Promise.resolve({}) });
+      }
+    }
     // Return sensible defaults for known endpoints
     if (typeof url === 'string' && url.includes('config?type=keys')) {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({ apiKey: 'test-places-key', geminiKey: 'test-gemini-key' }) });
@@ -479,7 +486,7 @@ describe('API Env Var Trimming', () => {
 
 describe('Hash Router', () => {
   test('hashchange listener is registered', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'js', 'app-boot.js'), 'utf8');
     expect(source).toContain("addEventListener('hashchange'");
   });
 
@@ -489,7 +496,7 @@ describe('Hash Router', () => {
   });
 
   test('hash #home triggers goHome (not navigateTo)', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'js', 'app-boot.js'), 'utf8');
     // In the hashchange handler, 'home' should call goHome, not navigateTo
     expect(source).toMatch(/toolId\s*===\s*['"]home['"]\s*\)\s*\{[\s\S]*?goHome/);
   });
@@ -553,14 +560,14 @@ describe('Script Load Order', () => {
 
   test('crypto-helper.js is loaded before main script block', () => {
     const cryptoPos = source.indexOf('js/crypto-helper.js');
-    const appObjPos = source.indexOf('const App = {');
+    const appInitPos = source.indexOf('js/app-init.js');
     expect(cryptoPos).toBeGreaterThan(-1);
-    expect(appObjPos).toBeGreaterThan(-1);
-    expect(cryptoPos).toBeLessThan(appObjPos);
+    expect(appInitPos).toBeGreaterThan(-1);
+    expect(cryptoPos).toBeLessThan(appInitPos);
   });
 
   test('all JS module scripts are loaded after main script block', () => {
-    const appEndPos = source.indexOf('</script>', source.indexOf('const App = {'));
+    const appEndPos = source.indexOf('js/app-init.js');
     const modules = ['coi.js', 'prospect.js', 'compliance-dashboard.js', 'policy-qa.js',
                      'email-composer.js', 'quick-ref.js', 'accounting-export.js',
                      'ezlynx-tool.js', 'quote-compare.js', 'data-backup.js'];
@@ -650,7 +657,7 @@ describe('localStorage Key Stability', () => {
   let source;
 
   beforeAll(() => {
-    source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    source = fs.readFileSync(path.join(ROOT, 'js', 'app-init.js'), 'utf8');
   });
 
   test('storage key is altech_v6 (not incremented)', () => {
@@ -791,7 +798,7 @@ describe('Progressive Disclosure: Secondary Heating', () => {
   });
 
   test('checking toggle reveals secondary heating (JS handler exists)', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'plugins', 'quoting.html'), 'utf8');
     expect(source).toContain('hasSecondaryHeating');
     expect(source).toContain('secondaryHeatingWrapper');
     expect(source).toContain('disclosure-hidden');
@@ -1056,7 +1063,7 @@ describe('Home Endorsements Layout', () => {
   });
 
   test('earthquake toggle-field change handler is wired (JS source check)', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'plugins', 'quoting.html'), 'utf8');
     expect(source).toContain('earthquakeDetailsWrapper');
     expect(source).toContain('earthquakeCoverage');
     expect(source).toMatch(/data-toggle-field.*earthquakeCoverage/);
@@ -1098,7 +1105,7 @@ describe('About You Grid Layout', () => {
   });
 
   test('firstName appears before prefix in DOM order', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'plugins', 'quoting.html'), 'utf8');
     const firstNamePos = source.indexOf('id="firstName"');
     const prefixPos = source.indexOf('id="prefix"');
     expect(firstNamePos).toBeLessThan(prefixPos);

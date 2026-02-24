@@ -1303,6 +1303,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
     // ── Utilities ──
     toast(msg, duration, useHtml) {
         const t = document.getElementById('toast');
+        if (!t) return;
         // Support 2nd arg as options object: toast('msg', { type: 'error', duration: 4000 })
         let ms = 2500;
         let type = null;
@@ -1510,7 +1511,8 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         if (typeof DashboardWidgets !== 'undefined') {
             DashboardWidgets.hideDashboard(toolName, entry.title || entry.name);
         }
-        document.getElementById('landingPage').style.display = 'none';
+        const lp = document.getElementById('landingPage');
+        if (lp) lp.style.display = 'none';
 
         // Remove quoting-active when switching away from quoting tool
         if (toolName !== 'quoting') {

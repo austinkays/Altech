@@ -5,7 +5,7 @@
  * Bumping CACHE_VERSION invalidates the old cache on the next page load.
  */
 
-const CACHE_VERSION = 'altech-v5';
+const CACHE_VERSION = 'altech-v6';
 const APP_SHELL = [
     '/',
     '/index.html',
@@ -24,6 +24,8 @@ const APP_SHELL = [
     '/css/quote-compare.css',
     '/css/reminders.css',
     '/css/vin-decoder.css',
+    '/js/app-init.js',
+    '/js/app-boot.js',
     '/js/app-core.js',
     '/js/app-scan.js',
     '/js/app-export.js',
@@ -64,6 +66,7 @@ const PLUGIN_FILES = [
     '/plugins/hawksoft.html',
     '/plugins/prospect.html',
     '/plugins/qna.html',
+    '/plugins/quoting.html',
     '/plugins/quickref.html',
     '/plugins/quotecompare.html',
     '/plugins/reminders.html',

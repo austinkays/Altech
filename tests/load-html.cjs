@@ -27,6 +27,7 @@ function loadHTML(indexPath) {
         (match, openTag, containerId, closeTag) => {
             // Map container IDs to plugin HTML file names
             const pluginMap = {
+                quotingTool: 'quoting',
                 coiTool: 'coi',
                 prospectTool: 'prospect',
                 complianceTool: 'compliance',
@@ -35,7 +36,11 @@ function loadHTML(indexPath) {
                 quickrefTool: 'quickref',
                 accountingTool: 'accounting',
                 ezlynxTool: 'ezlynx',
-                quoteCompareTool: 'quotecompare'
+                quoteCompareTool: 'quotecompare',
+                hawksoftTool: 'hawksoft',
+                remindersTool: 'reminders',
+                intakeTool: 'intake-assist',
+                vinDecoderTool: 'vin-decoder'
             };
 
             const pluginName = pluginMap[containerId];
@@ -48,7 +53,9 @@ function loadHTML(indexPath) {
             }
 
             const pluginContent = fs.readFileSync(pluginPath, 'utf8');
-            return `${openTag}\n${pluginContent}\n${closeTag}`;
+            // Mark as loaded so navigateTo() won't try to re-fetch
+            const markedOpenTag = openTag.replace('>', ' data-loaded="true">');
+            return `${markedOpenTag}\n${pluginContent}\n${closeTag}`;
         }
     );
 

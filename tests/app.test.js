@@ -95,6 +95,22 @@ function createTestDOM() {
     window.Auth = { user: { uid: 'test-user', email: 'test@test.com' }, showModal: jest.fn() };
   }
 
+  // Mock fetch for plugin HTML loading (load-html.cjs already inlined HTML, but
+  // navigateTo may still call fetch if dataset.loaded is missing for some reason)
+  window.fetch = jest.fn((url) => {
+    if (typeof url === 'string' && url.startsWith('plugins/')) {
+      const pluginPath = path.resolve(__dirname, '..', url);
+      if (fs.existsSync(pluginPath)) {
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve(fs.readFileSync(pluginPath, 'utf8')),
+          json: () => Promise.resolve({})
+        });
+      }
+    }
+    return Promise.resolve({ ok: true, text: () => Promise.resolve(''), json: () => Promise.resolve({}) });
+  });
+
   return { dom, window, document: window.document, App: window.App };
 }
 

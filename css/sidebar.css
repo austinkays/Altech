@@ -20,7 +20,7 @@
     display: grid;
     grid-template-columns: var(--sidebar-width) 1fr;
     min-height: 100dvh;
-    transition: grid-template-columns 0.3s var(--transition-smooth);
+    /* No transition on grid-template-columns — it causes expensive layout thrashing */
 }
 body.sidebar-collapsed .app-shell {
     grid-template-columns: var(--sidebar-collapsed-width) 1fr;
@@ -33,14 +33,13 @@ body.sidebar-collapsed .app-shell {
     height: 100dvh;
     width: var(--sidebar-width);
     background: var(--bg-sidebar);
-    backdrop-filter: blur(40px) saturate(1.4);
-    -webkit-backdrop-filter: blur(40px) saturate(1.4);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: width 0.3s var(--transition-smooth);
     z-index: 100;
+    contain: layout style;
+    will-change: width;
 }
 body.sidebar-collapsed .app-sidebar {
     width: var(--sidebar-collapsed-width);
