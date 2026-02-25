@@ -60,6 +60,14 @@ window.Reminders = (() => {
         return new Date(y, m - 1, d);
     }
 
+    /** Format a Date as YYYY-MM-DD in LOCAL time (never UTC) */
+    function _toLocalDateStr(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
     function _today() {
         const d = new Date();
         d.setHours(0, 0, 0, 0);
@@ -113,7 +121,7 @@ window.Reminders = (() => {
             else if (freq === 'monthly') next.setMonth(next.getMonth() + 1);
             else break; // 'once' — don't advance
         }
-        return next.toISOString().split('T')[0];
+        return _toLocalDateStr(next);
     }
 
     // Returns the most recent Monday at midnight (start of current work week)
@@ -182,7 +190,7 @@ window.Reminders = (() => {
             title: title.trim(),
             notes: options.notes || '',
             frequency: options.frequency || 'weekly',
-            dueDate: options.dueDate || nextWeek.toISOString().split('T')[0],
+            dueDate: options.dueDate || _toLocalDateStr(nextWeek),
             category: options.category || 'Admin',
             priority: options.priority || 'normal', // low, normal, high
             completions: [],
@@ -430,7 +438,7 @@ window.Reminders = (() => {
         const daysUntilMonday = (8 - today.getDay()) % 7 || 7;
         const nextMonday = new Date(today);
         nextMonday.setDate(today.getDate() + daysUntilMonday);
-        document.getElementById('remEditDueDate').value = nextMonday.toISOString().split('T')[0];
+        document.getElementById('remEditDueDate').value = _toLocalDateStr(nextMonday);
 
         _renderCategoryOptions('remEditCategory', 'Admin');
         document.getElementById('remEditTitle').focus();
