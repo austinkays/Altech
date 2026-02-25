@@ -44,27 +44,30 @@ window.IntakeAssist = (() => {
 GATHER FIELDS IN THIS ORDER:
 
 PHASE 1 — IDENTITY & COVERAGE TYPE:
-- Full name (first, last, prefix: Mr./Ms./Mrs./Dr.)
+- Full name (first, middle name/initial, last, prefix: Mr./Ms./Mrs./Dr.)
 - Date of birth (YYYY-MM-DD), gender, marital status
 - Email, phone
 - Address (street, city, state 2-letter, zip, county)
+- Education level, occupation, industry
 - Quote type: "home", "auto", or "both"
 - Desired effective date (when coverage should start)
 
 PHASE 2 — COVERAGE SELECTIONS (critical for rating!):
-For HOME quotes: occupancy type (Owner Occupied/Tenant), dwelling type (One Family/Condo/Townhome/Mobile Home), home policy type (HO3/HO5/HO4/HO6), estimated dwelling value (Coverage A dollar amount), personal liability limit ($100K-$500K), home deductible ($500-$5,000)
-For AUTO quotes: desired liability limits (e.g. 100/300), property damage limit, comp deductible, collision deductible, uninsured motorist limits
+For HOME quotes: occupancy type (Owner Occupied/Tenant), dwelling usage (Primary/Secondary/Seasonal), dwelling type (One Family/Condo/Townhome/Mobile Home), home policy type (HO3/HO5/HO4/HO6), estimated dwelling value (Coverage A dollar amount), personal liability limit ($100K-$500K), home medical payments ($1K-$5K), home deductible ($500-$5,000), theft deductible, wind/hail deductible
+For AUTO quotes: desired liability limits (e.g. 100/300), property damage limit, comp deductible, collision deductible, uninsured motorist limits, UM property damage limit, auto medical payments
 
 PHASE 3 — PROPERTY & VEHICLE DETAILS:
-For HOME: year built, sqft, stories, construction style, exterior walls, foundation type, roof type (Composition Shingle/Metal/Tile/Slate/Wood Shake), roof year, heating type, pool (Yes/No), trampoline (Yes/No), mortgage company
-For AUTO: each vehicle (year, make, model, VIN), vehicle use (Commute/Pleasure/Business), annual miles, ownership (Owned/Leased/Lien). Each driver: name, DOB, gender (M/F), marital status, relationship (Self/Spouse/Child/Other), license state, license #, DL status (Valid/Permit/Expired/Suspended/Not Licensed), age first licensed, occupation industry, education level
+For HOME: year built, sqft, stories, construction style, exterior walls, foundation type, roof type (Composition Shingle/Metal/Tile/Slate/Wood Shake), roof shape/design (Gable/Hip/Flat/Gambrel/Mansard), roof year, heating type, cooling type (Central Air/Window Unit/None), bedrooms, full bathrooms, half bathrooms, lot size (acres), garage type (Attached/Detached/Carport/None) and number of spaces, number of fireplaces, pool (Yes/No), trampoline (Yes/No), burglar alarm (Yes/No/Local/Central), smoke detector (Yes/No), distance to fire hydrant (feet), number of occupants, mortgage company
+For AUTO: each vehicle (year, make, model, VIN), vehicle use (Commute/Pleasure/Business), annual miles, ownership (Owned/Leased/Lien). Each driver: name, DOB, gender (M/F), marital status, relationship (Self/Spouse/Child/Other), license state, license #, DL status (Valid/Permit/Expired/Suspended/Not Licensed), age first licensed, occupation, industry, education level
 
 PHASE 4 — HISTORY & WRAP-UP:
-- Prior carrier, years with carrier, prior liability limits, years continuous coverage
+- Years at current address
+- Prior carrier, years with carrier, prior policy term (6 Month/12 Month), prior liability limits, years continuous coverage
 - Any accidents or violations in last 5 years (count)
-- Co-applicant info if any (name, DOB, gender, relationship)
-- Home prior carrier + years if different from auto
+- Co-applicant info if any (first name, last name, DOB, gender, relationship)
+- Home prior carrier, years, prior policy term, prior policy expiration date (if different from auto)
 - Residence type for auto (Home Owned/Apartment/Condo)
+- Number of residents/occupants in household
 
 CRITICAL RULES:
 1. NEVER ask for information you can deduce or look up. If you know the county for a city (e.g. Portland OR → Multnomah County, Phoenix AZ → Maricopa County), FILL IT IN automatically. Same for zip codes, state abbreviations, and any publicly known facts.
@@ -83,7 +86,7 @@ Keep replies SHORT — 1-3 sentences max, plus your JSON block. No paragraphs. N
 
 IMPORTANT — AFTER EVERY REPLY, append a JSON code block containing ALL fields collected SO FAR (not just what was gathered in this turn). This allows real-time progress tracking. Use EXACTLY these keys:
 \`\`\`json
-{"firstName":"","lastName":"","prefix":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","email":"","phone":"","addrStreet":"","addrCity":"","addrState":"XX","addrZip":"","county":"","qType":"home|auto|both","effectiveDate":"YYYY-MM-DD","policyTerm":"6 Month|12 Month","occupancyType":"Owner Occupied|Tenant","dwellingUsage":"Primary|Secondary|Seasonal","dwellingType":"One Family|Condo|Townhome|Mobile Home","homePolicyType":"HO3|HO5|HO4|HO6","dwellingCoverage":"","personalLiability":"","homeDeductible":"","windDeductible":"","yearBuilt":"","sqFt":"","stories":"","constructionStyle":"","exteriorWalls":"","foundation":"","roofType":"","roofYear":"","heatingType":"","pool":"Yes|No","trampoline":"Yes|No","mortgagee":"","liabilityLimits":"","pdLimit":"","compDeductible":"","autoDeductible":"","umLimits":"","residenceIs":"","vehicles":[{"year":"","make":"","model":"","vin":"","use":"Commute|Pleasure|Business","annualMiles":"","ownershipType":"Owned|Leased|Lien"}],"drivers":[{"firstName":"","lastName":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","occupation":"","education":"No High School|High School|Some College|Associates|Bachelors|Masters|Doctorate","dlStatus":"Valid|Permit|Expired|Suspended|Not Licensed","relationship":"Self|Spouse|Child|Other","dlState":"","dlNum":"","ageLicensed":"16|17|18|19|20|21+"}],"coFirstName":"","coLastName":"","priorCarrier":"","priorYears":"","priorLiabilityLimits":"","continuousCoverage":"","homePriorCarrier":"","homePriorYears":"","accidents":"0","violations":"0"}
+{"firstName":"","middleName":"","lastName":"","prefix":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","email":"","phone":"","addrStreet":"","addrCity":"","addrState":"XX","addrZip":"","county":"","education":"No High School|High School|Some College|Associates|Bachelors|Masters|Doctorate","occupation":"","industry":"","yearsAtAddress":"","qType":"home|auto|both","effectiveDate":"YYYY-MM-DD","policyTerm":"6 Month|12 Month","occupancyType":"Owner Occupied|Tenant","dwellingUsage":"Primary|Secondary|Seasonal","dwellingType":"One Family|Condo|Townhome|Mobile Home","homePolicyType":"HO3|HO5|HO4|HO6","dwellingCoverage":"","personalLiability":"","medicalPayments":"","homeDeductible":"","theftDeductible":"","windDeductible":"","yearBuilt":"","sqFt":"","stories":"","constructionStyle":"","exteriorWalls":"","foundation":"","roofType":"","roofShape":"Gable|Hip|Flat|Gambrel|Mansard","roofYear":"","heatingType":"","cooling":"Central Air|Window Unit|None","bedrooms":"","fullBaths":"","halfBaths":"","lotSize":"","garageType":"Attached|Detached|Carport|None","garageSpaces":"","numFireplaces":"","numOccupants":"","pool":"Yes|No","trampoline":"Yes|No","burglarAlarm":"Yes|No|Local|Central","smokeDetector":"Yes|No","fireHydrantFeet":"","mortgagee":"","liabilityLimits":"","pdLimit":"","compDeductible":"","autoDeductible":"","medPayments":"","umLimits":"","umpdLimit":"","residenceIs":"","vehicles":[{"year":"","make":"","model":"","vin":"","use":"Commute|Pleasure|Business","annualMiles":"","ownershipType":"Owned|Leased|Lien"}],"drivers":[{"firstName":"","lastName":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","occupation":"","industry":"","education":"No High School|High School|Some College|Associates|Bachelors|Masters|Doctorate","dlStatus":"Valid|Permit|Expired|Suspended|Not Licensed","relationship":"Self|Spouse|Child|Other","dlState":"","dlNum":"","ageLicensed":"16|17|18|19|20|21+"}],"coFirstName":"","coLastName":"","coDob":"","coGender":"M|F","coRelationship":"Spouse|Domestic Partner|Other","priorCarrier":"","priorYears":"","priorPolicyTerm":"6 Month|12 Month","priorLiabilityLimits":"","continuousCoverage":"","homePriorCarrier":"","homePriorYears":"","homePriorPolicyTerm":"6 Month|12 Month","homePriorExp":"YYYY-MM-DD","accidents":"0","violations":"0"}
 \`\`\`
 
 Only include keys for which you have data. Omit empty fields. Use 2-letter state codes. Format dates as YYYY-MM-DD. Include this JSON block in EVERY response, even partial ones — this is how the form tracks progress in real time.`;
@@ -323,11 +326,12 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         // Simple text/date fields (AI key → auto-mapped to form ID)
         const simpleFields = [
-            'firstName', 'lastName', 'dob', 'email', 'phone',
+            'firstName', 'lastName', 'middleName', 'dob', 'email', 'phone',
             'addrStreet', 'addrCity', 'addrZip', 'county',
             'yearBuilt', 'sqFt', 'stories', 'constructionType', 'constructionStyle',
-            'roofYear', 'mortgagee', 'coFirstName', 'coLastName',
-            'effectiveDate', 'dwellingCoverage',
+            'roofYear', 'mortgagee', 'coFirstName', 'coLastName', 'coDob',
+            'effectiveDate', 'dwellingCoverage', 'homePriorExp',
+            'lotSize', 'bedrooms',
         ];
         for (const key of simpleFields) {
             if (extractedData[key]) {
@@ -345,14 +349,22 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         // Select/dropdown fields (set value + dispatch change)
         const selectFields = [
             'prefix', 'gender', 'maritalStatus',
+            'education', 'occupation', 'industry', 'yearsAtAddress',
             'occupancyType', 'dwellingUsage', 'dwellingType', 'homePolicyType',
-            'personalLiability', 'homeDeductible', 'windDeductible',
-            'exteriorWalls', 'foundation', 'roofType', 'heatingType',
+            'personalLiability', 'homeDeductible', 'windDeductible', 'theftDeductible',
+            'medicalPayments',
+            'exteriorWalls', 'foundation', 'roofType', 'roofShape',
+            'heatingType', 'cooling', 'numStories',
             'pool', 'trampoline',
+            'garageType', 'garageSpaces', 'numFireplaces', 'numOccupants',
+            'fullBaths', 'halfBaths', 'fireHydrantFeet',
+            'burglarAlarm', 'smokeDetector',
             'liabilityLimits', 'pdLimit', 'compDeductible', 'autoDeductible',
-            'umLimits', 'residenceIs', 'policyTerm',
+            'medPayments', 'umpdLimit', 'umLimits', 'residenceIs',
+            'policyTerm', 'priorPolicyTerm',
             'priorLiabilityLimits', 'continuousCoverage',
-            'homePriorCarrier', 'homePriorYears',
+            'homePriorCarrier', 'homePriorYears', 'homePriorPolicyTerm',
+            'coGender', 'coRelationship',
         ];
         for (const key of selectFields) {
             if (extractedData[key]) {
@@ -487,6 +499,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                         maritalStatus: d.maritalStatus || '',
                         relationship: d.relationship || 'Self',
                         occupation: d.occupation || '',
+                        industry: d.industry || '',
                         education: d.education || '',
                         dlStatus: d.dlStatus || '',
                         dlState: d.dlState || (extractedData.addrState || ''),
@@ -664,28 +677,40 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         if (!container) return;
 
         const labels = {
-            firstName: 'First Name', lastName: 'Last Name', prefix: 'Prefix',
+            firstName: 'First Name', middleName: 'Middle Name', lastName: 'Last Name', prefix: 'Prefix',
             dob: 'Date of Birth', gender: 'Gender', maritalStatus: 'Marital Status',
             email: 'Email', phone: 'Phone',
             addrStreet: 'Street', addrCity: 'City', addrState: 'State', addrZip: 'Zip', county: 'County',
-            education: 'Education', occupation: 'Occupation',
+            education: 'Education', occupation: 'Occupation', industry: 'Industry',
+            yearsAtAddress: 'Years at Address',
             qType: 'Quote Type', effectiveDate: 'Effective Date', policyTerm: 'Policy Term',
             occupancyType: 'Occupancy', dwellingUsage: 'Dwelling Usage', dwellingType: 'Dwelling Type',
             homePolicyType: 'Home Policy', dwellingCoverage: 'Dwelling Coverage',
             personalLiability: 'Personal Liability', homeDeductible: 'Home Deductible',
-            windDeductible: 'Wind Deductible',
+            windDeductible: 'Wind Deductible', theftDeductible: 'Theft Deductible',
+            medicalPayments: 'Home Med Pay',
             yearBuilt: 'Year Built', sqFt: 'Sq Ft', stories: 'Stories',
             constructionStyle: 'Construction', constructionType: 'Construction',
             exteriorWalls: 'Exterior Walls', foundation: 'Foundation',
-            roofType: 'Roof Type', roofYear: 'Roof Year', heatingType: 'Heating',
+            roofType: 'Roof Type', roofShape: 'Roof Shape', roofYear: 'Roof Year', heatingType: 'Heating',
+            cooling: 'Cooling', bedrooms: 'Bedrooms', fullBaths: 'Full Baths', halfBaths: 'Half Baths',
+            lotSize: 'Lot Size', garageType: 'Garage Type', garageSpaces: 'Garage Spaces',
+            numFireplaces: 'Fireplaces', numOccupants: 'Occupants',
+            burglarAlarm: 'Burglar Alarm', smokeDetector: 'Smoke Detector',
+            fireHydrantFeet: 'Hydrant Dist.',
             pool: 'Pool', trampoline: 'Trampoline', mortgagee: 'Mortgagee',
             liabilityLimits: 'Liability Limits', pdLimit: 'Property Damage',
             compDeductible: 'Comp Deductible', autoDeductible: 'Collision Deductible',
+            medPayments: 'Auto Med Pay', umpdLimit: 'UMPD Limit',
             umLimits: 'UM/UIM Limits', residenceIs: 'Residence Type',
             coFirstName: 'Co-Applicant First', coLastName: 'Co-Applicant Last',
+            coDob: 'Co-Applicant DOB', coGender: 'Co-Applicant Gender',
+            coRelationship: 'Co-Applicant Relation',
             priorCarrier: 'Prior Carrier', priorYears: 'Prior Years',
+            priorPolicyTerm: 'Prior Policy Term',
             priorLiabilityLimits: 'Prior Limits', continuousCoverage: 'Continuous Coverage',
             homePriorCarrier: 'Home Prior Carrier', homePriorYears: 'Home Prior Years',
+            homePriorPolicyTerm: 'Home Prior Term', homePriorExp: 'Home Prior Exp',
             accidents: 'Accidents', violations: 'Violations'
         };
 
@@ -978,31 +1003,46 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         }
 
         // AI extracted key → App.data form field key
+        // ONLY include remappings where the AI JSON key differs from the form field ID
         const AI_TO_APP = {
-            addrStreet: 'address', addrCity: 'city', addrState: 'state', addrZip: 'zip',
-            yearBuilt: 'yrBuilt', stories: 'numStories',
-            constructionStyle: 'constructionType',
-            dwellingCoverage: 'dwelling', personalLiability: 'liability',
-            homeDeductible: 'deductibleAOP', windDeductible: 'deductibleWind',
-            liabilityLimits: 'bodInjury', pdLimit: 'propDamage',
-            compDeductible: 'compDed', autoDeductible: 'collDed',
-            umLimits: 'umUim', roofYear: 'roofYr',
-            coFirstName: 'coApplicantFirst', coLastName: 'coApplicantLast',
+            yearBuilt: 'yrBuilt',
+            stories: 'numStories',
+            roofYear: 'roofYr',
         };
 
-        // Fields with identical names in AI and App.data
+        // Fields where AI JSON key matches the App.data / form field key directly
         const DIRECT = [
-            'firstName', 'lastName', 'dob', 'gender', 'maritalStatus',
+            // Personal
+            'firstName', 'lastName', 'middleName', 'dob', 'gender', 'maritalStatus',
             'email', 'phone', 'county',
-            'dwellingType', 'dwellingUsage', 'occupancy', 'occupancyType',
-            'sqFt', 'constructionType', 'exteriorWalls', 'foundation',
-            'roofType', 'roofShape', 'heatingType', 'coolingType',
-            'pool', 'trampoline', 'garageSpaces',
+            'education', 'occupation', 'industry',
+            // Address (AI key = form field ID)
+            'addrStreet', 'addrCity', 'addrState', 'addrZip',
+            // Home Details
+            'dwellingType', 'dwellingUsage', 'occupancyType',
+            'sqFt', 'constructionStyle', 'exteriorWalls', 'foundation',
+            'roofType', 'roofShape', 'heatingType', 'cooling',
+            'pool', 'trampoline', 'garageType', 'garageSpaces',
             'fireAlarm', 'sprinklers', 'protectionClass',
-            'medPay', 'rental', 'towing',
-            'priorCarrier', 'priorYears', 'priorLapse',
-            'effectiveDate', 'policyTerm', 'residenceIs',
-            'homePolicyType', 'accidents', 'violations',
+            'burglarAlarm', 'smokeDetector',
+            'bedrooms', 'fullBaths', 'halfBaths', 'lotSize',
+            'numOccupants', 'numFireplaces', 'fireHydrantFeet',
+            // Home Coverage (AI key = form field ID)
+            'homePolicyType', 'dwellingCoverage', 'personalLiability',
+            'homeDeductible', 'windDeductible', 'theftDeductible',
+            'medicalPayments', 'mortgagee',
+            // Auto Coverage (AI key = form field ID)
+            'liabilityLimits', 'pdLimit', 'compDeductible', 'autoDeductible',
+            'medPayments', 'umpdLimit', 'umLimits', 'residenceIs',
+            // Policy & History
+            'effectiveDate', 'policyTerm', 'priorPolicyTerm',
+            'priorCarrier', 'priorYears', 'priorLiabilityLimits', 'continuousCoverage',
+            'homePriorCarrier', 'homePriorPolicyTerm', 'homePriorYears', 'homePriorExp',
+            'yearsAtAddress',
+            // Co-applicant (AI key = form field ID)
+            'coFirstName', 'coLastName', 'coDob', 'coGender', 'coRelationship',
+            // History
+            'accidents', 'violations',
         ];
 
         let changed = false;
@@ -1072,6 +1112,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                     if (d.maritalStatus) match.maritalStatus = d.maritalStatus;
                     if (d.relationship) match.relationship = d.relationship;
                     if (d.occupation) match.occupation = d.occupation;
+                    if (d.industry) match.industry = d.industry;
                     if (d.education) match.education = d.education;
                     if (d.dlStatus) match.dlStatus = d.dlStatus;
                     if (d.dlState) match.dlState = d.dlState;
@@ -1086,7 +1127,8 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                         dob: d.dob || '', gender: _normalizeGender(d.gender),
                         maritalStatus: d.maritalStatus || '',
                         relationship: d.relationship || 'Self',
-                        occupation: d.occupation || '', education: d.education || '',
+                        occupation: d.occupation || '', industry: d.industry || '',
+                        education: d.education || '',
                         dlStatus: d.dlStatus || '', dlState: d.dlState || (extractedData.addrState || ''),
                         dlNum: d.dlNum || '', ageLicensed: d.ageLicensed ? String(d.ageLicensed) : '',
                     };
@@ -1142,16 +1184,16 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
     /** All trackable field categories with their keys and labels */
     const FIELD_GROUPS = [
-        { label: 'Client', icon: '👤', keys: ['firstName', 'lastName', 'dob', 'gender', 'maritalStatus'] },
+        { label: 'Client', icon: '👤', keys: ['firstName', 'lastName', 'dob', 'gender', 'maritalStatus', 'education', 'occupation'] },
         { label: 'Contact', icon: '📞', keys: ['phone', 'email'] },
         { label: 'Address', icon: '📍', keys: ['addrStreet', 'addrCity', 'addrState', 'addrZip'] },
         { label: 'Policy', icon: '📋', keys: ['qType', 'effectiveDate'] },
-        { label: 'Home Coverage', icon: '🏠', keys: ['homePolicyType', 'dwellingCoverage', 'personalLiability', 'homeDeductible', 'occupancyType'] },
-        { label: 'Home Details', icon: '🏗️', keys: ['yearBuilt', 'sqFt', 'stories', 'roofType', 'roofYear', 'foundation'] },
-        { label: 'Auto Coverage', icon: '📑', keys: ['liabilityLimits', 'compDeductible', 'autoDeductible'] },
+        { label: 'Home Coverage', icon: '🏠', keys: ['homePolicyType', 'dwellingCoverage', 'personalLiability', 'homeDeductible', 'medicalPayments', 'theftDeductible', 'occupancyType'] },
+        { label: 'Home Details', icon: '🏗️', keys: ['yearBuilt', 'sqFt', 'stories', 'roofType', 'roofShape', 'roofYear', 'foundation', 'cooling', 'bedrooms', 'garageType', 'lotSize'] },
+        { label: 'Auto Coverage', icon: '📑', keys: ['liabilityLimits', 'compDeductible', 'autoDeductible', 'medPayments', 'umpdLimit', 'pdLimit'] },
         { label: 'Vehicles', icon: '🚗', keys: ['vehicles'] },
         { label: 'Drivers', icon: '🪪', keys: ['drivers'] },
-        { label: 'History', icon: '📁', keys: ['priorCarrier', 'priorYears', 'accidents', 'violations'] },
+        { label: 'History', icon: '📁', keys: ['priorCarrier', 'priorYears', 'yearsAtAddress', 'continuousCoverage', 'accidents', 'violations'] },
     ];
 
     /** AI-response triggers — when the AI asks about these topics, show quick-reply chips */
