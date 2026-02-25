@@ -35,6 +35,7 @@ window.IntakeAssist = (() => {
     let _docInputWired = false;
     let initialized = false;
     let _addressEnrichCache = {};  // Cache for county/zip lookups by city,state
+    let _completionShown = false;  // Whether completion message has been shown
 
     // ── Base System Prompt ────────────────────────────────────────
 
@@ -94,6 +95,56 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         let prompt = BASE_SYSTEM_PROMPT;
 
         prompt += '\n\nADDITIONAL INTELLIGENCE INSTRUCTIONS:\n';
+
+        // Field state tracking — guide AI on what to ask next
+        const _collected = [];
+        const _missing = [];
+        const _fieldState = {
+            'full name': !!(extractedData.firstName && extractedData.lastName),
+            'date of birth': !!extractedData.dob,
+            'gender': !!extractedData.gender,
+            'marital status': !!extractedData.maritalStatus,
+            'email': !!extractedData.email,
+            'phone': !!extractedData.phone,
+            'full address': !!(extractedData.addrStreet && extractedData.addrCity && extractedData.addrState),
+            'quote type': !!extractedData.qType,
+            'effective date': !!extractedData.effectiveDate,
+        };
+        if (extractedData.qType === 'home' || extractedData.qType === 'both') {
+            Object.assign(_fieldState, {
+                'dwelling type': !!extractedData.dwellingType,
+                'dwelling coverage amount': !!extractedData.dwellingCoverage,
+                'home deductible': !!extractedData.homeDeductible,
+                'year built': !!extractedData.yearBuilt,
+                'square footage': !!extractedData.sqFt,
+                'roof type': !!extractedData.roofType,
+                'construction style': !!(extractedData.constructionStyle || extractedData.constructionType),
+            });
+        }
+        if (extractedData.qType === 'auto' || extractedData.qType === 'both') {
+            Object.assign(_fieldState, {
+                'liability limits': !!extractedData.liabilityLimits,
+                'comp/collision deductibles': !!(extractedData.compDeductible && extractedData.autoDeductible),
+                'at least one vehicle': !!(Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0 && (extractedData.vehicles[0].year || extractedData.vehicles[0].vin)),
+                'at least one driver': !!(Array.isArray(extractedData.drivers) && extractedData.drivers.length > 0 && extractedData.drivers[0].firstName),
+            });
+        }
+        for (const [field, has] of Object.entries(_fieldState)) {
+            if (has) _collected.push(field);
+            else _missing.push(field);
+        }
+        if (_collected.length > 0) {
+            prompt += 'FIELDS ALREADY COLLECTED (do NOT re-ask): ' + _collected.join(', ') + '.\n';
+        }
+        if (_missing.length > 0) {
+            prompt += 'FIELDS STILL NEEDED (ask about the first one): ' + _missing.join(', ') + '.\n';
+        }
+        if (extractedData.dob) {
+            const _age = Math.floor((Date.now() - new Date(extractedData.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+            if (_age > 0 && _age < 120) {
+                prompt += 'DERIVED: Client is approximately ' + _age + ' years old (from DOB ' + extractedData.dob + '). Do NOT ask for age.\n';
+            }
+        }
 
         // 5.1 Address auto-detect
         prompt += 'ADDRESS AUTO-DETECT: If the user\'s message contains a full street address (number + street name + city OR zip), extract it immediately and confirm back — do not ask for address again.\n';
@@ -212,6 +263,10 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                 extractedData = Object.assign(extractedData, extracted);
                 _saveHistory();
                 _updateIntelPanel();
+                _syncToAppData();
+                if (_checkCompletion() && !_completionShown) {
+                    _showCompletionMessage();
+                }
             }
 
             // Behind-the-scenes research: auto-resolve county/zip from city+state
@@ -465,6 +520,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         _satelliteScanDone = false;
         _propertyIntelFetching = false;
         _addressEnrichCache = {};
+        _completionShown = false;
         _saveHistory();
 
         const msgs = document.getElementById('iaChatMessages');
@@ -865,6 +921,128 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     function _toast(msg) {
         if (typeof App !== 'undefined' && typeof App.toast === 'function') {
             App.toast(msg);
+        }
+    }
+
+    /** Sync extracted AI data to App.data in real-time (not just at populate time) */
+    function _syncToAppData() {
+        if (typeof App === 'undefined' || !App.data) return;
+
+        // AI extracted key → App.data form field key
+        const AI_TO_APP = {
+            addrStreet: 'address', addrCity: 'city', addrState: 'state', addrZip: 'zip',
+            yearBuilt: 'yrBuilt', stories: 'numStories',
+            constructionStyle: 'constructionType',
+            dwellingCoverage: 'dwelling', personalLiability: 'liability',
+            homeDeductible: 'deductibleAOP', windDeductible: 'deductibleWind',
+            liabilityLimits: 'bodInjury', pdLimit: 'propDamage',
+            compDeductible: 'compDed', autoDeductible: 'collDed',
+            umLimits: 'umUim',
+            coFirstName: 'coApplicantFirst', coLastName: 'coApplicantLast',
+        };
+
+        // Fields with identical names in AI and App.data
+        const DIRECT = [
+            'firstName', 'lastName', 'dob', 'gender', 'maritalStatus',
+            'email', 'phone', 'county',
+            'dwellingType', 'dwellingUsage', 'occupancy',
+            'sqFt', 'constructionType', 'exteriorWalls', 'foundation',
+            'roofType', 'roofShape', 'heatingType', 'coolingType',
+            'pool', 'trampoline', 'garageSpaces',
+            'fireAlarm', 'sprinklers', 'protectionClass',
+            'medPay', 'rental', 'towing',
+            'priorCarrier', 'priorYears', 'priorLapse',
+        ];
+
+        let changed = false;
+
+        for (const [aiKey, val] of Object.entries(extractedData)) {
+            if (!val || aiKey === 'vehicles' || aiKey === 'drivers') continue;
+            const formKey = AI_TO_APP[aiKey] || (DIRECT.includes(aiKey) ? aiKey : null);
+            if (formKey && App.data[formKey] !== String(val)) {
+                App.data[formKey] = String(val);
+                changed = true;
+            }
+        }
+
+        // Sync qType
+        if (extractedData.qType && App.data.qType !== extractedData.qType) {
+            App.data.qType = extractedData.qType;
+            changed = true;
+        }
+
+        // Sync vehicles into App.vehicles
+        if (Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0 && Array.isArray(App.vehicles)) {
+            for (const v of extractedData.vehicles) {
+                if (!v.vin && !v.year && !v.make) continue;
+                const match = App.vehicles.find(ev =>
+                    (v.vin && ev.vin === v.vin) ||
+                    (v.year && v.make && ev.year === v.year && ev.make === v.make)
+                );
+                if (match) {
+                    if (v.vin) match.vin = v.vin;
+                    if (v.year) match.year = v.year;
+                    if (v.make) match.make = v.make;
+                    if (v.model) match.model = v.model;
+                    if (v.use) match.use = v.use;
+                    if (v.annualMiles) match.miles = v.annualMiles;
+                    if (v.ownershipType) match.ownershipType = v.ownershipType;
+                    changed = true;
+                } else {
+                    const id = 'vehicle_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+                    const emptyIdx = App.vehicles.findIndex(ev => !ev.vin && !ev.year && !ev.make && !ev.model);
+                    const vehicle = {
+                        id, vin: v.vin || '', year: v.year || '', make: v.make || '',
+                        model: v.model || '', use: v.use || 'Commute',
+                        miles: v.annualMiles || '12000', ownershipType: v.ownershipType || 'Owned',
+                        primaryDriver: ''
+                    };
+                    if (emptyIdx !== -1) App.vehicles[emptyIdx] = vehicle;
+                    else App.vehicles.push(vehicle);
+                    changed = true;
+                }
+            }
+        }
+
+        // Sync drivers into App.drivers
+        if (Array.isArray(extractedData.drivers) && extractedData.drivers.length > 0 && Array.isArray(App.drivers)) {
+            for (const d of extractedData.drivers) {
+                if (!d.firstName && !d.lastName && !d.dob) continue;
+                const match = App.drivers.find(ed =>
+                    ed.firstName === d.firstName && ed.lastName === d.lastName
+                );
+                if (match) {
+                    if (d.dob) match.dob = d.dob;
+                    if (d.gender) match.gender = d.gender;
+                    if (d.relationship) match.relationship = d.relationship;
+                    if (d.dlState) match.dlState = d.dlState;
+                    if (d.dlNum) match.dlNum = d.dlNum;
+                    if (d.ageLicensed) match.ageLicensed = d.ageLicensed;
+                    changed = true;
+                } else {
+                    const id = 'driver_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+                    const emptyIdx = App.drivers.findIndex(ed => !ed.firstName && !ed.lastName && !ed.dob);
+                    const driver = {
+                        id, firstName: d.firstName || '', lastName: d.lastName || '',
+                        dob: d.dob || '', gender: d.gender || '', maritalStatus: d.maritalStatus || '',
+                        relationship: d.relationship || 'Self',
+                        dlState: d.dlState || (extractedData.addrState || ''),
+                        dlNum: d.dlNum || '', ageLicensed: d.ageLicensed || '',
+                        occupation: '', education: ''
+                    };
+                    if (emptyIdx !== -1) App.drivers[emptyIdx] = driver;
+                    else App.drivers.push(driver);
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed) {
+            if (typeof App.save === 'function') App.save();
+            if (typeof App.saveDriversVehicles === 'function') App.saveDriversVehicles();
+            if (typeof CloudSync !== 'undefined' && typeof CloudSync.schedulePush === 'function') {
+                CloudSync.schedulePush();
+            }
         }
     }
 
@@ -1954,6 +2132,147 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         }
     }
 
+    // ── Completion Detection & Handoff ──────────────────────
+
+    /** Check if all critical fields are collected for the current quote type */
+    function _checkCompletion() {
+        const qType = extractedData.qType;
+        if (!qType) return false;
+
+        const coreFields = ['firstName', 'lastName', 'dob', 'addrStreet', 'addrCity', 'addrState'];
+        for (const f of coreFields) {
+            if (!extractedData[f]) return false;
+        }
+
+        if (qType === 'home' || qType === 'both') {
+            const homeFields = ['yearBuilt', 'sqFt', 'roofType'];
+            for (const f of homeFields) {
+                if (!extractedData[f]) return false;
+            }
+        }
+
+        if (qType === 'auto' || qType === 'both') {
+            if (!Array.isArray(extractedData.vehicles) || extractedData.vehicles.length === 0) return false;
+            const v = extractedData.vehicles[0];
+            if (!v.year && !v.make && !v.vin) return false;
+            if (!Array.isArray(extractedData.drivers) || extractedData.drivers.length === 0) return false;
+            const d = extractedData.drivers[0];
+            if (!d.firstName && !d.lastName) return false;
+        }
+
+        return true;
+    }
+
+    /** Show the completion message with action buttons */
+    function _showCompletionMessage() {
+        if (_completionShown) return;
+        _completionShown = true;
+
+        const pct = _countTotalExpected() > 0
+            ? Math.round((_countFilled() / _countTotalExpected()) * 100) : 0;
+        const name = [extractedData.firstName, extractedData.lastName].filter(Boolean).join(' ');
+        const qLabel = (extractedData.qType || '').charAt(0).toUpperCase() + (extractedData.qType || '').slice(1);
+
+        _appendMsg('ai', '🎉 **All critical fields collected!** ' + _esc(name) + '\'s ' + qLabel + ' intake is **' + pct + '%** complete.\n\nYou can keep chatting to add details, or choose an action below.');
+
+        // Show completion action chips
+        const chipRow = document.getElementById('iaChipRow');
+        if (chipRow) {
+            chipRow.innerHTML = '';
+            const actions = [
+                { label: '📤 Export to EZLynx', cls: 'ia-chip-done', fn: _navigateToEZLynx },
+                { label: '📋 Review Answers', cls: 'ia-chip-suggestion', fn: _showReviewSummary },
+                { label: '⚡ Populate Form', cls: 'ia-chip-suggestion', fn: populateForm },
+            ];
+            for (const a of actions) {
+                const btn = document.createElement('button');
+                btn.className = 'ia-chip ' + a.cls;
+                btn.textContent = a.label;
+                btn.onclick = a.fn;
+                chipRow.appendChild(btn);
+            }
+            chipRow.style.display = '';
+            chipRow.classList.remove('ia-chips-visible');
+            void chipRow.offsetWidth;
+            chipRow.classList.add('ia-chips-visible');
+        }
+    }
+
+    /** Navigate to EZLynx tool after populating main form */
+    function _navigateToEZLynx() {
+        _syncToAppData();
+        populateForm();
+        setTimeout(() => {
+            if (typeof App !== 'undefined' && typeof App.navigateTo === 'function') {
+                App.navigateTo('ezlynx');
+            }
+        }, 600);
+    }
+
+    /** Show a grouped review summary in the chat */
+    function _showReviewSummary() {
+        const parts = [];
+
+        // Applicant
+        const name = [extractedData.firstName, extractedData.lastName].filter(Boolean).join(' ');
+        if (name) parts.push('**👤 Applicant:** ' + _esc(name));
+        if (extractedData.dob) parts.push('DOB: ' + extractedData.dob);
+        if (extractedData.phone) parts.push('Phone: ' + extractedData.phone);
+        if (extractedData.email) parts.push('Email: ' + _esc(extractedData.email));
+
+        // Address
+        const addr = [extractedData.addrStreet, extractedData.addrCity, extractedData.addrState, extractedData.addrZip].filter(Boolean).join(', ');
+        if (addr) parts.push('\n**📍 Address:** ' + _esc(addr));
+        if (extractedData.county) parts.push('County: ' + _esc(extractedData.county));
+
+        // Quote type
+        if (extractedData.qType) parts.push('\n**📋 Quote Type:** ' + extractedData.qType.charAt(0).toUpperCase() + extractedData.qType.slice(1));
+
+        // Home details
+        if (extractedData.qType === 'home' || extractedData.qType === 'both') {
+            const homeInfo = [];
+            if (extractedData.yearBuilt) homeInfo.push(extractedData.yearBuilt + ' built');
+            if (extractedData.sqFt) homeInfo.push(extractedData.sqFt + ' sqft');
+            if (extractedData.stories) homeInfo.push(extractedData.stories + ' stories');
+            if (extractedData.roofType) homeInfo.push(extractedData.roofType + ' roof');
+            if (extractedData.constructionStyle || extractedData.constructionType) {
+                homeInfo.push((extractedData.constructionStyle || extractedData.constructionType) + ' construction');
+            }
+            if (homeInfo.length) parts.push('**🏠 Home:** ' + homeInfo.join(' · '));
+            if (extractedData.dwellingCoverage) parts.push('Dwelling: $' + extractedData.dwellingCoverage);
+            if (extractedData.personalLiability) parts.push('Liability: $' + extractedData.personalLiability);
+        }
+
+        // Vehicles
+        if (Array.isArray(extractedData.vehicles)) {
+            for (const v of extractedData.vehicles) {
+                if (v.year || v.make || v.model) {
+                    parts.push('**🚗 Vehicle:** ' + [v.year, v.make, v.model].filter(Boolean).join(' ') + (v.vin ? ' (VIN: ' + v.vin + ')' : ''));
+                }
+            }
+        }
+
+        // Drivers
+        if (Array.isArray(extractedData.drivers)) {
+            for (const d of extractedData.drivers) {
+                if (d.firstName || d.lastName) {
+                    parts.push('**🪪 Driver:** ' + [d.firstName, d.lastName].filter(Boolean).join(' ') + (d.dob ? ' (DOB: ' + d.dob + ')' : ''));
+                }
+            }
+        }
+
+        // Coverage
+        if (extractedData.liabilityLimits) parts.push('\n**📑 Auto Liability:** ' + extractedData.liabilityLimits);
+        if (extractedData.dwellingCoverage) parts.push('**🏠 Dwelling Coverage:** $' + extractedData.dwellingCoverage);
+        if (extractedData.priorCarrier) parts.push('**Prior Carrier:** ' + _esc(extractedData.priorCarrier));
+
+        const pct = _countTotalExpected() > 0
+            ? Math.round((_countFilled() / _countTotalExpected()) * 100) : 0;
+        parts.push('\n**Progress:** ' + pct + '% (' + _countFilled() + '/' + _countTotalExpected() + ' fields)');
+
+        _appendMsg('ai', '📋 **Intake Review:**\n\n' + parts.join('\n') + '\n\nEdit any field in the Data panel, or keep chatting to add more.');
+    }
+
     // ── Phase 6a: Inline Field Edit ─────────────────────────────
 
     function _editField(key) {
@@ -2067,6 +2386,15 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     function _computeSuggestionChips() {
         const chips = [];
 
+        // Completion: show action chips when all critical fields are collected
+        if (_completionShown && _checkCompletion()) {
+            return [
+                { label: '📤 Export to EZLynx', action: 'exportEZLynx', type: 'done' },
+                { label: '📋 Review Answers', action: 'review', type: 'suggestion' },
+                { label: '⚡ Populate Form', action: 'populate', type: 'suggestion' },
+            ];
+        }
+
         // Stage 1: Quick-start if no quote type known yet
         if (!extractedData.qType) {
             return [
@@ -2079,14 +2407,20 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         // Stage 2: Response-triggered suggestions from last AI message
         const lastAiMsg = _getLastAiMessage();
         if (lastAiMsg) {
-            for (const trigger of RESPONSE_TRIGGERS) {
-                if (trigger.pattern.test(lastAiMsg)) {
-                    const tc = typeof trigger.chips === 'function' ? trigger.chips() : trigger.chips;
-                    for (const c of tc) chips.push({ ...c, type: 'suggestion' });
+            // Suppress chips for open-ended questions (name, address, email, DOB, VIN, etc.)
+            const openEnded = /what\s*(is|'s|are)\s*(their|the|your|his|her)\s*(name|full\s*name|first\s*name|last\s*name|address|street|email|phone|number|date\s*of\s*birth|DOB|birthday|VIN)/i;
+            const isOpenEnded = openEnded.test(lastAiMsg);
+
+            if (!isOpenEnded) {
+                for (const trigger of RESPONSE_TRIGGERS) {
+                    if (trigger.pattern.test(lastAiMsg)) {
+                        const tc = typeof trigger.chips === 'function' ? trigger.chips() : trigger.chips;
+                        for (const c of tc) chips.push({ ...c, type: 'suggestion' });
+                    }
                 }
+                // Cap at 5 to avoid clutter
+                if (chips.length > 5) chips.length = 5;
             }
-            // Cap at 5 to avoid clutter
-            if (chips.length > 5) chips.length = 5;
         }
 
         // Phase 2: Satellite hazard scan chip
@@ -2117,6 +2451,12 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
             if (chip.action === 'apply') {
                 btn.onclick = () => applyAndSend();
+            } else if (chip.action === 'exportEZLynx') {
+                btn.onclick = () => _navigateToEZLynx();
+            } else if (chip.action === 'review') {
+                btn.onclick = () => _showReviewSummary();
+            } else if (chip.action === 'populate') {
+                btn.onclick = () => populateForm();
             } else if (chip.action === 'scanHazards') {
                 btn.onclick = () => _scanSatelliteHazards();
             } else if (chip.qsType) {
@@ -2297,6 +2637,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     return {
         init, sendMessage, quickStart, applyAndSend, populateForm, clearChat,
         exportSnapshot, openFullMap, chipSend, switchTab,
-        _editField, _copySnapshot, scanHazards: _scanSatelliteHazards
+        _editField, _copySnapshot, scanHazards: _scanSatelliteHazards,
+        _showReviewSummary, _navigateToEZLynx, _syncToAppData, _checkCompletion
     };
 })();
