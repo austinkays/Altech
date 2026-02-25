@@ -105,7 +105,9 @@ window.DashboardWidgets = (() => {
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
-    function _dueDateText(dueDateStr) {
+    function _dueDateText(dueDateStr, task) {
+        // Use statusLabel from the new Reminders module if available
+        if (task && task.statusLabel) return task.statusLabel;
         if (!dueDateStr) return '';
         const parts = dueDateStr.split('-');
         const due = new Date(+parts[0], +parts[1] - 1, +parts[2]);
@@ -114,9 +116,9 @@ window.DashboardWidgets = (() => {
         today.setHours(0, 0, 0, 0);
         const diff = Math.round((due - today) / 86400000);
 
-        if (diff < -1) return `${Math.abs(diff)}d overdue`;
+        if (diff < -1) return 'Missed';
         if (diff === -1) return 'Yesterday';
-        if (diff === 0) return 'Today';
+        if (diff === 0) return 'Due today';
         if (diff === 1) return 'Tomorrow';
         if (diff <= 7) return `In ${diff} days`;
         return due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -129,7 +131,7 @@ window.DashboardWidgets = (() => {
         if (!container) return;
 
         const hasModule = typeof Reminders !== 'undefined' && Reminders.getCounts;
-        const counts = hasModule ? Reminders.getCounts() : { total: 0, overdue: 0, dueToday: 0, dueSoon: 0, completed: 0, upcoming: 0 };
+        const counts = hasModule ? Reminders.getCounts() : { total: 0, overdue: 0, dueToday: 0, dueSoon: 0, completed: 0, upcoming: 0, snoozed: 0 };
 
         // Get upcoming tasks
         let tasks = [];
@@ -137,11 +139,26 @@ window.DashboardWidgets = (() => {
             tasks = Reminders.getUpcomingTasks(5);
         }
 
+        // Weekly summary
+        let weeklySummaryHtml = '';
+        if (hasModule && Reminders.getWeeklySummary) {
+            const ws = Reminders.getWeeklySummary();
+            if (ws.total > 0) {
+                weeklySummaryHtml = `<div class="reminder-weekly-summary">📊 ${ws.done}/${ws.total} done this week</div>`;
+            }
+        }
+
+        const snoozedPill = counts.snoozed ? `
+                <div class="reminder-stat-pill stat-pill-snoozed">
+                    <span class="stat-count">${counts.snoozed}</span>
+                    <span class="stat-label">Snoozed</span>
+                </div>` : '';
+
         const statsHtml = `
             <div class="reminder-stats">
                 <div class="reminder-stat-pill stat-pill-overdue">
                     <span class="stat-count">${counts.overdue}</span>
-                    <span class="stat-label">Overdue</span>
+                    <span class="stat-label">Missed</span>
                 </div>
                 <div class="reminder-stat-pill stat-pill-today">
                     <span class="stat-count">${counts.dueToday}</span>
@@ -150,12 +167,13 @@ window.DashboardWidgets = (() => {
                 <div class="reminder-stat-pill stat-pill-soon">
                     <span class="stat-count">${counts.dueSoon}</span>
                     <span class="stat-label">Soon</span>
-                </div>
+                </div>${snoozedPill}
                 <div class="reminder-stat-pill stat-pill-completed">
                     <span class="stat-count">${counts.completed}</span>
                     <span class="stat-label">Done</span>
                 </div>
-            </div>`;
+            </div>
+            ${weeklySummaryHtml}`;
 
         let taskListHtml;
         if (tasks.length === 0) {
@@ -167,8 +185,9 @@ window.DashboardWidgets = (() => {
         } else {
             taskListHtml = `<div class="reminder-task-list">${tasks.map(t => {
                 const priorityClass = t.priority === 'high' ? 'priority-high' : t.priority === 'low' ? 'priority-low' : 'priority-normal';
-                const dueText = _dueDateText(t.dueDate);
+                const dueText = _dueDateText(t.dueDate, t);
                 const isOverdue = t.status === 'overdue';
+                const isSnoozed = t.status === 'snoozed';
                 const isCompleted = t.status === 'completed';
                 return `<div class="reminder-task-row" data-task-id="${t.id}">
                     <div class="reminder-task-check ${isCompleted ? 'checked' : ''}" onclick="event.stopPropagation(); DashboardWidgets.toggleTask('${t.id}')"></div>
@@ -177,7 +196,7 @@ window.DashboardWidgets = (() => {
                         <div class="reminder-task-title">${_escapeHTML(t.title)}</div>
                         <div class="reminder-task-category">${_escapeHTML(t.category || '')}</div>
                     </div>
-                    <div class="reminder-task-due ${isOverdue ? 'overdue' : ''}">${_escapeHTML(dueText)}</div>
+                    <div class="reminder-task-due ${isOverdue ? 'overdue' : isSnoozed ? 'snoozed' : ''}">${_escapeHTML(dueText)}</div>
                 </div>`;
             }).join('')}</div>`;
         }

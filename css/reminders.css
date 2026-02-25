@@ -630,7 +630,317 @@
     justify-content: flex-end;
 }
 
+/* ===== Weekly Summary Bar ===== */
+.rem-weekly-summary-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    background: rgba(52, 199, 89, 0.08);
+    border: 1px solid rgba(52, 199, 89, 0.2);
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.rem-weekly-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.rem-weekly-text {
+    flex: 1;
+    color: var(--text-secondary);
+}
+
+.rem-grace-toggle {
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.25s ease;
+    font-family: inherit;
+}
+
+.rem-grace-toggle:hover {
+    background: rgba(255, 149, 0, 0.1);
+    border-color: #FF9500;
+    color: #FF9500;
+}
+
+.rem-grace-toggle.active {
+    background: rgba(255, 149, 0, 0.15);
+    border-color: #FF9500;
+    color: #FF9500;
+}
+
+/* ===== Snoozed Task Card State ===== */
+.rem-task-card.rem-snoozed {
+    opacity: 0.55;
+    border-left: 4px solid #FF9500;
+}
+
+.rem-task-card.rem-snoozed:hover {
+    opacity: 0.8;
+}
+
+.rem-task-card.rem-status-snoozed {
+    border-left: 4px solid #FF9500;
+}
+
+.rem-badge-snoozed {
+    background: rgba(255, 149, 0, 0.12);
+    color: #FF9500;
+}
+
+/* Snooze indicator inside task title */
+.rem-snooze-indicator {
+    font-size: 14px;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+/* Snooze clock button in task actions */
+.rem-snooze-btn {
+    width: 34px;
+    height: 34px;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.rem-snooze-btn:hover {
+    background: rgba(255, 149, 0, 0.1);
+    transform: scale(1.1);
+}
+
+.rem-snooze-btn:active {
+    transform: scale(0.92);
+}
+
+/* ===== Snooze Overlay (Action Sheet) ===== */
+.rem-snooze-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1100;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: remSnoozeOverlayIn 0.2s ease;
+}
+
+@keyframes remSnoozeOverlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.rem-snooze-menu {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(40px) saturate(1.8);
+    -webkit-backdrop-filter: blur(40px) saturate(1.8);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    width: 100%;
+    max-width: 380px;
+    overflow: hidden;
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.2),
+        0 8px 24px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    animation: remSnoozeMenuIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    margin-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@keyframes remSnoozeMenuIn {
+    from { opacity: 0; transform: translateY(40px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.rem-snooze-header {
+    padding: 18px 20px 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: center;
+    letter-spacing: -0.2px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.rem-snooze-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+}
+
+.rem-snooze-option:hover {
+    background: rgba(0, 122, 255, 0.06);
+}
+
+.rem-snooze-option:active {
+    background: rgba(0, 122, 255, 0.12);
+}
+
+.rem-snooze-option + .rem-snooze-option {
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.rem-snooze-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(0, 122, 255, 0.08);
+}
+
+.rem-snooze-text {
+    flex: 1;
+}
+
+.rem-snooze-text strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+}
+
+.rem-snooze-text span {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.rem-snooze-complete .rem-snooze-icon {
+    background: rgba(52, 199, 89, 0.12);
+}
+
+.rem-snooze-cancel {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--apple-blue);
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease;
+}
+
+.rem-snooze-cancel:hover {
+    background: rgba(0, 122, 255, 0.06);
+}
+
 /* ===== Dark Mode ===== */
+body.dark-mode .rem-weekly-summary-bar {
+    background: rgba(50, 215, 75, 0.08);
+    border-color: rgba(50, 215, 75, 0.15);
+}
+
+body.dark-mode .rem-grace-toggle {
+    background: #2C2C2E;
+    border-color: #38383A;
+    color: #98989D;
+}
+
+body.dark-mode .rem-grace-toggle:hover,
+body.dark-mode .rem-grace-toggle.active {
+    background: rgba(255, 159, 10, 0.15);
+    border-color: #FF9F0A;
+    color: #FF9F0A;
+}
+
+body.dark-mode .rem-task-card.rem-snoozed {
+    opacity: 0.5;
+}
+
+body.dark-mode .rem-badge-snoozed {
+    background: rgba(255, 159, 10, 0.15);
+    color: #FF9F0A;
+}
+
+body.dark-mode .rem-snooze-btn:hover {
+    background: rgba(255, 159, 10, 0.15);
+}
+
+body.dark-mode .rem-snooze-overlay {
+    background: rgba(0, 0, 0, 0.65);
+}
+
+body.dark-mode .rem-snooze-menu {
+    background: #1C1C1E;
+    border-color: #38383A;
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .rem-snooze-header {
+    border-bottom-color: #38383A;
+}
+
+body.dark-mode .rem-snooze-option:hover {
+    background: rgba(10, 132, 255, 0.1);
+}
+
+body.dark-mode .rem-snooze-option:active {
+    background: rgba(10, 132, 255, 0.15);
+}
+
+body.dark-mode .rem-snooze-option + .rem-snooze-option {
+    border-top-color: #38383A;
+}
+
+body.dark-mode .rem-snooze-icon {
+    background: rgba(10, 132, 255, 0.15);
+}
+
+body.dark-mode .rem-snooze-complete .rem-snooze-icon {
+    background: rgba(50, 215, 75, 0.15);
+}
+
+body.dark-mode .rem-snooze-cancel {
+    border-top-color: #38383A;
+    color: #0A84FF;
+}
+
+body.dark-mode .rem-snooze-cancel:hover {
+    background: rgba(10, 132, 255, 0.1);
+}
+
 body.dark-mode .rem-stat-card {
     background: #1C1C1E;
     border-color: #38383A;
