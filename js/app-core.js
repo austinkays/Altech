@@ -875,8 +875,10 @@ Object.assign(App, {
 
     // === PROGRESSIVE DISCLOSURE ===
     checkUpdates() {
-        const yrBuilt = document.getElementById('yrBuilt').value;
+        const yrBuiltEl = document.getElementById('yrBuilt');
         const updatesCard = document.getElementById('updatesCard');
+        if (!yrBuiltEl || !updatesCard) return;
+        const yrBuilt = yrBuiltEl.value;
         
         if(yrBuilt && parseInt(yrBuilt) < 2000) {
             updatesCard.classList.remove('hidden');
