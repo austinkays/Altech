@@ -33,16 +33,16 @@
     <!-- Vercel Speed Insights -->
     <script defer src="/_vercel/speed-insights/script.js"></script>
 
-    <!-- Firebase SDK (compat mode â€” no build step needed) -->
+    <!-- Firebase SDK (compat mode — no build step needed) -->
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
-    <!-- â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•— -->
-    <!-- â•‘  ONBOARDING â€” First-run welcome for new team members     â•‘ -->
-    <!-- â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  ONBOARDING — First-run welcome for new team members     ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
     <div id="onboardingOverlay" class="onboarding-overlay" style="display:none">
         <div class="onboarding-card">
 
@@ -51,32 +51,32 @@
                 <div class="onboarding-brand">
                     <div class="onboarding-logo">AL</div>
                     <h2>Welcome to Altech</h2>
-                    <p>Your insurance toolkit â€” built for speed</p>
+                    <p>Your insurance toolkit — built for speed</p>
                 </div>
                 <ul class="onboarding-features">
                     <li>
-                        <div class="onboarding-feature-icon">ðŸ“·</div>
+                        <div class="onboarding-feature-icon">📷</div>
                         <div class="onboarding-feature-text">
                             <strong>Scan &amp; Auto-Fill</strong>
-                            <span>Snap a photo of any policy doc â€” the form fills itself in seconds</span>
+                            <span>Snap a photo of any policy doc — the form fills itself in seconds</span>
                         </div>
                     </li>
                     <li>
-                        <div class="onboarding-feature-icon">ðŸ“¤</div>
+                        <div class="onboarding-feature-icon">📤</div>
                         <div class="onboarding-feature-text">
                             <strong>One-Tap Export</strong>
                             <span>Export to HawkSoft, EZLynx, or PDF with a single tap</span>
                         </div>
                     </li>
                     <li>
-                        <div class="onboarding-feature-icon">ï¿½</div>
+                        <div class="onboarding-feature-icon">🔐</div>
                         <div class="onboarding-feature-text">
                             <strong>Secure Cloud Sync</strong>
                             <span>Your data is encrypted and syncs securely across all your devices</span>
                         </div>
                     </li>
                     <li>
-                        <div class="onboarding-feature-icon">ðŸ›¡ï¸</div>
+                        <div class="onboarding-feature-icon">🛡️</div>
                         <div class="onboarding-feature-text">
                             <strong>CGL &amp; Compliance</strong>
                             <span>Track policy expirations, bonds, and compliance status</span>
@@ -160,14 +160,14 @@
                     <label for="onboardingAccessCode">Access Code</label>
                     <input type="text" id="onboardingAccessCode" placeholder="Enter code" autocomplete="off" maxlength="30" style="text-transform:uppercase;letter-spacing:2px;text-align:center;font-size:1.1rem">
                     <div class="onboarding-hint" id="onboardingCodeHint">Ask your manager or team lead for the code</div>
-                    <div class="onboarding-code-error" id="onboardingCodeError" style="display:none">Invalid code â€” please try again</div>
+                    <div class="onboarding-code-error" id="onboardingCodeError" style="display:none">Invalid code — please try again</div>
                 </div>
                 <ul class="onboarding-features" style="margin-top:12px">
                     <li>
-                        <div class="onboarding-feature-icon">ðŸ”’</div>
+                        <div class="onboarding-feature-icon">🔒</div>
                         <div class="onboarding-feature-text">
                             <strong>Why a code?</strong>
-                            <span>This protects our tools and data â€” only authorized team members can access the app</span>
+                            <span>This protects our tools and data — only authorized team members can access the app</span>
                         </div>
                     </li>
                 </ul>
@@ -185,9 +185,9 @@
         </div>
     </div>
 
-    <!-- â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•— -->
-    <!-- â•‘  APP SHELL â€” Desktop Command Center Layout                â•‘ -->
-    <!-- â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  APP SHELL — Desktop Command Center Layout                ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
     <div class="app-shell">
         <aside id="appSidebar" class="app-sidebar"></aside>
         <div id="sidebarOverlay" class="sidebar-overlay" onclick="DashboardWidgets.toggleMobileSidebar()"></div>
@@ -197,9 +197,9 @@
 
             <div class="app-content">
 
-    <!-- â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•— -->
-    <!-- â•‘  DASHBOARD VIEW â€” Bento Widget Grid (replaces landing)   â•‘ -->
-    <!-- â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  DASHBOARD VIEW — Bento Widget Grid (replaces landing)   ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
     <div id="dashboardView" class="dashboard-view">
         <div class="dashboard-ambient-orb orb-1"></div>
         <div class="dashboard-ambient-orb orb-2"></div>
@@ -217,14 +217,14 @@
     <div id="securityInfoOverlay" class="secinfo-overlay" style="display:none" onclick="if(event.target===this)SecurityInfo.close()">
         <div class="secinfo-modal" role="dialog" aria-label="Security & Privacy">
             <div class="secinfo-header">
-                <h3>ðŸ”’ Security & Privacy</h3>
-                <button class="secinfo-close" onclick="SecurityInfo.close()" aria-label="Close">âœ•</button>
+                <h3>🔒 Security & Privacy</h3>
+                <button class="secinfo-close" onclick="SecurityInfo.close()" aria-label="Close">✕</button>
             </div>
             <div class="secinfo-body">
                 <p class="secinfo-intro">Altech is built with enterprise-grade security at every layer. Your client data is protected from browser to cloud.</p>
 
                 <div class="secinfo-section">
-                    <div class="secinfo-section-icon">ðŸ”</div>
+                    <div class="secinfo-section-icon">🔐</div>
                     <div class="secinfo-section-content">
                         <h4>Authentication</h4>
                         <p>Powered by <strong>Firebase Authentication</strong> with email & password. Tokens are verified server-side on every API call. Session management follows industry best practices.</p>
@@ -232,15 +232,15 @@
                 </div>
 
                 <div class="secinfo-section">
-                    <div class="secinfo-section-icon">ðŸ›¡ï¸</div>
+                    <div class="secinfo-section-icon">🛡️</div>
                     <div class="secinfo-section-content">
                         <h4>Data Isolation</h4>
-                        <p><strong>Multi-tenant Firestore rules</strong> enforce strict per-user data isolation. Each account can only read and write its own documents â€” no cross-tenant access is possible regardless of client-side code. A catch-all deny rule blocks all unspecified paths.</p>
+                        <p><strong>Multi-tenant Firestore rules</strong> enforce strict per-user data isolation. Each account can only read and write its own documents — no cross-tenant access is possible regardless of client-side code. A catch-all deny rule blocks all unspecified paths.</p>
                     </div>
                 </div>
 
                 <div class="secinfo-section">
-                    <div class="secinfo-section-icon">ðŸ”‘</div>
+                    <div class="secinfo-section-icon">🔑</div>
                     <div class="secinfo-section-content">
                         <h4>Encryption</h4>
                         <p>Sensitive local data is encrypted with <strong>AES-256-GCM</strong> via the Web Crypto API. Encryption keys are derived using PBKDF2 with SHA-256 and a per-device salt. All cloud communication uses <strong>TLS 1.3</strong> with HSTS enforcement.</p>
@@ -248,7 +248,7 @@
                 </div>
 
                 <div class="secinfo-section">
-                    <div class="secinfo-section-icon">ðŸš¦</div>
+                    <div class="secinfo-section-icon">🚦</div>
                     <div class="secinfo-section-content">
                         <h4>API Protection</h4>
                         <p>Every API endpoint is wrapped in security middleware with <strong>per-user rate limiting</strong>, CORS origin whitelisting, and request ID correlation for end-to-end tracing. Authenticated users receive higher rate limits while anonymous requests are throttled.</p>
@@ -256,22 +256,22 @@
                 </div>
 
                 <div class="secinfo-section">
-                    <div class="secinfo-section-icon">ðŸ§±</div>
+                    <div class="secinfo-section-icon">🧱</div>
                     <div class="secinfo-section-content">
                         <h4>Security Headers</h4>
                         <ul class="secinfo-list">
-                            <li><strong>Strict-Transport-Security</strong> â€” forces HTTPS</li>
-                            <li><strong>Content-Security-Policy</strong> â€” prevents code injection</li>
-                            <li><strong>X-Frame-Options: DENY</strong> â€” blocks clickjacking</li>
-                            <li><strong>X-Content-Type-Options</strong> â€” prevents MIME sniffing</li>
-                            <li><strong>Referrer-Policy</strong> â€” limits referrer leakage</li>
-                            <li><strong>Permissions-Policy</strong> â€” disables camera, mic, geolocation</li>
+                            <li><strong>Strict-Transport-Security</strong> — forces HTTPS</li>
+                            <li><strong>Content-Security-Policy</strong> — prevents code injection</li>
+                            <li><strong>X-Frame-Options: DENY</strong> — blocks clickjacking</li>
+                            <li><strong>X-Content-Type-Options</strong> — prevents MIME sniffing</li>
+                            <li><strong>Referrer-Policy</strong> — limits referrer leakage</li>
+                            <li><strong>Permissions-Policy</strong> — disables camera, mic, geolocation</li>
                         </ul>
                     </div>
                 </div>
 
                 <div class="secinfo-section">
-                    <div class="secinfo-section-icon">ðŸ§¹</div>
+                    <div class="secinfo-section-icon">🧹</div>
                     <div class="secinfo-section-content">
                         <h4>Input Validation & Sanitization</h4>
                         <p>All user inputs are sanitized server-side to prevent XSS and injection attacks. Dedicated validators verify <strong>email, phone, SSN, and ZIP</strong> formats. Field injection is blocked at the Firestore rules layer with explicit allowlists.</p>
@@ -279,7 +279,7 @@
                 </div>
 
                 <div class="secinfo-section">
-                    <div class="secinfo-section-icon">ðŸ–¥ï¸</div>
+                    <div class="secinfo-section-icon">🖥️</div>
                     <div class="secinfo-section-content">
                         <h4>Server Hardening</h4>
                         <p>Path traversal attacks are blocked. Dotfiles, hidden directories, and sensitive paths return 403. Payloads are size-limited to prevent abuse. Static files are served with no-cache headers.</p>
@@ -287,7 +287,7 @@
                 </div>
 
                 <div class="secinfo-section">
-                    <div class="secinfo-section-icon">ðŸ“‹</div>
+                    <div class="secinfo-section-icon">📋</div>
                     <div class="secinfo-section-content">
                         <h4>Data Handling</h4>
                         <p>Client data is stored locally in your browser and syncs to your private cloud namespace when signed in. <strong>No data is shared between accounts.</strong> Exported files (CMSMTF, XML, PDF) are generated client-side and never pass through our servers. You can delete all cloud data at any time from Settings.</p>
@@ -301,13 +301,13 @@
         </div>
     </div>
 
-    <!-- â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•— -->
-    <!-- â•‘  PLUGIN VIEWPORT â€” Contains all tool containers          â•‘ -->
-    <!-- â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  PLUGIN VIEWPORT — Contains all tool containers          ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
     <div id="pluginViewport" class="plugin-viewport" style="display:none">
 
-    <!-- BACK BUTTON (legacy, hidden â€” sidebar provides navigation) -->
-    <a id="backToHome" href="#home" onclick="App.goHome(); return false;" style="display:none">â† Exit Tool</a>
+    <!-- BACK BUTTON (legacy, hidden — sidebar provides navigation) -->
+    <a id="backToHome" href="#home" onclick="App.goHome(); return false;" style="display:none">← Exit Tool</a>
     <div id="breadcrumbBar" style="display:none"></div>
 
     <!-- QUOTING TOOL CONTAINER -->
@@ -395,7 +395,7 @@
     <!-- Global toast notification -->
     <div id="toast" class="toast">Message</div>
 
-    <!-- â•â• Auth Modal â•â• -->
+    <!-- ══ Auth Modal ══ -->
     <div id="authModal" class="auth-modal-overlay" style="display:none">
         <div class="auth-modal">
             <button class="auth-close" onclick="Auth.closeModal()">&times;</button>
@@ -511,12 +511,12 @@
                         </div>
                     </div>
 
-                    <!-- â˜ï¸ Sync -->
+                    <!-- ☁️ Sync -->
                     <details class="settings-section">
                         <summary class="settings-section-header">
-                            <span class="settings-section-icon">â˜ï¸</span>
+                            <span class="settings-section-icon">☁️</span>
                             <span class="settings-section-title">Sync</span>
-                            <span class="settings-section-chevron">â€º</span>
+                            <span class="settings-section-chevron">›</span>
                         </summary>
                         <div class="settings-section-body">
                             <div class="auth-sync-status">
@@ -529,13 +529,13 @@
                         </div>
                     </details>
 
-                    <!-- ðŸ¤– AI Model -->
+                    <!-- 🤖 AI Model -->
                     <details class="settings-section">
                         <summary class="settings-section-header">
-                            <span class="settings-section-icon">ðŸ¤–</span>
+                            <span class="settings-section-icon">🤖</span>
                             <span class="settings-section-title">AI Model</span>
                             <span id="aiSettingsBadge" class="settings-section-badge"></span>
-                            <span class="settings-section-chevron">â€º</span>
+                            <span class="settings-section-chevron">›</span>
                         </summary>
                         <div class="settings-section-body" id="aiSettingsSection">
                             <div class="auth-field">
@@ -559,10 +559,10 @@
                                 </div>
                                 <div id="aiModelInfoContext" style="color:var(--text-secondary);font-size:11px;margin-bottom:5px"></div>
                                 <div id="aiModelInfoTags" style="display:flex;flex-wrap:wrap;gap:4px"></div>
-                                <button id="aiCostToggle" onclick="App.toggleCostEstimates()" style="display:block;margin-top:6px;background:none;border:none;color:var(--apple-blue);font-size:11px;cursor:pointer;padding:0;font-weight:500">â–¼ Show cost per tool</button>
+                                <button id="aiCostToggle" onclick="App.toggleCostEstimates()" style="display:block;margin-top:6px;background:none;border:none;color:var(--apple-blue);font-size:11px;cursor:pointer;padding:0;font-weight:500">▼ Show cost per tool</button>
                             </div>
                             <div id="aiCostEstimates" class="ai-cost-card" style="display:none">
-                                <div style="font-weight:600;font-size:12px;color:var(--text);margin-bottom:6px">ðŸ’° Estimated Cost Per Tool</div>
+                                <div style="font-weight:600;font-size:12px;color:var(--text);margin-bottom:6px">💰 Estimated Cost Per Tool</div>
                                 <table id="aiCostTable" style="width:100%;border-collapse:collapse"></table>
                                 <p style="margin:6px 0 0;font-size:10px;color:var(--text-secondary);line-height:1.4">Estimates assume typical usage. Actual costs vary with document length, image count, and response complexity.</p>
                             </div>
@@ -570,7 +570,7 @@
                                 <label for="aiApiKeyInput">API Key <a id="aiKeyLink" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="font-weight:400;font-size:11px;color:var(--apple-blue)">(get key)</a></label>
                                 <div style="display:flex;gap:0.5rem;align-items:stretch">
                                     <input type="password" id="aiApiKeyInput" placeholder="AIza..." style="flex:1" autocomplete="off">
-                                    <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="App.toggleAIKeyVisibility()" style="white-space:nowrap;padding:0.4rem 0.6rem" title="Show/hide key">ðŸ‘</button>
+                                    <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="App.toggleAIKeyVisibility()" style="white-space:nowrap;padding:0.4rem 0.6rem" title="Show/hide key">👁</button>
                                 </div>
                             </div>
                             <div style="display:flex;gap:0.5rem;margin-top:0.25rem">
@@ -582,12 +582,12 @@
                         </div>
                     </details>
 
-                    <!-- ðŸ”’ Security -->
+                    <!-- 🔒 Security -->
                     <details class="settings-section">
                         <summary class="settings-section-header">
-                            <span class="settings-section-icon">ðŸ”’</span>
+                            <span class="settings-section-icon">🔒</span>
                             <span class="settings-section-title">Security</span>
-                            <span class="settings-section-chevron">â€º</span>
+                            <span class="settings-section-chevron">›</span>
                         </summary>
                         <div class="settings-section-body" id="authChangePasswordSection">
                             <form id="authChangePwForm" class="auth-form" onsubmit="Auth.handleChangePasswordSubmit(event)">
@@ -610,29 +610,29 @@
                         </div>
                     </details>
 
-                    <!-- ðŸ‘¥ Team -->
+                    <!-- 👥 Team -->
                     <details class="settings-section" id="authInviteSection" style="display:none">
                         <summary class="settings-section-header">
-                            <span class="settings-section-icon">ðŸ‘¥</span>
+                            <span class="settings-section-icon">👥</span>
                             <span class="settings-section-title">Team</span>
-                            <span class="settings-section-chevron">â€º</span>
+                            <span class="settings-section-chevron">›</span>
                         </summary>
                         <div class="settings-section-body">
                             <div class="auth-invite-row" onclick="Onboarding.showShareModal()">
-                                <span>ðŸ‘¥</span>
+                                <span>👥</span>
                                 <div class="auth-invite-text">
                                     <strong>Invite Your Team</strong>
                                     <span>Share a link so colleagues can access Altech</span>
                                 </div>
-                                <span class="auth-invite-arrow">â€º</span>
+                                <span class="auth-invite-arrow">›</span>
                             </div>
                             <div id="authAdminSection" class="auth-invite-row" style="display:none;margin-top:0.5rem" onclick="AdminPanel.open()">
-                                <span>ðŸ›¡ï¸</span>
+                                <span>🛡️</span>
                                 <div class="auth-invite-text">
                                     <strong>User Management</strong>
                                     <span>View users, grant admin, block accounts</span>
                                 </div>
-                                <span class="auth-invite-arrow">â€º</span>
+                                <span class="auth-invite-arrow">›</span>
                             </div>
                         </div>
                     </details>

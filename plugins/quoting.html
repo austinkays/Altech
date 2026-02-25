@@ -12,7 +12,7 @@
                 <span>Insurance Intake</span>
             </div>
             <div class="header-right">
-                <div id="saveIndicator" class="save-indicator">âœ“ Saved</div>
+                <div id="saveIndicator" class="save-indicator">✓ Saved</div>
             </div>
         </div>
         <div id="stepTitle" class="step-title">Step 1 of 4: Client Information</div>
@@ -22,37 +22,37 @@
     <main id="mainContainer">
         <!-- STEP 0: QUICK START -->
         <div id="step-0" class="step">
-            <!-- New Client & Recent Clients (primary action â€” first) -->
+            <!-- New Client & Recent Clients (primary action — first) -->
             <div class="card" id="step0ClientCard">
-                <h2>ðŸ‘¤ Begin Intake</h2>
+                <h2>👤 Begin Intake</h2>
                 <p class="section-subtitle">Start a new client or restore a previous one</p>
-                <button class="btn btn-primary" onclick="App.startFresh()" style="width:100%;margin-bottom:12px;">âœ¨ New Client</button>
-                <button class="btn" onclick="App.loadDemoClient()" style="width:100%;margin-bottom:12px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);">ðŸ§ª Load Demo Client</button>
+                <button class="btn btn-primary" onclick="App.startFresh()" style="width:100%;margin-bottom:12px;">✨ New Client</button>
+                <button class="btn" onclick="App.loadDemoClient()" style="width:100%;margin-bottom:12px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);">🧪 Load Demo Client</button>
                 <div id="step0ClientHistoryList"></div>
             </div>
 
             <!-- Saved Drafts (Quick Load) -->
             <div class="card" id="quickStartDraftsCard" style="display:none;">
-                <h2>ðŸ“‹ Saved Drafts</h2>
+                <h2>📋 Saved Drafts</h2>
                 <p class="section-subtitle">Tap a draft to resume editing</p>
                 <div id="quickStartDraftList"></div>
             </div>
 
             <!-- Smart Scan -->
             <div class="card">
-                <h2>ðŸš€ Smart Scan</h2>
+                <h2>🚀 Smart Scan</h2>
                 <p class="section-subtitle">Upload a policy document or driver license to auto-fill the form</p>
 
                 <!-- Desktop drag-and-drop zone for policy documents -->
                 <div id="scanDropZone" class="scan-drop-zone" style="display:none;">
-                    <div class="drop-icon">ðŸ“„</div>
+                    <div class="drop-icon">📄</div>
                     <div class="drop-label">Drop policy documents here</div>
-                    <div class="drop-hint">PDF or image files â€¢ Drag from your desktop</div>
+                    <div class="drop-hint">PDF or image files • Drag from your desktop</div>
                 </div>
 
                 <div class="scan-actions">
-                    <button class="btn btn-primary" onclick="App.openScanPicker()">ðŸ“¸ Upload Policy Document</button>
-                    <button class="btn btn-primary" onclick="App.openInitialDriverLicensePicker()">ðŸªª Upload Driver License</button>
+                    <button class="btn btn-primary" onclick="App.openScanPicker()">📸 Upload Policy Document</button>
+                    <button class="btn btn-primary" onclick="App.openInitialDriverLicensePicker()">🪪 Upload Driver License</button>
                     <input id="policyScanInput" type="file" accept="image/*,application/pdf" capture="environment" multiple class="hidden" />
                     <input id="initialDlScanInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="App.handleInitialDriverLicenseFile(this.files[0])" />
                     <input id="docIntelInput" type="file" accept="image/*,application/pdf" multiple class="hidden" />
@@ -77,7 +77,7 @@
         <!-- STEP 1: CLIENT INFORMATION -->
         <div id="step-1" class="step hidden">
             <div class="hint" style="margin-bottom:16px;">
-                ðŸ’¡ Tip: Use the policy/document scans on the previous step to auto-fill this form.
+                💡 Tip: Use the policy/document scans on the previous step to auto-fill this form.
             </div>
             <div class="card">
                 <h2>About You</h2>
@@ -88,7 +88,7 @@
                         <label class="label">First Name</label>
                         <div class="input-with-action">
                             <input type="text" id="firstName" placeholder="John" autocomplete="given-name">
-                            <button type="button" class="input-action-btn pronunciation-btn" id="pronBtnFirst" onclick="App.togglePronunciation('first')" title="Name pronunciation">ðŸ”Š</button>
+                            <button type="button" class="input-action-btn pronunciation-btn" id="pronBtnFirst" onclick="App.togglePronunciation('first')" title="Name pronunciation">🔊</button>
                             <div class="pronunciation-popup" id="pronPopupFirst">
                                 <input type="text" id="firstNamePhonetic" placeholder="e.g. AW-stin" readonly>
                                 <div class="popup-actions">
@@ -102,7 +102,7 @@
                         <label class="label">Last Name</label>
                         <div class="input-with-action">
                             <input type="text" id="lastName" placeholder="Smith" autocomplete="family-name">
-                            <button type="button" class="input-action-btn pronunciation-btn" id="pronBtnLast" onclick="App.togglePronunciation('last')" title="Name pronunciation">ðŸ”Š</button>
+                            <button type="button" class="input-action-btn pronunciation-btn" id="pronBtnLast" onclick="App.togglePronunciation('last')" title="Name pronunciation">🔊</button>
                             <div class="pronunciation-popup" id="pronPopupLast">
                                 <input type="text" id="lastNamePhonetic" placeholder="e.g. SMITH" readonly>
                                 <div class="popup-actions">
@@ -227,21 +227,21 @@
                 <div class="radio-grid">
                     <label class="radio-card"><input type="radio" name="qType" value="home" onchange="App.handleType()">
                         <div class="radio-card-content">
-                            <span style="font-size:48px">ðŸ </span>
+                            <span style="font-size:48px">🏠</span>
                             <span style="margin-top:12px; font-size:16px; font-weight:600">HOME</span>
                             <span style="font-size:13px; color:var(--text-secondary); margin-top:4px">Property insurance</span>
                         </div>
                     </label>
                     <label class="radio-card"><input type="radio" name="qType" value="auto" onchange="App.handleType()">
                         <div class="radio-card-content">
-                            <span style="font-size:48px">ðŸš—</span>
+                            <span style="font-size:48px">🚗</span>
                             <span style="margin-top:12px; font-size:16px; font-weight:600">AUTO</span>
                             <span style="font-size:13px; color:var(--text-secondary); margin-top:4px">Vehicle insurance</span>
                         </div>
                     </label>
                     <label class="radio-card"><input type="radio" name="qType" value="both" checked onchange="App.handleType()">
                         <div class="radio-card-content">
-                            <span style="font-size:48px">ðŸŽ¯</span>
+                            <span style="font-size:48px">🎯</span>
                             <span style="margin-top:12px; font-size:16px; font-weight:600">HOME & AUTO</span>
                             <span style="font-size:13px; color:var(--text-secondary); margin-top:4px">Bundle coverage</span>
                         </div>
@@ -313,7 +313,7 @@
         <!-- STEP 3: PROPERTY DETAILS -->
         <div id="step-3" class="step hidden">
           <div class="prop-layout">
-            <!-- â•â•â• LEFT COLUMN: Form Fields â•â•â• -->
+            <!-- ═══ LEFT COLUMN: Form Fields ═══ -->
             <div class="prop-main">
 
             <div class="card">
@@ -327,7 +327,7 @@
                     <div><label class="label">City</label><input type="text" id="addrCity" placeholder="Vancouver" autocomplete="off"></div>
                     <div><label class="label">State</label>
                     <select id="addrState">
-                        <option value="">â€”</option>
+                        <option value="">—</option>
                         <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option>
                         <option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option>
                         <option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option>
@@ -344,20 +344,20 @@
                     </select></div>
                     <div><label class="label">Zip</label><input type="tel" id="addrZip" placeholder="98686" maxlength="5" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,5)"></div>
                     <div><label class="label">County</label>
-                        <input type="text" id="county" placeholder="Auto-fills âœ¨" autocomplete="off" style="font-size: 13px !important; padding: 8px 8px;">
+                        <input type="text" id="county" placeholder="Auto-fills ✨" autocomplete="off" style="font-size: 13px !important; padding: 8px 8px;">
                     </div>
                 </div>
 
                 <!-- Smart Scan: hero button -->
                 <div style="margin-top: 14px;">
-                    <button class="btn-smart-scan" onclick="App.smartAutoFill()" title="Smart property lookup â€” auto-fills county, year built, sqft, hazards & more" id="smartFillBtn">âœ¨ Smart Scan</button>
+                    <button class="btn-smart-scan" onclick="App.smartAutoFill()" title="Smart property lookup — auto-fills county, year built, sqft, hazards & more" id="smartFillBtn">✨ Smart Scan</button>
                 </div>
 
                 <!-- Secondary tools row -->
                 <div class="utility-buttons" style="margin-top: 8px; justify-content: center;">
-                    <button class="btn-utility" onclick="App.openZillow()" title="Search this address on Zillow" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px;">ðŸ” Zillow</button>
-                    <button class="btn-utility" onclick="App.openPropertyRecords()" title="Copies address to clipboard & opens county assessor site" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px;">ðŸ›ï¸ Assessor</button>
-                    <button class="btn-utility" onclick="App.importPropertyFromExtension()" title="Import property data scraped by the Chrome Extension from Zillow/GIS" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px; background: linear-gradient(135deg, #ff9500, #e68600); color: white;">ðŸ“¥ Import</button>
+                    <button class="btn-utility" onclick="App.openZillow()" title="Search this address on Zillow" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px;">🔍 Zillow</button>
+                    <button class="btn-utility" onclick="App.openPropertyRecords()" title="Copies address to clipboard & opens county assessor site" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px;">🏛️ Assessor</button>
+                    <button class="btn-utility" onclick="App.importPropertyFromExtension()" title="Import property data scraped by the Chrome Extension from Zillow/GIS" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px; background: linear-gradient(135deg, #ff9500, #e68600); color: white;">📥 Import</button>
                 </div>
 
                 <!-- Hidden file input kept for backward compatibility -->
@@ -592,7 +592,7 @@
                     </select></div>
                     <div><label class="label">Garage Spaces</label>
                     <select id="garageSpaces">
-                        <option value="">â€”</option>
+                        <option value="">—</option>
                         <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5+</option>
                     </select></div>
                 </div>
@@ -1012,7 +1012,7 @@
                 <h2>Home Endorsements</h2>
                 <p class="section-subtitle">Optional coverages and endorsements</p>
 
-                <!-- â”€â”€ Group 1: Coverage Limit Selectors (2-column grid) â”€â”€ -->
+                <!-- ── Group 1: Coverage Limit Selectors (2-column grid) ── -->
                 <div class="grid-2-full">
                     <div>
                         <label class="label">Increased Replacement Cost %</label>
@@ -1116,7 +1116,7 @@
                     </div>
                 </div>
 
-                <!-- â”€â”€ Group 2: Binary Toggles (3-column compact cards) â”€â”€ -->
+                <!-- ── Group 2: Binary Toggles (3-column compact cards) ── -->
                 <div class="toggle-grid-3">
                     <div class="toggle-card">
                         <label class="label">Equipment Breakdown</label>
@@ -1144,7 +1144,7 @@
                     </div>
                 </div>
 
-                <!-- â”€â”€ Earthquake Details (progressive disclosure) â”€â”€ -->
+                <!-- ── Earthquake Details (progressive disclosure) ── -->
                 <div id="earthquakeDetailsWrapper" class="disclosure-hidden" style="margin-top: 12px;">
                     <div class="grid-2-full">
                         <div>
@@ -1179,7 +1179,7 @@
 
             </div> <!-- end .prop-main (left column) -->
 
-            <!-- â•â•â• RIGHT COLUMN: Sticky Sidebar â•â•â• -->
+            <!-- ═══ RIGHT COLUMN: Sticky Sidebar ═══ -->
             <div class="prop-sidebar">
                 <div class="card map-preview-card">
                     <h2>Property Views</h2>
@@ -1189,15 +1189,15 @@
                             <div class="map-preview-label">Street View</div>
                             <img id="streetViewImg" class="map-preview-img" alt="Street View preview" />
                             <div class="map-preview-actions">
-                                <button class="btn-utility" onclick="App.openStreetView()">ðŸš¶ Street View</button>
+                                <button class="btn-utility" onclick="App.openStreetView()">🚶 Street View</button>
                             </div>
                         </div>
                         <div class="map-preview-item">
                             <div class="map-preview-label">Satellite View</div>
                             <img id="satelliteViewImg" class="map-preview-img" alt="Satellite preview" />
                             <div class="map-preview-actions">
-                                <button class="btn-utility" onclick="App.openGoogleMaps()">ðŸ—ºï¸ Maps</button>
-                                <button class="btn-utility" onclick="App.openGoogleEarth()">ðŸ›°ï¸ Earth</button>
+                                <button class="btn-utility" onclick="App.openGoogleMaps()">🗺️ Maps</button>
+                                <button class="btn-utility" onclick="App.openGoogleEarth()">🛰️ Earth</button>
                             </div>
                         </div>
                     </div>
@@ -1973,21 +1973,21 @@
         <div id="step-6" class="step hidden">
             <!-- Hero Export Card -->
             <div class="card export-card hero-export" id="ezlynx-export-card">
-                <h3>âœ“ Intake Complete</h3>
+                <h3>✓ Intake Complete</h3>
                 <p class="hero-desc">Your client data is ready to export</p>
                 <div class="hero-export-grid">
                     <button class="hero-export-option" onclick="App.openTool('ezlynx')">
-                        <span class="hero-export-icon">âš¡</span>
+                        <span class="hero-export-icon">⚡</span>
                         <span class="hero-export-label">EZLynx</span>
                         <span class="hero-export-hint">Auto-fill browser forms</span>
                     </button>
                     <button class="hero-export-option" onclick="App.navigateTo('hawksoft')">
-                        <span class="hero-export-icon">ðŸ“¤</span>
+                        <span class="hero-export-icon">📤</span>
                         <span class="hero-export-label">HawkSoft</span>
                         <span class="hero-export-hint">Download .CMSMTF file</span>
                     </button>
                     <button class="hero-export-option" onclick="App.exportPDF()">
-                        <span class="hero-export-icon">ðŸ“„</span>
+                        <span class="hero-export-icon">📄</span>
                         <span class="hero-export-label">PDF</span>
                         <span class="hero-export-hint">Client summary</span>
                     </button>
@@ -1997,7 +1997,7 @@
             <!-- Saved Clients -->
             <div class="card export-card">
                 <div class="ch-header">
-                    <h3 style="margin:0;">ðŸ‘¤ Saved Clients</h3>
+                    <h3 style="margin:0;">👤 Saved Clients</h3>
                 </div>
                 <p class="section-subtitle" style="margin-bottom:12px;">Tap any client to reload their data</p>
                 <div id="clientHistoryList"></div>
@@ -2007,7 +2007,7 @@
             <div class="card export-card">
                 <details id="exportHistoryDetails">
                     <summary class="export-summary" onclick="App.loadExportHistory()">
-                        <span>ðŸ“‹ Export History</span>
+                        <span>📋 Export History</span>
                     </summary>
                     <div id="exportHistoryList" style="margin-top:12px;font-size:13px;color:var(--text-secondary);">
                         <p>Loading...</p>
@@ -2021,6 +2021,6 @@
     <div id="modalContainer"></div>
 
     <footer>
-        <button id="btnBack" class="btn btn-step-back" onclick="App.prev()">â† Previous Step</button>
+        <button id="btnBack" class="btn btn-step-back" onclick="App.prev()">← Previous Step</button>
         <button id="btnNext" class="btn btn-primary" onclick="App.next()">Next</button>
     </footer>
