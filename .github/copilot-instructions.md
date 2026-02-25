@@ -10,7 +10,7 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = mobile-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~702 lines), 20 CSS files in `css/`, 34 JS modules in `js/`, 14 plugin HTML files in `plugins/`, 13 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~702 lines), 20 CSS files in `css/`, 34 JS modules in `js/` (~26,800 lines), 14 plugin HTML files in `plugins/`, 13 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
 > **Full documentation:** See [AGENTS.md](../AGENTS.md) (844 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 

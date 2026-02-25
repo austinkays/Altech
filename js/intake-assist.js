@@ -57,13 +57,12 @@ For AUTO quotes: desired liability limits (e.g. 100/300), property damage limit,
 
 PHASE 3 — PROPERTY & VEHICLE DETAILS:
 For HOME: year built, sqft, stories, construction style, exterior walls, foundation type, roof type (Composition Shingle/Metal/Tile/Slate/Wood Shake), roof year, heating type, pool (Yes/No), trampoline (Yes/No), mortgage company
-For AUTO: each vehicle (year, make, model, VIN), vehicle use (Commute/Pleasure/Business), annual miles, ownership (Owned/Leased/Lien). Each driver: name, DOB, gender, relationship (Self/Spouse/Child/Other), license state, license #, age first licensed
+For AUTO: each vehicle (year, make, model, VIN), vehicle use (Commute/Pleasure/Business), annual miles, ownership (Owned/Leased/Lien). Each driver: name, DOB, gender (M/F), marital status, relationship (Self/Spouse/Child/Other), license state, license #, DL status (Valid/Permit/Expired/Suspended/Not Licensed), age first licensed, occupation industry, education level
 
 PHASE 4 — HISTORY & WRAP-UP:
 - Prior carrier, years with carrier, prior liability limits, years continuous coverage
 - Any accidents or violations in last 5 years (count)
 - Co-applicant info if any (name, DOB, gender, relationship)
-- Education level, occupation (these affect rates — ask naturally)
 - Home prior carrier + years if different from auto
 - Residence type for auto (Home Owned/Apartment/Condo)
 
@@ -84,7 +83,7 @@ Keep replies SHORT — 1-3 sentences max, plus your JSON block. No paragraphs. N
 
 IMPORTANT — AFTER EVERY REPLY, append a JSON code block containing ALL fields collected SO FAR (not just what was gathered in this turn). This allows real-time progress tracking. Use EXACTLY these keys:
 \`\`\`json
-{"firstName":"","lastName":"","prefix":"","dob":"","gender":"Male|Female","maritalStatus":"Single|Married|Divorced|Widowed","email":"","phone":"","addrStreet":"","addrCity":"","addrState":"XX","addrZip":"","county":"","education":"","occupation":"","qType":"home|auto|both","effectiveDate":"YYYY-MM-DD","policyTerm":"6 Month|12 Month","occupancyType":"Owner Occupied|Tenant","dwellingUsage":"Primary|Secondary|Seasonal","dwellingType":"One Family|Condo|Townhome|Mobile Home","homePolicyType":"HO3|HO5|HO4|HO6","dwellingCoverage":"","personalLiability":"","homeDeductible":"","windDeductible":"","yearBuilt":"","sqFt":"","stories":"","constructionStyle":"","exteriorWalls":"","foundation":"","roofType":"","roofYear":"","heatingType":"","pool":"Yes|No","trampoline":"Yes|No","mortgagee":"","liabilityLimits":"","pdLimit":"","compDeductible":"","autoDeductible":"","umLimits":"","residenceIs":"","vehicles":[{"year":"","make":"","model":"","vin":"","use":"Commute|Pleasure|Business","annualMiles":"","ownershipType":"Owned|Leased|Lien"}],"drivers":[{"firstName":"","lastName":"","dob":"","gender":"","relationship":"Self|Spouse|Child|Other","dlState":"","dlNum":"","ageLicensed":""}],"coFirstName":"","coLastName":"","priorCarrier":"","priorYears":"","priorLiabilityLimits":"","continuousCoverage":"","homePriorCarrier":"","homePriorYears":"","accidents":"0","violations":"0"}
+{"firstName":"","lastName":"","prefix":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","email":"","phone":"","addrStreet":"","addrCity":"","addrState":"XX","addrZip":"","county":"","qType":"home|auto|both","effectiveDate":"YYYY-MM-DD","policyTerm":"6 Month|12 Month","occupancyType":"Owner Occupied|Tenant","dwellingUsage":"Primary|Secondary|Seasonal","dwellingType":"One Family|Condo|Townhome|Mobile Home","homePolicyType":"HO3|HO5|HO4|HO6","dwellingCoverage":"","personalLiability":"","homeDeductible":"","windDeductible":"","yearBuilt":"","sqFt":"","stories":"","constructionStyle":"","exteriorWalls":"","foundation":"","roofType":"","roofYear":"","heatingType":"","pool":"Yes|No","trampoline":"Yes|No","mortgagee":"","liabilityLimits":"","pdLimit":"","compDeductible":"","autoDeductible":"","umLimits":"","residenceIs":"","vehicles":[{"year":"","make":"","model":"","vin":"","use":"Commute|Pleasure|Business","annualMiles":"","ownershipType":"Owned|Leased|Lien"}],"drivers":[{"firstName":"","lastName":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","occupation":"","education":"No High School|High School|Some College|Associates|Bachelors|Masters|Doctorate","dlStatus":"Valid|Permit|Expired|Suspended|Not Licensed","relationship":"Self|Spouse|Child|Other","dlState":"","dlNum":"","ageLicensed":"16|17|18|19|20|21+"}],"coFirstName":"","coLastName":"","priorCarrier":"","priorYears":"","priorLiabilityLimits":"","continuousCoverage":"","homePriorCarrier":"","homePriorYears":"","accidents":"0","violations":"0"}
 \`\`\`
 
 Only include keys for which you have data. Omit empty fields. Use 2-letter state codes. Format dates as YYYY-MM-DD. Include this JSON block in EVERY response, even partial ones — this is how the form tracks progress in real time.`;
@@ -345,7 +344,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         // Select/dropdown fields (set value + dispatch change)
         const selectFields = [
-            'prefix', 'gender', 'maritalStatus', 'education', 'occupation',
+            'prefix', 'gender', 'maritalStatus',
             'occupancyType', 'dwellingUsage', 'dwellingType', 'homePolicyType',
             'personalLiability', 'homeDeductible', 'windDeductible',
             'exteriorWalls', 'foundation', 'roofType', 'heatingType',
@@ -359,7 +358,15 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             if (extractedData[key]) {
                 const el = document.getElementById(key);
                 if (el) {
-                    el.value = extractedData[key];
+                    // Normalize gender from AI (Male/Female) to form values (M/F)
+                    let setValue = extractedData[key];
+                    if (key === 'gender') {
+                        const g = String(setValue).trim().toLowerCase();
+                        if (g === 'male' || g === 'm') setValue = 'M';
+                        else if (g === 'female' || g === 'f') setValue = 'F';
+                        else if (g === 'x' || g === 'not specified') setValue = 'X';
+                    }
+                    el.value = setValue;
                     el.dispatchEvent(new Event('change', { bubbles: true }));
                     populated++;
                 }
@@ -459,6 +466,15 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         if (Array.isArray(extractedData.drivers) && extractedData.drivers.length > 0) {
             const vm = (typeof App !== 'undefined') ? App : null;
             if (vm && Array.isArray(vm.drivers)) {
+                // Gender normalization helper
+                const _normGender = (g) => {
+                    if (!g) return '';
+                    const v = String(g).trim().toLowerCase();
+                    if (v === 'male' || v === 'm') return 'M';
+                    if (v === 'female' || v === 'f') return 'F';
+                    if (v === 'x' || v === 'not specified') return 'X';
+                    return g;
+                };
                 for (const d of extractedData.drivers) {
                     if (!d.firstName && !d.lastName && !d.dob) continue;
                     const id = `driver_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -467,15 +483,24 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                         firstName: d.firstName || '',
                         lastName: d.lastName || '',
                         dob: d.dob || '',
-                        gender: d.gender || '',
+                        gender: _normGender(d.gender),
                         maritalStatus: d.maritalStatus || '',
                         relationship: d.relationship || 'Self',
+                        occupation: d.occupation || '',
+                        education: d.education || '',
+                        dlStatus: d.dlStatus || '',
                         dlState: d.dlState || (extractedData.addrState || ''),
                         dlNum: d.dlNum || '',
-                        ageLicensed: d.ageLicensed || '',
-                        occupation: '',
-                        education: '',
+                        ageLicensed: d.ageLicensed ? String(d.ageLicensed) : '',
                     };
+                    // Inherit top-level applicant data for the Self driver
+                    if (driver.relationship === 'Self' || extractedData.drivers.length === 1) {
+                        if (!driver.gender && extractedData.gender) driver.gender = _normGender(extractedData.gender);
+                        if (!driver.maritalStatus && extractedData.maritalStatus) driver.maritalStatus = extractedData.maritalStatus;
+                        if (!driver.occupation && extractedData.occupation) driver.occupation = extractedData.occupation;
+                        if (!driver.education && extractedData.education) driver.education = extractedData.education;
+                        if (!driver.dlStatus && (driver.dlNum || driver.dlState)) driver.dlStatus = 'Valid';
+                    }
                     const emptyIdx = vm.drivers.findIndex(ed => !ed.firstName && !ed.lastName && !ed.dob);
                     if (emptyIdx !== -1) {
                         vm.drivers[emptyIdx] = driver;
@@ -557,6 +582,8 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             _updateIntelPanel();
         }
         _updateSuggestionChips();
+        // Scroll to bottom after restoring full chat history
+        _scrollToBottom();
     }
 
     function _appendMsg(role, text, scroll = true) {
@@ -569,7 +596,19 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         div.innerHTML = _renderMarkdown(displayText);
         msgs.appendChild(div);
 
-        if (scroll) msgs.scrollTop = msgs.scrollHeight;
+        if (scroll) _scrollToBottom();
+    }
+
+    /** Reliably scroll messages to bottom, accounting for layout shifts from chips */
+    function _scrollToBottom() {
+        const msgs = document.getElementById('iaChatMessages');
+        if (!msgs) return;
+        // Immediate scroll
+        msgs.scrollTop = msgs.scrollHeight;
+        // Also scroll after next frame in case layout hasn't settled (chips rendering, etc.)
+        requestAnimationFrame(() => {
+            msgs.scrollTop = msgs.scrollHeight;
+        });
     }
 
     function _renderMarkdown(text) {
@@ -602,7 +641,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         div.className = 'ia-msg ia-msg-ai ia-typing';
         div.innerHTML = '<span class="ia-dot"></span><span class="ia-dot"></span><span class="ia-dot"></span>';
         msgs.appendChild(div);
-        msgs.scrollTop = msgs.scrollHeight;
+        _scrollToBottom();
 
         const btn = document.getElementById('iaSendBtn');
         if (btn) btn.disabled = true;
@@ -928,6 +967,16 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     function _syncToAppData() {
         if (typeof App === 'undefined' || !App.data) return;
 
+        // Normalize gender from AI output to form values (M/F/X)
+        function _normalizeGender(g) {
+            if (!g) return '';
+            const val = String(g).trim().toLowerCase();
+            if (val === 'male' || val === 'm') return 'M';
+            if (val === 'female' || val === 'f') return 'F';
+            if (val === 'x' || val === 'not specified' || val === 'nonbinary') return 'X';
+            return g; // pass through if already correct
+        }
+
         // AI extracted key → App.data form field key
         const AI_TO_APP = {
             addrStreet: 'address', addrCity: 'city', addrState: 'state', addrZip: 'zip',
@@ -937,7 +986,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             homeDeductible: 'deductibleAOP', windDeductible: 'deductibleWind',
             liabilityLimits: 'bodInjury', pdLimit: 'propDamage',
             compDeductible: 'compDed', autoDeductible: 'collDed',
-            umLimits: 'umUim',
+            umLimits: 'umUim', roofYear: 'roofYr',
             coFirstName: 'coApplicantFirst', coLastName: 'coApplicantLast',
         };
 
@@ -945,13 +994,15 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         const DIRECT = [
             'firstName', 'lastName', 'dob', 'gender', 'maritalStatus',
             'email', 'phone', 'county',
-            'dwellingType', 'dwellingUsage', 'occupancy',
+            'dwellingType', 'dwellingUsage', 'occupancy', 'occupancyType',
             'sqFt', 'constructionType', 'exteriorWalls', 'foundation',
             'roofType', 'roofShape', 'heatingType', 'coolingType',
             'pool', 'trampoline', 'garageSpaces',
             'fireAlarm', 'sprinklers', 'protectionClass',
             'medPay', 'rental', 'towing',
             'priorCarrier', 'priorYears', 'priorLapse',
+            'effectiveDate', 'policyTerm', 'residenceIs',
+            'homePolicyType', 'accidents', 'violations',
         ];
 
         let changed = false;
@@ -959,8 +1010,12 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         for (const [aiKey, val] of Object.entries(extractedData)) {
             if (!val || aiKey === 'vehicles' || aiKey === 'drivers') continue;
             const formKey = AI_TO_APP[aiKey] || (DIRECT.includes(aiKey) ? aiKey : null);
-            if (formKey && App.data[formKey] !== String(val)) {
-                App.data[formKey] = String(val);
+            if (!formKey) continue;
+            let normalizedVal = String(val);
+            // Normalize gender values: Male→M, Female→F
+            if (formKey === 'gender') normalizedVal = _normalizeGender(val);
+            if (App.data[formKey] !== normalizedVal) {
+                App.data[formKey] = normalizedVal;
                 changed = true;
             }
         }
@@ -1004,7 +1059,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             }
         }
 
-        // Sync drivers into App.drivers
+        // Sync drivers into App.drivers — includes ALL driver form fields
         if (Array.isArray(extractedData.drivers) && extractedData.drivers.length > 0 && Array.isArray(App.drivers)) {
             for (const d of extractedData.drivers) {
                 if (!d.firstName && !d.lastName && !d.dob) continue;
@@ -1013,25 +1068,62 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                 );
                 if (match) {
                     if (d.dob) match.dob = d.dob;
-                    if (d.gender) match.gender = d.gender;
+                    if (d.gender) match.gender = _normalizeGender(d.gender);
+                    if (d.maritalStatus) match.maritalStatus = d.maritalStatus;
                     if (d.relationship) match.relationship = d.relationship;
+                    if (d.occupation) match.occupation = d.occupation;
+                    if (d.education) match.education = d.education;
+                    if (d.dlStatus) match.dlStatus = d.dlStatus;
                     if (d.dlState) match.dlState = d.dlState;
                     if (d.dlNum) match.dlNum = d.dlNum;
-                    if (d.ageLicensed) match.ageLicensed = d.ageLicensed;
+                    if (d.ageLicensed) match.ageLicensed = String(d.ageLicensed);
                     changed = true;
                 } else {
                     const id = 'driver_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
                     const emptyIdx = App.drivers.findIndex(ed => !ed.firstName && !ed.lastName && !ed.dob);
                     const driver = {
                         id, firstName: d.firstName || '', lastName: d.lastName || '',
-                        dob: d.dob || '', gender: d.gender || '', maritalStatus: d.maritalStatus || '',
+                        dob: d.dob || '', gender: _normalizeGender(d.gender),
+                        maritalStatus: d.maritalStatus || '',
                         relationship: d.relationship || 'Self',
-                        dlState: d.dlState || (extractedData.addrState || ''),
-                        dlNum: d.dlNum || '', ageLicensed: d.ageLicensed || '',
-                        occupation: '', education: ''
+                        occupation: d.occupation || '', education: d.education || '',
+                        dlStatus: d.dlStatus || '', dlState: d.dlState || (extractedData.addrState || ''),
+                        dlNum: d.dlNum || '', ageLicensed: d.ageLicensed ? String(d.ageLicensed) : '',
                     };
                     if (emptyIdx !== -1) App.drivers[emptyIdx] = driver;
                     else App.drivers.push(driver);
+                    changed = true;
+                }
+            }
+        }
+
+        // Propagate top-level applicant data to the primary (Self) driver
+        if (Array.isArray(App.drivers) && App.drivers.length > 0) {
+            const selfDriver = App.drivers.find(d => d.relationship === 'Self') || App.drivers[0];
+            if (selfDriver) {
+                // Inherit gender from main form if driver has none
+                if (!selfDriver.gender && extractedData.gender) {
+                    selfDriver.gender = _normalizeGender(extractedData.gender);
+                    changed = true;
+                }
+                // Inherit marital status from main form if driver has none
+                if (!selfDriver.maritalStatus && extractedData.maritalStatus) {
+                    selfDriver.maritalStatus = extractedData.maritalStatus;
+                    changed = true;
+                }
+                // Inherit occupation from top-level if driver has none
+                if (!selfDriver.occupation && extractedData.occupation) {
+                    selfDriver.occupation = extractedData.occupation;
+                    changed = true;
+                }
+                // Inherit education from top-level if driver has none
+                if (!selfDriver.education && extractedData.education) {
+                    selfDriver.education = extractedData.education;
+                    changed = true;
+                }
+                // If primary driver has no DL status, default to Valid (most common)
+                if (!selfDriver.dlStatus && (selfDriver.dlNum || selfDriver.dlState)) {
+                    selfDriver.dlStatus = 'Valid';
                     changed = true;
                 }
             }
@@ -2382,6 +2474,34 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         return null;
     }
 
+    /**
+     * Extract just the question portion of the AI's last message.
+     * AI replies typically follow the pattern: "Got it, [confirmation]. [New question]"
+     * We only want to match chips against the NEW question, not the confirmation of old data.
+     */
+    function _getLastAiQuestion() {
+        const full = _getLastAiMessage();
+        if (!full) return null;
+
+        // Split on double-newline (paragraph break) and take the last non-empty paragraph
+        const paragraphs = full.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+        if (paragraphs.length > 1) {
+            // Take the last paragraph — that's the new question
+            return paragraphs[paragraphs.length - 1];
+        }
+
+        // Single paragraph — try splitting on sentence boundaries after confirmations
+        // Look for the last question sentence (ends with ?)
+        const sentences = full.split(/(?<=[.!])\s+/);
+        const questionSentences = sentences.filter(s => s.trim().endsWith('?'));
+        if (questionSentences.length > 0) {
+            return questionSentences[questionSentences.length - 1];
+        }
+
+        // Fallback: return the full message
+        return full;
+    }
+
     /** Determine which chips to show based on conversation state */
     function _computeSuggestionChips() {
         const chips = [];
@@ -2405,21 +2525,23 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         }
 
         // Stage 2: Response-triggered suggestions from last AI message
-        const lastAiMsg = _getLastAiMessage();
-        if (lastAiMsg) {
+        // Use only the question portion (last paragraph) to avoid matching
+        // confirmation text from the previous topic
+        const lastAiQuestion = _getLastAiQuestion();
+        if (lastAiQuestion) {
             // Suppress chips for open-ended questions (name, address, email, DOB, VIN, etc.)
             const openEnded = /what\s*(is|'s|are)\s*(their|the|your|his|her)\s*(name|full\s*name|first\s*name|last\s*name|address|street|email|phone|number|date\s*of\s*birth|DOB|birthday|VIN)/i;
-            const isOpenEnded = openEnded.test(lastAiMsg);
+            const isOpenEnded = openEnded.test(lastAiQuestion);
 
             if (!isOpenEnded) {
+                // Find the FIRST matching trigger only — don't accumulate from multiple
                 for (const trigger of RESPONSE_TRIGGERS) {
-                    if (trigger.pattern.test(lastAiMsg)) {
+                    if (trigger.pattern.test(lastAiQuestion)) {
                         const tc = typeof trigger.chips === 'function' ? trigger.chips() : trigger.chips;
                         for (const c of tc) chips.push({ ...c, type: 'suggestion' });
+                        break; // Use only the first match — one topic at a time
                     }
                 }
-                // Cap at 5 to avoid clutter
-                if (chips.length > 5) chips.length = 5;
             }
         }
 
@@ -2475,6 +2597,10 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         } else {
             row.style.display = 'none';
         }
+
+        // Re-scroll after chips change layout (chip row sits between messages and input,
+        // so adding/removing chips resizes the messages container)
+        _scrollToBottom();
     }
 
     /** Click a suggestion chip — pre-fill and auto-send */

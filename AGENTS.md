@@ -17,7 +17,7 @@
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~702 lines) |
 | **CSS** | 20 files in `css/` (~13,200 lines total) |
-| **JS** | 34 modules in `js/` (~29,600 lines total) |
+| **JS** | 34 modules in `js/` (~26,800 lines total) |
 | **Plugins** | 14 HTML templates in `plugins/` (~5,000 lines total) |
 | **APIs** | 13 serverless functions in `api/` (~6,400 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
@@ -113,7 +113,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email-composer.js       # AI email polisher, encrypted drafts (423 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,061 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,703 lines)
-│   ├── intake-assist.js         # AI conversational intake, maps, progress ring (2,644 lines)
+│   ├── intake-assist.js         # AI conversational intake, maps, progress ring (2,476 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,036 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,858 lines)
 │   ├── quick-ref.js             # NATO phonetic + agent ID cards (292 lines)
