@@ -221,9 +221,9 @@ window.DashboardWidgets = (() => {
             const raw = localStorage.getItem('altech_v6_quotes');
             if (raw) {
                 drafts = JSON.parse(raw) || [];
-                // Sort by updatedAt descending, take top 5
+                // Sort by updatedAt descending, take top 3 (compact widget)
                 drafts.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-                drafts = drafts.slice(0, 5);
+                drafts = drafts.slice(0, 3);
             }
         } catch (e) { /* ignore */ }
 
@@ -263,6 +263,7 @@ window.DashboardWidgets = (() => {
         if (!container) return;
 
         let warning = 0, critical = 0;
+        const flaggedPolicies = []; // collect policies needing attention
         try {
             const raw = localStorage.getItem('altech_cgl_cache');
             if (raw) {
@@ -283,8 +284,18 @@ window.DashboardWidgets = (() => {
                     const exp = new Date(p.expirationDate);
                     exp.setHours(0, 0, 0, 0);
                     const days = Math.round((exp - now) / 86400000);
-                    if (days <= 14) critical++;
-                    else if (days <= 30) warning++;
+                    if (days <= 14) {
+                        critical++;
+                        flaggedPolicies.push({ ...p, days, severity: 'critical' });
+                    } else if (days <= 30) {
+                        warning++;
+                        flaggedPolicies.push({ ...p, days, severity: 'warning' });
+                    }
+                });
+                // Sort critical first, then by days ascending
+                flaggedPolicies.sort((a, b) => {
+                    if (a.severity !== b.severity) return a.severity === 'critical' ? -1 : 1;
+                    return a.days - b.days;
                 });
             }
         } catch (e) { /* ignore */ }
@@ -294,14 +305,14 @@ window.DashboardWidgets = (() => {
             statusClass = 'status-critical';
             indicatorClass = 'status-critical';
             iconSvg = icon('alertCircle', 22);
-            label = `${critical} policies need attention`;
+            label = `${critical} ${critical === 1 ? 'policy needs' : 'policies need'} attention`;
             detail = 'Expiring within 14 days';
             severityClass = 'severity-critical';
         } else if (warning > 0) {
             statusClass = 'status-warning';
             indicatorClass = 'status-warning';
             iconSvg = icon('alertCircle', 22);
-            label = `${warning} policies expiring soon`;
+            label = `${warning} ${warning === 1 ? 'policy' : 'policies'} expiring soon`;
             detail = 'Expiring within 30 days';
             severityClass = 'severity-warning';
         } else {
@@ -317,6 +328,29 @@ window.DashboardWidgets = (() => {
         container.className = container.className.replace(/severity-\w+/g, '').trim();
         container.classList.add(severityClass);
 
+        // Build policy list HTML when there are flagged policies
+        let policyListHtml = '';
+        if (flaggedPolicies.length > 0) {
+            const rows = flaggedPolicies.slice(0, 6).map(p => {
+                const name = _escapeHTML(p.insuredName || p.namedInsured || 'Unknown Insured');
+                const num = _escapeHTML(p.policyNumber || '—');
+                const expDate = p.expirationDate ? new Date(p.expirationDate) : null;
+                const expText = expDate ? expDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+                const daysText = p.days <= 0 ? 'Expired' : `${p.days}d left`;
+                return `<div class="compliance-policy-row">
+                    <div class="compliance-policy-severity ${p.severity}"></div>
+                    <div class="compliance-policy-info">
+                        <div class="compliance-policy-name">${name}</div>
+                        <div class="compliance-policy-number">${num}</div>
+                    </div>
+                    <div class="compliance-policy-exp ${p.severity}">${_escapeHTML(daysText)}</div>
+                </div>`;
+            }).join('');
+            const moreCount = flaggedPolicies.length > 6 ? flaggedPolicies.length - 6 : 0;
+            const moreHtml = moreCount > 0 ? `<div class="compliance-policy-more">+${moreCount} more</div>` : '';
+            policyListHtml = `<div class="compliance-policy-list">${rows}${moreHtml}</div>`;
+        }
+
         container.innerHTML = `
             <div class="widget-header">
                 <div class="widget-title">${icon('shieldCheck', 16)} Compliance</div>
@@ -328,7 +362,8 @@ window.DashboardWidgets = (() => {
                     <div class="compliance-label">${_escapeHTML(label)}</div>
                     <div class="compliance-detail">${_escapeHTML(detail)}</div>
                 </div>
-            </div>`;
+            </div>
+            ${policyListHtml}`;
     }
 
     // ── Render: Quick Actions Widget ──

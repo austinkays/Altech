@@ -317,6 +317,32 @@ body.dark-mode .stat-pill-today {
     color: var(--danger);
     font-weight: 600;
 }
+.reminder-task-due.snoozed {
+    color: #FF9500;
+    font-weight: 500;
+    font-style: italic;
+}
+
+/* Weekly Summary (inside widget) */
+.reminder-weekly-summary {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    padding: 6px 10px;
+    margin-bottom: 10px;
+    background: rgba(52, 199, 89, 0.06);
+    border-radius: 8px;
+    text-align: center;
+}
+
+/* Snoozed stat pill */
+.stat-pill-snoozed {
+    background: rgba(255, 149, 0, 0.10);
+    color: #E8850C;
+}
+body.dark-mode .stat-pill-snoozed {
+    color: #FFB340;
+}
 
 /* Empty state */
 .widget-empty {
@@ -339,11 +365,11 @@ body.dark-mode .stat-pill-today {
 }
 
 /* ═══════════════════════════════════════
-   Widget 2: Recent Drafts (3col × 2row)
+   Widget 2: Recent Drafts (compact, 3col × 1row)
    ═══════════════════════════════════════ */
 .widget-drafts {
     grid-column: span 3;
-    grid-row: span 2;
+    grid-row: span 1;
 }
 .draft-list {
     display: flex;
@@ -403,11 +429,10 @@ body.dark-mode .stat-pill-today {
 }
 
 /* ═══════════════════════════════════════
-   Widget 3: CGL Compliance (3col × 1row)
+   Widget 3: CGL Compliance (6col, adaptive height)
    ═══════════════════════════════════════ */
 .widget-compliance {
-    grid-column: span 3;
-    grid-row: span 1;
+    grid-column: span 6;
 }
 .compliance-status {
     display: flex;
@@ -472,6 +497,80 @@ body.dark-mode .compliance-indicator.status-warning { color: #FFB340; }
 }
 .widget-compliance.severity-critical {
     border-left: 4px solid var(--danger);
+}
+
+/* Compliance Policy List (shown when policies need attention) */
+.compliance-policy-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+.compliance-policy-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    transition: background 0.15s ease;
+}
+.compliance-policy-row:hover {
+    background: var(--bg-input);
+}
+.compliance-policy-severity {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.compliance-policy-severity.critical {
+    background: var(--danger);
+    box-shadow: 0 0 6px rgba(255, 59, 48, 0.4);
+}
+.compliance-policy-severity.warning {
+    background: #FFB340;
+    box-shadow: 0 0 6px rgba(255, 179, 64, 0.3);
+}
+.compliance-policy-info {
+    flex: 1;
+    min-width: 0;
+}
+.compliance-policy-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.compliance-policy-number {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 1px;
+}
+.compliance-policy-exp {
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.compliance-policy-exp.critical {
+    color: var(--danger);
+}
+.compliance-policy-exp.warning {
+    color: #E8850C;
+}
+body.dark-mode .compliance-policy-exp.warning {
+    color: #FFB340;
+}
+.compliance-policy-more {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    padding: 4px 0 2px;
 }
 
 /* ═══════════════════════════════════════
@@ -615,13 +714,13 @@ body.dark-mode .compliance-indicator.status-warning { color: #FFB340; }
 /* 1024px–1279px — Narrower bento grid */
 @media (min-width: 1024px) and (max-width: 1279px) {
     .widget-reminders {
-        grid-column: span 5;
+        grid-column: span 6;
+    }
+    .widget-compliance {
+        grid-column: span 6;
     }
     .widget-drafts {
         grid-column: span 4;
-    }
-    .widget-compliance {
-        grid-column: span 3;
     }
     .widget-quick-actions {
         grid-column: span 3;
@@ -638,10 +737,10 @@ body.dark-mode .compliance-indicator.status-warning { color: #FFB340; }
         grid-column: span 2;
         grid-row: span 1;
     }
-    .widget-drafts {
-        grid-column: span 1;
-    }
     .widget-compliance {
+        grid-column: span 2;
+    }
+    .widget-drafts {
         grid-column: span 1;
     }
     .widget-quick-actions {
@@ -683,5 +782,8 @@ body.dark-mode .compliance-indicator.status-warning { color: #FFB340; }
     }
     .reminder-stat-pill .stat-count {
         font-size: 16px;
+    }
+    .compliance-policy-list {
+        max-height: 140px;
     }
 }
