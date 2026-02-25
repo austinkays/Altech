@@ -18,6 +18,10 @@ Object.assign(App, {
     },
 
     async buildPDF(data) {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            this.toast('PDF library not loaded — check your internet connection and reload', 'error');
+            throw new Error('jsPDF library not available (window.jspdf is undefined)');
+        }
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const pageW = doc.internal.pageSize.getWidth();
