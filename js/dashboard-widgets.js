@@ -341,7 +341,7 @@ window.DashboardWidgets = (() => {
         let policyListHtml = '';
         if (flaggedPolicies.length > 0) {
             const rows = flaggedPolicies.slice(0, 6).map(p => {
-                const name = _escapeHTML(p.insuredName || p.namedInsured || 'Unknown Insured');
+                const name = _escapeHTML(p.clientName || p.businessName || p.insuredName || p.namedInsured || 'Unknown Insured');
                 const num = _escapeHTML(p.policyNumber || '—');
                 const expDate = p.expirationDate ? new Date(p.expirationDate) : null;
                 const expText = expDate ? expDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
