@@ -219,48 +219,48 @@ window.DashboardWidgets = (() => {
             ${taskListHtml}`;
     }
 
-    // ── Render: Recent Drafts Widget ──
+    // ── Render: Recent Clients Widget ──
 
-    function renderDraftsWidget() {
+    function renderClientsWidget() {
         const container = document.getElementById('widgetDrafts');
         if (!container) return;
 
-        let drafts = [];
+        let clients = [];
         try {
-            const raw = localStorage.getItem('altech_v6_quotes');
+            const raw = localStorage.getItem('altech_client_history');
             if (raw) {
-                drafts = JSON.parse(raw) || [];
-                // Sort by updatedAt descending, take top 3 (compact widget)
-                drafts.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-                drafts = drafts.slice(0, 3);
+                clients = JSON.parse(raw) || [];
+                clients = clients.slice(0, 3); // already sorted newest-first
             }
         } catch (e) { /* ignore */ }
 
         let listHtml;
-        if (drafts.length === 0) {
+        if (clients.length === 0) {
             listHtml = `
                 <div class="widget-empty">
-                    <div class="widget-empty-icon">${icon('clipboard', 32)}</div>
-                    <div class="widget-empty-text">No saved drafts yet</div>
+                    <div class="widget-empty-icon">${icon('user', 32)}</div>
+                    <div class="widget-empty-text">No saved clients yet</div>
                 </div>`;
         } else {
-            listHtml = `<div class="draft-list">${drafts.map(d => {
-                const starClass = d.starred ? 'starred' : '';
-                const timeText = _relativeTime(d.updatedAt);
-                return `<div class="draft-row" onclick="App.navigateTo('quoting')">
-                    <div class="draft-star ${starClass}">${icon('star', 16)}</div>
-                    <div class="draft-info">
-                        <div class="draft-title">${_escapeHTML(d.title || 'Untitled Draft')}</div>
+            listHtml = `<div class="client-list">${clients.map(c => {
+                const timeText = _relativeTime(c.savedAt);
+                const qType = (c.data && c.data.qType || '').toLowerCase();
+                const typeIcon = qType === 'home' ? icon('home', 14) : qType === 'auto' ? icon('car', 14) : qType === 'both' ? icon('home', 14) + icon('car', 14) : '';
+                return `<div class="client-row" onclick="App.loadClientFromHistory('${c.id}'); App.navigateTo('quoting');">
+                    <div class="client-type-icon">${typeIcon}</div>
+                    <div class="client-info">
+                        <div class="client-name">${_escapeHTML(c.name || 'Unnamed Client')}</div>
+                        <div class="client-summary">${_escapeHTML(c.summary || '')}</div>
                     </div>
-                    <div class="draft-time">${_escapeHTML(timeText)}</div>
+                    <div class="client-time">${_escapeHTML(timeText)}</div>
                 </div>`;
             }).join('')}</div>`;
         }
 
         container.innerHTML = `
             <div class="widget-header">
-                <div class="widget-title">${icon('clipboard', 16)} Recent Drafts</div>
-                <button class="widget-action" onclick="App.navigateTo('quoting')">All Drafts →</button>
+                <div class="widget-title">${icon('user', 16)} Recent Clients</div>
+                <button class="widget-action" onclick="App.navigateTo('quoting')">All Clients →</button>
             </div>
             ${listHtml}`;
     }
@@ -754,7 +754,7 @@ window.DashboardWidgets = (() => {
     function refreshAll() {
         try { renderGreeting(); } catch (e) { console.error('[DashboardWidgets] renderGreeting error:', e); }
         try { renderRemindersWidget(); } catch (e) { console.error('[DashboardWidgets] renderRemindersWidget error:', e); }
-        try { renderDraftsWidget(); } catch (e) { console.error('[DashboardWidgets] renderDraftsWidget error:', e); }
+        try { renderClientsWidget(); } catch (e) { console.error('[DashboardWidgets] renderClientsWidget error:', e); }
         try { renderComplianceWidget(); } catch (e) { console.error('[DashboardWidgets] renderComplianceWidget error:', e); }
         try { renderQuickActions(); } catch (e) { console.error('[DashboardWidgets] renderQuickActions error:', e); }
         try { renderQuickLaunch(); } catch (e) { console.error('[DashboardWidgets] renderQuickLaunch error:', e); }
@@ -781,7 +781,7 @@ window.DashboardWidgets = (() => {
         _refreshInterval = setInterval(() => {
             if (document.getElementById('dashboardView')?.style.display !== 'none') {
                 renderRemindersWidget();
-                renderDraftsWidget();
+                renderClientsWidget();
                 renderComplianceWidget();
                 updateBadges();
             }
