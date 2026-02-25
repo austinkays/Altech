@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** February 26, 2026
+> **Last updated:** February 27, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -91,7 +91,7 @@ npm run deploy:vercel   # Production deploy
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows (89 lines)
 │   ├── app-core.js             # Form handling, save/load, updateUI, navigation (2,336 lines)
-│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,714 lines)
+│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,761 lines)
 │   ├── app-property.js         # Property analysis, maps, assessor data (1,727 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning (843 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,446 lines)
@@ -149,7 +149,7 @@ npm run deploy:vercel   # Production deploy
 ├── api/                        # 13 Vercel serverless functions (~6,400 lines)
 │   ├── _ai-router.js           # ★ Shared: multi-provider AI router (NOT an endpoint)
 │   ├── config.js               # Firebase config, API keys, phonetics, bug reports
-│   ├── policy-scan.js          # OCR document extraction via Gemini
+│   ├── policy-scan.js          # OCR document extraction via Gemini (260 lines)
 │   ├── vision-processor.js     # Image/PDF analysis, DL scanning, aerial analysis (880 lines)
 │   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations (1,247 lines)
 │   ├── prospect-lookup.js      # Multi-source business investigation (1,563 lines)
@@ -683,6 +683,20 @@ KEY RULES:
 | 19 | MEDIUM | app-popups.js | 15 `alert()` calls → `this.toast()` |
 | 20 | MEDIUM | app-popups.js | 3 FileReader Promises got `onerror` handlers (were silently hanging) |
 | 21 | LOW | data-backup.js | Fixed `\\n` double-escaped newline in string literal |
+
+### Scanner Audit Fixes (February 2026)
+
+| # | Severity | File | Fix Description |
+|---|----------|------|------------------|
+| 22 | CRITICAL | app-scan.js | Gender normalization in `applyExtractedData()` — AI returns "Male"/"Female", form needs "M"/"F" |
+| 23 | HIGH | app-scan.js | Primary driver from scan now includes all fields: gender, maritalStatus, occupation, education, dlStatus, ageLicensed |
+| 24 | HIGH | app-scan.js | Additional drivers from text parsing now include all fields (were missing gender, maritalStatus, etc.) |
+| 25 | MEDIUM | app-scan.js | Gender normalization in `applyInitialDriverLicense()` — DL scan gender now normalized |
+| 26 | MEDIUM | app-scan.js | DL scan driver creation now includes maritalStatus, education, dlStatus, ageLicensed |
+| 27 | LOW | app-scan.js | Canvas cleanup on `optimizeImage()` fallback path — canvas.width/height zeroed when blob is null |
+| 28 | MEDIUM | policy-scan.js | Server API schema synced with client `_getScanSchema()` — added ~40 missing fields |
+| 29 | MEDIUM | policy-scan.js | Server system prompt updated with CRITICAL FORMATTING RULES section + gender M/F instruction |
+| 30 | MEDIUM | policy-scan.js | Server user prompt expanded with safety/protection, claims/violations, additional field categories |
 
 ### CSS Fixes Applied (February 2026 Audit)
 
