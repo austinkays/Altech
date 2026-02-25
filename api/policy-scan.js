@@ -50,43 +50,66 @@ async function handler(req, res) {
     // Log anonymized request (no file contents)
     console.log(`[Policy Scan] Processing ${files.length} file(s)`);
 
+    // Schema must stay in sync with client-side _getScanSchema() in js/app-export.js
     const fieldProps = {
       // Applicant
-      firstName: { type: 'string' }, lastName: { type: 'string' },
+      prefix: { type: 'string' }, firstName: { type: 'string' }, lastName: { type: 'string' }, suffix: { type: 'string' },
       dob: { type: 'string' }, gender: { type: 'string' }, maritalStatus: { type: 'string' },
       phone: { type: 'string' }, email: { type: 'string' },
-      education: { type: 'string' }, occupation: { type: 'string' },
+      education: { type: 'string' }, occupation: { type: 'string' }, industry: { type: 'string' },
       // Co-Applicant
       coFirstName: { type: 'string' }, coLastName: { type: 'string' },
-      coDob: { type: 'string' }, coGender: { type: 'string' }, coRelationship: { type: 'string' },
+      coDob: { type: 'string' }, coGender: { type: 'string' }, coEmail: { type: 'string' }, coPhone: { type: 'string' }, coRelationship: { type: 'string' },
       // Address
       addrStreet: { type: 'string' }, addrCity: { type: 'string' },
       addrState: { type: 'string' }, addrZip: { type: 'string' },
+      yearsAtAddress: { type: 'string' }, county: { type: 'string' },
       // Property
+      dwellingUsage: { type: 'string' }, occupancyType: { type: 'string' },
       yrBuilt: { type: 'string' }, sqFt: { type: 'string' }, dwellingType: { type: 'string' },
-      roofType: { type: 'string' }, constructionStyle: { type: 'string' },
+      roofType: { type: 'string' }, roofShape: { type: 'string' }, roofYr: { type: 'string' },
+      constructionStyle: { type: 'string' },
       numStories: { type: 'string' }, foundation: { type: 'string' },
       exteriorWalls: { type: 'string' }, heatingType: { type: 'string' },
-      garageType: { type: 'string' }, lotSize: { type: 'string' },
+      cooling: { type: 'string' }, heatYr: { type: 'string' },
+      plumbYr: { type: 'string' }, elecYr: { type: 'string' },
+      sewer: { type: 'string' }, waterSource: { type: 'string' },
+      garageType: { type: 'string' }, garageSpaces: { type: 'string' }, lotSize: { type: 'string' },
+      numOccupants: { type: 'string' }, bedrooms: { type: 'string' },
+      fullBaths: { type: 'string' }, halfBaths: { type: 'string' },
+      kitchenQuality: { type: 'string' }, flooring: { type: 'string' },
+      numFireplaces: { type: 'string' }, purchaseDate: { type: 'string' },
       pool: { type: 'string' }, trampoline: { type: 'string' }, dogInfo: { type: 'string' },
+      businessOnProperty: { type: 'string' }, woodStove: { type: 'string' },
+      // Safety & Protection
+      burglarAlarm: { type: 'string' }, fireAlarm: { type: 'string' },
+      sprinklers: { type: 'string' }, smokeDetector: { type: 'string' },
+      fireStationDist: { type: 'string' }, fireHydrantFeet: { type: 'string' }, protectionClass: { type: 'string' },
       // Home Coverage
       homePolicyType: { type: 'string' }, dwellingCoverage: { type: 'string' },
       personalLiability: { type: 'string' }, medicalPayments: { type: 'string' },
-      homeDeductible: { type: 'string' }, mortgagee: { type: 'string' },
+      homeDeductible: { type: 'string' }, windDeductible: { type: 'string' }, mortgagee: { type: 'string' },
       // Auto / Vehicles
       vin: { type: 'string' }, vehDesc: { type: 'string' },
+      autoPolicyType: { type: 'string' },
       liabilityLimits: { type: 'string' }, pdLimit: { type: 'string' },
       umLimits: { type: 'string' }, uimLimits: { type: 'string' },
       compDeductible: { type: 'string' }, autoDeductible: { type: 'string' },
-      medPaymentsAuto: { type: 'string' },
+      medPayments: { type: 'string' },
       rentalDeductible: { type: 'string' }, towingDeductible: { type: 'string' },
+      studentGPA: { type: 'string' },
       // Policy / Prior
       policyNumber: { type: 'string' },
       effectiveDate: { type: 'string' }, policyTerm: { type: 'string' },
       priorCarrier: { type: 'string' }, priorExp: { type: 'string' },
       priorPolicyTerm: { type: 'string' }, priorLiabilityLimits: { type: 'string' },
+      priorYears: { type: 'string' }, continuousCoverage: { type: 'string' },
       homePriorCarrier: { type: 'string' }, homePriorExp: { type: 'string' },
-      // Additional vehicles/drivers (text descriptions)
+      homePriorPolicyTerm: { type: 'string' }, homePriorYears: { type: 'string' },
+      accidents: { type: 'string' }, violations: { type: 'string' },
+      // Additional
+      additionalInsureds: { type: 'string' },
+      contactTime: { type: 'string' }, referralSource: { type: 'string' },
       additionalVehicles: { type: 'string' }, additionalDrivers: { type: 'string' },
     };
 
@@ -126,25 +149,47 @@ async function handler(req, res) {
             'You handle poor quality scans, rotated pages, faxed documents, and partially obscured text by inferring from context when possible. ' +
             'Return only JSON that matches the schema. Use empty strings for any data not found. ' +
             'Provide confidence scores between 0 and 1 based on how clearly you can read each value and how certain you are of the mapping. ' +
-            'Report quality issues like blurry text, missing pages, or ambiguous data in the quality_issues array.'
+            'Report quality issues like blurry text, missing pages, or ambiguous data in the quality_issues array.' +
+            '\n\nCRITICAL FORMATTING RULES:\n' +
+            '- Return ONLY valid JSON — no markdown fences, no commentary before or after the JSON.\n' +
+            '- Use empty strings "" for any data not found. Never use null.\n' +
+            '- Normalize ALL dates to YYYY-MM-DD format (e.g., "01/15/2024" → "2024-01-15").\n' +
+            '- Normalize currency to plain numbers without $ or commas (e.g., "$1,250" → "1250").\n' +
+            '- State abbreviations must be 2-letter codes (e.g., "Washington" → "WA").\n' +
+            '- Gender must be "M" or "F" (not "Male" or "Female").\n' +
+            '- Confidence scores: 0.0 (not found/guessed) to 1.0 (clearly readable). Use 0.5-0.7 for inferred values.\n' +
+            '- quality_issues array: list any blurry text, missing pages, ambiguous data, or low-confidence extractions.\n' +
+            '\nEXAMPLE OUTPUT STRUCTURE:\n' +
+            '{"fields":{"firstName":"John","lastName":"Smith","dob":"1985-03-15","addrStreet":"123 Main St","addrCity":"Seattle","addrState":"WA","addrZip":"98101",...},' +
+            '"confidence":{"firstName":0.95,"lastName":0.95,"dob":0.8,...},"quality_issues":["Page 2 was partially cut off","Prior carrier name unclear"]}'
         }
       ]
     };
 
     const userPrompt =
       'Analyze these insurance policy document(s) and extract ALL available information:\n\n' +
-      '**POLICYHOLDER/INSURED:** First name, last name, date of birth, gender (M/F), marital status, phone, email, education, occupation\n' +
-      '**CO-APPLICANT/SPOUSE:** First name, last name, date of birth, gender, relationship (if listed)\n' +
-      '**ADDRESS:** Street address, city, state (2-letter code), ZIP (insured\'s address, NOT the agency/agent address)\n' +
-      '**PROPERTY:** Year built, square footage, dwelling type (single family, condo, townhouse, mobile home, etc.), roof type, construction style, stories, foundation, ' +
-      'exterior walls (vinyl, brick, stucco, wood, etc.), heating type (gas forced air, electric, oil, etc.), garage type (attached, detached, carport, none), lot size (acres), ' +
-      'pool (yes/no/fenced/unfenced), trampoline (yes/no), dog info (breed if mentioned)\n' +
-      '**HOME COVERAGE:** Policy type (HO-3, HO-5, HO-4, HO-6, DP-1, DP-3), dwelling coverage amount, personal liability, medical payments, deductible, mortgagee/lender name\n' +
+      '**POLICYHOLDER/INSURED:** Prefix (Mr/Mrs/Ms), first name, last name, suffix (Jr/Sr/III), date of birth, gender (M/F), marital status, phone, email, education, occupation, industry\n' +
+      '**CO-APPLICANT/SPOUSE:** First name, last name, date of birth, gender (M/F), email, phone, relationship (if listed)\n' +
+      '**ADDRESS:** Street address, city, state (2-letter code), ZIP, county, years at address (insured\'s address, NOT the agency/agent address)\n' +
+      '**PROPERTY:** Year built, square footage, dwelling type (single family, condo, townhouse, mobile home, etc.), dwelling usage (primary/secondary/rental/vacant), occupancy type, ' +
+      'roof type, roof shape (gable/hip/flat/gambrel), roof year, construction style, stories, foundation, ' +
+      'exterior walls (vinyl, brick, stucco, wood, etc.), heating type (gas forced air, electric, oil, etc.), heating year, cooling type, ' +
+      'plumbing year, electrical year, sewer type, water source, ' +
+      'garage type (attached, detached, carport, none), garage spaces, lot size (acres), ' +
+      'number of occupants, bedrooms, full baths, half baths, kitchen quality, flooring type, fireplaces, purchase date, ' +
+      'pool (yes/no/fenced/unfenced), trampoline (yes/no), dog info (breed if mentioned), business on property (yes/no), wood stove (yes/no)\n' +
+      '**SAFETY & PROTECTION:** Burglar alarm (yes/no/type), fire alarm (yes/no), sprinklers (yes/no), smoke detectors (yes/no), ' +
+      'fire station distance, fire hydrant distance (feet), protection class\n' +
+      '**HOME COVERAGE:** Policy type (HO-3, HO-5, HO-4, HO-6, DP-1, DP-3), dwelling coverage amount, personal liability, medical payments, ' +
+      'deductible, wind/hail deductible, mortgagee/lender name\n' +
       '**VEHICLES:** VIN number(s), vehicle description (year/make/model). If multiple vehicles, put each extra one in additionalVehicles separated by semicolons, format: "YYYY Make Model VIN: XXXXX; YYYY Make Model VIN: XXXXX"\n' +
-      '**AUTO COVERAGE:** Liability limits (e.g., 100/300/100), property damage limit, UM limits, UIM limits, comprehensive deductible, collision deductible, med pay (auto), rental reimbursement, towing/roadside\n' +
+      '**AUTO COVERAGE:** Auto policy type (standard/broad/basic), liability limits (e.g., 100/300/100), property damage limit, UM limits, UIM limits, ' +
+      'comprehensive deductible, collision deductible, med pay, rental reimbursement, towing/roadside, student GPA discount\n' +
       '**DRIVERS:** If multiple drivers beyond the primary insured, list them in additionalDrivers separated by semicolons, format: "FirstName LastName DOB: YYYY-MM-DD; FirstName LastName DOB: YYYY-MM-DD"\n' +
-      '**POLICY INFO:** Policy number, effective date, policy term (6 month/12 month/annual), prior carrier name, prior expiration date, prior policy term, prior liability limits. ' +
-      'If separate home/auto carriers, use homePriorCarrier/homePriorExp for home.\n\n' +
+      '**POLICY INFO:** Policy number, effective date, policy term (6 month/12 month/annual), prior carrier name, prior expiration date, prior policy term, prior liability limits, ' +
+      'years with prior carrier, continuous coverage (yes/no). If separate home/auto carriers, use homePriorCarrier/homePriorExp/homePriorPolicyTerm/homePriorYears for home.\n' +
+      '**CLAIMS/VIOLATIONS:** Accidents (count or descriptions), violations (count or descriptions)\n' +
+      '**ADDITIONAL:** Additional insureds (names), preferred contact time, referral source\n\n' +
       'IMPORTANT NOTES:\n' +
       '- Different carriers use different labels: "Named Insured", "Policyholder", "Insured", "Primary Insured" all mean the same thing\n' +
       '- Ignore agent/agency information - we only want the INSURED\'s info\n' +
@@ -153,6 +198,7 @@ async function handler(req, res) {
       '- Multi-page policies: extract from ALL pages provided\n' +
       '- Normalize dates to YYYY-MM-DD format when possible\n' +
       '- Normalize currency to plain numbers (no $ or commas)\n' +
+      '- Gender must be M or F (not Male/Female)\n' +
       '- If image quality is poor or data is unclear, note it in quality_issues\n\n' +
       'Return structured JSON with the extracted fields.';
 

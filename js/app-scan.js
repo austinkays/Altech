@@ -537,10 +537,21 @@ Object.assign(App, {
             appliedCount++;
         };
 
+        // Normalize gender from DL scan (Male/Female → M/F)
+        const normGender = (v) => {
+            if (!v) return '';
+            const g = String(v).trim().toLowerCase();
+            if (g === 'male' || g === 'm') return 'M';
+            if (g === 'female' || g === 'f') return 'F';
+            if (g === 'x' || g === 'not specified') return 'X';
+            return v;
+        };
+        const normalizedGender = normGender(fields.gender);
+
         setIfEmpty('firstName', fields.firstName);
         setIfEmpty('lastName', fields.lastName);
         setIfEmpty('dob', fields.dob);
-        setIfEmpty('gender', fields.gender);
+        setIfEmpty('gender', normalizedGender);
         setIfEmpty('addrStreet', fields.addressLine1);
         setIfEmpty('addrCity', fields.city);
         setIfEmpty('addrState', fields.state);
@@ -552,11 +563,15 @@ Object.assign(App, {
                 firstName: fields.firstName || '',
                 lastName: fields.lastName || '',
                 dob: fields.dob || '',
-                gender: fields.gender || '',
+                gender: normalizedGender,
+                maritalStatus: '',
+                relationship: 'Self',
+                occupation: '',
+                education: '',
+                dlStatus: (fields.licenseNumber) ? 'Valid' : '',
                 dlNum: (fields.licenseNumber || '').toUpperCase(),
                 dlState: (fields.licenseState || fields.state || 'WA').toUpperCase(),
-                relationship: 'Self',
-                occupation: ''
+                ageLicensed: '',
             });
         } else {
             const primary = this.drivers[0];
@@ -564,9 +579,10 @@ Object.assign(App, {
                 if (!primary.firstName) primary.firstName = fields.firstName || '';
                 if (!primary.lastName) primary.lastName = fields.lastName || '';
                 if (!primary.dob) primary.dob = fields.dob || '';
-                if (!primary.gender) primary.gender = fields.gender || '';
+                if (!primary.gender) primary.gender = normalizedGender;
                 if (!primary.dlNum) primary.dlNum = (fields.licenseNumber || '').toUpperCase();
                 if (!primary.dlState) primary.dlState = (fields.licenseState || fields.state || 'WA').toUpperCase();
+                if (!primary.dlStatus && fields.licenseNumber) primary.dlStatus = 'Valid';
             }
         }
 
@@ -702,6 +718,8 @@ Object.assign(App, {
         }
         
         bitmap.close();
+        canvas.width = 0;
+        canvas.height = 0;
         return file;
     },
 
@@ -1504,9 +1522,26 @@ Object.assign(App, {
         const log = [];
         console.group('[PolicyScan] 📋 Applying extracted data (merge=' + (mergeMode ? 'protect' : 'overwrite') + ')');
 
+        // Gender normalization helper (AI may return Male/Female, form expects M/F)
+        const _normGender = (v) => {
+            if (!v) return '';
+            const g = String(v).trim().toLowerCase();
+            if (g === 'male' || g === 'm') return 'M';
+            if (g === 'female' || g === 'f') return 'F';
+            if (g === 'x' || g === 'not specified') return 'X';
+            return v;
+        };
+
         inputs.forEach((input) => {
             const field = input.dataset.field;
-            const extractedValue = (input.value || '').trim();
+            let extractedValue = (input.value || '').trim();
+
+            // Normalize gender before applying
+            if (field === 'gender' || field === 'coGender') {
+                extractedValue = _normGender(extractedValue);
+                input.value = extractedValue;
+            }
+
             const currentValue = (this.data && this.data[field]) ? this.data[field].toString().trim() : '';
 
             // Skip empty extracted values
@@ -1663,9 +1698,15 @@ Object.assign(App, {
                     firstName: this.data.firstName || '',
                     lastName: this.data.lastName || '',
                     dob: this.data.dob || '',
+                    gender: _normGender(this.data.gender),
+                    maritalStatus: this.data.maritalStatus || '',
+                    relationship: 'Self',
+                    occupation: this.data.occupation || '',
+                    education: this.data.education || '',
+                    dlStatus: '',
                     dlNum: '',
                     dlState: this.data.addrState || 'WA',
-                    relationship: 'Self'
+                    ageLicensed: '',
                 }];
             }
         }
@@ -1690,9 +1731,15 @@ Object.assign(App, {
                             firstName: nameMatch[1],
                             lastName: nameMatch[2],
                             dob: dobMatch ? dobMatch[1] : '',
+                            gender: '',
+                            maritalStatus: '',
+                            relationship: 'Other',
+                            occupation: '',
+                            education: '',
+                            dlStatus: '',
                             dlNum: '',
                             dlState: this.data.addrState || 'WA',
-                            relationship: 'Other'
+                            ageLicensed: '',
                         });
                     }
                 }
