@@ -1,122 +1,5 @@
-/* ── AI Intake Assistant (Enhanced) ─────────────────────────── */
+/* ── AI Intake Assistant ──────────────────────────────────── */
 
-/* ── Progress Dashboard ──────────────────────────────────────── */
-.ia-progress-dashboard {
-    background: var(--bg-card);
-    border: 1.5px solid var(--border);
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 16px;
-    animation: iaSlideIn 0.3s ease;
-}
-
-.ia-progress-inner {
-    display: flex;
-    gap: 20px;
-    align-items: center;
-}
-
-.ia-progress-ring-wrap {
-    position: relative;
-    width: 84px;
-    height: 84px;
-    flex-shrink: 0;
-}
-
-.ia-progress-ring {
-    width: 84px;
-    height: 84px;
-    transform: rotate(-90deg);
-}
-
-.ia-ring-bg {
-    fill: none;
-    stroke: var(--border);
-    stroke-width: 6;
-}
-
-.ia-ring-fill {
-    fill: none;
-    stroke: var(--apple-blue);
-    stroke-width: 6;
-    stroke-linecap: round;
-    transition: stroke-dashoffset 0.6s ease;
-}
-
-.ia-ring-label {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    line-height: 1.1;
-}
-
-.ia-ring-pct {
-    display: block;
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--text);
-}
-
-.ia-ring-sub {
-    display: block;
-    font-size: 10px;
-    color: var(--text-secondary);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.ia-prog-categories {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 0;
-}
-
-
-
-.ia-prog-cat-header {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 3px;
-}
-
-.ia-prog-cat-count {
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-.ia-prog-bar-track {
-    height: 6px;
-    background: var(--bg-input);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.ia-prog-bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.5s ease;
-    min-width: 0;
-}
-
-@media (max-width: 400px) {
-    .ia-progress-inner {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .ia-progress-ring-wrap {
-        align-self: center;
-    }
-}
-
-/* ── Chat Card ───────────────────────────────────────────────── */
 .ia-card {
     background: var(--bg-card);
     border: 1.5px solid var(--border);
@@ -237,7 +120,7 @@ body.dark-mode .ia-code { background: #111; }
     30% { transform: translateY(-6px); opacity: 1; }
 }
 
-/* Smart chips (context-aware) */
+/* Quick-start chips */
 .ia-chip-row {
     display: flex;
     gap: 6px;
@@ -254,7 +137,7 @@ body.dark-mode .ia-code { background: #111; }
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition: border-color 0.15s, color 0.15s;
     white-space: nowrap;
 }
 .ia-chip:hover {
@@ -262,27 +145,7 @@ body.dark-mode .ia-code { background: #111; }
     color: var(--apple-blue);
 }
 
-.ia-chip-done {
-    border-color: var(--success, #34C759);
-    color: var(--success, #34C759);
-}
-.ia-chip-done:hover {
-    background: var(--success, #34C759);
-    color: #fff;
-    border-color: var(--success, #34C759);
-}
-
-.ia-chip-intel {
-    border-color: #FF9500;
-    color: #FF9500;
-}
-.ia-chip-intel:hover {
-    background: #FF9500;
-    color: #fff;
-    border-color: #FF9500;
-}
-
-/* Input row with upload button */
+/* Input row */
 .ia-input-row {
     display: flex;
     gap: 8px;
@@ -290,25 +153,6 @@ body.dark-mode .ia-code { background: #111; }
     border-top: 1px solid var(--border);
     background: var(--bg-input);
     align-items: flex-end;
-}
-
-.ia-upload-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-    border: 1.5px solid var(--border);
-    background: var(--bg-card);
-    color: var(--text-secondary);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: color 0.15s, border-color 0.15s;
-}
-.ia-upload-btn:hover {
-    color: var(--apple-blue);
-    border-color: var(--apple-blue);
 }
 
 .ia-input {
@@ -349,197 +193,34 @@ body.dark-mode .ia-code { background: #111; }
 .ia-send-btn:hover { filter: brightness(1.12); }
 .ia-send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* ── Property Intelligence Panel ─────────────────────────────── */
-.ia-intel-card {
+/* Extracted data preview */
+.ia-extracted-card {
     background: var(--bg-card);
-    border: 1.5px solid var(--apple-blue);
+    border: 1.5px solid var(--success, #34C759);
     border-radius: 16px;
     overflow: hidden;
-    margin-bottom: 16px;
-    animation: iaSlideIn 0.3s ease;
+    animation: iaSlideIn 0.25s ease;
 }
 
-.ia-intel-header {
+@keyframes iaSlideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.ia-preview-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    background: rgba(0, 122, 255, 0.06);
-    border-bottom: 1px solid rgba(0, 122, 255, 0.15);
-}
-body.dark-mode .ia-intel-header {
-    background: rgba(10, 132, 255, 0.1);
-    border-bottom-color: rgba(10, 132, 255, 0.2);
-}
-
-.ia-intel-title {
-    font-weight: 700;
-    font-size: 14px;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.ia-intel-confidence {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.ia-conf-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.ia-intel-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    padding: 8px 0;
-}
-
-.ia-intel-field {
-    display: flex;
-    flex-direction: column;
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--border);
-}
-
-.ia-intel-source {
-    padding: 8px 16px;
-    font-size: 11px;
-    color: var(--text-secondary);
-    font-style: italic;
-}
-
-/* Intel loading state */
-.ia-intel-loading {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 20px 16px;
-}
-
-.ia-intel-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid var(--border);
-    border-top-color: var(--apple-blue);
-    border-radius: 50%;
-    animation: iaSpin 0.8s linear infinite;
-    flex-shrink: 0;
-}
-
-@keyframes iaSpin {
-    to { transform: rotate(360deg); }
-}
-
-.ia-intel-loading-title {
+    background: rgba(52, 199, 89, 0.08);
+    border-bottom: 1px solid rgba(52, 199, 89, 0.2);
     font-weight: 700;
     font-size: 14px;
     color: var(--text);
 }
-
-.ia-intel-loading-addr {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-top: 2px;
-}
-
-.ia-intel-empty {
-    padding: 16px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-@media (max-width: 400px) {
-    .ia-intel-grid { grid-template-columns: 1fr; }
-}
-
-/* ── Risk Assessment Badges ──────────────────────────────────── */
-.ia-risk-container {
-    margin-bottom: 16px;
-    animation: iaSlideIn 0.3s ease;
-}
-
-.ia-risk-header {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text);
-    margin-bottom: 8px;
-}
-
-.ia-risk-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.ia-risk-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-}
-
-.ia-risk-icon {
-    font-size: 16px;
-    flex-shrink: 0;
-}
-
-.ia-risk-warning {
-    background: rgba(255, 149, 0, 0.1);
-    border: 1px solid rgba(255, 149, 0, 0.3);
-}
-body.dark-mode .ia-risk-warning {
-    background: rgba(255, 159, 10, 0.12);
-    border-color: rgba(255, 159, 10, 0.3);
-}
-
-.ia-risk-info {
-    background: rgba(0, 122, 255, 0.06);
-    border: 1px solid rgba(0, 122, 255, 0.15);
-}
-body.dark-mode .ia-risk-info {
-    background: rgba(10, 132, 255, 0.1);
-    border-color: rgba(10, 132, 255, 0.2);
-}
-
-.ia-risk-danger {
-    background: rgba(255, 59, 48, 0.08);
-    border: 1px solid rgba(255, 59, 48, 0.2);
-}
-body.dark-mode .ia-risk-danger {
-    background: rgba(255, 69, 58, 0.12);
-    border-color: rgba(255, 69, 58, 0.25);
-}
-
-/* ── Categorized Data Cards ──────────────────────────────────── */
-.ia-datacards-container {
-    animation: iaSlideIn 0.3s ease;
-}
-
-.ia-datacards-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    font-weight: 700;
-    font-size: 14px;
-    color: var(--text);
+body.dark-mode .ia-preview-header {
+    background: rgba(50, 215, 75, 0.1);
+    border-bottom-color: rgba(50, 215, 75, 0.2);
 }
 
 .ia-populate-btn {
@@ -555,45 +236,23 @@ body.dark-mode .ia-risk-danger {
 }
 .ia-populate-btn:hover { filter: brightness(1.1); }
 
-.ia-datacard {
-    background: var(--bg-card);
-    border: 1.5px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
-    margin-bottom: 10px;
-}
-
-.ia-datacard-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--text);
-    background: var(--bg-input);
-    border-bottom: 1px solid var(--border);
-    border-left: 3px solid transparent;
-}
-
-.ia-datacard-grid {
+.ia-field-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0;
+    padding: 8px 0;
 }
 
-.ia-datacard-field {
+.ia-field-row {
     display: flex;
     flex-direction: column;
     padding: 8px 16px;
     border-bottom: 1px solid var(--border);
 }
+.ia-field-row:nth-child(odd) { background: transparent; }
+.ia-field-row:nth-child(even) { background: rgba(0,0,0,0.05); }
+body.dark-mode .ia-field-row:nth-child(even) { background: rgba(255,255,255,0.05); }
 
-@media (max-width: 400px) {
-    .ia-datacard-grid { grid-template-columns: 1fr; }
-}
-
-/* Shared field label/value (used in intel + data cards) */
 .ia-field-label {
     font-size: 11px;
     font-weight: 600;
@@ -610,74 +269,15 @@ body.dark-mode .ia-risk-danger {
     word-break: break-word;
 }
 
-/* AI source badge */
-.ia-badge {
-    display: inline-block;
-    font-size: 9px;
-    font-weight: 700;
-    padding: 1px 5px;
-    border-radius: 4px;
-    vertical-align: middle;
-    margin-left: 4px;
-}
-
-.ia-badge-intel {
-    background: rgba(0, 122, 255, 0.12);
-    color: var(--apple-blue);
-}
-body.dark-mode .ia-badge-intel {
-    background: rgba(10, 132, 255, 0.2);
-}
-
-/* ── Vehicle Cards ───────────────────────────────────────────── */
-.ia-vehicle-list {
-    padding: 8px 16px 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.ia-vehicle-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    background: var(--bg-input);
-    border-radius: 10px;
-    border: 1px solid var(--border);
-}
-
-.ia-vehicle-icon {
-    font-size: 24px;
-    flex-shrink: 0;
-}
-
-.ia-vehicle-info {
-    min-width: 0;
-}
-
-.ia-vehicle-title {
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--text);
-}
-
-.ia-vehicle-vin {
-    font-size: 11px;
+.ia-vehicles-note {
+    margin: 0;
+    padding: 10px 16px;
+    font-size: 13px;
     color: var(--text-secondary);
-    font-family: monospace;
-    letter-spacing: 0.5px;
-    margin-top: 2px;
+    border-top: 1px solid var(--border);
 }
 
-/* ── Slide-in animation (shared) ─────────────────────────────── */
-@keyframes iaSlideIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Responsive: single column on very small screens ─────────── */
+/* Responsive: single column on very small screens */
 @media (max-width: 400px) {
-    .ia-datacard-grid,
-    .ia-intel-grid { grid-template-columns: 1fr; }
+    .ia-field-grid { grid-template-columns: 1fr; }
 }
