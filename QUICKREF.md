@@ -1,6 +1,8 @@
 # QUICKREF.md — Altech Field Lead: Agent Quick Reference
 
 > One-page cheatsheet. For full docs see [AGENTS.md](AGENTS.md).
+>
+> **⚠️ LIVING DOC:** Update this file, AGENTS.md, and `.github/copilot-instructions.md` after every work session. Run `npm run audit-docs` to check for drift.
 
 ---
 
@@ -210,7 +212,7 @@ priorCarrier, priorYears, priorLapse
 
 ```bash
 npm run dev              # Local server (port 3000)
-npm test                 # All 17 suites, 1045+ tests
+npm test                 # All 18 suites, 1164+ tests
 npx jest --no-coverage   # Faster
 npx jest tests/app.test.js  # Single suite
 npm run deploy:vercel    # Production deploy

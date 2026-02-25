@@ -17,6 +17,7 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "node scripts/build-dist.js && tauri build",
     "build:extension": "pwsh -NoProfile -Command \"Remove-Item -Force altech-ezlynx-extension.zip -ErrorAction SilentlyContinue; Compress-Archive -Path 'chrome-extension\\*' -DestinationPath 'altech-ezlynx-extension.zip'; Write-Host '[Altech] Extension zip rebuilt.'\"",
+    "audit-docs": "node scripts/audit-docs.js",
     "prepare": "node -e \"try { require('child_process').execSync('git config core.hooksPath .githooks'); } catch(e) {}\" && node -e \"const fs=require('fs'); const p='.githooks/pre-commit'; const s=fs.statSync(p,{throwIfNoEntry:false}); if(s) { try { fs.chmodSync(p, 0o755); } catch(e) {} }\""
   },
   "repository": {

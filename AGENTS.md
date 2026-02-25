@@ -1,8 +1,10 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** February 18, 2026
+> **Last updated:** February 25, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
+>
+> **⚠️ LIVING DOCUMENT:** This file, `.github/copilot-instructions.md`, and `QUICKREF.md` must be updated at the end of every work session. When you change code, update the docs to match — line counts, test counts, module descriptions, feature lists, and the `Last updated` date. Run `npm run audit-docs` to check for drift.
 
 ---
 
@@ -14,8 +16,8 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~702 lines) |
-| **CSS** | 20 files in `css/` (~12,400 lines total) |
-| **JS** | 34 modules in `js/` (~28,000 lines total) |
+| **CSS** | 20 files in `css/` (~13,200 lines total) |
+| **JS** | 34 modules in `js/` (~29,300 lines total) |
 | **Plugins** | 14 HTML templates in `plugins/` (~5,000 lines total) |
 | **APIs** | 13 serverless functions in `api/` (~6,400 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
@@ -24,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 677 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 17 suites, 1045+ tests |
+| **Tests** | Jest + JSDOM, 18 suites, 1164+ tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -34,8 +36,8 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 17 test suites, 1045+ tests
-npx jest --no-coverage  # Faster test run
+npm test              # All 18 test suites, 1164+ tests
+npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
 
@@ -62,15 +64,15 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 20 stylesheets (~12,400 lines)
+├── css/                        # 20 stylesheets (~13,100 lines)
 │   ├── main.css                # ★ Core styles + :root variables (3,051 lines) — THE source of truth
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (741 lines)
-│   ├── dashboard.css           # Bento grid dashboard widgets (687 lines)
+│   ├── dashboard.css           # Bento grid dashboard widgets (889 lines)
 │   ├── compliance.css          # CGL compliance dashboard (1,029 lines)
 │   ├── auth.css                # Auth modal + settings (973 lines)
-│   ├── reminders.css           # Task reminders (828 lines)
-│   ├── intake-assist.css       # AI intake two-pane layout (708 lines)
+│   ├── reminders.css           # Task reminders (1,097 lines)
+│   ├── intake-assist.css       # AI intake two-pane layout (984 lines)
 │   ├── ezlynx.css              # EZLynx export — standalone dark palette (587 lines)
 │   ├── vin-decoder.css         # VIN decoder (580 lines)
 │   ├── hawksoft.css            # HawkSoft export (529 lines)
@@ -84,7 +86,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.css               # Email composer — purple accent (150 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
-├── js/                         # 34 modules (~28,000 lines)
+├── js/                         # 34 modules (~29,300 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows (89 lines)
@@ -111,12 +113,12 @@ npm run deploy:vercel   # Production deploy
 │   ├── email-composer.js       # AI email polisher, encrypted drafts (423 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,061 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,703 lines)
-│   ├── intake-assist.js         # AI conversational intake, maps, progress ring (1,400 lines)
+│   ├── intake-assist.js         # AI conversational intake, maps, progress ring (2,302 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,036 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,858 lines)
 │   ├── quick-ref.js             # NATO phonetic + agent ID cards (292 lines)
 │   ├── quote-compare.js         # Quote comparison + AI recommendation (888 lines)
-│   ├── reminders.js             # Task reminders with frequency scheduling (564 lines)
+│   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (883 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (776 lines)
 │   ├── accounting-export.js     # Trust deposit calculator, HawkSoft receipts (391 lines)
 │   │
@@ -136,8 +138,8 @@ npm run deploy:vercel   # Production deploy
 │   ├── accounting.html         # Accounting/deposit tools (252 lines)
 │   ├── compliance.html         # CGL dashboard (206 lines)
 │   ├── vin-decoder.html        # VIN decoder (141 lines)
-│   ├── reminders.html          # Task manager (136 lines)
-│   ├── intake-assist.html      # AI chat two-pane (131 lines)
+│   ├── reminders.html          # Task manager (144 lines)
+│   ├── intake-assist.html      # AI chat two-pane (155 lines)
 │   ├── quotecompare.html       # Quote comparison (117 lines)
 │   ├── email.html              # Email composer (98 lines)
 │   ├── qna.html                # Policy Q&A chat (95 lines)
@@ -169,7 +171,7 @@ npm run deploy:vercel   # Production deploy
 │
 ├── tests/                      # Jest test suites
 │   ├── setup.js                # Test env setup (mock fetch, suppress crypto errors)
-│   └── *.test.js               # 17 test files, 1045+ tests
+│   └── *.test.js               # 18 test files, 1164+ tests
 │
 ├── lib/                        # Shared server-side utilities
 ├── scripts/                    # Build/utility scripts
@@ -597,9 +599,11 @@ KEY RULES:
 5. After localStorage writes on synced data, call CloudSync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
 7. App is built via Object.assign(App, {...}) across 9 files — app-boot.js loads LAST
-8. Test with: npm test (1045+ tests, all must pass)
+8. Test with: npm test (1164+ tests, all must pass)
 9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
+11. AFTER completing all work, update AGENTS.md, .github/copilot-instructions.md, and
+    QUICKREF.md — line counts, test counts, descriptions, date. Run: npm run audit-docs
 ```
 
 ---
@@ -608,7 +612,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` → 17 suites, 1045+ tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 18 suites, 1164+ tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements
@@ -621,6 +625,7 @@ KEY RULES:
 - [ ] **No hardcoded API keys:** Search for API key strings — they should be in env vars only
 - [ ] **XSS check:** Any user/AI-generated content displayed in HTML uses `escapeHTML()` or equivalent
 - [ ] **Memory check:** Open DevTools Memory tab, run scan/analyze flow, verify no canvas/ImageBitmap leaks
+- [ ] **Docs updated:** Run `npm run audit-docs` — fix any stale line counts, test counts, or descriptions in AGENTS.md, .github/copilot-instructions.md, and QUICKREF.md. Update the `Last updated` date.
 
 ### Vercel Environment Variables Required
 
@@ -828,6 +833,7 @@ tests/
 ├── api-security.test.js        # API security middleware
 ├── app.test.js                 # Core App object + form handling
 ├── ezlynx-pipeline.test.js    # EZLynx export pipeline
+├── intake-assist.test.js       # Intake assist module tests
 ├── integration.test.js         # Cross-module integration
 ├── performance.test.js         # Performance benchmarks
 ├── phase1.test.js              # Phase 1 feature tests
