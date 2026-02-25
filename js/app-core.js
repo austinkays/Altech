@@ -1428,7 +1428,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         // Quoting tool has its own header home button — hide the floating exit button
         const quotingActive = document.body.classList.contains('quoting-active');
         const showBack = anyActive && !quotingActive;
-        backButton.style.display = showBack ? 'flex' : 'none';
+        // Sidebar handles navigation — only show back button when sidebar is not present
+        const hasSidebar = document.querySelector('.app-sidebar');
+        backButton.style.display = (showBack && !hasSidebar) ? 'flex' : 'none';
         document.body.classList.toggle('tool-active', anyActive);
         this.updateBreadcrumb();
     },
