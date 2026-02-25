@@ -48,7 +48,11 @@
                 <div id="iaChipRow" class="ia-chip-row"></div>
 
                 <!-- Input row -->
+                <input type="file" id="iaDocInput" accept=".pdf,image/*" style="display:none">
                 <div class="ia-input-row">
+                    <button id="iaDocBtn" class="ia-input-icon-btn" title="Upload document" aria-label="Upload document">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                    </button>
                     <textarea
                         id="iaInput"
                         class="ia-input"
@@ -77,6 +81,9 @@
                     <span class="ia-sidebar-pct"><span id="iaProgressPercent">0</span>%</span>
                 </div>
                 <div class="ia-sidebar-actions">
+                    <button id="iaCopyBtn" class="ia-copy-btn" onclick="IntakeAssist._copySnapshot()" title="Copy summary to clipboard" aria-label="Copy summary">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
                     <button class="ia-export-btn" onclick="IntakeAssist.exportSnapshot()" title="Export current data">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         Export
@@ -117,6 +124,23 @@
                     <span>🚗 Vehicle Info</span>
                 </div>
                 <div id="iaVehicleInfo" class="ia-vehicle-info"></div>
+            </div>
+
+            <!-- Phase 1: Market Intelligence Card -->
+            <div id="iaMarketIntelCard" class="ia-sidebar-card" style="display:none;">
+                <div class="ia-sidebar-card-header">
+                    <span>📈 Market Intelligence</span>
+                </div>
+                <div class="ia-sidebar-card-body ia-market-intel-body"></div>
+            </div>
+
+            <!-- Phase 4: Insurance Trends Card (default collapsed) -->
+            <div id="iaInsuranceTrendCard" class="ia-sidebar-card ia-section ia-collapsed" style="display:none;">
+                <button class="ia-sidebar-card-header ia-section-header" onclick="this.parentElement.classList.toggle('ia-collapsed')">
+                    <span>🏠 Insurance Trends</span>
+                    <svg class="ia-section-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="ia-sidebar-card-body ia-section-body ia-insurance-body"></div>
             </div>
 
             <!-- Empty state -->

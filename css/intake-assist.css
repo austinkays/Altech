@@ -706,3 +706,279 @@ body.dark-mode .ia-section-field + .ia-section-field {
 .ia-extracted-card { display: none !important; }
 .ia-populate-btn { display: none; }
 .ia-code { display: none; }
+
+
+/* ═══ Phase 3: Document Upload Button ═══ */
+
+.ia-input-icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.15s, color 0.15s;
+}
+.ia-input-icon-btn:hover {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+}
+.ia-input-icon-btn:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+
+
+/* ═══ Phase 6b: Copy Button ═══ */
+
+.ia-copy-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+.ia-copy-btn:hover {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+}
+.ia-copy-btn:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+.ia-copy-btn.ia-copied {
+    border-color: var(--success, #34C759);
+    color: var(--success, #34C759);
+}
+
+
+/* ═══ Phase 6a: Inline Field Edit ═══ */
+
+.ia-field-edit-btn {
+    opacity: 0;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    transition: opacity 0.15s, color 0.15s;
+}
+.ia-section-field:hover .ia-field-edit-btn {
+    opacity: 1;
+}
+.ia-field-edit-btn:hover {
+    color: var(--apple-blue);
+}
+.ia-field-edit-btn:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+
+.ia-field-edit-input {
+    width: 100%;
+    padding: 2px 6px;
+    border: 1.5px solid var(--apple-blue);
+    border-radius: 6px;
+    background: var(--bg-input);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    text-align: right;
+    outline: none;
+}
+
+
+/* ═══ Phase 2: Hazard Badges ═══ */
+
+.ia-hazard-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 14px 8px;
+}
+
+.ia-hazard-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ia-hazard-badge-orange {
+    background: rgba(255, 159, 10, 0.12);
+    color: #FF9500;
+}
+body.dark-mode .ia-hazard-badge-orange {
+    background: rgba(255, 159, 10, 0.18);
+    color: #FFB340;
+}
+
+.ia-hazard-badge-red {
+    background: rgba(255, 59, 48, 0.10);
+    color: var(--danger, #FF3B30);
+}
+body.dark-mode .ia-hazard-badge-red {
+    background: rgba(255, 69, 58, 0.18);
+    color: var(--danger, #FF453A);
+}
+
+.ia-hazard-badge-green {
+    background: rgba(52, 199, 89, 0.10);
+    color: var(--success, #34C759);
+}
+body.dark-mode .ia-hazard-badge-green {
+    background: rgba(50, 215, 75, 0.15);
+    color: var(--success, #32D74B);
+}
+
+
+/* ═══ Phase 1: Market Intelligence Card ═══ */
+
+.ia-market-intel-body {
+    padding: 12px 14px;
+}
+
+.ia-appreciation-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+.ia-appreciation-green {
+    background: rgba(52, 199, 89, 0.12);
+    color: var(--success, #34C759);
+}
+body.dark-mode .ia-appreciation-green {
+    background: rgba(50, 215, 75, 0.15);
+    color: var(--success, #32D74B);
+}
+.ia-appreciation-yellow {
+    background: rgba(255, 159, 10, 0.12);
+    color: #FF9500;
+}
+body.dark-mode .ia-appreciation-yellow {
+    background: rgba(255, 159, 10, 0.18);
+    color: #FFB340;
+}
+.ia-appreciation-red {
+    background: rgba(255, 59, 48, 0.10);
+    color: var(--danger, #FF3B30);
+}
+body.dark-mode .ia-appreciation-red {
+    background: rgba(255, 69, 58, 0.18);
+    color: var(--danger, #FF453A);
+}
+
+.ia-sparkline-wrap {
+    margin: 6px 0;
+}
+
+.ia-sparkline {
+    display: block;
+    max-width: 100%;
+}
+
+.ia-market-trend-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 4px 0;
+    line-height: 1.5;
+}
+
+.ia-market-disclaimer {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-style: italic;
+    margin-top: 6px;
+    opacity: 0.8;
+}
+
+
+/* ═══ Phase 4: Insurance Trends Card ═══ */
+
+.ia-insurance-body {
+    padding: 12px 14px;
+}
+
+.ia-insurance-rate {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.ia-insurance-trend {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--apple-blue);
+    margin-bottom: 6px;
+}
+
+.ia-insurance-carrier-note {
+    font-size: 12px;
+    color: var(--danger, #FF3B30);
+    padding: 4px 0;
+    line-height: 1.4;
+}
+
+.ia-insurance-tip {
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 4px 0;
+    line-height: 1.4;
+}
+
+
+/* ═══ Focus Visible States (all new interactive elements) ═══ */
+
+.ia-chip:focus-visible,
+.ia-send-btn:focus-visible,
+.ia-clear-btn:focus-visible,
+.ia-export-btn:focus-visible,
+.ia-populate-btn-sm:focus-visible,
+.ia-map-expand-btn:focus-visible,
+.ia-section-header:focus-visible,
+.ia-tab:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+
+
+/* ═══ Reduced Motion ═══ */
+
+@media (prefers-reduced-motion: reduce) {
+    .ia-msg,
+    .ia-section,
+    .ia-chip-row,
+    .ia-hazard-badge,
+    .ia-appreciation-badge {
+        animation: none !important;
+        transition: none !important;
+    }
+    .ia-dot { animation: none !important; }
+    .ia-section-chevron { transition: none !important; }
+}

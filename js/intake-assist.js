@@ -1,11 +1,19 @@
 /**
- * IntakeAssist — Conversational AI Intake Assistant
+ * IntakeAssist — Conversational AI Intake Assistant (Enhanced)
  *
  * Lets agents describe a client in natural language.
  * Uses AIProvider.chat() for multi-turn conversation to collect
  * all insurance intake fields, then populates the main intake form.
  *
  * Storage key: altech_intake_assist (chat history across sessions)
+ *
+ * Phases:
+ *   1. Historical Market Intelligence (auto after property intel)
+ *   2. Satellite Hazard Detection (chip-triggered)
+ *   3. Document Intelligence Upload (paperclip button)
+ *   4. Insurance Rate Trend Panel (auto after property intel)
+ *   5. Conversation Intelligence (dynamic system prompt)
+ *   6. UI Polish (inline edit, copy, progress colors, section dots)
  */
 window.IntakeAssist = (() => {
     'use strict';
@@ -13,9 +21,23 @@ window.IntakeAssist = (() => {
     const STORAGE_KEY = 'altech_intake_assist';
     let chatHistory = [];    // [{ role: 'user'|'assistant', content: string }]
     let extractedData = {};
+
+    // ── Enhanced state (Phases 1-6) ─────────────────────────────
+    let propertyIntel = null;      // Property intelligence data
+    let marketIntel = null;        // Phase 1: Historical market analysis
+    let insuranceTrends = null;    // Phase 4: Insurance rate trends
+    let satelliteData = null;      // Phase 2: Satellite hazard scan results
+    let riskFlags = [];            // Accumulated risk warnings
+    let _propertyIntelLoaded = false;
+    let _marketIntelLoaded = false;
+    let _satelliteScanDone = false;
+    let _propertyIntelFetching = false;
+    let _docInputWired = false;
     let initialized = false;
 
-    const SYSTEM_PROMPT = `You are a fast, friendly intake assistant for an insurance agent. Your job is to gather ALL the client information needed to run real insurance quotes through EZLynx. Be thorough — missing fields mean quotes won't rate.
+    // ── Base System Prompt ────────────────────────────────────────
+
+    const BASE_SYSTEM_PROMPT = `You are a fast, friendly intake assistant for an insurance agent. Your job is to gather ALL the client information needed to run real insurance quotes through EZLynx. Be thorough — missing fields mean quotes won't rate.
 
 GATHER FIELDS IN THIS ORDER:
 
@@ -61,6 +83,48 @@ IMPORTANT — AFTER EVERY REPLY, append a JSON code block containing ALL fields 
 
 Only include keys for which you have data. Omit empty fields. Use 2-letter state codes. Format dates as YYYY-MM-DD. Include this JSON block in EVERY response, even partial ones — this is how the form tracks progress in real time.`;
 
+    // ── Phase 5: Dynamic System Prompt Builder ────────────────────
+
+    function _buildSystemPrompt() {
+        let prompt = BASE_SYSTEM_PROMPT;
+
+        prompt += '\n\nADDITIONAL INTELLIGENCE INSTRUCTIONS:\n';
+
+        // 5.1 Address auto-detect
+        prompt += 'ADDRESS AUTO-DETECT: If the user\'s message contains a full street address (number + street name + city OR zip), extract it immediately and confirm back — do not ask for address again.\n';
+
+        // 5.2 Carrier recognition
+        prompt += 'CARRIER RECOGNITION: Recognize prior insurance carrier names in natural language. "They had State Farm" means priorCarrier: "State Farm". Extract without requiring structured input.\n';
+
+        // 5.3 Risk-aware follow-up
+        prompt += 'RISK-AWARE FOLLOW-UP: ';
+        if (extractedData.yearBuilt && parseInt(extractedData.yearBuilt) < 1970) {
+            prompt += 'The property was built in ' + extractedData.yearBuilt + ' (before 1970). Ask specifically: "Has the electrical been updated from the original knob-and-tube wiring?" ';
+        }
+        if (extractedData.roofYear) {
+            const roofAge = new Date().getFullYear() - parseInt(extractedData.roofYear);
+            if (roofAge >= 20) {
+                prompt += 'The roof year is ' + extractedData.roofYear + ' (' + roofAge + '+ years old). Ask: "What is the current roof material and when was it last replaced?" ';
+            }
+        }
+        if (riskFlags.some(f => f.type === 'wui')) {
+            prompt += 'WUI wildfire flag is present in risk data. Ask: "Is there defensible space around the home?" ';
+        }
+        prompt += '\n';
+
+        // 5.4 Completion recap
+        prompt += 'COMPLETION RECAP: When all required fields are collected (name, DOB, address, qType, and relevant property/vehicle data), provide a human-readable summary before offering to populate: "Here\'s what I collected: [name], DOB [date], [type] quote at [address]... Shall I populate the form?"\n';
+
+        // Inject current risk flags
+        if (riskFlags.length > 0) {
+            prompt += '\nCURRENT RISK FLAGS (reference these when relevant):\n';
+            prompt += riskFlags.map(f => '- [' + f.severity.toUpperCase() + '] ' + f.message).join('\n');
+            prompt += '\n';
+        }
+
+        return prompt;
+    }
+
     // ── Public API ────────────────────────────────────────────────
 
     function init() {
@@ -84,6 +148,9 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             input.addEventListener('input', () => _autoResize(input));
             input.focus();
         }
+
+        // Phase 3: Wire document upload
+        _wireDocUpload();
     }
 
     async function sendMessage() {
@@ -122,7 +189,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                 return;
             }
 
-            const result = await AIProvider.chat(SYSTEM_PROMPT, chatHistory, {
+            const result = await AIProvider.chat(_buildSystemPrompt(), chatHistory, {
                 temperature: 0.35,
                 maxTokens: 1024
             });
@@ -373,6 +440,15 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     function clearChat() {
         chatHistory = [];
         extractedData = {};
+        propertyIntel = null;
+        marketIntel = null;
+        insuranceTrends = null;
+        satelliteData = null;
+        riskFlags = [];
+        _propertyIntelLoaded = false;
+        _marketIntelLoaded = false;
+        _satelliteScanDone = false;
+        _propertyIntelFetching = false;
         _saveHistory();
 
         const msgs = document.getElementById('iaChatMessages');
@@ -536,10 +612,11 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                 }
                 const val = extractedData[k] || (k === 'constructionStyle' ? extractedData.constructionType : '');
                 if (!val) continue;
-                rowsHtml += `<div class="ia-section-field"><span class="ia-section-field-label">${labels[k] || k}</span><span class="ia-section-field-value">${_esc(String(val))}</span></div>`;
+                // Phase 6a: inline edit pencil icon on simple fields
+                rowsHtml += `<div class="ia-section-field" data-field-key="${k}"><span class="ia-section-field-label">${labels[k] || k}</span><span class="ia-section-field-value">${_esc(String(val))}</span><button class="ia-field-edit-btn" onclick="IntakeAssist._editField('${k}')" title="Edit" aria-label="Edit ${labels[k] || k}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>`;
             }
 
-            html += `<div class="ia-section ${statusClass}">
+            html += `<div class="ia-section ${statusClass}" data-section-label="${g.label}">
                 <button class="ia-section-header" onclick="this.parentElement.classList.toggle('ia-collapsed')">
                     <span class="ia-section-icon">${g.icon}</span>
                     <span class="ia-section-title">${g.label}</span>
@@ -552,6 +629,11 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         container.innerHTML = html;
         container.style.display = html ? '' : 'none';
+
+        // Phase 2: re-render hazard badges if satellite data exists
+        if (satelliteData) {
+            _renderHazardBadges(satelliteData);
+        }
     }
 
     /** Check if a field has data (handles arrays and construction aliases) */
@@ -990,6 +1072,8 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         _renderPreview();
         _updateMapViews();
         _updateVehiclePanel();
+        _fetchPropertyIntel();
+        _assessRisks();
     }
 
     /** Compute and animate the progress ring */
@@ -1001,18 +1085,23 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         const arc = document.getElementById('iaProgressArc');
         const label = document.getElementById('iaProgressPercent');
         if (arc) {
-            const circumference = 2 * Math.PI * 15; // r=15 (compact sidebar ring)
+            const circumference = 2 * Math.PI * 15;
             arc.setAttribute('stroke-dashoffset', String(circumference - (circumference * pct / 100)));
-            if (pct >= 80) arc.setAttribute('stroke', 'var(--success)');
-            else arc.setAttribute('stroke', 'var(--apple-blue)');
+            // Phase 6c: color based on completion
+            if (pct >= 100) arc.setAttribute('stroke', 'var(--success, #34C759)');
+            else if (pct >= 80) arc.setAttribute('stroke', '#FF9500');
+            else if (pct >= 40) arc.setAttribute('stroke', 'var(--apple-blue)');
+            else arc.setAttribute('stroke', 'var(--text-secondary)');
         }
         if (label) label.textContent = String(pct);
 
-        // Update mobile tab badge
+        // Phase 6d: Section completion dots in tab badge
+        const completeSections = _countCompleteSections();
+        const totalSections = _countVisibleSections();
         const badge = document.getElementById('iaTabBadge');
         if (badge) {
-            badge.textContent = pct + '%';
-            badge.style.display = pct > 0 ? '' : 'none';
+            badge.textContent = completeSections + '/' + totalSections;
+            badge.style.display = (completeSections > 0 || totalSections > 0) ? '' : 'none';
         }
     }
 
@@ -1171,6 +1260,710 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         `).join('');
     }
 
+    // ── Phase 1: Property Intel Auto-Fetch ──────────────────────
+
+    let _lastPropertyIntelAddress = '';
+
+    async function _fetchPropertyIntel() {
+        const street = extractedData.addrStreet || '';
+        const city = extractedData.addrCity || '';
+        const state = extractedData.addrState || '';
+        const zip = extractedData.addrZip || '';
+
+        if (!street || !city || !state) return;
+
+        const address = [street, city, state, zip].filter(Boolean).join(', ');
+        if (address === _lastPropertyIntelAddress) return;
+        if (_propertyIntelFetching) return;
+
+        _lastPropertyIntelAddress = address;
+        _propertyIntelFetching = true;
+
+        try {
+            const fetchFn = (window.Auth?.apiFetch || fetch).bind(window.Auth || window);
+            const res = await fetchFn('/api/property-intelligence?mode=zillow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    address: street, city, state, zip,
+                    aiSettings: window.AIProvider?.getSettings?.()
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    propertyIntel = data;
+                    _propertyIntelLoaded = true;
+                    // Merge useful fields
+                    if (data.data?.yearBuilt && !extractedData.yearBuilt) {
+                        extractedData.yearBuilt = String(data.data.yearBuilt);
+                    }
+                    if (data.data?.sqft && !extractedData.sqFt) {
+                        extractedData.sqFt = String(data.data.sqft);
+                    }
+                    _renderPreview();
+                    _updateSuggestionChips();
+                    // Trigger Phase 1 + Phase 4
+                    _fetchMarketIntel();
+                    _fetchInsuranceTrends();
+                }
+            }
+        } catch (e) {
+            console.warn('[IntakeAssist] Property intel fetch failed:', e.message);
+        } finally {
+            _propertyIntelFetching = false;
+        }
+    }
+
+    // ── Phase 1: Historical Market Intelligence ─────────────────
+
+    async function _fetchMarketIntel() {
+        if (_marketIntelLoaded || !_propertyIntelLoaded) return;
+
+        const card = document.getElementById('iaMarketIntelCard');
+        if (card) {
+            card.style.display = '';
+            // Show loading spinner
+            const body = card.querySelector('.ia-sidebar-card-body');
+            if (body) body.innerHTML = '<div class="ia-typing" style="justify-content:center;padding:16px;"><span class="ia-dot"></span><span class="ia-dot"></span><span class="ia-dot"></span></div>';
+        }
+
+        try {
+            const fetchFn = (window.Auth?.apiFetch || fetch).bind(window.Auth || window);
+            const res = await fetchFn('/api/historical-analyzer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'analyzeValues',
+                    address: extractedData.addrStreet || '',
+                    city: extractedData.addrCity || '',
+                    state: extractedData.addrState || '',
+                    yearBuilt: extractedData.yearBuilt || null,
+                    propertyValue: propertyIntel?.data?.assessedValue || propertyIntel?.data?.estimatedValue || null,
+                    sqft: extractedData.sqFt || null,
+                    aiSettings: window.AIProvider?.getSettings?.()
+                })
+            });
+            if (res.ok) {
+                const result = await res.json();
+                if (result.success && result.data) {
+                    marketIntel = result.data;
+                    _marketIntelLoaded = true;
+                    _renderMarketIntelCard();
+                    return;
+                }
+            }
+            // Failed — collapse card silently
+            if (card) card.style.display = 'none';
+        } catch (e) {
+            console.warn('[IntakeAssist] Market intel fetch failed:', e.message);
+            if (card) card.style.display = 'none';
+        }
+    }
+
+    function _renderMarketIntelCard() {
+        const card = document.getElementById('iaMarketIntelCard');
+        if (!card || !marketIntel) { if (card) card.style.display = 'none'; return; }
+
+        card.style.display = '';
+        const body = card.querySelector('.ia-sidebar-card-body');
+        if (!body) return;
+
+        // Appreciation rate
+        const rate = marketIntel.appreciationRate?.annualAverage;
+        const ratePct = rate != null ? (rate * 100).toFixed(1) : null;
+        let rateClass = 'ia-appreciation-yellow';
+        let rateArrow = '→';
+        if (ratePct != null) {
+            if (parseFloat(ratePct) > 3) { rateClass = 'ia-appreciation-green'; rateArrow = '↑'; }
+            else if (parseFloat(ratePct) < 1) { rateClass = 'ia-appreciation-red'; rateArrow = '↓'; }
+        }
+
+        // Build sparkline from valueHistory
+        let sparklineSvg = '';
+        const vh = marketIntel.valueHistory;
+        if (vh) {
+            const points = [];
+            const keys = ['tenYearsAgo', 'fiveYearsAgo', 'threeYearsAgo', 'oneYearAgo', 'current'];
+            for (const k of keys) {
+                if (vh[k]?.estimatedValue) points.push(vh[k].estimatedValue);
+            }
+            if (points.length >= 2) {
+                sparklineSvg = _buildSVGSparkline(points, 180, 40);
+            }
+        }
+
+        // Insurance trend note
+        let trendNote = '';
+        if (insuranceTrends?.homeownersInsurance?.historicalRates?.length >= 2) {
+            const rates = insuranceTrends.homeownersInsurance.historicalRates;
+            const oldest = rates[0];
+            const newest = rates[rates.length - 1];
+            if (oldest?.avgRate && newest?.avgRate) {
+                const pctChange = Math.round(((newest.avgRate - oldest.avgRate) / oldest.avgRate) * 100);
+                trendNote = '📋 Homeowners rates ' + (pctChange > 0 ? 'up' : 'down') + ' ' + Math.abs(pctChange) + '% in this market (' + oldest.year + '–' + newest.year + ')';
+            }
+        }
+
+        body.innerHTML =
+            (ratePct != null ? '<div class="ia-appreciation-badge ' + rateClass + '">+' + ratePct + '% / yr ' + rateArrow + '</div>' : '') +
+            (sparklineSvg ? '<div class="ia-sparkline-wrap">' + sparklineSvg + '</div>' : '') +
+            (trendNote ? '<div class="ia-market-trend-note">' + trendNote + '</div>' : '') +
+            '<div class="ia-market-disclaimer">AI estimate — verify with appraisal</div>';
+    }
+
+    function _buildSVGSparkline(values, width, height) {
+        if (!values || values.length < 2) return '';
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const range = max - min || 1;
+        const padding = 4;
+        const w = width - padding * 2;
+        const h = height - padding * 2;
+
+        const points = values.map((v, i) => {
+            const x = padding + (i / (values.length - 1)) * w;
+            const y = padding + h - ((v - min) / range) * h;
+            return { x, y };
+        });
+
+        const pathD = points.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+        const dots = points.map(p => '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="2.5" fill="var(--apple-blue)"/>').join('');
+
+        return '<svg class="ia-sparkline" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '" fill="none">' +
+            '<path d="' + pathD + '" stroke="var(--apple-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+            dots +
+            '</svg>';
+    }
+
+    // ── Phase 2: Satellite Hazard Detection ─────────────────────
+
+    async function _scanSatelliteHazards() {
+        if (_satelliteScanDone) return;
+        const street = extractedData.addrStreet || '';
+        const city = extractedData.addrCity || '';
+        const state = extractedData.addrState || '';
+        const zip = extractedData.addrZip || '';
+        if (!street || !city) return;
+
+        _satelliteScanDone = true;
+        _updateSuggestionChips(); // Remove the chip
+
+        _appendMsg('ai', '🛰️ Scanning satellite imagery for hazards...');
+        _showTyping();
+
+        try {
+            const fetchFn = (window.Auth?.apiFetch || fetch).bind(window.Auth || window);
+            const res = await fetchFn('/api/property-intelligence?mode=satellite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    address: street, city, state, zip,
+                    aiSettings: window.AIProvider?.getSettings?.()
+                })
+            });
+
+            _hideTyping();
+
+            if (res.ok) {
+                const result = await res.json();
+                if (result.success && result.data) {
+                    satelliteData = result.data;
+                    _renderHazardBadges(result.data);
+                    _assessRisks();
+
+                    // Show summary in chat
+                    const hazards = [];
+                    if (result.data.has_pool) hazards.push('🏊 Pool detected');
+                    if (result.data.tree_overhang_roof) hazards.push('🌳 Tree overhang');
+                    if (result.data.visible_hazards?.length > 0) {
+                        for (const h of result.data.visible_hazards) hazards.push('⚠️ ' + _esc(String(h)));
+                    }
+                    if (result.data.brush_clearance_adequate === false) hazards.push('🔥 Possible WUI zone concern');
+
+                    if (hazards.length > 0) {
+                        _appendMsg('ai', '🛰️ **Satellite scan complete.** Found:\n' + hazards.join('\n') + '\n\nThese have been added to the risk assessment.');
+                    } else {
+                        _appendMsg('ai', '🛰️ **Satellite scan complete.** ✓ No significant hazards detected from aerial imagery.');
+                    }
+                } else {
+                    _appendMsg('ai', '🛰️ Satellite scan completed — no additional hazards identified.');
+                }
+            } else {
+                _appendMsg('ai', '🛰️ Satellite scan completed — no additional hazards identified.');
+            }
+        } catch (e) {
+            _hideTyping();
+            console.warn('[IntakeAssist] Satellite scan failed:', e.message);
+            _appendMsg('ai', '🛰️ Satellite scan completed — no additional hazards identified.');
+        }
+        _updateSuggestionChips();
+    }
+
+    function _renderHazardBadges(data) {
+        if (!data) return;
+        // Find the property/home details section by data attribute
+        const sections = document.querySelectorAll('#iaExtractedPreview .ia-section');
+        let propSection = null;
+        for (const s of sections) {
+            const lbl = s.getAttribute('data-section-label');
+            if (lbl === 'Home Details' || lbl === 'Home Coverage') {
+                propSection = s;
+                break;
+            }
+        }
+        if (!propSection) return;
+
+        const body = propSection.querySelector('.ia-section-body');
+        if (!body) return;
+
+        // Remove existing hazard badges
+        const existing = body.querySelector('.ia-hazard-badges');
+        if (existing) existing.remove();
+
+        const badges = [];
+        if (data.has_pool) badges.push({ icon: '🏊', label: 'Pool', level: 'orange' });
+        if (data.tree_overhang_roof) badges.push({ icon: '🌳', label: 'Tree overhang', level: 'orange' });
+        if (data.brush_clearance_adequate === false) badges.push({ icon: '🔥', label: 'WUI zone', level: 'red' });
+        if (data.has_trampoline) badges.push({ icon: '⚠️', label: 'Trampoline', level: 'orange' });
+        if (data.visible_hazards?.some(h => /water|flood|creek|river|pond/i.test(String(h)))) {
+            badges.push({ icon: '💧', label: 'Water nearby', level: 'orange' });
+        }
+
+        if (badges.length === 0) {
+            badges.push({ icon: '✓', label: 'No hazards detected', level: 'green' });
+        }
+
+        const container = document.createElement('div');
+        container.className = 'ia-hazard-badges';
+        container.innerHTML = badges.map(b =>
+            '<span class="ia-hazard-badge ia-hazard-badge-' + b.level + '">' + b.icon + ' ' + _esc(b.label) + '</span>'
+        ).join('');
+        body.appendChild(container);
+    }
+
+    // ── Phase 3: Document Intelligence Upload ───────────────────
+
+    function _wireDocUpload() {
+        if (_docInputWired) return;
+        const docInput = document.getElementById('iaDocInput');
+        const docBtn = document.getElementById('iaDocBtn');
+        if (docInput && docBtn) {
+            docBtn.addEventListener('click', () => docInput.click());
+            docInput.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (file) _handleDocUpload(file);
+                docInput.value = '';
+            });
+            _docInputWired = true;
+        }
+    }
+
+    async function _handleDocUpload(file) {
+        if (!file) return;
+
+        // 4MB limit
+        if (file.size > 4 * 1024 * 1024) {
+            _appendMsg('ai', '⚠️ File too large (max 4MB). Please use a smaller file or compress the image.');
+            return;
+        }
+
+        // Validate MIME type
+        const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+        const isValid = validTypes.some(t => file.type === t) || file.type.startsWith('image/');
+        if (!isValid) {
+            _appendMsg('ai', '⚠️ Unsupported file type. Please upload a PDF or image (JPEG, PNG, WebP).');
+            return;
+        }
+
+        const fileName = _esc(file.name);
+        _appendMsg('ai', '📄 Processing **' + fileName + '**...');
+        _showTyping();
+
+        try {
+            let base64Data;
+            let mimeType = file.type || 'application/octet-stream';
+
+            if (file.type.startsWith('image/') && file.type !== 'application/pdf') {
+                // Compress image before upload
+                const optimized = await _optimizeImageFile(file, 1600, 0.85);
+                base64Data = optimized.base64;
+                mimeType = optimized.mimeType;
+            } else {
+                // Read PDF as-is
+                base64Data = await _fileToBase64(file);
+            }
+
+            const isPDF = mimeType === 'application/pdf';
+            const fetchFn = (window.Auth?.apiFetch || fetch).bind(window.Auth || window);
+            let res;
+
+            if (isPDF) {
+                res = await fetchFn('/api/vision-processor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'documentIntel',
+                        files: [{ data: base64Data, mimeType: mimeType }],
+                        aiSettings: window.AIProvider?.getSettings?.()
+                    })
+                });
+            } else {
+                res = await fetchFn('/api/vision-processor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'processImage',
+                        base64Data: base64Data,
+                        mimeType: mimeType,
+                        imageType: 'other',
+                        aiSettings: window.AIProvider?.getSettings?.()
+                    })
+                });
+            }
+
+            _hideTyping();
+
+            if (res.ok) {
+                const result = await res.json();
+                let fieldsFound = 0;
+
+                if (result.success) {
+                    const fields = result.fields || result.rawData || {};
+                    const fieldList = [];
+                    for (const [key, value] of Object.entries(fields)) {
+                        if (value && value !== 'N/A' && value !== '' && typeof value !== 'object') {
+                            const mapped = _mapDocField(key, String(value));
+                            if (mapped) {
+                                extractedData[mapped.key] = mapped.value;
+                                fieldList.push('**' + mapped.label + '**: ' + _esc(mapped.value));
+                                fieldsFound++;
+                            }
+                        }
+                    }
+
+                    if (fieldsFound > 0) {
+                        _saveHistory();
+                        _updateIntelPanel();
+                        _appendMsg('ai', '📄 Extracted **' + fieldsFound + ' field' + (fieldsFound !== 1 ? 's' : '') + '** from ' + fileName + ':\n' + fieldList.join('\n'));
+                    } else {
+                        _appendMsg('ai', '📄 Processed ' + fileName + ' but no new fields were found. The document may not contain insurance-relevant data.');
+                    }
+                } else {
+                    _appendMsg('ai', "Couldn't read that document — try a clearer image or a different file.");
+                }
+            } else {
+                _appendMsg('ai', "Couldn't read that document — try a clearer image or a different file.");
+            }
+        } catch (e) {
+            _hideTyping();
+            console.warn('[IntakeAssist] Doc upload failed:', e.message);
+            _appendMsg('ai', "Couldn't read that document — try a clearer image or a different file.");
+        }
+    }
+
+    function _mapDocField(rawKey, value) {
+        const map = {
+            yearBuilt: { key: 'yearBuilt', label: 'Year Built' },
+            year_built: { key: 'yearBuilt', label: 'Year Built' },
+            assessedValue: { key: 'dwellingCoverage', label: 'Assessed Value' },
+            sqft: { key: 'sqFt', label: 'Sq Ft' },
+            square_footage: { key: 'sqFt', label: 'Sq Ft' },
+            ownerName: { key: 'ownerName', label: 'Owner Name' },
+            owner_name: { key: 'ownerName', label: 'Owner Name' },
+            roof_type: { key: 'roofType', label: 'Roof Type' },
+            roofType: { key: 'roofType', label: 'Roof Type' },
+            foundation: { key: 'foundation', label: 'Foundation' },
+            foundation_type: { key: 'foundation', label: 'Foundation' },
+            stories: { key: 'stories', label: 'Stories' },
+            stories_visible: { key: 'stories', label: 'Stories' },
+            effectiveDate: { key: 'effectiveDate', label: 'Effective Date' },
+            expirationDate: { key: 'expirationDate', label: 'Expiration Date' },
+            policyNumber: { key: 'policyNumber', label: 'Policy Number' },
+            mortgagee: { key: 'mortgagee', label: 'Mortgagee' },
+            addressLine1: { key: 'addrStreet', label: 'Street' },
+            city: { key: 'addrCity', label: 'City' },
+            state: { key: 'addrState', label: 'State' },
+            zip: { key: 'addrZip', label: 'Zip' },
+            siding_type: { key: 'exteriorWalls', label: 'Exterior Walls' },
+            exteriorType: { key: 'exteriorWalls', label: 'Exterior Walls' },
+            lot_size_estimate: { key: 'lotSize', label: 'Lot Size' },
+        };
+        const entry = map[rawKey];
+        if (!entry) return null;
+        return { key: entry.key, label: entry.label, value: value };
+    }
+
+    function _optimizeImageFile(file, maxWidth, quality) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxWidth) {
+                        h = Math.round(h * (maxWidth / w));
+                        w = maxWidth;
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    const base64 = dataUrl.split(',')[1];
+                    // Canvas cleanup
+                    canvas.width = 0;
+                    canvas.height = 0;
+                    resolve({ base64: base64, mimeType: 'image/jpeg' });
+                };
+                img.onerror = () => reject(new Error('Image load failed'));
+                img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('File read failed'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function _fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const result = reader.result;
+                const base64 = result.split(',')[1] || result;
+                resolve(base64);
+            };
+            reader.onerror = () => reject(new Error('File read failed'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // ── Phase 4: Insurance Rate Trend Panel ─────────────────────
+
+    async function _fetchInsuranceTrends() {
+        if (insuranceTrends || !_propertyIntelLoaded) return;
+
+        try {
+            const fetchFn = (window.Auth?.apiFetch || fetch).bind(window.Auth || window);
+            const res = await fetchFn('/api/historical-analyzer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'analyzeInsurance',
+                    address: extractedData.addrStreet || '',
+                    city: extractedData.addrCity || '',
+                    state: extractedData.addrState || '',
+                    county: extractedData.county || '',
+                    aiSettings: window.AIProvider?.getSettings?.()
+                })
+            });
+            if (res.ok) {
+                const result = await res.json();
+                if (result.success && result.data) {
+                    insuranceTrends = result.data;
+                    _renderInsuranceTrendCard();
+                    // Re-render market intel card if it has insurance data to show
+                    if (marketIntel) _renderMarketIntelCard();
+                }
+            }
+        } catch (e) {
+            console.warn('[IntakeAssist] Insurance trends fetch failed:', e.message);
+        }
+    }
+
+    function _renderInsuranceTrendCard() {
+        const card = document.getElementById('iaInsuranceTrendCard');
+        if (!card || !insuranceTrends) return;
+
+        card.style.display = '';
+        const body = card.querySelector('.ia-sidebar-card-body');
+        if (!body) return;
+
+        const ho = insuranceTrends.homeownersInsurance || {};
+        const rates = ho.historicalRates || [];
+        const pred = insuranceTrends.ratePrediction || {};
+        const wf = insuranceTrends.wildfireInsurance || {};
+
+        // Rate range estimate
+        let rateRange = '';
+        if (rates.length > 0) {
+            const latest = rates[rates.length - 1];
+            if (latest?.avgRate) {
+                const low = Math.round(latest.avgRate * 0.8);
+                const high = Math.round(latest.avgRate * 1.3);
+                rateRange = 'Est. $' + low.toLocaleString() + ' – $' + high.toLocaleString() + '/yr for this area';
+            }
+        }
+
+        // Trend arrow
+        let trendHtml = '';
+        if (rates.length >= 2) {
+            const first = rates[0];
+            const last = rates[rates.length - 1];
+            if (first?.avgRate && last?.avgRate) {
+                const pctChange = Math.round(((last.avgRate - first.avgRate) / first.avgRate) * 100);
+                const arrow = pctChange > 0 ? '↑' : pctChange < 0 ? '↓' : '→';
+                trendHtml = '<div class="ia-insurance-trend">' + arrow + ' ' + (pctChange > 0 ? '+' : '') + pctChange + '% since ' + first.year + '</div>';
+            }
+        }
+
+        // Carrier restrictions
+        let carrierNote = '';
+        if (wf.carrierRestrictions) {
+            carrierNote = '⚠️ ' + _esc(String(wf.carrierRestrictions));
+        } else if (wf.riskLevel === 'high' || wf.riskLevel === 'very_high') {
+            carrierNote = '⚠️ High wildfire risk area — carrier restrictions possible';
+        }
+
+        // Mitigation tip
+        let mitigationTip = '';
+        if (pred.mitigation?.length > 0) {
+            mitigationTip = '💡 ' + _esc(pred.mitigation[0]);
+        }
+
+        body.innerHTML =
+            (rateRange ? '<div class="ia-insurance-rate">' + _esc(rateRange) + '</div>' : '') +
+            trendHtml +
+            (carrierNote ? '<div class="ia-insurance-carrier-note">' + carrierNote + '</div>' : '') +
+            (mitigationTip ? '<div class="ia-insurance-tip">' + mitigationTip + '</div>' : '');
+    }
+
+    // ── Risk Assessment ─────────────────────────────────────────
+
+    function _assessRisks() {
+        riskFlags = [];
+
+        // Year built risks
+        if (extractedData.yearBuilt) {
+            const yr = parseInt(extractedData.yearBuilt);
+            if (yr < 1970) riskFlags.push({ type: 'age', severity: 'high', message: 'Home built in ' + yr + ' — knob-and-tube wiring, lead paint, asbestos risk' });
+            else if (yr < 1990) riskFlags.push({ type: 'age', severity: 'medium', message: 'Home built in ' + yr + ' — check for polybutylene plumbing' });
+        }
+
+        // Roof age risk
+        if (extractedData.roofYear) {
+            const roofAge = new Date().getFullYear() - parseInt(extractedData.roofYear);
+            if (roofAge >= 25) riskFlags.push({ type: 'roof', severity: 'high', message: 'Roof is ' + roofAge + ' years old — replacement likely needed' });
+            else if (roofAge >= 15) riskFlags.push({ type: 'roof', severity: 'medium', message: 'Roof is ' + roofAge + ' years old — inspect for wear' });
+        }
+
+        // Satellite hazards
+        if (satelliteData) {
+            if (satelliteData.has_pool) riskFlags.push({ type: 'liability', severity: 'medium', message: 'Pool detected — verify fence/enclosure' });
+            if (satelliteData.tree_overhang_roof) riskFlags.push({ type: 'property', severity: 'medium', message: 'Tree overhanging roof — falling branch risk' });
+            if (satelliteData.brush_clearance_adequate === false) riskFlags.push({ type: 'wui', severity: 'high', message: 'Inadequate defensible space — WUI zone concern' });
+            if (satelliteData.has_trampoline) riskFlags.push({ type: 'liability', severity: 'medium', message: 'Trampoline detected — liability concern' });
+        }
+
+        // Pool/trampoline from extracted data
+        if (extractedData.pool === 'Yes' && !riskFlags.some(f => f.message.includes('Pool'))) {
+            riskFlags.push({ type: 'liability', severity: 'medium', message: 'Pool — verify fence/enclosure' });
+        }
+        if (extractedData.trampoline === 'Yes' && !riskFlags.some(f => f.message.includes('Trampoline'))) {
+            riskFlags.push({ type: 'liability', severity: 'medium', message: 'Trampoline — liability concern' });
+        }
+    }
+
+    // ── Phase 6a: Inline Field Edit ─────────────────────────────
+
+    function _editField(key) {
+        const fieldEl = document.querySelector('#iaExtractedPreview .ia-section-field[data-field-key="' + key + '"]');
+        if (!fieldEl) return;
+
+        const valueEl = fieldEl.querySelector('.ia-section-field-value');
+        if (!valueEl || fieldEl.querySelector('.ia-field-edit-input')) return;
+
+        const currentVal = extractedData[key] || '';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'ia-field-edit-input';
+        input.value = currentVal;
+        input.setAttribute('aria-label', 'Edit field value');
+
+        const originalHtml = valueEl.innerHTML;
+        valueEl.innerHTML = '';
+        valueEl.appendChild(input);
+        input.focus();
+        input.select();
+
+        const save = () => {
+            const newVal = input.value.trim();
+            if (newVal !== currentVal) {
+                extractedData[key] = newVal;
+                _saveHistory();
+            }
+            _renderPreview();
+            _updateProgressRing();
+        };
+
+        input.addEventListener('blur', save);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); save(); }
+            if (e.key === 'Escape') { valueEl.innerHTML = originalHtml; }
+        });
+    }
+
+    // ── Phase 6b: Copy Snapshot ─────────────────────────────────
+
+    function _copySnapshot() {
+        if (!extractedData || Object.keys(extractedData).length === 0) {
+            _toast('No data to copy yet');
+            return;
+        }
+
+        const parts = [];
+        if (extractedData.firstName || extractedData.lastName) {
+            parts.push('Client: ' + [extractedData.firstName, extractedData.lastName].filter(Boolean).join(' '));
+        }
+        if (extractedData.dob) parts.push('DOB: ' + extractedData.dob);
+        if (extractedData.qType) parts.push(extractedData.qType.charAt(0).toUpperCase() + extractedData.qType.slice(1) + ' quote');
+        if (extractedData.addrStreet) {
+            parts.push([extractedData.addrStreet, extractedData.addrCity, extractedData.addrState, extractedData.addrZip].filter(Boolean).join(', '));
+        }
+        if (extractedData.phone) parts.push('Ph: ' + extractedData.phone);
+        if (extractedData.email) parts.push('Email: ' + extractedData.email);
+
+        const text = parts.join(' | ');
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('iaCopyBtn');
+                if (btn) {
+                    const orig = btn.title;
+                    btn.title = 'Copied!';
+                    btn.classList.add('ia-copied');
+                    setTimeout(() => { btn.title = orig; btn.classList.remove('ia-copied'); }, 1500);
+                }
+            }).catch(() => _toast('Copy failed'));
+        }
+    }
+
+    // ── Phase 6d: Section counting helpers ──────────────────────
+
+    function _countCompleteSections() {
+        const qType = extractedData.qType || '';
+        const groups = FIELD_GROUPS.filter(g => {
+            if ((g.label === 'Home Coverage' || g.label === 'Home Details') && qType === 'auto') return false;
+            if ((g.label === 'Auto Coverage' || g.label === 'Vehicles' || g.label === 'Drivers') && qType === 'home') return false;
+            return true;
+        });
+        let complete = 0;
+        for (const g of groups) {
+            const filled = g.keys.filter(k => _hasField(k)).length;
+            if (filled === g.keys.length && filled > 0) complete++;
+        }
+        return complete;
+    }
+
+    function _countVisibleSections() {
+        const qType = extractedData.qType || '';
+        return FIELD_GROUPS.filter(g => {
+            if ((g.label === 'Home Coverage' || g.label === 'Home Details') && qType === 'auto') return false;
+            if ((g.label === 'Auto Coverage' || g.label === 'Vehicles' || g.label === 'Drivers') && qType === 'home') return false;
+            return true;
+        }).length;
+    }
+
     // ── Smart Suggestion Chips ──────────────────────────────────
 
     /** Get the last AI message content (for response triggers) */
@@ -1207,6 +2000,11 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             if (chips.length > 5) chips.length = 5;
         }
 
+        // Phase 2: Satellite hazard scan chip
+        if (extractedData.addrStreet && extractedData.addrCity && _propertyIntelLoaded && !_satelliteScanDone) {
+            chips.push({ label: '🛰️ Scan Hazards', action: 'scanHazards', type: 'suggestion' });
+        }
+
         // Stage 3: "Done — Apply" when enough fields collected
         if (_countFilled() >= 8) {
             chips.push({ label: '✅ Done — Apply', action: 'apply', type: 'done' });
@@ -1230,6 +2028,8 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
             if (chip.action === 'apply') {
                 btn.onclick = () => applyAndSend();
+            } else if (chip.action === 'scanHazards') {
+                btn.onclick = () => _scanSatelliteHazards();
             } else if (chip.qsType) {
                 btn.onclick = () => quickStart(chip.qsType);
             } else if (chip.text) {
@@ -1352,6 +2152,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     /** Reset sidebar on chat clear */
     function _resetIntelPanel() {
         _lastMapAddress = '';
+        _lastPropertyIntelAddress = '';
         const header = document.getElementById('iaSidebarHeader');
         if (header) header.style.display = 'none';
         const empty = document.getElementById('iaSidebarEmpty');
@@ -1362,13 +2163,18 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         if (mapPanel) mapPanel.style.display = 'none';
         const vehPanel = document.getElementById('iaVehiclePanel');
         if (vehPanel) vehPanel.style.display = 'none';
+        // Reset intel cards
+        const marketCard = document.getElementById('iaMarketIntelCard');
+        if (marketCard) marketCard.style.display = 'none';
+        const insuranceCard = document.getElementById('iaInsuranceTrendCard');
+        if (insuranceCard) insuranceCard.style.display = 'none';
         // Reset progress ring
         const arc = document.getElementById('iaProgressArc');
         if (arc) arc.setAttribute('stroke-dashoffset', '94.2');
         const pctLabel = document.getElementById('iaProgressPercent');
         if (pctLabel) pctLabel.textContent = '0';
         const badge = document.getElementById('iaTabBadge');
-        if (badge) { badge.textContent = '0%'; badge.style.display = 'none'; }
+        if (badge) { badge.textContent = '0/0'; badge.style.display = 'none'; }
         // Reset map images
         for (const id of ['iaStreetView', 'iaSatelliteView']) {
             const img = document.getElementById(id);
@@ -1396,5 +2202,9 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         return text.replace(/```(?:json)?\s*\n?\{[\s\S]*?\}\n?```/g, '').trim();
     }
 
-    return { init, sendMessage, quickStart, applyAndSend, populateForm, clearChat, exportSnapshot, openFullMap, chipSend, switchTab };
+    return {
+        init, sendMessage, quickStart, applyAndSend, populateForm, clearChat,
+        exportSnapshot, openFullMap, chipSend, switchTab,
+        _editField, _copySnapshot, scanHazards: _scanSatelliteHazards
+    };
 })();
