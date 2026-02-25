@@ -130,7 +130,12 @@ Object.assign(App, {
             if (!res.ok) return null;
             const buffer = await res.arrayBuffer();
             const bytes = new Uint8Array(buffer);
-            const base64 = btoa(String.fromCharCode(...bytes));
+            let binary = '';
+            const chunkSize = 8192;
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+            }
+            const base64 = btoa(binary);
             const contentType = res.headers.get('content-type') || 'image/jpeg';
             const format = contentType.includes('png') ? 'PNG' : 'JPEG';
             return { dataUrl: `data:${contentType};base64,${base64}`, format };

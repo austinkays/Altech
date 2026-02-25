@@ -190,6 +190,10 @@
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
 }
+.bugreport-btn-submit:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
 .bugreport-btn-submit:active {
     transform: translateY(0);
 }

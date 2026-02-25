@@ -46,7 +46,7 @@ const DataBackup = {
                     App.toast('⚠️ Invalid backup file');
                     return;
                 }
-                if (!confirm(`Restore backup from ${backup._meta.exportedAt}?\\nThis will overwrite current data.`)) return;
+                if (!confirm(`Restore backup from ${backup._meta.exportedAt}?\nThis will overwrite current data.`)) return;
                 let count = 0;
                 Object.entries(backup.data).forEach(([key, value]) => {
                     try { localStorage.setItem(key, value); count++; } catch (e) {}

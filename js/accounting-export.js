@@ -329,7 +329,7 @@ const AccountingExport = {
         if (!text) return '';
         const d = document.createElement('div');
         d.textContent = text;
-        return d.innerHTML;
+        return d.innerHTML.replace(/"/g, '&quot;');
     },
 
     async generateReport() {

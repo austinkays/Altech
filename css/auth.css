@@ -10,8 +10,8 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    border: 2px solid var(--border-color, rgba(0,0,0,0.1));
-    background: var(--card-bg, rgba(255,255,255,0.8));
+    border: 2px solid var(--border);
+    background: var(--bg-card);
     color: var(--text-secondary, #666);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -795,7 +795,7 @@ body.dark-mode .conflict-item {
 }
 
 .btn-auth-ghost:hover {
-    color: var(--text-primary, #333);
+    color: var(--text);
     background: rgba(0, 0, 0, 0.04);
 }
 

@@ -162,7 +162,7 @@ Object.assign(App, {
                                     <div style="padding: 8px; background: #f8d7da; border-radius: 6px;">
                                         <p style="font-size: 11px; font-weight: 600; margin: 0 0 4px 0; color: #721c24;">⚠️ Visible Hazards</p>
                                         <ul style="margin: 0; padding: 0 0 0 16px; font-size: 12px; color: #721c24;">
-                                            ${hazards.visibleHazards.map(h => `<li>${h}</li>`).join('')}
+                                            ${hazards.visibleHazards.map(h => `<li>${String(h||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</li>`).join('')}
                                         </ul>
                                     </div>
                                 ` : ''}
@@ -361,6 +361,7 @@ Object.assign(App, {
         
         const reader = new FileReader();
         return new Promise((resolve) => {
+            reader.onerror = () => resolve({ success: false, error: 'File read failed' });
             reader.onload = async (e) => {
                 const base64Data = e.target.result.split(',')[1];
                 
@@ -398,6 +399,7 @@ Object.assign(App, {
         
         const reader = new FileReader();
         return new Promise((resolve) => {
+            reader.onerror = () => resolve({ success: false, error: 'File read failed' });
             reader.onload = async (e) => {
                 const base64Data = e.target.result.split(',')[1];
                 
@@ -443,6 +445,7 @@ Object.assign(App, {
             const reader = new FileReader();
             
             return new Promise((resolve) => {
+                reader.onerror = () => resolve({ success: false, error: 'File read failed' });
                 reader.onload = async (e) => {
                     const base64Data = e.target.result.split(',')[1];
                     
@@ -506,7 +509,7 @@ Object.assign(App, {
          * Allows user to confirm and apply extracted data
          */
         if (!visionData || !visionData.success) {
-            alert('❌ Vision processing failed. Please try again.');
+            this.toast('❌ Vision processing failed. Please try again.');
             return;
         }
         
@@ -603,17 +606,17 @@ Object.assign(App, {
          * Apply vision-extracted data to form fields
          */
         const fieldMappings = {
-            'year_built': 'yearBuilt',
-            'yearBuilt': 'yearBuilt',
+            'year_built': 'yrBuilt',
+            'yearBuilt': 'yrBuilt',
             'roof_type': 'roofType',
             'roofType': 'roofType',
             'stories': 'numStories',
-            'garage_spaces': 'numGarages',
-            'garageSpaces': 'numGarages',
+            'garage_spaces': 'garageSpaces',
+            'garageSpaces': 'garageSpaces',
             'lot_size': 'lotSize',
             'lotSize': 'lotSize',
-            'total_sqft': 'totalSqft',
-            'totalSqft': 'totalSqft'
+            'total_sqft': 'sqFt',
+            'totalSqft': 'sqFt'
         };
         
         for (const [visionKey, formKey] of Object.entries(fieldMappings)) {
@@ -628,7 +631,7 @@ Object.assign(App, {
             }
         }
         
-        alert(`✅ Applied vision data to form`);
+        this.toast('✅ Applied vision data to form');
     },
 
     // Phase 5: Historical Data & Comparative Analysis Methods
@@ -645,7 +648,7 @@ Object.assign(App, {
         const county = this.getCountyFromCity(city, state);
         
         if (!address || !city || !state) {
-            alert('Please enter a complete address first.');
+            this.toast('Please enter a complete address first.');
             return;
         }
         
@@ -678,7 +681,7 @@ Object.assign(App, {
             if (result.success) {
                 this.showHistoryAnalysisPopup(result.data, address, city, state);
             } else {
-                alert(`❌ History analysis failed: ${result.error || 'Unknown error'}`);
+                this.toast(`❌ History analysis failed: ${result.error || 'Unknown error'}`);
             }
             
             // Reset button
@@ -688,7 +691,7 @@ Object.assign(App, {
             }
         } catch (error) {
             console.error('Property history analysis error:', error);
-            alert('❌ Failed to analyze property history.');
+            this.toast('❌ Failed to analyze property history.');
             const btn = document.getElementById('analyzeHistoryBtn');
             if (btn) btn.disabled = false;
         }
@@ -703,7 +706,7 @@ Object.assign(App, {
         const county = this.getCountyFromCity(city, state);
         
         if (!county || !state) {
-            alert('Please enter a complete address first.');
+            this.toast('Please enter a complete address first.');
             return;
         }
         
@@ -733,7 +736,7 @@ Object.assign(App, {
             if (result.success) {
                 this.showInsuranceAnalysisPopup(result.data, county, state);
             } else {
-                alert(`❌ Insurance analysis failed: ${result.error || 'Unknown error'}`);
+                this.toast(`❌ Insurance analysis failed: ${result.error || 'Unknown error'}`);
             }
             
             if (btn) {
@@ -742,7 +745,7 @@ Object.assign(App, {
             }
         } catch (error) {
             console.error('Insurance analysis error:', error);
-            alert('❌ Failed to analyze insurance trends.');
+            this.toast('❌ Failed to analyze insurance trends.');
             const btn = document.getElementById('analyzeInsuranceBtn');
             if (btn) btn.disabled = false;
         }
@@ -761,7 +764,7 @@ Object.assign(App, {
         const sqft = parseInt(this.data.totalSqft) || null;
         
         if (!city || !state) {
-            alert('Please enter a complete address first.');
+            this.toast('Please enter a complete address first.');
             return;
         }
         
@@ -793,7 +796,7 @@ Object.assign(App, {
             if (result.success) {
                 this.showMarketComparisonPopup(result.data, city, state);
             } else {
-                alert(`❌ Market comparison failed: ${result.error || 'Unknown error'}`);
+                this.toast(`❌ Market comparison failed: ${result.error || 'Unknown error'}`);
             }
             
             if (btn) {
@@ -802,7 +805,7 @@ Object.assign(App, {
             }
         } catch (error) {
             console.error('Market comparison error:', error);
-            alert('❌ Failed to compare to market.');
+            this.toast('❌ Failed to compare to market.');
             const btn = document.getElementById('compareMarketBtn');
             if (btn) btn.disabled = false;
         }
@@ -821,7 +824,7 @@ Object.assign(App, {
         const sqft = parseInt(this.data.totalSqft) || null;
         
         if (!address || !city || !state) {
-            alert('Please enter a complete address first.');
+            this.toast('Please enter a complete address first.');
             return;
         }
         
@@ -854,7 +857,7 @@ Object.assign(App, {
             if (result.success) {
                 this.showTimelinePopup(result.data, address, city, state);
             } else {
-                alert(`❌ Timeline generation failed: ${result.error || 'Unknown error'}`);
+                this.toast(`❌ Timeline generation failed: ${result.error || 'Unknown error'}`);
             }
             
             if (btn) {
@@ -863,7 +866,7 @@ Object.assign(App, {
             }
         } catch (error) {
             console.error('Timeline generation error:', error);
-            alert('❌ Failed to generate timeline.');
+            this.toast('❌ Failed to generate timeline.');
             const btn = document.getElementById('timelineBtn');
             if (btn) btn.disabled = false;
         }
@@ -1435,7 +1438,7 @@ Object.assign(App, {
         this.closeDataPreview();
         
         if (fieldsUpdated.length > 0) {
-            alert(`✅ Applied ${fieldsUpdated.length} fields!\n\n${fieldsUpdated.join('\n')}`);
+            this.toast(`✅ Applied ${fieldsUpdated.length} fields`);
             this.updateScanCoverage();
         }
     },

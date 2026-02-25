@@ -210,6 +210,11 @@
     filter: brightness(1.1);
 }
 
+.onboarding-btn:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+
 .onboarding-btn-primary:active {
     transform: scale(0.97);
 }

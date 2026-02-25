@@ -199,8 +199,10 @@ window.onload = async () => {
         // Cmd/Ctrl+S → Save current form
         if (mod && e.key === 's') {
             e.preventDefault();
-            if (App.initialized && App.save) App.save();
-            App.toast('💾 Saved');
+            if (App.initialized && App.save) {
+                App.save();
+                App.toast('💾 Saved');
+            }
             return;
         }
         // Escape → Go home (unless in a modal/popup)
@@ -220,6 +222,8 @@ window.onload = async () => {
         }
         // Enter in wizard steps → advance to next step
         if (e.key === 'Enter' && !isInput && App.initialized) {
+            const focused = document.activeElement;
+            if (focused && (focused.tagName === 'BUTTON' || focused.tagName === 'A')) return;
             const activeStep = document.querySelector('.step:not(.hidden)');
             if (activeStep) {
                 e.preventDefault();

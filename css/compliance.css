@@ -120,6 +120,10 @@
 .cgl-button:hover {
     background: var(--apple-blue-hover);
 }
+.cgl-button:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
 .cgl-button.secondary {
     background: var(--apple-gray);
 }
@@ -681,7 +685,7 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 13px;
-    background: var(--surface);
+    background: var(--bg-card);
     color: var(--text);
     resize: none;
     font-family: inherit;

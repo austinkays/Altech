@@ -239,14 +239,17 @@ Object.assign(App, {
                                     if (smallerBlob) {
                                         console.log(`[Image Convert] Final: ${(smallerBlob.size / 1024).toFixed(1)}KB`);
                                         const convertedFile = new File([smallerBlob], 'converted.jpg', { type: 'image/jpeg' });
+                                        canvas.width = 0; canvas.height = 0;
                                         resolve(convertedFile);
                                     } else {
                                         const convertedFile = new File([blob], 'converted.jpg', { type: 'image/jpeg' });
+                                        canvas.width = 0; canvas.height = 0;
                                         resolve(convertedFile);
                                     }
                                 }, 'image/jpeg', 0.6);
                             } else {
                                 const convertedFile = new File([blob], 'converted.jpg', { type: 'image/jpeg' });
+                                canvas.width = 0; canvas.height = 0;
                                 resolve(convertedFile);
                             }
                         } else {

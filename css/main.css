@@ -284,7 +284,7 @@ body.dark-mode .logo > span {
     align-items: center;
     justify-content: center;
     font-size: 18px;
-    color: var(--text-primary, #1c1c1e);
+    color: var(--text);
     box-shadow: none;
     transition: all 0.2s ease;
     position: relative;
@@ -572,14 +572,14 @@ textarea.auto-filled:focus {
 .carrier-ac-list {
     position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
     max-height: 220px; overflow-y: auto; margin-top: 2px;
-    background: var(--card-bg, #fff); border: 1px solid var(--border);
+    background: var(--bg-card); border: 1px solid var(--border);
     border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.12);
     display: none;
 }
 .carrier-ac-list.open { display: block; }
 .carrier-ac-item {
     padding: 8px 12px; font-size: 13px; cursor: pointer;
-    border-bottom: 1px solid var(--border-light, #f0f0f0);
+    border-bottom: 1px solid var(--border);
 }
 .carrier-ac-item:last-child { border-bottom: none; }
 .carrier-ac-item:hover, .carrier-ac-item.focused {
@@ -2765,11 +2765,11 @@ body.dark-mode .file-status.processing { color: #93c5fd; }
     margin: 0 auto;
 }
 .coi-section {
-    background: var(--card-bg, #fff);
+    background: var(--bg-card);
     border-radius: 16px;
     padding: 24px;
     margin-bottom: 20px;
-    border: 1px solid var(--border-color, #e5e5ea);
+    border: 1px solid var(--border);
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 .coi-section-header {
@@ -2793,7 +2793,7 @@ body.dark-mode .file-status.processing { color: #93c5fd; }
 .coi-section-title {
     font-size: 16px;
     font-weight: 700;
-    color: var(--text-primary, #1c1c1e);
+    color: var(--text);
     letter-spacing: -0.2px;
 }
 .coi-section-subtitle {
@@ -2829,12 +2829,12 @@ body.dark-mode .file-status.processing { color: #93c5fd; }
 .coi-field textarea {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid var(--border-color, #d1d1d6);
+    border: 1px solid var(--border);
     border-radius: 10px;
     font-size: 14px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--input-bg, #f9f9fb);
-    color: var(--text-primary, #1c1c1e);
+    background: var(--bg-input);
+    color: var(--text);
     transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
 }
@@ -2860,7 +2860,7 @@ body.dark-mode .file-status.processing { color: #93c5fd; }
     gap: 10px;
     align-items: end;
     padding: 8px 0;
-    border-bottom: 1px solid var(--border-color, #f0f0f0);
+    border-bottom: 1px solid var(--border);
 }
 .coi-insurer-row:last-child { border-bottom: none; }
 .coi-insurer-letter {
@@ -2872,11 +2872,11 @@ body.dark-mode .file-status.processing { color: #93c5fd; }
 }
 /* Coverage card (nested inside coi-section) */
 .coi-coverage-card {
-    background: var(--input-bg, #f5f5f7);
+    background: var(--bg-input);
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 16px;
-    border: 1px solid var(--border-color, #e5e5ea);
+    border: 1px solid var(--border);
 }
 .coi-coverage-card:last-child { margin-bottom: 0; }
 .coi-coverage-header {
@@ -2888,7 +2888,7 @@ body.dark-mode .file-status.processing { color: #93c5fd; }
 .coi-coverage-type {
     font-size: 14px;
     font-weight: 700;
-    color: var(--text-primary, #1c1c1e);
+    color: var(--text);
 }
 .coi-coverage-badge {
     font-size: 11px;
@@ -2910,7 +2910,7 @@ body.dark-mode .file-status.processing { color: #93c5fd; }
     gap: 6px;
     font-size: 12px;
     font-weight: 500;
-    color: var(--text-primary, #1c1c1e);
+    color: var(--text);
     text-transform: none;
     letter-spacing: 0;
     margin-bottom: 0;
@@ -2948,7 +2948,7 @@ body.dark-mode .file-status.processing { color: #93c5fd; }
     line-height: 1.5;
     color: var(--text-secondary, #8e8e93);
     padding: 12px 16px;
-    background: var(--input-bg, #f5f5f7);
+    background: var(--bg-input);
     border-radius: 10px;
     margin-top: 12px;
 }

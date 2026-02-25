@@ -222,7 +222,8 @@ Object.assign(App, {
                 }
         }, true); // capture phase for blur
         // Phone format
-        document.getElementById('phone').addEventListener('input', this.fmtPhone);
+        const phoneEl = document.getElementById('phone');
+        if (phoneEl) phoneEl.addEventListener('input', this.fmtPhone);
         const coPhone = document.getElementById('coPhone');
         if (coPhone) coPhone.addEventListener('input', this.fmtPhone);
 
@@ -428,7 +429,7 @@ Object.assign(App, {
         if (!el) return;
         el.value = value || '';
         this.data[id] = el.value;
-        localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+        this.save();
 
         if (options.autoFilled) {
             this.markAutoFilled(el, options.source || 'scan');
@@ -568,18 +569,19 @@ Object.assign(App, {
         const totalSteps = this.flow.length;
         const currentStep = this.step + 1;
         const stepName = this.stepTitles[curId] || 'Step';
-        stepTitle.textContent = `Step ${currentStep} of ${totalSteps}: ${stepName}`;
+        if (stepTitle) stepTitle.textContent = `Step ${currentStep} of ${totalSteps}: ${stepName}`;
         this.updateBreadcrumb();
         
         // Progress
         const pct = ((this.step + 1) / this.flow.length) * 100;
-        document.getElementById('progressBar').style.width = pct + '%';
+        const progressBar = document.getElementById('progressBar');
+        if (progressBar) progressBar.style.width = pct + '%';
         
         // Buttons
         const back = document.getElementById('btnBack');
         const next = document.getElementById('btnNext');
-        back.disabled = this.step === 0;
-        next.textContent = this.step === this.flow.length - 1 ? 'Finish' : 'Next';
+        if (back) back.disabled = this.step === 0;
+        if (next) next.textContent = this.step === this.flow.length - 1 ? 'Finish' : 'Next';
         
         // Mark quoting-active on body so footer/exit-button don't overlap
         document.body.classList.add('quoting-active');
@@ -676,21 +678,27 @@ Object.assign(App, {
 
         this.saveTimeout = setTimeout(async () => {
             if (token !== this.saveToken) return;
+            if (this._saving) return;
+            this._saving = true;
 
-            const dataToSave = JSON.parse(JSON.stringify(this.data || {}));
-            dataToSave._schemaVersion = this.CURRENT_SCHEMA_VERSION;
+            try {
+                const dataToSave = JSON.parse(JSON.stringify(this.data || {}));
+                dataToSave._schemaVersion = this.CURRENT_SCHEMA_VERSION;
 
-            if (this.encryptionEnabled) {
-                const encrypted = await CryptoHelper.encrypt(dataToSave);
-                safeSave(this.storageKey, encrypted);
-            } else {
-                safeSave(this.storageKey, JSON.stringify(dataToSave));
-            }
+                if (this.encryptionEnabled) {
+                    const encrypted = await CryptoHelper.encrypt(dataToSave);
+                    safeSave(this.storageKey, encrypted);
+                } else {
+                    safeSave(this.storageKey, JSON.stringify(dataToSave));
+                }
 
-            const ind = document.getElementById('saveIndicator');
-            if (ind) {
-                ind.style.opacity = 1;
-                setTimeout(() => { ind.style.opacity = 0; }, 1500);
+                const ind = document.getElementById('saveIndicator');
+                if (ind) {
+                    ind.style.opacity = 1;
+                    setTimeout(() => { ind.style.opacity = 0; }, 1500);
+                }
+            } finally {
+                this._saving = false;
             }
         }, 500);
     },
@@ -1399,10 +1407,11 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                         ${entries.slice(0, 50).map(e => {
                             const d = new Date(e.exportedAt);
                             const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+                            const esc = typeof this._escapeAttr === 'function' ? this._escapeAttr.bind(this) : (s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'));
                             return `<tr style="border-bottom:1px solid color-mix(in srgb, var(--border) 50%, transparent);">
-                                <td style="padding:6px 8px;white-space:nowrap;">${typeLabels[e.type] || this._escapeAttr(e.type || '')}</td>
-                                <td style="padding:6px 8px;font-weight:500;">${this._escapeAttr(e.clientName || '')}</td>
-                                <td style="padding:6px 8px;font-family:monospace;font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${this._escapeAttr(e.filename || '')}</td>
+                                <td style="padding:6px 8px;white-space:nowrap;">${typeLabels[e.type] || esc(e.type || '')}</td>
+                                <td style="padding:6px 8px;font-weight:500;">${esc(e.clientName || '')}</td>
+                                <td style="padding:6px 8px;font-family:monospace;font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(e.filename || '')}</td>
                                 <td style="padding:6px 8px;white-space:nowrap;color:var(--text-secondary);">${dateStr}</td>
                             </tr>`;
                         }).join('')}
@@ -1645,7 +1654,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         // Use signed-in user's display name, fall back to onboarding name, then prompt
         const user = typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser;
         if (user) {
-            const rawName = user.displayName || user.email.split('@')[0];
+            const rawName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
             const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
             el.textContent = greeting + ', ' + name;
         } else {

@@ -689,12 +689,19 @@ Object.assign(App, {
                 const smallerBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.8));
                 if (smallerBlob) {
                     console.log(`[Image Optimize] Final: ${(smallerBlob.size / 1024).toFixed(1)}KB`);
+                    bitmap.close();
+                    canvas.width = 0;
+                    canvas.height = 0;
                     return smallerBlob;
                 }
             }
+            bitmap.close();
+            canvas.width = 0;
+            canvas.height = 0;
             return blob;
         }
         
+        bitmap.close();
         return file;
     },
 

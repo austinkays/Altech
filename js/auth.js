@@ -266,30 +266,6 @@ const Auth = (() => {
         },
 
         /**
-         * Get the current user's Firebase ID token for authenticating API calls.
-         * Returns null if not signed in or on error.
-         */
-        async getIdToken() {
-            if (!_user) return null;
-            try { return await _user.getIdToken(); } catch { return null; }
-        },
-
-        /**
-         * Fetch wrapper that automatically injects the Firebase ID token.
-         * Use instead of fetch() for all /api/ calls that require authentication.
-         */
-        async apiFetch(url, options = {}) {
-            const token = await this.getIdToken();
-            if (token) {
-                options = {
-                    ...options,
-                    headers: { ...(options.headers || {}), 'Authorization': `Bearer ${token}` },
-                };
-            }
-            return fetch(url, options);
-        },
-
-        /**
          * Initialize auth — call after Firebase is ready
          */
         async init() {

@@ -200,18 +200,18 @@
    Dark Mode
    ═══════════════════════════════════════════════════════ */
 
-[data-theme="dark"] .secinfo-overlay {
+body.dark-mode .secinfo-overlay {
     background: rgba(0, 0, 0, 0.7);
 }
 
-[data-theme="dark"] .secinfo-modal {
+body.dark-mode .secinfo-modal {
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
 }
 
-[data-theme="dark"] .secinfo-close:hover {
+body.dark-mode .secinfo-close:hover {
     background: rgba(255, 255, 255, 0.08);
 }
 
-[data-theme="dark"] .secinfo-section-icon {
+body.dark-mode .secinfo-section-icon {
     background: rgba(10, 132, 255, 0.15);
 }

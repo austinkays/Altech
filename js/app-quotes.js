@@ -365,12 +365,6 @@ Object.assign(App, {
         this.toast('💾 Previous intake saved as draft');
     },
 
-    _escapeHTML(str) {
-        const div = document.createElement('div');
-        div.textContent = str || '';
-        return div.innerHTML;
-    },
-
     clearAllDrafts() {
         if (!confirm('Clear all saved drafts?')) return;
         localStorage.removeItem(this.quotesKey);
@@ -497,8 +491,8 @@ Object.assign(App, {
             info.appendChild(nameSpan);
             const meta = document.createElement('span');
             meta.className = 'qs-draft-meta';
-            const qType = q.qType ? q.qType.toUpperCase() : '';
-            const dateStr = q.timestamp ? new Date(q.timestamp).toLocaleDateString() : '';
+            const qType = q.data?.qType ? q.data.qType.toUpperCase() : '';
+            const dateStr = q.updatedAt ? new Date(q.updatedAt).toLocaleDateString() : '';
             meta.textContent = [qType, dateStr].filter(Boolean).join(' · ');
             info.appendChild(meta);
 
@@ -568,7 +562,7 @@ Object.assign(App, {
                     <div class="modal-body">
                         <p>We found ${duplicates.length} similar quote(s) for this address:</p>
                         <ul style="margin: 12px 0; padding-left: 20px;">
-                            ${duplicates.map(d => `<li><strong>${this._escapeAttr(d.title)}</strong> - ${new Date(d.updatedAt).toLocaleDateString()}</li>`).join('')}
+                            ${duplicates.map(d => `<li><strong>${this.escapeHTML(d.title)}</strong> - ${new Date(d.updatedAt).toLocaleDateString()}</li>`).join('')}
                         </ul>
                         <p>Do you want to save this as a new quote anyway?</p>
                     </div>
