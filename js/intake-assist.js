@@ -34,6 +34,7 @@ window.IntakeAssist = (() => {
     let _propertyIntelFetching = false;
     let _docInputWired = false;
     let initialized = false;
+    let _addressEnrichCache = {};  // Cache for county/zip lookups by city,state
 
     // ── Base System Prompt ────────────────────────────────────────
 
@@ -66,15 +67,19 @@ PHASE 4 — HISTORY & WRAP-UP:
 - Residence type for auto (Home Owned/Apartment/Condo)
 
 CRITICAL RULES:
-1. NEVER ask for information you can deduce. If the user gives a VIN and a system note provides the decoded year/make/model, USE that data — do NOT ask for year, make, or model again.
+1. NEVER ask for information you can deduce or look up. If you know the county for a city (e.g. Portland OR → Multnomah County, Phoenix AZ → Maricopa County), FILL IT IN automatically. Same for zip codes, state abbreviations, and any publicly known facts.
 2. If you know the zip code for a US city (e.g. Happy Valley OR = 97086, Vancouver WA = 98660), fill it in and confirm rather than asking.
-3. When the user says "no" to a field (e.g. "no email"), accept it and move on — never re-ask.
-4. Parse everything the user gives you in each message. If they provide multiple pieces of data in one reply, acknowledge ALL of them.
-5. System notes in [brackets] contain enrichment data (e.g. VIN decodes). Trust and use this data directly.
-6. Use common sense and general knowledge. If the user mentions a well-known city, you likely know its zip code, state, and area codes — use that knowledge.
-7. For coverage selections, suggest common defaults when the agent doesn't specify (e.g. "I'll note 100/300 liability — want different limits?"). This keeps the conversation fast.
+3. If a system note provides enrichment data (VIN decode, county lookup, property data), USE that data immediately in your JSON — do NOT ask the user to confirm what the system already told you.
+4. When the user says "no" to a field (e.g. "no email"), accept it and move on — never re-ask.
+5. Parse everything the user gives you in each message. If they provide multiple pieces of data in one reply, acknowledge ALL of them.
+6. System notes in [brackets] contain enrichment data from APIs. Trust and use this data directly — it is authoritative.
+7. Use common sense and general knowledge. You know US geography, zip codes, counties, area codes, car makes/models — use that knowledge instead of asking.
+8. For coverage selections, suggest common defaults when the agent doesn't specify (e.g. "I'll note 100/300 liability — want different limits?"). This keeps the conversation fast.
+9. NEVER ask for something you can figure out yourself: county (from city+state), zip code, state abbreviation, vehicle year/make/model (from VIN), property details (from address lookups). If in doubt, fill it in and say "I found [X] for you — let me know if that's wrong."
 
-Ask just ONE question at a time — keep the conversation focused and easy to follow. Keep replies short and friendly.
+*** IMPORTANT: Ask ONLY ONE question per reply. NEVER ask two or more questions. If you need to gather multiple pieces of information, ask for the single most important one and wait for the answer before asking the next. This is non-negotiable. ***
+
+Keep replies SHORT — 1-3 sentences max, plus your JSON block. No paragraphs. No lists of what you still need. Just ask the one thing you need next.
 
 IMPORTANT — AFTER EVERY REPLY, append a JSON code block containing ALL fields collected SO FAR (not just what was gathered in this turn). This allows real-time progress tracking. Use EXACTLY these keys:
 \`\`\`json
@@ -208,6 +213,17 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                 _saveHistory();
                 _updateIntelPanel();
             }
+
+            // Behind-the-scenes research: auto-resolve county/zip from city+state
+            const addrEnrichment = await _enrichAddress();
+            if (addrEnrichment) {
+                chatHistory.push({ role: 'user', content: addrEnrichment });
+                _saveHistory();
+            }
+
+            // Auto-fetch property intel when we have enough address data
+            _fetchPropertyIntel();
+
             _updateSuggestionChips();
         } catch (err) {
             _hideTyping();
@@ -216,14 +232,13 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         }
     }
 
-    /** Pre-fill input with a quick-start message and focus */
+    /** Pre-fill input with a quick-start message and auto-send */
     function quickStart(coverageType) {
         const input = document.getElementById('iaInput');
         if (!input) return;
         input.value = 'New ' + coverageType + ' quote.';
         _autoResize(input);
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
+        sendMessage();
     }
 
     /** Signal to the AI to apply collected data (used by the Done chip) */
@@ -449,6 +464,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         _marketIntelLoaded = false;
         _satelliteScanDone = false;
         _propertyIntelFetching = false;
+        _addressEnrichCache = {};
         _saveHistory();
 
         const msgs = document.getElementById('iaChatMessages');
@@ -749,6 +765,79 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             clearTimeout(timeoutId);
             return null;
         }
+    }
+
+    /**
+     * After the AI replies with extracted JSON, look up missing address fields
+     * (county, zip) behind the scenes and inject a system note so the AI never
+     * has to ask the user for publicly available geographic data.
+     */
+    async function _enrichAddress() {
+        const city = extractedData.addrCity;
+        const state = extractedData.addrState;
+
+        // Need at least city + state to do any lookup
+        if (!city || !state) return null;
+
+        const needs = [];
+        if (!extractedData.county) needs.push('county');
+        if (!extractedData.addrZip) needs.push('zip');
+        if (needs.length === 0) return null;
+
+        // Build a lookup key to avoid re-fetching the same city
+        const lookupKey = (city + ',' + state).toLowerCase();
+        if (_addressEnrichCache[lookupKey]) {
+            return _applyAddressEnrichment(_addressEnrichCache[lookupKey], needs);
+        }
+
+        try {
+            // Use Census Geocoder (free, no key) — one-line address mode
+            const addrStr = extractedData.addrStreet
+                ? `${extractedData.addrStreet}, ${city}, ${state}`
+                : `${city}, ${state}`;
+            const controller = new AbortController();
+            const tid = setTimeout(() => controller.abort(), 6000);
+            const url = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress'
+                + '?address=' + encodeURIComponent(addrStr)
+                + '&benchmark=Public_AR_Current&vintage=Current_Current&format=json';
+
+            const resp = await fetch(url, { signal: controller.signal });
+            clearTimeout(tid);
+            if (!resp.ok) return null;
+
+            const data = await resp.json();
+            const match = data?.result?.addressMatches?.[0];
+            if (!match) return null;
+
+            const geo = match.geographies;
+            const countyObj = geo?.Counties?.[0];
+            const result = {
+                county: countyObj?.BASENAME || countyObj?.NAME || null,
+                zip: match.addressComponents?.zip || null,
+            };
+
+            _addressEnrichCache[lookupKey] = result;
+            return _applyAddressEnrichment(result, needs);
+        } catch (_) {
+            return null; // Fail silently — AI can still ask if needed
+        }
+    }
+
+    /** Apply looked-up address data and return a system note string */
+    function _applyAddressEnrichment(result, needs) {
+        const notes = [];
+        if (needs.includes('county') && result.county) {
+            extractedData.county = result.county;
+            notes.push('county = ' + result.county);
+        }
+        if (needs.includes('zip') && result.zip) {
+            extractedData.addrZip = result.zip;
+            notes.push('zip = ' + result.zip);
+        }
+        if (notes.length === 0) return null;
+        _saveHistory();
+        _updateIntelPanel();
+        return `[System note — Address enrichment from Census Geocoder: ${notes.join(', ')}. Use this data directly, do not ask the user for these fields.]`;
     }
 
     /** Resolve a US state to its 2-letter code. Accepts full names or abbreviations. */
@@ -2052,6 +2141,9 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     function chipSend(text) {
         const input = document.getElementById('iaInput');
         if (!input) return;
+        // Clear chips immediately so new ones can appear after AI replies
+        const chipRow = document.getElementById('iaChipRow');
+        if (chipRow) { chipRow.innerHTML = ''; chipRow.style.display = 'none'; }
         input.value = text;
         _autoResize(input);
         sendMessage();

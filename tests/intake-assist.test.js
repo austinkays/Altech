@@ -514,18 +514,22 @@ describe('IntakeAssist Module', () => {
     // ── quickStart + populateForm ───────────────────────
 
     describe('quickStart', () => {
-        test('quickStart sets input value', () => {
+        test('quickStart auto-sends the message (clears input after sending)', () => {
             IA.init();
             IA.quickStart('homeowners');
             const input = doc.getElementById('iaInput');
-            expect(input.value).toContain('homeowners');
+            // quickStart now calls sendMessage(), which clears the input
+            expect(input.value).toBe('');
         });
 
-        test('quickStart focuses input', () => {
+        test('quickStart appends user message to chat', () => {
             IA.init();
             IA.quickStart('auto');
-            const input = doc.getElementById('iaInput');
-            expect(doc.activeElement).toBe(input);
+            // The message should appear in chat as a user bubble
+            const msgs = doc.getElementById('iaChatMessages');
+            const userBubbles = msgs ? msgs.querySelectorAll('.ia-msg-user') : [];
+            expect(userBubbles.length).toBeGreaterThanOrEqual(1);
+            expect(userBubbles[userBubbles.length - 1].textContent).toContain('auto');
         });
     });
 
