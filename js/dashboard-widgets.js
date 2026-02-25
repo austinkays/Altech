@@ -341,7 +341,19 @@ window.DashboardWidgets = (() => {
         let policyListHtml = '';
         if (flaggedPolicies.length > 0) {
             const rows = flaggedPolicies.slice(0, 6).map(p => {
-                const name = _escapeHTML(p.clientName || p.businessName || p.insuredName || p.namedInsured || 'Unknown Insured');
+                const rawName = _escapeHTML(p.clientName || p.businessName || p.insuredName || p.namedInsured || 'Unknown Insured');
+                const hsId = p.hawksoftId || p.clientNumber;
+                let nameHtml;
+                if (hsId) {
+                    const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent);
+                    const href = isMobile
+                        ? `https://agents.hawksoft.app/client/${encodeURIComponent(hsId)}`
+                        : `hs://${encodeURIComponent(hsId)}`;
+                    const title = isMobile ? 'Open in HawkSoft Agent Portal' : 'Open in HawkSoft';
+                    nameHtml = `<a href="${href}" class="compliance-policy-link" title="${title}" target="_blank" rel="noopener">${rawName}</a>`;
+                } else {
+                    nameHtml = rawName;
+                }
                 const num = _escapeHTML(p.policyNumber || '—');
                 const expDate = p.expirationDate ? new Date(p.expirationDate) : null;
                 const expText = expDate ? expDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
@@ -349,7 +361,7 @@ window.DashboardWidgets = (() => {
                 return `<div class="compliance-policy-row">
                     <div class="compliance-policy-severity ${p.severity}"></div>
                     <div class="compliance-policy-info">
-                        <div class="compliance-policy-name">${name}</div>
+                        <div class="compliance-policy-name">${nameHtml}</div>
                         <div class="compliance-policy-number">${num}</div>
                     </div>
                     <div class="compliance-policy-exp ${p.severity}">${_escapeHTML(daysText)}</div>

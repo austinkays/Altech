@@ -636,6 +636,16 @@ body.dark-mode .compliance-indicator.status-warning { color: #FFB340; }
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.compliance-policy-link {
+    color: var(--apple-blue);
+    text-decoration: none;
+    font-weight: 600;
+    transition: opacity 0.15s ease;
+}
+.compliance-policy-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
 .compliance-policy-number {
     font-size: 11px;
     color: var(--text-tertiary);
