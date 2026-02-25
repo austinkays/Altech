@@ -2,7 +2,7 @@
 /* EZLynx Quoter — Electric Blue Glassmorphism Theme  */
 /* ═══════════════════════════════════════════════════ */
 
-.ez-container { max-width: 720px; margin: 0 auto; padding: 0 16px 80px; }
+.ez-container { max-width: 1200px; margin: 0 auto; padding: 0 16px 80px; }
 
 /* ═══════════════════════════════════════════════════ */
 /* Client Info Banner                                 */
@@ -213,7 +213,10 @@
 
 /* ── Form Grid ── */
 .ez-form-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+@media (max-width: 768px) {
+    .ez-form-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 500px) {
     .ez-form-grid { grid-template-columns: 1fr; }

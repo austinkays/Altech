@@ -1842,7 +1842,7 @@ details.export-details .export-summary::after { content: "+"; font-weight: 700; 
 }
 
 /* === POLICY Q&A ASSISTANT === */
-.qna-container { max-width: 800px; margin: 0 auto; padding: 20px; padding-bottom: 120px; }
+.qna-container { max-width: 1200px; margin: 0 auto; padding: 20px; padding-bottom: 120px; }
 .qna-drop-zone {
     border: 2px dashed var(--border);
     border-radius: 16px;
@@ -2005,7 +2005,7 @@ body.dark-mode .landing-page::after {
 
 /* Glassmorphism pill container */
 .landing-header-pill {
-    max-width: 900px;
+    max-width: 1200px;
     margin: 0 auto;
     display: flex;
     align-items: center;
@@ -2133,7 +2133,7 @@ body.dark-mode .landing-theme-toggle:hover {
 /* ── Bento App Grid ── */
 .landing-app-grid { flex: 1; }
 .tools-container {
-    max-width: 900px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 20px 16px 8px;
     width: 100%;
@@ -2761,7 +2761,7 @@ body.dark-mode .file-status.processing { color: #93c5fd; }
 
 /* ── COI Form: Clean Card-Based Design ── */
 #acord25-form {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
 }
 .coi-section {

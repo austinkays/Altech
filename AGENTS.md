@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** February 25, 2026
+> **Last updated:** February 26, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -73,7 +73,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.css                # Auth modal + settings (973 lines)
 │   ├── reminders.css           # Task reminders (1,097 lines)
 │   ├── intake-assist.css       # AI intake two-pane layout (984 lines)
-│   ├── ezlynx.css              # EZLynx export — standalone dark palette (587 lines)
+│   ├── ezlynx.css              # EZLynx export — standalone dark palette (590 lines)
 │   ├── vin-decoder.css         # VIN decoder (580 lines)
 │   ├── hawksoft.css            # HawkSoft export (529 lines)
 │   ├── quote-compare.css       # Quote comparison tool (438 lines)

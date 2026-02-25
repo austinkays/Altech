@@ -1,4 +1,4 @@
-.acct-container { max-width: 700px; margin: 0 auto; padding: 0 16px 80px; }
+.acct-container { max-width: 1200px; margin: 0 auto; padding: 0 16px 80px; }
 .acct-status-box {
     background: var(--bg-input);
     border: 1.5px solid var(--border);
