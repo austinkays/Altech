@@ -189,14 +189,23 @@ window.DashboardWidgets = (() => {
                 const isOverdue = t.status === 'overdue';
                 const isSnoozed = t.status === 'snoozed';
                 const isCompleted = t.status === 'completed';
-                return `<div class="reminder-task-row" data-task-id="${t.id}">
-                    <div class="reminder-task-check ${isCompleted ? 'checked' : ''}" onclick="event.stopPropagation(); DashboardWidgets.toggleTask('${t.id}')"></div>
-                    <div class="reminder-task-priority ${priorityClass}"></div>
-                    <div class="reminder-task-info">
-                        <div class="reminder-task-title">${_escapeHTML(t.title)}</div>
-                        <div class="reminder-task-category">${_escapeHTML(t.category || '')}</div>
+                const hasNotes = t.notes && t.notes.trim().length > 0;
+                const catBadge = t.category ? `<span class="reminder-tag reminder-tag-cat">${_escapeHTML(t.category)}</span>` : '';
+                const freqLabel = t.frequency === 'weekdays' ? 'Mon\u2013Fri' : (t.frequency || 'weekly');
+                const freqBadge = `<span class="reminder-tag reminder-tag-freq">${_escapeHTML(freqLabel)}</span>`;
+                const notesToggle = hasNotes ? `<button class="reminder-notes-toggle" onclick="event.stopPropagation(); DashboardWidgets.toggleNotes('${t.id}')" title="Show notes"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>` : '';
+                const notesContent = hasNotes ? `<div class="reminder-task-notes" id="rem-notes-${t.id}" style="display:none;"><div class="reminder-task-notes-inner">${_escapeHTML(t.notes)}</div></div>` : '';
+                return `<div class="reminder-task-row-wrap" data-task-id="${t.id}">
+                    <div class="reminder-task-row">
+                        <div class="reminder-task-check ${isCompleted ? 'checked' : ''}" onclick="event.stopPropagation(); DashboardWidgets.toggleTask('${t.id}')"></div>
+                        <div class="reminder-task-priority ${priorityClass}"></div>
+                        <div class="reminder-task-info">
+                            <div class="reminder-task-title">${_escapeHTML(t.title)}${notesToggle}</div>
+                            <div class="reminder-task-tags">${catBadge}${freqBadge}</div>
+                        </div>
+                        <div class="reminder-task-due ${isOverdue ? 'overdue' : isSnoozed ? 'snoozed' : ''}">${_escapeHTML(dueText)}</div>
                     </div>
-                    <div class="reminder-task-due ${isOverdue ? 'overdue' : isSnoozed ? 'snoozed' : ''}">${_escapeHTML(dueText)}</div>
+                    ${notesContent}
                 </div>`;
             }).join('')}</div>`;
         }
@@ -824,6 +833,17 @@ window.DashboardWidgets = (() => {
 
     // ── Public API ──
 
+    /** Toggle collapsible notes for a task in the dashboard widget */
+    function toggleNotes(taskId) {
+        const el = document.getElementById(`rem-notes-${taskId}`);
+        if (!el) return;
+        const isOpen = el.style.display !== 'none';
+        el.style.display = isOpen ? 'none' : 'block';
+        // Rotate the chevron
+        const wrap = el.closest('.reminder-task-row-wrap');
+        if (wrap) wrap.classList.toggle('notes-open', !isOpen);
+    }
+
     return {
         init,
         refreshAll,
@@ -832,6 +852,7 @@ window.DashboardWidgets = (() => {
         toggleSidebar,
         toggleMobileSidebar,
         toggleTask,
+        toggleNotes,
         setActiveSidebarItem,
         updateBreadcrumb,
         updateBadges,

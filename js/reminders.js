@@ -19,8 +19,6 @@ window.Reminders = (() => {
 
     const STORAGE_KEY = 'altech_reminders';
     const PST_TIMEZONE = 'America/Los_Angeles';
-    const GRACE_PERIOD_HOURS = 6; // 6 AM PST grace for night owls
-
     const DEFAULT_CATEGORIES = ['Renewals', 'Follow-ups', 'Admin', 'Marketing', 'Compliance'];
 
     const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -29,8 +27,7 @@ window.Reminders = (() => {
     let _state = {
         tasks: [],
         categories: [...DEFAULT_CATEGORIES],
-        lastAlertShown: 0,
-        gracePeriodEnabled: false
+        lastAlertShown: 0
     };
 
     // ── Persistence ──
@@ -56,7 +53,7 @@ window.Reminders = (() => {
                 _state.tasks = parsed.tasks || [];
                 _state.categories = parsed.categories || [...DEFAULT_CATEGORIES];
                 _state.lastAlertShown = parsed.lastAlertShown || 0;
-                _state.gracePeriodEnabled = parsed.gracePeriodEnabled || false;
+                // gracePeriodEnabled removed — tasks always go overdue at midnight PST
             }
         } catch (e) {
             console.error('[Reminders] Load error:', e);
@@ -263,15 +260,6 @@ window.Reminders = (() => {
         // Check snooze state — if snoozed, show snoozed status instead of overdue
         if (_isSnoozeActive(task)) {
             return 'snoozed';
-        }
-
-        // Grace period: daily tasks don't go overdue until 6 AM PST
-        if (diff < 0 && _state.gracePeriodEnabled) {
-            const hoursPST = _pstHour();
-            // If it's before the grace hour and the task was only due yesterday
-            if (diff === -1 && hoursPST < GRACE_PERIOD_HOURS) {
-                return 'due-today'; // Still in grace period — treat as "due today"
-            }
         }
 
         // Weekly tasks: show as "due [day]" for the whole week, not overdue until after that day passes
@@ -623,20 +611,6 @@ window.Reminders = (() => {
         }
     }
 
-    // ── Grace Period Toggle ──
-
-    function toggleGracePeriod() {
-        _state.gracePeriodEnabled = !_state.gracePeriodEnabled;
-        _save();
-        render();
-        if (typeof App !== 'undefined' && App.toast) {
-            App.toast(_state.gracePeriodEnabled
-                ? 'Grace period ON — tasks stay "due" until 6 AM PST'
-                : 'Grace period OFF — tasks go overdue at midnight PST',
-                'success');
-        }
-    }
-
     // ── Render ──
 
     function _renderStats() {
@@ -896,14 +870,10 @@ window.Reminders = (() => {
         showSnoozeMenu,
         closeSnoozeMenu,
 
-        // Grace period
-        toggleGracePeriod,
-        get gracePeriodEnabled() { return _state.gracePeriodEnabled; },
-
         // For cloud sync
         get state() { return _state; },
         set state(s) {
-            _state = s || { tasks: [], categories: [...DEFAULT_CATEGORIES], lastAlertShown: 0, gracePeriodEnabled: false };
+            _state = s || { tasks: [], categories: [...DEFAULT_CATEGORIES], lastAlertShown: 0 };
             _save();
         },
 

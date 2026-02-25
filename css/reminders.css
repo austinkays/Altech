@@ -655,34 +655,6 @@
     color: var(--text-secondary);
 }
 
-.rem-grace-toggle {
-    padding: 5px 12px;
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    background: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    color: var(--text-secondary);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.25s ease;
-    font-family: inherit;
-}
-
-.rem-grace-toggle:hover {
-    background: rgba(255, 149, 0, 0.1);
-    border-color: #FF9500;
-    color: #FF9500;
-}
-
-.rem-grace-toggle.active {
-    background: rgba(255, 149, 0, 0.15);
-    border-color: #FF9500;
-    color: #FF9500;
-}
-
 /* ===== Snoozed Task Card State ===== */
 .rem-task-card.rem-snoozed {
     opacity: 0.55;
@@ -868,19 +840,6 @@
 body.dark-mode .rem-weekly-summary-bar {
     background: rgba(50, 215, 75, 0.08);
     border-color: rgba(50, 215, 75, 0.15);
-}
-
-body.dark-mode .rem-grace-toggle {
-    background: #2C2C2E;
-    border-color: #38383A;
-    color: #98989D;
-}
-
-body.dark-mode .rem-grace-toggle:hover,
-body.dark-mode .rem-grace-toggle.active {
-    background: rgba(255, 159, 10, 0.15);
-    border-color: #FF9F0A;
-    color: #FF9F0A;
 }
 
 body.dark-mode .rem-task-card.rem-snoozed {

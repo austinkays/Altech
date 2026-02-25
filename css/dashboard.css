@@ -241,17 +241,6 @@ body.dark-mode .stat-pill-today {
     max-height: 220px;
     scrollbar-width: thin;
 }
-.reminder-task-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 8px;
-    border-radius: 10px;
-    transition: background 0.15s ease;
-}
-.reminder-task-row:hover {
-    background: var(--bg-input);
-}
 .reminder-task-check {
     width: 20px;
     height: 20px;
@@ -301,11 +290,6 @@ body.dark-mode .stat-pill-today {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.reminder-task-category {
-    font-size: 11px;
-    color: var(--text-tertiary);
-    margin-top: 2px;
-}
 .reminder-task-due {
     font-size: 12px;
     font-weight: 500;
@@ -321,6 +305,109 @@ body.dark-mode .stat-pill-today {
     color: #FF9500;
     font-weight: 500;
     font-style: italic;
+}
+
+/* Task row wrapper (for collapsible notes) */
+.reminder-task-row-wrap {
+    border-radius: 10px;
+    transition: background 0.15s ease;
+}
+.reminder-task-row-wrap:hover {
+    background: var(--bg-input);
+}
+.reminder-task-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px;
+    border-radius: 10px;
+}
+
+/* Tags (category + frequency badges) */
+.reminder-task-tags {
+    display: flex;
+    gap: 4px;
+    margin-top: 2px;
+    flex-wrap: wrap;
+}
+.reminder-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 7px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    line-height: 16px;
+}
+.reminder-tag-cat {
+    background: rgba(52, 199, 89, 0.10);
+    color: #34C759;
+}
+.reminder-tag-freq {
+    background: rgba(88, 86, 214, 0.10);
+    color: #5856D6;
+}
+body.dark-mode .reminder-tag-cat {
+    background: rgba(50, 215, 75, 0.12);
+    color: #32D74B;
+}
+body.dark-mode .reminder-tag-freq {
+    background: rgba(94, 92, 230, 0.15);
+    color: #7D7AFF;
+}
+
+/* Notes toggle chevron */
+.reminder-notes-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    margin-left: 4px;
+    border: none;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    transition: transform 0.2s ease, background 0.15s ease, color 0.15s ease;
+    vertical-align: middle;
+}
+.reminder-notes-toggle:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--text-secondary);
+}
+body.dark-mode .reminder-notes-toggle {
+    background: rgba(255, 255, 255, 0.06);
+}
+body.dark-mode .reminder-notes-toggle:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-secondary);
+}
+.reminder-task-row-wrap.notes-open .reminder-notes-toggle svg {
+    transform: rotate(180deg);
+}
+
+/* Collapsible notes content */
+.reminder-task-notes {
+    padding: 0 8px 8px 46px; /* align with task title (check+priority+gap) */
+    animation: notesSlideIn 0.15s ease;
+}
+.reminder-task-notes-inner {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 6px 10px;
+    background: var(--bg-input);
+    border-radius: 8px;
+    border-left: 3px solid var(--apple-blue);
+}
+@keyframes notesSlideIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Weekly Summary (inside widget) */
