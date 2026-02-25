@@ -10,10 +10,7 @@
     "scripting"
   ],
   "host_permissions": [
-    "*://*.ezlynx.com/*",
-    "https://altech-app.vercel.app/*",
-    "https://altech.agency/*",
-    "https://www.altech.agency/*"
+    "<all_urls>"
   ],
   "action": {
     "default_popup": "popup.html",

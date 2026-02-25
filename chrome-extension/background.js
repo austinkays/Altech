@@ -48,54 +48,18 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     // After install/update, also fetch latest schema from Vercel
     fetchRemoteSchema();
 
-    // Enable the action icon on any already-open EZLynx / Altech tabs
-    enableForMatchingTabs();
+
 });
 
 // ── Auto-sync schema from Vercel on every service worker startup ──
 // This runs whenever the service worker wakes up (on extension click, message, alarm, etc.)
 fetchRemoteSchema();
 
-// ── Only show extension icon on supported pages ──
-// Default state: disabled. Enabled per-tab for EZLynx / Altech / localhost.
-chrome.action.disable();
+// ── Extension icon is enabled on ALL pages ──
+// The popup works everywhere (property scraper, paste, etc.).
+// The EZLynx fill toolbar (content.js) is still restricted to EZLynx pages via content_scripts in manifest.
 
-function updateActionForTab(tabId, url) {
-    if (!url) return;
-    if (url.includes('ezlynx.com') || url.includes('altech-app.vercel.app') || url.includes('altech.agency') || url.includes('localhost')) {
-        chrome.action.enable(tabId);
-    } else {
-        chrome.action.disable(tabId);
-    }
-}
 
-// Scan ALL open tabs and enable the action for any that match.
-// Called on every service worker (re)start AND on install/update,
-// because tabs.onUpdated does NOT fire for tabs that are already loaded.
-async function enableForMatchingTabs() {
-    try {
-        const tabs = await chrome.tabs.query({});
-        for (const tab of tabs) {
-            if (tab.id && tab.url) updateActionForTab(tab.id, tab.url);
-        }
-    } catch (e) {
-        console.warn('[Altech] Tab scan failed:', e.message);
-    }
-}
-
-// Run on every service worker wake (startup, click, alarm, message, etc.)
-enableForMatchingTabs();
-
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (tab.url) updateActionForTab(tabId, tab.url);
-});
-
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-    try {
-        const tab = await chrome.tabs.get(activeInfo.tabId);
-        updateActionForTab(tab.id, tab.url);
-    } catch (e) { /* tab may have closed */ }
-});
 
 async function fetchRemoteSchema() {
     try {

@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('manualPasteBtn').addEventListener('click', loadManualPaste);
     $('copyPropBtn').addEventListener('click', copyPropertyToClipboard);
     $('clearPropBtn').addEventListener('click', clearPropertyData);
+    $('propertyBtn').addEventListener('click', scrapePropertyData);
 
     // Admin toggle — just toggles visibility when already unlocked
     $('adminToggle').addEventListener('click', () => {
@@ -76,7 +77,6 @@ function unlockAdmin() {
     loadSchemaStats();
     // Wire admin buttons (only after unlock)
     $('scrapeBtn').addEventListener('click', scrapeCurrentPage);
-    $('propertyBtn').addEventListener('click', scrapePropertyData);
     $('exportSchemaBtn').addEventListener('click', exportSchema);
 }
 
@@ -179,7 +179,7 @@ function checkPage() {
                     label.innerHTML = '<strong>✓ EZLynx</strong> — refresh the page to enable filling';
                 } else {
                     dot.classList.remove('connected');
-                    label.innerHTML = 'Not on EZLynx — open <strong>app.ezlynx.com</strong>';
+                    label.innerHTML = 'Not on EZLynx — property scraping available';
                 }
             });
             return;
@@ -193,7 +193,7 @@ function checkPage() {
             label.innerHTML = `<strong>${pageNames[page] || 'EZLynx'}</strong>`;
         } else {
             dot.classList.remove('connected');
-            label.innerHTML = 'Not on EZLynx — open <strong>app.ezlynx.com</strong>';
+            label.innerHTML = 'Not on EZLynx — property scraping available';
         }
     });
 }
