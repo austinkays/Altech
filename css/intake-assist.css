@@ -21,30 +21,63 @@
    The height must propagate unbroken from .app-main → .app-content → #pluginViewport → #intakeTool.
    .app-content is normally a block element, so #pluginViewport has no definite height
    and #intakeTool's height:100% resolves to auto (content height → clipped).
-   Fix: make .app-content a flex column so #pluginViewport stretches to fill it. */
-.app-shell:has(#intakeTool.active) .app-main {
-    height: 100dvh;
-    max-height: 100dvh;
+   Fix: make .app-content a flex column so #pluginViewport stretches to fill it.
+
+   On mobile (<768px) there is a fixed bottom nav (56px + safe-area), the app-header is 56px,
+   and there is no sidebar. We must account for those when locking the height. */
+
+/* ── Desktop / Tablet (≥768px): sidebar present, no bottom nav ── */
+@media (min-width: 768px) {
+    .app-shell:has(#intakeTool.active) .app-main {
+        height: 100dvh;
+        max-height: 100dvh;
+    }
+    .app-shell:has(#intakeTool.active) .app-content {
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    .app-shell:has(#intakeTool.active) .plugin-viewport {
+        flex: 1;
+        min-height: 0;
+    }
 }
-.app-shell:has(#intakeTool.active) .app-content {
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-.app-shell:has(#intakeTool.active) .plugin-viewport {
-    flex: 1;
-    min-height: 0;
+
+/* ── Mobile (<768px): no sidebar, bottom nav present ── */
+@media (max-width: 767px) {
+    .app-shell:has(#intakeTool.active) .app-main {
+        height: 100dvh;
+        max-height: 100dvh;
+    }
+    .app-shell:has(#intakeTool.active) .app-content {
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        /* Remove the normal bottom-nav padding — we handle it inside the chat input row */
+        padding-bottom: 0;
+    }
+    .app-shell:has(#intakeTool.active) .plugin-viewport {
+        flex: 1;
+        min-height: 0;
+    }
+
+    /* Hide the mobile bottom nav when AI Intake is active —
+       the tab bar + input row replace its function */
+    .app-shell:has(#intakeTool.active) ~ .mobile-bottom-nav {
+        display: none;
+    }
 }
 
 .ia-layout {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     height: 100%;
     overflow: hidden;
 }
 
 @media (min-width: 768px) {
     .ia-layout {
+        display: grid;
         grid-template-columns: 1fr 380px;
         gap: 0;
     }
@@ -109,10 +142,22 @@
 /* Mobile: show/hide panes based on active tab */
 @media (max-width: 767px) {
     .ia-layout[data-active-tab="data"] .ia-chat-pane { display: none; }
-    .ia-layout[data-active-tab="data"] .ia-sidebar-pane { display: flex; }
-    .ia-layout[data-active-tab="chat"] .ia-chat-pane { display: flex; }
+    .ia-layout[data-active-tab="data"] .ia-sidebar-pane {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+    }
+    .ia-layout[data-active-tab="chat"] .ia-chat-pane {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+    }
     .ia-layout[data-active-tab="chat"] .ia-sidebar-pane { display: none; }
     .ia-layout:not([data-active-tab]) .ia-sidebar-pane { display: none; }
+    .ia-layout:not([data-active-tab]) .ia-chat-pane {
+        flex: 1;
+        min-height: 0;
+    }
 }
 
 /* ═══ Chat Pane ═══ */
@@ -795,9 +840,59 @@ body.dark-mode .ia-sidebar-card {
     .ia-map-grid { grid-template-columns: 1fr; }
 }
 
+/* ── Mobile: full-bleed chat, no clipping ── */
 @media (max-width: 767px) {
-    .ia-chat-pane { padding: 8px; }
-    .ia-sidebar-pane { padding: 8px; }
+    #intakeTool.plugin-container.active {
+        /* Fill parent completely — no outer rounding or margin */
+        border-radius: 0;
+    }
+
+    .ia-chat-pane {
+        padding: 0;
+    }
+
+    .ia-card.ia-chat-card {
+        /* Remove card border/radius on mobile — go edge to edge */
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        background: var(--bg);
+    }
+
+    .ia-card-header {
+        padding: 8px 12px;
+    }
+
+    .ia-messages {
+        padding: 10px 12px;
+    }
+
+    .ia-chip-row {
+        padding: 6px 12px 8px;
+        gap: 6px;
+    }
+
+    .ia-chip {
+        padding: 7px 14px;
+        font-size: 12px;
+    }
+
+    .ia-input-row {
+        padding: 8px 10px 10px;
+    }
+
+    .ia-input {
+        font-size: 16px; /* Prevent iOS zoom on focus */
+    }
+
+    .ia-sidebar-pane {
+        padding: 8px;
+    }
+
+    .ia-msg {
+        max-width: 92%;
+        font-size: 14px;
+    }
 }
 
 /* ═══ Legacy compat (keep for any external references) ═══ */
