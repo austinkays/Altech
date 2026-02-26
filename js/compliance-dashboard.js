@@ -971,13 +971,14 @@ const ComplianceDashboard = {
         const cacheAge = Date.now() - (cached.cachedAt || 0);
         const ageMin = Math.round(cacheAge / 60000);
         const fetchTime = cached.metadata?.fetchedAt ? new Date(cached.metadata.fetchedAt).toLocaleString() : 'unknown';
-        document.getElementById('cglLastFetch').innerHTML = `Last updated: ${fetchTime} <span style="color:var(--apple-gray);font-size:12px;">(cached ${ageMin}m ago)</span>`;
+        const lastFetchEl = document.getElementById('cglLastFetch');
+        if (lastFetchEl) lastFetchEl.innerHTML = `Last updated: ${fetchTime} <span style="color:var(--apple-gray);font-size:12px;">(cached ${ageMin}m ago)</span>`;
 
         this.renderLastSynced(cached.last_synced_time || cached.metadata?.fetchedAt);
 
-        loading.style.display = 'none';
-        tableContainer.style.display = 'block';
-        error.style.display = 'none';
+        if (loading) loading.style.display = 'none';
+        if (tableContainer) tableContainer.style.display = 'block';
+        if (error) error.style.display = 'none';
         this.checkForRenewals();
         this.renderTypeToggles();
         this.renderPolicies();
@@ -1870,6 +1871,7 @@ const ComplianceDashboard = {
 
     renderPolicies(filteredList = null) {
         const tbody = document.getElementById('cglTableBody');
+        if (!tbody) return;
         let policiesToRender = filteredList || this.policies.filter(p => this.showHidden || !this.isHidden(p.policyNumber));
 
         // If no pre-sorted list provided, apply sort
@@ -1878,11 +1880,14 @@ const ComplianceDashboard = {
         }
 
         const hiddenCount = this.getHiddenCount();
-        document.getElementById('cglHiddenCount').textContent = hiddenCount;
+        const hiddenEl = document.getElementById('cglHiddenCount');
+        if (hiddenEl) hiddenEl.textContent = hiddenCount;
 
         const visibleTotal = this.policies.filter(p => !this.isHidden(p.policyNumber)).length;
-        document.getElementById('cglFilteredCount').textContent = policiesToRender.length;
-        document.getElementById('cglTotalCount').textContent = this.showHidden ? this.policies.length : visibleTotal;
+        const filteredEl = document.getElementById('cglFilteredCount');
+        if (filteredEl) filteredEl.textContent = policiesToRender.length;
+        const totalEl = document.getElementById('cglTotalCount');
+        if (totalEl) totalEl.textContent = this.showHidden ? this.policies.length : visibleTotal;
 
         if (policiesToRender.length === 0) {
             let emptyMsg;

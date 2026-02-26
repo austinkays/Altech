@@ -108,14 +108,12 @@ TASK: Rewrite the following rough draft into a polished, professional email. Kee
 
                     this._generating = true;
                     const btn = document.getElementById('emailComposeBtn');
-                    btn.disabled = true;
-                    btn.textContent = '⏳ Writing...';
+                    if (btn) { btn.disabled = true; btn.textContent = '⏳ Writing...'; }
 
                     const outputCard = document.getElementById('emailOutputCard');
                     const outputText = document.getElementById('emailOutputText');
-                    outputCard.style.display = 'block';
-                    outputText.classList.add('generating');
-                    outputText.innerHTML = '<span class="cursor-blink"></span>';
+                    if (outputCard) outputCard.style.display = 'block';
+                    if (outputText) { outputText.classList.add('generating'); outputText.innerHTML = '<span class="cursor-blink"></span>'; }
                     this.setProgress(30);
 
                     try {
@@ -173,13 +171,11 @@ TASK: Rewrite the following rough draft into a polished, professional email. Kee
 
                     } catch (err) {
                         console.error('[EmailComposer] Error:', err);
-                        outputText.textContent = '❌ Failed to generate: ' + err.message;
-                        outputText.classList.remove('generating');
+                        if (outputText) { outputText.textContent = '❌ Failed to generate: ' + err.message; outputText.classList.remove('generating'); }
                         App.toast('❌ AI generation failed');
                     } finally {
                         this._generating = false;
-                        btn.disabled = false;
-                        btn.textContent = '✨ Polish Email';
+                        if (btn) { btn.disabled = false; btn.textContent = '✨ Polish Email'; }
                         setTimeout(() => this.setProgress(0), 1500);
                     }
                 },
