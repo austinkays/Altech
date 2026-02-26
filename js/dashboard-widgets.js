@@ -9,6 +9,9 @@ window.DashboardWidgets = (() => {
     'use strict';
 
     let _refreshInterval = null;
+    let _complianceBgInterval = null;
+    let _complianceBgFetching = false;
+    const COMPLIANCE_BG_FETCH_INTERVAL = 60 * 60 * 1000; // 1 hour
     let _initialized = false;
 
     // ── SVG Icon Library (Lucide-style, 24×24, stroke-based) ──
@@ -385,6 +388,61 @@ window.DashboardWidgets = (() => {
                 </div>
             </div>
             ${policyListHtml}`;
+    }
+
+    // ── Background CGL Compliance Fetch ──
+    // Silently refreshes compliance cache so the widget (and full dashboard) stay current.
+    // Only runs on production (HawkSoft API unreachable on localhost).
+
+    async function _backgroundComplianceFetch() {
+        if (_complianceBgFetching) return;
+        const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (isLocal) return;
+
+        // Check cache age — skip if fresh enough
+        try {
+            const raw = localStorage.getItem('altech_cgl_cache');
+            if (raw) {
+                const cached = JSON.parse(raw);
+                const age = Date.now() - (cached.cachedAt || 0);
+                if (age < COMPLIANCE_BG_FETCH_INTERVAL) {
+                    console.log('[DashboardWidgets] CGL cache fresh (' + Math.round(age / 60000) + 'm) — skip bg fetch');
+                    return;
+                }
+            }
+        } catch (e) { /* proceed with fetch */ }
+
+        _complianceBgFetching = true;
+        console.log('[DashboardWidgets] CGL background refresh starting...');
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 65000);
+            const res = await fetch('/api/compliance.js', { signal: controller.signal });
+            clearTimeout(timeout);
+            if (!res.ok) throw new Error('API ' + res.status);
+
+            const data = await res.json();
+            if (data?.policies?.length > 0) {
+                const cacheObj = {
+                    ...data,
+                    cachedAt: Date.now(),
+                    last_synced_time: new Date().toISOString()
+                };
+                try { localStorage.setItem('altech_cgl_cache', JSON.stringify(cacheObj)); } catch (e) {}
+                // Update IDB if available (CglIDB is a module-level const in compliance-dashboard.js)
+                if (typeof CglIDB !== 'undefined' && CglIDB.set) {
+                    CglIDB.set('hawksoft_policy_data', cacheObj).catch(() => {});
+                }
+                // Re-render widget + badges with fresh data
+                renderComplianceWidget();
+                updateBadges();
+                console.log('[DashboardWidgets] CGL background refresh done — ' + data.policies.length + ' policies');
+            }
+        } catch (e) {
+            console.log('[DashboardWidgets] CGL background refresh failed (silent):', e.message);
+        } finally {
+            _complianceBgFetching = false;
+        }
     }
 
     // ── Render: Quick Actions Widget ──
@@ -776,7 +834,7 @@ window.DashboardWidgets = (() => {
         _closeMobileSidebar();
         refreshAll();
 
-        // Start auto-refresh
+        // Start auto-refresh (widgets every 60s, compliance API every hour)
         _stopAutoRefresh();
         _refreshInterval = setInterval(() => {
             if (document.getElementById('dashboardView')?.style.display !== 'none') {
@@ -786,6 +844,9 @@ window.DashboardWidgets = (() => {
                 updateBadges();
             }
         }, 60000);
+        // Hourly compliance background fetch — fire once now if stale, then every hour
+        _backgroundComplianceFetch();
+        _complianceBgInterval = setInterval(_backgroundComplianceFetch, COMPLIANCE_BG_FETCH_INTERVAL);
     }
 
     function hideDashboard(toolKey, toolTitle) {
@@ -811,6 +872,10 @@ window.DashboardWidgets = (() => {
         if (_refreshInterval) {
             clearInterval(_refreshInterval);
             _refreshInterval = null;
+        }
+        if (_complianceBgInterval) {
+            clearInterval(_complianceBgInterval);
+            _complianceBgInterval = null;
         }
     }
 
