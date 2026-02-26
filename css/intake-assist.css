@@ -32,9 +32,9 @@
 
 .ia-tab-bar {
     display: flex;
-    gap: 2px;
-    padding: 6px 12px;
-    background: var(--bg-input);
+    gap: 4px;
+    padding: 6px 10px;
+    background: var(--bg-card);
     border-bottom: 1px solid var(--border);
 }
 
@@ -94,13 +94,13 @@
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
-    padding: 12px;
+    padding: 10px;
 }
 
 @media (min-width: 768px) {
     .ia-chat-pane {
         border-right: 1px solid var(--border);
-        padding: 16px;
+        padding: 12px;
     }
 }
 
@@ -114,28 +114,34 @@
 
 .ia-card {
     background: var(--bg-card);
-    border: 1.5px solid var(--border);
-    border-radius: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
     overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+body.dark-mode .ia-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .ia-card-header {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 16px;
-    background: var(--bg-input);
+    padding: 10px 16px;
+    background: transparent;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
 
-.ia-card-icon { font-size: 18px; }
+.ia-card-icon { font-size: 16px; }
 
 .ia-card-title {
     font-weight: 700;
-    font-size: 14px;
-    color: var(--text);
+    font-size: 13px;
+    color: var(--text-secondary);
     flex: 1;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
 }
 
 .ia-clear-btn {
@@ -158,8 +164,8 @@
 .ia-messages {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px 14px;
+    gap: 8px;
+    padding: 14px 16px;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -168,13 +174,13 @@
 }
 
 .ia-msg {
-    max-width: 88%;
+    max-width: 85%;
     padding: 10px 14px;
-    border-radius: 16px;
+    border-radius: 18px;
     font-size: 14px;
-    line-height: 1.6;
+    line-height: 1.55;
     word-wrap: break-word;
-    animation: iaMsgIn 0.2s ease;
+    animation: iaMsgIn 0.25s ease;
 }
 
 @keyframes iaMsgIn {
@@ -186,14 +192,14 @@
     align-self: flex-start;
     background: var(--bg-input);
     color: var(--text);
-    border-bottom-left-radius: 4px;
+    border-bottom-left-radius: 6px;
 }
 
 .ia-msg-user {
     align-self: flex-end;
     background: var(--apple-blue);
     color: #fff;
-    border-bottom-right-radius: 4px;
+    border-bottom-right-radius: 6px;
 }
 
 .ia-msg-ai strong { color: var(--apple-blue); }
@@ -234,13 +240,13 @@ body.dark-mode .ia-msg-ai code { background: rgba(255,255,255,0.1); }
 /* Suggestion chips */
 .ia-chip-row {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: wrap;
-    padding: 0 14px 10px;
+    padding: 8px 16px 12px;
     flex-shrink: 0;
     opacity: 0;
-    transform: translateY(4px);
-    transition: opacity 0.25s ease, transform 0.25s ease;
+    transform: translateY(6px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 .ia-chip-row.ia-chips-visible {
     opacity: 1;
@@ -248,47 +254,90 @@ body.dark-mode .ia-msg-ai code { background: rgba(255,255,255,0.1); }
 }
 
 .ia-chip {
-    padding: 6px 12px;
-    border-radius: 8px;
+    padding: 9px 18px;
+    border-radius: 20px;
     border: 1.5px solid var(--border);
     background: var(--bg-card);
     color: var(--text);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition: all 0.2s var(--transition-smooth, ease);
     white-space: nowrap;
+    letter-spacing: -0.01em;
 }
 .ia-chip:hover {
     border-color: var(--apple-blue);
     color: var(--apple-blue);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.12);
+}
+.ia-chip:active {
+    transform: translateY(0);
+}
+
+/* Start / quick-start chips — prominent hero pills */
+.ia-chip-start {
+    background: rgba(0, 122, 255, 0.08);
+    border-color: rgba(0, 122, 255, 0.25);
+    color: var(--apple-blue);
+    font-size: 14px;
+    padding: 10px 22px;
+}
+.ia-chip-start:hover {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.25);
+}
+body.dark-mode .ia-chip-start {
+    background: rgba(10, 132, 255, 0.12);
+    border-color: rgba(10, 132, 255, 0.3);
+}
+body.dark-mode .ia-chip-start:hover {
+    background: #0A84FF;
+    border-color: #0A84FF;
+    color: #fff;
 }
 
 .ia-chip-suggestion {
-    border-color: var(--apple-blue);
+    border-color: rgba(0, 122, 255, 0.3);
     color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.05);
 }
 .ia-chip-suggestion:hover {
     background: var(--apple-blue);
+    border-color: var(--apple-blue);
     color: #fff;
+}
+body.dark-mode .ia-chip-suggestion {
+    background: rgba(10, 132, 255, 0.08);
+    border-color: rgba(10, 132, 255, 0.3);
 }
 
 .ia-chip-done {
-    border-color: var(--success);
+    border-color: rgba(52, 199, 89, 0.35);
     color: var(--success);
+    background: rgba(52, 199, 89, 0.06);
 }
 .ia-chip-done:hover {
     background: var(--success);
+    border-color: var(--success);
     color: #fff;
+    box-shadow: 0 4px 14px rgba(52, 199, 89, 0.2);
+}
+body.dark-mode .ia-chip-done {
+    background: rgba(50, 215, 75, 0.08);
+    border-color: rgba(50, 215, 75, 0.3);
 }
 
 /* Input row */
 .ia-input-row {
     display: flex;
     gap: 8px;
-    padding: 10px 14px;
+    padding: 10px 16px 12px;
     border-top: 1px solid var(--border);
-    background: var(--bg-input);
+    background: transparent;
     align-items: flex-end;
     flex-shrink: 0;
 }
@@ -297,8 +346,8 @@ body.dark-mode .ia-msg-ai code { background: rgba(255,255,255,0.1); }
     flex: 1;
     padding: 10px 14px;
     border: 1.5px solid var(--border);
-    border-radius: 10px;
-    background: var(--bg-card);
+    border-radius: 22px;
+    background: var(--bg-input);
     color: var(--text);
     font-size: 14px;
     font-family: inherit;
@@ -306,18 +355,23 @@ body.dark-mode .ia-msg-ai code { background: rgba(255,255,255,0.1); }
     min-height: 20px;
     max-height: 100px;
     line-height: 1.5;
+    transition: border-color 0.2s;
 }
 .ia-input:focus {
     outline: none;
     border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.08);
 }
-.ia-input::placeholder { color: var(--text-secondary); }
+body.dark-mode .ia-input:focus {
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.12);
+}
+.ia-input::placeholder { color: var(--text-tertiary); }
 .ia-input:disabled { opacity: 0.5; }
 
 .ia-send-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
     border: none;
     background: var(--apple-blue);
     color: #fff;
@@ -326,10 +380,16 @@ body.dark-mode .ia-msg-ai code { background: rgba(255,255,255,0.1); }
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: filter 0.15s;
+    transition: all 0.2s;
 }
-.ia-send-btn:hover { filter: brightness(1.12); }
-.ia-send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ia-send-btn:hover {
+    filter: brightness(1.1);
+    transform: scale(1.05);
+}
+.ia-send-btn:active {
+    transform: scale(0.95);
+}
+.ia-send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
 
 /* ═══ Sidebar Pane ═══ */
@@ -337,8 +397,8 @@ body.dark-mode .ia-msg-ai code { background: rgba(255,255,255,0.1); }
 .ia-sidebar-pane {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px;
+    gap: 8px;
+    padding: 10px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     background: var(--bg);
@@ -348,7 +408,7 @@ body.dark-mode .ia-msg-ai code { background: rgba(255,255,255,0.1); }
 @media (min-width: 768px) {
     .ia-sidebar-pane {
         display: flex;
-        padding: 16px 14px;
+        padding: 12px;
     }
 }
 
@@ -360,9 +420,13 @@ body.dark-mode .ia-msg-ai code { background: rgba(255,255,255,0.1); }
     gap: 10px;
     padding: 10px 14px;
     background: var(--bg-card);
-    border: 1.5px solid var(--border);
+    border: 1px solid var(--border);
     border-radius: 12px;
     flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+body.dark-mode .ia-sidebar-header {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .ia-sidebar-progress {
@@ -427,16 +491,20 @@ body.dark-mode .ia-msg-ai code { background: rgba(255,255,255,0.1); }
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 40px 20px;
+    gap: 10px;
+    padding: 48px 20px;
     text-align: center;
     flex: 1;
 }
-.ia-sidebar-empty-icon { font-size: 32px; opacity: 0.5; }
+.ia-sidebar-empty-icon {
+    font-size: 36px;
+    opacity: 0.35;
+}
 .ia-sidebar-empty-text {
     font-size: 13px;
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
     font-weight: 500;
+    line-height: 1.5;
 }
 
 
@@ -450,8 +518,8 @@ body.dark-mode .ia-msg-ai code { background: rgba(255,255,255,0.1); }
 
 .ia-section {
     background: var(--bg-card);
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
     overflow: hidden;
     animation: iaSectionIn 0.25s ease;
 }
@@ -562,9 +630,13 @@ body.dark-mode .ia-section-field + .ia-section-field {
 
 .ia-sidebar-card {
     background: var(--bg-card);
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
     overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+body.dark-mode .ia-sidebar-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .ia-sidebar-card-header {
@@ -572,11 +644,13 @@ body.dark-mode .ia-section-field + .ia-section-field {
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
-    background: var(--bg-input);
+    background: transparent;
     border-bottom: 1px solid var(--border);
     font-weight: 700;
-    font-size: 13px;
-    color: var(--text);
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 /* Map views */
@@ -711,22 +785,26 @@ body.dark-mode .ia-section-field + .ia-section-field {
 /* ═══ Phase 3: Document Upload Button ═══ */
 
 .ia-input-icon-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
     border: 1.5px solid var(--border);
-    background: var(--bg-card);
+    background: var(--bg-input);
     color: var(--text-secondary);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: border-color 0.15s, color 0.15s;
+    transition: all 0.2s;
 }
 .ia-input-icon-btn:hover {
     border-color: var(--apple-blue);
     color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.06);
+}
+body.dark-mode .ia-input-icon-btn:hover {
+    background: rgba(10, 132, 255, 0.1);
 }
 .ia-input-icon-btn:focus-visible {
     outline: 2px solid var(--apple-blue);
@@ -742,17 +820,18 @@ body.dark-mode .ia-section-field + .ia-section-field {
     justify-content: center;
     width: 32px;
     height: 32px;
-    border-radius: 8px;
-    border: 1.5px solid var(--border);
+    border-radius: 50%;
+    border: 1px solid var(--border);
     background: var(--bg-card);
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.2s;
     flex-shrink: 0;
 }
 .ia-copy-btn:hover {
     border-color: var(--apple-blue);
     color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.06);
 }
 .ia-copy-btn:focus-visible {
     outline: 2px solid var(--apple-blue);
@@ -994,14 +1073,14 @@ body.dark-mode .ia-appreciation-red {
     position: absolute;
     inset: 0;
     z-index: 50;
-    background: rgba(0, 122, 255, 0.06);
-    backdrop-filter: blur(2px);
-    border: 2.5px dashed var(--apple-blue);
-    border-radius: 16px;
+    background: rgba(0, 122, 255, 0.04);
+    backdrop-filter: blur(4px);
+    border: 2px dashed var(--apple-blue);
+    border-radius: 14px;
     align-items: center;
     justify-content: center;
     pointer-events: none;
-    animation: iaDropFadeIn 0.15s ease;
+    animation: iaDropFadeIn 0.2s ease;
 }
 
 .ia-chat-card.ia-drag-over .ia-drop-overlay {
@@ -1017,14 +1096,15 @@ body.dark-mode .ia-appreciation-red {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     text-align: center;
-    padding: 24px;
+    padding: 32px;
 }
 
 .ia-drop-icon {
     color: var(--apple-blue);
-    animation: iaDropBounce 1.2s ease infinite;
+    opacity: 0.7;
+    animation: iaDropBounce 1.5s ease infinite;
 }
 
 @keyframes iaDropBounce {
