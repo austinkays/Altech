@@ -1943,7 +1943,9 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         body.appendChild(container);
     }
 
-    // ── Phase 3: Document Intelligence Upload ───────────────────
+    // ── Phase 3: Document Intelligence Upload + Drag-and-Drop ──
+
+    let _dragCounter = 0; // Track nested dragenter/dragleave events
 
     function _wireDocUpload() {
         if (_docInputWired) return;
@@ -1958,14 +1960,52 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             });
             _docInputWired = true;
         }
+        _wireDragDrop();
+    }
+
+    function _wireDragDrop() {
+        const chatCard = document.querySelector('.ia-chat-card');
+        if (!chatCard) return;
+
+        chatCard.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            _dragCounter++;
+            if (_dragCounter === 1) chatCard.classList.add('ia-drag-over');
+        });
+
+        chatCard.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = 'copy';
+        });
+
+        chatCard.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            _dragCounter--;
+            if (_dragCounter <= 0) {
+                _dragCounter = 0;
+                chatCard.classList.remove('ia-drag-over');
+            }
+        });
+
+        chatCard.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            _dragCounter = 0;
+            chatCard.classList.remove('ia-drag-over');
+            const file = e.dataTransfer?.files?.[0];
+            if (file) _handleDocUpload(file);
+        });
     }
 
     async function _handleDocUpload(file) {
         if (!file) return;
 
-        // 4MB limit
-        if (file.size > 4 * 1024 * 1024) {
-            _appendMsg('ai', '⚠️ File too large (max 4MB). Please use a smaller file or compress the image.');
+        // 20MB limit (matches policy-scan server limit)
+        if (file.size > 20 * 1024 * 1024) {
+            _appendMsg('ai', '⚠️ File too large (max 20MB). Please use a smaller file or compress the image.');
             return;
         }
 
@@ -1978,8 +2018,12 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         }
 
         const fileName = _esc(file.name);
-        _appendMsg('ai', '📄 Processing **' + fileName + '**...');
+        _appendMsg('ai', '📄 Scanning **' + fileName + '** for insurance data — this may take a moment...');
         _showTyping();
+
+        // Hide suggestion chips while processing
+        const _chipRow = document.getElementById('iaChipRow');
+        if (_chipRow) { _chipRow.innerHTML = ''; _chipRow.style.display = 'none'; }
 
         try {
             let base64Data;
@@ -1995,104 +2039,340 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                 base64Data = await _fileToBase64(file);
             }
 
-            const isPDF = mimeType === 'application/pdf';
+            // Use the comprehensive policy-scan API (80+ field extraction)
             const fetchFn = (window.Auth?.apiFetch || fetch).bind(window.Auth || window);
-            let res;
-
-            if (isPDF) {
-                res = await fetchFn('/api/vision-processor', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'documentIntel',
-                        files: [{ data: base64Data, mimeType: mimeType }],
-                        aiSettings: window.AIProvider?.getSettings?.()
-                    })
-                });
-            } else {
-                res = await fetchFn('/api/vision-processor', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'processImage',
-                        base64Data: base64Data,
-                        mimeType: mimeType,
-                        imageType: 'other',
-                        aiSettings: window.AIProvider?.getSettings?.()
-                    })
-                });
-            }
+            const res = await fetchFn('/api/policy-scan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    files: [{ data: base64Data, mimeType: mimeType }]
+                })
+            });
 
             _hideTyping();
 
-            if (res.ok) {
-                const result = await res.json();
-                let fieldsFound = 0;
+            if (!res.ok) {
+                _appendMsg('ai', "⚠️ Couldn't process that document — try a clearer image or a different file.");
+                return;
+            }
 
-                if (result.success) {
-                    const fields = result.fields || result.rawData || {};
-                    const fieldList = [];
-                    for (const [key, value] of Object.entries(fields)) {
-                        if (value && value !== 'N/A' && value !== '' && typeof value !== 'object') {
-                            const mapped = _mapDocField(key, String(value));
-                            if (mapped) {
-                                extractedData[mapped.key] = mapped.value;
-                                fieldList.push('**' + mapped.label + '**: ' + _esc(mapped.value));
-                                fieldsFound++;
-                            }
-                        }
-                    }
+            const result = await res.json();
+            const fields = result.fields || {};
+            const confidence = result.confidence || {};
+            const qualityIssues = result.quality_issues || [];
 
-                    if (fieldsFound > 0) {
-                        _saveHistory();
-                        _updateIntelPanel();
-                        _appendMsg('ai', '📄 Extracted **' + fieldsFound + ' field' + (fieldsFound !== 1 ? 's' : '') + '** from ' + fileName + ':\n' + fieldList.join('\n'));
-                    } else {
-                        _appendMsg('ai', '📄 Processed ' + fileName + ' but no new fields were found. The document may not contain insurance-relevant data.');
-                    }
-                } else {
-                    _appendMsg('ai', "Couldn't read that document — try a clearer image or a different file.");
+            // Count and merge extracted fields
+            let fieldsFound = 0;
+            const fieldSummary = { applicant: [], address: [], property: [], coverage: [], vehicle: [], policy: [] };
+
+            for (const [key, value] of Object.entries(fields)) {
+                if (!value || value === '' || value === 'N/A') continue;
+
+                // Categorize for summary display
+                const label = _fieldLabel(key);
+                const displayVal = _esc(String(value));
+                const conf = confidence[key];
+                const star = (conf && conf >= 0.8) ? '' : (conf && conf >= 0.5) ? ' ⚠️' : '';
+
+                if (['firstName', 'lastName', 'dob', 'gender', 'maritalStatus', 'phone', 'email', 'prefix', 'suffix', 'education', 'occupation', 'industry',
+                     'coFirstName', 'coLastName', 'coDob', 'coGender', 'coEmail', 'coPhone', 'coRelationship'].includes(key)) {
+                    fieldSummary.applicant.push('**' + label + '**: ' + displayVal + star);
+                } else if (['addrStreet', 'addrCity', 'addrState', 'addrZip', 'county', 'yearsAtAddress'].includes(key)) {
+                    fieldSummary.address.push('**' + label + '**: ' + displayVal + star);
+                } else if (['dwellingType', 'dwellingUsage', 'occupancyType', 'yrBuilt', 'sqFt', 'roofType', 'roofShape', 'roofYr',
+                             'constructionStyle', 'numStories', 'foundation', 'exteriorWalls', 'heatingType', 'cooling', 'heatYr',
+                             'plumbYr', 'elecYr', 'sewer', 'waterSource', 'garageType', 'garageSpaces', 'lotSize',
+                             'numOccupants', 'bedrooms', 'fullBaths', 'halfBaths', 'kitchenQuality', 'flooring',
+                             'numFireplaces', 'purchaseDate', 'pool', 'trampoline', 'dogInfo', 'businessOnProperty', 'woodStove',
+                             'burglarAlarm', 'fireAlarm', 'sprinklers', 'smokeDetector', 'fireStationDist', 'fireHydrantFeet', 'protectionClass'].includes(key)) {
+                    fieldSummary.property.push('**' + label + '**: ' + displayVal + star);
+                } else if (['homePolicyType', 'dwellingCoverage', 'personalLiability', 'medicalPayments', 'homeDeductible', 'windDeductible', 'mortgagee',
+                             'autoPolicyType', 'liabilityLimits', 'pdLimit', 'umLimits', 'uimLimits', 'compDeductible', 'autoDeductible',
+                             'medPayments', 'rentalDeductible', 'towingDeductible', 'studentGPA'].includes(key)) {
+                    fieldSummary.coverage.push('**' + label + '**: ' + displayVal + star);
+                } else if (['vin', 'vehDesc', 'additionalVehicles', 'additionalDrivers'].includes(key)) {
+                    fieldSummary.vehicle.push('**' + label + '**: ' + displayVal + star);
+                } else if (['policyNumber', 'effectiveDate', 'policyTerm', 'priorCarrier', 'priorExp', 'priorPolicyTerm',
+                             'priorLiabilityLimits', 'priorYears', 'continuousCoverage',
+                             'homePriorCarrier', 'homePriorExp', 'homePriorPolicyTerm', 'homePriorYears',
+                             'accidents', 'violations', 'additionalInsureds', 'contactTime', 'referralSource'].includes(key)) {
+                    fieldSummary.policy.push('**' + label + '**: ' + displayVal + star);
                 }
+
+                // Merge into extractedData using the same key names the AI conversation uses
+                const mapped = _mapScanField(key, String(value));
+                if (mapped) {
+                    extractedData[mapped.key] = mapped.value;
+                    fieldsFound++;
+                }
+            }
+
+            // Parse additional vehicles into the vehicles array
+            _parseAdditionalVehicles(fields);
+            _parseAdditionalDrivers(fields);
+
+            if (fieldsFound > 0) {
+                // Build summary message
+                let summary = '📋 **Extracted ' + fieldsFound + ' fields** from ' + fileName + ':\n\n';
+                if (fieldSummary.applicant.length) summary += '**👤 Applicant**\n' + fieldSummary.applicant.join('\n') + '\n\n';
+                if (fieldSummary.address.length) summary += '**📍 Address**\n' + fieldSummary.address.join('\n') + '\n\n';
+                if (fieldSummary.property.length) summary += '**🏠 Property**\n' + fieldSummary.property.join('\n') + '\n\n';
+                if (fieldSummary.vehicle.length) summary += '**🚗 Vehicles**\n' + fieldSummary.vehicle.join('\n') + '\n\n';
+                if (fieldSummary.coverage.length) summary += '**🛡️ Coverage**\n' + fieldSummary.coverage.join('\n') + '\n\n';
+                if (fieldSummary.policy.length) summary += '**📄 Policy**\n' + fieldSummary.policy.join('\n') + '\n\n';
+                if (qualityIssues.length) summary += '⚠️ *Notes: ' + qualityIssues.join('; ') + '*';
+
+                _appendMsg('ai', summary.trim());
+
+                // Sync to App.data and update sidebar
+                _saveHistory();
+                _updateIntelPanel();
+                _syncToAppData();
+
+                // Auto-detect qType from fields if not set
+                if (!extractedData.qType) {
+                    const hasProperty = !!(extractedData.yrBuilt || extractedData.dwellingType || extractedData.sqFt || extractedData.roofType);
+                    const hasAuto = !!(extractedData.vin || extractedData.vehDesc || (Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0));
+                    if (hasProperty && hasAuto) extractedData.qType = 'both';
+                    else if (hasProperty) extractedData.qType = 'home';
+                    else if (hasAuto) extractedData.qType = 'auto';
+                }
+
+                // Auto-fetch property intel if we have an address
+                _fetchPropertyIntel();
+
+                // Now feed the extracted data to the AI so it can ask remaining questions
+                await _askAIForRemainingFields(fileName, fieldsFound, fields);
             } else {
-                _appendMsg('ai', "Couldn't read that document — try a clearer image or a different file.");
+                _appendMsg('ai', '📄 Processed **' + fileName + '** but no insurance-relevant data was found. Try a policy declarations page, driver\'s license, or renewal notice.');
             }
         } catch (e) {
             _hideTyping();
             console.warn('[IntakeAssist] Doc upload failed:', e.message);
-            _appendMsg('ai', "Couldn't read that document — try a clearer image or a different file.");
+            _appendMsg('ai', "⚠️ Couldn't process that document — try a clearer image or a different file.");
         }
     }
 
-    function _mapDocField(rawKey, value) {
-        const map = {
-            yearBuilt: { key: 'yearBuilt', label: 'Year Built' },
-            year_built: { key: 'yearBuilt', label: 'Year Built' },
-            assessedValue: { key: 'dwellingCoverage', label: 'Assessed Value' },
-            sqft: { key: 'sqFt', label: 'Sq Ft' },
-            square_footage: { key: 'sqFt', label: 'Sq Ft' },
-            ownerName: { key: 'ownerName', label: 'Owner Name' },
-            owner_name: { key: 'ownerName', label: 'Owner Name' },
-            roof_type: { key: 'roofType', label: 'Roof Type' },
-            roofType: { key: 'roofType', label: 'Roof Type' },
-            foundation: { key: 'foundation', label: 'Foundation' },
-            foundation_type: { key: 'foundation', label: 'Foundation' },
-            stories: { key: 'stories', label: 'Stories' },
-            stories_visible: { key: 'stories', label: 'Stories' },
-            effectiveDate: { key: 'effectiveDate', label: 'Effective Date' },
-            expirationDate: { key: 'expirationDate', label: 'Expiration Date' },
-            policyNumber: { key: 'policyNumber', label: 'Policy Number' },
-            mortgagee: { key: 'mortgagee', label: 'Mortgagee' },
-            addressLine1: { key: 'addrStreet', label: 'Street' },
-            city: { key: 'addrCity', label: 'City' },
-            state: { key: 'addrState', label: 'State' },
-            zip: { key: 'addrZip', label: 'Zip' },
-            siding_type: { key: 'exteriorWalls', label: 'Exterior Walls' },
-            exteriorType: { key: 'exteriorWalls', label: 'Exterior Walls' },
-            lot_size_estimate: { key: 'lotSize', label: 'Lot Size' },
+    /** After document extraction, send the data to the AI so it reviews and asks remaining questions */
+    async function _askAIForRemainingFields(fileName, fieldCount, rawFields) {
+        // Build a system-level injection summarizing what was extracted
+        const fieldSummaryLines = [];
+        for (const [key, value] of Object.entries(rawFields)) {
+            if (value && value !== '' && value !== 'N/A') {
+                fieldSummaryLines.push(key + ': ' + String(value));
+            }
+        }
+        const systemNote = '[System note — Document "' + fileName + '" was scanned and ' + fieldCount + ' fields were extracted. The extracted data has already been applied. Here is what was found:\n' + fieldSummaryLines.join('\n') + '\n\nReview the data, confirm what was found, and then ask the client about any MISSING required fields that were not in the document. Do NOT re-ask for fields that were already extracted.]';
+
+        chatHistory.push({ role: 'user', content: systemNote });
+        _saveHistory();
+
+        _showTyping();
+
+        try {
+            const aiAvailable = typeof AIProvider !== 'undefined' && (AIProvider.isConfigured() || await AIProvider.isAvailable());
+            if (!aiAvailable) {
+                _hideTyping();
+                return;
+            }
+
+            const result = await AIProvider.chat(_buildSystemPrompt(), chatHistory, {
+                temperature: 0.35,
+                maxTokens: 1024
+            });
+
+            const reply = (result && result.text) ? result.text : '';
+            chatHistory.push({ role: 'assistant', content: reply });
+            _saveHistory();
+
+            _hideTyping();
+            _appendMsg('ai', reply);
+
+            // Extract any JSON the AI may include
+            const extracted = _tryExtractJSON(reply);
+            if (extracted && typeof extracted === 'object' && !Array.isArray(extracted)) {
+                extractedData = Object.assign(extractedData, extracted);
+                _saveHistory();
+                _updateIntelPanel();
+                _syncToAppData();
+            }
+
+            if (_checkCompletion() && !_completionShown) {
+                _showCompletionMessage();
+            }
+
+            _updateSuggestionChips();
+        } catch (err) {
+            _hideTyping();
+            console.warn('[IntakeAssist] AI follow-up after doc scan failed:', err.message);
+            _updateSuggestionChips();
+        }
+    }
+
+    /** Map policy-scan API field keys to extractedData keys used by _syncToAppData */
+    function _mapScanField(scanKey, value) {
+        if (!value || value === 'N/A' || value === '') return null;
+
+        // Keys that map directly (scan key === extractedData key)
+        const directKeys = [
+            'firstName', 'lastName', 'prefix', 'suffix', 'dob', 'gender', 'maritalStatus', 'phone', 'email',
+            'education', 'occupation', 'industry',
+            'coFirstName', 'coLastName', 'coDob', 'coGender', 'coEmail', 'coPhone', 'coRelationship',
+            'addrStreet', 'addrCity', 'addrState', 'addrZip', 'county', 'yearsAtAddress',
+            'dwellingType', 'dwellingUsage', 'occupancyType', 'yrBuilt', 'sqFt',
+            'roofType', 'roofShape', 'roofYr', 'constructionStyle',
+            'numStories', 'foundation', 'exteriorWalls', 'heatingType', 'cooling',
+            'heatYr', 'plumbYr', 'elecYr', 'sewer', 'waterSource',
+            'garageType', 'garageSpaces', 'lotSize', 'numOccupants', 'bedrooms',
+            'fullBaths', 'halfBaths', 'kitchenQuality', 'flooring', 'numFireplaces',
+            'purchaseDate', 'pool', 'trampoline', 'dogInfo', 'businessOnProperty', 'woodStove',
+            'burglarAlarm', 'fireAlarm', 'sprinklers', 'smokeDetector',
+            'fireStationDist', 'fireHydrantFeet', 'protectionClass',
+            'homePolicyType', 'dwellingCoverage', 'personalLiability', 'medicalPayments',
+            'homeDeductible', 'windDeductible', 'mortgagee',
+            'autoPolicyType', 'liabilityLimits', 'pdLimit', 'umLimits', 'uimLimits',
+            'compDeductible', 'autoDeductible', 'medPayments',
+            'rentalDeductible', 'towingDeductible', 'studentGPA',
+            'vin', 'vehDesc',
+            'policyNumber', 'effectiveDate', 'policyTerm',
+            'priorCarrier', 'priorExp', 'priorPolicyTerm', 'priorLiabilityLimits',
+            'priorYears', 'continuousCoverage',
+            'homePriorCarrier', 'homePriorExp', 'homePriorPolicyTerm', 'homePriorYears',
+            'accidents', 'violations',
+            'additionalInsureds', 'contactTime', 'referralSource',
+        ];
+        if (directKeys.includes(scanKey)) {
+            return { key: scanKey, value: value };
+        }
+        // Remap a few legacy scan keys
+        const remap = {
+            'yearBuilt': 'yrBuilt',
+            'year_built': 'yrBuilt',
+            'stories': 'numStories',
+            'stories_visible': 'numStories',
+            'sqft': 'sqFt',
+            'square_footage': 'sqFt',
+            'roof_type': 'roofType',
+            'foundation_type': 'foundation',
+            'siding_type': 'exteriorWalls',
+            'exteriorType': 'exteriorWalls',
+            'lot_size_estimate': 'lotSize',
+            'addressLine1': 'addrStreet',
+            'city': 'addrCity',
+            'state': 'addrState',
+            'zip': 'addrZip',
         };
-        const entry = map[rawKey];
-        if (!entry) return null;
-        return { key: entry.key, label: entry.label, value: value };
+        if (remap[scanKey]) {
+            return { key: remap[scanKey], value: value };
+        }
+        return null;
+    }
+
+    /** Parse additionalVehicles string from scan into extractedData.vehicles array */
+    function _parseAdditionalVehicles(fields) {
+        if (!fields) return;
+        // Handle primary vehicle
+        if (fields.vin || fields.vehDesc) {
+            if (!Array.isArray(extractedData.vehicles)) extractedData.vehicles = [];
+            const desc = (fields.vehDesc || '').trim();
+            const parts = desc.match(/^(\d{4})\s+(\S+)\s+(.+)/);
+            const primary = {
+                vin: fields.vin || '',
+                year: parts ? parts[1] : '',
+                make: parts ? parts[2] : '',
+                model: parts ? parts[3] : desc,
+            };
+            // Only add if not already present
+            const exists = extractedData.vehicles.some(v => v.vin && v.vin === primary.vin);
+            if (!exists && (primary.vin || primary.year)) extractedData.vehicles.push(primary);
+        }
+        // Handle additional vehicles (semicolon-separated)
+        if (fields.additionalVehicles) {
+            if (!Array.isArray(extractedData.vehicles)) extractedData.vehicles = [];
+            const entries = fields.additionalVehicles.split(';').map(s => s.trim()).filter(Boolean);
+            for (const entry of entries) {
+                const vinMatch = entry.match(/VIN:\s*([A-HJ-NPR-Z0-9]{17})/i);
+                const descMatch = entry.match(/^(\d{4})\s+(\S+)\s+(.+?)(?:\s*VIN:|$)/);
+                const v = {
+                    vin: vinMatch ? vinMatch[1] : '',
+                    year: descMatch ? descMatch[1] : '',
+                    make: descMatch ? descMatch[2] : '',
+                    model: descMatch ? descMatch[3].trim() : entry,
+                };
+                const exists = extractedData.vehicles.some(ev =>
+                    (v.vin && ev.vin === v.vin) || (v.year && v.make && ev.year === v.year && ev.make === v.make)
+                );
+                if (!exists && (v.vin || v.year)) extractedData.vehicles.push(v);
+            }
+        }
+    }
+
+    /** Parse additionalDrivers string from scan into extractedData.drivers array */
+    function _parseAdditionalDrivers(fields) {
+        if (!fields || !fields.additionalDrivers) return;
+        if (!Array.isArray(extractedData.drivers)) extractedData.drivers = [];
+        const entries = fields.additionalDrivers.split(';').map(s => s.trim()).filter(Boolean);
+        for (const entry of entries) {
+            const dobMatch = entry.match(/DOB:\s*(\d{4}-\d{2}-\d{2})/i);
+            const namePart = entry.replace(/DOB:\s*\d{4}-\d{2}-\d{2}/i, '').trim();
+            const nameWords = namePart.split(/\s+/);
+            const driver = {
+                firstName: nameWords[0] || '',
+                lastName: nameWords.slice(1).join(' ') || '',
+                dob: dobMatch ? dobMatch[1] : '',
+            };
+            const exists = extractedData.drivers.some(d =>
+                d.firstName === driver.firstName && d.lastName === driver.lastName
+            );
+            if (!exists && driver.firstName) extractedData.drivers.push(driver);
+        }
+    }
+
+    /** Human-readable label for a scan field key */
+    function _fieldLabel(key) {
+        const labels = {
+            firstName: 'First Name', lastName: 'Last Name', prefix: 'Prefix', suffix: 'Suffix',
+            dob: 'Date of Birth', gender: 'Gender', maritalStatus: 'Marital Status',
+            phone: 'Phone', email: 'Email', education: 'Education', occupation: 'Occupation', industry: 'Industry',
+            coFirstName: 'Co-Applicant First', coLastName: 'Co-Applicant Last', coDob: 'Co-Applicant DOB',
+            coGender: 'Co-Applicant Gender', coEmail: 'Co-Applicant Email', coPhone: 'Co-Applicant Phone',
+            coRelationship: 'Co-Applicant Relationship',
+            addrStreet: 'Street', addrCity: 'City', addrState: 'State', addrZip: 'ZIP',
+            county: 'County', yearsAtAddress: 'Years at Address',
+            dwellingType: 'Dwelling Type', dwellingUsage: 'Dwelling Usage', occupancyType: 'Occupancy',
+            yrBuilt: 'Year Built', sqFt: 'Square Feet', roofType: 'Roof Type', roofShape: 'Roof Shape',
+            roofYr: 'Roof Year', constructionStyle: 'Construction', numStories: 'Stories',
+            foundation: 'Foundation', exteriorWalls: 'Exterior Walls', heatingType: 'Heating',
+            cooling: 'Cooling', garageType: 'Garage Type', garageSpaces: 'Garage Spaces',
+            lotSize: 'Lot Size', pool: 'Pool', trampoline: 'Trampoline',
+            fireAlarm: 'Fire Alarm', sprinklers: 'Sprinklers', protectionClass: 'Protection Class',
+            homePolicyType: 'Home Policy Type', dwellingCoverage: 'Dwelling Coverage',
+            personalLiability: 'Liability', medicalPayments: 'Medical Payments',
+            homeDeductible: 'Home Deductible', windDeductible: 'Wind Deductible', mortgagee: 'Mortgagee',
+            vin: 'VIN', vehDesc: 'Vehicle', additionalVehicles: 'Additional Vehicles',
+            autoPolicyType: 'Auto Policy Type', liabilityLimits: 'Liability Limits',
+            pdLimit: 'Property Damage', umLimits: 'UM Limits', compDeductible: 'Comp Deductible',
+            autoDeductible: 'Collision Deductible', medPayments: 'Med Pay',
+            policyNumber: 'Policy Number', effectiveDate: 'Effective Date', policyTerm: 'Policy Term',
+            priorCarrier: 'Prior Carrier', priorExp: 'Prior Expiration', priorYears: 'Years w/ Prior',
+            homePriorCarrier: 'Home Prior Carrier', homePriorExp: 'Home Prior Exp',
+            additionalDrivers: 'Additional Drivers', additionalInsureds: 'Additional Insureds',
+            accidents: 'Accidents', violations: 'Violations',
+            bedrooms: 'Bedrooms', fullBaths: 'Full Baths', halfBaths: 'Half Baths',
+            numFireplaces: 'Fireplaces', purchaseDate: 'Purchase Date',
+            dogInfo: 'Dog Info', woodStove: 'Wood Stove', businessOnProperty: 'Business on Property',
+            burglarAlarm: 'Burglar Alarm', smokeDetector: 'Smoke Detector',
+            fireStationDist: 'Fire Station Dist', fireHydrantFeet: 'Fire Hydrant Dist',
+            continuousCoverage: 'Continuous Coverage', priorLiabilityLimits: 'Prior Liability Limits',
+            numOccupants: 'Occupants', heatYr: 'Heating Year', plumbYr: 'Plumbing Year',
+            elecYr: 'Electrical Year', sewer: 'Sewer', waterSource: 'Water Source',
+            kitchenQuality: 'Kitchen Quality', flooring: 'Flooring',
+            uimLimits: 'UIM Limits', rentalDeductible: 'Rental', towingDeductible: 'Towing',
+            studentGPA: 'Student GPA', referralSource: 'Referral Source', contactTime: 'Contact Time',
+            priorPolicyTerm: 'Prior Policy Term',
+            homePriorPolicyTerm: 'Home Prior Policy Term', homePriorYears: 'Years w/ Home Prior',
+        };
+        return labels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase()).trim();
     }
 
     function _optimizeImageFile(file, maxWidth, quality) {

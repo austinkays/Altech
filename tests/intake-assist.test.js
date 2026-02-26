@@ -810,8 +810,8 @@ describe('IntakeAssist JS', () => {
         expect(jsContent).toContain('function _fileToBase64');
     });
 
-    test('4MB file size limit check exists (Phase 3)', () => {
-        expect(jsContent).toContain('4 * 1024 * 1024');
+    test('20MB file size limit check exists (Phase 3)', () => {
+        expect(jsContent).toContain('20 * 1024 * 1024');
     });
 
     test('has _fetchInsuranceTrends function (Phase 4)', () => {
