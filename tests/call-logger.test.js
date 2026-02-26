@@ -118,13 +118,13 @@ describe('Submit Handler', () => {
   });
 
   test('disables button during submission', () => {
-    expect(source).toContain('submitBtn.disabled = true');
-    expect(source).toContain("submitBtn.textContent = '⏳ Logging...'");
+    expect(source).toContain('formatBtn.disabled = true');
+    expect(source).toContain("formatBtn.textContent = '⏳ Formatting...'");
   });
 
   test('re-enables button in finally block', () => {
-    expect(source).toContain('submitBtn.disabled = false');
-    expect(source).toMatch(/finally\s*\{[\s\S]*?submitBtn\.disabled = false/);
+    expect(source).toContain('formatBtn.disabled = false');
+    expect(source).toMatch(/finally\s*\{[\s\S]*?formatBtn\.disabled = false/);
   });
 
   test('posts to /api/hawksoft-logger', () => {
@@ -132,7 +132,7 @@ describe('Submit Handler', () => {
   });
 
   test('sends policyId, callType, rawNotes, userApiKey, aiModel in body', () => {
-    expect(source).toContain('JSON.stringify({ policyId, callType, rawNotes, userApiKey, aiModel })');
+    expect(source).toContain('JSON.stringify({ policyId, callType, rawNotes, userApiKey, aiModel, formatOnly: true })');
   });
 
   test('uses Auth.apiFetch when available', () => {
@@ -153,7 +153,9 @@ describe('Submit Handler', () => {
   });
 
   test('shows success toast', () => {
-    expect(source).toContain("App.toast('✅ Logged to HawkSoft'");
+    // Format step shows preview toast, confirm step shows logged toast
+    expect(source).toContain("App.toast('Preview ready");
+    expect(source).toContain('Logged to HawkSoft for');
   });
 
   test('shows error toast on failure', () => {
@@ -176,7 +178,10 @@ describe('Submit Handler', () => {
 
 describe('Event Wiring', () => {
   test('wires click handler on submit button', () => {
-    expect(source).toContain("submitBtn.addEventListener('click', _handleSubmit)");
+    // Two-step workflow: format button toggles between _handleFormat and _handleEdit
+    expect(source).toContain("submitBtn.addEventListener('click', () => {");
+    expect(source).toContain('_handleFormat()');
+    expect(source).toContain('_handleEdit()');
   });
 
   test('prevents double-wiring via _clWired flag', () => {
@@ -202,10 +207,16 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
           <input type="text" id="clPolicyId" value="">
           <select id="clCallType"><option value="Inbound">Inbound</option><option value="Outbound">Outbound</option></select>
           <textarea id="clRawNotes"></textarea>
-          <button id="clSubmitBtn">✨ Format &amp; Log to HawkSoft</button>
+          <button id="clSubmitBtn">✨ Format Preview</button>
         </div>
         <div id="clPreview" style="display:none">
+          <div class="cl-preview-header"><span>Formatted Log Preview</span><button id="clCopyBtn">📋 Copy</button></div>
           <pre id="clPreviewText"></pre>
+        </div>
+        <div id="clConfirmSection" style="display:none">
+          <div id="clConfirmInfo"></div>
+          <button id="clConfirmBtn">✅ Confirm &amp; Log to HawkSoft</button>
+          <button id="clCancelBtn">✏️ Edit</button>
         </div>
       </div>
       <script>
@@ -385,6 +396,80 @@ describe('call-logger.html — Plugin HTML', () => {
   test('has plugin-header with title', () => {
     expect(pluginHtml).toContain('plugin-header');
     expect(pluginHtml).toContain('AI Call Logger');
+  });
+
+  test('has confirmation section with confirm and cancel buttons', () => {
+    expect(pluginHtml).toContain('id="clConfirmSection"');
+    expect(pluginHtml).toContain('id="clConfirmBtn"');
+    expect(pluginHtml).toContain('id="clCancelBtn"');
+    expect(pluginHtml).toContain('id="clConfirmInfo"');
+  });
+
+  test('has copy button in preview', () => {
+    expect(pluginHtml).toContain('id="clCopyBtn"');
+  });
+});
+
+// ────────────────────────────────────────────────────
+// Two-Step Workflow (source analysis)
+// ────────────────────────────────────────────────────
+
+describe('Two-Step Workflow', () => {
+  test('defines _handleFormat function for Step 1', () => {
+    expect(source).toContain('async function _handleFormat()');
+  });
+
+  test('defines _handleConfirm function for Step 2', () => {
+    expect(source).toContain('async function _handleConfirm()');
+  });
+
+  test('defines _handleEdit to cancel and go back', () => {
+    expect(source).toContain('function _handleEdit()');
+  });
+
+  test('defines _handleCopy for clipboard', () => {
+    expect(source).toContain('function _handleCopy()');
+  });
+
+  test('tracks pending state via _pendingLog', () => {
+    expect(source).toContain('let _pendingLog = null');
+    expect(source).toContain('_pendingLog = {');
+  });
+
+  test('sends formatOnly: true in Step 1', () => {
+    expect(source).toContain('formatOnly: true');
+  });
+
+  test('sends pre-formatted log in Step 2', () => {
+    expect(source).toContain('formattedLog: _pendingLog.formattedLog');
+  });
+
+  test('shows confirmation section with policy info', () => {
+    expect(source).toContain("confirmSection.style.display = ''");
+    expect(source).toContain('confirmInfo.innerHTML');
+    expect(source).toContain('_escapeHTML(policyId)');
+  });
+
+  test('resets to format mode after confirm', () => {
+    expect(source).toContain('function _resetToFormatMode()');
+    expect(source).toContain("'✨ Format Preview'");
+  });
+
+  test('wires confirm, cancel, and copy buttons', () => {
+    expect(source).toContain("confirmBtn.addEventListener('click', _handleConfirm)");
+    expect(source).toContain("cancelBtn.addEventListener('click', _handleEdit)");
+    expect(source).toContain("copyBtn.addEventListener('click', _handleCopy)");
+  });
+
+  test('has XSS protection via _escapeHTML', () => {
+    expect(source).toContain('function _escapeHTML');
+    expect(source).toContain('div.textContent = str');
+    expect(source).toContain('div.innerHTML');
+  });
+
+  test('uses navigator.clipboard with fallback', () => {
+    expect(source).toContain('navigator.clipboard.writeText');
+    expect(source).toContain('document.execCommand');
   });
 });
 

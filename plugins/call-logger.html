@@ -25,13 +25,22 @@
             <textarea id="clRawNotes" class="cl-textarea" placeholder="Type fast, be messy — AI will clean it up.&#10;&#10;e.g. cust called re: claim #4432, needs updated dec page, also asked about adding teen driver to auto policy, told them id send quote by eod"></textarea>
         </div>
 
-        <button id="clSubmitBtn" class="cl-submit-btn">✨ Format &amp; Log to HawkSoft</button>
+        <button id="clSubmitBtn" class="cl-submit-btn">✨ Format Preview</button>
     </div>
 
     <div id="clPreview" class="cl-preview" style="display: none;">
         <div class="cl-preview-header">
-            <span class="cl-preview-label">📋 Formatted Log</span>
+            <span class="cl-preview-label">📋 Formatted Log Preview</span>
+            <button id="clCopyBtn" class="cl-copy-btn" title="Copy to clipboard">📋 Copy</button>
         </div>
         <pre id="clPreviewText" class="cl-preview-text"></pre>
+    </div>
+
+    <div id="clConfirmSection" class="cl-confirm-section" style="display: none;">
+        <div id="clConfirmInfo" class="cl-confirm-info"></div>
+        <div class="cl-confirm-actions">
+            <button id="clConfirmBtn" class="cl-confirm-btn">✅ Confirm &amp; Log to HawkSoft</button>
+            <button id="clCancelBtn" class="cl-cancel-btn">✏️ Edit</button>
+        </div>
     </div>
 </div>

@@ -6,8 +6,12 @@
  * the formatted note to HawkSoft via their REST API.
  *
  * POST /api/hawksoft-logger
- * Body: { policyId, callType, rawNotes, userApiKey?, aiModel? }
+ * Body: { policyId, callType, rawNotes, userApiKey?, aiModel?, formatOnly?, formattedLog? }
  * Returns: { formattedLog, hawksoftLogged }
+ *
+ * Two-step workflow:
+ *   Step 1 (formatOnly: true)  — AI formats notes, returns preview, no HawkSoft push
+ *   Step 2 (formattedLog: '...') — Pushes pre-formatted log to HawkSoft, skips AI
  *
  * Security: securityMiddleware (CORS, rate limiting, headers)
  */
@@ -49,12 +53,69 @@ async function handler(req, res) {
   }
 
   try {
-    const { policyId, callType, rawNotes, userApiKey, aiModel } = req.body || {};
+    const { policyId, callType, rawNotes, userApiKey, aiModel, formatOnly, formattedLog: preFormattedLog } = req.body || {};
 
     // ── Validation ──
     if (!policyId || typeof policyId !== 'string' || !policyId.trim()) {
       return res.status(400).json({ error: 'Policy ID is required' });
     }
+
+    const cleanPolicyId = policyId.trim();
+    const cleanCallType = (callType || 'Inbound').trim();
+
+    // ── Step 2: Push pre-formatted log to HawkSoft (skip AI) ──
+    if (preFormattedLog && typeof preFormattedLog === 'string' && preFormattedLog.trim()) {
+      const logText = preFormattedLog.trim();
+      let hawksoftLogged = false;
+      const HAWKSOFT_CLIENT_ID = (process.env.HAWKSOFT_CLIENT_ID || '').trim();
+      const HAWKSOFT_CLIENT_SECRET = (process.env.HAWKSOFT_CLIENT_SECRET || '').trim();
+      const HAWKSOFT_AGENCY_ID = (process.env.HAWKSOFT_AGENCY_ID || '').trim();
+
+      if (HAWKSOFT_CLIENT_ID && HAWKSOFT_CLIENT_SECRET && HAWKSOFT_AGENCY_ID) {
+        try {
+          const authString = `${HAWKSOFT_CLIENT_ID}:${HAWKSOFT_CLIENT_SECRET}`;
+          const authHeader = `Basic ${Buffer.from(authString).toString('base64')}`;
+          const BASE_URL = 'https://integration.hawksoft.app';
+          const API_VERSION = '3.0';
+
+          const logRes = await fetch(
+            `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients/${cleanPolicyId}/logNotes?version=${API_VERSION}`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                note: logText,
+                action: cleanCallType === 'Outbound' ? 30 : 29
+              })
+            }
+          );
+
+          if (logRes.ok) {
+            hawksoftLogged = true;
+            console.log(`[HawkSoft Logger] ✅ Pre-formatted note logged for client ${cleanPolicyId}`);
+          } else {
+            const errText = await logRes.text().catch(() => '');
+            console.warn(`[HawkSoft Logger] ⚠️ HawkSoft push failed (${logRes.status}): ${errText.substring(0, 200)}`);
+          }
+        } catch (hsErr) {
+          console.warn('[HawkSoft Logger] ⚠️ HawkSoft push error:', hsErr.message);
+        }
+      } else {
+        console.log('[HawkSoft Logger] HawkSoft credentials not configured — skipping push');
+      }
+
+      return res.status(200).json({
+        formattedLog: logText,
+        hawksoftLogged,
+        policyId: cleanPolicyId,
+        callType: cleanCallType
+      });
+    }
+
+    // ── Step 1: AI format (with optional HawkSoft push) ──
     if (!rawNotes || typeof rawNotes !== 'string' || !rawNotes.trim()) {
       return res.status(400).json({ error: 'Call notes are required' });
     }
@@ -62,8 +123,6 @@ async function handler(req, res) {
       return res.status(400).json({ error: 'Notes too long (max 10,000 characters)' });
     }
 
-    const cleanPolicyId = policyId.trim();
-    const cleanCallType = (callType || 'Inbound').trim();
     const cleanNotes = rawNotes.trim();
 
     // ── AI Formatting ──
@@ -112,6 +171,16 @@ ${cleanNotes}`;
 
     if (!formattedLog || !formattedLog.trim()) {
       throw new Error('AI returned empty response');
+    }
+
+    // ── If formatOnly, return preview without pushing ──
+    if (formatOnly) {
+      return res.status(200).json({
+        formattedLog: formattedLog.trim(),
+        hawksoftLogged: false,
+        policyId: cleanPolicyId,
+        callType: cleanCallType
+      });
     }
 
     // ── Optional HawkSoft Push ──

@@ -73,17 +73,23 @@ window.CallLogger = (() => {
         return { userApiKey, aiModel };
     }
 
-    // ── Submit Handler ──
+    // ── Internal State ──
 
-    async function _handleSubmit() {
+    let _pendingLog = null;  // { formattedLog, policyId, callType }
+
+    // ── Step 1: Format Preview ──
+
+    async function _handleFormat() {
         const policyEl = document.getElementById('clPolicyId');
         const typeEl = document.getElementById('clCallType');
         const notesEl = document.getElementById('clRawNotes');
-        const submitBtn = document.getElementById('clSubmitBtn');
+        const formatBtn = document.getElementById('clSubmitBtn');
         const previewEl = document.getElementById('clPreview');
         const previewTextEl = document.getElementById('clPreviewText');
+        const confirmSection = document.getElementById('clConfirmSection');
+        const confirmInfo = document.getElementById('clConfirmInfo');
 
-        if (!policyEl || !notesEl || !submitBtn) return;
+        if (!policyEl || !notesEl || !formatBtn) return;
 
         const policyId = policyEl.value.trim();
         const callType = typeEl ? typeEl.value : 'Inbound';
@@ -99,11 +105,10 @@ window.CallLogger = (() => {
         const { userApiKey, aiModel } = _resolveAISettings();
 
         // Disable button
-        submitBtn.disabled = true;
-        submitBtn.textContent = '⏳ Logging...';
+        formatBtn.disabled = true;
+        formatBtn.textContent = '⏳ Formatting...';
 
         try {
-            // Use apiFetch for authenticated request
             const fetchFn = (typeof Auth !== 'undefined' && Auth.apiFetch)
                 ? Auth.apiFetch.bind(Auth)
                 : fetch;
@@ -111,7 +116,7 @@ window.CallLogger = (() => {
             const res = await fetchFn('/api/hawksoft-logger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ policyId, callType, rawNotes, userApiKey, aiModel })
+                body: JSON.stringify({ policyId, callType, rawNotes, userApiKey, aiModel, formatOnly: true })
             });
 
             if (!res.ok) {
@@ -121,36 +126,212 @@ window.CallLogger = (() => {
 
             const result = await res.json();
 
+            if (!result.formattedLog) {
+                throw new Error('No formatted log returned');
+            }
+
+            // Store pending log for confirmation
+            _pendingLog = {
+                formattedLog: result.formattedLog,
+                policyId: result.policyId || policyId,
+                callType: result.callType || callType
+            };
+
             // Save policyId and callType for persistence
             _save(policyId, callType);
 
-            // Clear notes field
-            notesEl.value = '';
-
             // Show formatted log preview
-            if (previewEl && previewTextEl && result.formattedLog) {
+            if (previewEl && previewTextEl) {
                 previewTextEl.textContent = result.formattedLog;
                 previewEl.style.display = '';
             }
 
-            App.toast('✅ Logged to HawkSoft', 'success');
+            // Show confirmation section with client info
+            if (confirmSection && confirmInfo) {
+                const infoIcon = callType === 'Outbound' ? '📤' : '📥';
+                confirmInfo.innerHTML = `<strong>${infoIcon} ${_escapeHTML(callType)} Call</strong> — logging to <strong>${_escapeHTML(policyId)}</strong>`;
+                confirmSection.style.display = '';
+            }
+
+            // Change format button to "Edit" mode
+            formatBtn.textContent = '✏️ Edit Notes';
+            formatBtn.classList.add('cl-edit-mode');
+
+            App.toast('Preview ready — review and confirm below', 'success');
 
         } catch (error) {
-            App.toast('Error: ' + (error.message || 'Failed to log call'), 'error');
+            App.toast('Error: ' + (error.message || 'Failed to format call'), 'error');
         } finally {
-            // Re-enable button
-            submitBtn.disabled = false;
-            submitBtn.textContent = '✨ Format & Log to HawkSoft';
+            formatBtn.disabled = false;
         }
+    }
+
+    // ── Step 2: Confirm & Send to HawkSoft ──
+
+    async function _handleConfirm() {
+        if (!_pendingLog) {
+            App.toast('No formatted log to send — format first', 'error');
+            return;
+        }
+
+        const confirmBtn = document.getElementById('clConfirmBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '⏳ Sending to HawkSoft...';
+        }
+
+        try {
+            const fetchFn = (typeof Auth !== 'undefined' && Auth.apiFetch)
+                ? Auth.apiFetch.bind(Auth)
+                : fetch;
+
+            const res = await fetchFn('/api/hawksoft-logger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    policyId: _pendingLog.policyId,
+                    callType: _pendingLog.callType,
+                    formattedLog: _pendingLog.formattedLog
+                })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `Server error (${res.status})`);
+            }
+
+            const result = await res.json();
+
+            // Clear form
+            const notesEl = document.getElementById('clRawNotes');
+            if (notesEl) notesEl.value = '';
+
+            const statusMsg = result.hawksoftLogged
+                ? `✅ Logged to HawkSoft for ${_escapeHTML(_pendingLog.policyId)}`
+                : '✅ Formatted (HawkSoft credentials not configured — copy log manually)';
+
+            App.toast(statusMsg, 'success');
+
+            // Reset to initial state but keep preview visible
+            _resetToFormatMode();
+            _pendingLog = null;
+
+        } catch (error) {
+            App.toast('Error: ' + (error.message || 'Failed to send to HawkSoft'), 'error');
+        } finally {
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = '✅ Confirm & Log to HawkSoft';
+            }
+        }
+    }
+
+    // ── Edit: Go back to editing ──
+
+    function _handleEdit() {
+        _pendingLog = null;
+        _resetToFormatMode();
+
+        // Hide preview and confirm
+        const previewEl = document.getElementById('clPreview');
+        const confirmSection = document.getElementById('clConfirmSection');
+        if (previewEl) previewEl.style.display = 'none';
+        if (confirmSection) confirmSection.style.display = 'none';
+
+        App.toast('Edit your notes and format again', 'success');
+    }
+
+    // ── Copy formatted log ──
+
+    function _handleCopy() {
+        const previewTextEl = document.getElementById('clPreviewText');
+        if (!previewTextEl) return;
+
+        const text = previewTextEl.textContent;
+        if (!text) return;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                App.toast('Copied to clipboard', 'success');
+            }).catch(() => {
+                _fallbackCopy(text);
+            });
+        } else {
+            _fallbackCopy(text);
+        }
+    }
+
+    function _fallbackCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+            document.execCommand('copy');
+            App.toast('Copied to clipboard', 'success');
+        } catch (e) {
+            App.toast('Copy failed — select and copy manually', 'error');
+        }
+        document.body.removeChild(ta);
+    }
+
+    // ── Helpers ──
+
+    function _resetToFormatMode() {
+        const formatBtn = document.getElementById('clSubmitBtn');
+        const confirmSection = document.getElementById('clConfirmSection');
+        if (formatBtn) {
+            formatBtn.textContent = '✨ Format Preview';
+            formatBtn.classList.remove('cl-edit-mode');
+        }
+        if (confirmSection) {
+            confirmSection.style.display = 'none';
+        }
+    }
+
+    function _escapeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
     }
 
     // ── Event Wiring ──
 
     function _wireEvents() {
+        // Format / Edit button (toggles based on state)
         const submitBtn = document.getElementById('clSubmitBtn');
         if (submitBtn && !submitBtn._clWired) {
-            submitBtn.addEventListener('click', _handleSubmit);
+            submitBtn.addEventListener('click', () => {
+                if (_pendingLog) {
+                    _handleEdit();
+                } else {
+                    _handleFormat();
+                }
+            });
             submitBtn._clWired = true;
+        }
+
+        // Confirm button
+        const confirmBtn = document.getElementById('clConfirmBtn');
+        if (confirmBtn && !confirmBtn._clWired) {
+            confirmBtn.addEventListener('click', _handleConfirm);
+            confirmBtn._clWired = true;
+        }
+
+        // Cancel button (goes back to edit)
+        const cancelBtn = document.getElementById('clCancelBtn');
+        if (cancelBtn && !cancelBtn._clWired) {
+            cancelBtn.addEventListener('click', _handleEdit);
+            cancelBtn._clWired = true;
+        }
+
+        // Copy button
+        const copyBtn = document.getElementById('clCopyBtn');
+        if (copyBtn && !copyBtn._clWired) {
+            copyBtn.addEventListener('click', _handleCopy);
+            copyBtn._clWired = true;
         }
     }
 

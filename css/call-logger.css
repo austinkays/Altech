@@ -161,9 +161,149 @@
     overflow-y: auto;
 }
 
+/* ── Copy Button ── */
+
+.cl-copy-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--apple-blue);
+    background: transparent;
+    border: 1px solid var(--apple-blue);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.cl-copy-btn:hover {
+    background: var(--apple-blue);
+    color: #fff;
+}
+
+.cl-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ── Confirmation Section ── */
+
+.cl-confirm-section {
+    margin-top: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    animation: cl-slide-in 0.3s var(--transition-smooth);
+}
+
+@keyframes cl-slide-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.cl-confirm-info {
+    font-size: 15px;
+    color: var(--text);
+    padding: 12px 16px;
+    background: var(--bg-input);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.cl-confirm-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.cl-confirm-btn {
+    flex: 1;
+    padding: 14px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--success);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s var(--transition-smooth),
+                transform 0.15s var(--transition-spring),
+                opacity 0.2s;
+}
+
+.cl-confirm-btn:hover:not(:disabled) {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.cl-confirm-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.cl-confirm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.cl-confirm-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.3);
+}
+
+.cl-cancel-btn {
+    padding: 14px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s var(--transition-smooth),
+                color 0.2s;
+}
+
+.cl-cancel-btn:hover {
+    color: var(--text);
+    background: var(--bg-card);
+}
+
+.cl-cancel-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+/* ── Edit Mode (format button becomes outline) ── */
+
+.cl-submit-btn.cl-edit-mode {
+    background: transparent;
+    color: var(--apple-blue);
+    border: 2px solid var(--apple-blue);
+}
+
+.cl-submit-btn.cl-edit-mode:hover:not(:disabled) {
+    background: var(--apple-blue);
+    color: #fff;
+}
+
 /* ── Dark Mode ── */
 
 body.dark-mode .cl-submit-btn {
+    color: #fff;
+}
+
+body.dark-mode .cl-submit-btn.cl-edit-mode {
+    color: var(--apple-blue);
+    background: transparent;
+}
+
+body.dark-mode .cl-submit-btn.cl-edit-mode:hover:not(:disabled) {
+    color: #fff;
+    background: var(--apple-blue);
+}
+
+body.dark-mode .cl-confirm-btn {
     color: #fff;
 }
 
