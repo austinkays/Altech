@@ -722,20 +722,28 @@ window.VinDecoder = (() => {
 
     // ── Load VIN from Intake ──
     function loadFromIntake() {
-        if (typeof App === 'undefined' || !App.data) return;
-        // Try to find VIN in the main form data
-        const vin = App.data.vehicleVin || App.data.vin || App.data.vehicle1Vin || '';
+        if (typeof App === 'undefined') return;
+
+        // 1) Check vehicles array first (where VINs actually live)
+        let vin = '';
+        if (Array.isArray(App.vehicles) && App.vehicles.length > 0) {
+            // Find the first vehicle with a VIN
+            const vehWithVin = App.vehicles.find(v => v && v.vin && v.vin.trim());
+            if (vehWithVin) vin = vehWithVin.vin.trim();
+        }
+
+        // 2) Fallback to App.data fields
+        if (!vin && App.data) {
+            vin = App.data.vehicleVin || App.data.vin || '';
+        }
+
         if (vin) {
             const input = document.getElementById('vinInput');
             if (input) input.value = vin;
             decode();
-            if (typeof App !== 'undefined' && App.toast) {
-                App.toast('📥 VIN loaded from intake form');
-            }
+            if (App.toast) App.toast('📥 VIN loaded from intake form');
         } else {
-            if (typeof App !== 'undefined' && App.toast) {
-                App.toast('⚠️ No VIN found in intake form');
-            }
+            if (App.toast) App.toast('⚠️ No VIN found — add a vehicle with a VIN in the quoting wizard first', 'error');
         }
     }
 
