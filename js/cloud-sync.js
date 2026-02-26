@@ -436,7 +436,7 @@ const CloudSync = (() => {
                     });
                 } else if (formResult?.data && typeof App !== 'undefined') {
                     App.data = formResult.data;
-                    if (App.load) App.load();
+                    if (App.load) await App.load();
                 }
 
                 // Pull CGL state

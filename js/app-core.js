@@ -586,7 +586,8 @@ Object.assign(App, {
         // Mark quoting-active on body so footer/exit-button don't overlap
         document.body.classList.add('quoting-active');
 
-        document.getElementById('mainContainer').scrollTo(0,0);
+        const mainContainer = document.getElementById('mainContainer');
+        if (mainContainer) mainContainer.scrollTo(0,0);
     },
 
     next() {
@@ -709,12 +710,16 @@ Object.assign(App, {
         
         // Try decrypting first
         if (this.encryptionEnabled) {
-            const decrypted = await CryptoHelper.decrypt(s);
-            if (decrypted) {
-                this.applyData(this._migrateSchema(decrypted));
-            } else {
-                console.warn('[App.load] Decryption returned null — stored data may be corrupt or key changed');
-                this.toast('⚠️ Could not decrypt saved data. It may need to be re-entered.');
+            try {
+                const decrypted = await CryptoHelper.decrypt(s);
+                if (decrypted) {
+                    this.applyData(this._migrateSchema(decrypted));
+                } else {
+                    console.warn('[App.load] Decryption returned null — stored data may be corrupt or key changed');
+                    this.toast('⚠️ Could not decrypt saved data. It may need to be re-entered.');
+                }
+            } catch (e) {
+                console.error('[App.load] Error during load/apply:', e);
             }
         } else {
             try {

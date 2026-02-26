@@ -57,7 +57,7 @@ window.initPlaces = () => App.initPlaces();
 
 // ── Global Error Boundaries ──
 window.addEventListener('unhandledrejection', (e) => {
-    console.error('[Unhandled Rejection]', e.reason);
+    console.error('[Unhandled Rejection]', e.reason?.stack || e.reason);
     if (typeof App !== 'undefined' && App.toast) {
         App.toast(`Unexpected error: ${e.reason?.message || 'Something went wrong'}`, { type: 'error', duration: 4000 });
     }
