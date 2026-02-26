@@ -164,6 +164,7 @@ body.dark-mode .bento-label { color: rgba(148, 163, 184, 0.6); letter-spacing: 2
 
 body.dark-mode footer {
     background: rgba(28, 28, 30, 0.95);
+    border-top-color: rgba(255, 255, 255, 0.10);
 }
 
 body.dark-mode .quote-card.starred {
@@ -408,13 +409,23 @@ main {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
 }
-body.dark-mode .card { border-color: rgba(255, 255, 255, 0.06); }
+body.dark-mode .card {
+    border-color: rgba(255, 255, 255, 0.10);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+}
 .card:hover {
     transform: translateY(-3px);
     box-shadow: 0 12px 28px rgba(0, 50, 150, 0.10), 0 0 0 1px rgba(0, 122, 255, 0.08);
 }
 body.dark-mode .card:hover {
-    box-shadow: 0 12px 28px rgba(0,0,0,0.18), 0 0 0 1px rgba(0, 122, 255, 0.08);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 122, 255, 0.12);
+}
+/* Mobile dark mode: make cards more visible against pure-black body background */
+@media (max-width: 767px) {
+    body.dark-mode .card {
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.7), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+    }
 }
 h2 { font-size: 19px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
 h3 { font-size: 16px; font-weight: 600; margin: 18px 0 10px; color: var(--text); }

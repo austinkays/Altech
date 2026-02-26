@@ -738,4 +738,20 @@ body.dark-mode .sidebar-footer-btn:hover {
     .app-header {
         padding: 0 16px;
     }
+
+    /* Dark mode mobile: improve header and bottom nav visibility */
+    body.dark-mode .app-header {
+        background: #1C1C1E;
+        border-bottom-color: rgba(255, 255, 255, 0.10);
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    body.dark-mode .mobile-bottom-nav {
+        background: #1C1C1E;
+        border-top-color: rgba(255, 255, 255, 0.10);
+        box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.05);
+    }
+    /* Dark mode mobile: subtle bg to lift content off pure-black body */
+    body.dark-mode .app-content {
+        background: #0D0D0D;
+    }
 }
