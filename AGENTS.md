@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** February 27, 2026
+> **Last updated:** February 25, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~702 lines) |
-| **CSS** | 20 files in `css/` (~13,200 lines total) |
-| **JS** | 34 modules in `js/` (~26,800 lines total) |
-| **Plugins** | 14 HTML templates in `plugins/` (~5,000 lines total) |
+| **CSS** | 20 files in `css/` (~12,400 lines total) |
+| **JS** | 34 modules in `js/` (~27,200 lines total) |
+| **Plugins** | 14 HTML templates in `plugins/` (~4,900 lines total) |
 | **APIs** | 13 serverless functions in `api/` (~6,400 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -64,7 +64,7 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 20 stylesheets (~13,100 lines)
+├── css/                        # 20 stylesheets (~12,400 lines)
 │   ├── main.css                # ★ Core styles + :root variables (3,051 lines) — THE source of truth
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (741 lines)
@@ -72,7 +72,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── compliance.css          # CGL compliance dashboard (1,029 lines)
 │   ├── auth.css                # Auth modal + settings (973 lines)
 │   ├── reminders.css           # Task reminders (1,097 lines)
-│   ├── intake-assist.css       # AI intake two-pane layout (984 lines)
+│   ├── intake-assist.css       # AI intake professional UI — pill chips, circular buttons, focus rings (1,014 lines)
 │   ├── ezlynx.css              # EZLynx export — standalone dark palette (590 lines)
 │   ├── vin-decoder.css         # VIN decoder (580 lines)
 │   ├── hawksoft.css            # HawkSoft export (529 lines)
@@ -705,6 +705,7 @@ KEY RULES:
 | Wrong variable names | main.css (11), auth.css (3), quickref.css (8), email.css (6), compliance.css (1) | All corrected to valid `--bg-card`, `--text`, `--bg-input`, `--border` |
 | Dark mode selectors | security-info.css (4 selectors) | `[data-theme="dark"]` → `body.dark-mode` |
 | Missing focus states | email.css, quickref.css, onboarding.css, compliance.css, bug-report.css | Added `:focus-visible` outlines/box-shadows |
+| AI Intake UI overhaul | intake-assist.css | Professional redesign: pill-shaped chips with colored tints, 1px card borders with subtle shadows, transparent card headers, circular send/upload buttons, focus glow rings, tighter layout padding, full dark mode coverage |
 
 ### Known Issues NOT Fixed (Intentional / Cosmetic)
 
