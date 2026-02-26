@@ -20,7 +20,7 @@ known bugs, and rules. Do not write any code until you have read it.
 
 ```bash
 npm run dev          # Local server
-npm test             # 18 test suites, 1166+ tests (Jest + JSDOM)
+npm test             # 20 test suites, 1307+ tests (Jest + JSDOM)
 npx jest --no-coverage  # Faster (skip coverage)
 ```
 
@@ -144,7 +144,7 @@ Every `<input id="fieldName">` auto-syncs to `App.data.fieldName` via `localStor
 ## Testing
 
 ```bash
-npm test                    # All 18 suites, 1166+ tests
+npm test                    # All 20 suites, 1307+ tests
 npx jest --no-coverage      # Faster (skip coverage)
 npx jest tests/app.test.js  # Single suite
 ```
@@ -169,4 +169,4 @@ Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously'
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-*Last updated: March 2, 2026*
+*Last updated: March 3, 2026*

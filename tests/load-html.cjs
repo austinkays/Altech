@@ -40,7 +40,8 @@ function loadHTML(indexPath) {
                 hawksoftTool: 'hawksoft',
                 remindersTool: 'reminders',
                 intakeTool: 'intake-assist',
-                vinDecoderTool: 'vin-decoder'
+                vinDecoderTool: 'vin-decoder',
+                callLoggerTool: 'call-logger'
             };
 
             const pluginName = pluginMap[containerId];

@@ -176,6 +176,11 @@ describe('Plugin Registry & Tool Config', () => {
     { key: 'accounting', containerId: 'accountingTool', initModule: 'AccountingExport' },
     { key: 'quickref', containerId: 'quickrefTool', initModule: 'QuickRef' },
     { key: 'ezlynx', containerId: 'ezlynxTool', initModule: 'EZLynxTool' },
+    { key: 'intake', containerId: 'intakeTool', initModule: 'IntakeAssist' },
+    { key: 'hawksoft', containerId: 'hawksoftTool', initModule: 'HawkSoftExport' },
+    { key: 'reminders', containerId: 'remindersTool', initModule: 'Reminders' },
+    { key: 'vindecoder', containerId: 'vinDecoderTool', initModule: 'VinDecoder' },
+    { key: 'calllogger', containerId: 'callLoggerTool', initModule: 'CallLogger' },
   ];
 
   test.each(expectedTools)('tool "$key" is registered in toolConfig', ({ key, containerId, initModule }) => {
@@ -375,6 +380,11 @@ describe('JS Module Files', () => {
     { file: 'accounting-export.js', windowExport: 'AccountingExport' },
     { file: 'ezlynx-tool.js', windowExport: 'EZLynxTool' },
     { file: 'quote-compare.js', windowExport: 'QuoteCompare' },
+    { file: 'intake-assist.js', windowExport: 'IntakeAssist' },
+    { file: 'hawksoft-export.js', windowExport: 'HawkSoftExport' },
+    { file: 'reminders.js', windowExport: 'Reminders' },
+    { file: 'vin-decoder.js', windowExport: 'VinDecoder' },
+    { file: 'call-logger.js', windowExport: 'CallLogger' },
     { file: 'data-backup.js', windowExport: null }, // No explicit window export
     { file: 'crypto-helper.js', windowExport: null },
   ];
@@ -384,9 +394,12 @@ describe('JS Module Files', () => {
     expect(fs.existsSync(filePath)).toBe(true);
   });
 
-  test.each(requiredModules.filter(m => m.windowExport))('js/$file has window.$windowExport = $windowExport', ({ file, windowExport }) => {
+  test.each(requiredModules.filter(m => m.windowExport))('js/$file has window.$windowExport export', ({ file, windowExport }) => {
     const source = fs.readFileSync(path.join(ROOT, 'js', file), 'utf8');
-    expect(source).toContain(`window.${windowExport} = ${windowExport}`);
+    // Matches both patterns: window.X = X (object) and window.X = (() => { (IIFE)
+    const hasWindowExport = source.includes(`window.${windowExport} = ${windowExport}`) ||
+                            source.includes(`window.${windowExport} = (() =>`);
+    expect(hasWindowExport).toBe(true);
   });
 });
 
