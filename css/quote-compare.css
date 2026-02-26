@@ -436,3 +436,25 @@
     .qc-chat-body { height: 350px; }
     .qc-msg { max-width: 92%; }
 }
+
+/* ── Desktop enhancements ── */
+@media (min-width: 960px) {
+    .qc-container {
+        padding: 0 24px 80px;
+    }
+    .qc-drop-zone {
+        padding: 60px 40px;
+    }
+    .qc-drop-title {
+        font-size: 19px;
+    }
+    .qc-applicant-bar {
+        padding: 16px 20px;
+    }
+    .qc-cards {
+        gap: 16px;
+    }
+    .qc-chat-body {
+        height: 500px;
+    }
+}

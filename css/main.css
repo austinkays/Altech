@@ -3009,6 +3009,359 @@ body.dark-mode .pac-item-selected { background: #2C2C2E; }
 body.dark-mode .pac-item-query { color: #FFFFFF; }
 body.dark-mode .pac-matched { color: #0A84FF; }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   DESKTOP-FIRST LAYOUT OVERHAUL
+   Optimizes the quoting wizard, plugin containers, footer, forms, and
+   misc UI for a permanent desktop (1024px+) experience.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── Quoting Wizard: Centered content wrapper ─── */
+@media (min-width: 960px) {
+    #quotingTool main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px 32px calc(100px + env(safe-area-inset-bottom));
+    }
+    #quotingTool header {
+        max-width: 960px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    #quotingTool .card {
+        padding: 24px 28px;
+    }
+}
+@media (min-width: 1280px) {
+    #quotingTool main {
+        max-width: 1080px;
+        padding: 28px 40px calc(100px + env(safe-area-inset-bottom));
+    }
+    #quotingTool header {
+        max-width: 1080px;
+    }
+    #quotingTool .card {
+        padding: 28px 32px;
+    }
+}
+
+/* ─── Step 0 (Quick Start): Side-by-side cards on desktop ─── */
+@media (min-width: 960px) {
+    #step-0 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+    /* Smart Scan card spans full width below the two top cards */
+    #step-0 > .card:nth-child(n+3) {
+        grid-column: 1 / -1;
+    }
+}
+
+/* ─── Step 1 (Client Info): Dense 2-column card grid ─── */
+@media (min-width: 960px) {
+    #step-1 .grid-2-full {
+        gap: 20px 24px;
+    }
+    /* Make the form cards more compact at desktop */
+    #step-1 .card,
+    #step-2 .card,
+    #step-5 .card {
+        padding: 24px 28px;
+    }
+}
+
+/* ─── Step 4 (Vehicles/Drivers): Side-by-side driver & vehicle cards ─── */
+@media (min-width: 1024px) {
+    #step-4 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+    /* Buttons and full-width elements span both columns */
+    #step-4 > .card:only-child,
+    #step-4 > button,
+    #step-4 > .hint,
+    #step-4 > .btn-full {
+        grid-column: 1 / -1;
+    }
+    /* Let individual driver/vehicle cards fill their column */
+    .driver-vehicle-card {
+        margin-bottom: 0;
+    }
+}
+
+/* ─── Step 6 (Review & Export): Multi-column layout ─── */
+@media (min-width: 960px) {
+    #step-6 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+    /* Hero export card spans full width */
+    #step-6 > .card:first-child,
+    #step-6 > .hero-export,
+    #step-6 > .card:has(.hero-export) {
+        grid-column: 1 / -1;
+    }
+    /* Export History + Saved Clients side by side */
+    #step-6 > .card.export-card {
+        margin-bottom: 0;
+    }
+}
+
+/* ─── Desktop Footer: Centered, constrained width ─── */
+@media (min-width: 960px) {
+    #quotingTool footer {
+        max-width: 960px;
+        margin: 0 auto;
+        left: 0;
+        right: 0;
+        border-radius: 16px 16px 0 0;
+        padding: 12px 32px calc(12px + env(safe-area-inset-bottom));
+    }
+    footer .btn {
+        max-width: 280px;
+    }
+}
+@media (min-width: 1280px) {
+    #quotingTool footer {
+        max-width: 1080px;
+    }
+}
+/* On desktop with sidebar, offset footer to account for sidebar */
+@media (min-width: 768px) {
+    .app-shell footer {
+        left: var(--sidebar-width, 240px);
+    }
+}
+@media (min-width: 768px) and (max-width: 1279px) {
+    .app-shell footer {
+        left: var(--sidebar-collapsed-width, 64px);
+    }
+}
+
+/* ─── Form Grid Enhancements for Desktop ─── */
+@media (min-width: 960px) {
+    /* Wider grid-2 / grid-3 label columns on desktop for cleaner alignment */
+    .grid-2 > div,
+    .grid-3 > div {
+        grid-template-columns: minmax(130px, 180px) minmax(0, 1fr);
+        column-gap: 14px;
+    }
+
+    /* Address row gains more breathing room */
+    .grid-addr-row2 {
+        grid-template-columns: 1fr 80px 100px 140px;
+        gap: 14px;
+    }
+
+    /* Toggle grid — keeps 3-col but with more padding */
+    .toggle-grid-3 {
+        gap: 16px;
+    }
+    .toggle-grid-3 .toggle-card {
+        padding: 14px 18px;
+    }
+
+    /* Radio cards get larger on desktop */
+    .radio-grid {
+        gap: 14px;
+    }
+    .radio-card-content {
+        padding: 24px 12px;
+        font-size: 15px;
+    }
+
+    /* Scan actions go horizontal on desktop */
+    .scan-actions {
+        flex-direction: row;
+        gap: 12px;
+    }
+    .scan-actions .btn {
+        flex: 1;
+    }
+
+    /* Scan preview grid can show more columns */
+    .scan-preview {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+
+    /* Map previews in main (non-sidebar) context should be 2-col */
+    .prop-layout > div:first-child .map-previews {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    /* Hero export grid — bigger cards */
+    .hero-export-grid {
+        gap: 16px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .hero-export-option {
+        padding: 24px 16px 18px;
+    }
+    .hero-export-icon {
+        font-size: 32px;
+    }
+
+    /* Export secondary buttons — center-constrain */
+    .hero-secondary-row {
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Quote cards in a grid */
+    #quickStartDraftList,
+    #quotesList {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 12px;
+    }
+    .quote-card {
+        margin-bottom: 0;
+    }
+
+    /* Client history rows get denser */
+    .ch-row {
+        padding: 12px 16px;
+    }
+}
+
+/* ─── Desktop: Enhance card hover behavior ─── */
+@media (min-width: 960px) {
+    .card {
+        transition: transform 0.2s var(--transition-smooth), box-shadow 0.25s ease;
+    }
+    .card:hover {
+        transform: translateY(-2px);
+    }
+}
+
+/* ─── Desktop: Wider modals ─── */
+@media (min-width: 960px) {
+    .modal-content {
+        max-width: 680px;
+    }
+    .data-preview-modal .modal-content,
+    .scan-review-modal .modal-content {
+        max-width: 800px;
+    }
+}
+
+/* ─── Desktop: Plugin Header Enhancements ─── */
+@media (min-width: 960px) {
+    #quotingTool .header-top {
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+    #quotingTool .step-title {
+        font-size: 14px;
+        text-align: center;
+    }
+    #quotingTool .progress-track {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+}
+
+/* ─── Desktop: Confidence bars, scan fields in multi-column ─── */
+@media (min-width: 960px) {
+    .scan-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    .driver-vehicle-card .grid-2-full {
+        gap: 16px 20px;
+    }
+}
+
+/* ─── Desktop: Input sizing refinements ─── */
+@media (min-width: 960px) {
+    input, select, textarea {
+        padding: 11px 14px;
+        font-size: 15px !important;
+    }
+    .label {
+        font-size: 11.5px;
+        letter-spacing: 0.5px;
+    }
+    h2 {
+        font-size: 20px;
+    }
+    .section-subtitle {
+        font-size: 13px;
+    }
+}
+
+/* ─── Desktop: Review step data grid ─── */
+@media (min-width: 960px) {
+    .review-section .grid-2,
+    .review-section .grid-3 {
+        gap: 12px;
+    }
+}
+
+/* ─── Ultra-wide (1600px+): Extra breathing room ─── */
+@media (min-width: 1600px) {
+    #quotingTool main {
+        max-width: 1200px;
+    }
+    #quotingTool header {
+        max-width: 1200px;
+    }
+    #quotingTool footer {
+        max-width: 1200px;
+    }
+    #step-0 {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+    #step-0 > .card:nth-child(n+3) {
+        grid-column: 1 / -1;
+    }
+}
+
+/* ─── Desktop: Prospect Investigator content constraint ─── */
+@media (min-width: 960px) {
+    #prospectTool main {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 24px 32px 60px;
+    }
+    #prospectTool header {
+        max-width: 1000px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+/* ─── Desktop: Policy Q&A wider chat area ─── */
+@media (min-width: 960px) {
+    .qna-container {
+        max-width: 900px;
+        padding: 24px 32px 100px;
+    }
+}
+
+/* ─── Desktop: Generic plugin main content constraint ─── */
+@media (min-width: 960px) {
+    .plugin-container > main:not(.ia-main) {
+        max-width: 1100px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .plugin-container > header {
+        max-width: 1100px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+
 /* === PRINT STYLES FOR ACORD 25 === */
 @media print {
     body { background: white; margin: 0; }

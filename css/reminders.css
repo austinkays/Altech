@@ -1065,6 +1065,29 @@ body.dark-mode .rem-fab {
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
+/* ===== Desktop Enhancements ===== */
+@media (min-width: 960px) {
+    .rem-container {
+        padding: 0 24px 80px;
+    }
+    .rem-stats-grid {
+        gap: 14px;
+    }
+    .rem-stat-card {
+        padding: 20px 14px 18px;
+    }
+    .rem-stat-value {
+        font-size: 30px;
+    }
+    .rem-field-row {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 14px;
+    }
+    .rem-task-row {
+        padding: 16px 20px;
+    }
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 480px) {
     .rem-stats-grid {

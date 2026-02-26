@@ -1027,3 +1027,20 @@ body.dark-mode .cgl-type-badge.epli, body.dark-mode .cgl-type-badge.do, body.dar
 body.dark-mode .cgl-type-badge.cyber { background: rgba(0,96,100,0.15); color: #67e8f9; }
 body.dark-mode .cgl-type-badge.bop { background: rgba(51,105,30,0.15); color: #86efac; }
 body.dark-mode .cgl-type-badge.commercial { background: rgba(255,255,255,0.08); color: #a1a1aa; }
+
+/* ── Desktop enhancements ── */
+@media (min-width: 960px) {
+    .cgl-container {
+        padding: 24px 32px 100px;
+    }
+    .cgl-stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+    }
+    .cgl-stat-card {
+        padding: 22px 20px;
+    }
+    .cgl-title {
+        font-size: 36px;
+    }
+}

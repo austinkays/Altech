@@ -4,13 +4,17 @@ known bugs, and rules. Do not write any code until you have read it.
 
 > **⚠️ LIVING DOCS:** After every work session, update AGENTS.md, this file, and QUICKREF.md with any changes you made — line counts, test counts, module descriptions, feature lists, and the `Last updated` date. Run `npm run audit-docs` to check for drift.
 
+> **⚠️ WORKFLOW RULES (MANDATORY):**
+> 1. **Always keep changes.** Every file edit you make must be kept automatically. Never leave changes pending user confirmation.
+> 2. **Always commit & push when finishing a task.** After completing any task (feature, bugfix, refactor, doc update), stage all changed files, commit with a clear message, and `git push` to the remote. Do not wait for the user to ask.
+
 # Altech - AI Coding Agent Instructions
 
 ## Quick Start
 
-**Altech** = mobile-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
+**Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~702 lines), 20 CSS files in `css/`, 34 JS modules in `js/` (~27,200 lines), 14 plugin HTML files in `plugins/`, 13 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~702 lines), 20 CSS files in `css/` (~13,800 lines), 34 JS modules in `js/` (~27,200 lines), 14 plugin HTML files in `plugins/`, 13 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
 > **Full documentation:** See [AGENTS.md](../AGENTS.md) (864 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 

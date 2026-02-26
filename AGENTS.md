@@ -10,13 +10,13 @@
 
 ## 1. App Overview
 
-**Altech Field Lead** is a mobile-first insurance intake wizard for independent insurance agents. The core workflow: scan a policy document → AI extracts data → agent corrects the form → save drafts → export to HawkSoft (`.cmsmtf`), EZLynx (browser extension bridge), or PDF.
+**Altech Field Lead** is a desktop-first insurance intake wizard for independent insurance agents. The core workflow: scan a policy document → AI extracts data → agent corrects the form → save drafts → export to HawkSoft (`.cmsmtf`), EZLynx (browser extension bridge), or PDF.
 
 | Attribute | Value |
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~702 lines) |
-| **CSS** | 20 files in `css/` (~12,400 lines total) |
+| **CSS** | 20 files in `css/` (~13,800 lines total) |
 | **JS** | 34 modules in `js/` (~27,200 lines total) |
 | **Plugins** | 14 HTML templates in `plugins/` (~4,900 lines total) |
 | **APIs** | 13 serverless functions in `api/` (~6,400 lines total) |
@@ -65,25 +65,25 @@ npm run deploy:vercel   # Production deploy
 ├── sw.js                       # Service worker
 │
 ├── css/                        # 20 stylesheets (~12,400 lines)
-│   ├── main.css                # ★ Core styles + :root variables (3,051 lines) — THE source of truth
+│   ├── main.css                # ★ Core styles + :root variables + desktop overhaul (3,404 lines) — THE source of truth
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (741 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (889 lines)
-│   ├── compliance.css          # CGL compliance dashboard (1,029 lines)
+│   ├── compliance.css          # CGL compliance dashboard (1,046 lines)
 │   ├── auth.css                # Auth modal + settings (973 lines)
-│   ├── reminders.css           # Task reminders (1,097 lines)
+│   ├── reminders.css           # Task reminders (1,120 lines)
 │   ├── intake-assist.css       # AI intake professional UI — pill chips, circular buttons, focus rings (1,014 lines)
 │   ├── ezlynx.css              # EZLynx export — standalone dark palette (590 lines)
-│   ├── vin-decoder.css         # VIN decoder (580 lines)
-│   ├── hawksoft.css            # HawkSoft export (529 lines)
-│   ├── quote-compare.css       # Quote comparison tool (438 lines)
+│   ├── vin-decoder.css         # VIN decoder (600 lines)
+│   ├── hawksoft.css            # HawkSoft export (555 lines)
+│   ├── quote-compare.css       # Quote comparison tool (460 lines)
 │   ├── onboarding.css          # First-run wizard (411 lines)
 │   ├── admin.css               # Admin panel (300 lines)
 │   ├── bug-report.css          # Bug reporter (227 lines)
-│   ├── quickref.css            # Quick reference — teal accent (222 lines)
+│   ├── quickref.css            # Quick reference — teal accent (233 lines)
 │   ├── security-info.css       # Security modal (217 lines)
-│   ├── accounting.css          # Accounting export (204 lines)
-│   ├── email.css               # Email composer — purple accent (150 lines)
+│   ├── accounting.css          # Accounting export (225 lines)
+│   ├── email.css               # Email composer — purple accent (165 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
 ├── js/                         # 34 modules (~29,300 lines)
@@ -604,6 +604,8 @@ KEY RULES:
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, update AGENTS.md, .github/copilot-instructions.md, and
     QUICKREF.md — line counts, test counts, descriptions, date. Run: npm run audit-docs
+12. ALWAYS keep changes — never leave edits pending user confirmation
+13. ALWAYS commit & push when finishing a task — stage all files, commit, git push
 ```
 
 ---
@@ -706,6 +708,7 @@ KEY RULES:
 | Dark mode selectors | security-info.css (4 selectors) | `[data-theme="dark"]` → `body.dark-mode` |
 | Missing focus states | email.css, quickref.css, onboarding.css, compliance.css, bug-report.css | Added `:focus-visible` outlines/box-shadows |
 | AI Intake UI overhaul | intake-assist.css | Professional redesign: pill-shaped chips with colored tints, 1px card borders with subtle shadows, transparent card headers, circular send/upload buttons, focus glow rings, tighter layout padding, full dark mode coverage |
+| Desktop-first layout overhaul | main.css (+350 lines), reminders.css, hawksoft.css, accounting.css, email.css, quickref.css, vin-decoder.css, quote-compare.css, compliance.css | Quoting wizard: centered max-width container (960→1080→1200px), multi-column step layouts (steps 0/4/6), constrained footer, denser form grids, scan actions horizontal, wider modals. All plugins: desktop padding/spacing/grid enhancements. Generic `plugin-container > main/header` constraint at 1100px. Prospect content cap at 1000px. Footer sidebar-aware offset. |
 
 ### Known Issues NOT Fixed (Intentional / Cosmetic)
 

@@ -578,3 +578,23 @@
         gap: 6px;
     }
 }
+
+/* ── Desktop enhancements ── */
+@media (min-width: 960px) {
+    .vin-container {
+        padding: 0 24px 80px;
+    }
+    .vin-input-card {
+        padding: 24px 28px;
+    }
+    .vin-input {
+        font-size: 20px;
+        padding: 16px 18px;
+    }
+    .vin-phonetic-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .vin-history-header {
+        padding: 14px 20px;
+    }
+}

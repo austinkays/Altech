@@ -148,3 +148,18 @@
     border-radius: 6px;
     font-weight: 600;
 }
+
+/* ── Desktop enhancements ── */
+@media (min-width: 960px) {
+    .email-container {
+        padding: 0 24px 80px;
+        max-width: 900px;
+    }
+    .email-compose-area textarea {
+        min-height: 200px;
+        font-size: 15px;
+    }
+    .email-history-item {
+        padding: 14px 18px;
+    }
+}
