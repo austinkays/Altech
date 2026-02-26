@@ -333,7 +333,6 @@ describe('API Endpoint Files Exist', () => {
     'prospect-lookup.js',
     'policy-scan.js',
     'vision-processor.js',
-    'rag-interpreter.js',
     'historical-analyzer.js',
     'stripe.js',
     'property-intelligence.js',
@@ -474,7 +473,7 @@ describe('API Env Var Trimming', () => {
   // Files that delegate env var handling to _ai-router.js (which does the trim)
   const delegatedFiles = [
     { file: 'historical-analyzer.js', delegatesTo: '_ai-router.js' },
-    { file: 'rag-interpreter.js', delegatesTo: '_ai-router.js' },
+    { file: '_rag-interpreter.js', delegatesTo: '_ai-router.js' },
   ];
 
   test.each(apiFilesWithEnvVars)('api/$file trims env vars: $envVars', ({ file, envVars }) => {

@@ -530,7 +530,7 @@ Object.assign(App, {
             }
 
             // Try RAG interpretation
-            const ragResponse = await fetch('/api/rag-interpreter', {
+            const ragResponse = await fetch('/api/property-intelligence?mode=rag-interpret', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ rawParcelData: arcgisData.parcelData, county, aiSettings: window.AIProvider?.getSettings() })

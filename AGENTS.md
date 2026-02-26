@@ -19,14 +19,14 @@
 | **CSS** | 21 files in `css/` (~14,200 lines total) |
 | **JS** | 35 modules in `js/` (~27,400 lines total) |
 | **Plugins** | 15 HTML templates in `plugins/` (~4,950 lines total) |
-| **APIs** | 14 serverless functions in `api/` (~6,560 lines total) |
+| **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,560 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
 | **Encryption** | AES-256-GCM via Web Crypto API (`CryptoHelper`) |
-| **Local server** | `server.js` (Node.js ESM, 677 lines) |
+| **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 20 suites, 1307+ tests |
+| **Tests** | Jest + JSDOM, 20 suites, 1305+ tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 20 test suites, 1307+ tests
+npm test              # All 20 test suites, 1305+ tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
@@ -158,7 +158,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── prospect-lookup.js      # Multi-source business investigation (1,563 lines)
 │   ├── compliance.js           # HawkSoft API CGL policy fetcher + Redis cache
 │   ├── historical-analyzer.js  # AI property value/insurance trend analysis
-│   ├── rag-interpreter.js      # County assessor data → insurance fields
+│   ├── _rag-interpreter.js     # County assessor data → insurance fields (helper, routed via property-intelligence)
 │   ├── kv-store.js             # Per-user Redis KV store
 │   ├── stripe.js               # Stripe checkout, portal, webhooks
 │   ├── admin.js                # User management (admin only)
@@ -175,7 +175,7 @@ npm run deploy:vercel   # Production deploy
 │
 ├── tests/                      # Jest test suites
 │   ├── setup.js                # Test env setup (mock fetch, suppress crypto errors)
-│   └── *.test.js               # 20 test files, 1307+ tests
+│   └── *.test.js               # 20 test files, 1305+ tests
 │
 ├── lib/                        # Shared server-side utilities
 ├── scripts/                    # Build/utility scripts
@@ -498,7 +498,7 @@ All serverless functions use one of two middleware patterns:
 
 API functions that require authentication: `config?type=keys`, `kv-store`, `stripe`, `admin`, `anthropic-proxy`, `prospect-lookup?type=ai-analysis`
 
-API functions with security middleware only (no auth): `policy-scan`, `vision-processor`, `property-intelligence`, `compliance`, `rag-interpreter`, `historical-analyzer`
+API functions with security middleware only (no auth): `policy-scan`, `vision-processor`, `property-intelligence`, `compliance`, `historical-analyzer`
 
 ### 6.3 Content Security Policy
 
@@ -603,7 +603,7 @@ KEY RULES:
 5. After localStorage writes on synced data, call CloudSync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
 7. App is built via Object.assign(App, {...}) across 9 files — app-boot.js loads LAST
-8. Test with: npm test (1307+ tests, all must pass)
+8. Test with: npm test (1305+ tests, all must pass)
 9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, update AGENTS.md, .github/copilot-instructions.md, and
@@ -618,7 +618,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` → 20 suites, 1307+ tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 20 suites, 1305+ tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements
@@ -858,7 +858,7 @@ In `js/cloud-sync.js`:
 | `/api/prospect-lookup?type=ai-analysis` | POST | Firebase | AI risk assessment |
 | `/api/compliance` | GET | Security | HawkSoft CGL policies |
 | `/api/historical-analyzer` | POST | Security | Property value analysis |
-| `/api/rag-interpreter` | POST | Security | Assessor data → form fields |
+| `/api/property-intelligence?mode=rag-interpret` | POST | Security | Assessor data → form fields |
 | `/api/kv-store` | GET/POST/DELETE | Firebase | Per-user Redis KV |
 | `/api/stripe?action=checkout` | POST | Firebase | Stripe checkout |
 | `/api/stripe?action=portal` | POST | Firebase | Customer portal |

@@ -280,4 +280,7 @@ async function handler(req, res) {
   }
 }
 
+// Named export for direct use when imported by property-intelligence.js
+export { handler as ragHandler };
+
 export default securityMiddleware(handler);

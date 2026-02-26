@@ -82,6 +82,9 @@ async function handleApiRoute(routePath, req, res) {
         headers: req.headers,
         query: Object.fromEntries(new URL(req.url, `http://localhost`).searchParams),
         body: null,
+        // Expose socket/connection so securityMiddleware can read remoteAddress
+        connection: req.connection || req.socket || {},
+        socket: req.socket || req.connection || {},
     };
 
     // Read body for POST/PUT (with size limit)

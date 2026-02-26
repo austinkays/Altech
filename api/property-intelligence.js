@@ -14,6 +14,7 @@
 import { readFileSync } from 'fs';
 import { securityMiddleware } from '../lib/security.js';
 import { createRouter, extractJSON } from './_ai-router.js';
+import { ragHandler } from './_rag-interpreter.js';
 
 // Helper: resolve Google API key from environment variables only
 // Used for Gemini AI calls (generative language API)
@@ -1230,9 +1231,11 @@ async function handler(req, res) {
         return await handleZillow(req, res);
       case 'firestation':
         return await handleFireStation(req, res);
+      case 'rag-interpret':
+        return await ragHandler(req, res);
       default:
         return res.status(400).json({
-          error: `Invalid mode "${mode}". Use ?mode=arcgis|satellite|zillow|firestation`
+          error: `Invalid mode "${mode}". Use ?mode=arcgis|satellite|zillow|firestation|rag-interpret`
         });
     }
   } catch (error) {
