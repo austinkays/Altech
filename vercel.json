@@ -17,6 +17,9 @@
     },
     "api/historical-analyzer.js": {
       "maxDuration": 60
+    },
+    "api/hawksoft-logger.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [

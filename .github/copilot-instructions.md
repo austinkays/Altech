@@ -14,13 +14,13 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~707 lines), 21 CSS files in `css/` (~14,200 lines), 35 JS modules in `js/` (~27,400 lines), 15 plugin HTML files in `plugins/`, 13 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~707 lines), 21 CSS files in `css/` (~14,200 lines), 35 JS modules in `js/` (~27,400 lines), 15 plugin HTML files in `plugins/`, 14 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
 > **Full documentation:** See [AGENTS.md](../AGENTS.md) (869 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
 ```bash
 npm run dev          # Local server
-npm test             # 18 test suites, 1164+ tests (Jest + JSDOM)
+npm test             # 18 test suites, 1166+ tests (Jest + JSDOM)
 npx jest --no-coverage  # Faster (skip coverage)
 ```
 
@@ -144,7 +144,7 @@ Every `<input id="fieldName">` auto-syncs to `App.data.fieldName` via `localStor
 ## Testing
 
 ```bash
-npm test                    # All 18 suites, 1164+ tests
+npm test                    # All 18 suites, 1166+ tests
 npx jest --no-coverage      # Faster (skip coverage)
 npx jest tests/app.test.js  # Single suite
 ```
@@ -169,4 +169,4 @@ Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously'
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-*Last updated: March 1, 2026*
+*Last updated: March 2, 2026*

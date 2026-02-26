@@ -1,0 +1,176 @@
+/**
+ * HawkSoft Call Logger API
+ *
+ * Accepts messy shorthand call notes, uses AI to format them into
+ * professional insurance call log entries, then optionally pushes
+ * the formatted note to HawkSoft via their REST API.
+ *
+ * POST /api/hawksoft-logger
+ * Body: { policyId, callType, rawNotes, userApiKey?, aiModel? }
+ * Returns: { formattedLog, hawksoftLogged }
+ *
+ * Security: securityMiddleware (CORS, rate limiting, headers)
+ */
+
+import { securityMiddleware } from '../lib/security.js';
+import { createRouter } from './_ai-router.js';
+
+// ── System Prompt ────────────────────────────────────────────────
+
+const SYSTEM_PROMPT = `You are a professional insurance agency call log formatter.
+
+Your job is to take messy, abbreviated shorthand notes from an insurance agent's phone call
+and rewrite them as a clean, professional HawkSoft-style log entry.
+
+RULES:
+1. Fix all spelling errors and abbreviations
+2. Use complete sentences in past tense
+3. Keep the same factual content — do NOT add information that wasn't in the notes
+4. Use professional insurance terminology where appropriate
+5. Include a brief subject line at the top (e.g., "RE: Homeowners Quote Inquiry")
+6. Add the call direction (Inbound/Outbound) and timestamp
+7. Keep it concise — typically 3-8 sentences
+8. End with any action items or follow-up needed
+9. Do NOT wrap in markdown or code blocks — return plain text only
+
+FORMAT:
+RE: [Brief Subject]
+[Call Direction] Call — [Date/Time]
+
+[Formatted note body]
+
+Action Items: [any follow-ups, or "None" if none mentioned]`;
+
+// ── Handler ──────────────────────────────────────────────────────
+
+async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const { policyId, callType, rawNotes, userApiKey, aiModel } = req.body || {};
+
+    // ── Validation ──
+    if (!policyId || typeof policyId !== 'string' || !policyId.trim()) {
+      return res.status(400).json({ error: 'Policy ID is required' });
+    }
+    if (!rawNotes || typeof rawNotes !== 'string' || !rawNotes.trim()) {
+      return res.status(400).json({ error: 'Call notes are required' });
+    }
+    if (rawNotes.length > 10000) {
+      return res.status(400).json({ error: 'Notes too long (max 10,000 characters)' });
+    }
+
+    const cleanPolicyId = policyId.trim();
+    const cleanCallType = (callType || 'Inbound').trim();
+    const cleanNotes = rawNotes.trim();
+
+    // ── AI Formatting ──
+    const aiSettings = {};
+    if (userApiKey && userApiKey.trim()) {
+      aiSettings.apiKey = userApiKey.trim();
+      // Detect provider from model name
+      const model = (aiModel || '').trim();
+      if (model.startsWith('gpt-')) {
+        aiSettings.provider = 'openai';
+      } else if (model.startsWith('claude-') || model.includes('anthropic')) {
+        aiSettings.provider = 'anthropic';
+      } else if (model.includes('/')) {
+        aiSettings.provider = 'openrouter';
+      } else {
+        aiSettings.provider = 'google';
+      }
+      if (model) aiSettings.model = model;
+    }
+
+    const ai = createRouter(aiSettings);
+
+    const now = new Date();
+    const timestamp = now.toLocaleString('en-US', {
+      timeZone: 'America/Los_Angeles',
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+
+    const userMessage = `Policy/Client ID: ${cleanPolicyId}
+Call Type: ${cleanCallType}
+Timestamp: ${timestamp} PST
+Agent's shorthand notes:
+${cleanNotes}`;
+
+    console.log(`[HawkSoft Logger] Formatting notes for policy ${cleanPolicyId} (${cleanNotes.length} chars)`);
+
+    const formattedLog = await ai.ask(SYSTEM_PROMPT, userMessage, {
+      temperature: 0.3,
+      maxTokens: 1024
+    });
+
+    if (!formattedLog || !formattedLog.trim()) {
+      throw new Error('AI returned empty response');
+    }
+
+    // ── Optional HawkSoft Push ──
+    let hawksoftLogged = false;
+    const HAWKSOFT_CLIENT_ID = (process.env.HAWKSOFT_CLIENT_ID || '').trim();
+    const HAWKSOFT_CLIENT_SECRET = (process.env.HAWKSOFT_CLIENT_SECRET || '').trim();
+    const HAWKSOFT_AGENCY_ID = (process.env.HAWKSOFT_AGENCY_ID || '').trim();
+
+    if (HAWKSOFT_CLIENT_ID && HAWKSOFT_CLIENT_SECRET && HAWKSOFT_AGENCY_ID) {
+      try {
+        const authString = `${HAWKSOFT_CLIENT_ID}:${HAWKSOFT_CLIENT_SECRET}`;
+        const authHeader = `Basic ${Buffer.from(authString).toString('base64')}`;
+        const BASE_URL = 'https://integration.hawksoft.app';
+        const API_VERSION = '3.0';
+
+        // HawkSoft log note endpoint — append a note to the client's activity log
+        const logRes = await fetch(
+          `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients/${cleanPolicyId}/logNotes?version=${API_VERSION}`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': authHeader,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              note: formattedLog.trim(),
+              action: cleanCallType === 'Outbound' ? 30 : 29 // 29 = Online From Insured, 30 = Online To Insured
+            })
+          }
+        );
+
+        if (logRes.ok) {
+          hawksoftLogged = true;
+          console.log(`[HawkSoft Logger] ✅ Note logged to HawkSoft for client ${cleanPolicyId}`);
+        } else {
+          const errText = await logRes.text().catch(() => '');
+          console.warn(`[HawkSoft Logger] ⚠️ HawkSoft push failed (${logRes.status}): ${errText.substring(0, 200)}`);
+        }
+      } catch (hsErr) {
+        console.warn('[HawkSoft Logger] ⚠️ HawkSoft push error:', hsErr.message);
+        // Don't fail the request — the formatted log is still useful
+      }
+    } else {
+      console.log('[HawkSoft Logger] HawkSoft credentials not configured — skipping push');
+    }
+
+    return res.status(200).json({
+      formattedLog: formattedLog.trim(),
+      hawksoftLogged,
+      policyId: cleanPolicyId,
+      callType: cleanCallType
+    });
+
+  } catch (error) {
+    console.error('[HawkSoft Logger] Error:', error.message);
+    return res.status(500).json({
+      error: error.message || 'Failed to format call notes'
+    });
+  }
+}
+
+export default securityMiddleware(handler);

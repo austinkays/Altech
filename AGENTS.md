@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 1, 2026
+> **Last updated:** March 2, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -19,14 +19,14 @@
 | **CSS** | 21 files in `css/` (~14,200 lines total) |
 | **JS** | 35 modules in `js/` (~27,400 lines total) |
 | **Plugins** | 15 HTML templates in `plugins/` (~4,950 lines total) |
-| **APIs** | 13 serverless functions in `api/` (~6,400 lines total) |
+| **APIs** | 14 serverless functions in `api/` (~6,560 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
 | **Encryption** | AES-256-GCM via Web Crypto API (`CryptoHelper`) |
 | **Local server** | `server.js` (Node.js ESM, 677 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 18 suites, 1164+ tests |
+| **Tests** | Jest + JSDOM, 18 suites, 1166+ tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -149,7 +149,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── call-logger.html        # AI call logger (39 lines)
 │   └── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
 │
-├── api/                        # 13 Vercel serverless functions (~6,400 lines)
+├── api/                        # 14 Vercel serverless functions (~6,560 lines)
 │   ├── _ai-router.js           # ★ Shared: multi-provider AI router (NOT an endpoint)
 │   ├── config.js               # Firebase config, API keys, phonetics, bug reports
 │   ├── policy-scan.js          # OCR document extraction via Gemini (260 lines)
@@ -162,7 +162,8 @@ npm run deploy:vercel   # Production deploy
 │   ├── kv-store.js             # Per-user Redis KV store
 │   ├── stripe.js               # Stripe checkout, portal, webhooks
 │   ├── admin.js                # User management (admin only)
-│   └── anthropic-proxy.js      # CORS proxy for Anthropic API
+│   ├── anthropic-proxy.js      # CORS proxy for Anthropic API
+│   └── hawksoft-logger.js      # AI call note formatter + HawkSoft log push (158 lines)
 │
 ├── chrome-extension/           # EZLynx bridge Chrome extension
 │   ├── manifest.json
@@ -865,6 +866,7 @@ In `js/cloud-sync.js`:
 | `/api/admin?action=list` | GET | Admin | List users |
 | `/api/admin?action=update` | POST | Admin | Update user role |
 | `/api/anthropic-proxy` | POST | Firebase | Anthropic CORS proxy |
+| `/api/hawksoft-logger` | POST | Security | AI call note formatter + HawkSoft log push |
 
 ---
 

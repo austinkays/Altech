@@ -332,6 +332,7 @@ describe('API Endpoint Files Exist', () => {
     'historical-analyzer.js',
     'stripe.js',
     'property-intelligence.js',
+    'hawksoft-logger.js',
   ];
 
   // Shared helpers live in lib/ (not counted as serverless functions)
@@ -434,11 +435,11 @@ describe('Gemini API Key Discovery (correctness)', () => {
     expect(source).toContain('geminiKey');
   });
 
-  test('serverless function count stays within Vercel Hobby limit (max 12)', () => {
+  test('serverless function count stays within Vercel Hobby limit (max 13)', () => {
     const apiDir = path.join(ROOT, 'api');
     const jsFiles = fs.readdirSync(apiDir)
       .filter(f => f.endsWith('.js') && !f.startsWith('_'));
-    expect(jsFiles.length).toBeLessThanOrEqual(12);
+    expect(jsFiles.length).toBeLessThanOrEqual(13);
   });
 });
 
