@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** February 28, 2026
+> **Last updated:** March 1, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -16,7 +16,7 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~702 lines) |
-| **CSS** | 20 files in `css/` (~13,900 lines total) |
+| **CSS** | 20 files in `css/` (~14,000 lines total) |
 | **JS** | 34 modules in `js/` (~27,200 lines total) |
 | **Plugins** | 14 HTML templates in `plugins/` (~4,900 lines total) |
 | **APIs** | 13 serverless functions in `api/` (~6,400 lines total) |
@@ -68,7 +68,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── main.css                # ★ Core styles + :root variables + desktop overhaul (3,416 lines) — THE source of truth
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (758 lines)
-│   ├── dashboard.css           # Bento grid dashboard widgets (909 lines)
+│   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
 │   ├── compliance.css          # CGL compliance dashboard (1,046 lines)
 │   ├── auth.css                # Auth modal + settings (973 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
@@ -105,7 +105,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (7 doc types, conflict resolution, 642 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs (968 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (716 lines)
@@ -659,6 +659,19 @@ KEY RULES:
 ---
 
 ## 10. Changelog of Known Issues & Fixes
+
+### Dashboard Layout Overhaul (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 37 | Layout | dashboard.css, index.html | Compliance widget promoted to 2-row hero (6col×2row) matching Reminders |
+| 38 | Layout | dashboard.css, index.html | Recent Clients widget expanded to 6col (was 3col, renamed from widget-drafts) |
+| 39 | Layout | dashboard.css | Quick Actions expanded to 6col with 6-button grid (added EZLynx + HawkSoft) |
+| 40 | Feature | dashboard-widgets.js | Compliance stat pills: Critical/Warning/Current/Total counts at a glance |
+| 41 | Feature | dashboard-widgets.js | Compliance shows 10 policies (was 6), with expiration dates, "View all" link |
+| 42 | Feature | dashboard-widgets.js | Compliance empty/all-clear states: helpful messages when no data or all current |
+| 43 | Feature | dashboard-widgets.js | Recent Clients shows 5 clients (was 3) with total count badge |
+| 44 | Feature | dashboard-widgets.js, dashboard.css | Client count badge, widget-empty-sub text, compliance-policy-more link styling |
 
 ### Bugs Fixed (February 2026 Audit)
 

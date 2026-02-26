@@ -229,11 +229,13 @@ window.DashboardWidgets = (() => {
         if (!container) return;
 
         let clients = [];
+        let totalClients = 0;
         try {
             const raw = localStorage.getItem('altech_client_history');
             if (raw) {
-                clients = JSON.parse(raw) || [];
-                clients = clients.slice(0, 3); // already sorted newest-first
+                const allClients = JSON.parse(raw) || [];
+                totalClients = allClients.length;
+                clients = allClients.slice(0, 5); // already sorted newest-first
             }
         } catch (e) { /* ignore */ }
 
@@ -243,12 +245,13 @@ window.DashboardWidgets = (() => {
                 <div class="widget-empty">
                     <div class="widget-empty-icon">${icon('user', 32)}</div>
                     <div class="widget-empty-text">No saved clients yet</div>
+                    <div class="widget-empty-sub">Complete a quote to see clients here</div>
                 </div>`;
         } else {
             listHtml = `<div class="client-list">${clients.map(c => {
                 const timeText = _relativeTime(c.savedAt);
                 const qType = (c.data && c.data.qType || '').toLowerCase();
-                const typeIcon = qType === 'home' ? icon('home', 14) : qType === 'auto' ? icon('car', 14) : qType === 'both' ? icon('home', 14) + icon('car', 14) : '';
+                const typeIcon = qType === 'home' ? icon('home', 14) : qType === 'auto' ? icon('car', 14) : qType === 'both' ? icon('home', 14) + icon('car', 14) : icon('user', 14);
                 return `<div class="client-row" onclick="App.loadClientFromHistory('${c.id}'); App.navigateTo('quoting');">
                     <div class="client-type-icon">${typeIcon}</div>
                     <div class="client-info">
@@ -260,9 +263,11 @@ window.DashboardWidgets = (() => {
             }).join('')}</div>`;
         }
 
+        const countLabel = totalClients > 0 ? `<span class="client-count-badge">${totalClients}</span>` : '';
+
         container.innerHTML = `
             <div class="widget-header">
-                <div class="widget-title">${icon('user', 16)} Recent Clients</div>
+                <div class="widget-title">${icon('user', 16)} Recent Clients ${countLabel}</div>
                 <button class="widget-action" onclick="App.navigateTo('quoting')">All Clients →</button>
             </div>
             ${listHtml}`;
@@ -274,13 +279,14 @@ window.DashboardWidgets = (() => {
         const container = document.getElementById('widgetCompliance');
         if (!container) return;
 
-        let warning = 0, critical = 0;
+        let warning = 0, critical = 0, totalPolicies = 0, okCount = 0;
         const flaggedPolicies = []; // collect policies needing attention
         try {
             const raw = localStorage.getItem('altech_cgl_cache');
             if (raw) {
                 const cached = JSON.parse(raw);
                 const policies = cached.policies || [];
+                totalPolicies = policies.length;
                 let verified = {}, dismissed = {};
                 const stateRaw = localStorage.getItem('altech_cgl_state');
                 if (stateRaw) {
@@ -302,6 +308,8 @@ window.DashboardWidgets = (() => {
                     } else if (days <= 30) {
                         warning++;
                         flaggedPolicies.push({ ...p, days, severity: 'warning' });
+                    } else {
+                        okCount++;
                     }
                 });
                 // Sort critical first, then by days ascending
@@ -312,27 +320,12 @@ window.DashboardWidgets = (() => {
             }
         } catch (e) { /* ignore */ }
 
-        let statusClass, indicatorClass, iconSvg, label, detail, severityClass;
+        let severityClass;
         if (critical > 0) {
-            statusClass = 'status-critical';
-            indicatorClass = 'status-critical';
-            iconSvg = icon('alertCircle', 22);
-            label = `${critical} ${critical === 1 ? 'policy needs' : 'policies need'} attention`;
-            detail = 'Expiring within 14 days';
             severityClass = 'severity-critical';
         } else if (warning > 0) {
-            statusClass = 'status-warning';
-            indicatorClass = 'status-warning';
-            iconSvg = icon('alertCircle', 22);
-            label = `${warning} ${warning === 1 ? 'policy' : 'policies'} expiring soon`;
-            detail = 'Expiring within 30 days';
             severityClass = 'severity-warning';
         } else {
-            statusClass = 'status-ok';
-            indicatorClass = 'status-ok';
-            iconSvg = icon('checkCircle', 22);
-            label = 'All policies current';
-            detail = 'No upcoming expirations';
             severityClass = 'severity-ok';
         }
 
@@ -340,10 +333,30 @@ window.DashboardWidgets = (() => {
         container.className = container.className.replace(/severity-\w+/g, '').trim();
         container.classList.add(severityClass);
 
+        // Stat pills (like reminders widget)
+        const statPillsHtml = `<div class="compliance-stats">
+            <div class="compliance-stat-pill ${critical > 0 ? 'stat-critical' : ''}">
+                <span class="stat-count">${critical}</span>
+                <span class="stat-label">Critical</span>
+            </div>
+            <div class="compliance-stat-pill ${warning > 0 ? 'stat-warning' : ''}">
+                <span class="stat-count">${warning}</span>
+                <span class="stat-label">Warning</span>
+            </div>
+            <div class="compliance-stat-pill stat-ok">
+                <span class="stat-count">${okCount}</span>
+                <span class="stat-label">Current</span>
+            </div>
+            <div class="compliance-stat-pill stat-total">
+                <span class="stat-count">${totalPolicies}</span>
+                <span class="stat-label">Total</span>
+            </div>
+        </div>`;
+
         // Build policy list HTML when there are flagged policies
         let policyListHtml = '';
         if (flaggedPolicies.length > 0) {
-            const rows = flaggedPolicies.slice(0, 6).map(p => {
+            const rows = flaggedPolicies.slice(0, 10).map(p => {
                 const rawName = _escapeHTML(p.clientName || p.businessName || p.insuredName || p.namedInsured || 'Unknown Insured');
                 const hsId = p.hawksoftId || p.clientNumber;
                 let nameHtml;
@@ -365,28 +378,33 @@ window.DashboardWidgets = (() => {
                     <div class="compliance-policy-severity ${p.severity}"></div>
                     <div class="compliance-policy-info">
                         <div class="compliance-policy-name">${nameHtml}</div>
-                        <div class="compliance-policy-number">${num}</div>
+                        <div class="compliance-policy-number">${num} · Exp ${_escapeHTML(expText)}</div>
                     </div>
                     <div class="compliance-policy-exp ${p.severity}">${_escapeHTML(daysText)}</div>
                 </div>`;
             }).join('');
-            const moreCount = flaggedPolicies.length > 6 ? flaggedPolicies.length - 6 : 0;
-            const moreHtml = moreCount > 0 ? `<div class="compliance-policy-more">+${moreCount} more</div>` : '';
+            const moreCount = flaggedPolicies.length > 10 ? flaggedPolicies.length - 10 : 0;
+            const moreHtml = moreCount > 0 ? `<div class="compliance-policy-more">+${moreCount} more — <a href="#" onclick="event.preventDefault(); App.navigateTo('compliance')">View all</a></div>` : '';
             policyListHtml = `<div class="compliance-policy-list">${rows}${moreHtml}</div>`;
+        } else if (totalPolicies === 0) {
+            policyListHtml = `<div class="widget-empty">
+                <div class="widget-empty-icon">${icon('shieldCheck', 32)}</div>
+                <div class="widget-empty-text">No compliance data yet</div>
+                <div class="widget-empty-sub">Sign in to sync CGL policies from HawkSoft</div>
+            </div>`;
+        } else {
+            policyListHtml = `<div class="compliance-all-clear">
+                ${icon('checkCircle', 20)}
+                <span>All ${totalPolicies} policies are current — no expirations within 30 days</span>
+            </div>`;
         }
 
         container.innerHTML = `
             <div class="widget-header">
-                <div class="widget-title">${icon('shieldCheck', 16)} Compliance</div>
-                <button class="widget-action" onclick="App.navigateTo('compliance')">Details →</button>
+                <div class="widget-title">${icon('shieldCheck', 16)} CGL Compliance</div>
+                <button class="widget-action" onclick="App.navigateTo('compliance')">Full Dashboard →</button>
             </div>
-            <div class="compliance-status">
-                <div class="compliance-indicator ${indicatorClass}">${iconSvg}</div>
-                <div class="compliance-text">
-                    <div class="compliance-label">${_escapeHTML(label)}</div>
-                    <div class="compliance-detail">${_escapeHTML(detail)}</div>
-                </div>
-            </div>
+            ${statPillsHtml}
             ${policyListHtml}`;
     }
 
@@ -472,6 +490,14 @@ window.DashboardWidgets = (() => {
                     ${icon('messageCircle', 22)}
                     <span class="quick-action-label">Policy Q&A</span>
                 </button>
+                <button class="quick-action-btn" onclick="App.navigateTo('ezlynx')">
+                    ${icon('zap', 22)}
+                    <span class="quick-action-label">EZLynx</span>
+                </button>
+                <button class="quick-action-btn" onclick="App.navigateTo('hawksoft')">
+                    ${icon('upload', 22)}
+                    <span class="quick-action-label">HawkSoft</span>
+                </button>
             </div>`;
     }
 
@@ -483,7 +509,7 @@ window.DashboardWidgets = (() => {
 
         // Tools that are NOT already shown as widgets or quick actions
         const widgetKeys = new Set(['reminders', 'compliance']);
-        const quickActionKeys = new Set(['quoting', 'intake', 'prospect', 'qna']);
+        const quickActionKeys = new Set(['quoting', 'intake', 'prospect', 'qna', 'ezlynx', 'hawksoft']);
         const toolConfig = (typeof App !== 'undefined' && App.toolConfig) ? App.toolConfig : [];
 
         const launchTools = toolConfig.filter(t => !t.hidden && !widgetKeys.has(t.key) && !quickActionKeys.has(t.key));
