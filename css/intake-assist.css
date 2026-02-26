@@ -2,9 +2,18 @@
 
 /* ═══ Layout ═══ */
 
+/* Make the plugin container a flex column so .ia-main fills remaining space */
+#intakeTool.plugin-container.active {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--header-height, 56px));
+    overflow: hidden;
+}
+
 .ia-main {
     padding: 0;
-    height: calc(100vh - 56px); /* below header */
+    flex: 1;
+    min-height: 0; /* allow shrinking inside flex parent */
     overflow: hidden;
 }
 
@@ -768,8 +777,9 @@ body.dark-mode .ia-sidebar-card {
 }
 
 @media (max-width: 767px) {
-    .ia-main {
-        height: calc(100vh - 56px - 44px); /* header + tab bar */
+    #intakeTool.plugin-container.active {
+        /* account for the mobile tab bar (44px) */
+        height: calc(100dvh - var(--header-height, 56px) - 44px);
     }
     .ia-chat-pane { padding: 8px; }
     .ia-sidebar-pane { padding: 8px; }

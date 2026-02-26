@@ -72,7 +72,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── compliance.css          # CGL compliance dashboard (1,046 lines)
 │   ├── auth.css                # Auth modal + settings (973 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
-│   ├── intake-assist.css       # AI intake professional UI — pill chips, circular buttons, focus rings (1,014 lines)
+│   ├── intake-assist.css       # AI intake professional UI — pill chips, circular buttons, focus rings (1,161 lines)
 │   ├── ezlynx.css              # EZLynx export — standalone dark palette (590 lines)
 │   ├── vin-decoder.css         # VIN decoder (600 lines)
 │   ├── hawksoft.css            # HawkSoft export (555 lines)
