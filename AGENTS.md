@@ -149,7 +149,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── call-logger.html        # AI call logger (39 lines)
 │   └── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
 │
-├── api/                        # 14 Vercel serverless functions (~6,560 lines)
+├── api/                        # 12 serverless functions + 2 helpers (~6,560 lines) ⚠️ Hobby plan MAX = 12 functions
 │   ├── _ai-router.js           # ★ Shared: multi-provider AI router (NOT an endpoint)
 │   ├── config.js               # Firebase config, API keys, phonetics, bug reports
 │   ├── policy-scan.js          # OCR document extraction via Gemini (260 lines)
@@ -473,6 +473,18 @@ Tests run in JSDOM, which lacks:
 - 3 CSS files use legacy `.dark-mode` instead of `body.dark-mode` (see §3.3)
 - 4 plugins use their own hardcoded color palettes (see §3.6)
 
+### 5.10 Vercel Hobby Plan — 12 Serverless Function Limit (CRITICAL)
+
+**Vercel's Hobby plan allows a maximum of 12 Serverless Functions per deployment.** Exceeding this causes the entire deployment to fail with "No more than 12 Serverless Functions can be added to a Deployment on the Hobby plan" — which means ALL API endpoints return 404 in production, not just the new one.
+
+**Current count: 12 functions (at the limit).** Any new API endpoint MUST either:
+1. **Consolidate into an existing function** using query-parameter routing (e.g., `?mode=newFeature` or `?type=newFeature`)
+2. **Convert an existing function to a helper** by prefixing with `_` (e.g., `_helper.js`) and importing it from another function
+
+**Files prefixed with `_` in `api/` are Vercel helpers** — they are NOT counted as serverless functions and NOT deployed as endpoints. Currently: `_ai-router.js` (shared AI router) and `_rag-interpreter.js` (routed via `property-intelligence.js?mode=rag-interpret`).
+
+**Before adding any new file to `api/`:** Count non-`_` files: `ls api/ | grep -v '^_' | wc -l` — must be ≤ 12.
+
 ---
 
 ## 6. Security Rules & Authentication
@@ -610,6 +622,8 @@ KEY RULES:
     QUICKREF.md — line counts, test counts, descriptions, date. Run: npm run audit-docs
 12. ALWAYS keep changes — never leave edits pending user confirmation
 13. ALWAYS commit & push when finishing a task — stage all files, commit, git push
+14. Vercel Hobby plan: MAX 12 serverless functions. Never add a new api/ file without
+    checking the count. Use ?mode= routing or _ prefix helpers to consolidate. See §5.10
 ```
 
 ---
@@ -631,6 +645,7 @@ KEY RULES:
 - [ ] **No hardcoded API keys:** Search for API key strings — they should be in env vars only
 - [ ] **XSS check:** Any user/AI-generated content displayed in HTML uses `escapeHTML()` or equivalent
 - [ ] **Memory check:** Open DevTools Memory tab, run scan/analyze flow, verify no canvas/ImageBitmap leaks
+- [ ] **Serverless function count ≤ 12:** Count non-`_` files in `api/` — Vercel Hobby plan max is 12. If over, consolidate via `?mode=` routing or `_` prefix helper pattern (see §5.10)
 - [ ] **Docs updated:** Run `npm run audit-docs` — fix any stale line counts, test counts, or descriptions in AGENTS.md, .github/copilot-instructions.md, and QUICKREF.md. Update the `Last updated` date.
 
 ### Vercel Environment Variables Required

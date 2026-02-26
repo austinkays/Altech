@@ -157,7 +157,21 @@ Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously'
 
 **DO:** Use exact CSS variable names (`--bg-card` not `--card`) · Keep field IDs stable · Test all 3 workflows when changing steps · Test all 3 export types · Use `|| ''` fallbacks in exports · Call `CloudSync.schedulePush()` after localStorage writes · Always use `App.save()` for form data writes · Update AGENTS.md + copilot-instructions.md + QUICKREF.md after every work session
 
-**DON'T:** Change `altech_v6` storage key without migration · Use rgba with opacity < 0.1 for dark mode backgrounds · Hardcode API keys · Skip `escapeXML()` for XML output · Use `var(--accent)` or `var(--muted)` (they don't exist) · Write to `altech_v6` directly (bypasses encryption)
+**DON'T:** Change `altech_v6` storage key without migration · Use rgba with opacity < 0.1 for dark mode backgrounds · Hardcode API keys · Skip `escapeXML()` for XML output · Use `var(--accent)` or `var(--muted)` (they don't exist) · Write to `altech_v6` directly (bypasses encryption) · Add a new file to `api/` without checking the serverless function count (see below)
+
+---
+
+## ⚠️ Vercel Hobby Plan — 12 Serverless Function Limit (CRITICAL)
+
+Vercel's Hobby plan allows **max 12 Serverless Functions** per deployment. Exceeding this causes the **entire deployment to fail** — ALL API endpoints return 404, not just the new one.
+
+**Current count: 12 functions (AT THE LIMIT).** To add a new endpoint:
+1. **Consolidate** into an existing function using `?mode=` or `?type=` query-param routing
+2. **Convert** an existing function to a helper by prefixing with `_` (e.g., `_helper.js`)
+
+Files prefixed with `_` in `api/` are NOT counted as serverless functions. Current helpers: `_ai-router.js`, `_rag-interpreter.js`.
+
+**Before adding any file to `api/`:** `ls api/ | grep -v '^_' | wc -l` — must be ≤ 12.
 
 ---
 
