@@ -14,7 +14,7 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~702 lines), 20 CSS files in `css/` (~14,000 lines), 34 JS modules in `js/` (~27,250 lines), 14 plugin HTML files in `plugins/`, 13 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~707 lines), 21 CSS files in `css/` (~14,200 lines), 35 JS modules in `js/` (~27,400 lines), 15 plugin HTML files in `plugins/`, 13 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
 > **Full documentation:** See [AGENTS.md](../AGENTS.md) (869 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
@@ -32,7 +32,7 @@ Tools are registered in `toolConfig` array in `js/app-init.js`. Each entry has: 
 
 **Categories:** `quoting` | `export` | `docs` | `ops`
 
-**Current plugins (14):** quoting (Personal Lines), intake (AI Intake), qna (Policy Q&A), quotecompare, ezlynx, hawksoft, coi (hidden), compliance (CGL), reminders, prospect, email, accounting, quickref, vindecoder.
+**Current plugins (15):** quoting (Personal Lines), intake (AI Intake), qna (Policy Q&A), quotecompare, ezlynx, hawksoft, coi (hidden), compliance (CGL), reminders, prospect, email, accounting, quickref, vindecoder, calllogger (AI Call Logger).
 
 **Adding a new plugin requires 5 files/edits:**
 1. `js/your-plugin.js` — IIFE module on `window.YourModule` (see `js/reminders.js` for pattern)

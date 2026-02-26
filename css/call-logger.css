@@ -1,0 +1,209 @@
+/* ═══════════════════════════════════════════════════
+   Call Logger — AI call note formatter + HawkSoft log
+   ═══════════════════════════════════════════════════ */
+
+.cl-container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 20px;
+}
+
+.cl-form {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.cl-field {
+    margin-bottom: 20px;
+}
+
+.cl-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cl-input,
+.cl-select {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s var(--transition-smooth),
+                box-shadow 0.2s var(--transition-smooth);
+    box-sizing: border-box;
+}
+
+.cl-input:focus-visible,
+.cl-select:focus-visible {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+.cl-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A6E65' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+}
+
+.cl-textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 14px 16px;
+    font-size: 15px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    line-height: 1.6;
+    color: var(--text);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    resize: vertical;
+    transition: border-color 0.2s var(--transition-smooth),
+                box-shadow 0.2s var(--transition-smooth);
+    box-sizing: border-box;
+}
+
+.cl-textarea:focus-visible {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+.cl-textarea::placeholder {
+    color: var(--text-tertiary);
+    font-family: inherit;
+}
+
+/* ── Submit Button ── */
+
+.cl-submit-btn {
+    display: block;
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--apple-blue);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s var(--transition-smooth),
+                transform 0.15s var(--transition-spring),
+                opacity 0.2s;
+}
+
+.cl-submit-btn:hover:not(:disabled) {
+    background: var(--apple-blue-hover);
+    transform: translateY(-1px);
+}
+
+.cl-submit-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.cl-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.cl-submit-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
+}
+
+/* ── Preview Area ── */
+
+.cl-preview {
+    margin-top: 20px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--apple-blue);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.cl-preview-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.cl-preview-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cl-preview-text {
+    padding: 16px;
+    margin: 0;
+    font-size: 14px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    line-height: 1.6;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* ── Dark Mode ── */
+
+body.dark-mode .cl-submit-btn {
+    color: #fff;
+}
+
+body.dark-mode .cl-select {
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2398989D' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* ── Responsive ── */
+
+@media (min-width: 960px) {
+    .cl-container {
+        padding: 32px 24px;
+    }
+
+    .cl-form {
+        padding: 32px;
+    }
+
+    .cl-textarea {
+        min-height: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cl-container {
+        padding: 16px 12px;
+    }
+
+    .cl-form {
+        padding: 16px;
+        border-radius: 10px;
+    }
+
+    .cl-textarea {
+        min-height: 120px;
+        font-size: 14px;
+    }
+
+    .cl-submit-btn {
+        font-size: 15px;
+        padding: 12px 16px;
+    }
+}

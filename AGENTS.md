@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~702 lines) |
-| **CSS** | 20 files in `css/` (~14,000 lines total) |
-| **JS** | 34 modules in `js/` (~27,200 lines total) |
-| **Plugins** | 14 HTML templates in `plugins/` (~4,900 lines total) |
+| **CSS** | 21 files in `css/` (~14,200 lines total) |
+| **JS** | 35 modules in `js/` (~27,400 lines total) |
+| **Plugins** | 15 HTML templates in `plugins/` (~4,950 lines total) |
 | **APIs** | 13 serverless functions in `api/` (~6,400 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -69,6 +69,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (758 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
+│   ├── call-logger.css         # Call logger plugin (196 lines)
 │   ├── compliance.css          # CGL compliance dashboard (1,046 lines)
 │   ├── auth.css                # Auth modal + settings (973 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
@@ -121,6 +122,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (773 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (702 lines)
 │   ├── accounting-export.js     # Trust deposit calculator, HawkSoft receipts (337 lines)
+│   ├── call-logger.js           # AI call note formatter + HawkSoft logger (153 lines)
 │   │
 │   │  ★ Support Modules
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (369 lines)
@@ -144,6 +146,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.html              # Email composer (98 lines)
 │   ├── qna.html                # Policy Q&A chat (95 lines)
 │   ├── quickref.html           # Quick reference cards (79 lines)
+│   ├── call-logger.html        # AI call logger (39 lines)
 │   └── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
 │
 ├── api/                        # 13 Vercel serverless functions (~6,400 lines)
