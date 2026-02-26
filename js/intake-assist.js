@@ -2805,8 +2805,13 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         const full = _getLastAiMessage();
         if (!full) return null;
 
+        // Strip JSON code blocks — the AI appends structured data after every reply
+        // that must not be matched against for chip suggestions
+        const stripped = full.replace(/```(?:json)?\s*[\s\S]*?```/g, '').trim();
+        if (!stripped) return null;
+
         // Split on double-newline (paragraph break) and take the last non-empty paragraph
-        const paragraphs = full.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+        const paragraphs = stripped.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
         if (paragraphs.length > 1) {
             // Take the last paragraph — that's the new question
             return paragraphs[paragraphs.length - 1];
@@ -2814,14 +2819,14 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         // Single paragraph — try splitting on sentence boundaries after confirmations
         // Look for the last question sentence (ends with ?)
-        const sentences = full.split(/(?<=[.!])\s+/);
+        const sentences = stripped.split(/(?<=[.!])\s+/);
         const questionSentences = sentences.filter(s => s.trim().endsWith('?'));
         if (questionSentences.length > 0) {
             return questionSentences[questionSentences.length - 1];
         }
 
-        // Fallback: return the full message
-        return full;
+        // Fallback: return the full message (minus JSON)
+        return stripped;
     }
 
     /** Determine which chips to show based on conversation state */
