@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** February 27, 2026
+> **Last updated:** February 28, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -86,49 +86,49 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.css               # Email composer — purple accent (165 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
-├── js/                         # 34 modules (~29,300 lines)
+├── js/                         # 34 modules (~27,250 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
-│   ├── app-init.js             # State init, toolConfig[], workflows (89 lines)
-│   ├── app-core.js             # Form handling, save/load, updateUI, navigation (2,336 lines)
-│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,761 lines)
-│   ├── app-property.js         # Property analysis, maps, assessor data (1,727 lines)
-│   ├── app-vehicles.js         # Vehicle/driver management, DL scanning (843 lines)
-│   ├── app-popups.js           # Vision processing, hazard detection, popups (1,446 lines)
-│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, scan schema (973 lines)
-│   ├── app-quotes.js           # Quote/draft management (756 lines)
-│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts (286 lines)
+│   ├── app-init.js             # State init, toolConfig[], workflows (85 lines)
+│   ├── app-core.js             # Form handling, save/load, updateUI, navigation (2,125 lines)
+│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,569 lines)
+│   ├── app-property.js         # Property analysis, maps, assessor data (1,585 lines)
+│   ├── app-vehicles.js         # Vehicle/driver management, DL scanning (788 lines)
+│   ├── app-popups.js           # Vision processing, hazard detection, popups (1,405 lines)
+│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, scan schema (894 lines)
+│   ├── app-quotes.js           # Quote/draft management (694 lines)
+│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts (265 lines)
 │   │
 │   │  ★ Infrastructure
 │   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
 │   ├── firebase-config.js      # Firebase app init (fetches config from /api/config)
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
-│   ├── cloud-sync.js           # Firestore sync (7 doc types, conflict resolution, 724 lines)
+│   ├── cloud-sync.js           # Firestore sync (7 doc types, conflict resolution, 642 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
 │   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
-│   ├── coi.js                  # ACORD 25 COI PDF generator (788 lines)
-│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence (2,106 lines)
-│   ├── email-composer.js       # AI email polisher, encrypted drafts (423 lines)
-│   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,061 lines)
-│   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,703 lines)
-│   ├── intake-assist.js         # AI conversational intake, maps, progress ring (2,476 lines)
-│   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,036 lines)
-│   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,858 lines)
-│   ├── quick-ref.js             # NATO phonetic + agent ID cards (292 lines)
-│   ├── quote-compare.js         # Quote comparison + AI recommendation (888 lines)
-│   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (883 lines)
-│   ├── vin-decoder.js           # VIN decoder with NHTSA API (776 lines)
-│   ├── accounting-export.js     # Trust deposit calculator, HawkSoft receipts (391 lines)
+│   ├── coi.js                  # ACORD 25 COI PDF generator (716 lines)
+│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence (1,881 lines)
+│   ├── email-composer.js       # AI email polisher, encrypted drafts (359 lines)
+│   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (972 lines)
+│   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,600 lines)
+│   ├── intake-assist.js         # AI conversational intake, maps, progress ring (2,771 lines)
+│   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (914 lines)
+│   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,646 lines)
+│   ├── quick-ref.js             # NATO phonetic + agent ID cards (261 lines)
+│   ├── quote-compare.js         # Quote comparison + AI recommendation (788 lines)
+│   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (773 lines)
+│   ├── vin-decoder.js           # VIN decoder with NHTSA API (702 lines)
+│   ├── accounting-export.js     # Trust deposit calculator, HawkSoft receipts (337 lines)
 │   │
 │   │  ★ Support Modules
-│   ├── onboarding.js            # 4-step first-run wizard, invite codes (412 lines)
-│   ├── paywall.js               # Stripe paywall (beta, disabled) (228 lines)
-│   ├── admin-panel.js           # User management admin panel (245 lines)
-│   ├── bug-report.js            # GitHub Issue bug reporter (259 lines)
-│   ├── data-backup.js           # Import/export all data + keyboard shortcuts (131 lines)
-│   └── hawksoft-integration.js  # HawkSoft REST API client (260 lines)
+│   ├── onboarding.js            # 4-step first-run wizard, invite codes (369 lines)
+│   ├── paywall.js               # Stripe paywall (beta, disabled) (199 lines)
+│   ├── admin-panel.js           # User management admin panel (203 lines)
+│   ├── bug-report.js            # GitHub Issue bug reporter (223 lines)
+│   ├── data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
+│   └── hawksoft-integration.js  # HawkSoft REST API client (230 lines)
 │
 ├── plugins/                    # 14 HTML templates (loaded dynamically)
 │   ├── quoting.html            # ★ Main intake wizard — 7 steps, 2,026 lines
@@ -699,6 +699,17 @@ KEY RULES:
 | 28 | MEDIUM | policy-scan.js | Server API schema synced with client `_getScanSchema()` — added ~40 missing fields |
 | 29 | MEDIUM | policy-scan.js | Server system prompt updated with CRITICAL FORMATTING RULES section + gender M/F instruction |
 | 30 | MEDIUM | policy-scan.js | Server user prompt expanded with safety/protection, claims/violations, additional field categories |
+
+### Login innerHTML Null Guard Fixes (February 2026)
+
+| # | Severity | File | Fix Description |
+|---|----------|------|-----------------|
+| 31 | CRITICAL | cloud-sync.js | `App.load()` called without `await` in `pullFromCloud()` — errors became unhandled rejections. Now properly awaited so errors are caught by outer try-catch |
+| 32 | HIGH | app-core.js | `document.getElementById('mainContainer').scrollTo(0,0)` in `updateUI()` — null crash when quoting plugin not loaded. Now null-guarded |
+| 33 | HIGH | app-core.js | Encrypted load path (`CryptoHelper.decrypt` + `applyData`) had no try-catch — errors propagated as unhandled rejections. Now wrapped in try-catch |
+| 34 | MEDIUM | app-boot.js | Enhanced `unhandledrejection` handler to log `e.reason?.stack` instead of just `e.reason` for better debugging |
+| 35 | MEDIUM | compliance-dashboard.js | Added null guards to `cglLastFetch`, loading/error/tableContainer, `cglTableBody`, `cglHiddenCount`, `cglFilteredCount`, `cglTotalCount` innerHTML assignments |
+| 36 | MEDIUM | email-composer.js | Added null guards to `emailComposeBtn`, `emailOutputCard`, `emailOutputText` innerHTML/textContent in `compose()` and its catch/finally blocks |
 
 ### CSS Fixes Applied (February 2026 Audit)
 
