@@ -166,7 +166,7 @@ priorCarrier, priorYears, priorLapse
 | `js/crypto-helper.js` | 🔴 | Encryption for all user data — any bug → data loss or plaintext leak |
 | `js/app-boot.js` | 🟡 | Boot sequence — if it fails, entire app doesn't load |
 | `js/auth.js` | 🟡 | Authentication + `apiFetch()` used by most plugins |
-| `css/main.css` | 🟡 | 3,404 lines, :root variable source of truth, 100+ dark mode selectors, desktop layout overhaul |
+| `css/main.css` | 🟡 | 3,416 lines, :root variable source of truth, 100+ dark mode selectors, desktop layout overhaul |
 | `plugins/quoting.html` | 🟡 | 2,026 lines, all form field IDs — renaming breaks persistence |
 | `js/compliance-dashboard.js` | 🟡 | 2,106 lines, 6-layer persistence, complex merge logic |
 

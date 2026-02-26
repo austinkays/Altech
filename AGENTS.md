@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** February 25, 2026
+> **Last updated:** February 26, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -16,7 +16,7 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~702 lines) |
-| **CSS** | 20 files in `css/` (~13,800 lines total) |
+| **CSS** | 20 files in `css/` (~13,900 lines total) |
 | **JS** | 34 modules in `js/` (~27,200 lines total) |
 | **Plugins** | 14 HTML templates in `plugins/` (~4,900 lines total) |
 | **APIs** | 13 serverless functions in `api/` (~6,400 lines total) |
@@ -64,11 +64,11 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 20 stylesheets (~12,400 lines)
-│   ├── main.css                # ★ Core styles + :root variables + desktop overhaul (3,404 lines) — THE source of truth
+├── css/                        # 20 stylesheets (~12,500 lines)
+│   ├── main.css                # ★ Core styles + :root variables + desktop overhaul (3,416 lines) — THE source of truth
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
-│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (741 lines)
-│   ├── dashboard.css           # Bento grid dashboard widgets (889 lines)
+│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (758 lines)
+│   ├── dashboard.css           # Bento grid dashboard widgets (909 lines)
 │   ├── compliance.css          # CGL compliance dashboard (1,046 lines)
 │   ├── auth.css                # Auth modal + settings (973 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
@@ -709,6 +709,7 @@ KEY RULES:
 | Missing focus states | email.css, quickref.css, onboarding.css, compliance.css, bug-report.css | Added `:focus-visible` outlines/box-shadows |
 | AI Intake UI overhaul | intake-assist.css | Professional redesign: pill-shaped chips with colored tints, 1px card borders with subtle shadows, transparent card headers, circular send/upload buttons, focus glow rings, tighter layout padding, full dark mode coverage |
 | Desktop-first layout overhaul | main.css (+350 lines), reminders.css, hawksoft.css, accounting.css, email.css, quickref.css, vin-decoder.css, quote-compare.css, compliance.css | Quoting wizard: centered max-width container (960→1080→1200px), multi-column step layouts (steps 0/4/6), constrained footer, denser form grids, scan actions horizontal, wider modals. All plugins: desktop padding/spacing/grid enhancements. Generic `plugin-container > main/header` constraint at 1100px. Prospect content cap at 1000px. Footer sidebar-aware offset. |
+| Mobile dark mode visibility | main.css, dashboard.css, sidebar.css | Cards/widgets: border opacity 6%→10-12%, depth shadows added. Mobile `<767px`: `.app-content` bg `#0D0D0D` (lifts off pure black), header/bottom-nav solid bg + visible borders, widget accent stripes 50%→70% opacity, ambient orbs boosted, bento grid gap tightened to 12px. Footer border made visible in dark mode. |
 
 ### Known Issues NOT Fixed (Intentional / Cosmetic)
 
