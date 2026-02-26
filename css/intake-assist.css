@@ -6,7 +6,7 @@
 #intakeTool.plugin-container.active {
     display: flex;
     flex-direction: column;
-    height: calc(100dvh - var(--header-height, 56px));
+    height: 100%;
     overflow: hidden;
 }
 
@@ -14,6 +14,15 @@
     padding: 0;
     flex: 1;
     min-height: 0; /* allow shrinking inside flex parent */
+    overflow: hidden;
+}
+
+/* Lock the parent chain so the viewport doesn't scroll when intake is active */
+.app-shell:has(#intakeTool.active) .app-main {
+    height: 100dvh;
+    max-height: 100dvh;
+}
+.app-shell:has(#intakeTool.active) .app-content {
     overflow: hidden;
 }
 
@@ -777,10 +786,6 @@ body.dark-mode .ia-sidebar-card {
 }
 
 @media (max-width: 767px) {
-    #intakeTool.plugin-container.active {
-        /* account for the mobile tab bar (44px) */
-        height: calc(100dvh - var(--header-height, 56px) - 44px);
-    }
     .ia-chat-pane { padding: 8px; }
     .ia-sidebar-pane { padding: 8px; }
 }
