@@ -17,13 +17,23 @@
     overflow: hidden;
 }
 
-/* Lock the parent chain so the viewport doesn't scroll when intake is active */
+/* Lock the parent chain so the viewport doesn't scroll when intake is active.
+   The height must propagate unbroken from .app-main → .app-content → #pluginViewport → #intakeTool.
+   .app-content is normally a block element, so #pluginViewport has no definite height
+   and #intakeTool's height:100% resolves to auto (content height → clipped).
+   Fix: make .app-content a flex column so #pluginViewport stretches to fill it. */
 .app-shell:has(#intakeTool.active) .app-main {
     height: 100dvh;
     max-height: 100dvh;
 }
 .app-shell:has(#intakeTool.active) .app-content {
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.app-shell:has(#intakeTool.active) .plugin-viewport {
+    flex: 1;
+    min-height: 0;
 }
 
 .ia-layout {
