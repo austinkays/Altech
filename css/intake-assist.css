@@ -23,42 +23,39 @@
    and #intakeTool's height:100% resolves to auto (content height → clipped).
    Fix: make .app-content a flex column so #pluginViewport stretches to fill it.
 
-   On mobile (<768px) there is a fixed bottom nav (56px + safe-area), the app-header is 56px,
-   and there is no sidebar. We must account for those when locking the height. */
+   These rules are NOT media-query-gated — the height chain must hold at every width.
+   Only viewport-specific tweaks (hiding mobile nav, padding resets) are inside MQs. */
 
-/* ── Desktop / Tablet (≥768px): sidebar present, no bottom nav ── */
-@media (min-width: 768px) {
-    .app-shell:has(#intakeTool.active) .app-main {
-        height: 100dvh;
-        max-height: 100dvh;
-    }
-    .app-shell:has(#intakeTool.active) .app-content {
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-    .app-shell:has(#intakeTool.active) .plugin-viewport {
-        flex: 1;
-        min-height: 0;
+/* ── Height chain fix (all viewports) ── */
+.app-shell:has(#intakeTool.active) .app-main {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+.app-shell:has(#intakeTool.active) .app-content {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.app-shell:has(#intakeTool.active) .plugin-viewport {
+    flex: 1;
+    min-height: 0;
+}
+
+/* At 768–1023px the sidebar is off-screen (position:fixed, left:-260px) but
+   body.sidebar-collapsed .app-shell still sets a 64px ghost column via higher
+   specificity. Override that so the main content fills the full width. */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .app-shell:has(#intakeTool.active) {
+        grid-template-columns: 1fr !important;
     }
 }
 
-/* ── Mobile (<768px): no sidebar, bottom nav present ── */
+/* ── Mobile tweaks (<768px) ── */
 @media (max-width: 767px) {
-    .app-shell:has(#intakeTool.active) .app-main {
-        height: 100dvh;
-        max-height: 100dvh;
-    }
     .app-shell:has(#intakeTool.active) .app-content {
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
         /* Remove the normal bottom-nav padding — we handle it inside the chat input row */
         padding-bottom: 0;
-    }
-    .app-shell:has(#intakeTool.active) .plugin-viewport {
-        flex: 1;
-        min-height: 0;
     }
 
     /* Hide the mobile bottom nav when AI Intake is active —
