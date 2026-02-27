@@ -98,7 +98,7 @@ async function handler(req, res) {
     // Step 2: Get list of changed clients
     console.log('[Compliance] Fetching client list from HawkSoft...');
     const changedClientsResponse = await fetch(
-      `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients?version=${API_VERSION}&asOf=${asOfDate}&include=Policies`,
+      `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients?version=${API_VERSION}&asOf=${asOfDate}&include=Policies,People`,
       {
         method: 'GET',
         headers: {
@@ -153,7 +153,7 @@ async function handler(req, res) {
 
       const promises = chunk.map(batch =>
         fetch(
-          `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients?version=${API_VERSION}&include=Policies`,
+          `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients?version=${API_VERSION}&include=Policies,People`,
           {
             method: 'POST',
             headers: {
@@ -187,6 +187,25 @@ async function handler(req, res) {
       global.__complianceProgress = { chunk: totalChunks, totalChunks, phase: 'done', startedAt: global.__complianceProgress?.startedAt || Date.now() };
     }
 
+    // Log sample client structure for debugging name resolution
+    const sampleClient = allClients.find(c => c.policies?.length > 0);
+    if (sampleClient) {
+      console.log('[Compliance] Sample client structure:', JSON.stringify({
+        clientNumber: sampleClient.clientNumber,
+        hasDetails: !!sampleClient.details,
+        companyName: sampleClient.details?.companyName || null,
+        dbaName: sampleClient.details?.dbaName || null,
+        hasPeople: !!sampleClient.people,
+        peopleCount: sampleClient.people?.length || 0,
+        firstPerson: sampleClient.people?.[0] ? {
+          firstName: sampleClient.people[0].firstName,
+          lastName: sampleClient.people[0].lastName,
+          keys: Object.keys(sampleClient.people[0])
+        } : null,
+        topLevelKeys: Object.keys(sampleClient)
+      }));
+    }
+
     // Step 3: Extract and filter General Liability policies
     const compliancePolicies = [];
     const allPolicies = [];  // All policy types (commercial + personal) for Call Logger
@@ -202,6 +221,10 @@ async function handler(req, res) {
     let glNoExpDate = 0;         // Matches without expiration date
     let glExpiredOver90 = 0;     // Matches expired more than 30 days ago
     const policyTypesFound = new Set();
+    let nameFromCompany = 0;     // Name came from companyName
+    let nameFromDba = 0;         // Name came from dbaName
+    let nameFromPeople = 0;      // Name came from client.people[]
+    let nameFromFallback = 0;    // Fell back to "Client #XXX"
 
     for (const client of allClients) {
       if (!client.policies || client.policies.length === 0) continue;
@@ -224,10 +247,21 @@ async function handler(req, res) {
       });
 
       // Compute client name once for this client (used by both allPolicies and compliancePolicies)
-      const clientName = client.details?.companyName ||
-                        client.details?.dbaName ||
-                        (client.people && client.people[0] ? `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim() : '') ||
-                        `Client #${client.clientNumber}`;
+      // Priority: companyName → dbaName → first person's full name → client number fallback
+      let clientName;
+      if (client.details?.companyName) {
+        clientName = client.details.companyName;
+        nameFromCompany++;
+      } else if (client.details?.dbaName) {
+        clientName = client.details.dbaName;
+        nameFromDba++;
+      } else if (client.people && client.people[0] && `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim()) {
+        clientName = `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim();
+        nameFromPeople++;
+      } else {
+        clientName = `Client #${client.clientNumber}`;
+        nameFromFallback++;
+      }
 
       // Build allPolicies entries for ALL non-cancelled policies (all lines of business)
       // Used by Call Logger for client/policy autocomplete — include personal lines too.
@@ -377,6 +411,28 @@ async function handler(req, res) {
     console.log(`[Compliance]   ↳ Personal:   ${personalPolicies.length} policies, ${personalClientNames.size} unique clients`);
     console.log(`[Compliance]   ↳ Total unique clients: ${allClientNames.size}`);
     console.log(`[Compliance]   ↳ Policy type breakdown:`, policyTypeBreakdown);
+    console.log(`[Compliance] Name Resolution:`);
+    console.log(`[Compliance]   ↳ From companyName: ${nameFromCompany}`);
+    console.log(`[Compliance]   ↳ From dbaName: ${nameFromDba}`);
+    console.log(`[Compliance]   ↳ From people[]: ${nameFromPeople}`);
+    console.log(`[Compliance]   ↳ Fallback (Client #XXX): ${nameFromFallback}`);
+    if (nameFromFallback > 0) {
+      // Log some sample clients that fell back to show why
+      const fallbackClients = allClients.filter(c => {
+        const name = c.details?.companyName || c.details?.dbaName ||
+          (c.people && c.people[0] ? `${c.people[0].firstName || ''} ${c.people[0].lastName || ''}`.trim() : '');
+        return !name;
+      }).slice(0, 3);
+      for (const fc of fallbackClients) {
+        console.log(`[Compliance]   ↳ Fallback sample (client #${fc.clientNumber}):`, JSON.stringify({
+          details: fc.details ? { companyName: fc.details.companyName, dbaName: fc.details.dbaName } : null,
+          hasPeople: !!fc.people,
+          peopleLength: fc.people?.length || 0,
+          person0: fc.people?.[0] ? { firstName: fc.people[0].firstName, lastName: fc.people[0].lastName } : null,
+          topLevelKeys: Object.keys(fc)
+        }));
+      }
+    }
     console.log(`[Compliance] All Policy Types Found:`, Array.from(policyTypesFound).sort());
     console.log(`[Compliance] Search Date Range: ${asOfDate} to ${today}`);
     console.log(`[Compliance] Elapsed Time: ${elapsedTime}s`);
@@ -410,6 +466,12 @@ async function handler(req, res) {
           personalClients: personalClientNames.size,
           totalClients: allClientNames.size,
           policyTypes: policyTypeBreakdown
+        },
+        nameResolution: {
+          fromCompanyName: nameFromCompany,
+          fromDbaName: nameFromDba,
+          fromPeople: nameFromPeople,
+          fallback: nameFromFallback
         }
       }
     };
