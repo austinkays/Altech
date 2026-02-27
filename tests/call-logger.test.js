@@ -601,6 +601,21 @@ describe('Client & Policy Lookup — Source', () => {
     expect(source).toContain('allPolicies.length > 0');
   });
 
+  test('_ensurePoliciesLoaded requires allPolicies in localStorage cache', () => {
+    // localStorage check must require allPolicies — old CGL-only cache should fall through
+    expect(source).toContain('Only use cache if allPolicies exists');
+  });
+
+  test('_ensurePoliciesLoaded disk cache path rejects CGL-only data', () => {
+    // Disk cache must have allPolicies — commercial-only (no allPolicies) falls through to API
+    expect(source).toContain('Disk cache has CGL-only data (no allPolicies)');
+  });
+
+  test('_ensurePoliciesLoaded counts unique clients, not raw policies', () => {
+    // Status bar should show unique client count from allPolicies, not array length
+    expect(source).toContain("new Set(allPolicies.map(p => p.clientName)");
+  });
+
   test('_getClients uses policyType with type fallback', () => {
     expect(source).toContain('p.policyType || p.type');
   });

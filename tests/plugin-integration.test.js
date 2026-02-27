@@ -561,6 +561,41 @@ describe('SSE EventSource Vercel Safety', () => {
 });
 
 // ────────────────────────────────────────────────────
+// Cache Validation — allPolicies Required
+// ────────────────────────────────────────────────────
+
+describe('Cache validation requires allPolicies (personal lines support)', () => {
+  let cglSource;
+
+  beforeAll(() => {
+    cglSource = fs.readFileSync(path.join(ROOT, 'js/compliance-dashboard.js'), 'utf8');
+  });
+
+  test('_loadFromAnyCache disk source requires allPolicies', () => {
+    // Disk cache validation must reject data without allPolicies
+    expect(cglSource).toContain('Disk cache has policies but missing allPolicies');
+  });
+
+  test('_loadFromAnyCache IDB source requires allPolicies', () => {
+    expect(cglSource).toContain('IDB cache has policies but missing allPolicies');
+  });
+
+  test('_loadFromAnyCache localStorage source requires allPolicies', () => {
+    expect(cglSource).toContain('localStorage cache has policies but missing allPolicies');
+  });
+
+  test('_loadFromAnyCache KV source requires allPolicies', () => {
+    expect(cglSource).toContain('KV cache has policies but missing allPolicies');
+  });
+
+  test('loadFromCache also requires allPolicies on all tiers', () => {
+    // The loadFromCache method (IDB → localStorage → disk) must also check allPolicies
+    const loadFromCacheSection = cglSource.slice(cglSource.indexOf('async loadFromCache()'));
+    expect(loadFromCacheSection).toContain('allPolicies?.length > 0');
+  });
+});
+
+// ────────────────────────────────────────────────────
 // Script Load Order (index.html)
 // ────────────────────────────────────────────────────
 

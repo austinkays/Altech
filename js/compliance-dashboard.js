@@ -893,9 +893,11 @@ const ComplianceDashboard = {
                 clearTimeout(t);
                 if (res.ok) {
                     const data = await res.json();
-                    if (data?.policies?.length > 0) {
-                        console.log('[CGL] ✅ Disk cache:', data.policies.length, 'policies');
+                    if (data?.policies?.length > 0 && data?.allPolicies?.length > 0) {
+                        console.log('[CGL] ✅ Disk cache:', data.policies.length, 'CGL +', data.allPolicies.length, 'total policies');
                         return data;
+                    } else if (data?.policies?.length > 0) {
+                        console.log('[CGL] ⚠️ Disk cache has policies but missing allPolicies — treating as stale');
                     }
                 }
             } catch (e) {
@@ -911,9 +913,11 @@ const ComplianceDashboard = {
                     CglIDB.get(IDB_POLICY_KEY),
                     new Promise((_, rej) => setTimeout(() => rej(new Error('IDB timeout')), 3000))
                 ]);
-                if (data?.cachedAt && data?.policies?.length > 0) {
-                    console.log('[CGL] ✅ IDB cache:', data.policies.length, 'policies');
+                if (data?.cachedAt && data?.policies?.length > 0 && data?.allPolicies?.length > 0) {
+                    console.log('[CGL] ✅ IDB cache:', data.policies.length, 'CGL +', data.allPolicies.length, 'total policies');
                     return data;
+                } else if (data?.cachedAt && data?.policies?.length > 0) {
+                    console.log('[CGL] ⚠️ IDB cache has policies but missing allPolicies — treating as stale');
                 }
             } catch (e) {
                 console.warn('[CGL] IDB cache failed:', e.message);
@@ -927,9 +931,11 @@ const ComplianceDashboard = {
                 const raw = localStorage.getItem(CGL_CACHE_KEY);
                 if (raw) {
                     const data = JSON.parse(raw);
-                    if (data?.cachedAt && data?.policies?.length > 0) {
-                        console.log('[CGL] ✅ localStorage cache:', data.policies.length, 'policies');
+                    if (data?.cachedAt && data?.policies?.length > 0 && data?.allPolicies?.length > 0) {
+                        console.log('[CGL] ✅ localStorage cache:', data.policies.length, 'CGL +', data.allPolicies.length, 'total policies');
                         return data;
+                    } else if (data?.cachedAt && data?.policies?.length > 0) {
+                        console.log('[CGL] ⚠️ localStorage cache has policies but missing allPolicies — treating as stale');
                     }
                 }
             } catch (e) {}
@@ -940,9 +946,11 @@ const ComplianceDashboard = {
         const kvPromise = (async () => {
             try {
                 const data = await this._loadFromKV('cgl_cache');
-                if (data?.cachedAt && data?.policies?.length > 0) {
-                    console.log('[CGL] ✅ KV cache:', data.policies.length, 'policies');
+                if (data?.cachedAt && data?.policies?.length > 0 && data?.allPolicies?.length > 0) {
+                    console.log('[CGL] ✅ KV cache:', data.policies.length, 'CGL +', data.allPolicies.length, 'total policies');
                     return data;
+                } else if (data?.cachedAt && data?.policies?.length > 0) {
+                    console.log('[CGL] ⚠️ KV cache has policies but missing allPolicies — treating as stale');
                 }
             } catch (e) {}
             return null;
@@ -1237,8 +1245,8 @@ const ComplianceDashboard = {
                 CglIDB.get(IDB_POLICY_KEY),
                 new Promise((_, reject) => setTimeout(() => reject(new Error('IDB cache read timeout')), 3000))
             ]);
-            if (cached && cached.cachedAt && cached.policies) {
-                console.log('[CGL] Cache loaded from IndexedDB:', cached.policies.length, 'policies');
+            if (cached && cached.cachedAt && cached.policies && cached.allPolicies?.length > 0) {
+                console.log('[CGL] Cache loaded from IndexedDB:', cached.policies.length, 'CGL +', cached.allPolicies.length, 'total policies');
                 return cached;
             }
         } catch (e) {
@@ -1250,7 +1258,7 @@ const ComplianceDashboard = {
             const raw = localStorage.getItem(CGL_CACHE_KEY);
             if (raw) {
                 const cached = JSON.parse(raw);
-                if (cached.cachedAt && cached.policies) {
+                if (cached.cachedAt && cached.policies && cached.allPolicies?.length > 0) {
                     // Promote back to IndexedDB
                     CglIDB.set(IDB_POLICY_KEY, cached).catch(() => {});
                     return cached;
@@ -1270,8 +1278,8 @@ const ComplianceDashboard = {
             clearTimeout(diskTimeout);
             if (res.ok) {
                 const cached = await res.json();
-                if (cached.cachedAt && cached.policies) {
-                    console.log('[CGL] Cache loaded from disk:', cached.policies.length, 'policies');
+                if (cached.cachedAt && cached.policies && cached.allPolicies?.length > 0) {
+                    console.log('[CGL] Cache loaded from disk:', cached.policies.length, 'CGL +', cached.allPolicies.length, 'total policies');
                     // Restore to IndexedDB + localStorage
                     CglIDB.set(IDB_POLICY_KEY, cached).catch(() => {});
                     try { localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(cached)); } catch (e) {}

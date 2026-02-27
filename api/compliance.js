@@ -49,12 +49,13 @@ async function handler(req, res) {
         if (raw) {
           const cached = JSON.parse(raw);
           const age = Date.now() - (cached.cachedAt || 0);
-          if (age < KV_CACHE_TTL_MS && cached.policies?.length > 0) {
-            console.log(`[Compliance] ✅ KV cache hit — ${cached.policies.length} policies, ${Math.round(age / 60000)}m old`);
+          if (age < KV_CACHE_TTL_MS && cached.policies?.length > 0 && cached.allPolicies?.length > 0) {
+            console.log(`[Compliance] ✅ KV cache hit — ${cached.policies.length} CGL + ${cached.allPolicies.length} total policies, ${Math.round(age / 60000)}m old`);
             try { redisClient.disconnect(); } catch {}
             return res.status(200).json(cached);
           }
-          console.log(`[Compliance] KV cache stale (${Math.round(age / 60000)}m old) — refreshing from HawkSoft`);
+          const reason = !cached.allPolicies?.length ? 'missing allPolicies' : `stale (${Math.round(age / 60000)}m old)`;
+          console.log(`[Compliance] KV cache invalid (${reason}) — refreshing from HawkSoft`);
         }
       }
     } catch (kvErr) {

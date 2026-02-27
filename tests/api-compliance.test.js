@@ -639,4 +639,14 @@ describe('compliance.js — Handler Structure', () => {
     expect(source).toContain("res.status(500).json");
     expect(source).toContain("'Internal server error'");
   });
+
+  test('KV cache validity requires allPolicies (not just policies)', () => {
+    // The KV cache check must require allPolicies to avoid serving stale
+    // cache that only has commercial CGL policies (missing personal lines)
+    expect(source).toContain('cached.allPolicies?.length > 0');
+  });
+
+  test('KV cache stale log explains reason when allPolicies missing', () => {
+    expect(source).toContain('missing allPolicies');
+  });
 });

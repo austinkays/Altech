@@ -760,6 +760,19 @@ KEY RULES:
 | Call Logger status bar + refresh | call-logger.html, call-logger.css, call-logger.js | Replaced hero 3-step icon strip with professional client sync status bar. Shows live loading state (pulsing blue dot + "Checking local cache…" / "Syncing clients from HawkSoft…"), success state (green dot + "X clients loaded"), and error state (red dot + message). Added "Refresh" button with spinning icon animation for manual retry. Full dark mode + responsive support. |
 | Call Logger — remove AI branding + enhance confirm UX | call-logger.html, call-logger.js, call-logger.css, call-logger.test.js | Removed all user-facing "AI" references (header, placeholder, comments). Restructured confirm section with labeled summary rows (Client, Policy, Call Type) and a "Confirm Before Logging" header + review notice. Button icon changed from ✨ to 🔍. |
 
+### Cache Pipeline Fix — Personal Lines Now Appear in Call Logger (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 45 | CRITICAL | api/compliance.js | KV (Redis) cache validity now requires `allPolicies?.length > 0` — stale server-side cache without personal lines forces re-fetch from HawkSoft |
+| 46 | CRITICAL | js/compliance-dashboard.js | `_loadFromAnyCache()` all 4 sources (disk, IDB, localStorage, KV) now require both `policies` AND `allPolicies` — stale cache without personal lines is rejected |
+| 47 | CRITICAL | js/compliance-dashboard.js | `loadFromCache()` (IDB → localStorage → disk fallback) also requires `allPolicies` |
+| 48 | HIGH | js/call-logger.js | Disk cache path in `_ensurePoliciesLoaded()` now only accepts data with `allPolicies` — CGL-only disk cache falls through to API instead of promoting stale data |
+| 49 | HIGH | js/call-logger.js | Disk cache status bar now counts unique client names (not raw policy count) for consistency |
+| 50 | MEDIUM | tests/ | Added 9 new source-level tests across api-compliance, call-logger, and plugin-integration test files verifying cache requires allPolicies |
+
+**Root cause:** The multi-tier cache system (IndexedDB → localStorage → disk → Vercel KV) validated cache entries by checking only `policies?.length > 0`. Cache written before the `allPolicies` feature (which includes personal lines) was treated as valid, promoted across all tiers, and served to the Call Logger. Users saw only ~3080 commercial clients with zero personal profiles. Fix forces all tiers to re-fetch when `allPolicies` is absent.
+
 
 ### Known Issues NOT Fixed (Intentional / Cosmetic)
 

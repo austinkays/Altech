@@ -110,20 +110,24 @@ window.CallLogger = (() => {
         _updateStatusBar('loading', 'Checking local cache…');
 
         // Try disk cache first (fast, survives browser storage clears)
+        // Only accept disk cache if it has allPolicies (includes personal lines)
         try {
             const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
             if (isLocal) {
                 const diskRes = await fetch('/local/cgl-cache');
                 if (diskRes.ok) {
                     const diskData = await diskRes.json();
-                    const policies = diskData?.allPolicies || diskData?.policies || [];
-                    if (policies.length > 0) {
-                        // Promote disk cache to localStorage
+                    const allPolicies = diskData?.allPolicies;
+                    if (allPolicies && allPolicies.length > 0) {
+                        // Promote disk cache to localStorage (has all lines including personal)
                         localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(diskData));
                         _policiesReady = true;
-                        _updateStatusBar('ready', policies.length + ' clients loaded');
-                        console.log('[CallLogger] Loaded', policies.length, 'policies from disk cache');
+                        const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
+                        _updateStatusBar('ready', clientCount + ' clients loaded');
+                        console.log('[CallLogger] Loaded', allPolicies.length, 'policies (' + clientCount + ' clients) from disk cache');
                         return;
+                    } else if (diskData?.policies?.length > 0) {
+                        console.log('[CallLogger] Disk cache has CGL-only data (no allPolicies) — falling through to API');
                     }
                 }
             }
