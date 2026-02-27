@@ -98,6 +98,7 @@ window.CallLogger = (() => {
                 // Only use cache if allPolicies exists — older cache has only `policies` (CGL-only)
                 if (allPolicies && allPolicies.length > 0) {
                     _policiesReady = true;
+                    _logPolicyBreakdown(allPolicies, cached?.metadata, 'localStorage cache');
                     const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
                     _updateStatusBar('ready', clientCount + ' clients loaded');
                     return; // Cache is warm — nothing to do
@@ -122,9 +123,9 @@ window.CallLogger = (() => {
                         // Promote disk cache to localStorage (has all lines including personal)
                         localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(diskData));
                         _policiesReady = true;
+                        _logPolicyBreakdown(allPolicies, diskData?.metadata, 'disk cache');
                         const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
                         _updateStatusBar('ready', clientCount + ' clients loaded');
-                        console.log('[CallLogger] Loaded', allPolicies.length, 'policies (' + clientCount + ' clients) from disk cache');
                         return;
                     } else if (diskData?.policies?.length > 0) {
                         console.log('[CallLogger] Disk cache has CGL-only data (no allPolicies) — falling through to API');
@@ -165,9 +166,9 @@ window.CallLogger = (() => {
                 localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(cacheObj));
                 _policiesReady = true;
                 const allPolicies = data.allPolicies || data.policies || [];
+                _logPolicyBreakdown(allPolicies, data.metadata, 'API fetch');
                 const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
                 _updateStatusBar('ready', clientCount + ' clients loaded');
-                console.log('[CallLogger] Fetched and cached', allPolicies.length, 'policies for', clientCount, 'clients');
             } else {
                 _updateStatusBar('error', 'Could not load clients');
             }
@@ -206,14 +207,14 @@ window.CallLogger = (() => {
     }
 
     /**
-     * Manual refresh — force-fetch from API, bypass cache.
+     * Manual refresh — force-fetch from API, bypass ALL caches (client + server KV).
      */
     async function _refreshPolicies() {
         _updateStatusBar('loading', 'Refreshing client list…');
         try {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 30000);
-            const res = await fetch('/api/compliance.js', { signal: controller.signal });
+            const timeout = setTimeout(() => controller.abort(), 60000); // 60s — full HawkSoft fetch can take 30-50s
+            const res = await fetch('/api/compliance?refresh=true', { signal: controller.signal });
             clearTimeout(timeout);
 
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -235,9 +236,9 @@ window.CallLogger = (() => {
                 localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(cacheObj));
                 _policiesReady = true;
                 const allPolicies = data.allPolicies || data.policies || [];
+                _logPolicyBreakdown(allPolicies, data.metadata, 'Refresh');
                 const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
                 _updateStatusBar('ready', clientCount + ' clients loaded');
-                console.log('[CallLogger] Refresh: cached', allPolicies.length, 'policies for', clientCount, 'clients');
             } else {
                 _updateStatusBar('error', 'Refresh failed — no data returned');
             }
@@ -245,6 +246,42 @@ window.CallLogger = (() => {
             const isAbort = e.name === 'AbortError';
             _updateStatusBar('error', isAbort ? 'Request timed out' : 'Refresh failed');
             if (!isAbort) console.warn('[CallLogger] Refresh failed:', e.message);
+        }
+    }
+
+    /**
+     * Log a breakdown of policy data for diagnostics.
+     * Shows commercial vs personal counts so we can verify personal lines are included.
+     */
+    function _logPolicyBreakdown(allPolicies, metadata, source) {
+        const commercial = allPolicies.filter(p => p.lineOfBusiness === 'commercial');
+        const personal = allPolicies.filter(p => p.lineOfBusiness === 'personal');
+        const unknown = allPolicies.filter(p => !p.lineOfBusiness);
+        const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
+        const personalClients = new Set(personal.map(p => p.clientName).filter(Boolean)).size;
+        const commercialClients = new Set(commercial.map(p => p.clientName).filter(Boolean)).size;
+
+        console.log(`[CallLogger] ${source}: ${allPolicies.length} policies for ${clientCount} clients`);
+        console.log(`[CallLogger]   ↳ Commercial: ${commercial.length} policies (${commercialClients} clients)`);
+        console.log(`[CallLogger]   ↳ Personal:   ${personal.length} policies (${personalClients} clients)`);
+        if (unknown.length) console.log(`[CallLogger]   ↳ Unknown:    ${unknown.length} (no lineOfBusiness field — stale cache?)`);
+
+        // Show policy type distribution
+        const types = {};
+        for (const p of allPolicies) { types[p.policyType || 'unknown'] = (types[p.policyType || 'unknown'] || 0) + 1; }
+        console.log('[CallLogger]   ↳ Policy types:', types);
+
+        // Show server-side breakdown if available (from metadata)
+        if (metadata?.allPoliciesBreakdown) {
+            console.log('[CallLogger]   ↳ Server breakdown:', metadata.allPoliciesBreakdown);
+        }
+
+        // Sample some personal-line client names for verification
+        if (personal.length > 0) {
+            const sampleNames = [...new Set(personal.slice(0, 10).map(p => p.clientName).filter(Boolean))];
+            console.log('[CallLogger]   ↳ Sample personal clients:', sampleNames);
+        } else {
+            console.warn('[CallLogger] ⚠️ ZERO personal policies — HawkSoft API may not be returning personal-line clients');
         }
     }
 

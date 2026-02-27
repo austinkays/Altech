@@ -347,6 +347,20 @@ async function handler(req, res) {
 
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
 
+    // Compute personal vs commercial breakdown for diagnostics
+    const personalPolicies = allPolicies.filter(p => p.lineOfBusiness === 'personal');
+    const commercialAllPolicies = allPolicies.filter(p => p.lineOfBusiness === 'commercial');
+    const personalClientNames = new Set(personalPolicies.map(p => p.clientName).filter(Boolean));
+    const commercialClientNames = new Set(commercialAllPolicies.map(p => p.clientName).filter(Boolean));
+    const allClientNames = new Set(allPolicies.map(p => p.clientName).filter(Boolean));
+
+    // Count policy types in allPolicies
+    const policyTypeBreakdown = {};
+    for (const p of allPolicies) {
+      const t = p.policyType || 'unknown';
+      policyTypeBreakdown[t] = (policyTypeBreakdown[t] || 0) + 1;
+    }
+
     console.log('[Compliance] ===== FINAL SUMMARY =====');
     console.log(`[Compliance] Clients Scanned: ${allClients.length}`);
     console.log(`[Compliance] Total Policies Found: ${totalPolicies}`);
@@ -359,6 +373,10 @@ async function handler(req, res) {
     console.log(`[Compliance] Bond Policies in Final Result: ${bondPoliciesFound}`);
     console.log(`[Compliance] Total Commercial in Final Result: ${compliancePolicies.length}`);
     console.log(`[Compliance] All Policies (all lines): ${allPolicies.length}`);
+    console.log(`[Compliance]   ↳ Commercial: ${commercialAllPolicies.length} policies, ${commercialClientNames.size} unique clients`);
+    console.log(`[Compliance]   ↳ Personal:   ${personalPolicies.length} policies, ${personalClientNames.size} unique clients`);
+    console.log(`[Compliance]   ↳ Total unique clients: ${allClientNames.size}`);
+    console.log(`[Compliance]   ↳ Policy type breakdown:`, policyTypeBreakdown);
     console.log(`[Compliance] All Policy Types Found:`, Array.from(policyTypesFound).sort());
     console.log(`[Compliance] Search Date Range: ${asOfDate} to ${today}`);
     console.log(`[Compliance] Elapsed Time: ${elapsedTime}s`);
@@ -384,7 +402,15 @@ async function handler(req, res) {
         bondPoliciesMatched: bondPoliciesFound,
         allPolicyTypes: Array.from(policyTypesFound).sort(),
         nonSyncingCarriers: NON_SYNCING_CARRIERS,
-        elapsedTimeSeconds: parseFloat(elapsedTime)
+        elapsedTimeSeconds: parseFloat(elapsedTime),
+        allPoliciesBreakdown: {
+          commercial: commercialAllPolicies.length,
+          personal: personalPolicies.length,
+          commercialClients: commercialClientNames.size,
+          personalClients: personalClientNames.size,
+          totalClients: allClientNames.size,
+          policyTypes: policyTypeBreakdown
+        }
       }
     };
 
