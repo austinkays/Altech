@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 20 suites, 1386+ tests |
+| **Tests** | Jest + JSDOM, 20 suites, 1411+ tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 20 test suites, 1386+ tests
+npm test              # All 20 test suites, 1411+ tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
@@ -122,7 +122,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (773 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (702 lines)
 │   ├── accounting-export.js     # Trust deposit calculator, HawkSoft receipts (337 lines)
-│   ├── call-logger.js           # AI call note formatter + HawkSoft logger, two-step preview/confirm, client→policy autocomplete, HawkSoft deep links (505 lines)
+│   ├── call-logger.js           # AI call note formatter + HawkSoft logger, two-step preview/confirm, client→policy autocomplete, HawkSoft deep links, personal lines support (523 lines)
 │   │
 │   │  ★ Support Modules
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (369 lines)
@@ -175,7 +175,7 @@ npm run deploy:vercel   # Production deploy
 │
 ├── tests/                      # Jest test suites
 │   ├── setup.js                # Test env setup (mock fetch, suppress crypto errors)
-│   └── *.test.js               # 20 test files, 1319+ tests
+│   └── *.test.js               # 20 test files, 1411+ tests
 │
 ├── lib/                        # Shared server-side utilities
 ├── scripts/                    # Build/utility scripts
@@ -615,7 +615,7 @@ KEY RULES:
 5. After localStorage writes on synced data, call CloudSync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
 7. App is built via Object.assign(App, {...}) across 9 files — app-boot.js loads LAST
-8. Test with: npm test (1319+ tests, all must pass)
+8. Test with: npm test (1411+ tests, all must pass)
 9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, update AGENTS.md, .github/copilot-instructions.md, and
@@ -632,7 +632,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` → 20 suites, 1319+ tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 20 suites, 1411+ tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements
@@ -909,7 +909,7 @@ tests/
 ├── prospect-client.test.js     # Prospect client-side module
 ├── server.test.js              # Local dev server (server.js)
 ├── hawksoft-logger.test.js     # HawkSoft Logger API (67 tests)
-└── call-logger.test.js         # Call Logger client module (135 tests)
+└── call-logger.test.js         # Call Logger client module (160 tests)
 ```
 
 Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously' })`. The test setup file mocks `fetch`, silences console noise, and suppresses expected `crypto.subtle` errors.
