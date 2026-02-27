@@ -60,13 +60,13 @@ const App = {
         { key: 'coi',          icon: '📋', color: 'icon-teal',    title: 'COI Generator',   name: 'COI Generator',          containerId: 'coiTool',          initModule: 'COI',               htmlFile: 'plugins/coi.html',         category: 'docs', hidden: true },
         { key: 'compliance',   icon: '🛡️', color: 'icon-indigo',  title: 'CGL & Bonds',     name: 'CGL Compliance',         containerId: 'complianceTool',   initModule: 'ComplianceDashboard', badge: 'cglBadge', htmlFile: 'plugins/compliance.html', category: 'docs' },
         { key: 'reminders',    icon: '⏰', color: 'icon-orange',  title: 'Reminders',       name: 'Task Reminders',         containerId: 'remindersTool',    initModule: 'Reminders',           badge: 'remindersBadge', htmlFile: 'plugins/reminders.html', category: 'docs' },
+        { key: 'calllogger',  icon: '📞', color: 'icon-blue',    title: 'Call Logger',     name: 'Call Logger',            containerId: 'callLoggerTool',   initModule: 'CallLogger',        htmlFile: 'plugins/call-logger.html', category: 'docs' },
         // ── Operations ──
         { key: 'prospect',     icon: '🔍', color: 'icon-amber',   title: 'Prospect Intel',  name: 'Prospect Investigator',  containerId: 'prospectTool',     initModule: 'ProspectInvestigator', htmlFile: 'plugins/prospect.html', category: 'ops' },
         { key: 'email',        icon: '✉️', color: 'icon-violet',  title: 'Email Composer',  name: 'Email Composer',         containerId: 'emailTool',        initModule: 'EmailComposer',     htmlFile: 'plugins/email.html',       category: 'ops' },
         { key: 'accounting',   icon: '💰', color: 'icon-amber',   title: 'Accounting',      name: 'Accounting Export',      containerId: 'accountingTool',   initModule: 'AccountingExport',  htmlFile: 'plugins/accounting.html',  category: 'ops' },
         { key: 'quickref',     icon: '📖', color: 'icon-teal',    title: 'Quick Reference', name: 'Quick Reference',        containerId: 'quickrefTool',     initModule: 'QuickRef',          htmlFile: 'plugins/quickref.html',    category: 'ops' },
         { key: 'vindecoder',   icon: '🚗', color: 'icon-emerald', title: 'VIN Decoder',     name: 'VIN Decoder',            containerId: 'vinDecoderTool',   initModule: 'VinDecoder',        htmlFile: 'plugins/vin-decoder.html', category: 'ops' },
-        { key: 'calllogger',  icon: '📞', color: 'icon-blue',    title: 'Call Logger',     name: 'Call Logger',            containerId: 'callLoggerTool',   initModule: 'CallLogger',        htmlFile: 'plugins/call-logger.html', category: 'ops' },
         // ┌────────────────────────────────────────────────────────────┐
         // │  ADD NEW TOOLS HERE                                        │
         // │  Copy a line above and set: key, icon, color, title,    │
