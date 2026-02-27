@@ -567,15 +567,40 @@ describe('Client & Policy Lookup — Source', () => {
   test('defines _policyTypeLabel with all known types', () => {
     expect(source).toContain('function _policyTypeLabel(type)');
     expect(source).toContain("cgl: 'CGL'");
-    expect(source).toContain("auto: 'Auto'");
+    expect(source).toContain("auto: 'Commercial Auto'");
     expect(source).toContain("wc: 'Workers Comp'");
     expect(source).toContain("umbrella: 'Umbrella'");
   });
 
+  test('defines _policyTypeLabel with personal line types', () => {
+    expect(source).toContain("homeowner: 'Homeowner'");
+    expect(source).toContain("'personal-auto': 'Personal Auto'");
+    expect(source).toContain("renters: 'Renters'");
+    expect(source).toContain("flood: 'Flood'");
+    expect(source).toContain("dwelling: 'Dwelling'");
+    expect(source).toContain("personal: 'Personal'");
+  });
+
   test('defines _policyTypeIcon with emoji icons', () => {
     expect(source).toContain('function _policyTypeIcon(type)');
-    expect(source).toContain("auto: '🚗'");
-    expect(source).toContain("property: '🏠'");
+    expect(source).toContain("auto: '🚛'");
+    expect(source).toContain("property: '🏗️'");
+  });
+
+  test('defines _policyTypeIcon with personal line emojis', () => {
+    expect(source).toContain("homeowner: '🏠'");
+    expect(source).toContain("'personal-auto': '🚗'");
+    expect(source).toContain("flood: '🌊'");
+    expect(source).toContain("boat: '⛵'");
+    expect(source).toContain("motorcycle: '🏍️'");
+  });
+
+  test('_getClients prefers allPolicies field from cache', () => {
+    expect(source).toContain('cached?.allPolicies || cached?.policies');
+  });
+
+  test('_getClients uses policyType with type fallback', () => {
+    expect(source).toContain('p.policyType || p.type');
   });
 
   test('defines _handleClientSearch with debounced search', () => {
@@ -761,20 +786,125 @@ describe('Client & Policy Lookup — Behavioral', () => {
     expect(clients[0].policies).toHaveLength(1);
   });
 
-  test('_policyTypeLabel returns correct labels', () => {
+  test('_getClients prefers allPolicies over policies from cache', () => {
+    const { window, store } = createClientDOM();
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      policies: [
+        { clientName: 'Smith, John', policyNumber: 'POL-001', policyType: 'cgl' }
+      ],
+      allPolicies: [
+        { clientName: 'Smith, John', policyNumber: 'POL-001', policyType: 'cgl', hawksoftId: 'HS-1' },
+        { clientName: 'Smith, John', policyNumber: 'HO-100', policyType: 'homeowner', hawksoftId: 'HS-1' },
+        { clientName: 'Doe, Jane', policyNumber: 'PA-200', policyType: 'personal-auto', hawksoftId: 'HS-2' }
+      ]
+    });
+    window.CallLogger.init();
+    const clients = window.CallLogger._getClients();
+    expect(clients).toHaveLength(2);
+    const smith = clients.find(c => c.name === 'Smith, John');
+    expect(smith.policies).toHaveLength(2);
+    expect(smith.policies.map(p => p.type)).toContain('cgl');
+    expect(smith.policies.map(p => p.type)).toContain('homeowner');
+    const doe = clients.find(c => c.name === 'Doe, Jane');
+    expect(doe.policies).toHaveLength(1);
+    expect(doe.policies[0].type).toBe('personal-auto');
+    expect(doe.policies[0].typeLabel).toBe('Personal Auto');
+  });
+
+  test('_getClients shows personal policies with correct type labels', () => {
+    const { window, store } = createClientDOM();
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      allPolicies: [
+        { clientName: 'Smith, John', policyNumber: 'HO-100', policyType: 'homeowner', hawksoftId: 'HS-1' },
+        { clientName: 'Smith, John', policyNumber: 'PA-200', policyType: 'personal-auto', hawksoftId: 'HS-1' },
+        { clientName: 'Smith, John', policyNumber: 'FL-300', policyType: 'flood', hawksoftId: 'HS-1' }
+      ]
+    });
+    window.CallLogger.init();
+    const clients = window.CallLogger._getClients();
+    const smith = clients[0];
+    expect(smith.policies).toHaveLength(3);
+    const labels = smith.policies.map(p => p.typeLabel);
+    expect(labels).toContain('Homeowner');
+    expect(labels).toContain('Personal Auto');
+    expect(labels).toContain('Flood');
+  });
+
+  test('_getClients falls back to policies when allPolicies missing', () => {
+    const { window, store } = createClientDOM();
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      policies: [
+        { clientName: 'Smith, John', policyNumber: 'POL-001', policyType: 'cgl' }
+      ]
+    });
+    window.CallLogger.init();
+    const clients = window.CallLogger._getClients();
+    expect(clients).toHaveLength(1);
+    expect(clients[0].policies).toHaveLength(1);
+    expect(clients[0].policies[0].type).toBe('cgl');
+  });
+
+  test('_getClients uses policyType field with type fallback', () => {
+    const { window, store } = createClientDOM();
+    // policyType field (new format)
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      allPolicies: [
+        { clientName: 'Smith, John', policyNumber: 'POL-001', policyType: 'cgl' }
+      ]
+    });
+    window.CallLogger.init();
+    let clients = window.CallLogger._getClients();
+    expect(clients[0].policies[0].type).toBe('cgl');
+
+    // type field (legacy format fallback)
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      policies: [
+        { clientName: 'Doe, Jane', policyNumber: 'POL-002', type: 'bond' }
+      ]
+    });
+    clients = window.CallLogger._getClients();
+    expect(clients[0].policies[0].type).toBe('bond');
+  });
+
+  test('_policyTypeLabel returns correct commercial labels', () => {
     const { window } = createClientDOM();
-    expect(window.CallLogger._policyTypeLabel('auto')).toBe('Auto');
+    expect(window.CallLogger._policyTypeLabel('auto')).toBe('Commercial Auto');
     expect(window.CallLogger._policyTypeLabel('cgl')).toBe('CGL');
     expect(window.CallLogger._policyTypeLabel('wc')).toBe('Workers Comp');
     expect(window.CallLogger._policyTypeLabel('umbrella')).toBe('Umbrella');
     expect(window.CallLogger._policyTypeLabel(null)).toBe('Policy');
   });
 
-  test('_policyTypeIcon returns emoji icons', () => {
+  test('_policyTypeLabel returns personal line labels', () => {
     const { window } = createClientDOM();
-    expect(window.CallLogger._policyTypeIcon('auto')).toBe('🚗');
-    expect(window.CallLogger._policyTypeIcon('property')).toBe('🏠');
+    expect(window.CallLogger._policyTypeLabel('homeowner')).toBe('Homeowner');
+    expect(window.CallLogger._policyTypeLabel('personal-auto')).toBe('Personal Auto');
+    expect(window.CallLogger._policyTypeLabel('renters')).toBe('Renters');
+    expect(window.CallLogger._policyTypeLabel('flood')).toBe('Flood');
+    expect(window.CallLogger._policyTypeLabel('dwelling')).toBe('Dwelling');
+    expect(window.CallLogger._policyTypeLabel('personal')).toBe('Personal');
+  });
+
+  test('_policyTypeIcon returns commercial emoji icons', () => {
+    const { window } = createClientDOM();
+    expect(window.CallLogger._policyTypeIcon('auto')).toBe('🚛');
+    expect(window.CallLogger._policyTypeIcon('property')).toBe('🏗️');
+    expect(window.CallLogger._policyTypeIcon('cgl')).toBe('🛡️');
     expect(window.CallLogger._policyTypeIcon('unknown_type')).toBe('📄');
+  });
+
+  test('_policyTypeIcon returns personal line emoji icons', () => {
+    const { window } = createClientDOM();
+    expect(window.CallLogger._policyTypeIcon('homeowner')).toBe('🏠');
+    expect(window.CallLogger._policyTypeIcon('personal-auto')).toBe('🚗');
+    expect(window.CallLogger._policyTypeIcon('flood')).toBe('🌊');
+    expect(window.CallLogger._policyTypeIcon('boat')).toBe('⛵');
+    expect(window.CallLogger._policyTypeIcon('motorcycle')).toBe('🏍️');
   });
 
   test('_selectClient sets input value and shows policies', () => {

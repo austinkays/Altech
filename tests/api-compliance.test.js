@@ -31,6 +31,7 @@ function loadComplianceFunctions() {
       isSuretyBondPolicy,
       isCommercialPolicy,
       getCommercialPolicyType,
+      getPersonalPolicyType,
       requiresManualVerification,
       NON_SYNCING_CARRIERS
     };
@@ -60,7 +61,7 @@ describe('compliance.js — Module Syntax', () => {
     const source = fs.readFileSync(path.join(__dirname, '../lib/compliance-utils.js'), 'utf8');
     const fnNames = ['calculateDaysUntilExpiration', 'getExpirationStatus',
       'isGeneralLiabilityPolicy', 'isSuretyBondPolicy', 'isCommercialPolicy',
-      'getCommercialPolicyType', 'requiresManualVerification'];
+      'getCommercialPolicyType', 'getPersonalPolicyType', 'requiresManualVerification'];
     for (const name of fnNames) {
       const matches = source.match(new RegExp(`^(?:export\\s+)?function ${name}\\b`, 'gm'));
       expect(matches).not.toBeNull();
@@ -478,6 +479,78 @@ describe('getCommercialPolicyType', () => {
 });
 
 // ────────────────────────────────────────────────────
+// getPersonalPolicyType
+// ────────────────────────────────────────────────────
+
+describe('getPersonalPolicyType', () => {
+  test('returns homeowner for homeowner policy', () => {
+    expect(fns.getPersonalPolicyType({ type: 'Homeowner', status: 'active' })).toBe('homeowner');
+  });
+
+  test('returns homeowner for HO-prefixed policy number', () => {
+    expect(fns.getPersonalPolicyType({ policyNumber: 'HO-12345', status: 'active' })).toBe('homeowner');
+  });
+
+  test('returns personal-auto for personal auto policy', () => {
+    expect(fns.getPersonalPolicyType({ type: 'Personal Auto', status: 'active' })).toBe('personal-auto');
+  });
+
+  test('returns personal-auto for PA-prefixed policy number', () => {
+    expect(fns.getPersonalPolicyType({ policyNumber: 'PA-99999', status: 'active' })).toBe('personal-auto');
+  });
+
+  test('returns renters for renters policy', () => {
+    expect(fns.getPersonalPolicyType({ title: 'Renters Insurance', status: 'active' })).toBe('renters');
+  });
+
+  test('returns dwelling for dwelling policy', () => {
+    expect(fns.getPersonalPolicyType({ type: 'Dwelling', status: 'active' })).toBe('dwelling');
+    expect(fns.getPersonalPolicyType({ policyNumber: 'DP-500', status: 'active' })).toBe('dwelling');
+  });
+
+  test('returns flood for flood policy', () => {
+    expect(fns.getPersonalPolicyType({ type: 'Flood', status: 'active' })).toBe('flood');
+    expect(fns.getPersonalPolicyType({ policyNumber: 'FL-123', status: 'active' })).toBe('flood');
+  });
+
+  test('returns boat for boat/watercraft policy', () => {
+    expect(fns.getPersonalPolicyType({ type: 'Watercraft', status: 'active' })).toBe('boat');
+  });
+
+  test('returns motorcycle for motorcycle policy', () => {
+    expect(fns.getPersonalPolicyType({ type: 'Motorcycle', status: 'active' })).toBe('motorcycle');
+  });
+
+  test('returns condo for condo policy', () => {
+    expect(fns.getPersonalPolicyType({ type: 'Condo', status: 'active' })).toBe('condo');
+  });
+
+  test('returns personal-umbrella for umbrella policy', () => {
+    expect(fns.getPersonalPolicyType({ type: 'Umbrella', status: 'active' })).toBe('personal-umbrella');
+  });
+
+  test('returns health for health/dental/vision policy', () => {
+    expect(fns.getPersonalPolicyType({ type: 'Health', status: 'active' })).toBe('health');
+    expect(fns.getPersonalPolicyType({ type: 'Dental', status: 'active' })).toBe('health');
+  });
+
+  test('returns life for life policy', () => {
+    expect(fns.getPersonalPolicyType({ type: 'Life', status: 'active' })).toBe('life');
+  });
+
+  test('returns personal for unclassified personal policy', () => {
+    expect(fns.getPersonalPolicyType({ type: 'SomeOther', status: 'active' })).toBe('personal');
+  });
+
+  test('checks loBs codes for type detection', () => {
+    expect(fns.getPersonalPolicyType({
+      status: 'active',
+      loBs: [{ code: 'Flood' }]
+    })).toBe('flood');
+  });
+});
+
+// ────────────────────────────────────────────────────
 // Handler Response Structure (static analysis)
 // ────────────────────────────────────────────────────
 
@@ -502,10 +575,11 @@ describe('compliance.js — Handler Structure', () => {
     expect(source).toContain("'HawkSoft API credentials not configured'");
   });
 
-  test('response includes success, count, policies, metadata fields', () => {
+  test('response includes success, count, policies, allPolicies, metadata fields', () => {
     expect(source).toContain('success: true');
     expect(source).toContain('count: compliancePolicies.length');
     expect(source).toContain('policies: compliancePolicies');
+    expect(source).toContain('allPolicies: allPolicies');
     expect(source).toContain('metadata:');
   });
 

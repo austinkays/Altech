@@ -14,6 +14,7 @@ import {
   requiresManualVerification,
   isCommercialPolicy,
   getCommercialPolicyType,
+  getPersonalPolicyType,
 } from '../lib/compliance-utils.js';
 
 async function handler(req, res) {
@@ -187,6 +188,7 @@ async function handler(req, res) {
 
     // Step 3: Extract and filter General Liability policies
     const compliancePolicies = [];
+    const allPolicies = [];  // All policy types (commercial + personal) for Call Logger
 
     console.log('[Compliance] Processing clients for commercial policies...');
     let totalPolicies = 0;
@@ -219,6 +221,41 @@ async function handler(req, res) {
           });
         }
       });
+
+      // Compute client name once for this client (used by both allPolicies and compliancePolicies)
+      const clientName = client.details?.companyName ||
+                        client.details?.dbaName ||
+                        (client.people && client.people[0] ? `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim() : '') ||
+                        `Client #${client.clientNumber}`;
+
+      // Build allPolicies entries for ALL non-cancelled, non-very-old policies (all lines of business)
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+      for (const policy of client.policies) {
+        const policyStatus = (policy.status || '').toLowerCase();
+        if (policyStatus === 'prospect' || policyStatus === 'cancelled' || policyStatus === 'canceled') continue;
+        if (!policy.expirationDate) continue;
+
+        const expDate = new Date(policy.expirationDate);
+        if (expDate < ninetyDaysAgo) continue;
+
+        const isCommercialPol = isCommercialPolicy(policy);
+        const pType = isCommercialPol
+          ? getCommercialPolicyType(policy)
+          : getPersonalPolicyType(policy);
+
+        allPolicies.push({
+          policyNumber: policy.policyNumber,
+          policyType: pType,
+          lineOfBusiness: isCommercialPol ? 'commercial' : 'personal',
+          clientNumber: client.clientNumber,
+          hawksoftId: client.clientNumber,
+          clientName: clientName,
+          carrier: policy.carrier || 'Unknown',
+          expirationDate: policy.expirationDate
+        });
+      }
 
       const glPolicies = client.policies.filter(policy => {
         const isCommercial = isCommercialPolicy(policy);
@@ -273,12 +310,6 @@ async function handler(req, res) {
           ? calculateDaysUntilExpiration(policy.expirationDate)
           : null;
 
-        // Get client name from companyName, dbaName (fallback), or people array (individuals)
-        const clientName = client.details?.companyName ||
-                          client.details?.dbaName ||
-                          (client.people && client.people[0] ? `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim() : '') ||
-                          `Client #${client.clientNumber}`;
-
         const compliancePolicy = {
           policyNumber: policy.policyNumber,
           policyId: policy.id,
@@ -322,6 +353,7 @@ async function handler(req, res) {
     console.log(`[Compliance] CGL Policies in Final Result: ${glPoliciesFound}`);
     console.log(`[Compliance] Bond Policies in Final Result: ${bondPoliciesFound}`);
     console.log(`[Compliance] Total Commercial in Final Result: ${compliancePolicies.length}`);
+    console.log(`[Compliance] All Policies (all lines): ${allPolicies.length}`);
     console.log(`[Compliance] All Policy Types Found:`, Array.from(policyTypesFound).sort());
     console.log(`[Compliance] Search Date Range: ${asOfDate} to ${today}`);
     console.log(`[Compliance] Elapsed Time: ${elapsedTime}s`);
@@ -331,6 +363,7 @@ async function handler(req, res) {
       success: true,
       count: compliancePolicies.length,
       policies: compliancePolicies,
+      allPolicies: allPolicies,
       cachedAt: Date.now(),
       metadata: {
         fetchedAt: today,

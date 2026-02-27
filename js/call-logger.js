@@ -87,19 +87,21 @@ window.CallLogger = (() => {
         const clientMap = {};  // name (lowercase) → { name, policies }
 
         // Source 1: CGL compliance cache (HawkSoft policies — richest data)
+        // Prefer allPolicies (commercial + personal) over policies (commercial only)
         try {
             const raw = localStorage.getItem(CGL_CACHE_KEY);
             if (raw) {
                 const cached = JSON.parse(raw);
-                const policies = cached?.policies || [];
+                const policies = cached?.allPolicies || cached?.policies || [];
                 for (const p of policies) {
                     if (!p.clientName) continue;
                     const key = p.clientName.toLowerCase().trim();
                     if (!clientMap[key]) clientMap[key] = { name: p.clientName, policies: [] };
+                    const pType = p.policyType || p.type || 'unknown';
                     clientMap[key].policies.push({
                         policyNumber: p.policyNumber || '',
-                        type: p.type || 'unknown',
-                        typeLabel: _policyTypeLabel(p.type),
+                        type: pType,
+                        typeLabel: _policyTypeLabel(pType),
                         expirationDate: p.expirationDate || '',
                         hawksoftId: p.hawksoftId || p.clientNumber || ''
                     });
@@ -126,23 +128,39 @@ window.CallLogger = (() => {
     function _policyTypeLabel(type) {
         if (!type) return 'Policy';
         const labels = {
-            cgl: 'CGL', bond: 'Bond', auto: 'Auto', wc: 'Workers Comp',
+            // Commercial lines
+            cgl: 'CGL', bond: 'Bond', auto: 'Commercial Auto', wc: 'Workers Comp',
             pkg: 'Package', umbrella: 'Umbrella', im: 'Inland Marine',
-            property: 'Property', epli: 'EPLI', do: 'D&O',
+            property: 'Commercial Property', epli: 'EPLI', do: 'D&O',
             eo: 'E&O', cyber: 'Cyber', crime: 'Crime',
             liquor: 'Liquor', garage: 'Garage', pollution: 'Pollution',
-            bop: 'BOP', commercial: 'Commercial'
+            bop: 'BOP', commercial: 'Commercial',
+            // Personal lines
+            homeowner: 'Homeowner', 'personal-auto': 'Personal Auto',
+            renters: 'Renters', condo: 'Condo', dwelling: 'Dwelling',
+            flood: 'Flood', earthquake: 'Earthquake', boat: 'Boat',
+            rv: 'RV', motorcycle: 'Motorcycle',
+            'personal-umbrella': 'Personal Umbrella',
+            life: 'Life', health: 'Health', personal: 'Personal'
         };
         return labels[type] || type.toUpperCase();
     }
 
     function _policyTypeIcon(type) {
         const icons = {
-            auto: '🚗', property: '🏠', cgl: '🛡️', bond: '📜',
+            // Commercial lines
+            auto: '🚛', cgl: '🛡️', bond: '📜',
             wc: '👷', umbrella: '☂️', im: '📦', pkg: '📋',
             bop: '🏢', epli: '👥', do: '⚖️', eo: '🔒',
             cyber: '💻', crime: '🚨', liquor: '🍷', garage: '🔧',
-            pollution: '🌿', commercial: '🏪'
+            pollution: '🌿', commercial: '🏪', property: '🏗️',
+            // Personal lines
+            homeowner: '🏠', 'personal-auto': '🚗',
+            renters: '🏘️', condo: '🏙️', dwelling: '🏡',
+            flood: '🌊', earthquake: '🌋', boat: '⛵',
+            rv: '🚐', motorcycle: '🏍️',
+            'personal-umbrella': '☔',
+            life: '💚', health: '🏥', personal: '📋'
         };
         return icons[type] || '📄';
     }
