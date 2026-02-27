@@ -53,7 +53,7 @@ async function handler(req, res) {
   }
 
   try {
-    const { policyId, callType, rawNotes, userApiKey, aiModel, formatOnly, formattedLog: preFormattedLog } = req.body || {};
+    const { policyId, clientNumber, callType, rawNotes, userApiKey, aiModel, formatOnly, formattedLog: preFormattedLog } = req.body || {};
 
     // ── Validation ──
     if (!policyId || typeof policyId !== 'string' || !policyId.trim()) {
@@ -61,12 +61,17 @@ async function handler(req, res) {
     }
 
     const cleanPolicyId = policyId.trim();
+    // clientNumber is the HawkSoft client ID used for the logNotes API
+    // (policyId is the policy number used for display)
+    const hawksoftClientId = (clientNumber || '').trim() || cleanPolicyId;
     const cleanCallType = (callType || 'Inbound').trim();
 
     // ── Step 2: Push pre-formatted log to HawkSoft (skip AI) ──
     if (preFormattedLog && typeof preFormattedLog === 'string' && preFormattedLog.trim()) {
       const logText = preFormattedLog.trim();
       let hawksoftLogged = false;
+      let hawksoftStatus = 'no_credentials';
+      let hawksoftError = null;
       const HAWKSOFT_CLIENT_ID = (process.env.HAWKSOFT_CLIENT_ID || '').trim();
       const HAWKSOFT_CLIENT_SECRET = (process.env.HAWKSOFT_CLIENT_SECRET || '').trim();
       const HAWKSOFT_AGENCY_ID = (process.env.HAWKSOFT_AGENCY_ID || '').trim();
@@ -78,8 +83,9 @@ async function handler(req, res) {
           const BASE_URL = 'https://integration.hawksoft.app';
           const API_VERSION = '3.0';
 
+          console.log(`[HawkSoft Logger] Pushing note to client ${hawksoftClientId} (policy: ${cleanPolicyId})`);
           const logRes = await fetch(
-            `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients/${cleanPolicyId}/logNotes?version=${API_VERSION}`,
+            `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients/${hawksoftClientId}/logNotes?version=${API_VERSION}`,
             {
               method: 'POST',
               headers: {
@@ -95,12 +101,17 @@ async function handler(req, res) {
 
           if (logRes.ok) {
             hawksoftLogged = true;
-            console.log(`[HawkSoft Logger] ✅ Pre-formatted note logged for client ${cleanPolicyId}`);
+            hawksoftStatus = 'logged';
+            console.log(`[HawkSoft Logger] ✅ Pre-formatted note logged for client ${hawksoftClientId}`);
           } else {
             const errText = await logRes.text().catch(() => '');
+            hawksoftStatus = 'push_failed';
+            hawksoftError = `HawkSoft returned ${logRes.status}: ${errText.substring(0, 200)}`;
             console.warn(`[HawkSoft Logger] ⚠️ HawkSoft push failed (${logRes.status}): ${errText.substring(0, 200)}`);
           }
         } catch (hsErr) {
+          hawksoftStatus = 'push_error';
+          hawksoftError = hsErr.message;
           console.warn('[HawkSoft Logger] ⚠️ HawkSoft push error:', hsErr.message);
         }
       } else {
@@ -110,7 +121,10 @@ async function handler(req, res) {
       return res.status(200).json({
         formattedLog: logText,
         hawksoftLogged,
+        hawksoftStatus,
+        hawksoftError,
         policyId: cleanPolicyId,
+        clientNumber: hawksoftClientId,
         callType: cleanCallType
       });
     }
@@ -185,6 +199,8 @@ ${cleanNotes}`;
 
     // ── Optional HawkSoft Push ──
     let hawksoftLogged = false;
+    let hawksoftStatus = 'no_credentials';
+    let hawksoftError = null;
     const HAWKSOFT_CLIENT_ID = (process.env.HAWKSOFT_CLIENT_ID || '').trim();
     const HAWKSOFT_CLIENT_SECRET = (process.env.HAWKSOFT_CLIENT_SECRET || '').trim();
     const HAWKSOFT_AGENCY_ID = (process.env.HAWKSOFT_AGENCY_ID || '').trim();
@@ -196,9 +212,10 @@ ${cleanNotes}`;
         const BASE_URL = 'https://integration.hawksoft.app';
         const API_VERSION = '3.0';
 
-        // HawkSoft log note endpoint — append a note to the client's activity log
+        // HawkSoft log note endpoint — uses client number, not policy number
+        console.log(`[HawkSoft Logger] Pushing note to client ${hawksoftClientId} (policy: ${cleanPolicyId})`);
         const logRes = await fetch(
-          `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients/${cleanPolicyId}/logNotes?version=${API_VERSION}`,
+          `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients/${hawksoftClientId}/logNotes?version=${API_VERSION}`,
           {
             method: 'POST',
             headers: {
@@ -214,12 +231,17 @@ ${cleanNotes}`;
 
         if (logRes.ok) {
           hawksoftLogged = true;
-          console.log(`[HawkSoft Logger] ✅ Note logged to HawkSoft for client ${cleanPolicyId}`);
+          hawksoftStatus = 'logged';
+          console.log(`[HawkSoft Logger] ✅ Note logged to HawkSoft for client ${hawksoftClientId}`);
         } else {
           const errText = await logRes.text().catch(() => '');
+          hawksoftStatus = 'push_failed';
+          hawksoftError = `HawkSoft returned ${logRes.status}: ${errText.substring(0, 200)}`;
           console.warn(`[HawkSoft Logger] ⚠️ HawkSoft push failed (${logRes.status}): ${errText.substring(0, 200)}`);
         }
       } catch (hsErr) {
+        hawksoftStatus = 'push_error';
+        hawksoftError = hsErr.message;
         console.warn('[HawkSoft Logger] ⚠️ HawkSoft push error:', hsErr.message);
         // Don't fail the request — the formatted log is still useful
       }
@@ -230,7 +252,10 @@ ${cleanNotes}`;
     return res.status(200).json({
       formattedLog: formattedLog.trim(),
       hawksoftLogged,
+      hawksoftStatus,
+      hawksoftError,
       policyId: cleanPolicyId,
+      clientNumber: hawksoftClientId,
       callType: cleanCallType
     });
 

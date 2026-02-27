@@ -562,6 +562,10 @@ window.CallLogger = (() => {
         const policyId = (_selectedPolicy && _selectedPolicy.policyNumber)
             ? _selectedPolicy.policyNumber : inputValue;
 
+        // HawkSoft client number — needed for the logNotes API (different from policy number)
+        const clientNumber = (_selectedPolicy && _selectedPolicy.hawksoftId)
+            ? _selectedPolicy.hawksoftId : '';
+
         // Resolve settings
         const { userApiKey, aiModel } = _resolveAISettings();
 
@@ -577,7 +581,7 @@ window.CallLogger = (() => {
             const res = await fetchFn('/api/hawksoft-logger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ policyId, callType, rawNotes, userApiKey, aiModel, formatOnly: true })
+                body: JSON.stringify({ policyId, clientNumber, callType, rawNotes, userApiKey, aiModel, formatOnly: true })
             });
 
             if (!res.ok) {
@@ -595,6 +599,7 @@ window.CallLogger = (() => {
             _pendingLog = {
                 formattedLog: result.formattedLog,
                 policyId: result.policyId || policyId,
+                clientNumber: result.clientNumber || clientNumber,
                 callType: result.callType || callType
             };
 
@@ -674,6 +679,7 @@ window.CallLogger = (() => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     policyId: _pendingLog.policyId,
+                    clientNumber: _pendingLog.clientNumber,
                     callType: _pendingLog.callType,
                     formattedLog: _pendingLog.formattedLog
                 })
@@ -690,9 +696,15 @@ window.CallLogger = (() => {
             const notesEl = document.getElementById('clRawNotes');
             if (notesEl) notesEl.value = '';
 
-            const statusMsg = result.hawksoftLogged
-                ? `✅ Logged to HawkSoft for ${_escapeHTML(_pendingLog.policyId)}`
-                : '✅ Formatted (HawkSoft credentials not configured — copy log manually)';
+            let statusMsg;
+            if (result.hawksoftLogged) {
+                statusMsg = `✅ Logged to HawkSoft for ${_escapeHTML(_pendingLog.policyId)}`;
+            } else if (result.hawksoftStatus === 'push_failed' || result.hawksoftStatus === 'push_error') {
+                statusMsg = `⚠️ Note formatted but HawkSoft push failed — copy log manually`;
+                console.warn('[Call Logger] HawkSoft push failed:', result.hawksoftError);
+            } else {
+                statusMsg = '✅ Formatted — copy log manually';
+            }
 
             App.toast(statusMsg, 'success');
 
