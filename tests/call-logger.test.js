@@ -115,8 +115,18 @@ describe('AI Settings Resolution', () => {
 // ────────────────────────────────────────────────────
 
 describe('Submit Handler', () => {
-  test('validates policyId and rawNotes are non-empty', () => {
-    expect(source).toContain('!policyId || !rawNotes');
+  test('validates inputValue and rawNotes are non-empty', () => {
+    expect(source).toContain('!inputValue || !rawNotes');
+  });
+
+  test('validates policy selection when client has policies', () => {
+    expect(source).toContain('_selectedClient.policies.length > 0 && !_selectedPolicy');
+    expect(source).toContain("App.toast('Please select a policy to log this call under'");
+  });
+
+  test('resolves policyId from selected policy or input', () => {
+    expect(source).toContain('_selectedPolicy.policyNumber');
+    expect(source).toContain('inputValue');
   });
 
   test('shows toast error for empty fields', () => {
@@ -473,6 +483,52 @@ describe('Two-Step Workflow', () => {
     expect(source).toContain('div.innerHTML');
   });
 
+  test('defines _buildClientLink for HawkSoft deep linking', () => {
+    expect(source).toContain('function _buildClientLink(name, hawksoftId)');
+  });
+
+  test('_buildClientLink uses hs:// protocol for desktop', () => {
+    expect(source).toContain("hs://");
+    expect(source).toContain('encodeURIComponent(hawksoftId)');
+  });
+
+  test('_buildClientLink uses Agent Portal URL for mobile', () => {
+    expect(source).toContain('agents.hawksoft.app/client/');
+  });
+
+  test('_buildClientLink falls back to bold text when no hawksoftId', () => {
+    expect(source).toContain("if (!hawksoftId) return `<strong>${escaped}</strong>`");
+  });
+
+  test('_buildClientLink adds cl-client-link class to anchor', () => {
+    expect(source).toContain('cl-client-link');
+  });
+
+  test('confirm section shows HawkSoft link when client+policy selected', () => {
+    expect(source).toContain('_buildClientLink(_selectedClient.name, hsId)');
+  });
+
+  test('confirm section shows policy badge with icon and label', () => {
+    expect(source).toContain('cl-confirm-policy');
+    expect(source).toContain('_policyTypeIcon(_selectedPolicy.type)');
+    expect(source).toContain('_escapeHTML(_selectedPolicy.typeLabel)');
+  });
+
+  test('tracks _selectedPolicy state', () => {
+    expect(source).toContain('let _selectedPolicy = null');
+    expect(source).toContain('_selectedPolicy = policy');
+  });
+
+  test('_selectClient resets _selectedPolicy', () => {
+    // When a new client is selected, previous policy selection is cleared
+    expect(source).toMatch(/_selectClient[\s\S]*?_selectedPolicy = null/);
+  });
+
+  test('exposes _buildClientLink and getSelectedPolicy for testing', () => {
+    expect(source).toContain('_buildClientLink');
+    expect(source).toContain('getSelectedPolicy');
+  });
+
   test('uses navigator.clipboard with fallback', () => {
     expect(source).toContain('navigator.clipboard.writeText');
     expect(source).toContain('document.execCommand');
@@ -543,8 +599,8 @@ describe('Client & Policy Lookup — Source', () => {
     expect(source).toContain('function _selectPolicy(policy, chipEl)');
   });
 
-  test('_selectPolicy sets input to policyNumber', () => {
-    expect(source).toContain('input.value = policy.policyNumber');
+  test('_selectPolicy stores the selected policy', () => {
+    expect(source).toContain('_selectedPolicy = policy');
   });
 
   test('defines _handleClickOutside to close dropdown', () => {
@@ -751,21 +807,23 @@ describe('Client & Policy Lookup — Behavioral', () => {
     expect(policySelect.style.display).toBe('none');
   });
 
-  test('_selectPolicy sets input to policy number and highlights chip', () => {
+  test('_selectPolicy highlights chip and tracks selection (input keeps client name)', () => {
     const { window } = createClientDOM();
     window.CallLogger.init();
-    // First select a client to populate the policy list
     const client = {
       name: 'Smith, John',
       policies: [
-        { policyNumber: 'POL-001', type: 'auto', typeLabel: 'Auto', expirationDate: '2026-12-01', hawksoftId: '' }
+        { policyNumber: 'POL-001', type: 'auto', typeLabel: 'Auto', expirationDate: '2026-12-01', hawksoftId: 'HS-1' }
       ]
     };
     window.CallLogger._selectClient(client);
     const chip = window.document.querySelector('.cl-policy-chip');
     window.CallLogger._selectPolicy(client.policies[0], chip);
-    expect(window.document.getElementById('clPolicyId').value).toBe('POL-001');
+    // Input stays as client name (policy number resolved at format time)
+    expect(window.document.getElementById('clPolicyId').value).toBe('Smith, John');
     expect(chip.classList.contains('cl-policy-selected')).toBe(true);
+    // Selected policy is tracked for retrieval
+    expect(window.CallLogger.getSelectedPolicy()).toEqual(client.policies[0]);
   });
 
   test('_handleClientSearch shows dropdown for matching clients', () => {
@@ -816,6 +874,97 @@ describe('Client & Policy Lookup — Behavioral', () => {
     window.CallLogger.init();
     const input = window.document.getElementById('clPolicyId');
     expect(input._clSearchWired).toBe(true);
+  });
+
+  test('_buildClientLink returns bold text when no hawksoftId', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    const result = window.CallLogger._buildClientLink('Smith, John', '');
+    expect(result).toContain('<strong>');
+    expect(result).toContain('Smith, John');
+    expect(result).not.toContain('<a');
+  });
+
+  test('_buildClientLink returns hs:// link on desktop', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    const result = window.CallLogger._buildClientLink('Smith, John', 'HS-123');
+    expect(result).toContain('hs://HS-123');
+    expect(result).toContain('cl-client-link');
+    expect(result).toContain('Smith, John');
+    expect(result).toContain('target="_blank"');
+  });
+
+  test('_buildClientLink escapes HTML in client name', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    const result = window.CallLogger._buildClientLink('<script>alert(1)</script>', 'HS-123');
+    expect(result).not.toContain('<script>');
+    expect(result).toContain('&lt;script&gt;');
+  });
+
+  test('_buildClientLink returns bold fallback when hawksoftId is null', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    const result = window.CallLogger._buildClientLink('Doe, Jane', null);
+    expect(result).toContain('<strong>');
+    expect(result).not.toContain('<a');
+  });
+
+  test('_selectClient resets _selectedPolicy to null', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    // First select a client and policy
+    const client1 = {
+      name: 'Smith, John',
+      policies: [{ policyNumber: 'POL-001', type: 'auto', typeLabel: 'Auto', expirationDate: '', hawksoftId: 'HS-1' }]
+    };
+    window.CallLogger._selectClient(client1);
+    const chip = window.document.querySelector('.cl-policy-chip');
+    window.CallLogger._selectPolicy(client1.policies[0], chip);
+    expect(window.CallLogger.getSelectedPolicy()).toBeTruthy();
+    // Now select a different client — policy should reset
+    const client2 = { name: 'Doe, Jane', policies: [] };
+    window.CallLogger._selectClient(client2);
+    expect(window.CallLogger.getSelectedPolicy()).toBeNull();
+  });
+
+  test('getSelectedPolicy returns the selected policy object', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    expect(window.CallLogger.getSelectedPolicy()).toBeNull();
+    const client = {
+      name: 'Smith, John',
+      policies: [{ policyNumber: 'POL-001', type: 'cgl', typeLabel: 'CGL', expirationDate: '2026-06-01', hawksoftId: 'HS-99' }]
+    };
+    window.CallLogger._selectClient(client);
+    window.CallLogger._selectPolicy(client.policies[0], null);
+    const selected = window.CallLogger.getSelectedPolicy();
+    expect(selected.policyNumber).toBe('POL-001');
+    expect(selected.type).toBe('cgl');
+    expect(selected.hawksoftId).toBe('HS-99');
+  });
+
+  test('selecting a second policy deselects the first chip', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    const client = {
+      name: 'Smith, John',
+      policies: [
+        { policyNumber: 'POL-001', type: 'auto', typeLabel: 'Auto', expirationDate: '', hawksoftId: '' },
+        { policyNumber: 'POL-002', type: 'cgl', typeLabel: 'CGL', expirationDate: '', hawksoftId: '' }
+      ]
+    };
+    window.CallLogger._selectClient(client);
+    const chips = window.document.querySelectorAll('.cl-policy-chip');
+    // Select first
+    window.CallLogger._selectPolicy(client.policies[0], chips[0]);
+    expect(chips[0].classList.contains('cl-policy-selected')).toBe(true);
+    // Select second — first should lose selection
+    window.CallLogger._selectPolicy(client.policies[1], chips[1]);
+    expect(chips[0].classList.contains('cl-policy-selected')).toBe(false);
+    expect(chips[1].classList.contains('cl-policy-selected')).toBe(true);
+    expect(window.CallLogger.getSelectedPolicy().policyNumber).toBe('POL-002');
   });
 });
 
@@ -885,6 +1034,25 @@ describe('call-logger.css — Client Autocomplete', () => {
   test('has dark mode overrides for dropdown', () => {
     expect(css).toContain('body.dark-mode .cl-client-dropdown');
     expect(css).toContain('body.dark-mode .cl-policy-chip');
+  });
+
+  test('defines cl-client-link styles for HawkSoft deep link', () => {
+    expect(css).toContain('.cl-client-link');
+    expect(css).toContain('text-decoration: none');
+  });
+
+  test('defines cl-confirm-policy badge styles', () => {
+    expect(css).toContain('.cl-confirm-policy');
+    expect(css).toContain('border-radius');
+  });
+
+  test('has dark mode overrides for client link and policy badge', () => {
+    expect(css).toContain('body.dark-mode .cl-client-link');
+    expect(css).toContain('body.dark-mode .cl-confirm-policy');
+  });
+
+  test('cl-client-link has focus-visible state', () => {
+    expect(css).toContain('.cl-client-link:focus-visible');
   });
 });
 

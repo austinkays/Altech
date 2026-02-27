@@ -12,6 +12,7 @@ window.CallLogger = (() => {
     const CGL_CACHE_KEY = 'altech_cgl_cache';
     let _searchTimer = null;
     let _selectedClient = null;  // { name, policies: [...] }
+    let _selectedPolicy = null;  // { policyNumber, type, typeLabel, expirationDate, hawksoftId }
 
     function init() {
         _load();
@@ -159,6 +160,7 @@ window.CallLogger = (() => {
         // Clear previous selection if user edits the input
         if (_selectedClient && input.value.trim() !== _selectedClient.name) {
             _selectedClient = null;
+            _selectedPolicy = null;
             const policySelect = document.getElementById('clPolicySelect');
             if (policySelect) policySelect.style.display = 'none';
         }
@@ -206,6 +208,7 @@ window.CallLogger = (() => {
         const policyList = document.getElementById('clPolicyList');
 
         _selectedClient = client;
+        _selectedPolicy = null;
 
         // Close dropdown
         if (dropdown) dropdown.style.display = 'none';
@@ -245,13 +248,8 @@ window.CallLogger = (() => {
      * User picked a specific policy — set it as the active policy ID.
      */
     function _selectPolicy(policy, chipEl) {
-        const input = document.getElementById('clPolicyId');
-        if (!input) return;
-
-        // Set the input to policyNumber so it gets sent to the API
-        if (policy.policyNumber) {
-            input.value = policy.policyNumber;
-        }
+        // Store the selected policy — policyNumber will be used as the API policyId
+        _selectedPolicy = policy;
 
         // Visual feedback — highlight selected chip
         const list = document.getElementById('clPolicyList');
@@ -290,15 +288,25 @@ window.CallLogger = (() => {
 
         if (!policyEl || !notesEl || !formatBtn) return;
 
-        const policyId = policyEl.value.trim();
+        const inputValue = policyEl.value.trim();
         const callType = typeEl ? typeEl.value : 'Inbound';
         const rawNotes = notesEl.value.trim();
 
-        // Validate
-        if (!policyId || !rawNotes) {
+        // Validate required fields
+        if (!inputValue || !rawNotes) {
             App.toast('Please fill in all fields', 'error');
             return;
         }
+
+        // If a client was selected from autocomplete and has policies, require policy selection
+        if (_selectedClient && _selectedClient.policies.length > 0 && !_selectedPolicy) {
+            App.toast('Please select a policy to log this call under', 'error');
+            return;
+        }
+
+        // Resolve the actual policy ID: selected policy > input value
+        const policyId = (_selectedPolicy && _selectedPolicy.policyNumber)
+            ? _selectedPolicy.policyNumber : inputValue;
 
         // Resolve AI settings
         const { userApiKey, aiModel } = _resolveAISettings();
@@ -345,10 +353,22 @@ window.CallLogger = (() => {
                 previewEl.style.display = '';
             }
 
-            // Show confirmation section with client info
+            // Show confirmation section with client info + HawkSoft link
             if (confirmSection && confirmInfo) {
                 const infoIcon = callType === 'Outbound' ? '📤' : '📥';
-                confirmInfo.innerHTML = `<strong>${infoIcon} ${_escapeHTML(callType)} Call</strong> — logging to <strong>${_escapeHTML(policyId)}</strong>`;
+                let infoHtml = `<strong>${infoIcon} ${_escapeHTML(callType)} Call</strong> — logging to `;
+
+                if (_selectedClient && _selectedPolicy) {
+                    // Client link (hs:// desktop / Agent Portal mobile) + policy badge
+                    const hsId = _selectedPolicy.hawksoftId || '';
+                    infoHtml += _buildClientLink(_selectedClient.name, hsId);
+                    const pIcon = _policyTypeIcon(_selectedPolicy.type);
+                    infoHtml += ` <span class="cl-confirm-policy">${pIcon} ${_escapeHTML(_selectedPolicy.typeLabel)} ${_escapeHTML(_selectedPolicy.policyNumber)}</span>`;
+                } else {
+                    infoHtml += `<strong>${_escapeHTML(policyId)}</strong>`;
+                }
+
+                confirmInfo.innerHTML = infoHtml;
                 confirmSection.style.display = '';
             }
 
@@ -496,6 +516,23 @@ window.CallLogger = (() => {
         return div.innerHTML;
     }
 
+    /**
+     * Build a clickable HawkSoft link for a client name.
+     * Desktop: hs:// protocol → HawkSoft desktop app
+     * Mobile:  Agent Portal web URL
+     * Falls back to bold text if no hawksoftId.
+     */
+    function _buildClientLink(name, hawksoftId) {
+        const escaped = _escapeHTML(name);
+        if (!hawksoftId) return `<strong>${escaped}</strong>`;
+        const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent);
+        const href = isMobile
+            ? `https://agents.hawksoft.app/client/${encodeURIComponent(hawksoftId)}`
+            : `hs://${encodeURIComponent(hawksoftId)}`;
+        const title = isMobile ? 'Open in HawkSoft Agent Portal' : 'Open in HawkSoft';
+        return `<a href="${href}" class="cl-client-link" title="${title}" target="_blank" rel="noopener">${escaped}</a>`;
+    }
+
     // ── Event Wiring ──
 
     function _wireEvents() {
@@ -556,5 +593,5 @@ window.CallLogger = (() => {
         }
     }
 
-    return { init, render, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch };
+    return { init, render, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, getSelectedPolicy: () => _selectedPolicy };
 })();

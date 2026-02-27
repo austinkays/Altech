@@ -212,6 +212,40 @@
     line-height: 1.5;
 }
 
+/* ── HawkSoft Client Link in Confirm Section ── */
+
+.cl-client-link {
+    color: var(--apple-blue);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.cl-client-link:hover {
+    border-bottom-color: var(--apple-blue);
+    color: var(--apple-blue-hover);
+}
+
+.cl-client-link:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+    border-radius: 2px;
+}
+
+.cl-confirm-policy {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    margin-left: 6px;
+    border-radius: 6px;
+    background: rgba(0, 122, 255, 0.08);
+    color: var(--apple-blue);
+    vertical-align: middle;
+    letter-spacing: 0.3px;
+}
+
 .cl-confirm-actions {
     display: flex;
     gap: 12px;
@@ -474,6 +508,19 @@ body.dark-mode .cl-submit-btn.cl-edit-mode:hover:not(:disabled) {
 
 body.dark-mode .cl-confirm-btn {
     color: #fff;
+}
+
+body.dark-mode .cl-client-link {
+    color: var(--apple-blue);
+}
+
+body.dark-mode .cl-client-link:hover {
+    border-bottom-color: var(--apple-blue);
+}
+
+body.dark-mode .cl-confirm-policy {
+    background: rgba(10, 132, 255, 0.15);
+    color: var(--apple-blue);
 }
 
 body.dark-mode .cl-select {
