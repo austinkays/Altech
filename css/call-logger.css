@@ -9,69 +9,107 @@
     padding: 0 16px 80px;
 }
 
-/* ── Hero / How-it-works strip ── */
+/* ── Client Sync Status Bar ── */
 
-.cl-hero {
+.cl-status-bar {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     gap: 12px;
-    padding: 16px 20px;
-    margin-bottom: 24px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
     background: rgba(255, 255, 255, 0.65);
     backdrop-filter: blur(16px) saturate(1.8);
     -webkit-backdrop-filter: blur(16px) saturate(1.8);
     border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 16px;
+    border-radius: 12px;
     box-shadow:
         0 1px 3px rgba(0, 0, 0, 0.04),
         0 4px 12px rgba(0, 0, 0, 0.03),
         inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    transition: opacity 0.3s ease;
 }
 
-.cl-hero-step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    flex: 0 0 auto;
-}
-
-.cl-hero-icon {
+.cl-status-left {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    font-size: 20px;
-    background: linear-gradient(135deg, var(--apple-blue), #5856D6);
-    box-shadow: 0 3px 10px rgba(0, 122, 255, 0.25);
-    color: #fff;
+    gap: 10px;
+    min-width: 0;
 }
 
-.cl-hero-step:nth-child(3) .cl-hero-icon {
-    background: linear-gradient(135deg, #FF9500, #FF6B00);
-    box-shadow: 0 3px 10px rgba(255, 149, 0, 0.25);
+.cl-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--text-tertiary);
+    transition: background 0.3s ease;
 }
 
-.cl-hero-step:nth-child(5) .cl-hero-icon {
-    background: linear-gradient(135deg, #34C759, #28A745);
-    box-shadow: 0 3px 10px rgba(52, 199, 89, 0.25);
+.cl-status-indicator.cl-status-loading {
+    background: var(--apple-blue);
+    animation: cl-dot-pulse 1.2s ease-in-out infinite;
 }
 
-.cl-hero-text {
+.cl-status-indicator.cl-status-ready {
+    background: var(--success);
+}
+
+.cl-status-indicator.cl-status-error {
+    background: var(--danger);
+}
+
+@keyframes cl-dot-pulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+.cl-status-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cl-refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
     font-size: 12px;
     font-weight: 600;
-    color: var(--text-secondary);
-    text-align: center;
+    color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.08);
+    border: 1px solid rgba(0, 122, 255, 0.15);
+    border-radius: 8px;
+    cursor: pointer;
     white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
 }
 
-.cl-hero-arrow {
-    color: var(--text-tertiary);
-    flex-shrink: 0;
+.cl-refresh-btn:hover {
+    background: rgba(0, 122, 255, 0.14);
+    border-color: rgba(0, 122, 255, 0.3);
+}
+
+.cl-refresh-btn:active {
+    transform: scale(0.96);
+}
+
+.cl-refresh-btn:disabled {
     opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cl-refresh-btn.cl-refreshing svg {
+    animation: cl-spin 0.8s linear infinite;
+}
+
+@keyframes cl-spin {
+    to { transform: rotate(360deg); }
 }
 
 /* ── Form Card — Glassmorphism ── */
@@ -480,17 +518,7 @@
     position: relative;
 }
 
-.cl-policy-loading-hint {
-    font-size: 12px;
-    color: var(--apple-blue);
-    padding: 6px 2px 0;
-    animation: cl-hint-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes cl-hint-pulse {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-}
+/* (Policy loading hint removed — status bar handles loading state now) */
 
 .cl-client-dropdown {
     position: absolute;
@@ -631,12 +659,22 @@
    Dark Mode
    ═══════════════════════════════════════ */
 
-body.dark-mode .cl-hero {
+body.dark-mode .cl-status-bar {
     background: #1C1C1E;
     border-color: #38383A;
     box-shadow:
         0 1px 3px rgba(0, 0, 0, 0.2),
         0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+body.dark-mode .cl-refresh-btn {
+    background: rgba(10, 132, 255, 0.12);
+    border-color: rgba(10, 132, 255, 0.25);
+}
+
+body.dark-mode .cl-refresh-btn:hover {
+    background: rgba(10, 132, 255, 0.2);
+    border-color: rgba(10, 132, 255, 0.4);
 }
 
 body.dark-mode .cl-form {
@@ -758,25 +796,17 @@ body.dark-mode .cl-select {
         grid-column: 1;
     }
 
-    .cl-hero {
-        gap: 8px;
-        padding: 14px 12px;
+    .cl-status-bar {
+        padding: 8px 12px;
     }
 
-    .cl-hero-icon {
-        width: 36px;
-        height: 36px;
-        font-size: 16px;
-        border-radius: 10px;
+    .cl-status-text {
+        font-size: 12px;
     }
 
-    .cl-hero-text {
+    .cl-refresh-btn {
+        padding: 4px 10px;
         font-size: 11px;
-    }
-
-    .cl-hero-arrow svg {
-        width: 16px;
-        height: 16px;
     }
 }
 

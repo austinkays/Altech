@@ -6,26 +6,16 @@
 </header>
 
 <div class="cl-container">
-    <!-- Hero / How-it-works -->
-    <div class="cl-hero">
-        <div class="cl-hero-step">
-            <div class="cl-hero-icon">✍️</div>
-            <div class="cl-hero-text">Jot rough notes</div>
+    <!-- Client Sync Status Bar -->
+    <div class="cl-status-bar" id="clStatusBar">
+        <div class="cl-status-left">
+            <div class="cl-status-indicator" id="clStatusDot"></div>
+            <span class="cl-status-text" id="clStatusText">Checking client data…</span>
         </div>
-        <div class="cl-hero-arrow">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        <div class="cl-hero-step">
-            <div class="cl-hero-icon">✨</div>
-            <div class="cl-hero-text">AI formats them</div>
-        </div>
-        <div class="cl-hero-arrow">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-        <div class="cl-hero-step">
-            <div class="cl-hero-icon">🦅</div>
-            <div class="cl-hero-text">Log to HawkSoft</div>
-        </div>
+        <button class="cl-refresh-btn" id="clRefreshBtn" title="Refresh client list from HawkSoft">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Refresh
+        </button>
     </div>
 
     <!-- Form Card -->

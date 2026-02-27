@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 5, 2026
+> **Last updated:** March 6, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~702 lines) |
-| **CSS** | 21 files in `css/` (~14,200 lines total) |
-| **JS** | 35 modules in `js/` (~27,400 lines total) |
-| **Plugins** | 15 HTML templates in `plugins/` (~4,950 lines total) |
+| **CSS** | 21 files in `css/` (~14,100 lines total) |
+| **JS** | 35 modules in `js/` (~27,950 lines total) |
+| **Plugins** | 15 HTML templates in `plugins/` (~4,960 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,560 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -69,7 +69,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (758 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
-│   ├── call-logger.css         # Call logger plugin + glassmorphism UI + hero strip + client autocomplete + policy selector + HawkSoft deep links + policy loading hint (808 lines)
+│   ├── call-logger.css         # Call logger plugin + glassmorphism UI + status bar + client autocomplete + policy selector + HawkSoft deep links (710 lines)
 │   ├── compliance.css          # CGL compliance dashboard (1,046 lines)
 │   ├── auth.css                # Auth modal + settings (973 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
@@ -122,7 +122,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (773 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (702 lines)
 │   ├── accounting-export.js     # Trust deposit calculator, HawkSoft receipts (337 lines)
-│   ├── call-logger.js           # AI call note formatter + HawkSoft logger, two-step preview/confirm, client→policy autocomplete, HawkSoft deep links, personal lines support, on-demand policy pre-fetch (723 lines)
+│   ├── call-logger.js           # AI call note formatter + HawkSoft logger, two-step preview/confirm, client→policy autocomplete, HawkSoft deep links, personal lines support, status bar + manual refresh (677 lines)
 │   │
 │   │  ★ Support Modules
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (369 lines)
@@ -146,7 +146,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.html              # Email composer (98 lines)
 │   ├── qna.html                # Policy Q&A chat (95 lines)
 │   ├── quickref.html           # Quick reference cards (79 lines)
-│   ├── call-logger.html        # AI call logger + hero workflow strip + form sections + client autocomplete (84 lines)
+│   ├── call-logger.html        # AI call logger + client sync status bar + form sections + client autocomplete (74 lines)
 │   └── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
 │
 ├── api/                        # 12 serverless functions + 2 helpers (~6,560 lines) ⚠️ Hobby plan MAX = 12 functions
@@ -757,6 +757,7 @@ KEY RULES:
 | Call Logger UI redesign | call-logger.css, call-logger.html | Glassmorphism cards (backdrop-filter blur+saturate), hero "how-it-works" 3-step strip with gradient icons, form sections with SVG icon headers, side-by-side grid for client name + call type, gradient submit/confirm buttons, spring animations, comprehensive dark mode with solid surfaces |
 | Theme-pro select chevron fix | theme-professional.css | `background:` → `background-color:` on `body.theme-pro input/select/textarea` — shorthand was overriding `background-image` SVG chevrons in Call Logger select |
 | Call Logger on-demand policy pre-fetch | call-logger.js, call-logger.css | Call Logger now independently fetches policies from compliance API if cache is empty — no need to visit Compliance Dashboard first. Shows subtle "Loading client list…" hint while fetching. Tries disk cache → API → stores in `altech_cgl_cache` localStorage |
+| Call Logger status bar + refresh | call-logger.html, call-logger.css, call-logger.js | Replaced hero 3-step icon strip with professional client sync status bar. Shows live loading state (pulsing blue dot + "Checking local cache…" / "Syncing clients from HawkSoft…"), success state (green dot + "X clients loaded"), and error state (red dot + message). Added "Refresh" button with spinning icon animation for manual retry. Full dark mode + responsive support. |
 
 
 ### Known Issues NOT Fixed (Intentional / Cosmetic)

@@ -97,13 +97,14 @@ window.CallLogger = (() => {
                 const policies = cached?.allPolicies || cached?.policies || [];
                 if (policies.length > 0) {
                     _policiesReady = true;
+                    _updateStatusBar('ready', policies.length + ' clients loaded');
                     return; // Cache is warm — nothing to do
                 }
             }
         } catch (e) { /* ignore parse errors */ }
 
-        // Cache is empty — show subtle loading hint
-        _showPolicyLoadingHint(true);
+        // Cache is empty — show loading state
+        _updateStatusBar('loading', 'Checking local cache…');
 
         // Try disk cache first (fast, survives browser storage clears)
         try {
@@ -117,7 +118,7 @@ window.CallLogger = (() => {
                         // Promote disk cache to localStorage
                         localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(diskData));
                         _policiesReady = true;
-                        _showPolicyLoadingHint(false);
+                        _updateStatusBar('ready', policies.length + ' clients loaded');
                         console.log('[CallLogger] Loaded', policies.length, 'policies from disk cache');
                         return;
                     }
@@ -128,6 +129,7 @@ window.CallLogger = (() => {
         }
 
         // No cache anywhere — fetch from compliance API directly
+        _updateStatusBar('loading', 'Syncing clients from HawkSoft…');
         try {
             console.log('[CallLogger] No cached policies — fetching from compliance API...');
             const controller = new AbortController();
@@ -156,32 +158,84 @@ window.CallLogger = (() => {
                 localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(cacheObj));
                 _policiesReady = true;
                 const count = (data.allPolicies || data.policies || []).length;
+                _updateStatusBar('ready', count + ' clients loaded');
                 console.log('[CallLogger] Fetched and cached', count, 'policies');
+            } else {
+                _updateStatusBar('error', 'Could not load clients');
             }
         } catch (e) {
-            // Not critical — user can still type policy IDs manually
             const isAbort = e.name === 'AbortError';
+            if (isAbort) {
+                _updateStatusBar('error', 'Request timed out');
+            } else {
+                _updateStatusBar('error', 'Could not load clients');
+            }
             if (!isAbort) console.warn('[CallLogger] Policy pre-fetch failed:', e.message);
-        } finally {
-            _showPolicyLoadingHint(false);
         }
     }
 
     /**
-     * Show/hide a subtle loading hint below the client search input.
+     * Update the status bar with current loading state.
+     * @param {'idle'|'loading'|'ready'|'error'} state
+     * @param {string} message
      */
-    function _showPolicyLoadingHint(show) {
-        const wrapper = document.querySelector('.cl-search-wrapper');
-        if (!wrapper) return;
+    function _updateStatusBar(state, message) {
+        const dot = document.getElementById('clStatusDot');
+        const text = document.getElementById('clStatusText');
+        const btn = document.getElementById('clRefreshBtn');
 
-        let hint = wrapper.querySelector('.cl-policy-loading-hint');
-        if (show && !hint) {
-            hint = document.createElement('div');
-            hint.className = 'cl-policy-loading-hint';
-            hint.textContent = 'Loading client list…';
-            wrapper.appendChild(hint);
-        } else if (!show && hint) {
-            hint.remove();
+        if (dot) {
+            dot.className = 'cl-status-indicator';
+            if (state === 'loading') dot.classList.add('cl-status-loading');
+            else if (state === 'ready') dot.classList.add('cl-status-ready');
+            else if (state === 'error') dot.classList.add('cl-status-error');
+        }
+        if (text) text.textContent = message || '';
+        if (btn) {
+            btn.disabled = (state === 'loading');
+            btn.classList.toggle('cl-refreshing', state === 'loading');
+        }
+    }
+
+    /**
+     * Manual refresh — force-fetch from API, bypass cache.
+     */
+    async function _refreshPolicies() {
+        _updateStatusBar('loading', 'Refreshing client list…');
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30000);
+            const res = await fetch('/api/compliance.js', { signal: controller.signal });
+            clearTimeout(timeout);
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const contentType = res.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                const preview = await res.clone().text();
+                if (preview.trimStart().startsWith('/**') || preview.trimStart().startsWith('export') || preview.trimStart().startsWith('//')) {
+                    throw new Error('API not available — static file server');
+                }
+            }
+
+            const data = await res.json();
+            if (data.success) {
+                const cacheObj = {
+                    ...data,
+                    cachedAt: Date.now(),
+                    last_synced_time: new Date().toISOString()
+                };
+                localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(cacheObj));
+                _policiesReady = true;
+                const count = (data.allPolicies || data.policies || []).length;
+                _updateStatusBar('ready', count + ' clients loaded');
+                console.log('[CallLogger] Refresh: cached', count, 'policies');
+            } else {
+                _updateStatusBar('error', 'Refresh failed — no data returned');
+            }
+        } catch (e) {
+            const isAbort = e.name === 'AbortError';
+            _updateStatusBar('error', isAbort ? 'Request timed out' : 'Refresh failed');
+            if (!isAbort) console.warn('[CallLogger] Refresh failed:', e.message);
         }
     }
 
@@ -717,7 +771,14 @@ window.CallLogger = (() => {
             copyBtn.addEventListener('click', _handleCopy);
             copyBtn._clWired = true;
         }
+
+        // Refresh clients button
+        const refreshBtn = document.getElementById('clRefreshBtn');
+        if (refreshBtn && !refreshBtn._clWired) {
+            refreshBtn.addEventListener('click', _refreshPolicies);
+            refreshBtn._clWired = true;
+        }
     }
 
-    return { init, render, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, getSelectedPolicy: () => _selectedPolicy };
+    return { init, render, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, getSelectedPolicy: () => _selectedPolicy };
 })();
