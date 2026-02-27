@@ -1,6 +1,6 @@
 /**
- * CallLogger — AI-powered call note formatter + HawkSoft logger
- * Formats call notes via AI and logs them to HawkSoft.
+ * CallLogger — Call note formatter + HawkSoft logger
+ * Formats messy shorthand call notes, then logs to HawkSoft.
  * Uses apiFetch() for authenticated API calls.
  *
  * localStorage key: altech_call_logger
@@ -57,7 +57,7 @@ window.CallLogger = (() => {
         }
     }
 
-    // ── AI Settings Resolution ──
+    // ── Settings Resolution ──
 
     function _resolveAISettings() {
         let userApiKey = '';
@@ -521,7 +521,7 @@ window.CallLogger = (() => {
         const policyId = (_selectedPolicy && _selectedPolicy.policyNumber)
             ? _selectedPolicy.policyNumber : inputValue;
 
-        // Resolve AI settings
+        // Resolve settings
         const { userApiKey, aiModel } = _resolveAISettings();
 
         // Disable button
@@ -566,20 +566,31 @@ window.CallLogger = (() => {
                 previewEl.style.display = '';
             }
 
-            // Show confirmation section with client info + HawkSoft link
+            // Show confirmation section with clear summary
             if (confirmSection && confirmInfo) {
                 const infoIcon = callType === 'Outbound' ? '📤' : '📥';
-                let infoHtml = `<strong>${infoIcon} ${_escapeHTML(callType)} Call</strong> — logging to `;
+                let infoHtml = '<div class="cl-confirm-summary">';
 
+                // Client row
+                infoHtml += '<div class="cl-confirm-row"><span class="cl-confirm-label">Client:</span> ';
                 if (_selectedClient && _selectedPolicy) {
-                    // Client link (hs:// desktop / Agent Portal mobile) + policy badge
                     const hsId = _selectedPolicy.hawksoftId || '';
                     infoHtml += _buildClientLink(_selectedClient.name, hsId);
-                    const pIcon = _policyTypeIcon(_selectedPolicy.type);
-                    infoHtml += ` <span class="cl-confirm-policy">${pIcon} ${_escapeHTML(_selectedPolicy.typeLabel)} ${_escapeHTML(_selectedPolicy.policyNumber)}</span>`;
                 } else {
                     infoHtml += `<strong>${_escapeHTML(policyId)}</strong>`;
                 }
+                infoHtml += '</div>';
+
+                // Policy row
+                if (_selectedClient && _selectedPolicy) {
+                    const pIcon = _policyTypeIcon(_selectedPolicy.type);
+                    infoHtml += `<div class="cl-confirm-row"><span class="cl-confirm-label">Policy:</span> <span class="cl-confirm-policy">${pIcon} ${_escapeHTML(_selectedPolicy.typeLabel)} ${_escapeHTML(_selectedPolicy.policyNumber)}</span></div>`;
+                }
+
+                // Call type row
+                infoHtml += `<div class="cl-confirm-row"><span class="cl-confirm-label">Call Type:</span> ${infoIcon} ${_escapeHTML(callType)}</div>`;
+
+                infoHtml += '</div>';
 
                 confirmInfo.innerHTML = infoHtml;
                 confirmSection.style.display = '';
@@ -715,7 +726,7 @@ window.CallLogger = (() => {
         const formatBtn = document.getElementById('clSubmitBtn');
         const confirmSection = document.getElementById('clConfirmSection');
         if (formatBtn) {
-            formatBtn.textContent = '✨ Format Preview';
+            formatBtn.textContent = '🔍 Format Preview';
             formatBtn.classList.remove('cl-edit-mode');
         }
         if (confirmSection) {

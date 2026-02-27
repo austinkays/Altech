@@ -406,6 +406,42 @@
     border: 1px solid var(--border-subtle);
 }
 
+.cl-confirm-header {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    letter-spacing: -0.2px;
+}
+
+.cl-confirm-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cl-confirm-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.cl-confirm-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 70px;
+    flex-shrink: 0;
+}
+
+.cl-confirm-notice {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin: 12px 0 16px;
+    line-height: 1.4;
+}
+
 /* ── HawkSoft Client Link in Confirm Section ── */
 
 .cl-client-link {

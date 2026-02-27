@@ -4,7 +4,7 @@
  * Tests:
  * - IIFE module exports { init, render }
  * - localStorage persistence (save/load round-trip)
- * - AI settings resolution from altech_settings
+ * - Settings resolution from altech_settings
  * - DOM element wiring
  * - Form validation
  * - Submit handler behavior
@@ -84,10 +84,10 @@ describe('Persistence', () => {
 });
 
 // ────────────────────────────────────────────────────
-// AI Settings Resolution (source analysis)
+// Settings Resolution (source analysis)
 // ────────────────────────────────────────────────────
 
-describe('AI Settings Resolution', () => {
+describe('Settings Resolution', () => {
   test('reads from altech_settings localStorage key', () => {
     expect(source).toContain("localStorage.getItem('altech_settings')");
   });
@@ -223,7 +223,7 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
           <input type="text" id="clPolicyId" value="">
           <select id="clCallType"><option value="Inbound">Inbound</option><option value="Outbound">Outbound</option></select>
           <textarea id="clRawNotes"></textarea>
-          <button id="clSubmitBtn">✨ Format Preview</button>
+          <button id="clSubmitBtn">🔍 Format Preview</button>
         </div>
         <div id="clPreview" style="display:none">
           <div class="cl-preview-header"><span>Formatted Log Preview</span><button id="clCopyBtn">📋 Copy</button></div>
@@ -411,7 +411,7 @@ describe('call-logger.html — Plugin HTML', () => {
 
   test('has plugin-header with title', () => {
     expect(pluginHtml).toContain('plugin-header');
-    expect(pluginHtml).toContain('AI Call Logger');
+    expect(pluginHtml).toContain('Call Logger');
   });
 
   test('has confirmation section with confirm and cancel buttons', () => {
@@ -468,7 +468,7 @@ describe('Two-Step Workflow', () => {
 
   test('resets to format mode after confirm', () => {
     expect(source).toContain('function _resetToFormatMode()');
-    expect(source).toContain("'✨ Format Preview'");
+    expect(source).toContain("'🔍 Format Preview'");
   });
 
   test('wires confirm, cancel, and copy buttons', () => {
@@ -673,7 +673,7 @@ describe('Client & Policy Lookup — Behavioral', () => {
           </div>
           <select id="clCallType"><option value="Inbound">Inbound</option></select>
           <textarea id="clRawNotes"></textarea>
-          <button id="clSubmitBtn">✨ Format Preview</button>
+          <button id="clSubmitBtn">🔍 Format Preview</button>
         </div>
         <div id="clPreview" style="display:none">
           <pre id="clPreviewText"></pre>

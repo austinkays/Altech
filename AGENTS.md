@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 6, 2026
+> **Last updated:** March 7, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -122,7 +122,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (773 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (702 lines)
 │   ├── accounting-export.js     # Trust deposit calculator, HawkSoft receipts (337 lines)
-│   ├── call-logger.js           # AI call note formatter + HawkSoft logger, two-step preview/confirm, client→policy autocomplete, HawkSoft deep links, personal lines support, status bar + manual refresh (677 lines)
+│   ├── call-logger.js           # Call note formatter + HawkSoft logger, two-step preview/confirm, client→policy autocomplete, HawkSoft deep links, personal lines support, status bar + manual refresh (796 lines)
 │   │
 │   │  ★ Support Modules
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (369 lines)
@@ -146,7 +146,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.html              # Email composer (98 lines)
 │   ├── qna.html                # Policy Q&A chat (95 lines)
 │   ├── quickref.html           # Quick reference cards (79 lines)
-│   ├── call-logger.html        # AI call logger + client sync status bar + form sections + client autocomplete (74 lines)
+│   ├── call-logger.html        # Call logger + client sync status bar + form sections + client autocomplete (86 lines)
 │   └── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
 │
 ├── api/                        # 12 serverless functions + 2 helpers (~6,560 lines) ⚠️ Hobby plan MAX = 12 functions
@@ -758,6 +758,7 @@ KEY RULES:
 | Theme-pro select chevron fix | theme-professional.css | `background:` → `background-color:` on `body.theme-pro input/select/textarea` — shorthand was overriding `background-image` SVG chevrons in Call Logger select |
 | Call Logger on-demand policy pre-fetch | call-logger.js, call-logger.css | Call Logger now independently fetches policies from compliance API if cache is empty — no need to visit Compliance Dashboard first. Shows subtle "Loading client list…" hint while fetching. Tries disk cache → API → stores in `altech_cgl_cache` localStorage |
 | Call Logger status bar + refresh | call-logger.html, call-logger.css, call-logger.js | Replaced hero 3-step icon strip with professional client sync status bar. Shows live loading state (pulsing blue dot + "Checking local cache…" / "Syncing clients from HawkSoft…"), success state (green dot + "X clients loaded"), and error state (red dot + message). Added "Refresh" button with spinning icon animation for manual retry. Full dark mode + responsive support. |
+| Call Logger — remove AI branding + enhance confirm UX | call-logger.html, call-logger.js, call-logger.css, call-logger.test.js | Removed all user-facing "AI" references (header, placeholder, comments). Restructured confirm section with labeled summary rows (Client, Policy, Call Type) and a "Confirm Before Logging" header + review notice. Button icon changed from ✨ to 🔍. |
 
 
 ### Known Issues NOT Fixed (Intentional / Cosmetic)
@@ -887,7 +888,7 @@ In `js/cloud-sync.js`:
 | `/api/admin?action=list` | GET | Admin | List users |
 | `/api/admin?action=update` | POST | Admin | Update user role |
 | `/api/anthropic-proxy` | POST | Firebase | Anthropic CORS proxy |
-| `/api/hawksoft-logger` | POST | Security | AI call note formatter + HawkSoft log push |
+| `/api/hawksoft-logger` | POST | Security | Call note formatter + HawkSoft log push |
 
 ---
 
@@ -915,7 +916,7 @@ tests/
 ├── prospect-client.test.js     # Prospect client-side module
 ├── server.test.js              # Local dev server (server.js)
 ├── hawksoft-logger.test.js     # HawkSoft Logger API (67 tests)
-└── call-logger.test.js         # Call Logger client module (160 tests)
+└── call-logger.test.js         # Call Logger client module (145 tests)
 ```
 
 Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously' })`. The test setup file mocks `fetch`, silences console noise, and suppresses expected `crypto.subtle` errors.

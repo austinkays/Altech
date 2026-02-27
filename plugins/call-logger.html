@@ -1,7 +1,7 @@
 <header class="plugin-header">
     <div class="plugin-header-left">
-        <h2>📞 AI Call Logger</h2>
-        <p class="plugin-subtitle">AI-powered call note formatter — logs directly to HawkSoft</p>
+        <h2>📞 Call Logger</h2>
+        <p class="plugin-subtitle">Format messy call notes and log to HawkSoft</p>
     </div>
 </header>
 
@@ -56,11 +56,11 @@
             </div>
 
             <div class="cl-field">
-                <textarea id="clRawNotes" class="cl-textarea" placeholder="Jot your notes quickly — AI will format them.&#10;&#10;e.g. cust called re: claim #4432, needs updated dec page, also asked about adding teen driver to auto policy, told them id send quote by eod"></textarea>
+                <textarea id="clRawNotes" class="cl-textarea" placeholder="Type fast, be messy — we'll clean it up.&#10;&#10;e.g. cust called re: claim #4432, needs updated dec page, also asked about adding teen driver to auto policy, told them id send quote by eod"></textarea>
             </div>
         </div>
 
-        <button id="clSubmitBtn" class="cl-submit-btn">✨ Format Preview</button>
+        <button id="clSubmitBtn" class="cl-submit-btn">🔍 Format Preview</button>
     </div>
 
     <!-- Preview Card -->
@@ -74,7 +74,9 @@
 
     <!-- Confirm Card -->
     <div id="clConfirmSection" class="cl-confirm-section" style="display: none;">
+        <div class="cl-confirm-header">Confirm Before Logging</div>
         <div id="clConfirmInfo" class="cl-confirm-info"></div>
+        <p class="cl-confirm-notice">Review the formatted notes above, then confirm to log to HawkSoft.</p>
         <div class="cl-confirm-actions">
             <button id="clConfirmBtn" class="cl-confirm-btn">✅ Confirm &amp; Log to HawkSoft</button>
             <button id="clCancelBtn" class="cl-cancel-btn">✏️ Edit</button>
