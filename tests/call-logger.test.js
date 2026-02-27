@@ -596,7 +596,9 @@ describe('Client & Policy Lookup — Source', () => {
   });
 
   test('_getClients prefers allPolicies field from cache', () => {
-    expect(source).toContain('cached?.allPolicies || cached?.policies');
+    expect(source).toContain('cached?.allPolicies');
+    // Uses length check so empty allPolicies array correctly falls back to policies
+    expect(source).toContain('allPolicies.length > 0');
   });
 
   test('_getClients uses policyType with type fallback', () => {
