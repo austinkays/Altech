@@ -692,25 +692,26 @@ window.CallLogger = (() => {
 
             const result = await res.json();
 
-            // Clear form
-            const notesEl = document.getElementById('clRawNotes');
-            if (notesEl) notesEl.value = '';
-
             let statusMsg;
             if (result.hawksoftLogged) {
                 statusMsg = `✅ Logged to HawkSoft for ${_escapeHTML(_pendingLog.policyId)}`;
+                App.toast(statusMsg, 'success');
+
+                // Only reset on success — clear form and return to initial state
+                const notesEl = document.getElementById('clRawNotes');
+                if (notesEl) notesEl.value = '';
+                _resetToFormatMode();
+                _pendingLog = null;
             } else if (result.hawksoftStatus === 'push_failed' || result.hawksoftStatus === 'push_error') {
-                statusMsg = `⚠️ Note formatted but HawkSoft push failed — copy log manually`;
+                statusMsg = `⚠️ HawkSoft push failed — copy the log manually`;
                 console.warn('[Call Logger] HawkSoft push failed:', result.hawksoftError);
+                App.toast(statusMsg, 'error');
+                // Keep confirm section visible so user can copy/retry
             } else {
                 statusMsg = '✅ Formatted — copy log manually';
+                App.toast(statusMsg, 'success');
+                // Keep confirm section visible so user can copy
             }
-
-            App.toast(statusMsg, 'success');
-
-            // Reset to initial state but keep preview visible
-            _resetToFormatMode();
-            _pendingLog = null;
 
         } catch (error) {
             App.toast('Error: ' + (error.message || 'Failed to send to HawkSoft'), 'error');
