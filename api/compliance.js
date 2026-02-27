@@ -372,6 +372,19 @@ async function handler(req, res) {
       }
     }
 
+    // Build allClientsList — EVERY client from HawkSoft regardless of policy status.
+    // This powers Call Logger autocomplete so prospects and policy-less clients are searchable.
+    const allClientsList = [];
+    for (const client of allClients) {
+      let cName;
+      if (client.details?.companyName) cName = client.details.companyName;
+      else if (client.details?.dbaName) cName = client.details.dbaName;
+      else if (client.people?.[0] && `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim())
+        cName = `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim();
+      else cName = `Client #${client.clientNumber}`;
+      allClientsList.push({ clientNumber: client.clientNumber, clientName: cName });
+    }
+
     // Sort by days until expiration (most urgent first, nulls at end)
     compliancePolicies.sort((a, b) => {
       if (a.daysUntilExpiration === null) return 1;
@@ -433,6 +446,7 @@ async function handler(req, res) {
         }));
       }
     }
+    console.log(`[Compliance] All Clients List (incl. prospects): ${allClientsList.length}`);
     console.log(`[Compliance] All Policy Types Found:`, Array.from(policyTypesFound).sort());
     console.log(`[Compliance] Search Date Range: ${asOfDate} to ${today}`);
     console.log(`[Compliance] Elapsed Time: ${elapsedTime}s`);
@@ -443,6 +457,7 @@ async function handler(req, res) {
       count: compliancePolicies.length,
       policies: compliancePolicies,
       allPolicies: allPolicies,
+      allClientsList: allClientsList,
       cachedAt: Date.now(),
       metadata: {
         fetchedAt: today,
@@ -472,7 +487,8 @@ async function handler(req, res) {
           fromDbaName: nameFromDba,
           fromPeople: nameFromPeople,
           fallback: nameFromFallback
-        }
+        },
+        allClientsListCount: allClientsList.length
       }
     };
 

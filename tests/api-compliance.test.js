@@ -649,4 +649,19 @@ describe('compliance.js — Handler Structure', () => {
   test('KV cache stale log explains reason when allPolicies missing', () => {
     expect(source).toContain('missing allPolicies');
   });
+
+  test('response includes allClientsList for Call Logger prospect support', () => {
+    expect(source).toContain('allClientsList: allClientsList');
+  });
+
+  test('allClientsList is built from all fetched clients (including policy-less)', () => {
+    // allClientsList is built from allClients (the full set from HawkSoft),
+    // NOT from allPolicies which filters out prospect/cancelled/expired-only clients
+    expect(source).toContain('for (const client of allClients)');
+    expect(source).toContain('allClientsList.push');
+  });
+
+  test('metadata includes allClientsListCount', () => {
+    expect(source).toContain('allClientsListCount:');
+  });
 });

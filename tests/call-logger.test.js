@@ -888,6 +888,102 @@ describe('Client & Policy Lookup — Behavioral', () => {
     expect(clients[0].policies[0].type).toBe('bond');
   });
 
+  // ── allClientsList (prospect/policy-less client support) ──
+
+  test('_getClients merges allClientsList prospects into dropdown', () => {
+    const { window, store } = createClientDOM();
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      allPolicies: [
+        { clientName: 'Slaughter Andrea', policyNumber: 'HO-100', policyType: 'homeowner', hawksoftId: '1001' }
+      ],
+      allClientsList: [
+        { clientNumber: 1001, clientName: 'Slaughter Andrea' },
+        { clientNumber: 1002, clientName: 'Sandberg Andrea' },
+        { clientNumber: 1003, clientName: 'Siemer Andrea' }
+      ]
+    });
+    window.CallLogger.init();
+    const clients = window.CallLogger._getClients();
+    expect(clients.length).toBe(3);
+    const names = clients.map(c => c.name);
+    expect(names).toContain('Sandberg Andrea');
+    expect(names).toContain('Siemer Andrea');
+    expect(names).toContain('Slaughter Andrea');
+  });
+
+  test('_getClients prospect clients have zero policies', () => {
+    const { window, store } = createClientDOM();
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      allPolicies: [
+        { clientName: 'Active Client', policyNumber: 'POL-1', policyType: 'cgl', hawksoftId: '100' }
+      ],
+      allClientsList: [
+        { clientNumber: 100, clientName: 'Active Client' },
+        { clientNumber: 200, clientName: 'Prospect Only' }
+      ]
+    });
+    window.CallLogger.init();
+    const clients = window.CallLogger._getClients();
+    const prospect = clients.find(c => c.name === 'Prospect Only');
+    expect(prospect).toBeDefined();
+    expect(prospect.policies).toHaveLength(0);
+    expect(prospect.hawksoftId).toBe(200);
+  });
+
+  test('_getClients allClientsList does not duplicate existing policy clients', () => {
+    const { window, store } = createClientDOM();
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      allPolicies: [
+        { clientName: 'Smith John', policyNumber: 'POL-1', policyType: 'cgl', hawksoftId: '100' }
+      ],
+      allClientsList: [
+        { clientNumber: 100, clientName: 'Smith John' }
+      ]
+    });
+    window.CallLogger.init();
+    const clients = window.CallLogger._getClients();
+    expect(clients).toHaveLength(1);
+    expect(clients[0].policies).toHaveLength(1);
+  });
+
+  test('_getClients sets hawksoftId from allClientsList for policy clients', () => {
+    const { window, store } = createClientDOM();
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      allPolicies: [
+        { clientName: 'Jones Mary', policyNumber: 'POL-1', policyType: 'homeowner' }
+      ],
+      allClientsList: [
+        { clientNumber: 555, clientName: 'Jones Mary' }
+      ]
+    });
+    window.CallLogger.init();
+    const clients = window.CallLogger._getClients();
+    expect(clients[0].hawksoftId).toBe(555);
+  });
+
+  test('_getClients works without allClientsList (backward compat)', () => {
+    const { window, store } = createClientDOM();
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      allPolicies: [
+        { clientName: 'Smith John', policyNumber: 'POL-1', policyType: 'cgl', hawksoftId: '100' }
+      ]
+    });
+    window.CallLogger.init();
+    const clients = window.CallLogger._getClients();
+    expect(clients).toHaveLength(1);
+    expect(clients[0].name).toBe('Smith John');
+  });
+
+  test('_countClients prefers allClientsList count', () => {
+    expect(source).toContain('function _countClients');
+    expect(source).toContain('allClientsList');
+  });
+
   test('_policyTypeLabel returns correct commercial labels', () => {
     const { window } = createClientDOM();
     expect(window.CallLogger._policyTypeLabel('auto')).toBe('Commercial Auto');

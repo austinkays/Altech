@@ -99,7 +99,7 @@ window.CallLogger = (() => {
                 if (allPolicies && allPolicies.length > 0) {
                     _policiesReady = true;
                     _logPolicyBreakdown(allPolicies, cached?.metadata, 'localStorage cache');
-                    const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
+                    const clientCount = _countClients(cached);
                     _updateStatusBar('ready', clientCount + ' clients loaded');
                     return; // Cache is warm — nothing to do
                 }
@@ -124,7 +124,7 @@ window.CallLogger = (() => {
                         localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(diskData));
                         _policiesReady = true;
                         _logPolicyBreakdown(allPolicies, diskData?.metadata, 'disk cache');
-                        const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
+                        const clientCount = _countClients(diskData);
                         _updateStatusBar('ready', clientCount + ' clients loaded');
                         return;
                     } else if (diskData?.policies?.length > 0) {
@@ -167,7 +167,7 @@ window.CallLogger = (() => {
                 _policiesReady = true;
                 const allPolicies = data.allPolicies || data.policies || [];
                 _logPolicyBreakdown(allPolicies, data.metadata, 'API fetch');
-                const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
+                const clientCount = _countClients(data);
                 _updateStatusBar('ready', clientCount + ' clients loaded');
             } else {
                 _updateStatusBar('error', 'Could not load clients');
@@ -237,7 +237,7 @@ window.CallLogger = (() => {
                 _policiesReady = true;
                 const allPolicies = data.allPolicies || data.policies || [];
                 _logPolicyBreakdown(allPolicies, data.metadata, 'Refresh');
-                const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
+                const clientCount = _countClients(data);
                 _updateStatusBar('ready', clientCount + ' clients loaded');
             } else {
                 _updateStatusBar('error', 'Refresh failed — no data returned');
@@ -247,6 +247,18 @@ window.CallLogger = (() => {
             _updateStatusBar('error', isAbort ? 'Request timed out' : 'Refresh failed');
             if (!isAbort) console.warn('[CallLogger] Refresh failed:', e.message);
         }
+    }
+
+    /**
+     * Count unique client names from cached data.
+     * Prefers allClientsList (includes prospects) over allPolicies-derived count.
+     */
+    function _countClients(data) {
+        if (data?.allClientsList?.length > 0) {
+            return new Set(data.allClientsList.map(c => c.clientName).filter(Boolean)).size;
+        }
+        const policies = data?.allPolicies || data?.policies || [];
+        return new Set(policies.map(p => p.clientName).filter(Boolean)).size;
     }
 
     /**
@@ -296,19 +308,24 @@ window.CallLogger = (() => {
 
         // Source 1: CGL compliance cache (HawkSoft policies — richest data)
         // allPolicies contains commercial + personal; policies contains CGL-only (fallback)
+        let cachedData = null;
         try {
             const raw = localStorage.getItem(CGL_CACHE_KEY);
             if (raw) {
-                const cached = JSON.parse(raw);
+                cachedData = JSON.parse(raw);
                 // Fix: empty array [] is truthy in JS, so use length check for proper fallback
-                const allPolicies = cached?.allPolicies;
+                const allPolicies = cachedData?.allPolicies;
                 const policies = (allPolicies && allPolicies.length > 0)
                     ? allPolicies
-                    : (cached?.policies || []);
+                    : (cachedData?.policies || []);
                 for (const p of policies) {
                     if (!p.clientName) continue;
                     const key = p.clientName.toLowerCase().trim();
-                    if (!clientMap[key]) clientMap[key] = { name: p.clientName, policies: [] };
+                    if (!clientMap[key]) clientMap[key] = { name: p.clientName, policies: [], hawksoftId: p.hawksoftId || p.clientNumber || '' };
+                    // Ensure hawksoftId is set at the client level (first policy wins)
+                    if (!clientMap[key].hawksoftId && (p.hawksoftId || p.clientNumber)) {
+                        clientMap[key].hawksoftId = p.hawksoftId || p.clientNumber;
+                    }
                     const pType = p.policyType || p.type || 'unknown';
                     clientMap[key].policies.push({
                         policyNumber: p.policyNumber || '',
@@ -320,6 +337,24 @@ window.CallLogger = (() => {
                 }
             }
         } catch (e) { /* ignore parse errors */ }
+
+        // Source 2: Full HawkSoft client list (includes prospects & policy-less clients)
+        // These are clients returned by the HawkSoft "changed clients" API but who may have
+        // no qualifying policies (prospects, cancelled-only, expired-only).
+        try {
+            if (cachedData?.allClientsList) {
+                for (const c of cachedData.allClientsList) {
+                    if (!c.clientName) continue;
+                    const key = c.clientName.toLowerCase().trim();
+                    if (!clientMap[key]) {
+                        clientMap[key] = { name: c.clientName, policies: [], hawksoftId: c.clientNumber || '' };
+                    }
+                    if (!clientMap[key].hawksoftId && c.clientNumber) {
+                        clientMap[key].hawksoftId = c.clientNumber;
+                    }
+                }
+            }
+        } catch (e) { /* ignore */ }
 
         // Source 2: Client History (personal lines clients from the intake form)
         // These may not appear in HawkSoft cache if they're personal-only clients
@@ -563,8 +598,12 @@ window.CallLogger = (() => {
             ? _selectedPolicy.policyNumber : inputValue;
 
         // HawkSoft client number — needed for the logNotes API (different from policy number)
+        // Priority: selected policy's hawksoftId > selected client's hawksoftId > empty
         const clientNumber = (_selectedPolicy && _selectedPolicy.hawksoftId)
-            ? _selectedPolicy.hawksoftId : '';
+            ? _selectedPolicy.hawksoftId
+            : (_selectedClient && _selectedClient.hawksoftId)
+                ? _selectedClient.hawksoftId
+                : '';
 
         // Resolve settings
         const { userApiKey, aiModel } = _resolveAISettings();
@@ -622,6 +661,10 @@ window.CallLogger = (() => {
                 if (_selectedClient && _selectedPolicy) {
                     const hsId = _selectedPolicy.hawksoftId || '';
                     infoHtml += _buildClientLink(_selectedClient.name, hsId);
+                } else if (_selectedClient) {
+                    // Client selected from autocomplete but no policy (prospect/policy-less)
+                    const hsId = _selectedClient.hawksoftId || '';
+                    infoHtml += _buildClientLink(_selectedClient.name, hsId);
                 } else {
                     infoHtml += `<strong>${_escapeHTML(policyId)}</strong>`;
                 }
@@ -631,6 +674,8 @@ window.CallLogger = (() => {
                 if (_selectedClient && _selectedPolicy) {
                     const pIcon = _policyTypeIcon(_selectedPolicy.type);
                     infoHtml += `<div class="cl-confirm-row"><span class="cl-confirm-label">Policy:</span> <span class="cl-confirm-policy">${pIcon} ${_escapeHTML(_selectedPolicy.typeLabel)} ${_escapeHTML(_selectedPolicy.policyNumber)}</span></div>`;
+                } else if (_selectedClient && _selectedClient.policies.length === 0) {
+                    infoHtml += '<div class="cl-confirm-row"><span class="cl-confirm-label">Policy:</span> <span class="cl-confirm-policy">📋 No active policies</span></div>';
                 }
 
                 // Call type row
