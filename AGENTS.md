@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 20 suites, 1319+ tests |
+| **Tests** | Jest + JSDOM, 20 suites, 1363+ tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 20 test suites, 1319+ tests
+npm test              # All 20 test suites, 1363+ tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
@@ -69,7 +69,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (758 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
-│   ├── call-logger.css         # Call logger plugin + confirmation UI (294 lines)
+│   ├── call-logger.css         # Call logger plugin + confirmation UI + client autocomplete + policy selector (436 lines)
 │   ├── compliance.css          # CGL compliance dashboard (1,046 lines)
 │   ├── auth.css                # Auth modal + settings (973 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
@@ -122,7 +122,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (773 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (702 lines)
 │   ├── accounting-export.js     # Trust deposit calculator, HawkSoft receipts (337 lines)
-│   ├── call-logger.js           # AI call note formatter + HawkSoft logger, two-step preview/confirm (278 lines)
+│   ├── call-logger.js           # AI call note formatter + HawkSoft logger, two-step preview/confirm, client→policy autocomplete (472 lines)
 │   │
 │   │  ★ Support Modules
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (369 lines)
@@ -146,7 +146,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.html              # Email composer (98 lines)
 │   ├── qna.html                # Policy Q&A chat (95 lines)
 │   ├── quickref.html           # Quick reference cards (79 lines)
-│   ├── call-logger.html        # AI call logger (40 lines)
+│   ├── call-logger.html        # AI call logger + client autocomplete (47 lines)
 │   └── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
 │
 ├── api/                        # 12 serverless functions + 2 helpers (~6,560 lines) ⚠️ Hobby plan MAX = 12 functions
@@ -909,7 +909,7 @@ tests/
 ├── prospect-client.test.js     # Prospect client-side module
 ├── server.test.js              # Local dev server (server.js)
 ├── hawksoft-logger.test.js     # HawkSoft Logger API (67 tests)
-└── call-logger.test.js         # Call Logger client module (68 tests)
+└── call-logger.test.js         # Call Logger client module (112 tests)
 ```
 
 Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously' })`. The test setup file mocks `fetch`, silences console noise, and suppresses expected `crypto.subtle` errors.

@@ -20,7 +20,7 @@ known bugs, and rules. Do not write any code until you have read it.
 
 ```bash
 npm run dev          # Local server
-npm test             # 20 test suites, 1319+ tests (Jest + JSDOM)
+npm test             # 20 test suites, 1363+ tests (Jest + JSDOM)
 npx jest --no-coverage  # Faster (skip coverage)
 ```
 

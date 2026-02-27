@@ -40,7 +40,13 @@ describe('call-logger.js — Module Structure', () => {
   });
 
   test('returns init and render in public API', () => {
-    expect(source).toMatch(/return\s*\{\s*init\s*,\s*render\s*\}/);
+    expect(source).toMatch(/return\s*\{[^}]*init[^}]*render/);
+  });
+
+  test('exposes client lookup helpers for testing', () => {
+    expect(source).toContain('_getClients');
+    expect(source).toContain('_policyTypeLabel');
+    expect(source).toContain('_policyTypeIcon');
   });
 });
 
@@ -470,6 +476,415 @@ describe('Two-Step Workflow', () => {
   test('uses navigator.clipboard with fallback', () => {
     expect(source).toContain('navigator.clipboard.writeText');
     expect(source).toContain('document.execCommand');
+  });
+});
+
+// ────────────────────────────────────────────────────
+// Client & Policy Lookup (source analysis)
+// ────────────────────────────────────────────────────
+
+describe('Client & Policy Lookup — Source', () => {
+  test('defines CGL_CACHE_KEY constant', () => {
+    expect(source).toContain("const CGL_CACHE_KEY = 'altech_cgl_cache'");
+  });
+
+  test('defines _getClients function', () => {
+    expect(source).toContain('function _getClients()');
+  });
+
+  test('_getClients reads from CGL cache', () => {
+    expect(source).toContain('localStorage.getItem(CGL_CACHE_KEY)');
+  });
+
+  test('_getClients reads from App.getClientHistory()', () => {
+    expect(source).toContain('App.getClientHistory');
+  });
+
+  test('_getClients merges and deduplicates by name', () => {
+    expect(source).toContain('clientMap[key]');
+  });
+
+  test('_getClients sorts results by name', () => {
+    expect(source).toContain('.sort((a, b) => a.name.localeCompare(b.name))');
+  });
+
+  test('defines _policyTypeLabel with all known types', () => {
+    expect(source).toContain('function _policyTypeLabel(type)');
+    expect(source).toContain("cgl: 'CGL'");
+    expect(source).toContain("auto: 'Auto'");
+    expect(source).toContain("wc: 'Workers Comp'");
+    expect(source).toContain("umbrella: 'Umbrella'");
+  });
+
+  test('defines _policyTypeIcon with emoji icons', () => {
+    expect(source).toContain('function _policyTypeIcon(type)');
+    expect(source).toContain("auto: '🚗'");
+    expect(source).toContain("property: '🏠'");
+  });
+
+  test('defines _handleClientSearch with debounced search', () => {
+    expect(source).toContain('function _handleClientSearch()');
+    expect(source).toContain('_searchTimer');
+  });
+
+  test('_handleClientSearch enforces minimum 2 char query', () => {
+    expect(source).toContain('query.length < 2');
+  });
+
+  test('_handleClientSearch limits results to 8', () => {
+    expect(source).toContain('matches.slice(0, 8)');
+  });
+
+  test('defines _selectClient function', () => {
+    expect(source).toContain('function _selectClient(client)');
+  });
+
+  test('defines _selectPolicy function', () => {
+    expect(source).toContain('function _selectPolicy(policy, chipEl)');
+  });
+
+  test('_selectPolicy sets input to policyNumber', () => {
+    expect(source).toContain('input.value = policy.policyNumber');
+  });
+
+  test('defines _handleClickOutside to close dropdown', () => {
+    expect(source).toContain('function _handleClickOutside');
+    expect(source).toContain('.cl-search-wrapper');
+  });
+
+  test('wires input event for search with debounce', () => {
+    expect(source).toContain("policyInput.addEventListener('input'");
+    expect(source).toContain('setTimeout(_handleClientSearch, 150)');
+  });
+
+  test('wires focus event to re-show dropdown', () => {
+    expect(source).toContain("policyInput.addEventListener('focus'");
+  });
+
+  test('tracks selected client state', () => {
+    expect(source).toContain('let _selectedClient = null');
+  });
+});
+
+// ────────────────────────────────────────────────────
+// Client & Policy Lookup — Behavioral (JSDOM)
+// ────────────────────────────────────────────────────
+
+describe('Client & Policy Lookup — Behavioral', () => {
+
+  function createClientDOM() {
+    const { JSDOM } = require('jsdom');
+
+    const html = `<!DOCTYPE html><html><body>
+      <div id="callLoggerTool" class="plugin-container">
+        <div class="cl-form">
+          <div class="cl-client-field">
+            <div class="cl-search-wrapper">
+              <input type="text" id="clPolicyId" value="" autocomplete="off">
+              <div id="clClientDropdown" class="cl-client-dropdown" style="display: none;"></div>
+            </div>
+            <div id="clPolicySelect" class="cl-policy-select" style="display: none;">
+              <div class="cl-policy-select-label">Active Policies</div>
+              <div id="clPolicyList" class="cl-policy-list"></div>
+            </div>
+          </div>
+          <select id="clCallType"><option value="Inbound">Inbound</option></select>
+          <textarea id="clRawNotes"></textarea>
+          <button id="clSubmitBtn">✨ Format Preview</button>
+        </div>
+        <div id="clPreview" style="display:none">
+          <pre id="clPreviewText"></pre>
+          <button id="clCopyBtn">📋 Copy</button>
+        </div>
+        <div id="clConfirmSection" style="display:none">
+          <div id="clConfirmInfo"></div>
+          <button id="clConfirmBtn">Confirm</button>
+          <button id="clCancelBtn">Edit</button>
+        </div>
+      </div>
+      <script>
+        window.App = {
+          toast: function(msg, type) { window._lastToast = { msg, type }; },
+          data: {},
+          getClientHistory: function() { return window._mockClientHistory || []; }
+        };
+        window.Auth = { apiFetch: null };
+        window.CloudSync = { schedulePush: function() {} };
+      </script>
+      <script>${source}</script>
+    </body></html>`;
+
+    const dom = new JSDOM(html, {
+      url: 'http://localhost:8000',
+      runScripts: 'dangerously',
+      pretendToBeVisual: true
+    });
+
+    const store = {};
+    Object.defineProperty(dom.window, 'localStorage', {
+      value: {
+        getItem(key) { return store[key] || null; },
+        setItem(key, val) { store[key] = String(val); },
+        removeItem(key) { delete store[key]; },
+        clear() { Object.keys(store).forEach(k => delete store[k]); }
+      },
+      writable: true
+    });
+
+    return { dom, window: dom.window, store };
+  }
+
+  test('_getClients returns empty array when no data sources', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    const clients = window.CallLogger._getClients();
+    expect(Array.isArray(clients)).toBe(true);
+    expect(clients).toHaveLength(0);
+  });
+
+  test('_getClients returns clients from CGL cache', () => {
+    const { window, store } = createClientDOM();
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      policies: [
+        { clientName: 'Smith, John', policyNumber: 'POL-001', type: 'auto', expirationDate: '2026-12-01' },
+        { clientName: 'Smith, John', policyNumber: 'POL-002', type: 'cgl', expirationDate: '2026-06-01' },
+        { clientName: 'Doe, Jane', policyNumber: 'POL-003', type: 'wc', expirationDate: '2026-09-01' }
+      ]
+    });
+    window.CallLogger.init();
+    const clients = window.CallLogger._getClients();
+    expect(clients).toHaveLength(2);
+    // Sorted alphabetically
+    expect(clients[0].name).toBe('Doe, Jane');
+    expect(clients[0].policies).toHaveLength(1);
+    expect(clients[1].name).toBe('Smith, John');
+    expect(clients[1].policies).toHaveLength(2);
+  });
+
+  test('_getClients merges client history with CGL policies', () => {
+    const { window, store } = createClientDOM();
+    // CGL has Smith with 1 policy
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      policies: [
+        { clientName: 'Smith, John', policyNumber: 'POL-001', type: 'auto' }
+      ]
+    });
+    // Client history has a NEW client (Williams) not in CGL
+    window._mockClientHistory = [
+      { id: '1', name: 'Williams, Sarah', data: { firstName: 'Sarah', lastName: 'Williams' } }
+    ];
+    window.CallLogger.init();
+    const clients = window.CallLogger._getClients();
+    expect(clients).toHaveLength(2);
+    const names = clients.map(c => c.name);
+    expect(names).toContain('Smith, John');
+    expect(names).toContain('Williams, Sarah');
+    // Williams has no policies (only in client history)
+    const williams = clients.find(c => c.name === 'Williams, Sarah');
+    expect(williams.policies).toHaveLength(0);
+  });
+
+  test('_getClients deduplicates by lowercase name', () => {
+    const { window, store } = createClientDOM();
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      policies: [
+        { clientName: 'Smith, John', policyNumber: 'POL-001', type: 'auto' }
+      ]
+    });
+    // Client history also has Smith, John — should NOT create duplicate
+    window._mockClientHistory = [
+      { id: '1', name: 'Smith, John', data: { firstName: 'John', lastName: 'Smith' } }
+    ];
+    window.CallLogger.init();
+    const clients = window.CallLogger._getClients();
+    expect(clients).toHaveLength(1);
+    expect(clients[0].name).toBe('Smith, John');
+    expect(clients[0].policies).toHaveLength(1);
+  });
+
+  test('_policyTypeLabel returns correct labels', () => {
+    const { window } = createClientDOM();
+    expect(window.CallLogger._policyTypeLabel('auto')).toBe('Auto');
+    expect(window.CallLogger._policyTypeLabel('cgl')).toBe('CGL');
+    expect(window.CallLogger._policyTypeLabel('wc')).toBe('Workers Comp');
+    expect(window.CallLogger._policyTypeLabel('umbrella')).toBe('Umbrella');
+    expect(window.CallLogger._policyTypeLabel(null)).toBe('Policy');
+  });
+
+  test('_policyTypeIcon returns emoji icons', () => {
+    const { window } = createClientDOM();
+    expect(window.CallLogger._policyTypeIcon('auto')).toBe('🚗');
+    expect(window.CallLogger._policyTypeIcon('property')).toBe('🏠');
+    expect(window.CallLogger._policyTypeIcon('unknown_type')).toBe('📄');
+  });
+
+  test('_selectClient sets input value and shows policies', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    const client = {
+      name: 'Smith, John',
+      policies: [
+        { policyNumber: 'POL-001', type: 'auto', typeLabel: 'Auto', expirationDate: '2026-12-01', hawksoftId: 'HS-1' },
+        { policyNumber: 'POL-002', type: 'cgl', typeLabel: 'CGL', expirationDate: '2026-06-01', hawksoftId: 'HS-1' }
+      ]
+    };
+    window.CallLogger._selectClient(client);
+    const input = window.document.getElementById('clPolicyId');
+    expect(input.value).toBe('Smith, John');
+    const policySelect = window.document.getElementById('clPolicySelect');
+    expect(policySelect.style.display).not.toBe('none');
+    const chips = window.document.querySelectorAll('.cl-policy-chip');
+    expect(chips).toHaveLength(2);
+  });
+
+  test('_selectClient hides policy panel when no policies', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    const client = { name: 'Williams, Sarah', policies: [] };
+    window.CallLogger._selectClient(client);
+    const input = window.document.getElementById('clPolicyId');
+    expect(input.value).toBe('Williams, Sarah');
+    const policySelect = window.document.getElementById('clPolicySelect');
+    expect(policySelect.style.display).toBe('none');
+  });
+
+  test('_selectPolicy sets input to policy number and highlights chip', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    // First select a client to populate the policy list
+    const client = {
+      name: 'Smith, John',
+      policies: [
+        { policyNumber: 'POL-001', type: 'auto', typeLabel: 'Auto', expirationDate: '2026-12-01', hawksoftId: '' }
+      ]
+    };
+    window.CallLogger._selectClient(client);
+    const chip = window.document.querySelector('.cl-policy-chip');
+    window.CallLogger._selectPolicy(client.policies[0], chip);
+    expect(window.document.getElementById('clPolicyId').value).toBe('POL-001');
+    expect(chip.classList.contains('cl-policy-selected')).toBe(true);
+  });
+
+  test('_handleClientSearch shows dropdown for matching clients', () => {
+    const { window, store } = createClientDOM();
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      policies: [
+        { clientName: 'Smith, John', policyNumber: 'POL-001', type: 'auto' },
+        { clientName: 'Johnson, Mike', policyNumber: 'POL-050', type: 'cgl' }
+      ]
+    });
+    window.CallLogger.init();
+    const input = window.document.getElementById('clPolicyId');
+    input.value = 'Smi';
+    window.CallLogger._handleClientSearch();
+    const dropdown = window.document.getElementById('clClientDropdown');
+    expect(dropdown.style.display).not.toBe('none');
+    expect(dropdown.querySelectorAll('.cl-client-row')).toHaveLength(1);
+    expect(dropdown.textContent).toContain('Smith, John');
+  });
+
+  test('_handleClientSearch hides dropdown for short queries', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    const input = window.document.getElementById('clPolicyId');
+    input.value = 'S';
+    window.CallLogger._handleClientSearch();
+    const dropdown = window.document.getElementById('clClientDropdown');
+    expect(dropdown.style.display).toBe('none');
+  });
+
+  test('_handleClientSearch hides dropdown for no matches', () => {
+    const { window, store } = createClientDOM();
+    store['altech_cgl_cache'] = JSON.stringify({
+      cachedAt: Date.now(),
+      policies: [{ clientName: 'Smith, John', policyNumber: 'POL-001', type: 'auto' }]
+    });
+    window.CallLogger.init();
+    const input = window.document.getElementById('clPolicyId');
+    input.value = 'ZZZZZ';
+    window.CallLogger._handleClientSearch();
+    const dropdown = window.document.getElementById('clClientDropdown');
+    expect(dropdown.style.display).toBe('none');
+  });
+
+  test('init wires search input event', () => {
+    const { window } = createClientDOM();
+    window.CallLogger.init();
+    const input = window.document.getElementById('clPolicyId');
+    expect(input._clSearchWired).toBe(true);
+  });
+});
+
+// ────────────────────────────────────────────────────
+// Plugin HTML — Client Autocomplete Structure
+// ────────────────────────────────────────────────────
+
+describe('call-logger.html — Client Autocomplete', () => {
+  const pluginHtml = fs.readFileSync(path.join(ROOT, 'plugins', 'call-logger.html'), 'utf8');
+
+  test('has client dropdown container', () => {
+    expect(pluginHtml).toContain('id="clClientDropdown"');
+    expect(pluginHtml).toContain('cl-client-dropdown');
+  });
+
+  test('has search wrapper for positioning', () => {
+    expect(pluginHtml).toContain('cl-search-wrapper');
+  });
+
+  test('has policy select section', () => {
+    expect(pluginHtml).toContain('id="clPolicySelect"');
+    expect(pluginHtml).toContain('id="clPolicyList"');
+  });
+
+  test('policy select is hidden by default', () => {
+    expect(pluginHtml).toMatch(/id="clPolicySelect"[^>]*display:\s*none/);
+  });
+
+  test('input has autocomplete="off"', () => {
+    expect(pluginHtml).toContain('autocomplete="off"');
+  });
+});
+
+// ────────────────────────────────────────────────────
+// CSS — Client Autocomplete Styles
+// ────────────────────────────────────────────────────
+
+describe('call-logger.css — Client Autocomplete', () => {
+  const css = fs.readFileSync(path.join(ROOT, 'css', 'call-logger.css'), 'utf8');
+
+  test('defines cl-client-dropdown styles', () => {
+    expect(css).toContain('.cl-client-dropdown');
+    expect(css).toContain('position: absolute');
+  });
+
+  test('defines cl-client-row styles', () => {
+    expect(css).toContain('.cl-client-row');
+  });
+
+  test('defines cl-client-badge for policy count', () => {
+    expect(css).toContain('.cl-client-badge');
+  });
+
+  test('defines cl-policy-chip styles', () => {
+    expect(css).toContain('.cl-policy-chip');
+  });
+
+  test('defines cl-policy-selected state', () => {
+    expect(css).toContain('.cl-policy-selected');
+  });
+
+  test('defines cl-policy-list with flex wrap', () => {
+    expect(css).toContain('.cl-policy-list');
+    expect(css).toContain('flex-wrap: wrap');
+  });
+
+  test('has dark mode overrides for dropdown', () => {
+    expect(css).toContain('body.dark-mode .cl-client-dropdown');
+    expect(css).toContain('body.dark-mode .cl-policy-chip');
   });
 });
 

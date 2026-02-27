@@ -212,7 +212,7 @@ priorCarrier, priorYears, priorLapse
 
 ```bash
 npm run dev              # Local server (port 3000)
-npm test                 # All 20 suites, 1305+ tests
+npm test                 # All 20 suites, 1363+ tests
 npx jest --no-coverage   # Faster
 npx jest tests/app.test.js  # Single suite
 npm run deploy:vercel    # Production deploy

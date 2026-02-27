@@ -7,9 +7,16 @@
 
 <div class="cl-container">
     <div class="cl-form">
-        <div class="cl-field">
-            <label class="cl-label" for="clPolicyId">Policy ID / Client ID</label>
-            <input type="text" id="clPolicyId" class="cl-input" placeholder="e.g. POL-12345 or Smith, John">
+        <div class="cl-field cl-client-field">
+            <label class="cl-label" for="clPolicyId">Policy ID / Client Name</label>
+            <div class="cl-search-wrapper">
+                <input type="text" id="clPolicyId" class="cl-input" placeholder="Start typing a name or policy ID…" autocomplete="off">
+                <div id="clClientDropdown" class="cl-client-dropdown" style="display: none;"></div>
+            </div>
+            <div id="clPolicySelect" class="cl-policy-select" style="display: none;">
+                <div class="cl-policy-select-label">Active Policies</div>
+                <div id="clPolicyList" class="cl-policy-list"></div>
+            </div>
         </div>
 
         <div class="cl-field">

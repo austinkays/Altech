@@ -9,6 +9,9 @@ window.CallLogger = (() => {
     'use strict';
 
     const STORAGE_KEY = 'altech_call_logger';
+    const CGL_CACHE_KEY = 'altech_cgl_cache';
+    let _searchTimer = null;
+    let _selectedClient = null;  // { name, policies: [...] }
 
     function init() {
         _load();
@@ -71,6 +74,202 @@ window.CallLogger = (() => {
         }
 
         return { userApiKey, aiModel };
+    }
+
+    // ── Client & Policy Lookup ──
+
+    /**
+     * Retrieve all known clients merged from Client History + CGL cache.
+     * Returns array of { name, policies: [...] } sorted by name.
+     */
+    function _getClients() {
+        const clientMap = {};  // name (lowercase) → { name, policies }
+
+        // Source 1: CGL compliance cache (HawkSoft policies — richest data)
+        try {
+            const raw = localStorage.getItem(CGL_CACHE_KEY);
+            if (raw) {
+                const cached = JSON.parse(raw);
+                const policies = cached?.policies || [];
+                for (const p of policies) {
+                    if (!p.clientName) continue;
+                    const key = p.clientName.toLowerCase().trim();
+                    if (!clientMap[key]) clientMap[key] = { name: p.clientName, policies: [] };
+                    clientMap[key].policies.push({
+                        policyNumber: p.policyNumber || '',
+                        type: p.type || 'unknown',
+                        typeLabel: _policyTypeLabel(p.type),
+                        expirationDate: p.expirationDate || '',
+                        hawksoftId: p.hawksoftId || p.clientNumber || ''
+                    });
+                }
+            }
+        } catch (e) { /* ignore parse errors */ }
+
+        // Source 2: Client History (quote-based clients)
+        try {
+            if (typeof App !== 'undefined' && App.getClientHistory) {
+                const history = App.getClientHistory() || [];
+                for (const c of history) {
+                    const name = c.name || (c.data && `${c.data.firstName || ''} ${c.data.lastName || ''}`.trim());
+                    if (!name) continue;
+                    const key = name.toLowerCase().trim();
+                    if (!clientMap[key]) clientMap[key] = { name, policies: [] };
+                }
+            }
+        } catch (e) { /* ignore */ }
+
+        return Object.values(clientMap).sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    function _policyTypeLabel(type) {
+        if (!type) return 'Policy';
+        const labels = {
+            cgl: 'CGL', bond: 'Bond', auto: 'Auto', wc: 'Workers Comp',
+            pkg: 'Package', umbrella: 'Umbrella', im: 'Inland Marine',
+            property: 'Property', epli: 'EPLI', do: 'D&O',
+            eo: 'E&O', cyber: 'Cyber', crime: 'Crime',
+            liquor: 'Liquor', garage: 'Garage', pollution: 'Pollution',
+            bop: 'BOP', commercial: 'Commercial'
+        };
+        return labels[type] || type.toUpperCase();
+    }
+
+    function _policyTypeIcon(type) {
+        const icons = {
+            auto: '🚗', property: '🏠', cgl: '🛡️', bond: '📜',
+            wc: '👷', umbrella: '☂️', im: '📦', pkg: '📋',
+            bop: '🏢', epli: '👥', do: '⚖️', eo: '🔒',
+            cyber: '💻', crime: '🚨', liquor: '🍷', garage: '🔧',
+            pollution: '🌿', commercial: '🏪'
+        };
+        return icons[type] || '📄';
+    }
+
+    /**
+     * Handle typing in the client/policy ID field — show autocomplete dropdown.
+     */
+    function _handleClientSearch() {
+        const input = document.getElementById('clPolicyId');
+        const dropdown = document.getElementById('clClientDropdown');
+        if (!input || !dropdown) return;
+
+        const query = input.value.trim().toLowerCase();
+
+        // Clear previous selection if user edits the input
+        if (_selectedClient && input.value.trim() !== _selectedClient.name) {
+            _selectedClient = null;
+            const policySelect = document.getElementById('clPolicySelect');
+            if (policySelect) policySelect.style.display = 'none';
+        }
+
+        if (query.length < 2) {
+            dropdown.style.display = 'none';
+            dropdown.innerHTML = '';
+            return;
+        }
+
+        const clients = _getClients();
+        const matches = clients.filter(c => c.name.toLowerCase().includes(query));
+
+        if (matches.length === 0) {
+            dropdown.style.display = 'none';
+            dropdown.innerHTML = '';
+            return;
+        }
+
+        // Render dropdown (max 8 results)
+        const shown = matches.slice(0, 8);
+        dropdown.innerHTML = shown.map((c, i) => {
+            const policyCount = c.policies.length;
+            const badge = policyCount > 0
+                ? `<span class="cl-client-badge">${policyCount} ${policyCount === 1 ? 'policy' : 'policies'}</span>`
+                : '<span class="cl-client-badge cl-client-badge-none">No policies</span>';
+            return `<div class="cl-client-row" data-index="${i}">${_escapeHTML(c.name)} ${badge}</div>`;
+        }).join('');
+
+        dropdown.style.display = '';
+
+        // Wire click handlers on rows
+        dropdown.querySelectorAll('.cl-client-row').forEach((row, idx) => {
+            row.addEventListener('click', () => _selectClient(shown[idx]));
+        });
+    }
+
+    /**
+     * User selected a client from the dropdown.
+     */
+    function _selectClient(client) {
+        const input = document.getElementById('clPolicyId');
+        const dropdown = document.getElementById('clClientDropdown');
+        const policySelect = document.getElementById('clPolicySelect');
+        const policyList = document.getElementById('clPolicyList');
+
+        _selectedClient = client;
+
+        // Close dropdown
+        if (dropdown) dropdown.style.display = 'none';
+
+        // If client has policies, show policy picker — keep input as client name
+        if (client.policies.length > 0 && policySelect && policyList) {
+            input.value = client.name;
+            policyList.innerHTML = client.policies.map((p, i) => {
+                const icon = _policyTypeIcon(p.type);
+                const exp = p.expirationDate
+                    ? `<span class="cl-policy-exp">Exp: ${p.expirationDate}</span>`
+                    : '';
+                const numDisplay = p.policyNumber || 'No policy #';
+                return `<div class="cl-policy-chip" data-index="${i}">
+                    <span class="cl-policy-icon">${icon}</span>
+                    <span class="cl-policy-info">
+                        <span class="cl-policy-type">${_escapeHTML(p.typeLabel)}</span>
+                        <span class="cl-policy-num">${_escapeHTML(numDisplay)}</span>
+                    </span>
+                    ${exp}
+                </div>`;
+            }).join('');
+            policySelect.style.display = '';
+
+            // Wire click on each policy chip
+            policyList.querySelectorAll('.cl-policy-chip').forEach((chip, idx) => {
+                chip.addEventListener('click', () => _selectPolicy(client.policies[idx], chip));
+            });
+        } else {
+            // No policies — just set the name
+            input.value = client.name;
+            if (policySelect) policySelect.style.display = 'none';
+        }
+    }
+
+    /**
+     * User picked a specific policy — set it as the active policy ID.
+     */
+    function _selectPolicy(policy, chipEl) {
+        const input = document.getElementById('clPolicyId');
+        if (!input) return;
+
+        // Set the input to policyNumber so it gets sent to the API
+        if (policy.policyNumber) {
+            input.value = policy.policyNumber;
+        }
+
+        // Visual feedback — highlight selected chip
+        const list = document.getElementById('clPolicyList');
+        if (list) {
+            list.querySelectorAll('.cl-policy-chip').forEach(c => c.classList.remove('cl-policy-selected'));
+        }
+        if (chipEl) chipEl.classList.add('cl-policy-selected');
+    }
+
+    /**
+     * Close dropdown when clicking outside.
+     */
+    function _handleClickOutside(e) {
+        const dropdown = document.getElementById('clClientDropdown');
+        const wrapper = document.querySelector('.cl-search-wrapper');
+        if (dropdown && wrapper && !wrapper.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
     }
 
     // ── Internal State ──
@@ -300,6 +499,28 @@ window.CallLogger = (() => {
     // ── Event Wiring ──
 
     function _wireEvents() {
+        // Client search / autocomplete on the policy ID input
+        const policyInput = document.getElementById('clPolicyId');
+        if (policyInput && !policyInput._clSearchWired) {
+            policyInput.addEventListener('input', () => {
+                clearTimeout(_searchTimer);
+                _searchTimer = setTimeout(_handleClientSearch, 150);
+            });
+            policyInput.addEventListener('focus', () => {
+                // Re-show dropdown if there's already text
+                if (policyInput.value.trim().length >= 2) {
+                    _handleClientSearch();
+                }
+            });
+            policyInput._clSearchWired = true;
+        }
+
+        // Close dropdown when clicking outside
+        if (!document._clOutsideWired) {
+            document.addEventListener('click', _handleClickOutside);
+            document._clOutsideWired = true;
+        }
+
         // Format / Edit button (toggles based on state)
         const submitBtn = document.getElementById('clSubmitBtn');
         if (submitBtn && !submitBtn._clWired) {
@@ -335,5 +556,5 @@ window.CallLogger = (() => {
         }
     }
 
-    return { init, render };
+    return { init, render, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch };
 })();

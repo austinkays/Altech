@@ -293,6 +293,175 @@ body.dark-mode .cl-submit-btn {
     color: #fff;
 }
 
+/* ── Client Search Autocomplete ── */
+
+.cl-client-field {
+    position: relative;
+}
+
+.cl-search-wrapper {
+    position: relative;
+}
+
+.cl-client-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 8px 24px var(--shadow);
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.cl-client-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.cl-client-row:last-child {
+    border-bottom: none;
+}
+
+.cl-client-row:hover {
+    background: var(--bg-input);
+}
+
+.cl-client-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(0, 122, 255, 0.1);
+    color: var(--apple-blue);
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.cl-client-badge-none {
+    background: var(--bg-input);
+    color: var(--text-tertiary);
+}
+
+/* ── Policy Selector ── */
+
+.cl-policy-select {
+    margin-top: 10px;
+    animation: cl-slide-in 0.25s var(--transition-smooth);
+}
+
+.cl-policy-select-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.cl-policy-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cl-policy-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    min-width: 0;
+}
+
+.cl-policy-chip:hover {
+    border-color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.05);
+}
+
+.cl-policy-chip.cl-policy-selected {
+    border-color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.08);
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.15);
+}
+
+.cl-policy-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.cl-policy-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.cl-policy-type {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.cl-policy-num {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cl-policy-exp {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Dark Mode — Dropdown & Policy ── */
+
+body.dark-mode .cl-client-dropdown {
+    background: #1C1C1E;
+    border-color: #38383A;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .cl-client-row:hover {
+    background: #2C2C2E;
+}
+
+body.dark-mode .cl-client-badge {
+    background: rgba(10, 132, 255, 0.15);
+}
+
+body.dark-mode .cl-policy-chip:hover {
+    background: rgba(10, 132, 255, 0.1);
+}
+
+body.dark-mode .cl-policy-chip.cl-policy-selected {
+    background: rgba(10, 132, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2);
+}
+
 body.dark-mode .cl-submit-btn.cl-edit-mode {
     color: var(--apple-blue);
     background: transparent;
