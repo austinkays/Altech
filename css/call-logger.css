@@ -1,22 +1,137 @@
 /* ═══════════════════════════════════════════════════
    Call Logger — AI call note formatter + HawkSoft log
+   Glassmorphism design, matches Reminders / Compliance
    ═══════════════════════════════════════════════════ */
 
 .cl-container {
-    max-width: 720px;
+    max-width: 860px;
     margin: 0 auto;
-    padding: 24px 20px;
+    padding: 0 16px 80px;
 }
+
+/* ── Hero / How-it-works strip ── */
+
+.cl-hero {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(16px) saturate(1.8);
+    -webkit-backdrop-filter: blur(16px) saturate(1.8);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.cl-hero-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
+.cl-hero-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    font-size: 20px;
+    background: linear-gradient(135deg, var(--apple-blue), #5856D6);
+    box-shadow: 0 3px 10px rgba(0, 122, 255, 0.25);
+    color: #fff;
+}
+
+.cl-hero-step:nth-child(3) .cl-hero-icon {
+    background: linear-gradient(135deg, #FF9500, #FF6B00);
+    box-shadow: 0 3px 10px rgba(255, 149, 0, 0.25);
+}
+
+.cl-hero-step:nth-child(5) .cl-hero-icon {
+    background: linear-gradient(135deg, #34C759, #28A745);
+    box-shadow: 0 3px 10px rgba(52, 199, 89, 0.25);
+}
+
+.cl-hero-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.cl-hero-arrow {
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    opacity: 0.5;
+}
+
+/* ── Form Card — Glassmorphism ── */
 
 .cl-form {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(16px) saturate(1.8);
+    -webkit-backdrop-filter: blur(16px) saturate(1.8);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
     padding: 24px;
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
-.cl-field {
+/* ── Form Sections ── */
+
+.cl-form-section {
     margin-bottom: 20px;
+}
+
+.cl-form-section:last-of-type {
+    margin-bottom: 24px;
+}
+
+.cl-form-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.cl-form-section-title svg {
+    color: var(--apple-blue);
+    opacity: 0.8;
+}
+
+/* ── Form Grid (client + call type side-by-side) ── */
+
+.cl-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 160px;
+    gap: 16px;
+    align-items: start;
+}
+
+.cl-field-grow { grid-column: 1; }
+.cl-field-fixed { grid-column: 2; }
+
+.cl-field {
+    margin-bottom: 0;
 }
 
 .cl-label {
@@ -32,44 +147,48 @@
 .cl-input,
 .cl-select {
     width: 100%;
-    padding: 10px 14px;
+    padding: 11px 14px;
     font-size: 15px;
     color: var(--text);
-    background: var(--bg-input);
+    background-color: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 12px;
     outline: none;
     transition: border-color 0.2s var(--transition-smooth),
                 box-shadow 0.2s var(--transition-smooth);
     box-sizing: border-box;
+    font-family: inherit;
 }
 
 .cl-input:focus-visible,
 .cl-select:focus-visible {
     border-color: var(--apple-blue);
-    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
 }
 
 .cl-select {
     appearance: none;
     -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
     background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A6E65' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
+    background-size: 12px 8px;
     padding-right: 36px;
 }
 
 .cl-textarea {
     width: 100%;
-    min-height: 140px;
+    min-height: 150px;
     padding: 14px 16px;
     font-size: 15px;
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
     line-height: 1.6;
     color: var(--text);
-    background: var(--bg-input);
+    background-color: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 12px;
     outline: none;
     resize: vertical;
     transition: border-color 0.2s var(--transition-smooth),
@@ -79,7 +198,7 @@
 
 .cl-textarea:focus-visible {
     border-color: var(--apple-blue);
-    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
 }
 
 .cl-textarea::placeholder {
@@ -96,48 +215,82 @@
     font-size: 16px;
     font-weight: 600;
     color: #fff;
-    background: var(--apple-blue);
+    background: linear-gradient(135deg, var(--apple-blue), #5856D6);
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: background 0.2s var(--transition-smooth),
-                transform 0.15s var(--transition-spring),
+    transition: transform 0.15s var(--transition-spring),
+                box-shadow 0.3s ease,
                 opacity 0.2s;
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+    font-family: inherit;
 }
 
 .cl-submit-btn:hover:not(:disabled) {
-    background: var(--apple-blue-hover);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 122, 255, 0.35);
 }
 
 .cl-submit-btn:active:not(:disabled) {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.98);
 }
 
 .cl-submit-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
 }
 
 .cl-submit-btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3),
+                0 4px 14px rgba(0, 122, 255, 0.3);
 }
 
-/* ── Preview Area ── */
+/* ── Edit Mode (outline style) ── */
+
+.cl-submit-btn.cl-edit-mode {
+    background: transparent;
+    color: var(--apple-blue);
+    border: 2px solid var(--apple-blue);
+    box-shadow: none;
+}
+
+.cl-submit-btn.cl-edit-mode:hover:not(:disabled) {
+    background: var(--apple-blue);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+}
+
+/* ── Preview Card ── */
 
 .cl-preview {
     margin-top: 20px;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(16px) saturate(1.8);
+    -webkit-backdrop-filter: blur(16px) saturate(1.8);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     border-left: 4px solid var(--apple-blue);
-    border-radius: 8px;
+    border-radius: 16px;
     overflow: hidden;
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    animation: cl-card-in 0.35s ease both;
+}
+
+@keyframes cl-card-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .cl-preview-header {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .cl-preview-label {
@@ -164,52 +317,55 @@
 /* ── Copy Button ── */
 
 .cl-copy-btn {
-    padding: 4px 12px;
+    padding: 6px 14px;
     font-size: 12px;
     font-weight: 600;
     color: var(--apple-blue);
-    background: transparent;
-    border: 1px solid var(--apple-blue);
-    border-radius: 6px;
+    background: rgba(0, 122, 255, 0.08);
+    border: 1px solid rgba(0, 122, 255, 0.2);
+    border-radius: 8px;
     cursor: pointer;
-    transition: background 0.2s, color 0.2s;
+    transition: background 0.2s, color 0.2s, transform 0.15s;
+    font-family: inherit;
 }
 
 .cl-copy-btn:hover {
     background: var(--apple-blue);
     color: #fff;
+    transform: translateY(-1px);
 }
 
-.cl-preview-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.cl-copy-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
 }
 
 /* ── Confirmation Section ── */
 
 .cl-confirm-section {
     margin-top: 16px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(16px) saturate(1.8);
+    -webkit-backdrop-filter: blur(16px) saturate(1.8);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
     padding: 20px;
-    animation: cl-slide-in 0.3s var(--transition-smooth);
-}
-
-@keyframes cl-slide-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    animation: cl-card-in 0.3s ease both;
 }
 
 .cl-confirm-info {
     font-size: 15px;
     color: var(--text);
-    padding: 12px 16px;
+    padding: 14px 16px;
     background: var(--bg-input);
-    border-radius: 8px;
+    border-radius: 12px;
     margin-bottom: 16px;
     line-height: 1.5;
+    border: 1px solid var(--border-subtle);
 }
 
 /* ── HawkSoft Client Link in Confirm Section ── */
@@ -257,32 +413,35 @@
     font-size: 16px;
     font-weight: 600;
     color: #fff;
-    background: var(--success);
+    background: linear-gradient(135deg, #34C759, #28A745);
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: background 0.2s var(--transition-smooth),
-                transform 0.15s var(--transition-spring),
+    transition: transform 0.15s var(--transition-spring),
+                box-shadow 0.3s ease,
                 opacity 0.2s;
+    box-shadow: 0 4px 14px rgba(52, 199, 89, 0.3);
+    font-family: inherit;
 }
 
 .cl-confirm-btn:hover:not(:disabled) {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 199, 89, 0.35);
 }
 
 .cl-confirm-btn:active:not(:disabled) {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.98);
 }
 
 .cl-confirm-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
 .cl-confirm-btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.3);
+    box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.3),
+                0 4px 14px rgba(52, 199, 89, 0.3);
 }
 
 .cl-cancel-btn {
@@ -292,39 +451,23 @@
     color: var(--text-secondary);
     background: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
     transition: background 0.2s var(--transition-smooth),
-                color 0.2s;
+                color 0.2s,
+                transform 0.15s;
+    font-family: inherit;
 }
 
 .cl-cancel-btn:hover {
     color: var(--text);
     background: var(--bg-card);
+    transform: translateY(-1px);
 }
 
 .cl-cancel-btn:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
-}
-
-/* ── Edit Mode (format button becomes outline) ── */
-
-.cl-submit-btn.cl-edit-mode {
-    background: transparent;
-    color: var(--apple-blue);
-    border: 2px solid var(--apple-blue);
-}
-
-.cl-submit-btn.cl-edit-mode:hover:not(:disabled) {
-    background: var(--apple-blue);
-    color: #fff;
-}
-
-/* ── Dark Mode ── */
-
-body.dark-mode .cl-submit-btn {
-    color: #fff;
 }
 
 /* ── Client Search Autocomplete ── */
@@ -346,7 +489,7 @@ body.dark-mode .cl-submit-btn {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-top: none;
-    border-radius: 0 0 8px 8px;
+    border-radius: 0 0 12px 12px;
     box-shadow: 0 8px 24px var(--shadow);
     max-height: 260px;
     overflow-y: auto;
@@ -393,7 +536,7 @@ body.dark-mode .cl-submit-btn {
 
 .cl-policy-select {
     margin-top: 10px;
-    animation: cl-slide-in 0.25s var(--transition-smooth);
+    animation: cl-card-in 0.25s ease both;
 }
 
 .cl-policy-select-label {
@@ -418,15 +561,16 @@ body.dark-mode .cl-submit-btn {
     padding: 8px 12px;
     background: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.15s;
     min-width: 0;
 }
 
 .cl-policy-chip:hover {
     border-color: var(--apple-blue);
     background: rgba(0, 122, 255, 0.05);
+    transform: translateY(-1px);
 }
 
 .cl-policy-chip.cl-policy-selected {
@@ -471,7 +615,53 @@ body.dark-mode .cl-submit-btn {
     flex-shrink: 0;
 }
 
-/* ── Dark Mode — Dropdown & Policy ── */
+/* ═══════════════════════════════════════
+   Dark Mode
+   ═══════════════════════════════════════ */
+
+body.dark-mode .cl-hero {
+    background: #1C1C1E;
+    border-color: #38383A;
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.2),
+        0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+body.dark-mode .cl-form {
+    background: #1C1C1E;
+    border-color: #38383A;
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.2),
+        0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+body.dark-mode .cl-form-section-title {
+    border-bottom-color: #2C2C2E;
+}
+
+body.dark-mode .cl-preview {
+    background: #1C1C1E;
+    border-color: #38383A;
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.2),
+        0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+body.dark-mode .cl-preview-header {
+    border-bottom-color: #2C2C2E;
+}
+
+body.dark-mode .cl-confirm-section {
+    background: #1C1C1E;
+    border-color: #38383A;
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.2),
+        0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+body.dark-mode .cl-confirm-info {
+    border-color: #2C2C2E;
+}
 
 body.dark-mode .cl-client-dropdown {
     background: #1C1C1E;
@@ -496,6 +686,11 @@ body.dark-mode .cl-policy-chip.cl-policy-selected {
     box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2);
 }
 
+body.dark-mode .cl-copy-btn {
+    background: rgba(10, 132, 255, 0.12);
+    border-color: rgba(10, 132, 255, 0.25);
+}
+
 body.dark-mode .cl-submit-btn.cl-edit-mode {
     color: var(--apple-blue);
     background: transparent;
@@ -506,8 +701,9 @@ body.dark-mode .cl-submit-btn.cl-edit-mode:hover:not(:disabled) {
     background: var(--apple-blue);
 }
 
-body.dark-mode .cl-confirm-btn {
-    color: #fff;
+body.dark-mode .cl-confirm-policy {
+    background: rgba(10, 132, 255, 0.15);
+    color: var(--apple-blue);
 }
 
 body.dark-mode .cl-client-link {
@@ -518,20 +714,17 @@ body.dark-mode .cl-client-link:hover {
     border-bottom-color: var(--apple-blue);
 }
 
-body.dark-mode .cl-confirm-policy {
-    background: rgba(10, 132, 255, 0.15);
-    color: var(--apple-blue);
-}
-
 body.dark-mode .cl-select {
     background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2398989D' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* ── Responsive ── */
+/* ═══════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════ */
 
 @media (min-width: 960px) {
     .cl-container {
-        padding: 32px 24px;
+        padding: 0 24px 80px;
     }
 
     .cl-form {
@@ -543,14 +736,46 @@ body.dark-mode .cl-select {
     }
 }
 
+@media (max-width: 600px) {
+    .cl-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cl-field-grow,
+    .cl-field-fixed {
+        grid-column: 1;
+    }
+
+    .cl-hero {
+        gap: 8px;
+        padding: 14px 12px;
+    }
+
+    .cl-hero-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
+
+    .cl-hero-text {
+        font-size: 11px;
+    }
+
+    .cl-hero-arrow svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+
 @media (max-width: 480px) {
     .cl-container {
-        padding: 16px 12px;
+        padding: 0 12px 60px;
     }
 
     .cl-form {
         padding: 16px;
-        border-radius: 10px;
+        border-radius: 12px;
     }
 
     .cl-textarea {
@@ -558,8 +783,14 @@ body.dark-mode .cl-select {
         font-size: 14px;
     }
 
-    .cl-submit-btn {
+    .cl-submit-btn,
+    .cl-confirm-btn,
+    .cl-cancel-btn {
         font-size: 15px;
         padding: 12px 16px;
+    }
+
+    .cl-confirm-actions {
+        flex-direction: column;
     }
 }

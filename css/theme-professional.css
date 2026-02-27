@@ -195,7 +195,7 @@ body.theme-pro .btn {
 body.theme-pro input,
 body.theme-pro select,
 body.theme-pro textarea {
-    background: #2C2C2E;
+    background-color: #2C2C2E;
     border: 1px solid rgba(255, 255, 255, 0.08);
     color: #F5F5F7;
     border-radius: 10px;
