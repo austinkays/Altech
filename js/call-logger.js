@@ -1,6 +1,6 @@
 /**
  * CallLogger — AI-powered call note formatter + HawkSoft logger
- * Formats messy shorthand call notes via AI, then logs to HawkSoft.
+ * Formats call notes via AI and logs them to HawkSoft.
  * Uses apiFetch() for authenticated API calls.
  *
  * localStorage key: altech_call_logger
@@ -89,17 +89,20 @@ window.CallLogger = (() => {
      * fetch policies independently so Call Logger works standalone.
      */
     async function _ensurePoliciesLoaded() {
-        // Quick check: does localStorage already have policy data?
+        // Quick check: does localStorage already have policy data (allPolicies format)?
         try {
             const raw = localStorage.getItem(CGL_CACHE_KEY);
             if (raw) {
                 const cached = JSON.parse(raw);
-                const policies = cached?.allPolicies || cached?.policies || [];
-                if (policies.length > 0) {
+                const allPolicies = cached?.allPolicies;
+                // Only use cache if allPolicies exists — older cache has only `policies` (CGL-only)
+                if (allPolicies && allPolicies.length > 0) {
                     _policiesReady = true;
-                    _updateStatusBar('ready', policies.length + ' clients loaded');
+                    const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
+                    _updateStatusBar('ready', clientCount + ' clients loaded');
                     return; // Cache is warm — nothing to do
                 }
+                // Old cache format (only CGL `policies`) — fall through to re-fetch so personal lines appear
             }
         } catch (e) { /* ignore parse errors */ }
 
@@ -157,9 +160,10 @@ window.CallLogger = (() => {
                 };
                 localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(cacheObj));
                 _policiesReady = true;
-                const count = (data.allPolicies || data.policies || []).length;
-                _updateStatusBar('ready', count + ' clients loaded');
-                console.log('[CallLogger] Fetched and cached', count, 'policies');
+                const allPolicies = data.allPolicies || data.policies || [];
+                const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
+                _updateStatusBar('ready', clientCount + ' clients loaded');
+                console.log('[CallLogger] Fetched and cached', allPolicies.length, 'policies for', clientCount, 'clients');
             } else {
                 _updateStatusBar('error', 'Could not load clients');
             }
@@ -226,9 +230,10 @@ window.CallLogger = (() => {
                 };
                 localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(cacheObj));
                 _policiesReady = true;
-                const count = (data.allPolicies || data.policies || []).length;
-                _updateStatusBar('ready', count + ' clients loaded');
-                console.log('[CallLogger] Refresh: cached', count, 'policies');
+                const allPolicies = data.allPolicies || data.policies || [];
+                const clientCount = new Set(allPolicies.map(p => p.clientName).filter(Boolean)).size;
+                _updateStatusBar('ready', clientCount + ' clients loaded');
+                console.log('[CallLogger] Refresh: cached', allPolicies.length, 'policies for', clientCount, 'clients');
             } else {
                 _updateStatusBar('error', 'Refresh failed — no data returned');
             }
@@ -249,12 +254,16 @@ window.CallLogger = (() => {
         const clientMap = {};  // name (lowercase) → { name, policies }
 
         // Source 1: CGL compliance cache (HawkSoft policies — richest data)
-        // Prefer allPolicies (commercial + personal) over policies (commercial only)
+        // allPolicies contains commercial + personal; policies contains CGL-only (fallback)
         try {
             const raw = localStorage.getItem(CGL_CACHE_KEY);
             if (raw) {
                 const cached = JSON.parse(raw);
-                const policies = cached?.allPolicies || cached?.policies || [];
+                // Fix: empty array [] is truthy in JS, so use length check for proper fallback
+                const allPolicies = cached?.allPolicies;
+                const policies = (allPolicies && allPolicies.length > 0)
+                    ? allPolicies
+                    : (cached?.policies || []);
                 for (const p of policies) {
                     if (!p.clientName) continue;
                     const key = p.clientName.toLowerCase().trim();
@@ -271,7 +280,8 @@ window.CallLogger = (() => {
             }
         } catch (e) { /* ignore parse errors */ }
 
-        // Source 2: Client History (quote-based clients)
+        // Source 2: Client History (personal lines clients from the intake form)
+        // These may not appear in HawkSoft cache if they're personal-only clients
         try {
             if (typeof App !== 'undefined' && App.getClientHistory) {
                 const history = App.getClientHistory() || [];
@@ -280,6 +290,29 @@ window.CallLogger = (() => {
                     if (!name) continue;
                     const key = name.toLowerCase().trim();
                     if (!clientMap[key]) clientMap[key] = { name, policies: [] };
+                    // Infer policy types from quote data (qType: 'home', 'auto', 'both')
+                    if (c.data && c.data.qType) {
+                        const qType = c.data.qType.toLowerCase();
+                        const existingPolicies = clientMap[key].policies;
+                        if ((qType === 'home' || qType === 'both') && !existingPolicies.some(p => p.type === 'homeowner')) {
+                            existingPolicies.push({
+                                policyNumber: c.data.priorCarrier ? `(${c.data.priorCarrier})` : '',
+                                type: 'homeowner',
+                                typeLabel: 'Homeowner',
+                                expirationDate: '',
+                                hawksoftId: ''
+                            });
+                        }
+                        if ((qType === 'auto' || qType === 'both') && !existingPolicies.some(p => p.type === 'personal-auto')) {
+                            existingPolicies.push({
+                                policyNumber: '',
+                                type: 'personal-auto',
+                                typeLabel: 'Personal Auto',
+                                expirationDate: '',
+                                hawksoftId: ''
+                            });
+                        }
+                    }
                 }
             }
         } catch (e) { /* ignore */ }

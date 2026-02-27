@@ -228,17 +228,21 @@ async function handler(req, res) {
                         (client.people && client.people[0] ? `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim() : '') ||
                         `Client #${client.clientNumber}`;
 
-      // Build allPolicies entries for ALL non-cancelled, non-very-old policies (all lines of business)
-      const ninetyDaysAgo = new Date();
-      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      // Build allPolicies entries for ALL non-cancelled policies (all lines of business)
+      // Used by Call Logger for client/policy autocomplete — include personal lines too.
+      // Skip policies with expiration date older than ~1 year; keep no-expiry policies (e.g. life/health).
+      const allPoliciesLookback = new Date();
+      allPoliciesLookback.setFullYear(allPoliciesLookback.getFullYear() - 1);
 
       for (const policy of client.policies) {
         const policyStatus = (policy.status || '').toLowerCase();
         if (policyStatus === 'prospect' || policyStatus === 'cancelled' || policyStatus === 'canceled') continue;
-        if (!policy.expirationDate) continue;
 
-        const expDate = new Date(policy.expirationDate);
-        if (expDate < ninetyDaysAgo) continue;
+        // Skip policies with an expiration date older than ~1 year (keep no-expiry policies like life/health)
+        if (policy.expirationDate) {
+          const expDate = new Date(policy.expirationDate);
+          if (expDate < allPoliciesLookback) continue;
+        }
 
         const isCommercialPol = isCommercialPolicy(policy);
         const pType = isCommercialPol
@@ -253,7 +257,7 @@ async function handler(req, res) {
           hawksoftId: client.clientNumber,
           clientName: clientName,
           carrier: policy.carrier || 'Unknown',
-          expirationDate: policy.expirationDate
+          expirationDate: policy.expirationDate || ''
         });
       }
 
