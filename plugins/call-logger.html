@@ -1,8 +1,18 @@
-<header class="plugin-header">
-    <div class="plugin-header-left">
-        <h2>📞 Call Logger</h2>
-        <p class="plugin-subtitle">Format messy call notes and log to HawkSoft</p>
+<header>
+    <div class="header-top">
+        <div class="logo tool-header-brand">
+            <span class="logo-controls">
+                <button type="button" class="logo-icon-button" onclick="App.goHome()" aria-label="Back to home">
+                    <span class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+                </button>
+                <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <span class="dark-mode-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+                </button>
+            </span>
+            <span>Call Logger</span>
+        </div>
     </div>
+    <div class="step-title">Format call notes &amp; log to HawkSoft</div>
 </header>
 
 <div class="cl-container">
@@ -18,68 +28,76 @@
         </button>
     </div>
 
-    <!-- Form Card -->
-    <div class="cl-form">
-        <div class="cl-form-section">
-            <div class="cl-form-section-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                Call Details
-            </div>
-
-            <div class="cl-form-grid">
-                <div class="cl-field cl-client-field cl-field-grow">
-                    <label class="cl-label" for="clPolicyId">Policy ID / Client Name</label>
-                    <div class="cl-search-wrapper">
-                        <input type="text" id="clPolicyId" class="cl-input" placeholder="Start typing a name or policy ID…" autocomplete="off">
-                        <div id="clClientDropdown" class="cl-client-dropdown" style="display: none;"></div>
+    <!-- Desktop two-column layout -->
+    <div class="cl-desktop-grid">
+        <!-- Left column: Form -->
+        <div class="cl-col-form">
+            <div class="cl-form">
+                <div class="cl-form-section">
+                    <div class="cl-form-section-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Call Details
                     </div>
-                    <div id="clPolicySelect" class="cl-policy-select" style="display: none;">
-                        <div class="cl-policy-select-label">Active Policies</div>
-                        <div id="clPolicyList" class="cl-policy-list"></div>
+
+                    <div class="cl-form-grid">
+                        <div class="cl-field cl-client-field cl-field-grow">
+                            <label class="cl-label" for="clPolicyId">Policy ID / Client Name</label>
+                            <div class="cl-search-wrapper">
+                                <input type="text" id="clPolicyId" class="cl-input" placeholder="Start typing a name or policy ID…" autocomplete="off">
+                                <div id="clClientDropdown" class="cl-client-dropdown" style="display: none;"></div>
+                            </div>
+                            <div id="clPolicySelect" class="cl-policy-select" style="display: none;">
+                                <div class="cl-policy-select-label">Active Policies</div>
+                                <div id="clPolicyList" class="cl-policy-list"></div>
+                            </div>
+                        </div>
+
+                        <div class="cl-field cl-field-fixed">
+                            <label class="cl-label" for="clCallType">Call Type</label>
+                            <select id="clCallType" class="cl-select">
+                                <option value="Inbound">Inbound</option>
+                                <option value="Outbound">Outbound</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <div class="cl-field cl-field-fixed">
-                    <label class="cl-label" for="clCallType">Call Type</label>
-                    <select id="clCallType" class="cl-select">
-                        <option value="Inbound">Inbound</option>
-                        <option value="Outbound">Outbound</option>
-                    </select>
+                <div class="cl-form-section">
+                    <div class="cl-form-section-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Notes
+                    </div>
+
+                    <div class="cl-field">
+                        <textarea id="clRawNotes" class="cl-textarea" placeholder="Type fast, be messy — we'll clean it up.&#10;&#10;e.g. cust called re: claim #4432, needs updated dec page, also asked about adding teen driver to auto policy, told them id send quote by eod"></textarea>
+                    </div>
+                </div>
+
+                <button id="clSubmitBtn" class="cl-submit-btn">🔍 Format Preview</button>
+            </div>
+        </div>
+
+        <!-- Right column: Preview + Confirm (sticky on desktop) -->
+        <div class="cl-col-output">
+            <!-- Preview Card -->
+            <div id="clPreview" class="cl-preview" style="display: none;">
+                <div class="cl-preview-header">
+                    <span class="cl-preview-label">📋 Formatted Log Preview</span>
+                    <button id="clCopyBtn" class="cl-copy-btn" title="Copy to clipboard">📋 Copy</button>
+                </div>
+                <pre id="clPreviewText" class="cl-preview-text"></pre>
+            </div>
+
+            <!-- Confirm Card -->
+            <div id="clConfirmSection" class="cl-confirm-section" style="display: none;">
+                <div class="cl-confirm-header">Confirm Before Logging</div>
+                <div id="clConfirmInfo" class="cl-confirm-info"></div>
+                <p class="cl-confirm-notice">Review the formatted notes above, then confirm to log to HawkSoft.</p>
+                <div class="cl-confirm-actions">
+                    <button id="clConfirmBtn" class="cl-confirm-btn">✅ Confirm &amp; Log to HawkSoft</button>
+                    <button id="clCancelBtn" class="cl-cancel-btn">✏️ Edit</button>
                 </div>
             </div>
-        </div>
-
-        <div class="cl-form-section">
-            <div class="cl-form-section-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Notes
-            </div>
-
-            <div class="cl-field">
-                <textarea id="clRawNotes" class="cl-textarea" placeholder="Type fast, be messy — we'll clean it up.&#10;&#10;e.g. cust called re: claim #4432, needs updated dec page, also asked about adding teen driver to auto policy, told them id send quote by eod"></textarea>
-            </div>
-        </div>
-
-        <button id="clSubmitBtn" class="cl-submit-btn">🔍 Format Preview</button>
-    </div>
-
-    <!-- Preview Card -->
-    <div id="clPreview" class="cl-preview" style="display: none;">
-        <div class="cl-preview-header">
-            <span class="cl-preview-label">📋 Formatted Log Preview</span>
-            <button id="clCopyBtn" class="cl-copy-btn" title="Copy to clipboard">📋 Copy</button>
-        </div>
-        <pre id="clPreviewText" class="cl-preview-text"></pre>
-    </div>
-
-    <!-- Confirm Card -->
-    <div id="clConfirmSection" class="cl-confirm-section" style="display: none;">
-        <div class="cl-confirm-header">Confirm Before Logging</div>
-        <div id="clConfirmInfo" class="cl-confirm-info"></div>
-        <p class="cl-confirm-notice">Review the formatted notes above, then confirm to log to HawkSoft.</p>
-        <div class="cl-confirm-actions">
-            <button id="clConfirmBtn" class="cl-confirm-btn">✅ Confirm &amp; Log to HawkSoft</button>
-            <button id="clCancelBtn" class="cl-cancel-btn">✏️ Edit</button>
         </div>
     </div>
 </div>

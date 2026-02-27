@@ -1,12 +1,33 @@
 /* ═══════════════════════════════════════════════════
-   Call Logger — AI call note formatter + HawkSoft log
-   Glassmorphism design, matches Reminders / Compliance
+   Call Logger — Call note formatter + HawkSoft log
+   Desktop-first design, matches Compliance / Reminders
    ═══════════════════════════════════════════════════ */
 
 .cl-container {
-    max-width: 860px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 0 16px 80px;
+    padding: 0 24px 80px;
+}
+
+/* ── Desktop Two-Column Layout ── */
+
+.cl-desktop-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+@media (min-width: 960px) {
+    .cl-desktop-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+        align-items: start;
+    }
+
+    .cl-col-output {
+        position: sticky;
+        top: 24px;
+    }
 }
 
 /* ── Client Sync Status Bar ── */
@@ -810,7 +831,7 @@ body.dark-mode .cl-select {
 
 @media (min-width: 960px) {
     .cl-container {
-        padding: 0 24px 80px;
+        padding: 0 32px 80px;
     }
 
     .cl-form {
@@ -818,7 +839,35 @@ body.dark-mode .cl-select {
     }
 
     .cl-textarea {
-        min-height: 180px;
+        min-height: 220px;
+    }
+
+    .cl-preview {
+        margin-top: 0;
+    }
+
+    .cl-confirm-section {
+        margin-top: 16px;
+    }
+}
+
+@media (min-width: 1280px) {
+    .cl-desktop-grid {
+        gap: 36px;
+    }
+
+    .cl-container {
+        padding: 0 40px 80px;
+    }
+}
+
+@media (max-width: 959px) {
+    .cl-col-output {
+        /* On mobile/tablet, preview/confirm flow below form */
+    }
+
+    .cl-preview {
+        margin-top: 20px;
     }
 }
 

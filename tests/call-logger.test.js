@@ -409,8 +409,8 @@ describe('call-logger.html — Plugin HTML', () => {
     expect(pluginHtml).toContain('value="Outbound"');
   });
 
-  test('has plugin-header with title', () => {
-    expect(pluginHtml).toContain('plugin-header');
+  test('has standard header with title', () => {
+    expect(pluginHtml).toContain('tool-header-brand');
     expect(pluginHtml).toContain('Call Logger');
   });
 
