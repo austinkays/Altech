@@ -304,7 +304,7 @@ window.DashboardWidgets = (() => {
                     const exp = new Date(p.expirationDate);
                     exp.setHours(0, 0, 0, 0);
                     const days = Math.round((exp - now) / 86400000);
-                    if (days <= 14) {
+                    if (days <= 5) {
                         critical++;
                         flaggedPolicies.push({ ...p, days, severity: 'critical' });
                     } else if (days <= 30) {

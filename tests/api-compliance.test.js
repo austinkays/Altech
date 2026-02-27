@@ -109,14 +109,16 @@ describe('getExpirationStatus', () => {
     expect(fns.getExpirationStatus(-100)).toBe('expired');
   });
 
-  test('returns "critical" for 0-29 days', () => {
+  test('returns "critical" for 0-5 days', () => {
     expect(fns.getExpirationStatus(0)).toBe('critical');
-    expect(fns.getExpirationStatus(15)).toBe('critical');
-    expect(fns.getExpirationStatus(29)).toBe('critical');
+    expect(fns.getExpirationStatus(3)).toBe('critical');
+    expect(fns.getExpirationStatus(5)).toBe('critical');
   });
 
-  test('returns "expiring-soon" for 30-59 days', () => {
-    expect(fns.getExpirationStatus(30)).toBe('expiring-soon');
+  test('returns "expiring-soon" for 6-59 days', () => {
+    expect(fns.getExpirationStatus(6)).toBe('expiring-soon');
+    expect(fns.getExpirationStatus(15)).toBe('expiring-soon');
+    expect(fns.getExpirationStatus(29)).toBe('expiring-soon');
     expect(fns.getExpirationStatus(45)).toBe('expiring-soon');
     expect(fns.getExpirationStatus(59)).toBe('expiring-soon');
   });
