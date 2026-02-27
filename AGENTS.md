@@ -69,7 +69,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (758 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
-│   ├── call-logger.css         # Call logger plugin + confirmation UI + client autocomplete + policy selector + HawkSoft deep links (475 lines)
+│   ├── call-logger.css         # Call logger plugin + glassmorphism UI + hero strip + client autocomplete + policy selector + HawkSoft deep links (677 lines)
 │   ├── compliance.css          # CGL compliance dashboard (1,046 lines)
 │   ├── auth.css                # Auth modal + settings (973 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
@@ -146,7 +146,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.html              # Email composer (98 lines)
 │   ├── qna.html                # Policy Q&A chat (95 lines)
 │   ├── quickref.html           # Quick reference cards (79 lines)
-│   ├── call-logger.html        # AI call logger + client autocomplete (47 lines)
+│   ├── call-logger.html        # AI call logger + hero workflow strip + form sections + client autocomplete (84 lines)
 │   └── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
 │
 ├── api/                        # 12 serverless functions + 2 helpers (~6,560 lines) ⚠️ Hobby plan MAX = 12 functions
@@ -754,10 +754,13 @@ KEY RULES:
 | AI Intake UI rework (Phase 2) | intake-assist.css, intake-assist.html | Enhanced cards (layered shadows, gradient header accents), gradient user message bubbles, spring animations, refined input area (gradient send button, enhanced focus glow), sidebar surface hierarchy (#0A0A0A→#1C1C1E→#2C2C2E), card-based empty state with pulsing icon, custom scrollbars, desktop wide-screen breakpoints (1280px/1440px), comprehensive dark mode elevation for ~30 selectors, mobile dark mode full-bleed |
 | Desktop-first layout overhaul | main.css (+350 lines), reminders.css, hawksoft.css, accounting.css, email.css, quickref.css, vin-decoder.css, quote-compare.css, compliance.css | Quoting wizard: centered max-width container (960→1080→1200px), multi-column step layouts (steps 0/4/6), constrained footer, denser form grids, scan actions horizontal, wider modals. All plugins: desktop padding/spacing/grid enhancements. Generic `plugin-container > main/header` constraint at 1100px. Prospect content cap at 1000px. Footer sidebar-aware offset. |
 | Mobile dark mode visibility | main.css, dashboard.css, sidebar.css | Cards/widgets: border opacity 6%→10-12%, depth shadows added. Mobile `<767px`: `.app-content` bg `#0D0D0D` (lifts off pure black), header/bottom-nav solid bg + visible borders, widget accent stripes 50%→70% opacity, ambient orbs boosted, bento grid gap tightened to 12px. Footer border made visible in dark mode. |
+| Call Logger UI redesign | call-logger.css, call-logger.html | Glassmorphism cards (backdrop-filter blur+saturate), hero "how-it-works" 3-step strip with gradient icons, form sections with SVG icon headers, side-by-side grid for client name + call type, gradient submit/confirm buttons, spring animations, comprehensive dark mode with solid surfaces |
+| Theme-pro select chevron fix | theme-professional.css | `background:` → `background-color:` on `body.theme-pro input/select/textarea` — shorthand was overriding `background-image` SVG chevrons in Call Logger select |
 
 ### Known Issues NOT Fixed (Intentional / Cosmetic)
 
 - `theme-professional.css` uses low-opacity rgba on dark backgrounds (cosmetic preference)
+- `theme-professional.css` `background-color` fix applied for selects — other input types unaffected
 - `ezlynx.css` top half uses hardcoded glassmorphism palette (design choice, bottom half uses variables)
 - 7 CSS files lack dark mode overrides (relies on variable auto-switching)
 - 3 CSS files use `.dark-mode` without `body` prefix (works due to specificity)
