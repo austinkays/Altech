@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 8, 2026
+> **Last updated:** March 9, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -17,7 +17,7 @@
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~702 lines) |
 | **CSS** | 21 files in `css/` (~14,100 lines total) |
-| **JS** | 35 modules in `js/` (~27,950 lines total) |
+| **JS** | 35 modules in `js/` (~28,080 lines total) |
 | **Plugins** | 15 HTML templates in `plugins/` (~4,960 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,560 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 20 suites, 1411+ tests |
+| **Tests** | Jest + JSDOM, 20 suites, 1431+ tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 20 test suites, 1411+ tests
+npm test              # All 20 test suites, 1431+ tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
@@ -122,7 +122,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (773 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (702 lines)
 │   ├── accounting-export.js     # Trust deposit calculator, HawkSoft receipts (337 lines)
-│   ├── call-logger.js           # Call note formatter + HawkSoft logger, two-step preview/confirm, client→policy autocomplete, HawkSoft deep links, personal lines support, status bar + manual refresh (796 lines)
+│   ├── call-logger.js           # Call note formatter + HawkSoft logger, two-step preview/confirm, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh (927 lines)
 │   │
 │   │  ★ Support Modules
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (369 lines)
@@ -156,7 +156,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── vision-processor.js     # Image/PDF analysis, DL scanning, aerial analysis (880 lines)
 │   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations (1,247 lines)
 │   ├── prospect-lookup.js      # Multi-source business investigation (1,563 lines)
-│   ├── compliance.js           # HawkSoft API CGL policy fetcher + Redis cache
+│   ├── compliance.js           # HawkSoft API CGL policy fetcher + Redis cache + allClientsList (535 lines)
 │   ├── historical-analyzer.js  # AI property value/insurance trend analysis
 │   ├── _rag-interpreter.js     # County assessor data → insurance fields (helper, routed via property-intelligence)
 │   ├── kv-store.js             # Per-user Redis KV store
@@ -175,7 +175,7 @@ npm run deploy:vercel   # Production deploy
 │
 ├── tests/                      # Jest test suites
 │   ├── setup.js                # Test env setup (mock fetch, suppress crypto errors)
-│   └── *.test.js               # 20 test files, 1411+ tests
+│   └── *.test.js               # 20 test files, 1431+ tests
 │
 ├── lib/                        # Shared server-side utilities
 ├── scripts/                    # Build/utility scripts
@@ -615,7 +615,7 @@ KEY RULES:
 5. After localStorage writes on synced data, call CloudSync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
 7. App is built via Object.assign(App, {...}) across 9 files — app-boot.js loads LAST
-8. Test with: npm test (1411+ tests, all must pass)
+8. Test with: npm test (1431+ tests, all must pass)
 9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, update AGENTS.md, .github/copilot-instructions.md, and
@@ -632,7 +632,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` → 20 suites, 1411+ tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 20 suites, 1431+ tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements
@@ -774,6 +774,18 @@ KEY RULES:
 
 **Root cause:** The multi-tier cache system (IndexedDB → localStorage → disk → Vercel KV) validated cache entries by checking only `policies?.length > 0`. Cache written before the `allPolicies` feature (which includes personal lines) was treated as valid, promoted across all tiers, and served to the Call Logger. Users saw only ~3080 commercial clients with zero personal profiles. Fix forces all tiers to re-fetch when `allPolicies` is absent.
 
+### Prospect/Policy-Less Client Support — All HawkSoft Clients in Call Logger (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 51 | CRITICAL | api/compliance.js | Added `allClientsList` array — built from ALL `allClients` (every HawkSoft client regardless of policy status, including pure prospects). Each entry: `{ clientNumber, clientName }` using same name resolution chain. Included in API response and metadata. |
+| 52 | HIGH | js/call-logger.js | `_getClients()` now merges `allClientsList` as Source 2 — prospect/policy-less clients added to dropdown with `policies: []` and `hawksoftId` |
+| 53 | HIGH | js/call-logger.js | `_handleFormat()` clientNumber fallback: `_selectedPolicy.hawksoftId → _selectedClient.hawksoftId → ''` for prospect clients |
+| 54 | MEDIUM | js/call-logger.js | Confirm section shows "No active policies" badge for policy-less clients; HawkSoft link still shown using hawksoftId |
+| 55 | MEDIUM | js/call-logger.js | `_countClients(data)` helper prefers `allClientsList` count over `allPolicies`-derived count in all 4 status bar update locations |
+| 56 | MEDIUM | tests/ | Added 10 new tests (7 call-logger + 3 api-compliance) verifying allClientsList integration, prospect merging, deduplication, backward compat |
+
+**Root cause:** The `allPolicies` pipeline in `api/compliance.js` has 3 filters that exclude prospect/policy-less clients: (1) skip clients with zero policies, (2) skip prospect-status policies, (3) skip expired >1yr policies. Many HawkSoft clients — especially "Prospect Customer (Personal)" entries — have no active policies and were invisible in the Call Logger. Fix adds a parallel `allClientsList` array that includes ALL clients from HawkSoft, merged into the Call Logger dropdown alongside policy-bearing clients.
 
 ### Known Issues NOT Fixed (Intentional / Cosmetic)
 
@@ -930,7 +942,7 @@ tests/
 ├── prospect-client.test.js     # Prospect client-side module
 ├── server.test.js              # Local dev server (server.js)
 ├── hawksoft-logger.test.js     # HawkSoft Logger API (67 tests)
-└── call-logger.test.js         # Call Logger client module (145 tests)
+└── call-logger.test.js         # Call Logger client module (152 tests)
 ```
 
 Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously' })`. The test setup file mocks `fetch`, silences console noise, and suppresses expected `crypto.subtle` errors.
