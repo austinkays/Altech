@@ -480,6 +480,18 @@
     position: relative;
 }
 
+.cl-policy-loading-hint {
+    font-size: 12px;
+    color: var(--apple-blue);
+    padding: 6px 2px 0;
+    animation: cl-hint-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes cl-hint-pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
 .cl-client-dropdown {
     position: absolute;
     top: 100%;

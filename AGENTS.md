@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 4, 2026
+> **Last updated:** March 5, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -69,7 +69,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (758 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
-│   ├── call-logger.css         # Call logger plugin + glassmorphism UI + hero strip + client autocomplete + policy selector + HawkSoft deep links (677 lines)
+│   ├── call-logger.css         # Call logger plugin + glassmorphism UI + hero strip + client autocomplete + policy selector + HawkSoft deep links + policy loading hint (808 lines)
 │   ├── compliance.css          # CGL compliance dashboard (1,046 lines)
 │   ├── auth.css                # Auth modal + settings (973 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
@@ -122,7 +122,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (773 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (702 lines)
 │   ├── accounting-export.js     # Trust deposit calculator, HawkSoft receipts (337 lines)
-│   ├── call-logger.js           # AI call note formatter + HawkSoft logger, two-step preview/confirm, client→policy autocomplete, HawkSoft deep links, personal lines support (523 lines)
+│   ├── call-logger.js           # AI call note formatter + HawkSoft logger, two-step preview/confirm, client→policy autocomplete, HawkSoft deep links, personal lines support, on-demand policy pre-fetch (723 lines)
 │   │
 │   │  ★ Support Modules
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (369 lines)
@@ -756,6 +756,8 @@ KEY RULES:
 | Mobile dark mode visibility | main.css, dashboard.css, sidebar.css | Cards/widgets: border opacity 6%→10-12%, depth shadows added. Mobile `<767px`: `.app-content` bg `#0D0D0D` (lifts off pure black), header/bottom-nav solid bg + visible borders, widget accent stripes 50%→70% opacity, ambient orbs boosted, bento grid gap tightened to 12px. Footer border made visible in dark mode. |
 | Call Logger UI redesign | call-logger.css, call-logger.html | Glassmorphism cards (backdrop-filter blur+saturate), hero "how-it-works" 3-step strip with gradient icons, form sections with SVG icon headers, side-by-side grid for client name + call type, gradient submit/confirm buttons, spring animations, comprehensive dark mode with solid surfaces |
 | Theme-pro select chevron fix | theme-professional.css | `background:` → `background-color:` on `body.theme-pro input/select/textarea` — shorthand was overriding `background-image` SVG chevrons in Call Logger select |
+| Call Logger on-demand policy pre-fetch | call-logger.js, call-logger.css | Call Logger now independently fetches policies from compliance API if cache is empty — no need to visit Compliance Dashboard first. Shows subtle "Loading client list…" hint while fetching. Tries disk cache → API → stores in `altech_cgl_cache` localStorage |
+
 
 ### Known Issues NOT Fixed (Intentional / Cosmetic)
 

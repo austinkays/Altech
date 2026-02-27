@@ -14,15 +14,19 @@ window.CallLogger = (() => {
     let _selectedClient = null;  // { name, policies: [...] }
     let _selectedPolicy = null;  // { policyNumber, type, typeLabel, expirationDate, hawksoftId }
 
+    let _policiesReady = false;  // true once we have policy data in cache
+
     function init() {
         _load();
         _wireEvents();
+        _ensurePoliciesLoaded();  // Background fetch if cache is empty
     }
 
     function render() {
         // HTML is loaded from plugins/call-logger.html — just re-wire events
         _load();
         _wireEvents();
+        _ensurePoliciesLoaded();
     }
 
     // ── Persistence ──
@@ -75,6 +79,110 @@ window.CallLogger = (() => {
         }
 
         return { userApiKey, aiModel };
+    }
+
+    // ── Policy Pre-Loading ──
+
+    /**
+     * Ensure policy data is available for client autocomplete.
+     * If the compliance cache is empty (user hasn't visited Compliance Dashboard),
+     * fetch policies independently so Call Logger works standalone.
+     */
+    async function _ensurePoliciesLoaded() {
+        // Quick check: does localStorage already have policy data?
+        try {
+            const raw = localStorage.getItem(CGL_CACHE_KEY);
+            if (raw) {
+                const cached = JSON.parse(raw);
+                const policies = cached?.allPolicies || cached?.policies || [];
+                if (policies.length > 0) {
+                    _policiesReady = true;
+                    return; // Cache is warm — nothing to do
+                }
+            }
+        } catch (e) { /* ignore parse errors */ }
+
+        // Cache is empty — show subtle loading hint
+        _showPolicyLoadingHint(true);
+
+        // Try disk cache first (fast, survives browser storage clears)
+        try {
+            const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            if (isLocal) {
+                const diskRes = await fetch('/local/cgl-cache');
+                if (diskRes.ok) {
+                    const diskData = await diskRes.json();
+                    const policies = diskData?.allPolicies || diskData?.policies || [];
+                    if (policies.length > 0) {
+                        // Promote disk cache to localStorage
+                        localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(diskData));
+                        _policiesReady = true;
+                        _showPolicyLoadingHint(false);
+                        console.log('[CallLogger] Loaded', policies.length, 'policies from disk cache');
+                        return;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[CallLogger] Disk cache check failed:', e.message);
+        }
+
+        // No cache anywhere — fetch from compliance API directly
+        try {
+            console.log('[CallLogger] No cached policies — fetching from compliance API...');
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+            const res = await fetch('/api/compliance.js', { signal: controller.signal });
+            clearTimeout(timeout);
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            // Check we got JSON, not raw JS source (local dev without Vercel runtime)
+            const contentType = res.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                const preview = await res.clone().text();
+                if (preview.trimStart().startsWith('/**') || preview.trimStart().startsWith('export') || preview.trimStart().startsWith('//')) {
+                    throw new Error('API not available — static file server');
+                }
+            }
+
+            const data = await res.json();
+            if (data.success) {
+                const cacheObj = {
+                    ...data,
+                    cachedAt: Date.now(),
+                    last_synced_time: new Date().toISOString()
+                };
+                localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(cacheObj));
+                _policiesReady = true;
+                const count = (data.allPolicies || data.policies || []).length;
+                console.log('[CallLogger] Fetched and cached', count, 'policies');
+            }
+        } catch (e) {
+            // Not critical — user can still type policy IDs manually
+            const isAbort = e.name === 'AbortError';
+            if (!isAbort) console.warn('[CallLogger] Policy pre-fetch failed:', e.message);
+        } finally {
+            _showPolicyLoadingHint(false);
+        }
+    }
+
+    /**
+     * Show/hide a subtle loading hint below the client search input.
+     */
+    function _showPolicyLoadingHint(show) {
+        const wrapper = document.querySelector('.cl-search-wrapper');
+        if (!wrapper) return;
+
+        let hint = wrapper.querySelector('.cl-policy-loading-hint');
+        if (show && !hint) {
+            hint = document.createElement('div');
+            hint.className = 'cl-policy-loading-hint';
+            hint.textContent = 'Loading client list…';
+            wrapper.appendChild(hint);
+        } else if (!show && hint) {
+            hint.remove();
+        }
     }
 
     // ── Client & Policy Lookup ──
@@ -611,5 +719,5 @@ window.CallLogger = (() => {
         }
     }
 
-    return { init, render, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, getSelectedPolicy: () => _selectedPolicy };
+    return { init, render, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, getSelectedPolicy: () => _selectedPolicy };
 })();
