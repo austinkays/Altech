@@ -85,33 +85,33 @@ async function handler(req, res) {
 
           const refId = crypto.randomUUID();
           const ts = new Date().toISOString();
-          console.log(`[HawkSoft Logger] Pushing note to client ${hawksoftClientId} (policy: ${cleanPolicyId}, refId: ${refId})`);
-          const logRes = await fetch(
-            `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`,
-            {
+          const actionCode = cleanCallType === 'Outbound' ? 1 : 5; // 1 = Phone To Insured, 5 = Phone From Insured
+          const logUrl = `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`;
+          const logBody = { refId, ts, note: logText, action: actionCode };
+          console.log(`[HawkSoft Logger] ── PRE-FORMATTED PUSH ──`);
+          console.log(`[HawkSoft Logger]   URL: ${logUrl}`);
+          console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId, ts: ts.substring(0, 19), action: actionCode, noteLen: logText.length })}`);
+          console.log(`[HawkSoft Logger]   clientNumber=${hawksoftClientId} policyId=${cleanPolicyId} callType=${cleanCallType}`);
+          const logRes = await fetch(logUrl, {
               method: 'POST',
               headers: {
                 'Authorization': authHeader,
                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify({
-                refId,
-                ts,
-                note: logText,
-                action: cleanCallType === 'Outbound' ? 1 : 5 // 1 = Phone To Insured, 5 = Phone From Insured
-              })
+              body: JSON.stringify(logBody)
             }
           );
 
+          const resText = await logRes.text().catch(() => '');
+          console.log(`[HawkSoft Logger]   Response: ${logRes.status} ${logRes.statusText} — ${resText.substring(0, 300)}`);
           if (logRes.ok) {
             hawksoftLogged = true;
             hawksoftStatus = 'logged';
             console.log(`[HawkSoft Logger] ✅ Pre-formatted note logged for client ${hawksoftClientId}`);
           } else {
-            const errText = await logRes.text().catch(() => '');
             hawksoftStatus = 'push_failed';
-            hawksoftError = `HawkSoft returned ${logRes.status}: ${errText.substring(0, 200)}`;
-            console.warn(`[HawkSoft Logger] ⚠️ HawkSoft push failed (${logRes.status}): ${errText.substring(0, 200)}`);
+            hawksoftError = `HawkSoft returned ${logRes.status}: ${resText.substring(0, 200)}`;
+            console.warn(`[HawkSoft Logger] ⚠️ HawkSoft push failed (${logRes.status}): ${resText.substring(0, 200)}`);
           }
         } catch (hsErr) {
           hawksoftStatus = 'push_error';
@@ -220,33 +220,33 @@ ${cleanNotes}`;
         // HawkSoft log note endpoint — /client/{id}/log per API v3.0 docs
         const refId2 = crypto.randomUUID();
         const ts2 = new Date().toISOString();
-        console.log(`[HawkSoft Logger] Pushing note to client ${hawksoftClientId} (policy: ${cleanPolicyId}, refId: ${refId2})`);
-        const logRes = await fetch(
-          `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`,
-          {
+        const actionCode2 = cleanCallType === 'Outbound' ? 1 : 5; // 1 = Phone To Insured, 5 = Phone From Insured
+        const logUrl2 = `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`;
+        const logBody2 = { refId: refId2, ts: ts2, note: formattedLog.trim(), action: actionCode2 };
+        console.log(`[HawkSoft Logger] ── AI-FORMATTED PUSH ──`);
+        console.log(`[HawkSoft Logger]   URL: ${logUrl2}`);
+        console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId: refId2, ts: ts2.substring(0, 19), action: actionCode2, noteLen: formattedLog.trim().length })}`);
+        console.log(`[HawkSoft Logger]   clientNumber=${hawksoftClientId} policyId=${cleanPolicyId} callType=${cleanCallType}`);
+        const logRes = await fetch(logUrl2, {
             method: 'POST',
             headers: {
               'Authorization': authHeader,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-              refId: refId2,
-              ts: ts2,
-              note: formattedLog.trim(),
-              action: cleanCallType === 'Outbound' ? 1 : 5 // 1 = Phone To Insured, 5 = Phone From Insured
-            })
+            body: JSON.stringify(logBody2)
           }
         );
 
+        const resText2 = await logRes.text().catch(() => '');
+        console.log(`[HawkSoft Logger]   Response: ${logRes.status} ${logRes.statusText} — ${resText2.substring(0, 300)}`);
         if (logRes.ok) {
           hawksoftLogged = true;
           hawksoftStatus = 'logged';
           console.log(`[HawkSoft Logger] ✅ Note logged to HawkSoft for client ${hawksoftClientId}`);
         } else {
-          const errText = await logRes.text().catch(() => '');
           hawksoftStatus = 'push_failed';
-          hawksoftError = `HawkSoft returned ${logRes.status}: ${errText.substring(0, 200)}`;
-          console.warn(`[HawkSoft Logger] ⚠️ HawkSoft push failed (${logRes.status}): ${errText.substring(0, 200)}`);
+          hawksoftError = `HawkSoft returned ${logRes.status}: ${resText2.substring(0, 200)}`;
+          console.warn(`[HawkSoft Logger] ⚠️ HawkSoft push failed (${logRes.status}): ${resText2.substring(0, 200)}`);
         }
       } catch (hsErr) {
         hawksoftStatus = 'push_error';

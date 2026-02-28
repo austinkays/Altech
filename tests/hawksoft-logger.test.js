@@ -254,12 +254,12 @@ describe('HawkSoft Push', () => {
   });
 
   test('uses action code 5 for Inbound calls (Phone From Insured)', () => {
-    expect(source).toContain('5');
+    expect(source).toContain("'Outbound' ? 1 : 5");
     expect(source).toMatch(/5.*Phone From Insured/);
   });
 
   test('uses action code 1 for Outbound calls (Phone To Insured)', () => {
-    expect(source).toContain('1');
+    expect(source).toContain("'Outbound' ? 1 : 5");
     expect(source).toMatch(/1.*Phone To Insured/);
   });
 

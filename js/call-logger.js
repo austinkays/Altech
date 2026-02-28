@@ -750,8 +750,22 @@ window.CallLogger = (() => {
             } else if (result.hawksoftStatus === 'push_failed' || result.hawksoftStatus === 'push_error') {
                 const errDetail = result.hawksoftError ? ` (${result.hawksoftError})` : '';
                 statusMsg = `⚠️ HawkSoft push failed — copy the log manually`;
-                console.warn('[Call Logger] HawkSoft push failed:', result.hawksoftError);
-                console.warn('[Call Logger] clientNumber sent:', _pendingLog.clientNumber, 'policyId:', _pendingLog.policyId);
+                console.warn('[Call Logger] ── PUSH FAILURE DIAGNOSTICS ──');
+                console.warn('[Call Logger]   hawksoftError:', result.hawksoftError);
+                console.warn('[Call Logger]   hawksoftStatus:', result.hawksoftStatus);
+                console.warn('[Call Logger]   Request sent:', JSON.stringify({
+                    clientNumber: _pendingLog.clientNumber,
+                    policyId: _pendingLog.policyId,
+                    callType: _pendingLog.callType,
+                    logLength: (_pendingLog.formattedLog || '').length
+                }));
+                console.warn('[Call Logger]   Server response:', JSON.stringify({
+                    hawksoftLogged: result.hawksoftLogged,
+                    hawksoftStatus: result.hawksoftStatus,
+                    clientNumber: result.clientNumber,
+                    policyId: result.policyId,
+                    callType: result.callType
+                }));
                 App.toast(statusMsg + errDetail, 'error');
                 // Keep confirm section visible so user can copy/retry
             } else {
