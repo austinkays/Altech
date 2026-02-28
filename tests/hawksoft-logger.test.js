@@ -270,6 +270,11 @@ describe('HawkSoft Push', () => {
     expect(source).toMatch(/\bts\b/);
   });
 
+  test('uses channel field (not action) in HawkSoft request body', () => {
+    // HawkSoft API expects "channel" not "action" in the log body
+    expect(source).toContain('channel: actionCode');
+  });
+
   test('switches action based on callType being Outbound', () => {
     expect(source).toContain("cleanCallType === 'Outbound' ? 1 : 5");
   });

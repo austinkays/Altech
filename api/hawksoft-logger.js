@@ -87,10 +87,10 @@ async function handler(req, res) {
           const ts = new Date().toISOString();
           const actionCode = cleanCallType === 'Outbound' ? 1 : 5; // 1 = Phone To Insured, 5 = Phone From Insured
           const logUrl = `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`;
-          const logBody = { refId, ts, note: logText, action: actionCode };
+          const logBody = { refId, ts, note: logText, channel: actionCode };
           console.log(`[HawkSoft Logger] ── PRE-FORMATTED PUSH ──`);
           console.log(`[HawkSoft Logger]   URL: ${logUrl}`);
-          console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId, ts: ts.substring(0, 19), action: actionCode, noteLen: logText.length })}`);
+          console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId, ts: ts.substring(0, 19), channel: actionCode, noteLen: logText.length })}`);
           console.log(`[HawkSoft Logger]   clientNumber=${hawksoftClientId} policyId=${cleanPolicyId} callType=${cleanCallType}`);
           const logRes = await fetch(logUrl, {
               method: 'POST',
@@ -222,10 +222,10 @@ ${cleanNotes}`;
         const ts2 = new Date().toISOString();
         const actionCode2 = cleanCallType === 'Outbound' ? 1 : 5; // 1 = Phone To Insured, 5 = Phone From Insured
         const logUrl2 = `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`;
-        const logBody2 = { refId: refId2, ts: ts2, note: formattedLog.trim(), action: actionCode2 };
+        const logBody2 = { refId: refId2, ts: ts2, note: formattedLog.trim(), channel: actionCode2 };
         console.log(`[HawkSoft Logger] ── AI-FORMATTED PUSH ──`);
         console.log(`[HawkSoft Logger]   URL: ${logUrl2}`);
-        console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId: refId2, ts: ts2.substring(0, 19), action: actionCode2, noteLen: formattedLog.trim().length })}`);
+        console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId: refId2, ts: ts2.substring(0, 19), channel: actionCode2, noteLen: formattedLog.trim().length })}`);
         console.log(`[HawkSoft Logger]   clientNumber=${hawksoftClientId} policyId=${cleanPolicyId} callType=${cleanCallType}`);
         const logRes = await fetch(logUrl2, {
             method: 'POST',
