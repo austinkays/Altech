@@ -929,7 +929,7 @@ describe('Client & Policy Lookup — Behavioral', () => {
     const prospect = clients.find(c => c.name === 'Prospect Only');
     expect(prospect).toBeDefined();
     expect(prospect.policies).toHaveLength(0);
-    expect(prospect.hawksoftId).toBe(200);
+    expect(prospect.hawksoftId).toBe('200');
   });
 
   test('_getClients allClientsList does not duplicate existing policy clients', () => {
@@ -962,7 +962,7 @@ describe('Client & Policy Lookup — Behavioral', () => {
     });
     window.CallLogger.init();
     const clients = window.CallLogger._getClients();
-    expect(clients[0].hawksoftId).toBe(555);
+    expect(clients[0].hawksoftId).toBe('555');
   });
 
   test('_getClients works without allClientsList (backward compat)', () => {

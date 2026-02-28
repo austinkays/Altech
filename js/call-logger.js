@@ -321,10 +321,10 @@ window.CallLogger = (() => {
                 for (const p of policies) {
                     if (!p.clientName) continue;
                     const key = p.clientName.toLowerCase().trim();
-                    if (!clientMap[key]) clientMap[key] = { name: p.clientName, policies: [], hawksoftId: p.hawksoftId || p.clientNumber || '' };
+                    if (!clientMap[key]) clientMap[key] = { name: p.clientName, policies: [], hawksoftId: String(p.hawksoftId || p.clientNumber || '') };
                     // Ensure hawksoftId is set at the client level (first policy wins)
                     if (!clientMap[key].hawksoftId && (p.hawksoftId || p.clientNumber)) {
-                        clientMap[key].hawksoftId = p.hawksoftId || p.clientNumber;
+                        clientMap[key].hawksoftId = String(p.hawksoftId || p.clientNumber);
                     }
                     const pType = p.policyType || p.type || 'unknown';
                     clientMap[key].policies.push({
@@ -332,7 +332,7 @@ window.CallLogger = (() => {
                         type: pType,
                         typeLabel: _policyTypeLabel(pType),
                         expirationDate: p.expirationDate || '',
-                        hawksoftId: p.hawksoftId || p.clientNumber || ''
+                        hawksoftId: String(p.hawksoftId || p.clientNumber || '')
                     });
                 }
             }
@@ -347,10 +347,10 @@ window.CallLogger = (() => {
                     if (!c.clientName) continue;
                     const key = c.clientName.toLowerCase().trim();
                     if (!clientMap[key]) {
-                        clientMap[key] = { name: c.clientName, policies: [], hawksoftId: c.clientNumber || '' };
+                        clientMap[key] = { name: c.clientName, policies: [], hawksoftId: String(c.clientNumber || '') };
                     }
                     if (!clientMap[key].hawksoftId && c.clientNumber) {
-                        clientMap[key].hawksoftId = c.clientNumber;
+                        clientMap[key].hawksoftId = String(c.clientNumber);
                     }
                 }
             }

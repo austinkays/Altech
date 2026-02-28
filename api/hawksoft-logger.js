@@ -63,7 +63,7 @@ async function handler(req, res) {
     const cleanPolicyId = policyId.trim();
     // clientNumber is the HawkSoft client ID used for the logNotes API
     // (policyId is the policy number used for display)
-    const hawksoftClientId = (clientNumber || '').trim() || cleanPolicyId;
+    const hawksoftClientId = String(clientNumber || '').trim() || cleanPolicyId;
     const cleanCallType = (callType || 'Inbound').trim();
 
     // ── Step 2: Push pre-formatted log to HawkSoft (skip AI) ──
