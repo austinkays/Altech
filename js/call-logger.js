@@ -12,7 +12,7 @@ window.CallLogger = (() => {
     const CGL_CACHE_KEY = 'altech_cgl_cache';
     let _searchTimer = null;
     let _selectedClient = null;  // { name, policies: [...] }
-    let _selectedPolicy = null;  // { policyNumber, type, typeLabel, expirationDate, hawksoftId }
+    let _selectedPolicy = null;  // { policyNumber, type, typeLabel, expirationDate, hawksoftId, hawksoftPolicyId }
 
     let _policiesReady = false;  // true once we have policy data in cache
 
@@ -332,7 +332,8 @@ window.CallLogger = (() => {
                         type: pType,
                         typeLabel: _policyTypeLabel(pType),
                         expirationDate: p.expirationDate || '',
-                        hawksoftId: String(p.hawksoftId || p.clientNumber || '')
+                        hawksoftId: String(p.hawksoftId || p.clientNumber || ''),
+                        hawksoftPolicyId: p.hawksoftPolicyId || p.policyId || ''
                     });
                 }
             }
@@ -605,6 +606,10 @@ window.CallLogger = (() => {
                 ? _selectedClient.hawksoftId
                 : '';
 
+        // HawkSoft internal policy GUID — needed to link log to the specific policy (not just client)
+        const hawksoftPolicyId = (_selectedPolicy && _selectedPolicy.hawksoftPolicyId)
+            ? _selectedPolicy.hawksoftPolicyId : '';
+
         // Resolve settings
         const { userApiKey, aiModel } = _resolveAISettings();
 
@@ -620,7 +625,7 @@ window.CallLogger = (() => {
             const res = await fetchFn('/api/hawksoft-logger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ policyId, clientNumber, callType, rawNotes, userApiKey, aiModel, formatOnly: true })
+                body: JSON.stringify({ policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, userApiKey, aiModel, formatOnly: true })
             });
 
             if (!res.ok) {
@@ -639,6 +644,7 @@ window.CallLogger = (() => {
                 formattedLog: result.formattedLog,
                 policyId: result.policyId || policyId,
                 clientNumber: result.clientNumber || clientNumber,
+                hawksoftPolicyId: result.hawksoftPolicyId || hawksoftPolicyId,
                 callType: result.callType || callType
             };
 
@@ -725,6 +731,7 @@ window.CallLogger = (() => {
                 body: JSON.stringify({
                     policyId: _pendingLog.policyId,
                     clientNumber: _pendingLog.clientNumber,
+                    hawksoftPolicyId: _pendingLog.hawksoftPolicyId,
                     callType: _pendingLog.callType,
                     formattedLog: _pendingLog.formattedLog
                 })

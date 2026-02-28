@@ -53,7 +53,7 @@ async function handler(req, res) {
   }
 
   try {
-    const { policyId, clientNumber, callType, rawNotes, userApiKey, aiModel, formatOnly, formattedLog: preFormattedLog } = req.body || {};
+    const { policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, userApiKey, aiModel, formatOnly, formattedLog: preFormattedLog } = req.body || {};
 
     // ── Validation ──
     if (!policyId || typeof policyId !== 'string' || !policyId.trim()) {
@@ -64,6 +64,8 @@ async function handler(req, res) {
     // clientNumber is the HawkSoft client ID used for the logNotes API
     // (policyId is the policy number used for display)
     const hawksoftClientId = String(clientNumber || '').trim() || cleanPolicyId;
+    // hawksoftPolicyId is the internal HawkSoft policy GUID — links log to a specific policy
+    const cleanHawksoftPolicyId = (hawksoftPolicyId || '').trim();
     const cleanCallType = (callType || 'Inbound').trim();
 
     // ── Step 2: Push pre-formatted log to HawkSoft (skip AI) ──
@@ -88,10 +90,12 @@ async function handler(req, res) {
           const actionCode = cleanCallType === 'Outbound' ? 1 : 5; // 1 = Phone To Insured, 5 = Phone From Insured
           const logUrl = `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`;
           const logBody = { refId, ts, note: logText, channel: actionCode };
+          // Link log to specific policy if we have the HawkSoft policy GUID
+          if (cleanHawksoftPolicyId) logBody.policyId = cleanHawksoftPolicyId;
           console.log(`[HawkSoft Logger] ── PRE-FORMATTED PUSH ──`);
           console.log(`[HawkSoft Logger]   URL: ${logUrl}`);
-          console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId, ts: ts.substring(0, 19), channel: actionCode, noteLen: logText.length })}`);
-          console.log(`[HawkSoft Logger]   clientNumber=${hawksoftClientId} policyId=${cleanPolicyId} callType=${cleanCallType}`);
+          console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId, ts: ts.substring(0, 19), channel: actionCode, policyId: cleanHawksoftPolicyId || '(none)', noteLen: logText.length })}`);
+          console.log(`[HawkSoft Logger]   clientNumber=${hawksoftClientId} policyId=${cleanPolicyId} hawksoftPolicyId=${cleanHawksoftPolicyId || '(none)'} callType=${cleanCallType}`);
           const logRes = await fetch(logUrl, {
               method: 'POST',
               headers: {
@@ -128,6 +132,7 @@ async function handler(req, res) {
         hawksoftStatus,
         hawksoftError,
         policyId: cleanPolicyId,
+        hawksoftPolicyId: cleanHawksoftPolicyId,
         clientNumber: hawksoftClientId,
         callType: cleanCallType
       });
@@ -197,6 +202,7 @@ ${cleanNotes}`;
         formattedLog: formattedLog.trim(),
         hawksoftLogged: false,
         policyId: cleanPolicyId,
+        hawksoftPolicyId: cleanHawksoftPolicyId,
         clientNumber: hawksoftClientId,
         callType: cleanCallType
       });
@@ -223,10 +229,12 @@ ${cleanNotes}`;
         const actionCode2 = cleanCallType === 'Outbound' ? 1 : 5; // 1 = Phone To Insured, 5 = Phone From Insured
         const logUrl2 = `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`;
         const logBody2 = { refId: refId2, ts: ts2, note: formattedLog.trim(), channel: actionCode2 };
+        // Link log to specific policy if we have the HawkSoft policy GUID
+        if (cleanHawksoftPolicyId) logBody2.policyId = cleanHawksoftPolicyId;
         console.log(`[HawkSoft Logger] ── AI-FORMATTED PUSH ──`);
         console.log(`[HawkSoft Logger]   URL: ${logUrl2}`);
-        console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId: refId2, ts: ts2.substring(0, 19), channel: actionCode2, noteLen: formattedLog.trim().length })}`);
-        console.log(`[HawkSoft Logger]   clientNumber=${hawksoftClientId} policyId=${cleanPolicyId} callType=${cleanCallType}`);
+        console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId: refId2, ts: ts2.substring(0, 19), channel: actionCode2, policyId: cleanHawksoftPolicyId || '(none)', noteLen: formattedLog.trim().length })}`);
+        console.log(`[HawkSoft Logger]   clientNumber=${hawksoftClientId} policyId=${cleanPolicyId} hawksoftPolicyId=${cleanHawksoftPolicyId || '(none)'} callType=${cleanCallType}`);
         const logRes = await fetch(logUrl2, {
             method: 'POST',
             headers: {
@@ -264,6 +272,7 @@ ${cleanNotes}`;
       hawksoftStatus,
       hawksoftError,
       policyId: cleanPolicyId,
+      hawksoftPolicyId: cleanHawksoftPolicyId,
       clientNumber: hawksoftClientId,
       callType: cleanCallType
     });

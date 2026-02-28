@@ -286,6 +286,7 @@ async function handler(req, res) {
 
         allPolicies.push({
           policyNumber: policy.policyNumber,
+          hawksoftPolicyId: policy.id || '',
           policyType: pType,
           lineOfBusiness: isCommercialPol ? 'commercial' : 'personal',
           clientNumber: client.clientNumber,

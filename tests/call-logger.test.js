@@ -147,8 +147,8 @@ describe('Submit Handler', () => {
     expect(source).toContain("'/api/hawksoft-logger'");
   });
 
-  test('sends policyId, clientNumber, callType, rawNotes, userApiKey, aiModel in body', () => {
-    expect(source).toContain('JSON.stringify({ policyId, clientNumber, callType, rawNotes, userApiKey, aiModel, formatOnly: true })');
+  test('sends policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, userApiKey, aiModel in body', () => {
+    expect(source).toContain('JSON.stringify({ policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, userApiKey, aiModel, formatOnly: true })');
   });
 
   test('uses Auth.apiFetch when available', () => {
