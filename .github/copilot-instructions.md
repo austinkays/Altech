@@ -14,13 +14,13 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~707 lines), 21 CSS files in `css/` (~14,200 lines), 35 JS modules in `js/` (~28,080 lines), 15 plugin HTML files in `plugins/`, 12 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~707 lines), 21 CSS files in `css/` (~14,200 lines), 35 JS modules in `js/` (~28,120 lines), 15 plugin HTML files in `plugins/`, 12 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
-> **Full documentation:** See [AGENTS.md](../AGENTS.md) (869 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
+> **Full documentation:** See [AGENTS.md](../AGENTS.md) (981 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
 ```bash
 npm run dev          # Local server
-npm test             # 20 test suites, 1431+ tests (Jest + JSDOM)
+npm test             # 20 test suites, 1432 tests (Jest + JSDOM)
 npx jest --no-coverage  # Faster (skip coverage)
 ```
 
@@ -183,4 +183,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-*Last updated: March 9, 2026*
+*Last updated: March 10, 2026*
