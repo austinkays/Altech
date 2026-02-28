@@ -247,10 +247,10 @@ describe('HawkSoft Push', () => {
     expect(source).toContain("'3.0'");
   });
 
-  test('constructs correct logNotes endpoint path', () => {
+  test('constructs correct log endpoint path', () => {
     expect(source).toContain('/vendor/agency/');
-    expect(source).toContain('/clients/');
-    expect(source).toContain('/logNotes');
+    expect(source).toContain('/client/');
+    expect(source).toContain('/log?version=');
   });
 
   test('uses action code 29 for Inbound calls', () => {
@@ -261,6 +261,13 @@ describe('HawkSoft Push', () => {
   test('uses action code 30 for Outbound calls', () => {
     expect(source).toContain('30');
     expect(source).toMatch(/30.*Insured/);
+  });
+
+  test('includes required refId and ts in log request body', () => {
+    expect(source).toContain('crypto.randomUUID()');
+    expect(source).toContain('new Date().toISOString()');
+    expect(source).toMatch(/refId/);
+    expect(source).toMatch(/\bts\b/);
   });
 
   test('switches action based on callType being Outbound', () => {

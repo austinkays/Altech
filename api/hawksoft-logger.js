@@ -83,9 +83,11 @@ async function handler(req, res) {
           const BASE_URL = 'https://integration.hawksoft.app';
           const API_VERSION = '3.0';
 
-          console.log(`[HawkSoft Logger] Pushing note to client ${hawksoftClientId} (policy: ${cleanPolicyId})`);
+          const refId = crypto.randomUUID();
+          const ts = new Date().toISOString();
+          console.log(`[HawkSoft Logger] Pushing note to client ${hawksoftClientId} (policy: ${cleanPolicyId}, refId: ${refId})`);
           const logRes = await fetch(
-            `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients/${hawksoftClientId}/logNotes?version=${API_VERSION}`,
+            `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`,
             {
               method: 'POST',
               headers: {
@@ -93,6 +95,8 @@ async function handler(req, res) {
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
+                refId,
+                ts,
                 note: logText,
                 action: cleanCallType === 'Outbound' ? 30 : 29
               })
@@ -213,10 +217,12 @@ ${cleanNotes}`;
         const BASE_URL = 'https://integration.hawksoft.app';
         const API_VERSION = '3.0';
 
-        // HawkSoft log note endpoint — uses client number, not policy number
-        console.log(`[HawkSoft Logger] Pushing note to client ${hawksoftClientId} (policy: ${cleanPolicyId})`);
+        // HawkSoft log note endpoint — /client/{id}/log per API v3.0 docs
+        const refId2 = crypto.randomUUID();
+        const ts2 = new Date().toISOString();
+        console.log(`[HawkSoft Logger] Pushing note to client ${hawksoftClientId} (policy: ${cleanPolicyId}, refId: ${refId2})`);
         const logRes = await fetch(
-          `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/clients/${hawksoftClientId}/logNotes?version=${API_VERSION}`,
+          `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`,
           {
             method: 'POST',
             headers: {
@@ -224,6 +230,8 @@ ${cleanNotes}`;
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
+              refId: refId2,
+              ts: ts2,
               note: formattedLog.trim(),
               action: cleanCallType === 'Outbound' ? 30 : 29 // 29 = Online From Insured, 30 = Online To Insured
             })
