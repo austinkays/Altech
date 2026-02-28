@@ -193,6 +193,7 @@ ${cleanNotes}`;
         formattedLog: formattedLog.trim(),
         hawksoftLogged: false,
         policyId: cleanPolicyId,
+        clientNumber: hawksoftClientId,
         callType: cleanCallType
       });
     }

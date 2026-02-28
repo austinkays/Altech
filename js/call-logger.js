@@ -748,9 +748,11 @@ window.CallLogger = (() => {
                 _resetToFormatMode();
                 _pendingLog = null;
             } else if (result.hawksoftStatus === 'push_failed' || result.hawksoftStatus === 'push_error') {
+                const errDetail = result.hawksoftError ? ` (${result.hawksoftError})` : '';
                 statusMsg = `⚠️ HawkSoft push failed — copy the log manually`;
                 console.warn('[Call Logger] HawkSoft push failed:', result.hawksoftError);
-                App.toast(statusMsg, 'error');
+                console.warn('[Call Logger] clientNumber sent:', _pendingLog.clientNumber, 'policyId:', _pendingLog.policyId);
+                App.toast(statusMsg + errDetail, 'error');
                 // Keep confirm section visible so user can copy/retry
             } else {
                 statusMsg = '✅ Formatted — copy log manually';
