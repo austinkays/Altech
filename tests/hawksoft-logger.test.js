@@ -253,14 +253,14 @@ describe('HawkSoft Push', () => {
     expect(source).toContain('/log?version=');
   });
 
-  test('uses action code 29 for Inbound calls', () => {
-    expect(source).toContain('29');
-    expect(source).toMatch(/29.*Insured/);
+  test('uses action code 5 for Inbound calls (Phone From Insured)', () => {
+    expect(source).toContain('5');
+    expect(source).toMatch(/5.*Phone From Insured/);
   });
 
-  test('uses action code 30 for Outbound calls', () => {
-    expect(source).toContain('30');
-    expect(source).toMatch(/30.*Insured/);
+  test('uses action code 1 for Outbound calls (Phone To Insured)', () => {
+    expect(source).toContain('1');
+    expect(source).toMatch(/1.*Phone To Insured/);
   });
 
   test('includes required refId and ts in log request body', () => {
@@ -271,7 +271,7 @@ describe('HawkSoft Push', () => {
   });
 
   test('switches action based on callType being Outbound', () => {
-    expect(source).toContain("cleanCallType === 'Outbound' ? 30 : 29");
+    expect(source).toContain("cleanCallType === 'Outbound' ? 1 : 5");
   });
 
   test('sets hawksoftLogged to true only on success', () => {

@@ -98,7 +98,7 @@ async function handler(req, res) {
                 refId,
                 ts,
                 note: logText,
-                action: cleanCallType === 'Outbound' ? 30 : 29
+                action: cleanCallType === 'Outbound' ? 1 : 5 // 1 = Phone To Insured, 5 = Phone From Insured
               })
             }
           );
@@ -233,7 +233,7 @@ ${cleanNotes}`;
               refId: refId2,
               ts: ts2,
               note: formattedLog.trim(),
-              action: cleanCallType === 'Outbound' ? 30 : 29 // 29 = Online From Insured, 30 = Online To Insured
+              action: cleanCallType === 'Outbound' ? 1 : 5 // 1 = Phone To Insured, 5 = Phone From Insured
             })
           }
         );
