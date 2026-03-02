@@ -672,6 +672,7 @@ body.dark-mode .ia-sidebar-empty {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    flex-shrink: 0; /* Prevent collapse in sidebar flex column */
 }
 
 .ia-section {
@@ -681,6 +682,7 @@ body.dark-mode .ia-sidebar-empty {
     overflow: hidden;
     animation: iaSectionIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    flex-shrink: 0; /* Prevent collapse — overflow:hidden makes min-height:0 in flex */
 }
 body.dark-mode .ia-section {
     border-color: #2C2C2E;
@@ -812,6 +814,7 @@ body.dark-mode .ia-section-field + .ia-section-field {
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    flex-shrink: 0; /* Prevent collapse — overflow:hidden makes min-height:0 in flex */
 }
 body.dark-mode .ia-sidebar-card {
     border-color: #2C2C2E;
