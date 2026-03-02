@@ -17,6 +17,28 @@ import {
   getPersonalPolicyType,
 } from '../lib/compliance-utils.js';
 
+/**
+ * Find the primary named insured from a HawkSoft people array.
+ * HawkSoft does NOT guarantee people[0] is the primary — additional named
+ * insureds, spouses, or other contacts can appear first. This helper checks
+ * known marker fields (type, applicantType, contactType, isPrimary) and falls
+ * back to people[0] when no marker is found.
+ */
+function _findPrimaryPerson(people) {
+  if (!people || people.length === 0) return null;
+  if (people.length === 1) return people[0];
+
+  // Check all known field patterns HawkSoft might use to mark the primary
+  const primary =
+    people.find(p => p.isPrimary === true) ||
+    people.find(p => /^(applicant|named insured|primary)$/i.test(p.type)) ||
+    people.find(p => /^(applicant|named insured|primary)$/i.test(p.applicantType)) ||
+    people.find(p => /^(applicant|named insured|primary)$/i.test(p.contactType)) ||
+    people.find(p => /^(applicant|named insured|primary)$/i.test(p.relationship));
+
+  return primary || people[0];
+}
+
 async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -205,6 +227,13 @@ async function handler(req, res) {
         topLevelKeys: Object.keys(sampleClient)
       }));
     }
+    // Log multi-person clients to diagnose name ordering / primary insured detection
+    const multiPersonClients = allClients.filter(c => c.people?.length > 1).slice(0, 3);
+    for (const mc of multiPersonClients) {
+      console.log(`[Compliance] Multi-person client #${mc.clientNumber} (${mc.people.length} people):`, JSON.stringify(
+        mc.people.map((p, i) => ({ index: i, firstName: p.firstName, lastName: p.lastName, type: p.type, contactType: p.contactType, applicantType: p.applicantType, isPrimary: p.isPrimary, relationship: p.relationship, keys: Object.keys(p) }))
+      ));
+    }
 
     // Step 3: Extract and filter General Liability policies
     const compliancePolicies = [];
@@ -247,7 +276,9 @@ async function handler(req, res) {
       });
 
       // Compute client name once for this client (used by both allPolicies and compliancePolicies)
-      // Priority: companyName → dbaName → first person's full name → client number fallback
+      // Priority: companyName → dbaName → primary person → first person → client number fallback
+      // HawkSoft people[0] is NOT guaranteed to be the primary named insured.
+      // Look for type/applicantType/isPrimary markers to find the right person.
       let clientName;
       if (client.details?.companyName) {
         clientName = client.details.companyName;
@@ -255,9 +286,16 @@ async function handler(req, res) {
       } else if (client.details?.dbaName) {
         clientName = client.details.dbaName;
         nameFromDba++;
-      } else if (client.people && client.people[0] && `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim()) {
-        clientName = `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim();
-        nameFromPeople++;
+      } else if (client.people?.length) {
+        const primary = _findPrimaryPerson(client.people);
+        const pName = `${primary.firstName || ''} ${primary.lastName || ''}`.trim();
+        if (pName) {
+          clientName = pName;
+          nameFromPeople++;
+        } else {
+          clientName = `Client #${client.clientNumber}`;
+          nameFromFallback++;
+        }
       } else {
         clientName = `Client #${client.clientNumber}`;
         nameFromFallback++;
@@ -329,9 +367,10 @@ async function handler(req, res) {
       });
 
       if (glPolicies.length > 0) {
+        const primary = client.people?.length ? _findPrimaryPerson(client.people) : null;
         const displayName = client.details?.companyName ||
                            client.details?.dbaName ||
-                           (client.people && client.people[0] ? `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim() : 'Unknown');
+                           (primary ? `${primary.firstName || ''} ${primary.lastName || ''}`.trim() : 'Unknown');
         const cglCount = glPolicies.filter(p => p._policyType === 'cgl').length;
         const bondCount = glPolicies.filter(p => p._policyType === 'bond').length;
         const otherCount = glPolicies.length - cglCount - bondCount;
@@ -381,8 +420,10 @@ async function handler(req, res) {
       let cName;
       if (client.details?.companyName) cName = client.details.companyName;
       else if (client.details?.dbaName) cName = client.details.dbaName;
-      else if (client.people?.[0] && `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim())
-        cName = `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim();
+      else if (client.people?.length) {
+        const primary = _findPrimaryPerson(client.people);
+        cName = `${primary.firstName || ''} ${primary.lastName || ''}`.trim() || `Client #${client.clientNumber}`;
+      }
       else cName = `Client #${client.clientNumber}`;
 
       // Collect all name variants for search — company, DBA, and every person on the record
@@ -451,8 +492,9 @@ async function handler(req, res) {
     if (nameFromFallback > 0) {
       // Log some sample clients that fell back to show why
       const fallbackClients = allClients.filter(c => {
+        const prim = c.people?.length ? _findPrimaryPerson(c.people) : null;
         const name = c.details?.companyName || c.details?.dbaName ||
-          (c.people && c.people[0] ? `${c.people[0].firstName || ''} ${c.people[0].lastName || ''}`.trim() : '');
+          (prim ? `${prim.firstName || ''} ${prim.lastName || ''}`.trim() : '');
         return !name;
       }).slice(0, 3);
       for (const fc of fallbackClients) {
