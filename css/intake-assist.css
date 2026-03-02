@@ -35,6 +35,7 @@
     height: 100dvh;
     min-height: 100dvh;
     max-height: 100dvh;
+    padding: 0 !important; /* strip mobile-nav padding clearance */
     overflow: hidden;
     background: var(--bg);
 }
