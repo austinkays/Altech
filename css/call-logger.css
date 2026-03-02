@@ -666,6 +666,14 @@ body.dark-mode .cl-edit-textarea:focus {
     color: var(--text-tertiary);
 }
 
+.cl-client-number {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
 /* ── Policy Selector ── */
 
 .cl-policy-select {
@@ -819,6 +827,10 @@ body.dark-mode .cl-client-row:hover {
 
 body.dark-mode .cl-client-badge {
     background: rgba(10, 132, 255, 0.15);
+}
+
+body.dark-mode .cl-client-number {
+    color: var(--text-tertiary);
 }
 
 body.dark-mode .cl-policy-chip:hover {

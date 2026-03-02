@@ -355,6 +355,15 @@ window.CallLogger = (() => {
                     if (!clientMap[key].hawksoftId && c.clientNumber) {
                         clientMap[key].hawksoftId = String(c.clientNumber);
                     }
+                    // Merge search aliases (company name, DBA, all people names)
+                    if (c.searchAliases && Array.isArray(c.searchAliases)) {
+                        if (!clientMap[key].searchAliases) clientMap[key].searchAliases = [];
+                        for (const alias of c.searchAliases) {
+                            if (!clientMap[key].searchAliases.includes(alias)) {
+                                clientMap[key].searchAliases.push(alias);
+                            }
+                        }
+                    }
                 }
             }
         } catch (e) { /* ignore */ }
@@ -464,7 +473,15 @@ window.CallLogger = (() => {
         }
 
         const clients = _getClients();
-        const matches = clients.filter(c => c.name.toLowerCase().includes(query));
+        const matches = clients.filter(c => {
+            // Match against display name
+            if (c.name.toLowerCase().includes(query)) return true;
+            // Match against client number (HawkSoft ID)
+            if (c.hawksoftId && c.hawksoftId.includes(query)) return true;
+            // Match against search aliases (company name, DBA, all people names)
+            if (c.searchAliases && c.searchAliases.some(a => a.includes(query))) return true;
+            return false;
+        });
 
         if (matches.length === 0) {
             dropdown.style.display = 'none';
@@ -479,7 +496,8 @@ window.CallLogger = (() => {
             const badge = policyCount > 0
                 ? `<span class="cl-client-badge">${policyCount} ${policyCount === 1 ? 'policy' : 'policies'}</span>`
                 : '<span class="cl-client-badge cl-client-badge-none">No policies</span>';
-            return `<div class="cl-client-row" data-index="${i}">${_escapeHTML(c.name)} ${badge}</div>`;
+            const idLabel = c.hawksoftId ? `<span class="cl-client-number">#${_escapeHTML(c.hawksoftId)}</span>` : '';
+            return `<div class="cl-client-row" data-index="${i}">${_escapeHTML(c.name)} ${idLabel} ${badge}</div>`;
         }).join('');
 
         dropdown.style.display = '';

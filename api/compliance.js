@@ -375,6 +375,7 @@ async function handler(req, res) {
 
     // Build allClientsList — EVERY client from HawkSoft regardless of policy status.
     // This powers Call Logger autocomplete so prospects and policy-less clients are searchable.
+    // Include searchAliases so clients are findable by company name, DBA, AND all people names.
     const allClientsList = [];
     for (const client of allClients) {
       let cName;
@@ -383,7 +384,24 @@ async function handler(req, res) {
       else if (client.people?.[0] && `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim())
         cName = `${client.people[0].firstName || ''} ${client.people[0].lastName || ''}`.trim();
       else cName = `Client #${client.clientNumber}`;
-      allClientsList.push({ clientNumber: client.clientNumber, clientName: cName });
+
+      // Collect all name variants for search — company, DBA, and every person on the record
+      const aliases = new Set();
+      aliases.add(cName.toLowerCase());
+      if (client.details?.companyName) aliases.add(client.details.companyName.toLowerCase());
+      if (client.details?.dbaName) aliases.add(client.details.dbaName.toLowerCase());
+      if (client.people) {
+        for (const person of client.people) {
+          const pName = `${person.firstName || ''} ${person.lastName || ''}`.trim();
+          if (pName) aliases.add(pName.toLowerCase());
+          if (person.lastName) aliases.add(person.lastName.toLowerCase());
+        }
+      }
+      allClientsList.push({
+        clientNumber: client.clientNumber,
+        clientName: cName,
+        searchAliases: [...aliases]
+      });
     }
 
     // Sort by days until expiration (most urgent first, nulls at end)
