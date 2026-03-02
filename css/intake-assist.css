@@ -6,7 +6,7 @@
 #intakeTool.plugin-container.active {
     display: flex;
     flex-direction: column;
-    flex: 1;
+    flex: 1 1 0%;
     min-height: 0;
     overflow: hidden;
 }
@@ -45,7 +45,7 @@
     min-height: 0;
     background: var(--bg);
 }
-.app-shell:has(#intakeTool.active) .plugin-viewport.active {
+#pluginViewport.plugin-viewport.active {
     display: flex;
     flex-direction: column;
     flex: 1 1 0%;

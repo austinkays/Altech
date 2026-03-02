@@ -49,12 +49,12 @@ describe('Layout Regression Guardrails', () => {
 
   test('intake tool active container uses flex + min-height 0 instead of fixed height', () => {
     expect(intakeCss).toContain('#intakeTool.plugin-container.active {');
-    expect(intakeCss).toContain('flex: 1;');
+    expect(intakeCss).toContain('flex: 1 1 0%;');
     expect(intakeCss).toContain('min-height: 0;');
   });
 
   test('intake height chain includes plugin viewport containment and overflow guard', () => {
-    expect(intakeCss).toContain('.app-shell:has(#intakeTool.active) .plugin-viewport.active {');
+    expect(intakeCss).toContain('#pluginViewport.plugin-viewport.active {');
     expect(intakeCss).toContain('display: flex;');
     expect(intakeCss).toContain('flex-direction: column;');
     expect(intakeCss).toContain('overflow: hidden;');
