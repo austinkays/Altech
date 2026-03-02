@@ -27,9 +27,6 @@
                 <h2>👤 Begin Intake</h2>
                 <p class="section-subtitle">Start a new client or restore a previous one</p>
                 <button class="btn btn-primary" onclick="App.startFresh()" style="width:100%;margin-bottom:12px;">✨ New Client</button>
-                <div style="text-align:center; margin-top:4px; margin-bottom:8px;">
-                    <button class="demo-client-link" onclick="App.loadDemoClient()">🧪 Load demo data</button>
-                </div>
                 <div id="step0ClientHistoryList"></div>
             </div>
 
@@ -58,6 +55,9 @@
                     <input id="policyScanInput" type="file" accept="image/*,application/pdf" capture="environment" multiple class="hidden" />
                     <input id="initialDlScanInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="App.handleInitialDriverLicenseFile(this.files[0])" />
                     <input id="docIntelInput" type="file" accept="image/*,application/pdf" multiple class="hidden" />
+                </div>
+                <div style="text-align:center; margin-top:8px;">
+                    <button class="demo-client-link" onclick="App.loadDemoClient()">🧪 Load demo data</button>
                 </div>
 
                 <div id="scanPreview" class="scan-preview"></div>
