@@ -265,11 +265,13 @@
 .qc-chat-body {
     display: none;
     flex-direction: column;
-    height: 420px;
+    height: clamp(320px, 56dvh, 520px);
+    min-height: 0;
 }
 .qc-chat.open .qc-chat-body { display: flex; }
 .qc-chat-messages {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 16px;
     display: flex;

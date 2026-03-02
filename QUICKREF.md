@@ -212,8 +212,19 @@ priorCarrier, priorYears, priorLapse
 
 ```bash
 npm run dev              # Local server (port 3000)
-npm test                 # All 18 suites, 1164+ tests
+npm test                 # All 21 suites, 1187+ tests
 npx jest --no-coverage   # Faster
 npx jest tests/app.test.js  # Single suite
 npm run deploy:vercel    # Production deploy
 ```
+
+---
+
+## Session Notes (Feb 25, 2026)
+
+- Fixed critical narrow-width UI collapse that could expose a black screen by hardening shell/layout containment in `sidebar.css`, `intake-assist.css`, and `main.css`.
+- Fixed chat/content cut-off behavior by adding missing nested flex shrink guards (`min-height: 0`) and keeping scroll in message/content panes instead of page growth.
+- Updated chat panel sizing to responsive viewport-aware clamps in Policy Q&A and Quote Compare.
+- Verification: `npx jest --no-coverage` → 21/21 suites passed, 1187/1187 tests.
+
+*Last updated: February 25, 2026*

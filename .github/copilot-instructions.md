@@ -14,13 +14,13 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~702 lines), 20 CSS files in `css/` (~13,800 lines), 34 JS modules in `js/` (~27,200 lines), 14 plugin HTML files in `plugins/`, 13 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~702 lines), 20 CSS files in `css/` (~13,850 lines), 34 JS modules in `js/` (~30,218 lines), 14 plugin HTML files in `plugins/` (~5,190 lines), 13 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
-> **Full documentation:** See [AGENTS.md](../AGENTS.md) (864 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
+> **Full documentation:** See [AGENTS.md](../AGENTS.md) (869 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
 ```bash
 npm run dev          # Local server
-npm test             # 18 test suites, 1164+ tests (Jest + JSDOM)
+npm test             # 21 test suites, 1187+ tests (Jest + JSDOM)
 npx jest --no-coverage  # Faster (skip coverage)
 ```
 
@@ -144,7 +144,7 @@ Every `<input id="fieldName">` auto-syncs to `App.data.fieldName` via `localStor
 ## Testing
 
 ```bash
-npm test                    # All 18 suites, 1164+ tests
+npm test                    # All 21 suites, 1187+ tests
 npx jest --no-coverage      # Faster (skip coverage)
 npx jest tests/app.test.js  # Single suite
 ```
@@ -170,3 +170,10 @@ Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously'
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
 *Last updated: February 25, 2026*
+
+### Latest Session Notes (Feb 25, 2026)
+
+- Fixed critical narrow-width layout collapse/black-screen regression by stabilizing the shell height chain and container backgrounds.
+- Fixed downward growth/cut-off in chat/content panes by enforcing nested flex scrolling (`min-height: 0`) and responsive chat heights.
+- Updated related layout styles in `css/sidebar.css`, `css/intake-assist.css`, `css/main.css`, and `css/quote-compare.css`.
+- Added three new reliability suites: `auth-cloudsync.test.js`, `boot-loading.test.js`, and `layout-regressions.test.js` to cover login/sync/first-load/layout failure modes.

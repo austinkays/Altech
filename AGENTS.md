@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~702 lines) |
-| **CSS** | 20 files in `css/` (~13,800 lines total) |
-| **JS** | 34 modules in `js/` (~27,200 lines total) |
-| **Plugins** | 14 HTML templates in `plugins/` (~4,900 lines total) |
+| **CSS** | 20 files in `css/` (~13,850 lines total) |
+| **JS** | 34 modules in `js/` (~30,218 lines total) |
+| **Plugins** | 14 HTML templates in `plugins/` (~5,190 lines total) |
 | **APIs** | 13 serverless functions in `api/` (~6,400 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 677 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 18 suites, 1164+ tests |
+| **Tests** | Jest + JSDOM, 21 suites, 1187+ tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 18 test suites, 1164+ tests
+npm test              # All 21 test suites, 1187+ tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
@@ -64,19 +64,19 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 20 stylesheets (~12,400 lines)
-│   ├── main.css                # ★ Core styles + :root variables + desktop overhaul (3,404 lines) — THE source of truth
+├── css/                        # 20 stylesheets (~12,450 lines)
+│   ├── main.css                # ★ Core styles + :root variables + desktop overhaul (3,405 lines) — THE source of truth
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
-│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (741 lines)
+│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (751 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (889 lines)
 │   ├── compliance.css          # CGL compliance dashboard (1,046 lines)
 │   ├── auth.css                # Auth modal + settings (973 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
-│   ├── intake-assist.css       # AI intake professional UI — pill chips, circular buttons, focus rings (1,161 lines)
+│   ├── intake-assist.css       # AI intake professional UI — pill chips, circular buttons, focus rings (1,278 lines)
 │   ├── ezlynx.css              # EZLynx export — standalone dark palette (590 lines)
 │   ├── vin-decoder.css         # VIN decoder (600 lines)
 │   ├── hawksoft.css            # HawkSoft export (555 lines)
-│   ├── quote-compare.css       # Quote comparison tool (460 lines)
+│   ├── quote-compare.css       # Quote comparison tool (462 lines)
 │   ├── onboarding.css          # First-run wizard (411 lines)
 │   ├── admin.css               # Admin panel (300 lines)
 │   ├── bug-report.css          # Bug reporter (227 lines)
@@ -86,7 +86,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.css               # Email composer — purple accent (165 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
-├── js/                         # 34 modules (~29,300 lines)
+├── js/                         # 34 modules (~30,218 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows (89 lines)
@@ -113,7 +113,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email-composer.js       # AI email polisher, encrypted drafts (423 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,061 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,703 lines)
-│   ├── intake-assist.js         # AI conversational intake, maps, progress ring (2,476 lines)
+│   ├── intake-assist.js         # AI conversational intake, maps, progress ring (3,097 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,036 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,858 lines)
 │   ├── quick-ref.js             # NATO phonetic + agent ID cards (292 lines)
@@ -130,7 +130,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── data-backup.js           # Import/export all data + keyboard shortcuts (131 lines)
 │   └── hawksoft-integration.js  # HawkSoft REST API client (260 lines)
 │
-├── plugins/                    # 14 HTML templates (loaded dynamically)
+├── plugins/                    # 14 HTML templates (~5,190 lines, loaded dynamically)
 │   ├── quoting.html            # ★ Main intake wizard — 7 steps, 2,026 lines
 │   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
@@ -171,7 +171,7 @@ npm run deploy:vercel   # Production deploy
 │
 ├── tests/                      # Jest test suites
 │   ├── setup.js                # Test env setup (mock fetch, suppress crypto errors)
-│   └── *.test.js               # 18 test files, 1164+ tests
+│   └── *.test.js               # 21 test files, 1187+ tests
 │
 ├── lib/                        # Shared server-side utilities
 ├── scripts/                    # Build/utility scripts
@@ -599,7 +599,7 @@ KEY RULES:
 5. After localStorage writes on synced data, call CloudSync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
 7. App is built via Object.assign(App, {...}) across 9 files — app-boot.js loads LAST
-8. Test with: npm test (1164+ tests, all must pass)
+8. Test with: npm test (1187+ tests, all must pass)
 9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, update AGENTS.md, .github/copilot-instructions.md, and
@@ -614,7 +614,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` → 18 suites, 1164+ tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 21 suites, 1187+ tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements
@@ -709,6 +709,7 @@ KEY RULES:
 | Missing focus states | email.css, quickref.css, onboarding.css, compliance.css, bug-report.css | Added `:focus-visible` outlines/box-shadows |
 | AI Intake UI overhaul | intake-assist.css | Professional redesign: pill-shaped chips with colored tints, 1px card borders with subtle shadows, transparent card headers, circular send/upload buttons, focus glow rings, tighter layout padding, full dark mode coverage |
 | Desktop-first layout overhaul | main.css (+350 lines), reminders.css, hawksoft.css, accounting.css, email.css, quickref.css, vin-decoder.css, quote-compare.css, compliance.css | Quoting wizard: centered max-width container (960→1080→1200px), multi-column step layouts (steps 0/4/6), constrained footer, denser form grids, scan actions horizontal, wider modals. All plugins: desktop padding/spacing/grid enhancements. Generic `plugin-container > main/header` constraint at 1100px. Prospect content cap at 1000px. Footer sidebar-aware offset. |
+| Viewport/scroll containment fixes | sidebar.css, intake-assist.css, main.css, quote-compare.css | Fixed narrow-width black-screen/layout collapse by stabilizing shell background + flex height chain (`app-main → app-content → plugin-viewport → plugin-container`), replaced rigid chat heights with responsive clamps, and added `min-height: 0` on nested flex scroll regions so chat/content scrolls internally instead of growing downward and clipping. |
 
 ### Known Issues NOT Fixed (Intentional / Cosmetic)
 
@@ -850,9 +851,12 @@ tests/
 ├── api-prospect.test.js        # Prospect lookup API
 ├── api-security.test.js        # API security middleware
 ├── app.test.js                 # Core App object + form handling
+├── auth-cloudsync.test.js      # Auth login + CloudSync reliability tests
+├── boot-loading.test.js        # First-load boot + Places loader resilience tests
 ├── ezlynx-pipeline.test.js    # EZLynx export pipeline
 ├── intake-assist.test.js       # Intake assist module tests
 ├── integration.test.js         # Cross-module integration
+├── layout-regressions.test.js  # CSS shell/chat layout regression guardrails
 ├── performance.test.js         # Performance benchmarks
 ├── phase1.test.js              # Phase 1 feature tests
 ├── phase2.test.js              # Phase 2 feature tests
