@@ -3326,13 +3326,13 @@ body.dark-mode .pac-matched { color: #0A84FF; }
 /* ─── Ultra-wide (1600px+): Extra breathing room ─── */
 @media (min-width: 1600px) {
     #quotingTool main {
-        max-width: 1200px;
+        max-width: 100%;
     }
     #quotingTool header {
-        max-width: 1200px;
+        max-width: 100%;
     }
     #quotingTool footer {
-        max-width: 1200px;
+        max-width: 100%;
     }
     #step-0 {
         grid-template-columns: 1fr 1fr 1fr;

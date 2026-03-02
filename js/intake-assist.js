@@ -537,6 +537,9 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             setTimeout(() => {
                 if (typeof App !== 'undefined' && typeof App.navigateTo === 'function') {
                     App.navigateTo('quoting');
+                    // Jump to the final "Intake Complete" step (index 5 = Step 6)
+                    App.step = 5;
+                    App.updateUI();
                 }
             }, 900);
         } else {
