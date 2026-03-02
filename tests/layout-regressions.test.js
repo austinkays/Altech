@@ -54,7 +54,7 @@ describe('Layout Regression Guardrails', () => {
   });
 
   test('intake height chain includes plugin viewport containment and overflow guard', () => {
-    expect(intakeCss).toContain('.app-shell:has(#intakeTool.active) .plugin-viewport {');
+    expect(intakeCss).toContain('.app-shell:has(#intakeTool.active) .plugin-viewport.active {');
     expect(intakeCss).toContain('display: flex;');
     expect(intakeCss).toContain('flex-direction: column;');
     expect(intakeCss).toContain('overflow: hidden;');
