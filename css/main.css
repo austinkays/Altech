@@ -1265,6 +1265,11 @@ body.dark-mode .btn-primary:hover { box-shadow: 0 8px 28px rgba(10, 132, 255, 0.
     font-weight: 600;
 }
 .btn-step-back:hover { color: var(--text); }
+.btn-step-back:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
 .btn-secondary:disabled { opacity: 0.4; }
 
 /* === PRODUCER TOGGLE === */

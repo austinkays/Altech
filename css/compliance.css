@@ -133,13 +133,15 @@
 .cgl-table-container {
     background: var(--bg-card);
     border-radius: 16px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     box-shadow: 0 2px 16px var(--shadow);
     border: 1px solid var(--border);
 }
 .cgl-table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 900px;
 }
 .cgl-table th {
     background: #f8f8f8;
@@ -156,6 +158,11 @@
     padding: 16px 12px;
     border-bottom: 1px solid var(--border);
     font-size: 14px;
+}
+/* Dates column — prevent truncation */
+.cgl-table td:nth-child(7) {
+    min-width: 145px;
+    white-space: nowrap;
 }
 .cgl-table tr:hover {
     background: #fafafa;

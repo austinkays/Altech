@@ -873,9 +873,9 @@ const ComplianceDashboard = {
 
         // ── No cache or force refresh — try API with guaranteed fallback ──
         console.log('[CGL] No cache found — attempting API with fallback...');
-        loading.style.display = 'block';
-        error.style.display = 'none';
-        tableContainer.style.display = 'none';
+        if (loading) loading.style.display = 'block';
+        if (error) error.style.display = 'none';
+        if (tableContainer) tableContainer.style.display = 'none';
         await this.fetchPoliciesFromAPI(false);
     },
 
@@ -884,8 +884,10 @@ const ComplianceDashboard = {
         // Race all sources: disk, IDB, localStorage
         // Disk is most reliable, so try it directly + race with others
 
-        // Source 1: Disk (most reliable)
+        // Source 1: Disk (most reliable — only available on localhost dev server)
+        const _isDiskAvailable = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
         const diskPromise = (async () => {
+            if (!_isDiskAvailable) return null;
             try {
                 const controller = new AbortController();
                 const t = setTimeout(() => controller.abort(), 5000);
@@ -1100,8 +1102,8 @@ const ComplianceDashboard = {
             this.renderPolicies();
             this.updateStats();
 
-            loading.style.display = 'none';
-            tableContainer.style.display = 'block';
+            if (loading) loading.style.display = 'none';
+            if (tableContainer) tableContainer.style.display = 'block';
 
         } catch (err) {
             // Detect abort (timeout) and treat as local dev / offline
@@ -1132,26 +1134,30 @@ const ComplianceDashboard = {
                 return;
             }
 
-            loading.style.display = 'none';
+            if (loading) loading.style.display = 'none';
 
             if (err.localDev || isTimeout) {
                 // Local dev / timeout — try disk cache as last resort
                 this.showLocalDevMode();
             } else {
                 // Real error — still try disk cache before showing error
-                try {
-                    const diskRes = await fetch('/local/cgl-cache');
-                    if (diskRes.ok) {
-                        const diskData = await diskRes.json();
-                        if (diskData && diskData.policies && diskData.policies.length > 0) {
-                            console.log('[CGL] API error but disk cache available — using cached data');
-                            this.showLocalDevMode();
-                            return;
+                const _isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+                if (_isLocal) {
+                    try {
+                        const diskRes = await fetch('/local/cgl-cache');
+                        if (diskRes.ok) {
+                            const diskData = await diskRes.json();
+                            if (diskData && diskData.policies && diskData.policies.length > 0) {
+                                console.log('[CGL] API error but disk cache available — using cached data');
+                                this.showLocalDevMode();
+                                return;
+                            }
                         }
-                    }
-                } catch (diskErr) {}
-                error.style.display = 'block';
-                document.getElementById('cglErrorMessage').textContent = err.message;
+                    } catch (diskErr) {}
+                }
+                if (error) error.style.display = 'block';
+                const errMsg = document.getElementById('cglErrorMessage');
+                if (errMsg) errMsg.textContent = err.message;
             }
         } finally {
             // Always close SSE progress stream
@@ -1224,12 +1230,15 @@ const ComplianceDashboard = {
         } catch (e) {
             console.warn('[CGL] Cache too large for localStorage');
         }
-        // Also persist to disk via server
-        fetch('/local/cgl-cache', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(cacheObj)
-        }).catch(() => {});
+        // Also persist to disk via server (localhost only)
+        const _isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (_isLocal) {
+            fetch('/local/cgl-cache', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cacheObj)
+            }).catch(() => {});
+        }
 
         // Cloud: Vercel KV (non-blocking)
         this._syncToKV('cgl_cache', cacheObj);
@@ -1269,7 +1278,9 @@ const ComplianceDashboard = {
             console.warn('[CGL] localStorage cache corrupt, will fetch from API');
         }
 
-        // 3. Fallback: server disk cache (survives both clears)
+        // 3. Fallback: server disk cache (survives both clears — localhost only)
+        const _isLocalHost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (!_isLocalHost) return null;
         try {
             console.log('[CGL] Cache tier 3: trying disk /local/cgl-cache...');
             const controller = new AbortController();
@@ -1824,7 +1835,8 @@ const ComplianceDashboard = {
         container.innerHTML = typesToShow.map(type => {
             const isHidden = this.hiddenTypes.includes(type);
             const label = this._typeLabel(type);
-            const count = this.policies.filter(p => (p.policyType || 'cgl') === type).length;
+            // Count only non-hidden/dismissed policies to match stat card total
+            const count = this.policies.filter(p => (p.policyType || 'cgl') === type && !this.isHidden(p.policyNumber)).length;
             return `<button class="cgl-type-toggle cgl-type-badge ${type} ${isHidden ? 'cgl-type-hidden' : ''}" onclick="ComplianceDashboard.toggleType('${type}')" title="${isHidden ? 'Show' : 'Hide'} ${label} policies (${count})">${label} <span class="cgl-type-count">${count}</span></button>`;
         }).join('');
     },
@@ -2040,14 +2052,15 @@ const ComplianceDashboard = {
 
     updateStats() {
         const visiblePolicies = this.policies.filter(p => !this.isHidden(p.policyNumber) && !this.hiddenTypes.includes(p.policyType || 'cgl'));
-        document.getElementById('statTotal').textContent = visiblePolicies.length;
-        document.getElementById('statCritical').textContent = visiblePolicies.filter(p => p.daysUntilExpiration >= 0 && p.daysUntilExpiration <= 5).length;
-        document.getElementById('statExpiring').textContent = visiblePolicies.filter(p => p.status === 'expiring-soon' || (p.status === 'critical' && p.daysUntilExpiration > 5)).length;
-        document.getElementById('statExpired').textContent = visiblePolicies.filter(p => p.status === 'expired').length;
-        document.getElementById('statManual').textContent = visiblePolicies.filter(p => p.requiresManualVerification).length;
-        document.getElementById('statUpdated').textContent = Object.keys(this.verifiedPolicies).length;
+        const _el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+        _el('statTotal', visiblePolicies.length);
+        _el('statCritical', visiblePolicies.filter(p => p.daysUntilExpiration >= 0 && p.daysUntilExpiration <= 5).length);
+        _el('statExpiring', visiblePolicies.filter(p => p.status === 'expiring-soon' || (p.status === 'critical' && p.daysUntilExpiration > 5)).length);
+        _el('statExpired', visiblePolicies.filter(p => p.status === 'expired' || p.daysUntilExpiration < 0).length);
+        _el('statManual', visiblePolicies.filter(p => p.requiresManualVerification).length);
+        _el('statUpdated', Object.keys(this.verifiedPolicies).length);
 
-        document.getElementById('cglHiddenCount').textContent = this.getHiddenCount();
+        _el('cglHiddenCount', this.getHiddenCount());
 
         // Show the counter row once we have data (hidden during initial loading)
         const counterRow = document.getElementById('cglCounterRow');

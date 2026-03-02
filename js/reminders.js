@@ -624,12 +624,12 @@ window.Reminders = (() => {
         el('remStatDueToday', counts.dueToday);
         el('remStatCompleted', counts.completed);
 
-        // Weekly summary
+        // Weekly summary (counts only tasks active this week — different from all-time stat cards)
         const summaryEl = document.getElementById('remWeeklySummary');
         if (summaryEl) {
             const summary = getWeeklySummary();
             summaryEl.textContent = `${summary.done}/${summary.total} tasks done this week`;
-            summaryEl.title = `${summary.done} of ${summary.total} tasks completed this week`;
+            summaryEl.title = `${summary.done} of ${summary.total} tasks active this week completed. Stat cards above show all-time totals (${counts.total} total, ${counts.completed} done).`;
         }
     }
 

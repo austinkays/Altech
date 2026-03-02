@@ -519,7 +519,8 @@ Object.assign(App, {
         }
         const curEl = document.getElementById(curId);
         if (!curEl) {
-            console.error('[App.updateUI] Element not found:', curId);
+            // Plugin HTML not loaded yet — expected during lazy-load boot
+            console.debug('[App.updateUI] Element not found:', curId);
             return;
         }
         curEl.classList.remove('hidden');
@@ -1514,14 +1515,23 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
     },
 
     async navigateTo(toolName, options = {}) {
+        // ── Route aliases for common/short hash names ──
+        const routeAliases = { vin: 'vindecoder', compare: 'quotecompare', scan: 'quoting', policyqa: 'qna', cgl: 'compliance' };
+        if (routeAliases[toolName]) toolName = routeAliases[toolName];
+
         // Look up tool from config array (single source of truth)
         const entry = this.toolConfig.find(t => t.key === toolName);
-        if (!entry) return;
+        if (!entry) {
+            // Unknown route — fall back to dashboard instead of stale view
+            this.goHome();
+            return;
+        }
 
         // ── Auth gate: require sign-in to access any tool ──
         if (typeof Auth !== 'undefined' && !Auth.user) {
             Auth.showModal();
-            this.toast('Please sign in to access tools', { type: 'info', duration: 3000 });
+            // Delay toast slightly so it renders above the auth modal
+            setTimeout(() => this.toast('Please sign in to access tools', { type: 'info', duration: 3000 }), 150);
             return;
         }
 

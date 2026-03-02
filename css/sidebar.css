@@ -67,10 +67,10 @@ body.sidebar-collapsed .app-sidebar {
     color: #fff;
     background: var(--accent-gradient);
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(255, 159, 67, 0.3);
+    box-shadow: 0 2px 6px rgba(255, 159, 67, 0.2);
 }
 body.dark-mode .sidebar-brand-logo {
-    box-shadow: 0 2px 8px rgba(10, 132, 255, 0.3);
+    box-shadow: 0 2px 6px rgba(10, 132, 255, 0.2);
 }
 .sidebar-brand-text {
     display: flex;
