@@ -91,8 +91,9 @@ function createTestDOM() {
       configurable: true
     });
     if (!window.Auth.showModal) window.Auth.showModal = jest.fn();
+    if (!window.Auth.ready) window.Auth.ready = () => Promise.resolve({ uid: 'test-user', email: 'test@test.com' });
   } else {
-    window.Auth = { user: { uid: 'test-user', email: 'test@test.com' }, showModal: jest.fn() };
+    window.Auth = { user: { uid: 'test-user', email: 'test@test.com' }, showModal: jest.fn(), ready: () => Promise.resolve({ uid: 'test-user', email: 'test@test.com' }) };
   }
 
   // Mock fetch for plugin HTML loading (load-html.cjs already inlined HTML, but
@@ -1176,16 +1177,16 @@ describe('Altech App Tests', () => {
       }
     });
 
-    test('navigateTo quoting shows quoting tool', () => {
-      App.navigateTo('quoting', { syncHash: false });
+    test('navigateTo quoting shows quoting tool', async () => {
+      await App.navigateTo('quoting', { syncHash: false });
       const tool = document.getElementById('quotingTool');
       if (tool) {
         expect(tool.classList.contains('active')).toBe(true);
       }
     });
 
-    test('navigateTo hides landing page', () => {
-      App.navigateTo('quoting', { syncHash: false });
+    test('navigateTo hides landing page', async () => {
+      await App.navigateTo('quoting', { syncHash: false });
       const landing = document.getElementById('landingPage');
       if (landing) {
         expect(landing.style.display).toBe('none');

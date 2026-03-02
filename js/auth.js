@@ -16,6 +16,8 @@ const Auth = (() => {
     // Promise that resolves once Firebase auth state is first known (signed in or out)
     let _authReadyResolve;
     const _authReady = new Promise(resolve => { _authReadyResolve = resolve; });
+    // Safety timeout: resolve _authReady after 5s even if Firebase never fires onAuthStateChanged
+    setTimeout(() => { if (_authReadyResolve) { _authReadyResolve(null); _authReadyResolve = null; } }, 5000);
 
     // ── Auth state change callback ──
     function _onAuthStateChanged(user) {

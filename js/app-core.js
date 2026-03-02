@@ -1528,11 +1528,15 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         }
 
         // ── Auth gate: require sign-in to access any tool ──
-        if (typeof Auth !== 'undefined' && !Auth.user) {
-            Auth.showModal();
-            // Delay toast slightly so it renders above the auth modal
-            setTimeout(() => this.toast('Please sign in to access tools', { type: 'info', duration: 3000 }), 150);
-            return;
+        // Wait for Firebase auth state to resolve before checking (avoids false-negative on page load)
+        if (typeof Auth !== 'undefined') {
+            try { await Auth.ready(); } catch (_) { /* timeout or no Firebase — continue */ }
+            if (!Auth.user) {
+                Auth.showModal();
+                // Delay toast slightly so it renders above the auth modal
+                setTimeout(() => this.toast('Please sign in to access tools', { type: 'info', duration: 3000 }), 150);
+                return;
+            }
         }
 
         // Hide dashboard view, show plugin viewport (command center layout)
