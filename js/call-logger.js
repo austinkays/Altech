@@ -64,14 +64,16 @@ window.CallLogger = (() => {
         let aiModel = 'gemini-2.5-flash';
 
         try {
-            const raw = localStorage.getItem('altech_settings');
+            // Read from AIProvider's storage key (altech_ai_settings)
+            // Fields: { provider, model, apiKey }
+            const raw = localStorage.getItem('altech_ai_settings');
             if (raw) {
                 const settings = JSON.parse(raw);
-                if (settings.userApiKey && settings.userApiKey.trim()) {
-                    userApiKey = settings.userApiKey.trim();
+                if (settings.apiKey && settings.apiKey.trim()) {
+                    userApiKey = settings.apiKey.trim();
                 }
-                if (settings.aiModel && settings.aiModel.trim()) {
-                    aiModel = settings.aiModel.trim();
+                if (settings.model && settings.model.trim()) {
+                    aiModel = settings.model.trim();
                 }
             }
         } catch (e) {

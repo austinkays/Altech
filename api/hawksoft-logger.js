@@ -189,7 +189,7 @@ ${cleanNotes}`;
 
     const formattedLog = await ai.ask(SYSTEM_PROMPT, userMessage, {
       temperature: 0.3,
-      maxTokens: 1024
+      maxTokens: 2048
     });
 
     if (!formattedLog || !formattedLog.trim()) {

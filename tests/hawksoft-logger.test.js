@@ -197,7 +197,7 @@ describe('AI Formatting Call', () => {
 
   test('passes temperature and maxTokens', () => {
     expect(source).toContain('temperature: 0.3');
-    expect(source).toContain('maxTokens: 1024');
+    expect(source).toContain('maxTokens: 2048');
   });
 
   test('includes policyId in user message', () => {

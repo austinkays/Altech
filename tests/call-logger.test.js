@@ -4,7 +4,7 @@
  * Tests:
  * - IIFE module exports { init, render }
  * - localStorage persistence (save/load round-trip)
- * - Settings resolution from altech_settings
+ * - Settings resolution from altech_ai_settings
  * - DOM element wiring
  * - Form validation
  * - Submit handler behavior
@@ -88,16 +88,16 @@ describe('Persistence', () => {
 // ────────────────────────────────────────────────────
 
 describe('Settings Resolution', () => {
-  test('reads from altech_settings localStorage key', () => {
-    expect(source).toContain("localStorage.getItem('altech_settings')");
+  test('reads from altech_ai_settings localStorage key', () => {
+    expect(source).toContain("localStorage.getItem('altech_ai_settings')");
   });
 
-  test('extracts userApiKey from settings', () => {
-    expect(source).toContain('settings.userApiKey');
+  test('extracts apiKey from settings', () => {
+    expect(source).toContain('settings.apiKey');
   });
 
-  test('extracts aiModel from settings', () => {
-    expect(source).toContain('settings.aiModel');
+  test('extracts model from settings', () => {
+    expect(source).toContain('settings.model');
   });
 
   test('defaults aiModel to gemini-2.5-flash', () => {
@@ -330,11 +330,11 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
           let userApiKey = '';
           let aiModel = 'gemini-2.5-flash';
           try {
-            const raw = localStorage.getItem('altech_settings');
+            const raw = localStorage.getItem('altech_ai_settings');
             if (raw) {
               const settings = JSON.parse(raw);
-              if (settings.userApiKey && settings.userApiKey.trim()) userApiKey = settings.userApiKey.trim();
-              if (settings.aiModel && settings.aiModel.trim()) aiModel = settings.aiModel.trim();
+              if (settings.apiKey && settings.apiKey.trim()) userApiKey = settings.apiKey.trim();
+              if (settings.model && settings.model.trim()) aiModel = settings.model.trim();
             }
           } catch(e) {}
           return { userApiKey, aiModel };
@@ -347,17 +347,17 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
 
   test('_resolveAISettings reads custom key and model', () => {
     const { window, store } = createMiniDOM();
-    store['altech_settings'] = JSON.stringify({ userApiKey: 'sk-mykey', aiModel: 'gpt-4o' });
+    store['altech_ai_settings'] = JSON.stringify({ provider: 'openai', apiKey: 'sk-mykey', model: 'gpt-4o' });
     const result = window.eval(`
       (function() {
         let userApiKey = '';
         let aiModel = 'gemini-2.5-flash';
         try {
-          const raw = localStorage.getItem('altech_settings');
+          const raw = localStorage.getItem('altech_ai_settings');
           if (raw) {
             const settings = JSON.parse(raw);
-            if (settings.userApiKey && settings.userApiKey.trim()) userApiKey = settings.userApiKey.trim();
-            if (settings.aiModel && settings.aiModel.trim()) aiModel = settings.aiModel.trim();
+            if (settings.apiKey && settings.apiKey.trim()) userApiKey = settings.apiKey.trim();
+            if (settings.model && settings.model.trim()) aiModel = settings.model.trim();
           }
         } catch(e) {}
         return { userApiKey, aiModel };
