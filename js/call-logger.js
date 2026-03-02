@@ -144,7 +144,7 @@ window.CallLogger = (() => {
             console.log('[CallLogger] No cached policies — fetching from compliance API...');
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
-            const res = await fetch('/api/compliance.js', { signal: controller.signal });
+            const res = await fetch('/api/compliance', { signal: controller.signal });
             clearTimeout(timeout);
 
             if (!res.ok) throw new Error(`HTTP ${res.status}`);

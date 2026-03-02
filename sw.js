@@ -1,11 +1,13 @@
 /**
  * Altech Service Worker — Offline App Shell Cache
  *
- * Strategy: Cache-first for app shell (HTML, CSS, JS), network-first for API calls.
- * Bumping CACHE_VERSION invalidates the old cache on the next page load.
+ * Strategy: Network-first for app shell (HTML, CSS, JS) — always serve fresh
+ * files when online, fall back to cache when offline. This ensures deployments
+ * are immediately visible on normal refresh without needing to bump a version.
+ * Bumping CACHE_VERSION still works as a nuclear option to purge stale caches.
  */
 
-const CACHE_VERSION = 'altech-v10';
+const CACHE_VERSION = 'altech-v11';
 const APP_SHELL = [
     '/',
     '/index.html',
@@ -13,16 +15,22 @@ const APP_SHELL = [
     '/css/sidebar.css',
     '/css/dashboard.css',
     '/css/accounting.css',
+    '/css/admin.css',
     '/css/auth.css',
+    '/css/bug-report.css',
+    '/css/call-logger.css',
     '/css/compliance.css',
     '/css/email.css',
     '/css/ezlynx.css',
     '/css/hawksoft.css',
+    '/css/intake-assist.css',
     '/css/onboarding.css',
     '/css/paywall.css',
     '/css/quickref.css',
     '/css/quote-compare.css',
     '/css/reminders.css',
+    '/css/security-info.css',
+    '/css/theme-professional.css',
     '/css/vin-decoder.css',
     '/js/app-init.js',
     '/js/app-boot.js',
@@ -33,7 +41,11 @@ const APP_SHELL = [
     '/js/app-popups.js',
     '/js/app-vehicles.js',
     '/js/app-quotes.js',
+    '/js/ai-provider.js',
+    '/js/admin-panel.js',
     '/js/auth.js',
+    '/js/bug-report.js',
+    '/js/call-logger.js',
     '/js/cloud-sync.js',
     '/js/coi.js',
     '/js/compliance-dashboard.js',
@@ -44,6 +56,7 @@ const APP_SHELL = [
     '/js/firebase-config.js',
     '/js/hawksoft-export.js',
     '/js/hawksoft-integration.js',
+    '/js/intake-assist.js',
     '/js/onboarding.js',
     '/js/paywall.js',
     '/js/policy-qa.js',
@@ -56,14 +69,16 @@ const APP_SHELL = [
     '/js/dashboard-widgets.js',
 ];
 
-// Plugin HTML files — cache on first access (lazy)
+// Plugin HTML files — cached on access
 const PLUGIN_FILES = [
     '/plugins/accounting.html',
+    '/plugins/call-logger.html',
     '/plugins/coi.html',
     '/plugins/compliance.html',
     '/plugins/email.html',
     '/plugins/ezlynx.html',
     '/plugins/hawksoft.html',
+    '/plugins/intake-assist.html',
     '/plugins/prospect.html',
     '/plugins/qna.html',
     '/plugins/quoting.html',
@@ -98,7 +113,7 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// ── Fetch: cache-first for shell, network-first for API ──
+// ── Fetch: network-first for shell, bypass for APIs ──
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
@@ -110,32 +125,38 @@ self.addEventListener('fetch', (event) => {
         return; // Let the browser handle it normally
     }
 
-    // For navigation requests, serve cached index.html (SPA)
+    // For navigation requests, network-first with cached fallback
     if (event.request.mode === 'navigate') {
         event.respondWith(
-            caches.match('/index.html').then((cached) => {
-                return cached || fetch(event.request);
+            fetch(event.request).then((response) => {
+                // Update cache with fresh index.html
+                const clone = response.clone();
+                caches.open(CACHE_VERSION).then((cache) => cache.put('/index.html', clone));
+                return response;
+            }).catch(() => {
+                return caches.match('/index.html');
             })
         );
         return;
     }
 
-    // Cache-first for app shell and plugin files
+    // Network-first for all app shell and plugin files
+    // Serve fresh from network when online, fall back to cache when offline
     event.respondWith(
-        caches.match(event.request).then((cached) => {
-            if (cached) return cached;
-
-            return fetch(event.request).then((response) => {
-                // Cache plugin HTML on first access
-                if (response.ok && PLUGIN_FILES.some((p) => url.pathname === p)) {
-                    const clone = response.clone();
-                    caches.open(CACHE_VERSION).then((cache) => {
-                        cache.put(event.request, clone);
-                    });
-                }
-                return response;
-            }).catch(() => {
-                // Offline fallback for HTML — serve index.html
+        fetch(event.request).then((response) => {
+            if (response.ok) {
+                // Update the cache with the fresh response
+                const clone = response.clone();
+                caches.open(CACHE_VERSION).then((cache) => {
+                    cache.put(event.request, clone);
+                });
+            }
+            return response;
+        }).catch(() => {
+            // Offline — serve from cache
+            return caches.match(event.request).then((cached) => {
+                if (cached) return cached;
+                // Last resort for HTML requests — serve index.html (SPA)
                 if (event.request.headers.get('accept')?.includes('text/html')) {
                     return caches.match('/index.html');
                 }
