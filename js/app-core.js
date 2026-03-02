@@ -586,7 +586,8 @@ Object.assign(App, {
         // Mark quoting-active on body so footer/exit-button don't overlap
         document.body.classList.add('quoting-active');
 
-        document.getElementById('mainContainer').scrollTo(0,0);
+        const mainContainer = document.getElementById('mainContainer');
+        if (mainContainer) mainContainer.scrollTo(0,0);
     },
 
     next() {

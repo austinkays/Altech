@@ -971,13 +971,14 @@ const ComplianceDashboard = {
         const cacheAge = Date.now() - (cached.cachedAt || 0);
         const ageMin = Math.round(cacheAge / 60000);
         const fetchTime = cached.metadata?.fetchedAt ? new Date(cached.metadata.fetchedAt).toLocaleString() : 'unknown';
-        document.getElementById('cglLastFetch').innerHTML = `Last updated: ${fetchTime} <span style="color:var(--apple-gray);font-size:12px;">(cached ${ageMin}m ago)</span>`;
+        const lastFetchEl = document.getElementById('cglLastFetch');
+        if (lastFetchEl) lastFetchEl.innerHTML = `Last updated: ${fetchTime} <span style="color:var(--apple-gray);font-size:12px;">(cached ${ageMin}m ago)</span>`;
 
         this.renderLastSynced(cached.last_synced_time || cached.metadata?.fetchedAt);
 
-        loading.style.display = 'none';
-        tableContainer.style.display = 'block';
-        error.style.display = 'none';
+        if (loading) loading.style.display = 'none';
+        if (tableContainer) tableContainer.style.display = 'block';
+        if (error) error.style.display = 'none';
         this.checkForRenewals();
         this.renderTypeToggles();
         this.renderPolicies();
@@ -1078,7 +1079,8 @@ const ComplianceDashboard = {
 
             if (data.metadata && data.metadata.fetchedAt) {
                 const fetchTime = new Date(data.metadata.fetchedAt).toLocaleString();
-                document.getElementById('cglLastFetch').textContent = `Last updated: ${fetchTime}`;
+                const cglLastFetchEl = document.getElementById('cglLastFetch');
+                if (cglLastFetchEl) cglLastFetchEl.textContent = `Last updated: ${fetchTime}`;
             }
 
             // Cache the response to disk + localStorage
@@ -1091,8 +1093,8 @@ const ComplianceDashboard = {
             this.renderPolicies();
             this.updateStats();
 
-            loading.style.display = 'none';
-            tableContainer.style.display = 'block';
+            if (loading) loading.style.display = 'none';
+            if (tableContainer) tableContainer.style.display = 'block';
 
         } catch (err) {
             // Detect abort (timeout) and treat as local dev / offline
@@ -1123,7 +1125,7 @@ const ComplianceDashboard = {
                 return;
             }
 
-            loading.style.display = 'none';
+            if (loading) loading.style.display = 'none';
 
             if (err.localDev || isTimeout) {
                 // Local dev / timeout — try disk cache as last resort
@@ -1141,8 +1143,9 @@ const ComplianceDashboard = {
                         }
                     }
                 } catch (diskErr) {}
-                error.style.display = 'block';
-                document.getElementById('cglErrorMessage').textContent = err.message;
+                if (error) error.style.display = 'block';
+                const cglErrMsg = document.getElementById('cglErrorMessage');
+                if (cglErrMsg) cglErrMsg.textContent = err.message;
             }
         } finally {
             // Always close SSE progress stream

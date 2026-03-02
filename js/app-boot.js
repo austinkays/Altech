@@ -235,10 +235,11 @@ window.onload = async () => {
 
 // ── Security & Privacy Info Modal ──
 window.SecurityInfo = (() => {
-    const open = () => { document.getElementById('securityInfoOverlay').style.display = 'flex'; };
-    const close = () => { document.getElementById('securityInfoOverlay').style.display = 'none'; };
+    const open = () => { const el = document.getElementById('securityInfoOverlay'); if (el) el.style.display = 'flex'; };
+    const close = () => { const el = document.getElementById('securityInfoOverlay'); if (el) el.style.display = 'none'; };
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && document.getElementById('securityInfoOverlay').style.display === 'flex') close();
+        const el = document.getElementById('securityInfoOverlay');
+        if (e.key === 'Escape' && el && el.style.display === 'flex') close();
     });
     return { open, close };
 })();
