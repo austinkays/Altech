@@ -6,7 +6,8 @@
 #intakeTool.plugin-container.active {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -29,17 +30,24 @@
 /* ── Height chain fix (all viewports) ── */
 .app-shell:has(#intakeTool.active) .app-main {
     height: 100dvh;
+    min-height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
+    background: var(--bg);
 }
 .app-shell:has(#intakeTool.active) .app-content {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    background: var(--bg);
 }
 .app-shell:has(#intakeTool.active) .plugin-viewport {
+    display: flex;
+    flex-direction: column;
     flex: 1;
     min-height: 0;
+    overflow: hidden;
 }
 
 /* At 768–1023px the sidebar is off-screen (position:fixed, left:-260px) but
@@ -69,6 +77,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0;
     overflow: hidden;
 }
 

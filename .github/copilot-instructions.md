@@ -16,11 +16,11 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Stack:** Vanilla JS SPA (`index.html` ~707 lines), 21 CSS files in `css/` (~14,200 lines), 35 JS modules in `js/` (~28,120 lines), 15 plugin HTML files in `plugins/`, 12 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
-> **Full documentation:** See [AGENTS.md](../AGENTS.md) (981 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
+> **Full documentation:** See [AGENTS.md](../AGENTS.md) (985 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
 ```bash
 npm run dev          # Local server
-npm test             # 20 test suites, 1432 tests (Jest + JSDOM)
+npm test             # 23 test suites, 1455 tests (Jest + JSDOM)
 npx jest --no-coverage  # Faster (skip coverage)
 ```
 
@@ -144,7 +144,7 @@ Every `<input id="fieldName">` auto-syncs to `App.data.fieldName` via `localStor
 ## Testing
 
 ```bash
-npm test                    # All 20 suites, 1431+ tests
+npm test                    # All 23 suites, 1455 tests
 npx jest --no-coverage      # Faster (skip coverage)
 npx jest tests/app.test.js  # Single suite
 ```
@@ -183,4 +183,11 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-*Last updated: March 10, 2026*
+### Latest Session Notes (March 1, 2026)
+
+- Hardened viewport/flex containment to prevent narrow-width shell collapse and black-screen states (`main.css`, `sidebar.css`, `intake-assist.css`, `quote-compare.css`).
+- Switched Q&A and Quote Compare chat panes to responsive `clamp()` heights and added nested `min-height: 0` guards so message panes scroll internally.
+- Added reliability/regression coverage in `tests/auth-cloudsync.test.js`, `tests/boot-loading.test.js`, and `tests/layout-regressions.test.js`.
+- Validation: `npx jest --no-coverage` → 23/23 suites passed, 1455/1455 tests.
+
+*Last updated: March 1, 2026*

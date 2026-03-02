@@ -212,8 +212,19 @@ priorCarrier, priorYears, priorLapse
 
 ```bash
 npm run dev              # Local server (port 3000)
-npm test                 # All 20 suites, 1431+ tests
+npm test                 # All 23 suites, 1455 tests
 npx jest --no-coverage   # Faster
 npx jest tests/app.test.js  # Single suite
 npm run deploy:vercel    # Production deploy
 ```
+
+---
+
+## Session Notes (March 1, 2026)
+
+- Fixed narrow-width viewport collapse/black-screen behavior by hardening shell and plugin flex containment in `css/main.css`, `css/sidebar.css`, and `css/intake-assist.css`.
+- Fixed chat/content downward growth and clipping by adding `min-height: 0` nested flex guards plus responsive `clamp()` heights for Q&A and Quote Compare in `css/main.css` and `css/quote-compare.css`.
+- Added three reliability suites: `tests/auth-cloudsync.test.js`, `tests/boot-loading.test.js`, and `tests/layout-regressions.test.js`.
+- Verification: `npx jest --no-coverage` → 23/23 suites passed, 1455/1455 tests.
+
+*Last updated: March 1, 2026*

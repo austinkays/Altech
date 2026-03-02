@@ -1,6 +1,6 @@
 ﻿# AGENTS.md â€” Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 10, 2026
+> **Last updated:** March 1, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive â€” read this before making ANY changes
 >
@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA â€” no build step, no framework |
 | **Entry point** | `index.html` (~702 lines) |
-| **CSS** | 21 files in `css/` (~14,100 lines total) |
-| **JS** | 35 modules in `js/` (~28,120 lines total) |
-| **Plugins** | 15 HTML templates in `plugins/` (~4,960 lines total) |
+| **CSS** | 21 files in `css/` (~15,280 lines total) |
+| **JS** | 35 modules in `js/` (~31,216 lines total) |
+| **Plugins** | 15 HTML templates in `plugins/` (~5,295 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,210 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 20 suites, 1432 tests |
+| **Tests** | Jest + JSDOM, 23 suites, 1455 tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 20 test suites, 1432 tests
+npm test              # All 23 test suites, 1455 tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
@@ -64,20 +64,20 @@ npm run deploy:vercel   # Production deploy
 â”œâ”€â”€ firestore.rules             # Security rules (99 lines) â€” owner-only, admin guards, size limits
 â”œâ”€â”€ sw.js                       # Service worker
 â”‚
-â”œâ”€â”€ css/                        # 20 stylesheets (~13,300 lines)
+â”œâ”€â”€ css/                        # 21 stylesheets (~15,280 lines)
 â”‚   â”œâ”€â”€ main.css                # â˜… Core styles + :root variables + desktop overhaul (3,416 lines) â€” THE source of truth
 â”‚   â”œâ”€â”€ theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
-â”‚   â”œâ”€â”€ sidebar.css             # Desktop/tablet/mobile sidebar layouts (758 lines)
+â”‚   â”œâ”€â”€ sidebar.css             # Desktop/tablet/mobile sidebar layouts (765 lines)
 â”‚   â”œâ”€â”€ dashboard.css           # Bento grid dashboard widgets (1,026 lines)
-â”‚   â”œâ”€â”€ call-logger.css         # Call logger plugin + desktop two-column layout + glassmorphism UI + status bar + client autocomplete + policy selector + HawkSoft deep links (900 lines)
+â”‚   â”œâ”€â”€ call-logger.css         # Call logger plugin + desktop two-column layout + glassmorphism UI + status bar + client autocomplete + policy selector + HawkSoft deep links (924 lines)
 â”‚   â”œâ”€â”€ compliance.css          # CGL compliance dashboard (1,046 lines)
 â”‚   â”œâ”€â”€ auth.css                # Auth modal + settings (973 lines)
 â”‚   â”œâ”€â”€ reminders.css           # Task reminders (1,120 lines)
-â”‚   â”œâ”€â”€ intake-assist.css       # AI intake professional UI â€” enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,339 lines)
+â”‚   â”œâ”€â”€ intake-assist.css       # AI intake professional UI â€” enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
 â”‚   â”œâ”€â”€ ezlynx.css              # EZLynx export â€” standalone dark palette (590 lines)
 â”‚   â”œâ”€â”€ vin-decoder.css         # VIN decoder (600 lines)
 â”‚   â”œâ”€â”€ hawksoft.css            # HawkSoft export (555 lines)
-â”‚   â”œâ”€â”€ quote-compare.css       # Quote comparison tool (460 lines)
+â”‚   â”œâ”€â”€ quote-compare.css       # Quote comparison tool (462 lines)
 â”‚   â”œâ”€â”€ onboarding.css          # First-run wizard (411 lines)
 â”‚   â”œâ”€â”€ admin.css               # Admin panel (300 lines)
 â”‚   â”œâ”€â”€ bug-report.css          # Bug reporter (227 lines)
@@ -87,18 +87,18 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ email.css               # Email composer â€” purple accent (165 lines)
 â”‚   â””â”€â”€ paywall.css             # Paywall modal (131 lines)
 â”‚
-â”œâ”€â”€ js/                         # 35 modules (~28,120 lines)
+â”œâ”€â”€ js/                         # 35 modules (~31,216 lines)
 â”‚   â”‚
 â”‚   â”‚  â˜… Core App (assembled via Object.assign into global `App`)
 â”‚   â”œâ”€â”€ app-init.js             # State init, toolConfig[], workflows (85 lines)
-â”‚   â”œâ”€â”€ app-core.js             # Form handling, save/load, updateUI, navigation (2,125 lines)
-â”‚   â”œâ”€â”€ app-scan.js             # Policy document scanning, OCR, Gemini AI (1,569 lines)
-â”‚   â”œâ”€â”€ app-property.js         # Property analysis, maps, assessor data (1,585 lines)
-â”‚   â”œâ”€â”€ app-vehicles.js         # Vehicle/driver management, DL scanning (788 lines)
-â”‚   â”œâ”€â”€ app-popups.js           # Vision processing, hazard detection, popups (1,405 lines)
-â”‚   â”œâ”€â”€ app-export.js           # PDF/CMSMTF/CSV/Text exports, scan schema (894 lines)
-â”‚   â”œâ”€â”€ app-quotes.js           # Quote/draft management (694 lines)
-â”‚   â”œâ”€â”€ app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts (265 lines)
+â”‚   â”œâ”€â”€ app-core.js             # Form handling, save/load, updateUI, navigation (2,342 lines)
+â”‚   â”œâ”€â”€ app-scan.js             # Policy document scanning, OCR, Gemini AI (1,762 lines)
+â”‚   â”œâ”€â”€ app-property.js         # Property analysis, maps, assessor data (1,728 lines)
+â”‚   â”œâ”€â”€ app-vehicles.js         # Vehicle/driver management, DL scanning (844 lines)
+â”‚   â”œâ”€â”€ app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
+â”‚   â”œâ”€â”€ app-export.js           # PDF/CMSMTF/CSV/Text exports, scan schema (978 lines)
+â”‚   â”œâ”€â”€ app-quotes.js           # Quote/draft management (757 lines)
+â”‚   â”œâ”€â”€ app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts (287 lines)
 â”‚   â”‚
 â”‚   â”‚  â˜… Infrastructure
 â”‚   â”œâ”€â”€ crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
@@ -109,30 +109,30 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs (968 lines)
 â”‚   â”‚
 â”‚   â”‚  â˜… Plugin Modules (IIFE or const pattern, each on window.ModuleName)
-â”‚   â”œâ”€â”€ coi.js                  # ACORD 25 COI PDF generator (716 lines)
-â”‚   â”œâ”€â”€ compliance-dashboard.js # CGL compliance tracker, 6-layer persistence (1,881 lines)
-â”‚   â”œâ”€â”€ email-composer.js       # AI email polisher, encrypted drafts (359 lines)
-â”‚   â”œâ”€â”€ ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (972 lines)
-â”‚   â”œâ”€â”€ hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,600 lines)
-â”‚   â”œâ”€â”€ intake-assist.js         # AI conversational intake, maps, progress ring (2,771 lines)
-â”‚   â”œâ”€â”€ policy-qa.js             # Policy document Q&A chat, carrier detection (914 lines)
-â”‚   â”œâ”€â”€ prospect.js              # Commercial prospect investigation, risk scoring (1,646 lines)
-â”‚   â”œâ”€â”€ quick-ref.js             # NATO phonetic + agent ID cards (261 lines)
-â”‚   â”œâ”€â”€ quote-compare.js         # Quote comparison + AI recommendation (788 lines)
-â”‚   â”œâ”€â”€ reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (773 lines)
-â”‚   â”œâ”€â”€ vin-decoder.js           # VIN decoder with NHTSA API (702 lines)
-â”‚   â”œâ”€â”€ accounting-export.js     # Trust deposit calculator, HawkSoft receipts (337 lines)
-â”‚   â”œâ”€â”€ call-logger.js           # Call note formatter + HawkSoft logger, two-step preview/confirm, clientâ†’policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (833 lines)
+â”‚   â”œâ”€â”€ coi.js                  # ACORD 25 COI PDF generator (789 lines)
+â”‚   â”œâ”€â”€ compliance-dashboard.js # CGL compliance tracker, 6-layer persistence (2,120 lines)
+â”‚   â”œâ”€â”€ email-composer.js       # AI email polisher, encrypted drafts (420 lines)
+â”‚   â”œâ”€â”€ ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
+â”‚   â”œâ”€â”€ hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
+â”‚   â”œâ”€â”€ intake-assist.js         # AI conversational intake, maps, progress ring (3,097 lines)
+â”‚   â”œâ”€â”€ policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
+â”‚   â”œâ”€â”€ prospect.js              # Commercial prospect investigation, risk scoring (1,859 lines)
+â”‚   â”œâ”€â”€ quick-ref.js             # NATO phonetic + agent ID cards (293 lines)
+â”‚   â”œâ”€â”€ quote-compare.js         # Quote comparison + AI recommendation (889 lines)
+â”‚   â”œâ”€â”€ reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (884 lines)
+â”‚   â”œâ”€â”€ vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
+â”‚   â”œâ”€â”€ accounting-export.js     # Trust deposit calculator, HawkSoft receipts (392 lines)
+â”‚   â”œâ”€â”€ call-logger.js           # Call note formatter + HawkSoft logger, two-step preview/confirm, clientâ†’policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (951 lines)
 â”‚   â”‚
 â”‚   â”‚  â˜… Support Modules
-â”‚   â”œâ”€â”€ onboarding.js            # 4-step first-run wizard, invite codes (369 lines)
-â”‚   â”œâ”€â”€ paywall.js               # Stripe paywall (beta, disabled) (199 lines)
-â”‚   â”œâ”€â”€ admin-panel.js           # User management admin panel (203 lines)
-â”‚   â”œâ”€â”€ bug-report.js            # GitHub Issue bug reporter (223 lines)
+â”‚   â”œâ”€â”€ onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
+â”‚   â”œâ”€â”€ paywall.js               # Stripe paywall (beta, disabled) (229 lines)
+â”‚   â”œâ”€â”€ admin-panel.js           # User management admin panel (246 lines)
+â”‚   â”œâ”€â”€ bug-report.js            # GitHub Issue bug reporter (260 lines)
 â”‚   â”œâ”€â”€ data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
-â”‚   â””â”€â”€ hawksoft-integration.js  # HawkSoft REST API client (230 lines)
+â”‚   â””â”€â”€ hawksoft-integration.js  # HawkSoft REST API client (261 lines)
 â”‚
-â”œâ”€â”€ plugins/                    # 14 HTML templates (loaded dynamically)
+â”œâ”€â”€ plugins/                    # 15 HTML templates (~5,295 lines, loaded dynamically)
 â”‚   â”œâ”€â”€ quoting.html            # â˜… Main intake wizard â€” 7 steps, 2,026 lines
 â”‚   â”œâ”€â”€ ezlynx.html             # EZLynx rater form â€” 80+ fields, 1,077 lines
 â”‚   â”œâ”€â”€ coi.html                # ACORD 25 COI form (418 lines)
@@ -175,7 +175,7 @@ npm run deploy:vercel   # Production deploy
 â”‚
 â”œâ”€â”€ tests/                      # Jest test suites
 â”‚   â”œâ”€â”€ setup.js                # Test env setup (mock fetch, suppress crypto errors)
-â”‚   â””â”€â”€ *.test.js               # 20 test files, 1432 tests
+â”‚   â””â”€â”€ *.test.js               # 23 test files, 1455 tests
 â”‚
 â”œâ”€â”€ lib/                        # Shared server-side utilities
 â”œâ”€â”€ scripts/                    # Build/utility scripts
@@ -633,7 +633,7 @@ KEY RULES:
 5. After localStorage writes on synced data, call CloudSync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
 7. App is built via Object.assign(App, {...}) across 9 files â€” app-boot.js loads LAST
-8. Test with: npm test (1432 tests, all must pass)
+8. Test with: npm test (1455 tests, all must pass)
 9. No build step â€” edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, update AGENTS.md, .github/copilot-instructions.md, and
@@ -650,7 +650,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` â†’ 20 suites, 1432 tests, 0 failures
+- [ ] **All tests pass:** `npm test` â†’ 23 suites, 1455 tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements
@@ -771,6 +771,7 @@ KEY RULES:
 | AI Intake UI overhaul | intake-assist.css | Professional redesign: pill-shaped chips with colored tints, 1px card borders with subtle shadows, transparent card headers, circular send/upload buttons, focus glow rings, tighter layout padding, full dark mode coverage |
 | AI Intake UI rework (Phase 2) | intake-assist.css, intake-assist.html | Enhanced cards (layered shadows, gradient header accents), gradient user message bubbles, spring animations, refined input area (gradient send button, enhanced focus glow), sidebar surface hierarchy (#0A0A0Aâ†’#1C1C1Eâ†’#2C2C2E), card-based empty state with pulsing icon, custom scrollbars, desktop wide-screen breakpoints (1280px/1440px), comprehensive dark mode elevation for ~30 selectors, mobile dark mode full-bleed |
 | Desktop-first layout overhaul | main.css (+350 lines), reminders.css, hawksoft.css, accounting.css, email.css, quickref.css, vin-decoder.css, quote-compare.css, compliance.css | Quoting wizard: centered max-width container (960â†’1080â†’1200px), multi-column step layouts (steps 0/4/6), constrained footer, denser form grids, scan actions horizontal, wider modals. All plugins: desktop padding/spacing/grid enhancements. Generic `plugin-container > main/header` constraint at 1100px. Prospect content cap at 1000px. Footer sidebar-aware offset. |
+| Viewport/scroll containment fixes | sidebar.css, intake-assist.css, main.css, quote-compare.css | Fixed narrow-width black-screen/layout collapse by stabilizing shell background + flex height chain (`app-main → app-content → plugin-viewport → plugin-container`), replaced rigid chat heights with responsive clamps, and added `min-height: 0` on nested flex scroll regions so chat/content scrolls internally instead of growing downward and clipping. |
 | Mobile dark mode visibility | main.css, dashboard.css, sidebar.css | Cards/widgets: border opacity 6%â†’10-12%, depth shadows added. Mobile `<767px`: `.app-content` bg `#0D0D0D` (lifts off pure black), header/bottom-nav solid bg + visible borders, widget accent stripes 50%â†’70% opacity, ambient orbs boosted, bento grid gap tightened to 12px. Footer border made visible in dark mode. |
 | Call Logger UI redesign | call-logger.css, call-logger.html | Glassmorphism cards (backdrop-filter blur+saturate), hero "how-it-works" 3-step strip with gradient icons, form sections with SVG icon headers, side-by-side grid for client name + call type, gradient submit/confirm buttons, spring animations, comprehensive dark mode with solid surfaces |
 | Theme-pro select chevron fix | theme-professional.css | `background:` â†’ `background-color:` on `body.theme-pro input/select/textarea` â€” shorthand was overriding `background-image` SVG chevrons in Call Logger select |
@@ -816,6 +817,7 @@ KEY RULES:
 | 61 | MEDIUM | api/hawksoft-logger.js, js/call-logger.js | Added comprehensive diagnostic logging to both push paths (server) and failure handler (client) for live debugging. | `1f2a807` |
 | 62 | CRITICAL | api/hawksoft-logger.js | Still getting "Invalid Channel" â€” JSON field name was `action` but HawkSoft expects `channel`. Renamed in both push paths. | `15e781f` |
 | 63 | HIGH | api/compliance.js, js/call-logger.js, api/hawksoft-logger.js | Log appeared at client level, not under specific policy. Root cause: not sending `policyId` (HawkSoft internal GUID). Threaded `hawksoftPolicyId` through entire pipeline: compliance.js â†’ call-logger.js â†’ hawksoft-logger.js â†’ HawkSoft request body. | `3b77e92` |
+| 64 | HIGH | css/sidebar.css, css/intake-assist.css, css/main.css, css/quote-compare.css, tests/layout-regressions.test.js, tests/boot-loading.test.js, tests/auth-cloudsync.test.js | Hardened app-shell viewport containment (`overflow-x: hidden`, `min-width: 0`, `min-height: 0` flex chain), switched Q&A/Quote Compare chat panes to responsive `clamp()` heights, and added regression/reliability tests for layout, boot-loading fallback, and Auth/CloudSync behavior. | `working tree` |
 
 **Root cause chain:** Seven iterative fixes required because (1) HawkSoft API documentation in our codebase was incorrect (`action` vs `channel`, wrong URL path, wrong action codes), (2) HawkSoft returns numeric types where strings were expected, and (3) policy-level logging requires an internal GUID (`policyId`) that wasn't being passed through the data pipeline.
 
@@ -961,9 +963,12 @@ tests/
 â”œâ”€â”€ api-prospect.test.js        # Prospect lookup API
 â”œâ”€â”€ api-security.test.js        # API security middleware
 â”œâ”€â”€ app.test.js                 # Core App object + form handling
+â”œâ”€â”€ auth-cloudsync.test.js      # Auth login + CloudSync reliability tests
+â”œâ”€â”€ boot-loading.test.js        # First-load boot + Places loader resilience tests
 â”œâ”€â”€ ezlynx-pipeline.test.js    # EZLynx export pipeline
 â”œâ”€â”€ intake-assist.test.js       # Intake assist module tests
 â”œâ”€â”€ integration.test.js         # Cross-module integration
+â”œâ”€â”€ layout-regressions.test.js  # CSS shell/chat layout regression guardrails
 â”œâ”€â”€ performance.test.js         # Performance benchmarks
 â”œâ”€â”€ phase1.test.js              # Phase 1 feature tests
 â”œâ”€â”€ phase2.test.js              # Phase 2 feature tests
