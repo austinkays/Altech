@@ -693,9 +693,18 @@ window.CallLogger = (() => {
                 confirmSection.style.display = '';
             }
 
-            // Change format button to "Edit" mode
-            formatBtn.textContent = '✏️ Edit Notes';
+            // Change format button to re-format mode
+            formatBtn.textContent = '🔄 Re-format';
             formatBtn.classList.add('cl-edit-mode');
+
+            // Exit edit mode if re-formatting while editing
+            const existingEditTA = previewEl ? previewEl.querySelector('.cl-edit-textarea') : null;
+            if (existingEditTA) {
+                previewTextEl.style.display = '';
+                existingEditTA.remove();
+                const cancelBtn = document.getElementById('clCancelBtn');
+                if (cancelBtn) cancelBtn.innerHTML = '✏️ Edit';
+            }
 
             App.toast('Preview ready — review and confirm below', 'success');
 
@@ -709,6 +718,20 @@ window.CallLogger = (() => {
     // ── Step 2: Confirm & Send to HawkSoft ──
 
     async function _handleConfirm() {
+        // If user is in edit mode, save their edits before confirming
+        const editTA = document.querySelector('.cl-edit-textarea');
+        if (editTA && _pendingLog) {
+            _pendingLog.formattedLog = editTA.value;
+            const previewTextEl = document.getElementById('clPreviewText');
+            if (previewTextEl) {
+                previewTextEl.textContent = _pendingLog.formattedLog;
+                previewTextEl.style.display = '';
+            }
+            editTA.remove();
+            const cancelBtn = document.getElementById('clCancelBtn');
+            if (cancelBtn) cancelBtn.innerHTML = '✏️ Edit';
+        }
+
         if (!_pendingLog) {
             App.toast('No formatted log to send — format first', 'error');
             return;
@@ -791,19 +814,48 @@ window.CallLogger = (() => {
         }
     }
 
-    // ── Edit: Go back to editing ──
+    // ── Edit: Toggle inline editing of formatted output ──
 
     function _handleEdit() {
-        _pendingLog = null;
-        _resetToFormatMode();
-
-        // Hide preview and confirm
         const previewEl = document.getElementById('clPreview');
-        const confirmSection = document.getElementById('clConfirmSection');
-        if (previewEl) previewEl.style.display = 'none';
-        if (confirmSection) confirmSection.style.display = 'none';
+        const previewTextEl = document.getElementById('clPreviewText');
+        const cancelBtn = document.getElementById('clCancelBtn');
+        const formatBtn = document.getElementById('clSubmitBtn');
 
-        App.toast('Edit your notes and format again', 'success');
+        if (!_pendingLog || !previewEl || !previewTextEl) {
+            // No pending log — full reset
+            _pendingLog = null;
+            _resetToFormatMode();
+            if (previewEl) previewEl.style.display = 'none';
+            const cs = document.getElementById('clConfirmSection');
+            if (cs) cs.style.display = 'none';
+            return;
+        }
+
+        // Check if already in edit mode (textarea exists)
+        const existing = previewEl.querySelector('.cl-edit-textarea');
+        if (existing) {
+            // Exit edit mode — save edits
+            _pendingLog.formattedLog = existing.value;
+            previewTextEl.textContent = _pendingLog.formattedLog;
+            previewTextEl.style.display = '';
+            existing.remove();
+            if (cancelBtn) cancelBtn.innerHTML = '✏️ Edit';
+            if (formatBtn) formatBtn.textContent = '🔄 Re-format';
+            App.toast('Edits saved', 'success');
+            return;
+        }
+
+        // Enter edit mode — show textarea with formatted text
+        const textarea = document.createElement('textarea');
+        textarea.className = 'cl-edit-textarea';
+        textarea.value = _pendingLog.formattedLog;
+        previewTextEl.style.display = 'none';
+        previewTextEl.insertAdjacentElement('afterend', textarea);
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        if (cancelBtn) cancelBtn.innerHTML = '✅ Done Editing';
+        if (formatBtn) formatBtn.textContent = '✅ Done Editing';
     }
 
     // ── Copy formatted log ──
@@ -904,15 +956,19 @@ window.CallLogger = (() => {
             document._clOutsideWired = true;
         }
 
-        // Format / Edit button (toggles based on state)
+        // Format / Re-format button
         const submitBtn = document.getElementById('clSubmitBtn');
         if (submitBtn && !submitBtn._clWired) {
             submitBtn.addEventListener('click', () => {
-                if (_pendingLog) {
+                // If in edit mode, check if we should toggle edit or re-format
+                const editTA = document.querySelector('.cl-edit-textarea');
+                if (editTA && _pendingLog) {
+                    // In edit mode — toggle out (save edits) via _handleEdit
                     _handleEdit();
-                } else {
-                    _handleFormat();
+                    return;
                 }
+                // Otherwise always (re-)format via AI
+                _handleFormat();
             });
             submitBtn._clWired = true;
         }
