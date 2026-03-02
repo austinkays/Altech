@@ -118,11 +118,13 @@ Object.assign(App, {
     },
 
     deleteClientFromHistory(id) {
+        if (!confirm('Remove this client from recent history?')) return;
         const clients = this.getClientHistory();
         const filtered = clients.filter(c => c.id !== id);
         this.saveClientHistory(filtered);
         this.renderClientHistory();
-        this.toast('🗑️ Client removed');
+        this.renderStep0ClientHistory();
+        this.toast('🗑 Client removed from history');
         if (typeof CloudSync !== 'undefined') {
             try { CloudSync.schedulePush(); } catch(e) { /* ok */ }
         }
@@ -164,8 +166,9 @@ Object.assign(App, {
                         <span class="ch-name">${this.escapeHTML(c.name)}</span>
                         <span class="ch-meta">${this.escapeHTML(c.summary)}${addr ? ' • ' + this.escapeHTML(addr) : ''} • ${date}</span>
                     </div>
-                    <div class="ch-actions">
+                    <div class="ch-actions" style="display:flex;align-items:center;gap:6px;">
                         <button class="btn btn-primary btn-sm" onclick="App.loadClientFromHistory('${c.id}'); App.next();">Restore</button>
+                        <button class="ch-delete-btn" title="Delete this client" onclick="App.deleteClientFromHistory('${c.id}')">🗑</button>
                     </div>
                 </div>`;
             }).join('');
