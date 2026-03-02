@@ -789,7 +789,8 @@ window.DashboardWidgets = (() => {
                     const exp = new Date(p.expirationDate);
                     exp.setHours(0, 0, 0, 0);
                     const days = Math.round((exp - now) / 86400000);
-                    if (days <= 30) count++;
+                    // Only badge on critical (≤5 days), not warnings
+                    if (days <= 5) count++;
                 });
                 cglBadge.textContent = count > 0 ? count : '';
             } catch (e) {
