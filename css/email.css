@@ -1,4 +1,4 @@
-.email-container { max-width: 1200px; margin: 0 auto; padding: 0 16px 80px; }
+.email-container { max-width: 1400px; margin: 0 auto; padding: 0 16px 80px; }
 .email-textarea {
     width: 100%;
     min-height: 160px;
@@ -153,7 +153,16 @@
 @media (min-width: 960px) {
     .email-container {
         padding: 0 24px 80px;
-        max-width: 900px;
+    }
+    .email-desktop-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+    .email-col-right {
+        position: sticky;
+        top: 24px;
     }
     .email-compose-area textarea {
         min-height: 200px;

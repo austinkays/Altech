@@ -1280,7 +1280,7 @@ Object.assign(App, {
                     onclick="App.viewSatelliteFullscreen(this.src)"
                     title="Click to view fullscreen"
                 >
-                <p class="satellite-label">Tap to view fullscreen</p>
+                <p class="satellite-label">Click to view fullscreen</p>
                 <div class="satellite-links">
                     <a href="${googleMapsUrl}" target="_blank">📍 Google Maps</a>
                     <a href="${googleEarthUrl}" target="_blank">🌍 Google Earth</a>

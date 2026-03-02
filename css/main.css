@@ -3035,12 +3035,12 @@ body.dark-mode .pac-matched { color: #0A84FF; }
 /* ─── Quoting Wizard: Centered content wrapper ─── */
 @media (min-width: 960px) {
     #quotingTool main {
-        max-width: 960px;
+        max-width: 1400px;
         margin: 0 auto;
         padding: 24px 32px calc(100px + env(safe-area-inset-bottom));
     }
     #quotingTool header {
-        max-width: 960px;
+        max-width: 1400px;
         margin-left: auto;
         margin-right: auto;
     }
@@ -3050,11 +3050,7 @@ body.dark-mode .pac-matched { color: #0A84FF; }
 }
 @media (min-width: 1280px) {
     #quotingTool main {
-        max-width: 1080px;
         padding: 28px 40px calc(100px + env(safe-area-inset-bottom));
-    }
-    #quotingTool header {
-        max-width: 1080px;
     }
     #quotingTool .card {
         padding: 28px 32px;
@@ -3132,7 +3128,7 @@ body.dark-mode .pac-matched { color: #0A84FF; }
 /* ─── Desktop Footer: Centered, constrained width ─── */
 @media (min-width: 960px) {
     #quotingTool footer {
-        max-width: 960px;
+        max-width: 1400px;
         margin: 0 auto;
         left: 0;
         right: 0;
@@ -3141,11 +3137,6 @@ body.dark-mode .pac-matched { color: #0A84FF; }
     }
     footer .btn {
         max-width: 280px;
-    }
-}
-@media (min-width: 1280px) {
-    #quotingTool footer {
-        max-width: 1080px;
     }
 }
 /* On desktop with sidebar, offset footer to account for sidebar */
@@ -3214,22 +3205,12 @@ body.dark-mode .pac-matched { color: #0A84FF; }
     /* Hero export grid — bigger cards */
     .hero-export-grid {
         gap: 16px;
-        max-width: 600px;
-        margin-left: auto;
-        margin-right: auto;
     }
     .hero-export-option {
         padding: 24px 16px 18px;
     }
     .hero-export-icon {
         font-size: 32px;
-    }
-
-    /* Export secondary buttons — center-constrain */
-    .hero-secondary-row {
-        max-width: 400px;
-        margin-left: auto;
-        margin-right: auto;
     }
 
     /* Quote cards in a grid */
@@ -3326,13 +3307,13 @@ body.dark-mode .pac-matched { color: #0A84FF; }
 /* ─── Ultra-wide (1600px+): Extra breathing room ─── */
 @media (min-width: 1600px) {
     #quotingTool main {
-        max-width: 100%;
+        max-width: 1400px;
     }
     #quotingTool header {
-        max-width: 100%;
+        max-width: 1400px;
     }
     #quotingTool footer {
-        max-width: 100%;
+        max-width: 1400px;
     }
     #step-0 {
         grid-template-columns: 1fr 1fr 1fr;
@@ -3345,12 +3326,12 @@ body.dark-mode .pac-matched { color: #0A84FF; }
 /* ─── Desktop: Prospect Investigator content constraint ─── */
 @media (min-width: 960px) {
     #prospectTool main {
-        max-width: 1000px;
+        max-width: 1400px;
         margin: 0 auto;
         padding: 24px 32px 60px;
     }
     #prospectTool header {
-        max-width: 1000px;
+        max-width: 1400px;
         margin-left: auto;
         margin-right: auto;
     }
@@ -3359,20 +3340,37 @@ body.dark-mode .pac-matched { color: #0A84FF; }
 /* ─── Desktop: Policy Q&A wider chat area ─── */
 @media (min-width: 960px) {
     .qna-container {
-        max-width: 900px;
+        max-width: 1400px;
         padding: 24px 32px 100px;
+    }
+    .qna-desktop-layout {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+    .qna-col-right {
+        position: sticky;
+        top: 24px;
+    }
+    .qna-chat-card {
+        display: flex;
+        flex-direction: column;
+    }
+    .qna-chat {
+        min-height: 500px;
     }
 }
 
 /* ─── Desktop: Generic plugin main content constraint ─── */
 @media (min-width: 960px) {
     .plugin-container > main:not(.ia-main) {
-        max-width: 1100px;
+        max-width: 1400px;
         margin-left: auto;
         margin-right: auto;
     }
     .plugin-container > header {
-        max-width: 1100px;
+        max-width: 1400px;
         margin-left: auto;
         margin-right: auto;
     }

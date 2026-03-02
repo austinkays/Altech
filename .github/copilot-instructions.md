@@ -183,11 +183,16 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 1, 2026)
+### Latest Session Notes (March 2, 2026)
 
-- Hardened viewport/flex containment to prevent narrow-width shell collapse and black-screen states (`main.css`, `sidebar.css`, `intake-assist.css`, `quote-compare.css`).
-- Switched Q&A and Quote Compare chat panes to responsive `clamp()` heights and added nested `min-height: 0` guards so message panes scroll internally.
-- Added reliability/regression coverage in `tests/auth-cloudsync.test.js`, `tests/boot-loading.test.js`, and `tests/layout-regressions.test.js`.
+- **Desktop Layout Overhaul**: Full-width redesign across all 15 plugins — every container widened from 1200px → 1400px, generic plugin constraint widened from 1100px → 1400px.
+- **2-Column Layouts**: Q&A (380px | 1fr), Email (1fr | 1fr), VIN Decoder (1fr | 380px), Accounting (1fr | 1fr) — all with sticky right columns at 960px+ breakpoint.
+- **Call Logger**: `:has()` CSS conditional grid — auto-switches from 1fr to 1fr|1fr when right column is visible.
+- **Quoting Wizard**: Widened to 1400px; removed redundant 1280px override; removed step-6 hero grid/secondary row max-width caps.
+- **CGL Compliance**: Stat card min-height 90px, wider search/filter inputs (280px min), larger buttons.
+- **QuickRef**: 3-col phonetic grid at 960px+, 4-col at 1280px+.
+- **Language**: All 12 "tap" → "click" replacements across 7 HTML/JS files for desktop-first language.
+- **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1455/1455 tests.
 
-*Last updated: March 1, 2026*
+*Last updated: March 2, 2026*

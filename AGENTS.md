@@ -1,6 +1,6 @@
 ﻿# AGENTS.md â€” Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 1, 2026
+> **Last updated:** March 2, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive â€” read this before making ANY changes
 >
@@ -828,7 +828,27 @@ KEY RULES:
 - `ezlynx.css` top half uses hardcoded glassmorphism palette (design choice, bottom half uses variables)
 - 7 CSS files lack dark mode overrides (relies on variable auto-switching)
 - 3 CSS files use `.dark-mode` without `body` prefix (works due to specificity)
+### Desktop Layout Overhaul â€" Full-Width Redesign (March 2026)
 
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 65 | GLOBAL | css/main.css | Plugin container generic constraint widened from 1100px â†' 1400px (`plugin-container > main/header`) |
+| 66 | GLOBAL | css/main.css | Quoting wizard main/header/footer widened from 960px â†' 1400px at 960px+; removed redundant 1280px override |
+| 67 | GLOBAL | css/main.css | Ultra-wide 1600px+ cap changed from `max-width: 100%` â†' `1400px` for consistent constraint |
+| 68 | GLOBAL | css/main.css | Step-6 export grid caps removed (`.hero-export-grid` 600px, `.hero-secondary-row` 400px) |
+| 69 | GLOBAL | css/main.css | Prospect container widened from 1000px â†' 1400px |
+| 70 | GLOBAL | 7 HTML/JS files | All 12 "tap" â†' "click" replacements for desktop-first language (prospect, quotecompare, qna, quoting Ã—2, ezlynx Ã—2, reminders, prospect.js, app-popups, index.html Ã—2) |
+| 71 | 2-COL | plugins/qna.html, css/main.css | Q&A: 2-column desktop layout (`380px \| 1fr` grid), sticky right chat column, `.qna-desktop-layout` wrapper |
+| 72 | WIDEN | css/quote-compare.css | Quote Compare container widened from 1100px â†' 1400px |
+| 73 | 2-COL | plugins/email.html, css/email.css | Email: 2-column desktop layout (`1fr \| 1fr` grid), sticky right column, `.email-desktop-layout` wrapper; removed 900px desktop shrink |
+| 74 | 2-COL | plugins/vin-decoder.html, css/vin-decoder.css | VIN Decoder: 2-column desktop layout (`1fr \| 380px` grid), sticky right history column, `.vin-desktop-layout` wrapper; widened from 1200px â†' 1400px |
+| 75 | FIX | css/call-logger.css | Call Logger: widened from 1200px â†' 1400px + `:has()` CSS conditional grid (single column when right col hidden, 2-column when visible) |
+| 76 | 2-COL | plugins/accounting.html, css/accounting.css | Accounting: 2-column desktop layout (`1fr \| 1fr` grid), left=workflows, right=history+calculator; widened from 1200px â†' 1400px; removed `.acct-steps` 700px and `.acct-filename-row` 600px inner caps |
+| 77 | POLISH | css/compliance.css | CGL: stat card `min-height: 90px` for consistent card height; wider search/filter inputs (280px min); larger buttons (12px/24px padding) |
+| 78 | WIDEN+GRID | css/quickref.css | QuickRef: widened from 1200px â†' 1400px; 3-col phonetic grid at 960px+, 4-col at 1280px+ |
+| 79 | WIDEN | css/ezlynx.css | EZLynx container widened from 1200px â†' 1400px |
+| 80 | WIDEN | css/hawksoft.css | HawkSoft body widened from 1200px â†' 1400px |
+| 81 | WIDEN | css/reminders.css | Reminders container widened from 1200px â†' 1400px |
 ---
 
 ## Appendix A: Plugin System â€” Adding a New Plugin

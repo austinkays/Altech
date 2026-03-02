@@ -3,7 +3,7 @@
 /* ═══════════════════════════════════════════════════ */
 
 .vin-container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 0 16px 80px;
 }
@@ -596,5 +596,19 @@
     }
     .vin-history-header {
         padding: 14px 20px;
+    }
+}
+
+/* ─── Desktop: 2-Column Layout ─── */
+@media (min-width: 960px) {
+    .vin-desktop-layout {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 24px;
+        align-items: start;
+    }
+    .vin-col-right {
+        position: sticky;
+        top: 24px;
     }
 }

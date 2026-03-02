@@ -1,4 +1,4 @@
-.qr-container { max-width: 1200px; margin: 0 auto; padding: 0 16px 80px; }
+.qr-container { max-width: 1400px; margin: 0 auto; padding: 0 16px 80px; }
 
 /* ── Carrier Cards ── */
 .qr-cards-grid {
@@ -229,5 +229,13 @@
     .qr-cards-grid {
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 16px;
+    }
+    .qr-phonetic-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+@media (min-width: 1280px) {
+    .qr-phonetic-grid {
+        grid-template-columns: repeat(4, 1fr);
     }
 }

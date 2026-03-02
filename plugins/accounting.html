@@ -17,6 +17,9 @@
 </header>
 
 <div class="acct-container">
+  <div class="acct-desktop-layout">
+    <!-- LEFT COLUMN: Primary workflows -->
+    <div class="acct-col-left">
     <div class="card">
         <h2>📥 Export Receipts</h2>
         <p class="section-subtitle">Opens HawkSoft in a browser, lets you log in, then auto-filters and downloads receipt CSV.</p>
@@ -72,14 +75,6 @@
     </div>
 
     <div class="card">
-        <h2>📋 Export History</h2>
-        <p class="section-subtitle">Recent accounting exports from this device</p>
-        <div class="acct-history" id="acctHistory">
-            <p style="font-size: 13px; color: var(--text-secondary);">No exports yet.</p>
-        </div>
-    </div>
-
-    <div class="card">
         <h2>📊 Trust Deposit Report</h2>
         <p class="section-subtitle">Generate a formatted Excel report from the exported CSV — landscape layout, Cash/Check split, color-coded totals.</p>
 
@@ -102,6 +97,17 @@
         </div>
 
         <div class="acct-status-box" id="acctReportLog"></div>
+    </div>
+    </div><!-- /acct-col-left -->
+
+    <!-- RIGHT COLUMN: History + Calculator -->
+    <div class="acct-col-right">
+    <div class="card">
+        <h2>📋 Export History</h2>
+        <p class="section-subtitle">Recent accounting exports from this device</p>
+        <div class="acct-history" id="acctHistory">
+            <p style="font-size: 13px; color: var(--text-secondary);">No exports yet.</p>
+        </div>
     </div>
 
     <!-- Deposit Calculator -->
@@ -174,6 +180,8 @@
             <button type="button" class="btn btn-secondary" style="font-size:12px; padding:6px 14px;" onclick="AccountingExport.clearCalc()">Clear All</button>
         </div>
     </div>
+    </div><!-- /acct-col-right -->
+  </div><!-- /acct-desktop-layout -->
 
     <div class="card">
         <h2>ℹ️ How It Works</h2>

@@ -17,6 +17,11 @@
 </header>
 
 <div class="vin-container">
+
+    <div class="vin-desktop-layout">
+
+    <!-- LEFT COLUMN: Input + Result + Reference -->
+    <div class="vin-col-left">
     <!-- Input Card -->
     <div class="vin-input-card">
         <div class="vin-input-row">
@@ -48,20 +53,6 @@
 
     <!-- Decode Result -->
     <div id="vinResult" class="vin-result" style="display:none;"></div>
-
-    <!-- Recent History -->
-    <details class="vin-accordion" open>
-        <summary>
-            🕐 Recent VINs
-            <span class="vin-acc-chevron">▼</span>
-        </summary>
-        <div class="vin-acc-body">
-            <div id="vinHistory"></div>
-            <button class="vin-action-btn" onclick="VinDecoder.clearHistory()" style="margin-top:10px; font-size:11px;">
-                🗑 Clear History
-            </button>
-        </div>
-    </details>
 
     <!-- Reference -->
     <details class="vin-accordion">
@@ -138,4 +129,25 @@
             </p>
         </div>
     </details>
+    </div><!-- /.vin-col-left -->
+
+    <!-- RIGHT COLUMN: History -->
+    <div class="vin-col-right">
+    <!-- Recent History -->
+    <details class="vin-accordion" open>
+        <summary>
+            🕐 Recent VINs
+            <span class="vin-acc-chevron">▼</span>
+        </summary>
+        <div class="vin-acc-body">
+            <div id="vinHistory"></div>
+            <button class="vin-action-btn" onclick="VinDecoder.clearHistory()" style="margin-top:10px; font-size:11px;">
+                🗑 Clear History
+            </button>
+        </div>
+    </details>
+    </div><!-- /.vin-col-right -->
+
+    </div><!-- /.vin-desktop-layout -->
+
 </div>

@@ -750,7 +750,7 @@ const EZLynxTool = {
         const dvWrapper = document.getElementById('ezDVSummary');
         if (dvWrapper) dvWrapper.style.display = 'none';
         try { localStorage.removeItem(this.formStorageKey); } catch (e) { /* ignore */ }
-        this._updateClientBanner('', 'Tap "Select Client" to load from saved intake data');
+        this._updateClientBanner('', 'Click "Select Client" to load from saved intake data');
         App.toast('🗑 Form cleared');
     },
 

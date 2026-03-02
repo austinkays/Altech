@@ -26,6 +26,11 @@
 
 <div class="qna-container">
 
+    <div class="qna-desktop-layout">
+
+    <!-- LEFT COLUMN: Upload & History -->
+    <div class="qna-col-left">
+
     <!-- ENVIRONMENT STATUS -->
     <div id="qnaEnvBanner" class="card" style="display: none;">
         <div class="qna-desktop-notice">
@@ -42,7 +47,7 @@
 
         <div class="qna-drop-zone" id="qnaDropZone">
             <div class="drop-icon">📁</div>
-            <div class="drop-label">Drop policy files here or tap to browse</div>
+            <div class="drop-label">Drop policy files here or click to browse</div>
             <div class="drop-hint">PDF, PNG, JPG, HEIC • Max 25 MB per file</div>
         </div>
 
@@ -56,8 +61,23 @@
         <div class="qna-recent-list" id="qnaRecentList"></div>
     </div>
 
-    <!-- CHAT INTERFACE -->
+    <!-- HOW IT WORKS -->
     <div class="card">
+        <h2>ℹ️ How It Works</h2>
+        <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+            <p><strong>Desktop (Tauri):</strong> Policies are chunked, embedded, and stored in a local ChromaDB vector database on your machine. Questions use semantic search to find relevant sections, then an LLM generates answers with page/section citations.</p>
+            <p style="margin-top: 8px;"><strong>Browser (Stateless):</strong> Policy text is extracted client-side and sent per-question for analysis. No data is persisted beyond your browser session. Suitable for quick lookups.</p>
+            <p style="margin-top: 8px;"><strong>⚠️ Disclaimer:</strong> Automated answers are informational only. Always verify coverage details with the carrier or a licensed professional. Confidence scores reflect the system's certainty, not legal guarantees.</p>
+        </div>
+    </div>
+
+    </div><!-- /.qna-col-left -->
+
+    <!-- RIGHT COLUMN: Chat -->
+    <div class="qna-col-right">
+
+    <!-- CHAT INTERFACE -->
+    <div class="card qna-chat-card">
         <h2>💬 Ask About Your Policy</h2>
         <p class="section-subtitle">Smart answers with section citations &amp; confidence scores</p>
 
@@ -81,15 +101,9 @@
         </div>
     </div>
 
-    <!-- HOW IT WORKS -->
-    <div class="card">
-        <h2>ℹ️ How It Works</h2>
-        <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-            <p><strong>Desktop (Tauri):</strong> Policies are chunked, embedded, and stored in a local ChromaDB vector database on your machine. Questions use semantic search to find relevant sections, then an LLM generates answers with page/section citations.</p>
-            <p style="margin-top: 8px;"><strong>Browser (Stateless):</strong> Policy text is extracted client-side and sent per-question for analysis. No data is persisted beyond your browser session. Suitable for quick lookups.</p>
-            <p style="margin-top: 8px;"><strong>⚠️ Disclaimer:</strong> Automated answers are informational only. Always verify coverage details with the carrier or a licensed professional. Confidence scores reflect the system's certainty, not legal guarantees.</p>
-        </div>
-    </div>
+    </div><!-- /.qna-col-right -->
+
+    </div><!-- /.qna-desktop-layout -->
 
 </div>
 

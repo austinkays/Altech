@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════════ */
 
 .cl-container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 0 24px 80px;
 }
@@ -22,6 +22,12 @@
         grid-template-columns: 1fr 1fr;
         gap: 28px;
         align-items: start;
+    }
+
+    /* When right column is hidden, let left column fill width */
+    .cl-desktop-grid:has(> .cl-col-output[style*="display: none"]),
+    .cl-desktop-grid:has(> .cl-col-output:empty) {
+        grid-template-columns: 1fr;
     }
 
     .cl-col-output {

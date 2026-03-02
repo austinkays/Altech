@@ -1815,7 +1815,7 @@ ${ai.underwritingNotes || 'N/A'}`;
         if (!saved.length) {
             container.innerHTML = `
                 <p style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 16px 0;">
-                    No saved prospects yet. Run an investigation and tap Save.
+                    No saved prospects yet. Run an investigation and click Save.
                 </p>`;
             return;
         }
