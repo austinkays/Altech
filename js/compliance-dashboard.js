@@ -158,10 +158,16 @@ const ComplianceDashboard = {
             try {
                 const ok = await this._checkKV();
                 if (!ok) return;
+                const payload = JSON.stringify({ key, value });
+                // Pre-flight size check — KV endpoint rejects > 1MB with 413
+                if (payload.length > 900_000) {
+                    console.log(`[CGL] ☁️ KV skip (${key}) — payload ${(payload.length / 1024).toFixed(0)}KB exceeds limit`);
+                    return;
+                }
                 await Auth.apiFetch('/api/kv-store', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key, value })
+                    body: payload
                 });
                 console.log('[CGL] ☁️ KV synced:', key);
             } catch (e) { /* silent */ }
@@ -277,6 +283,9 @@ const ComplianceDashboard = {
                 return;
             }
         }
+        // Only sync to disk on localhost — production has no /local/ endpoint
+        const _isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (!_isLocal) return;
         clearTimeout(this._diskSyncTimer);
         this._diskSyncTimer = setTimeout(() => {
             fetch('/local/cgl-state', {
@@ -1240,8 +1249,13 @@ const ComplianceDashboard = {
             }).catch(() => {});
         }
 
-        // Cloud: Vercel KV (non-blocking)
-        this._syncToKV('cgl_cache', cacheObj);
+        // Cloud: Vercel KV (non-blocking) — skip if payload > 900KB (KV limit is 1MB)
+        const cacheSize = JSON.stringify(cacheObj).length;
+        if (cacheSize < 900_000) {
+            this._syncToKV('cgl_cache', cacheObj);
+        } else {
+            console.log(`[CGL] Skipping KV cache sync — payload too large (${(cacheSize / 1024).toFixed(0)}KB)`);
+        }
 
         // Update last-synced UI
         this.renderLastSynced(cacheObj.last_synced_time);
