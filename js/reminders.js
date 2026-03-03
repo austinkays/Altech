@@ -262,10 +262,30 @@ window.Reminders = (() => {
             return 'snoozed';
         }
 
-        // Weekly tasks: show as "due [day]" for the whole week, not overdue until after that day passes
-        if (task.frequency === 'weekly' && diff < 0) {
-            // Only mark overdue after midnight PST on the due date has passed
-            // diff < 0 means due date is in the past — it IS overdue
+        // Weekly tasks: only overdue after Friday EOD — they have all week (Mon–Fri) to complete
+        if ((task.frequency === 'weekly' || task.frequency === 'biweekly') && diff < 0) {
+            // Find the Friday of this current week
+            const pstNow = _nowPST();
+            const dayOfWeek = pstNow.getDay(); // 0=Sun … 6=Sat
+            const today2 = _todayDate();
+            const daysToFri = (5 - dayOfWeek + 7) % 7; // days until next Friday (0 if today is Friday)
+            const friday = new Date(today2);
+            friday.setDate(today2.getDate() + daysToFri);
+            // Find this week's Monday
+            const diffToMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const monday = new Date(today2);
+            monday.setDate(today2.getDate() - diffToMon);
+            // Parse due date
+            const dueDate2 = _parseLocalDate(task.dueDate);
+            // If due date falls within this week (Mon–Fri inclusive) OR task was due last cycle
+            // and we are still within Mon–Fri: not overdue yet
+            if (today2 <= friday) {
+                // Still within the workweek — task is due by Friday
+                if (dayOfWeek === 5) return 'due-today';   // Friday: last chance
+                if (dayOfWeek >= 3) return 'due-soon';     // Wed/Thu: due soon
+                return 'upcoming';                          // Mon/Tue: upcoming
+            }
+            // Saturday (6) or Sunday (0): missed the Friday deadline
             return 'overdue';
         }
 
@@ -286,23 +306,32 @@ window.Reminders = (() => {
         if (snoozeLabel) return snoozeLabel;
 
         switch (status) {
-            case 'completed': return 'Completed';
-            case 'due-today': return 'Due today';
-            case 'due-soon':
-                if (diff === 1) return 'Due tomorrow';
-                return `Due ${_dayName(task.dueDate)}`;
-            case 'upcoming':
-                if (diff <= 7) return `Due ${_dayName(task.dueDate)}`;
-                return _formatDate(task.dueDate);
-            case 'overdue':
-                return 'Missed — resets tonight at midnight';
-            case 'snoozed':
-                return _getSnoozeLabel(task) || 'Snoozed';
-            case 'no-date':
-                return 'No due date';
-            default:
-                return '';
-        }
+        case 'completed': return 'Completed';
+        case 'due-today':
+            if ((task.frequency === 'weekly' || task.frequency === 'biweekly') && _nowPST().getDay() === 5)
+                return 'Due today — last chance!';
+            return 'Due today';
+        case 'due-soon':
+            if (task.frequency === 'weekly' || task.frequency === 'biweekly') {
+                const daysToFri = (5 - _nowPST().getDay() + 7) % 7;
+                return `Due Friday (${daysToFri}d)`;
+            }
+            if (diff === 1) return 'Due tomorrow';
+            return `Due ${_dayName(task.dueDate)}`;
+        case 'upcoming':
+            if (task.frequency === 'weekly' || task.frequency === 'biweekly') {
+                const daysToFri2 = (5 - _nowPST().getDay() + 7) % 7;
+                return daysToFri2 === 0 ? 'Due today (Friday)' : `Due Friday (${daysToFri2}d)`;
+            }
+            if (diff <= 7) return `Due ${_dayName(task.dueDate)}`;
+            return _formatDate(task.dueDate);
+        case 'overdue':
+            if (task.frequency === 'weekly' || task.frequency === 'biweekly')
+                return 'Missed — resets Monday';
+            return 'Missed — resets tonight at midnight';
+        case 'snoozed': return _getSnoozeLabel(task) || 'Snoozed';
+        case 'no-date': return 'No due date';
+        default: return '';
     }
 
     function _escapeHTML(str) {
