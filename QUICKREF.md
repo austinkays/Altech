@@ -1,4 +1,4 @@
-# QUICKREF.md — Altech Field Lead: Agent Quick Reference
+﻿# QUICKREF.md — Altech Field Lead: Agent Quick Reference
 
 > One-page cheatsheet. For full docs see [AGENTS.md](AGENTS.md).
 >
@@ -212,7 +212,7 @@ priorCarrier, priorYears, priorLapse
 
 ```bash
 npm run dev              # Local server (port 3000)
-npm test                 # All 23 suites, 1455 tests
+npm test                 # All 23 suites, 1480 tests
 npx jest --no-coverage   # Faster
 npx jest tests/app.test.js  # Single suite
 npm run deploy:vercel    # Production deploy
@@ -220,7 +220,7 @@ npm run deploy:vercel    # Production deploy
 
 ---
 
-## Session Notes (March 1, 2026)
+## Session Notes (March 3, 2026)
 
 - Fixed narrow-width viewport collapse/black-screen behavior by hardening shell and plugin flex containment in `css/main.css`, `css/sidebar.css`, and `css/intake-assist.css`.
 - Fixed chat/content downward growth and clipping by adding `min-height: 0` nested flex guards plus responsive `clamp()` heights for Q&A and Quote Compare in `css/main.css` and `css/quote-compare.css`.
@@ -228,4 +228,4 @@ npm run deploy:vercel    # Production deploy
 - **Desktop Layout Overhaul (March 2026):** Widened all 15 plugin containers from 1200px→1400px. Added 2-column desktop grids for Q&A, Email, VIN Decoder, and Accounting. Call Logger uses `:has()` conditional grid. QuickRef: 3-col→4-col phonetic grid. CGL: taller stat cards, wider filters. 12 "tap"→"click" replacements. 24 files changed.
 - Verification: `npx jest --no-coverage` → 23/23 suites passed, 1455/1455 tests.
 
-*Last updated: March 2, 2026*
+*Last updated: March 3, 2026*

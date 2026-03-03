@@ -1,6 +1,6 @@
 ﻿# AGENTS.md â€” Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 2, 2026
+> **Last updated:** March 3, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive â€” read this before making ANY changes
 >
@@ -16,17 +16,17 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA â€” no build step, no framework |
 | **Entry point** | `index.html` (~702 lines) |
-| **CSS** | 21 files in `css/` (~15,280 lines total) |
-| **JS** | 35 modules in `js/` (~31,216 lines total) |
-| **Plugins** | 15 HTML templates in `plugins/` (~5,295 lines total) |
-| **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,210 lines total) |
+| **CSS** | 21 files in `css/` (~15,598 lines total) |
+| **JS** | 35 modules in `js/` (~31,404 lines total) |
+| **Plugins** | 15 HTML templates in `plugins/` (~5,363 lines total) |
+| **APIs** | 12 serverless functions + 2 helpers in `api/` (~7,184 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
 | **Encryption** | AES-256-GCM via Web Crypto API (`CryptoHelper`) |
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 23 suites, 1455 tests |
+| **Tests** | Jest + JSDOM, 23 suites, 1480 tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 23 test suites, 1455 tests
+npm test              # All 23 test suites, 1480 tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
@@ -65,11 +65,11 @@ npm run deploy:vercel   # Production deploy
 â”œâ”€â”€ sw.js                       # Service worker
 â”‚
 â”œâ”€â”€ css/                        # 21 stylesheets (~15,280 lines)
-â”‚   â”œâ”€â”€ main.css                # â˜… Core styles + :root variables + desktop overhaul (3,416 lines) â€” THE source of truth
+â”‚   â”œâ”€â”€ main.css                # â˜… Core styles + :root variables + desktop overhaul (3,454 lines) â€” THE source of truth
 â”‚   â”œâ”€â”€ theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 â”‚   â”œâ”€â”€ sidebar.css             # Desktop/tablet/mobile sidebar layouts (765 lines)
 â”‚   â”œâ”€â”€ dashboard.css           # Bento grid dashboard widgets (1,026 lines)
-â”‚   â”œâ”€â”€ call-logger.css         # Call logger plugin + desktop two-column layout + glassmorphism UI + status bar + client autocomplete + policy selector + HawkSoft deep links (924 lines)
+â”‚   â”œâ”€â”€ call-logger.css         # Call logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links (1,164 lines)
 â”‚   â”œâ”€â”€ compliance.css          # CGL compliance dashboard (1,046 lines)
 â”‚   â”œâ”€â”€ auth.css                # Auth modal + settings (973 lines)
 â”‚   â”œâ”€â”€ reminders.css           # Task reminders (1,120 lines)
@@ -110,7 +110,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”‚
 â”‚   â”‚  â˜… Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 â”‚   â”œâ”€â”€ coi.js                  # ACORD 25 COI PDF generator (789 lines)
-â”‚   â”œâ”€â”€ compliance-dashboard.js # CGL compliance tracker, 6-layer persistence (2,120 lines)
+â”‚   â”œâ”€â”€ compliance-dashboard.js # CGL compliance tracker, 6-layer persistence (2,147 lines)
 â”‚   â”œâ”€â”€ email-composer.js       # AI email polisher, encrypted drafts (420 lines)
 â”‚   â”œâ”€â”€ ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
 â”‚   â”œâ”€â”€ hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
@@ -122,7 +122,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (884 lines)
 â”‚   â”œâ”€â”€ vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
 â”‚   â”œâ”€â”€ accounting-export.js     # Trust deposit calculator, HawkSoft receipts (392 lines)
-â”‚   â”œâ”€â”€ call-logger.js           # Call note formatter + HawkSoft logger, two-step preview/confirm, clientâ†’policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (951 lines)
+â”‚   â”œâ”€â”€ call-logger.js           # Call note formatter + HawkSoft logger, two-step preview/confirm, 5-channel quick-tap (Inbound/Outbound/Walk-In/Email/Text), 8 activity-type buttons with templates, clientâ†’policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,123 lines)
 â”‚   â”‚
 â”‚   â”‚  â˜… Support Modules
 â”‚   â”œâ”€â”€ onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
@@ -146,7 +146,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ email.html              # Email composer (98 lines)
 â”‚   â”œâ”€â”€ qna.html                # Policy Q&A chat (95 lines)
 â”‚   â”œâ”€â”€ quickref.html           # Quick reference cards (79 lines)
-â”‚   â”œâ”€â”€ call-logger.html        # Call logger + standard header + desktop two-column grid + status bar + client autocomplete (104 lines)
+â”‚   â”œâ”€â”€ call-logger.html        # Call logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete (139 lines)
 â”‚   â””â”€â”€ hawksoft.html           # HawkSoft export (21 lines â€” JS renders body)
 â”‚
 â”œâ”€â”€ api/                        # 12 serverless functions + 2 helpers (~6,210 lines) âš ï¸ Hobby plan MAX = 12 functions
@@ -163,7 +163,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ stripe.js               # Stripe checkout, portal, webhooks
 â”‚   â”œâ”€â”€ admin.js                # User management (admin only)
 â”‚   â”œâ”€â”€ anthropic-proxy.js      # CORS proxy for Anthropic API
-â”‚   â””â”€â”€ hawksoft-logger.js      # AI call note formatter + HawkSoft log push, two-step support, policy-level logging (253 lines)
+â”‚   â””â”€â”€ hawksoft-logger.js      # AI call note formatter + HawkSoft log push, CHANNEL_MAP (5 types), two-step support, policy-level logging (301 lines)
 â”‚
 â”œâ”€â”€ chrome-extension/           # EZLynx bridge Chrome extension
 â”‚   â”œâ”€â”€ manifest.json
@@ -849,6 +849,19 @@ KEY RULES:
 | 79 | WIDEN | css/ezlynx.css | EZLynx container widened from 1200px â†' 1400px |
 | 80 | WIDEN | css/hawksoft.css | HawkSoft body widened from 1200px â†' 1400px |
 | 81 | WIDEN | css/reminders.css | Reminders container widened from 1200px â†' 1400px |
+### Call Logger Redesign â€" Channel & Activity Quick-Tap System (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 82 | CRITICAL | api/hawksoft-logger.js | Added `CHANNEL_MAP` object mapping 5 channel types (Inbound/Outbound/Walk-In/Email/Text) to HawkSoft channel codes (5/1/2/3/4). Replaced ternary `'Outbound' ? 1 : 5` with `CHANNEL_MAP[cleanCallType] \|\| 5` in both format-only and push paths. |
+| 83 | CRITICAL | plugins/call-logger.html | Full HTML rewrite: replaced `<select id="clCallType">` with 5 SVG-icon channel quick-tap buttons (`clChannelGroup`), added 8 activity-type pill buttons with `data-template` attributes (`clActivityGroup`), inline agent initials field, span-based submit button with arrow/spinner states, plain-text confirm/cancel buttons, clipboard SVG copy button |
+| 84 | CRITICAL | css/call-logger.css | Full CSS rewrite (~1,164 lines): `.cl-channel-group`/`.cl-channel-btn`/`.cl-channel-selected` for 5-button horizontal strip, `.cl-activity-group`/`.cl-activity-btn`/`.cl-activity-selected` for 8-button pill grid, `.cl-btn-text`/`.cl-btn-arrow`/`.cl-btn-spinner`/`.cl-loading` for submit button states, `.cl-initials-inline`/`.cl-input-initials` for inline initials, comprehensive `body.dark-mode` overrides for all new classes |
+| 85 | HIGH | js/call-logger.js | Added `_selectedChannel`/`_selectedActivityType`/`_lastTemplate` private state + 4 new functions: `_handleChannelSelect()` (updates selection + saves), `_applyChannelUI()` (restores selection from storage), `_handleActivitySelect()` (toggle + template insertion with cursor placement), `_applyActivityUI()` (restores activity state). Updated `_load()` to restore channel/activity from localStorage. Updated `_save()` to persist `channelType`/`activityType`. Updated `_handleFormat()` â€" channel icons map, `cl-loading` class toggle, confirm info shows Channel/Activity rows. Updated `_wireEvents()` with event delegation for channel/activity groups. Added public exports: `_handleChannelSelect`, `_handleActivitySelect`, `getSelectedChannel`, `getSelectedActivityType`. |
+| 86 | MEDIUM | tests/call-logger.test.js | Updated 179 tests: replaced `clCallType` select references with channel button group, updated `createMiniDOM`/`createClientDOM` HTML builders, added ~20 source analysis tests (state tracking, handler functions, channel icons map, confirm labels, persistence, event delegation, return exports) + ~6 behavioral JSDOM tests (channel selection, activity selection, activity deselect toggle, channel/activity group wiring). |
+| 87 | MEDIUM | tests/hawksoft-logger.test.js | Updated CHANNEL_MAP assertions: replaced ternary checks with `CHANNEL_MAP` object tests verifying all 5 channel type mappings. |
+
+**8 activity types with note templates:** Payment, Renewal, New Biz, Endorsement, Claim, Cancel, Reinstate, General â€" each inserts a structured template into the notes textarea with cursor positioned at first blank.
+
 ---
 
 ## Appendix A: Plugin System â€” Adding a New Plugin
@@ -998,8 +1011,8 @@ tests/
 â”œâ”€â”€ plugin-integration.test.js  # Plugin system integration
 â”œâ”€â”€ prospect-client.test.js     # Prospect client-side module
 â”œâ”€â”€ server.test.js              # Local dev server (server.js)
-â”œâ”€â”€ hawksoft-logger.test.js     # HawkSoft Logger API (67 tests, channel field, policyId)
-â””â”€â”€ call-logger.test.js         # Call Logger client module (152 tests, hawksoftPolicyId pipeline)
+â”œâ”€â”€ hawksoft-logger.test.js     # HawkSoft Logger API (67 tests, CHANNEL_MAP, policyId)
+â””â”€â”€ call-logger.test.js         # Call Logger client module (179 tests, channel/activity buttons, hawksoftPolicyId pipeline)
 ```
 
 Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously' })`. The test setup file mocks `fetch`, silences console noise, and suppresses expected `crypto.subtle` errors.

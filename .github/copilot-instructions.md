@@ -1,4 +1,4 @@
-Before doing anything in this project, read AGENTS.md in the project 
+﻿Before doing anything in this project, read AGENTS.md in the project 
 root in full. It is the source of truth for all architecture, conventions, 
 known bugs, and rules. Do not write any code until you have read it.
 
@@ -14,13 +14,13 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~707 lines), 21 CSS files in `css/` (~14,200 lines), 35 JS modules in `js/` (~28,120 lines), 15 plugin HTML files in `plugins/`, 12 serverless APIs in `api/`. Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~707 lines), 21 CSS files in `css/` (~15,598 lines), 35 JS modules in `js/` (~31,404 lines), 15 plugin HTML files in `plugins/` (~5,363 lines), 12 serverless APIs in `api/` (~7,184 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
 > **Full documentation:** See [AGENTS.md](../AGENTS.md) (985 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
 ```bash
 npm run dev          # Local server
-npm test             # 23 test suites, 1455 tests (Jest + JSDOM)
+npm test             # 23 test suites, 1480 tests (Jest + JSDOM)
 npx jest --no-coverage  # Faster (skip coverage)
 ```
 
@@ -183,7 +183,13 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 2, 2026)
+### Latest Session Notes (March 3, 2026)
+
+- **Call Logger Redesign:** Replaced `<select>` dropdown with 5 SVG-icon channel quick-tap buttons (Inbound/Outbound/Walk-In/Email/Text) + 8 activity-type pill buttons with note templates. Full HTML/CSS/JS rewrite. Added CHANNEL_MAP to hawksoft-logger.js.
+- **Tests:** 26 new tests (source analysis + behavioral JSDOM). Total: 23 suites, 1480 tests.
+- **6 files changed:** api/hawksoft-logger.js, plugins/call-logger.html, css/call-logger.css, js/call-logger.js, tests/call-logger.test.js, tests/hawksoft-logger.test.js
+
+### Previous Session (March 2, 2026)
 
 - **Desktop Layout Overhaul**: Full-width redesign across all 15 plugins — every container widened from 1200px → 1400px, generic plugin constraint widened from 1100px → 1400px.
 - **2-Column Layouts**: Q&A (380px | 1fr), Email (1fr | 1fr), VIN Decoder (1fr | 380px), Accounting (1fr | 1fr) — all with sticky right columns at 960px+ breakpoint.
@@ -195,4 +201,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1455/1455 tests.
 
-*Last updated: March 2, 2026*
+*Last updated: March 3, 2026*

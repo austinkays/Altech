@@ -15,6 +15,9 @@ window.CallLogger = (() => {
     let _selectedPolicy = null;  // { policyNumber, type, typeLabel, expirationDate, hawksoftId, hawksoftPolicyId }
 
     let _policiesReady = false;  // true once we have policy data in cache
+    let _selectedChannel = 'Inbound';   // Channel button selection
+    let _selectedActivityType = null;   // Activity type pill selection
+    let _lastTemplate = '';             // Last-applied activity template text
 
     function init() {
         _load();
@@ -37,10 +40,10 @@ window.CallLogger = (() => {
             if (raw) {
                 const saved = JSON.parse(raw);
                 const policyEl = document.getElementById('clPolicyId');
-                const typeEl = document.getElementById('clCallType');
                 const initialsEl = document.getElementById('clAgentInitials');
                 if (policyEl && saved.policyId) policyEl.value = saved.policyId;
-                if (typeEl && saved.callType) typeEl.value = saved.callType;
+                if (saved.channelType) { _selectedChannel = saved.channelType; _applyChannelUI(); }
+                if (saved.activityType) { _selectedActivityType = saved.activityType; _applyActivityUI(); }
                 if (initialsEl && saved.agentInitials) initialsEl.value = saved.agentInitials;
             }
         } catch (e) {
@@ -52,7 +55,7 @@ window.CallLogger = (() => {
         try {
             const initialsEl = document.getElementById('clAgentInitials');
             const agentInitials = initialsEl ? initialsEl.value.trim().toUpperCase() : '';
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ policyId, callType, agentInitials }));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ policyId, callType, agentInitials, channelType: _selectedChannel, activityType: _selectedActivityType }));
             if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
                 CloudSync.schedulePush();
             }
@@ -210,6 +213,61 @@ window.CallLogger = (() => {
             btn.disabled = (state === 'loading');
             btn.classList.toggle('cl-refreshing', state === 'loading');
         }
+    }
+
+    // ── Channel & Activity Selection ──
+
+    function _handleChannelSelect(channel) {
+        _selectedChannel = channel;
+        _applyChannelUI();
+    }
+
+    function _applyChannelUI() {
+        const group = document.getElementById('clChannelGroup');
+        if (!group) return;
+        group.querySelectorAll('.cl-channel-btn').forEach(btn => {
+            btn.classList.toggle('cl-channel-selected', btn.dataset.channel === _selectedChannel);
+        });
+    }
+
+    function _handleActivitySelect(activity, template) {
+        const notesEl = document.getElementById('clRawNotes');
+        if (_selectedActivityType === activity) {
+            // Deselect — remove template if it's still the default
+            _selectedActivityType = null;
+            if (notesEl && _lastTemplate && notesEl.value === _lastTemplate) {
+                notesEl.value = '';
+            }
+            _lastTemplate = '';
+            _applyActivityUI();
+            return;
+        }
+        _selectedActivityType = activity;
+        _applyActivityUI();
+        // Insert template only if textarea is empty or still has old template
+        if (notesEl && template) {
+            if (!notesEl.value.trim() || notesEl.value === _lastTemplate) {
+                notesEl.value = template;
+                _lastTemplate = template;
+                notesEl.focus();
+                // Place cursor after first blank to fill
+                const blankIdx = template.indexOf('[');
+                if (blankIdx !== -1) {
+                    const endIdx = template.indexOf(']', blankIdx);
+                    if (endIdx !== -1) notesEl.setSelectionRange(blankIdx, endIdx + 1);
+                }
+            }
+        } else {
+            _lastTemplate = '';
+        }
+    }
+
+    function _applyActivityUI() {
+        const group = document.getElementById('clActivityGroup');
+        if (!group) return;
+        group.querySelectorAll('.cl-activity-btn').forEach(btn => {
+            btn.classList.toggle('cl-activity-selected', btn.dataset.activity === _selectedActivityType);
+        });
     }
 
     /**
@@ -592,7 +650,6 @@ window.CallLogger = (() => {
 
     async function _handleFormat() {
         const policyEl = document.getElementById('clPolicyId');
-        const typeEl = document.getElementById('clCallType');
         const notesEl = document.getElementById('clRawNotes');
         const formatBtn = document.getElementById('clSubmitBtn');
         const previewEl = document.getElementById('clPreview');
@@ -603,7 +660,7 @@ window.CallLogger = (() => {
         if (!policyEl || !notesEl || !formatBtn) return;
 
         const inputValue = policyEl.value.trim();
-        const callType = typeEl ? typeEl.value : 'Inbound';
+        const callType = _selectedChannel;
         const rawNotes = notesEl.value.trim();
 
         // Validate required fields
@@ -643,7 +700,7 @@ window.CallLogger = (() => {
 
         // Disable button
         formatBtn.disabled = true;
-        formatBtn.textContent = '⏳ Formatting...';
+        formatBtn.classList.add('cl-loading');
 
         try {
             const fetchFn = (typeof Auth !== 'undefined' && Auth.apiFetch)
@@ -687,7 +744,8 @@ window.CallLogger = (() => {
 
             // Show confirmation section with clear summary
             if (confirmSection && confirmInfo) {
-                const infoIcon = callType === 'Outbound' ? '📤' : '📥';
+                const channelIcons = { 'Inbound': '📥', 'Outbound': '📤', 'Walk-In': '🚶', 'Email': '📧', 'Text': '💬' };
+                const infoIcon = channelIcons[callType] || '📥';
                 let infoHtml = '<div class="cl-confirm-summary">';
 
                 // Client row
@@ -712,8 +770,13 @@ window.CallLogger = (() => {
                     infoHtml += '<div class="cl-confirm-row"><span class="cl-confirm-label">Policy:</span> <span class="cl-confirm-policy">📋 No active policies</span></div>';
                 }
 
-                // Call type row
-                infoHtml += `<div class="cl-confirm-row"><span class="cl-confirm-label">Call Type:</span> ${infoIcon} ${_escapeHTML(callType)}</div>`;
+                // Channel row
+                infoHtml += `<div class="cl-confirm-row"><span class="cl-confirm-label">Channel:</span> ${infoIcon} ${_escapeHTML(callType)}</div>`;
+
+                // Activity row (if selected)
+                if (_selectedActivityType) {
+                    infoHtml += `<div class="cl-confirm-row"><span class="cl-confirm-label">Activity:</span> ${_escapeHTML(_selectedActivityType)}</div>`;
+                }
 
                 infoHtml += '</div>';
 
@@ -722,7 +785,8 @@ window.CallLogger = (() => {
             }
 
             // Change format button to re-format mode
-            formatBtn.textContent = '🔄 Re-format';
+            formatBtn.innerHTML = '<span class="cl-btn-text">Re-format</span><svg class="cl-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+            formatBtn.classList.remove('cl-loading');
             formatBtn.classList.add('cl-edit-mode');
 
             // Exit edit mode if re-formatting while editing
@@ -731,7 +795,7 @@ window.CallLogger = (() => {
                 previewTextEl.style.display = '';
                 existingEditTA.remove();
                 const cancelBtn = document.getElementById('clCancelBtn');
-                if (cancelBtn) cancelBtn.innerHTML = '✏️ Edit';
+                if (cancelBtn) cancelBtn.textContent = 'Edit';
             }
 
             App.toast('Preview ready — review and confirm below', 'success');
@@ -740,6 +804,10 @@ window.CallLogger = (() => {
             App.toast('Error: ' + (error.message || 'Failed to format call'), 'error');
         } finally {
             formatBtn.disabled = false;
+            if (!formatBtn.classList.contains('cl-edit-mode')) {
+                formatBtn.classList.remove('cl-loading');
+                formatBtn.innerHTML = '<span class="cl-btn-text">Format &amp; Preview</span><svg class="cl-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg><span class="cl-btn-spinner"></span>';
+            }
         }
     }
 
@@ -757,7 +825,7 @@ window.CallLogger = (() => {
             }
             editTA.remove();
             const cancelBtn = document.getElementById('clCancelBtn');
-            if (cancelBtn) cancelBtn.innerHTML = '✏️ Edit';
+            if (cancelBtn) cancelBtn.textContent = 'Edit';
         }
 
         if (!_pendingLog) {
@@ -768,7 +836,7 @@ window.CallLogger = (() => {
         const confirmBtn = document.getElementById('clConfirmBtn');
         if (confirmBtn) {
             confirmBtn.disabled = true;
-            confirmBtn.textContent = '⏳ Sending to HawkSoft...';
+            confirmBtn.textContent = 'Sending to HawkSoft…';
         }
 
         try {
@@ -837,7 +905,7 @@ window.CallLogger = (() => {
         } finally {
             if (confirmBtn) {
                 confirmBtn.disabled = false;
-                confirmBtn.textContent = '✅ Confirm & Log to HawkSoft';
+                confirmBtn.textContent = 'Confirm & Push to HawkSoft';
             }
         }
     }
@@ -868,8 +936,8 @@ window.CallLogger = (() => {
             previewTextEl.textContent = _pendingLog.formattedLog;
             previewTextEl.style.display = '';
             existing.remove();
-            if (cancelBtn) cancelBtn.innerHTML = '✏️ Edit';
-            if (formatBtn) formatBtn.textContent = '🔄 Re-format';
+            if (cancelBtn) cancelBtn.textContent = 'Edit';
+            if (formatBtn) formatBtn.innerHTML = '<span class="cl-btn-text">Re-format</span><svg class="cl-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
             App.toast('Edits saved', 'success');
             return;
         }
@@ -882,8 +950,8 @@ window.CallLogger = (() => {
         previewTextEl.insertAdjacentElement('afterend', textarea);
         textarea.focus();
         textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-        if (cancelBtn) cancelBtn.innerHTML = '✅ Done Editing';
-        if (formatBtn) formatBtn.textContent = '✅ Done Editing';
+        if (cancelBtn) cancelBtn.textContent = 'Done Editing';
+        if (formatBtn) formatBtn.textContent = 'Done Editing';
     }
 
     // ── Copy formatted log ──
@@ -928,8 +996,9 @@ window.CallLogger = (() => {
         const formatBtn = document.getElementById('clSubmitBtn');
         const confirmSection = document.getElementById('clConfirmSection');
         if (formatBtn) {
-            formatBtn.textContent = '🔍 Format Preview';
+            formatBtn.innerHTML = '<span class="cl-btn-text">Format &amp; Preview</span><svg class="cl-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg><span class="cl-btn-spinner"></span>';
             formatBtn.classList.remove('cl-edit-mode');
+            formatBtn.classList.remove('cl-loading');
         }
         if (confirmSection) {
             confirmSection.style.display = 'none';
@@ -1028,7 +1097,27 @@ window.CallLogger = (() => {
             refreshBtn.addEventListener('click', _refreshPolicies);
             refreshBtn._clWired = true;
         }
+
+        // Channel buttons (event delegation)
+        const channelGroup = document.getElementById('clChannelGroup');
+        if (channelGroup && !channelGroup._clWired) {
+            channelGroup.addEventListener('click', (e) => {
+                const btn = e.target.closest('.cl-channel-btn');
+                if (btn && btn.dataset.channel) _handleChannelSelect(btn.dataset.channel);
+            });
+            channelGroup._clWired = true;
+        }
+
+        // Activity type pills (event delegation)
+        const activityGroup = document.getElementById('clActivityGroup');
+        if (activityGroup && !activityGroup._clWired) {
+            activityGroup.addEventListener('click', (e) => {
+                const btn = e.target.closest('.cl-activity-btn');
+                if (btn && btn.dataset.activity) _handleActivitySelect(btn.dataset.activity, btn.dataset.template || '');
+            });
+            activityGroup._clWired = true;
+        }
     }
 
-    return { init, render, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, getSelectedPolicy: () => _selectedPolicy };
+    return { init, render, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, _handleChannelSelect, _handleActivitySelect, getSelectedPolicy: () => _selectedPolicy, getSelectedChannel: () => _selectedChannel, getSelectedActivityType: () => _selectedActivityType };
 })();

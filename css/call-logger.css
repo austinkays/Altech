@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════
-   Call Logger — Call note formatter + HawkSoft log
-   Desktop-first design, matches Compliance / Reminders
+   Call Logger — Channel buttons, Activity pills, HawkSoft log
+   Desktop-first design, quick-tap interaction model
    ═══════════════════════════════════════════════════ */
 
 .cl-container {
@@ -156,62 +156,33 @@
 
 /* ── Form Sections ── */
 
-.cl-form-section {
+.cl-section {
     margin-bottom: 20px;
 }
 
-.cl-form-section:last-of-type {
+.cl-section:last-of-type {
     margin-bottom: 24px;
 }
 
-.cl-form-section-title {
+.cl-section-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.cl-section-label {
+    font-size: 12px;
     font-weight: 700;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.8px;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-subtle);
 }
 
-.cl-form-section-title svg {
-    color: var(--apple-blue);
-    opacity: 0.8;
-}
+/* ── Inputs ── */
 
-/* ── Form Grid (client + call type side-by-side) ── */
-
-.cl-form-grid {
-    display: grid;
-    grid-template-columns: 1fr 160px 72px;
-    gap: 16px;
-    align-items: start;
-}
-
-.cl-field-grow { grid-column: 1; }
-.cl-field-fixed { grid-column: 2; }
-.cl-field-initials { grid-column: 3; }
-
-.cl-field {
-    margin-bottom: 0;
-}
-
-.cl-label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.cl-input,
-.cl-select {
+.cl-input {
     width: 100%;
     padding: 11px 14px;
     font-size: 15px;
@@ -226,27 +197,172 @@
     font-family: inherit;
 }
 
-.cl-input:focus-visible,
-.cl-select:focus-visible {
+.cl-input:focus-visible {
     border-color: var(--apple-blue);
     box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
 }
 
-.cl-select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A6E65' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 12px 8px;
-    padding-right: 36px;
+/* Search input with icon */
+
+.cl-search-wrapper {
+    position: relative;
 }
+
+.cl-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.cl-input-search {
+    padding-left: 40px;
+}
+
+/* Initials inline within channel header */
+
+.cl-initials-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cl-initials-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.cl-input-initials {
+    width: 64px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ── Channel Buttons (5-across row) ── */
+
+.cl-channel-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cl-channel-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s var(--transition-smooth);
+    font-family: inherit;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.cl-channel-btn svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.cl-channel-btn:hover {
+    border-color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.05);
+    color: var(--text);
+}
+
+.cl-channel-btn:hover svg {
+    opacity: 1;
+}
+
+.cl-channel-btn:active {
+    transform: scale(0.96);
+}
+
+.cl-channel-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+.cl-channel-btn.cl-channel-selected {
+    color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.1);
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.12);
+}
+
+.cl-channel-btn.cl-channel-selected svg {
+    opacity: 1;
+    color: var(--apple-blue);
+}
+
+/* ── Activity Type Buttons (pill row) ── */
+
+.cl-activity-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.cl-activity-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s var(--transition-smooth);
+    font-family: inherit;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.cl-activity-btn:hover {
+    border-color: var(--apple-blue);
+    color: var(--text);
+    background: rgba(0, 122, 255, 0.05);
+}
+
+.cl-activity-btn:active {
+    transform: scale(0.95);
+}
+
+.cl-activity-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+.cl-activity-btn.cl-activity-selected {
+    color: #fff;
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+}
+
+/* ── Textarea ── */
 
 .cl-textarea {
     width: 100%;
-    min-height: 150px;
+    min-height: 120px;
     padding: 14px 16px;
     font-size: 15px;
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
@@ -275,7 +391,10 @@
 /* ── Submit Button ── */
 
 .cl-submit-btn {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     width: 100%;
     padding: 14px 20px;
     font-size: 16px;
@@ -311,6 +430,38 @@
     outline: none;
     box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3),
                 0 4px 14px rgba(0, 122, 255, 0.3);
+}
+
+.cl-btn-text {
+    display: inline;
+}
+
+.cl-btn-arrow {
+    display: inline;
+    transition: transform 0.2s;
+}
+
+.cl-submit-btn:hover:not(:disabled) .cl-btn-arrow {
+    transform: translateX(3px);
+}
+
+.cl-btn-spinner {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: cl-spin 0.6s linear infinite;
+}
+
+.cl-submit-btn.cl-loading .cl-btn-text,
+.cl-submit-btn.cl-loading .cl-btn-arrow {
+    display: none;
+}
+
+.cl-submit-btn.cl-loading .cl-btn-spinner {
+    display: inline-block;
 }
 
 /* ── Edit Mode (outline style) ── */
@@ -408,19 +559,13 @@
     box-shadow: inset 0 2px 8px rgba(0, 122, 255, 0.08);
 }
 
-body.dark-mode .cl-edit-textarea {
-    background: #1C1C1E;
-    color: #FFFFFF;
-}
-
-body.dark-mode .cl-edit-textarea:focus {
-    box-shadow: inset 0 2px 8px rgba(10, 132, 255, 0.12);
-}
-
 /* ── Copy Button ── */
 
 .cl-copy-btn {
-    padding: 6px 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
     font-size: 12px;
     font-weight: 600;
     color: var(--apple-blue);
@@ -460,6 +605,14 @@ body.dark-mode .cl-edit-textarea:focus {
     animation: cl-card-in 0.3s ease both;
 }
 
+.cl-confirm-header {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    letter-spacing: -0.2px;
+}
+
 .cl-confirm-info {
     font-size: 15px;
     color: var(--text);
@@ -469,14 +622,6 @@ body.dark-mode .cl-edit-textarea:focus {
     margin-bottom: 16px;
     line-height: 1.5;
     border: 1px solid var(--border-subtle);
-}
-
-.cl-confirm-header {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text);
-    margin-bottom: 12px;
-    letter-spacing: -0.2px;
 }
 
 .cl-confirm-summary {
@@ -610,16 +755,6 @@ body.dark-mode .cl-edit-textarea:focus {
 }
 
 /* ── Client Search Autocomplete ── */
-
-.cl-client-field {
-    position: relative;
-}
-
-.cl-search-wrapper {
-    position: relative;
-}
-
-/* (Policy loading hint removed — status bar handles loading state now) */
 
 .cl-client-dropdown {
     position: absolute;
@@ -794,8 +929,34 @@ body.dark-mode .cl-form {
         0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-body.dark-mode .cl-form-section-title {
-    border-bottom-color: #2C2C2E;
+body.dark-mode .cl-channel-btn {
+    background: #2C2C2E;
+    border-color: #38383A;
+}
+
+body.dark-mode .cl-channel-btn:hover {
+    background: rgba(10, 132, 255, 0.1);
+    border-color: rgba(10, 132, 255, 0.4);
+}
+
+body.dark-mode .cl-channel-btn.cl-channel-selected {
+    background: rgba(10, 132, 255, 0.2);
+    border-color: var(--apple-blue);
+}
+
+body.dark-mode .cl-activity-btn {
+    background: #2C2C2E;
+    border-color: #38383A;
+}
+
+body.dark-mode .cl-activity-btn:hover {
+    background: rgba(10, 132, 255, 0.1);
+    border-color: rgba(10, 132, 255, 0.4);
+}
+
+body.dark-mode .cl-activity-btn.cl-activity-selected {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
 }
 
 body.dark-mode .cl-preview {
@@ -864,6 +1025,15 @@ body.dark-mode .cl-submit-btn.cl-edit-mode:hover:not(:disabled) {
     background: var(--apple-blue);
 }
 
+body.dark-mode .cl-edit-textarea {
+    background: #1C1C1E;
+    color: #FFFFFF;
+}
+
+body.dark-mode .cl-edit-textarea:focus {
+    box-shadow: inset 0 2px 8px rgba(10, 132, 255, 0.12);
+}
+
 body.dark-mode .cl-confirm-policy {
     background: rgba(10, 132, 255, 0.15);
     color: var(--apple-blue);
@@ -875,10 +1045,6 @@ body.dark-mode .cl-client-link {
 
 body.dark-mode .cl-client-link:hover {
     border-bottom-color: var(--apple-blue);
-}
-
-body.dark-mode .cl-select {
-    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2398989D' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* ═══════════════════════════════════════
@@ -895,7 +1061,7 @@ body.dark-mode .cl-select {
     }
 
     .cl-textarea {
-        min-height: 220px;
+        min-height: 180px;
     }
 
     .cl-preview {
@@ -928,14 +1094,32 @@ body.dark-mode .cl-select {
 }
 
 @media (max-width: 600px) {
-    .cl-form-grid {
-        grid-template-columns: 1fr;
+    .cl-channel-group {
+        gap: 6px;
     }
 
-    .cl-field-grow,
-    .cl-field-fixed,
-    .cl-field-initials {
-        grid-column: 1;
+    .cl-channel-btn {
+        padding: 7px 10px;
+        font-size: 12px;
+        gap: 4px;
+    }
+
+    .cl-channel-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .cl-activity-group {
+        gap: 5px;
+    }
+
+    .cl-activity-btn {
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+
+    .cl-section-header {
+        flex-wrap: wrap;
     }
 
     .cl-status-bar {
@@ -963,7 +1147,7 @@ body.dark-mode .cl-select {
     }
 
     .cl-textarea {
-        min-height: 120px;
+        min-height: 100px;
         font-size: 14px;
     }
 

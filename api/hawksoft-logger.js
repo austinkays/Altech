@@ -47,6 +47,18 @@ Action Items: [any follow-ups, or "None" if none mentioned]`;
 
 // ── Handler ──────────────────────────────────────────────────────
 
+// ── Channel Code Mapping (HawkSoft API v3.0) ──────────────────
+// Maps client-side callType strings to HawkSoft channel numbers.
+// Phone To/From confirmed working (March 2026).
+// TODO: Verify Walk-In (2), Email (3), Text (4) channel codes against HawkSoft API
+const CHANNEL_MAP = {
+    'Inbound':  5,   // Phone From Insured — CONFIRMED WORKING
+    'Outbound': 1,   // Phone To Insured — CONFIRMED WORKING
+    'Walk-In':  2,   // In-Person visit
+    'Email':    3,   // Email correspondence
+    'Text':     4    // Text/SMS message
+};
+
 async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -87,14 +99,14 @@ async function handler(req, res) {
 
           const refId = crypto.randomUUID();
           const ts = new Date().toISOString();
-          const actionCode = cleanCallType === 'Outbound' ? 1 : 5; // 1 = Phone To Insured, 5 = Phone From Insured
+          const channelCode = CHANNEL_MAP[cleanCallType] || 5; // Default: Phone From Insured
           const logUrl = `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`;
-          const logBody = { refId, ts, note: logText, channel: actionCode };
+          const logBody = { refId, ts, note: logText, channel: channelCode };
           // Link log to specific policy if we have the HawkSoft policy GUID
           if (cleanHawksoftPolicyId) logBody.policyId = cleanHawksoftPolicyId;
           console.log(`[HawkSoft Logger] ── PRE-FORMATTED PUSH ──`);
           console.log(`[HawkSoft Logger]   URL: ${logUrl}`);
-          console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId, ts: ts.substring(0, 19), channel: actionCode, policyId: cleanHawksoftPolicyId || '(none)', noteLen: logText.length })}`);
+          console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId, ts: ts.substring(0, 19), channel: channelCode, policyId: cleanHawksoftPolicyId || '(none)', noteLen: logText.length })}`);
           console.log(`[HawkSoft Logger]   clientNumber=${hawksoftClientId} policyId=${cleanPolicyId} hawksoftPolicyId=${cleanHawksoftPolicyId || '(none)'} callType=${cleanCallType}`);
           const logRes = await fetch(logUrl, {
               method: 'POST',
@@ -227,14 +239,14 @@ ${cleanNotes}`;
         // HawkSoft log note endpoint — /client/{id}/log per API v3.0 docs
         const refId2 = crypto.randomUUID();
         const ts2 = new Date().toISOString();
-        const actionCode2 = cleanCallType === 'Outbound' ? 1 : 5; // 1 = Phone To Insured, 5 = Phone From Insured
+        const channelCode2 = CHANNEL_MAP[cleanCallType] || 5; // Default: Phone From Insured
         const logUrl2 = `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`;
-        const logBody2 = { refId: refId2, ts: ts2, note: formattedLog.trim(), channel: actionCode2 };
+        const logBody2 = { refId: refId2, ts: ts2, note: formattedLog.trim(), channel: channelCode2 };
         // Link log to specific policy if we have the HawkSoft policy GUID
         if (cleanHawksoftPolicyId) logBody2.policyId = cleanHawksoftPolicyId;
         console.log(`[HawkSoft Logger] ── AI-FORMATTED PUSH ──`);
         console.log(`[HawkSoft Logger]   URL: ${logUrl2}`);
-        console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId: refId2, ts: ts2.substring(0, 19), channel: actionCode2, policyId: cleanHawksoftPolicyId || '(none)', noteLen: formattedLog.trim().length })}`);
+        console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId: refId2, ts: ts2.substring(0, 19), channel: channelCode2, policyId: cleanHawksoftPolicyId || '(none)', noteLen: formattedLog.trim().length })}`);
         console.log(`[HawkSoft Logger]   clientNumber=${hawksoftClientId} policyId=${cleanPolicyId} hawksoftPolicyId=${cleanHawksoftPolicyId || '(none)'} callType=${cleanCallType}`);
         const logRes = await fetch(logUrl2, {
             method: 'POST',

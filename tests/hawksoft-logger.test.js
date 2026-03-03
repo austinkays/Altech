@@ -253,13 +253,13 @@ describe('HawkSoft Push', () => {
     expect(source).toContain('/log?version=');
   });
 
-  test('uses action code 5 for Inbound calls (Phone From Insured)', () => {
-    expect(source).toContain("'Outbound' ? 1 : 5");
+  test('uses CHANNEL_MAP for Inbound calls (Phone From Insured)', () => {
+    expect(source).toContain('CHANNEL_MAP');
     expect(source).toMatch(/5.*Phone From Insured/);
   });
 
-  test('uses action code 1 for Outbound calls (Phone To Insured)', () => {
-    expect(source).toContain("'Outbound' ? 1 : 5");
+  test('uses CHANNEL_MAP for Outbound calls (Phone To Insured)', () => {
+    expect(source).toContain('CHANNEL_MAP');
     expect(source).toMatch(/1.*Phone To Insured/);
   });
 
@@ -272,11 +272,12 @@ describe('HawkSoft Push', () => {
 
   test('uses channel field (not action) in HawkSoft request body', () => {
     // HawkSoft API expects "channel" not "action" in the log body
-    expect(source).toContain('channel: actionCode');
+    expect(source).toContain('channel: channelCode');
   });
 
-  test('switches action based on callType being Outbound', () => {
-    expect(source).toContain("cleanCallType === 'Outbound' ? 1 : 5");
+  test('uses CHANNEL_MAP for channel code resolution', () => {
+    expect(source).toContain('const CHANNEL_MAP');
+    expect(source).toContain("CHANNEL_MAP[cleanCallType]");
   });
 
   test('sets hawksoftLogged to true only on success', () => {

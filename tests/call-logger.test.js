@@ -59,9 +59,10 @@ describe('Persistence', () => {
     expect(source).toContain('localStorage.getItem(STORAGE_KEY)');
   });
 
-  test('_load restores policyId and callType', () => {
+  test('_load restores policyId and channel/activity selections', () => {
     expect(source).toContain('saved.policyId');
-    expect(source).toContain('saved.callType');
+    expect(source).toContain('saved.channelType');
+    expect(source).toContain('saved.activityType');
   });
 
   test('_load has try-catch error handling', () => {
@@ -71,7 +72,7 @@ describe('Persistence', () => {
 
   test('_save writes to localStorage as JSON', () => {
     expect(source).toContain('localStorage.setItem(STORAGE_KEY');
-    expect(source).toContain('JSON.stringify({ policyId, callType, agentInitials })');
+    expect(source).toContain('JSON.stringify({ policyId, callType, agentInitials, channelType: _selectedChannel, activityType: _selectedActivityType })');
   });
 
   test('_save calls CloudSync.schedulePush when available', () => {
@@ -135,7 +136,7 @@ describe('Submit Handler', () => {
 
   test('disables button during submission', () => {
     expect(source).toContain('formatBtn.disabled = true');
-    expect(source).toContain("formatBtn.textContent = '⏳ Formatting...'");
+    expect(source).toContain("formatBtn.classList.add('cl-loading')");
   });
 
   test('re-enables button in finally block', () => {
@@ -180,7 +181,8 @@ describe('Submit Handler', () => {
 
   test('references correct DOM element IDs', () => {
     expect(source).toContain("getElementById('clPolicyId')");
-    expect(source).toContain("getElementById('clCallType')");
+    expect(source).toContain("getElementById('clChannelGroup')");
+    expect(source).toContain("getElementById('clActivityGroup')");
     expect(source).toContain("getElementById('clRawNotes')");
     expect(source).toContain("getElementById('clSubmitBtn')");
     expect(source).toContain("getElementById('clPreview')");
@@ -221,18 +223,26 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
       <div id="callLoggerTool" class="plugin-container">
         <div class="cl-form">
           <input type="text" id="clPolicyId" value="">
-          <select id="clCallType"><option value="Inbound">Inbound</option><option value="Outbound">Outbound</option></select>
+          <div id="clChannelGroup" class="cl-channel-group">
+            <button class="cl-channel-btn cl-channel-selected" data-channel="Inbound">Inbound</button>
+            <button class="cl-channel-btn" data-channel="Outbound">Outbound</button>
+            <button class="cl-channel-btn" data-channel="Walk-In">Walk-In</button>
+            <button class="cl-channel-btn" data-channel="Email">Email</button>
+            <button class="cl-channel-btn" data-channel="Text">Text</button>
+          </div>
+          <div id="clActivityGroup" class="cl-activity-group"></div>
+          <input type="text" id="clAgentInitials" value="">
           <textarea id="clRawNotes"></textarea>
-          <button id="clSubmitBtn">🔍 Format Preview</button>
+          <button id="clSubmitBtn"><span class="cl-btn-text">Format &amp; Preview</span></button>
         </div>
         <div id="clPreview" style="display:none">
-          <div class="cl-preview-header"><span>Formatted Log Preview</span><button id="clCopyBtn">📋 Copy</button></div>
+          <div class="cl-preview-header"><span>Formatted Log Preview</span><button id="clCopyBtn">Copy</button></div>
           <pre id="clPreviewText"></pre>
         </div>
         <div id="clConfirmSection" style="display:none">
           <div id="clConfirmInfo"></div>
-          <button id="clConfirmBtn">✅ Confirm &amp; Log to HawkSoft</button>
-          <button id="clCancelBtn">✏️ Edit</button>
+          <button id="clConfirmBtn">Confirm &amp; Push to HawkSoft</button>
+          <button id="clCancelBtn">Edit</button>
         </div>
       </div>
       <script>
@@ -282,10 +292,10 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
 
   test('init() loads saved data from localStorage', () => {
     const { window, store } = createMiniDOM();
-    store['altech_call_logger'] = JSON.stringify({ policyId: 'POL-999', callType: 'Outbound' });
+    store['altech_call_logger'] = JSON.stringify({ policyId: 'POL-999', channelType: 'Outbound' });
     window.CallLogger.init();
     expect(window.document.getElementById('clPolicyId').value).toBe('POL-999');
-    expect(window.document.getElementById('clCallType').value).toBe('Outbound');
+    expect(window.CallLogger.getSelectedChannel()).toBe('Outbound');
   });
 
   test('render() also wires events and loads data', () => {
@@ -366,6 +376,55 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
     expect(result.userApiKey).toBe('sk-mykey');
     expect(result.aiModel).toBe('gpt-4o');
   });
+
+  test('channel selection via _handleChannelSelect', () => {
+    const { window } = createMiniDOM();
+    window.CallLogger.init();
+    expect(window.CallLogger.getSelectedChannel()).toBe('Inbound');
+    window.CallLogger._handleChannelSelect('Walk-In');
+    expect(window.CallLogger.getSelectedChannel()).toBe('Walk-In');
+  });
+
+  test('channel selection persists via _save', () => {
+    const { window } = createMiniDOM();
+    window.CallLogger.init();
+    window.CallLogger._handleChannelSelect('Email');
+    // Verify in-memory state updated (persistence verified via source analysis test)
+    expect(window.CallLogger.getSelectedChannel()).toBe('Email');
+    // Source analysis confirms _save writes channelType to localStorage
+    expect(source).toContain('channelType: _selectedChannel');
+  });
+
+  test('activity selection via _handleActivitySelect', () => {
+    const { window } = createMiniDOM();
+    window.CallLogger.init();
+    expect(window.CallLogger.getSelectedActivityType()).toBeNull();
+    window.CallLogger._handleActivitySelect('Payment', 'Payment received for $');
+    expect(window.CallLogger.getSelectedActivityType()).toBe('Payment');
+  });
+
+  test('activity deselect when clicking same type', () => {
+    const { window } = createMiniDOM();
+    window.CallLogger.init();
+    window.CallLogger._handleActivitySelect('Claim', 'Claim reported: ');
+    expect(window.CallLogger.getSelectedActivityType()).toBe('Claim');
+    window.CallLogger._handleActivitySelect('Claim', 'Claim reported: ');
+    expect(window.CallLogger.getSelectedActivityType()).toBeNull();
+  });
+
+  test('channel group wires event delegation', () => {
+    const { window } = createMiniDOM();
+    window.CallLogger.init();
+    const group = window.document.getElementById('clChannelGroup');
+    expect(group._clWired).toBe(true);
+  });
+
+  test('activity group wires event delegation', () => {
+    const { window } = createMiniDOM();
+    window.CallLogger.init();
+    const group = window.document.getElementById('clActivityGroup');
+    expect(group._clWired).toBe(true);
+  });
 });
 
 // ────────────────────────────────────────────────────
@@ -383,8 +442,13 @@ describe('call-logger.html — Plugin HTML', () => {
     expect(pluginHtml).toContain('id="clPolicyId"');
   });
 
-  test('has clCallType select', () => {
-    expect(pluginHtml).toContain('id="clCallType"');
+  test('has channel buttons with all 5 types', () => {
+    expect(pluginHtml).toContain('id="clChannelGroup"');
+    expect(pluginHtml).toContain('data-channel="Inbound"');
+    expect(pluginHtml).toContain('data-channel="Outbound"');
+    expect(pluginHtml).toContain('data-channel="Walk-In"');
+    expect(pluginHtml).toContain('data-channel="Email"');
+    expect(pluginHtml).toContain('data-channel="Text"');
   });
 
   test('has clRawNotes textarea', () => {
@@ -404,9 +468,9 @@ describe('call-logger.html — Plugin HTML', () => {
     expect(pluginHtml).toContain('id="clPreviewText"');
   });
 
-  test('has Inbound and Outbound options', () => {
-    expect(pluginHtml).toContain('value="Inbound"');
-    expect(pluginHtml).toContain('value="Outbound"');
+  test('has Inbound and Outbound channel buttons', () => {
+    expect(pluginHtml).toContain('data-channel="Inbound"');
+    expect(pluginHtml).toContain('data-channel="Outbound"');
   });
 
   test('has standard header with title', () => {
@@ -468,7 +532,7 @@ describe('Two-Step Workflow', () => {
 
   test('resets to format mode after confirm', () => {
     expect(source).toContain('function _resetToFormatMode()');
-    expect(source).toContain("'🔍 Format Preview'");
+    expect(source).toContain('Format &amp; Preview');
   });
 
   test('wires confirm, cancel, and copy buttons', () => {
@@ -532,6 +596,107 @@ describe('Two-Step Workflow', () => {
   test('uses navigator.clipboard with fallback', () => {
     expect(source).toContain('navigator.clipboard.writeText');
     expect(source).toContain('document.execCommand');
+  });
+});
+
+// ────────────────────────────────────────────────────
+// Channel & Activity Type System (source analysis)
+// ────────────────────────────────────────────────────
+
+describe('Channel & Activity Type System', () => {
+  test('tracks _selectedChannel state with default Inbound', () => {
+    expect(source).toContain("let _selectedChannel = 'Inbound'");
+  });
+
+  test('tracks _selectedActivityType state', () => {
+    expect(source).toContain('let _selectedActivityType = null');
+  });
+
+  test('tracks _lastTemplate for activity templates', () => {
+    expect(source).toContain("let _lastTemplate = ''");
+  });
+
+  test('defines _handleChannelSelect function', () => {
+    expect(source).toContain('function _handleChannelSelect(channel)');
+  });
+
+  test('defines _applyChannelUI function', () => {
+    expect(source).toContain('function _applyChannelUI()');
+  });
+
+  test('defines _handleActivitySelect function', () => {
+    expect(source).toContain('function _handleActivitySelect(activity, template)');
+  });
+
+  test('defines _applyActivityUI function', () => {
+    expect(source).toContain('function _applyActivityUI()');
+  });
+
+  test('_handleChannelSelect updates _selectedChannel and calls _save', () => {
+    expect(source).toContain('_selectedChannel = channel');
+  });
+
+  test('_handleActivitySelect toggles activity type (deselect same)', () => {
+    // Clicking same activity deselects it
+    expect(source).toContain('_selectedActivityType === activity');
+    expect(source).toContain('_selectedActivityType = null');
+  });
+
+  test('_handleActivitySelect inserts template into notes', () => {
+    expect(source).toContain("getElementById('clRawNotes')");
+    expect(source).toContain('_lastTemplate');
+  });
+
+  test('_handleFormat uses _selectedChannel instead of select element', () => {
+    expect(source).toContain('const callType = _selectedChannel');
+    // Should NOT reference clCallType
+    expect(source).not.toContain("getElementById('clCallType')");
+  });
+
+  test('channel icons map includes all 5 channel types', () => {
+    expect(source).toContain("'Inbound': '📥'");
+    expect(source).toContain("'Outbound': '📤'");
+    expect(source).toContain("'Walk-In': '🚶'");
+    expect(source).toContain("'Email': '📧'");
+    expect(source).toContain("'Text': '💬'");
+  });
+
+  test('confirm info shows Channel label (not Call Type)', () => {
+    expect(source).toContain("Channel:</span>");
+  });
+
+  test('confirm info shows Activity row when activity selected', () => {
+    expect(source).toContain('_selectedActivityType');
+    expect(source).toContain("Activity:</span>");
+  });
+
+  test('_save persists channelType and activityType', () => {
+    expect(source).toContain('channelType: _selectedChannel');
+    expect(source).toContain('activityType: _selectedActivityType');
+  });
+
+  test('_load restores channel and activity selections', () => {
+    expect(source).toContain('saved.channelType');
+    expect(source).toContain('saved.activityType');
+    expect(source).toContain('_applyChannelUI()');
+    expect(source).toContain('_applyActivityUI()');
+  });
+
+  test('wires channel group via event delegation', () => {
+    expect(source).toContain("getElementById('clChannelGroup')");
+    expect(source).toContain('channelGroup._clWired');
+  });
+
+  test('wires activity group via event delegation', () => {
+    expect(source).toContain("getElementById('clActivityGroup')");
+    expect(source).toContain('activityGroup._clWired');
+  });
+
+  test('exposes channel and activity helpers in return statement', () => {
+    expect(source).toContain('_handleChannelSelect');
+    expect(source).toContain('_handleActivitySelect');
+    expect(source).toContain('getSelectedChannel');
+    expect(source).toContain('getSelectedActivityType');
   });
 });
 
@@ -686,9 +851,13 @@ describe('Client & Policy Lookup — Behavioral', () => {
               <div id="clPolicyList" class="cl-policy-list"></div>
             </div>
           </div>
-          <select id="clCallType"><option value="Inbound">Inbound</option></select>
+          <div id="clChannelGroup" class="cl-channel-group">
+            <button class="cl-channel-btn cl-channel-selected" data-channel="Inbound">Inbound</button>
+          </div>
+          <div id="clActivityGroup" class="cl-activity-group"></div>
+          <input type="text" id="clAgentInitials" value="">
           <textarea id="clRawNotes"></textarea>
-          <button id="clSubmitBtn">🔍 Format Preview</button>
+          <button id="clSubmitBtn"><span class="cl-btn-text">Format &amp; Preview</span></button>
         </div>
         <div id="clPreview" style="display:none">
           <pre id="clPreviewText"></pre>
