@@ -71,7 +71,7 @@ describe('Persistence', () => {
 
   test('_save writes to localStorage as JSON', () => {
     expect(source).toContain('localStorage.setItem(STORAGE_KEY');
-    expect(source).toContain('JSON.stringify({ policyId, callType })');
+    expect(source).toContain('JSON.stringify({ policyId, callType, agentInitials })');
   });
 
   test('_save calls CloudSync.schedulePush when available', () => {
@@ -148,7 +148,7 @@ describe('Submit Handler', () => {
   });
 
   test('sends policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, userApiKey, aiModel in body', () => {
-    expect(source).toContain('JSON.stringify({ policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, userApiKey, aiModel, formatOnly: true })');
+    expect(source).toContain('JSON.stringify({ policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, userApiKey, aiModel, formatOnly: true })');
   });
 
   test('uses Auth.apiFetch when available', () => {

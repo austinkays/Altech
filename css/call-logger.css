@@ -187,13 +187,14 @@
 
 .cl-form-grid {
     display: grid;
-    grid-template-columns: 1fr 160px;
+    grid-template-columns: 1fr 160px 72px;
     gap: 16px;
     align-items: start;
 }
 
 .cl-field-grow { grid-column: 1; }
 .cl-field-fixed { grid-column: 2; }
+.cl-field-initials { grid-column: 3; }
 
 .cl-field {
     margin-bottom: 0;
@@ -932,7 +933,8 @@ body.dark-mode .cl-select {
     }
 
     .cl-field-grow,
-    .cl-field-fixed {
+    .cl-field-fixed,
+    .cl-field-initials {
         grid-column: 1;
     }
 

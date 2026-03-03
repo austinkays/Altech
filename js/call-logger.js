@@ -38,8 +38,10 @@ window.CallLogger = (() => {
                 const saved = JSON.parse(raw);
                 const policyEl = document.getElementById('clPolicyId');
                 const typeEl = document.getElementById('clCallType');
+                const initialsEl = document.getElementById('clAgentInitials');
                 if (policyEl && saved.policyId) policyEl.value = saved.policyId;
                 if (typeEl && saved.callType) typeEl.value = saved.callType;
+                if (initialsEl && saved.agentInitials) initialsEl.value = saved.agentInitials;
             }
         } catch (e) {
             console.warn('[CallLogger] Load error:', e);
@@ -48,7 +50,9 @@ window.CallLogger = (() => {
 
     function _save(policyId, callType) {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ policyId, callType }));
+            const initialsEl = document.getElementById('clAgentInitials');
+            const agentInitials = initialsEl ? initialsEl.value.trim().toUpperCase() : '';
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ policyId, callType, agentInitials }));
             if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
                 CloudSync.schedulePush();
             }
@@ -630,6 +634,10 @@ window.CallLogger = (() => {
         const hawksoftPolicyId = (_selectedPolicy && _selectedPolicy.hawksoftPolicyId)
             ? _selectedPolicy.hawksoftPolicyId : '';
 
+        // Agent initials — persisted so it's remembered
+        const initialsEl = document.getElementById('clAgentInitials');
+        const agentInitials = initialsEl ? initialsEl.value.trim().toUpperCase() : '';
+
         // Resolve settings
         const { userApiKey, aiModel } = _resolveAISettings();
 
@@ -645,7 +653,7 @@ window.CallLogger = (() => {
             const res = await fetchFn('/api/hawksoft-logger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, userApiKey, aiModel, formatOnly: true })
+                body: JSON.stringify({ policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, userApiKey, aiModel, formatOnly: true })
             });
 
             if (!res.ok) {

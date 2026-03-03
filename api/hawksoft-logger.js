@@ -39,7 +39,7 @@ RULES:
 
 FORMAT:
 RE: [Brief Subject]
-[Call Direction] Call — [Date/Time]
+[Call Direction] Call — [Date/Time] — [Agent Initials, if provided]
 
 [Formatted note body]
 
@@ -53,7 +53,7 @@ async function handler(req, res) {
   }
 
   try {
-    const { policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, userApiKey, aiModel, formatOnly, formattedLog: preFormattedLog } = req.body || {};
+    const { policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, userApiKey, aiModel, formatOnly, formattedLog: preFormattedLog } = req.body || {};
 
     // ── Validation ──
     if (!policyId || typeof policyId !== 'string' || !policyId.trim()) {
@@ -179,9 +179,10 @@ async function handler(req, res) {
       hour12: true
     });
 
+    const cleanInitials = (agentInitials || '').trim().toUpperCase();
     const userMessage = `Policy/Client ID: ${cleanPolicyId}
 Call Type: ${cleanCallType}
-Timestamp: ${timestamp} PST
+Timestamp: ${timestamp} PST${cleanInitials ? `\nAgent: ${cleanInitials}` : ''}
 Agent's shorthand notes:
 ${cleanNotes}`;
 
