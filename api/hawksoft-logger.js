@@ -36,6 +36,11 @@ RULES:
 7. Keep it concise — typically 3-8 sentences
 8. End with any action items or follow-up needed
 9. Do NOT wrap in markdown or code blocks — return plain text only
+10. Match the voice to the activity type:
+    - Payment, Policy Change, Renewal, Certificate: write as COMPLETED actions (past tense — "paid", "processed", "issued", not "requesting" or "inquiring")
+    - Coverage Q, New Quote: may be a question or in-progress — write accordingly
+    - Claim: write as reported/filed
+    - Other or unspecified: follow whatever the raw notes suggest
 
 FORMAT:
 RE: [Brief Subject] — [Agent Initials, if provided]
@@ -66,7 +71,7 @@ async function handler(req, res) {
   }
 
   try {
-    const { policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, userApiKey, aiModel, formatOnly, formattedLog: preFormattedLog } = req.body || {};
+    const { policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, activityType, userApiKey, aiModel, formatOnly, formattedLog: preFormattedLog } = req.body || {};
 
     // ── Validation ──
     if (!policyId || typeof policyId !== 'string' || !policyId.trim()) {
@@ -193,8 +198,9 @@ async function handler(req, res) {
     });
 
     const cleanInitials = (agentInitials || '').trim().toUpperCase();
+    const cleanActivityType = (activityType || '').trim();
     const userMessage = `Policy/Client ID: ${cleanPolicyId}
-Call Type: ${cleanCallType}
+Call Type: ${cleanCallType}${cleanActivityType ? `\nActivity: ${cleanActivityType}` : ''}
 Timestamp: ${timestamp} PST${cleanInitials ? `\nAgent: ${cleanInitials}` : ''}
 Agent's shorthand notes:
 ${cleanNotes}`;

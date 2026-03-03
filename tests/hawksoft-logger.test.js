@@ -94,6 +94,13 @@ describe('SYSTEM_PROMPT', () => {
   test('prohibits adding information', () => {
     expect(prompt.toLowerCase()).toContain('do not add information');
   });
+
+  test('includes activity-type voice guidance (rule 10)', () => {
+    expect(prompt).toContain('Match the voice to the activity type');
+    expect(prompt).toContain('Payment');
+    expect(prompt).toContain('COMPLETED actions');
+    expect(prompt).toContain('past tense');
+  });
 });
 
 // ────────────────────────────────────────────────────
@@ -101,6 +108,12 @@ describe('SYSTEM_PROMPT', () => {
 // ────────────────────────────────────────────────────
 
 describe('Request Validation', () => {
+  test('destructures activityType from request body', () => {
+    expect(source).toContain('activityType');
+    // Should be in the main destructuring line
+    expect(source).toMatch(/const\s*\{[^}]*activityType[^}]*\}\s*=\s*req\.body/);
+  });
+
   test('rejects non-POST methods', () => {
     expect(source).toContain("req.method !== 'POST'");
     expect(source).toContain('405');
@@ -215,6 +228,16 @@ describe('AI Formatting Call', () => {
 
   test('includes raw notes in user message', () => {
     expect(source).toContain('${cleanNotes}');
+  });
+
+  test('includes activityType in user message when present', () => {
+    expect(source).toContain('cleanActivityType');
+    expect(source).toContain('Activity: ${cleanActivityType}');
+  });
+
+  test('conditionally includes activityType line only when non-empty', () => {
+    // Should use ternary/conditional to skip empty activityType
+    expect(source).toContain("cleanActivityType ? `\\nActivity: ${cleanActivityType}` : ''");
   });
 
   test('throws on empty AI response', () => {

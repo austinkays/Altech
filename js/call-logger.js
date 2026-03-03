@@ -710,7 +710,7 @@ window.CallLogger = (() => {
             const res = await fetchFn('/api/hawksoft-logger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, userApiKey, aiModel, formatOnly: true })
+                body: JSON.stringify({ policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, activityType: _selectedActivityType || '', userApiKey, aiModel, formatOnly: true })
             });
 
             if (!res.ok) {

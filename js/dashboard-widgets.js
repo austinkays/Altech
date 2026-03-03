@@ -46,6 +46,7 @@ window.DashboardWidgets = (() => {
         sparkles:    '<svg viewBox="0 0 24 24"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/></svg>',
         clipboard:   '<svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
         phone:       '<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+        hawk:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8 2 4 5 4 9c0 2 1 4 2.5 5.5L4 22l4-2 4 2 4-2 4 2-2.5-7.5C19 13 20 11 20 9c0-4-4-7-8-7z"/><path d="M12 2 9 8h6L12 2z"/><path d="M9 8c-1 2-1 4 0 6"/><path d="M15 8c1 2 1 4 0 6"/></svg>',
     };
 
     // Tool → Lucide icon mapping
@@ -64,7 +65,7 @@ window.DashboardWidgets = (() => {
         accounting:   'calculator',
         quickref:     'bookOpen',
         vindecoder:   'car',
-        calllogger:   'phone',
+        calllogger:   'hawk',
     };
 
     /**

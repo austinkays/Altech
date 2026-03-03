@@ -1,6 +1,6 @@
 # AGENTS.md â€” Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 3, 2026
+> **Last updated:** March 4, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive â€” read this before making ANY changes
 >
@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 23 suites, 1485 tests |
+| **Tests** | Jest + JSDOM, 23 suites, 1489 tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -106,7 +106,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 â”‚   â”œâ”€â”€ cloud-sync.js           # Firestore sync (7 doc types, conflict resolution, 642 lines)
 â”‚   â”œâ”€â”€ ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-â”‚   â”œâ”€â”€ dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs (968 lines)
+â”‚   â”œâ”€â”€ dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs (976 lines)
 â”‚   â”‚
 â”‚   â”‚  â˜… Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 â”‚   â”œâ”€â”€ coi.js                  # ACORD 25 COI PDF generator (789 lines)
@@ -163,7 +163,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ stripe.js               # Stripe checkout, portal, webhooks
 â”‚   â”œâ”€â”€ admin.js                # User management (admin only)
 â”‚   â”œâ”€â”€ anthropic-proxy.js      # CORS proxy for Anthropic API
-â”‚   â””â”€â”€ hawksoft-logger.js      # AI call note formatter + HawkSoft log push, CHANNEL_MAP (5 types — objects with channel/method/direction/party), two-step support, policy-level logging, initials post-processing (319 lines)
+â”‚   â””â”€â”€ hawksoft-logger.js      # AI call note formatter + HawkSoft log push, CHANNEL_MAP (5 types — objects with channel/method/direction/party), two-step support, policy-level logging, initials post-processing, activityType voice guidance (325 lines)
 â”‚
 â”œâ”€â”€ chrome-extension/           # EZLynx bridge Chrome extension
 â”‚   â”œâ”€â”€ manifest.json
@@ -860,7 +860,7 @@ KEY RULES:
 | 86 | MEDIUM | tests/call-logger.test.js | Updated 179 tests: replaced `clCallType` select references with channel button group, updated `createMiniDOM`/`createClientDOM` HTML builders, added ~20 source analysis tests (state tracking, handler functions, channel icons map, confirm labels, persistence, event delegation, return exports) + ~6 behavioral JSDOM tests (channel selection, activity selection, activity deselect toggle, channel/activity group wiring). |
 | 87 | MEDIUM | tests/hawksoft-logger.test.js | Updated CHANNEL_MAP assertions: replaced ternary checks with `CHANNEL_MAP` object tests verifying all 5 channel type mappings. |
 
-**8 activity types with note templates:** Payment, Renewal, New Biz, Endorsement, Claim, Cancel, Reinstate, General â€" each inserts a structured template into the notes textarea with cursor positioned at first blank.
+**8 activity types with note templates:** Coverage Q, Claim, Payment, Policy Change, New Quote, Renewal, Certificate, Other â€" each inserts a structured template into the notes textarea with cursor positioned at first blank.
 
 ### HawkSoft Logger — Bug Fixes + Rename (March 2026)
 
@@ -870,6 +870,16 @@ KEY RULES:
 | 89 | HIGH | api/hawksoft-logger.js | **Bug fix: initials invisible** — Updated `SYSTEM_PROMPT` FORMAT to put agent initials on the RE: subject line (line 1) instead of direction line (line 2). Added deterministic post-processing regex that ensures initials appear on RE: line regardless of AI compliance. |
 | 90 | HIGH | 7 files | **Rename: Call Logger → HawkSoft Logger** — Updated title/name in `toolConfig` (app-init.js), plugin header (call-logger.html), sidebar emoji ( → ), quick action label, console.warn prefixes, index.html comment, test assertion. Internal `key: 'calllogger'` unchanged. |
 | 91 | MEDIUM | tests/hawksoft-logger.test.js | Updated CHANNEL_MAP tests for new object shape + added logBody field tests, DEFAULT_CHANNEL test, initials post-processing tests, SYSTEM_PROMPT FORMAT test. 5 new test blocks. |
+
+### HawkSoft Logger — Hawk Icon + Activity Templates + activityType Pipeline (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 92 | MEDIUM | js/dashboard-widgets.js | Added `hawk` SVG icon to `ICONS` object. Changed `TOOL_ICONS` mapping from `calllogger: 'phone'` to `calllogger: 'hawk'`. |
+| 93 | MEDIUM | plugins/call-logger.html | Updated 6 activity note templates to completed-action language: Payment inquiry → received, Policy Change request → processed, Renewal discussion → processed, Certificate request → issued, New Quote adds premium line, Coverage Q `Action:` → `Action taken:`. |
+| 94 | HIGH | js/call-logger.js, api/hawksoft-logger.js | **activityType pipeline:** `_selectedActivityType` now sent in formatOnly fetch body → destructured in API handler → injected into AI user message as `Activity: {type}` line → new SYSTEM_PROMPT rule 10 provides voice/tense guidance per activity type. |
+| 95 | MEDIUM | api/hawksoft-logger.js | SYSTEM_PROMPT rule 10: activity-type voice guidance — Payment/Policy Change/Renewal/Certificate use past tense (completed), Coverage Q/New Quote may be in-progress, Claim writes as reported/filed. |
+| 96 | LOW | tests/ | 4 new tests: activityType destructured from req.body, activityType in user message, conditional include, SYSTEM_PROMPT voice guidance. Total: 23 suites, 1489 tests. |
 
 ---
 
@@ -1020,8 +1030,8 @@ tests/
 â”œâ”€â”€ plugin-integration.test.js  # Plugin system integration
 â”œâ”€â”€ prospect-client.test.js     # Prospect client-side module
 â”œâ”€â”€ server.test.js              # Local dev server (server.js)
-â”œâ”€â”€ hawksoft-logger.test.js     # HawkSoft Logger API (67 tests, CHANNEL_MAP, policyId)
-â””â”€â”€ call-logger.test.js         # Call Logger client module (179 tests, channel/activity buttons, hawksoftPolicyId pipeline)
+â”œâ”€â”€ hawksoft-logger.test.js     # HawkSoft Logger API (78 tests, CHANNEL_MAP, policyId, activityType)
+â””â”€â”€ call-logger.test.js         # Call Logger client module (179 tests, channel/activity buttons, hawksoftPolicyId pipeline, activityType fetch)
 ```
 
 Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously' })`. The test setup file mocks `fetch`, silences console noise, and suppresses expected `crypto.subtle` errors.
