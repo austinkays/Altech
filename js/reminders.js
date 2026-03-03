@@ -333,6 +333,7 @@ window.Reminders = (() => {
         case 'no-date': return 'No due date';
         default: return '';
     }
+    }
 
     function _escapeHTML(str) {
         const div = document.createElement('div');
