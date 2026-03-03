@@ -255,12 +255,15 @@ describe('HawkSoft Push', () => {
 
   test('uses CHANNEL_MAP for Inbound calls (Phone From Insured)', () => {
     expect(source).toContain('CHANNEL_MAP');
-    expect(source).toMatch(/5.*Phone From Insured/);
+    // CHANNEL_MAP now returns objects with channel/method/direction/party
+    expect(source).toContain("'Inbound'");
+    expect(source).toMatch(/channel:\s*5/);
   });
 
   test('uses CHANNEL_MAP for Outbound calls (Phone To Insured)', () => {
     expect(source).toContain('CHANNEL_MAP');
-    expect(source).toMatch(/1.*Phone To Insured/);
+    expect(source).toContain("'Outbound'");
+    expect(source).toMatch(/channel:\s*1/);
   });
 
   test('includes required refId and ts in log request body', () => {
@@ -272,12 +275,44 @@ describe('HawkSoft Push', () => {
 
   test('uses channel field (not action) in HawkSoft request body', () => {
     // HawkSoft API expects "channel" not "action" in the log body
-    expect(source).toContain('channel: channelCode');
+    expect(source).toContain('channel: channelInfo');
   });
 
   test('uses CHANNEL_MAP for channel code resolution', () => {
     expect(source).toContain('const CHANNEL_MAP');
     expect(source).toContain("CHANNEL_MAP[cleanCallType]");
+  });
+
+  test('CHANNEL_MAP entries contain method/direction/party fields', () => {
+    // Each CHANNEL_MAP entry should be an object with method, direction, party
+    expect(source).toContain('method:');
+    expect(source).toContain('direction:');
+    expect(source).toContain('party:');
+  });
+
+  test('logBody includes method, direction, and party from CHANNEL_MAP', () => {
+    // Both logBody constructions should spread method/direction/party
+    expect(source).toContain('method: channelInfo');
+    expect(source).toContain('direction: channelInfo');
+    expect(source).toContain('party: channelInfo');
+  });
+
+  test('DEFAULT_CHANNEL fallback exists', () => {
+    expect(source).toContain('const DEFAULT_CHANNEL');
+    expect(source).toContain('DEFAULT_CHANNEL');
+  });
+
+  test('post-processes AI output to ensure initials on RE: line', () => {
+    // Post-processing regex should move initials to the RE: line
+    expect(source).toContain('Post-processing: ensure initials are on RE: line');
+    expect(source).toContain('cleanInitials');
+    // Should check if RE: line already includes initials
+    expect(source).toContain("lines[0].includes(cleanInitials)");
+  });
+
+  test('SYSTEM_PROMPT FORMAT puts initials on RE: line', () => {
+    // FORMAT template should have initials on the RE: line, not the direction line
+    expect(source).toMatch(/RE:.*Agent Initials/);
   });
 
   test('sets hawksoftLogged to true only on success', () => {

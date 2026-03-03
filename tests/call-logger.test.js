@@ -475,7 +475,7 @@ describe('call-logger.html — Plugin HTML', () => {
 
   test('has standard header with title', () => {
     expect(pluginHtml).toContain('tool-header-brand');
-    expect(pluginHtml).toContain('Call Logger');
+    expect(pluginHtml).toContain('HawkSoft Logger');
   });
 
   test('has confirmation section with confirm and cancel buttons', () => {

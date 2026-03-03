@@ -1,4 +1,4 @@
-﻿# AGENTS.md â€” Altech Field Lead: AI Agent Onboarding Guide
+# AGENTS.md â€” Altech Field Lead: AI Agent Onboarding Guide
 
 > **Last updated:** March 3, 2026
 > **For:** AI coding agents working on this codebase
@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 23 suites, 1480 tests |
+| **Tests** | Jest + JSDOM, 23 suites, 1485 tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 23 test suites, 1480 tests
+npm test              # All 23 test suites, 1485 tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
@@ -69,7 +69,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 â”‚   â”œâ”€â”€ sidebar.css             # Desktop/tablet/mobile sidebar layouts (765 lines)
 â”‚   â”œâ”€â”€ dashboard.css           # Bento grid dashboard widgets (1,026 lines)
-â”‚   â”œâ”€â”€ call-logger.css         # Call logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links (1,164 lines)
+â”‚   â”œâ”€â”€ call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links (1,164 lines)
 â”‚   â”œâ”€â”€ compliance.css          # CGL compliance dashboard (1,046 lines)
 â”‚   â”œâ”€â”€ auth.css                # Auth modal + settings (973 lines)
 â”‚   â”œâ”€â”€ reminders.css           # Task reminders (1,120 lines)
@@ -119,10 +119,10 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ prospect.js              # Commercial prospect investigation, risk scoring (1,859 lines)
 â”‚   â”œâ”€â”€ quick-ref.js             # NATO phonetic + agent ID cards (293 lines)
 â”‚   â”œâ”€â”€ quote-compare.js         # Quote comparison + AI recommendation (889 lines)
-â”‚   â”œâ”€â”€ reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (884 lines)
+â”‚   â”œâ”€â”€ reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (914 lines)
 â”‚   â”œâ”€â”€ vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
 â”‚   â”œâ”€â”€ accounting-export.js     # Trust deposit calculator, HawkSoft receipts (392 lines)
-â”‚   â”œâ”€â”€ call-logger.js           # Call note formatter + HawkSoft logger, two-step preview/confirm, 5-channel quick-tap (Inbound/Outbound/Walk-In/Email/Text), 8 activity-type buttons with templates, clientâ†’policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,123 lines)
+â”‚   â”œâ”€â”€ call-logger.js           # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap (Inbound/Outbound/Walk-In/Email/Text), 8 activity-type buttons with templates, clientâ†’policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,123 lines)
 â”‚   â”‚
 â”‚   â”‚  â˜… Support Modules
 â”‚   â”œâ”€â”€ onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
@@ -146,7 +146,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ email.html              # Email composer (98 lines)
 â”‚   â”œâ”€â”€ qna.html                # Policy Q&A chat (95 lines)
 â”‚   â”œâ”€â”€ quickref.html           # Quick reference cards (79 lines)
-â”‚   â”œâ”€â”€ call-logger.html        # Call logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete (139 lines)
+â”‚   â”œâ”€â”€ call-logger.html        # HawkSoft Logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete (139 lines)
 â”‚   â””â”€â”€ hawksoft.html           # HawkSoft export (21 lines â€” JS renders body)
 â”‚
 â”œâ”€â”€ api/                        # 12 serverless functions + 2 helpers (~6,210 lines) âš ï¸ Hobby plan MAX = 12 functions
@@ -163,7 +163,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ stripe.js               # Stripe checkout, portal, webhooks
 â”‚   â”œâ”€â”€ admin.js                # User management (admin only)
 â”‚   â”œâ”€â”€ anthropic-proxy.js      # CORS proxy for Anthropic API
-â”‚   â””â”€â”€ hawksoft-logger.js      # AI call note formatter + HawkSoft log push, CHANNEL_MAP (5 types), two-step support, policy-level logging (301 lines)
+â”‚   â””â”€â”€ hawksoft-logger.js      # AI call note formatter + HawkSoft log push, CHANNEL_MAP (5 types — objects with channel/method/direction/party), two-step support, policy-level logging, initials post-processing (319 lines)
 â”‚
 â”œâ”€â”€ chrome-extension/           # EZLynx bridge Chrome extension
 â”‚   â”œâ”€â”€ manifest.json
@@ -487,7 +487,7 @@ Tests run in JSDOM, which lacks:
 
 ### 5.11 HawkSoft REST API Integration Gotchas (CRITICAL)
 
-The Call Logger pushes log notes to HawkSoft via `api/hawksoft-logger.js`. Several API quirks were discovered through live debugging (March 2026):
+The HawkSoft Logger pushes log notes to HawkSoft via `api/hawksoft-logger.js`. Several API quirks were discovered through live debugging (March 2026):
 
 | Gotcha | Wrong | Correct |
 |--------|-------|---------|
@@ -861,6 +861,15 @@ KEY RULES:
 | 87 | MEDIUM | tests/hawksoft-logger.test.js | Updated CHANNEL_MAP assertions: replaced ternary checks with `CHANNEL_MAP` object tests verifying all 5 channel type mappings. |
 
 **8 activity types with note templates:** Payment, Renewal, New Biz, Endorsement, Claim, Cancel, Reinstate, General â€" each inserts a structured template into the notes textarea with cursor positioned at first blank.
+
+### HawkSoft Logger — Bug Fixes + Rename (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 88 | CRITICAL | api/hawksoft-logger.js | **Bug fix: wrong method/direction/party** — expanded `CHANNEL_MAP` from flat `callType → number` to `callType → { channel, method, direction, party }` objects. Both `logBody` constructions now include `method`, `direction`, `party` fields so HawkSoft displays correct call metadata. Added `DEFAULT_CHANNEL` fallback. |
+| 89 | HIGH | api/hawksoft-logger.js | **Bug fix: initials invisible** — Updated `SYSTEM_PROMPT` FORMAT to put agent initials on the RE: subject line (line 1) instead of direction line (line 2). Added deterministic post-processing regex that ensures initials appear on RE: line regardless of AI compliance. |
+| 90 | HIGH | 7 files | **Rename: Call Logger → HawkSoft Logger** — Updated title/name in `toolConfig` (app-init.js), plugin header (call-logger.html), sidebar emoji ( → ), quick action label, console.warn prefixes, index.html comment, test assertion. Internal `key: 'calllogger'` unchanged. |
+| 91 | MEDIUM | tests/hawksoft-logger.test.js | Updated CHANNEL_MAP tests for new object shape + added logBody field tests, DEFAULT_CHANNEL test, initials post-processing tests, SYSTEM_PROMPT FORMAT test. 5 new test blocks. |
 
 ---
 

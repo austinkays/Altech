@@ -95,7 +95,7 @@ window.CallLogger = (() => {
     /**
      * Ensure policy data is available for client autocomplete.
      * If the compliance cache is empty (user hasn't visited Compliance Dashboard),
-     * fetch policies independently so Call Logger works standalone.
+     * fetch policies independently so HawkSoft Logger works standalone.
      */
     async function _ensurePoliciesLoaded() {
         // Quick check: does localStorage already have policy data (allPolicies format)?
@@ -876,16 +876,16 @@ window.CallLogger = (() => {
             } else if (result.hawksoftStatus === 'push_failed' || result.hawksoftStatus === 'push_error') {
                 const errDetail = result.hawksoftError ? ` (${result.hawksoftError})` : '';
                 statusMsg = `⚠️ HawkSoft push failed — copy the log manually`;
-                console.warn('[Call Logger] ── PUSH FAILURE DIAGNOSTICS ──');
-                console.warn('[Call Logger]   hawksoftError:', result.hawksoftError);
-                console.warn('[Call Logger]   hawksoftStatus:', result.hawksoftStatus);
-                console.warn('[Call Logger]   Request sent:', JSON.stringify({
+                console.warn('[HawkSoft Logger] ── PUSH FAILURE DIAGNOSTICS ──');
+                console.warn('[HawkSoft Logger]   hawksoftError:', result.hawksoftError);
+                console.warn('[HawkSoft Logger]   hawksoftStatus:', result.hawksoftStatus);
+                console.warn('[HawkSoft Logger]   Request sent:', JSON.stringify({
                     clientNumber: _pendingLog.clientNumber,
                     policyId: _pendingLog.policyId,
                     callType: _pendingLog.callType,
                     logLength: (_pendingLog.formattedLog || '').length
                 }));
-                console.warn('[Call Logger]   Server response:', JSON.stringify({
+                console.warn('[HawkSoft Logger]   Server response:', JSON.stringify({
                     hawksoftLogged: result.hawksoftLogged,
                     hawksoftStatus: result.hawksoftStatus,
                     clientNumber: result.clientNumber,

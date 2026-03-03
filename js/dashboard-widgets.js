@@ -502,7 +502,7 @@ window.DashboardWidgets = (() => {
                 </button>
                 <button class="quick-action-btn" onclick="App.navigateTo('calllogger')">
                     ${icon('phone', 22)}
-                    <span class="quick-action-label">Call Log</span>
+                    <span class="quick-action-label">Logger</span>
                 </button>
             </div>`;
     }

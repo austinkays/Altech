@@ -20,7 +20,7 @@ known bugs, and rules. Do not write any code until you have read it.
 
 ```bash
 npm run dev          # Local server
-npm test             # 23 test suites, 1480 tests (Jest + JSDOM)
+npm test             # 23 test suites, 1485 tests (Jest + JSDOM)
 npx jest --no-coverage  # Faster (skip coverage)
 ```
 
@@ -32,7 +32,7 @@ Tools are registered in `toolConfig` array in `js/app-init.js`. Each entry has: 
 
 **Categories:** `quoting` | `export` | `docs` | `ops`
 
-**Current plugins (15):** quoting (Personal Lines), intake (AI Intake), qna (Policy Q&A), quotecompare, ezlynx, hawksoft, coi (hidden), compliance (CGL), reminders, prospect, email, accounting, quickref, vindecoder, calllogger (Call Logger).
+**Current plugins (15):** quoting (Personal Lines), intake (AI Intake), qna (Policy Q&A), quotecompare, ezlynx, hawksoft, coi (hidden), compliance (CGL), reminders, prospect, email, accounting, quickref, vindecoder, calllogger (HawkSoft Logger).
 
 **Adding a new plugin requires 5 files/edits:**
 1. `js/your-plugin.js` — IIFE module on `window.YourModule` (see `js/reminders.js` for pattern)
@@ -144,7 +144,7 @@ Every `<input id="fieldName">` auto-syncs to `App.data.fieldName` via `localStor
 ## Testing
 
 ```bash
-npm test                    # All 23 suites, 1455 tests
+npm test                    # All 23 suites, 1485 tests
 npx jest --no-coverage      # Faster (skip coverage)
 npx jest tests/app.test.js  # Single suite
 ```
@@ -186,19 +186,20 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 ### Latest Session Notes (March 3, 2026)
 
 - **Call Logger Redesign:** Replaced `<select>` dropdown with 5 SVG-icon channel quick-tap buttons (Inbound/Outbound/Walk-In/Email/Text) + 8 activity-type pill buttons with note templates. Full HTML/CSS/JS rewrite. Added CHANNEL_MAP to hawksoft-logger.js.
-- **Tests:** 26 new tests (source analysis + behavioral JSDOM). Total: 23 suites, 1480 tests.
+- **Tests:** 26 new tests (source analysis + behavioral JSDOM). Total: 23 suites, 1485 tests.
 - **6 files changed:** api/hawksoft-logger.js, plugins/call-logger.html, css/call-logger.css, js/call-logger.js, tests/call-logger.test.js, tests/hawksoft-logger.test.js
+- **HawkSoft Logger Bug Fixes + Rename:** Fixed wrong method/direction/party in log push (expanded CHANNEL_MAP to objects). Fixed invisible agent initials (moved to RE: line + post-processing). Renamed Call Logger to HawkSoft Logger across 7 files with eagle icon. 5 new tests.
 
 ### Previous Session (March 2, 2026)
 
 - **Desktop Layout Overhaul**: Full-width redesign across all 15 plugins — every container widened from 1200px → 1400px, generic plugin constraint widened from 1100px → 1400px.
 - **2-Column Layouts**: Q&A (380px | 1fr), Email (1fr | 1fr), VIN Decoder (1fr | 380px), Accounting (1fr | 1fr) — all with sticky right columns at 960px+ breakpoint.
-- **Call Logger**: `:has()` CSS conditional grid — auto-switches from 1fr to 1fr|1fr when right column is visible.
+- **HawkSoft Logger**: `:has()` CSS conditional grid — auto-switches from 1fr to 1fr|1fr when right column is visible.
 - **Quoting Wizard**: Widened to 1400px; removed redundant 1280px override; removed step-6 hero grid/secondary row max-width caps.
 - **CGL Compliance**: Stat card min-height 90px, wider search/filter inputs (280px min), larger buttons.
 - **QuickRef**: 3-col phonetic grid at 960px+, 4-col at 1280px+.
 - **Language**: All 12 "tap" → "click" replacements across 7 HTML/JS files for desktop-first language.
 - **24 files changed**, 183 insertions, 90 deletions.
-- Validation: `npx jest --no-coverage` → 23/23 suites passed, 1455/1455 tests.
+- Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
 *Last updated: March 3, 2026*

@@ -1,5 +1,5 @@
 /**
- * HawkSoft Call Logger API
+ * HawkSoft Logger API
  *
  * Accepts messy shorthand call notes, uses AI to format them into
  * professional insurance call log entries, then optionally pushes
@@ -38,8 +38,8 @@ RULES:
 9. Do NOT wrap in markdown or code blocks — return plain text only
 
 FORMAT:
-RE: [Brief Subject]
-[Call Direction] Call — [Date/Time] — [Agent Initials, if provided]
+RE: [Brief Subject] — [Agent Initials, if provided]
+[Call Direction] — [Date/Time]
 
 [Formatted note body]
 
@@ -48,16 +48,17 @@ Action Items: [any follow-ups, or "None" if none mentioned]`;
 // ── Handler ──────────────────────────────────────────────────────
 
 // ── Channel Code Mapping (HawkSoft API v3.0) ──────────────────
-// Maps client-side callType strings to HawkSoft channel numbers.
+// Maps client-side callType strings to HawkSoft log field objects.
+// Each entry provides: channel (numeric code), method, direction, party.
 // Phone To/From confirmed working (March 2026).
-// TODO: Verify Walk-In (2), Email (3), Text (4) channel codes against HawkSoft API
 const CHANNEL_MAP = {
-    'Inbound':  5,   // Phone From Insured — CONFIRMED WORKING
-    'Outbound': 1,   // Phone To Insured — CONFIRMED WORKING
-    'Walk-In':  2,   // In-Person visit
-    'Email':    3,   // Email correspondence
-    'Text':     4    // Text/SMS message
+    'Inbound':  { channel: 5, method: 'Phone', direction: 'From', party: 'Insured' },
+    'Outbound': { channel: 1, method: 'Phone', direction: 'To',   party: 'Insured' },
+    'Walk-In':  { channel: 2, method: 'In Person', direction: 'From', party: 'Insured' },
+    'Email':    { channel: 3, method: 'Email', direction: 'From', party: 'Insured' },
+    'Text':     { channel: 4, method: 'Text',  direction: 'From', party: 'Insured' }
 };
+const DEFAULT_CHANNEL = { channel: 5, method: 'Phone', direction: 'From', party: 'Insured' };
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -99,14 +100,14 @@ async function handler(req, res) {
 
           const refId = crypto.randomUUID();
           const ts = new Date().toISOString();
-          const channelCode = CHANNEL_MAP[cleanCallType] || 5; // Default: Phone From Insured
+          const channelInfo = CHANNEL_MAP[cleanCallType] || DEFAULT_CHANNEL;
           const logUrl = `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`;
-          const logBody = { refId, ts, note: logText, channel: channelCode };
+          const logBody = { refId, ts, note: logText, channel: channelInfo.channel, method: channelInfo.method, direction: channelInfo.direction, party: channelInfo.party };
           // Link log to specific policy if we have the HawkSoft policy GUID
           if (cleanHawksoftPolicyId) logBody.policyId = cleanHawksoftPolicyId;
           console.log(`[HawkSoft Logger] ── PRE-FORMATTED PUSH ──`);
           console.log(`[HawkSoft Logger]   URL: ${logUrl}`);
-          console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId, ts: ts.substring(0, 19), channel: channelCode, policyId: cleanHawksoftPolicyId || '(none)', noteLen: logText.length })}`);
+          console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId, ts: ts.substring(0, 19), channel: channelInfo.channel, method: channelInfo.method, direction: channelInfo.direction, party: channelInfo.party, policyId: cleanHawksoftPolicyId || '(none)', noteLen: logText.length })}`);
           console.log(`[HawkSoft Logger]   clientNumber=${hawksoftClientId} policyId=${cleanPolicyId} hawksoftPolicyId=${cleanHawksoftPolicyId || '(none)'} callType=${cleanCallType}`);
           const logRes = await fetch(logUrl, {
               method: 'POST',
@@ -200,13 +201,30 @@ ${cleanNotes}`;
 
     console.log(`[HawkSoft Logger] Formatting notes for policy ${cleanPolicyId} (${cleanNotes.length} chars)`);
 
-    const formattedLog = await ai.ask(SYSTEM_PROMPT, userMessage, {
+    let formattedLog = await ai.ask(SYSTEM_PROMPT, userMessage, {
       temperature: 0.3,
       maxTokens: 2048
     });
 
     if (!formattedLog || !formattedLog.trim()) {
       throw new Error('AI returned empty response');
+    }
+
+    // ── Post-processing: ensure initials are on RE: line (deterministic) ──
+    if (cleanInitials) {
+      formattedLog = formattedLog.trim();
+      // Strip initials from any line other than the RE: line
+      formattedLog = formattedLog.replace(new RegExp(`\\s*[—–-]\\s*${cleanInitials}\\s*$`, 'gm'), (match, offset) => {
+        // Keep if it's on the first line (RE: line), remove otherwise
+        const lineStart = formattedLog.lastIndexOf('\n', offset - 1);
+        return lineStart <= 0 ? match : '';
+      });
+      // Ensure initials are on the RE: line
+      const lines = formattedLog.split('\n');
+      if (lines[0] && lines[0].startsWith('RE:') && !lines[0].includes(cleanInitials)) {
+        lines[0] = lines[0].trimEnd() + ` — ${cleanInitials}`;
+      }
+      formattedLog = lines.join('\n');
     }
 
     // ── If formatOnly, return preview without pushing ──
@@ -239,14 +257,14 @@ ${cleanNotes}`;
         // HawkSoft log note endpoint — /client/{id}/log per API v3.0 docs
         const refId2 = crypto.randomUUID();
         const ts2 = new Date().toISOString();
-        const channelCode2 = CHANNEL_MAP[cleanCallType] || 5; // Default: Phone From Insured
+        const channelInfo2 = CHANNEL_MAP[cleanCallType] || DEFAULT_CHANNEL;
         const logUrl2 = `${BASE_URL}/vendor/agency/${HAWKSOFT_AGENCY_ID}/client/${hawksoftClientId}/log?version=${API_VERSION}`;
-        const logBody2 = { refId: refId2, ts: ts2, note: formattedLog.trim(), channel: channelCode2 };
+        const logBody2 = { refId: refId2, ts: ts2, note: formattedLog.trim(), channel: channelInfo2.channel, method: channelInfo2.method, direction: channelInfo2.direction, party: channelInfo2.party };
         // Link log to specific policy if we have the HawkSoft policy GUID
         if (cleanHawksoftPolicyId) logBody2.policyId = cleanHawksoftPolicyId;
         console.log(`[HawkSoft Logger] ── AI-FORMATTED PUSH ──`);
         console.log(`[HawkSoft Logger]   URL: ${logUrl2}`);
-        console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId: refId2, ts: ts2.substring(0, 19), channel: channelCode2, policyId: cleanHawksoftPolicyId || '(none)', noteLen: formattedLog.trim().length })}`);
+        console.log(`[HawkSoft Logger]   Body: ${JSON.stringify({ refId: refId2, ts: ts2.substring(0, 19), channel: channelInfo2.channel, method: channelInfo2.method, direction: channelInfo2.direction, party: channelInfo2.party, policyId: cleanHawksoftPolicyId || '(none)', noteLen: formattedLog.trim().length })}`);
         console.log(`[HawkSoft Logger]   clientNumber=${hawksoftClientId} policyId=${cleanPolicyId} hawksoftPolicyId=${cleanHawksoftPolicyId || '(none)'} callType=${cleanCallType}`);
         const logRes = await fetch(logUrl2, {
             method: 'POST',
