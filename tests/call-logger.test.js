@@ -222,6 +222,7 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
     // Build minimal HTML with the plugin's form elements
     const html = `<!DOCTYPE html><html><body>
       <div id="callLoggerTool" class="plugin-container">
+        <header><button type="button" class="cl-new-log-btn" id="clNewLogBtn">+ New Log</button></header>
         <div class="cl-form">
           <input type="text" id="clPolicyId" value="">
           <div id="clChannelGroup" class="cl-channel-group">
@@ -426,6 +427,42 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
     const group = window.document.getElementById('clActivityGroup');
     expect(group._clWired).toBe(true);
   });
+
+  test('resetForm clears form state and resets channel to Inbound', () => {
+    const { window } = createMiniDOM();
+    window.CallLogger.init();
+    // Set up dirty state
+    window.CallLogger._handleChannelSelect('Email');
+    window.CallLogger._handleActivitySelect('Payment', 'Payment received');
+    window.document.getElementById('clPolicyId').value = 'Some Client';
+    window.document.getElementById('clRawNotes').value = 'Some notes';
+    // Verify dirty
+    expect(window.CallLogger.getSelectedChannel()).toBe('Email');
+    expect(window.CallLogger.getSelectedActivityType()).toBe('Payment');
+    // Reset
+    window.CallLogger.resetForm();
+    // Verify clean
+    expect(window.CallLogger.getSelectedChannel()).toBe('Inbound');
+    expect(window.CallLogger.getSelectedActivityType()).toBeNull();
+    expect(window.document.getElementById('clPolicyId').value).toBe('');
+    expect(window.document.getElementById('clRawNotes').value).toBe('');
+  });
+
+  test('resetForm keeps agent initials', () => {
+    const { window } = createMiniDOM();
+    window.CallLogger.init();
+    window.document.getElementById('clAgentInitials').value = 'AK';
+    window.CallLogger.resetForm();
+    // Agent initials should be preserved
+    expect(window.document.getElementById('clAgentInitials').value).toBe('AK');
+  });
+
+  test('+ New Log button wired on init', () => {
+    const { window } = createMiniDOM();
+    window.CallLogger.init();
+    const btn = window.document.getElementById('clNewLogBtn');
+    expect(btn).toBeTruthy();
+  });
 });
 
 // ────────────────────────────────────────────────────
@@ -488,6 +525,12 @@ describe('call-logger.html — Plugin HTML', () => {
 
   test('has copy button in preview', () => {
     expect(pluginHtml).toContain('id="clCopyBtn"');
+  });
+
+  test('has + New Log button in header', () => {
+    expect(pluginHtml).toContain('id="clNewLogBtn"');
+    expect(pluginHtml).toContain('cl-new-log-btn');
+    expect(pluginHtml).toContain('New Log');
   });
 });
 
@@ -698,6 +741,65 @@ describe('Channel & Activity Type System', () => {
     expect(source).toContain('_handleActivitySelect');
     expect(source).toContain('getSelectedChannel');
     expect(source).toContain('getSelectedActivityType');
+  });
+});
+
+// ────────────────────────────────────────────────────
+// + New Log Reset (source analysis)
+// ────────────────────────────────────────────────────
+
+describe('+ New Log Reset', () => {
+  test('defines _resetForm function', () => {
+    expect(source).toContain('function _resetForm()');
+  });
+
+  test('_resetForm clears _selectedClient and _selectedPolicy', () => {
+    expect(source).toMatch(/_resetForm[\s\S]*?_selectedClient = null/);
+    expect(source).toMatch(/_resetForm[\s\S]*?_selectedPolicy = null/);
+  });
+
+  test('_resetForm resets channel to Inbound', () => {
+    expect(source).toMatch(/_resetForm[\s\S]*?_selectedChannel = 'Inbound'/);
+  });
+
+  test('_resetForm clears _selectedActivityType', () => {
+    expect(source).toMatch(/_resetForm[\s\S]*?_selectedActivityType = null/);
+  });
+
+  test('_resetForm clears _pendingLog', () => {
+    expect(source).toMatch(/_resetForm[\s\S]*?_pendingLog = null/);
+  });
+
+  test('_resetForm calls _applyChannelUI and _applyActivityUI', () => {
+    expect(source).toMatch(/_resetForm[\s\S]*?_applyChannelUI\(\)/);
+    expect(source).toMatch(/_resetForm[\s\S]*?_applyActivityUI\(\)/);
+  });
+
+  test('_resetForm calls _resetToFormatMode', () => {
+    expect(source).toMatch(/_resetForm[\s\S]*?_resetToFormatMode\(\)/);
+  });
+
+  test('_resetForm is exposed in public API as resetForm', () => {
+    expect(source).toContain('resetForm: _resetForm');
+  });
+
+  test('+ New Log button wired to _resetForm in _wireEvents', () => {
+    expect(source).toContain("getElementById('clNewLogBtn')");
+    expect(source).toContain("newLogBtn.addEventListener('click', _resetForm)");
+  });
+});
+
+// ────────────────────────────────────────────────────
+// Agency Glossary in Fetch Body (source analysis)
+// ────────────────────────────────────────────────────
+
+describe('Agency Glossary in Fetch', () => {
+  test('sends glossary from localStorage in format request', () => {
+    expect(source).toContain("glossary: localStorage.getItem('altech_agency_glossary')");
+  });
+
+  test('glossary defaults to empty string when missing', () => {
+    expect(source).toContain("localStorage.getItem('altech_agency_glossary') || ''");
   });
 });
 

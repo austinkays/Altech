@@ -54,14 +54,16 @@ Action Items: [any follow-ups, or "None" if none mentioned]`;
 
 // ── Channel Code Mapping (HawkSoft API v3.0) ──────────────────
 // Maps client-side callType strings to HawkSoft log field objects.
-// Each entry provides: channel (numeric code), method, direction, party.
-// Phone To/From confirmed working (March 2026).
+// Each entry provides: channel (LogAction code 1-56), method, direction, party.
+// LogAction enum: Phone 1-8, Mail 9-16, Walk In 17-24, Online 25-32, Email 33-40, Text 41-48, Chat 49-56.
+// Within each group: To Insured (+0), To Carrier (+1), To Agency Staff (+2), To 3rd Party (+3),
+//                    From Insured (+4), From Carrier (+5), From Agency Staff (+6), From 3rd Party (+7).
 const CHANNEL_MAP = {
-    'Inbound':  { channel: 5, method: 'Phone', direction: 'From', party: 'Insured' },
-    'Outbound': { channel: 1, method: 'Phone', direction: 'To',   party: 'Insured' },
-    'Walk-In':  { channel: 2, method: 'In Person', direction: 'From', party: 'Insured' },
-    'Email':    { channel: 3, method: 'Email', direction: 'From', party: 'Insured' },
-    'Text':     { channel: 4, method: 'Text',  direction: 'From', party: 'Insured' }
+    'Inbound':  { channel: 5,  method: 'Phone',   direction: 'From', party: 'Insured' },
+    'Outbound': { channel: 1,  method: 'Phone',   direction: 'To',   party: 'Insured' },
+    'Walk-In':  { channel: 21, method: 'Walk In',  direction: 'From', party: 'Insured' },
+    'Email':    { channel: 33, method: 'Email',    direction: 'To',   party: 'Insured' },
+    'Text':     { channel: 41, method: 'Text',     direction: 'To',   party: 'Insured' }
 };
 const DEFAULT_CHANNEL = { channel: 5, method: 'Phone', direction: 'From', party: 'Insured' };
 
@@ -71,7 +73,7 @@ async function handler(req, res) {
   }
 
   try {
-    const { policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, activityType, userApiKey, aiModel, formatOnly, formattedLog: preFormattedLog } = req.body || {};
+    const { policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, activityType, glossary, userApiKey, aiModel, formatOnly, formattedLog: preFormattedLog } = req.body || {};
 
     // ── Validation ──
     if (!policyId || typeof policyId !== 'string' || !policyId.trim()) {
@@ -199,9 +201,10 @@ async function handler(req, res) {
 
     const cleanInitials = (agentInitials || '').trim().toUpperCase();
     const cleanActivityType = (activityType || '').trim();
+    const cleanGlossary = (glossary || '').trim().substring(0, 500);
     const userMessage = `Policy/Client ID: ${cleanPolicyId}
 Call Type: ${cleanCallType}${cleanActivityType ? `\nActivity: ${cleanActivityType}` : ''}
-Timestamp: ${timestamp} PST${cleanInitials ? `\nAgent: ${cleanInitials}` : ''}
+Timestamp: ${timestamp} PST${cleanInitials ? `\nAgent: ${cleanInitials}` : ''}${cleanGlossary ? `\n\nAgency glossary (use these when interpreting shorthand):\n${cleanGlossary}` : ''}
 Agent's shorthand notes:
 ${cleanNotes}`;
 

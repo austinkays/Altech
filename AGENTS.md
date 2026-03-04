@@ -1,6 +1,6 @@
-# AGENTS.md â€” Altech Field Lead: AI Agent Onboarding Guide
+﻿# AGENTS.md â€” Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 4, 2026
+> **Last updated:** March 5, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive â€” read this before making ANY changes
 >
@@ -15,18 +15,18 @@
 | Attribute | Value |
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA â€” no build step, no framework |
-| **Entry point** | `index.html` (~702 lines) |
-| **CSS** | 21 files in `css/` (~15,598 lines total) |
-| **JS** | 35 modules in `js/` (~31,404 lines total) |
-| **Plugins** | 15 HTML templates in `plugins/` (~5,363 lines total) |
-| **APIs** | 12 serverless functions + 2 helpers in `api/` (~7,184 lines total) |
+| **Entry point** | `index.html` (~665 lines) |
+| **CSS** | 21 files in `css/` (~15,690 lines total) |
+| **JS** | 35 modules in `js/` (~31,541 lines total) |
+| **Plugins** | 15 HTML templates in `plugins/` (~5,382 lines total) |
+| **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
 | **Encryption** | AES-256-GCM via Web Crypto API (`CryptoHelper`) |
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 23 suites, 1489 tests |
+| **Tests** | Jest + JSDOM, 23 suites, 1515 tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -55,7 +55,7 @@ npm run deploy:vercel   # Production deploy
 
 ```
 /
-â”œâ”€â”€ index.html                  # SPA shell (702 lines) â€” CSS links, DOM skeleton, script tags
+â”œâ”€â”€ index.html                  # SPA shell (665 lines) â€” CSS links, DOM skeleton, script tags
 â”œâ”€â”€ server.js                   # Local dev server (677 lines) â€” static + API proxy + local endpoints
 â”œâ”€â”€ vercel.json                 # Vercel config â€” function timeouts, rewrites, security headers, CSP
 â”œâ”€â”€ package.json                # ESM, scripts, 3 deps (ioredis, pdf-lib, stripe), 4 devDeps
@@ -69,9 +69,9 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 â”‚   â”œâ”€â”€ sidebar.css             # Desktop/tablet/mobile sidebar layouts (765 lines)
 â”‚   â”œâ”€â”€ dashboard.css           # Bento grid dashboard widgets (1,026 lines)
-â”‚   â”œâ”€â”€ call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links (1,164 lines)
+â”‚   â”œâ”€â”€ call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (1,202 lines)
 â”‚   â”œâ”€â”€ compliance.css          # CGL compliance dashboard (1,046 lines)
-â”‚   â”œâ”€â”€ auth.css                # Auth modal + settings (973 lines)
+â”‚   â”œâ”€â”€ auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
 â”‚   â”œâ”€â”€ reminders.css           # Task reminders (1,120 lines)
 â”‚   â”œâ”€â”€ intake-assist.css       # AI intake professional UI â€” enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
 â”‚   â”œâ”€â”€ ezlynx.css              # EZLynx export â€” standalone dark palette (590 lines)
@@ -104,7 +104,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
 â”‚   â”œâ”€â”€ firebase-config.js      # Firebase app init (fetches config from /api/config)
 â”‚   â”œâ”€â”€ auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
-â”‚   â”œâ”€â”€ cloud-sync.js           # Firestore sync (7 doc types, conflict resolution, 642 lines)
+â”‚   â”œâ”€â”€ cloud-sync.js           # Firestore sync (8 doc types incl. glossary, conflict resolution, 651 lines)
 â”‚   â”œâ”€â”€ ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
 â”‚   â”œâ”€â”€ dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs (976 lines)
 â”‚   â”‚
@@ -122,7 +122,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (914 lines)
 â”‚   â”œâ”€â”€ vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
 â”‚   â”œâ”€â”€ accounting-export.js     # Trust deposit calculator, HawkSoft receipts (392 lines)
-â”‚   â”œâ”€â”€ call-logger.js           # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap (Inbound/Outbound/Walk-In/Email/Text), 8 activity-type buttons with templates, clientâ†’policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,123 lines)
+â”‚   â”œâ”€â”€ call-logger.js          # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, clientâ†’policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,185 lines)
 â”‚   â”‚
 â”‚   â”‚  â˜… Support Modules
 â”‚   â”œâ”€â”€ onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
@@ -146,7 +146,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ email.html              # Email composer (98 lines)
 â”‚   â”œâ”€â”€ qna.html                # Policy Q&A chat (95 lines)
 â”‚   â”œâ”€â”€ quickref.html           # Quick reference cards (79 lines)
-â”‚   â”œâ”€â”€ call-logger.html        # HawkSoft Logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete (139 lines)
+â”‚   â”œâ”€â”€ call-logger.html        # HawkSoft Logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete + New Log button (135 lines)
 â”‚   â””â”€â”€ hawksoft.html           # HawkSoft export (21 lines â€” JS renders body)
 â”‚
 â”œâ”€â”€ api/                        # 12 serverless functions + 2 helpers (~6,210 lines) âš ï¸ Hobby plan MAX = 12 functions
@@ -163,7 +163,7 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ stripe.js               # Stripe checkout, portal, webhooks
 â”‚   â”œâ”€â”€ admin.js                # User management (admin only)
 â”‚   â”œâ”€â”€ anthropic-proxy.js      # CORS proxy for Anthropic API
-â”‚   â””â”€â”€ hawksoft-logger.js      # AI call note formatter + HawkSoft log push, CHANNEL_MAP (5 types — objects with channel/method/direction/party), two-step support, policy-level logging, initials post-processing, activityType voice guidance (325 lines)
+â”‚   â””â”€â”€ hawksoft-logger.js      # AI call note formatter + HawkSoft log push, CHANNEL_MAP (5 types with correct HawkSoft LogAction codes), two-step support, policy-level logging, initials post-processing, activityType voice guidance, Agency Glossary injection (291 lines)
 â”‚
 â”œâ”€â”€ chrome-extension/           # EZLynx bridge Chrome extension
 â”‚   â”œâ”€â”€ manifest.json
@@ -494,6 +494,7 @@ The HawkSoft Logger pushes log notes to HawkSoft via `api/hawksoft-logger.js`. S
 | **Log endpoint URL** | `/clients/{id}/logNotes` | `/client/{id}/log` (singular, different path) |
 | **Channel field name** | `"action": 1` | `"channel": 1` â€” API returns "Invalid Channel" if wrong |
 | **Phone channel codes** | `29` / `30` (don't exist) | `1` = Phone To Insured, `5` = Phone From Insured |
+| **Walk-In/Email/Text codes** | `2` / `3` / `4` (were Phone To Carrier/Staff/3rd Party) | `21` = Walk In To Insured, `33` = Email To Insured, `41` = Text To Insured (LogAction groups of 8: Phone 1-8, Mail 9-16, Walk In 17-24, Online 25-32, Email 33-40, Text 41-48, Chat 49-56) |
 | **clientNumber type** | Numeric (from API) | Must call `String()` before `.trim()` â€” crashes otherwise |
 | **Policy-level logging** | Omit `policyId` | Include `policyId` (HawkSoft internal GUID) in body to link log to specific policy |
 | **Required body fields** | `{ note, action }` | `{ refId: "UUID", ts: "ISO-timestamp", channel: <number>, note: "text" }` |
@@ -575,6 +576,7 @@ Client-side AES-256-GCM encryption for sensitive localStorage data. Per-device k
 | `altech_onboarded` | Onboarding complete flag | âŒ | âŒ | Onboarding |
 | `altech_user_name` | User's name | âŒ | âŒ | Onboarding |
 | `altech_agency_profile` | Agency profile | âŒ | âŒ | Onboarding |
+| `altech_agency_glossary` | Agency shorthand glossary (max 500 chars) | ❌ | ✅ | CallLogger / Settings |
 | `altech_encryption_salt` | PBKDF2 salt | âŒ | âŒ | CryptoHelper |
 | `altech_sync_meta` | Sync metadata | âŒ | âŒ | CloudSync |
 | `gemini_api_key` | User's Gemini key | âŒ | âŒ | Multiple plugins |
@@ -881,6 +883,15 @@ KEY RULES:
 | 95 | MEDIUM | api/hawksoft-logger.js | SYSTEM_PROMPT rule 10: activity-type voice guidance — Payment/Policy Change/Renewal/Certificate use past tense (completed), Coverage Q/New Quote may be in-progress, Claim writes as reported/filed. |
 | 96 | LOW | tests/ | 4 new tests: activityType destructured from req.body, activityType in user message, conditional include, SYSTEM_PROMPT voice guidance. Total: 23 suites, 1489 tests. |
 
+### HawkSoft Logger — + New Log Button, Agency Glossary, Channel Code Fix (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 97 | CRITICAL | api/hawksoft-logger.js | **CHANNEL_MAP LogAction codes fixed:** Walk-In 2→21, Email 3→33, Text 4→41. These were incorrectly using Phone sub-codes (To Carrier/Staff/3rd Party). Now use correct HawkSoft LogAction enum groups (Walk In 17-24, Email 33-40, Text 41-48). Walk-In method changed "In Person"→"Walk In", Email+Text direction changed "From"→"To". |
+| 98 | HIGH | plugins/call-logger.html, css/call-logger.css, js/call-logger.js | **+ New Log button:** Reset button in header clears client, channel (→Inbound), activity, notes, preview/confirm panels. Keeps agent initials. SVG + icon with "New Log" label. |
+| 99 | HIGH | index.html, css/auth.css, js/call-logger.js, api/hawksoft-logger.js, js/cloud-sync.js | **Agency Glossary:** Textarea in Settings (500-char max) for custom shorthand terms (e.g., "MoE = Mutual of Enumclaw"). Stored in `altech_agency_glossary`, sent in formatOnly fetch body, injected into AI userMessage (not system prompt), cloud-synced as 8th doc type. |
+| 100 | MEDIUM | tests/ | 26 new tests across hawksoft-logger.test.js and call-logger.test.js: CHANNEL_MAP LogAction codes (7), Agency Glossary API (4), + New Log reset (9+3), glossary fetch (2), + New Log button HTML (1). Total: 23 suites, 1515 tests. |
+
 ---
 
 ## Appendix A: Plugin System â€” Adding a New Plugin
@@ -1030,8 +1041,8 @@ tests/
 â”œâ”€â”€ plugin-integration.test.js  # Plugin system integration
 â”œâ”€â”€ prospect-client.test.js     # Prospect client-side module
 â”œâ”€â”€ server.test.js              # Local dev server (server.js)
-â”œâ”€â”€ hawksoft-logger.test.js     # HawkSoft Logger API (78 tests, CHANNEL_MAP, policyId, activityType)
-â””â”€â”€ call-logger.test.js         # Call Logger client module (179 tests, channel/activity buttons, hawksoftPolicyId pipeline, activityType fetch)
+â”œâ”€â”€ hawksoft-logger.test.js     # HawkSoft Logger API (89 tests, CHANNEL_MAP LogAction codes, policyId, activityType, glossary)
+â””â”€â”€ call-logger.test.js         # Call Logger client module (194 tests, channel/activity buttons, hawksoftPolicyId pipeline, activityType fetch, + New Log reset, glossary)
 ```
 
 Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously' })`. The test setup file mocks `fetch`, silences console noise, and suppresses expected `crypto.subtle` errors.

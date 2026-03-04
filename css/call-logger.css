@@ -135,6 +135,33 @@
     animation: cl-spin 0.8s linear infinite;
 }
 
+/* ── + New Log Button (header) ── */
+
+.cl-new-log-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.08);
+    border: 1px solid rgba(0, 122, 255, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.cl-new-log-btn:hover {
+    background: rgba(0, 122, 255, 0.14);
+    border-color: rgba(0, 122, 255, 0.35);
+}
+
+.cl-new-log-btn:active {
+    transform: scale(0.96);
+}
+
 @keyframes cl-spin {
     to { transform: rotate(360deg); }
 }
@@ -917,6 +944,16 @@ body.dark-mode .cl-refresh-btn {
 }
 
 body.dark-mode .cl-refresh-btn:hover {
+    background: rgba(10, 132, 255, 0.2);
+    border-color: rgba(10, 132, 255, 0.4);
+}
+
+body.dark-mode .cl-new-log-btn {
+    background: rgba(10, 132, 255, 0.12);
+    border-color: rgba(10, 132, 255, 0.25);
+}
+
+body.dark-mode .cl-new-log-btn:hover {
     background: rgba(10, 132, 255, 0.2);
     border-color: rgba(10, 132, 255, 0.4);
 }

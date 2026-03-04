@@ -608,3 +608,69 @@ describe('AI Settings Detection (behavioral)', () => {
     expect(capturedSettings[0].apiKey).toBe('key');
   });
 });
+
+// ────────────────────────────────────────────────────
+// CHANNEL_MAP — Correct LogAction Codes
+// ────────────────────────────────────────────────────
+
+describe('CHANNEL_MAP — LogAction Codes', () => {
+  test('Walk-In uses LogAction 21 (Walk In To Insured), not 2 (Phone To Carrier)', () => {
+    expect(source).toMatch(/['"]Walk-In['"]:\s*\{[^}]*channel:\s*21/);
+  });
+
+  test('Email uses LogAction 33 (Email To Insured), not 3 (Phone To Agency Staff)', () => {
+    expect(source).toMatch(/['"]Email['"]:\s*\{[^}]*channel:\s*33/);
+  });
+
+  test('Text uses LogAction 41 (Text To Insured), not 4 (Phone To 3rd Party)', () => {
+    expect(source).toMatch(/['"]Text['"]:\s*\{[^}]*channel:\s*41/);
+  });
+
+  test('Walk-In method is "Walk In" (not "In Person")', () => {
+    expect(source).toMatch(/['"]Walk-In['"]:\s*\{[^}]*method:\s*['"]Walk In['"]/);
+  });
+
+  test('Email direction is "To" (not "From")', () => {
+    expect(source).toMatch(/['"]Email['"]:\s*\{[^}]*direction:\s*['"]To['"]/);
+  });
+
+  test('Text direction is "To" (not "From")', () => {
+    expect(source).toMatch(/['"]Text['"]:\s*\{[^}]*direction:\s*['"]To['"]/);
+  });
+
+  test('CHANNEL_MAP has LogAction enum comment documenting all 56 codes', () => {
+    expect(source).toContain('Phone 1-8');
+    expect(source).toContain('Walk In 17-24');
+    expect(source).toContain('Email 33-40');
+    expect(source).toContain('Text 41-48');
+  });
+});
+
+// ────────────────────────────────────────────────────
+// Agency Glossary Support
+// ────────────────────────────────────────────────────
+
+describe('Agency Glossary', () => {
+  test('destructures glossary from req.body', () => {
+    expect(source).toMatch(/const\s*\{[^}]*glossary[^}]*\}\s*=\s*req\.body/);
+  });
+
+  test('injects glossary into AI user message when non-empty', () => {
+    expect(source).toContain('cleanGlossary');
+    expect(source).toContain('Agency glossary');
+  });
+
+  test('glossary injection is conditional (only when non-empty)', () => {
+    // Should use ternary or conditional to skip empty glossary
+    expect(source).toMatch(/cleanGlossary\s*\?\s*`/);
+  });
+
+  test('glossary is placed before the raw notes in user message', () => {
+    // Glossary block should appear before "Agent's shorthand notes"
+    const glossaryIdx = source.indexOf('Agency Glossary');
+    const notesIdx = source.indexOf("Agent's shorthand notes");
+    if (glossaryIdx > 0 && notesIdx > 0) {
+      expect(glossaryIdx).toBeLessThan(notesIdx);
+    }
+  });
+});

@@ -589,7 +589,24 @@
                         </div>
                     </details>
 
-                    <!-- 🔒 Security -->
+                    <!-- � Agency Glossary -->
+                    <details class="settings-section" ontoggle="if(this.open){var t=document.getElementById('agencyGlossaryText');if(t&&!t.value)t.value=localStorage.getItem('altech_agency_glossary')||''}">
+                        <summary class="settings-section-header">
+                            <span class="settings-section-icon">📖</span>
+                            <span class="settings-section-title">Agency Glossary</span>
+                            <span class="settings-section-chevron">›</span>
+                        </summary>
+                        <div class="settings-section-body">
+                            <div class="auth-field">
+                                <label for="agencyGlossaryText">Custom shorthand &amp; abbreviations</label>
+                                <textarea id="agencyGlossaryText" class="glossary-textarea" rows="5" maxlength="500" placeholder="MoE = Mutual of Enumclaw&#10;NWPP = Northwest Personal Property&#10;BOP = Business Owner's Policy"></textarea>
+                                <p class="glossary-hint">One term per line. The HawkSoft Logger AI will use these to interpret your shorthand notes. Max 500 characters.</p>
+                            </div>
+                            <button class="btn-auth btn-auth-small btn-auth-primary" onclick="(function(){ var t=document.getElementById('agencyGlossaryText'); if(t){ localStorage.setItem('altech_agency_glossary',t.value); if(typeof CloudSync!=='undefined'&&CloudSync.schedulePush) CloudSync.schedulePush(); if(typeof App!=='undefined'&&App.toast) App.toast('Glossary saved','success'); } })()" style="margin-top:0">Save Glossary</button>
+                        </div>
+                    </details>
+
+                    <!-- �🔒 Security -->
                     <details class="settings-section">
                         <summary class="settings-section-header">
                             <span class="settings-section-icon">🔒</span>

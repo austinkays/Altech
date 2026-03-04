@@ -122,6 +122,7 @@ const CloudSync = (() => {
             clientHistory: tryParse('altech_client_history'),
             quickRefCards: tryParse('altech_quickref_cards'),
             reminders: tryParse('altech_reminders'),
+            glossary: localStorage.getItem('altech_agency_glossary') || null,
             settings: {
                 darkMode: localStorage.getItem('altech_dark_mode') === 'true',
             }
@@ -368,6 +369,7 @@ const CloudSync = (() => {
                     _pushDoc('clientHistory', local.clientHistory, 'clientHistory'),
                     _pushDoc('quickRefCards', local.quickRefCards, 'quickRefCards'),
                     _pushDoc('reminders', local.reminders, 'reminders'),
+                    _pushDoc('glossary', local.glossary, 'glossary'),
                     local.quotes?.length ? _pushQuotes(local.quotes) : Promise.resolve()
                 ]);
 
@@ -468,6 +470,14 @@ const CloudSync = (() => {
                     if (Reminders.render) Reminders.render();
                 }
 
+                // Pull Agency Glossary
+                const glossaryResult = await _pullDoc('glossary', null, 'glossary');
+                if (glossaryResult?.data != null) {
+                    localStorage.setItem('altech_agency_glossary', typeof glossaryResult.data === 'string' ? glossaryResult.data : JSON.stringify(glossaryResult.data));
+                    const glossaryEl = document.getElementById('agencyGlossaryText');
+                    if (glossaryEl) glossaryEl.value = localStorage.getItem('altech_agency_glossary') || '';
+                }
+
                 // Pull quotes (merge strategy)
                 const remoteQuotes = await _pullQuotes();
                 if (remoteQuotes.length > 0) {
@@ -547,7 +557,7 @@ const CloudSync = (() => {
                 const db = FirebaseConfig.db;
 
                 // Delete sync docs
-                const syncDocs = ['settings', 'currentForm', 'cglState', 'clientHistory', 'quickRefCards', 'reminders'];
+                const syncDocs = ['settings', 'currentForm', 'cglState', 'clientHistory', 'quickRefCards', 'reminders', 'glossary'];
                 await Promise.all(syncDocs.map(doc =>
                     db.collection('users').doc(uid).collection('sync').doc(doc).delete()
                 ));

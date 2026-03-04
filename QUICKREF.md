@@ -192,7 +192,7 @@ priorCarrier, priorYears, priorLapse
 
 ---
 
-## Cloud-Synced Data Types (7)
+## Cloud-Synced Data Types (8)
 
 | docType | localStorage Key | UI Refresh After Pull |
 |---------|-----------------|----------------------|
@@ -203,6 +203,7 @@ priorCarrier, priorYears, priorLapse
 | `quickRefCards` | `altech_quickref_cards` | `QuickRef.renderCards()` |
 | `reminders` | `altech_reminders` | `Reminders.render()` |
 | `quotes` | `altech_v6_quotes` | `App.renderQuotesList()` |
+| `glossary` | `altech_agency_glossary` | Updates textarea if visible |
 
 **Adding a new synced type requires 4 edits in `cloud-sync.js`:** `_getLocalData()`, `pushToCloud()`, `pullFromCloud()`, `deleteCloudData()`
 
@@ -212,7 +213,7 @@ priorCarrier, priorYears, priorLapse
 
 ```bash
 npm run dev              # Local server (port 3000)
-npm test                 # All 23 suites, 1489 tests
+npm test                 # All 23 suites, 1515 tests
 npx jest --no-coverage   # Faster
 npx jest tests/app.test.js  # Single suite
 npm run deploy:vercel    # Production deploy
@@ -220,14 +221,23 @@ npm run deploy:vercel    # Production deploy
 
 ---
 
-## Session Notes (March 3, 2026)
+## Session Notes (March 5, 2026)
 
-- Fixed narrow-width viewport collapse/black-screen behavior by hardening shell and plugin flex containment in `css/main.css`, `css/sidebar.css`, and `css/intake-assist.css`.
-- Fixed chat/content downward growth and clipping by adding `min-height: 0` nested flex guards plus responsive `clamp()` heights for Q&A and Quote Compare in `css/main.css` and `css/quote-compare.css`.
-- Added three reliability suites: `tests/auth-cloudsync.test.js`, `tests/boot-loading.test.js`, and `tests/layout-regressions.test.js`.
-- **Desktop Layout Overhaul (March 2026):** Widened all 15 plugin containers from 1200px→1400px. Added 2-column desktop grids for Q&A, Email, VIN Decoder, and Accounting. HawkSoft Logger uses `:has()` conditional grid. QuickRef: 3-col→4-col phonetic grid. CGL: taller stat cards, wider filters. 12 "tap"→"click" replacements. 24 files changed.
-- Verification: `npx jest --no-coverage` → 23/23 suites passed, 1485/1489 tests.
-- **Call Logger Redesign (March 3, 2026):** Replaced dropdown with 5 SVG-icon channel quick-tap buttons + 8 activity-type pill buttons with note templates. 26 new tests.
-- **HawkSoft Logger Bug Fixes + Rename (March 3, 2026):** Fixed wrong method/direction/party in HawkSoft log push. Fixed invisible agent initials. Renamed Call Logger to HawkSoft Logger across 7 files. 5 new tests.
+- **+ New Log Button:** Added reset button in HawkSoft Logger header — clears client, channel (→Inbound), activity, notes, preview/confirm panels. Keeps agent initials. SVG + icon.
+- **Agency Glossary:** New textarea in Settings (500-char max) for custom shorthand terms (e.g., "MoE = Mutual of Enumclaw"). Stored in `altech_agency_glossary`, sent in formatOnly fetch, injected into AI userMessage, cloud-synced as 8th doc type.
+- **CHANNEL_MAP LogAction Fix:** Walk-In 2→21, Email 3→33, Text 4→41. Were incorrectly using Phone sub-codes.
+- **Tests:** 26 new tests. Total: 23 suites, 1515 tests.
+- **9 files changed:** api/hawksoft-logger.js, plugins/call-logger.html, css/call-logger.css, js/call-logger.js, index.html, css/auth.css, js/cloud-sync.js, tests/call-logger.test.js, tests/hawksoft-logger.test.js
 
-*Last updated: March 3, 2026*
+### Previous Session (March 4, 2026)
+
+- **Call Logger Redesign:** Replaced `<select>` dropdown with 5 SVG-icon channel quick-tap buttons (Inbound/Outbound/Walk-In/Email/Text) + 8 activity-type pill buttons with note templates. Full HTML/CSS/JS rewrite. Added CHANNEL_MAP to hawksoft-logger.js.
+- **HawkSoft Logger Bug Fixes + Rename:** Fixed wrong method/direction/party in log push. Fixed invisible agent initials. Renamed Call Logger to HawkSoft Logger across 7 files.
+
+### Previous Session (March 3, 2026)
+
+- Fixed narrow-width viewport collapse/black-screen behavior by hardening shell and plugin flex containment.
+- Desktop Layout Overhaul: Widened all 15 plugin containers from 1200px→1400px. Added 2-column desktop grids for Q&A, Email, VIN Decoder, and Accounting. 24 files changed.
+- Verification: `npx jest --no-coverage` → 23/23 suites passed, 1515/1515 tests.
+
+*Last updated: March 5, 2026*

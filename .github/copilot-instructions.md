@@ -14,13 +14,13 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~707 lines), 21 CSS files in `css/` (~15,598 lines), 35 JS modules in `js/` (~31,404 lines), 15 plugin HTML files in `plugins/` (~5,363 lines), 12 serverless APIs in `api/` (~7,184 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~665 lines), 21 CSS files in `css/` (~15,690 lines), 35 JS modules in `js/` (~31,541 lines), 15 plugin HTML files in `plugins/` (~5,382 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
 > **Full documentation:** See [AGENTS.md](../AGENTS.md) (985 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
 ```bash
 npm run dev          # Local server
-npm test             # 23 test suites, 1489 tests (Jest + JSDOM)
+npm test             # 23 test suites, 1515 tests (Jest + JSDOM)
 npx jest --no-coverage  # Faster (skip coverage)
 ```
 
@@ -84,7 +84,7 @@ For dark mode overrides, prefer solid colors (`#1C1C1E`) over low-opacity rgba (
 
 **Firestore path:** `users/{uid}/sync/{docType}` + `users/{uid}/quotes/{id}`
 
-**Synced data (7 types):** settings, currentForm (`altech_v6`), cglState, clientHistory, quickRefCards, reminders, quotes.
+**Synced data (8 types):** settings, currentForm (`altech_v6`), cglState, clientHistory, quickRefCards, reminders, quotes, glossary.
 
 When adding sync for a new data type, update 4 places in `js/cloud-sync.js`:
 - `_getLocalData()` — add `yourKey: tryParse('altech_your_key')`
@@ -138,13 +138,14 @@ Every `<input id="fieldName">` auto-syncs to `App.data.fieldName` via `localStor
 | `altech_coi_draft` | COI | ❌ |
 | `altech_email_drafts` | EmailComposer (encrypted) | ❌ |
 | `altech_acct_vault` | AccountingExport | ❌ |
+| `altech_agency_glossary` | CallLogger / Settings | ✅ |
 
 ---
 
 ## Testing
 
 ```bash
-npm test                    # All 23 suites, 1485 tests
+npm test                    # All 23 suites, 1515 tests
 npx jest --no-coverage      # Faster (skip coverage)
 npx jest tests/app.test.js  # Single suite
 ```
@@ -183,7 +184,15 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 4, 2026)
+### Latest Session Notes (March 5, 2026)
+
+- **+ New Log Button:** Added reset button in HawkSoft Logger header — clears client, channel (→Inbound), activity, notes, preview/confirm panels. Keeps agent initials. SVG + icon.
+- **Agency Glossary:** New textarea in Settings (500-char max) for custom shorthand terms (e.g., "MoE = Mutual of Enumclaw"). Stored in `altech_agency_glossary`, sent in formatOnly fetch, injected into AI userMessage, cloud-synced as 8th doc type.
+- **CHANNEL_MAP LogAction Fix:** Walk-In 2→21, Email 3→33, Text 4→41. Were incorrectly using Phone sub-codes.
+- **Tests:** 26 new tests. Total: 23 suites, 1515 tests.
+- **9 files changed:** api/hawksoft-logger.js, plugins/call-logger.html, css/call-logger.css, js/call-logger.js, index.html, css/auth.css, js/cloud-sync.js, tests/call-logger.test.js, tests/hawksoft-logger.test.js
+
+### Previous Session (March 4, 2026)
 
 - **Call Logger Redesign:** Replaced `<select>` dropdown with 5 SVG-icon channel quick-tap buttons (Inbound/Outbound/Walk-In/Email/Text) + 8 activity-type pill buttons with note templates. Full HTML/CSS/JS rewrite. Added CHANNEL_MAP to hawksoft-logger.js.
 - **Tests:** 26 new tests (source analysis + behavioral JSDOM). Total: 23 suites, 1489 tests.
@@ -203,4 +212,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 4, 2026*
+*Last updated: March 5, 2026*

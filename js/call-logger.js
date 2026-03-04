@@ -710,7 +710,7 @@ window.CallLogger = (() => {
             const res = await fetchFn('/api/hawksoft-logger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, activityType: _selectedActivityType || '', userApiKey, aiModel, formatOnly: true })
+                body: JSON.stringify({ policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, activityType: _selectedActivityType || '', glossary: localStorage.getItem('altech_agency_glossary') || '', userApiKey, aiModel, formatOnly: true })
             });
 
             if (!res.ok) {
@@ -1005,6 +1005,60 @@ window.CallLogger = (() => {
         }
     }
 
+    /**
+     * Full form reset — clears client, channel, activity, notes, preview/confirm.
+     * Keeps agent initials (they rarely change between calls).
+     */
+    function _resetForm() {
+        // Reset internal state
+        _selectedClient = null;
+        _selectedPolicy = null;
+        _selectedChannel = 'Inbound';
+        _selectedActivityType = null;
+        _lastTemplate = '';
+        _pendingLog = null;
+
+        // Clear form inputs
+        const policyEl = document.getElementById('clPolicyId');
+        const notesEl = document.getElementById('clRawNotes');
+        if (policyEl) policyEl.value = '';
+        if (notesEl) notesEl.value = '';
+
+        // Hide client dropdown + policy selector
+        const dropdown = document.getElementById('clClientDropdown');
+        const policySelect = document.getElementById('clPolicySelect');
+        const policyList = document.getElementById('clPolicyList');
+        if (dropdown) { dropdown.style.display = 'none'; dropdown.innerHTML = ''; }
+        if (policySelect) policySelect.style.display = 'none';
+        if (policyList) policyList.innerHTML = '';
+
+        // Reset channel buttons to Inbound
+        _applyChannelUI();
+
+        // Reset activity buttons (deselect all)
+        _applyActivityUI();
+
+        // Hide preview + confirm
+        const previewEl = document.getElementById('clPreview');
+        const previewTextEl = document.getElementById('clPreviewText');
+        const confirmSection = document.getElementById('clConfirmSection');
+        const confirmInfo = document.getElementById('clConfirmInfo');
+        if (previewEl) previewEl.style.display = 'none';
+        if (previewTextEl) previewTextEl.textContent = '';
+        if (confirmSection) confirmSection.style.display = 'none';
+        if (confirmInfo) confirmInfo.innerHTML = '';
+
+        // Remove any edit textarea
+        const editTA = document.querySelector('.cl-edit-textarea');
+        if (editTA) editTA.remove();
+
+        // Reset submit button
+        _resetToFormatMode();
+
+        // Focus the client search input
+        if (policyEl) policyEl.focus();
+    }
+
     function _escapeHTML(str) {
         const div = document.createElement('div');
         div.textContent = str;
@@ -1098,6 +1152,13 @@ window.CallLogger = (() => {
             refreshBtn._clWired = true;
         }
 
+        // + New Log button
+        const newLogBtn = document.getElementById('clNewLogBtn');
+        if (newLogBtn && !newLogBtn._clWired) {
+            newLogBtn.addEventListener('click', _resetForm);
+            newLogBtn._clWired = true;
+        }
+
         // Channel buttons (event delegation)
         const channelGroup = document.getElementById('clChannelGroup');
         if (channelGroup && !channelGroup._clWired) {
@@ -1119,5 +1180,5 @@ window.CallLogger = (() => {
         }
     }
 
-    return { init, render, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, _handleChannelSelect, _handleActivitySelect, getSelectedPolicy: () => _selectedPolicy, getSelectedChannel: () => _selectedChannel, getSelectedActivityType: () => _selectedActivityType };
+    return { init, render, resetForm: _resetForm, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, _handleChannelSelect, _handleActivitySelect, getSelectedPolicy: () => _selectedPolicy, getSelectedChannel: () => _selectedChannel, getSelectedActivityType: () => _selectedActivityType };
 })();
