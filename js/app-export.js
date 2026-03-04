@@ -96,6 +96,19 @@ Object.assign(App, {
         };
         const formatPrefix = (val) => ({ MR: 'Mr.', MRS: 'Mrs.', MS: 'Ms.', DR: 'Dr.' }[val] || val || '');
         const formatSuffix = (val) => ({ JR: 'Jr.', SR: 'Sr.' }[val] || val || '');
+        const formatDeductible = (val) => {
+            if (!val) return '';
+            const s = String(val).trim();
+            if (/%/.test(s) || /same as all perils/i.test(s)) return s;
+            return formatCurrency(s);
+        };
+        const formatPhone = (val) => {
+            if (!val) return '';
+            const digits = String(val).replace(/\D/g, '');
+            if (digits.length === 10) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+            if (digits.length === 11 && digits[0] === '1') return `(${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
+            return val;
+        };
         const formatDateTime = (value) => {
             const d = value instanceof Date ? value : new Date(value);
             if (Number.isNaN(d.getTime())) return '';
@@ -349,7 +362,7 @@ Object.assign(App, {
             ['Date of Birth', formatDate(v('dob'))],
             ['Gender', v('gender') === 'M' ? 'Male' : v('gender') === 'F' ? 'Female' : v('gender')],
             ['Marital Status', v('maritalStatus')],
-            ['Phone', v('phone')],
+            ['Phone', formatPhone(v('phone'))],
             ['Email', v('email')],
             ['Education', v('education')],
             ['Industry', v('industry')],
@@ -367,7 +380,7 @@ Object.assign(App, {
                 ['Date of Birth', formatDate(v('coDob'))],
                 ['Gender', v('coGender') === 'M' ? 'Male' : v('coGender') === 'F' ? 'Female' : v('coGender')],
                 ['Email', v('coEmail')],
-                ['Phone', v('coPhone')],
+                ['Phone', formatPhone(v('coPhone'))],
                 ['Relationship', v('coRelationship')],
             ]);
         }
@@ -379,7 +392,7 @@ Object.assign(App, {
             ['City', v('addrCity')],
             ['State', v('addrState')],
             ['ZIP Code', v('addrZip')],
-            ['County', this.getCountyFromCity(data.addrCity, data.addrState) || ''],
+            ['County', v('county') || this.getCountyFromCity(data.addrCity, data.addrState) || ''],
             ['Years at Address', v('yearsAtAddress')],
         ]);
 
@@ -450,8 +463,8 @@ Object.assign(App, {
                 ['Dwelling Coverage', formatCurrency(v('dwellingCoverage'))],
                 ['Personal Liability', formatCurrency(v('personalLiability'))],
                 ['Medical Payments', formatCurrency(v('medicalPayments'))],
-                ['Deductible', formatCurrency(v('homeDeductible'))],
-                ['Wind/Hail Ded.', formatCurrency(v('windDeductible'))],
+                ['Deductible', formatDeductible(v('homeDeductible'))],
+                ['Wind/Hail Ded.', formatDeductible(v('windDeductible'))],
                 ['Mortgagee', v('mortgagee')],
                 ['Increased Repl. Cost', v('increasedReplacementCost')],
                 ['Ordinance or Law', v('ordinanceOrLaw')],
@@ -480,6 +493,15 @@ Object.assign(App, {
                         ['  Occupation', d.occupation || ''],
                         ['  License #', (d.dlNum || '').toUpperCase()],
                         ['  License State', (d.dlState || '').toUpperCase()],
+                        ['  Industry', d.industry || ''],
+                        ['  DL Status', d.dlStatus || ''],
+                        ['  Age Licensed', d.ageLicensed || ''],
+                        ['  SR-22', d.sr22 || ''],
+                        ['  FR-44', d.fr44 || ''],
+                        ['  Good Driver', d.goodDriver || ''],
+                        ['  Mature Driver', d.matureDriver || ''],
+                        ['  License Susp/Rev', d.licenseSusRev || ''],
+                        ['  Driver Education', d.driverEducation || ''],
                     ];
                 }).flat();
                 detailTable(driverRows);
@@ -497,6 +519,14 @@ Object.assign(App, {
                         ['  Usage', v.use || ''],
                         ['  Annual Miles', v.miles ? Number(v.miles).toLocaleString() : ''],
                         ['  Primary Driver', driverDisplay],
+                        ['  Ownership', v.ownershipType || ''],
+                        ['  Anti-Theft', v.antiTheft || ''],
+                        ['  Anti-Lock Brakes', v.antiLockBrakes || ''],
+                        ['  Passive Restraints', v.passiveRestraints || ''],
+                        ['  Telematics', v.telematics || ''],
+                        ['  TNC (Rideshare)', v.tnc || ''],
+                        ['  Carpool', v.carPool || ''],
+                        ['  New Vehicle', v.carNew || ''],
                     ];
                 }).flat();
                 detailTable(vehicleRows);
@@ -524,8 +554,8 @@ Object.assign(App, {
                 ['UM Limits', v('umLimits')],
                 ['UIM Limits', v('uimLimits')],
                 ['UMPD Limit', formatCurrency(v('umpdLimit'))],
-                ['Comprehensive Ded.', formatCurrency(v('compDeductible'))],
-                ['Collision Ded.', formatCurrency(v('autoDeductible'))],
+                ['Comprehensive Ded.', formatDeductible(v('compDeductible'))],
+                ['Collision Ded.', formatDeductible(v('autoDeductible'))],
                 ['Rental Reimburse.', formatRental(v('rentalDeductible'))],
                 ['Towing/Roadside', formatCurrency(v('towingDeductible'))],
                 ['Student GPA', v('studentGPA')],
@@ -544,7 +574,8 @@ Object.assign(App, {
                 ['Home Prior Carrier', hCarrier],
                 ['Home Prior Term', v('homePriorPolicyTerm') || v('priorPolicyTerm')],
                 ['Home Yrs w/ Prior', v('homePriorYears') || v('priorYears')],
-                ['Home Prior Exp.', formatDate(v('homePriorExp') || v('priorExp'))]
+                ['Home Prior Exp.', formatDate(v('homePriorExp') || v('priorExp'))],
+                ['Home Prior Liability', v('homePriorLiability')]
             );
         }
         if (showAuto) {
@@ -552,7 +583,8 @@ Object.assign(App, {
                 ['Auto Prior Carrier', v('priorCarrier')],
                 ['Auto Prior Term', v('priorPolicyTerm')],
                 ['Auto Yrs w/ Prior', v('priorYears')],
-                ['Auto Prior Exp.', formatDate(v('priorExp'))]
+                ['Auto Prior Exp.', formatDate(v('priorExp'))],
+                ['Prior Auto Limits', v('priorLiabilityLimits')]
             );
         }
         pdfPriorRows.push(
