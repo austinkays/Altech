@@ -2009,17 +2009,37 @@ async function fillPage(clientData) {
                     ...ddKeys.filter(k => !DD_PRIORITY.includes(k)),
                 ];
 
+                // Fields that may not render separately when co-applicant shares primary address
+                const ADDRESS_INHERITED_FIELDS = new Set(['County', 'YearsAtAddress', 'MonthsAtAddress']);
+
                 for (const field of orderedDdKeys) {
                     const selector = CONTACT_PAGE_DROPDOWN_FIELDS[field];
                     const val = coApp[field];
                     if (!val) continue;
                     updateToolbarStatus(`CoApp: ${field}...`);
 
-                    const filled = await fillMatSelectById(selector, val, field);
+                    let filled = await fillMatSelectById(selector, val, field);
+
+                    // Occupation is a dependent dropdown — Angular only renders it after Industry
+                    // fires its change event. If it wasn't found, poll for it up to 3s and retry.
+                    if (!filled && field === 'Occupation') {
+                        console.log('[Altech Filler] Occupation not found — waiting for Industry change to render it...');
+                        const occEl = await waitForElement(selector, 3000, 300);
+                        if (occEl) {
+                            console.log('[Altech Filler] Occupation element appeared — retrying fill');
+                            filled = await fillMatSelectById(selector, val, field);
+                        } else {
+                            console.log('[Altech Filler] Occupation element did not appear after 3s');
+                        }
+                    }
 
                     if (filled) {
                         report.ddFilled++;
                         report.details.push({ field: `CoApp.${field}`, type: 'dropdown', status: 'OK', value: val });
+                    } else if (ADDRESS_INHERITED_FIELDS.has(field) && !document.querySelector(selector)) {
+                        // Co-applicant shares primary applicant's address — these fields don't render
+                        console.log(`[Altech Filler] CoApp.${field} not rendered (inherited from primary address) — skipping gracefully`);
+                        report.details.push({ field: `CoApp.${field}`, type: 'dropdown', status: 'OK', value: val, reason: 'Inherited from primary address' });
                     } else {
                         report.ddSkipped++;
                         report.details.push({ field: `CoApp.${field}`, type: 'dropdown', status: 'SKIP', value: val, reason: `Not found: ${selector}` });
