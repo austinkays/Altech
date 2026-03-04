@@ -94,6 +94,8 @@ Object.assign(App, {
             if (/^\d+/.test(val)) return '$' + val;
             return val;
         };
+        const formatPrefix = (val) => ({ MR: 'Mr.', MRS: 'Mrs.', MS: 'Ms.', DR: 'Dr.' }[val] || val || '');
+        const formatSuffix = (val) => ({ JR: 'Jr.', SR: 'Sr.' }[val] || val || '');
         const formatDateTime = (value) => {
             const d = value instanceof Date ? value : new Date(value);
             if (Number.isNaN(d.getTime())) return '';
@@ -248,8 +250,8 @@ Object.assign(App, {
             this.getMapImages(address),
             this.fetchImageDataUrl('Resources/altech-logo.png')
         ]);
-        const prefix = v('prefix');
-        const suffix = v('suffix');
+        const prefix = formatPrefix(v('prefix'));
+        const suffix = formatSuffix(v('suffix'));
         const nameParts = [prefix, v('firstName'), v('lastName'), suffix].filter(Boolean);
         const clientName = nameParts.join(' ') || 'Client';
 
