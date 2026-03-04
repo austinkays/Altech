@@ -918,6 +918,47 @@ body.dark-mode .cgl-note-delete-btn:hover { color: var(--danger); }
     opacity: 0.7;
     margin-left: 2px;
 }
+
+/* Options panel */
+.cgl-options-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+.cgl-notify-type-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.cgl-notify-type-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: opacity 0.15s ease;
+}
+.cgl-notify-type-label:hover {
+    background: var(--bg-input);
+}
+.cgl-notify-type-label.cgl-notify-muted {
+    opacity: 0.4;
+}
+.cgl-notify-type-label input[type="checkbox"] {
+    accent-color: var(--apple-blue);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+#cglOptionsBtn.active {
+    background: var(--apple-blue);
+    color: #fff;
+    border-color: var(--apple-blue);
+}
 .cgl-legend {
     background: linear-gradient(135deg, rgba(56,189,248,0.03) 0%, rgba(99,102,241,0.03) 100%);
     backdrop-filter: blur(12px);

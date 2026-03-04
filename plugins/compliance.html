@@ -16,6 +16,9 @@
             <button class="btn-utility" onclick="ComplianceDashboard.downloadFullBackup()" style="font-size: 14px; padding: 8px 16px;" title="Download full annotations backup (JSON)">
                 💾 Backup
             </button>
+            <button class="btn-utility" onclick="ComplianceDashboard.toggleOptions()" id="cglOptionsBtn" style="font-size: 14px; padding: 8px 16px;" title="Notification & display options">
+                ⚙ Options
+            </button>
             <button class="btn-utility" onclick="ComplianceDashboard.refresh()" style="font-size: 14px; padding: 8px 16px;">
                 🔄 Refresh
             </button>
@@ -73,6 +76,18 @@
     <!-- Type Visibility Toggles -->
     <div class="cgl-type-toggles" id="cglTypeToggles">
         <!-- Populated by renderTypeToggles() -->
+    </div>
+
+    <!-- Options Panel (collapsed by default) -->
+    <div id="cglOptionsPanel" class="cgl-options-panel" style="display:none;">
+        <div style="font-weight:600; margin-bottom:10px;">🔔 Notification Types</div>
+        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:10px;">
+            These policy types will show the pulsing alert badge, count toward Critical/Expired stats, and update the sidebar badge.
+        </div>
+        <div id="cglNotifyTypeToggles" class="cgl-notify-type-grid"></div>
+        <div style="font-size:12px; color:var(--text-secondary); border-top:1px solid var(--border); padding-top:10px; margin-top:4px;">
+            💡 Tip: Notification types are independent of the type toggle buttons above. A type can be hidden from the table but still notify, or shown in the table but kept silent.
+        </div>
     </div>
 
     <!-- Search and Filters -->

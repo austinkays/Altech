@@ -122,6 +122,7 @@ const ComplianceDashboard = {
     savedSearch: '',
     savedFilter: 'all',
     hiddenTypes: ['auto', 'umbrella', 'wc', 'im', 'property', 'epli', 'do', 'eo', 'cyber', 'crime', 'liquor', 'garage', 'pollution'],
+    notifyTypes: ['cgl', 'bond', 'pkg', 'bop', 'commercial'],
     sessionChanges: 0,
     _pageSize: 50,
     _visibleCount: 50,
@@ -205,6 +206,7 @@ const ComplianceDashboard = {
                 this.savedSearch = parsed.savedSearch || '';
                 this.savedFilter = parsed.savedFilter || 'all';
                 this.hiddenTypes = parsed.hiddenTypes || ['auto', 'umbrella', 'wc', 'im', 'property', 'epli', 'do', 'eo', 'cyber', 'crime', 'liquor', 'garage', 'pollution'];
+                this.notifyTypes = parsed.notifyTypes || ['cgl', 'bond', 'pkg', 'bop', 'commercial'];
                 this._stateLoaded = true;
                 console.log('[CGL] State loaded:', Object.keys(this.verifiedPolicies).length, 'verified,', Object.keys(this.dismissedPolicies).length, 'dismissed,', Object.keys(this.policyNotes).length, 'notes');
                 return;
@@ -228,6 +230,7 @@ const ComplianceDashboard = {
             localStorage.removeItem('compliance_dismissed_policies');
             console.log('[CGL] Migrated old keys to altech_cgl_state');
         }
+        this.notifyTypes = this.notifyTypes || ['cgl', 'bond', 'pkg', 'bop', 'commercial'];
     },
 
     saveState(options) {
@@ -331,6 +334,7 @@ const ComplianceDashboard = {
                     savedSearch: this.savedSearch,
                     savedFilter: this.savedFilter,
                     hiddenTypes: this.hiddenTypes,
+                    notifyTypes: this.notifyTypes,
                     lastSaved: new Date().toISOString()
                 }));
                 return true;
@@ -359,6 +363,7 @@ const ComplianceDashboard = {
         if (ann.savedSearch !== undefined) this.savedSearch = ann.savedSearch;
         if (ann.savedFilter !== undefined) this.savedFilter = ann.savedFilter;
         if (ann.hiddenTypes) this.hiddenTypes = ann.hiddenTypes;
+        if (ann.notifyTypes) this.notifyTypes = ann.notifyTypes;
     },
 
     _getStateSnapshot() {
@@ -371,6 +376,7 @@ const ComplianceDashboard = {
             savedSearch: this.savedSearch,
             savedFilter: this.savedFilter,
             hiddenTypes: this.hiddenTypes,
+            notifyTypes: this.notifyTypes,
             lastSaved: new Date().toISOString()
         };
     },
@@ -758,6 +764,7 @@ const ComplianceDashboard = {
                         if (data.sortField) this.sortField = data.sortField;
                         if (data.sortDirection) this.sortDirection = data.sortDirection;
                         if (data.hiddenTypes) this.hiddenTypes = data.hiddenTypes;
+                        if (data.notifyTypes) this.notifyTypes = data.notifyTypes;
                         console.log('[CGL] ✅ Disk load — V:' +
                             Object.keys(this.verifiedPolicies).length + ' D:' +
                             Object.keys(this.dismissedPolicies).length + ' N:' +
@@ -838,6 +845,7 @@ const ComplianceDashboard = {
             }
             this.updateSortIndicator();
             this.renderTypeToggles();
+            this.renderNotifyTypeToggles();
 
             if (searchInput) {
                 searchInput.addEventListener('input', () => {
@@ -1971,6 +1979,45 @@ const ComplianceDashboard = {
         this.updateStats();
     },
 
+    toggleOptions() {
+        const panel = document.getElementById('cglOptionsPanel');
+        if (!panel) return;
+        const isOpen = panel.style.display !== 'none';
+        panel.style.display = isOpen ? 'none' : 'block';
+        const btn = document.getElementById('cglOptionsBtn');
+        if (btn) btn.classList.toggle('active', !isOpen);
+    },
+
+    toggleNotifyType(type) {
+        const idx = this.notifyTypes.indexOf(type);
+        if (idx >= 0) {
+            this.notifyTypes.splice(idx, 1);
+        } else {
+            this.notifyTypes.push(type);
+        }
+        this.saveState();
+        this.renderNotifyTypeToggles();
+        this.updateStats();
+        this.filterPolicies();
+    },
+
+    renderNotifyTypeToggles() {
+        const container = document.getElementById('cglNotifyTypeToggles');
+        if (!container) return;
+        const allTypes = ['cgl', 'bond', 'auto', 'wc', 'pkg', 'umbrella', 'bop', 'property', 'im', 'epli', 'do', 'eo', 'cyber', 'commercial'];
+        const presentTypes = new Set(this.policies.map(p => p.policyType || 'cgl'));
+        const typesToShow = allTypes.filter(t => presentTypes.has(t));
+        container.innerHTML = typesToShow.map(type => {
+            const isNotifying = this.notifyTypes.includes(type);
+            const label = this._typeLabel(type);
+            return `<label class="cgl-notify-type-label${isNotifying ? '' : ' cgl-notify-muted'}">
+                <input type="checkbox" ${isNotifying ? 'checked' : ''}
+                    onchange="ComplianceDashboard.toggleNotifyType('${type}')">
+                <span class="cgl-type-badge ${type}">${label}</span>
+            </label>`;
+        }).join('');
+    },
+
     renderTypeToggles() {
         const container = document.getElementById('cglTypeToggles');
         if (!container) return;
@@ -2126,7 +2173,7 @@ const ComplianceDashboard = {
                         </label>
                     </td>
                     <td>
-                        <span class="cgl-status-badge ${policy.status}${policy.daysUntilExpiration <= 14 && !isHidden ? ' notifying' : ''}">
+                        <span class="cgl-status-badge ${policy.status}${policy.daysUntilExpiration <= 14 && !isHidden && this.notifyTypes.includes(policy.policyType || 'cgl') ? ' notifying' : ''}">
                             ${statusLabel}
                         </span>
                     </td>
@@ -2212,9 +2259,9 @@ const ComplianceDashboard = {
         const visiblePolicies = this.policies.filter(p => !this.isHidden(p.policyNumber) && !this.hiddenTypes.includes(p.policyType || 'cgl'));
         const _el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
         _el('statTotal', visiblePolicies.length);
-        _el('statCritical', visiblePolicies.filter(p => p.daysUntilExpiration >= 0 && p.daysUntilExpiration <= 5).length);
+        _el('statCritical', visiblePolicies.filter(p => p.daysUntilExpiration >= 0 && p.daysUntilExpiration <= 5 && this.notifyTypes.includes(p.policyType || 'cgl')).length);
         _el('statExpiring', visiblePolicies.filter(p => p.status === 'expiring-soon' || (p.status === 'critical' && p.daysUntilExpiration > 5)).length);
-        _el('statExpired', visiblePolicies.filter(p => p.status === 'expired' || p.daysUntilExpiration < 0).length);
+        _el('statExpired', visiblePolicies.filter(p => (p.status === 'expired' || p.daysUntilExpiration < 0) && this.notifyTypes.includes(p.policyType || 'cgl')).length);
         _el('statManual', visiblePolicies.filter(p => p.requiresManualVerification).length);
         _el('statUpdated', Object.keys(this.verifiedPolicies).length);
 

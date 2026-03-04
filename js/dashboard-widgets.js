@@ -292,11 +292,13 @@ window.DashboardWidgets = (() => {
                 const policies = cached.policies || [];
                 totalPolicies = policies.length;
                 let verified = {}, dismissed = {};
+                let notifyTypes = ['cgl', 'bond', 'pkg', 'bop', 'commercial'];
                 const stateRaw = localStorage.getItem('altech_cgl_state');
                 if (stateRaw) {
                     const st = JSON.parse(stateRaw);
                     verified = st.verifiedPolicies || {};
                     dismissed = st.dismissedPolicies || {};
+                    if (st.notifyTypes) notifyTypes = st.notifyTypes;
                 }
                 const now = new Date();
                 now.setHours(0, 0, 0, 0);
@@ -306,10 +308,11 @@ window.DashboardWidgets = (() => {
                     const exp = new Date(p.expirationDate);
                     exp.setHours(0, 0, 0, 0);
                     const days = Math.round((exp - now) / 86400000);
-                    if (days <= 5) {
+                    const pType = p.policyType || 'cgl';
+                    if (days <= 5 && notifyTypes.includes(pType)) {
                         critical++;
                         flaggedPolicies.push({ ...p, days, severity: 'critical' });
-                    } else if (days <= 30) {
+                    } else if (days <= 30 && notifyTypes.includes(pType)) {
                         warning++;
                         flaggedPolicies.push({ ...p, days, severity: 'warning' });
                     } else {
@@ -779,11 +782,13 @@ window.DashboardWidgets = (() => {
                 const cached = JSON.parse(raw);
                 const policies = cached.policies || [];
                 let verified = {}, dismissed = {};
+                let notifyTypes = ['cgl', 'bond', 'pkg', 'bop', 'commercial'];
                 const stateRaw = localStorage.getItem('altech_cgl_state');
                 if (stateRaw) {
                     const st = JSON.parse(stateRaw);
                     verified = st.verifiedPolicies || {};
                     dismissed = st.dismissedPolicies || {};
+                    if (st.notifyTypes) notifyTypes = st.notifyTypes;
                 }
                 const now = new Date();
                 now.setHours(0, 0, 0, 0);
@@ -791,6 +796,7 @@ window.DashboardWidgets = (() => {
                 policies.forEach(p => {
                     if (verified[p.policyNumber] || dismissed[p.policyNumber]) return;
                     if (!p.expirationDate) return;
+                    if (!notifyTypes.includes(p.policyType || 'cgl')) return;
                     const exp = new Date(p.expirationDate);
                     exp.setHours(0, 0, 0, 0);
                     const days = Math.round((exp - now) / 86400000);
