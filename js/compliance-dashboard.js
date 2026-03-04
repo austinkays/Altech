@@ -1986,6 +1986,8 @@ const ComplianceDashboard = {
         panel.style.display = isOpen ? 'none' : 'block';
         const btn = document.getElementById('cglOptionsBtn');
         if (btn) btn.classList.toggle('active', !isOpen);
+        // Re-render checkboxes on open so policies are guaranteed to be loaded
+        if (!isOpen) this.renderNotifyTypeToggles();
     },
 
     toggleNotifyType(type) {
