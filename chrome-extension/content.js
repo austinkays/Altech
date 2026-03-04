@@ -4204,6 +4204,24 @@ async function scrapePage() {
                 }
             }
 
+            // Fallback: search by exact ID if scoped label search missed it
+            if (!coApIndustry) {
+                const byId = document.getElementById('contact-industry-0');
+                if (byId) {
+                    const tag = byId.tagName.toLowerCase();
+                    coApIndustry = tag === 'mat-select' ? byId : byId.closest('mat-select') || byId.querySelector('mat-select');
+                    if (coApIndustry) console.log('[Altech Scraper] Mini-Cascade: found Co-Applicant Industry via #contact-industry-0');
+                }
+            }
+            if (!coApIndustry) {
+                const byName = document.querySelector('[name="Industry"]');
+                if (byName) {
+                    const tag = byName.tagName.toLowerCase();
+                    coApIndustry = tag === 'mat-select' ? byName : byName.closest('mat-select') || byName.querySelector('mat-select');
+                    if (coApIndustry) console.log('[Altech Scraper] Mini-Cascade: found Co-Applicant Industry via [name="Industry"]');
+                }
+            }
+
             if (coApIndustry) {
                 console.log('[Altech Scraper] Mini-Cascade: filling Co-Applicant Industry → "Retired" to unlock Occupation...');
                 try {
