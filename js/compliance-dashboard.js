@@ -121,7 +121,7 @@ const ComplianceDashboard = {
     sortDirection: 'asc',
     savedSearch: '',
     savedFilter: 'all',
-    hiddenTypes: ['auto', 'umbrella'],
+    hiddenTypes: ['auto', 'umbrella', 'wc', 'im', 'property', 'epli', 'do', 'eo', 'cyber', 'crime', 'liquor', 'garage', 'pollution'],
     sessionChanges: 0,
     _pageSize: 50,
     _visibleCount: 50,
@@ -204,7 +204,7 @@ const ComplianceDashboard = {
                 this.sortDirection = parsed.sortDirection || 'asc';
                 this.savedSearch = parsed.savedSearch || '';
                 this.savedFilter = parsed.savedFilter || 'all';
-                this.hiddenTypes = parsed.hiddenTypes || ['auto', 'umbrella'];
+                this.hiddenTypes = parsed.hiddenTypes || ['auto', 'umbrella', 'wc', 'im', 'property', 'epli', 'do', 'eo', 'cyber', 'crime', 'liquor', 'garage', 'pollution'];
                 this._stateLoaded = true;
                 console.log('[CGL] State loaded:', Object.keys(this.verifiedPolicies).length, 'verified,', Object.keys(this.dismissedPolicies).length, 'dismissed,', Object.keys(this.policyNotes).length, 'notes');
                 return;
@@ -1503,17 +1503,31 @@ const ComplianceDashboard = {
 
             // Check dismissed markers the same way
             const dismissed = this.dismissedPolicies[pn];
-            if (dismissed && dismissed.dismissedAt && policy.expirationDate) {
-                const dismissedAt = new Date(dismissed.dismissedAt).getTime();
-                const currentExp = new Date(policy.expirationDate).getTime();
-                // If policy expires more than 180 days after dismissal, likely renewed
-                if (currentExp - dismissedAt > 180 * 24 * 60 * 60 * 1000) {
-                    console.log(`[CGL] Likely renewal (dismissed): ${pn} — dismissed ${dismissed.dismissedAt}, exp ${policy.expirationDate}. Clearing.`);
-                    this.addQuickNote(pn, `Auto-cleared dismissal: likely renewal (dismissed ${new Date(dismissed.dismissedAt).toLocaleDateString()}, now expires ${new Date(policy.expirationDate).toLocaleDateString()})`);
-                    delete this.dismissedPolicies[pn];
-                    const nd = this.getNoteData(pn);
-                    if (nd) { nd.stateUpdated = null; nd.renewedTo = null; this.policyNotes[pn] = nd; }
-                    cleared++;
+            if (dismissed) {
+                if (dismissed.expirationDate && policy.expirationDate) {
+                    // Exact comparison (new entries): if exp moved forward >30 days, it's a renewal
+                    const storedExp = new Date(dismissed.expirationDate).getTime();
+                    const currentExp = new Date(policy.expirationDate).getTime();
+                    if (currentExp - storedExp > 30 * 24 * 60 * 60 * 1000) {
+                        console.log(`[CGL] Renewal detected (dismissed): ${pn} — exp moved from ${dismissed.expirationDate} to ${policy.expirationDate}. Clearing dismissed marker.`);
+                        this.addQuickNote(pn, `Auto-cleared dismissal: likely renewal (dismissed ${new Date(dismissed.dismissedAt).toLocaleDateString()}, now expires ${new Date(policy.expirationDate).toLocaleDateString()})`);
+                        delete this.dismissedPolicies[pn];
+                        const nd = this.getNoteData(pn);
+                        if (nd) { nd.stateUpdated = null; nd.renewedTo = null; this.policyNotes[pn] = nd; }
+                        cleared++;
+                    }
+                } else if (dismissed.dismissedAt && policy.expirationDate) {
+                    // Legacy fallback (old entries without stored expiration): 180-day heuristic
+                    const dismissedAt = new Date(dismissed.dismissedAt).getTime();
+                    const currentExp = new Date(policy.expirationDate).getTime();
+                    if (currentExp - dismissedAt > 180 * 24 * 60 * 60 * 1000) {
+                        console.log(`[CGL] Likely renewal (dismissed legacy): ${pn} — dismissed ${dismissed.dismissedAt}, exp ${policy.expirationDate}. Clearing.`);
+                        this.addQuickNote(pn, `Auto-cleared dismissal: likely renewal (dismissed ${new Date(dismissed.dismissedAt).toLocaleDateString()}, now expires ${new Date(policy.expirationDate).toLocaleDateString()})`);
+                        delete this.dismissedPolicies[pn];
+                        const nd = this.getNoteData(pn);
+                        if (nd) { nd.stateUpdated = null; nd.renewedTo = null; this.policyNotes[pn] = nd; }
+                        cleared++;
+                    }
                 }
             }
         });
@@ -1557,8 +1571,10 @@ const ComplianceDashboard = {
     },
 
     dismissPolicy(policyNumber) {
+        const policy = this.policies.find(p => p.policyNumber === policyNumber);
         this.dismissedPolicies[policyNumber] = {
-            dismissedAt: new Date().toISOString()
+            dismissedAt: new Date().toISOString(),
+            expirationDate: policy ? policy.expirationDate : null
         };
         this.saveState();
         this.trackChange();
@@ -1906,7 +1922,12 @@ const ComplianceDashboard = {
     renderPolicies(filteredList = null) {
         const tbody = document.getElementById('cglTableBody');
         if (!tbody) return;
-        let policiesToRender = filteredList || this.policies.filter(p => this.showHidden || !this.isHidden(p.policyNumber));
+        let policiesToRender = filteredList || this.policies.filter(p => {
+            const pType = p.policyType || 'cgl';
+            if (this.hiddenTypes.includes(pType)) return false;
+            if (!this.showHidden && this.isHidden(p.policyNumber)) return false;
+            return true;
+        });
 
         // If no pre-sorted list provided, apply sort
         if (!filteredList) {
