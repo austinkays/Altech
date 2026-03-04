@@ -3035,12 +3035,12 @@ body.dark-mode .pac-matched { color: #0A84FF; }
 /* ─── Quoting Wizard: Centered content wrapper ─── */
 @media (min-width: 960px) {
     #quotingTool main {
-        max-width: 1400px;
+        max-width: none;
         margin: 0 auto;
         padding: 24px 32px calc(100px + env(safe-area-inset-bottom));
     }
     #quotingTool header {
-        max-width: 1400px;
+        max-width: none;
         margin-left: auto;
         margin-right: auto;
     }
@@ -3128,7 +3128,7 @@ body.dark-mode .pac-matched { color: #0A84FF; }
 /* ─── Desktop Footer: Centered, constrained width ─── */
 @media (min-width: 960px) {
     #quotingTool footer {
-        max-width: 1400px;
+        max-width: none;
         margin: 0 auto;
         left: 0;
         right: 0;
@@ -3306,15 +3306,6 @@ body.dark-mode .pac-matched { color: #0A84FF; }
 
 /* ─── Ultra-wide (1600px+): Extra breathing room ─── */
 @media (min-width: 1600px) {
-    #quotingTool main {
-        max-width: 1400px;
-    }
-    #quotingTool header {
-        max-width: 1400px;
-    }
-    #quotingTool footer {
-        max-width: 1400px;
-    }
     /* Keep 2-col, make Begin Intake span full width at wide desktop */
     #step0ClientCard {
         grid-column: 1 / -1;
