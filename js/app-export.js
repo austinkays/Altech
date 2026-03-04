@@ -502,6 +502,9 @@ Object.assign(App, {
                         ['  Mature Driver', d.matureDriver || ''],
                         ['  License Susp/Rev', d.licenseSusRev || ''],
                         ['  Driver Education', d.driverEducation || ''],
+                        ['  Accidents', d.accidents || ''],
+                        ['  Violations', d.violations || ''],
+                        ['  Student GPA', d.studentGPA || ''],
                     ];
                 }).flat();
                 detailTable(driverRows);
@@ -588,10 +591,13 @@ Object.assign(App, {
             );
         }
         pdfPriorRows.push(
-            ['Continuous Coverage', v('continuousCoverage')],
-            ['Accidents', v('accidents')],
-            ['Violations', v('violations')]
+            ['Continuous Coverage', v('continuousCoverage')]
         );
+        // Per-driver accidents / violations (fallback to global for backward compat)
+        const allAccidents = drivers.map((d, i) => d.accidents ? `Driver ${i+1}: ${d.accidents}` : '').filter(Boolean).join('; ') || v('accidents');
+        const allViolations = drivers.map((d, i) => d.violations ? `Driver ${i+1}: ${d.violations}` : '').filter(Boolean).join('; ') || v('violations');
+        if (allAccidents) pdfPriorRows.push(['Accidents', allAccidents]);
+        if (allViolations) pdfPriorRows.push(['Violations', allViolations]);
         kvTable(pdfPriorRows);
 
         // â”€â”€ Additional Information â”€â”€
@@ -801,6 +807,7 @@ Object.assign(App, {
         const qType = data.qType || 'both';
         const includeHome = qType === 'home' || qType === 'both';
         const includeAuto = qType === 'auto' || qType === 'both';
+        const drivers = this.drivers || [];
         
         const fields = [
             // â”€â”€ Core Contact â”€â”€
@@ -869,13 +876,13 @@ Object.assign(App, {
         if (includeAuto) {
             fields.push(
                 { tag: 'C1', value: data.liabilityLimits },
-                { tag: 'C4', value: data.accidents },
-                { tag: 'C5', value: data.violations },
+                { tag: 'C4', value: drivers.map((d, i) => d.accidents ? `Driver ${i+1}: ${d.accidents}` : '').filter(Boolean).join('; ') || data.accidents },
+                { tag: 'C5', value: drivers.map((d, i) => d.violations ? `Driver ${i+1}: ${d.violations}` : '').filter(Boolean).join('; ') || data.violations },
                 { tag: 'C6', value: data.miles },
                 { tag: 'C7', value: data.commuteDist },
                 { tag: 'C8', value: data.rideSharing },
                 { tag: 'C9', value: data.telematics },
-                { tag: 'C10', value: data.studentGPA },
+                { tag: 'C10', value: drivers.map(d => d.studentGPA).filter(Boolean)[0] || data.studentGPA },
                 { tag: 'VIN', value: data.vin },
                 { tag: 'VEH', value: data.vehDesc },
                 { tag: 'DL_NUM', value: (data.dlNum || '').toUpperCase() },

@@ -572,6 +572,11 @@ Object.assign(App, {
                 dlNum: (fields.licenseNumber || '').toUpperCase(),
                 dlState: (fields.licenseState || fields.state || 'WA').toUpperCase(),
                 ageLicensed: '',
+                isPrimaryApplicant: true,
+                isCoApplicant: false,
+                accidents: '',
+                violations: '',
+                studentGPA: ''
             });
         } else {
             const primary = this.drivers[0];
@@ -1589,6 +1594,7 @@ Object.assign(App, {
             const coRadio = document.querySelector('input[name="hasCoApplicant"][value="yes"]');
             if (coRadio) { coRadio.checked = true; coRadio.dispatchEvent(new Event('change', { bubbles: true })); }
             this.restoreCoApplicantUI();
+            this.restorePrimaryApplicantUI();
         }
         
         // Clear the review UI after applying — replace with extraction log
@@ -1707,6 +1713,11 @@ Object.assign(App, {
                     dlNum: '',
                     dlState: this.data.addrState || 'WA',
                     ageLicensed: '',
+                    isPrimaryApplicant: true,
+                    isCoApplicant: false,
+                    accidents: '',
+                    violations: '',
+                    studentGPA: ''
                 }];
             }
         }
@@ -1740,6 +1751,11 @@ Object.assign(App, {
                             dlNum: '',
                             dlState: this.data.addrState || 'WA',
                             ageLicensed: '',
+                            isPrimaryApplicant: false,
+                            isCoApplicant: false,
+                            accidents: '',
+                            violations: '',
+                            studentGPA: ''
                         });
                     }
                 }

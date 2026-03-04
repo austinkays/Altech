@@ -536,22 +536,20 @@ Object.assign(App, {
         
         // Render drivers/vehicles when landing on step 4
         if (curId === 'step-4') {
+            // Sync primary applicant into driver list (creates if absent, updates locked fields)
+            this.syncPrimaryApplicantToDriver();
+
+            // Migrate global driving history to Driver 1 (one-time: moves data.accidents/violations/studentGPA)
+            if (this.drivers.length > 0) {
+                const d1 = this.drivers[0];
+                if (this.data.accidents && !d1.accidents) { d1.accidents = this.data.accidents; }
+                if (this.data.violations && !d1.violations) { d1.violations = this.data.violations; }
+                if (this.data.studentGPA && !d1.studentGPA) { d1.studentGPA = this.data.studentGPA; }
+            }
+
             this.renderDrivers();
             this.renderVehicles();
-            
-            // Auto-add primary applicant as first driver if empty
-            if (this.drivers.length === 0 && this.data.firstName) {
-                this.drivers.push({
-                    id: `driver_${Date.now()}`,
-                    firstName: this.data.firstName || '',
-                    lastName: this.data.lastName || '',
-                    dob: this.data.dob || '',
-                    dlNum: '',
-                    dlState: 'WA',
-                    relationship: 'Self'
-                });
-                this.renderDrivers();
-            }
+            this.saveDriversVehicles();
         }
         
         // Render client history on Quick Start page
@@ -800,6 +798,7 @@ Object.assign(App, {
         this.handleType();
         this.updateNamePronunciationUI();
         this.restoreCoApplicantUI();
+        this.restorePrimaryApplicantUI();
         this.syncSegmentedControls();
         // Refresh dynamic occupation dropdown for loaded industry
         this._populateOccupation(this.data.industry || '', this.data.occupation || '');
@@ -1033,6 +1032,73 @@ Object.assign(App, {
                 this.saveDriversVehicles();
             }
         }
+    },
+
+    /**
+     * Syncs primary applicant (Step 1) form data to a paired driver entry.
+     * Locks Name, DOB, Gender, Marital Status — other fields stay editable.
+     * Mirrors the co-applicant sync pattern but uses isPrimaryApplicant flag.
+     */
+    syncPrimaryApplicantToDriver() {
+        const first = (this.data.firstName || '').trim();
+        const last = (this.data.lastName || '').trim();
+        const dob = (this.data.dob || '').trim();
+        const gender = (this.data.gender || '').trim();
+        const marital = (this.data.maritalStatus || '').trim();
+        const education = (this.data.education || '').trim();
+        const occupation = (this.data.occupation || '').trim();
+        const industry = (this.data.industry || '').trim();
+
+        // Find existing synced driver or create one
+        let synced = this.drivers.find(d => d.isPrimaryApplicant);
+        if (!synced) {
+            synced = {
+                id: `primary_${Date.now()}`,
+                firstName: '',
+                lastName: '',
+                dob: '',
+                dlNum: '',
+                dlState: 'WA',
+                relationship: 'Self',
+                isPrimaryApplicant: true,
+                isCoApplicant: false
+            };
+            this.drivers.unshift(synced); // Always first
+        }
+
+        // Overwrite locked fields from Step 1
+        synced.firstName = first;
+        synced.lastName = last;
+        synced.dob = dob;
+        synced.gender = gender;
+        synced.maritalStatus = marital;
+        synced.education = education;
+        synced.occupation = occupation;
+        synced.industry = industry;
+    },
+
+    /**
+     * Attaches change/blur listeners on Step 1 applicant fields so edits
+     * auto-sync into the paired driver entry. Idempotent (dataset guard).
+     */
+    restorePrimaryApplicantUI() {
+        const syncFields = ['firstName', 'lastName', 'dob', 'gender', 'maritalStatus', 'education', 'occupation', 'industry'];
+        syncFields.forEach(fieldId => {
+            const el = document.getElementById(fieldId);
+            if (el && !el.dataset.primarySyncBound) {
+                el.dataset.primarySyncBound = '1';
+                const handler = () => {
+                    this.syncPrimaryApplicantToDriver();
+                    this.renderDrivers();
+                    this.renderVehicles();
+                    this.saveDriversVehicles();
+                };
+                el.addEventListener('change', handler);
+                if (el.tagName === 'INPUT') {
+                    el.addEventListener('blur', handler);
+                }
+            }
+        });
     },
 
     /**

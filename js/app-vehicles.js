@@ -13,7 +13,11 @@ Object.assign(App, {
             dlNum: '',
             dlState: 'WA',
             relationship: 'Self',
-            isCoApplicant: false
+            isCoApplicant: false,
+            isPrimaryApplicant: false,
+            accidents: '',
+            violations: '',
+            studentGPA: ''
         };
         this.drivers.push(driver);
         this.renderDrivers();
@@ -23,6 +27,11 @@ Object.assign(App, {
 
     removeDriver(id) {
         const driver = this.drivers.find(d => d.id === id);
+        // Prevent removing the synced primary applicant driver
+        if (driver && driver.isPrimaryApplicant) {
+            if (typeof this.toast === 'function') this.toast('Primary applicant driver cannot be removed.', 'error');
+            return;
+        }
         // If removing a synced co-applicant driver, uncheck the co-applicant toggle
         if (driver && driver.isCoApplicant) {
             const cb = document.getElementById('hasCoApplicant');
@@ -43,7 +52,7 @@ Object.assign(App, {
         if (driver) {
             // Prevent manual overwrite of synced co-applicant locked fields
             const LOCKED_FIELDS = ['firstName', 'lastName', 'dob', 'gender', 'relationship'];
-            if (driver.isCoApplicant && LOCKED_FIELDS.includes(field)) return;
+            if ((driver.isCoApplicant || driver.isPrimaryApplicant) && LOCKED_FIELDS.includes(field)) return;
             // Normalize license # and state to uppercase
             if (field === 'dlNum' || field === 'dlState') value = (value || '').toUpperCase();
             driver[field] = value;
@@ -283,10 +292,11 @@ Object.assign(App, {
         
         container.innerHTML = this.drivers.map((driver, index) => {
             const isPrimary = index === 0;
-            const isSynced = driver.isCoApplicant === true;
+            const isSynced = driver.isCoApplicant === true || driver.isPrimaryApplicant === true;
             const lockedAttr = isSynced ? 'readonly style="opacity:0.6;cursor:not-allowed;"' : '';
             const lockedSelAttr = isSynced ? 'disabled style="opacity:0.6;cursor:not-allowed;"' : '';
-            const syncedBadge = isSynced ? '<span style="background:var(--apple-blue);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px;">🔗 Synced from Co-Applicant</span>' : '';
+            const syncedBadge = driver.isCoApplicant ? '<span style="background:var(--apple-blue);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px;">🔗 Synced from Co-Applicant</span>'
+                : (driver.isPrimaryApplicant ? '<span style="background:var(--success);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px;">👤 Primary Applicant</span>' : '');
             const relationshipLabel = driver.relationship
                 ? (driver.relationship === 'Self' && isPrimary ? '• Self' : (driver.relationship !== 'Self' ? `• ${driver.relationship}` : ''))
                 : '';
@@ -499,6 +509,27 @@ Object.assign(App, {
                             `<option value="${s}" ${(driver.dlState || 'WA') === s ? 'selected' : ''}>${s}</option>`
                         ).join('')}
                     </select>
+                </div>
+
+                <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+                    <h4 style="margin:0 0 8px;font-size:14px;font-weight:600;">Driving History</h4>
+                    <label class="label">Accidents (Last 5 Years)</label>
+                    <textarea rows="2" placeholder="Date, description, claim amount"
+                        onchange="App.updateDriver('${driver.id}', 'accidents', this.value)">${this._escapeAttr(driver.accidents || '')}</textarea>
+
+                    <label class="label">Violations / Tickets (Last 3 Years)</label>
+                    <textarea rows="2" placeholder="Date, type of violation"
+                        onchange="App.updateDriver('${driver.id}', 'violations', this.value)">${this._escapeAttr(driver.violations || '')}</textarea>
+
+                    <div class="grid-2">
+                        <div>
+                            <label class="label">Student GPA (if applicable)</label>
+                            <input type="text" value="${this._escapeAttr(driver.studentGPA || '')}" 
+                                onchange="App.updateDriver('${driver.id}', 'studentGPA', this.value)" 
+                                placeholder="3.5">
+                        </div>
+                        <div></div>
+                    </div>
                 </div>
             </div>
         `;
