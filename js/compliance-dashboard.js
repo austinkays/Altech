@@ -1862,6 +1862,20 @@ const ComplianceDashboard = {
         }
     },
 
+    clearRenewed(policyNumber) {
+        const data = this.getNoteData(policyNumber);
+        if (!data) return;
+        data.renewedTo = null;
+        data.log = data.log.filter(entry => !entry.text.startsWith('Renewed →') && !entry.text.startsWith('Renewed (New Policy #)'));
+        this.policyNotes[policyNumber] = data;
+        if (data.log.length === 0 && !data.stateUpdated) {
+            delete this.policyNotes[policyNumber];
+        }
+        this.saveState();
+        this._refreshNoteUI(policyNumber);
+        this.filterPolicies();
+    },
+
     markStateUpdated(policyNumber) {
         let data = this.getNoteData(policyNumber);
         if (!data) data = { log: [], renewedTo: null };
@@ -1931,11 +1945,13 @@ const ComplianceDashboard = {
         // Update renewed badge
         const badgeEl = document.getElementById('renewed-badge-' + policyNumber);
         if (badgeEl && data && data.renewedTo) {
-            badgeEl.textContent = '→ ' + data.renewedTo;
-            badgeEl.style.display = 'inline-block';
-            badgeEl.style.cursor = 'pointer';
-            badgeEl.title = 'Click to find renewed policy';
-            badgeEl.onclick = () => ComplianceDashboard.searchForPolicy(data.renewedTo);
+            badgeEl.style.display = 'inline-flex';
+            badgeEl.style.alignItems = 'center';
+            badgeEl.style.gap = '4px';
+            badgeEl.innerHTML = `<span onclick="ComplianceDashboard.searchForPolicy('${data.renewedTo}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${data.renewedTo}</span><span onclick="ComplianceDashboard.clearRenewed('${policyNumber}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>`;
+        } else if (badgeEl) {
+            badgeEl.style.display = 'none';
+            badgeEl.innerHTML = '';
         }
     },
 
@@ -2122,10 +2138,15 @@ const ComplianceDashboard = {
                         ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${this.escapeHtml(policy.email)}</div>` : ''}
                         ${isStateUpdated ? `<span class="cgl-state-badge" id="state-badge-${pn}">✅ State Updated</span>` : `<span class="cgl-state-badge" id="state-badge-${pn}" style="display:none"></span>`}
                         ${hasNote && !isStateUpdated ? `<div class="cgl-note-preview" id="note-preview-${pn}">${renewedTo ? 'Renewed → ' + this.escapeHtml(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pn}" style="display:none"></div>`}
-                        ${renewedTo ? `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" onclick="ComplianceDashboard.searchForPolicy('${this.escapeHtml(renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${this.escapeHtml(renewedTo)}</span>` : `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:none"></span>`}
                     </td>
                     <td style="font-family: monospace; font-size: 13px;">
-                        ${this.escapeHtml(policy.policyNumber)}
+                        <div>${this.escapeHtml(policy.policyNumber)}</div>
+                        ${renewedTo
+                            ? `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:inline-flex;align-items:center;gap:4px;margin-top:2px;">
+                                <span onclick="ComplianceDashboard.searchForPolicy('${this.escapeHtml(renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${this.escapeHtml(renewedTo)}</span>
+                                <span onclick="ComplianceDashboard.clearRenewed('${pn}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>
+                               </span>`
+                            : `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:none"></span>`}
                     </td>
                     <td>
                         <div>${this.escapeHtml(policy.carrier)}</div>
