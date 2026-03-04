@@ -1934,6 +1934,37 @@ async function fillPage(clientData) {
             if (contactPageReady) {
                 console.log('[Altech Filler] Contact page loaded — filling Co-Applicant fields');
 
+                // Step 2b: Toggle "Make this contact Co-Applicant" switch (before filling fields)
+                let markedCoAp = false;
+                const toggleBtn = document.getElementById('additional-contact-is-co-applicant-0-button');
+                if (toggleBtn) {
+                    toggleBtn.click();
+                    await wait(400);
+                    // Verify it's activated; retry once if needed
+                    if (toggleBtn.getAttribute('aria-checked') !== 'true') {
+                        console.log('[Altech Filler] Co-Applicant toggle retry...');
+                        toggleBtn.click();
+                        await wait(400);
+                    }
+                    markedCoAp = toggleBtn.getAttribute('aria-checked') === 'true';
+                    console.log(`[Altech Filler] Co-Applicant toggle: aria-checked=${toggleBtn.getAttribute('aria-checked')}`);
+                } else {
+                    // Fallback: search by text content for any mdc-switch/slide-toggle
+                    const switches = document.querySelectorAll('button[role="switch"], mat-slide-toggle button, .mdc-switch');
+                    for (const sw of switches) {
+                        const swText = (sw.closest('label, [class*="toggle"], [class*="switch"]')?.textContent || sw.getAttribute('aria-label') || '').toLowerCase();
+                        if (swText.includes('co-applicant') || swText.includes('coapplicant')) {
+                            sw.click();
+                            await wait(400);
+                            markedCoAp = sw.getAttribute('aria-checked') === 'true';
+                            if (!markedCoAp) { sw.click(); await wait(400); markedCoAp = sw.getAttribute('aria-checked') === 'true'; }
+                            console.log(`[Altech Filler] Co-Applicant toggle (fallback): ${markedCoAp}`);
+                            break;
+                        }
+                    }
+                }
+                report.details.push({ field: 'CoApp.Toggle', type: 'toggle', status: markedCoAp ? 'OK' : 'WARN', reason: markedCoAp ? 'Marked as Co-Applicant' : 'Could not activate Co-Applicant toggle' });
+
                 // Step 3: Fill text fields on the Contact page using exact ID selectors
                 for (const [field, selector] of Object.entries(CONTACT_PAGE_TEXT_FIELDS)) {
                     const val = coApp[field];
@@ -1989,38 +2020,7 @@ async function fillPage(clientData) {
                     }
                 }
 
-                // Step 5: Toggle "Make this contact Co-Applicant" switch
-                let markedCoAp = false;
-                const toggleBtn = document.getElementById('additional-contact-is-co-applicant-0-button');
-                if (toggleBtn) {
-                    toggleBtn.click();
-                    await wait(400);
-                    // Verify it's activated; retry once if needed
-                    if (toggleBtn.getAttribute('aria-checked') !== 'true') {
-                        console.log('[Altech Filler] Co-Applicant toggle retry...');
-                        toggleBtn.click();
-                        await wait(400);
-                    }
-                    markedCoAp = toggleBtn.getAttribute('aria-checked') === 'true';
-                    console.log(`[Altech Filler] Co-Applicant toggle: aria-checked=${toggleBtn.getAttribute('aria-checked')}`);
-                } else {
-                    // Fallback: search by text content for any mdc-switch/slide-toggle
-                    const switches = document.querySelectorAll('button[role="switch"], mat-slide-toggle button, .mdc-switch');
-                    for (const sw of switches) {
-                        const swText = (sw.closest('label, [class*="toggle"], [class*="switch"]')?.textContent || sw.getAttribute('aria-label') || '').toLowerCase();
-                        if (swText.includes('co-applicant') || swText.includes('coapplicant')) {
-                            sw.click();
-                            await wait(400);
-                            markedCoAp = sw.getAttribute('aria-checked') === 'true';
-                            if (!markedCoAp) { sw.click(); await wait(400); markedCoAp = sw.getAttribute('aria-checked') === 'true'; }
-                            console.log(`[Altech Filler] Co-Applicant toggle (fallback): ${markedCoAp}`);
-                            break;
-                        }
-                    }
-                }
-                report.details.push({ field: 'CoApp.Toggle', type: 'toggle', status: markedCoAp ? 'OK' : 'WARN', reason: markedCoAp ? 'Marked as Co-Applicant' : 'Could not activate Co-Applicant toggle' });
-
-                // Step 6: Click "Done" button to save the contact
+                // Step 5: Click "Done" button to save the contact
                 let clickedDone = false;
                 // Primary: button with mat-mdc-unelevated-button class (Angular Material filled button)
                 const doneBtn = document.querySelector('button.mat-mdc-unelevated-button');
