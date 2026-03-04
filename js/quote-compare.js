@@ -105,13 +105,10 @@ You have access to the full quote data. Reference specific numbers, carriers, an
 
                         if (progress) progress.style.width = '50%';
 
-                        // Get Gemini API key
+                        // Get API key (may be null if user has non-Gemini provider)
                         const apiKey = await this.getApiKey();
-                        if (!apiKey) {
-                            throw new Error('No Gemini API key found. Set GOOGLE_API_KEY in .env or api/config.json');
-                        }
 
-                        // Call Gemini to extract structured data
+                        // Call AI to extract structured data (AIProvider tried first inside)
                         const extracted = await this.extractWithGemini(parts, apiKey);
                         if (progress) progress.style.width = '80%';
 
@@ -253,6 +250,29 @@ IMPORTANT:
 - Include ALL payment plans for each carrier
 - If data is missing, use empty string, not null`;
 
+                    // Try AIProvider first (supports all providers with multimodal)
+                    if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) {
+                        try {
+                            console.log('[QuoteCompare] Trying AIProvider for extraction...');
+                            const aiResult = await AIProvider.ask(systemPrompt, prompt, {
+                                temperature: 0.1, maxTokens: 8192, responseFormat: 'json', parts
+                            });
+                            if (aiResult.text) {
+                                const parsed = (typeof AIProvider !== 'undefined' && AIProvider.extractJSON)
+                                    ? AIProvider.extractJSON(aiResult.text)
+                                    : JSON.parse(aiResult.text.match(/\{[\s\S]*\}/)?.[0] || '{}');
+                                if (parsed && (parsed.quotes || parsed.applicant)) {
+                                    console.log('[QuoteCompare] AIProvider extraction successful');
+                                    return parsed;
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('[QuoteCompare] AIProvider extraction failed, trying Gemini fallback:', e);
+                        }
+                    }
+
+                    // Fallback: direct Gemini API
+                    if (!apiKey) throw new Error('No API key found. Configure an AI provider in Settings or set GOOGLE_API_KEY.');
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                     const body = {
                         systemInstruction: { parts: [{ text: systemPrompt }] },

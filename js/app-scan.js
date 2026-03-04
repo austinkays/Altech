@@ -225,8 +225,8 @@ Object.assign(App, {
 
             let gisText;
 
-            // Use AIProvider if configured as Google (vision needs parts/multimodal support)
-            if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured() && AIProvider.getProvider() === 'google') {
+            // Use AIProvider if configured (multimodal support for all providers)
+            if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) {
                 const result = await AIProvider.ask(gisSystemPrompt, prompt, {
                     temperature: 0.1, responseFormat: 'json', schema: gisSchema, parts
                 });
@@ -902,10 +902,10 @@ Object.assign(App, {
                 inlineData.map(f => ({ inlineData: { mimeType: f.mimeType, data: f.data } }))
             );
 
-            // Try 1: AIProvider (for Google provider — supports vision/multimodal with parts)
-            if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured() && AIProvider.getProvider() === 'google') {
+            // Try 1: AIProvider (supports vision/multimodal for all configured providers)
+            if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) {
                 try {
-                    console.log('[PolicyScan] Trying AIProvider (Google)...');
+                    console.log('[PolicyScan] Trying AIProvider...');
                     const schema = this._getScanSchema();
                     const aiResult = await AIProvider.ask(scanSystemPrompt, userPrompt, {
                         temperature: 0.1, responseFormat: 'json', schema, parts

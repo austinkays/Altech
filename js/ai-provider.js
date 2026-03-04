@@ -293,6 +293,58 @@ window.AIProvider = (() => {
         return { text, raw: data };
     }
 
+    // ── Multimodal Format Converters ─────────────────────────────
+
+    /**
+     * Convert Gemini-style parts to OpenAI/OpenRouter multimodal content array.
+     * Supports image/* types as image_url; non-image types (PDFs) are skipped.
+     */
+    function _convertPartsToOpenAI(parts, userMessage) {
+        const content = [];
+        for (const part of parts) {
+            if (part.inlineData) {
+                const mime = part.inlineData.mimeType;
+                if (mime.startsWith('image/')) {
+                    content.push({
+                        type: 'image_url',
+                        image_url: { url: `data:${mime};base64,${part.inlineData.data}` }
+                    });
+                }
+            } else if (part.text) {
+                content.push({ type: 'text', text: part.text });
+            }
+        }
+        if (userMessage && !parts.some(p => p.text === userMessage)) {
+            content.push({ type: 'text', text: userMessage });
+        }
+        return content;
+    }
+
+    /**
+     * Convert Gemini-style parts to Anthropic multimodal content array.
+     * Supports image/* types as image blocks; non-image types are skipped.
+     */
+    function _convertPartsToAnthropic(parts, userMessage) {
+        const content = [];
+        for (const part of parts) {
+            if (part.inlineData) {
+                const mime = part.inlineData.mimeType;
+                if (mime.startsWith('image/')) {
+                    content.push({
+                        type: 'image',
+                        source: { type: 'base64', media_type: mime, data: part.inlineData.data }
+                    });
+                }
+            } else if (part.text) {
+                content.push({ type: 'text', text: part.text });
+            }
+        }
+        if (userMessage && !parts.some(p => p.text === userMessage)) {
+            content.push({ type: 'text', text: userMessage });
+        }
+        return content;
+    }
+
     // ── OpenRouter (OpenAI-compatible) ───────────────────────────
 
     async function _callOpenRouter(apiKey, model, systemPrompt, userMessage, opts) {
@@ -300,7 +352,13 @@ window.AIProvider = (() => {
 
         const messages = [];
         if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
-        messages.push({ role: 'user', content: userMessage });
+        // Support multimodal: if opts.parts contains images, convert to OpenAI vision format
+        const hasImages = opts.parts?.some(p => p.inlineData?.mimeType?.startsWith('image/'));
+        if (hasImages) {
+            messages.push({ role: 'user', content: _convertPartsToOpenAI(opts.parts, userMessage) });
+        } else {
+            messages.push({ role: 'user', content: userMessage });
+        }
 
         const body = {
             model,
@@ -341,7 +399,13 @@ window.AIProvider = (() => {
 
         const messages = [];
         if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
-        messages.push({ role: 'user', content: userMessage });
+        // Support multimodal: if opts.parts contains images, convert to OpenAI vision format
+        const hasImages = opts.parts?.some(p => p.inlineData?.mimeType?.startsWith('image/'));
+        if (hasImages) {
+            messages.push({ role: 'user', content: _convertPartsToOpenAI(opts.parts, userMessage) });
+        } else {
+            messages.push({ role: 'user', content: userMessage });
+        }
 
         const body = {
             model,
@@ -380,7 +444,11 @@ window.AIProvider = (() => {
         // Route through our Vercel serverless proxy.
         const url = '/api/anthropic-proxy';
 
-        const messages = [{ role: 'user', content: userMessage }];
+        // Support multimodal: if opts.parts contains images, convert to Anthropic vision format
+        const hasImages = opts.parts?.some(p => p.inlineData?.mimeType?.startsWith('image/'));
+        const messages = hasImages
+            ? [{ role: 'user', content: _convertPartsToAnthropic(opts.parts, userMessage) }]
+            : [{ role: 'user', content: userMessage }];
 
         const body = {
             model,
