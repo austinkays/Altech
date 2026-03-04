@@ -696,13 +696,25 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
                     );
                 },
 
-                exportPDF() {
+                async exportPDF() {
                     if (!this.data?.quotes) return App.toast('No data to export');
-                    if (typeof jspdf === 'undefined' && typeof jsPDF === 'undefined') {
-                        return App.toast('❌ jsPDF not loaded');
+                    // Lazy-load jsPDF from CDN if missing
+                    if (typeof jspdf === 'undefined' && typeof window.jspdf === 'undefined') {
+                        try {
+                            await new Promise((resolve, reject) => {
+                                const s = document.createElement('script');
+                                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                                s.onload = () => resolve();
+                                s.onerror = () => reject(new Error('CDN unreachable'));
+                                document.head.appendChild(s);
+                            });
+                        } catch (_) { /* check below */ }
+                    }
+                    if (typeof jspdf === 'undefined' && typeof window.jspdf === 'undefined') {
+                        return App.toast('❌ jsPDF not loaded — check internet and reload');
                     }
 
-                    const { jsPDF } = typeof jspdf !== 'undefined' ? jspdf : { jsPDF: window.jsPDF };
+                    const { jsPDF } = typeof jspdf !== 'undefined' ? jspdf : (window.jspdf || { jsPDF: window.jsPDF });
                     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
                     const quotes = [...this.data.quotes].sort((a, b) => (a.premium12Month || 0) - (b.premium12Month || 0));
                     const applicant = this.data.applicant || {};

@@ -241,10 +241,21 @@ ${ai.underwritingNotes || 'N/A'}`;
         }).catch(() => _toast('Failed to copy'));
     }
 
-    function exportReport() {
+    async function exportReport() {
         if (!currentData) { _toast('Run a search first'); return; }
 
-        // Try jsPDF first, fall back to window.print()
+        // Lazy-load jsPDF from CDN if missing
+        if (typeof window.jspdf === 'undefined' && typeof jspdf === 'undefined') {
+            try {
+                await new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                    s.onload = () => resolve();
+                    s.onerror = () => reject(new Error('CDN unreachable'));
+                    document.head.appendChild(s);
+                });
+            } catch (_) { /* check below */ }
+        }
         if (typeof window.jspdf === 'undefined' && typeof jspdf === 'undefined') {
             window.print();
             return;

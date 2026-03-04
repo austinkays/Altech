@@ -18,6 +18,18 @@ Object.assign(App, {
     },
 
     async buildPDF(data) {
+        // Lazy-load jsPDF from CDN if it wasn't loaded (network hiccup, ad-blocker, etc.)
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            try {
+                await new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                    s.onload = () => resolve();
+                    s.onerror = () => reject(new Error('CDN unreachable'));
+                    document.head.appendChild(s);
+                });
+            } catch (_) { /* still check below */ }
+        }
         if (!window.jspdf || !window.jspdf.jsPDF) {
             this.toast('PDF library not loaded — check your internet connection and reload', 'error');
             throw new Error('jsPDF library not available (window.jspdf is undefined)');
