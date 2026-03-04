@@ -1754,13 +1754,88 @@ const ComplianceDashboard = {
     markRenewed(policyNumber) {
         const newPN = prompt('Enter the new/renewed policy number:');
         if (!newPN || !newPN.trim()) return;
+        const trimmedPN = newPN.trim();
+        // 1. Save locally first (immediate, non-blocking)
         let data = this.getNoteData(policyNumber);
         if (!data) data = { log: [], renewedTo: null };
-        data.renewedTo = newPN.trim();
-        data.log.push({ text: 'Renewed → ' + newPN.trim(), at: new Date().toISOString() });
+        data.renewedTo = trimmedPN;
+        data.log.push({ text: 'Renewed → ' + trimmedPN, at: new Date().toISOString() });
         this.policyNotes[policyNumber] = data;
         this.saveState();
         this._refreshNoteUI(policyNumber);
+        // 2. Fire-and-forget to HawkSoft logger (non-blocking)
+        const policy = this.policies.find(p => p.policyNumber === policyNumber);
+        if (policy && policy.hawksoftId && policy.policyId) {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+            const formattedLog = [
+                `RE: Policy Renewed — Compliance Dashboard`,
+                `Outbound — ${dateStr}, ${timeStr}`,
+                ``,
+                `Policy ${policyNumber} (${policy.clientName}) has been renewed.`,
+                `New policy number: ${trimmedPN}`,
+                `Carrier: ${policy.carrier}`,
+                `Previous expiration: ${new Date(policy.expirationDate).toLocaleDateString()}`,
+                ``,
+                `Logged automatically via Altech CGL Compliance Dashboard.`,
+                ``,
+                `Action Items: Update HawkSoft with new policy number and renewal dates.`
+            ].join('\n');
+            const payload = {
+                policyId: policyNumber,
+                clientNumber: String(policy.hawksoftId),
+                hawksoftPolicyId: policy.policyId,
+                callType: 'Outbound',
+                formattedLog
+            };
+            Auth.apiFetch('/api/hawksoft-logger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(res => {
+                if (res.ok) {
+                    const noteData = this.getNoteData(policyNumber);
+                    if (noteData && noteData.log.length > 0) {
+                        const last = noteData.log[noteData.log.length - 1];
+                        last.text = last.text + ' ✓ logged to HawkSoft';
+                        this.policyNotes[policyNumber] = noteData;
+                        this.saveState();
+                        this._refreshNoteUI(policyNumber);
+                    }
+                } else {
+                    const noteData = this.getNoteData(policyNumber);
+                    if (noteData && noteData.log.length > 0) {
+                        const last = noteData.log[noteData.log.length - 1];
+                        last.text = last.text + ' ⚠ HawkSoft log failed';
+                        this.policyNotes[policyNumber] = noteData;
+                        this.saveState();
+                        this._refreshNoteUI(policyNumber);
+                    }
+                }
+            }).catch(() => {
+                const noteData = this.getNoteData(policyNumber);
+                if (noteData && noteData.log.length > 0) {
+                    const last = noteData.log[noteData.log.length - 1];
+                    last.text = last.text + ' ⚠ HawkSoft log failed';
+                    this.policyNotes[policyNumber] = noteData;
+                    this.saveState();
+                    this._refreshNoteUI(policyNumber);
+                }
+            });
+        }
+    },
+
+    searchForPolicy(pn) {
+        const searchInput = document.getElementById('cglSearchInput');
+        if (searchInput) {
+            searchInput.value = pn;
+            this.savedSearch = pn;
+            this._visibleCount = this._pageSize;
+            this.saveState();
+            this.filterPolicies();
+            searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     },
 
     markStateUpdated(policyNumber) {
@@ -1834,6 +1909,9 @@ const ComplianceDashboard = {
         if (badgeEl && data && data.renewedTo) {
             badgeEl.textContent = '→ ' + data.renewedTo;
             badgeEl.style.display = 'inline-block';
+            badgeEl.style.cursor = 'pointer';
+            badgeEl.title = 'Click to find renewed policy';
+            badgeEl.onclick = () => ComplianceDashboard.searchForPolicy(data.renewedTo);
         }
     },
 
@@ -2020,7 +2098,7 @@ const ComplianceDashboard = {
                         ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${this.escapeHtml(policy.email)}</div>` : ''}
                         ${isStateUpdated ? `<span class="cgl-state-badge" id="state-badge-${pn}">✅ State Updated</span>` : `<span class="cgl-state-badge" id="state-badge-${pn}" style="display:none"></span>`}
                         ${hasNote && !isStateUpdated ? `<div class="cgl-note-preview" id="note-preview-${pn}">${renewedTo ? 'Renewed → ' + this.escapeHtml(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pn}" style="display:none"></div>`}
-                        ${renewedTo ? `<span class="cgl-renewed-badge" id="renewed-badge-${pn}">→ ${this.escapeHtml(renewedTo)}</span>` : `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:none"></span>`}
+                        ${renewedTo ? `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" onclick="ComplianceDashboard.searchForPolicy('${this.escapeHtml(renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${this.escapeHtml(renewedTo)}</span>` : `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:none"></span>`}
                     </td>
                     <td style="font-family: monospace; font-size: 13px;">
                         ${this.escapeHtml(policy.policyNumber)}
