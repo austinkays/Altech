@@ -15,15 +15,13 @@
     display: block;
 }
 
-/* ── App Shell Grid ── */
+/* ── App Shell Grid ──
+   --shell-cols is set by media queries below; .app-shell reads it once.
+   No selector can ever override grid-template-columns — specificity wars eliminated. */
 .app-shell {
     display: grid;
-    grid-template-columns: var(--sidebar-width) 1fr;
+    grid-template-columns: var(--shell-cols, var(--sidebar-width) 1fr);
     min-height: 100dvh;
-    /* No transition on grid-template-columns — it causes expensive layout thrashing */
-}
-body.sidebar-collapsed .app-shell {
-    grid-template-columns: var(--sidebar-collapsed-width) 1fr;
 }
 
 /* ── Sidebar Container ── */
@@ -650,20 +648,18 @@ body.dark-mode .sidebar-footer-btn:hover {
 
 /* ═══════════════════════════════════════
    Responsive Breakpoints
+   --shell-cols state machine — one variable, set on :root/body, read once by .app-shell
    ═══════════════════════════════════════ */
 
 /* ≥1280px — Full layout, sidebar expanded by default */
 @media (min-width: 1280px) {
-    .app-shell {
-        grid-template-columns: var(--sidebar-width) 1fr;
-    }
+    :root { --shell-cols: var(--sidebar-width) 1fr; }
+    body.sidebar-collapsed { --shell-cols: var(--sidebar-collapsed-width) 1fr; }
 }
 
 /* 1024px–1279px — Sidebar auto-collapsed to icon rail */
 @media (min-width: 1024px) and (max-width: 1279px) {
-    .app-shell {
-        grid-template-columns: var(--sidebar-collapsed-width) 1fr;
-    }
+    :root { --shell-cols: var(--sidebar-collapsed-width) 1fr; }
     .app-sidebar {
         width: var(--sidebar-collapsed-width);
     }
@@ -709,9 +705,7 @@ body.dark-mode .sidebar-footer-btn:hover {
 
 /* 768px–1023px — Sidebar hidden, hamburger in header */
 @media (min-width: 768px) and (max-width: 1023px) {
-    .app-shell {
-        grid-template-columns: 1fr;
-    }
+    :root { --shell-cols: 1fr; }
     .app-sidebar {
         position: fixed;
         left: -260px;
@@ -729,18 +723,9 @@ body.dark-mode .sidebar-footer-btn:hover {
     }
 }
 
-/* Tablet: collapsed sidebar is position:fixed, so re-assert single-column grid */
-@media (min-width: 768px) and (max-width: 1023px) {
-    body.sidebar-collapsed .app-shell {
-        grid-template-columns: 1fr;
-    }
-}
-
 /* <768px — Mobile: no sidebar, bottom nav */
 @media (max-width: 767px) {
-    .app-shell {
-        grid-template-columns: 1fr;
-    }
+    :root { --shell-cols: 1fr; }
     .app-sidebar {
         display: none;
     }
