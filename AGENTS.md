@@ -1,6 +1,6 @@
 ﻿# AGENTS.md â€” Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 5, 2026
+> **Last updated:** March 6, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive â€” read this before making ANY changes
 >
@@ -17,7 +17,7 @@
 | **Stack** | Vanilla HTML/CSS/JS SPA â€” no build step, no framework |
 | **Entry point** | `index.html` (~665 lines) |
 | **CSS** | 21 files in `css/` (~15,690 lines total) |
-| **JS** | 35 modules in `js/` (~31,541 lines total) |
+| **JS** | 35 modules in `js/` (~31,593 lines total) |
 | **Plugins** | 15 HTML templates in `plugins/` (~5,382 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
@@ -87,16 +87,16 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ email.css               # Email composer â€” purple accent (165 lines)
 â”‚   â””â”€â”€ paywall.css             # Paywall modal (131 lines)
 â”‚
-â”œâ”€â”€ js/                         # 35 modules (~31,216 lines)
+â”œâ”€â”€ js/                         # 35 modules (~31,268 lines)
 â”‚   â”‚
 â”‚   â”‚  â˜… Core App (assembled via Object.assign into global `App`)
 â”‚   â”œâ”€â”€ app-init.js             # State init, toolConfig[], workflows (85 lines)
-â”‚   â”œâ”€â”€ app-core.js             # Form handling, save/load, updateUI, navigation (2,342 lines)
+â”‚   â”œâ”€â”€ app-core.js             # Form handling, save/load, updateUI, navigation, schema migration (2,376 lines)
 â”‚   â”œâ”€â”€ app-scan.js             # Policy document scanning, OCR, Gemini AI (1,762 lines)
 â”‚   â”œâ”€â”€ app-property.js         # Property analysis, maps, assessor data (1,728 lines)
 â”‚   â”œâ”€â”€ app-vehicles.js         # Vehicle/driver management, DL scanning (844 lines)
 â”‚   â”œâ”€â”€ app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
-â”‚   â”œâ”€â”€ app-export.js           # PDF/CMSMTF/CSV/Text exports, scan schema (978 lines)
+â”‚   â”œâ”€â”€ app-export.js           # PDF/CMSMTF/CSV/Text exports, scan schema (996 lines)
 â”‚   â”œâ”€â”€ app-quotes.js           # Quote/draft management (757 lines)
 â”‚   â”œâ”€â”€ app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts (287 lines)
 â”‚   â”‚
@@ -891,6 +891,19 @@ KEY RULES:
 | 98 | HIGH | plugins/call-logger.html, css/call-logger.css, js/call-logger.js | **+ New Log button:** Reset button in header clears client, channel (→Inbound), activity, notes, preview/confirm panels. Keeps agent initials. SVG + icon with "New Log" label. |
 | 99 | HIGH | index.html, css/auth.css, js/call-logger.js, api/hawksoft-logger.js, js/cloud-sync.js | **Agency Glossary:** Textarea in Settings (500-char max) for custom shorthand terms (e.g., "MoE = Mutual of Enumclaw"). Stored in `altech_agency_glossary`, sent in formatOnly fetch body, injected into AI userMessage (not system prompt), cloud-synced as 8th doc type. |
 | 100 | MEDIUM | tests/ | 26 new tests across hawksoft-logger.test.js and call-logger.test.js: CHANNEL_MAP LogAction codes (7), Agency Glossary API (4), + New Log reset (9+3), glossary fetch (2), + New Log button HTML (1). Total: 23 suites, 1515 tests. |
+
+### PDF Export & Form Data — 7-Bug Fix (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|-----------------|
+| 101 | CRITICAL | js/app-export.js | **Client name blank on PDF:** `data.firstName` was empty when data stored via DOM only. Changed to `v('firstName')` / `v('lastName')` which fall back to `getElementById()`. |
+| 102 | HIGH | js/app-export.js | **Dates off by one day:** `formatDate()` used local-timezone `getMonth()`/`getDate()`/`getFullYear()`. Switched to `getUTCMonth()`/`getUTCDate()`/`getUTCFullYear()` to prevent midnight-UTC shift. |
+| 103 | CRITICAL | js/app-export.js, js/app-core.js | **Co-applicant section missing on PDF:** Three-part fix — (1) `save(e)` early-returns for `hasCoApplicant` checkbox to prevent delegated handler from overwriting `toggleCoApplicant()`'s `'yes'` string with boolean `true`; (2) schema migration v1→v2 normalizes existing `hasCoApplicant` values (`true`→`'yes'`, `false`/`'no'`→`''`, `'on'`→`'yes'`); (3) PDF/CMSMTF checks now accept `=== 'yes' \|\| === true \|\| === 'on'`. All `data.coXxx` fields changed to `v('coXxx')`. |
+| 104 | MEDIUM | js/app-export.js | **Raw currency numbers in auto coverage PDF:** `pdLimit`, `umpdLimit`, `rentalDeductible`, `towingDeductible` now wrapped in `formatCurrency()`. |
+| 105 | HIGH | js/app-export.js | **Satellite thumbnail overlapping text:** Saved `satY` before drawing, advanced `y = Math.max(y, satY + satH + 8)` after, enlarged thumbnail from 30×24 to 45×36, replaced blue "View on Maps" hyperlink with plain "Satellite View" text label. |
+| 106 | MEDIUM | js/app-core.js | **Legacy field names lost on migration:** Added 7 field-name migrations in v1→v2 schema migration: `address`→`addrStreet`, `city`→`addrCity`, `state`→`addrState`, `zip`→`addrZip`, `bodInjury`→`liabilityLimits`, `propDamage`→`pdLimit`, `collDed`→`autoDeductible`. |
+| 107 | LOW | js/app-export.js | **PDF visual polish:** Logo size 18→22, gap between name strip and satellite 16→18, satellite thumbnail 30×24→45×36. |
+| 108 | MEDIUM | js/app-core.js | **Firestore load not persisted:** Added debounced `save()` call at end of `applyData()` so full form state is captured after cloud/history load. Schema version bumped from 1 to 2. |
 
 ---
 

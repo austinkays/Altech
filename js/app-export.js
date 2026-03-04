@@ -75,7 +75,9 @@ Object.assign(App, {
             if (!value) return '';
             const d = new Date(value);
             if (Number.isNaN(d.getTime())) return value;
-            return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`;
+            // Use UTC getters — ISO date strings parse as midnight UTC;
+            // local getters shift the date backward in US timezones (off-by-one)
+            return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`;
         };
         const formatCurrency = (v) => {
             if (!v) return '';
@@ -239,7 +241,7 @@ Object.assign(App, {
         ]);
         const prefix = v('prefix');
         const suffix = v('suffix');
-        const nameParts = [prefix, data.firstName || '', data.lastName || '', suffix].filter(Boolean);
+        const nameParts = [prefix, v('firstName'), v('lastName'), suffix].filter(Boolean);
         const clientName = nameParts.join(' ') || 'Client';
 
         // Top accent bar
@@ -248,7 +250,7 @@ Object.assign(App, {
         y = 10;
 
         // Logo + title header row
-        const logoSize = 18;
+        const logoSize = 22;
         let headerTextX = margin;
         if (logoImg?.dataUrl) {
             doc.addImage(logoImg.dataUrl, logoImg.format, margin, y - 2, logoSize, logoSize);
@@ -301,20 +303,23 @@ Object.assign(App, {
         doc.setTextColor(...C.mid);
         doc.text(address || '', margin + 3, y + 10.5);
         doc.setTextColor(...C.dark);
-        y += 16;
+        y += 18;
 
-        // Satellite thumbnail
+        // Satellite thumbnail (right-aligned, larger for readability)
         if (mapImages?.satellite?.dataUrl) {
-            const satX = pageW - margin - 30;
-            doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, satX, y, 30, 24);
+            const satW = 45, satH = 36;
+            const satY = y;
+            const satX = pageW - margin - satW;
+            doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, satX, satY, satW, satH);
             doc.setDrawColor(...C.light);
             doc.setLineWidth(0.3);
-            doc.rect(satX, y, 30, 24, 'S');
-            doc.setFontSize(5.5);
-            doc.setTextColor(...C.brand);
-            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || '')}`;
-            doc.textWithLink('View on Maps', satX + 15, y + 27, { url: mapUrl, align: 'center' });
+            doc.rect(satX, satY, satW, satH, 'S');
+            doc.setFontSize(6);
+            doc.setTextColor(...C.mid);
+            doc.text('Satellite View', satX + satW / 2, satY + satH + 4, { align: 'center' });
             doc.setTextColor(...C.dark);
+            // Advance y past satellite block so next section doesn't overlap
+            y = Math.max(y, satY + satH + 8);
         }
 
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -343,10 +348,11 @@ Object.assign(App, {
         ]);
 
         // â”€â”€ Co-Applicant (if provided) â”€â”€
-        if (data.hasCoApplicant === 'yes' && (data.coFirstName || data.coLastName)) {
+        const hasCoApp = data.hasCoApplicant === 'yes' || data.hasCoApplicant === true || data.hasCoApplicant === 'on';
+        if (hasCoApp && (v('coFirstName') || v('coLastName'))) {
             sectionHeader('Co-Applicant / Spouse');
             kvTable([
-                ['Full Name', `${data.coFirstName || ''} ${data.coLastName || ''}`.trim()],
+                ['Full Name', `${v('coFirstName')} ${v('coLastName')}`.trim()],
                 ['Date of Birth', formatDate(v('coDob'))],
                 ['Gender', v('coGender') === 'M' ? 'Male' : v('coGender') === 'F' ? 'Female' : v('coGender')],
                 ['Email', v('coEmail')],
@@ -502,15 +508,15 @@ Object.assign(App, {
                 ['Auto Policy Type', v('autoPolicyType')],
                 ['Residence Is', v('residenceIs')],
                 ['Liability Limits', v('liabilityLimits')],
-                ['Property Damage', v('pdLimit')],
+                ['Property Damage', formatCurrency(v('pdLimit'))],
                 ['Med Pay (Auto)', formatCurrency(v('medPayments'))],
                 ['UM Limits', v('umLimits')],
                 ['UIM Limits', v('uimLimits')],
-                ['UMPD Limit', v('umpdLimit')],
+                ['UMPD Limit', formatCurrency(v('umpdLimit'))],
                 ['Comprehensive Ded.', formatCurrency(v('compDeductible'))],
                 ['Collision Ded.', formatCurrency(v('autoDeductible'))],
-                ['Rental Reimburse.', v('rentalDeductible')],
-                ['Towing/Roadside', v('towingDeductible')],
+                ['Rental Reimburse.', formatCurrency(v('rentalDeductible'))],
+                ['Towing/Roadside', formatCurrency(v('towingDeductible'))],
                 ['Student GPA', v('studentGPA')],
             ]);
         }
@@ -769,7 +775,8 @@ Object.assign(App, {
         ];
 
         // â”€â”€ Co-Applicant â”€â”€
-        if (data.hasCoApplicant === 'yes' && (data.coFirstName || data.coLastName)) {
+        const cmsmtfHasCoApp = data.hasCoApplicant === 'yes' || data.hasCoApplicant === true || data.hasCoApplicant === 'on';
+        if (cmsmtfHasCoApp && (data.coFirstName || data.coLastName)) {
             fields.push(
                 { tag: 'CO_NAM', value: `${data.coFirstName || ''} ${data.coLastName || ''}`.trim() },
                 { tag: 'CO_DOB', value: this.formatDateDisplay(data.coDob) },

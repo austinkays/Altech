@@ -662,6 +662,8 @@ Object.assign(App, {
     async save(e) {
         if (e && e.target) {
             const k = e.target.id || e.target.name;
+            // hasCoApplicant uses 'yes'/'' string convention — toggleCoApplicant() is the sole authority
+            if (e.target.type === 'checkbox' && k === 'hasCoApplicant') return;
             this.data[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
 
             if (k === 'firstName' || k === 'lastName') {
@@ -738,7 +740,7 @@ Object.assign(App, {
      * when adding a new migration, increment CURRENT_SCHEMA_VERSION
      * and add an entry to the migrations array below.
      */
-    CURRENT_SCHEMA_VERSION: 1,
+    CURRENT_SCHEMA_VERSION: 2,
 
     _migrateSchema(data) {
         if (!data || typeof data !== 'object') return data || {};
@@ -749,8 +751,23 @@ Object.assign(App, {
         const migrations = [
             // v0 → v1: Add schema version field (no-op, just stamps it)
             (d) => { d._schemaVersion = 1; return d; },
-            // Future: v1 → v2 example:
-            // (d) => { if (d.oldField) { d.newField = d.oldField; delete d.oldField; } d._schemaVersion = 2; return d; },
+            // v1 → v2: Normalize hasCoApplicant + migrate legacy field names
+            (d) => {
+                // Normalize hasCoApplicant from boolean/variant to string 'yes'/''
+                if (d.hasCoApplicant === true)  d.hasCoApplicant = 'yes';
+                if (d.hasCoApplicant === false || d.hasCoApplicant === 'no') d.hasCoApplicant = '';
+                if (d.hasCoApplicant === 'on')  d.hasCoApplicant = 'yes';
+                // Migrate legacy field names (older clients used different keys)
+                if (d.address && !d.addrStreet)        d.addrStreet = d.address;
+                if (d.city && !d.addrCity)              d.addrCity = d.city;
+                if (d.state && !d.addrState)            d.addrState = d.state;
+                if (d.zip && !d.addrZip)                d.addrZip = d.zip;
+                if (d.bodInjury && !d.liabilityLimits)  d.liabilityLimits = d.bodInjury;
+                if (d.propDamage && !d.pdLimit)          d.pdLimit = d.propDamage;
+                if (d.collDed && !d.autoDeductible)      d.autoDeductible = d.collDed;
+                d._schemaVersion = 2;
+                return d;
+            },
         ];
 
         let migrated = { ...data };
@@ -788,6 +805,10 @@ Object.assign(App, {
         this._populateOccupation(this.data.industry || '', this.data.occupation || '');
         // Restore drivers/vehicles arrays and render cards
         this.loadDriversVehicles();
+        // Debounced save to capture full form state (including DOM defaults)
+        // after loading client data from Firestore or local history
+        clearTimeout(this.saveTimeout);
+        this.saveTimeout = setTimeout(() => this.save(), 500);
     },
 
     syncSegmentedControls() {
