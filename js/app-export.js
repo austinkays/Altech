@@ -85,6 +85,15 @@ Object.assign(App, {
             if (isNaN(num)) return v;
             return '$' + num.toLocaleString('en-US');
         };
+        const formatRental = (val) => {
+            if (!val || val === 'No Coverage') return val || '';
+            const parts = val.split('/');
+            if (parts.length === 2 && !isNaN(parseInt(parts[0])) && !isNaN(parseInt(parts[1]))) {
+                return `$${parts[0]}/day, $${parseInt(parts[1]).toLocaleString()} max`;
+            }
+            if (/^\d+/.test(val)) return '$' + val;
+            return val;
+        };
         const formatDateTime = (value) => {
             const d = value instanceof Date ? value : new Date(value);
             if (Number.isNaN(d.getTime())) return '';
@@ -515,7 +524,7 @@ Object.assign(App, {
                 ['UMPD Limit', formatCurrency(v('umpdLimit'))],
                 ['Comprehensive Ded.', formatCurrency(v('compDeductible'))],
                 ['Collision Ded.', formatCurrency(v('autoDeductible'))],
-                ['Rental Reimburse.', formatCurrency(v('rentalDeductible'))],
+                ['Rental Reimburse.', formatRental(v('rentalDeductible'))],
                 ['Towing/Roadside', formatCurrency(v('towingDeductible'))],
                 ['Student GPA', v('studentGPA')],
             ]);
