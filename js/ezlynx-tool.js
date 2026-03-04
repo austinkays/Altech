@@ -240,19 +240,40 @@ const EZLynxTool = {
             }));
 
             // Build top-level CoApplicant object for extension co-app injection
+            // Includes all fields the EZLynx Contact page supports
             const coAppDriver = data.Drivers.find(d => d.IsCoApplicant);
             if (coAppDriver) {
                 data.CoApplicant = {
+                    // Personal
                     FirstName: coAppDriver.FirstName,
                     LastName: coAppDriver.LastName,
+                    MiddleName: coAppDriver.MiddleName || '',
                     DOB: coAppDriver.DOB,
                     Gender: coAppDriver.Gender,
                     MaritalStatus: coAppDriver.MaritalStatus,
                     Relationship: coAppDriver.Relationship,
+                    Prefix: coAppDriver.Prefix || '',
+                    Suffix: coAppDriver.Suffix || appData.suffix || '',
+                    // Contact
                     Email: appData.coEmail || '',
                     Phone: appData.coPhone || '',
-                    Suffix: appData.suffix || '',
                     SSN: '',
+                    // Driver license
+                    DLNumber: coAppDriver.LicenseNumber || '',
+                    DLState: coAppDriver.DLState || '',
+                    DLStatus: coAppDriver.LicenseStatus || '',
+                    // Employment
+                    Industry: coAppDriver.Industry || '',
+                    Occupation: coAppDriver.Occupation || '',
+                    OccupationYears: coAppDriver.OccupationYears || '',
+                    // Address (default to main applicant — co-apps often share address)
+                    Address: appData.address || '',
+                    City: appData.city || '',
+                    State: appData.state || '',
+                    County: appData.county || '',
+                    PostalCode: appData.zip ? String(appData.zip).replace(/[^0-9]/g, '').slice(0, 5) : '',
+                    YearsAtAddress: appData.yearsAtAddress || '',
+                    MonthsAtAddress: appData.monthsAtAddress || '',
                 };
             }
         }

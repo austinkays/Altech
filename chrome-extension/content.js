@@ -398,8 +398,50 @@ const PRIORITY_SELECTORS = {
     Prefix:       "mat-select[formcontrolname='prefix']",
     Suffix:       "mat-select[formcontrolname='suffix']",
     DLState:      "mat-select[formcontrolname='driverLicenseState']",
+    AgeLicensed:  "mat-select[formcontrolname='ageLicensed']",
     // Relationship is Co-Applicant-scoped — used by fillScopedDropdown, not global fill
     Relationship: "mat-select[formcontrolname='relationship']",
+};
+
+
+// ═══════════════════════════════════════════════════════════════
+// §4b  CONTACT PAGE FIELD MAPPINGS (Co-Applicant sub-page)
+// ═══════════════════════════════════════════════════════════════
+
+// Text fields on the EZLynx Contact sub-page (opened via "Add contact")
+// Data key → exact CSS selector (by ID)
+const CONTACT_PAGE_TEXT_FIELDS = {
+    FirstName:      '#contact-first-name-0',
+    LastName:       '#contact-last-name-0',
+    MiddleName:     '#contact-middle-name-0',
+    DOB:            '#contact-date-of-birth-0',
+    DLNumber:       '#contact-drivers-license-number-0',
+    OccupationYears:'#contact-occupation-years-0',
+    Address:        '#contact-address-0-address1',
+    Unit:           '#contact-address-0-addressUnit',
+    Address2:       '#contact-address-0-address2',
+    City:           '#contact-address-0-addressCity',
+    PostalCode:     '#contact-address-0-postalCode',
+    Phone:          '#Mobile_PhoneType-applicant-phone-0-additional-number',
+    Email:          '#contact-0-email-0-email-address',
+};
+
+// Dropdown (mat-select) fields on the EZLynx Contact sub-page
+// Data key → exact CSS selector (by ID)
+const CONTACT_PAGE_DROPDOWN_FIELDS = {
+    Gender:         '#contact-gender-0',
+    MaritalStatus:  '#contact-marital-statuses-0',
+    Relationship:   '#contact-relationships-0',
+    Prefix:         '#contact-prefixes-0',
+    Suffix:         '#contact-suffix-0',
+    Industry:       '#contact-industry-0',
+    Occupation:     '#contact-occupation-0',
+    DLStatus:       '#contact-drivers-license-status-0',
+    DLState:        '#contactdrivers-license-state-0',
+    State:          '#contact-address-0-addressState',
+    County:         '#contact-address-0-addressCounty',
+    YearsAtAddress: '#contact-address-0-yearsAtAddress',
+    MonthsAtAddress:'#contact-address-0-monthsAtAddress',
 };
 
 
@@ -517,6 +559,20 @@ function isVisible(el) {
 
 /** Wait ms. */
 const wait = ms => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Poll the DOM for an element matching `selector` every `interval` ms,
+ * up to `timeout` ms total. Returns the element or null.
+ */
+async function waitForElement(selector, timeout = 8000, interval = 200) {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await wait(interval);
+    }
+    return null;
+}
 
 /**
  * Dismiss any stuck Angular Material overlay before opening a new dropdown.
@@ -1203,6 +1259,67 @@ function fillScopedTextByLabel(container, labelText, value) {
  * then opens it and picks the best match from the CDK overlay.
  * Returns true if filled.
  */
+
+/**
+ * Fill a mat-select dropdown by its exact CSS selector (usually an #id).
+ * Clicks the element to open the CDK overlay, then fuzzy-matches a mat-option.
+ * Returns true if a matching option was clicked.
+ */
+async function fillMatSelectById(selector, value, fieldKey) {
+    if (!value || !String(value).trim()) return false;
+    const target = String(value).trim();
+
+    await dismissOverlay();
+
+    const selectEl = document.querySelector(selector);
+    if (!selectEl) {
+        console.log(`[Altech Filler] fillMatSelectById: selector not found: ${selector}`);
+        return false;
+    }
+
+    selectEl.click();
+    await wait(DROPDOWN_WAIT);
+
+    const optEls = document.querySelectorAll('.cdk-overlay-container mat-option, .cdk-overlay-container [role="option"]');
+    if (optEls.length === 0) {
+        console.log(`[Altech Filler] fillMatSelectById: no options rendered for ${selector}`);
+        await dismissOverlay();
+        return false;
+    }
+
+    const optTexts = Array.from(optEls).map(el => el.textContent.trim()).filter(Boolean);
+    const expanded = expand(target, fieldKey);
+    let pick = null;
+
+    // Exact match first
+    for (const attempt of [target, expanded]) {
+        for (const ot of optTexts) {
+            if (ot.toLowerCase() === attempt.toLowerCase()) { pick = ot; break; }
+        }
+        if (pick) break;
+    }
+
+    // Fuzzy match fallback
+    if (!pick) {
+        const m = bestMatch(expanded, optTexts) || bestMatch(target, optTexts);
+        if (m) pick = m.text;
+    }
+
+    if (pick) {
+        for (const el of optEls) {
+            if (el.textContent.trim() === pick) {
+                el.click();
+                console.log(`[Altech Filler] fillMatSelectById: ${fieldKey} → "${pick}"`);
+                return true;
+            }
+        }
+    }
+
+    console.log(`[Altech Filler] fillMatSelectById: no match for "${target}" in ${fieldKey} (${optTexts.length} options)`);
+    await dismissOverlay();
+    return false;
+}
+
 async function fillScopedDropdown(container, labelPatterns, value, fieldKey) {
     if (!container || !value || !String(value).trim()) return false;
     const target = String(value).trim();
@@ -1808,152 +1925,26 @@ async function fillPage(clientData) {
         }
 
         if (addContactClicked) {
-            await wait(1500); // Wait for Angular expansion animation (bumped from 1200)
+            // Step 2: Wait for the Contact sub-page to load (Angular SPA routing)
+            // The Contact page renders fields directly — NOT inside mat-expansion-panel.
+            // Poll for the first-name input which confirms the page is ready.
+            console.log('[Altech Filler] Waiting for Contact page to load...');
+            const contactPageReady = await waitForElement('#contact-first-name-0', 8000);
 
-            // Step 2: Find the Co-Applicant container using DOM snapshot diff
-            // Strategy A: grab the LAST expansion panel (most reliable)
-            const panelSels = [
-                'mat-expansion-panel',
-                '.mat-expansion-panel',
-                '[class*="expansion-panel"]',
-                '[class*="contact-panel"]',
-                '[class*="co-applicant"]',
-                '[class*="additional-contact"]',
-                '[class*="contact-form"]',
-                '[class*="contact-card"]',
-                'form[class*="contact"]',
-            ];
-            let coApContainer = null;
-            for (const sel of panelSels) {
-                const panels = document.querySelectorAll(sel);
-                if (panels.length >= 2) {
-                    // The LAST one is the newly added Co-Applicant
-                    coApContainer = panels[panels.length - 1];
-                    console.log(`[Altech Filler] CoApp container via '${sel}' (${panels.length} panels, using last)`);
-                    break;
-                }
-            }
+            if (contactPageReady) {
+                console.log('[Altech Filler] Contact page loaded — filling Co-Applicant fields');
 
-            // Strategy B: if no duplicate panels found, try by aria/text content
-            if (!coApContainer) {
-                const allSections = document.querySelectorAll('[class*="panel"], [class*="card"], [class*="section"], form, fieldset');
-                for (const sec of allSections) {
-                    const txt = (sec.textContent || '').toLowerCase();
-                    if ((txt.includes('co-applicant') || txt.includes('additional contact') || txt.includes('contact 2')) && sec.querySelector('input')) {
-                        coApContainer = sec;
-                        console.log('[Altech Filler] CoApp container via text content match:', sec.className);
-                        break;
-                    }
-                }
-            }
-
-            // Strategy C: fallback to last form or fieldset with an empty firstName input
-            if (!coApContainer) {
-                const allForms = document.querySelectorAll('form, fieldset, [class*="form"]');
-                for (let i = allForms.length - 1; i >= 0; i--) {
-                    const f = allForms[i];
-                    const fnInput = f.querySelector("input[formcontrolname*='firstName' i]");
-                    if (fnInput && isVisible(fnInput) && (!fnInput.value || fnInput.value.trim() === '')) {
-                        coApContainer = f;
-                        console.log('[Altech Filler] CoApp container via empty firstName input:', f.className);
-                        break;
-                    }
-                }
-            }
-
-            if (coApContainer) {
-                console.log('[Altech Filler] Found Co-Applicant container:', coApContainer.className);
-
-                // Step 3: Mark as Co-Applicant (checkbox / toggle / radio)
-                // STRICT targeting: must match "co-applicant" AND must NOT contain "client center"
-                const coApLabelPatterns = ['co-applicant', 'coapplicant', 'make this contact co', 'co applicant'];
-                const coApPoisonWords = ['client center', 'clientcenter'];
-                let markedCoAp = false;
-
-                // Try mat-slide-toggles first (most common for this field)
-                for (const toggle of coApContainer.querySelectorAll('mat-slide-toggle, [class*="mat-slide-toggle"]')) {
-                    if (!isVisible(toggle)) continue;
-                    const toggleText = (toggle.textContent || '').toLowerCase();
-                    if (coApPoisonWords.some(pw => toggleText.includes(pw))) continue;
-                    if (coApLabelPatterns.some(p => toggleText.includes(p))) {
-                        const input = toggle.querySelector('input[type="checkbox"]');
-                        if (input) input.click(); else toggle.click();
-                        markedCoAp = true;
-                        console.log('[Altech Filler] Marked Co-Applicant via mat-slide-toggle');
-                        break;
-                    }
-                }
-
-                // Fallback: checkboxes / radio buttons inside the container
-                if (!markedCoAp) {
-                    for (const ctrl of coApContainer.querySelectorAll('mat-checkbox, mat-radio-button, input[type="checkbox"], input[type="radio"], label')) {
-                        const ctrlText = (ctrl.textContent || ctrl.getAttribute('aria-label') || '').toLowerCase();
-                        if (coApPoisonWords.some(pw => ctrlText.includes(pw))) continue;
-                        if (coApLabelPatterns.some(p => ctrlText.includes(p))) {
-                            ctrl.click();
-                            markedCoAp = true;
-                            console.log('[Altech Filler] Marked Co-Applicant checkbox/toggle');
-                            break;
-                        }
-                    }
-                }
-
-                // Fallback: check for a dropdown labeled "Contact Type" or "Type" with a Co-Applicant option
-                if (!markedCoAp) {
-                    const typeLabels = ['contact type', 'type', 'role'];
-                    const filled = await fillScopedDropdown(coApContainer, typeLabels, 'Co-Applicant', 'ContactType');
-                    if (filled) {
-                        markedCoAp = true;
-                        console.log('[Altech Filler] Set Contact Type dropdown to Co-Applicant');
-                    }
-                }
-
-                await wait(1000); // Wait for Co-Applicant fields to render (bumped from 800)
-
-                // Step 4: Scoped fill — Co-Applicant fields WITHIN this container only
-                // Use both container scoping AND last-occurrence strategy for shared formcontrolnames
-                const coApFields = {
-                    FirstName:    { selectors: BASE_TEXT_FIELDS.FirstName,  label: 'first name' },
-                    LastName:     { selectors: BASE_TEXT_FIELDS.LastName,   label: 'last name' },
-                    DOB:          { selectors: BASE_TEXT_FIELDS.DOB,        label: 'date of birth' },
-                    SSN:          { selectors: BASE_TEXT_FIELDS.SSN,        label: 'ssn' },
-                    Email:        { selectors: BASE_TEXT_FIELDS.Email,      label: 'email' },
-                };
-                const coApDropdowns = {
-                    Gender:       { labels: ['gender', 'sex'],              key: 'Gender' },
-                    Relationship: { labels: ['relationship', 'relation'],   key: 'Relationship' },
-                    MaritalStatus:{ labels: ['marital', 'marital status'],  key: 'MaritalStatus' },
-                    Suffix:       { labels: ['suffix', 'name suffix'],      key: 'Suffix' },
-                };
-
-                // Fill scoped text fields — sequential with pacing
-                for (const [field, cfg] of Object.entries(coApFields)) {
+                // Step 3: Fill text fields on the Contact page using exact ID selectors
+                for (const [field, selector] of Object.entries(CONTACT_PAGE_TEXT_FIELDS)) {
                     const val = coApp[field];
                     if (!val) continue;
                     updateToolbarStatus(`CoApp: ${field}...`);
 
-                    // Try container-scoped first, then label-based in container
-                    let filled = fillScopedText(coApContainer, cfg.selectors, val) ||
-                                   fillScopedTextByLabel(coApContainer, cfg.label, val);
-
-                    // Strategy: if container scope failed, try last-occurrence globally
-                    // (Co-App fields share formcontrolname with Primary)
-                    if (!filled && cfg.selectors) {
-                        for (const sel of cfg.selectors) {
-                            if (!sel.includes('formcontrolname')) continue;
-                            try {
-                                const allMatches = document.querySelectorAll(sel);
-                                if (allMatches.length >= 2) {
-                                    const lastEl = allMatches[allMatches.length - 1];
-                                    if (lastEl && isVisible(lastEl) && (!lastEl.value || lastEl.value.trim() === '')) {
-                                        setInputValue(lastEl, val);
-                                        filled = true;
-                                        console.log(`[Altech Filler] CoApp fallback: filled LAST global ${sel}`);
-                                        break;
-                                    }
-                                }
-                            } catch (e) { /* skip */ }
-                        }
+                    let filled = false;
+                    const el = document.querySelector(selector);
+                    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+                        setInputValue(el, String(val).trim());
+                        filled = true;
                     }
 
                     if (filled) {
@@ -1961,95 +1952,103 @@ async function fillPage(clientData) {
                         report.details.push({ field: `CoApp.${field}`, type: 'text', status: 'OK', value: val });
                     } else {
                         report.textSkipped++;
-                        report.details.push({ field: `CoApp.${field}`, type: 'text', status: 'SKIP', value: val });
+                        report.details.push({ field: `CoApp.${field}`, type: 'text', status: 'SKIP', value: val, reason: `Not found: ${selector}` });
                     }
                     await wait(FILL_DELAY);
                 }
 
-                // Fill scoped dropdowns — sequential with pacing + overlay cleanup
-                for (const [field, cfg] of Object.entries(coApDropdowns)) {
+                // Step 4: Fill dropdown fields on the Contact page using exact ID selectors
+                // Dependent dropdowns: State before County, Industry before Occupation
+                const DD_PRIORITY = ['State', 'Industry', 'Occupation', 'County'];
+                const ddKeys = Object.keys(CONTACT_PAGE_DROPDOWN_FIELDS);
+                const orderedDdKeys = [
+                    ...DD_PRIORITY.filter(k => ddKeys.includes(k)),
+                    ...ddKeys.filter(k => !DD_PRIORITY.includes(k)),
+                ];
+
+                for (const field of orderedDdKeys) {
+                    const selector = CONTACT_PAGE_DROPDOWN_FIELDS[field];
                     const val = coApp[field];
                     if (!val) continue;
                     updateToolbarStatus(`CoApp: ${field}...`);
 
-                    // Try container-scoped dropdown first
-                    let filled = await fillScopedDropdown(coApContainer, cfg.labels, val, cfg.key);
-
-                    // Fallback: for fields like Gender that are duplicated,
-                    // try finding the LAST mat-select with matching formcontrolname globally
-                    if (!filled && cfg.key) {
-                        const fcnGuess = cfg.key.charAt(0).toLowerCase() + cfg.key.slice(1);
-                        const allSelects = document.querySelectorAll(
-                            `mat-select[formcontrolname*='${fcnGuess}' i], ` +
-                            `select[formcontrolname*='${fcnGuess}' i]`
-                        );
-                        if (allSelects.length >= 2) {
-                            const lastSelect = allSelects[allSelects.length - 1];
-                            if (lastSelect && isVisible(lastSelect)) {
-                                console.log(`[Altech Filler] CoApp dropdown fallback: last-occurrence for ${cfg.key}`);
-                                await dismissOverlay();
-                                if (lastSelect.tagName === 'SELECT') {
-                                    // Native select
-                                    const options = Array.from(lastSelect.options)
-                                        .filter(o => o.text.trim())
-                                        .map(o => ({ text: o.text.trim(), value: o.value }));
-                                    const expanded = expand(val, cfg.key);
-                                    for (const attempt of [val, expanded]) {
-                                        for (const opt of options) {
-                                            if (opt.text.toLowerCase() === attempt.toLowerCase()) {
-                                                lastSelect.value = opt.value;
-                                                lastSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                                                filled = true; break;
-                                            }
-                                        }
-                                        if (filled) break;
-                                    }
-                                } else {
-                                    // mat-select — click and pick
-                                    lastSelect.click();
-                                    await wait(DROPDOWN_WAIT);
-                                    const optEls = document.querySelectorAll('.cdk-overlay-container mat-option, .cdk-overlay-container [role="option"]');
-                                    if (optEls.length > 0) {
-                                        const optTexts = Array.from(optEls).map(el => el.textContent.trim()).filter(Boolean);
-                                        const expanded = expand(val, cfg.key);
-                                        let pick = null;
-                                        for (const attempt of [val, expanded]) {
-                                            for (const ot of optTexts) {
-                                                if (ot.toLowerCase() === attempt.toLowerCase()) { pick = ot; break; }
-                                            }
-                                            if (pick) break;
-                                        }
-                                        if (!pick) {
-                                            const m = bestMatch(expanded, optTexts) || bestMatch(val, optTexts);
-                                            if (m) pick = m.text;
-                                        }
-                                        if (pick) {
-                                            for (const el of optEls) {
-                                                if (el.textContent.trim() === pick) { el.click(); filled = true; break; }
-                                            }
-                                        }
-                                    }
-                                    if (!filled) await dismissOverlay();
-                                }
-                            }
-                        }
-                    }
+                    const filled = await fillMatSelectById(selector, val, field);
 
                     if (filled) {
                         report.ddFilled++;
                         report.details.push({ field: `CoApp.${field}`, type: 'dropdown', status: 'OK', value: val });
                     } else {
                         report.ddSkipped++;
-                        report.details.push({ field: `CoApp.${field}`, type: 'dropdown', status: 'SKIP', value: val });
+                        report.details.push({ field: `CoApp.${field}`, type: 'dropdown', status: 'SKIP', value: val, reason: `Not found: ${selector}` });
                     }
                     await wait(FILL_DELAY);
+
+                    // Extra delay after parent dropdowns so child options can load
+                    if (filled && (field === 'State' || field === 'Industry')) {
+                        await wait(1200);
+                    }
                 }
 
-                report.details.push({ field: 'CoApplicant', type: 'info', status: markedCoAp ? 'OK' : 'WARN', reason: markedCoAp ? 'Injected & marked' : 'Injected but could not mark as Co-Applicant' });
+                // Step 5: Toggle "Make this contact Co-Applicant" switch
+                let markedCoAp = false;
+                const toggleBtn = document.getElementById('additional-contact-is-co-applicant-0-button');
+                if (toggleBtn) {
+                    toggleBtn.click();
+                    await wait(400);
+                    // Verify it's activated; retry once if needed
+                    if (toggleBtn.getAttribute('aria-checked') !== 'true') {
+                        console.log('[Altech Filler] Co-Applicant toggle retry...');
+                        toggleBtn.click();
+                        await wait(400);
+                    }
+                    markedCoAp = toggleBtn.getAttribute('aria-checked') === 'true';
+                    console.log(`[Altech Filler] Co-Applicant toggle: aria-checked=${toggleBtn.getAttribute('aria-checked')}`);
+                } else {
+                    // Fallback: search by text content for any mdc-switch/slide-toggle
+                    const switches = document.querySelectorAll('button[role="switch"], mat-slide-toggle button, .mdc-switch');
+                    for (const sw of switches) {
+                        const swText = (sw.closest('label, [class*="toggle"], [class*="switch"]')?.textContent || sw.getAttribute('aria-label') || '').toLowerCase();
+                        if (swText.includes('co-applicant') || swText.includes('coapplicant')) {
+                            sw.click();
+                            await wait(400);
+                            markedCoAp = sw.getAttribute('aria-checked') === 'true';
+                            if (!markedCoAp) { sw.click(); await wait(400); markedCoAp = sw.getAttribute('aria-checked') === 'true'; }
+                            console.log(`[Altech Filler] Co-Applicant toggle (fallback): ${markedCoAp}`);
+                            break;
+                        }
+                    }
+                }
+                report.details.push({ field: 'CoApp.Toggle', type: 'toggle', status: markedCoAp ? 'OK' : 'WARN', reason: markedCoAp ? 'Marked as Co-Applicant' : 'Could not activate Co-Applicant toggle' });
+
+                // Step 6: Click "Done" button to save the contact
+                let clickedDone = false;
+                // Primary: button with mat-mdc-unelevated-button class (Angular Material filled button)
+                const doneBtn = document.querySelector('button.mat-mdc-unelevated-button');
+                if (doneBtn) {
+                    doneBtn.click();
+                    clickedDone = true;
+                } else {
+                    // Fallback: find by text content "Done"
+                    for (const btn of document.querySelectorAll('button')) {
+                        if ((btn.textContent || '').trim().toLowerCase() === 'done') {
+                            btn.click();
+                            clickedDone = true;
+                            break;
+                        }
+                    }
+                }
+                if (clickedDone) {
+                    console.log('[Altech Filler] Clicked Done to save Co-Applicant contact');
+                    await wait(FILL_DELAY);
+                } else {
+                    console.warn('[Altech Filler] Done button not found — contact may not be saved');
+                }
+                report.details.push({ field: 'CoApp.Done', type: 'action', status: clickedDone ? 'OK' : 'WARN', reason: clickedDone ? 'Done button clicked' : 'Done button not found' });
+
                 updateToolbarStatus('Co-Applicant filled');
             } else {
-                console.warn('[Altech Filler] Could not find Co-Applicant container after clicking Add contact');
-                report.details.push({ field: 'CoApplicant', type: 'info', status: 'FAIL', reason: 'Container not found after add click' });
+                console.warn('[Altech Filler] Contact page did not load — #contact-first-name-0 not found after 8s');
+                report.details.push({ field: 'CoApplicant', type: 'info', status: 'FAIL', reason: 'Contact page did not load (timed out waiting for #contact-first-name-0)' });
             }
         } else {
             console.warn('[Altech Filler] No "Add contact" button found on applicant page');
