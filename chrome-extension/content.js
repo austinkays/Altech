@@ -1935,35 +1935,47 @@ async function fillPage(clientData) {
                 console.log('[Altech Filler] Contact page loaded — filling Co-Applicant fields');
 
                 // Step 2b: Toggle "Make this contact Co-Applicant" switch (before filling fields)
+                // CRITICAL: Angular MDC change detection needs ~600ms to propagate.
+                // Click ONCE only — a second click turns it back OFF.
                 let markedCoAp = false;
                 const toggleBtn = document.getElementById('additional-contact-is-co-applicant-0-button');
                 if (toggleBtn) {
-                    toggleBtn.click();
-                    await wait(800);
-                    // Verify it's activated; retry once if needed
-                    if (toggleBtn.getAttribute('aria-checked') !== 'true') {
-                        console.log('[Altech Filler] Co-Applicant toggle retry...');
+                    const alreadyOn = toggleBtn.getAttribute('aria-checked') === 'true';
+                    if (alreadyOn) {
+                        console.log('[Altech Filler] Co-Applicant toggle already ON — skipping click');
+                        markedCoAp = true;
+                    } else {
                         toggleBtn.click();
-                        await wait(800);
-                    }
-                    markedCoAp = toggleBtn.getAttribute('aria-checked') === 'true';
-                    console.log(`[Altech Filler] Co-Applicant toggle: aria-checked=${toggleBtn.getAttribute('aria-checked')}`);
-                } else {
-                    // Fallback: search by text content for any mdc-switch/slide-toggle
-                    const switches = document.querySelectorAll('button[role="switch"], mat-slide-toggle button, .mdc-switch');
-                    for (const sw of switches) {
-                        const swText = (sw.closest('label, [class*="toggle"], [class*="switch"]')?.textContent || sw.getAttribute('aria-label') || '').toLowerCase();
-                        if (swText.includes('co-applicant') || swText.includes('coapplicant')) {
-                            sw.click();
-                            await wait(400);
-                            markedCoAp = sw.getAttribute('aria-checked') === 'true';
-                            if (!markedCoAp) { sw.click(); await wait(400); markedCoAp = sw.getAttribute('aria-checked') === 'true'; }
-                            console.log(`[Altech Filler] Co-Applicant toggle (fallback): ${markedCoAp}`);
-                            break;
+                        await wait(600);
+                        markedCoAp = toggleBtn.getAttribute('aria-checked') === 'true';
+                        if (!markedCoAp) {
+                            // State may still be propagating — wait longer, but do NOT click again
+                            console.log('[Altech Filler] Co-Applicant toggle still unchecked after 600ms — waiting 600ms more...');
+                            await wait(600);
+                            markedCoAp = toggleBtn.getAttribute('aria-checked') === 'true';
                         }
+                        console.log(`[Altech Filler] Co-Applicant toggle: aria-checked=${toggleBtn.getAttribute('aria-checked')}`);
+                    }
+                } else {
+                    // Fallback: wrapper element (mat-slide-toggle with mdc-switch inside)
+                    const wrapper = document.getElementById('additional-contact-is-co-applicant-0');
+                    const fallbackBtn = wrapper?.querySelector('button[role="switch"]');
+                    if (fallbackBtn) {
+                        const alreadyOn = fallbackBtn.getAttribute('aria-checked') === 'true';
+                        if (!alreadyOn) {
+                            fallbackBtn.click();
+                            await wait(600);
+                            markedCoAp = fallbackBtn.getAttribute('aria-checked') === 'true';
+                            if (!markedCoAp) { await wait(600); markedCoAp = fallbackBtn.getAttribute('aria-checked') === 'true'; }
+                        } else { markedCoAp = true; }
+                        console.log(`[Altech Filler] Co-Applicant toggle (wrapper fallback): ${markedCoAp}`);
+                    } else {
+                        console.warn('[Altech Filler] Co-Applicant toggle element not found by ID');
                     }
                 }
                 report.details.push({ field: 'CoApp.Toggle', type: 'toggle', status: markedCoAp ? 'OK' : 'WARN', reason: markedCoAp ? 'Marked as Co-Applicant' : 'Could not activate Co-Applicant toggle' });
+                // Wait for Angular to render toggle-dependent co-applicant fields
+                if (markedCoAp) await wait(600);
 
                 // Step 3: Fill text fields on the Contact page using exact ID selectors
                 for (const [field, selector] of Object.entries(CONTACT_PAGE_TEXT_FIELDS)) {
@@ -2632,9 +2644,18 @@ async function scrapePage() {
         if (!isVisible(mt)) continue;
         const label = mt.querySelector('.mat-slide-toggle-content, .mdc-label, label')?.textContent?.trim()
             || mt.textContent?.trim() || '';
-        const isChecked = mt.classList.contains('mat-checked')
+        let isChecked = mt.classList.contains('mat-checked')
             || mt.classList.contains('mat-mdc-slide-toggle-checked')
             || mt.querySelector('input[type="checkbox"]')?.checked || false;
+        // Override: if this is the Co-Applicant toggle and co-applicant fields have data,
+        // force checked=true (toggle may read false due to Angular MDC state propagation lag)
+        if (!isChecked && /co.?applicant/i.test(label)) {
+            const coApFirstName = document.getElementById('contact-first-name-0');
+            if (coApFirstName && coApFirstName.value && coApFirstName.value.trim()) {
+                console.log('[Altech Scraper] Co-Applicant toggle reads false but contact fields have data — forcing checked=true');
+                isChecked = true;
+            }
+        }
         result.checkboxes.push({
             type: 'mat-slide-toggle',
             label,
@@ -4117,54 +4138,77 @@ async function scrapePage() {
             return null;
         };
 
-        // 3a. Search inside the new container first, then full page
-        let coApToggle = newContainer ? findCoApToggle(newContainer) : null;
-        if (!coApToggle) {
-            console.log('[Altech Scraper] Co-Applicant toggle not in container — searching full page...');
-            coApToggle = findCoApToggle(document);
-        }
+        // 3a. Try exact IDs first (most reliable — avoids text-content search ambiguity)
+        const coApBtn = document.getElementById('additional-contact-is-co-applicant-0-button');
+        const coApWrapper = document.getElementById('additional-contact-is-co-applicant-0');
 
-        // 3b. Retry with extra wait if Angular hasn't rendered it yet
-        if (!coApToggle) {
-            console.log('[Altech Scraper] Co-Applicant toggle not found — waiting 2s and retrying...');
-            await wait(2000);
-            coApToggle = newContainer ? findCoApToggle(newContainer) : null;
-            if (!coApToggle) coApToggle = findCoApToggle(document);
-        }
+        // Helper: read toggle state from button aria-checked OR wrapper classes
+        const readToggleState = () => {
+            if (coApBtn) return coApBtn.getAttribute('aria-checked') === 'true';
+            if (coApWrapper) {
+                return coApWrapper.classList.contains('mat-checked') ||
+                    coApWrapper.classList.contains('mat-mdc-slide-toggle-checked') ||
+                    coApWrapper.querySelector('input[type="checkbox"]')?.checked || false;
+            }
+            return false;
+        };
 
-        // 3c. Click the toggle (inner checkbox first — matches filler behavior)
-        if (coApToggle) {
-            const alreadyChecked = coApToggle.classList.contains('mat-checked') ||
-                coApToggle.classList.contains('mat-mdc-slide-toggle-checked') ||
-                coApToggle.classList.contains('mat-checkbox-checked') ||
-                coApToggle.querySelector('input[type="checkbox"]')?.checked || false;
-
-            if (!alreadyChecked) {
-                const innerCb = coApToggle.querySelector('input[type="checkbox"]');
-                if (innerCb) {
-                    innerCb.click();
-                    console.log(`[Altech Scraper] Clicked Co-Applicant inner checkbox: "${(coApToggle.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 60)}"`);
-                } else {
-                    coApToggle.click();
-                    console.log(`[Altech Scraper] Clicked Co-Applicant toggle element`);
-                }
-                // Verify click took effect after 800ms; try outer click if not
-                await wait(800);
-                const verified = coApToggle.classList.contains('mat-checked') ||
-                    coApToggle.classList.contains('mat-mdc-slide-toggle-checked') ||
-                    coApToggle.classList.contains('mat-checkbox-checked') ||
-                    coApToggle.querySelector('input[type="checkbox"]')?.checked || false;
-                if (!verified) {
-                    console.log('[Altech Scraper] Toggle still unchecked — trying alternate click...');
-                    coApToggle.click();
-                    await wait(800);
-                }
+        if (coApBtn || coApWrapper) {
+            // Use exact ID elements — CRITICAL: click ONCE only, never double-click
+            const alreadyOn = readToggleState();
+            if (alreadyOn) {
+                console.log('[Altech Scraper] Co-Applicant toggle already ON (by ID) — skipping click');
             } else {
-                console.log('[Altech Scraper] Co-Applicant toggle already active — skipping click');
+                const clickTarget = coApBtn || coApWrapper.querySelector('button[role="switch"]') || coApWrapper;
+                clickTarget.click();
+                console.log('[Altech Scraper] Clicked Co-Applicant toggle (by ID)');
+                await wait(600);
+                if (!readToggleState()) {
+                    // State may still be propagating — wait longer, but do NOT click again
+                    console.log('[Altech Scraper] Toggle still unchecked after 600ms — waiting 600ms more...');
+                    await wait(600);
+                }
+                console.log(`[Altech Scraper] Co-Applicant toggle state after click: ${readToggleState()}`);
             }
             activatedCoAp = true;
         } else {
-            console.warn('[Altech Scraper] Co-Applicant toggle NOT FOUND after 2 attempts');
+            // 3b. Fallback: text-based search (last resort if IDs change)
+            console.log('[Altech Scraper] Co-Applicant toggle not found by ID — falling back to text search...');
+            let coApToggle = newContainer ? findCoApToggle(newContainer) : null;
+            if (!coApToggle) coApToggle = findCoApToggle(document);
+            if (!coApToggle) {
+                console.log('[Altech Scraper] Toggle not found — waiting 2s and retrying text search...');
+                await wait(2000);
+                coApToggle = newContainer ? findCoApToggle(newContainer) : null;
+                if (!coApToggle) coApToggle = findCoApToggle(document);
+            }
+
+            if (coApToggle) {
+                const alreadyChecked = coApToggle.classList.contains('mat-checked') ||
+                    coApToggle.classList.contains('mat-mdc-slide-toggle-checked') ||
+                    coApToggle.classList.contains('mat-checkbox-checked') ||
+                    coApToggle.querySelector('input[type="checkbox"]')?.checked || false;
+                if (!alreadyChecked) {
+                    // Click once — prefer button inside toggle, never double-click
+                    const clickTarget = coApToggle.querySelector('button[role="switch"]') ||
+                        coApToggle.querySelector('input[type="checkbox"]') || coApToggle;
+                    clickTarget.click();
+                    console.log('[Altech Scraper] Clicked Co-Applicant toggle (text fallback)');
+                    await wait(600);
+                    const verified = coApToggle.classList.contains('mat-checked') ||
+                        coApToggle.classList.contains('mat-mdc-slide-toggle-checked') ||
+                        coApToggle.querySelector('input[type="checkbox"]')?.checked || false;
+                    if (!verified) {
+                        console.log('[Altech Scraper] Toggle still unchecked — waiting 600ms more (no re-click)...');
+                        await wait(600);
+                    }
+                } else {
+                    console.log('[Altech Scraper] Co-Applicant toggle already active (text fallback) — skipping click');
+                }
+                activatedCoAp = true;
+            } else {
+                console.warn('[Altech Scraper] Co-Applicant toggle NOT FOUND after all attempts');
+            }
         }
 
         // Step 4: Wait for Co-Applicant fields (Relationship, Industry, etc.) to render
