@@ -695,8 +695,8 @@ Object.assign(App, {
             const finalMB = (blob.size / 1024 / 1024).toFixed(2);
             console.log(`[Image Optimize] ${originalMB}MB → ${finalMB}MB`);
             
-            // If still too large, reduce further
-            if (blob.size > 2500000) {
+            // If still too large after initial optimize, reduce further
+            if (blob.size > 10000000) {
                 console.log('[Image Optimize] Still large, reducing to 800px...');
                 canvas.width = width * 0.67;
                 canvas.height = height * 0.67;
@@ -736,9 +736,9 @@ Object.assign(App, {
                 const estimatedSizeKB = (base64.length * 0.75 / 1024).toFixed(1);
                 const estimatedSizeMB = (base64.length * 0.75 / 1024 / 1024).toFixed(2);
                 
-                if (base64.length * 0.75 > 4000000) {
-                    console.error(`[File Convert] Too large: ${estimatedSizeMB}MB exceeds 4MB limit`);
-                    reject(new Error(`File too large (${estimatedSizeMB}MB). Please use a smaller image or crop the document.`));
+                if (base64.length * 0.75 > 20000000) {
+                    console.error(`[File Convert] Too large: ${estimatedSizeMB}MB exceeds 20MB limit`);
+                    reject(new Error(`File too large (${estimatedSizeMB}MB). Maximum is 20MB per file.`));
                     return;
                 }
                 
