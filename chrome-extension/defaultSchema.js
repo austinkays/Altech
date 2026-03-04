@@ -1,4 +1,4 @@
-// Auto-generated from EZLynx scrape data  2026-02-23
+// Auto-generated from EZLynx scrape data  2026-03-04
 // This is the built-in schema that ships with the extension.
 // To update: scrape EZLynx pages, then use the Export Schema button in popup.
 // eslint-disable-next-line no-unused-vars
@@ -2513,6 +2513,7 @@ const DEFAULT_SCHEMA = {
     "15"
   ],
   "contact-drivers-license-status-0": [
+    "--Select--",
     "Valid",
     "Permit",
     "Expired",
@@ -2522,6 +2523,7 @@ const DEFAULT_SCHEMA = {
     "Permanently Revoked"
   ],
   "contact-education-0": [
+    "--Select--",
     "No High School Diploma",
     "High School Diploma",
     "Some College - No Degree",
@@ -2534,6 +2536,7 @@ const DEFAULT_SCHEMA = {
     "Law Degree"
   ],
   "contact-gender-0": [
+    "--Select--",
     "Female",
     "Male",
     "Not Specified"
@@ -2565,6 +2568,7 @@ const DEFAULT_SCHEMA = {
     "Other"
   ],
   "contact-marital-statuses-0": [
+    "--Select--",
     "Single",
     "Married",
     "Domestic Partner",
@@ -2576,22 +2580,26 @@ const DEFAULT_SCHEMA = {
     "Homemaker/House person"
   ],
   "contact-preferred-contact-method-0": [
+    "--Select--",
     "Mobile Phone",
     "Email"
   ],
   "contact-preferred-contact-time-0": [
+    "--Select--",
     "Morning",
     "Afternoon",
     "Evening",
     "Anytime"
   ],
   "contact-prefixes-0": [
+    "--Select--",
     "MR",
     "MRS",
     "MS",
     "DR"
   ],
   "contact-relationships-0": [
+    "--Select--",
     "Child",
     "Domestic Partner",
     "Employee",
@@ -2601,6 +2609,7 @@ const DEFAULT_SCHEMA = {
     "Spouse"
   ],
   "contact-suffix-0": [
+    "--Select--",
     "JR",
     "SR",
     "I",
@@ -2608,6 +2617,7 @@ const DEFAULT_SCHEMA = {
     "III"
   ],
   "contactdrivers-license-state-0": [
+    "--Select--",
     "AK",
     "AL",
     "AR",
