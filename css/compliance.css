@@ -765,6 +765,22 @@
     white-space: nowrap;
     flex-shrink: 0;
 }
+.cgl-note-delete-btn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 2px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+}
+.cgl-note-entry:hover .cgl-note-delete-btn { opacity: 1; }
+.cgl-note-delete-btn:hover { color: var(--danger); }
+body.dark-mode .cgl-note-delete-btn { color: #636366; }
+body.dark-mode .cgl-note-delete-btn:hover { color: var(--danger); }
 .cgl-renewed-badge {
     display: inline-block;
     background: #dcfce7;

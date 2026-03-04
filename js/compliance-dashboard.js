@@ -1719,12 +1719,16 @@ const ComplianceDashboard = {
     renderNoteLog(policyNumber) {
         const data = this.getNoteData(policyNumber);
         if (!data || !data.log || data.log.length === 0) return '';
-        return data.log.slice().reverse().map(entry => `
+        return data.log.slice().reverse().map((entry, revIdx) => {
+            const origIdx = data.log.length - 1 - revIdx;
+            return `
             <div class="cgl-note-entry">
                 <span class="cgl-note-entry-text">${this.escapeHtml(entry.text)}</span>
                 <span class="cgl-note-entry-time">${this.formatNoteTime(entry.at)}</span>
+                <button class="cgl-note-delete-btn" onclick="ComplianceDashboard.deleteNoteEntry('${this.escapeHtml(policyNumber)}',${origIdx})" title="Delete this note">&times;</button>
             </div>
-        `).join('');
+        `;
+        }).join('');
     },
 
     toggleNote(policyNumber) {
@@ -1749,6 +1753,26 @@ const ComplianceDashboard = {
         this.policyNotes[policyNumber] = data;
         this.saveState();
         this._refreshNoteUI(policyNumber);
+    },
+
+    deleteNoteEntry(policyNumber, index) {
+        const data = this.getNoteData(policyNumber);
+        if (!data || !data.log || index < 0 || index >= data.log.length) return;
+        data.log.splice(index, 1);
+        // If log is now empty and no other note metadata, clean up entirely
+        if (data.log.length === 0 && !data.renewedTo && !data.stateUpdated) {
+            delete this.policyNotes[policyNumber];
+        } else {
+            this.policyNotes[policyNumber] = data;
+        }
+        this.saveState();
+        this._refreshNoteUI(policyNumber);
+        // Refresh the note log in the expanded row
+        const noteRow = document.getElementById('note-row-' + policyNumber);
+        if (noteRow && noteRow.style.display !== 'none') {
+            const logEl = noteRow.querySelector('.cgl-note-log');
+            if (logEl) logEl.innerHTML = this.renderNoteLog(policyNumber);
+        }
     },
 
     markRenewed(policyNumber) {
