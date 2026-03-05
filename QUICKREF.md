@@ -192,7 +192,7 @@ priorCarrier, priorYears, priorLapse
 
 ---
 
-## Cloud-Synced Data Types (8)
+## Cloud-Synced Data Types (10)
 
 | docType | localStorage Key | UI Refresh After Pull |
 |---------|-----------------|----------------------|
@@ -204,6 +204,8 @@ priorCarrier, priorYears, priorLapse
 | `reminders` | `altech_reminders` | `Reminders.render()` |
 | `quotes` | `altech_v6_quotes` | `App.renderQuotesList()` |
 | `glossary` | `altech_agency_glossary` | Updates textarea if visible |
+| `vaultData` | `altech_acct_vault_v2` | *(encrypted string, stored as-is)* |
+| `vaultMeta` | `altech_acct_vault_meta` | *(PIN hash+salt JSON)* |
 
 **Adding a new synced type requires 4 edits in `cloud-sync.js`:** `_getLocalData()`, `pushToCloud()`, `pullFromCloud()`, `deleteCloudData()`
 
@@ -221,7 +223,14 @@ npm run deploy:vercel    # Production deploy
 
 ---
 
-## Session Notes (March 5, 2026)
+## Session Notes (March 12, 2026)
+
+- **Encrypted Accounting Vault:** PIN + AES-256-GCM + multi-account CRUD. Tabbed layout (Account Info / Export Tools). PIN lockout escalation (3/6 tries), Firebase re-auth recovery. Cloud sync: vaultData + vaultMeta (10 doc types total).
+- **Vault UI Polish:** Replaced heavy gradient toolbar buttons with dedicated ghost/solid classes + inline SVG icons. Removed double-border form nesting. 3-column form grid with proper labels. Color picker squircle. SVG empty state. Full dark mode.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **4+3 files changed:** js/accounting-export.js (392→856 lines), css/accounting.css (225→467 lines), plugins/accounting.html (252→329 lines), js/cloud-sync.js (651→664 lines).
+
+### Previous Session (March 5, 2026)
 
 - **+ New Log Button:** Added reset button in HawkSoft Logger header — clears client, channel (→Inbound), activity, notes, preview/confirm panels. Keeps agent initials. SVG + icon.
 - **Agency Glossary:** New textarea in Settings (500-char max) for custom shorthand terms (e.g., "MoE = Mutual of Enumclaw"). Stored in `altech_agency_glossary`, sent in formatOnly fetch, injected into AI userMessage, cloud-synced as 8th doc type.
@@ -240,4 +249,4 @@ npm run deploy:vercel    # Production deploy
 - Desktop Layout Overhaul: Widened all 15 plugin containers from 1200px→1400px. Added 2-column desktop grids for Q&A, Email, VIN Decoder, and Accounting. 24 files changed.
 - Verification: `npx jest --no-coverage` → 23/23 suites passed, 1515/1515 tests.
 
-*Last updated: March 6, 2026*
+*Last updated: March 12, 2026*

@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~665 lines) |
-| **CSS** | 21 files in `css/` (~15,875 lines total) |
-| **JS** | 35 modules in `js/` (~32,395 lines total) |
-| **Plugins** | 15 HTML templates in `plugins/` (~5,150 lines total) |
+| **CSS** | 21 files in `css/` (~16,108 lines total) |
+| **JS** | 35 modules in `js/` (~33,025 lines total) |
+| **Plugins** | 15 HTML templates in `plugins/` (~5,530 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -64,7 +64,7 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 21 stylesheets (~15,752 lines)
+├── css/                        # 21 stylesheets (~16,108 lines)
 │   ├── main.css                # ★ Core styles + :root variables + desktop overhaul + Save button (3,486 lines) — THE source of truth
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (765 lines)
@@ -83,11 +83,11 @@ npm run deploy:vercel   # Production deploy
 │   ├── bug-report.css          # Bug reporter (227 lines)
 │   ├── quickref.css            # Quick reference — teal accent (233 lines)
 │   ├── security-info.css       # Security modal (217 lines)
-│   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, card grid, dark mode (412 lines)
+│   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, polished form/toolbar, card grid, dark mode (467 lines)
 │   ├── email.css               # Email composer — purple accent (165 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
-├── js/                         # 35 modules (~32,109 lines)
+├── js/                         # 35 modules (~33,025 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows (85 lines)
@@ -121,7 +121,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── quote-compare.js         # Quote comparison + AI recommendation (889 lines)
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (914 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
-│   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator (765 lines)
+│   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator (856 lines)
 │   ├── call-logger.js          # HawkSoft Logger � two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,185 lines)
 │   │
 │   │  ★ Support Modules
@@ -132,12 +132,12 @@ npm run deploy:vercel   # Production deploy
 │   ├── data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
 │   └── hawksoft-integration.js  # HawkSoft REST API client (261 lines)
 │
-├── plugins/                    # 15 HTML templates (~5,133 lines, loaded dynamically)
+├── plugins/                    # 15 HTML templates (~5,530 lines, loaded dynamically)
 │   ├── quoting.html            # ★ Main intake wizard — 7 steps, Employment & Education inline in About You card, 2,091 lines
 │   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
 │   ├── prospect.html           # Commercial investigation UI (333 lines)
-│   ├── accounting.html         # Accounting vault + export — tabbed layout, PIN screens, account cards (288 lines)
+│   ├── accounting.html         # Accounting vault + export — tabbed layout, PIN screens, polished form/toolbar, account cards (329 lines)
 │   ├── compliance.html         # CGL dashboard + print toolbar (223 lines)
 │   ├── vin-decoder.html        # VIN decoder (141 lines)
 │   ├── reminders.html          # Task manager (144 lines)
@@ -1007,6 +1007,16 @@ KEY RULES:
 | 154 | HIGH | js/cloud-sync.js | **Cloud sync for vault (10 doc types).** Added `vaultData` (raw encrypted string) and `vaultMeta` (PIN hash+salt JSON) to all 4 touchpoints: `_getLocalData()`, `pushToCloud()`, `pullFromCloud()`, `deleteCloudData()`. Vault data stored as-is (encrypted string, not parsed). |
 
 **4 files changed:** js/accounting-export.js (392→765 lines), css/accounting.css (225→412 lines), plugins/accounting.html (252→288 lines), js/cloud-sync.js (651→664 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Vault UI Polish — Clean Toolbar, Form, Empty State (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 155 | HIGH | plugins/accounting.html | **Toolbar buttons:** Replaced global `.btn .btn-primary` (heavy gradient+shimmer) with dedicated `.acct-toolbar-btn`/`.acct-toolbar-add`/`.acct-toolbar-lock` classes with inline SVG icons. **Form restructure:** Removed nested `<div class="card">` wrapper (caused double borders), form itself is now the card. Replaced inline styles with `.acct-form-grid` (3-column: 2fr 1fr auto), `.acct-form-field` wrappers with proper `<label>` elements, `.acct-color-wrapper` squircle around native color picker. Custom Fields section uses `.acct-fields-section`/`.acct-fields-header`. Save/Cancel balanced with `.acct-add-save-btn`/`.acct-add-cancel-btn`. **Empty state:** Plain `<p>` replaced with `<div class="acct-empty-state">` containing SVG credit card icon. |
+| 156 | HIGH | css/accounting.css | **Full vault section CSS rewrite.** Toolbar: ghost outlined buttons, solid blue Add button with SVG `stroke:#fff`, transitions. Form: `overflow:hidden` card with subtle shadow, 3-column grid, `.acct-form-field` with 6px gap labels, color picker `::-webkit-color-swatch` with rounded corners, fields section separated by `border-top`, balanced action buttons (solid save, outlined cancel). Empty state: centered flex with 0.5 opacity icon. **Dark mode:** All new classes covered — toolbar (#1C1C1E bg, #38383A border), Add button (#0A84FF), form shadow (rgba(0,0,0,0.3)), fields section border, color picker (#2C2C2E bg). |
+| 157 | MEDIUM | js/accounting-export.js | **Empty state HTML updated** in `_renderCards()`: `<p class="acct-empty-msg">` → `<div class="acct-empty-state">` with SVG credit card icon, title, and subtitle. |
+
+**3 files changed:** js/accounting-export.js (765→856 lines), css/accounting.css (412→467 lines), plugins/accounting.html (288→329 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 

@@ -14,7 +14,7 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~665 lines), 21 CSS files in `css/` (~14,605 lines), 35 JS modules in `js/` (~32,395 lines), 15 plugin HTML files in `plugins/` (~5,150 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~665 lines), 21 CSS files in `css/` (~16,108 lines), 35 JS modules in `js/` (~33,025 lines), 15 plugin HTML files in `plugins/` (~5,530 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
 > **Full documentation:** See [AGENTS.md](../AGENTS.md) (985 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
@@ -185,6 +185,12 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
 ### Latest Session Notes (March 12, 2026)
+
+- **Vault UI Polish — Clean Toolbar, Form, Empty State:** Replaced global `.btn .btn-primary` (heavy gradient+shimmer) with dedicated `.acct-toolbar-btn`/`.acct-toolbar-add`/`.acct-toolbar-lock` classes with inline SVG icons. Removed nested `<div class="card">` wrapper (caused double borders) — form itself is now the card with `.acct-form-grid` (3-column), `.acct-form-field` wrappers with proper labels, `.acct-color-wrapper` squircle around color picker. Custom Fields uses `.acct-fields-section`/`.acct-fields-header`. Balanced Save/Cancel buttons. Empty state now SVG credit card icon with title+subtitle. Full dark mode for all new elements.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **3 files changed:** js/accounting-export.js (765→856 lines), css/accounting.css (412→467 lines), plugins/accounting.html (288→329 lines).
+
+### Previous Session Notes (March 12, 2026)
 
 - **Encrypted Accounting Vault — PIN + AES-256-GCM + Multi-Account CRUD:** Tabbed layout: "🔐 Account Info" (vault tab) and "🛠 Export Tools" (export tab). PIN system: SHA-256 hashed, 3/6-try lockout escalation (60s/5min), Firebase re-auth recovery. AES-256-GCM encryption via CryptoHelper. Multi-account CRUD with name, type, color, dynamic custom fields. Toggle field visibility with 10s auto-re-mask, 30s clipboard auto-clear. Auto-lock: 15min inactivity + visibility change. V1 migration: old 7-field vault auto-converts to single "HawkSoft / Trust Account" on first PIN setup. Storage: `altech_acct_vault_v2` (encrypted), `altech_acct_vault_meta` (PIN hash+salt). Cloud sync: vaultData + vaultMeta pushed/pulled via Firestore (10 doc types total). Full dark mode for all new elements.
 - **Tests:** 23 suites, 1515 tests (unchanged).
