@@ -1,6 +1,6 @@
 ﻿# AGENTS.md â€” Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 6, 2026
+> **Last updated:** March 7, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive â€” read this before making ANY changes
 >
@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA â€” no build step, no framework |
 | **Entry point** | `index.html` (~665 lines) |
-| **CSS** | 21 files in `css/` (~15,690 lines total) |
-| **JS** | 35 modules in `js/` (~31,593 lines total) |
-| **Plugins** | 15 HTML templates in `plugins/` (~5,382 lines total) |
+| **CSS** | 21 files in `css/` (~14,593 lines total) |
+| **JS** | 35 modules in `js/` (~28,943 lines total) |
+| **Plugins** | 15 HTML templates in `plugins/` (~5,061 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -91,12 +91,12 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”‚
 â”‚   â”‚  â˜… Core App (assembled via Object.assign into global `App`)
 â”‚   â”œâ”€â”€ app-init.js             # State init, toolConfig[], workflows (85 lines)
-â”‚   â”œâ”€â”€ app-core.js             # Form handling, save/load, updateUI, navigation, schema migration (2,376 lines)
-â”‚   â”œâ”€â”€ app-scan.js             # Policy document scanning, OCR, Gemini AI (1,762 lines)
+â”‚   â”œâ”€â”€ app-core.js             # Form handling, save/load, updateUI, navigation, schema migration, syncPrimaryApplicantToDriver (2,219 lines)
+â”‚   â”œâ”€â”€ app-scan.js             # Policy document scanning, OCR, Gemini AI (1,585 lines)
 â”‚   â”œâ”€â”€ app-property.js         # Property analysis, maps, assessor data (1,728 lines)
-â”‚   â”œâ”€â”€ app-vehicles.js         # Vehicle/driver management, DL scanning (844 lines)
+â”‚   â”œâ”€â”€ app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (816 lines)
 â”‚   â”œâ”€â”€ app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
-â”‚   â”œâ”€â”€ app-export.js           # PDF/CMSMTF/CSV/Text exports, scan schema (996 lines)
+â”‚   â”œâ”€â”€ app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (963 lines)
 â”‚   â”œâ”€â”€ app-quotes.js           # Quote/draft management (757 lines)
 â”‚   â”œâ”€â”€ app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts (287 lines)
 â”‚   â”‚
@@ -132,8 +132,8 @@ npm run deploy:vercel   # Production deploy
 â”‚   â”œâ”€â”€ data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
 â”‚   â””â”€â”€ hawksoft-integration.js  # HawkSoft REST API client (261 lines)
 â”‚
-â”œâ”€â”€ plugins/                    # 15 HTML templates (~5,295 lines, loaded dynamically)
-â”‚   â”œâ”€â”€ quoting.html            # â˜… Main intake wizard â€” 7 steps, 2,026 lines
+â”œâ”€â”€ plugins/                    # 15 HTML templates (~5,061 lines, loaded dynamically)
+â”‚   â”œâ”€â”€ quoting.html            # â˜… Main intake wizard â€” 7 steps, 1,926 lines
 â”‚   â”œâ”€â”€ ezlynx.html             # EZLynx rater form â€” 80+ fields, 1,077 lines
 â”‚   â”œâ”€â”€ coi.html                # ACORD 25 COI form (418 lines)
 â”‚   â”œâ”€â”€ prospect.html           # Commercial investigation UI (333 lines)
@@ -904,6 +904,21 @@ KEY RULES:
 | 106 | MEDIUM | js/app-core.js | **Legacy field names lost on migration:** Added 7 field-name migrations in v1→v2 schema migration: `address`→`addrStreet`, `city`→`addrCity`, `state`→`addrState`, `zip`→`addrZip`, `bodInjury`→`liabilityLimits`, `propDamage`→`pdLimit`, `collDed`→`autoDeductible`. |
 | 107 | LOW | js/app-export.js | **PDF visual polish:** Logo size 18→22, gap between name strip and satellite 16→18, satellite thumbnail 30×24→45×36. |
 | 108 | MEDIUM | js/app-core.js | **Firestore load not persisted:** Added debounced `save()` call at end of `applyData()` so full form state is captured after cloud/history load. Schema version bumped from 1 to 2. |
+
+### Auto Intake — Primary Applicant Driver Sync + Per-Driver History (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 109 | CRITICAL | js/app-core.js | **`syncPrimaryApplicantToDriver()`:** New method auto-creates/updates Driver 1 with `isPrimaryApplicant: true`, copying firstName, lastName, dob, gender, maritalStatus, education, occupation, industry from `App.data`. Mirrors existing co-applicant sync pattern. Called on step-4 landing. |
+| 110 | HIGH | js/app-core.js | **`restorePrimaryApplicantUI()`:** Attaches change/blur listeners on Step 1 fields (firstName, lastName, dob, gender, maritalStatus, education, occupation, industry) so edits live-sync to Driver 1. Idempotent via `dataset.primarySyncBound`. |
+| 111 | HIGH | js/app-vehicles.js | **Per-driver driving history UI:** Each driver card now has accidents textarea, violations textarea, and studentGPA input at bottom. All wired to `updateDriver()`. |
+| 112 | HIGH | js/app-vehicles.js | **Primary applicant removal guard:** `removeDriver()` blocks removal of drivers with `isPrimaryApplicant: true` and shows toast warning. |
+| 113 | HIGH | js/app-vehicles.js | **Extended locked fields:** `updateDriver()` LOCKED_FIELDS check now also blocks `isPrimaryApplicant` drivers (was only `isCoApplicant`). Badge: green "Primary Applicant" vs blue synced co-applicant. |
+| 114 | HIGH | plugins/quoting.html | **Employment & Education moved to Step 1:** Demographics card (education, occupation, industry) relocated from Step 2 to Step 1 after co-applicant section. Renamed "Employment & Education". |
+| 115 | HIGH | plugins/quoting.html | **Global Driving History removed from Step 4:** Removed global accidents/violations/studentGPA card. Per-driver fields rendered dynamically in JS driver cards. |
+| 116 | MEDIUM | js/app-core.js | **Global-to-per-driver migration:** On first step-4 visit, copies `data.accidents`/`data.violations`/`data.studentGPA` to Driver 1 if Driver 1's fields are empty. |
+| 117 | MEDIUM | js/app-export.js | **PDF/CMSMTF per-driver aggregation:** Exports now aggregate per-driver accidents/violations/studentGPA with "Driver N:" prefixes, falling back to global `data.*` for backward compatibility. |
+| 118 | MEDIUM | js/app-scan.js | **Scan driver fields:** All 3 driver creation sites (DL scan, policy scan primary, policy scan additional) now include `isPrimaryApplicant`, `isCoApplicant`, `accidents`, `violations`, `studentGPA`. |
 
 ---
 

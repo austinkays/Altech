@@ -14,7 +14,7 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~665 lines), 21 CSS files in `css/` (~15,690 lines), 35 JS modules in `js/` (~31,593 lines), 15 plugin HTML files in `plugins/` (~5,382 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~665 lines), 21 CSS files in `css/` (~14,593 lines), 35 JS modules in `js/` (~28,943 lines), 15 plugin HTML files in `plugins/` (~5,061 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
 > **Full documentation:** See [AGENTS.md](../AGENTS.md) (985 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
@@ -184,7 +184,16 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 6, 2026)
+### Latest Session Notes (March 7, 2026)
+
+- **Auto Intake — Primary Applicant Driver Sync:** New `syncPrimaryApplicantToDriver()` method auto-creates Driver 1 with `isPrimaryApplicant: true`, copying name/DOB/gender/marital/education/occupation/industry from App.data. Live-syncs via `restorePrimaryApplicantUI()` change/blur listeners on Step 1 fields. Primary applicant driver cannot be removed.
+- **Per-Driver Driving History:** Removed global Driving History card from Step 4. Each driver card now has accidents textarea, violations textarea, and studentGPA input. Migration copies global→Driver 1 on first step-4 visit. PDF/CMSMTF exports aggregate per-driver data with "Driver N:" prefixes, falling back to global for backward compat.
+- **Employment & Education moved to Step 1:** Demographics card relocated from Step 2 to Step 1 after co-applicant section. Renamed "Employment & Education".
+- **Scan updates:** All 3 driver creation sites (DL scan, policy primary, policy additional) now include `isPrimaryApplicant`, `isCoApplicant`, `accidents`, `violations`, `studentGPA`.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **5 files changed:** plugins/quoting.html (1,926 lines), js/app-core.js (2,219 lines), js/app-vehicles.js (816 lines), js/app-export.js (963 lines), js/app-scan.js (1,585 lines).
+
+### Previous Session Notes (March 6, 2026)
 
 - **PDF Export & Form Data — 7-Bug Fix:** (1) Client name blank on PDF — switched to `v()` helper with DOM fallback. (2) Dates off by one day — `formatDate()` now uses UTC getters. (3) Co-applicant section missing — three-part fix: `save(e)` guards `hasCoApplicant` checkbox, schema migration v1→v2 normalizes values, PDF/CMSMTF checks accept truthy variants. (4) Raw currency in auto coverage — wrapped 4 fields in `formatCurrency()`. (5) Satellite overlapping text — saved y position, advanced past block, enlarged thumbnail 30×24→45×36. (6) Legacy field names — added 7 migrations in v1→v2 schema. (7) Visual polish — logo 18→22, gap 16→18, satellite enlarged, "View on Maps" link replaced with plain text.
 - **Schema version:** Bumped from 1 → 2 with full v1→v2 migration (hasCoApplicant normalization + 7 legacy field name renames).
@@ -220,4 +229,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 6, 2026*
+*Last updated: March 7, 2026*
