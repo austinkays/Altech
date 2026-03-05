@@ -924,7 +924,7 @@ ${ai.underwritingNotes || 'N/A'}`;
             </details>` : ''}
 
             <div style="text-align:right;font-size:11px;color:var(--text-secondary);opacity:0.6;margin-top:8px;">
-                Powered by Gemini AI${grounded ? ' + Google Search' : ''} \u00B7 ${new Date().toLocaleTimeString()}
+                Powered by ${(() => { const p = window.AIProvider?.getSettings()?.provider; return p === 'anthropic' ? 'Claude' : p === 'gemini' ? 'Gemini AI' : 'AI'; })()}${grounded ? ' + Google Search' : ''} \u00B7 ${new Date().toLocaleTimeString()}
             </div>
         `;
     }
