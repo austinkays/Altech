@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 10, 2026
+> **Last updated:** March 11, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -70,7 +70,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (765 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (1,202 lines)
-│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge (1,223 lines)
+│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + needs-state-update badge (1,234 lines)
 │   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
 │   ├── intake-assist.css       # AI intake professional UI — enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
@@ -110,7 +110,7 @@ npm run deploy:vercel   # Production deploy
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
-│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup (2,426 lines)
+│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate (2,448 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts (420 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
@@ -968,6 +968,18 @@ KEY RULES:
 | 145 | MEDIUM | js/compliance-dashboard.js, css/compliance.css | **"🔄 Renewed" / "🔄 Renewal confirmed" badge** in `renderPolicies()` dates column. Blue pill badge (`.cgl-auto-renewed-badge`) with tooltip showing old expiration or superseded policy number. Full dark mode support. |
 
 **2 files changed:** js/compliance-dashboard.js (2,356→2,426 lines), css/compliance.css (1,211→1,223 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Renewed Policies Stay Urgent — needsStateUpdate Flag (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 146 | CRITICAL | js/compliance-dashboard.js | **`needsStateUpdate` flag in `checkForRenewals()`.** All 4 renewal detection paths now set `noteData.needsStateUpdate = true` when clearing verified/dismissed markers. Note dedup: skips adding "Auto-cleared" note if flag already set (prevents spam on repeated loads). Marker clearing remains idempotent. |
+| 147 | HIGH | js/compliance-dashboard.js | **`markStateUpdated()` clears flag.** Adds `data.needsStateUpdate = false` when user clicks "State Updated". Also now calls `filterPolicies()` to re-sort immediately (policy drops from top of list). |
+| 148 | HIGH | js/compliance-dashboard.js | **`sortPolicies()` override.** New `_needsStateUpdate(pn)` helper. Policies with `needsStateUpdate && !stateUpdated` always sort first (above everything), regardless of sort field or direction. Among themselves, they follow normal sort order. |
+| 149 | HIGH | js/compliance-dashboard.js | **`renderPolicies()` amber badge.** Policies needing state update get `⚠️ Renewed` badge (class `needs-state-update`) instead of normal status label. Row gets `cgl-needs-state-row` class for subtle amber tint. |
+| 150 | MEDIUM | css/compliance.css | **`.cgl-status-badge.needs-state-update`** amber palette (warm orange `#9a3412` / `#fff7ed`) with glow shadow. `.cgl-needs-state-row` subtle amber background. Full dark mode overrides (`#fb923c` text, `rgba(234,88,12,0.15)` bg). |
+
+**2 files changed:** js/compliance-dashboard.js (2,426→2,448 lines), css/compliance.css (1,223→1,234 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ### SOS Lookup Overhaul — Oregon Socrata + WA DOR Fallback + AZ Deep Link (March 2026)
 

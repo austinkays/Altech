@@ -184,7 +184,13 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 10, 2026)
+### Latest Session Notes (March 11, 2026)
+
+- **Renewed Policies Stay Urgent — needsStateUpdate Flag:** All 4 renewal detection paths in `checkForRenewals()` now set `noteData.needsStateUpdate = true` when clearing verified/dismissed markers. Note dedup: skips adding "Auto-cleared" note if flag already set (prevents spam). `markStateUpdated()` clears the flag + calls `filterPolicies()` to re-sort immediately. New `_needsStateUpdate(pn)` helper. `sortPolicies()` overrides: policies with `needsStateUpdate && !stateUpdated` always sort first (above everything). `renderPolicies()` shows amber "⚠️ Renewed" badge with `.needs-state-update` class + row tint. Full dark mode.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **2 files changed:** js/compliance-dashboard.js (2,426→2,448 lines), css/compliance.css (1,223→1,234 lines).
+
+### Previous Session Notes (March 10, 2026)
 
 - **Renewal Dedup — CGL Compliance Dashboard:** Added `deduplicateRenewals()` method with two-phase logic. Phase 1: same-policyNumber dedup keeps only the latest expiration, marks survivor with `_renewedFrom`. Phase 2: cross-number renewal detection — same client + same policyType with one expired and one active auto-dismisses the expired entry as superseded. Integrated at all 3 policy assignment points (before `checkForRenewals()`). Blue "🔄 Renewed" / "🔄 Renewal confirmed" badge in dates column with dark mode support.
 - **Tests:** 23 suites, 1515 tests (unchanged).
@@ -269,4 +275,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 10, 2026*
+*Last updated: March 11, 2026*

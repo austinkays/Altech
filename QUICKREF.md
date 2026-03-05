@@ -168,7 +168,7 @@ priorCarrier, priorYears, priorLapse
 | `js/auth.js` | 🟡 | Authentication + `apiFetch()` used by most plugins |
 | `css/main.css` | 🟡 | ~3,486 lines, :root variable source of truth, 100+ dark mode selectors, desktop layout overhaul |
 | `plugins/quoting.html` | 🟡 | 2,019 lines, all form field IDs — renaming breaks persistence |
-| `js/compliance-dashboard.js` | 🟡 | 1,881 lines, 6-layer persistence, complex merge logic |
+| `js/compliance-dashboard.js` | 🟡 | 2,448 lines, 6-layer persistence, complex merge logic, needsStateUpdate flag |
 
 ---
 
