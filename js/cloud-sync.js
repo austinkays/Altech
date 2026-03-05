@@ -123,6 +123,8 @@ const CloudSync = (() => {
             quickRefCards: tryParse('altech_quickref_cards'),
             reminders: tryParse('altech_reminders'),
             glossary: localStorage.getItem('altech_agency_glossary') || null,
+            vaultData: localStorage.getItem('altech_acct_vault_v2') || null,
+            vaultMeta: tryParse('altech_acct_vault_meta'),
             settings: {
                 darkMode: localStorage.getItem('altech_dark_mode') === 'true',
             }
@@ -370,6 +372,8 @@ const CloudSync = (() => {
                     _pushDoc('quickRefCards', local.quickRefCards, 'quickRefCards'),
                     _pushDoc('reminders', local.reminders, 'reminders'),
                     _pushDoc('glossary', local.glossary, 'glossary'),
+                    _pushDoc('vaultData', local.vaultData, 'vaultData'),
+                    _pushDoc('vaultMeta', local.vaultMeta, 'vaultMeta'),
                     local.quotes?.length ? _pushQuotes(local.quotes) : Promise.resolve()
                 ]);
 
@@ -478,6 +482,16 @@ const CloudSync = (() => {
                     if (glossaryEl) glossaryEl.value = localStorage.getItem('altech_agency_glossary') || '';
                 }
 
+                // Pull Vault (encrypted string stored as-is)
+                const vaultDataResult = await _pullDoc('vaultData', null, 'vaultData');
+                if (vaultDataResult?.data != null) {
+                    localStorage.setItem('altech_acct_vault_v2', typeof vaultDataResult.data === 'string' ? vaultDataResult.data : JSON.stringify(vaultDataResult.data));
+                }
+                const vaultMetaResult = await _pullDoc('vaultMeta', null, 'vaultMeta');
+                if (vaultMetaResult?.data != null) {
+                    _setLocalData('altech_acct_vault_meta', vaultMetaResult.data);
+                }
+
                 // Pull quotes (merge strategy)
                 const remoteQuotes = await _pullQuotes();
                 if (remoteQuotes.length > 0) {
@@ -557,7 +571,7 @@ const CloudSync = (() => {
                 const db = FirebaseConfig.db;
 
                 // Delete sync docs
-                const syncDocs = ['settings', 'currentForm', 'cglState', 'clientHistory', 'quickRefCards', 'reminders', 'glossary'];
+                const syncDocs = ['settings', 'currentForm', 'cglState', 'clientHistory', 'quickRefCards', 'reminders', 'glossary', 'vaultData', 'vaultMeta'];
                 await Promise.all(syncDocs.map(doc =>
                     db.collection('users').doc(uid).collection('sync').doc(doc).delete()
                 ));
