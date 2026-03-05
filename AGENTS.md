@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 11, 2026
+> **Last updated:** March 12, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -83,7 +83,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── bug-report.css          # Bug reporter (227 lines)
 │   ├── quickref.css            # Quick reference — teal accent (233 lines)
 │   ├── security-info.css       # Security modal (217 lines)
-│   ├── accounting.css          # Accounting export (225 lines)
+│   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, card grid, dark mode (412 lines)
 │   ├── email.css               # Email composer — purple accent (165 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
@@ -104,7 +104,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
 │   ├── firebase-config.js      # Firebase app init (fetches config from /api/config)
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
-│   ├── cloud-sync.js           # Firestore sync (8 doc types incl. glossary, conflict resolution, 651 lines)
+│   ├── cloud-sync.js           # Firestore sync (10 doc types incl. glossary + vault, conflict resolution, 664 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
 │   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs (976 lines)
 │   │
@@ -121,7 +121,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── quote-compare.js         # Quote comparison + AI recommendation (889 lines)
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (914 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
-│   ├── accounting-export.js     # Trust deposit calculator, HawkSoft receipts (392 lines)
+│   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator (765 lines)
 │   ├── call-logger.js          # HawkSoft Logger � two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,185 lines)
 │   │
 │   │  ★ Support Modules
@@ -137,7 +137,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
 │   ├── prospect.html           # Commercial investigation UI (333 lines)
-│   ├── accounting.html         # Accounting/deposit tools (252 lines)
+│   ├── accounting.html         # Accounting vault + export — tabbed layout, PIN screens, account cards (288 lines)
 │   ├── compliance.html         # CGL dashboard + print toolbar (223 lines)
 │   ├── vin-decoder.html        # VIN decoder (141 lines)
 │   ├── reminders.html          # Task manager (144 lines)
@@ -293,7 +293,7 @@ The **correct** dark mode selector is `body.dark-mode .your-class`.
 
 ### 3.5 Files Missing Dark Mode (Known Gaps)
 
-These CSS files have zero `body.dark-mode` overrides: `vin-decoder.css`, `quote-compare.css`, `onboarding.css`, `quickref.css`, `accounting.css`, `email.css`, `paywall.css`. They rely entirely on CSS variables (which auto-switch), but any hardcoded colors in these files won't adapt to dark mode.
+These CSS files have zero `body.dark-mode` overrides: `vin-decoder.css`, `quote-compare.css`, `onboarding.css`, `quickref.css`, `email.css`, `paywall.css`. They rely entirely on CSS variables (which auto-switch), but any hardcoded colors in these files won't adapt to dark mode.
 
 ### 3.6 Off-System Color Palettes
 
@@ -562,7 +562,8 @@ Client-side AES-256-GCM encryption for sensitive localStorage data. Per-device k
 | `altech_dark_mode` | Dark mode pref | ❌ | ✅ | App (settings) |
 | `altech_coi_draft` | COI form draft | ❌ | ❌ | COI |
 | `altech_email_drafts` | Email drafts | ✅ | ❌ | EmailComposer |
-| `altech_acct_vault` | Accounting passwords | ❌ | ❌ | AccountingExport |
+| `altech_acct_vault_v2` | Encrypted vault (AES-256-GCM) | ✅ | ✅ | AccountingExport |
+| `altech_acct_vault_meta` | PIN hash + salt | ❌ | ✅ | AccountingExport |
 | `altech_acct_history` | Accounting export history | ❌ | ❌ | AccountingExport |
 | `altech_saved_prospects` | Saved prospect reports | ❌ | ❌ | ProspectInvestigator |
 | `altech_vin_history` | VIN decode history (max 20) | ❌ | ❌ | VinDecoder |
@@ -995,6 +996,17 @@ KEY RULES:
 | 132 | HIGH | js/prospect.js | **`_formatSOSError` rewritten:** Deep link support for AZ (🔗 icon, direct results link, no copy-search box), captcha messaging for WA, `tip` display, and underwriting gap warning box listing missing data points (entity type, formation date, registered agent, officers). State-specific icons and headings. |
 
 **2 files changed:** api/prospect-lookup.js (1,563→1,788 lines), js/prospect.js (1,859→1,917 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Encrypted Accounting Vault — PIN + AES-256-GCM + Multi-Account CRUD (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 151 | CRITICAL | plugins/accounting.html | **Tabbed layout:** New tab bar with "🔐 Account Info" (vault tab) and "🛠 Export Tools" (export tab). Vault tab has 4 screens: PIN Setup, PIN Unlock, PIN Recovery, Unlocked Content. Export tab wraps all original content (receipts, trust report, history, deposit calculator). Old collapsible vault card removed. |
+| 152 | CRITICAL | js/accounting-export.js | **Full rewrite with encrypted vault system.** PIN system: SHA-256 hashed, 3/6-try lockout escalation (60s/5min), Firebase re-auth recovery. AES-256-GCM encryption via CryptoHelper. Multi-account CRUD with name, type (checking/savings/credit/debit/other), color, dynamic custom fields. Toggle field visibility with 10s auto-re-mask, 30s clipboard auto-clear. Auto-lock: 15min inactivity + visibility change. V1 migration: old 7-field JSON auto-converts to single "HawkSoft / Trust Account" on first PIN setup. Storage: `altech_acct_vault_v2` (encrypted), `altech_acct_vault_meta` (PIN hash+salt). Preserved: deposit calculator, export history, report generation. |
+| 153 | HIGH | css/accounting.css | **New CSS for vault UI.** Tab bar, PIN gate screens (setup/lock/recovery), vault toolbar, inline add/edit form with dynamic field rows, account card grid with masked/unmasked field values, copy buttons, empty state. Full `body.dark-mode` overrides for all new elements. Desktop 2-column grid for cards. |
+| 154 | HIGH | js/cloud-sync.js | **Cloud sync for vault (10 doc types).** Added `vaultData` (raw encrypted string) and `vaultMeta` (PIN hash+salt JSON) to all 4 touchpoints: `_getLocalData()`, `pushToCloud()`, `pullFromCloud()`, `deleteCloudData()`. Vault data stored as-is (encrypted string, not parsed). |
+
+**4 files changed:** js/accounting-export.js (392→765 lines), css/accounting.css (225→412 lines), plugins/accounting.html (252→288 lines), js/cloud-sync.js (651→664 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 
