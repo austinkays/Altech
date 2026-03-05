@@ -168,7 +168,7 @@ priorCarrier, priorYears, priorLapse
 | `js/auth.js` | 🟡 | Authentication + `apiFetch()` used by most plugins |
 | `css/main.css` | 🟡 | ~3,366 lines, :root variable source of truth, 100+ dark mode selectors, desktop layout overhaul |
 | `plugins/quoting.html` | 🟡 | 2,019 lines, all form field IDs — renaming breaks persistence |
-| `js/compliance-dashboard.js` | 🟡 | 2,502 lines, 6-layer persistence, complex merge logic, needsStateUpdate flag, snooze/sleep system |
+| `js/compliance-dashboard.js` | 🟡 | 2,513 lines, 6-layer persistence, complex merge logic, needsStateUpdate flag, snooze/sleep system |
 
 ---
 
@@ -238,6 +238,13 @@ npm run deploy:vercel    # Production deploy
 - **Tests:** 23 suites, 1515 tests (unchanged).
 - **12 files changed:** js/compliance-dashboard.js (2,448→2,502), css/compliance.css (1,234→1,275), js/quick-ref.js (293→346), css/quickref.css (233→261), plugins/quickref.html (79→78), js/cloud-sync.js (664→672), js/dashboard-widgets.js (976→886), css/sidebar.css (765→726), js/bug-report.js (260→232), css/main.css (3,486→3,366), js/app-init.js (85→86), index.html (665).
 
+### CGL State-Wipe Bugfix (March 15, 2026)
+
+- **checkForRenewals() no longer overwrites user actions:** All 4 renewal detection blocks were unconditionally clearing `stateUpdated`/`renewedTo` and resetting `needsStateUpdate = true` every fetch. Fix: `markStateUpdated()` records `stateUpdatedForExp` (the specific expiration acknowledged). All 4 blocks skip re-flagging if user already acknowledged that exact expiration. Genuinely new renewals (different exp) still trigger re-flagging.
+- **Cloud sync CGL reload:** `pullFromCloud()` now calls `ComplianceDashboard.loadState()` after writing cglState to localStorage.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **2 files changed:** js/compliance-dashboard.js (2,502→2,513), js/cloud-sync.js (672→676).
+
 ### Previous Session (March 12, 2026)
 
 - **Encrypted Accounting Vault:** PIN + AES-256-GCM + multi-account CRUD. Tabbed layout (Account Info / Export Tools). PIN lockout escalation (3/6 tries), Firebase re-auth recovery. Cloud sync: vaultData + vaultMeta (10 doc types total).
@@ -264,4 +271,4 @@ npm run deploy:vercel    # Production deploy
 - Desktop Layout Overhaul: Widened all 15 plugin containers from 1200px→1400px. Added 2-column desktop grids for Q&A, Email, VIN Decoder, and Accounting. 24 files changed.
 - Verification: `npx jest --no-coverage` → 23/23 suites passed, 1515/1515 tests.
 
-*Last updated: March 13, 2026*
+*Last updated: March 15, 2026*

@@ -458,6 +458,10 @@ const CloudSync = (() => {
                         localTime: _getSyncMeta()['lastSync_cglState'] || 0
                     });
                 }
+                // Reload CGL in-memory state after cloud pull
+                if (cglResult?.data && typeof ComplianceDashboard !== 'undefined' && ComplianceDashboard.loadState) {
+                    ComplianceDashboard.loadState();
+                }
 
                 // Pull client history
                 await _pullDoc('clientHistory', 'altech_client_history', 'clientHistory');

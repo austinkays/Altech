@@ -185,7 +185,14 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 13, 2026)
+### Latest Session Notes (March 15, 2026)
+
+- **CGL State-Wipe Bugfix — checkForRenewals() No Longer Overwrites User Actions:** All 4 renewal detection blocks in `checkForRenewals()` were unconditionally clearing `stateUpdated`, `renewedTo`, and resetting `needsStateUpdate = true` on every policy fetch — even when the user had already clicked "State Updated" or dismissed the renewal chip. Fix: `markStateUpdated()` now records `stateUpdatedForExp` (the expiration date being acknowledged). All 4 clearing blocks check `existingNote?.stateUpdated && existingNote?.stateUpdatedForExp === policy.expirationDate` and skip re-flagging if the user already acknowledged this specific expiration. A genuinely new renewal (different expiration) will still trigger re-flagging.
+- **Cloud Sync CGL Reload:** `pullFromCloud()` was writing cglState to localStorage but never reloading `ComplianceDashboard`'s in-memory state. Added `ComplianceDashboard.loadState()` call after successful pull.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **2 files changed:** js/compliance-dashboard.js (2,502→2,513), js/cloud-sync.js (672→676).
+
+### Previous Session Notes (March 13, 2026)
 
 - **8 UI/UX Improvements — Sidebar Logo, Icons, Snooze, QuickRef:** Replaced blue "AL" text logo with `<img>` tag loading `Resources/altech-logo.png`. Restyled `.sidebar-brand-logo` for image display (object-fit, border-radius). Changed Personal Lines icon from house (duplicate of Dashboard) to pencil/edit ✏️. Added `edit` SVG to `ICONS`, updated `TOOL_ICONS quoting→edit`. Removed errant `left: 0` from `#quotingTool footer` override (was hiding nav behind sidebar). Added `hidden: true` to `qna` entry in `toolConfig[]`. Rewrote `getCurrentPage()` with hash-based detection for bug reports. Changed browser title to "Altech Toolkit".
 - **CGL Snooze/Sleep:** Full snooze system for CGL compliance notifications. `snoozePolicy(pn)` sets midnight-tonight expiry, logs note "🛏️ Snoozed until [date] (snooze #N)" with count tracking. `_isSnoozeActive(pn)` checks expiry, `_expireSnoozes()` called at top of `filterPolicies()` to auto-clear expired. `unsnoozePolicy(pn)` for manual wake. `isHidden()` now checks snoozed state. `clearAll()` includes `snoozedPolicies = {}`. UI: 🛏️ Sleep button next to Dismiss for active rows, amber "🛏️ Until [date]" badge + "Wake" button for snoozed rows in showHidden mode, "🛏️ Sleep Until Tomorrow" in quick-note row. CSS: `.cgl-snooze-btn`, `.cgl-snoozed-badge`, `.cgl-snooze-quick` with full dark mode.
@@ -296,4 +303,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 13, 2026*
+*Last updated: March 15, 2026*

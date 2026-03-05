@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 13, 2026
+> **Last updated:** March 15, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -104,13 +104,13 @@ npm run deploy:vercel   # Production deploy
 │   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
 │   ├── firebase-config.js      # Firebase app init (fetches config from /api/config)
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
-│   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 672 lines)
+│   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
 │   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG (886 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
-│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep (2,502 lines)
+│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep (2,513 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts (420 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
@@ -1033,6 +1033,20 @@ KEY RULES:
 | 165 | HIGH | plugins/quickref.html, js/quick-ref.js, css/quickref.css, js/cloud-sync.js | **QuickRef reorganized + editable numbers:** Reordered to ID Cards → Speller → Quick Dial Numbers → Phonetic Grid. Replaced hardcoded Common Numbers with editable CRUD system — `QR_NUMBERS_KEY`, `loadNumbers()`, `saveNumbers()`, `renderNumbers()`, `toggleNumberForm()`, `saveNumber()`, `editNumber()`, `deleteNumber()`. Defaults: NAIC Lookup, CLUE Report, MVR Check. Cloud synced as `quickRefNumbers` (11th doc type in 4 touchpoints). |
 
 **12 files changed:** js/compliance-dashboard.js (2,448→2,502), css/compliance.css (1,234→1,275), js/quick-ref.js (293→346), css/quickref.css (233→261), plugins/quickref.html (79→78), js/cloud-sync.js (664→672), js/dashboard-widgets.js (976→886), css/sidebar.css (765→726), js/bug-report.js (260→232), css/main.css (3,486→3,366), js/app-init.js (85→86), index.html (665). Tests: 23 suites, 1,515 tests (unchanged).
+
+### CGL State-Wipe Bugfix — checkForRenewals() No Longer Overwrites User Actions (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|------------------|
+| 166 | CRITICAL | js/compliance-dashboard.js | **`checkForRenewals()` state-wipe fix:** All 4 renewal detection blocks were unconditionally clearing `stateUpdated`, `renewedTo`, and resetting `needsStateUpdate = true` on every policy fetch — even when the user had already clicked "State Updated" or dismissed the renewal chip. Root cause: the `alreadyFlagged` guard only prevented duplicate notes, not the state clearing. Fix: each block now checks `existingNote?.stateUpdated && existingNote?.stateUpdatedForExp === policy.expirationDate` and skips re-flagging if the user already acknowledged this specific expiration date. |
+| 167 | HIGH | js/compliance-dashboard.js | **`markStateUpdated()` records `stateUpdatedForExp`:** Now looks up the policy's current expiration date and saves it as `data.stateUpdatedForExp`. This allows `checkForRenewals()` to distinguish between "same renewal already handled" vs "genuinely new renewal with different expiration." |
+| 168 | HIGH | js/cloud-sync.js | **Cloud sync CGL reload:** `pullFromCloud()` was writing cglState to localStorage but never reloading `ComplianceDashboard`'s in-memory state. Added `ComplianceDashboard.loadState()` call after successful pull, matching the pattern used by QuickRef and other synced modules. |
+
+**Root cause cycle (Rosecity Garage Doors):** User clicks "State Updated" → sets `stateUpdated` timestamp + `needsStateUpdate = false` → next fetch cycle → `checkForRenewals()` detects exp date diff > 30 days → `alreadyFlagged` evaluates to `false` (because `needsStateUpdate` is now `false` and `stateUpdated` is set) → unconditionally wipes `stateUpdated = null`, `needsStateUpdate = true` → user sees "⚠️ Renewed" again. Fix breaks this cycle by recording which expiration was acknowledged.
+
+**Root cause cycle (It's a Viewpoint):** User clears `renewedTo` chip → saves → next fetch cycle → `checkForRenewals()` runs the same unconditional clearing block → resets `renewedTo = null` (no-op here) BUT also wipes `stateUpdated` → cloud sync may restore stale state without reloading in-memory data → chip reappears. Fix: same `stateUpdatedForExp` guard prevents the entire clearing block from running.
+
+**2 files changed:** js/compliance-dashboard.js (2,502→2,513 lines), js/cloud-sync.js (672→676 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 

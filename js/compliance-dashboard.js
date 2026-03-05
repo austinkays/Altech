@@ -1570,6 +1570,8 @@ const ComplianceDashboard = {
                     const storedExp = new Date(verified.expirationDate).getTime();
                     const currentExp = new Date(policy.expirationDate).getTime();
                     if (currentExp - storedExp > 30 * 24 * 60 * 60 * 1000) {
+                        // Skip if user already acknowledged this exact expiration
+                        if (existingNote?.stateUpdated && existingNote?.stateUpdatedForExp === policy.expirationDate) return;
                         console.log(`[CGL] Renewal detected: ${pn} — exp moved from ${verified.expirationDate} to ${policy.expirationDate}. Clearing verified marker.`);
                         if (!alreadyFlagged) {
                             this.addQuickNote(pn, `Auto-cleared: policy renewed (exp changed from ${new Date(verified.expirationDate).toLocaleDateString()} to ${new Date(policy.expirationDate).toLocaleDateString()})`);
@@ -1584,6 +1586,8 @@ const ComplianceDashboard = {
                     const verifiedAt = new Date(verified.updatedAt).getTime();
                     const currentExp = new Date(policy.expirationDate).getTime();
                     if (currentExp - verifiedAt > 180 * 24 * 60 * 60 * 1000) {
+                        // Skip if user already acknowledged this exact expiration
+                        if (existingNote?.stateUpdated && existingNote?.stateUpdatedForExp === policy.expirationDate) return;
                         console.log(`[CGL] Likely renewal (legacy marker): ${pn} — verified ${verified.updatedAt}, exp ${policy.expirationDate}. Clearing.`);
                         if (!alreadyFlagged) {
                             this.addQuickNote(pn, `Auto-cleared: likely renewal (verified ${new Date(verified.updatedAt).toLocaleDateString()}, now expires ${new Date(policy.expirationDate).toLocaleDateString()})`);
@@ -1604,6 +1608,8 @@ const ComplianceDashboard = {
                     const storedExp = new Date(dismissed.expirationDate).getTime();
                     const currentExp = new Date(policy.expirationDate).getTime();
                     if (currentExp - storedExp > 30 * 24 * 60 * 60 * 1000) {
+                        // Skip if user already acknowledged this exact expiration
+                        if (existingNote?.stateUpdated && existingNote?.stateUpdatedForExp === policy.expirationDate) return;
                         console.log(`[CGL] Renewal detected (dismissed): ${pn} — exp moved from ${dismissed.expirationDate} to ${policy.expirationDate}. Clearing dismissed marker.`);
                         if (!alreadyFlagged) {
                             this.addQuickNote(pn, `Auto-cleared: policy renewed (exp changed from ${new Date(dismissed.expirationDate).toLocaleDateString()} to ${new Date(policy.expirationDate).toLocaleDateString()})`);
@@ -1618,6 +1624,8 @@ const ComplianceDashboard = {
                     const dismissedAt = new Date(dismissed.dismissedAt).getTime();
                     const currentExp = new Date(policy.expirationDate).getTime();
                     if (currentExp - dismissedAt > 180 * 24 * 60 * 60 * 1000) {
+                        // Skip if user already acknowledged this exact expiration
+                        if (existingNote?.stateUpdated && existingNote?.stateUpdatedForExp === policy.expirationDate) return;
                         console.log(`[CGL] Likely renewal (dismissed legacy): ${pn} — dismissed ${dismissed.dismissedAt}, exp ${policy.expirationDate}. Clearing.`);
                         if (!alreadyFlagged) {
                             this.addQuickNote(pn, `Auto-cleared: policy renewed (exp changed from ${new Date(dismissed.dismissedAt).toLocaleDateString()} to ${new Date(policy.expirationDate).toLocaleDateString()})`);
@@ -2038,6 +2046,9 @@ const ComplianceDashboard = {
         if (!data) data = { log: [], renewedTo: null };
         data.stateUpdated = new Date().toISOString();
         data.needsStateUpdate = false;
+        // Record which expiration was acknowledged so checkForRenewals() won't re-flag the same renewal
+        const policy = this.policies?.find(p => p.policyNumber === policyNumber);
+        if (policy?.expirationDate) data.stateUpdatedForExp = policy.expirationDate;
         data.log.push({ text: 'State website updated', at: new Date().toISOString() });
         this.policyNotes[policyNumber] = data;
         this.saveState();
