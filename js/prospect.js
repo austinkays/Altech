@@ -833,9 +833,27 @@ ${ai.underwritingNotes || 'N/A'}`;
         }
     }
 
+    /** Return a human-friendly label for the user's active AI provider + model */
+    function _aiLabel() {
+        const s = window.AIProvider?.getSettings();
+        const p = s?.provider || 'google';
+        const m = s?.model || '';
+        if (p === 'anthropic' || m.startsWith('anthropic/')) return 'Claude';
+        if (p === 'openai'    || m.startsWith('openai/'))    return 'ChatGPT';
+        if (p === 'google'    || m.startsWith('google/'))    return 'Gemini AI';
+        // OpenRouter with non-standard model prefix
+        const name = window.AIProvider?.PROVIDERS?.[p]?.name;
+        if (name) return name;
+        return 'AI';
+    }
+
     function _renderAIAnalysis(a, grounded) {
         const el = document.getElementById('aiAnalysisContent');
         if (!el) return;
+
+        // Update the subtitle to reflect the active provider
+        const sub = document.getElementById('aiAnalysisSub');
+        if (sub) sub.textContent = `${_aiLabel()}-powered risk intelligence with web research`;
 
         function _formatAIText(text) {
             if (!text) return '';
@@ -924,7 +942,7 @@ ${ai.underwritingNotes || 'N/A'}`;
             </details>` : ''}
 
             <div style="text-align:right;font-size:11px;color:var(--text-secondary);opacity:0.6;margin-top:8px;">
-                Powered by ${(() => { const p = window.AIProvider?.getSettings()?.provider; return p === 'anthropic' ? 'Claude' : p === 'gemini' ? 'Gemini AI' : 'AI'; })()}${grounded ? ' + Google Search' : ''} \u00B7 ${new Date().toLocaleTimeString()}
+                Powered by ${_aiLabel()}${grounded ? ' + Google Search' : ''} \u00B7 ${new Date().toLocaleTimeString()}
             </div>
         `;
     }
@@ -999,7 +1017,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                     ${okCount}/${sources.length} sources
                 </span>
                 <span style="font-size: 11px; padding: 3px 10px; border-radius: 12px; background: rgba(168,85,247,0.1); color: #A855F7; font-weight: 600;">
-                    \uD83E\uDDE0 Gemini AI
+                    \uD83E\uDDE0 ${_aiLabel()}
                 </span>
             </div>
         `);
