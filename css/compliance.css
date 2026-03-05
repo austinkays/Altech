@@ -792,6 +792,17 @@ body.dark-mode .cgl-note-delete-btn:hover { color: var(--danger); }
     font-weight: 600;
     margin-left: 4px;
 }
+.cgl-auto-renewed-badge {
+    display: inline-block;
+    background: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-top: 3px;
+}
 .cgl-state-updated-row > td {
     background: #f0fdf4 !important;
 }
@@ -1161,6 +1172,7 @@ body.dark-mode .cgl-quick-note-btn.renew { background: rgba(37,99,235,0.12); bor
 body.dark-mode .cgl-quick-note-btn.renew:hover { background: rgba(37,99,235,0.2); }
 body.dark-mode .cgl-note-entry { border-bottom-color: var(--border); }
 body.dark-mode .cgl-renewed-badge { background: rgba(52,199,89,0.15); color: #6ee7b7; border-color: rgba(52,199,89,0.3); }
+body.dark-mode .cgl-auto-renewed-badge { background: rgba(59,130,246,0.15); color: #93c5fd; border-color: rgba(59,130,246,0.3); }
 body.dark-mode .cgl-state-updated-row > td { background: rgba(52,199,89,0.08) !important; }
 body.dark-mode .cgl-state-badge { background: rgba(52,199,89,0.15); color: #6ee7b7; border-color: rgba(52,199,89,0.3); }
 body.dark-mode .cgl-error { background: rgba(255,59,48,0.1); border-color: rgba(255,59,48,0.25); }

@@ -1008,6 +1008,7 @@ const ComplianceDashboard = {
         if (loading) loading.style.display = 'none';
         if (tableContainer) tableContainer.style.display = 'block';
         if (error) error.style.display = 'none';
+        this.deduplicateRenewals();
         this.checkForRenewals();
         this.renderTypeToggles();
         this.renderPolicies();
@@ -1114,7 +1115,8 @@ const ComplianceDashboard = {
             // Cache the response to disk + localStorage
             this.saveToCache(data);
 
-            // Check for renewed policies and auto-clear stale markers
+            // Deduplicate renewed policies, then auto-clear stale markers
+            this.deduplicateRenewals();
             this.checkForRenewals();
 
             this.renderTypeToggles();
@@ -1410,6 +1412,7 @@ const ComplianceDashboard = {
             if (loading) loading.style.display = 'none';
             error.style.display = 'none';
             tableContainer.style.display = 'block';
+            this.deduplicateRenewals();
             this.checkForRenewals();
             this.renderTypeToggles();
             this.renderPolicies();
@@ -1470,6 +1473,80 @@ const ComplianceDashboard = {
     },
 
     // --- Policy state helpers ---
+
+    // Deduplicate renewed policies — same policyNumber keeps latest expiration,
+    // same client+type with expired+active auto-dismisses the expired entry
+    deduplicateRenewals() {
+        if (!this.policies || this.policies.length === 0) return;
+
+        // Phase 1: Same policyNumber — keep only the entry with the latest expiration
+        const byPolicyNum = {};
+        this.policies.forEach(p => {
+            const pn = p.policyNumber;
+            if (!byPolicyNum[pn]) byPolicyNum[pn] = [];
+            byPolicyNum[pn].push(p);
+        });
+
+        const deduped = [];
+        let dedupCount = 0;
+
+        for (const pn of Object.keys(byPolicyNum)) {
+            const group = byPolicyNum[pn];
+            if (group.length === 1) {
+                deduped.push(group[0]);
+                continue;
+            }
+            group.sort((a, b) => new Date(b.expirationDate) - new Date(a.expirationDate));
+            const winner = group[0];
+            const oldest = group[group.length - 1];
+            winner._renewedFrom = oldest.expirationDate;
+            deduped.push(winner);
+            dedupCount += group.length - 1;
+            console.log(`[CGL] Dedup: ${pn} — kept exp ${winner.expirationDate}, removed ${group.length - 1} older term(s)`);
+        }
+
+        // Phase 2: Same client + same policy type where one is expired and another is active —
+        // auto-dismiss the expired entry as superseded (catches cross-number renewals)
+        const byClientType = {};
+        deduped.forEach(p => {
+            const key = `${p.clientNumber || ''}_${p.policyType || 'cgl'}`;
+            if (!byClientType[key]) byClientType[key] = [];
+            byClientType[key].push(p);
+        });
+
+        let supersededCount = 0;
+        for (const key of Object.keys(byClientType)) {
+            const group = byClientType[key];
+            if (group.length <= 1) continue;
+
+            const active = group.filter(p => p.daysUntilExpiration >= 0);
+            const expired = group.filter(p => p.daysUntilExpiration < 0);
+
+            if (active.length > 0 && expired.length > 0) {
+                const newestActive = active.sort((a, b) => new Date(b.expirationDate) - new Date(a.expirationDate))[0];
+                expired.forEach(expPolicy => {
+                    if (!this.dismissedPolicies[expPolicy.policyNumber]) {
+                        this.dismissedPolicies[expPolicy.policyNumber] = {
+                            dismissedAt: new Date().toISOString(),
+                            expirationDate: expPolicy.expirationDate,
+                            reason: 'superseded'
+                        };
+                        this.addQuickNote(expPolicy.policyNumber, `Auto-dismissed: superseded by active policy ${newestActive.policyNumber} (exp ${new Date(newestActive.expirationDate).toLocaleDateString()})`);
+                        supersededCount++;
+                        console.log(`[CGL] Superseded: ${expPolicy.policyNumber} auto-dismissed — active ${newestActive.policyNumber} for same client+type`);
+                    }
+                    newestActive._renewalDetected = true;
+                    newestActive._supersedes = expPolicy.policyNumber;
+                });
+            }
+        }
+
+        this.policies = deduped;
+        if (dedupCount > 0 || supersededCount > 0) {
+            if (supersededCount > 0) this.saveState();
+            console.log(`[CGL] Dedup complete: ${dedupCount} duplicate term(s) removed, ${supersededCount} expired policy(ies) auto-dismissed`);
+        }
+    },
 
     // Auto-clear verified/dismissed markers when a policy renews (expiration date changes)
     checkForRenewals() {
@@ -2236,6 +2313,8 @@ const ComplianceDashboard = {
                         <div style="font-weight: 600;">Exp: ${expDate}</div>
                         ${incDate ? `<div style="font-size: 12px; color: var(--text-secondary);">Inception: ${incDate}</div>` : ''}
                         <div style="font-size: 12px; color: var(--text-secondary);">Effective: ${effDate}</div>
+                        ${policy._renewedFrom ? `<div class="cgl-auto-renewed-badge" title="Renewed from exp ${new Date(policy._renewedFrom).toLocaleDateString()}">🔄 Renewed</div>` : ''}
+                        ${policy._renewalDetected ? `<div class="cgl-auto-renewed-badge" title="Supersedes expired policy ${policy._supersedes || ''}">🔄 Renewal confirmed</div>` : ''}
                     </td>
                     <td>
                         <div style="display:flex;align-items:center;gap:4px;">

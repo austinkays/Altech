@@ -16,8 +16,8 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~665 lines) |
-| **CSS** | 21 files in `css/` (~15,863 lines total) |
-| **JS** | 35 modules in `js/` (~32,325 lines total) |
+| **CSS** | 21 files in `css/` (~15,875 lines total) |
+| **JS** | 35 modules in `js/` (~32,395 lines total) |
 | **Plugins** | 15 HTML templates in `plugins/` (~5,150 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
@@ -70,7 +70,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (765 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (1,202 lines)
-│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar (1,211 lines)
+│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge (1,223 lines)
 │   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
 │   ├── intake-assist.css       # AI intake professional UI — enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
@@ -110,7 +110,7 @@ npm run deploy:vercel   # Production deploy
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
-│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF (2,356 lines)
+│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup (2,426 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts (420 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
@@ -957,6 +957,17 @@ KEY RULES:
 | 141 | MEDIUM | js/app-core.js | **Demo client data:** Added `coEducation: 'Bachelors'`, `coOccupation: 'Software Engineer'`, `coIndustry: 'Information Technology'` to `loadDemoClient()`. |
 
 **2 files changed:** plugins/quoting.html (2,019→2,091 lines), js/app-core.js (2,475→2,495 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Renewal Dedup — CGL Compliance Dashboard (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 142 | CRITICAL | js/compliance-dashboard.js | **`deduplicateRenewals()` — Phase 1: Same-policyNumber dedup.** Groups `this.policies` by `policyNumber`. When multiple entries exist for the same policy number (old term + renewed term), keeps only the entry with the latest `expirationDate`. Marks survivor with `_renewedFrom` for badge display. |
+| 143 | HIGH | js/compliance-dashboard.js | **Phase 2: Cross-number renewal detection.** For same `clientNumber` + same `policyType`, if both an expired policy (daysUntilExpiration < 0) and an active policy (daysUntilExpiration >= 0) exist, auto-dismisses the expired policy with "Superseded by [activePolicyNumber]" note. Marks active policy with `_renewalDetected` and `_supersedes`. |
+| 144 | HIGH | js/compliance-dashboard.js | **Integration at 3 policy assignment points.** `deduplicateRenewals()` called before `checkForRenewals()` in `_showCachedData()`, fresh fetch success handler, and safe-load/fallback handler. |
+| 145 | MEDIUM | js/compliance-dashboard.js, css/compliance.css | **"🔄 Renewed" / "🔄 Renewal confirmed" badge** in `renderPolicies()` dates column. Blue pill badge (`.cgl-auto-renewed-badge`) with tooltip showing old expiration or superseded policy number. Full dark mode support. |
+
+**2 files changed:** js/compliance-dashboard.js (2,356→2,426 lines), css/compliance.css (1,211→1,223 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ### SOS Lookup Overhaul — Oregon Socrata + WA DOR Fallback + AZ Deep Link (March 2026)
 
