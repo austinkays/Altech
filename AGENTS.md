@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 8, 2026
+> **Last updated:** March 9, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -116,7 +116,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
 │   ├── intake-assist.js         # AI conversational intake, maps, progress ring (3,097 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
-│   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,859 lines)
+│   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,917 lines)
 │   ├── quick-ref.js             # NATO phonetic + agent ID cards (293 lines)
 │   ├── quote-compare.js         # Quote comparison + AI recommendation (889 lines)
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (914 lines)
@@ -155,7 +155,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── policy-scan.js          # OCR document extraction via Gemini (260 lines)
 │   ├── vision-processor.js     # Image/PDF analysis, DL scanning, aerial analysis (880 lines)
 │   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations (1,247 lines)
-│   ├── prospect-lookup.js      # Multi-source business investigation (1,563 lines)
+│   ├── prospect-lookup.js      # Multi-source business investigation (1,788 lines)
 │   ├── compliance.js           # HawkSoft API CGL policy fetcher + Redis cache + allClientsList + hawksoftPolicyId (478 lines)
 │   ├── historical-analyzer.js  # AI property value/insurance trend analysis
 │   ├── _rag-interpreter.js     # County assessor data → insurance fields (helper, routed via property-intelligence)
@@ -934,6 +934,21 @@ KEY RULES:
 **Root cause:** `autoSaveClient()` (the proper upsert-by-name+address function) existed and worked correctly but was only called once — in `updateUI()` gated by `curId === 'step-6'`. Users who entered data but never reached the export page had zero entries in `altech_client_history`. Evidence: completed PDF export for "Melissa Moore" in `altech_export_history` with zero corresponding `altech_client_history` entry.
 
 **5 files changed:** js/app-core.js (2,219→2,475 lines), js/app-boot.js (287→295 lines), js/app-quotes.js (760→762 lines), plugins/quoting.html (2,016→2,019 lines), css/main.css (3,445→3,486 lines).
+
+### SOS Lookup Overhaul — Oregon Socrata + WA DOR Fallback + AZ Deep Link (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|-----------------|
+| 125 | CRITICAL | api/prospect-lookup.js | **Oregon SOS rewritten:** Replaced dead HTML scraper with real Oregon Socrata API (`data.oregon.gov/resource/tckn-sxa6.json`). SoQL queries, groups records by `registry_number`, extracts agents (REGISTERED AGENT) and principals (AUTHORIZED REPRESENTATIVE), handles multi-entity results. Returns `dataSource: 'Oregon Socrata API (data.oregon.gov)'`. |
+| 126 | CRITICAL | api/prospect-lookup.js | **WA SOS DOR fallback:** All 3 WA SOS error paths (Turnstile-blocked, JSON parse error, fetch error) now call `tryWADORLookup(businessName, ubi)` before falling back to manual search. WA DOR API at `secure.dor.wa.gov/gteunauth/_/GetBusinesses` returns UBI, trade name, entity type, status. Also fetches L&I principals if UBI found. Returns `partialData: true`, `dataSource: 'WA Department of Revenue'`. |
+| 127 | CRITICAL | api/prospect-lookup.js | **Arizona SOS deep link:** Replaced dead scraper with immediate deep link to eCorp search results (`ecorp.azcc.gov/BusinessSearch/BusinessSearchResults?searchTerm=ENCODED_NAME`). Returns `deepLinked: true`, `tip` explaining what to look for. |
+| 128 | HIGH | api/prospect-lookup.js | **SOS wrapper metadata forwarding:** Updated SOS handler wrapper to conditionally forward `deepLinked` and `tip` fields from scraper results. Added `STATE_SOS_ENDPOINTS.manualUrl` for all 3 states. |
+| 129 | HIGH | api/prospect-lookup.js | **AI prompt SOS gap flagging:** `buildDataContext()` now handles `sos.manualSearch` (unavailable) and `sos.entity.partialData` (partial data from alternate source) with explicit underwriting gap warnings. AI user prompt includes conditional `⚠️ SECRETARY OF STATE DATA GAP` instruction when SOS entity data is missing. |
+| 130 | HIGH | js/prospect.js | **Status pill:** New states for `partialData` (blue ℹ️ "Partial data") and `deepLinked` (orange "Manual lookup ↗") alongside existing active/inactive/manual/error pills. |
+| 131 | HIGH | js/prospect.js | **`_formatSOSData` partial data banner:** Blue info box showing data source, explaining partial data limitations, and source badge at bottom. Added `detailsUrl` clickable link support (e.g., Oregon's `business_details` URL). |
+| 132 | HIGH | js/prospect.js | **`_formatSOSError` rewritten:** Deep link support for AZ (🔗 icon, direct results link, no copy-search box), captcha messaging for WA, `tip` display, and underwriting gap warning box listing missing data points (entity type, formation date, registered agent, officers). State-specific icons and headings. |
+
+**2 files changed:** api/prospect-lookup.js (1,563→1,788 lines), js/prospect.js (1,859→1,917 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 

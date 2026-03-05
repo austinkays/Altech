@@ -426,17 +426,20 @@ const STATE_SOS_ENDPOINTS = {
   'WA': {
     name: 'Washington Secretary of State',
     searchUrl: 'https://ccfs.sos.wa.gov/api/BusinessSearch',
-    detailsUrl: 'https://ccfs.sos.wa.gov/api/BusinessDetails'
+    detailsUrl: 'https://ccfs.sos.wa.gov/api/BusinessDetails',
+    manualUrl: 'https://ccfs.sos.wa.gov/#/BusinessSearch'
   },
   'OR': {
     name: 'Oregon Secretary of State',
-    searchUrl: 'https://sos.oregon.gov/api/business/search',
-    detailsUrl: 'https://sos.oregon.gov/api/business/details'
+    searchUrl: 'https://data.oregon.gov/resource/tckn-sxa6.json',
+    detailsUrl: 'https://sos.oregon.gov/business/Pages/find.aspx',
+    manualUrl: 'https://sos.oregon.gov/business/Pages/find.aspx'
   },
   'AZ': {
     name: 'Arizona Corporation Commission',
-    searchUrl: 'https://ecorp.azcc.gov/api/BusinessSearch',
-    detailsUrl: 'https://ecorp.azcc.gov/api/BusinessDetails'
+    searchUrl: 'https://ecorp.azcc.gov/BusinessSearch',
+    detailsUrl: 'https://ecorp.azcc.gov/BusinessSearch',
+    manualUrl: 'https://ecorp.azcc.gov/BusinessSearch/BusinessSearchResults'
   }
 };
 
@@ -511,9 +514,9 @@ async function searchSOSEntity(businessName, ubi, state) {
       };
     }
 
-    // If the scraper returned a manual search fallback (e.g. Turnstile-blocked)
+    // If the scraper returned a manual search fallback (e.g. Turnstile-blocked or no API)
     if (entityData.manualSearch) {
-      return {
+      const result = {
         success: false,
         available: true,
         source: endpoint.name,
@@ -523,6 +526,10 @@ async function searchSOSEntity(businessName, ubi, state) {
         searchTerm: entityData.searchTerm,
         error: entityData.message
       };
+      // Forward deep link and tip metadata (AZ eCorp, etc.)
+      if (entityData.deepLinked) result.deepLinked = true;
+      if (entityData.tip) result.tip = entityData.tip;
+      return result;
     }
 
     return {
@@ -595,10 +602,11 @@ async function scrapeWASOS(businessName, ubi) {
 
     console.log('[WA SOS] API response status:', response.status);
 
-    // If blocked by Turnstile or endpoint error, return manual search link
+    // If blocked by Turnstile or endpoint error, try WA DOR as partial fallback
     if (!response.ok) {
-      console.warn(`[WA SOS] API returned ${response.status} — likely Turnstile-blocked`);
-      const searchTerm = encodeURIComponent(ubi || businessName);
+      console.warn(`[WA SOS] API returned ${response.status} — likely Turnstile-blocked, trying WA DOR`);
+      const dorResult = await tryWADORLookup(businessName, ubi);
+      if (dorResult) return dorResult;
       return {
         manualSearch: true,
         searchUrl: `https://ccfs.sos.wa.gov/#/BusinessSearch`,
@@ -615,6 +623,8 @@ async function scrapeWASOS(businessName, ubi) {
       data = JSON.parse(responseText);
     } catch (e) {
       console.error('[WA SOS] Failed to parse JSON response:', e.message);
+      const dorResult = await tryWADORLookup(businessName, ubi);
+      if (dorResult) return dorResult;
       return {
         manualSearch: true,
         searchUrl: `https://ccfs.sos.wa.gov/#/BusinessSearch`,
@@ -693,6 +703,8 @@ async function scrapeWASOS(businessName, ubi) {
 
   } catch (error) {
     console.error('[WA SOS] API error:', error);
+    const dorResult = await tryWADORLookup(businessName, ubi);
+    if (dorResult) return dorResult;
     return {
       manualSearch: true,
       searchUrl: `https://ccfs.sos.wa.gov/#/BusinessSearch`,
@@ -702,60 +714,261 @@ async function scrapeWASOS(businessName, ubi) {
   }
 }
 
-// Helper function to fetch L&I contractor principals from Socrata
-
-async function scrapeORSOS(businessName, ubi) {
+/**
+ * WA Department of Revenue business lookup — partial data fallback
+ * when the CCFS API is blocked by Turnstile/CAPTCHA.
+ */
+async function tryWADORLookup(businessName, ubi) {
   try {
-    const searchUrl = 'https://sos.oregon.gov/business/pages/find.aspx';
+    if (!businessName && !ubi) return null;
+    const searchTerm = ubi || businessName;
+    console.log('[WA DOR] Attempting DOR lookup for:', searchTerm);
 
-    console.log('[OR SOS] Searching for:', businessName || ubi);
+    const dorUrl = `https://secure.dor.wa.gov/gteunauth/_/GetBusinesses?searchBy=${ubi ? 'UBI' : 'BN'}&searchValue=${encodeURIComponent(searchTerm)}&pageNumber=1&sortOrder=ASC&sortColumn=0`;
 
-    const response = await fetch(searchUrl, {
+    const response = await fetch(dorUrl, {
       method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html'
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     });
 
     if (!response.ok) {
-      throw new Error(`OR SOS returned ${response.status}`);
+      console.warn(`[WA DOR] API returned ${response.status}`);
+      return null;
     }
 
-    const html = await response.text();
-    return parseORSOSHTML(html, businessName, ubi);
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.warn('[WA DOR] Non-JSON response');
+      return null;
+    }
+
+    // DOR may return { Businesses: [...] } or an array directly
+    const businesses = Array.isArray(data) ? data : (data.Businesses || data.businesses || []);
+    if (!businesses.length) {
+      console.log('[WA DOR] No results');
+      return null;
+    }
+
+    console.log(`[WA DOR] Found ${businesses.length} result(s)`);
+
+    // Multiple results — return selection list
+    if (!ubi && businesses.length > 1) {
+      return {
+        multipleResults: true,
+        count: businesses.length,
+        results: businesses.slice(0, 20).map(b => ({
+          ubi: b.UBI || b.ubi || '',
+          businessName: b.BusinessName || b.TradeName || b.businessName || '',
+          entityType: b.EntityType || b.BusinessType || 'Unknown',
+          status: b.Status || b.AccountStatus || 'Unknown',
+          city: b.City || b.LocationCity || '',
+          formationDate: b.OpenDate || b.FirstRegistration || ''
+        })),
+        dataSource: 'WA Department of Revenue'
+      };
+    }
+
+    const b = businesses[0];
+    // Fetch L&I principals if we have a UBI
+    const entityUbi = b.UBI || b.ubi || ubi || '';
+    let principals = [];
+    if (entityUbi) {
+      principals = await fetchLIPrincipals(entityUbi);
+    }
+
+    return {
+      ubi: entityUbi,
+      businessName: b.BusinessName || b.TradeName || b.businessName || businessName,
+      entityType: b.EntityType || b.BusinessType || 'Unknown',
+      status: b.Status || b.AccountStatus || 'Unknown',
+      formationDate: b.OpenDate || b.FirstRegistration || '',
+      expirationDate: '',
+      jurisdiction: 'WA',
+      principalOffice: {
+        street: b.Address || b.LocationAddress || '',
+        city: b.City || b.LocationCity || '',
+        state: 'WA',
+        zip: b.Zip || b.LocationZip || ''
+      },
+      registeredAgent: {},
+      officers: principals.map(p => ({
+        name: p.name,
+        title: p.title || 'Principal',
+        appointmentDate: p.startDate || ''
+      })),
+      governors: principals,
+      businessActivity: b.NAICS || b.NAICSDescription || '',
+      dataSource: 'WA Department of Revenue',
+      partialData: true
+    };
 
   } catch (error) {
-    console.error('[OR SOS] Scrape error:', error);
+    console.error('[WA DOR] Lookup error:', error);
     return null;
   }
 }
 
-async function scrapeAZSOS(businessName, ubi) {
+async function scrapeORSOS(businessName, ubi) {
   try {
-    const searchUrl = 'https://ecorp.azcc.gov/BusinessSearch';
+    console.log('[OR SOS] Querying Oregon Socrata API for:', businessName || ubi);
 
-    console.log('[AZ SOS] Searching for:', businessName || ubi);
+    // Oregon has a public Socrata API — dataset tckn-sxa6 (Business Registry)
+    const baseUrl = 'https://data.oregon.gov/resource/tckn-sxa6.json';
+    const safeName = (businessName || '').replace(/'/g, "''");
+    const params = new URLSearchParams();
+    if (ubi) {
+      params.append('$where', `registry_number='${ubi}'`);
+    } else {
+      params.append('$where', `upper(business_name) like upper('%${safeName}%')`);
+    }
+    params.append('$limit', '50');
 
-    const response = await fetch(searchUrl, {
+    const apiUrl = `${baseUrl}?${params.toString()}`;
+    console.log('[OR SOS] API URL:', apiUrl);
+
+    const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html'
+        'Accept': 'application/json',
+        'User-Agent': 'Altech-Insurance-Platform/1.0',
+        'X-App-Token': process.env.SOCRATA_APP_TOKEN || ''
       }
     });
 
     if (!response.ok) {
-      throw new Error(`AZ SOS returned ${response.status}`);
+      console.warn(`[OR SOS] API returned ${response.status}`);
+      return {
+        manualSearch: true,
+        searchUrl: 'https://sos.oregon.gov/business/Pages/find.aspx',
+        searchTerm: businessName || ubi,
+        message: 'Oregon SOS API temporarily unavailable.'
+      };
     }
 
-    const html = await response.text();
-    return parseAZSOSHTML(html, businessName, ubi);
+    const records = await response.json();
+    console.log(`[OR SOS] Found ${records.length} record(s)`);
+
+    if (!records || records.length === 0) {
+      return null;
+    }
+
+    // Group records by registry_number to consolidate entity + agent + principals
+    const grouped = {};
+    for (const rec of records) {
+      const regNum = rec.registry_number || 'unknown';
+      if (!grouped[regNum]) grouped[regNum] = { entity: rec, agents: [], principals: [] };
+      const assocType = (rec.associated_name_type || '').toUpperCase();
+      if (assocType.includes('REGISTERED AGENT')) {
+        grouped[regNum].agents.push(rec);
+      } else if (assocType.includes('AUTHORIZED REPRESENTATIVE') || assocType.includes('PRINCIPAL')) {
+        grouped[regNum].principals.push(rec);
+      } else if (!grouped[regNum].entitySet) {
+        grouped[regNum].entity = rec;
+        grouped[regNum].entitySet = true;
+      }
+    }
+
+    const regNums = Object.keys(grouped);
+
+    // If searching by name (not registry number) and multiple distinct entities found
+    if (!ubi && regNums.length > 1) {
+      console.log('[OR SOS] Multiple entities found — returning selection list');
+      const uniqueEntities = regNums.map(rn => {
+        const g = grouped[rn];
+        return {
+          ubi: rn,
+          businessName: g.entity.business_name || businessName,
+          entityType: g.entity.entity_type || 'Unknown',
+          status: g.entity.entity_status || 'Unknown',
+          city: g.entity.city || '',
+          formationDate: g.entity.registry_date || ''
+        };
+      });
+      return {
+        multipleResults: true,
+        count: uniqueEntities.length,
+        results: uniqueEntities.slice(0, 20)
+      };
+    }
+
+    // Single entity or UBI search — return full details
+    const regNum = regNums[0];
+    const g = grouped[regNum];
+    const e = g.entity;
+    const agent = g.agents[0];
+    const principals = g.principals;
+
+    return {
+      ubi: regNum,
+      businessName: e.business_name || businessName,
+      entityType: e.entity_type || 'Unknown',
+      status: e.entity_status || 'Unknown',
+      formationDate: e.registry_date || '',
+      expirationDate: '',
+      jurisdiction: e.jurisdiction || 'OR',
+      principalOffice: {
+        street: e.address || '',
+        city: e.city || '',
+        state: e.state || 'OR',
+        zip: e.zip_code || e.zip || ''
+      },
+      registeredAgent: agent ? {
+        name: [agent.first_name, agent.last_name].filter(Boolean).join(' ') || agent.entity_of_record_name || '',
+        address: {
+          street: agent.address || '',
+          city: agent.city || '',
+          state: agent.state || 'OR',
+          zip: agent.zip_code || agent.zip || ''
+        }
+      } : {},
+      officers: principals.map(p => ({
+        name: [p.first_name, p.last_name].filter(Boolean).join(' ') || p.entity_of_record_name || '',
+        title: p.associated_name_type || 'Principal',
+        appointmentDate: ''
+      })),
+      governors: principals.map(p => ({
+        name: [p.first_name, p.last_name].filter(Boolean).join(' ') || p.entity_of_record_name || '',
+        title: p.associated_name_type || 'Principal',
+        startDate: ''
+      })),
+      businessActivity: '',
+      detailsUrl: e.business_details || `https://sos.oregon.gov/business/Pages/find.aspx`,
+      dataSource: 'Oregon Socrata API (data.oregon.gov)'
+    };
 
   } catch (error) {
-    console.error('[AZ SOS] Scrape error:', error);
-    return null;
+    console.error('[OR SOS] API error:', error);
+    return {
+      manualSearch: true,
+      searchUrl: 'https://sos.oregon.gov/business/Pages/find.aspx',
+      searchTerm: businessName || ubi,
+      message: 'Oregon SOS lookup failed. Use the link below to search manually.'
+    };
   }
+}
+
+async function scrapeAZSOS(businessName, ubi) {
+  // AZ Corporation Commission (eCorp) is CAPTCHA-protected — no public API.
+  // Return manual search with pre-filled deep link.
+  const searchTerm = (ubi || businessName || '').trim();
+  const encodedTerm = encodeURIComponent(searchTerm);
+  console.log('[AZ SOS] No public API — returning manual search deep link for:', searchTerm);
+
+  return {
+    manualSearch: true,
+    searchUrl: `https://ecorp.azcc.gov/BusinessSearch/BusinessSearchResults?searchTerm=${encodedTerm}`,
+    searchTerm: searchTerm,
+    state: 'AZ',
+    message: 'Arizona Corporation Commission requires browser access. The link below will open search results directly.',
+    tip: 'Look for: Entity Status (Active/Inactive), Entity Type (LLC/Corp), Date of Formation, Statutory Agent name, and Principal Address.',
+    deepLinked: true
+  };
 }
 
 function parseWASOSHTML(html, businessName, ubi) {
@@ -1378,6 +1591,7 @@ async function handleAIAnalysis(req, res) {
 The following data was gathered from public records APIs and Google Places. Some sources may have failed (captchas, rate limits, or the business simply isn't in that database). **When data sources failed or returned nothing, use your knowledge to fill gaps.** Do not just report "no data available" — actively analyze this business from every angle.
 
 ${sourcesAvailable === 0 ? '⚠️ ALL automated data sources failed. You MUST use your own knowledge to research this business independently.\n' : `${sourcesAvailable}/5 data sources returned results.\n`}
+${(!sos || !sos.entity) ? '⚠️ SECRETARY OF STATE DATA GAP: SOS entity data was unavailable (anti-bot protection or lookup failure). Entity type, formation date, registered agent, and officers/governors are UNKNOWN. You MUST flag this in riskAssessment, redFlags, and underwritingNotes. Use your knowledge to infer entity structure where possible, but clearly mark inferences as unverified.\n' : ''}
 
 ${dataContext}
 
@@ -1484,6 +1698,10 @@ function buildDataContext(businessName, state, li, sos, osha, sam, places) {
   if (sos && !sos.error && sos.entity) {
     const e = sos.entity;
     sections.push(`\n### Secretary of State — Business Entity`);
+    if (e.partialData) {
+      sections.push(`- ⚠️ PARTIAL DATA (source: ${e.dataSource || 'alternate lookup'}) — full SOS record could not be retrieved`);
+      sections.push(`- Missing: registered agent, officers/governors, formation jurisdiction may be unavailable`);
+    }
     sections.push(`- UBI: ${e.ubi || 'N/A'}`);
     sections.push(`- Entity Type: ${e.entityType || 'N/A'}`);
     sections.push(`- Status: ${e.status || 'Unknown'}`);
@@ -1494,8 +1712,15 @@ function buildDataContext(businessName, state, li, sos, osha, sam, places) {
     if (e.governors && e.governors.length > 0) {
       sections.push(`- Governors/Officers: ${e.governors.map(g => `${g.name} (${g.title || 'Governor'})`).join(', ')}`);
     }
+  } else if (sos && sos.manualSearch) {
+    sections.push(`\n### Secretary of State — Business Entity`);
+    sections.push(`- ⚠️ DATA UNAVAILABLE: SOS lookup required manual browser verification (anti-bot protection)`);
+    sections.push(`- Entity type, formation date, registered agent, and officers are UNKNOWN`);
+    sections.push(`- This is a significant underwriting data gap — flag for manual verification`);
   } else if (sos && sos.error) {
     sections.push(`\n### Business Entity: ${sos.error}`);
+  } else {
+    sections.push(`\n### Secretary of State: No data available — flag as underwriting gap`);
   }
 
   // OSHA

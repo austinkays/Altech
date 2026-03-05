@@ -1027,8 +1027,8 @@ ${ai.underwritingNotes || 'N/A'}`;
             liOk && c.status?.toLowerCase().includes('active') ? 'green' : (!liOk ? 'gray' : 'red'));
 
         _setStatusPill('sosStatusPill',
-            sosOk && e.status ? (e.entityType ? e.entityType + ' \u00B7 ' : '') + e.status : (data.sos?.manualSearch ? 'Manual search' : 'Not found'),
-            sosOk && e.status?.toLowerCase().includes('active') ? 'green' : (data.sos?.manualSearch ? 'orange' : (!sosOk ? 'gray' : 'red')));
+            sosOk && e.status ? (e.dataSource ? '\u2139\uFE0F ' : '') + (e.entityType ? e.entityType + ' \u00B7 ' : '') + e.status : (data.sos?.deepLinked ? 'Manual lookup \u2197' : data.sos?.manualSearch ? 'Manual search' : 'Not found'),
+            sosOk && e.status?.toLowerCase().includes('active') ? (e.partialData ? 'blue' : 'green') : (data.sos?.deepLinked ? 'orange' : data.sos?.manualSearch ? 'orange' : (!sosOk ? 'gray' : 'red')));
 
         _setStatusPill('oshaStatusPill',
             oshaOk && data.osha.inspections?.length > 0 ? data.osha.inspections.length + ' inspection' + (data.osha.inspections.length > 1 ? 's' : '') : '\u2713 No violations',
@@ -1129,8 +1129,16 @@ ${ai.underwritingNotes || 'N/A'}`;
     function _formatSOSData(sosData) {
         const e = sosData.entity || sosData;
         const governors = e.governors || e.officers || [];
+        const partialBanner = e.partialData ? `
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;margin-bottom:14px;background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.15);border-radius:10px;">
+                <span style="font-size:16px;">\u2139\uFE0F</span>
+                <span style="font-size:12px;color:var(--apple-blue);font-weight:500;">Partial data from ${_esc(e.dataSource || 'alternate source')} \u2014 SOS direct lookup was unavailable. Entity type, registered agent, and formation details may be incomplete.</span>
+            </div>` : '';
+        const sourceBadge = e.dataSource && !e.partialData ? `
+            <div style="margin-top:12px;font-size:11px;color:var(--text-tertiary);">Source: ${_esc(e.dataSource)}</div>` : '';
 
         return `
+            ${partialBanner}
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
                 <div><strong>UBI/Entity #:</strong> ${_esc(e.ubi || 'N/A')}</div>
                 <div><strong>Entity Type:</strong> ${_esc(e.entityType || 'N/A')}</div>
@@ -1147,7 +1155,9 @@ ${ai.underwritingNotes || 'N/A'}`;
                     <ul style="margin: 8px 0 0 20px;">
                         ${governors.map(g => '<li><strong>' + _esc(g.name || 'Unknown') + '</strong> \u2014 ' + _esc(g.title || 'Governor') + (g.appointmentDate ? ' (' + _esc(g.appointmentDate) + ')' : '') + '</li>').join('')}
                     </ul>
-                </div>` : ''}`;
+                </div>` : ''}
+            ${e.detailsUrl ? `<a href="${_esc(e.detailsUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--apple-blue);text-decoration:none;font-weight:500;">View full record \u2197</a>` : ''}
+            ${sourceBadge}`;
     }
 
     function _formatOSHAData(oshaData) {
@@ -1250,35 +1260,55 @@ ${ai.underwritingNotes || 'N/A'}`;
 
     function _formatSOSError(data) {
         const sosLinks = {
-            'WA': { url: 'https://ccfs.sos.wa.gov/#/BusinessSearch', label: 'WA Secretary of State', tip: 'Complete the captcha, then search for the business name.' },
+            'WA': { url: 'https://ccfs.sos.wa.gov/#/BusinessSearch', label: 'WA Secretary of State', tip: 'Complete the captcha, then search for the business name. Results load instantly after verification.' },
             'OR': { url: 'https://sos.oregon.gov/business/pages/find.aspx', label: 'OR Secretary of State', tip: 'Enter the business name or registry number.' },
             'AZ': { url: 'https://ecorp.azcc.gov/BusinessSearch', label: 'AZ Corporation Commission', tip: 'Search by entity name to find filing details.' }
         };
+        const isDeepLinked = data.sos?.deepLinked;
+        const searchUrl = data.sos?.searchUrl;
         const sosLink = sosLinks[data.state];
-        const searchTerm = data.businessName || '';
+        const searchTerm = data.sos?.searchTerm || data.businessName || '';
         const manualSearch = data.sos?.manualSearch;
+        const tip = data.sos?.tip || sosLink?.tip || '';
 
-        if ((manualSearch || data.sos?.error) && sosLink) {
+        if ((manualSearch || data.sos?.error) && (searchUrl || sosLink)) {
+            const linkUrl = searchUrl || sosLink.url;
+            const linkLabel = isDeepLinked ? 'View ' + _esc(sosLink?.label || data.state + ' SOS') + ' Results' : 'Open ' + _esc(sosLink?.label || data.state + ' SOS');
+
+            // Icon and header vary by type
+            const icon = isDeepLinked ? '\uD83D\uDD17' : '\uD83D\uDD10';
+            const heading = isDeepLinked
+                ? 'Manual lookup required'
+                : 'This site requires verification';
+            const description = isDeepLinked
+                ? 'The ' + _esc(data.state) + ' Corporation Commission requires browser access. The link below opens search results for this business directly.'
+                : 'The ' + _esc(data.state) + ' Secretary of State uses a captcha. Click the checkbox on their page and results load instantly.';
+
             return `
                 <div style="padding: 16px 20px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 12px;">
                     <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px;">
-                        <div style="font-size: 28px; flex-shrink: 0;">\uD83D\uDD10</div>
+                        <div style="font-size: 28px; flex-shrink: 0;">${icon}</div>
                         <div>
-                            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">This site requires verification</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">The ${_esc(data.state)} Secretary of State uses a captcha. Click the checkbox on their page and results load instantly.</div>
+                            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">${heading}</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">${description}</div>
                         </div>
                     </div>
+                    ${!isDeepLinked ? `
                     <div style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 14px;">
                         <span style="color: var(--text-secondary); font-size: 13px; white-space: nowrap;">Search for:</span>
                         <code style="flex: 1; font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${_esc(searchTerm)}</code>
                         <button onclick="navigator.clipboard.writeText('${searchTerm.replace(/'/g, "\\'")}')" style="flex-shrink:0;padding:4px 10px;font-size:12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-input);color:var(--apple-blue);cursor:pointer;font-weight:600;">Copy</button>
-                    </div>
-                    <a href="${sosLink.url}" target="_blank" rel="noopener noreferrer"
+                    </div>` : ''}
+                    <a href="${_esc(linkUrl)}" target="_blank" rel="noopener noreferrer"
                        style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px 16px;background:var(--apple-blue);color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;">
-                        Open ${_esc(sosLink.label)} \u2197
+                        ${linkLabel} \u2197
                     </a>
+                    ${tip ? `
                     <div style="margin-top: 10px; padding: 10px 14px; background: rgba(0,122,255,0.04); border-radius: 8px; font-size: 12px; color: var(--text-secondary);">
-                        \uD83D\uDCA1 ${_esc(sosLink.tip)}
+                        \uD83D\uDCA1 ${_esc(tip)}
+                    </div>` : ''}
+                    <div style="margin-top: 12px; padding: 10px 14px; background: rgba(255,149,0,0.06); border: 1px solid rgba(255,149,0,0.12); border-radius: 8px; font-size: 12px; color: var(--text-secondary);">
+                        <strong>\u26A0\uFE0F Underwriting gap:</strong> Entity type, formation date, registered agent, and officers are unknown. Verify these manually before binding.
                     </div>
                 </div>`;
         }

@@ -184,16 +184,18 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 7, 2026)
+### Latest Session Notes (March 9, 2026)
 
-- **Auto Intake — Primary Applicant Driver Sync:** New `syncPrimaryApplicantToDriver()` method auto-creates Driver 1 with `isPrimaryApplicant: true`, copying name/DOB/gender/marital/education/occupation/industry from App.data. Live-syncs via `restorePrimaryApplicantUI()` change/blur listeners on Step 1 fields. Primary applicant driver cannot be removed.
-- **Per-Driver Driving History:** Removed global Driving History card from Step 4. Each driver card now has accidents textarea, violations textarea, and studentGPA input. Migration copies global→Driver 1 on first step-4 visit. PDF/CMSMTF exports aggregate per-driver data with "Driver N:" prefixes, falling back to global for backward compat.
-- **Employment & Education moved to Step 1:** Demographics card relocated from Step 2 to Step 1 after co-applicant section. Renamed "Employment & Education".
-- **Scan updates:** All 3 driver creation sites (DL scan, policy primary, policy additional) now include `isPrimaryApplicant`, `isCoApplicant`, `accidents`, `violations`, `studentGPA`.
+- **SOS Lookup Overhaul — Oregon Socrata + WA DOR Fallback + AZ Deep Link:** Fixed all 3 state SOS lookups that were returning null/failing.
+- **Oregon SOS:** Replaced dead HTML scraper with real Oregon Socrata API (`data.oregon.gov/resource/tckn-sxa6.json`). SoQL queries, groups records by `registry_number`, extracts agents and principals.
+- **WA SOS DOR fallback:** All 3 WA SOS error paths now try WA DOR API (`secure.dor.wa.gov/gteunauth/_/GetBusinesses`) before falling back to manual search. Returns `partialData: true` with UBI, trade name, entity type, status.
+- **Arizona SOS deep link:** Replaced dead scraper with pre-filled deep link to eCorp search results. Returns `deepLinked: true` with `tip`.
+- **Client-side display:** New status pills for partial data (blue) and deep link (orange). `_formatSOSData` shows partial data banner + source badge + details URL link. `_formatSOSError` rewritten with deep link support, state-specific messaging, and underwriting gap warning.
+- **AI prompt update:** `buildDataContext()` now flags SOS unavailability and partial data. AI user prompt includes conditional SOS DATA GAP instruction.
 - **Tests:** 23 suites, 1515 tests (unchanged).
-- **5 files changed:** plugins/quoting.html (1,926 lines), js/app-core.js (2,219 lines), js/app-vehicles.js (816 lines), js/app-export.js (963 lines), js/app-scan.js (1,585 lines).
+- **2 files changed:** api/prospect-lookup.js (1,563→1,788 lines), js/prospect.js (1,859→1,917 lines).
 
-### Latest Session Notes (March 8, 2026)
+### Previous Session Notes (March 8, 2026)
 
 - **Aggressive Auto-Save — Client History Never Lost:** Fixed critical data loss bug where sessions never reached step-6 were never saved to `altech_client_history`. Root cause: `autoSaveClient()` was only called in `updateUI()` gated by `curId === 'step-6'`.
 - **Auto-save on every step change:** Removed step-6 gate — `autoSaveClient()` now fires on every step transition.
@@ -247,4 +249,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 8, 2026*
+*Last updated: March 9, 2026*
