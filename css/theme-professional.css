@@ -317,7 +317,7 @@ body.theme-pro .app-sidebar {
     border-right-color: rgba(255, 255, 255, 0.06);
 }
 body.theme-pro .sidebar-brand-logo {
-    background: var(--accent-gradient);
+    color: var(--text);
 }
 body.theme-pro .widget-card {
     background: #1C1C1E;

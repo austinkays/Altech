@@ -56,13 +56,8 @@ body.sidebar-collapsed .app-sidebar {
 .sidebar-brand-logo {
     width: 36px;
     height: 36px;
-    border-radius: 10px;
-    object-fit: cover;
     flex-shrink: 0;
-    box-shadow: 0 2px 6px rgba(255, 159, 67, 0.2);
-}
-body.dark-mode .sidebar-brand-logo {
-    box-shadow: 0 2px 6px rgba(10, 132, 255, 0.2);
+    color: var(--text);
 }
 .sidebar-brand-text {
     display: flex;
