@@ -13,6 +13,9 @@
             <span>CGL Compliance</span>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn-utility" onclick="ComplianceDashboard.togglePrintMode()" id="cglPrintBtn" style="font-size: 14px; padding: 8px 16px;" title="Select policies to print as PDF">
+                🖨 Print
+            </button>
             <button class="btn-utility" onclick="ComplianceDashboard.downloadFullBackup()" style="font-size: 14px; padding: 8px 16px;" title="Download full annotations backup (JSON)">
                 💾 Backup
             </button>
@@ -76,6 +79,19 @@
     <!-- Type Visibility Toggles -->
     <div class="cgl-type-toggles" id="cglTypeToggles">
         <!-- Populated by renderTypeToggles() -->
+    </div>
+
+    <!-- Print Selection Toolbar (hidden until print mode) -->
+    <div class="cgl-print-toolbar" id="cglPrintToolbar" style="display: none;">
+        <div class="cgl-print-toolbar-left">
+            <button class="cgl-print-action" onclick="ComplianceDashboard.togglePrintSelectAll()">Select All</button>
+            <button class="cgl-print-action" onclick="ComplianceDashboard.togglePrintSelectAll(false)">Deselect All</button>
+            <span class="cgl-print-count" id="cglPrintCount">0 selected</span>
+        </div>
+        <div class="cgl-print-toolbar-right">
+            <button class="cgl-print-generate" id="cglPrintGenerateBtn" onclick="ComplianceDashboard.generatePrintPDF()" disabled>Generate PDF</button>
+            <button class="cgl-print-cancel" onclick="ComplianceDashboard.togglePrintMode()">Cancel</button>
+        </div>
     </div>
 
     <!-- Options Panel (collapsed by default) -->

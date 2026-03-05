@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 9, 2026
+> **Last updated:** March 10, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~665 lines) |
-| **CSS** | 21 files in `css/` (~15,752 lines total) |
-| **JS** | 35 modules in `js/` (~32,089 lines total) |
-| **Plugins** | 15 HTML templates in `plugins/` (~5,061 lines total) |
+| **CSS** | 21 files in `css/` (~15,863 lines total) |
+| **JS** | 35 modules in `js/` (~32,305 lines total) |
+| **Plugins** | 15 HTML templates in `plugins/` (~5,078 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -70,7 +70,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (765 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (1,202 lines)
-│   ├── compliance.css          # CGL compliance dashboard (1,046 lines)
+│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar (1,211 lines)
 │   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
 │   ├── intake-assist.css       # AI intake professional UI — enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
@@ -110,7 +110,7 @@ npm run deploy:vercel   # Production deploy
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
-│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence (2,147 lines)
+│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF (2,356 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts (420 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
@@ -138,7 +138,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
 │   ├── prospect.html           # Commercial investigation UI (333 lines)
 │   ├── accounting.html         # Accounting/deposit tools (252 lines)
-│   ├── compliance.html         # CGL dashboard (206 lines)
+│   ├── compliance.html         # CGL dashboard + print toolbar (223 lines)
 │   ├── vin-decoder.html        # VIN decoder (141 lines)
 │   ├── reminders.html          # Task manager (144 lines)
 │   ├── intake-assist.html      # AI chat two-pane (152 lines)
@@ -934,6 +934,18 @@ KEY RULES:
 **Root cause:** `autoSaveClient()` (the proper upsert-by-name+address function) existed and worked correctly but was only called once — in `updateUI()` gated by `curId === 'step-6'`. Users who entered data but never reached the export page had zero entries in `altech_client_history`. Evidence: completed PDF export for "Melissa Moore" in `altech_export_history` with zero corresponding `altech_client_history` entry.
 
 **5 files changed:** js/app-core.js (2,219→2,475 lines), js/app-boot.js (287→295 lines), js/app-quotes.js (760→762 lines), plugins/quoting.html (2,016→2,019 lines), css/main.css (3,445→3,486 lines).
+
+### Print-to-PDF — Commercial Policy Dashboard (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 133 | HIGH | plugins/compliance.html | Added 🖨 Print button in header toolbar alongside Backup/Options/Refresh. Added hidden print selection toolbar with Select All/Deselect All, count badge, Generate PDF, and Cancel buttons. |
+| 134 | HIGH | css/compliance.css | Added `.cgl-print-toolbar`, `.cgl-print-checkbox`, `.cgl-print-selected`, `.cgl-print-generate`, `.cgl-print-cancel` styles with full dark mode overrides. |
+| 135 | CRITICAL | js/compliance-dashboard.js | Added `_printMode` and `_selectedForPrint` state. `togglePrintMode()` enters/exits selection mode. `renderPolicies()` injects checkbox column (thead + tbody) when active, excludes verified/dismissed policies. Dynamic colspan for empty/note/show-more rows. |
+| 136 | CRITICAL | js/compliance-dashboard.js | `generatePrintPDF()` — landscape A4 PDF with jsPDF. Columns: Status (color-coded), Type, Client Name, Policy#, Expiration, Carrier, Notes (all entries with timestamps). Alternating row shading, page breaks, page numbers, date+counts header. |
+| 137 | MEDIUM | js/compliance-dashboard.js | `togglePrintSelect(pn)` / `togglePrintSelectAll()` for individual/bulk selection. `updatePrintCount()` enables/disables Generate button. `refresh()` auto-exits print mode. |
+
+**3 files changed:** plugins/compliance.html (206→223 lines), css/compliance.css (1,046→1,211 lines), js/compliance-dashboard.js (2,147→2,356 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ### SOS Lookup Overhaul — Oregon Socrata + WA DOR Fallback + AZ Deep Link (March 2026)
 

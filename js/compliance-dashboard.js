@@ -134,6 +134,8 @@ const ComplianceDashboard = {
     _kvAvailable: null, // null = unknown, true/false after first attempt
     _stateLoaded: false,  // Guard: don't sync to disk until state is loaded
     _lastSaveStatus: 'loading', // 'saved' | 'saving' | 'error' | 'loading'
+    _printMode: false,
+    _selectedForPrint: new Set(),
 
     // --- Vercel KV helpers ---
 
@@ -1432,6 +1434,7 @@ const ComplianceDashboard = {
     },
 
     refresh() {
+        if (this._printMode) this.togglePrintMode();
         this.forceRefresh();
     },
 
@@ -2096,6 +2099,30 @@ const ComplianceDashboard = {
             return true;
         });
 
+        // In print mode, exclude verified/dismissed
+        if (this._printMode) {
+            policiesToRender = policiesToRender.filter(p => !this.isHidden(p.policyNumber));
+        }
+
+        // Manage thead print checkbox column
+        const thead = tbody.closest('table')?.querySelector('thead tr');
+        if (thead) {
+            const existingPrintTh = thead.querySelector('.cgl-print-th');
+            if (this._printMode && !existingPrintTh) {
+                const th = document.createElement('th');
+                th.className = 'cgl-print-th';
+                th.innerHTML = '<input type="checkbox" class="cgl-print-checkbox" id="cglPrintSelectAllCb" title="Select all">';
+                thead.prepend(th);
+                th.querySelector('#cglPrintSelectAllCb').addEventListener('change', (e) => {
+                    ComplianceDashboard.togglePrintSelectAll(e.target.checked);
+                });
+            } else if (!this._printMode && existingPrintTh) {
+                existingPrintTh.remove();
+            }
+        }
+
+        const colSpan = this._printMode ? 9 : 8;
+
         // If no pre-sorted list provided, apply sort
         if (!filteredList) {
             policiesToRender = this.sortPolicies(policiesToRender);
@@ -2122,7 +2149,7 @@ const ComplianceDashboard = {
             }
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="cgl-no-results">
+                    <td colspan="${colSpan}" class="cgl-no-results">
                         ${emptyMsg}
                     </td>
                 </tr>
@@ -2166,8 +2193,12 @@ const ComplianceDashboard = {
                 actionHtml = `<button class="cgl-dismiss-btn" onclick="ComplianceDashboard.dismissPolicy('${pn}')">Dismiss</button>`;
             }
 
+            const isSelected = this._printMode && this._selectedForPrint.has(policy.policyNumber);
+            const printRowClass = isSelected ? ' cgl-print-selected' : '';
+
             return `
-                <tr class="${rowClass}">
+                <tr class="${rowClass}${printRowClass}">
+                    ${this._printMode ? `<td style="text-align:center;"><input type="checkbox" class="cgl-print-checkbox" data-pn="${this.escapeHtml(policy.policyNumber)}" ${isSelected ? 'checked' : ''} onchange="ComplianceDashboard.togglePrintSelect('${pn}')"></td>` : ''}
                     <td>
                         <label class="cgl-toggle" title="${verifiedTitle}">
                             <input type="checkbox" ${isVerified ? 'checked' : ''} onchange="ComplianceDashboard.togglePolicyVerified('${pn}')">
@@ -2214,7 +2245,7 @@ const ComplianceDashboard = {
                     </td>
                 </tr>
                 <tr class="cgl-note-row" id="note-row-${pn}" style="display:none;">
-                    <td colspan="8">
+                    <td colspan="${colSpan}">
                         <div class="cgl-quick-notes">
                             <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Notified insured')">📞 Notified Insured</button>
                             <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Emailed insured')">📧 Emailed Insured</button>
@@ -2235,7 +2266,7 @@ const ComplianceDashboard = {
             const nextBatch = Math.min(remaining, this._pageSize);
             tbody.innerHTML += `
                 <tr class="cgl-show-more-row">
-                    <td colspan="8" style="text-align: center; padding: 16px;">
+                    <td colspan="${colSpan}" style="text-align: center; padding: 16px;">
                         <button onclick="ComplianceDashboard.showMore()" class="cgl-show-more-btn">
                             Show ${nextBatch} More (${remaining} remaining)
                         </button>
@@ -2332,6 +2363,261 @@ const ComplianceDashboard = {
             bop: 'BOP', commercial: 'Comm'
         };
         return labels[type] || type.toUpperCase();
+    },
+
+    // --- Print Mode ---
+
+    togglePrintMode() {
+        this._printMode = !this._printMode;
+        this._selectedForPrint.clear();
+        const toolbar = document.getElementById('cglPrintToolbar');
+        const btn = document.getElementById('cglPrintBtn');
+        if (toolbar) toolbar.style.display = this._printMode ? 'flex' : 'none';
+        if (btn) btn.textContent = this._printMode ? '✕ Cancel Print' : '🖨 Print';
+        this.updatePrintCount();
+        this.filterPolicies();
+    },
+
+    togglePrintSelect(policyNumber) {
+        if (this._selectedForPrint.has(policyNumber)) {
+            this._selectedForPrint.delete(policyNumber);
+        } else {
+            this._selectedForPrint.add(policyNumber);
+        }
+        // Update row highlight without full re-render
+        const cb = document.querySelector(`.cgl-print-checkbox[data-pn="${CSS.escape(policyNumber)}"]`);
+        if (cb) {
+            const row = cb.closest('tr');
+            if (row) row.classList.toggle('cgl-print-selected', this._selectedForPrint.has(policyNumber));
+        }
+        this.updatePrintCount();
+    },
+
+    togglePrintSelectAll(selectAll) {
+        // Get currently visible (unresolved) policies
+        const checkboxes = document.querySelectorAll('#cglTableBody .cgl-print-checkbox');
+        if (typeof selectAll === 'undefined') {
+            selectAll = this._selectedForPrint.size === 0;
+        }
+        checkboxes.forEach(cb => {
+            const pn = cb.dataset.pn;
+            if (!pn) return;
+            if (selectAll) {
+                this._selectedForPrint.add(pn);
+            } else {
+                this._selectedForPrint.delete(pn);
+            }
+            cb.checked = selectAll;
+            const row = cb.closest('tr');
+            if (row) row.classList.toggle('cgl-print-selected', selectAll);
+        });
+        // Sync the thead select-all checkbox
+        const allCb = document.getElementById('cglPrintSelectAllCb');
+        if (allCb) allCb.checked = selectAll;
+        this.updatePrintCount();
+    },
+
+    updatePrintCount() {
+        const countEl = document.getElementById('cglPrintCount');
+        const genBtn = document.getElementById('cglPrintGenerateBtn');
+        const n = this._selectedForPrint.size;
+        if (countEl) countEl.textContent = n + ' selected';
+        if (genBtn) genBtn.disabled = n === 0;
+    },
+
+    async generatePrintPDF() {
+        const selected = this._selectedForPrint;
+        if (selected.size === 0) return;
+
+        // Gather policies in current sort order
+        let printPolicies = this.policies.filter(p => selected.has(p.policyNumber));
+        printPolicies = this.sortPolicies(printPolicies);
+
+        // Lazy-load jsPDF
+        if (typeof window.jspdf === 'undefined') {
+            try {
+                await new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                    s.onload = resolve;
+                    s.onerror = reject;
+                    document.head.appendChild(s);
+                });
+            } catch {
+                if (typeof App !== 'undefined' && App.toast) App.toast('Failed to load PDF library', 'error');
+                return;
+            }
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const margin = 12;
+        const contentW = pageW - margin * 2;
+        let y = margin;
+
+        // --- Header ---
+        const today = new Date();
+        const dateStr = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('Commercial Policy Report', margin, y + 5);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(dateStr, pageW - margin, y + 5, { align: 'right' });
+        y += 10;
+
+        // Counts summary
+        const expired = printPolicies.filter(p => p.daysUntilExpiration < 0).length;
+        const critical = printPolicies.filter(p => p.daysUntilExpiration >= 0 && p.daysUntilExpiration <= 5).length;
+        const expiringSoon = printPolicies.filter(p => p.daysUntilExpiration > 5 && p.daysUntilExpiration <= 59).length;
+        const active = printPolicies.filter(p => p.daysUntilExpiration >= 60).length;
+        doc.setFontSize(9);
+        doc.text(`${printPolicies.length} policies | ${expired} expired | ${critical} critical | ${expiringSoon} expiring soon | ${active} active`, margin, y + 3);
+        y += 8;
+
+        // Separator line
+        doc.setDrawColor(200);
+        doc.line(margin, y, pageW - margin, y);
+        y += 4;
+
+        // --- Column setup ---
+        const cols = [
+            { header: 'Status', width: 24 },
+            { header: 'Type', width: 18 },
+            { header: 'Client Name', width: 55 },
+            { header: 'Policy #', width: 35 },
+            { header: 'Expiration', width: 22 },
+            { header: 'Carrier', width: 35 },
+            { header: 'Notes', width: contentW - 24 - 18 - 55 - 35 - 22 - 35 }
+        ];
+
+        // Table header
+        doc.setFillColor(245, 245, 245);
+        doc.rect(margin, y, contentW, 7, 'F');
+        doc.setFontSize(8);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(60);
+        let cx = margin + 2;
+        for (const col of cols) {
+            doc.text(col.header, cx, y + 5);
+            cx += col.width;
+        }
+        doc.setTextColor(0);
+        y += 9;
+
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(7.5);
+
+        const checkPage = (needed) => {
+            if (y + needed > pageH - 12) {
+                doc.addPage();
+                y = margin;
+                return true;
+            }
+            return false;
+        };
+
+        // --- Render each policy ---
+        for (const policy of printPolicies) {
+            const statusText = this.getStatusLabel(policy.daysUntilExpiration);
+            const typeText = ComplianceDashboard._typeLabel(policy.policyType || 'cgl');
+            const clientName = policy.clientName || policy.businessName || '';
+            const policyNum = policy.policyNumber || '';
+            const expDate = new Date(policy.expirationDate).toLocaleDateString();
+            const carrier = policy.carrier || '';
+            const noteData = this.getNoteData(policy.policyNumber);
+
+            // Build notes text
+            let notesLines = [];
+            if (noteData && noteData.log && noteData.log.length > 0) {
+                for (const entry of noteData.log) {
+                    const d = new Date(entry.at);
+                    const ts = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    notesLines.push(ts + ': ' + (entry.text || ''));
+                }
+            }
+            if (noteData && noteData.renewedTo) {
+                notesLines.unshift('Renewed → ' + noteData.renewedTo);
+            }
+
+            const notesColW = cols[6].width - 2;
+            const wrappedNotes = notesLines.length > 0
+                ? doc.splitTextToSize(notesLines.join(' | '), notesColW)
+                : [];
+            const rowH = Math.max(6, wrappedNotes.length * 3.5 + 2);
+
+            checkPage(rowH + 2);
+
+            // Alternate row shading
+            const rowIdx = printPolicies.indexOf(policy);
+            if (rowIdx % 2 === 0) {
+                doc.setFillColor(252, 252, 252);
+                doc.rect(margin, y - 1, contentW, rowH + 1, 'F');
+            }
+
+            // Status color
+            if (policy.daysUntilExpiration < 0) {
+                doc.setTextColor(200, 30, 20);
+            } else if (policy.daysUntilExpiration <= 5) {
+                doc.setTextColor(180, 80, 0);
+            } else if (policy.daysUntilExpiration <= 59) {
+                doc.setTextColor(160, 120, 0);
+            } else {
+                doc.setTextColor(30, 140, 50);
+            }
+
+            cx = margin + 2;
+            doc.text(doc.splitTextToSize(statusText, cols[0].width - 2)[0] || '', cx, y + 3);
+
+            doc.setTextColor(0);
+            cx += cols[0].width;
+            doc.text(typeText, cx, y + 3);
+            cx += cols[1].width;
+            doc.text(doc.splitTextToSize(clientName, cols[2].width - 2)[0] || '', cx, y + 3);
+            cx += cols[2].width;
+            doc.setFontSize(7);
+            doc.text(doc.splitTextToSize(policyNum, cols[3].width - 2)[0] || '', cx, y + 3);
+            doc.setFontSize(7.5);
+            cx += cols[3].width;
+            doc.text(expDate, cx, y + 3);
+            cx += cols[4].width;
+            doc.text(doc.splitTextToSize(carrier, cols[5].width - 2)[0] || '', cx, y + 3);
+            cx += cols[5].width;
+
+            // Notes
+            if (wrappedNotes.length > 0) {
+                doc.setFontSize(6.5);
+                doc.setTextColor(80);
+                doc.text(wrappedNotes, cx, y + 3);
+                doc.setFontSize(7.5);
+                doc.setTextColor(0);
+            }
+
+            // Bottom border
+            doc.setDrawColor(230);
+            doc.line(margin, y + rowH, pageW - margin, y + rowH);
+            y += rowH + 1;
+        }
+
+        // --- Page numbers ---
+        const totalPages = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Page ${i} of ${totalPages}`, pageW - margin, pageH - 6, { align: 'right' });
+            doc.text('Altech Field Lead — Commercial Policy Dashboard', margin, pageH - 6);
+        }
+
+        // Download
+        const filename = `CGL_Report_${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}.pdf`;
+        doc.save(filename);
+
+        if (typeof App !== 'undefined' && App.toast) {
+            App.toast(`PDF exported: ${printPolicies.length} policies`, 'success');
+        }
     }
 };
 
