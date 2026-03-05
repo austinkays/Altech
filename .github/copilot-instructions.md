@@ -14,7 +14,7 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~665 lines), 21 CSS files in `css/` (~14,593 lines), 35 JS modules in `js/` (~28,943 lines), 15 plugin HTML files in `plugins/` (~5,061 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~665 lines), 21 CSS files in `css/` (~14,593 lines), 35 JS modules in `js/` (~32,325 lines), 15 plugin HTML files in `plugins/` (~5,150 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
 > **Full documentation:** See [AGENTS.md](../AGENTS.md) (985 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
@@ -185,6 +185,14 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
 ### Latest Session Notes (March 10, 2026)
+
+- **Employment & Education Consolidation — Inline in About You Card:** Removed standalone Employment & Education card from Step 1. Moved education/occupation/industry selects inline into the About You card between marital status and co-applicant toggle, with "→ Also on Drivers" badge. Added co-applicant Employment & Education (`#coEmploymentSection`) inside `#coApplicantSection` with `coEducation`, `coOccupation`, `coIndustry` selects. Industry `onchange` calls `_populateCoOccupation()`.
+- **`_populateCoOccupation(industry, currentValue)`:** New method mirrors `_populateOccupation()` targeting `#coOccupation` using shared `_OCCUPATIONS_BY_INDUSTRY` map. Called from `applyData()`.
+- **Demo client data:** Added `coEducation: 'Bachelors'`, `coOccupation: 'Software Engineer'`, `coIndustry: 'Information Technology'` to `loadDemoClient()`.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **2 files changed:** plugins/quoting.html (2,019→2,091 lines), js/app-core.js (2,475→2,495 lines).
+
+### Previous Session Notes (March 10, 2026)
 
 - **Print-to-PDF — Commercial Policy Dashboard:** Added Print button in header, selection toolbar with Select All/Deselect All/count/Generate PDF/Cancel. Checkbox column injected into table in print mode (excludes verified/dismissed). Landscape A4 PDF via jsPDF with color-coded status, all note entries with timestamps, alternating row shading, page numbers. `refresh()` auto-exits print mode.
 - **Tests:** 23 suites, 1515 tests (unchanged).

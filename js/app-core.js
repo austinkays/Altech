@@ -829,6 +829,7 @@ Object.assign(App, {
         this.syncSegmentedControls();
         // Refresh dynamic occupation dropdown for loaded industry
         this._populateOccupation(this.data.industry || '', this.data.occupation || '');
+        this._populateCoOccupation && this._populateCoOccupation(this.data.coIndustry || '', this.data.coOccupation || '');
         // Restore drivers/vehicles arrays and render cards
         this.loadDriversVehicles();
         // Debounced save to capture full form state (including DOM defaults)
@@ -1968,6 +1969,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             coEmail: 'david.mitchell@example.com',
             coPhone: '3605559877',
             coRelationship: 'Spouse',
+            coEducation: 'Bachelors',
+            coOccupation: 'Software Engineer',
+            coIndustry: 'Information Technology',
 
             // ── Step 2: Coverage Type & Demographics ──
             qType: 'both',
@@ -2252,6 +2256,22 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         }
 
         occupationSel.innerHTML = html;
+    },
+
+    _populateCoOccupation(industry, currentValue) {
+        const occupationSel = document.getElementById('coOccupation');
+        if (!occupationSel) return;
+        const map = this._OCCUPATIONS_BY_INDUSTRY || {};
+        const occupations = (industry && map[industry]) ? [...map[industry]] : [];
+        if (occupations.length > 0 && !occupations.includes('Other')) occupations.push('Other');
+        const current = currentValue || occupationSel.value;
+        occupationSel.innerHTML = '<option value="">Select...</option>' +
+            occupations.map(o => `<option value="${o}"${o === current ? ' selected' : ''}>${o}</option>`).join('');
+        if (current && !occupations.includes(current) && current !== '') {
+            const opt = document.createElement('option');
+            opt.value = current; opt.textContent = current; opt.selected = true;
+            occupationSel.appendChild(opt);
+        }
     },
 
     // ── AI Settings Management ───────────────────────────────────

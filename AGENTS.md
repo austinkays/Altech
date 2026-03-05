@@ -17,8 +17,8 @@
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~665 lines) |
 | **CSS** | 21 files in `css/` (~15,863 lines total) |
-| **JS** | 35 modules in `js/` (~32,305 lines total) |
-| **Plugins** | 15 HTML templates in `plugins/` (~5,078 lines total) |
+| **JS** | 35 modules in `js/` (~32,325 lines total) |
+| **Plugins** | 15 HTML templates in `plugins/` (~5,150 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -87,11 +87,11 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.css               # Email composer — purple accent (165 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
-├── js/                         # 35 modules (~32,089 lines)
+├── js/                         # 35 modules (~32,109 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows (85 lines)
-│   ├── app-core.js             # Form handling, save/load, updateUI, navigation, schema migration, syncPrimaryApplicantToDriver, aggressive auto-save (2,475 lines)
+│   ├── app-core.js             # Form handling, save/load, updateUI, navigation, schema migration, syncPrimaryApplicantToDriver, _populateCoOccupation, aggressive auto-save (2,495 lines)
 │   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,585 lines)
 │   ├── app-property.js         # Property analysis, maps, assessor data (1,728 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (816 lines)
@@ -132,8 +132,8 @@ npm run deploy:vercel   # Production deploy
 │   ├── data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
 │   └── hawksoft-integration.js  # HawkSoft REST API client (261 lines)
 │
-├── plugins/                    # 15 HTML templates (~5,061 lines, loaded dynamically)
-│   ├── quoting.html            # ★ Main intake wizard — 7 steps, 1,926 lines
+├── plugins/                    # 15 HTML templates (~5,133 lines, loaded dynamically)
+│   ├── quoting.html            # ★ Main intake wizard — 7 steps, Employment & Education inline in About You card, 2,091 lines
 │   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
 │   ├── prospect.html           # Commercial investigation UI (333 lines)
@@ -946,6 +946,17 @@ KEY RULES:
 | 137 | MEDIUM | js/compliance-dashboard.js | `togglePrintSelect(pn)` / `togglePrintSelectAll()` for individual/bulk selection. `updatePrintCount()` enables/disables Generate button. `refresh()` auto-exits print mode. |
 
 **3 files changed:** plugins/compliance.html (206→223 lines), css/compliance.css (1,046→1,211 lines), js/compliance-dashboard.js (2,147→2,356 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Employment & Education Consolidation — Inline in About You Card (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 138 | CRITICAL | plugins/quoting.html | **Standalone Employment & Education card removed.** Moved into About You card as inline section between marital status and co-applicant toggle. "→ Also on Drivers" badge indicates sync with Step 4 driver fields. |
+| 139 | HIGH | plugins/quoting.html | **Co-applicant Employment & Education added.** New `#coEmploymentSection` inside `#coApplicantSection` with `coEducation`, `coOccupation`, `coIndustry` selects. Industry `onchange` calls `_populateCoOccupation()`. |
+| 140 | HIGH | js/app-core.js | **`_populateCoOccupation(industry, currentValue)`:** Mirrors `_populateOccupation()` targeting `#coOccupation` using shared `_OCCUPATIONS_BY_INDUSTRY` map. Called from `applyData()`. |
+| 141 | MEDIUM | js/app-core.js | **Demo client data:** Added `coEducation: 'Bachelors'`, `coOccupation: 'Software Engineer'`, `coIndustry: 'Information Technology'` to `loadDemoClient()`. |
+
+**2 files changed:** plugins/quoting.html (2,019→2,091 lines), js/app-core.js (2,475→2,495 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ### SOS Lookup Overhaul — Oregon Socrata + WA DOR Fallback + AZ Deep Link (March 2026)
 

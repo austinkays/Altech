@@ -170,64 +170,17 @@
                     <div></div>
                 </div>
 
-                <!-- Co-Applicant Toggle -->
-                <div class="co-applicant-toggle">
-                    <label class="checkbox-row">
-                        <input type="checkbox" id="hasCoApplicant" onchange="App.toggleCoApplicant()">
-                        <span style="font-weight:600;">Add Co-Applicant / Spouse</span>
-                    </label>
-                </div>
-
-                <!-- Co-Applicant Fields -->
-                <div id="coApplicantSection" class="co-applicant-section">
-                    <h3>Co-Applicant Information</h3>
-                    <div class="grid-2-full">
-                        <div>
-                            <label class="label">First Name</label>
-                            <input type="text" id="coFirstName" placeholder="Jane">
-                        </div>
-                        <div>
-                            <label class="label">Last Name</label>
-                            <input type="text" id="coLastName" placeholder="Smith">
-                        </div>
-                        <div>
-                            <label class="label">Date of Birth</label>
-                            <input type="date" id="coDob">
-                        </div>
-                        <div>
-                            <label class="label">Gender</label>
-                            <select id="coGender">
-                                <option value="">Select...</option>
-                                <option value="M">Male</option>
-                                <option value="F">Female</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="label">Email</label>
-                            <input type="email" id="coEmail" placeholder="jane@email.com">
-                        </div>
-                        <div>
-                            <label class="label">Phone</label>
-                            <input type="tel" id="coPhone" placeholder="(555) 555-5555">
-                        </div>
-                        <div>
-                            <label class="label">Relationship</label>
-                            <select id="coRelationship">
-                                <option value="Spouse">Spouse</option>
-                                <option value="Domestic Partner">Domestic Partner</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <div></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>Employment & Education</h2>
-                <p class="section-subtitle">This helps us find the best coverage options</p>
                 
-                <div class="grid-2">
+                <!-- Employment & Education (Primary Applicant) -->
+                <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                        <div>
+                            <h3 style="margin:0; font-size:14px; font-weight:700; color:var(--text); letter-spacing:-0.2px;">Employment &amp; Education</h3>
+                            <p style="margin:2px 0 0; font-size:11px; color:var(--text-secondary);">This helps us find the best coverage options</p>
+                        </div>
+                        <span style="font-size:11px; color:var(--apple-blue); white-space:nowrap; background:rgba(0,122,255,0.08); padding:4px 9px; border-radius:20px; border:1px solid rgba(0,122,255,0.2);" title="Education and Occupation are also collected on the Drivers step">→ Also on Drivers</span>
+                    </div>
+                    <div class="grid-2">
                     <div>
                         <label class="label">Education Level</label>
                         <select id="education">
@@ -281,7 +234,126 @@
                         </select>
                     </div>
                 </div>
+                </div>
+
+<!-- Co-Applicant Toggle -->
+                <div class="co-applicant-toggle">
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="hasCoApplicant" onchange="App.toggleCoApplicant()">
+                        <span style="font-weight:600;">Add Co-Applicant / Spouse</span>
+                    </label>
+                </div>
+
+                <!-- Co-Applicant Fields -->
+                <div id="coApplicantSection" class="co-applicant-section">
+                    <h3>Co-Applicant Information</h3>
+                    <div class="grid-2-full">
+                        <div>
+                            <label class="label">First Name</label>
+                            <input type="text" id="coFirstName" placeholder="Jane">
+                        </div>
+                        <div>
+                            <label class="label">Last Name</label>
+                            <input type="text" id="coLastName" placeholder="Smith">
+                        </div>
+                        <div>
+                            <label class="label">Date of Birth</label>
+                            <input type="date" id="coDob">
+                        </div>
+                        <div>
+                            <label class="label">Gender</label>
+                            <select id="coGender">
+                                <option value="">Select...</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label">Email</label>
+                            <input type="email" id="coEmail" placeholder="jane@email.com">
+                        </div>
+                        <div>
+                            <label class="label">Phone</label>
+                            <input type="tel" id="coPhone" placeholder="(555) 555-5555">
+                        </div>
+                        <div>
+                            <label class="label">Relationship</label>
+                            <select id="coRelationship">
+                                <option value="Spouse">Spouse</option>
+                                <option value="Domestic Partner">Domestic Partner</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div></div>
+                    </div>
+                <!-- Employment & Education (Co-Applicant) -->
+                <div id="coEmploymentSection" style="margin-top:16px; padding-top:12px; border-top:1px solid var(--border);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                        <div>
+                            <h3 style="margin:0; font-size:14px; font-weight:700; color:var(--text); letter-spacing:-0.2px;">Employment &amp; Education</h3>
+                            <p style="margin:2px 0 0; font-size:11px; color:var(--text-secondary);">Co-applicant employment &amp; education info</p>
+                        </div>
+                        <span style="font-size:11px; color:var(--apple-blue); white-space:nowrap; background:rgba(0,122,255,0.08); padding:4px 9px; border-radius:20px; border:1px solid rgba(0,122,255,0.2);" title="Education and Occupation are also collected on the Drivers step">→ Also on Drivers</span>
+                    </div>
+                    <div class="grid-2">
+                        <div>
+                            <label class="label">Education Level</label>
+                            <select id="coEducation">
+                            <option value="">Select...</option>
+                            <option value="No High School Diploma">No High School Diploma</option>
+                            <option value="High School Diploma">High School Diploma</option>
+                            <option value="Some College - No Degree">Some College - No Degree</option>
+                            <option value="Vocational/Technical Degree">Vocational/Technical Degree</option>
+                            <option value="Associates Degree">Associates Degree</option>
+                            <option value="Bachelors">Bachelors</option>
+                            <option value="Masters">Masters</option>
+                            <option value="Phd">PhD</option>
+                            <option value="Medical Degree">Medical Degree</option>
+                            <option value="Law Degree">Law Degree</option>
+                        </select>
+                        </div>
+                        <div>
+                            <label class="label">Occupation</label>
+                            <select id="coOccupation">
+                                <option value="">Select...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label">Industry</label>
+                            <select id="coIndustry" onchange="App._populateCoOccupation && App._populateCoOccupation(this.value, '');">
+                            <option value="">Select...</option>
+                            <option value="Homemaker/House person">Homemaker/House person</option>
+                            <option value="Retired">Retired</option>
+                            <option value="Disabled">Disabled</option>
+                            <option value="Unemployed">Unemployed</option>
+                            <option value="Student">Student</option>
+                            <option value="Agriculture/Forestry/Fishing">Agriculture/Forestry/Fishing</option>
+                            <option value="Art/Design/Media">Art/Design/Media</option>
+                            <option value="Banking/Finance/Real Estate">Banking/Finance/Real Estate</option>
+                            <option value="Business/Sales/Office">Business/Sales/Office</option>
+                            <option value="Construction/Energy Trades">Construction/Energy Trades</option>
+                            <option value="Education/Library">Education/Library</option>
+                            <option value="Engineer/Architect/Science/Math">Engineer/Architect/Science/Math</option>
+                            <option value="Government/Military">Government/Military</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Insurance">Insurance</option>
+                            <option value="Legal/Law Enforcement/Security">Legal/Law Enforcement/Security</option>
+                            <option value="Maintenance/Repair/Housekeeping">Maintenance/Repair/Housekeeping</option>
+                            <option value="Manufacturing/Production">Manufacturing/Production</option>
+                            <option value="Medical/Social Services/Religion">Medical/Social Services/Religion</option>
+                            <option value="Personal Care/Service">Personal Care/Service</option>
+                            <option value="Restaurant/Hotel Services">Restaurant/Hotel Services</option>
+                            <option value="Sports/Recreation">Sports/Recreation</option>
+                            <option value="Travel/Transportation/Warehousing">Travel/Transportation/Warehousing</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        </div>
+                    </div>
+                </div>
+                </div>
             </div>
+
+            
         </div>
 
         <!-- STEP 2: COVERAGE TYPE -->
