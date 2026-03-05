@@ -91,6 +91,15 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// ── beforeunload: Save client history before page close/refresh ──
+window.addEventListener('beforeunload', () => {
+    try {
+        if (typeof App !== 'undefined' && App._saveClientHistoryNow) {
+            App._saveClientHistoryNow();
+        }
+    } catch (e) { /* best-effort — can't block unload */ }
+});
+
 window.onload = async () => {
     console.log('[Boot] window.onload fired');
 

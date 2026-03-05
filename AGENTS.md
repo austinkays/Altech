@@ -1,23 +1,23 @@
-﻿# AGENTS.md â€” Altech Field Lead: AI Agent Onboarding Guide
+# AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 7, 2026
+> **Last updated:** March 8, 2026
 > **For:** AI coding agents working on this codebase
-> **Version:** Comprehensive â€” read this before making ANY changes
+> **Version:** Comprehensive — read this before making ANY changes
 >
-> **âš ï¸ LIVING DOCUMENT:** This file, `.github/copilot-instructions.md`, and `QUICKREF.md` must be updated at the end of every work session. When you change code, update the docs to match â€” line counts, test counts, module descriptions, feature lists, and the `Last updated` date. Run `npm run audit-docs` to check for drift.
+> **⚠️ LIVING DOCUMENT:** This file, `.github/copilot-instructions.md`, and `QUICKREF.md` must be updated at the end of every work session. When you change code, update the docs to match — line counts, test counts, module descriptions, feature lists, and the `Last updated` date. Run `npm run audit-docs` to check for drift.
 
 ---
 
 ## 1. App Overview
 
-**Altech Field Lead** is a desktop-first insurance intake wizard for independent insurance agents. The core workflow: scan a policy document â†’ AI extracts data â†’ agent corrects the form â†’ save drafts â†’ export to HawkSoft (`.cmsmtf`), EZLynx (browser extension bridge), or PDF.
+**Altech Field Lead** is a desktop-first insurance intake wizard for independent insurance agents. The core workflow: scan a policy document → AI extracts data → agent corrects the form → save drafts → export to HawkSoft (`.cmsmtf`), EZLynx (browser extension bridge), or PDF.
 
 | Attribute | Value |
 |-----------|-------|
-| **Stack** | Vanilla HTML/CSS/JS SPA â€” no build step, no framework |
+| **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~665 lines) |
-| **CSS** | 21 files in `css/` (~14,593 lines total) |
-| **JS** | 35 modules in `js/` (~28,943 lines total) |
+| **CSS** | 21 files in `css/` (~15,752 lines total) |
+| **JS** | 35 modules in `js/` (~32,089 lines total) |
 | **Plugins** | 15 HTML templates in `plugins/` (~5,061 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
@@ -55,134 +55,134 @@ npm run deploy:vercel   # Production deploy
 
 ```
 /
-â”œâ”€â”€ index.html                  # SPA shell (665 lines) â€” CSS links, DOM skeleton, script tags
-â”œâ”€â”€ server.js                   # Local dev server (677 lines) â€” static + API proxy + local endpoints
-â”œâ”€â”€ vercel.json                 # Vercel config â€” function timeouts, rewrites, security headers, CSP
-â”œâ”€â”€ package.json                # ESM, scripts, 3 deps (ioredis, pdf-lib, stripe), 4 devDeps
-â”œâ”€â”€ jest.config.cjs             # Test config â€” node env, tests/ dir, coverage from index.html + api/ + lib/
-â”œâ”€â”€ firebase.json               # Firebase hosting config
-â”œâ”€â”€ firestore.rules             # Security rules (99 lines) â€” owner-only, admin guards, size limits
-â”œâ”€â”€ sw.js                       # Service worker
-â”‚
-â”œâ”€â”€ css/                        # 21 stylesheets (~15,280 lines)
-â”‚   â”œâ”€â”€ main.css                # â˜… Core styles + :root variables + desktop overhaul (3,454 lines) â€” THE source of truth
-â”‚   â”œâ”€â”€ theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
-â”‚   â”œâ”€â”€ sidebar.css             # Desktop/tablet/mobile sidebar layouts (765 lines)
-â”‚   â”œâ”€â”€ dashboard.css           # Bento grid dashboard widgets (1,026 lines)
-â”‚   â”œâ”€â”€ call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (1,202 lines)
-â”‚   â”œâ”€â”€ compliance.css          # CGL compliance dashboard (1,046 lines)
-â”‚   â”œâ”€â”€ auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
-â”‚   â”œâ”€â”€ reminders.css           # Task reminders (1,120 lines)
-â”‚   â”œâ”€â”€ intake-assist.css       # AI intake professional UI â€” enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
-â”‚   â”œâ”€â”€ ezlynx.css              # EZLynx export â€” standalone dark palette (590 lines)
-â”‚   â”œâ”€â”€ vin-decoder.css         # VIN decoder (600 lines)
-â”‚   â”œâ”€â”€ hawksoft.css            # HawkSoft export (555 lines)
-â”‚   â”œâ”€â”€ quote-compare.css       # Quote comparison tool (462 lines)
-â”‚   â”œâ”€â”€ onboarding.css          # First-run wizard (411 lines)
-â”‚   â”œâ”€â”€ admin.css               # Admin panel (300 lines)
-â”‚   â”œâ”€â”€ bug-report.css          # Bug reporter (227 lines)
-â”‚   â”œâ”€â”€ quickref.css            # Quick reference â€” teal accent (233 lines)
-â”‚   â”œâ”€â”€ security-info.css       # Security modal (217 lines)
-â”‚   â”œâ”€â”€ accounting.css          # Accounting export (225 lines)
-â”‚   â”œâ”€â”€ email.css               # Email composer â€” purple accent (165 lines)
-â”‚   â””â”€â”€ paywall.css             # Paywall modal (131 lines)
-â”‚
-â”œâ”€â”€ js/                         # 35 modules (~31,268 lines)
-â”‚   â”‚
-â”‚   â”‚  â˜… Core App (assembled via Object.assign into global `App`)
-â”‚   â”œâ”€â”€ app-init.js             # State init, toolConfig[], workflows (85 lines)
-â”‚   â”œâ”€â”€ app-core.js             # Form handling, save/load, updateUI, navigation, schema migration, syncPrimaryApplicantToDriver (2,219 lines)
-â”‚   â”œâ”€â”€ app-scan.js             # Policy document scanning, OCR, Gemini AI (1,585 lines)
-â”‚   â”œâ”€â”€ app-property.js         # Property analysis, maps, assessor data (1,728 lines)
-â”‚   â”œâ”€â”€ app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (816 lines)
-â”‚   â”œâ”€â”€ app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
-â”‚   â”œâ”€â”€ app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (963 lines)
-â”‚   â”œâ”€â”€ app-quotes.js           # Quote/draft management (757 lines)
-â”‚   â”œâ”€â”€ app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts (287 lines)
-â”‚   â”‚
-â”‚   â”‚  â˜… Infrastructure
-â”‚   â”œâ”€â”€ crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
-â”‚   â”œâ”€â”€ firebase-config.js      # Firebase app init (fetches config from /api/config)
-â”‚   â”œâ”€â”€ auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
-â”‚   â”œâ”€â”€ cloud-sync.js           # Firestore sync (8 doc types incl. glossary, conflict resolution, 651 lines)
-â”‚   â”œâ”€â”€ ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-â”‚   â”œâ”€â”€ dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs (976 lines)
-â”‚   â”‚
-â”‚   â”‚  â˜… Plugin Modules (IIFE or const pattern, each on window.ModuleName)
-â”‚   â”œâ”€â”€ coi.js                  # ACORD 25 COI PDF generator (789 lines)
-â”‚   â”œâ”€â”€ compliance-dashboard.js # CGL compliance tracker, 6-layer persistence (2,147 lines)
-â”‚   â”œâ”€â”€ email-composer.js       # AI email polisher, encrypted drafts (420 lines)
-â”‚   â”œâ”€â”€ ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
-â”‚   â”œâ”€â”€ hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
-â”‚   â”œâ”€â”€ intake-assist.js         # AI conversational intake, maps, progress ring (3,097 lines)
-â”‚   â”œâ”€â”€ policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
-â”‚   â”œâ”€â”€ prospect.js              # Commercial prospect investigation, risk scoring (1,859 lines)
-â”‚   â”œâ”€â”€ quick-ref.js             # NATO phonetic + agent ID cards (293 lines)
-â”‚   â”œâ”€â”€ quote-compare.js         # Quote comparison + AI recommendation (889 lines)
-â”‚   â”œâ”€â”€ reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (914 lines)
-â”‚   â”œâ”€â”€ vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
-â”‚   â”œâ”€â”€ accounting-export.js     # Trust deposit calculator, HawkSoft receipts (392 lines)
-â”‚   â”œâ”€â”€ call-logger.js          # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, clientâ†’policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,185 lines)
-â”‚   â”‚
-â”‚   â”‚  â˜… Support Modules
-â”‚   â”œâ”€â”€ onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
-â”‚   â”œâ”€â”€ paywall.js               # Stripe paywall (beta, disabled) (229 lines)
-â”‚   â”œâ”€â”€ admin-panel.js           # User management admin panel (246 lines)
-â”‚   â”œâ”€â”€ bug-report.js            # GitHub Issue bug reporter (260 lines)
-â”‚   â”œâ”€â”€ data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
-â”‚   â””â”€â”€ hawksoft-integration.js  # HawkSoft REST API client (261 lines)
-â”‚
-â”œâ”€â”€ plugins/                    # 15 HTML templates (~5,061 lines, loaded dynamically)
-â”‚   â”œâ”€â”€ quoting.html            # â˜… Main intake wizard â€” 7 steps, 1,926 lines
-â”‚   â”œâ”€â”€ ezlynx.html             # EZLynx rater form â€” 80+ fields, 1,077 lines
-â”‚   â”œâ”€â”€ coi.html                # ACORD 25 COI form (418 lines)
-â”‚   â”œâ”€â”€ prospect.html           # Commercial investigation UI (333 lines)
-â”‚   â”œâ”€â”€ accounting.html         # Accounting/deposit tools (252 lines)
-â”‚   â”œâ”€â”€ compliance.html         # CGL dashboard (206 lines)
-â”‚   â”œâ”€â”€ vin-decoder.html        # VIN decoder (141 lines)
-â”‚   â”œâ”€â”€ reminders.html          # Task manager (144 lines)
-â”‚   â”œâ”€â”€ intake-assist.html      # AI chat two-pane (152 lines)
-â”‚   â”œâ”€â”€ quotecompare.html       # Quote comparison (117 lines)
-â”‚   â”œâ”€â”€ email.html              # Email composer (98 lines)
-â”‚   â”œâ”€â”€ qna.html                # Policy Q&A chat (95 lines)
-â”‚   â”œâ”€â”€ quickref.html           # Quick reference cards (79 lines)
-â”‚   â”œâ”€â”€ call-logger.html        # HawkSoft Logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete + New Log button (135 lines)
-â”‚   â””â”€â”€ hawksoft.html           # HawkSoft export (21 lines â€” JS renders body)
-â”‚
-â”œâ”€â”€ api/                        # 12 serverless functions + 2 helpers (~6,210 lines) âš ï¸ Hobby plan MAX = 12 functions
-â”‚   â”œâ”€â”€ _ai-router.js           # â˜… Shared: multi-provider AI router (NOT an endpoint)
-â”‚   â”œâ”€â”€ config.js               # Firebase config, API keys, phonetics, bug reports
-â”‚   â”œâ”€â”€ policy-scan.js          # OCR document extraction via Gemini (260 lines)
-â”‚   â”œâ”€â”€ vision-processor.js     # Image/PDF analysis, DL scanning, aerial analysis (880 lines)
-â”‚   â”œâ”€â”€ property-intelligence.js # ArcGIS parcels, satellite AI, fire stations (1,247 lines)
-â”‚   â”œâ”€â”€ prospect-lookup.js      # Multi-source business investigation (1,563 lines)
-â”‚   â”œâ”€â”€ compliance.js           # HawkSoft API CGL policy fetcher + Redis cache + allClientsList + hawksoftPolicyId (478 lines)
-â”‚   â”œâ”€â”€ historical-analyzer.js  # AI property value/insurance trend analysis
-â”‚   â”œâ”€â”€ _rag-interpreter.js     # County assessor data â†’ insurance fields (helper, routed via property-intelligence)
-â”‚   â”œâ”€â”€ kv-store.js             # Per-user Redis KV store
-â”‚   â”œâ”€â”€ stripe.js               # Stripe checkout, portal, webhooks
-â”‚   â”œâ”€â”€ admin.js                # User management (admin only)
-â”‚   â”œâ”€â”€ anthropic-proxy.js      # CORS proxy for Anthropic API
-â”‚   â””â”€â”€ hawksoft-logger.js      # AI call note formatter + HawkSoft log push, CHANNEL_MAP (5 types with correct HawkSoft LogAction codes), two-step support, policy-level logging, initials post-processing, activityType voice guidance, Agency Glossary injection (291 lines)
-â”‚
-â”œâ”€â”€ chrome-extension/           # EZLynx bridge Chrome extension
-â”‚   â”œâ”€â”€ manifest.json
-â”‚   â”œâ”€â”€ popup.html / popup.js
-â”‚   â”œâ”€â”€ content.js / background.js
-â”‚   â”œâ”€â”€ altech-bridge.js
-â”‚   â”œâ”€â”€ property-scraper.js
-â”‚   â””â”€â”€ defaultSchema.js
-â”‚
-â”œâ”€â”€ tests/                      # Jest test suites
-â”‚   â”œâ”€â”€ setup.js                # Test env setup (mock fetch, suppress crypto errors)
-â”‚   â””â”€â”€ *.test.js               # 23 test files, 1455 tests
-â”‚
-â”œâ”€â”€ lib/                        # Shared server-side utilities
-â”œâ”€â”€ scripts/                    # Build/utility scripts
-â”œâ”€â”€ src-tauri/                  # Tauri desktop app (Rust)
-â”œâ”€â”€ python_backend/             # Python automation (Playwright HawkSoft, trust reports)
-â”œâ”€â”€ Resources/                  # Static assets
-â””â”€â”€ docs/                       # Architecture docs, roadmaps, guides
+├── index.html                  # SPA shell (665 lines) — CSS links, DOM skeleton, script tags
+├── server.js                   # Local dev server (677 lines) — static + API proxy + local endpoints
+├── vercel.json                 # Vercel config — function timeouts, rewrites, security headers, CSP
+├── package.json                # ESM, scripts, 3 deps (ioredis, pdf-lib, stripe), 4 devDeps
+├── jest.config.cjs             # Test config — node env, tests/ dir, coverage from index.html + api/ + lib/
+├── firebase.json               # Firebase hosting config
+├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
+├── sw.js                       # Service worker
+│
+├── css/                        # 21 stylesheets (~15,752 lines)
+│   ├── main.css                # ★ Core styles + :root variables + desktop overhaul + Save button (3,486 lines) — THE source of truth
+│   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
+│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (765 lines)
+│   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
+│   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (1,202 lines)
+│   ├── compliance.css          # CGL compliance dashboard (1,046 lines)
+│   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
+│   ├── reminders.css           # Task reminders (1,120 lines)
+│   ├── intake-assist.css       # AI intake professional UI — enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
+│   ├── ezlynx.css              # EZLynx export — standalone dark palette (590 lines)
+│   ├── vin-decoder.css         # VIN decoder (600 lines)
+│   ├── hawksoft.css            # HawkSoft export (555 lines)
+│   ├── quote-compare.css       # Quote comparison tool (462 lines)
+│   ├── onboarding.css          # First-run wizard (411 lines)
+│   ├── admin.css               # Admin panel (300 lines)
+│   ├── bug-report.css          # Bug reporter (227 lines)
+│   ├── quickref.css            # Quick reference — teal accent (233 lines)
+│   ├── security-info.css       # Security modal (217 lines)
+│   ├── accounting.css          # Accounting export (225 lines)
+│   ├── email.css               # Email composer — purple accent (165 lines)
+│   └── paywall.css             # Paywall modal (131 lines)
+│
+├── js/                         # 35 modules (~32,089 lines)
+│   │
+│   │  ★ Core App (assembled via Object.assign into global `App`)
+│   ├── app-init.js             # State init, toolConfig[], workflows (85 lines)
+│   ├── app-core.js             # Form handling, save/load, updateUI, navigation, schema migration, syncPrimaryApplicantToDriver, aggressive auto-save (2,475 lines)
+│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,585 lines)
+│   ├── app-property.js         # Property analysis, maps, assessor data (1,728 lines)
+│   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (816 lines)
+│   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
+│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (963 lines)
+│   ├── app-quotes.js           # Quote/draft management, client history auto-save (762 lines)
+│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net (295 lines)
+│   │
+│   │  ★ Infrastructure
+│   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
+│   ├── firebase-config.js      # Firebase app init (fetches config from /api/config)
+│   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
+│   ├── cloud-sync.js           # Firestore sync (8 doc types incl. glossary, conflict resolution, 651 lines)
+│   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs (976 lines)
+│   │
+│   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
+│   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
+│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence (2,147 lines)
+│   ├── email-composer.js       # AI email polisher, encrypted drafts (420 lines)
+│   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
+│   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
+│   ├── intake-assist.js         # AI conversational intake, maps, progress ring (3,097 lines)
+│   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
+│   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,859 lines)
+│   ├── quick-ref.js             # NATO phonetic + agent ID cards (293 lines)
+│   ├── quote-compare.js         # Quote comparison + AI recommendation (889 lines)
+│   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (914 lines)
+│   ├── vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
+│   ├── accounting-export.js     # Trust deposit calculator, HawkSoft receipts (392 lines)
+│   ├── call-logger.js          # HawkSoft Logger � two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,185 lines)
+│   │
+│   │  ★ Support Modules
+│   ├── onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
+│   ├── paywall.js               # Stripe paywall (beta, disabled) (229 lines)
+│   ├── admin-panel.js           # User management admin panel (246 lines)
+│   ├── bug-report.js            # GitHub Issue bug reporter (260 lines)
+│   ├── data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
+│   └── hawksoft-integration.js  # HawkSoft REST API client (261 lines)
+│
+├── plugins/                    # 15 HTML templates (~5,061 lines, loaded dynamically)
+│   ├── quoting.html            # ★ Main intake wizard — 7 steps, 1,926 lines
+│   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
+│   ├── coi.html                # ACORD 25 COI form (418 lines)
+│   ├── prospect.html           # Commercial investigation UI (333 lines)
+│   ├── accounting.html         # Accounting/deposit tools (252 lines)
+│   ├── compliance.html         # CGL dashboard (206 lines)
+│   ├── vin-decoder.html        # VIN decoder (141 lines)
+│   ├── reminders.html          # Task manager (144 lines)
+│   ├── intake-assist.html      # AI chat two-pane (152 lines)
+│   ├── quotecompare.html       # Quote comparison (117 lines)
+│   ├── email.html              # Email composer (98 lines)
+│   ├── qna.html                # Policy Q&A chat (95 lines)
+│   ├── quickref.html           # Quick reference cards (79 lines)
+│   ├── call-logger.html        # HawkSoft Logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete + New Log button (135 lines)
+│   └── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
+│
+├── api/                        # 12 serverless functions + 2 helpers (~6,210 lines) ⚠️ Hobby plan MAX = 12 functions
+│   ├── _ai-router.js           # ★ Shared: multi-provider AI router (NOT an endpoint)
+│   ├── config.js               # Firebase config, API keys, phonetics, bug reports
+│   ├── policy-scan.js          # OCR document extraction via Gemini (260 lines)
+│   ├── vision-processor.js     # Image/PDF analysis, DL scanning, aerial analysis (880 lines)
+│   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations (1,247 lines)
+│   ├── prospect-lookup.js      # Multi-source business investigation (1,563 lines)
+│   ├── compliance.js           # HawkSoft API CGL policy fetcher + Redis cache + allClientsList + hawksoftPolicyId (478 lines)
+│   ├── historical-analyzer.js  # AI property value/insurance trend analysis
+│   ├── _rag-interpreter.js     # County assessor data → insurance fields (helper, routed via property-intelligence)
+│   ├── kv-store.js             # Per-user Redis KV store
+│   ├── stripe.js               # Stripe checkout, portal, webhooks
+│   ├── admin.js                # User management (admin only)
+│   ├── anthropic-proxy.js      # CORS proxy for Anthropic API
+│   └── hawksoft-logger.js      # AI call note formatter + HawkSoft log push, CHANNEL_MAP (5 types with correct HawkSoft LogAction codes), two-step support, policy-level logging, initials post-processing, activityType voice guidance, Agency Glossary injection (291 lines)
+│
+├── chrome-extension/           # EZLynx bridge Chrome extension
+│   ├── manifest.json
+│   ├── popup.html / popup.js
+│   ├── content.js / background.js
+│   ├── altech-bridge.js
+│   ├── property-scraper.js
+│   └── defaultSchema.js
+│
+├── tests/                      # Jest test suites
+│   ├── setup.js                # Test env setup (mock fetch, suppress crypto errors)
+│   └── *.test.js               # 23 test files, 1455 tests
+│
+├── lib/                        # Shared server-side utilities
+├── scripts/                    # Build/utility scripts
+├── src-tauri/                  # Tauri desktop app (Rust)
+├── python_backend/             # Python automation (Playwright HawkSoft, trust reports)
+├── Resources/                  # Static assets
+└── docs/                       # Architecture docs, roadmaps, guides
 ```
 
 ---
@@ -248,13 +248,13 @@ All CSS variables are defined in `css/main.css`. There are **24 variables in `:r
 
 #### Professional Theme (`body.theme-pro`)
 
-Defined in `css/theme-professional.css` â€” a permanently dark OLED-black theme. Overrides the same variables as `body.dark-mode` but with slightly different values (e.g., `--text: #F5F5F7`, `--success: #30D158`).
+Defined in `css/theme-professional.css` — a permanently dark OLED-black theme. Overrides the same variables as `body.dark-mode` but with slightly different values (e.g., `--text: #F5F5F7`, `--success: #30D158`).
 
-### 3.2 Variable Naming â€” CRITICAL RULES
+### 3.2 Variable Naming — CRITICAL RULES
 
 **These variable names DO NOT EXIST and MUST NEVER be used:**
 
-| âŒ Wrong | âœ… Correct |
+| ❌ Wrong | ✅ Correct |
 |----------|-----------|
 | `--card` | `--bg-card` |
 | `--card-bg` | `--bg-card` |
@@ -271,7 +271,7 @@ Defined in `css/theme-professional.css` â€” a permanently dark OLED-black t
 The **correct** dark mode selector is `body.dark-mode .your-class`.
 
 **Known legacy bugs (still present in codebase):**
-- `main.css` uses `.dark-mode .carrier-ac-list` etc. (missing `body` prefix) â€” works due to specificity but is inconsistent
+- `main.css` uses `.dark-mode .carrier-ac-list` etc. (missing `body` prefix) — works due to specificity but is inconsistent
 - `ezlynx.css` uses `.dark-mode .ez-toolbar-btn.send-hero`
 - `hawksoft.css` uses `.dark-mode .hs-client-picker`
 
@@ -298,29 +298,29 @@ These CSS files have zero `body.dark-mode` overrides: `vin-decoder.css`, `quote-
 ### 3.6 Off-System Color Palettes
 
 Some plugins use their own hardcoded color palettes instead of the design system:
-- **ezlynx.css** â€” Standalone dark glassmorphism with slate/sky (`#64748b`, `#94a3b8`, `#38bdf8`)
-- **quickref.css** â€” Teal accent (`#0d9488`, `#0f766e`)
-- **email.css** â€” Purple accent (`#7c3aed`, `#6d28d9`)
-- **compliance.css** â€” Mixed slate/blue for type badges
+- **ezlynx.css** — Standalone dark glassmorphism with slate/sky (`#64748b`, `#94a3b8`, `#38bdf8`)
+- **quickref.css** — Teal accent (`#0d9488`, `#0f766e`)
+- **email.css** — Purple accent (`#7c3aed`, `#6d28d9`)
+- **compliance.css** — Mixed slate/blue for type badges
 
 ---
 
 ## 4. JavaScript Architecture
 
-### 4.1 Global `App` Object â€” Assembly Pattern
+### 4.1 Global `App` Object — Assembly Pattern
 
 The core app state lives on `window.App`. It is built incrementally across 9 files via `Object.assign(App, { ... })`:
 
 ```
-app-init.js      â†’  App = { data, step, flow, storageKey, ... }
-app-core.js      â†’  Object.assign(App, { save, load, updateUI, navigateTo, ... })
-app-scan.js      â†’  Object.assign(App, { processScan, openScanPicker, ... })
-app-property.js  â†’  Object.assign(App, { smartAutoFill, openPropertyRecords, ... })
-app-vehicles.js  â†’  Object.assign(App, { renderDrivers, renderVehicles, scanDL, ... })
-app-popups.js    â†’  Object.assign(App, { processImage, analyzeAerial, detectHazards, ... })
-app-export.js    â†’  Object.assign(App, { exportPDF, exportText, exportCMSMTF, ... })
-app-quotes.js    â†’  Object.assign(App, { saveAsQuote, loadQuote, renderQuotesList, ... })
-app-boot.js      â†’  Object.assign(App, { boot })  +  calls App.boot()
+app-init.js      →  App = { data, step, flow, storageKey, ... }
+app-core.js      →  Object.assign(App, { save, load, updateUI, navigateTo, ... })
+app-scan.js      →  Object.assign(App, { processScan, openScanPicker, ... })
+app-property.js  →  Object.assign(App, { smartAutoFill, openPropertyRecords, ... })
+app-vehicles.js  →  Object.assign(App, { renderDrivers, renderVehicles, scanDL, ... })
+app-popups.js    →  Object.assign(App, { processImage, analyzeAerial, detectHazards, ... })
+app-export.js    →  Object.assign(App, { exportPDF, exportText, exportCMSMTF, ... })
+app-quotes.js    →  Object.assign(App, { saveAsQuote, loadQuote, renderQuotesList, ... })
+app-boot.js      →  Object.assign(App, { boot })  +  calls App.boot()
 ```
 
 **Script load order matters.** `app-init.js` must load first (creates `window.App`), `app-boot.js` must load last (runs boot sequence). The order of everything in between doesn't matter as long as they all load before `app-boot.js`.
@@ -353,19 +353,19 @@ CDN Libraries (defer):
   pdf-lib.min.js
 
 Core App (order-dependent):
-  1. crypto-helper.js        â† CryptoHelper (used by many)
-  2. app-init.js             â† Creates window.App
-  3. app-core.js             â† App.save(), App.load(), App.updateUI()
-  4. app-scan.js             â† App.processScan()
-  5. app-property.js         â† App.smartAutoFill()
-  6. app-vehicles.js         â† App.renderDrivers()
-  7. app-popups.js           â† App.processImage()
-  8. app-export.js           â† App.exportPDF(), App.exportCMSMTF()
-  9. app-quotes.js           â† App.saveAsQuote()
+  1. crypto-helper.js        ← CryptoHelper (used by many)
+  2. app-init.js             ← Creates window.App
+  3. app-core.js             ← App.save(), App.load(), App.updateUI()
+  4. app-scan.js             ← App.processScan()
+  5. app-property.js         ← App.smartAutoFill()
+  6. app-vehicles.js         ← App.renderDrivers()
+  7. app-popups.js           ← App.processImage()
+  8. app-export.js           ← App.exportPDF(), App.exportCMSMTF()
+  9. app-quotes.js           ← App.saveAsQuote()
 
 Standalone Modules (order-independent):
-  10. ai-provider.js         â† window.AIProvider
-  11. dashboard-widgets.js   â† window.DashboardWidgets
+  10. ai-provider.js         ← window.AIProvider
+  11. dashboard-widgets.js   ← window.DashboardWidgets
 
 Plugin Modules (order-independent among themselves):
   12-25. coi, prospect, quick-ref, accounting-export, compliance-dashboard,
@@ -374,13 +374,13 @@ Plugin Modules (order-independent among themselves):
 
 Support Modules (load after plugins):
   26. bug-report.js
-  27. firebase-config.js     â† Must precede auth.js
-  28. auth.js                â† Must precede cloud-sync.js
+  27. firebase-config.js     ← Must precede auth.js
+  28. auth.js                ← Must precede cloud-sync.js
   29. admin-panel.js
   30. cloud-sync.js
   31. paywall.js
   32. onboarding.js
-  33. app-boot.js            â† â˜… MUST BE LAST â€” runs boot()
+  33. app-boot.js            ← ★ MUST BE LAST — runs boot()
 ```
 
 ### 4.4 Cross-File Dependencies
@@ -405,26 +405,26 @@ Support Modules (load after plugins):
 - **Key derivation:** PBKDF2 from a per-device salt stored in `localStorage.altech_encryption_salt`
 - **Encrypted data format:** JSON string `{ iv, salt, data }` (all base64-encoded)
 - **What's encrypted:** `altech_v6` (form data), `altech_v6_quotes` (drafts), email drafts, scan data, driver/vehicle lists
-- **âš ï¸ JSDOM lacks `crypto.subtle`** â€” tests suppress encryption errors; encrypted fields return `null` in test environments
+- **⚠️ JSDOM lacks `crypto.subtle`** — tests suppress encryption errors; encrypted fields return `null` in test environments
 
 ### 4.6 Three Workflows
 
 | Workflow | Steps | Skip |
 |----------|-------|------|
-| `home` | 0 â†’ 1 â†’ 2 â†’ 3 â†’ 5 â†’ 6 | Step 4 (vehicles) |
-| `auto` | 0 â†’ 1 â†’ 2 â†’ 4 â†’ 5 â†’ 6 | Step 3 (property) |
-| `both` | 0 â†’ 1 â†’ 2 â†’ 3 â†’ 4 â†’ 5 â†’ 6 | Nothing |
+| `home` | 0 → 1 → 2 → 3 → 5 → 6 | Step 4 (vehicles) |
+| `auto` | 0 → 1 → 2 → 4 → 5 → 6 | Step 3 (property) |
+| `both` | 0 → 1 → 2 → 3 → 4 → 5 → 6 | Nothing |
 
 Steps: 0=Policy Scan, 1=Applicant Info, 2=Address, 3=Property Details, 4=Vehicles & Drivers, 5=Coverage, 6=Review & Export
 
 ### 4.7 Navigation System
 
 `App.navigateTo(toolKey)` handles all navigation:
-1. `toolKey === 'dashboard'` â†’ show dashboard, hide plugins
-2. `toolKey === 'quoting'` â†’ show quoting wizard at current step
-3. Other keys â†’ find tool in `toolConfig[]`, lazy-load HTML, call `init()`
+1. `toolKey === 'dashboard'` → show dashboard, hide plugins
+2. `toolKey === 'quoting'` → show quoting wizard at current step
+3. Other keys → find tool in `toolConfig[]`, lazy-load HTML, call `init()`
 
-URL hash routing: `#tool/toolKey` â†’ `navigateTo(toolKey)`. Back button support via `popstate`.
+URL hash routing: `#tool/toolKey` → `navigateTo(toolKey)`. Back button support via `popstate`.
 
 ---
 
@@ -432,7 +432,7 @@ URL hash routing: `#tool/toolKey` â†’ `navigateTo(toolKey)`. Back button su
 
 ### 5.1 Field ID = Storage Key (CRITICAL)
 
-Every `<input id="fieldName">` in `plugins/quoting.html` auto-syncs to `App.data.fieldName`. **Renaming an `id` attribute breaks data persistence for all existing users.** If a field must be renamed, you need a migration in `App.load()` that copies old key â†’ new key.
+Every `<input id="fieldName">` in `plugins/quoting.html` auto-syncs to `App.data.fieldName`. **Renaming an `id` attribute breaks data persistence for all existing users.** If a field must be renamed, you need a migration in `App.load()` that copies old key → new key.
 
 ### 5.2 Cross-File Function Dependencies
 
@@ -440,7 +440,7 @@ Every `<input id="fieldName">` in `plugins/quoting.html` auto-syncs to `App.data
 
 ### 5.3 Encryption Bypass Risk
 
-`App.setFieldValue(id, value)` used to write directly to localStorage via `safeSave()`, bypassing `CryptoHelper`. This was fixed â€” it now calls `this.save()` â€” but watch for any new code that writes to `altech_v6` directly instead of going through `App.save()`.
+`App.setFieldValue(id, value)` used to write directly to localStorage via `safeSave()`, bypassing `CryptoHelper`. This was fixed — it now calls `this.save()` — but watch for any new code that writes to `altech_v6` directly instead of going through `App.save()`.
 
 ### 5.4 Canvas/ImageBitmap Memory Leaks
 
@@ -448,7 +448,7 @@ Every `<input id="fieldName">` in `plugins/quoting.html` auto-syncs to `App.data
 
 ### 5.5 Save Race Condition
 
-`App.save()` is debounced and protected with a `_saving` lock and `saveToken` sequence number. Any new code that saves must go through `App.save()` â€” never write to the storage key directly.
+`App.save()` is debounced and protected with a `_saving` lock and `saveToken` sequence number. Any new code that saves must go through `App.save()` — never write to the storage key directly.
 
 ### 5.6 Firebase Compat SDK
 
@@ -469,21 +469,21 @@ Tests run in JSDOM, which lacks:
 
 ### 5.9 Stale CSS Issues Still Present
 
-- 7 CSS files have no dark mode overrides at all (see Â§3.5)
-- 3 CSS files use legacy `.dark-mode` instead of `body.dark-mode` (see Â§3.3)
-- 4 plugins use their own hardcoded color palettes (see Â§3.6)
+- 7 CSS files have no dark mode overrides at all (see §3.5)
+- 3 CSS files use legacy `.dark-mode` instead of `body.dark-mode` (see §3.3)
+- 4 plugins use their own hardcoded color palettes (see §3.6)
 
-### 5.10 Vercel Hobby Plan â€” 12 Serverless Function Limit (CRITICAL)
+### 5.10 Vercel Hobby Plan — 12 Serverless Function Limit (CRITICAL)
 
-**Vercel's Hobby plan allows a maximum of 12 Serverless Functions per deployment.** Exceeding this causes the entire deployment to fail with "No more than 12 Serverless Functions can be added to a Deployment on the Hobby plan" â€” which means ALL API endpoints return 404 in production, not just the new one.
+**Vercel's Hobby plan allows a maximum of 12 Serverless Functions per deployment.** Exceeding this causes the entire deployment to fail with "No more than 12 Serverless Functions can be added to a Deployment on the Hobby plan" — which means ALL API endpoints return 404 in production, not just the new one.
 
 **Current count: 12 functions (at the limit).** Any new API endpoint MUST either:
 1. **Consolidate into an existing function** using query-parameter routing (e.g., `?mode=newFeature` or `?type=newFeature`)
 2. **Convert an existing function to a helper** by prefixing with `_` (e.g., `_helper.js`) and importing it from another function
 
-**Files prefixed with `_` in `api/` are Vercel helpers** â€” they are NOT counted as serverless functions and NOT deployed as endpoints. Currently: `_ai-router.js` (shared AI router) and `_rag-interpreter.js` (routed via `property-intelligence.js?mode=rag-interpret`).
+**Files prefixed with `_` in `api/` are Vercel helpers** — they are NOT counted as serverless functions and NOT deployed as endpoints. Currently: `_ai-router.js` (shared AI router) and `_rag-interpreter.js` (routed via `property-intelligence.js?mode=rag-interpret`).
 
-**Before adding any new file to `api/`:** Count non-`_` files: `ls api/ | grep -v '^_' | wc -l` â€” must be â‰¤ 12.
+**Before adding any new file to `api/`:** Count non-`_` files: `ls api/ | grep -v '^_' | wc -l` — must be ≤ 12.
 
 ### 5.11 HawkSoft REST API Integration Gotchas (CRITICAL)
 
@@ -492,17 +492,17 @@ The HawkSoft Logger pushes log notes to HawkSoft via `api/hawksoft-logger.js`. S
 | Gotcha | Wrong | Correct |
 |--------|-------|---------|
 | **Log endpoint URL** | `/clients/{id}/logNotes` | `/client/{id}/log` (singular, different path) |
-| **Channel field name** | `"action": 1` | `"channel": 1` â€” API returns "Invalid Channel" if wrong |
+| **Channel field name** | `"action": 1` | `"channel": 1` — API returns "Invalid Channel" if wrong |
 | **Phone channel codes** | `29` / `30` (don't exist) | `1` = Phone To Insured, `5` = Phone From Insured |
 | **Walk-In/Email/Text codes** | `2` / `3` / `4` (were Phone To Carrier/Staff/3rd Party) | `21` = Walk In To Insured, `33` = Email To Insured, `41` = Text To Insured (LogAction groups of 8: Phone 1-8, Mail 9-16, Walk In 17-24, Online 25-32, Email 33-40, Text 41-48, Chat 49-56) |
-| **clientNumber type** | Numeric (from API) | Must call `String()` before `.trim()` â€” crashes otherwise |
+| **clientNumber type** | Numeric (from API) | Must call `String()` before `.trim()` — crashes otherwise |
 | **Policy-level logging** | Omit `policyId` | Include `policyId` (HawkSoft internal GUID) in body to link log to specific policy |
 | **Required body fields** | `{ note, action }` | `{ refId: "UUID", ts: "ISO-timestamp", channel: <number>, note: "text" }` |
 
-**âš ï¸ `docs/technical/HAWKSOFT_API_ANALYSIS.md` endpoint #7 is WRONG** â€” it says `"action": 29` but the real API expects `"channel"`. The receipts endpoint (#9) correctly shows `"channel"`.
+**⚠️ `docs/technical/HAWKSOFT_API_ANALYSIS.md` endpoint #7 is WRONG** — it says `"action": 29` but the real API expects `"channel"`. The receipts endpoint (#9) correctly shows `"channel"`.
 
 **Data pipeline for `hawksoftPolicyId`:**
-`api/compliance.js` (extracts `policy.id` from HawkSoft API) â†’ cached in `allPolicies[]` â†’ `js/call-logger.js` (threads through `_selectedPolicy` â†’ format request â†’ `_pendingLog` â†’ confirm request) â†’ `api/hawksoft-logger.js` (includes as `policyId` in HawkSoft body when present).
+`api/compliance.js` (extracts `policy.id` from HawkSoft API) → cached in `allPolicies[]` → `js/call-logger.js` (threads through `_selectedPolicy` → format request → `_pendingLog` → confirm request) → `api/hawksoft-logger.js` (includes as `policyId` in HawkSoft body when present).
 
 ---
 
@@ -511,21 +511,21 @@ The HawkSoft Logger pushes log notes to HawkSoft via `api/hawksoft-logger.js`. S
 ### 6.1 Firestore Rules
 
 ```
-users/{userId}           â†’ owner CRUD, admin can read + set isAdmin/isBlocked
-users/{userId}/sync/{docType} â†’ owner CRUD (except subscription â€” read-only)
-users/{userId}/quotes/{quoteId} â†’ owner CRUD, 1MB size limit
-/{everything-else}       â†’ deny all
+users/{userId}           → owner CRUD, admin can read + set isAdmin/isBlocked
+users/{userId}/sync/{docType} → owner CRUD (except subscription — read-only)
+users/{userId}/quotes/{quoteId} → owner CRUD, 1MB size limit
+/{everything-else}       → deny all
 ```
 
 **Guard functions:** `isAuthenticated()`, `isOwner(userId)`, `hasOnlyAllowedFields(allowedFields)`, `isReasonableSize()` (< 1MB), `isPaidSubscriber(userId)`
 
-**Admin fields:** `isAdmin` and `isBlocked` on `users/{userId}` doc â€” can only be set by admins, never by the user themselves.
+**Admin fields:** `isAdmin` and `isBlocked` on `users/{userId}` doc — can only be set by admins, never by the user themselves.
 
 ### 6.2 API Security
 
 All serverless functions use one of two middleware patterns:
-- **`securityMiddleware`** â€” Basic security checks (CORS, method validation, origin check)
-- **`requireAuth`** â€” Firebase token verification + UID extraction
+- **`securityMiddleware`** — Basic security checks (CORS, method validation, origin check)
+- **`requireAuth`** — Firebase token verification + UID extraction
 
 API functions that require authentication: `config?type=keys`, `kv-store`, `stripe`, `admin`, `anthropic-proxy`, `prospect-lookup?type=ai-analysis`
 
@@ -551,35 +551,35 @@ Client-side AES-256-GCM encryption for sensitive localStorage data. Per-device k
 
 | Key | What | Encrypted | Cloud Synced | Module |
 |-----|------|:---------:|:------------:|--------|
-| `altech_v6` | Form data (all fields) | âœ… | âœ… | App (core) |
-| `altech_v6_quotes` | Saved quote drafts | âœ… | âœ… | App (quotes) |
-| `altech_v6_docintel` | Document intel results | âŒ | âŒ | App |
-| `altech_cgl_state` | CGL annotations | âŒ | âœ… | ComplianceDashboard |
-| `altech_cgl_cache` | CGL policy cache | âŒ | âŒ | ComplianceDashboard |
-| `altech_quickref_cards` | Quick ref cards | âŒ | âœ… | QuickRef |
-| `altech_reminders` | Task reminders | âŒ | âœ… | Reminders |
-| `altech_client_history` | Client history | âŒ | âœ… | App |
-| `altech_dark_mode` | Dark mode pref | âŒ | âœ… | App (settings) |
-| `altech_coi_draft` | COI form draft | âŒ | âŒ | COI |
-| `altech_email_drafts` | Email drafts | âœ… | âŒ | EmailComposer |
-| `altech_acct_vault` | Accounting passwords | âŒ | âŒ | AccountingExport |
-| `altech_acct_history` | Accounting export history | âŒ | âŒ | AccountingExport |
-| `altech_saved_prospects` | Saved prospect reports | âŒ | âŒ | ProspectInvestigator |
-| `altech_vin_history` | VIN decode history (max 20) | âŒ | âŒ | VinDecoder |
-| `altech_v6_qna` | Q&A chat state | âŒ | âŒ | PolicyQA |
-| `altech_v6_quote_comparisons` | Quote comparisons (max 20) | âŒ | âŒ | QuoteCompare |
-| `altech_intake_assist` | Intake chat state | âŒ | âŒ | IntakeAssist |
-| `altech_hawksoft_settings` | HawkSoft export prefs | âŒ | âŒ | HawkSoftExport |
-| `altech_hawksoft_history` | HawkSoft export history | âŒ | âŒ | HawkSoftExport |
-| `altech_ezlynx_formdata` | EZLynx form data | âŒ | âŒ | EZLynxTool |
-| `altech_ezlynx_incidents` | EZLynx incidents | âŒ | âŒ | EZLynxTool |
-| `altech_onboarded` | Onboarding complete flag | âŒ | âŒ | Onboarding |
-| `altech_user_name` | User's name | âŒ | âŒ | Onboarding |
-| `altech_agency_profile` | Agency profile | âŒ | âŒ | Onboarding |
-| `altech_agency_glossary` | Agency shorthand glossary (max 500 chars) | ❌ | ✅ | CallLogger / Settings |
-| `altech_encryption_salt` | PBKDF2 salt | âŒ | âŒ | CryptoHelper |
-| `altech_sync_meta` | Sync metadata | âŒ | âŒ | CloudSync |
-| `gemini_api_key` | User's Gemini key | âŒ | âŒ | Multiple plugins |
+| `altech_v6` | Form data (all fields) | ✅ | ✅ | App (core) |
+| `altech_v6_quotes` | Saved quote drafts | ✅ | ✅ | App (quotes) |
+| `altech_v6_docintel` | Document intel results | ❌ | ❌ | App |
+| `altech_cgl_state` | CGL annotations | ❌ | ✅ | ComplianceDashboard |
+| `altech_cgl_cache` | CGL policy cache | ❌ | ❌ | ComplianceDashboard |
+| `altech_quickref_cards` | Quick ref cards | ❌ | ✅ | QuickRef |
+| `altech_reminders` | Task reminders | ❌ | ✅ | Reminders |
+| `altech_client_history` | Client history | ❌ | ✅ | App |
+| `altech_dark_mode` | Dark mode pref | ❌ | ✅ | App (settings) |
+| `altech_coi_draft` | COI form draft | ❌ | ❌ | COI |
+| `altech_email_drafts` | Email drafts | ✅ | ❌ | EmailComposer |
+| `altech_acct_vault` | Accounting passwords | ❌ | ❌ | AccountingExport |
+| `altech_acct_history` | Accounting export history | ❌ | ❌ | AccountingExport |
+| `altech_saved_prospects` | Saved prospect reports | ❌ | ❌ | ProspectInvestigator |
+| `altech_vin_history` | VIN decode history (max 20) | ❌ | ❌ | VinDecoder |
+| `altech_v6_qna` | Q&A chat state | ❌ | ❌ | PolicyQA |
+| `altech_v6_quote_comparisons` | Quote comparisons (max 20) | ❌ | ❌ | QuoteCompare |
+| `altech_intake_assist` | Intake chat state | ❌ | ❌ | IntakeAssist |
+| `altech_hawksoft_settings` | HawkSoft export prefs | ❌ | ❌ | HawkSoftExport |
+| `altech_hawksoft_history` | HawkSoft export history | ❌ | ❌ | HawkSoftExport |
+| `altech_ezlynx_formdata` | EZLynx form data | ❌ | ❌ | EZLynxTool |
+| `altech_ezlynx_incidents` | EZLynx incidents | ❌ | ❌ | EZLynxTool |
+| `altech_onboarded` | Onboarding complete flag | ❌ | ❌ | Onboarding |
+| `altech_user_name` | User's name | ❌ | ❌ | Onboarding |
+| `altech_agency_profile` | Agency profile | ❌ | ❌ | Onboarding |
+| `altech_agency_glossary` | Agency shorthand glossary (max 500 chars) | ? | ? | CallLogger / Settings |
+| `altech_encryption_salt` | PBKDF2 salt | ❌ | ❌ | CryptoHelper |
+| `altech_sync_meta` | Sync metadata | ❌ | ❌ | CloudSync |
+| `gemini_api_key` | User's Gemini key | ❌ | ❌ | Multiple plugins |
 
 ### 7.2 Form Data Shape (`altech_v6`)
 
@@ -630,20 +630,20 @@ KEY RULES:
    --apple-blue (not --accent), --text-secondary (not --muted), --bg-input (not --input-bg),
    --border (not --border-color/--border-light). Check css/main.css :root for truth.
 2. Dark mode: Use `body.dark-mode .class` selector (not [data-theme="dark"])
-3. Field IDs are storage keys â€” NEVER rename an input id without a migration
-4. All form writes go through App.save() â€” never write to altech_v6 directly
+3. Field IDs are storage keys — NEVER rename an input id without a migration
+4. All form writes go through App.save() — never write to altech_v6 directly
 5. After localStorage writes on synced data, call CloudSync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
-7. App is built via Object.assign(App, {...}) across 9 files â€” app-boot.js loads LAST
+7. App is built via Object.assign(App, {...}) across 9 files — app-boot.js loads LAST
 8. Test with: npm test (1455 tests, all must pass)
-9. No build step â€” edit files, reload browser
+9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, update AGENTS.md, .github/copilot-instructions.md, and
-    QUICKREF.md â€” line counts, test counts, descriptions, date. Run: npm run audit-docs
-12. ALWAYS keep changes â€” never leave edits pending user confirmation
-13. ALWAYS commit & push when finishing a task â€” stage all files, commit, git push
+    QUICKREF.md — line counts, test counts, descriptions, date. Run: npm run audit-docs
+12. ALWAYS keep changes — never leave edits pending user confirmation
+13. ALWAYS commit & push when finishing a task — stage all files, commit, git push
 14. Vercel Hobby plan: MAX 12 serverless functions. Never add a new api/ file without
-    checking the count. Use ?mode= routing or _ prefix helpers to consolidate. See Â§5.10
+    checking the count. Use ?mode= routing or _ prefix helpers to consolidate. See §5.10
 ```
 
 ---
@@ -652,48 +652,48 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` â†’ 23 suites, 1455 tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 23 suites, 1455 tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements
-- [ ] **Three workflows tested:** Set `qType` to `home`, `auto`, `both` â€” step through each
-- [ ] **Three exports tested:** Export as PDF, CMSMTF, and XML (if applicable) â€” check all fields populate
+- [ ] **Three workflows tested:** Set `qType` to `home`, `auto`, `both` — step through each
+- [ ] **Three exports tested:** Export as PDF, CMSMTF, and XML (if applicable) — check all fields populate
 - [ ] **Mobile tested:** Resize to 375px width, check no horizontal overflow
-- [ ] **Encryption intact:** `App.save()` â†’ check `altech_v6` in localStorage is encrypted JSON, not plaintext
+- [ ] **Encryption intact:** `App.save()` → check `altech_v6` in localStorage is encrypted JSON, not plaintext
 - [ ] **Cloud sync:** Sign in, make a change, verify `CloudSync.schedulePush()` fires (3s debounce)
 - [ ] **Field IDs unchanged:** No input `id` attributes were renamed without migration code
-- [ ] **No hardcoded API keys:** Search for API key strings â€” they should be in env vars only
+- [ ] **No hardcoded API keys:** Search for API key strings — they should be in env vars only
 - [ ] **XSS check:** Any user/AI-generated content displayed in HTML uses `escapeHTML()` or equivalent
 - [ ] **Memory check:** Open DevTools Memory tab, run scan/analyze flow, verify no canvas/ImageBitmap leaks
-- [ ] **Serverless function count â‰¤ 12:** Count non-`_` files in `api/` â€” Vercel Hobby plan max is 12. If over, consolidate via `?mode=` routing or `_` prefix helper pattern (see Â§5.10)
-- [ ] **Docs updated:** Run `npm run audit-docs` â€” fix any stale line counts, test counts, or descriptions in AGENTS.md, .github/copilot-instructions.md, and QUICKREF.md. Update the `Last updated` date.
+- [ ] **Serverless function count ≤ 12:** Count non-`_` files in `api/` — Vercel Hobby plan max is 12. If over, consolidate via `?mode=` routing or `_` prefix helper pattern (see §5.10)
+- [ ] **Docs updated:** Run `npm run audit-docs` — fix any stale line counts, test counts, or descriptions in AGENTS.md, .github/copilot-instructions.md, and QUICKREF.md. Update the `Last updated` date.
 
 ### Vercel Environment Variables Required
 
 | Variable | Required | Purpose |
 |----------|:--------:|---------|
-| `GOOGLE_API_KEY` | âœ… | Gemini AI (scanning, vision, analysis) |
-| `PLACES_API_KEY` or `GOOGLE_PLACES_API_KEY` | âœ… | Google Places/Maps |
-| `FIREBASE_API_KEY` | âœ… | Firebase client config |
-| `FIREBASE_AUTH_DOMAIN` | âœ… | Firebase auth |
-| `FIREBASE_PROJECT_ID` | âœ… | Firebase/Firestore |
-| `FIREBASE_STORAGE_BUCKET` | âœ… | Firebase storage |
-| `FIREBASE_MESSAGING_SENDER_ID` | âœ… | Firebase messaging |
-| `FIREBASE_APP_ID` | âœ… | Firebase app |
-| `REDIS_URL` | âœ… | KV store + compliance cache |
-| `HAWKSOFT_CLIENT_ID` | âœ… | HawkSoft API |
-| `HAWKSOFT_CLIENT_SECRET` | âœ… | HawkSoft API |
-| `HAWKSOFT_AGENCY_ID` | âœ… | HawkSoft API |
-| `STRIPE_SECRET_KEY` | âš ï¸ | Stripe billing (beta) |
-| `STRIPE_PRICE_ID` | âš ï¸ | Stripe billing (beta) |
-| `STRIPE_WEBHOOK_SECRET` | âš ï¸ | Stripe webhooks (beta) |
-| `APP_URL` | âš ï¸ | Stripe redirect URL |
-| `FIREBASE_SERVICE_ACCOUNT_KEY` | âš ï¸ | Stripe webhook â†’ Firestore |
-| `GITHUB_ISSUES_TOKEN` | âš ï¸ | Bug report â†’ GitHub Issues |
-| `GITHUB_REPO_OWNER` | âš ï¸ | Bug report target repo |
-| `GITHUB_REPO_NAME` | âš ï¸ | Bug report target repo |
-| `SOCRATA_APP_TOKEN` | âš ï¸ | WA L&I / OR CCB lookups |
-| `SAM_GOV_API_KEY` | âš ï¸ | SAM.gov federal lookups |
+| `GOOGLE_API_KEY` | ✅ | Gemini AI (scanning, vision, analysis) |
+| `PLACES_API_KEY` or `GOOGLE_PLACES_API_KEY` | ✅ | Google Places/Maps |
+| `FIREBASE_API_KEY` | ✅ | Firebase client config |
+| `FIREBASE_AUTH_DOMAIN` | ✅ | Firebase auth |
+| `FIREBASE_PROJECT_ID` | ✅ | Firebase/Firestore |
+| `FIREBASE_STORAGE_BUCKET` | ✅ | Firebase storage |
+| `FIREBASE_MESSAGING_SENDER_ID` | ✅ | Firebase messaging |
+| `FIREBASE_APP_ID` | ✅ | Firebase app |
+| `REDIS_URL` | ✅ | KV store + compliance cache |
+| `HAWKSOFT_CLIENT_ID` | ✅ | HawkSoft API |
+| `HAWKSOFT_CLIENT_SECRET` | ✅ | HawkSoft API |
+| `HAWKSOFT_AGENCY_ID` | ✅ | HawkSoft API |
+| `STRIPE_SECRET_KEY` | ⚠️ | Stripe billing (beta) |
+| `STRIPE_PRICE_ID` | ⚠️ | Stripe billing (beta) |
+| `STRIPE_WEBHOOK_SECRET` | ⚠️ | Stripe webhooks (beta) |
+| `APP_URL` | ⚠️ | Stripe redirect URL |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | ⚠️ | Stripe webhook → Firestore |
+| `GITHUB_ISSUES_TOKEN` | ⚠️ | Bug report → GitHub Issues |
+| `GITHUB_REPO_OWNER` | ⚠️ | Bug report target repo |
+| `GITHUB_REPO_NAME` | ⚠️ | Bug report target repo |
+| `SOCRATA_APP_TOKEN` | ⚠️ | WA L&I / OR CCB lookups |
+| `SAM_GOV_API_KEY` | ⚠️ | SAM.gov federal lookups |
 
 ---
 
@@ -703,7 +703,7 @@ KEY RULES:
 
 | # | Scope | Files | Description |
 |---|-------|-------|-------------|
-| 37 | Layout | dashboard.css, index.html | Compliance widget promoted to 2-row hero (6colÃ—2row) matching Reminders |
+| 37 | Layout | dashboard.css, index.html | Compliance widget promoted to 2-row hero (6col×2row) matching Reminders |
 | 38 | Layout | dashboard.css, index.html | Recent Clients widget expanded to 6col (was 3col, renamed from widget-drafts) |
 | 39 | Layout | dashboard.css | Quick Actions expanded to 6col with 6-button grid (added EZLynx + HawkSoft) |
 | 40 | Feature | dashboard-widgets.js | Compliance stat pills: Critical/Warning/Current/Total counts at a glance |
@@ -716,25 +716,25 @@ KEY RULES:
 
 | # | Severity | File | Fix Description |
 |---|----------|------|-----------------|
-| 1 | CRITICAL | app-popups.js | Vision data field mappings corrected: `numGarages`â†’`garageSpaces`, `yearBuilt`â†’`yrBuilt`, `totalSqft`â†’`sqFt` |
-| 2 | CRITICAL | app-popups.js | XSS in hazard detection â€” AI response HTML now escaped before DOM insertion |
-| 3 | CRITICAL | app-property.js | `btoa(String.fromCharCode(...bytes))` stack overflow on large images â€” now chunked |
-| 4 | CRITICAL | app-core.js | Null check for `user.email.split('@')` â€” crashes if email is null |
-| 5 | CRITICAL | accounting-export.js | Added `&quot;` escaping to `escHtml()` â€” attribute injection vulnerability |
+| 1 | CRITICAL | app-popups.js | Vision data field mappings corrected: `numGarages`→`garageSpaces`, `yearBuilt`→`yrBuilt`, `totalSqft`→`sqFt` |
+| 2 | CRITICAL | app-popups.js | XSS in hazard detection — AI response HTML now escaped before DOM insertion |
+| 3 | CRITICAL | app-property.js | `btoa(String.fromCharCode(...bytes))` stack overflow on large images — now chunked |
+| 4 | CRITICAL | app-core.js | Null check for `user.email.split('@')` — crashes if email is null |
+| 5 | CRITICAL | accounting-export.js | Added `&quot;` escaping to `escHtml()` — attribute injection vulnerability |
 | 6 | HIGH | app-boot.js | Cmd+S toast fires only when save actually called (was showing even on no-op) |
 | 7 | HIGH | app-boot.js | Enter key no longer overrides focused buttons (hijacked button clicks) |
 | 8 | HIGH | app-core.js | Null checks on `stepTitle`, `progressBar`, `btnBack`, `btnNext` (crash on missing DOM) |
 | 9 | HIGH | app-core.js | Null check on `phone` element in updateUI (crash if element missing) |
-| 10 | HIGH | app-core.js | `setFieldValue()` now calls `this.save()` â€” was bypassing encryption |
-| 11 | HIGH | app-quotes.js | Fixed `q.qType`/`q.timestamp` â†’ `q.data?.qType`/`q.updatedAt` (wrong property paths) |
+| 10 | HIGH | app-core.js | `setFieldValue()` now calls `this.save()` — was bypassing encryption |
+| 11 | HIGH | app-quotes.js | Fixed `q.qType`/`q.timestamp` → `q.data?.qType`/`q.updatedAt` (wrong property paths) |
 | 12 | HIGH | auth.js | Removed duplicate `getIdToken()` and `apiFetch()` methods |
 | 13 | MEDIUM | app-scan.js | Canvas + ImageBitmap memory leak cleanup |
 | 14 | MEDIUM | app-vehicles.js | Canvas memory leak cleanup |
-| 15 | MEDIUM | app-core.js | Save race condition â€” added `_saving` lock + `saveToken` sequence |
+| 15 | MEDIUM | app-core.js | Save race condition — added `_saving` lock + `saveToken` sequence |
 | 16 | MEDIUM | app-core.js | `loadExportHistory()` cross-file dependency guard for `_escapeAttr` |
 | 17 | MEDIUM | app-quotes.js | `showDuplicateWarning()` uses `escapeHTML` instead of cross-file `_escapeAttr` |
 | 18 | MEDIUM | app-quotes.js | Removed duplicate `_escapeHTML` method |
-| 19 | MEDIUM | app-popups.js | 15 `alert()` calls â†’ `this.toast()` |
+| 19 | MEDIUM | app-popups.js | 15 `alert()` calls → `this.toast()` |
 | 20 | MEDIUM | app-popups.js | 3 FileReader Promises got `onerror` handlers (were silently hanging) |
 | 21 | LOW | data-backup.js | Fixed `\\n` double-escaped newline in string literal |
 
@@ -742,13 +742,13 @@ KEY RULES:
 
 | # | Severity | File | Fix Description |
 |---|----------|------|------------------|
-| 22 | CRITICAL | app-scan.js | Gender normalization in `applyExtractedData()` â€” AI returns "Male"/"Female", form needs "M"/"F" |
+| 22 | CRITICAL | app-scan.js | Gender normalization in `applyExtractedData()` — AI returns "Male"/"Female", form needs "M"/"F" |
 | 23 | HIGH | app-scan.js | Primary driver from scan now includes all fields: gender, maritalStatus, occupation, education, dlStatus, ageLicensed |
 | 24 | HIGH | app-scan.js | Additional drivers from text parsing now include all fields (were missing gender, maritalStatus, etc.) |
-| 25 | MEDIUM | app-scan.js | Gender normalization in `applyInitialDriverLicense()` â€” DL scan gender now normalized |
+| 25 | MEDIUM | app-scan.js | Gender normalization in `applyInitialDriverLicense()` — DL scan gender now normalized |
 | 26 | MEDIUM | app-scan.js | DL scan driver creation now includes maritalStatus, education, dlStatus, ageLicensed |
-| 27 | LOW | app-scan.js | Canvas cleanup on `optimizeImage()` fallback path â€” canvas.width/height zeroed when blob is null |
-| 28 | MEDIUM | policy-scan.js | Server API schema synced with client `_getScanSchema()` â€” added ~40 missing fields |
+| 27 | LOW | app-scan.js | Canvas cleanup on `optimizeImage()` fallback path — canvas.width/height zeroed when blob is null |
+| 28 | MEDIUM | policy-scan.js | Server API schema synced with client `_getScanSchema()` — added ~40 missing fields |
 | 29 | MEDIUM | policy-scan.js | Server system prompt updated with CRITICAL FORMATTING RULES section + gender M/F instruction |
 | 30 | MEDIUM | policy-scan.js | Server user prompt expanded with safety/protection, claims/violations, additional field categories |
 
@@ -756,9 +756,9 @@ KEY RULES:
 
 | # | Severity | File | Fix Description |
 |---|----------|------|-----------------|
-| 31 | CRITICAL | cloud-sync.js | `App.load()` called without `await` in `pullFromCloud()` â€” errors became unhandled rejections. Now properly awaited so errors are caught by outer try-catch |
-| 32 | HIGH | app-core.js | `document.getElementById('mainContainer').scrollTo(0,0)` in `updateUI()` â€” null crash when quoting plugin not loaded. Now null-guarded |
-| 33 | HIGH | app-core.js | Encrypted load path (`CryptoHelper.decrypt` + `applyData`) had no try-catch â€” errors propagated as unhandled rejections. Now wrapped in try-catch |
+| 31 | CRITICAL | cloud-sync.js | `App.load()` called without `await` in `pullFromCloud()` — errors became unhandled rejections. Now properly awaited so errors are caught by outer try-catch |
+| 32 | HIGH | app-core.js | `document.getElementById('mainContainer').scrollTo(0,0)` in `updateUI()` — null crash when quoting plugin not loaded. Now null-guarded |
+| 33 | HIGH | app-core.js | Encrypted load path (`CryptoHelper.decrypt` + `applyData`) had no try-catch — errors propagated as unhandled rejections. Now wrapped in try-catch |
 | 34 | MEDIUM | app-boot.js | Enhanced `unhandledrejection` handler to log `e.reason?.stack` instead of just `e.reason` for better debugging |
 | 35 | MEDIUM | compliance-dashboard.js | Added null guards to `cglLastFetch`, loading/error/tableContainer, `cglTableBody`, `cglHiddenCount`, `cglFilteredCount`, `cglTotalCount` innerHTML assignments |
 | 36 | MEDIUM | email-composer.js | Added null guards to `emailComposeBtn`, `emailOutputCard`, `emailOutputText` innerHTML/textContent in `compose()` and its catch/finally blocks |
@@ -768,57 +768,57 @@ KEY RULES:
 | Scope | Files | Fix |
 |-------|-------|-----|
 | Wrong variable names | main.css (11), auth.css (3), quickref.css (8), email.css (6), compliance.css (1) | All corrected to valid `--bg-card`, `--text`, `--bg-input`, `--border` |
-| Dark mode selectors | security-info.css (4 selectors) | `[data-theme="dark"]` â†’ `body.dark-mode` |
+| Dark mode selectors | security-info.css (4 selectors) | `[data-theme="dark"]` → `body.dark-mode` |
 | Missing focus states | email.css, quickref.css, onboarding.css, compliance.css, bug-report.css | Added `:focus-visible` outlines/box-shadows |
 | AI Intake UI overhaul | intake-assist.css | Professional redesign: pill-shaped chips with colored tints, 1px card borders with subtle shadows, transparent card headers, circular send/upload buttons, focus glow rings, tighter layout padding, full dark mode coverage |
-| AI Intake UI rework (Phase 2) | intake-assist.css, intake-assist.html | Enhanced cards (layered shadows, gradient header accents), gradient user message bubbles, spring animations, refined input area (gradient send button, enhanced focus glow), sidebar surface hierarchy (#0A0A0Aâ†’#1C1C1Eâ†’#2C2C2E), card-based empty state with pulsing icon, custom scrollbars, desktop wide-screen breakpoints (1280px/1440px), comprehensive dark mode elevation for ~30 selectors, mobile dark mode full-bleed |
-| Desktop-first layout overhaul | main.css (+350 lines), reminders.css, hawksoft.css, accounting.css, email.css, quickref.css, vin-decoder.css, quote-compare.css, compliance.css | Quoting wizard: centered max-width container (960â†’1080â†’1200px), multi-column step layouts (steps 0/4/6), constrained footer, denser form grids, scan actions horizontal, wider modals. All plugins: desktop padding/spacing/grid enhancements. Generic `plugin-container > main/header` constraint at 1100px. Prospect content cap at 1000px. Footer sidebar-aware offset. |
-| Viewport/scroll containment fixes | sidebar.css, intake-assist.css, main.css, quote-compare.css | Fixed narrow-width black-screen/layout collapse by stabilizing shell background + flex height chain (`app-main → app-content → plugin-viewport → plugin-container`), replaced rigid chat heights with responsive clamps, and added `min-height: 0` on nested flex scroll regions so chat/content scrolls internally instead of growing downward and clipping. |
-| Mobile dark mode visibility | main.css, dashboard.css, sidebar.css | Cards/widgets: border opacity 6%â†’10-12%, depth shadows added. Mobile `<767px`: `.app-content` bg `#0D0D0D` (lifts off pure black), header/bottom-nav solid bg + visible borders, widget accent stripes 50%â†’70% opacity, ambient orbs boosted, bento grid gap tightened to 12px. Footer border made visible in dark mode. |
+| AI Intake UI rework (Phase 2) | intake-assist.css, intake-assist.html | Enhanced cards (layered shadows, gradient header accents), gradient user message bubbles, spring animations, refined input area (gradient send button, enhanced focus glow), sidebar surface hierarchy (#0A0A0A→#1C1C1E→#2C2C2E), card-based empty state with pulsing icon, custom scrollbars, desktop wide-screen breakpoints (1280px/1440px), comprehensive dark mode elevation for ~30 selectors, mobile dark mode full-bleed |
+| Desktop-first layout overhaul | main.css (+350 lines), reminders.css, hawksoft.css, accounting.css, email.css, quickref.css, vin-decoder.css, quote-compare.css, compliance.css | Quoting wizard: centered max-width container (960→1080→1200px), multi-column step layouts (steps 0/4/6), constrained footer, denser form grids, scan actions horizontal, wider modals. All plugins: desktop padding/spacing/grid enhancements. Generic `plugin-container > main/header` constraint at 1100px. Prospect content cap at 1000px. Footer sidebar-aware offset. |
+| Viewport/scroll containment fixes | sidebar.css, intake-assist.css, main.css, quote-compare.css | Fixed narrow-width black-screen/layout collapse by stabilizing shell background + flex height chain (`app-main ? app-content ? plugin-viewport ? plugin-container`), replaced rigid chat heights with responsive clamps, and added `min-height: 0` on nested flex scroll regions so chat/content scrolls internally instead of growing downward and clipping. |
+| Mobile dark mode visibility | main.css, dashboard.css, sidebar.css | Cards/widgets: border opacity 6%→10-12%, depth shadows added. Mobile `<767px`: `.app-content` bg `#0D0D0D` (lifts off pure black), header/bottom-nav solid bg + visible borders, widget accent stripes 50%→70% opacity, ambient orbs boosted, bento grid gap tightened to 12px. Footer border made visible in dark mode. |
 | Call Logger UI redesign | call-logger.css, call-logger.html | Glassmorphism cards (backdrop-filter blur+saturate), hero "how-it-works" 3-step strip with gradient icons, form sections with SVG icon headers, side-by-side grid for client name + call type, gradient submit/confirm buttons, spring animations, comprehensive dark mode with solid surfaces |
-| Theme-pro select chevron fix | theme-professional.css | `background:` â†’ `background-color:` on `body.theme-pro input/select/textarea` â€” shorthand was overriding `background-image` SVG chevrons in Call Logger select |
-| Call Logger on-demand policy pre-fetch | call-logger.js, call-logger.css | Call Logger now independently fetches policies from compliance API if cache is empty â€” no need to visit Compliance Dashboard first. Shows subtle "Loading client listâ€¦" hint while fetching. Tries disk cache â†’ API â†’ stores in `altech_cgl_cache` localStorage |
-| Call Logger status bar + refresh | call-logger.html, call-logger.css, call-logger.js | Replaced hero 3-step icon strip with professional client sync status bar. Shows live loading state (pulsing blue dot + "Checking local cacheâ€¦" / "Syncing clients from HawkSoftâ€¦"), success state (green dot + "X clients loaded"), and error state (red dot + message). Added "Refresh" button with spinning icon animation for manual retry. Full dark mode + responsive support. |
-| Call Logger â€” remove AI branding + enhance confirm UX | call-logger.html, call-logger.js, call-logger.css, call-logger.test.js | Removed all user-facing "AI" references (header, placeholder, comments). Restructured confirm section with labeled summary rows (Client, Policy, Call Type) and a "Confirm Before Logging" header + review notice. Button icon changed from âœ¨ to ðŸ”. |
-| Call Logger â€” desktop layout overhaul | call-logger.html, call-logger.css, call-logger.test.js | Replaced non-standard `plugin-header` with standard `header-top` / `tool-header-brand` pattern (home button, dark mode toggle, gradient title). Widened container from 860px to 1200px. Added two-column desktop grid (form left, preview/confirm right with sticky positioning) at 960px+ breakpoint. Added 1280px wide-screen enhancements. Header now matches Compliance, Reminders, and all other plugins. |
+| Theme-pro select chevron fix | theme-professional.css | `background:` → `background-color:` on `body.theme-pro input/select/textarea` — shorthand was overriding `background-image` SVG chevrons in Call Logger select |
+| Call Logger on-demand policy pre-fetch | call-logger.js, call-logger.css | Call Logger now independently fetches policies from compliance API if cache is empty — no need to visit Compliance Dashboard first. Shows subtle "Loading client list…" hint while fetching. Tries disk cache → API → stores in `altech_cgl_cache` localStorage |
+| Call Logger status bar + refresh | call-logger.html, call-logger.css, call-logger.js | Replaced hero 3-step icon strip with professional client sync status bar. Shows live loading state (pulsing blue dot + "Checking local cache…" / "Syncing clients from HawkSoft…"), success state (green dot + "X clients loaded"), and error state (red dot + message). Added "Refresh" button with spinning icon animation for manual retry. Full dark mode + responsive support. |
+| Call Logger — remove AI branding + enhance confirm UX | call-logger.html, call-logger.js, call-logger.css, call-logger.test.js | Removed all user-facing "AI" references (header, placeholder, comments). Restructured confirm section with labeled summary rows (Client, Policy, Call Type) and a "Confirm Before Logging" header + review notice. Button icon changed from ✨ to 🔍. |
+| Call Logger — desktop layout overhaul | call-logger.html, call-logger.css, call-logger.test.js | Replaced non-standard `plugin-header` with standard `header-top` / `tool-header-brand` pattern (home button, dark mode toggle, gradient title). Widened container from 860px to 1200px. Added two-column desktop grid (form left, preview/confirm right with sticky positioning) at 960px+ breakpoint. Added 1280px wide-screen enhancements. Header now matches Compliance, Reminders, and all other plugins. |
 
-### Cache Pipeline Fix â€” Personal Lines Now Appear in Call Logger (March 2026)
+### Cache Pipeline Fix — Personal Lines Now Appear in Call Logger (March 2026)
 
 | # | Scope | Files | Description |
 |---|-------|-------|-------------|
-| 45 | CRITICAL | api/compliance.js | KV (Redis) cache validity now requires `allPolicies?.length > 0` â€” stale server-side cache without personal lines forces re-fetch from HawkSoft |
-| 46 | CRITICAL | js/compliance-dashboard.js | `_loadFromAnyCache()` all 4 sources (disk, IDB, localStorage, KV) now require both `policies` AND `allPolicies` â€” stale cache without personal lines is rejected |
-| 47 | CRITICAL | js/compliance-dashboard.js | `loadFromCache()` (IDB â†’ localStorage â†’ disk fallback) also requires `allPolicies` |
-| 48 | HIGH | js/call-logger.js | Disk cache path in `_ensurePoliciesLoaded()` now only accepts data with `allPolicies` â€” CGL-only disk cache falls through to API instead of promoting stale data |
+| 45 | CRITICAL | api/compliance.js | KV (Redis) cache validity now requires `allPolicies?.length > 0` — stale server-side cache without personal lines forces re-fetch from HawkSoft |
+| 46 | CRITICAL | js/compliance-dashboard.js | `_loadFromAnyCache()` all 4 sources (disk, IDB, localStorage, KV) now require both `policies` AND `allPolicies` — stale cache without personal lines is rejected |
+| 47 | CRITICAL | js/compliance-dashboard.js | `loadFromCache()` (IDB → localStorage → disk fallback) also requires `allPolicies` |
+| 48 | HIGH | js/call-logger.js | Disk cache path in `_ensurePoliciesLoaded()` now only accepts data with `allPolicies` — CGL-only disk cache falls through to API instead of promoting stale data |
 | 49 | HIGH | js/call-logger.js | Disk cache status bar now counts unique client names (not raw policy count) for consistency |
 | 50 | MEDIUM | tests/ | Added 9 new source-level tests across api-compliance, call-logger, and plugin-integration test files verifying cache requires allPolicies |
 
-**Root cause:** The multi-tier cache system (IndexedDB â†’ localStorage â†’ disk â†’ Vercel KV) validated cache entries by checking only `policies?.length > 0`. Cache written before the `allPolicies` feature (which includes personal lines) was treated as valid, promoted across all tiers, and served to the Call Logger. Users saw only ~3080 commercial clients with zero personal profiles. Fix forces all tiers to re-fetch when `allPolicies` is absent.
+**Root cause:** The multi-tier cache system (IndexedDB → localStorage → disk → Vercel KV) validated cache entries by checking only `policies?.length > 0`. Cache written before the `allPolicies` feature (which includes personal lines) was treated as valid, promoted across all tiers, and served to the Call Logger. Users saw only ~3080 commercial clients with zero personal profiles. Fix forces all tiers to re-fetch when `allPolicies` is absent.
 
-### Prospect/Policy-Less Client Support â€” All HawkSoft Clients in Call Logger (March 2026)
+### Prospect/Policy-Less Client Support — All HawkSoft Clients in Call Logger (March 2026)
 
 | # | Scope | Files | Description |
 |---|-------|-------|-------------|
-| 51 | CRITICAL | api/compliance.js | Added `allClientsList` array â€” built from ALL `allClients` (every HawkSoft client regardless of policy status, including pure prospects). Each entry: `{ clientNumber, clientName }` using same name resolution chain. Included in API response and metadata. |
-| 52 | HIGH | js/call-logger.js | `_getClients()` now merges `allClientsList` as Source 2 â€” prospect/policy-less clients added to dropdown with `policies: []` and `hawksoftId` |
-| 53 | HIGH | js/call-logger.js | `_handleFormat()` clientNumber fallback: `_selectedPolicy.hawksoftId â†’ _selectedClient.hawksoftId â†’ ''` for prospect clients |
+| 51 | CRITICAL | api/compliance.js | Added `allClientsList` array — built from ALL `allClients` (every HawkSoft client regardless of policy status, including pure prospects). Each entry: `{ clientNumber, clientName }` using same name resolution chain. Included in API response and metadata. |
+| 52 | HIGH | js/call-logger.js | `_getClients()` now merges `allClientsList` as Source 2 — prospect/policy-less clients added to dropdown with `policies: []` and `hawksoftId` |
+| 53 | HIGH | js/call-logger.js | `_handleFormat()` clientNumber fallback: `_selectedPolicy.hawksoftId → _selectedClient.hawksoftId → ''` for prospect clients |
 | 54 | MEDIUM | js/call-logger.js | Confirm section shows "No active policies" badge for policy-less clients; HawkSoft link still shown using hawksoftId |
 | 55 | MEDIUM | js/call-logger.js | `_countClients(data)` helper prefers `allClientsList` count over `allPolicies`-derived count in all 4 status bar update locations |
 | 56 | MEDIUM | tests/ | Added 10 new tests (7 call-logger + 3 api-compliance) verifying allClientsList integration, prospect merging, deduplication, backward compat |
 
-**Root cause:** The `allPolicies` pipeline in `api/compliance.js` has 3 filters that exclude prospect/policy-less clients: (1) skip clients with zero policies, (2) skip prospect-status policies, (3) skip expired >1yr policies. Many HawkSoft clients â€” especially "Prospect Customer (Personal)" entries â€” have no active policies and were invisible in the Call Logger. Fix adds a parallel `allClientsList` array that includes ALL clients from HawkSoft, merged into the Call Logger dropdown alongside policy-bearing clients.
+**Root cause:** The `allPolicies` pipeline in `api/compliance.js` has 3 filters that exclude prospect/policy-less clients: (1) skip clients with zero policies, (2) skip prospect-status policies, (3) skip expired >1yr policies. Many HawkSoft clients — especially "Prospect Customer (Personal)" entries — have no active policies and were invisible in the Call Logger. Fix adds a parallel `allClientsList` array that includes ALL clients from HawkSoft, merged into the Call Logger dropdown alongside policy-bearing clients.
 
-### HawkSoft Log Push â€” Call Logger to HawkSoft Integration Fixes (March 2026)
+### HawkSoft Log Push — Call Logger to HawkSoft Integration Fixes (March 2026)
 
 | # | Severity | Files | Fix Description | Commit |
 |---|----------|-------|-----------------|--------|
-| 57 | CRITICAL | api/hawksoft-logger.js, js/call-logger.js | `.trim()` crash â€” HawkSoft returns numeric `clientNumber`, must call `String()` before `.trim()`. Added coercion in 5 locations. | `ace3004` |
-| 58 | HIGH | api/hawksoft-logger.js | `formatOnly` response was missing `clientNumber` field â€” client couldn't display it in confirm section. Added to response + surfaced `hawksoftError` in toast. | `228641e` |
-| 59 | CRITICAL | api/hawksoft-logger.js | 404 error â€” endpoint URL was `/clients/{id}/logNotes` (wrong). Changed to `/client/{id}/log` (singular, different path). Added `refId` (UUID) and `ts` (ISO timestamp) to request body. | `002781f` |
-| 60 | HIGH | api/hawksoft-logger.js | "Invalid Channel" 400 error â€” action codes `29`/`30` don't exist for phone calls. Changed to `1` (Phone To Insured) and `5` (Phone From Insured). | `4481e38` |
+| 57 | CRITICAL | api/hawksoft-logger.js, js/call-logger.js | `.trim()` crash — HawkSoft returns numeric `clientNumber`, must call `String()` before `.trim()`. Added coercion in 5 locations. | `ace3004` |
+| 58 | HIGH | api/hawksoft-logger.js | `formatOnly` response was missing `clientNumber` field — client couldn't display it in confirm section. Added to response + surfaced `hawksoftError` in toast. | `228641e` |
+| 59 | CRITICAL | api/hawksoft-logger.js | 404 error — endpoint URL was `/clients/{id}/logNotes` (wrong). Changed to `/client/{id}/log` (singular, different path). Added `refId` (UUID) and `ts` (ISO timestamp) to request body. | `002781f` |
+| 60 | HIGH | api/hawksoft-logger.js | "Invalid Channel" 400 error — action codes `29`/`30` don't exist for phone calls. Changed to `1` (Phone To Insured) and `5` (Phone From Insured). | `4481e38` |
 | 61 | MEDIUM | api/hawksoft-logger.js, js/call-logger.js | Added comprehensive diagnostic logging to both push paths (server) and failure handler (client) for live debugging. | `1f2a807` |
-| 62 | CRITICAL | api/hawksoft-logger.js | Still getting "Invalid Channel" â€” JSON field name was `action` but HawkSoft expects `channel`. Renamed in both push paths. | `15e781f` |
-| 63 | HIGH | api/compliance.js, js/call-logger.js, api/hawksoft-logger.js | Log appeared at client level, not under specific policy. Root cause: not sending `policyId` (HawkSoft internal GUID). Threaded `hawksoftPolicyId` through entire pipeline: compliance.js â†’ call-logger.js â†’ hawksoft-logger.js â†’ HawkSoft request body. | `3b77e92` |
+| 62 | CRITICAL | api/hawksoft-logger.js | Still getting "Invalid Channel" — JSON field name was `action` but HawkSoft expects `channel`. Renamed in both push paths. | `15e781f` |
+| 63 | HIGH | api/compliance.js, js/call-logger.js, api/hawksoft-logger.js | Log appeared at client level, not under specific policy. Root cause: not sending `policyId` (HawkSoft internal GUID). Threaded `hawksoftPolicyId` through entire pipeline: compliance.js → call-logger.js → hawksoft-logger.js → HawkSoft request body. | `3b77e92` |
 | 64 | HIGH | css/sidebar.css, css/intake-assist.css, css/main.css, css/quote-compare.css, tests/layout-regressions.test.js, tests/boot-loading.test.js, tests/auth-cloudsync.test.js | Hardened app-shell viewport containment (`overflow-x: hidden`, `min-width: 0`, `min-height: 0` flex chain), switched Q&A/Quote Compare chat panes to responsive `clamp()` heights, and added regression/reliability tests for layout, boot-loading fallback, and Auth/CloudSync behavior. | `working tree` |
 
 **Root cause chain:** Seven iterative fixes required because (1) HawkSoft API documentation in our codebase was incorrect (`action` vs `channel`, wrong URL path, wrong action codes), (2) HawkSoft returns numeric types where strings were expected, and (3) policy-level logging requires an internal GUID (`policyId`) that wasn't being passed through the data pipeline.
@@ -826,86 +826,86 @@ KEY RULES:
 ### Known Issues NOT Fixed (Intentional / Cosmetic)
 
 - `theme-professional.css` uses low-opacity rgba on dark backgrounds (cosmetic preference)
-- `theme-professional.css` `background-color` fix applied for selects â€” other input types unaffected
+- `theme-professional.css` `background-color` fix applied for selects — other input types unaffected
 - `ezlynx.css` top half uses hardcoded glassmorphism palette (design choice, bottom half uses variables)
 - 7 CSS files lack dark mode overrides (relies on variable auto-switching)
 - 3 CSS files use `.dark-mode` without `body` prefix (works due to specificity)
-### Desktop Layout Overhaul â€" Full-Width Redesign (March 2026)
+### Desktop Layout Overhaul �" Full-Width Redesign (March 2026)
 
 | # | Scope | Files | Description |
 |---|-------|-------|-------------|
-| 65 | GLOBAL | css/main.css | Plugin container generic constraint widened from 1100px â†' 1400px (`plugin-container > main/header`) |
-| 66 | GLOBAL | css/main.css | Quoting wizard main/header/footer widened from 960px â†' 1400px at 960px+; removed redundant 1280px override |
-| 67 | GLOBAL | css/main.css | Ultra-wide 1600px+ cap changed from `max-width: 100%` â†' `1400px` for consistent constraint |
+| 65 | GLOBAL | css/main.css | Plugin container generic constraint widened from 1100px �' 1400px (`plugin-container > main/header`) |
+| 66 | GLOBAL | css/main.css | Quoting wizard main/header/footer widened from 960px �' 1400px at 960px+; removed redundant 1280px override |
+| 67 | GLOBAL | css/main.css | Ultra-wide 1600px+ cap changed from `max-width: 100%` �' `1400px` for consistent constraint |
 | 68 | GLOBAL | css/main.css | Step-6 export grid caps removed (`.hero-export-grid` 600px, `.hero-secondary-row` 400px) |
-| 69 | GLOBAL | css/main.css | Prospect container widened from 1000px â†' 1400px |
-| 70 | GLOBAL | 7 HTML/JS files | All 12 "tap" â†' "click" replacements for desktop-first language (prospect, quotecompare, qna, quoting Ã—2, ezlynx Ã—2, reminders, prospect.js, app-popups, index.html Ã—2) |
+| 69 | GLOBAL | css/main.css | Prospect container widened from 1000px �' 1400px |
+| 70 | GLOBAL | 7 HTML/JS files | All 12 "tap" �' "click" replacements for desktop-first language (prospect, quotecompare, qna, quoting ×2, ezlynx ×2, reminders, prospect.js, app-popups, index.html ×2) |
 | 71 | 2-COL | plugins/qna.html, css/main.css | Q&A: 2-column desktop layout (`380px \| 1fr` grid), sticky right chat column, `.qna-desktop-layout` wrapper |
-| 72 | WIDEN | css/quote-compare.css | Quote Compare container widened from 1100px â†' 1400px |
+| 72 | WIDEN | css/quote-compare.css | Quote Compare container widened from 1100px �' 1400px |
 | 73 | 2-COL | plugins/email.html, css/email.css | Email: 2-column desktop layout (`1fr \| 1fr` grid), sticky right column, `.email-desktop-layout` wrapper; removed 900px desktop shrink |
-| 74 | 2-COL | plugins/vin-decoder.html, css/vin-decoder.css | VIN Decoder: 2-column desktop layout (`1fr \| 380px` grid), sticky right history column, `.vin-desktop-layout` wrapper; widened from 1200px â†' 1400px |
-| 75 | FIX | css/call-logger.css | Call Logger: widened from 1200px â†' 1400px + `:has()` CSS conditional grid (single column when right col hidden, 2-column when visible) |
-| 76 | 2-COL | plugins/accounting.html, css/accounting.css | Accounting: 2-column desktop layout (`1fr \| 1fr` grid), left=workflows, right=history+calculator; widened from 1200px â†' 1400px; removed `.acct-steps` 700px and `.acct-filename-row` 600px inner caps |
+| 74 | 2-COL | plugins/vin-decoder.html, css/vin-decoder.css | VIN Decoder: 2-column desktop layout (`1fr \| 380px` grid), sticky right history column, `.vin-desktop-layout` wrapper; widened from 1200px �' 1400px |
+| 75 | FIX | css/call-logger.css | Call Logger: widened from 1200px �' 1400px + `:has()` CSS conditional grid (single column when right col hidden, 2-column when visible) |
+| 76 | 2-COL | plugins/accounting.html, css/accounting.css | Accounting: 2-column desktop layout (`1fr \| 1fr` grid), left=workflows, right=history+calculator; widened from 1200px �' 1400px; removed `.acct-steps` 700px and `.acct-filename-row` 600px inner caps |
 | 77 | POLISH | css/compliance.css | CGL: stat card `min-height: 90px` for consistent card height; wider search/filter inputs (280px min); larger buttons (12px/24px padding) |
-| 78 | WIDEN+GRID | css/quickref.css | QuickRef: widened from 1200px â†' 1400px; 3-col phonetic grid at 960px+, 4-col at 1280px+ |
-| 79 | WIDEN | css/ezlynx.css | EZLynx container widened from 1200px â†' 1400px |
-| 80 | WIDEN | css/hawksoft.css | HawkSoft body widened from 1200px â†' 1400px |
-| 81 | WIDEN | css/reminders.css | Reminders container widened from 1200px â†' 1400px |
-### Call Logger Redesign â€" Channel & Activity Quick-Tap System (March 2026)
+| 78 | WIDEN+GRID | css/quickref.css | QuickRef: widened from 1200px �' 1400px; 3-col phonetic grid at 960px+, 4-col at 1280px+ |
+| 79 | WIDEN | css/ezlynx.css | EZLynx container widened from 1200px �' 1400px |
+| 80 | WIDEN | css/hawksoft.css | HawkSoft body widened from 1200px �' 1400px |
+| 81 | WIDEN | css/reminders.css | Reminders container widened from 1200px �' 1400px |
+### Call Logger Redesign �" Channel & Activity Quick-Tap System (March 2026)
 
 | # | Scope | Files | Description |
 |---|-------|-------|-------------|
 | 82 | CRITICAL | api/hawksoft-logger.js | Added `CHANNEL_MAP` object mapping 5 channel types (Inbound/Outbound/Walk-In/Email/Text) to HawkSoft channel codes (5/1/2/3/4). Replaced ternary `'Outbound' ? 1 : 5` with `CHANNEL_MAP[cleanCallType] \|\| 5` in both format-only and push paths. |
 | 83 | CRITICAL | plugins/call-logger.html | Full HTML rewrite: replaced `<select id="clCallType">` with 5 SVG-icon channel quick-tap buttons (`clChannelGroup`), added 8 activity-type pill buttons with `data-template` attributes (`clActivityGroup`), inline agent initials field, span-based submit button with arrow/spinner states, plain-text confirm/cancel buttons, clipboard SVG copy button |
 | 84 | CRITICAL | css/call-logger.css | Full CSS rewrite (~1,164 lines): `.cl-channel-group`/`.cl-channel-btn`/`.cl-channel-selected` for 5-button horizontal strip, `.cl-activity-group`/`.cl-activity-btn`/`.cl-activity-selected` for 8-button pill grid, `.cl-btn-text`/`.cl-btn-arrow`/`.cl-btn-spinner`/`.cl-loading` for submit button states, `.cl-initials-inline`/`.cl-input-initials` for inline initials, comprehensive `body.dark-mode` overrides for all new classes |
-| 85 | HIGH | js/call-logger.js | Added `_selectedChannel`/`_selectedActivityType`/`_lastTemplate` private state + 4 new functions: `_handleChannelSelect()` (updates selection + saves), `_applyChannelUI()` (restores selection from storage), `_handleActivitySelect()` (toggle + template insertion with cursor placement), `_applyActivityUI()` (restores activity state). Updated `_load()` to restore channel/activity from localStorage. Updated `_save()` to persist `channelType`/`activityType`. Updated `_handleFormat()` â€" channel icons map, `cl-loading` class toggle, confirm info shows Channel/Activity rows. Updated `_wireEvents()` with event delegation for channel/activity groups. Added public exports: `_handleChannelSelect`, `_handleActivitySelect`, `getSelectedChannel`, `getSelectedActivityType`. |
+| 85 | HIGH | js/call-logger.js | Added `_selectedChannel`/`_selectedActivityType`/`_lastTemplate` private state + 4 new functions: `_handleChannelSelect()` (updates selection + saves), `_applyChannelUI()` (restores selection from storage), `_handleActivitySelect()` (toggle + template insertion with cursor placement), `_applyActivityUI()` (restores activity state). Updated `_load()` to restore channel/activity from localStorage. Updated `_save()` to persist `channelType`/`activityType`. Updated `_handleFormat()` �" channel icons map, `cl-loading` class toggle, confirm info shows Channel/Activity rows. Updated `_wireEvents()` with event delegation for channel/activity groups. Added public exports: `_handleChannelSelect`, `_handleActivitySelect`, `getSelectedChannel`, `getSelectedActivityType`. |
 | 86 | MEDIUM | tests/call-logger.test.js | Updated 179 tests: replaced `clCallType` select references with channel button group, updated `createMiniDOM`/`createClientDOM` HTML builders, added ~20 source analysis tests (state tracking, handler functions, channel icons map, confirm labels, persistence, event delegation, return exports) + ~6 behavioral JSDOM tests (channel selection, activity selection, activity deselect toggle, channel/activity group wiring). |
 | 87 | MEDIUM | tests/hawksoft-logger.test.js | Updated CHANNEL_MAP assertions: replaced ternary checks with `CHANNEL_MAP` object tests verifying all 5 channel type mappings. |
 
-**8 activity types with note templates:** Coverage Q, Claim, Payment, Policy Change, New Quote, Renewal, Certificate, Other â€" each inserts a structured template into the notes textarea with cursor positioned at first blank.
+**8 activity types with note templates:** Coverage Q, Claim, Payment, Policy Change, New Quote, Renewal, Certificate, Other �" each inserts a structured template into the notes textarea with cursor positioned at first blank.
 
-### HawkSoft Logger — Bug Fixes + Rename (March 2026)
+### HawkSoft Logger � Bug Fixes + Rename (March 2026)
 
 | # | Scope | Files | Description |
 |---|-------|-------|-------------|
-| 88 | CRITICAL | api/hawksoft-logger.js | **Bug fix: wrong method/direction/party** — expanded `CHANNEL_MAP` from flat `callType → number` to `callType → { channel, method, direction, party }` objects. Both `logBody` constructions now include `method`, `direction`, `party` fields so HawkSoft displays correct call metadata. Added `DEFAULT_CHANNEL` fallback. |
-| 89 | HIGH | api/hawksoft-logger.js | **Bug fix: initials invisible** — Updated `SYSTEM_PROMPT` FORMAT to put agent initials on the RE: subject line (line 1) instead of direction line (line 2). Added deterministic post-processing regex that ensures initials appear on RE: line regardless of AI compliance. |
-| 90 | HIGH | 7 files | **Rename: Call Logger → HawkSoft Logger** — Updated title/name in `toolConfig` (app-init.js), plugin header (call-logger.html), sidebar emoji ( → ), quick action label, console.warn prefixes, index.html comment, test assertion. Internal `key: 'calllogger'` unchanged. |
+| 88 | CRITICAL | api/hawksoft-logger.js | **Bug fix: wrong method/direction/party** � expanded `CHANNEL_MAP` from flat `callType ? number` to `callType ? { channel, method, direction, party }` objects. Both `logBody` constructions now include `method`, `direction`, `party` fields so HawkSoft displays correct call metadata. Added `DEFAULT_CHANNEL` fallback. |
+| 89 | HIGH | api/hawksoft-logger.js | **Bug fix: initials invisible** � Updated `SYSTEM_PROMPT` FORMAT to put agent initials on the RE: subject line (line 1) instead of direction line (line 2). Added deterministic post-processing regex that ensures initials appear on RE: line regardless of AI compliance. |
+| 90 | HIGH | 7 files | **Rename: Call Logger ? HawkSoft Logger** � Updated title/name in `toolConfig` (app-init.js), plugin header (call-logger.html), sidebar emoji ( ? ), quick action label, console.warn prefixes, index.html comment, test assertion. Internal `key: 'calllogger'` unchanged. |
 | 91 | MEDIUM | tests/hawksoft-logger.test.js | Updated CHANNEL_MAP tests for new object shape + added logBody field tests, DEFAULT_CHANNEL test, initials post-processing tests, SYSTEM_PROMPT FORMAT test. 5 new test blocks. |
 
-### HawkSoft Logger — Hawk Icon + Activity Templates + activityType Pipeline (March 2026)
+### HawkSoft Logger � Hawk Icon + Activity Templates + activityType Pipeline (March 2026)
 
 | # | Scope | Files | Description |
 |---|-------|-------|-------------|
 | 92 | MEDIUM | js/dashboard-widgets.js | Added `hawk` SVG icon to `ICONS` object. Changed `TOOL_ICONS` mapping from `calllogger: 'phone'` to `calllogger: 'hawk'`. |
-| 93 | MEDIUM | plugins/call-logger.html | Updated 6 activity note templates to completed-action language: Payment inquiry → received, Policy Change request → processed, Renewal discussion → processed, Certificate request → issued, New Quote adds premium line, Coverage Q `Action:` → `Action taken:`. |
-| 94 | HIGH | js/call-logger.js, api/hawksoft-logger.js | **activityType pipeline:** `_selectedActivityType` now sent in formatOnly fetch body → destructured in API handler → injected into AI user message as `Activity: {type}` line → new SYSTEM_PROMPT rule 10 provides voice/tense guidance per activity type. |
-| 95 | MEDIUM | api/hawksoft-logger.js | SYSTEM_PROMPT rule 10: activity-type voice guidance — Payment/Policy Change/Renewal/Certificate use past tense (completed), Coverage Q/New Quote may be in-progress, Claim writes as reported/filed. |
+| 93 | MEDIUM | plugins/call-logger.html | Updated 6 activity note templates to completed-action language: Payment inquiry ? received, Policy Change request ? processed, Renewal discussion ? processed, Certificate request ? issued, New Quote adds premium line, Coverage Q `Action:` ? `Action taken:`. |
+| 94 | HIGH | js/call-logger.js, api/hawksoft-logger.js | **activityType pipeline:** `_selectedActivityType` now sent in formatOnly fetch body ? destructured in API handler ? injected into AI user message as `Activity: {type}` line ? new SYSTEM_PROMPT rule 10 provides voice/tense guidance per activity type. |
+| 95 | MEDIUM | api/hawksoft-logger.js | SYSTEM_PROMPT rule 10: activity-type voice guidance � Payment/Policy Change/Renewal/Certificate use past tense (completed), Coverage Q/New Quote may be in-progress, Claim writes as reported/filed. |
 | 96 | LOW | tests/ | 4 new tests: activityType destructured from req.body, activityType in user message, conditional include, SYSTEM_PROMPT voice guidance. Total: 23 suites, 1489 tests. |
 
-### HawkSoft Logger — + New Log Button, Agency Glossary, Channel Code Fix (March 2026)
+### HawkSoft Logger � + New Log Button, Agency Glossary, Channel Code Fix (March 2026)
 
 | # | Scope | Files | Description |
 |---|-------|-------|-------------|
-| 97 | CRITICAL | api/hawksoft-logger.js | **CHANNEL_MAP LogAction codes fixed:** Walk-In 2→21, Email 3→33, Text 4→41. These were incorrectly using Phone sub-codes (To Carrier/Staff/3rd Party). Now use correct HawkSoft LogAction enum groups (Walk In 17-24, Email 33-40, Text 41-48). Walk-In method changed "In Person"→"Walk In", Email+Text direction changed "From"→"To". |
-| 98 | HIGH | plugins/call-logger.html, css/call-logger.css, js/call-logger.js | **+ New Log button:** Reset button in header clears client, channel (→Inbound), activity, notes, preview/confirm panels. Keeps agent initials. SVG + icon with "New Log" label. |
+| 97 | CRITICAL | api/hawksoft-logger.js | **CHANNEL_MAP LogAction codes fixed:** Walk-In 2?21, Email 3?33, Text 4?41. These were incorrectly using Phone sub-codes (To Carrier/Staff/3rd Party). Now use correct HawkSoft LogAction enum groups (Walk In 17-24, Email 33-40, Text 41-48). Walk-In method changed "In Person"?"Walk In", Email+Text direction changed "From"?"To". |
+| 98 | HIGH | plugins/call-logger.html, css/call-logger.css, js/call-logger.js | **+ New Log button:** Reset button in header clears client, channel (?Inbound), activity, notes, preview/confirm panels. Keeps agent initials. SVG + icon with "New Log" label. |
 | 99 | HIGH | index.html, css/auth.css, js/call-logger.js, api/hawksoft-logger.js, js/cloud-sync.js | **Agency Glossary:** Textarea in Settings (500-char max) for custom shorthand terms (e.g., "MoE = Mutual of Enumclaw"). Stored in `altech_agency_glossary`, sent in formatOnly fetch body, injected into AI userMessage (not system prompt), cloud-synced as 8th doc type. |
 | 100 | MEDIUM | tests/ | 26 new tests across hawksoft-logger.test.js and call-logger.test.js: CHANNEL_MAP LogAction codes (7), Agency Glossary API (4), + New Log reset (9+3), glossary fetch (2), + New Log button HTML (1). Total: 23 suites, 1515 tests. |
 
-### PDF Export & Form Data — 7-Bug Fix (March 2026)
+### PDF Export & Form Data � 7-Bug Fix (March 2026)
 
 | # | Severity | Files | Fix Description |
 |---|----------|-------|-----------------|
 | 101 | CRITICAL | js/app-export.js | **Client name blank on PDF:** `data.firstName` was empty when data stored via DOM only. Changed to `v('firstName')` / `v('lastName')` which fall back to `getElementById()`. |
 | 102 | HIGH | js/app-export.js | **Dates off by one day:** `formatDate()` used local-timezone `getMonth()`/`getDate()`/`getFullYear()`. Switched to `getUTCMonth()`/`getUTCDate()`/`getUTCFullYear()` to prevent midnight-UTC shift. |
-| 103 | CRITICAL | js/app-export.js, js/app-core.js | **Co-applicant section missing on PDF:** Three-part fix — (1) `save(e)` early-returns for `hasCoApplicant` checkbox to prevent delegated handler from overwriting `toggleCoApplicant()`'s `'yes'` string with boolean `true`; (2) schema migration v1→v2 normalizes existing `hasCoApplicant` values (`true`→`'yes'`, `false`/`'no'`→`''`, `'on'`→`'yes'`); (3) PDF/CMSMTF checks now accept `=== 'yes' \|\| === true \|\| === 'on'`. All `data.coXxx` fields changed to `v('coXxx')`. |
+| 103 | CRITICAL | js/app-export.js, js/app-core.js | **Co-applicant section missing on PDF:** Three-part fix � (1) `save(e)` early-returns for `hasCoApplicant` checkbox to prevent delegated handler from overwriting `toggleCoApplicant()`'s `'yes'` string with boolean `true`; (2) schema migration v1?v2 normalizes existing `hasCoApplicant` values (`true`?`'yes'`, `false`/`'no'`?`''`, `'on'`?`'yes'`); (3) PDF/CMSMTF checks now accept `=== 'yes' \|\| === true \|\| === 'on'`. All `data.coXxx` fields changed to `v('coXxx')`. |
 | 104 | MEDIUM | js/app-export.js | **Raw currency numbers in auto coverage PDF:** `pdLimit`, `umpdLimit`, `rentalDeductible`, `towingDeductible` now wrapped in `formatCurrency()`. |
-| 105 | HIGH | js/app-export.js | **Satellite thumbnail overlapping text:** Saved `satY` before drawing, advanced `y = Math.max(y, satY + satH + 8)` after, enlarged thumbnail from 30×24 to 45×36, replaced blue "View on Maps" hyperlink with plain "Satellite View" text label. |
-| 106 | MEDIUM | js/app-core.js | **Legacy field names lost on migration:** Added 7 field-name migrations in v1→v2 schema migration: `address`→`addrStreet`, `city`→`addrCity`, `state`→`addrState`, `zip`→`addrZip`, `bodInjury`→`liabilityLimits`, `propDamage`→`pdLimit`, `collDed`→`autoDeductible`. |
-| 107 | LOW | js/app-export.js | **PDF visual polish:** Logo size 18→22, gap between name strip and satellite 16→18, satellite thumbnail 30×24→45×36. |
+| 105 | HIGH | js/app-export.js | **Satellite thumbnail overlapping text:** Saved `satY` before drawing, advanced `y = Math.max(y, satY + satH + 8)` after, enlarged thumbnail from 30�24 to 45�36, replaced blue "View on Maps" hyperlink with plain "Satellite View" text label. |
+| 106 | MEDIUM | js/app-core.js | **Legacy field names lost on migration:** Added 7 field-name migrations in v1?v2 schema migration: `address`?`addrStreet`, `city`?`addrCity`, `state`?`addrState`, `zip`?`addrZip`, `bodInjury`?`liabilityLimits`, `propDamage`?`pdLimit`, `collDed`?`autoDeductible`. |
+| 107 | LOW | js/app-export.js | **PDF visual polish:** Logo size 18?22, gap between name strip and satellite 16?18, satellite thumbnail 30�24?45�36. |
 | 108 | MEDIUM | js/app-core.js | **Firestore load not persisted:** Added debounced `save()` call at end of `applyData()` so full form state is captured after cloud/history load. Schema version bumped from 1 to 2. |
 
-### Auto Intake — Primary Applicant Driver Sync + Per-Driver History (March 2026)
+### Auto Intake � Primary Applicant Driver Sync + Per-Driver History (March 2026)
 
 | # | Scope | Files | Description |
 |---|-------|-------|-------------|
@@ -920,9 +920,24 @@ KEY RULES:
 | 117 | MEDIUM | js/app-export.js | **PDF/CMSMTF per-driver aggregation:** Exports now aggregate per-driver accidents/violations/studentGPA with "Driver N:" prefixes, falling back to global `data.*` for backward compatibility. |
 | 118 | MEDIUM | js/app-scan.js | **Scan driver fields:** All 3 driver creation sites (DL scan, policy scan primary, policy scan additional) now include `isPrimaryApplicant`, `isCoApplicant`, `accidents`, `violations`, `studentGPA`. |
 
+### Aggressive Auto-Save — Client History Never Lost (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|-----------------|
+| 119 | CRITICAL | js/app-core.js | **Auto-save on every step change:** Removed step-6 gate on `autoSaveClient()` in `updateUI()` — now fires on every step transition, not just the export page. Root cause of data loss: sessions that never reached step-6 were never saved to `altech_client_history`. |
+| 120 | CRITICAL | js/app-core.js | **Debounced client history save on form input:** Added `_scheduleClientHistorySave()` (3s debounce) called from `save()` after every form data write. Separate from the 500ms form-data debounce. Ensures meaningful field changes are captured even without step navigation. |
+| 121 | HIGH | js/app-core.js | **Immediate save on navigation:** `_saveClientHistoryNow()` (no debounce) called from `next()`, `prev()`, `goHome()`, and `logExport()`. Cancels any pending debounced save and runs `autoSaveClient()` synchronously. |
+| 122 | HIGH | js/app-boot.js | **`beforeunload` safety net:** Added `window.addEventListener('beforeunload', ...)` that calls `_saveClientHistoryNow()`. Best-effort — ensures client history is saved even on page close/refresh/tab close. |
+| 123 | HIGH | js/app-quotes.js | **Save before `startFresh()`:** `startFresh()` now calls `_saveClientHistoryNow()` before wiping form data, preserving the current session in client history. |
+| 124 | MEDIUM | plugins/quoting.html, css/main.css | **Persistent "Save" button in header:** Added `btnSaveClient` button with floppy disk SVG icon in `.header-right` next to the existing save indicator. Calls `_saveClientHistoryNow()` + shows toast. Styled with hover/active states, full dark mode support. |
+
+**Root cause:** `autoSaveClient()` (the proper upsert-by-name+address function) existed and worked correctly but was only called once — in `updateUI()` gated by `curId === 'step-6'`. Users who entered data but never reached the export page had zero entries in `altech_client_history`. Evidence: completed PDF export for "Melissa Moore" in `altech_export_history` with zero corresponding `altech_client_history` entry.
+
+**5 files changed:** js/app-core.js (2,219→2,475 lines), js/app-boot.js (287→295 lines), js/app-quotes.js (760→762 lines), plugins/quoting.html (2,016→2,019 lines), css/main.css (3,445→3,486 lines).
+
 ---
 
-## Appendix A: Plugin System â€” Adding a New Plugin
+## Appendix A: Plugin System — Adding a New Plugin
 
 ### Step 1: Create JS Module
 
@@ -993,7 +1008,7 @@ body.dark-mode .your-plugin-container {
 4. Add entry to `toolConfig[]` in `js/app-init.js`:
 
 ```javascript
-{ key: 'yourplugin', icon: 'ðŸ”§', color: 'icon-blue', title: 'Your Plugin',
+{ key: 'yourplugin', icon: '🔧', color: 'icon-blue', title: 'Your Plugin',
   name: 'Your Plugin', containerId: 'yourPluginTool', initModule: 'YourPlugin',
   htmlFile: 'plugins/your-plugin.html', category: 'ops' }
 ```
@@ -1001,10 +1016,10 @@ body.dark-mode .your-plugin-container {
 ### Step 5: Add Cloud Sync (if needed)
 
 In `js/cloud-sync.js`:
-- `_getLocalData()` â†’ add `yourData: tryParse('altech_your_key')`
-- `pushToCloud()` â†’ add `_pushDoc(...)` to Promise.all
-- `pullFromCloud()` â†’ add pull + UI refresh
-- `deleteCloudData()` â†’ add to `syncDocs` array
+- `_getLocalData()` → add `yourData: tryParse('altech_your_key')`
+- `pushToCloud()` → add `_pushDoc(...)` to Promise.all
+- `pullFromCloud()` → add pull + UI refresh
+- `deleteCloudData()` → add to `syncDocs` array
 
 ---
 
@@ -1031,7 +1046,7 @@ In `js/cloud-sync.js`:
 | `/api/prospect-lookup?type=ai-analysis` | POST | Firebase | AI risk assessment |
 | `/api/compliance` | GET | Security | HawkSoft CGL policies |
 | `/api/historical-analyzer` | POST | Security | Property value analysis |
-| `/api/property-intelligence?mode=rag-interpret` | POST | Security | Assessor data â†’ form fields |
+| `/api/property-intelligence?mode=rag-interpret` | POST | Security | Assessor data → form fields |
 | `/api/kv-store` | GET/POST/DELETE | Firebase | Per-user Redis KV |
 | `/api/stripe?action=checkout` | POST | Firebase | Stripe checkout |
 | `/api/stripe?action=portal` | POST | Firebase | Customer portal |
@@ -1047,30 +1062,30 @@ In `js/cloud-sync.js`:
 
 ```bash
 tests/
-â”œâ”€â”€ setup.js                    # Jest env: mock fetch, suppress crypto errors
-â”œâ”€â”€ ai-router.test.js           # AI router multi-provider logic
-â”œâ”€â”€ api-compliance.test.js      # Compliance API (HawkSoft CGL)
-â”œâ”€â”€ api-property.test.js        # Property intelligence API
-â”œâ”€â”€ api-prospect.test.js        # Prospect lookup API
-â”œâ”€â”€ api-security.test.js        # API security middleware
-â”œâ”€â”€ app.test.js                 # Core App object + form handling
-â”œâ”€â”€ auth-cloudsync.test.js      # Auth login + CloudSync reliability tests
-â”œâ”€â”€ boot-loading.test.js        # First-load boot + Places loader resilience tests
-â”œâ”€â”€ ezlynx-pipeline.test.js    # EZLynx export pipeline
-â”œâ”€â”€ intake-assist.test.js       # Intake assist module tests
-â”œâ”€â”€ integration.test.js         # Cross-module integration
-â”œâ”€â”€ layout-regressions.test.js  # CSS shell/chat layout regression guardrails
-â”œâ”€â”€ performance.test.js         # Performance benchmarks
-â”œâ”€â”€ phase1.test.js              # Phase 1 feature tests
-â”œâ”€â”€ phase2.test.js              # Phase 2 feature tests
-â”œâ”€â”€ phase3.test.js              # Phase 3 feature tests
-â”œâ”€â”€ phase4.test.js              # Phase 4 feature tests
-â”œâ”€â”€ phase5.test.js              # Phase 5 feature tests
-â”œâ”€â”€ plugin-integration.test.js  # Plugin system integration
-â”œâ”€â”€ prospect-client.test.js     # Prospect client-side module
-â”œâ”€â”€ server.test.js              # Local dev server (server.js)
-â”œâ”€â”€ hawksoft-logger.test.js     # HawkSoft Logger API (89 tests, CHANNEL_MAP LogAction codes, policyId, activityType, glossary)
-â””â”€â”€ call-logger.test.js         # Call Logger client module (194 tests, channel/activity buttons, hawksoftPolicyId pipeline, activityType fetch, + New Log reset, glossary)
+├── setup.js                    # Jest env: mock fetch, suppress crypto errors
+├── ai-router.test.js           # AI router multi-provider logic
+├── api-compliance.test.js      # Compliance API (HawkSoft CGL)
+├── api-property.test.js        # Property intelligence API
+├── api-prospect.test.js        # Prospect lookup API
+├── api-security.test.js        # API security middleware
+├── app.test.js                 # Core App object + form handling
+├── auth-cloudsync.test.js      # Auth login + CloudSync reliability tests
+├── boot-loading.test.js        # First-load boot + Places loader resilience tests
+├── ezlynx-pipeline.test.js    # EZLynx export pipeline
+├── intake-assist.test.js       # Intake assist module tests
+├── integration.test.js         # Cross-module integration
+├── layout-regressions.test.js  # CSS shell/chat layout regression guardrails
+├── performance.test.js         # Performance benchmarks
+├── phase1.test.js              # Phase 1 feature tests
+├── phase2.test.js              # Phase 2 feature tests
+├── phase3.test.js              # Phase 3 feature tests
+├── phase4.test.js              # Phase 4 feature tests
+├── phase5.test.js              # Phase 5 feature tests
+├── plugin-integration.test.js  # Plugin system integration
+├── prospect-client.test.js     # Prospect client-side module
+├── server.test.js              # Local dev server (server.js)
+├── hawksoft-logger.test.js     # HawkSoft Logger API (89 tests, CHANNEL_MAP LogAction codes, policyId, activityType, glossary)
+└── call-logger.test.js         # Call Logger client module (194 tests, channel/activity buttons, hawksoftPolicyId pipeline, activityType fetch, + New Log reset, glossary)
 ```
 
 Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously' })`. The test setup file mocks `fetch`, silences console noise, and suppresses expected `crypto.subtle` errors.

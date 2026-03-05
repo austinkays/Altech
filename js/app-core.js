@@ -557,9 +557,12 @@ Object.assign(App, {
             this.renderStep0ClientHistory();
         }
 
-        // Auto-select current data when landing on export page
+        // Auto-save client history on EVERY step change (not just step-6)
+        // This ensures no session data is lost even if user never reaches export
+        this.autoSaveClient();
+
+        // Render full client history on export page
         if (curId === 'step-6') {
-            this.autoSaveClient();
             this.renderClientHistory();
         }
         
@@ -591,6 +594,9 @@ Object.assign(App, {
 
     next() {
         try {
+            // Save client history before navigating (immediate, no debounce)
+            this._saveClientHistoryNow();
+
             // Auto-init flow if somehow empty
             if (!this.flow || this.flow.length === 0) {
                 console.warn('[App.next] flow was empty, calling handleType()');
@@ -644,6 +650,9 @@ Object.assign(App, {
     },
     prev() {
         try {
+            // Save client history before navigating back
+            this._saveClientHistoryNow();
+
             if (!this.flow || this.flow.length === 0) {
                 console.warn('[App.prev] flow was empty, calling handleType()');
                 this.handleType();
@@ -655,6 +664,21 @@ Object.assign(App, {
         } catch(e) {
             console.error('[App.prev] Error:', e);
         }
+    },
+
+    // Debounced client history auto-save (3s debounce, separate from form save)
+    _clientHistorySaveTimeout: null,
+    _scheduleClientHistorySave() {
+        if (this._clientHistorySaveTimeout) clearTimeout(this._clientHistorySaveTimeout);
+        this._clientHistorySaveTimeout = setTimeout(() => {
+            try { this.autoSaveClient(); } catch(e) { console.warn('[AutoSave] Client history save error:', e); }
+        }, 3000);
+    },
+
+    // Immediate client history save (no debounce) — for navigation, beforeunload, manual save
+    _saveClientHistoryNow() {
+        if (this._clientHistorySaveTimeout) clearTimeout(this._clientHistorySaveTimeout);
+        try { this.autoSaveClient(); } catch(e) { console.warn('[AutoSave] Client history save error:', e); }
     },
 
     async save(e) {
@@ -699,6 +723,9 @@ Object.assign(App, {
                     ind.style.opacity = 1;
                     setTimeout(() => { ind.style.opacity = 0; }, 1500);
                 }
+
+                // Also schedule a debounced client history save on meaningful input
+                this._scheduleClientHistorySave();
             } finally {
                 this._saving = false;
             }
@@ -1444,6 +1471,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
     // --- Export History ---
 
     logExport(type, filename) {
+        // Ensure client is saved to history when they export
+        try { this._saveClientHistoryNow(); } catch(e) { /* ok */ }
+
         const clientName = `${this.data.firstName || ''} ${this.data.lastName || ''}`.trim() || 'Unknown';
         const entry = {
             type,
@@ -1867,6 +1897,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
     },
 
     goHome() {
+        // Save client history before leaving quoting wizard
+        try { this._saveClientHistoryNow(); } catch(e) { /* ok */ }
+
         // Hide all tools
         document.querySelectorAll('.plugin-container').forEach(tool => {
             tool.classList.remove('active');

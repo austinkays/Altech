@@ -307,6 +307,48 @@ body.dark-mode .logo-icon:hover {
 .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .save-indicator { font-size: 13px; color: var(--success); opacity: 0; transition: opacity 0.3s; font-weight: 500; }
 
+/* Save to Client History Button */
+.btn-save-client {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s var(--transition-smooth);
+    white-space: nowrap;
+}
+.btn-save-client:hover {
+    background: rgba(0, 122, 255, 0.08);
+    color: var(--apple-blue);
+    border-color: var(--apple-blue);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.15);
+}
+.btn-save-client:active {
+    transform: scale(0.96);
+    box-shadow: none;
+}
+.btn-save-client svg {
+    flex-shrink: 0;
+}
+body.dark-mode .btn-save-client {
+    background: #2C2C2E;
+    border-color: #38383A;
+    color: #98989D;
+}
+body.dark-mode .btn-save-client:hover {
+    background: rgba(10, 132, 255, 0.15);
+    color: #0A84FF;
+    border-color: #0A84FF;
+    box-shadow: 0 2px 8px rgba(10, 132, 255, 0.2);
+}
+
 /* Dark Mode Toggle */
 .dark-mode-toggle {
     background: rgba(0, 60, 140, 0.06);

@@ -131,6 +131,9 @@ Object.assign(App, {
     },
 
     startFresh() {
+        // Save current session to client history before wiping (if has data)
+        try { this._saveClientHistoryNow(); } catch(e) { /* ok */ }
+
         this.data = {};
         this.drivers = [];
         this.vehicles = [];
