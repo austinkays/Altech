@@ -73,57 +73,71 @@
     <!-- Unlocked Vault Content -->
     <div id="acctVaultContent" style="display:none;">
         <div class="acct-vault-toolbar">
-            <button class="btn btn-primary" onclick="AccountingExport.toggleAddForm()">+ Add Account</button>
-            <button class="btn btn-secondary" onclick="AccountingExport.lockVault()">🔒 Lock</button>
+            <button class="acct-toolbar-btn acct-toolbar-add" onclick="AccountingExport.toggleAddForm()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Account
+            </button>
+            <button class="acct-toolbar-btn acct-toolbar-lock" onclick="AccountingExport.lockVault()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Lock
+            </button>
         </div>
 
         <!-- Inline Add/Edit Form (hidden by default) -->
         <div class="acct-add-form" id="acctAddForm">
-            <div class="card">
-                <h3 id="acctAddFormTitle">Add New Account</h3>
-                <div class="acct-add-row">
-                    <div style="flex:1;">
-                        <label class="label">Account Name</label>
-                        <input type="text" id="acctAddName" placeholder="e.g. Office Debit Card">
-                    </div>
-                    <div>
-                        <label class="label">Type</label>
-                        <select id="acctAddType">
-                            <option value="checking">Checking</option>
-                            <option value="savings">Savings</option>
-                            <option value="credit">Credit Card</option>
-                            <option value="debit">Debit Card</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="label">Color</label>
+            <div class="acct-form-header">
+                <h4 id="acctAddFormTitle">Add New Account</h4>
+            </div>
+            <div class="acct-form-grid">
+                <div class="acct-form-field acct-form-name">
+                    <label>Account Name</label>
+                    <input type="text" id="acctAddName" placeholder="e.g. Office Debit Card">
+                </div>
+                <div class="acct-form-field">
+                    <label>Type</label>
+                    <select id="acctAddType">
+                        <option value="checking">Checking</option>
+                        <option value="savings">Savings</option>
+                        <option value="credit">Credit Card</option>
+                        <option value="debit">Debit Card</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="acct-form-field acct-form-color">
+                    <label>Color</label>
+                    <div class="acct-color-wrapper">
                         <input type="color" id="acctAddColor" value="#0052cc">
                     </div>
                 </div>
-                <div style="margin-top:12px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <span class="acct-vault-section-label" style="margin:0;">Fields</span>
-                        <button type="button" class="btn btn-secondary" style="padding:4px 12px; font-size:12px;" onclick="AccountingExport.addFieldRow()">+ Add Field</button>
-                    </div>
-                    <div id="acctAddFieldsList">
-                        <div class="acct-add-field-row">
-                            <input type="text" placeholder="Label (e.g. Account #)" data-role="label">
-                            <input type="text" placeholder="Value" data-role="value">
-                            <button class="acct-field-remove" onclick="this.parentElement.remove()" title="Remove">✕</button>
-                        </div>
+            </div>
+            <div class="acct-fields-section">
+                <div class="acct-fields-header">
+                    <span>Custom Fields</span>
+                    <button type="button" class="acct-add-row-btn" onclick="AccountingExport.addFieldRow()">+ Add Field</button>
+                </div>
+                <div id="acctAddFieldsList">
+                    <div class="acct-add-field-row">
+                        <input type="text" placeholder="Label (e.g. Account #)" data-role="label">
+                        <input type="text" placeholder="Value" data-role="value">
+                        <button class="acct-field-remove" onclick="this.parentElement.remove()" title="Remove">✕</button>
                     </div>
                 </div>
-                <div style="margin-top:14px; display:flex; gap:10px;">
-                    <button class="btn btn-primary" onclick="AccountingExport.saveAccount()">Save</button>
-                    <button class="btn btn-secondary" onclick="AccountingExport.toggleAddForm()">Cancel</button>
-                </div>
+            </div>
+            <div class="acct-form-actions">
+                <button class="acct-add-save-btn" onclick="AccountingExport.saveAccount()">Save Account</button>
+                <button class="acct-add-cancel-btn" onclick="AccountingExport.toggleAddForm()">Cancel</button>
             </div>
         </div>
 
         <!-- Account Cards Grid -->
         <div class="acct-cards-grid" id="acctCardsGrid">
-            <p class="acct-empty-msg">No accounts yet. Click "+ Add Account" to store your first card or bank info.</p>
+            <div class="acct-empty-state">
+                <div class="acct-empty-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                </div>
+                <p>No accounts yet</p>
+                <span>Click "Add Account" to store your first card or bank info.</span>
+            </div>
         </div>
     </div>
   </div><!-- /acctTabVault -->

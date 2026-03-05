@@ -141,126 +141,154 @@
 
 /* ══════ Vault Toolbar ══════ */
 .acct-vault-toolbar {
-    display: flex; gap: 8px; margin-bottom: 16px;
+    display: flex; gap: 8px; margin-bottom: 20px;
 }
-.acct-vault-toolbar button {
+.acct-toolbar-btn {
+    display: inline-flex; align-items: center; gap: 6px;
     padding: 8px 16px; border-radius: 10px;
     font-size: 13px; font-weight: 600; font-family: inherit;
     cursor: pointer; border: 1.5px solid var(--border);
     background: var(--bg-card); color: var(--text);
-    transition: background 0.15s, border-color 0.15s;
+    transition: all 0.15s ease;
 }
-.acct-vault-toolbar button:hover {
+.acct-toolbar-btn:hover {
     border-color: var(--apple-blue); color: var(--apple-blue);
 }
+.acct-toolbar-btn svg { flex-shrink: 0; }
+.acct-toolbar-add {
+    background: var(--apple-blue); color: #fff; border-color: var(--apple-blue);
+}
+.acct-toolbar-add:hover {
+    background: var(--apple-blue-hover); border-color: var(--apple-blue-hover); color: #fff;
+}
+.acct-toolbar-add svg { stroke: #fff; }
 
 /* ══════ Inline Add/Edit Form ══════ */
 .acct-add-form {
-    display: none; padding: 20px;
-    background: var(--bg-card); border: 1.5px solid var(--border);
-    border-radius: 14px; margin-bottom: 20px;
+    display: none; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: 14px;
+    margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    overflow: hidden;
 }
 .acct-add-form.active { display: block; }
-.acct-add-form h4 { margin: 0 0 14px; font-size: 15px; color: var(--text); }
-.acct-add-form-fields {
-    display: grid; grid-template-columns: 1fr 1fr 80px; gap: 10px;
-    margin-bottom: 14px;
+.acct-form-header {
+    padding: 18px 20px 0;
 }
-.acct-add-form-fields label {
-    display: block; font-size: 11px; font-weight: 600;
-    color: var(--text-secondary); text-transform: uppercase;
-    letter-spacing: 0.5px; margin-bottom: 4px;
+.acct-form-header h4 {
+    margin: 0; font-size: 16px; font-weight: 700; color: var(--text);
 }
-.acct-add-form-fields input,
-.acct-add-form-fields select {
+.acct-form-grid {
+    display: grid; grid-template-columns: 2fr 1fr auto;
+    gap: 12px; padding: 16px 20px; align-items: end;
+}
+.acct-form-field label {
+    display: block; font-size: 12px; font-weight: 600;
+    color: var(--text-secondary); margin-bottom: 6px;
+}
+.acct-form-field input,
+.acct-form-field select {
     width: 100%; box-sizing: border-box;
-    padding: 8px 10px; border: 1.5px solid var(--border);
+    padding: 9px 12px; border: 1.5px solid var(--border);
     border-radius: 8px; background: var(--bg-input);
-    color: var(--text); font-size: 13px; font-family: inherit;
+    color: var(--text); font-size: 14px; font-family: inherit;
 }
-.acct-add-form-fields input[type="color"] {
-    height: 36px; padding: 2px 4px; cursor: pointer;
+.acct-form-field input:focus,
+.acct-form-field select:focus {
+    outline: none; border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
+}
+.acct-color-wrapper { display: flex; align-items: center; }
+.acct-color-wrapper input[type="color"] {
+    width: 40px; height: 40px; padding: 2px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    cursor: pointer; background: var(--bg-input);
+}
+.acct-color-wrapper input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+.acct-color-wrapper input[type="color"]::-webkit-color-swatch { border-radius: 6px; border: none; }
+.acct-fields-section {
+    padding: 0 20px 16px; border-top: 1px solid var(--border);
+    margin-top: 0; padding-top: 16px;
+}
+.acct-fields-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 10px;
+}
+.acct-fields-header span {
+    font-size: 13px; font-weight: 600; color: var(--text-secondary);
 }
 .acct-add-field-row {
-    display: flex; gap: 8px; align-items: center; margin-bottom: 6px;
+    display: flex; gap: 8px; align-items: center; margin-bottom: 8px;
 }
 .acct-add-field-row input {
-    flex: 1; padding: 8px 10px; border: 1.5px solid var(--border);
+    flex: 1; padding: 9px 12px; border: 1.5px solid var(--border);
     border-radius: 8px; background: var(--bg-input);
     color: var(--text); font-size: 13px; font-family: inherit;
 }
 .acct-add-field-row input:focus {
     outline: none; border-color: var(--apple-blue);
-    box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
 }
 .acct-field-remove {
     background: none; border: none; cursor: pointer;
-    color: var(--text-secondary); font-size: 16px; padding: 4px 6px;
-    border-radius: 6px;
+    color: var(--text-tertiary); font-size: 14px;
+    padding: 6px 8px; border-radius: 6px; transition: color 0.15s;
 }
 .acct-field-remove:hover { color: var(--danger); }
-.acct-add-form-btns {
-    display: flex; gap: 8px; margin-top: 14px;
-}
 .acct-add-row-btn {
     background: none; border: 1.5px dashed var(--border);
-    border-radius: 8px; padding: 6px 14px;
+    border-radius: 8px; padding: 5px 12px;
     font-size: 12px; font-weight: 600; font-family: inherit;
-    color: var(--text-secondary); cursor: pointer;
+    color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
 }
 .acct-add-row-btn:hover { border-color: var(--apple-blue); color: var(--apple-blue); }
+.acct-form-actions {
+    display: flex; gap: 8px; padding: 0 20px 18px;
+}
 .acct-add-save-btn {
-    padding: 8px 20px; border: none; border-radius: 10px;
+    padding: 9px 24px; border: none; border-radius: 10px;
     background: var(--apple-blue); color: #fff;
     font-size: 13px; font-weight: 600; font-family: inherit;
-    cursor: pointer;
+    cursor: pointer; transition: background 0.15s;
 }
 .acct-add-save-btn:hover { background: var(--apple-blue-hover); }
 .acct-add-cancel-btn {
-    padding: 8px 16px; border: 1.5px solid var(--border);
-    border-radius: 10px; background: var(--bg-card);
+    padding: 9px 20px; border: 1.5px solid var(--border);
+    border-radius: 10px; background: transparent;
     color: var(--text-secondary); font-size: 13px;
-    font-weight: 600; font-family: inherit; cursor: pointer;
+    font-weight: 600; font-family: inherit;
+    cursor: pointer; transition: all 0.15s;
 }
 .acct-add-cancel-btn:hover { color: var(--text); border-color: var(--text-secondary); }
 
 /* ══════ Account Cards Grid ══════ */
 .acct-cards-grid {
-    display: grid; grid-template-columns: 1fr;
-    gap: 16px;
+    display: grid; grid-template-columns: 1fr; gap: 16px;
 }
 .acct-card {
     background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: 14px; overflow: hidden;
-    transition: box-shadow 0.2s;
+    border-radius: 14px; overflow: hidden; transition: box-shadow 0.2s;
 }
 .acct-card:hover { box-shadow: 0 4px 12px var(--shadow); }
 .acct-card-header {
     display: flex; justify-content: space-between; align-items: flex-start;
-    padding: 14px 16px 0;
+    padding: 16px 18px 0;
 }
-.acct-card-name {
-    font-size: 15px; font-weight: 700; color: var(--text);
-}
+.acct-card-name { font-size: 15px; font-weight: 700; color: var(--text); }
 .acct-card-type {
     font-size: 11px; font-weight: 600; color: var(--text-secondary);
     text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;
 }
-.acct-card-actions {
-    display: flex; gap: 4px;
-}
+.acct-card-actions { display: flex; gap: 4px; }
 .acct-card-actions button {
     background: none; border: none; cursor: pointer;
     font-size: 14px; padding: 4px; border-radius: 6px;
     color: var(--text-secondary);
 }
 .acct-card-actions button:hover { color: var(--text); background: var(--bg-input); }
-.acct-card-fields {
-    padding: 10px 16px 14px;
-}
+.acct-card-fields { padding: 12px 18px 16px; }
 .acct-card-field {
     display: flex; align-items: center; gap: 8px;
-    padding: 6px 0; border-bottom: 1px solid var(--border-subtle);
+    padding: 7px 0; border-bottom: 1px solid var(--border-subtle);
 }
 .acct-card-field:last-child { border-bottom: none; }
 .acct-card-field-label {
@@ -270,22 +298,22 @@
 }
 .acct-card-field-value {
     flex: 1; font-size: 14px; color: var(--text);
-    font-variant-numeric: tabular-nums; cursor: pointer;
-    letter-spacing: 2px;
+    font-variant-numeric: tabular-nums; cursor: pointer; letter-spacing: 2px;
 }
-.acct-card-field-value[data-masked="false"] {
-    letter-spacing: 0;
-}
+.acct-card-field-value[data-masked="false"] { letter-spacing: 0; }
 .acct-card-copy {
     background: none; border: none; cursor: pointer;
-    color: var(--text-secondary); padding: 4px; border-radius: 6px;
-    flex-shrink: 0;
+    color: var(--text-secondary); padding: 4px; border-radius: 6px; flex-shrink: 0;
 }
 .acct-card-copy:hover { color: var(--apple-blue); background: var(--bg-input); }
-.acct-empty-msg {
-    text-align: center; color: var(--text-secondary);
-    font-size: 14px; padding: 32px 0;
+.acct-empty-state {
+    text-align: center; padding: 48px 24px; color: var(--text-secondary);
 }
+.acct-empty-icon { margin-bottom: 12px; color: var(--text-tertiary); opacity: 0.5; }
+.acct-empty-state p {
+    margin: 0 0 4px; font-size: 15px; font-weight: 600; color: var(--text-secondary);
+}
+.acct-empty-state span { font-size: 13px; color: var(--text-tertiary); }
 
 /* ══════ Dark Mode ══════ */
 body.dark-mode .acct-tab.active {
@@ -300,8 +328,27 @@ body.dark-mode .acct-pin-input {
 body.dark-mode .acct-pin-lockout {
     background: rgba(255,69,58,0.15); color: #FF453A;
 }
+body.dark-mode .acct-toolbar-btn {
+    background: #1C1C1E; border-color: #38383A;
+}
+body.dark-mode .acct-toolbar-btn:hover {
+    border-color: #0A84FF; color: #0A84FF;
+}
+body.dark-mode .acct-toolbar-add {
+    background: #0A84FF; color: #fff; border-color: #0A84FF;
+}
+body.dark-mode .acct-toolbar-add:hover {
+    background: #409CFF; border-color: #409CFF;
+}
 body.dark-mode .acct-add-form {
     background: #1C1C1E; border-color: #38383A;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+body.dark-mode .acct-fields-section {
+    border-top-color: #38383A;
+}
+body.dark-mode .acct-color-wrapper input[type="color"] {
+    background: #2C2C2E; border-color: #38383A;
 }
 body.dark-mode .acct-card {
     background: #1C1C1E; border-color: #38383A;

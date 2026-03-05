@@ -448,7 +448,7 @@ const AccountingExport = {
 
         const accounts = this._vaultData.accounts;
         if (!accounts.length) {
-            grid.innerHTML = '<p class="acct-empty-msg">No accounts yet. Click "+ Add Account" to store your first card or bank info.</p>';
+            grid.innerHTML = '<div class="acct-empty-state"><div class="acct-empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div><p>No accounts yet</p><span>Click "Add Account" to store your first card or bank info.</span></div>';
             return;
         }
         grid.innerHTML = accounts.map((acct, i) => {
