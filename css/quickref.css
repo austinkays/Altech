@@ -221,6 +221,32 @@
     font-weight: 400;
 }
 
+/* ── Quick Dial Numbers ── */
+.qr-number-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.qr-number-row:last-child { border-bottom: none; }
+.qr-number-label {
+    font-weight: 600;
+    color: var(--text);
+    min-width: 100px;
+}
+.qr-number-row .qr-card-value {
+    flex: 1;
+}
+.qr-number-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.qr-number-row:hover .qr-number-actions { opacity: 1; }
+
 /* ── Desktop enhancements ── */
 @media (min-width: 960px) {
     .qr-container {

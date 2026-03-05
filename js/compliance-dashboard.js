@@ -115,6 +115,7 @@ const ComplianceDashboard = {
     policies: [],
     verifiedPolicies: {},
     dismissedPolicies: {},
+    snoozedPolicies: {},
     policyNotes: {},
     showHidden: false,
     sortField: 'daysUntilExpiration',
@@ -202,6 +203,7 @@ const ComplianceDashboard = {
                 const parsed = JSON.parse(state);
                 this.verifiedPolicies = parsed.verifiedPolicies || {};
                 this.dismissedPolicies = parsed.dismissedPolicies || {};
+                this.snoozedPolicies = parsed.snoozedPolicies || {};
                 this.policyNotes = parsed.policyNotes || {};
                 this.sortField = parsed.sortField || 'daysUntilExpiration';
                 this.sortDirection = parsed.sortDirection || 'asc';
@@ -210,7 +212,7 @@ const ComplianceDashboard = {
                 this.hiddenTypes = parsed.hiddenTypes || ['auto', 'umbrella', 'wc', 'im', 'property', 'epli', 'do', 'eo', 'cyber', 'crime', 'liquor', 'garage', 'pollution'];
                 this.notifyTypes = parsed.notifyTypes || ['cgl', 'bond', 'pkg', 'bop', 'commercial'];
                 this._stateLoaded = true;
-                console.log('[CGL] State loaded:', Object.keys(this.verifiedPolicies).length, 'verified,', Object.keys(this.dismissedPolicies).length, 'dismissed,', Object.keys(this.policyNotes).length, 'notes');
+                console.log('[CGL] State loaded:', Object.keys(this.verifiedPolicies).length, 'verified,', Object.keys(this.dismissedPolicies).length, 'dismissed,', Object.keys(this.snoozedPolicies).length, 'snoozed,', Object.keys(this.policyNotes).length, 'notes');
                 return;
             } catch (e) {
                 console.error('[CGL] Failed to parse state:', e);
@@ -372,6 +374,7 @@ const ComplianceDashboard = {
         return {
             verifiedPolicies: this.verifiedPolicies,
             dismissedPolicies: this.dismissedPolicies,
+            snoozedPolicies: this.snoozedPolicies,
             policyNotes: this.policyNotes,
             sortField: this.sortField,
             sortDirection: this.sortDirection,
@@ -1636,7 +1639,28 @@ const ComplianceDashboard = {
     },
 
     isHidden(policyNumber) {
-        return !!this.verifiedPolicies[policyNumber] || !!this.dismissedPolicies[policyNumber];
+        return !!this.verifiedPolicies[policyNumber] || !!this.dismissedPolicies[policyNumber] || this._isSnoozeActive(policyNumber);
+    },
+
+    _isSnoozeActive(policyNumber) {
+        const snooze = this.snoozedPolicies[policyNumber];
+        if (!snooze) return false;
+        return new Date() < new Date(snooze.snoozedUntil);
+    },
+
+    _expireSnoozes() {
+        const now = new Date();
+        let expired = 0;
+        for (const pn of Object.keys(this.snoozedPolicies)) {
+            if (now >= new Date(this.snoozedPolicies[pn].snoozedUntil)) {
+                delete this.snoozedPolicies[pn];
+                expired++;
+            }
+        }
+        if (expired > 0) {
+            this.saveState();
+            console.log(`[CGL] ${expired} snooze(s) expired`);
+        }
     },
 
     getHiddenCount() {
@@ -1679,6 +1703,31 @@ const ComplianceDashboard = {
         this.updateStats();
     },
 
+    snoozePolicy(policyNumber) {
+        const existing = this.snoozedPolicies[policyNumber];
+        const count = existing ? (existing.count || 1) + 1 : 1;
+        const now = new Date();
+        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        this.snoozedPolicies[policyNumber] = {
+            snoozedAt: now.toISOString(),
+            snoozedUntil: tomorrow.toISOString(),
+            count
+        };
+        const label = tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        this.addQuickNote(policyNumber, `🛏️ Snoozed until ${label} (snooze #${count})`);
+        this.saveState();
+        this.trackChange();
+        this.filterPolicies();
+        this.updateStats();
+    },
+
+    unsnoozePolicy(policyNumber) {
+        delete this.snoozedPolicies[policyNumber];
+        this.saveState();
+        this.filterPolicies();
+        this.updateStats();
+    },
+
     undismissPolicy(policyNumber) {
         delete this.dismissedPolicies[policyNumber];
         this.saveState();
@@ -1711,6 +1760,7 @@ const ComplianceDashboard = {
 
             this.verifiedPolicies = {};
             this.dismissedPolicies = {};
+            this.snoozedPolicies = {};
             this.policyNotes = {};
             // Force disk sync even though state is empty (user explicitly cleared)
             this._stateLoaded = true;
@@ -2140,6 +2190,7 @@ const ComplianceDashboard = {
     },
 
     filterPolicies() {
+        this._expireSnoozes();
         const searchTerm = document.getElementById('cglSearchInput').value.toLowerCase();
         const filterStatus = document.getElementById('cglFilterSelect').value;
 
@@ -2284,12 +2335,18 @@ const ComplianceDashboard = {
                 ? 'Verified on ' + new Date(this.verifiedPolicies[policy.policyNumber].updatedAt).toLocaleDateString()
                 : 'Done — state updated, hide policy';
 
+            const isSnoozed = this._isSnoozeActive(policy.policyNumber);
             let actionHtml = '';
             if (isHidden && this.showHidden) {
-                const fn = isDismissed ? 'undismissPolicy' : 'unverifyPolicy';
-                actionHtml = `<button class="cgl-restore-btn" onclick="ComplianceDashboard.${fn}('${pn}')">Restore</button>`;
+                if (isSnoozed) {
+                    const until = new Date(this.snoozedPolicies[policy.policyNumber].snoozedUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    actionHtml = `<span class="cgl-snoozed-badge">🛏️ Until ${until}</span><button class="cgl-restore-btn" onclick="ComplianceDashboard.unsnoozePolicy('${pn}')">Wake</button>`;
+                } else {
+                    const fn = isDismissed ? 'undismissPolicy' : 'unverifyPolicy';
+                    actionHtml = `<button class="cgl-restore-btn" onclick="ComplianceDashboard.${fn}('${pn}')">Restore</button>`;
+                }
             } else if (!isHidden) {
-                actionHtml = `<button class="cgl-dismiss-btn" onclick="ComplianceDashboard.dismissPolicy('${pn}')">Dismiss</button>`;
+                actionHtml = `<button class="cgl-snooze-btn" onclick="ComplianceDashboard.snoozePolicy('${pn}')" title="Hide until tomorrow">🛏️</button><button class="cgl-dismiss-btn" onclick="ComplianceDashboard.dismissPolicy('${pn}')">Dismiss</button>`;
             }
 
             const isSelected = this._printMode && this._selectedForPrint.has(policy.policyNumber);
@@ -2356,6 +2413,7 @@ const ComplianceDashboard = {
                             <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Renewal term confirmed')">✅ Renewal Confirmed</button>
                             <button class="cgl-quick-note-btn renew" onclick="ComplianceDashboard.markRenewed('${pn}')">🔄 Renewed (New Policy #)</button>
                             <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.markStateUpdated('${pn}')" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857;">🏛️ State Updated</button>
+                            <button class="cgl-quick-note-btn cgl-snooze-quick" onclick="ComplianceDashboard.snoozePolicy('${pn}')">🛏️ Sleep Until Tomorrow</button>
                         </div>
                         <textarea class="cgl-note-input" rows="1" placeholder="Add a note…" onblur="ComplianceDashboard.saveNote('${pn}')" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur();}"></textarea>
                         <div class="cgl-note-log">${this.renderNoteLog(pn)}</div>

@@ -166,9 +166,9 @@ priorCarrier, priorYears, priorLapse
 | `js/crypto-helper.js` | 🔴 | Encryption for all user data — any bug → data loss or plaintext leak |
 | `js/app-boot.js` | 🟡 | Boot sequence — if it fails, entire app doesn't load |
 | `js/auth.js` | 🟡 | Authentication + `apiFetch()` used by most plugins |
-| `css/main.css` | 🟡 | ~3,486 lines, :root variable source of truth, 100+ dark mode selectors, desktop layout overhaul |
+| `css/main.css` | 🟡 | ~3,366 lines, :root variable source of truth, 100+ dark mode selectors, desktop layout overhaul |
 | `plugins/quoting.html` | 🟡 | 2,019 lines, all form field IDs — renaming breaks persistence |
-| `js/compliance-dashboard.js` | 🟡 | 2,448 lines, 6-layer persistence, complex merge logic, needsStateUpdate flag |
+| `js/compliance-dashboard.js` | 🟡 | 2,502 lines, 6-layer persistence, complex merge logic, needsStateUpdate flag, snooze/sleep system |
 
 ---
 
@@ -192,7 +192,7 @@ priorCarrier, priorYears, priorLapse
 
 ---
 
-## Cloud-Synced Data Types (10)
+## Cloud-Synced Data Types (11)
 
 | docType | localStorage Key | UI Refresh After Pull |
 |---------|-----------------|----------------------|
@@ -201,6 +201,7 @@ priorCarrier, priorYears, priorLapse
 | `cglState` | `altech_cgl_state` | *(localStorage only)* |
 | `clientHistory` | `altech_client_history` | *(localStorage only)* |
 | `quickRefCards` | `altech_quickref_cards` | `QuickRef.renderCards()` |
+| `quickRefNumbers` | `altech_quickref_numbers` | `QuickRef.renderNumbers()` |
 | `reminders` | `altech_reminders` | `Reminders.render()` |
 | `quotes` | `altech_v6_quotes` | `App.renderQuotesList()` |
 | `glossary` | `altech_agency_glossary` | Updates textarea if visible |
@@ -223,7 +224,21 @@ npm run deploy:vercel    # Production deploy
 
 ---
 
-## Session Notes (March 12, 2026)
+## Session Notes (March 13, 2026)
+
+- **8 UI/UX Improvements — Full Session:**
+  1. **Sidebar logo:** Replaced blue "AL" text with `<img>` of `Resources/altech-logo.png`. Restyled `.sidebar-brand-logo` for image display.
+  2. **Personal Lines icon:** Changed from house (duplicate of Dashboard) to pencil/edit ✏️ SVG. Updated `toolConfig` icon + `TOOL_ICONS` mapping.
+  3. **Footer behind sidebar:** Removed errant `left: 0` from `#quotingTool footer` override in main.css.
+  4. **Policy Q&A hidden:** Added `hidden: true` to toolConfig entry — invisible to users until finished.
+  5. **Bug report page detection:** Rewrote `getCurrentPage()` with hash-based detection + title/step fallbacks.
+  6. **Browser title:** Changed `<title>` from "Altech Field Lead" to "Altech Toolkit".
+  7. **CGL Snooze/Sleep:** Full snooze system — `snoozePolicy(pn)` sets midnight-tonight expiry, logs note with count, auto-expires in `filterPolicies()`. UI: 🛏️ Sleep button next to Dismiss, amber snoozed badge + Wake button in showHidden mode, "Sleep Until Tomorrow" in quick-note row. `_isSnoozeActive()`, `_expireSnoozes()`, `unsnoozePolicy()` methods.
+  8. **QuickRef reorganized:** Reordered to ID Cards → Speller → Quick Dial Numbers → Phonetic Grid. Replaced hardcoded Common Numbers with editable CRUD system (add/edit/delete with defaults: NAIC, CLUE, MVR). Cloud synced as `quickRefNumbers` (11th doc type).
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **12 files changed:** js/compliance-dashboard.js (2,448→2,502), css/compliance.css (1,234→1,275), js/quick-ref.js (293→346), css/quickref.css (233→261), plugins/quickref.html (79→78), js/cloud-sync.js (664→672), js/dashboard-widgets.js (976→886), css/sidebar.css (765→726), js/bug-report.js (260→232), css/main.css (3,486→3,366), js/app-init.js (85→86), index.html (665).
+
+### Previous Session (March 12, 2026)
 
 - **Encrypted Accounting Vault:** PIN + AES-256-GCM + multi-account CRUD. Tabbed layout (Account Info / Export Tools). PIN lockout escalation (3/6 tries), Firebase re-auth recovery. Cloud sync: vaultData + vaultMeta (10 doc types total).
 - **Vault UI Polish:** Replaced heavy gradient toolbar buttons with dedicated ghost/solid classes + inline SVG icons. Removed double-border form nesting. 3-column form grid with proper labels. Color picker squircle. SVG empty state. Full dark mode.
@@ -249,4 +264,4 @@ npm run deploy:vercel    # Production deploy
 - Desktop Layout Overhaul: Widened all 15 plugin containers from 1200px→1400px. Added 2-column desktop grids for Q&A, Email, VIN Decoder, and Accounting. 24 files changed.
 - Verification: `npx jest --no-coverage` → 23/23 suites passed, 1515/1515 tests.
 
-*Last updated: March 12, 2026*
+*Last updated: March 13, 2026*

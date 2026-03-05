@@ -3172,7 +3172,6 @@ body.dark-mode .pac-matched { color: #0A84FF; }
     #quotingTool footer {
         max-width: none;
         margin: 0 auto;
-        left: 0;
         right: 0;
         border-radius: 16px 16px 0 0;
         padding: 12px 32px calc(12px + env(safe-area-inset-bottom));

@@ -48,11 +48,12 @@ window.DashboardWidgets = (() => {
         phone:       '<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
         hawk:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8 2 4 5 4 9c0 2 1 4 2.5 5.5L4 22l4-2 4 2 4-2 4 2-2.5-7.5C19 13 20 11 20 9c0-4-4-7-8-7z"/><path d="M12 2 9 8h6L12 2z"/><path d="M9 8c-1 2-1 4 0 6"/><path d="M15 8c1 2 1 4 0 6"/></svg>',
         bug:         '<svg viewBox="0 0 24 24"><path d="M8 2l1.88 1.88M14.12 3.88L16 2M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></svg>',
+        edit:        '<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
     };
 
     // Tool → Lucide icon mapping
     const TOOL_ICONS = {
-        quoting:      'home',
+        quoting:      'edit',
         intake:       'scanLine',
         qna:          'messageCircle',
         quotecompare: 'scale',
@@ -595,7 +596,7 @@ window.DashboardWidgets = (() => {
 
         sidebar.innerHTML = `
             <div class="sidebar-brand">
-                <div class="sidebar-brand-logo">AL</div>
+                <img src="Resources/altech-logo.png" alt="Altech" class="sidebar-brand-logo">
                 <div class="sidebar-brand-text">
                     <div class="sidebar-brand-name">Altech</div>
                     <div class="sidebar-brand-sub">Insurance Toolkit</div>

@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 12, 2026
+> **Last updated:** March 13, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -65,12 +65,12 @@ npm run deploy:vercel   # Production deploy
 ├── sw.js                       # Service worker
 │
 ├── css/                        # 21 stylesheets (~16,108 lines)
-│   ├── main.css                # ★ Core styles + :root variables + desktop overhaul + Save button (3,486 lines) — THE source of truth
+│   ├── main.css                # ★ Core styles + :root variables + desktop overhaul + Save button (3,366 lines) — THE source of truth
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
-│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts (765 lines)
+│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (726 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (1,202 lines)
-│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + needs-state-update badge (1,234 lines)
+│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + needs-state-update badge + snooze styles (1,275 lines)
 │   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
 │   ├── intake-assist.css       # AI intake professional UI — enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
@@ -81,7 +81,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── onboarding.css          # First-run wizard (411 lines)
 │   ├── admin.css               # Admin panel (300 lines)
 │   ├── bug-report.css          # Bug reporter (227 lines)
-│   ├── quickref.css            # Quick reference — teal accent (233 lines)
+│   ├── quickref.css            # Quick reference — teal accent + editable number rows (261 lines)
 │   ├── security-info.css       # Security modal (217 lines)
 │   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, polished form/toolbar, card grid, dark mode (467 lines)
 │   ├── email.css               # Email composer — purple accent (165 lines)
@@ -90,7 +90,7 @@ npm run deploy:vercel   # Production deploy
 ├── js/                         # 35 modules (~33,025 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
-│   ├── app-init.js             # State init, toolConfig[], workflows (85 lines)
+│   ├── app-init.js             # State init, toolConfig[], workflows (86 lines)
 │   ├── app-core.js             # Form handling, save/load, updateUI, navigation, schema migration, syncPrimaryApplicantToDriver, _populateCoOccupation, aggressive auto-save (2,495 lines)
 │   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,585 lines)
 │   ├── app-property.js         # Property analysis, maps, assessor data (1,728 lines)
@@ -104,20 +104,20 @@ npm run deploy:vercel   # Production deploy
 │   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
 │   ├── firebase-config.js      # Firebase app init (fetches config from /api/config)
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
-│   ├── cloud-sync.js           # Firestore sync (10 doc types incl. glossary + vault, conflict resolution, 664 lines)
+│   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 672 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs (976 lines)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG (886 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
-│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate (2,448 lines)
+│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep (2,502 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts (420 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
 │   ├── intake-assist.js         # AI conversational intake, maps, progress ring (3,097 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,917 lines)
-│   ├── quick-ref.js             # NATO phonetic + agent ID cards (293 lines)
+│   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (346 lines)
 │   ├── quote-compare.js         # Quote comparison + AI recommendation (889 lines)
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (914 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
@@ -128,7 +128,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
 │   ├── paywall.js               # Stripe paywall (beta, disabled) (229 lines)
 │   ├── admin-panel.js           # User management admin panel (246 lines)
-│   ├── bug-report.js            # GitHub Issue bug reporter (260 lines)
+│   ├── bug-report.js            # GitHub Issue bug reporter, hash-based page detection (232 lines)
 │   ├── data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
 │   └── hawksoft-integration.js  # HawkSoft REST API client (261 lines)
 │
@@ -145,7 +145,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── quotecompare.html       # Quote comparison (117 lines)
 │   ├── email.html              # Email composer (98 lines)
 │   ├── qna.html                # Policy Q&A chat (95 lines)
-│   ├── quickref.html           # Quick reference cards (79 lines)
+│   ├── quickref.html           # Quick reference — ID cards, speller, editable numbers, phonetic grid (78 lines)
 │   ├── call-logger.html        # HawkSoft Logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete + New Log button (135 lines)
 │   └── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
 │
@@ -557,6 +557,7 @@ Client-side AES-256-GCM encryption for sensitive localStorage data. Per-device k
 | `altech_cgl_state` | CGL annotations | ❌ | ✅ | ComplianceDashboard |
 | `altech_cgl_cache` | CGL policy cache | ❌ | ❌ | ComplianceDashboard |
 | `altech_quickref_cards` | Quick ref cards | ❌ | ✅ | QuickRef |
+| `altech_quickref_numbers` | Quick dial numbers | ❌ | ✅ | QuickRef |
 | `altech_reminders` | Task reminders | ❌ | ✅ | Reminders |
 | `altech_client_history` | Client history | ❌ | ✅ | App |
 | `altech_dark_mode` | Dark mode pref | ❌ | ✅ | App (settings) |
@@ -1017,6 +1018,21 @@ KEY RULES:
 | 157 | MEDIUM | js/accounting-export.js | **Empty state HTML updated** in `_renderCards()`: `<p class="acct-empty-msg">` → `<div class="acct-empty-state">` with SVG credit card icon, title, and subtitle. |
 
 **3 files changed:** js/accounting-export.js (765→856 lines), css/accounting.css (412→467 lines), plugins/accounting.html (288→329 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### 8 UI/UX Improvements — Sidebar Logo, Icons, Snooze, QuickRef (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 158 | HIGH | js/dashboard-widgets.js, css/sidebar.css | **Sidebar logo:** Replaced blue "AL" text logo with `<img>` tag loading `Resources/altech-logo.png`. Restyled `.sidebar-brand-logo` for image display (object-fit, border-radius). |
+| 159 | MEDIUM | js/app-init.js, js/dashboard-widgets.js | **Personal Lines icon:** Changed from house (duplicate of Dashboard) to pencil/edit ✏️. Added `edit` SVG to `ICONS`, updated `TOOL_ICONS quoting→edit`, changed `toolConfig` icon to `✏️`. |
+| 160 | MEDIUM | css/main.css | **Footer behind sidebar:** Removed errant `left: 0` from `#quotingTool footer` override that was hiding navigation buttons behind the sidebar. |
+| 161 | LOW | js/app-init.js | **Policy Q&A hidden:** Added `hidden: true` to `qna` entry in `toolConfig[]` — invisible to users until feature is finished. |
+| 162 | MEDIUM | js/bug-report.js | **Bug report page detection:** Rewrote `getCurrentPage()` with hash-based detection (maps `#tool/toolKey` → tool title), falling back to step title and document title. No longer always reports "Landing Page". |
+| 163 | LOW | index.html | **Browser title:** Changed `<title>` from "Altech Field Lead" to "Altech Toolkit". |
+| 164 | CRITICAL | js/compliance-dashboard.js, css/compliance.css | **CGL Snooze/Sleep:** Full snooze system for CGL compliance notifications. `snoozePolicy(pn)` sets midnight-tonight expiry, logs note "🛏️ Snoozed until [date] (snooze #N)" with count tracking. `_isSnoozeActive(pn)` checks expiry, `_expireSnoozes()` called at top of `filterPolicies()` to auto-clear expired. `unsnoozePolicy(pn)` for manual wake. `isHidden()` now checks snoozed state. `clearAll()` includes `snoozedPolicies = {}`. UI: 🛏️ Sleep button next to Dismiss for active rows, amber "🛏️ Until [date]" badge + "Wake" button for snoozed rows in showHidden mode, "🛏️ Sleep Until Tomorrow" in quick-note row. CSS: `.cgl-snooze-btn`, `.cgl-snoozed-badge`, `.cgl-snooze-quick` with full dark mode. |
+| 165 | HIGH | plugins/quickref.html, js/quick-ref.js, css/quickref.css, js/cloud-sync.js | **QuickRef reorganized + editable numbers:** Reordered to ID Cards → Speller → Quick Dial Numbers → Phonetic Grid. Replaced hardcoded Common Numbers with editable CRUD system — `QR_NUMBERS_KEY`, `loadNumbers()`, `saveNumbers()`, `renderNumbers()`, `toggleNumberForm()`, `saveNumber()`, `editNumber()`, `deleteNumber()`. Defaults: NAIC Lookup, CLUE Report, MVR Check. Cloud synced as `quickRefNumbers` (11th doc type in 4 touchpoints). |
+
+**12 files changed:** js/compliance-dashboard.js (2,448→2,502), css/compliance.css (1,234→1,275), js/quick-ref.js (293→346), css/quickref.css (233→261), plugins/quickref.html (79→78), js/cloud-sync.js (664→672), js/dashboard-widgets.js (976→886), css/sidebar.css (765→726), js/bug-report.js (260→232), css/main.css (3,486→3,366), js/app-init.js (85→86), index.html (665). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 

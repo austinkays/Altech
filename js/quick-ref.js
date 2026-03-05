@@ -2,6 +2,7 @@
 // Do not edit this section in index.html; edit this file instead.
 
 const QR_STORAGE_KEY = 'altech_quickref_cards';
+const QR_NUMBERS_KEY = 'altech_quickref_numbers';
 const PHONETIC_ALPHABET = {
     A:'Adam',B:'Boy',C:'Charles',D:'David',E:'Edward',F:'Frank',
     G:'George',H:'Henry',I:'Ida',J:'John',K:'King',L:'Lincoln',
@@ -17,6 +18,7 @@ const NATO = PHONETIC_ALPHABET;
 const QuickRef = {
     initialized: false,
     cards: [],
+    numbers: [],
 
     init() {
         if (this.initialized) return;
@@ -24,6 +26,8 @@ const QuickRef = {
         this.buildPhoneticGrid();
         this.loadCards();
         this.renderCards();
+        this.loadNumbers();
+        this.renderNumbers();
         console.log('[QuickRef] initialized');
     },
 
@@ -272,6 +276,96 @@ const QuickRef = {
         this.save();
         this.renderCards();
         App.toast('🗑️ Card removed');
+    },
+
+    // ─── Quick Dial Numbers CRUD ──────
+
+    getDefaultNumbers() {
+        return [
+            { id: 'num-1', label: 'NAIC Lookup', value: 'naic.org/cis_consumer_information_look_up.htm' },
+            { id: 'num-2', label: 'CLUE Report', value: '1-866-312-8076' },
+            { id: 'num-3', label: 'MVR Check', value: '1-800-777-9929' }
+        ];
+    },
+
+    loadNumbers() {
+        const raw = localStorage.getItem(QR_NUMBERS_KEY);
+        if (raw) {
+            try { this.numbers = JSON.parse(raw); return; } catch(e) {}
+        }
+        this.numbers = this.getDefaultNumbers();
+    },
+
+    saveNumbers() {
+        localStorage.setItem(QR_NUMBERS_KEY, JSON.stringify(this.numbers));
+        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
+            CloudSync.schedulePush();
+        }
+    },
+
+    renderNumbers() {
+        const container = document.getElementById('qrNumbersList');
+        if (!container) return;
+        if (this.numbers.length === 0) {
+            container.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">No numbers saved. Click "+ Add Number" to add one.</p>';
+            return;
+        }
+        container.innerHTML = this.numbers.map((n, i) => `
+            <div class="qr-number-row">
+                <span class="qr-number-label">${this.escHtml(n.label)}</span>
+                <span class="qr-card-value" onclick="QuickRef.copyVal(this)">${this.escHtml(n.value)}</span>
+                <span class="qr-number-actions">
+                    <button class="qr-card-btn" onclick="QuickRef.editNumber(${i})" title="Edit">✏️</button>
+                    <button class="qr-card-btn delete" onclick="QuickRef.deleteNumber(${i})" title="Delete">✕</button>
+                </span>
+            </div>
+        `).join('');
+    },
+
+    toggleNumberForm() {
+        const form = document.getElementById('qrNumberForm');
+        form.classList.toggle('active');
+        if (form.classList.contains('active')) {
+            document.getElementById('qrNumLabel').value = '';
+            document.getElementById('qrNumValue').value = '';
+            delete form.dataset.editIdx;
+            document.getElementById('qrNumLabel').focus();
+        }
+    },
+
+    saveNumber() {
+        const label = document.getElementById('qrNumLabel').value.trim();
+        const value = document.getElementById('qrNumValue').value.trim();
+        if (!label || !value) { App.toast('⚠️ Enter both label and value'); return; }
+        const form = document.getElementById('qrNumberForm');
+        const editIdx = form.dataset.editIdx;
+        if (editIdx !== undefined) {
+            this.numbers[parseInt(editIdx)] = { ...this.numbers[parseInt(editIdx)], label, value };
+        } else {
+            this.numbers.push({ id: 'num-' + Date.now(), label, value });
+        }
+        this.saveNumbers();
+        this.renderNumbers();
+        this.toggleNumberForm();
+        App.toast(editIdx !== undefined ? '✏️ Number updated' : '✅ Number added');
+    },
+
+    editNumber(idx) {
+        const n = this.numbers[idx];
+        if (!n) return;
+        const form = document.getElementById('qrNumberForm');
+        form.classList.add('active');
+        form.dataset.editIdx = idx;
+        document.getElementById('qrNumLabel').value = n.label;
+        document.getElementById('qrNumValue').value = n.value;
+        document.getElementById('qrNumLabel').focus();
+    },
+
+    deleteNumber(idx) {
+        this.numbers.splice(idx, 1);
+        this.saveNumbers();
+        this.renderNumbers();
+        App.toast('🗑️ Number removed');
     },
 
     // ─── Helpers ────────────────────

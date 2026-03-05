@@ -23,15 +23,24 @@ window.BugReport = (() => {
     }
 
     function getCurrentPage() {
-        if (document.getElementById('landingPage')?.style.display !== 'none') return 'Landing Page';
+        // Hash-based detection (most reliable)
+        const hash = window.location.hash;
+        if (hash && hash.length > 1) {
+            const key = hash.replace('#tool/', '').replace('#', '');
+            if (key === 'home') return 'Dashboard';
+            const cfg = (typeof App !== 'undefined' && App.toolConfig) ? App.toolConfig.find(t => t.key === key) : null;
+            if (cfg) return cfg.title || cfg.name || key;
+        }
+        // Fallback: active quoting step
         const activeStep = document.querySelector('.step:not(.hidden)');
         if (activeStep) {
             const title = document.getElementById('stepTitle')?.textContent || '';
             return title || activeStep.id || 'Unknown Step';
         }
+        // Fallback: visible plugin container
         const activeTool = document.querySelector('.plugin-container[style*="display: block"], .plugin-container[style*="display:block"]');
         if (activeTool) return activeTool.id || 'Plugin';
-        return 'Unknown';
+        return 'Dashboard';
     }
 
     function getAppVersion() {

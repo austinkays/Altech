@@ -283,6 +283,42 @@
     color: #dc2626;
     border-color: #fca5a5;
 }
+.cgl-snooze-btn {
+    background: none;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+    color: #b45309;
+    font-size: 14px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1;
+}
+.cgl-snooze-btn:hover {
+    background: #fef3c7;
+    border-color: #f59e0b;
+}
+.cgl-snoozed-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #b45309;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+.cgl-quick-note-btn.cgl-snooze-quick {
+    background: #fef3c7;
+    border-color: #fde68a;
+    color: #92400e;
+}
+.cgl-quick-note-btn.cgl-snooze-quick:hover {
+    background: #fde68a;
+    border-color: #f59e0b;
+}
 .cgl-restore-btn {
     background: none;
     border: 1px solid #e2e8f0;
@@ -1155,6 +1191,11 @@ body.dark-mode .cgl-needs-state-row { background: rgba(234,88,12,0.06); }
 body.dark-mode .cgl-toggle-slider { background-color: rgba(255,255,255,0.2); }
 body.dark-mode .cgl-dismiss-btn { border-color: var(--border); color: #94a3b8; }
 body.dark-mode .cgl-dismiss-btn:hover { background: rgba(255,59,48,0.15); color: #ff6b6b; border-color: rgba(255,59,48,0.3); }
+body.dark-mode .cgl-snooze-btn { border-color: rgba(251,191,36,0.3); color: #fbbf24; }
+body.dark-mode .cgl-snooze-btn:hover { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.5); }
+body.dark-mode .cgl-snoozed-badge { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.25); color: #fbbf24; }
+body.dark-mode .cgl-quick-note-btn.cgl-snooze-quick { background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.25); color: #fbbf24; }
+body.dark-mode .cgl-quick-note-btn.cgl-snooze-quick:hover { background: rgba(251,191,36,0.2); border-color: rgba(251,191,36,0.4); }
 body.dark-mode .cgl-restore-btn { border-color: var(--border); }
 body.dark-mode .cgl-restore-btn:hover { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.3); }
 body.dark-mode .cgl-show-more-btn { background: rgba(56,189,248,0.08); border-color: rgba(56,189,248,0.25); }

@@ -49,9 +49,9 @@ const App = {
     // navigation, breadcrumbs, and init logic. Add/remove/reorder tools here.
     toolConfig: [
         // ── Quoting & Sales ──
-        { key: 'quoting',      icon: '🏠', color: 'icon-blue',    title: 'Personal Lines',  name: 'Personal Intake',       containerId: 'quotingTool',      htmlFile: 'plugins/quoting.html', category: 'quoting' },
+        { key: 'quoting',      icon: '✏️', color: 'icon-blue',    title: 'Personal Lines',  name: 'Personal Intake',       containerId: 'quotingTool',      htmlFile: 'plugins/quoting.html', category: 'quoting' },
         { key: 'intake',       icon: '🤖', color: 'icon-violet',  title: 'AI Intake',       name: 'AI Intake',             containerId: 'intakeTool',       initModule: 'IntakeAssist',      htmlFile: 'plugins/intake-assist.html', category: 'quoting' },
-        { key: 'qna',          icon: '💬', color: 'icon-rose',    title: 'Policy Q&A',      name: 'Policy Q&A',            containerId: 'qnaTool',          initModule: 'PolicyQA',          htmlFile: 'plugins/qna.html',         category: 'quoting' },
+        { key: 'qna',          icon: '💬', color: 'icon-rose',    title: 'Policy Q&A',      name: 'Policy Q&A',            containerId: 'qnaTool',          initModule: 'PolicyQA',          htmlFile: 'plugins/qna.html',         category: 'quoting', hidden: true },
         { key: 'quotecompare', icon: '⚖️', color: 'icon-emerald', title: 'Quote Compare',   name: 'Quote Compare',          containerId: 'quoteCompareTool', initModule: 'QuoteCompare',      htmlFile: 'plugins/quotecompare.html', category: 'quoting' },
         // ── Export & Integration ──
         { key: 'ezlynx',       icon: '⚡', color: 'icon-indigo',  title: 'EZLynx Export',   name: 'EZLynx Export',          containerId: 'ezlynxTool',       initModule: 'EZLynxTool',        htmlFile: 'plugins/ezlynx.html',     category: 'export' },

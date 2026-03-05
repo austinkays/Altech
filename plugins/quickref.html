@@ -18,14 +18,6 @@
 
 <div class="qr-container">
 
-    <!-- Phonetic Speller -->
-    <div class="card">
-        <h2>🔤 Spell It Out</h2>
-        <p class="section-subtitle">Type any word and get the phonetic spelling instantly</p>
-        <input type="text" class="qr-speller-input" id="qrSpellerInput" placeholder="Type here… e.g. SMITH" oninput="QuickRef.spell(this.value)">
-        <div class="qr-speller-output" id="qrSpellerOutput"></div>
-    </div>
-
     <!-- Agent ID Cards -->
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -57,6 +49,34 @@
         <div class="qr-cards-grid" id="qrCardsGrid"></div>
     </div>
 
+    <!-- Phonetic Speller -->
+    <div class="card">
+        <h2>🔤 Spell It Out</h2>
+        <p class="section-subtitle">Type any word and get the phonetic spelling instantly</p>
+        <input type="text" class="qr-speller-input" id="qrSpellerInput" placeholder="Type here… e.g. SMITH" oninput="QuickRef.spell(this.value)">
+        <div class="qr-speller-output" id="qrSpellerOutput"></div>
+    </div>
+
+    <!-- Common Numbers -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h2>📞 Quick Dial Numbers</h2>
+            <button class="qr-btn qr-btn-secondary" onclick="QuickRef.toggleNumberForm()" style="padding: 6px 12px; font-size: 12px;">+ Add Number</button>
+        </div>
+        <p class="section-subtitle">Click any value to copy. Hover for edit/delete.</p>
+        <div class="qr-add-form" id="qrNumberForm">
+            <div class="qr-add-row">
+                <input type="text" class="qr-add-input" id="qrNumLabel" placeholder="Label (e.g. CLUE Report)">
+                <input type="text" class="qr-add-input" id="qrNumValue" placeholder="Phone or URL">
+            </div>
+            <div style="display:flex;gap:6px;">
+                <button class="qr-btn qr-btn-primary" onclick="QuickRef.saveNumber()">Save</button>
+                <button class="qr-btn qr-btn-secondary" onclick="QuickRef.toggleNumberForm()">Cancel</button>
+            </div>
+        </div>
+        <div id="qrNumbersList"></div>
+    </div>
+
     <!-- Phonetic Alphabet -->
     <div class="card">
         <h2>🅰️ APCO Phonetic Alphabet</h2>
@@ -64,16 +84,5 @@
         <div class="qr-phonetic-grid" id="qrPhoneticGrid"></div>
     </div>
 
-    <!-- Common Numbers -->
-    <div class="card">
-        <details>
-            <summary class="export-summary"><span>📞 Common Numbers Quick Reference</span></summary>
-            <div style="margin-top: 12px; font-size: 13px; line-height: 2;">
-                <div class="qr-card-field"><span>NAIC Lookup</span> <span class="qr-card-value" onclick="QuickRef.copyVal(this)">naic.org/cis_consumer_information_look_up.htm</span></div>
-                <div class="qr-card-field"><span>CLUE Report</span> <span class="qr-card-value" onclick="QuickRef.copyVal(this)">1-866-312-8076</span></div>
-                <div class="qr-card-field"><span>MVR Check</span> <span class="qr-card-value" onclick="QuickRef.copyVal(this)">1-800-777-9929</span></div>
-            </div>
-        </details>
-    </div>
 </div>
 

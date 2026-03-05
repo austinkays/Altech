@@ -121,6 +121,7 @@ const CloudSync = (() => {
             cglState: tryParse('altech_cgl_state'),
             clientHistory: tryParse('altech_client_history'),
             quickRefCards: tryParse('altech_quickref_cards'),
+            quickRefNumbers: tryParse('altech_quickref_numbers'),
             reminders: tryParse('altech_reminders'),
             glossary: localStorage.getItem('altech_agency_glossary') || null,
             vaultData: localStorage.getItem('altech_acct_vault_v2') || null,
@@ -370,6 +371,7 @@ const CloudSync = (() => {
                     _pushDoc('cglState', local.cglState, 'cglState'),
                     _pushDoc('clientHistory', local.clientHistory, 'clientHistory'),
                     _pushDoc('quickRefCards', local.quickRefCards, 'quickRefCards'),
+                    _pushDoc('quickRefNumbers', local.quickRefNumbers, 'quickRefNumbers'),
                     _pushDoc('reminders', local.reminders, 'reminders'),
                     _pushDoc('glossary', local.glossary, 'glossary'),
                     _pushDoc('vaultData', local.vaultData, 'vaultData'),
@@ -465,6 +467,13 @@ const CloudSync = (() => {
                 if (qrResult?.data && typeof QuickRef !== 'undefined') {
                     QuickRef.cards = qrResult.data;
                     if (QuickRef.renderCards) QuickRef.renderCards();
+                }
+
+                // Pull Quick Reference numbers
+                const qnResult = await _pullDoc('quickRefNumbers', 'altech_quickref_numbers', 'quickRefNumbers');
+                if (qnResult?.data && typeof QuickRef !== 'undefined') {
+                    QuickRef.numbers = qnResult.data;
+                    if (QuickRef.renderNumbers) QuickRef.renderNumbers();
                 }
 
                 // Pull Reminders
@@ -571,7 +580,7 @@ const CloudSync = (() => {
                 const db = FirebaseConfig.db;
 
                 // Delete sync docs
-                const syncDocs = ['settings', 'currentForm', 'cglState', 'clientHistory', 'quickRefCards', 'reminders', 'glossary', 'vaultData', 'vaultMeta'];
+                const syncDocs = ['settings', 'currentForm', 'cglState', 'clientHistory', 'quickRefCards', 'quickRefNumbers', 'reminders', 'glossary', 'vaultData', 'vaultMeta'];
                 await Promise.all(syncDocs.map(doc =>
                     db.collection('users').doc(uid).collection('sync').doc(doc).delete()
                 ));

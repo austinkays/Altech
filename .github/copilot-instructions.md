@@ -84,7 +84,7 @@ For dark mode overrides, prefer solid colors (`#1C1C1E`) over low-opacity rgba (
 
 **Firestore path:** `users/{uid}/sync/{docType}` + `users/{uid}/quotes/{id}`
 
-**Synced data (8 types):** settings, currentForm (`altech_v6`), cglState, clientHistory, quickRefCards, reminders, quotes, glossary.
+**Synced data (11 types):** settings, currentForm (`altech_v6`), cglState, clientHistory, quickRefCards, quickRefNumbers, reminders, quotes, glossary, vaultData, vaultMeta.
 
 When adding sync for a new data type, update 4 places in `js/cloud-sync.js`:
 - `_getLocalData()` — add `yourKey: tryParse('altech_your_key')`
@@ -132,6 +132,7 @@ Every `<input id="fieldName">` auto-syncs to `App.data.fieldName` via `localStor
 | `altech_v6_quotes` | App (drafts, encrypted) | ✅ |
 | `altech_cgl_state` | ComplianceDashboard | ✅ |
 | `altech_quickref_cards` | QuickRef | ✅ |
+| `altech_quickref_numbers` | QuickRef | ✅ |
 | `altech_reminders` | Reminders | ✅ |
 | `altech_client_history` | App | ✅ |
 | `altech_dark_mode` | App (settings) | ✅ |
@@ -184,7 +185,15 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 12, 2026)
+### Latest Session Notes (March 13, 2026)
+
+- **8 UI/UX Improvements — Sidebar Logo, Icons, Snooze, QuickRef:** Replaced blue "AL" text logo with `<img>` tag loading `Resources/altech-logo.png`. Restyled `.sidebar-brand-logo` for image display (object-fit, border-radius). Changed Personal Lines icon from house (duplicate of Dashboard) to pencil/edit ✏️. Added `edit` SVG to `ICONS`, updated `TOOL_ICONS quoting→edit`. Removed errant `left: 0` from `#quotingTool footer` override (was hiding nav behind sidebar). Added `hidden: true` to `qna` entry in `toolConfig[]`. Rewrote `getCurrentPage()` with hash-based detection for bug reports. Changed browser title to "Altech Toolkit".
+- **CGL Snooze/Sleep:** Full snooze system for CGL compliance notifications. `snoozePolicy(pn)` sets midnight-tonight expiry, logs note "🛏️ Snoozed until [date] (snooze #N)" with count tracking. `_isSnoozeActive(pn)` checks expiry, `_expireSnoozes()` called at top of `filterPolicies()` to auto-clear expired. `unsnoozePolicy(pn)` for manual wake. `isHidden()` now checks snoozed state. `clearAll()` includes `snoozedPolicies = {}`. UI: 🛏️ Sleep button next to Dismiss for active rows, amber "🛏️ Until [date]" badge + "Wake" button for snoozed rows in showHidden mode, "🛏️ Sleep Until Tomorrow" in quick-note row. CSS: `.cgl-snooze-btn`, `.cgl-snoozed-badge`, `.cgl-snooze-quick` with full dark mode.
+- **QuickRef reorganized + editable numbers:** Reordered to ID Cards → Speller → Quick Dial Numbers → Phonetic Grid. Replaced hardcoded Common Numbers with editable CRUD system — `QR_NUMBERS_KEY`, `loadNumbers()`, `saveNumbers()`, `renderNumbers()`, `toggleNumberForm()`, `saveNumber()`, `editNumber()`, `deleteNumber()`. Defaults: NAIC Lookup, CLUE Report, MVR Check. Cloud synced as `quickRefNumbers` (11th doc type in 4 touchpoints).
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **12 files changed:** js/compliance-dashboard.js (2,448→2,502), css/compliance.css (1,234→1,275), js/quick-ref.js (293→346), css/quickref.css (233→261), plugins/quickref.html (79→78), js/cloud-sync.js (664→672), js/dashboard-widgets.js (976→886), css/sidebar.css (765→726), js/bug-report.js (260→232), css/main.css (3,486→3,366), js/app-init.js (85→86), index.html (665).
+
+### Previous Session Notes (March 12, 2026)
 
 - **Vault UI Polish — Clean Toolbar, Form, Empty State:** Replaced global `.btn .btn-primary` (heavy gradient+shimmer) with dedicated `.acct-toolbar-btn`/`.acct-toolbar-add`/`.acct-toolbar-lock` classes with inline SVG icons. Removed nested `<div class="card">` wrapper (caused double borders) — form itself is now the card with `.acct-form-grid` (3-column), `.acct-form-field` wrappers with proper labels, `.acct-color-wrapper` squircle around color picker. Custom Fields uses `.acct-fields-section`/`.acct-fields-header`. Balanced Save/Cancel buttons. Empty state now SVG credit card icon with title+subtitle. Full dark mode for all new elements.
 - **Tests:** 23 suites, 1515 tests (unchanged).
@@ -287,4 +296,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 12, 2026*
+*Last updated: March 13, 2026*
