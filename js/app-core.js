@@ -360,8 +360,10 @@ Object.assign(App, {
     },
 
     initPlaces() {
+        if (this._placesInitialized) return;
         const streetInput = document.getElementById('addrStreet');
         if (!streetInput || !window.google?.maps?.places) return;
+        this._placesInitialized = true;
 
         let sessionToken = new google.maps.places.AutocompleteSessionToken();
         const autocomplete = new google.maps.places.Autocomplete(streetInput, {
@@ -534,6 +536,11 @@ Object.assign(App, {
         if (homeCard) homeCard.style.display = showHome ? '' : 'none';
         if (autoCard) autoCard.style.display = showAuto ? '' : 'none';
         
+        // Init Google Places autocomplete when address step is visible
+        if (curId === 'step-2') {
+            this.initPlaces();
+        }
+
         // Render drivers/vehicles when landing on step 4
         if (curId === 'step-4') {
             // Sync primary applicant into driver list (creates if absent, updates locked fields)
