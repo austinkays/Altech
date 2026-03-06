@@ -8,7 +8,7 @@ const COI = {
         name: 'Altech Insurance Agency',
         phone: '(360) 573-3080',
         fax: '(360) 573-7750',
-        email: 'austin@altechinsurance.com',
+        email: 'info@altechinsurance.com',
         address: '7813 NE 13th Ave',
         city: 'Vancouver',
         state: 'WA',

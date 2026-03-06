@@ -333,13 +333,13 @@ const EZLynxTool = {
 
     loadDemo() {
         // Personal
-        this.setField('ezFirstName', 'Austin');
-        this.setField('ezLastName', 'Kays');
+        this.setField('ezFirstName', 'Sarah');
+        this.setField('ezLastName', 'Mitchell');
         this.setField('ezMiddleName', '');
-        this.setField('ezDOB', '01/15/1990');
-        this.setField('ezGender', 'Male');
-        this.setField('ezMaritalStatus', 'Single');
-        this.setField('ezEmail', 'austin@example.com');
+        this.setField('ezDOB', '07/22/1985');
+        this.setField('ezGender', 'Female');
+        this.setField('ezMaritalStatus', 'Married');
+        this.setField('ezEmail', 'sarah.mitchell@example.com');
         this.setField('ezPhone', '3605551234');
         this.setField('ezAddress', '123 Main St');
         this.setField('ezCity', 'Vancouver');
@@ -353,7 +353,7 @@ const EZLynxTool = {
         const demoIndustrySel = document.getElementById('ezIndustry');
         if (demoIndustrySel) demoIndustrySel.dispatchEvent(new Event('change'));
         this.setField('ezOccupation', 'Agent/Broker');
-        this.setField('ezLicenseNumber', 'KAYSAB123XY');
+        this.setField('ezLicenseNumber', 'MITSM456XY');
         // Auto Policy
         this.setField('ezPolicyTerm', '12 Month');
         this.setField('ezEffectiveDate', '03/01/2026');
@@ -431,7 +431,7 @@ const EZLynxTool = {
         document.getElementById('ezDriverSection')?.setAttribute('open', '');
         document.getElementById('ezHomeSection')?.setAttribute('open', '');
         document.getElementById('ezHomeCovSection')?.setAttribute('open', '');
-        this.saveFormData();        this._updateClientBanner('Austin Kays', 'Demo data \u2022 All sections');        App.toast('🧪 Demo data loaded (all sections)');
+        this.saveFormData();        this._updateClientBanner('Sarah Mitchell', 'Demo data \u2022 All sections');        App.toast('🧪 Demo data loaded (all sections)');
     },
 
     // ── Client Picker ──
