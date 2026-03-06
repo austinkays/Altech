@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 17, 2026
+> **Last updated:** March 18, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -106,7 +106,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG (889 lines)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG (895 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
@@ -1074,6 +1074,21 @@ KEY RULES:
 **Root cause of dashboard mismatch:** Widget counted `policies.length` (ALL 431 types), CGL dashboard filtered by `hiddenTypes` (excluded Auto + Umbrella = 410 visible). Widget's `okCount` incremented for ALL non-critical/non-warning policies regardless of type; CGL dashboard only counts policies in `notifyTypes`.
 
 **2 files changed:** js/compliance-dashboard.js (2,513→2,509 lines), js/dashboard-widgets.js (886→889 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Dashboard Widget Stat Mismatch — Snoozed + Verified + Dismissed Exclusion (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|------------------|
+| 177 | CRITICAL | js/dashboard-widgets.js | **Widget now excludes snoozed policies:** `renderComplianceWidget()` reads `snoozedPolicies` from `altech_cgl_state`, adds `_isSnoozeActive(pn)` check (mirrors CGL dashboard logic), and combines into `_isHidden(pn)` that checks verified + dismissed + snoozed. Snoozed policies (e.g., Rosecity Garage Doors, It's a Viewpoint) no longer appear as critical in widget when snoozed in CGL. |
+| 178 | CRITICAL | js/dashboard-widgets.js | **`totalPolicies` now excludes verified + dismissed + snoozed:** Previous fix only excluded `hiddenTypes` from `totalPolicies`. Now `policies` array is filtered by BOTH `hiddenTypes` AND `_isHidden(pn)` before setting `totalPolicies = policies.length`, matching CGL dashboard's `visiblePolicies` counting. |
+| 179 | HIGH | js/dashboard-widgets.js | **Removed redundant verified/dismissed guard inside forEach:** Since policies array is pre-filtered by `_isHidden()`, the old `if (verified[pn] \|\| dismissed[pn]) return` guard inside `forEach` was removed. All counting (critical/warning/okCount/flaggedPolicies) now operates only on truly visible policies. |
+
+**Root cause:** Three-part mismatch between widget and CGL dashboard counting:
+1. Widget `totalPolicies` was `policies.length` after hiddenTypes filter ONLY — included verified (12), dismissed (12), and snoozed policies. CGL dashboard's `visiblePolicies.length` excluded all three via `isHidden()`.
+2. Widget's forEach skipped verified/dismissed for critical/warning counts but NOT snoozed — snoozed policies like Rosecity (3d left) and It's a Viewpoint (5d left) appeared as "2 CRITICAL" in widget while CGL showed "0 CRITICAL".
+3. Widget showed 347 TOTAL vs CGL's 328 TOTAL because 19 verified+dismissed+snoozed policies were included in widget total.
+
+**1 file changed:** js/dashboard-widgets.js (889→895 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 

@@ -291,7 +291,7 @@ window.DashboardWidgets = (() => {
             if (raw) {
                 const cached = JSON.parse(raw);
                 const allPolicies = cached.policies || [];
-                let verified = {}, dismissed = {};
+                let verified = {}, dismissed = {}, snoozed = {};
                 let notifyTypes = ['cgl', 'bond', 'pkg', 'bop', 'commercial'];
                 let hiddenTypes = [];
                 const stateRaw = localStorage.getItem('altech_cgl_state');
@@ -299,16 +299,21 @@ window.DashboardWidgets = (() => {
                     const st = JSON.parse(stateRaw);
                     verified = st.verifiedPolicies || {};
                     dismissed = st.dismissedPolicies || {};
+                    snoozed = st.snoozedPolicies || {};
                     if (st.notifyTypes) notifyTypes = st.notifyTypes;
                     if (st.hiddenTypes) hiddenTypes = st.hiddenTypes;
                 }
-                // Filter out hidden types to match CGL dashboard counting
-                const policies = allPolicies.filter(p => !hiddenTypes.includes(p.policyType || 'cgl'));
+                const _isSnoozeActive = (pn) => {
+                    const s = snoozed[pn];
+                    return s ? new Date() < new Date(s.snoozedUntil) : false;
+                };
+                const _isHidden = (pn) => !!verified[pn] || !!dismissed[pn] || _isSnoozeActive(pn);
+                // Filter out hidden types AND verified/dismissed/snoozed to match CGL dashboard
+                const policies = allPolicies.filter(p => !hiddenTypes.includes(p.policyType || 'cgl') && !_isHidden(p.policyNumber));
                 totalPolicies = policies.length;
                 const now = new Date();
                 now.setHours(0, 0, 0, 0);
                 policies.forEach(p => {
-                    if (verified[p.policyNumber] || dismissed[p.policyNumber]) return;
                     if (!p.expirationDate) return;
                     const exp = new Date(p.expirationDate);
                     exp.setHours(0, 0, 0, 0);

@@ -186,7 +186,13 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 17, 2026)
+### Latest Session Notes (March 18, 2026)
+
+- **Dashboard Widget Stat Mismatch Fix — Snoozed + Verified + Dismissed Exclusion:** Widget's `renderComplianceWidget()` now reads `snoozedPolicies` from `altech_cgl_state`, adds `_isSnoozeActive(pn)` check (mirrors CGL dashboard logic), and combines into `_isHidden(pn)` that checks verified + dismissed + snoozed. `policies` array is now pre-filtered by BOTH `hiddenTypes` AND `_isHidden(pn)` before setting `totalPolicies = policies.length`, matching CGL dashboard's `visiblePolicies` counting exactly. Snoozed policies (e.g., Rosecity Garage Doors, It's a Viewpoint) no longer appear as critical in widget when snoozed in CGL. Removed redundant verified/dismissed guard from forEach since policies array is already filtered.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **1 file changed:** js/dashboard-widgets.js (889→895).
+
+### Previous Session Notes (March 17, 2026)
 
 - **Renewal Chip Resurrection Fix — `clearRenewed()` No Longer Deletes policyNote:** Root cause: when user clicked ✕ to clear a renewal chip, `clearRenewed()` deleted the entire `policyNotes[pn]` entry when the log was empty. On next page load, `_smartMergeDict` (additive-only merge) re-added the old note from stale IDB/KV/CloudSync sources, resurrecting the `renewedTo` value. Fix: `clearRenewed()` and `deleteNoteEntry()` now keep note objects even when empty (`{ log: [], renewedTo: null }`) so the key persists across all 6 storage layers and can't be resurrected by stale sources.
 - **Dashboard Stat Mismatch Fix:** Widget's `renderComplianceWidget()` now loads `hiddenTypes` from `altech_cgl_state` and filters policies before counting. `totalPolicies` now matches CGL dashboard total. `okCount` ("Current") only counts policies in `notifyTypes`, not all remaining policies.
@@ -317,4 +323,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 16, 2026*
+*Last updated: March 18, 2026*
