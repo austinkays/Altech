@@ -1505,6 +1505,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     /** AI-response triggers — when the AI asks about these topics, show quick-reply chips */
     const RESPONSE_TRIGGERS = [
         {
+            appliesTo: ['home'],
             pattern: /home\s*deductible|all\s*perils?\s*deductible/i,
             chips: [
                 { label: '$1,000', text: 'Home deductible: $1,000' },
@@ -1513,6 +1514,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['auto'],
             pattern: /comp(rehensive)?\s*(and|&|\/)\s*coll(ision)?|comp\s*deductible|collision\s*deductible|physical\s*damage\s*deductible/i,
             chips: [
                 { label: '$250/$500', text: 'Comp $250, Collision $500' },
@@ -1522,6 +1524,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['auto'],
             pattern: /liability\s*limit|bodily\s*injury|BI\s*(\/|and)\s*PD|coverage\s*limit/i,
             chips: [
                 { label: '50/100/50', text: 'Liability: 50/100, PD 50K' },
@@ -1530,6 +1533,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /dwelling\s*(coverage|value|amount)|coverage\s*A|how\s*much\s*(is|would).*(home|house)\s*(worth|value|insure)/i,
             chips: [
                 { label: '$200K', text: 'Dwelling coverage: $200,000' },
@@ -1539,6 +1543,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /personal\s*liability\s*(limit|amount)?/i,
             chips: [
                 { label: '$100K', text: 'Personal liability: $100,000' },
@@ -1547,6 +1552,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /policy\s*type.*home|homeowner.*policy|HO-?\s*[3456]/i,
             chips: [
                 { label: 'HO3', text: 'HO3 — Special Form' },
@@ -1556,6 +1562,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /occupan(cy|t)|owner\s*occup|rent(er|ing)|tenant/i,
             chips: [
                 { label: 'Owner Occupied', text: 'Owner occupied — primary residence' },
@@ -1563,6 +1570,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /dwelling\s*type|type\s*of\s*(home|dwelling|property)|single\s*family|condo|townhome/i,
             chips: [
                 { label: 'Single Family', text: 'One Family / Single Family home' },
@@ -1571,6 +1579,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['auto'],
             pattern: /uninsured|underinsured|UM\s*\/?\s*UIM/i,
             chips: [
                 { label: 'Match BI', text: 'UM/UIM: match my liability limits' },
@@ -1579,6 +1588,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /construction\s*(type|style)/i,
             chips: [
                 { label: '🏗️ Frame', text: 'Frame construction' },
@@ -1587,6 +1597,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /foundation\s*type|what\s*(type|kind)\s*of\s*foundation/i,
             chips: [
                 { label: 'Slab', text: 'Slab foundation' },
@@ -1595,6 +1606,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /roof\s*(type|material)|what\s*(type|kind)\s*(of\s*)?roof/i,
             chips: [
                 { label: 'Comp Shingle', text: 'Composition shingle roof' },
@@ -1603,6 +1615,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /how many (stories|floors|levels)/i,
             chips: [
                 { label: '1 story', text: '1 story' },
@@ -1611,6 +1624,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /roof\b.*\b(year|age|old|replaced|updated|condition)/i,
             chips: () => {
                 const y = new Date().getFullYear();
@@ -1623,6 +1637,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             }
         },
         {
+            appliesTo: ['home'],
             pattern: /square\s*foot|sq\.?\s*ft|home\s*size|how (big|large)/i,
             chips: [
                 { label: '1,200 sqft', text: '1,200 square feet' },
@@ -1632,6 +1647,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /year\s*(built|constructed|was\s*(the\s*)?home)|when\s*(was|were).*built/i,
             chips: () => {
                 const y = new Date().getFullYear();
@@ -1645,6 +1661,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             }
         },
         {
+            appliesTo: ['home'],
             pattern: /heating\s*(type|system|source)|what\s*(type|kind)\s*of\s*heat/i,
             chips: [
                 { label: 'Forced Air', text: 'Forced air / gas furnace' },
@@ -1653,6 +1670,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['auto'],
             pattern: /vehicle\s*use|usage|commute|pleasure|business.*vehicle|how.*use\s*(the\s*)?(car|vehicle)/i,
             chips: [
                 { label: 'Commute', text: 'Commute — drives to work' },
@@ -1661,6 +1679,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['auto'],
             pattern: /annual\s*mile|how\s*(many|far)\s*(miles|do\s*(you|they)\s*drive)/i,
             chips: [
                 { label: '7,500 mi', text: '7,500 annual miles' },
@@ -1669,6 +1688,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['auto'],
             pattern: /own(ed|ership)?|leas(ed?|ing)|lien|financ(ed|ing)|paid\s*off.*vehicle/i,
             chips: [
                 { label: 'Owned', text: 'Vehicle is owned / paid off' },
@@ -1677,6 +1697,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['auto'],
             pattern: /accident|violation|ticket|claim|DUI|moving\s*violation|at.fault/i,
             chips: [
                 { label: 'Clean record', text: '0 accidents, 0 violations in last 5 years' },
@@ -1695,6 +1716,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /mortgage|lender|loan\s*company|who\s*holds\s*the\s*mortgage/i,
             chips: [
                 { label: 'No mortgage', text: 'No mortgage — home is paid off' },
@@ -1716,6 +1738,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             ]
         },
         {
+            appliesTo: ['home'],
             pattern: /pool|trampoline|attractive\s*nuisance/i,
             chips: [
                 { label: 'No pool', text: 'No pool, no trampoline' },
@@ -3127,8 +3150,10 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             const isOpenEnded = openEnded.test(lastAiQuestion);
 
             if (!isOpenEnded) {
+                const qt = extractedData.qType;
                 // Find the FIRST matching trigger only — don't accumulate from multiple
                 for (const trigger of RESPONSE_TRIGGERS) {
+                    if (trigger.appliesTo && qt !== 'both' && !trigger.appliesTo.includes(qt)) continue;
                     if (trigger.pattern.test(lastAiQuestion)) {
                         const tc = typeof trigger.chips === 'function' ? trigger.chips() : trigger.chips;
                         for (const c of tc) chips.push({ ...c, type: 'suggestion' });
