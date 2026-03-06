@@ -186,7 +186,13 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 19, 2026)
+### Latest Session Notes (March 20, 2026)
+
+- **AI Intake Flow Engine — Deterministic Field Collection:** Added `INTAKE_PHASES` master config (~15 phases, ~80 EZLynx-critical fields) as the single source of truth for AI-guided field collection. New `_getNextFieldGroup()` deterministically selects the next unfilled group. New `_buildFlowInstruction()` generates precise AI instruction blocks with phase label, unfilled fields, context hints, and smart defaults. Rewrote `_buildSystemPrompt()` to use flow engine instructions instead of flat field lists. Rewrote `_checkCompletion()` to walk ALL applicable phases' required fields — was only checking 9 fields (name+DOB+address + home: yearBuilt/sqFt/roofType + auto: vehicles[0]/drivers[0]). Added `_hasFieldData()`, `_getApplicablePhases()`, `_checkPhaseTransition()` helpers. `FIELD_GROUPS` now derived dynamically from INTAKE_PHASES. All counter/section functions rewritten to derive from phases.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **1 file changed:** js/intake-assist.js (3,097→3,015).
+
+### Previous Session Notes (March 19, 2026)
 
 - **Auth Gate — CGL Compliance Widget Security Fix:** `renderComplianceWidget()`, `_backgroundComplianceFetch()`, and `updateBadges()` now check `Auth.isSignedIn` before rendering or fetching. Unauthenticated visitors see "Sign in to view compliance" empty state instead of real agency policy data. Root cause: `/api/compliance` has only `securityMiddleware` (no Firebase auth), so any visitor could populate `altech_cgl_cache` and see the full widget.
 - **Places API Retry on Sign-In:** `_onAuthStateChanged` now calls `window.loadPlacesAPI()` when user signs in and `google.maps.places` isn't loaded yet. Also calls `DashboardWidgets.refreshAll()` after sign-in. Root cause: boot sequence called `loadPlacesAPI()` before user was authenticated, got 401 from `/api/config?type=keys`, and never retried.
@@ -332,4 +338,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 19, 2026*
+*Last updated: March 20, 2026*

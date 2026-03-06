@@ -36,6 +36,329 @@ window.IntakeAssist = (() => {
     let initialized = false;
     let _addressEnrichCache = {};  // Cache for county/zip lookups by city,state
     let _completionShown = false;  // Whether completion message has been shown
+    let _lastPhaseKey = null;      // Track phase transitions for messages
+
+    // ── Flow Engine: INTAKE_PHASES master config ────────────────
+    // Single source of truth for all EZLynx-critical fields.
+    // Each phase has ordered groups of related fields.
+    // The flow engine walks phases in order, returning next unfilled group.
+
+    const INTAKE_PHASES = {
+        identity: {
+            order: 1,
+            label: 'Client Identity',
+            icon: '👤',
+            appliesTo: ['home', 'auto', 'both'],
+            groups: [
+                { fields: ['firstName', 'lastName', 'dob'], hint: 'Full legal name and date of birth', required: true },
+                { fields: ['gender', 'maritalStatus'], hint: 'Gender and marital status', required: true },
+                { fields: ['email', 'phone'], hint: 'Contact information', required: true },
+                { fields: ['education', 'occupation', 'industry'], hint: 'Employment and education', required: true },
+            ]
+        },
+        address: {
+            order: 2,
+            label: 'Address',
+            icon: '📍',
+            appliesTo: ['home', 'auto', 'both'],
+            groups: [
+                { fields: ['addrStreet', 'addrCity', 'addrState', 'addrZip'], hint: 'Full mailing address', required: true },
+                { fields: ['county', 'yearsAtAddress'], hint: 'County and years at this address', required: true },
+            ]
+        },
+        policyType: {
+            order: 3,
+            label: 'Policy Type',
+            icon: '📋',
+            appliesTo: ['home', 'auto', 'both'],
+            groups: [
+                { fields: ['qType'], hint: 'Quote type: home, auto, or both', required: true },
+                { fields: ['effectiveDate', 'policyTerm'], hint: 'Desired effective date and policy term', required: true,
+                  defaults: { policyTerm: { value: '12 Month', reason: 'Most common' } } },
+            ]
+        },
+        priorInsurance: {
+            order: 4,
+            label: 'Prior Insurance',
+            icon: '📁',
+            appliesTo: ['home', 'auto', 'both'],
+            groups: [
+                { fields: ['priorCarrier', 'priorYears', 'priorPolicyTerm'], hint: 'Prior insurance carrier and history', required: true,
+                  defaults: { priorPolicyTerm: { value: '12 Month', reason: 'Most common' } } },
+                { fields: ['priorLiabilityLimits', 'continuousCoverage'], hint: 'Prior liability limits and years of continuous coverage', required: true },
+            ]
+        },
+        homePriorInsurance: {
+            order: 5,
+            label: 'Home Prior Insurance',
+            icon: '🏠',
+            appliesTo: ['home', 'both'],
+            groups: [
+                { fields: ['homePriorCarrier', 'homePriorYears', 'homePriorPolicyTerm', 'homePriorExp'], hint: 'Prior home insurance carrier, years, and expiration', required: false },
+            ]
+        },
+        homeCoverage: {
+            order: 6,
+            label: 'Home Coverage',
+            icon: '🛡️',
+            appliesTo: ['home', 'both'],
+            groups: [
+                { fields: ['occupancyType', 'dwellingUsage', 'dwellingType'], hint: 'Occupancy, usage, and dwelling type', required: true,
+                  defaults: { occupancyType: { value: 'Owner Occupied', reason: 'Most common' }, dwellingUsage: { value: 'Primary', reason: 'Most common' }, dwellingType: { value: 'One Family', reason: 'Most common' } } },
+                { fields: ['homePolicyType', 'dwellingCoverage'], hint: 'Home policy type (HO3/HO5) and dwelling coverage amount', required: true,
+                  defaults: { homePolicyType: { value: 'HO3', reason: 'Standard homeowners form' } } },
+                { fields: ['personalLiability', 'medicalPayments', 'homeDeductible'], hint: 'Personal liability limit, medical payments, and deductible', required: true,
+                  defaults: { personalLiability: { value: '$300,000', reason: 'Recommended minimum' }, medicalPayments: { value: '$5,000', reason: 'Standard' }, homeDeductible: { value: '$1,000', reason: 'Most common' } } },
+                { fields: ['theftDeductible', 'windDeductible'], hint: 'Theft and wind/hail deductibles', required: false },
+            ]
+        },
+        homeStructure: {
+            order: 7,
+            label: 'Home Structure',
+            icon: '🏗️',
+            appliesTo: ['home', 'both'],
+            groups: [
+                { fields: ['yearBuilt', 'sqFt', 'stories'], hint: 'Year built, square footage, and number of stories', required: true },
+                { fields: ['constructionStyle', 'exteriorWalls', 'foundation'], hint: 'Construction style, exterior walls, and foundation type', required: true },
+            ]
+        },
+        roofAndSystems: {
+            order: 8,
+            label: 'Roof & Systems',
+            icon: '🏠',
+            appliesTo: ['home', 'both'],
+            groups: [
+                { fields: ['roofType', 'roofShape', 'roofYear'], hint: 'Roof material, shape, and year', required: true },
+                { fields: ['heatingType', 'cooling'], hint: 'Heating type and cooling system', required: true },
+            ]
+        },
+        homeFeatures: {
+            order: 9,
+            label: 'Home Features',
+            icon: '🏡',
+            appliesTo: ['home', 'both'],
+            groups: [
+                { fields: ['bedrooms', 'fullBaths', 'halfBaths'], hint: 'Number of bedrooms and bathrooms', required: true },
+                { fields: ['garageType', 'garageSpaces', 'numFireplaces'], hint: 'Garage type/spaces and fireplaces', required: true,
+                  defaults: { garageType: { value: 'Attached', reason: 'Most common' } } },
+                { fields: ['pool', 'trampoline', 'lotSize'], hint: 'Pool, trampoline, and lot size', required: true,
+                  defaults: { pool: { value: 'No', reason: 'Default unless stated' }, trampoline: { value: 'No', reason: 'Default unless stated' } } },
+                { fields: ['numOccupants', 'mortgagee'], hint: 'Number of occupants and mortgage company', required: true },
+            ]
+        },
+        homeProtection: {
+            order: 10,
+            label: 'Home Protection',
+            icon: '🔒',
+            appliesTo: ['home', 'both'],
+            groups: [
+                { fields: ['burglarAlarm', 'smokeDetector'], hint: 'Burglar alarm and smoke detectors', required: true,
+                  defaults: { burglarAlarm: { value: 'No', reason: 'Default unless stated' }, smokeDetector: { value: 'Yes', reason: 'Required in most states' } } },
+                { fields: ['fireHydrantFeet'], hint: 'Distance to nearest fire hydrant (feet)', required: true },
+            ]
+        },
+        autoCoverage: {
+            order: 6,
+            label: 'Auto Coverage',
+            icon: '🚗',
+            appliesTo: ['auto', 'both'],
+            groups: [
+                { fields: ['liabilityLimits', 'pdLimit'], hint: 'Bodily injury liability limits and property damage limit', required: true,
+                  defaults: { liabilityLimits: { value: '100/300', reason: 'Most common in Oregon' }, pdLimit: { value: '100,000', reason: 'Standard' } } },
+                { fields: ['compDeductible', 'autoDeductible'], hint: 'Comprehensive and collision deductibles', required: true,
+                  defaults: { compDeductible: { value: '$500', reason: 'Most common' }, autoDeductible: { value: '$500', reason: 'Most common' } } },
+                { fields: ['umLimits', 'umpdLimit', 'medPayments'], hint: 'Uninsured motorist limits and medical payments', required: true },
+            ]
+        },
+        vehicles: {
+            order: 7,
+            label: 'Vehicles',
+            icon: '🚙',
+            appliesTo: ['auto', 'both'],
+            groups: [
+                { fields: ['vehicles'], hint: 'Vehicle details: year, make, model, VIN, use, annual miles, ownership', required: true, isArray: true,
+                  arrayFields: ['year', 'make', 'model', 'vin', 'use', 'annualMiles', 'ownershipType'] },
+            ]
+        },
+        drivers: {
+            order: 8,
+            label: 'Drivers',
+            icon: '🪪',
+            appliesTo: ['auto', 'both'],
+            groups: [
+                { fields: ['drivers'], hint: 'Driver details: name, DOB, gender, marital status, relationship, license info', required: true, isArray: true,
+                  arrayFields: ['firstName', 'lastName', 'dob', 'gender', 'maritalStatus', 'relationship', 'dlState', 'dlNum', 'ageLicensed', 'education'] },
+            ]
+        },
+        drivingHistory: {
+            order: 9,
+            label: 'Driving History',
+            icon: '📊',
+            appliesTo: ['auto', 'both'],
+            groups: [
+                { fields: ['accidents', 'violations'], hint: 'Accidents and violations in last 5 years', required: true,
+                  defaults: { accidents: { value: '0', reason: 'Default if none' }, violations: { value: '0', reason: 'Default if none' } } },
+                { fields: ['residenceIs'], hint: 'Residence type (Home Owned/Apartment/Condo)', required: true },
+            ]
+        },
+        wrapUp: {
+            order: 20,
+            label: 'Wrap-Up',
+            icon: '✅',
+            appliesTo: ['home', 'auto', 'both'],
+            groups: [
+                { fields: ['coFirstName', 'coLastName', 'coDob', 'coGender', 'coRelationship'], hint: 'Co-applicant info if any (or confirm none)', required: false },
+            ]
+        },
+    };
+
+    // ── Flow Engine: Core Logic ─────────────────────────────────
+
+    /** Check if a field has been collected */
+    function _hasFieldData(key) {
+        if (key === 'vehicles') {
+            return Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0
+                && extractedData.vehicles.some(v => v.year || v.make || v.vin);
+        }
+        if (key === 'drivers') {
+            return Array.isArray(extractedData.drivers) && extractedData.drivers.length > 0
+                && extractedData.drivers.some(d => d.firstName || d.lastName || d.dob);
+        }
+        if (key === 'constructionStyle') {
+            return !!(extractedData.constructionStyle || extractedData.constructionType);
+        }
+        return !!extractedData[key];
+    }
+
+    /** Get applicable phases for the current quote type, sorted by order */
+    function _getApplicablePhases() {
+        const qType = extractedData.qType || '';
+        return Object.entries(INTAKE_PHASES)
+            .filter(([, phase]) => {
+                if (!qType) return phase.appliesTo.includes('home'); // default assumption before qType known
+                return phase.appliesTo.includes(qType);
+            })
+            .sort((a, b) => a[1].order - b[1].order);
+    }
+
+    /** Get the next unfilled field group — core of the flow engine */
+    function _getNextFieldGroup() {
+        const qType = extractedData.qType || '';
+
+        // If no qType yet, force asking for identity first, then qType
+        if (!qType) {
+            // Check if identity is done
+            const identityPhase = INTAKE_PHASES.identity;
+            for (const group of identityPhase.groups) {
+                const unfilled = group.fields.filter(f => !_hasFieldData(f));
+                if (unfilled.length > 0) {
+                    return { phaseKey: 'identity', phase: identityPhase, group, unfilledFields: unfilled };
+                }
+            }
+            // Identity done but no qType — ask for address then qType
+            const addrPhase = INTAKE_PHASES.address;
+            for (const group of addrPhase.groups) {
+                const unfilled = group.fields.filter(f => !_hasFieldData(f));
+                if (unfilled.length > 0) {
+                    return { phaseKey: 'address', phase: addrPhase, group, unfilledFields: unfilled };
+                }
+            }
+            // Address done — ask for qType
+            const ptPhase = INTAKE_PHASES.policyType;
+            return { phaseKey: 'policyType', phase: ptPhase, group: ptPhase.groups[0], unfilledFields: ['qType'] };
+        }
+
+        // Walk phases in order, find first with unfilled required fields
+        const phases = _getApplicablePhases();
+        for (const [phaseKey, phase] of phases) {
+            for (const group of phase.groups) {
+                if (!group.required) continue; // skip optional groups in flow progression
+                const unfilled = group.fields.filter(f => !_hasFieldData(f));
+                if (unfilled.length > 0) {
+                    return { phaseKey, phase, group, unfilledFields: unfilled };
+                }
+            }
+        }
+
+        // All required fields filled — check optional groups
+        for (const [phaseKey, phase] of phases) {
+            for (const group of phase.groups) {
+                if (group.required) continue; // already handled above
+                const unfilled = group.fields.filter(f => !_hasFieldData(f));
+                if (unfilled.length > 0) {
+                    return { phaseKey, phase, group, unfilledFields: unfilled, optional: true };
+                }
+            }
+        }
+
+        return null; // Truly complete
+    }
+
+    /** Build a precise flow instruction for the AI based on next field group */
+    function _buildFlowInstruction() {
+        const next = _getNextFieldGroup();
+        if (!next) return { instruction: '', complete: true, next: null };
+
+        const { phase, group, unfilledFields } = next;
+        let instruction = '\n\n=== FLOW ENGINE — YOUR NEXT QUESTION ===\n';
+        instruction += 'Phase: ' + phase.label + ' (' + phase.icon + ')\n';
+        instruction += 'Ask about: ' + unfilledFields.join(', ') + '\n';
+        instruction += 'Context hint: ' + group.hint + '\n';
+
+        // Add current context for better questions
+        if (extractedData.firstName) {
+            instruction += 'Client: ' + (extractedData.firstName || '') + ' ' + (extractedData.lastName || '') + '\n';
+        }
+        if (extractedData.addrStreet) {
+            instruction += 'Address: ' + [extractedData.addrStreet, extractedData.addrCity, extractedData.addrState].filter(Boolean).join(', ') + '\n';
+        }
+
+        // Smart defaults
+        if (group.defaults) {
+            const defaultLines = [];
+            for (const [field, def] of Object.entries(group.defaults)) {
+                if (unfilledFields.includes(field)) {
+                    defaultLines.push(field + ' = ' + def.value + ' (' + def.reason + ')');
+                }
+            }
+            if (defaultLines.length > 0) {
+                instruction += 'Suggest these defaults: ' + defaultLines.join('; ') + '\n';
+                instruction += 'Present defaults naturally: "Most agents go with X — want that, or something different?"\n';
+            }
+        }
+
+        // Array field guidance
+        if (group.isArray) {
+            const existing = extractedData[group.fields[0]];
+            const count = Array.isArray(existing) ? existing.length : 0;
+            if (count > 0) {
+                instruction += 'Already have ' + count + ' ' + group.fields[0] + '. Ask: "Any additional ' + group.fields[0] + ' to add?" If no, move on.\n';
+            } else {
+                instruction += 'Collect first entry. Required sub-fields: ' + group.arrayFields.join(', ') + '\n';
+            }
+        }
+
+        instruction += 'Ask naturally in 1-2 sentences. Group these related fields into ONE question.\n';
+        instruction += '=== END FLOW INSTRUCTION ===\n';
+
+        return { instruction, complete: false, next };
+    }
+
+    /** Check if a phase just completed (for transition messages) */
+    function _checkPhaseTransition() {
+        const next = _getNextFieldGroup();
+        if (!next) return null;
+        const currentPhaseKey = next.phaseKey;
+        if (_lastPhaseKey && _lastPhaseKey !== currentPhaseKey) {
+            const prevPhase = INTAKE_PHASES[_lastPhaseKey];
+            if (prevPhase) {
+                _lastPhaseKey = currentPhaseKey;
+                return prevPhase;
+            }
+        }
+        _lastPhaseKey = currentPhaseKey;
+        return null;
+    }
 
     // ── Base System Prompt ────────────────────────────────────────
 
@@ -98,49 +421,39 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         prompt += '\n\nADDITIONAL INTELLIGENCE INSTRUCTIONS:\n';
 
-        // Field state tracking — guide AI on what to ask next
-        const _collected = [];
-        const _missing = [];
-        const _fieldState = {
-            'full name': !!(extractedData.firstName && extractedData.lastName),
-            'date of birth': !!extractedData.dob,
-            'gender': !!extractedData.gender,
-            'marital status': !!extractedData.maritalStatus,
-            'email': !!extractedData.email,
-            'phone': !!extractedData.phone,
-            'full address': !!(extractedData.addrStreet && extractedData.addrCity && extractedData.addrState),
-            'quote type': !!extractedData.qType,
-            'effective date': !!extractedData.effectiveDate,
-        };
-        if (extractedData.qType === 'home' || extractedData.qType === 'both') {
-            Object.assign(_fieldState, {
-                'dwelling type': !!extractedData.dwellingType,
-                'dwelling coverage amount': !!extractedData.dwellingCoverage,
-                'home deductible': !!extractedData.homeDeductible,
-                'year built': !!extractedData.yearBuilt,
-                'square footage': !!extractedData.sqFt,
-                'roof type': !!extractedData.roofType,
-                'construction style': !!(extractedData.constructionStyle || extractedData.constructionType),
-            });
+        // ── Flow Engine Instruction ──
+        const flow = _buildFlowInstruction();
+        if (!flow.complete) {
+            prompt += flow.instruction;
+        } else {
+            prompt += '\n=== ALL FIELDS COLLECTED — WRAP UP ===\n';
+            prompt += 'All required rating fields have been collected. Provide a summary of everything collected and offer to populate the form.\n';
         }
-        if (extractedData.qType === 'auto' || extractedData.qType === 'both') {
-            Object.assign(_fieldState, {
-                'liability limits': !!extractedData.liabilityLimits,
-                'comp/collision deductibles': !!(extractedData.compDeductible && extractedData.autoDeductible),
-                'at least one vehicle': !!(Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0 && (extractedData.vehicles[0].year || extractedData.vehicles[0].vin)),
-                'at least one driver': !!(Array.isArray(extractedData.drivers) && extractedData.drivers.length > 0 && extractedData.drivers[0].firstName),
-            });
+
+        // ── Collected fields summary (so AI doesn't re-ask) ──
+        const collectedFields = [];
+        const phases = _getApplicablePhases();
+        for (const [, phase] of phases) {
+            for (const group of phase.groups) {
+                for (const f of group.fields) {
+                    if (_hasFieldData(f)) collectedFields.push(f);
+                }
+            }
         }
-        for (const [field, has] of Object.entries(_fieldState)) {
-            if (has) _collected.push(field);
-            else _missing.push(field);
+        if (collectedFields.length > 0) {
+            prompt += '\nFIELDS ALREADY COLLECTED (do NOT re-ask): ' + collectedFields.join(', ') + '.\n';
         }
-        if (_collected.length > 0) {
-            prompt += 'FIELDS ALREADY COLLECTED (do NOT re-ask): ' + _collected.join(', ') + '.\n';
+
+        // ── Phase progress indicator ──
+        const totalPhases = phases.length;
+        let completedPhases = 0;
+        for (const [, phase] of phases) {
+            const allFilled = phase.groups.filter(g => g.required).every(g => g.fields.every(f => _hasFieldData(f)));
+            if (allFilled) completedPhases++;
         }
-        if (_missing.length > 0) {
-            prompt += 'FIELDS STILL NEEDED (ask about the first one): ' + _missing.join(', ') + '.\n';
-        }
+        prompt += 'PROGRESS: Phase ' + completedPhases + '/' + totalPhases + ' complete.\n';
+
+        // Derived age
         if (extractedData.dob) {
             const _age = Math.floor((Date.now() - new Date(extractedData.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
             if (_age > 0 && _age < 120) {
@@ -148,13 +461,13 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             }
         }
 
-        // 5.1 Address auto-detect
+        // Address auto-detect
         prompt += 'ADDRESS AUTO-DETECT: If the user\'s message contains a full street address (number + street name + city OR zip), extract it immediately and confirm back — do not ask for address again.\n';
 
-        // 5.2 Carrier recognition
+        // Carrier recognition
         prompt += 'CARRIER RECOGNITION: Recognize prior insurance carrier names in natural language. "They had State Farm" means priorCarrier: "State Farm". Extract without requiring structured input.\n';
 
-        // 5.3 Risk-aware follow-up
+        // Risk-aware follow-up
         prompt += 'RISK-AWARE FOLLOW-UP: ';
         if (extractedData.yearBuilt && parseInt(extractedData.yearBuilt) < 1970) {
             prompt += 'The property was built in ' + extractedData.yearBuilt + ' (before 1970). Ask specifically: "Has the electrical been updated from the original knob-and-tube wiring?" ';
@@ -170,8 +483,8 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         }
         prompt += '\n';
 
-        // 5.4 Completion recap
-        prompt += 'COMPLETION RECAP: When all required fields are collected (name, DOB, address, qType, and relevant property/vehicle data), provide a human-readable summary before offering to populate: "Here\'s what I collected: [name], DOB [date], [type] quote at [address]... Shall I populate the form?"\n';
+        // Completion recap
+        prompt += 'COMPLETION RECAP: When all required fields are collected, provide a human-readable summary before offering to populate.\n';
 
         // Inject current risk flags
         if (riskFlags.length > 0) {
@@ -266,6 +579,13 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                 _saveHistory();
                 _updateIntelPanel();
                 _syncToAppData();
+
+                // Phase-transition feedback
+                const transition = _checkPhaseTransition();
+                if (transition) {
+                    _appendMsg('ai', transition);
+                }
+
                 if (_checkCompletion() && !_completionShown) {
                     _showCompletionMessage();
                 }
@@ -719,14 +1039,13 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         const qType = extractedData.qType || '';
         const groups = FIELD_GROUPS.filter(g => {
-            if ((g.label === 'Home Coverage' || g.label === 'Home Details') && qType === 'auto') return false;
-            if ((g.label === 'Auto Coverage' || g.label === 'Vehicles' || g.label === 'Drivers') && qType === 'home') return false;
-            return true;
+            if (!qType) return true;
+            return g.appliesTo.includes(qType);
         });
 
         let html = '';
         for (const g of groups) {
-            const filled = g.keys.filter(k => _hasField(k)).length;
+            const filled = g.keys.filter(k => _hasFieldData(k)).length;
             if (filled === 0) continue;
             const total = g.keys.length;
             const done = filled === total;
@@ -734,7 +1053,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
             let rowsHtml = '';
             for (const k of g.keys) {
-                if (!_hasField(k)) continue;
+                if (!_hasFieldData(k)) continue;
                 if (k === 'vehicles') {
                     for (const v of (extractedData.vehicles || [])) {
                         if (!v.vin && !v.year && !v.make) continue;
@@ -775,21 +1094,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         }
     }
 
-    /** Check if a field has data (handles arrays and construction aliases) */
-    function _hasField(k) {
-        if (k === 'vehicles') {
-            return Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0
-                && (extractedData.vehicles[0].vin || extractedData.vehicles[0].year || extractedData.vehicles[0].make);
-        }
-        if (k === 'drivers') {
-            return Array.isArray(extractedData.drivers) && extractedData.drivers.length > 0
-                && (extractedData.drivers[0].firstName || extractedData.drivers[0].dob || extractedData.drivers[0].dlNum);
-        }
-        if (k === 'constructionStyle' || k === 'constructionType') {
-            return !!(extractedData.constructionStyle || extractedData.constructionType);
-        }
-        return !!extractedData[k];
-    }
+    // _hasField removed — use _hasFieldData() from Flow Engine above
 
     // ── Private: helpers ──────────────────────────────────────────
 
@@ -1185,19 +1490,16 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
     // ── Intelligence Panel (real-time visual context) ─────────────
 
-    /** All trackable field categories with their keys and labels */
-    const FIELD_GROUPS = [
-        { label: 'Client', icon: '👤', keys: ['firstName', 'lastName', 'dob', 'gender', 'maritalStatus', 'education', 'occupation'] },
-        { label: 'Contact', icon: '📞', keys: ['phone', 'email'] },
-        { label: 'Address', icon: '📍', keys: ['addrStreet', 'addrCity', 'addrState', 'addrZip'] },
-        { label: 'Policy', icon: '📋', keys: ['qType', 'effectiveDate'] },
-        { label: 'Home Coverage', icon: '🏠', keys: ['homePolicyType', 'dwellingCoverage', 'personalLiability', 'homeDeductible', 'medicalPayments', 'theftDeductible', 'occupancyType'] },
-        { label: 'Home Details', icon: '🏗️', keys: ['yearBuilt', 'sqFt', 'stories', 'roofType', 'roofShape', 'roofYear', 'foundation', 'cooling', 'bedrooms', 'garageType', 'lotSize'] },
-        { label: 'Auto Coverage', icon: '📑', keys: ['liabilityLimits', 'compDeductible', 'autoDeductible', 'medPayments', 'umpdLimit', 'pdLimit'] },
-        { label: 'Vehicles', icon: '🚗', keys: ['vehicles'] },
-        { label: 'Drivers', icon: '🪪', keys: ['drivers'] },
-        { label: 'History', icon: '📁', keys: ['priorCarrier', 'priorYears', 'yearsAtAddress', 'continuousCoverage', 'accidents', 'violations'] },
-    ];
+    /** All trackable field categories — derived from INTAKE_PHASES */
+    const FIELD_GROUPS = Object.entries(INTAKE_PHASES).map(([, phase]) => {
+        const allKeys = [];
+        for (const group of phase.groups) {
+            for (const f of group.fields) {
+                if (!allKeys.includes(f)) allKeys.push(f);
+            }
+        }
+        return { label: phase.label, icon: phase.icon, keys: allKeys, appliesTo: phase.appliesTo };
+    });
 
     /** AI-response triggers — when the AI asks about these topics, show quick-reply chips */
     const RESPONSE_TRIGGERS = [
@@ -1510,36 +1812,28 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     }
 
     function _countTotalExpected() {
-        // Dynamic based on qType
-        const qType = extractedData.qType || '';
-        let total = 5 + 2 + 4 + 2 + 4; // client(5) + contact(2) + address(4) + policy(2) + history(4)
-        if (qType === 'home' || qType === 'both') total += 5 + 6; // home coverage(5) + home details(6)
-        if (qType === 'auto' || qType === 'both') total += 3 + 1 + 1; // auto coverage(3) + vehicles(1) + drivers(1)
-        if (!qType) total += 5; // estimate before type known
-        return total;
+        // Derive from INTAKE_PHASES — count all required fields for applicable phases
+        const phases = _getApplicablePhases();
+        let total = 0;
+        for (const [, phase] of phases) {
+            for (const group of phase.groups) {
+                if (!group.required) continue;
+                total += group.fields.length;
+            }
+        }
+        return total || 22; // fallback to old default
     }
 
     function _countFilled() {
+        // Derive from INTAKE_PHASES — count filled fields across applicable phases
+        const phases = _getApplicablePhases();
         let count = 0;
-        const simple = ['firstName', 'lastName', 'dob', 'gender', 'maritalStatus',
-            'phone', 'email',
-            'addrStreet', 'addrCity', 'addrState', 'addrZip',
-            'qType', 'effectiveDate',
-            'homePolicyType', 'dwellingCoverage', 'personalLiability', 'homeDeductible', 'occupancyType',
-            'yearBuilt', 'sqFt', 'stories', 'roofType', 'roofYear', 'foundation',
-            'constructionType', 'constructionStyle',
-            'liabilityLimits', 'compDeductible', 'autoDeductible',
-            'priorCarrier', 'priorYears', 'accidents', 'violations'];
-        for (const k of simple) {
-            if (extractedData[k]) count++;
-        }
-        if (Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0) {
-            const v = extractedData.vehicles[0];
-            if (v.vin || v.year || v.make) count++;
-        }
-        if (Array.isArray(extractedData.drivers) && extractedData.drivers.length > 0) {
-            const d = extractedData.drivers[0];
-            if (d.firstName || d.dob || d.dlNum) count++;
+        for (const [, phase] of phases) {
+            for (const group of phase.groups) {
+                for (const f of group.fields) {
+                    if (_hasFieldData(f)) count++;
+                }
+            }
         }
         return count;
     }
@@ -1551,27 +1845,13 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         const qType = extractedData.qType || '';
         const groups = FIELD_GROUPS.filter(g => {
-            if ((g.label === 'Home Coverage' || g.label === 'Home Details') && qType === 'auto') return false;
-            if ((g.label === 'Auto Coverage' || g.label === 'Vehicles' || g.label === 'Drivers') && qType === 'home') return false;
-            return true;
+            if (!g.appliesTo) return true;
+            if (!qType) return g.appliesTo.includes('home'); // default before qType known
+            return g.appliesTo.includes(qType) || g.appliesTo.includes('both') && (qType === 'home' || qType === 'auto');
         });
 
         container.innerHTML = groups.map(g => {
-            const filled = g.keys.filter(k => {
-                if (k === 'vehicles') {
-                    return Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0
-                        && (extractedData.vehicles[0].vin || extractedData.vehicles[0].year || extractedData.vehicles[0].make);
-                }
-                if (k === 'drivers') {
-                    return Array.isArray(extractedData.drivers) && extractedData.drivers.length > 0
-                        && (extractedData.drivers[0].firstName || extractedData.drivers[0].dob || extractedData.drivers[0].dlNum);
-                }
-                // Handle backward compat: constructionType OR constructionStyle
-                if (k === 'constructionStyle' || k === 'constructionType') {
-                    return !!(extractedData.constructionStyle || extractedData.constructionType);
-                }
-                return !!extractedData[k];
-            }).length;
+            const filled = g.keys.filter(k => _hasFieldData(k)).length;
             const total = g.keys.length;
             const done = filled === total;
             const partial = filled > 0 && !done;
@@ -2551,30 +2831,20 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
     // ── Completion Detection & Handoff ──────────────────────
 
-    /** Check if all critical fields are collected for the current quote type */
+    /** Check if all REQUIRED fields are collected for the current quote type */
     function _checkCompletion() {
         const qType = extractedData.qType;
         if (!qType) return false;
 
-        const coreFields = ['firstName', 'lastName', 'dob', 'addrStreet', 'addrCity', 'addrState'];
-        for (const f of coreFields) {
-            if (!extractedData[f]) return false;
-        }
-
-        if (qType === 'home' || qType === 'both') {
-            const homeFields = ['yearBuilt', 'sqFt', 'roofType'];
-            for (const f of homeFields) {
-                if (!extractedData[f]) return false;
+        // Walk all applicable phases — ALL required groups must be fully filled
+        const phases = _getApplicablePhases();
+        for (const [, phase] of phases) {
+            for (const group of phase.groups) {
+                if (!group.required) continue;
+                for (const f of group.fields) {
+                    if (!_hasFieldData(f)) return false;
+                }
             }
-        }
-
-        if (qType === 'auto' || qType === 'both') {
-            if (!Array.isArray(extractedData.vehicles) || extractedData.vehicles.length === 0) return false;
-            const v = extractedData.vehicles[0];
-            if (!v.year && !v.make && !v.vin) return false;
-            if (!Array.isArray(extractedData.drivers) || extractedData.drivers.length === 0) return false;
-            const d = extractedData.drivers[0];
-            if (!d.firstName && !d.lastName) return false;
         }
 
         return true;
@@ -2766,27 +3036,19 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     // ── Phase 6d: Section counting helpers ──────────────────────
 
     function _countCompleteSections() {
-        const qType = extractedData.qType || '';
-        const groups = FIELD_GROUPS.filter(g => {
-            if ((g.label === 'Home Coverage' || g.label === 'Home Details') && qType === 'auto') return false;
-            if ((g.label === 'Auto Coverage' || g.label === 'Vehicles' || g.label === 'Drivers') && qType === 'home') return false;
-            return true;
-        });
+        const phases = _getApplicablePhases();
         let complete = 0;
-        for (const g of groups) {
-            const filled = g.keys.filter(k => _hasField(k)).length;
-            if (filled === g.keys.length && filled > 0) complete++;
+        for (const [, phase] of phases) {
+            const allFilled = phase.groups.every(g =>
+                g.fields.length > 0 && g.fields.every(f => _hasFieldData(f))
+            );
+            if (allFilled) complete++;
         }
         return complete;
     }
 
     function _countVisibleSections() {
-        const qType = extractedData.qType || '';
-        return FIELD_GROUPS.filter(g => {
-            if ((g.label === 'Home Coverage' || g.label === 'Home Details') && qType === 'auto') return false;
-            if ((g.label === 'Auto Coverage' || g.label === 'Vehicles' || g.label === 'Drivers') && qType === 'home') return false;
-            return true;
-        }).length;
+        return _getApplicablePhases().length;
     }
 
     // ── Smart Suggestion Chips ──────────────────────────────────

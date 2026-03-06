@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 19, 2026
+> **Last updated:** March 20, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -114,7 +114,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
-│   ├── intake-assist.js         # AI conversational intake, maps, progress ring (3,097 lines)
+│   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, maps, progress ring (3,015 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,917 lines)
 │   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (346 lines)
@@ -1116,6 +1116,27 @@ KEY RULES:
 **Root cause (Bug 2 — Google address fill not working):** Boot sequence resolves `Auth.ready()` even with null user → `loadPlacesAPI()` calls `Auth.apiFetch('/api/config?type=keys')` without a token → 401 → no API key → Google Maps script never loaded. When user later signed in, `_onAuthStateChanged` never retried `loadPlacesAPI()`.
 
 **4 files changed:** js/dashboard-widgets.js (904→911 lines), js/auth.js (537→540 lines), js/app-boot.js (295→279 lines), tests/auth-cloudsync.test.js (210→213 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### AI Intake Flow Engine — Deterministic Field Collection (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 187 | CRITICAL | js/intake-assist.js | **INTAKE_PHASES master config:** ~15 phases defining all ~80 EZLynx-critical fields. Each phase has `order`, `label`, `icon`, `appliesTo` (home/auto/both), and `groups[]` with `fields[]`, `hint`, `required`, `defaults{}`, `isArray`, `arrayFields`. Phases: identity, address, policyType, priorInsurance, homePriorInsurance, homeCoverage, homeStructure, roofAndSystems, homeFeatures, homeProtection, autoCoverage, vehicles, drivers, drivingHistory, wrapUp. |
+| 188 | CRITICAL | js/intake-assist.js | **`_getNextFieldGroup()` flow engine:** Core deterministic function — walks phases in order, returns first group with unfilled required fields. Special pre-qType logic forces identity→address→policyType order. Falls back to optional groups after all required done. Returns null when truly complete. |
+| 189 | CRITICAL | js/intake-assist.js | **`_buildFlowInstruction()`:** Generates precise AI instruction block with phase label, unfilled fields, context hint, smart defaults (presented as "Most agents go with X — want that?"), array field guidance for vehicles/drivers. |
+| 190 | CRITICAL | js/intake-assist.js | **`_checkCompletion()` rewritten:** Old 9-field check replaced with full walk of ALL applicable INTAKE_PHASES required groups using `_hasFieldData()`. Completion chip now fires only when all ~60-80 required fields are collected, not after just name+address+roofType. |
+| 191 | HIGH | js/intake-assist.js | **`_buildSystemPrompt()` rewritten:** Now calls `_buildFlowInstruction()` for deterministic field instructions instead of flat "FIELDS STILL NEEDED" list. Still includes collected fields summary, phase progress indicator, derived age, carrier recognition, risk-aware follow-ups. |
+| 192 | HIGH | js/intake-assist.js | **`_hasFieldData(key)`:** Centralized field-existence checker handling vehicles/drivers arrays and constructionStyle/constructionType backward compat. Replaced old `_hasField()`. |
+| 193 | HIGH | js/intake-assist.js | **`_getApplicablePhases()`:** Filters INTAKE_PHASES by current qType's `appliesTo` array, returns sorted by order. |
+| 194 | HIGH | js/intake-assist.js | **`_checkPhaseTransition()`:** Tracks `_lastPhaseKey` to detect phase completions, returns transition messages (e.g., "✅ Client Identity complete — moving to Address"). Integrated into `sendMessage()` after JSON extraction. |
+| 195 | MEDIUM | js/intake-assist.js | **FIELD_GROUPS derived from INTAKE_PHASES:** No longer hardcoded array — now `Object.entries(INTAKE_PHASES).map(...)` generating `{label, icon, keys, appliesTo}` dynamically. Intel panel filtering uses `appliesTo` instead of label matching. |
+| 196 | MEDIUM | js/intake-assist.js | **`_countTotalExpected()` / `_countFilled()` / `_countCompleteSections()` / `_countVisibleSections()` rewritten:** All derive from INTAKE_PHASES via `_getApplicablePhases()` and `_hasFieldData()`. Progress ring and tab badges now reflect actual required field coverage. |
+
+**Root cause (AI skips fields):** `_buildSystemPrompt()` gave AI a flat "FIELDS STILL NEEDED: ..." list with "ask about the first one" — no enforcement mechanism. AI would ask about whatever seemed conversationally natural, skipping many fields. Fix: `_getNextFieldGroup()` deterministically selects the next unfilled group, and `_buildFlowInstruction()` generates a precise instruction block telling the AI exactly which 2-3 fields to ask about.
+
+**Root cause (premature completion chip):** `_checkCompletion()` only checked 9 fields (name, DOB, address + home: yearBuilt/sqFt/roofType + auto: vehicles[0]/drivers[0]). Fix: now walks ALL applicable INTAKE_PHASES required groups — ~60-80 fields depending on qType.
+
+**1 file changed:** js/intake-assist.js (3,097→3,015 lines — net decrease from removing old `_hasField()`, simplifying helpers, and replacing verbose label-based filtering with `appliesTo`). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 
