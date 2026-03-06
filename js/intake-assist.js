@@ -3142,8 +3142,10 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             chips.push({ label: '🛰️ Scan Hazards', action: 'scanHazards', type: 'suggestion' });
         }
 
-        // Stage 3: "Done — Apply" when enough fields collected
-        if (_countFilled() >= 8) {
+        // Stage 3: "Done — Apply" when at least 50% of required fields collected
+        const filled = _countFilled();
+        const total = _countTotalExpected();
+        if (total > 0 && filled >= Math.ceil(total * 0.5)) {
             chips.push({ label: '✅ Done — Apply', action: 'apply', type: 'done' });
         }
 
