@@ -6,7 +6,11 @@
 'use strict';
 
 // ── Google Places API Loader ──
+window._placesAPILoading = false;
 window.loadPlacesAPI = async function loadPlacesAPI() {
+    // Prevent duplicate script loads
+    if (window.google?.maps?.places || window._placesAPILoading) return;
+    window._placesAPILoading = true;
     try {
         let apiKey = null;
         
@@ -34,6 +38,7 @@ window.loadPlacesAPI = async function loadPlacesAPI() {
         
         if (!apiKey) {
             console.info('ℹ️ Google Places API not configured - address autocomplete disabled. For local dev, set PLACES_API_KEY env var or add ?placesKey=... to URL');
+            window._placesAPILoading = false;
             return;
         }
         
@@ -49,6 +54,7 @@ window.loadPlacesAPI = async function loadPlacesAPI() {
         document.head.appendChild(script);
         console.info('✓ Places API loaded');
     } catch (err) {
+        window._placesAPILoading = false;
         console.warn('ℹ️ Places API not available:', err.message);
     }
 };

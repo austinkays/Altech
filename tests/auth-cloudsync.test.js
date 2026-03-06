@@ -177,12 +177,18 @@ describe('Auth + CloudSync Reliability', () => {
       getIdToken: jest.fn().mockResolvedValue('token-123')
     });
 
+    // Clear any fetch calls triggered by auth state change (e.g., loadPlacesAPI)
+    w.fetch.mockClear();
+
     await Auth.apiFetch('/api/kv-store', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
 
-    const [, options] = w.fetch.mock.calls[0];
+    // Find the kv-store call (loadPlacesAPI may also fire a fetch)
+    const kvCall = w.fetch.mock.calls.find(([url]) => url.includes('/api/kv-store'));
+    expect(kvCall).toBeDefined();
+    const [, options] = kvCall;
     expect(options.headers.Authorization).toBe('Bearer token-123');
     expect(options.headers['Content-Type']).toBe('application/json');
     pullSpy.mockRestore();

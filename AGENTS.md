@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 18, 2026
+> **Last updated:** March 19, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -98,7 +98,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
 │   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (963 lines)
 │   ├── app-quotes.js           # Quote/draft management, client history auto-save (762 lines)
-│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net (295 lines)
+│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (279 lines)
 │   │
 │   │  ★ Infrastructure
 │   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
@@ -106,7 +106,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG (904 lines)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget (911 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
@@ -1099,6 +1099,23 @@ KEY RULES:
 **Root cause:** `updateBadges()` counted critical policies (≤5 days to expiration) for the sidebar badge by iterating all policies from cache and only skipping verified/dismissed. Snoozed policies (e.g., Rosecity Garage Doors, It's a Viewpoint) and policies of hidden types (Auto, Umbrella) were still counted, making the badge show "2" while the CGL dashboard and home widget both showed "0".
 
 **1 file changed:** js/dashboard-widgets.js (895→904 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Auth Gate + Places API Retry — Unauthenticated User Fixes (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|------------------|
+| 181 | CRITICAL | js/dashboard-widgets.js | **CGL Compliance widget auth gate:** `renderComplianceWidget()` now checks `Auth.isSignedIn` before rendering — unauthenticated visitors see "Sign in to view compliance" empty state instead of real agency policy data. |
+| 182 | CRITICAL | js/dashboard-widgets.js | **Background fetch auth gate:** `_backgroundComplianceFetch()` returns early if `Auth.isSignedIn` is false — prevents unauthenticated users from populating `altech_cgl_cache` with real policy data. |
+| 183 | HIGH | js/dashboard-widgets.js | **Sidebar badge auth gate:** `updateBadges()` CGL section clears badge and skips counting if not signed in. |
+| 184 | HIGH | js/auth.js | **Places API retry on sign-in:** `_onAuthStateChanged` now calls `window.loadPlacesAPI()` when user signs in and `google.maps.places` isn't loaded yet. Fixes address autocomplete for users who weren't signed in at boot time. |
+| 185 | HIGH | js/auth.js | **Dashboard refresh on sign-in:** `_onAuthStateChanged` calls `DashboardWidgets.refreshAll()` after sign-in so compliance widget, badges, and greeting update immediately. |
+| 186 | MEDIUM | js/app-boot.js | **Places API idempotent loader:** Added `_placesAPILoading` guard to prevent duplicate `<script>` loads when `loadPlacesAPI()` is called multiple times (boot + auth retry). Resets on failure so retry is possible. |
+
+**Root cause (Bug 1 — CGL visible without login):** `/api/compliance` has only `securityMiddleware` (CORS/origin), not Firebase auth. `_backgroundComplianceFetch()` called it without auth checks, populating `altech_cgl_cache`. `renderComplianceWidget()` and `updateBadges()` read this cache without checking auth state. Any visitor to altech.agency saw real client/policy data.
+
+**Root cause (Bug 2 — Google address fill not working):** Boot sequence resolves `Auth.ready()` even with null user → `loadPlacesAPI()` calls `Auth.apiFetch('/api/config?type=keys')` without a token → 401 → no API key → Google Maps script never loaded. When user later signed in, `_onAuthStateChanged` never retried `loadPlacesAPI()`.
+
+**4 files changed:** js/dashboard-widgets.js (904→911 lines), js/auth.js (537→540 lines), js/app-boot.js (295→279 lines), tests/auth-cloudsync.test.js (210→213 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 

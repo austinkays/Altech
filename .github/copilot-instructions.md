@@ -186,7 +186,15 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 18, 2026)
+### Latest Session Notes (March 19, 2026)
+
+- **Auth Gate — CGL Compliance Widget Security Fix:** `renderComplianceWidget()`, `_backgroundComplianceFetch()`, and `updateBadges()` now check `Auth.isSignedIn` before rendering or fetching. Unauthenticated visitors see "Sign in to view compliance" empty state instead of real agency policy data. Root cause: `/api/compliance` has only `securityMiddleware` (no Firebase auth), so any visitor could populate `altech_cgl_cache` and see the full widget.
+- **Places API Retry on Sign-In:** `_onAuthStateChanged` now calls `window.loadPlacesAPI()` when user signs in and `google.maps.places` isn't loaded yet. Also calls `DashboardWidgets.refreshAll()` after sign-in. Root cause: boot sequence called `loadPlacesAPI()` before user was authenticated, got 401 from `/api/config?type=keys`, and never retried.
+- **Places API Idempotent Loader:** Added `_placesAPILoading` guard to prevent duplicate `<script>` loads when `loadPlacesAPI()` is called multiple times (boot + auth retry). Resets on failure so retry is possible.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **4 files changed:** js/dashboard-widgets.js (904→911), js/auth.js (537→540), js/app-boot.js (295→279), tests/auth-cloudsync.test.js (210→213).
+
+### Previous Session Notes (March 18, 2026)
 
 - **Sidebar Badge Stat Mismatch Fix — Snoozed + Verified + Dismissed Exclusion:** `updateBadges()` had the same filtering gap as the widget — no snoozed check, no hiddenTypes filter. Now reads `snoozedPolicies` and `hiddenTypes` from `altech_cgl_state`, adds `_isSnoozeActive(pn)` and `_isHidden(pn)` helpers, and skips hidden-type + snoozed/verified/dismissed policies before counting critical for the sidebar badge. Badge count now matches CGL dashboard and home widget.
 - **Dashboard Widget Stat Mismatch Fix — Snoozed + Verified + Dismissed Exclusion:** Widget's `renderComplianceWidget()` now reads `snoozedPolicies` from `altech_cgl_state`, adds `_isSnoozeActive(pn)` check (mirrors CGL dashboard logic), and combines into `_isHidden(pn)` that checks verified + dismissed + snoozed. `policies` array is now pre-filtered by BOTH `hiddenTypes` AND `_isHidden(pn)` before setting `totalPolicies = policies.length`, matching CGL dashboard's `visiblePolicies` counting exactly. Snoozed policies (e.g., Rosecity Garage Doors, It's a Viewpoint) no longer appear as critical in widget when snoozed in CGL. Removed redundant verified/dismissed guard from forEach since policies array is already filtered.
@@ -324,4 +332,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 18, 2026*
+*Last updated: March 19, 2026*

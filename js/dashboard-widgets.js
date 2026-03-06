@@ -284,6 +284,12 @@ window.DashboardWidgets = (() => {
         const container = document.getElementById('widgetCompliance');
         if (!container) return;
 
+        // Don't show compliance data to unauthenticated users
+        if (typeof Auth === 'undefined' || !Auth.isSignedIn) {
+            container.innerHTML = '<div class="widget-empty"><p>Sign in to view compliance</p></div>';
+            return;
+        }
+
         let warning = 0, critical = 0, totalPolicies = 0, okCount = 0;
         const flaggedPolicies = []; // collect policies needing attention
         try {
@@ -431,6 +437,7 @@ window.DashboardWidgets = (() => {
 
     async function _backgroundComplianceFetch() {
         if (_complianceBgFetching) return;
+        if (typeof Auth === 'undefined' || !Auth.isSignedIn) return;
         const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
         if (isLocal) return;
 
@@ -786,7 +793,8 @@ window.DashboardWidgets = (() => {
         // CGL badge
         const cglBadge = document.getElementById('sidebar-cglBadge');
         if (cglBadge) {
-            try {
+            if (typeof Auth === 'undefined' || !Auth.isSignedIn) { cglBadge.textContent = ''; }
+            else try {
                 const raw = localStorage.getItem('altech_cgl_cache');
                 if (!raw) { cglBadge.textContent = ''; return; }
                 const cached = JSON.parse(raw);

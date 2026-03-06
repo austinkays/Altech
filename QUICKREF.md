@@ -279,4 +279,12 @@ npm run deploy:vercel    # Production deploy
 - Desktop Layout Overhaul: Widened all 15 plugin containers from 1200px→1400px. Added 2-column desktop grids for Q&A, Email, VIN Decoder, and Accounting. 24 files changed.
 - Verification: `npx jest --no-coverage` → 23/23 suites passed, 1515/1515 tests.
 
-*Last updated: March 17, 2026*
+### Auth Gate + Places API Retry (March 19, 2026)
+
+- **CGL Compliance widget auth gate:** `renderComplianceWidget()`, `_backgroundComplianceFetch()`, and `updateBadges()` now check `Auth.isSignedIn` before rendering or fetching. Unauthenticated visitors see empty state.
+- **Places API retry on sign-in:** `_onAuthStateChanged` retries `loadPlacesAPI()` when user signs in and `google.maps.places` isn't loaded. Added idempotency guard (`_placesAPILoading`) to prevent duplicate `<script>` loads.
+- **Dashboard refresh on sign-in:** `_onAuthStateChanged` calls `DashboardWidgets.refreshAll()` after sign-in.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **4 files changed:** js/dashboard-widgets.js (904→911), js/auth.js (537→540), js/app-boot.js (295→279), tests/auth-cloudsync.test.js (210→213).
+
+*Last updated: March 19, 2026*

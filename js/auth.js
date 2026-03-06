@@ -44,6 +44,14 @@ const Auth = (() => {
             if (typeof Paywall !== 'undefined' && Paywall.loadSubscription) {
                 Paywall.loadSubscription().catch(e => console.warn('[Auth] Subscription load failed:', e));
             }
+            // Retry Places API if not loaded yet (key endpoint requires auth)
+            if (!window.google?.maps?.places && typeof window.loadPlacesAPI === 'function') {
+                window.loadPlacesAPI();
+            }
+            // Refresh dashboard widgets now that auth data is available
+            if (typeof DashboardWidgets !== 'undefined' && DashboardWidgets.refreshAll) {
+                try { DashboardWidgets.refreshAll(); } catch (e) { /* ignore */ }
+            }
         } else {
             _isAdmin = false;
             _isBlocked = false;
