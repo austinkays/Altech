@@ -596,7 +596,7 @@ window.DashboardWidgets = (() => {
 
         sidebar.innerHTML = `
             <div class="sidebar-brand">
-                <svg class="sidebar-brand-logo" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" aria-label="Altech"><defs><path id="circlePath" d="M250,65 a185,185 0 1,1 -0.01,0" fill="none"/></defs><text x="250" y="295" text-anchor="middle" dominant-baseline="central" font-family="Georgia,'Times New Roman',serif" font-size="260" font-weight="bold" fill="currentColor">A</text><text font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="33" letter-spacing="5" fill="currentColor"><textPath href="#circlePath" startOffset="0%">A Lasting Tradition Of Excellence, Caring, and Honesty.</textPath></text></svg>
+                <svg class="sidebar-brand-logo" viewBox="10 2 40 36" xmlns="http://www.w3.org/2000/svg" aria-label="Altech"><path d="M30,5 L15,35 L22.5,35 L30,20 L37.5,35 L45,35 L30,5 Z M30,15 L20,35 L40,35 L30,15 Z" fill="currentColor" fill-opacity="0.2"/><path d="M30,5 L15,35 L22.5,35 L30,20 L37.5,35 L45,35 L30,5 Z" fill="currentColor"/><path d="M30,15 L25,25 L35,25 L30,15 Z" fill="currentColor" fill-opacity="0.6"/></svg>
                 <div class="sidebar-brand-text">
                     <div class="sidebar-brand-name">Altech</div>
                     <div class="sidebar-brand-sub">Insurance Toolkit</div>
