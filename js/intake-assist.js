@@ -353,7 +353,7 @@ window.IntakeAssist = (() => {
             const prevPhase = INTAKE_PHASES[_lastPhaseKey];
             if (prevPhase) {
                 _lastPhaseKey = currentPhaseKey;
-                return prevPhase;
+                return '✅ ' + (prevPhase.icon || '') + ' ' + prevPhase.label + ' complete — moving to next section.';
             }
         }
         _lastPhaseKey = currentPhaseKey;
@@ -948,6 +948,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     }
 
     function _renderMarkdown(text) {
+        if (typeof text !== 'string') text = String(text || '');
         let html = text
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -3350,7 +3351,8 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
     /** Strip JSON code blocks from AI messages before display */
     function _stripJSONBlocks(text) {
-        if (!text) return text;
+        if (!text) return '';
+        if (typeof text !== 'string') return String(text);
         return text.replace(/```(?:json)?\s*\n?\{[\s\S]*?\}\n?```/g, '').trim();
     }
 
