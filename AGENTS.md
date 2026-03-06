@@ -106,7 +106,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG (895 lines)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG (904 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
@@ -1089,6 +1089,16 @@ KEY RULES:
 3. Widget showed 347 TOTAL vs CGL's 328 TOTAL because 19 verified+dismissed+snoozed policies were included in widget total.
 
 **1 file changed:** js/dashboard-widgets.js (889→895 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Sidebar Badge Stat Mismatch — Snoozed + Verified + Dismissed Exclusion (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|------------------|
+| 180 | CRITICAL | js/dashboard-widgets.js | **Sidebar badge `updateBadges()` now excludes snoozed + verified + dismissed + hiddenTypes:** `updateBadges()` had the same three-part filtering gap as the widget — no snoozed check, no hiddenTypes filter, only skipped verified/dismissed. Now reads `snoozedPolicies` and `hiddenTypes` from `altech_cgl_state`, adds local `_isSnoozeActive(pn)` and `_isHidden(pn)` helpers, skips policies whose type is in `hiddenTypes`, and skips policies where `_isHidden(pn)` returns true. Badge count now matches CGL dashboard and home widget exactly. |
+
+**Root cause:** `updateBadges()` counted critical policies (≤5 days to expiration) for the sidebar badge by iterating all policies from cache and only skipping verified/dismissed. Snoozed policies (e.g., Rosecity Garage Doors, It's a Viewpoint) and policies of hidden types (Auto, Umbrella) were still counted, making the badge show "2" while the CGL dashboard and home widget both showed "0".
+
+**1 file changed:** js/dashboard-widgets.js (895→904 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 

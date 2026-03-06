@@ -790,21 +790,30 @@ window.DashboardWidgets = (() => {
                 const raw = localStorage.getItem('altech_cgl_cache');
                 if (!raw) { cglBadge.textContent = ''; return; }
                 const cached = JSON.parse(raw);
-                const policies = cached.policies || [];
-                let verified = {}, dismissed = {};
+                const allPolicies = cached.policies || [];
+                let verified = {}, dismissed = {}, snoozed = {};
                 let notifyTypes = ['cgl', 'bond', 'pkg', 'bop', 'commercial'];
+                let hiddenTypes = [];
                 const stateRaw = localStorage.getItem('altech_cgl_state');
                 if (stateRaw) {
                     const st = JSON.parse(stateRaw);
                     verified = st.verifiedPolicies || {};
                     dismissed = st.dismissedPolicies || {};
+                    snoozed = st.snoozedPolicies || {};
                     if (st.notifyTypes) notifyTypes = st.notifyTypes;
+                    if (st.hiddenTypes) hiddenTypes = st.hiddenTypes;
                 }
+                const _isSnoozeActive = (pn) => {
+                    const s = snoozed[pn];
+                    return s ? new Date() < new Date(s.snoozedUntil) : false;
+                };
+                const _isHidden = (pn) => !!verified[pn] || !!dismissed[pn] || _isSnoozeActive(pn);
                 const now = new Date();
                 now.setHours(0, 0, 0, 0);
                 let count = 0;
-                policies.forEach(p => {
-                    if (verified[p.policyNumber] || dismissed[p.policyNumber]) return;
+                allPolicies.forEach(p => {
+                    if (hiddenTypes.includes(p.policyType || 'cgl')) return;
+                    if (_isHidden(p.policyNumber)) return;
                     if (!p.expirationDate) return;
                     if (!notifyTypes.includes(p.policyType || 'cgl')) return;
                     const exp = new Date(p.expirationDate);

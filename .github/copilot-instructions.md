@@ -188,9 +188,10 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 
 ### Latest Session Notes (March 18, 2026)
 
+- **Sidebar Badge Stat Mismatch Fix — Snoozed + Verified + Dismissed Exclusion:** `updateBadges()` had the same filtering gap as the widget — no snoozed check, no hiddenTypes filter. Now reads `snoozedPolicies` and `hiddenTypes` from `altech_cgl_state`, adds `_isSnoozeActive(pn)` and `_isHidden(pn)` helpers, and skips hidden-type + snoozed/verified/dismissed policies before counting critical for the sidebar badge. Badge count now matches CGL dashboard and home widget.
 - **Dashboard Widget Stat Mismatch Fix — Snoozed + Verified + Dismissed Exclusion:** Widget's `renderComplianceWidget()` now reads `snoozedPolicies` from `altech_cgl_state`, adds `_isSnoozeActive(pn)` check (mirrors CGL dashboard logic), and combines into `_isHidden(pn)` that checks verified + dismissed + snoozed. `policies` array is now pre-filtered by BOTH `hiddenTypes` AND `_isHidden(pn)` before setting `totalPolicies = policies.length`, matching CGL dashboard's `visiblePolicies` counting exactly. Snoozed policies (e.g., Rosecity Garage Doors, It's a Viewpoint) no longer appear as critical in widget when snoozed in CGL. Removed redundant verified/dismissed guard from forEach since policies array is already filtered.
 - **Tests:** 23 suites, 1515 tests (unchanged).
-- **1 file changed:** js/dashboard-widgets.js (889→895).
+- **1 file changed:** js/dashboard-widgets.js (889→904).
 
 ### Previous Session Notes (March 17, 2026)
 
