@@ -138,6 +138,7 @@ Every `<input id="fieldName">` auto-syncs to `App.data.fieldName` via `localStor
 | `altech_dark_mode` | App (settings) | ✅ |
 | `altech_coi_draft` | COI | ❌ |
 | `altech_email_drafts` | EmailComposer (encrypted) | ❌ |
+| `altech_email_custom_prompt` | EmailComposer (custom AI persona) | ❌ |
 | `altech_acct_vault` | AccountingExport | ❌ |
 | `altech_agency_glossary` | CallLogger / Settings | ✅ |
 
@@ -185,7 +186,13 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 15, 2026)
+### Latest Session Notes (March 16, 2026)
+
+- **Email Composer — Dynamic AI Persona + Custom Prompt Override:** Replaced hardcoded "Altech Insurance Agency"/"Altech Insurance" in AI system prompt with dynamic `_getAgentName()` (Auth.displayName → localStorage `altech_user_name` → `'your agent'`) and `_getAgencyName()` (parsed from `altech_agency_profile` → `'our agency'`). New `buildDefaultPrompt()` constructs the persona dynamically. Added collapsible "Customize AI Persona" UI (≤ 2000 chars) with save/reset/char counter, stored in `altech_email_custom_prompt`. `compose()` uses custom prompt if set, otherwise `buildDefaultPrompt()`. Added onboarding hint under agency name field.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **4 files changed:** js/email-composer.js (420→497), plugins/email.html (98→125), css/email.css (165→231), index.html (665).
+
+### Previous Session Notes (March 15, 2026)
 
 - **CGL State-Wipe Bugfix — checkForRenewals() No Longer Overwrites User Actions:** All 4 renewal detection blocks in `checkForRenewals()` were unconditionally clearing `stateUpdated`, `renewedTo`, and resetting `needsStateUpdate = true` on every policy fetch — even when the user had already clicked "State Updated" or dismissed the renewal chip. Fix: `markStateUpdated()` now records `stateUpdatedForExp` (the expiration date being acknowledged). All 4 clearing blocks check `existingNote?.stateUpdated && existingNote?.stateUpdatedForExp === policy.expirationDate` and skip re-flagging if the user already acknowledged this specific expiration. A genuinely new renewal (different expiration) will still trigger re-flagging.
 - **Cloud Sync CGL Reload:** `pullFromCloud()` was writing cglState to localStorage but never reloading `ComplianceDashboard`'s in-memory state. Added `ComplianceDashboard.loadState()` call after successful pull.
@@ -303,4 +310,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 15, 2026*
+*Last updated: March 16, 2026*

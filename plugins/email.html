@@ -58,6 +58,20 @@
             <button class="email-tone-chip" data-tone="empathetic">Empathetic</button>
         </div>
 
+        <details class="email-custom-prompt-section">
+            <summary>🎭 Customize AI Persona</summary>
+            <div class="email-custom-prompt-body">
+                <textarea id="emailCustomPrompt" class="email-textarea email-custom-prompt-textarea" maxlength="2000" spellcheck="false" placeholder="Describe who the AI should pretend to be when writing your emails..."></textarea>
+                <div class="email-custom-prompt-footer">
+                    <span class="email-custom-prompt-count" id="emailCustomPromptCount">0 / 2000</span>
+                    <div class="email-custom-prompt-actions">
+                        <button class="email-btn email-btn-secondary email-btn-sm" id="emailPromptReset" type="button">↺ Reset</button>
+                        <button class="email-btn email-btn-primary email-btn-sm" id="emailPromptSave" type="button">Save</button>
+                    </div>
+                </div>
+            </div>
+        </details>
+
         <label style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block;">Your rough draft or bullet points</label>
         <textarea class="email-textarea" id="emailDraftInput" placeholder="Paste or type your rough draft here...&#10;&#10;Example:&#10;hey sarah wanted to let you know your home quote came back at $1,247/yr which is way better than what you have now. let me know if you want to move forward, also need your mortgage company info"></textarea>
 

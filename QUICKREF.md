@@ -238,6 +238,14 @@ npm run deploy:vercel    # Production deploy
 - **Tests:** 23 suites, 1515 tests (unchanged).
 - **12 files changed:** js/compliance-dashboard.js (2,448→2,502), css/compliance.css (1,234→1,275), js/quick-ref.js (293→346), css/quickref.css (233→261), plugins/quickref.html (79→78), js/cloud-sync.js (664→672), js/dashboard-widgets.js (976→886), css/sidebar.css (765→726), js/bug-report.js (260→232), css/main.css (3,486→3,366), js/app-init.js (85→86), index.html (665).
 
+### Email Composer — Dynamic AI Persona + Custom Prompt Override (March 16, 2026)
+
+- **Dynamic AI persona:** Replaced hardcoded "Altech Insurance Agency"/"Altech Insurance" in AI system prompt with `_getAgentName()` (Auth.displayName → localStorage name → fallback) and `_getAgencyName()` (parsed from `altech_agency_profile` → fallback). New `buildDefaultPrompt()` constructs persona dynamically.
+- **Custom prompt override:** Collapsible "🎭 Customize AI Persona" UI section with textarea (≤ 2000 chars), save/reset, char counter. Stored in `altech_email_custom_prompt`. `compose()` uses custom prompt if set, otherwise `buildDefaultPrompt()`.
+- **Onboarding hint:** Hint text under agency name field: "Used in the Email Composer AI persona & sign-off".
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **4 files changed:** js/email-composer.js (420→497), plugins/email.html (98→125), css/email.css (165→231), index.html (665).
+
 ### CGL State-Wipe Bugfix (March 15, 2026)
 
 - **checkForRenewals() no longer overwrites user actions:** All 4 renewal detection blocks were unconditionally clearing `stateUpdated`/`renewedTo` and resetting `needsStateUpdate = true` every fetch. Fix: `markStateUpdated()` records `stateUpdatedForExp` (the specific expiration acknowledged). All 4 blocks skip re-flagging if user already acknowledged that exact expiration. Genuinely new renewals (different exp) still trigger re-flagging.
@@ -271,4 +279,4 @@ npm run deploy:vercel    # Production deploy
 - Desktop Layout Overhaul: Widened all 15 plugin containers from 1200px→1400px. Added 2-column desktop grids for Q&A, Email, VIN Decoder, and Accounting. 24 files changed.
 - Verification: `npx jest --no-coverage` → 23/23 suites passed, 1515/1515 tests.
 
-*Last updated: March 15, 2026*
+*Last updated: March 16, 2026*

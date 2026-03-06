@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 15, 2026
+> **Last updated:** March 16, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -84,7 +84,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── quickref.css            # Quick reference — teal accent + editable number rows (261 lines)
 │   ├── security-info.css       # Security modal (217 lines)
 │   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, polished form/toolbar, card grid, dark mode (467 lines)
-│   ├── email.css               # Email composer — purple accent (165 lines)
+│   ├── email.css               # Email composer — purple accent + custom prompt styles (231 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
 ├── js/                         # 35 modules (~33,025 lines)
@@ -111,7 +111,7 @@ npm run deploy:vercel   # Production deploy
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
 │   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep (2,513 lines)
-│   ├── email-composer.js       # AI email polisher, encrypted drafts (420 lines)
+│   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
 │   ├── intake-assist.js         # AI conversational intake, maps, progress ring (3,097 lines)
@@ -143,7 +143,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── reminders.html          # Task manager (144 lines)
 │   ├── intake-assist.html      # AI chat two-pane (152 lines)
 │   ├── quotecompare.html       # Quote comparison (117 lines)
-│   ├── email.html              # Email composer (98 lines)
+│   ├── email.html              # Email composer + custom AI persona section (125 lines)
 │   ├── qna.html                # Policy Q&A chat (95 lines)
 │   ├── quickref.html           # Quick reference — ID cards, speller, editable numbers, phonetic grid (78 lines)
 │   ├── call-logger.html        # HawkSoft Logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete + New Log button (135 lines)
@@ -563,6 +563,7 @@ Client-side AES-256-GCM encryption for sensitive localStorage data. Per-device k
 | `altech_dark_mode` | Dark mode pref | ❌ | ✅ | App (settings) |
 | `altech_coi_draft` | COI form draft | ❌ | ❌ | COI |
 | `altech_email_drafts` | Email drafts | ✅ | ❌ | EmailComposer |
+| `altech_email_custom_prompt` | Custom AI persona prompt | ❌ | ❌ | EmailComposer |
 | `altech_acct_vault_v2` | Encrypted vault (AES-256-GCM) | ✅ | ✅ | AccountingExport |
 | `altech_acct_vault_meta` | PIN hash + salt | ❌ | ✅ | AccountingExport |
 | `altech_acct_history` | Accounting export history | ❌ | ❌ | AccountingExport |
@@ -1033,6 +1034,18 @@ KEY RULES:
 | 165 | HIGH | plugins/quickref.html, js/quick-ref.js, css/quickref.css, js/cloud-sync.js | **QuickRef reorganized + editable numbers:** Reordered to ID Cards → Speller → Quick Dial Numbers → Phonetic Grid. Replaced hardcoded Common Numbers with editable CRUD system — `QR_NUMBERS_KEY`, `loadNumbers()`, `saveNumbers()`, `renderNumbers()`, `toggleNumberForm()`, `saveNumber()`, `editNumber()`, `deleteNumber()`. Defaults: NAIC Lookup, CLUE Report, MVR Check. Cloud synced as `quickRefNumbers` (11th doc type in 4 touchpoints). |
 
 **12 files changed:** js/compliance-dashboard.js (2,448→2,502), css/compliance.css (1,234→1,275), js/quick-ref.js (293→346), css/quickref.css (233→261), plugins/quickref.html (79→78), js/cloud-sync.js (664→672), js/dashboard-widgets.js (976→886), css/sidebar.css (765→726), js/bug-report.js (260→232), css/main.css (3,486→3,366), js/app-init.js (85→86), index.html (665). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Email Composer — Dynamic AI Persona + Custom Prompt Override (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 169 | CRITICAL | js/email-composer.js | **Dynamic AI persona:** Replaced hardcoded "Altech Insurance Agency"/"Altech Insurance" in AI system prompt with `_getAgentName()` (Auth.displayName → localStorage name → fallback) and `_getAgencyName()` (parsed from `altech_agency_profile` → fallback). New `buildDefaultPrompt()` constructs persona dynamically. |
+| 170 | HIGH | js/email-composer.js | **Custom prompt override:** `_initCustomPrompt()`, `_saveCustomPrompt()`, `_resetCustomPrompt()`, `_updateCharCount()` methods. Stored in `altech_email_custom_prompt` (max 2000 chars). `compose()` reads custom prompt, falls back to `buildDefaultPrompt()`. |
+| 171 | MEDIUM | plugins/email.html | **Collapsible UI section:** `<details class="email-custom-prompt-section">` with summary "🎭 Customize AI Persona", textarea, char counter, Reset/Save buttons. Placed between tone chips and draft textarea. |
+| 172 | MEDIUM | css/email.css | **Custom prompt styling:** `.email-custom-prompt-section`, `.email-custom-prompt-body`, `.email-custom-prompt-textarea`, `.email-custom-prompt-footer`, `.email-custom-prompt-count`, `.email-btn-sm` with `.over-limit` danger state. |
+| 173 | LOW | index.html | **Onboarding hint:** Added hint text under `#onboardingAgencyName` input: "Used in the Email Composer AI persona & sign-off". |
+
+**4 files changed:** js/email-composer.js (420→497 lines), plugins/email.html (98→125 lines), css/email.css (165→231 lines), index.html (665). Tests: 23 suites, 1,515 tests (unchanged).
 
 ### CGL State-Wipe Bugfix — checkForRenewals() No Longer Overwrites User Actions (March 2026)
 

@@ -23,6 +23,7 @@ const EMAIL_STORAGE_KEY = 'altech_email_drafts';
                         });
                     });
 
+                    this._initCustomPrompt();
                     this.resolveGeminiKey();
                     console.log('[EmailComposer] initialized');
                 },
@@ -46,6 +47,88 @@ const EMAIL_STORAGE_KEY = 'altech_email_drafts';
 
                 _hasAIKey() {
                     return (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) || !!this._geminiApiKey;
+                },
+
+                // ─── Name / Agency Resolution ────
+
+                _getAgentName() {
+                    if (typeof Auth !== 'undefined' && Auth.displayName) return Auth.displayName;
+                    return localStorage.getItem('altech_user_name') || 'your agent';
+                },
+
+                _getAgencyName() {
+                    try {
+                        const profile = JSON.parse(localStorage.getItem('altech_agency_profile') || '{}');
+                        if (profile.agencyName) return profile.agencyName;
+                    } catch (_) {}
+                    return 'our agency';
+                },
+
+                // ─── Default Prompt Builder ──────
+
+                buildDefaultPrompt() {
+                    const name = this._getAgentName();
+                    const agency = this._getAgencyName();
+                    return `You are ${name}, an insurance agent at ${agency}. You write emails to clients.
+
+ABOUT YOUR STYLE:
+- Uses first names (never "Dear Sir/Madam")
+- Keeps emails concise — gets to the point fast
+- Friendly but knowledgeable — clients trust you
+- Signs off with "Best," or "Thanks," followed by "${name}" then "${agency}" on the next line
+- Uses simple language, avoids jargon unless explaining it
+- Often includes a clear call-to-action or next step
+- Never uses excessive exclamation marks or emojis in emails`;
+                },
+
+                // ─── Custom Prompt UI ─────────────
+
+                _initCustomPrompt() {
+                    const textarea = document.getElementById('emailCustomPrompt');
+                    const counter = document.getElementById('emailCustomPromptCount');
+                    if (!textarea) return;
+
+                    // Load saved custom prompt or show default
+                    const saved = localStorage.getItem('altech_email_custom_prompt');
+                    textarea.value = saved || this.buildDefaultPrompt();
+                    this._updateCharCount();
+
+                    textarea.addEventListener('input', () => this._updateCharCount());
+
+                    const saveBtn = document.getElementById('emailPromptSave');
+                    const resetBtn = document.getElementById('emailPromptReset');
+                    if (saveBtn) saveBtn.addEventListener('click', () => this._saveCustomPrompt());
+                    if (resetBtn) resetBtn.addEventListener('click', () => this._resetCustomPrompt());
+                },
+
+                _saveCustomPrompt() {
+                    const textarea = document.getElementById('emailCustomPrompt');
+                    if (!textarea) return;
+                    const val = textarea.value.trim();
+                    if (!val) {
+                        App.toast('⚠️ Prompt cannot be empty');
+                        return;
+                    }
+                    localStorage.setItem('altech_email_custom_prompt', val);
+                    App.toast('✅ AI prompt saved');
+                },
+
+                _resetCustomPrompt() {
+                    const textarea = document.getElementById('emailCustomPrompt');
+                    if (!textarea) return;
+                    localStorage.removeItem('altech_email_custom_prompt');
+                    textarea.value = this.buildDefaultPrompt();
+                    this._updateCharCount();
+                    App.toast('🔄 Prompt reset to default');
+                },
+
+                _updateCharCount() {
+                    const textarea = document.getElementById('emailCustomPrompt');
+                    const counter = document.getElementById('emailCustomPromptCount');
+                    if (!textarea || !counter) return;
+                    const len = textarea.value.length;
+                    counter.textContent = `${len} / 2000`;
+                    counter.classList.toggle('over-limit', len > 2000);
                 },
 
                 // ─── Compose ─────────────────────
@@ -86,17 +169,11 @@ const EMAIL_STORAGE_KEY = 'altech_email_drafts';
                         'certificate-request': 'Related to a certificate of insurance request. Include relevant details.'
                     };
 
-                    const agentName = localStorage.getItem('altech_user_name') || 'Agent';
-                    const systemPrompt = `You are ${agentName}, an insurance agent at Altech Insurance Agency. You write emails to clients.
+                    // Build persona from custom prompt (if saved) or dynamic default
+                    const customPrompt = localStorage.getItem('altech_email_custom_prompt');
+                    const persona = customPrompt || this.buildDefaultPrompt();
 
-ABOUT YOUR STYLE:
-- Uses first names (never "Dear Sir/Madam")
-- Keeps emails concise — gets to the point fast
-- Friendly but knowledgeable — clients trust you
-- Signs off with "Best," or "Thanks," followed by "${agentName}" then "Altech Insurance" on the next line
-- Uses simple language, avoids jargon unless explaining it
-- Often includes a clear call-to-action or next step
-- Never uses excessive exclamation marks or emojis in emails
+                    const systemPrompt = `${persona}
 
 TONE FOR THIS EMAIL: ${toneGuide[tone] || toneGuide['professional-friendly']}
 

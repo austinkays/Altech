@@ -149,6 +149,63 @@
     font-weight: 600;
 }
 
+/* ── Custom AI Persona ── */
+.email-custom-prompt-section {
+    margin-bottom: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.email-custom-prompt-section summary {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+}
+.email-custom-prompt-section summary::-webkit-details-marker { display: none; }
+.email-custom-prompt-section summary::before {
+    content: '▸ ';
+    display: inline;
+    transition: transform 0.15s;
+}
+.email-custom-prompt-section[open] summary::before {
+    content: '▾ ';
+}
+.email-custom-prompt-body {
+    padding: 0 14px 12px;
+}
+.email-custom-prompt-textarea {
+    min-height: 120px;
+    font-size: 13px;
+    line-height: 1.55;
+}
+.email-custom-prompt-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+.email-custom-prompt-count {
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+.email-custom-prompt-count.over-limit {
+    color: var(--danger);
+    font-weight: 600;
+}
+.email-custom-prompt-actions {
+    display: flex;
+    gap: 6px;
+}
+.email-btn-sm {
+    padding: 5px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+}
+
 /* ── Desktop enhancements ── */
 @media (min-width: 960px) {
     .email-container {
