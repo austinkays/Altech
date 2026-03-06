@@ -14,7 +14,7 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~665 lines), 21 CSS files in `css/` (~16,108 lines), 35 JS modules in `js/` (~33,025 lines), 15 plugin HTML files in `plugins/` (~5,530 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~665 lines), 21 CSS files in `css/` (~16,108 lines), 35 JS modules in `js/` (~33,658 lines), 15 plugin HTML files in `plugins/` (~5,530 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
 > **Full documentation:** See [AGENTS.md](../AGENTS.md) (985 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
@@ -189,8 +189,9 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 ### Latest Session Notes (March 20, 2026)
 
 - **AI Intake Flow Engine — Deterministic Field Collection:** Added `INTAKE_PHASES` master config (~15 phases, ~80 EZLynx-critical fields) as the single source of truth for AI-guided field collection. New `_getNextFieldGroup()` deterministically selects the next unfilled group. New `_buildFlowInstruction()` generates precise AI instruction blocks with phase label, unfilled fields, context hints, and smart defaults. Rewrote `_buildSystemPrompt()` to use flow engine instructions instead of flat field lists. Rewrote `_checkCompletion()` to walk ALL applicable phases' required fields — was only checking 9 fields (name+DOB+address + home: yearBuilt/sqFt/roofType + auto: vehicles[0]/drivers[0]). Added `_hasFieldData()`, `_getApplicablePhases()`, `_checkPhaseTransition()` helpers. `FIELD_GROUPS` now derived dynamically from INTAKE_PHASES. All counter/section functions rewritten to derive from phases.
+- **Suggestion Chip qType Filtering:** Added `appliesTo` property to 23 of 30 `RESPONSE_TRIGGERS` (16 home-only, 7 auto-only, 7 universal unchanged). `_computeSuggestionChips()` Stage 2 now skips triggers that don't match the current `qType`. Home-only chips (e.g., "Dwelling coverage: $200,000") no longer appear on auto-only quotes.
 - **Tests:** 23 suites, 1515 tests (unchanged).
-- **1 file changed:** js/intake-assist.js (3,097→3,015).
+- **1 file changed:** js/intake-assist.js (3,097→3,391).
 
 ### Previous Session Notes (March 19, 2026)
 

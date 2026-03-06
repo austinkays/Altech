@@ -17,7 +17,7 @@
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~665 lines) |
 | **CSS** | 21 files in `css/` (~16,108 lines total) |
-| **JS** | 35 modules in `js/` (~33,025 lines total) |
+| **JS** | 35 modules in `js/` (~33,658 lines total) |
 | **Plugins** | 15 HTML templates in `plugins/` (~5,530 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
@@ -65,9 +65,9 @@ npm run deploy:vercel   # Production deploy
 ├── sw.js                       # Service worker
 │
 ├── css/                        # 21 stylesheets (~16,108 lines)
-│   ├── main.css                # ★ Core styles + :root variables + desktop overhaul + Save button (3,366 lines) — THE source of truth
+│   ├── main.css                # ★ Core styles + :root variables + desktop overhaul + Save button (3,484 lines) — THE source of truth
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
-│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (726 lines)
+│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (747 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (1,202 lines)
 │   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + needs-state-update badge + snooze styles (1,275 lines)
@@ -87,18 +87,18 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.css               # Email composer — purple accent + custom prompt styles (231 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
-├── js/                         # 35 modules (~33,025 lines)
+├── js/                         # 35 modules (~33,658 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows (86 lines)
 │   ├── app-core.js             # Form handling, save/load, updateUI, navigation, schema migration, syncPrimaryApplicantToDriver, _populateCoOccupation, aggressive auto-save (2,495 lines)
-│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,585 lines)
+│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,778 lines)
 │   ├── app-property.js         # Property analysis, maps, assessor data (1,728 lines)
-│   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (816 lines)
+│   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
-│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (963 lines)
+│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,047 lines)
 │   ├── app-quotes.js           # Quote/draft management, client history auto-save (762 lines)
-│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (279 lines)
+│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (302 lines)
 │   │
 │   │  ★ Infrastructure
 │   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
@@ -106,19 +106,19 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget (911 lines)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget (1,014 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
-│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep (2,509 lines)
+│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep (2,794 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
-│   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
+│   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,083 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
-│   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, maps, progress ring (3,015 lines)
+│   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,391 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,917 lines)
-│   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (346 lines)
-│   ├── quote-compare.js         # Quote comparison + AI recommendation (889 lines)
+│   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (387 lines)
+│   ├── quote-compare.js         # Quote comparison + AI recommendation (921 lines)
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (914 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
 │   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator (856 lines)
@@ -128,7 +128,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
 │   ├── paywall.js               # Stripe paywall (beta, disabled) (229 lines)
 │   ├── admin-panel.js           # User management admin panel (246 lines)
-│   ├── bug-report.js            # GitHub Issue bug reporter, hash-based page detection (232 lines)
+│   ├── bug-report.js            # GitHub Issue bug reporter, hash-based page detection (269 lines)
 │   ├── data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
 │   └── hawksoft-integration.js  # HawkSoft REST API client (261 lines)
 │
@@ -1136,7 +1136,18 @@ KEY RULES:
 
 **Root cause (premature completion chip):** `_checkCompletion()` only checked 9 fields (name, DOB, address + home: yearBuilt/sqFt/roofType + auto: vehicles[0]/drivers[0]). Fix: now walks ALL applicable INTAKE_PHASES required groups — ~60-80 fields depending on qType.
 
-**1 file changed:** js/intake-assist.js (3,097→3,015 lines — net decrease from removing old `_hasField()`, simplifying helpers, and replacing verbose label-based filtering with `appliesTo`). Tests: 23 suites, 1,515 tests (unchanged).
+**1 file changed:** js/intake-assist.js (3,097→3,391 lines — flow engine rewrite + qType-aware chip filtering). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Suggestion Chip qType Filtering — No More Wrong Chips for Quote Type (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|------------------|
+| 197 | CRITICAL | js/intake-assist.js | **RESPONSE_TRIGGERS now have `appliesTo` property:** 16 home-only triggers (dwelling, foundation, roof, construction, sqft, year built, heating, pool, trampoline, mortgage, occupancy, dwelling type, home deductible, personal liability, home policy type, stories) marked `['home']`. 7 auto-only triggers (comp/collision, liability, UM/UIM, vehicle use, annual miles, ownership, accidents) marked `['auto']`. 7 universal triggers (prior carrier, co-applicant, years insured, effective date, policy term, gender, marital) have no `appliesTo`. |
+| 198 | CRITICAL | js/intake-assist.js | **`_computeSuggestionChips()` Stage 2 qType filter:** Before pattern-matching each trigger, checks `trigger.appliesTo && qt !== 'both' && !trigger.appliesTo.includes(qt)` — skips triggers that don't apply to the current quote type. Home-only chips (e.g., "Dwelling coverage: $200,000") no longer appear on auto-only quotes. `qType === 'both'` shows all triggers. |
+
+**Root cause:** `RESPONSE_TRIGGERS` was a flat array of 30+ pattern-based triggers with no awareness of `extractedData.qType`. Chips were generated purely by regex matching the AI's last message text. On an auto-only quote, when the AI asked about "medical payments coverage", the dwelling coverage trigger's pattern could match, showing home-specific chips. User clicked the dwelling chip, AI correctly identified the confusion but the wrong chip wasted a conversation turn.
+
+**1 file changed:** js/intake-assist.js (3,015→3,391 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 
