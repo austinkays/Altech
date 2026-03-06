@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 16, 2026
+> **Last updated:** March 17, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -106,11 +106,11 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG (886 lines)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG (889 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
-│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep (2,513 lines)
+│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep (2,509 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,062 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
@@ -1060,6 +1060,20 @@ KEY RULES:
 **Root cause cycle (It's a Viewpoint):** User clears `renewedTo` chip → saves → next fetch cycle → `checkForRenewals()` runs the same unconditional clearing block → resets `renewedTo = null` (no-op here) BUT also wipes `stateUpdated` → cloud sync may restore stale state without reloading in-memory data → chip reappears. Fix: same `stateUpdatedForExp` guard prevents the entire clearing block from running.
 
 **2 files changed:** js/compliance-dashboard.js (2,502→2,513 lines), js/cloud-sync.js (672→676 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Renewal Chip Resurrection + Dashboard Stat Mismatch (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|------------------|
+| 174 | CRITICAL | js/compliance-dashboard.js | **`clearRenewed()` no longer deletes policyNote:** Was deleting entire note when `log.length === 0 && !stateUpdated`, which allowed stale IDB/KV/CloudSync sources to resurrect the old `renewedTo` value during `_smartMergeDict` init merge (additive-only merge re-adds deleted keys from slower async sources). Now keeps note as `{ log: [], renewedTo: null }` so the key persists across all 6 storage layers. |
+| 175 | HIGH | js/compliance-dashboard.js | **`deleteNoteEntry()` same fix:** Same deletion pattern removed — notes are kept even when log empties after deleting individual entries. Prevents stale resurrection from async sources. |
+| 176 | HIGH | js/dashboard-widgets.js | **Dashboard widget respects `hiddenTypes`:** `renderComplianceWidget()` now loads `hiddenTypes` from `altech_cgl_state` and filters policies before counting. `totalPolicies` now matches CGL dashboard total. `okCount` ("Current") now only counts policies in `notifyTypes`, not all remaining policies. |
+
+**Root cause of chip resurrection:** `clearRenewed()` → delete `this.policyNotes[pn]` → `saveState()` writes empty set to localStorage (sync), IDB (async), KV (2s debounce), CloudSync (3s debounce) → next `init()` → `_smartMergeDict` merges 5 sources → IDB/KV still have old note with `renewedTo: '0000000000'` → key doesn't exist in target → re-added → chip reappears.
+
+**Root cause of dashboard mismatch:** Widget counted `policies.length` (ALL 431 types), CGL dashboard filtered by `hiddenTypes` (excluded Auto + Umbrella = 410 visible). Widget's `okCount` incremented for ALL non-critical/non-warning policies regardless of type; CGL dashboard only counts policies in `notifyTypes`.
+
+**2 files changed:** js/compliance-dashboard.js (2,513→2,509 lines), js/dashboard-widgets.js (886→889 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 

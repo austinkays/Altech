@@ -186,7 +186,14 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 16, 2026)
+### Latest Session Notes (March 17, 2026)
+
+- **Renewal Chip Resurrection Fix — `clearRenewed()` No Longer Deletes policyNote:** Root cause: when user clicked ✕ to clear a renewal chip, `clearRenewed()` deleted the entire `policyNotes[pn]` entry when the log was empty. On next page load, `_smartMergeDict` (additive-only merge) re-added the old note from stale IDB/KV/CloudSync sources, resurrecting the `renewedTo` value. Fix: `clearRenewed()` and `deleteNoteEntry()` now keep note objects even when empty (`{ log: [], renewedTo: null }`) so the key persists across all 6 storage layers and can't be resurrected by stale sources.
+- **Dashboard Stat Mismatch Fix:** Widget's `renderComplianceWidget()` now loads `hiddenTypes` from `altech_cgl_state` and filters policies before counting. `totalPolicies` now matches CGL dashboard total. `okCount` ("Current") only counts policies in `notifyTypes`, not all remaining policies.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **2 files changed:** js/compliance-dashboard.js (2,513→2,509), js/dashboard-widgets.js (886→889).
+
+### Previous Session Notes (March 16, 2026)
 
 - **Email Composer — Dynamic AI Persona + Custom Prompt Override:** Replaced hardcoded "Altech Insurance Agency"/"Altech Insurance" in AI system prompt with dynamic `_getAgentName()` (Auth.displayName → localStorage `altech_user_name` → `'your agent'`) and `_getAgencyName()` (parsed from `altech_agency_profile` → `'our agency'`). New `buildDefaultPrompt()` constructs the persona dynamically. Added collapsible "Customize AI Persona" UI (≤ 2000 chars) with save/reset/char counter, stored in `altech_email_custom_prompt`. `compose()` uses custom prompt if set, otherwise `buildDefaultPrompt()`. Added onboarding hint under agency name field.
 - **Tests:** 23 suites, 1515 tests (unchanged).

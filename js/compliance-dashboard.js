@@ -1924,12 +1924,9 @@ const ComplianceDashboard = {
         const data = this.getNoteData(policyNumber);
         if (!data || !data.log || index < 0 || index >= data.log.length) return;
         data.log.splice(index, 1);
-        // If log is now empty and no other note metadata, clean up entirely
-        if (data.log.length === 0 && !data.renewedTo && !data.stateUpdated) {
-            delete this.policyNotes[policyNumber];
-        } else {
-            this.policyNotes[policyNumber] = data;
-        }
+        // Keep the note object (even if empty) to prevent stale
+        // IDB/KV sources from resurrecting old data during merge
+        this.policyNotes[policyNumber] = data;
         this.saveState();
         this._refreshNoteUI(policyNumber);
         // Refresh the note log in the expanded row
@@ -2032,10 +2029,9 @@ const ComplianceDashboard = {
         if (!data) return;
         data.renewedTo = null;
         data.log = data.log.filter(entry => !entry.text.startsWith('Renewed →') && !entry.text.startsWith('Renewed (New Policy #)'));
+        // Keep the note object (even if empty) so stale IDB/KV sources
+        // can't resurrect the old renewedTo value during multi-source merge
         this.policyNotes[policyNumber] = data;
-        if (data.log.length === 0 && !data.stateUpdated) {
-            delete this.policyNotes[policyNumber];
-        }
         this.saveState();
         this._refreshNoteUI(policyNumber);
         this.filterPolicies();

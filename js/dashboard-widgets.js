@@ -290,17 +290,21 @@ window.DashboardWidgets = (() => {
             const raw = localStorage.getItem('altech_cgl_cache');
             if (raw) {
                 const cached = JSON.parse(raw);
-                const policies = cached.policies || [];
-                totalPolicies = policies.length;
+                const allPolicies = cached.policies || [];
                 let verified = {}, dismissed = {};
                 let notifyTypes = ['cgl', 'bond', 'pkg', 'bop', 'commercial'];
+                let hiddenTypes = [];
                 const stateRaw = localStorage.getItem('altech_cgl_state');
                 if (stateRaw) {
                     const st = JSON.parse(stateRaw);
                     verified = st.verifiedPolicies || {};
                     dismissed = st.dismissedPolicies || {};
                     if (st.notifyTypes) notifyTypes = st.notifyTypes;
+                    if (st.hiddenTypes) hiddenTypes = st.hiddenTypes;
                 }
+                // Filter out hidden types to match CGL dashboard counting
+                const policies = allPolicies.filter(p => !hiddenTypes.includes(p.policyType || 'cgl'));
+                totalPolicies = policies.length;
                 const now = new Date();
                 now.setHours(0, 0, 0, 0);
                 policies.forEach(p => {
@@ -316,7 +320,7 @@ window.DashboardWidgets = (() => {
                     } else if (days <= 30 && notifyTypes.includes(pType)) {
                         warning++;
                         flaggedPolicies.push({ ...p, days, severity: 'warning' });
-                    } else {
+                    } else if (notifyTypes.includes(pType)) {
                         okCount++;
                     }
                 });
