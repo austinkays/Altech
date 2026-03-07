@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 21, 2026
+> **Last updated:** March 22, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -112,7 +112,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
 │   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep (2,794 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
-│   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,083 lines)
+│   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,028 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
 │   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,058 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
@@ -1158,6 +1158,18 @@ KEY RULES:
 **Root cause:** Async race condition — `clearChat()` nullifies all JS state and hides DOM cards, but cannot cancel in-flight `await`ed API fetches. When `_fetchPropertyIntel()` (or its downstream `_fetchMarketIntel()` / `_fetchInsuranceTrends()`) has an in-flight request and the user clears the chat, the `await` resolves AFTER clearChat. The response handler then sets `_propertyIntelLoaded = true`, triggers market + trends fetches, and those complete and render stale data from the previous client's address. Additionally, `_fetchMarketIntel()` eagerly shows its card with a loading spinner BEFORE the fetch starts, making stale content visible immediately.
 
 **1 file changed:** js/intake-assist.js (3,058 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### EZLynx CoApplicant Missing for Home Policies — Fallback from App.data (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|------------------|
+| 200 | CRITICAL | js/ezlynx-tool.js | **`getFormData()` CoApplicant fallback from App.data:** The `CoApplicant` object was built exclusively from `App.drivers.find(d => d.IsCoApplicant)`. For home-only policies (`qType='home'`), `App.drivers` is empty (Step 4 skipped), so CoApplicant was never built and the Chrome extension never injected co-applicant data into EZLynx. Added fallback block: `if (!data.CoApplicant && appData.coFirstName)` builds CoApplicant directly from App.data fields (`coFirstName`, `coLastName`, `coDob`, `coGender`, `coEmail`, `coPhone`, `coRelationship`, `coOccupation`, `coIndustry`). Address fields inherit from primary applicant with `address`/`addrStreet` dual fallback. |
+| 201 | HIGH | js/ezlynx-tool.js | **Address field name fallback in existing CoApplicant builder:** The driver-based CoApplicant builder used `appData.address`/`appData.city`/`appData.state` (legacy field names) for the co-applicant's address. Quoting form now uses `addrStreet`/`addrCity`/`addrState`/`addrZip`. Added fallback chain (e.g., `appData.address \|\| appData.addrStreet \|\| ''`) so address populates regardless of which field name convention the data uses. |
+| 202 | MEDIUM | js/ezlynx-tool.js | **`renderDriverVehicleSummary()` co-applicant from App.data:** Summary panel only showed co-applicant badge from `drivers.find(d => d.isCoApplicant)`. For home-only policies with no drivers, co-applicant was invisible in the EZ tool. Added `appCoApp` fallback that reads `App.data.coFirstName`/`coLastName`/`coDob`/`coRelationship` and displays the badge. |
+
+**Root cause:** For home-only policies, the quoting wizard's workflow (`steps 0,1,2,3,5,6`) skips Step 4 (Vehicles & Drivers). `syncPrimaryApplicantToDriver()` only runs on Step 4 landing. So `App.drivers` is empty — and the entire CoApplicant construction block was inside `if (App.drivers.length > 0)`, making it unreachable. Meanwhile, co-applicant data collected in Step 1 (About You card) lives in `App.data.coFirstName` etc. and was never read by the EZLynx export pipeline.
+
+**1 file changed:** js/ezlynx-tool.js (1,083→1,028 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 

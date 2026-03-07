@@ -267,15 +267,46 @@ const EZLynxTool = {
                     Occupation: coAppDriver.Occupation || '',
                     OccupationYears: coAppDriver.OccupationYears || '',
                     // Address (default to main applicant — co-apps often share address)
-                    Address: appData.address || '',
-                    City: appData.city || '',
-                    State: appData.state || '',
+                    Address: appData.address || appData.addrStreet || '',
+                    City: appData.city || appData.addrCity || '',
+                    State: appData.state || appData.addrState || '',
                     County: appData.county || '',
-                    PostalCode: appData.zip ? String(appData.zip).replace(/[^0-9]/g, '').slice(0, 5) : '',
+                    PostalCode: String(appData.zip || appData.addrZip || '').replace(/[^0-9]/g, '').slice(0, 5),
                     YearsAtAddress: appData.yearsAtAddress || '',
                     MonthsAtAddress: appData.monthsAtAddress || '',
                 };
             }
+        }
+
+        // Fallback: build CoApplicant from App.data (home-only policies without drivers)
+        if (!data.CoApplicant && appData.coFirstName) {
+            data.CoApplicant = {
+                FirstName: appData.coFirstName,
+                LastName: appData.coLastName || '',
+                MiddleName: '',
+                DOB: appData.coDob || '',
+                Gender: appData.coGender || '',
+                MaritalStatus: appData.maritalStatus || '',
+                Relationship: appData.coRelationship || '',
+                Prefix: '',
+                Suffix: '',
+                Email: appData.coEmail || '',
+                Phone: appData.coPhone || '',
+                SSN: '',
+                DLNumber: '',
+                DLState: '',
+                DLStatus: '',
+                Industry: appData.coIndustry || '',
+                Occupation: appData.coOccupation || '',
+                OccupationYears: '',
+                Address: appData.address || appData.addrStreet || '',
+                City: appData.city || appData.addrCity || '',
+                State: appData.state || appData.addrState || '',
+                County: appData.county || '',
+                PostalCode: String(appData.zip || appData.addrZip || '').replace(/[^0-9]/g, '').slice(0, 5),
+                YearsAtAddress: appData.yearsAtAddress || '',
+                MonthsAtAddress: appData.monthsAtAddress || '',
+            };
         }
 
         // Append multi-vehicle array from App.vehicles
@@ -704,8 +735,13 @@ const EZLynxTool = {
         const extraDrivers = drivers.slice(1);
         const extraVehicles = vehicles.slice(1);
         const coApplicant = drivers.find(d => d.isCoApplicant);
+        // Fallback: co-applicant from App.data (home-only policies without drivers)
+        const appCoApp = !coApplicant && (typeof App !== 'undefined' && App.data && App.data.coFirstName)
+            ? { firstName: App.data.coFirstName, lastName: App.data.coLastName || '', dob: App.data.coDob || '', relationship: App.data.coRelationship || '' }
+            : null;
+        const effectiveCoApp = coApplicant || appCoApp;
 
-        if (!extraDrivers.length && !extraVehicles.length && !coApplicant) {
+        if (!extraDrivers.length && !extraVehicles.length && !effectiveCoApp) {
             wrapper.style.display = 'none';
             return;
         }
@@ -713,13 +749,13 @@ const EZLynxTool = {
         let html = '';
 
         // Co-applicant badge
-        if (coApplicant) {
-            const name = [coApplicant.firstName, coApplicant.lastName].filter(Boolean).join(' ') || 'Unnamed';
+        if (effectiveCoApp) {
+            const name = [effectiveCoApp.firstName, effectiveCoApp.lastName].filter(Boolean).join(' ') || 'Unnamed';
             html += `<div class="ez-dv-card ez-dv-coapplicant">
                 <div class="ez-dv-badge">Co-Applicant</div>
                 <strong>${this._escHTML(name)}</strong>`;
-            if (coApplicant.dob) html += ` <span class="ez-dv-detail">DOB: ${this._escHTML(coApplicant.dob)}</span>`;
-            if (coApplicant.relationship) html += ` <span class="ez-dv-detail">${this._escHTML(coApplicant.relationship)}</span>`;
+            if (effectiveCoApp.dob) html += ` <span class="ez-dv-detail">DOB: ${this._escHTML(effectiveCoApp.dob)}</span>`;
+            if (effectiveCoApp.relationship) html += ` <span class="ez-dv-detail">${this._escHTML(effectiveCoApp.relationship)}</span>`;
             html += `</div>`;
         }
 

@@ -186,7 +186,13 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 21, 2026)
+### Latest Session Notes (March 22, 2026)
+
+- **EZLynx CoApplicant Missing for Home Policies — Fallback from App.data:** `getFormData()` CoApplicant was built exclusively from `App.drivers.find(d => d.IsCoApplicant)`. For home-only policies (`qType='home'`), `App.drivers` is empty (Step 4 skipped), so CoApplicant was never built. Added fallback block: `if (!data.CoApplicant && appData.coFirstName)` builds CoApplicant directly from App.data fields. Also added address field name dual fallback (`appData.address || appData.addrStreet`) in existing driver-based CoApplicant builder, and `renderDriverVehicleSummary()` co-applicant fallback from App.data.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **1 file changed:** js/ezlynx-tool.js (1,083→1,028).
+
+### Previous Session Notes (March 21, 2026)
 
 - **Stale Market Intel / Insurance Trends After clearChat — Async Race Condition Fix:** Added `_sessionId` counter incremented on every `clearChat()`. Each async fetch function (`_fetchPropertyIntel`, `_fetchMarketIntel`, `_fetchInsuranceTrends`, `_scanSatelliteHazards`) captures `const sid = _sessionId` at start and checks `if (sid !== _sessionId) return` after each `await`. Prevents stale API responses from overwriting cleared state or re-showing hidden DOM cards after chat reset. Root cause: async race — `clearChat()` nullifies state but cannot cancel in-flight `await`ed fetches; old responses wrote stale data back.
 - **Tests:** 23 suites, 1515 tests (unchanged).
