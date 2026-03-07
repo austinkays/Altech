@@ -37,6 +37,7 @@ window.IntakeAssist = (() => {
     let _addressEnrichCache = {};  // Cache for county/zip lookups by city,state
     let _completionShown = false;  // Whether completion message has been shown
     let _lastPhaseKey = null;      // Track phase transitions for messages
+    let _sessionId = 0;            // Incremented on clearChat — guards async fetch completions
 
     // ── Flow Engine: INTAKE_PHASES master config ────────────────
     // Single source of truth for all EZLynx-critical fields.
@@ -869,6 +870,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
     /** Clear chat history and reset extracted data */
     function clearChat() {
+        _sessionId++;  // Invalidate any in-flight async fetches
         chatHistory = [];
         extractedData = {};
         propertyIntel = null;
@@ -1986,6 +1988,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         _lastPropertyIntelAddress = address;
         _propertyIntelFetching = true;
+        const sid = _sessionId;  // Capture session — discard results if clearChat() fires
 
         try {
             const fetchFn = (window.Auth?.apiFetch || fetch).bind(window.Auth || window);
@@ -1997,8 +2000,10 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                     aiSettings: window.AIProvider?.getSettings?.()
                 })
             });
+            if (sid !== _sessionId) return;  // Session changed — discard stale response
             if (res.ok) {
                 const data = await res.json();
+                if (sid !== _sessionId) return;
                 if (data.success) {
                     propertyIntel = data;
                     _propertyIntelLoaded = true;
@@ -2028,6 +2033,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     async function _fetchMarketIntel() {
         if (_marketIntelLoaded || !_propertyIntelLoaded) return;
 
+        const sid = _sessionId;
         const card = document.getElementById('iaMarketIntelCard');
         if (card) {
             card.style.display = '';
@@ -2052,8 +2058,10 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                     aiSettings: window.AIProvider?.getSettings?.()
                 })
             });
+            if (sid !== _sessionId) return;
             if (res.ok) {
                 const result = await res.json();
+                if (sid !== _sessionId) return;
                 if (result.success && result.data) {
                     marketIntel = result.data;
                     _marketIntelLoaded = true;
@@ -2154,6 +2162,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         const zip = extractedData.addrZip || '';
         if (!street || !city) return;
 
+        const sid = _sessionId;
         _satelliteScanDone = true;
         _updateSuggestionChips(); // Remove the chip
 
@@ -2171,10 +2180,13 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                 })
             });
 
+            if (sid !== _sessionId) { _hideTyping(); return; }
+
             _hideTyping();
 
             if (res.ok) {
                 const result = await res.json();
+                if (sid !== _sessionId) return;
                 if (result.success && result.data) {
                     satelliteData = result.data;
                     _renderHazardBadges(result.data);
@@ -2732,6 +2744,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
     async function _fetchInsuranceTrends() {
         if (insuranceTrends || !_propertyIntelLoaded) return;
 
+        const sid = _sessionId;
         try {
             const fetchFn = (window.Auth?.apiFetch || fetch).bind(window.Auth || window);
             const res = await fetchFn('/api/historical-analyzer', {
@@ -2746,8 +2759,10 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
                     aiSettings: window.AIProvider?.getSettings?.()
                 })
             });
+            if (sid !== _sessionId) return;
             if (res.ok) {
                 const result = await res.json();
+                if (sid !== _sessionId) return;
                 if (result.success && result.data) {
                     insuranceTrends = result.data;
                     _renderInsuranceTrendCard();
