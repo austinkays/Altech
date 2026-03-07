@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 20, 2026
+> **Last updated:** March 21, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -114,7 +114,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,083 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
-│   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,391 lines)
+│   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,058 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,917 lines)
 │   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (387 lines)
@@ -1148,6 +1148,16 @@ KEY RULES:
 **Root cause:** `RESPONSE_TRIGGERS` was a flat array of 30+ pattern-based triggers with no awareness of `extractedData.qType`. Chips were generated purely by regex matching the AI's last message text. On an auto-only quote, when the AI asked about "medical payments coverage", the dwelling coverage trigger's pattern could match, showing home-specific chips. User clicked the dwelling chip, AI correctly identified the confusion but the wrong chip wasted a conversation turn.
 
 **1 file changed:** js/intake-assist.js (3,015→3,391 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Stale Market Intel / Insurance Trends After clearChat — Async Race Condition Fix (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|------------------|
+| 199 | CRITICAL | js/intake-assist.js | **`_sessionId` counter + async guards:** Added module-level `_sessionId` counter, incremented on every `clearChat()`. Each async fetch function (`_fetchPropertyIntel`, `_fetchMarketIntel`, `_fetchInsuranceTrends`, `_scanSatelliteHazards`) captures `const sid = _sessionId` at start and checks `if (sid !== _sessionId) return` after each `await`. Prevents stale API responses from overwriting cleared state or re-showing hidden DOM cards after chat reset. |
+
+**Root cause:** Async race condition — `clearChat()` nullifies all JS state and hides DOM cards, but cannot cancel in-flight `await`ed API fetches. When `_fetchPropertyIntel()` (or its downstream `_fetchMarketIntel()` / `_fetchInsuranceTrends()`) has an in-flight request and the user clears the chat, the `await` resolves AFTER clearChat. The response handler then sets `_propertyIntelLoaded = true`, triggers market + trends fetches, and those complete and render stale data from the previous client's address. Additionally, `_fetchMarketIntel()` eagerly shows its card with a loading spinner BEFORE the fetch starts, making stale content visible immediately.
+
+**1 file changed:** js/intake-assist.js (3,058 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 

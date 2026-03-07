@@ -186,7 +186,13 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 20, 2026)
+### Latest Session Notes (March 21, 2026)
+
+- **Stale Market Intel / Insurance Trends After clearChat — Async Race Condition Fix:** Added `_sessionId` counter incremented on every `clearChat()`. Each async fetch function (`_fetchPropertyIntel`, `_fetchMarketIntel`, `_fetchInsuranceTrends`, `_scanSatelliteHazards`) captures `const sid = _sessionId` at start and checks `if (sid !== _sessionId) return` after each `await`. Prevents stale API responses from overwriting cleared state or re-showing hidden DOM cards after chat reset. Root cause: async race — `clearChat()` nullifies state but cannot cancel in-flight `await`ed fetches; old responses wrote stale data back.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **1 file changed:** js/intake-assist.js (3,058).
+
+### Previous Session Notes (March 20, 2026)
 
 - **AI Intake Flow Engine — Deterministic Field Collection:** Added `INTAKE_PHASES` master config (~15 phases, ~80 EZLynx-critical fields) as the single source of truth for AI-guided field collection. New `_getNextFieldGroup()` deterministically selects the next unfilled group. New `_buildFlowInstruction()` generates precise AI instruction blocks with phase label, unfilled fields, context hints, and smart defaults. Rewrote `_buildSystemPrompt()` to use flow engine instructions instead of flat field lists. Rewrote `_checkCompletion()` to walk ALL applicable phases' required fields — was only checking 9 fields (name+DOB+address + home: yearBuilt/sqFt/roofType + auto: vehicles[0]/drivers[0]). Added `_hasFieldData()`, `_getApplicablePhases()`, `_checkPhaseTransition()` helpers. `FIELD_GROUPS` now derived dynamically from INTAKE_PHASES. All counter/section functions rewritten to derive from phases.
 - **Suggestion Chip qType Filtering:** Added `appliesTo` property to 23 of 30 `RESPONSE_TRIGGERS` (16 home-only, 7 auto-only, 7 universal unchanged). `_computeSuggestionChips()` Stage 2 now skips triggers that don't match the current `qType`. Home-only chips (e.g., "Dwelling coverage: $200,000") no longer appear on auto-only quotes.
@@ -339,4 +345,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 20, 2026*
+*Last updated: March 21, 2026*
