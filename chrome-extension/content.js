@@ -626,23 +626,23 @@ function setInputValue(el, value) {
  * Each entry: labels (to locate the toggle), trueValues (data values meaning "on").
  */
 const TOGGLE_MAP = {
-    Pool:               { labels: ['swimming pool', 'pool'], trueValues: ['yes', 'in ground', 'in-ground', 'above ground', 'true'] },
-    Trampoline:         { labels: ['trampoline'], trueValues: ['yes', 'true'] },
-    WoodStove:          { labels: ['wood stove', 'wood burning stove', 'wood burning'], trueValues: ['yes', 'true'] },
-    CoApplicant:        { labels: ['co-applicant', 'coapplicant', 'co applicant', 'is there a co-applicant'], trueValues: ['yes', 'true'] },
-    PriorInsurance:     { labels: ['prior insurance', 'currently insured', 'prior coverage'], trueValues: ['yes', 'true'] },
-    SR22Required:       { labels: ['sr-22', 'sr22', 'sr-22 required'], trueValues: ['yes', 'true'] },
-    GoodStudent:        { labels: ['good student'], trueValues: ['yes', 'true'] },
-    DogOnPremises:      { labels: ['dog', 'dog on premises', 'aggressive dog', 'animal'], trueValues: ['yes', 'true'] },
-    BusinessOnPremises: { labels: ['business on premises', 'home business', 'business conducted'], trueValues: ['yes', 'true'] },
-    Smoker:             { labels: ['smoker', 'tobacco', 'tobacco user'], trueValues: ['yes', 'true'] },
-    DayCare:            { labels: ['day care', 'daycare', 'child care', 'childcare'], trueValues: ['yes', 'true'] },
-    Farming:            { labels: ['farming', 'farm activities', 'farm use'], trueValues: ['yes', 'true'] },
-    Fence:              { labels: ['fence', 'fenced'], trueValues: ['yes', 'true'] },
-    DeadBolts:          { labels: ['dead bolt', 'deadbolt', 'dead bolts'], trueValues: ['yes', 'true'] },
-    GatedCommunity:     { labels: ['gated community', 'gated'], trueValues: ['yes', 'true'] },
-    NewPurchase:        { labels: ['new purchase', 'newly purchased', 'recent purchase'], trueValues: ['yes', 'true'] },
-    MultiPolicy:        { labels: ['multi-policy', 'multipolicy', 'multi policy', 'package discount'], trueValues: ['yes', 'true'] },
+    Pool:               { labels: ['swimming pool', 'pool'], trueValues: ['yes', 'in ground', 'in-ground', 'above ground', 'true'], pages: ['home-dwelling', 'home-coverage'] },
+    Trampoline:         { labels: ['trampoline'], trueValues: ['yes', 'true'], pages: ['home-dwelling', 'home-coverage'] },
+    WoodStove:          { labels: ['wood stove', 'wood burning stove', 'wood burning'], trueValues: ['yes', 'true'], pages: ['home-dwelling', 'home-coverage'] },
+    CoApplicant:        { labels: ['co-applicant', 'coapplicant', 'co applicant', 'is there a co-applicant'], trueValues: ['yes', 'true'], pages: ['applicant', 'lead-info'] },
+    PriorInsurance:     { labels: ['prior insurance', 'currently insured', 'prior coverage'], trueValues: ['yes', 'true'], pages: ['applicant', 'auto-policy', 'home-dwelling'] },
+    SR22Required:       { labels: ['sr-22', 'sr22', 'sr-22 required'], trueValues: ['yes', 'true'], pages: ['auto-driver'] },
+    GoodStudent:        { labels: ['good student'], trueValues: ['yes', 'true'], pages: ['auto-driver'] },
+    DogOnPremises:      { labels: ['dog', 'dog on premises', 'aggressive dog', 'animal'], trueValues: ['yes', 'true'], pages: ['home-dwelling'] },
+    BusinessOnPremises: { labels: ['business on premises', 'home business', 'business conducted'], trueValues: ['yes', 'true'], pages: ['home-dwelling'] },
+    Smoker:             { labels: ['smoker', 'tobacco', 'tobacco user'], trueValues: ['yes', 'true'], pages: ['applicant', 'auto-driver'] },
+    DayCare:            { labels: ['day care', 'daycare', 'child care', 'childcare'], trueValues: ['yes', 'true'], pages: ['home-dwelling'] },
+    Farming:            { labels: ['farming', 'farm activities', 'farm use'], trueValues: ['yes', 'true'], pages: ['home-dwelling'] },
+    Fence:              { labels: ['fence', 'fenced'], trueValues: ['yes', 'true'], pages: ['home-dwelling'] },
+    DeadBolts:          { labels: ['dead bolt', 'deadbolt', 'dead bolts'], trueValues: ['yes', 'true'], pages: ['home-dwelling'] },
+    GatedCommunity:     { labels: ['gated community', 'gated'], trueValues: ['yes', 'true'], pages: ['home-dwelling'] },
+    NewPurchase:        { labels: ['new purchase', 'newly purchased', 'recent purchase'], trueValues: ['yes', 'true'], pages: ['home-dwelling', 'applicant'] },
+    MultiPolicy:        { labels: ['multi-policy', 'multipolicy', 'multi policy', 'package discount'], trueValues: ['yes', 'true'], pages: ['applicant', 'auto-policy', 'home-dwelling'] },
 };
 
 /**
@@ -761,8 +761,12 @@ function clickToggle(found) {
  */
 async function fillYesNoToggles(smartData, report) {
     updateToolbarStatus('Activating Yes/No toggles...');
+    const page = detectPage();
 
     for (const [key, config] of Object.entries(TOGGLE_MAP)) {
+        // Page-aware: skip toggles that don't belong on this EZLynx page
+        if (config.pages && !config.pages.includes(page)) continue;
+
         const value = smartData[key];
         if (!value) continue;
 
