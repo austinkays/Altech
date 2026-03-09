@@ -186,7 +186,13 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 22, 2026)
+### Latest Session Notes (March 23, 2026)
+
+- **AI Intake ↔ EZLynx/PDF Field Alignment — 7-Gap Fix:** Cross-referenced INTAKE_PHASES, `_syncToAppData`, `populateForm`, and both export engines. Fixed 8 gaps: `_hasFieldData()` compat aliases for dual key naming (`yearBuilt`/`yrBuilt` etc.); `hasProperty` check uses both key variants; INTAKE_PHASES wrapUp adds `coEmail`, `coPhone`, `coOccupation`, `coEducation`, `coIndustry`; autoCoverage adds `uimLimits`; priorInsurance adds `priorExp`; `_syncToAppData()` DIRECT list updated; `populateForm()` now triggers `hasCoApplicant` toggle + routes accidents/violations to `App.drivers[0]`; AI schema template updated.
+- **Tests:** 23 suites, 1,515 tests (unchanged).
+- **1 file changed:** js/intake-assist.js (3,058→3,423).
+
+### Previous Session Notes (March 22, 2026)
 
 - **EZLynx CoApplicant Missing for Home Policies — Fallback from App.data:** `getFormData()` CoApplicant was built exclusively from `App.drivers.find(d => d.IsCoApplicant)`. For home-only policies (`qType='home'`), `App.drivers` is empty (Step 4 skipped), so CoApplicant was never built. Added fallback block: `if (!data.CoApplicant && appData.coFirstName)` builds CoApplicant directly from App.data fields. Also added address field name dual fallback (`appData.address || appData.addrStreet`) in existing driver-based CoApplicant builder, and `renderDriverVehicleSummary()` co-applicant fallback from App.data.
 - **Tests:** 23 suites, 1515 tests (unchanged).
@@ -351,4 +357,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 21, 2026*
+*Last updated: March 23, 2026*

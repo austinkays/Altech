@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 22, 2026
+> **Last updated:** March 23, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -114,7 +114,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,028 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
-│   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,058 lines)
+│   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,423 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,917 lines)
 │   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (387 lines)
@@ -1170,6 +1170,21 @@ KEY RULES:
 **Root cause:** For home-only policies, the quoting wizard's workflow (`steps 0,1,2,3,5,6`) skips Step 4 (Vehicles & Drivers). `syncPrimaryApplicantToDriver()` only runs on Step 4 landing. So `App.drivers` is empty — and the entire CoApplicant construction block was inside `if (App.drivers.length > 0)`, making it unreachable. Meanwhile, co-applicant data collected in Step 1 (About You card) lives in `App.data.coFirstName` etc. and was never read by the EZLynx export pipeline.
 
 **1 file changed:** js/ezlynx-tool.js (1,083→1,028 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### AI Intake ↔ EZLynx/PDF Field Alignment — 7-Gap Fix (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|-----------------|
+| 201 | CRITICAL | js/intake-assist.js | **`_hasFieldData()` compat aliases:** Added checks for both AI keys and form keys — `yearBuilt`\|`yrBuilt`, `stories`\|`numStories`, `roofYear`\|`roofYr`. Doc-scan path stores form keys, AI conversation stores AI keys; flow engine was invisible to scan-populated data. |
+| 202 | HIGH | js/intake-assist.js | **`hasProperty` qType detection:** Checks `extractedData.yearBuilt \|\| extractedData.yrBuilt` (was only `yrBuilt`, missing AI-conversation data). |
+| 203 | HIGH | js/intake-assist.js | **INTAKE_PHASES wrapUp groups expanded:** Added `coEmail`, `coPhone` to co-applicant group; new group for `coOccupation`, `coEducation`, `coIndustry`. These are consumed by EZLynx `getFormData()` co-applicant block. |
+| 204 | MEDIUM | js/intake-assist.js | **INTAKE_PHASES autoCoverage — `uimLimits` added:** `umLimits` and `uimLimits` are separate quoting form fields; EZLynx reads `appData.uimLimits` as `data.UIM`. |
+| 205 | MEDIUM | js/intake-assist.js | **INTAKE_PHASES priorInsurance — `priorExp` added:** Auto prior policy expiration, mapped to EZLynx `PriorExpiration`. |
+| 206 | MEDIUM | js/intake-assist.js | **`_syncToAppData()` DIRECT list:** Added `uimLimits`, `priorExp`, `coEmail`, `coPhone`, `coOccupation`, `coEducation`, `coIndustry`. These were extracted by AI but not written to `App.data`. |
+| 207 | HIGH | js/intake-assist.js | **`populateForm()` comprehensive fix:** (1) Added `coEmail`/`coPhone` to simpleFields. (2) Added `uimLimits`/`coOccupation`/`coEducation`/`coIndustry` to selectFields. (3) Co-applicant section reveal: checks `hasCoApplicant` checkbox + calls `App.toggleCoApplicant('yes')` when `coFirstName` present. (4) Accidents/violations: global `#accidents`/`#violations` DOM elements were removed March 7 (per-driver system); now routes to `App.drivers[0].accidents`/`.violations`. |
+| 208 | LOW | js/intake-assist.js | **AI schema JSON template:** Added `uimLimits`, `priorExp`, `coEmail`, `coPhone`, `coOccupation`, `coEducation`, `coIndustry` so AI knows to extract these fields from conversation. |
+
+**1 file changed:** js/intake-assist.js (3,058→3,423 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ---
 

@@ -84,7 +84,7 @@ window.IntakeAssist = (() => {
             icon: '📁',
             appliesTo: ['home', 'auto', 'both'],
             groups: [
-                { fields: ['priorCarrier', 'priorYears', 'priorPolicyTerm'], hint: 'Prior insurance carrier and history', required: true,
+                { fields: ['priorCarrier', 'priorYears', 'priorPolicyTerm', 'priorExp'], hint: 'Prior insurance carrier, history, and expiration date', required: true,
                   defaults: { priorPolicyTerm: { value: '12 Month', reason: 'Most common' } } },
                 { fields: ['priorLiabilityLimits', 'continuousCoverage'], hint: 'Prior liability limits and years of continuous coverage', required: true },
             ]
@@ -168,7 +168,7 @@ window.IntakeAssist = (() => {
                   defaults: { liabilityLimits: { value: '100/300', reason: 'Most common in Oregon' }, pdLimit: { value: '100,000', reason: 'Standard' } } },
                 { fields: ['compDeductible', 'autoDeductible'], hint: 'Comprehensive and collision deductibles', required: true,
                   defaults: { compDeductible: { value: '$500', reason: 'Most common' }, autoDeductible: { value: '$500', reason: 'Most common' } } },
-                { fields: ['umLimits', 'umpdLimit', 'medPayments'], hint: 'Uninsured motorist limits and medical payments', required: true },
+                { fields: ['umLimits', 'uimLimits', 'umpdLimit', 'medPayments'], hint: 'Uninsured/underinsured motorist limits and medical payments', required: true },
             ]
         },
         vehicles: {
@@ -208,7 +208,8 @@ window.IntakeAssist = (() => {
             icon: '✅',
             appliesTo: ['home', 'auto', 'both'],
             groups: [
-                { fields: ['coFirstName', 'coLastName', 'coDob', 'coGender', 'coRelationship'], hint: 'Co-applicant info if any (or confirm none)', required: false },
+                { fields: ['coFirstName', 'coLastName', 'coDob', 'coGender', 'coRelationship', 'coEmail', 'coPhone'], hint: 'Co-applicant personal info and contact (or confirm none)', required: false },
+                { fields: ['coOccupation', 'coEducation', 'coIndustry'], hint: 'Co-applicant employment and education (if applicable)', required: false },
             ]
         },
     };
@@ -228,6 +229,10 @@ window.IntakeAssist = (() => {
         if (key === 'constructionStyle') {
             return !!(extractedData.constructionStyle || extractedData.constructionType);
         }
+        // AI uses 'yearBuilt' / 'stories' / 'roofYear'; doc scan uses form keys 'yrBuilt' / 'numStories' / 'roofYr'
+        if (key === 'yearBuilt') return !!(extractedData.yearBuilt || extractedData.yrBuilt);
+        if (key === 'stories')   return !!(extractedData.stories   || extractedData.numStories);
+        if (key === 'roofYear')  return !!(extractedData.roofYear  || extractedData.roofYr);
         return !!extractedData[key];
     }
 
@@ -410,7 +415,7 @@ Keep replies SHORT — 1-3 sentences max, plus your JSON block. No paragraphs. N
 
 IMPORTANT — AFTER EVERY REPLY, append a JSON code block containing ALL fields collected SO FAR (not just what was gathered in this turn). This allows real-time progress tracking. Use EXACTLY these keys:
 \`\`\`json
-{"firstName":"","middleName":"","lastName":"","prefix":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","email":"","phone":"","addrStreet":"","addrCity":"","addrState":"XX","addrZip":"","county":"","education":"No High School|High School|Some College|Associates|Bachelors|Masters|Doctorate","occupation":"","industry":"","yearsAtAddress":"","qType":"home|auto|both","effectiveDate":"YYYY-MM-DD","policyTerm":"6 Month|12 Month","occupancyType":"Owner Occupied|Tenant","dwellingUsage":"Primary|Secondary|Seasonal","dwellingType":"One Family|Condo|Townhome|Mobile Home","homePolicyType":"HO3|HO5|HO4|HO6","dwellingCoverage":"","personalLiability":"","medicalPayments":"","homeDeductible":"","theftDeductible":"","windDeductible":"","yearBuilt":"","sqFt":"","stories":"","constructionStyle":"","exteriorWalls":"","foundation":"","roofType":"","roofShape":"Gable|Hip|Flat|Gambrel|Mansard","roofYear":"","heatingType":"","cooling":"Central Air|Window Unit|None","bedrooms":"","fullBaths":"","halfBaths":"","lotSize":"","garageType":"Attached|Detached|Carport|None","garageSpaces":"","numFireplaces":"","numOccupants":"","pool":"Yes|No","trampoline":"Yes|No","burglarAlarm":"Yes|No|Local|Central","smokeDetector":"Yes|No","fireHydrantFeet":"","mortgagee":"","liabilityLimits":"","pdLimit":"","compDeductible":"","autoDeductible":"","medPayments":"","umLimits":"","umpdLimit":"","residenceIs":"","vehicles":[{"year":"","make":"","model":"","vin":"","use":"Commute|Pleasure|Business","annualMiles":"","ownershipType":"Owned|Leased|Lien"}],"drivers":[{"firstName":"","lastName":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","occupation":"","industry":"","education":"No High School|High School|Some College|Associates|Bachelors|Masters|Doctorate","dlStatus":"Valid|Permit|Expired|Suspended|Not Licensed","relationship":"Self|Spouse|Child|Other","dlState":"","dlNum":"","ageLicensed":"16|17|18|19|20|21+"}],"coFirstName":"","coLastName":"","coDob":"","coGender":"M|F","coRelationship":"Spouse|Domestic Partner|Other","priorCarrier":"","priorYears":"","priorPolicyTerm":"6 Month|12 Month","priorLiabilityLimits":"","continuousCoverage":"","homePriorCarrier":"","homePriorYears":"","homePriorPolicyTerm":"6 Month|12 Month","homePriorExp":"YYYY-MM-DD","accidents":"0","violations":"0"}
+{"firstName":"","middleName":"","lastName":"","prefix":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","email":"","phone":"","addrStreet":"","addrCity":"","addrState":"XX","addrZip":"","county":"","education":"No High School|High School|Some College|Associates|Bachelors|Masters|Doctorate","occupation":"","industry":"","yearsAtAddress":"","qType":"home|auto|both","effectiveDate":"YYYY-MM-DD","policyTerm":"6 Month|12 Month","occupancyType":"Owner Occupied|Tenant","dwellingUsage":"Primary|Secondary|Seasonal","dwellingType":"One Family|Condo|Townhome|Mobile Home","homePolicyType":"HO3|HO5|HO4|HO6","dwellingCoverage":"","personalLiability":"","medicalPayments":"","homeDeductible":"","theftDeductible":"","windDeductible":"","yearBuilt":"","sqFt":"","stories":"","constructionStyle":"","exteriorWalls":"","foundation":"","roofType":"","roofShape":"Gable|Hip|Flat|Gambrel|Mansard","roofYear":"","heatingType":"","cooling":"Central Air|Window Unit|None","bedrooms":"","fullBaths":"","halfBaths":"","lotSize":"","garageType":"Attached|Detached|Carport|None","garageSpaces":"","numFireplaces":"","numOccupants":"","pool":"Yes|No","trampoline":"Yes|No","burglarAlarm":"Yes|No|Local|Central","smokeDetector":"Yes|No","fireHydrantFeet":"","mortgagee":"","liabilityLimits":"","pdLimit":"","compDeductible":"","autoDeductible":"","medPayments":"","umLimits":"","uimLimits":"","umpdLimit":"","residenceIs":"","vehicles":[{"year":"","make":"","model":"","vin":"","use":"Commute|Pleasure|Business","annualMiles":"","ownershipType":"Owned|Leased|Lien"}],"drivers":[{"firstName":"","lastName":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","occupation":"","industry":"","education":"No High School|High School|Some College|Associates|Bachelors|Masters|Doctorate","dlStatus":"Valid|Permit|Expired|Suspended|Not Licensed","relationship":"Self|Spouse|Child|Other","dlState":"","dlNum":"","ageLicensed":"16|17|18|19|20|21+"}],"coFirstName":"","coLastName":"","coDob":"","coGender":"M|F","coRelationship":"Spouse|Domestic Partner|Other","coEmail":"","coPhone":"","coOccupation":"","coEducation":"","coIndustry":"","priorCarrier":"","priorYears":"","priorPolicyTerm":"6 Month|12 Month","priorLiabilityLimits":"","priorExp":"YYYY-MM-DD","continuousCoverage":"","homePriorCarrier":"","homePriorYears":"","homePriorPolicyTerm":"6 Month|12 Month","homePriorExp":"YYYY-MM-DD","accidents":"0","violations":"0"}
 \`\`\`
 
 Only include keys for which you have data. Omit empty fields. Use 2-letter state codes. Format dates as YYYY-MM-DD. Include this JSON block in EVERY response, even partial ones — this is how the form tracks progress in real time.`;
@@ -651,8 +656,9 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             'addrStreet', 'addrCity', 'addrZip', 'county',
             'yearBuilt', 'sqFt', 'stories', 'constructionType', 'constructionStyle',
             'roofYear', 'mortgagee', 'coFirstName', 'coLastName', 'coDob',
+            'coEmail', 'coPhone',
             'effectiveDate', 'dwellingCoverage', 'homePriorExp',
-            'lotSize', 'bedrooms',
+            'lotSize', 'bedrooms', 'priorExp',
         ];
         for (const key of simpleFields) {
             if (extractedData[key]) {
@@ -681,11 +687,11 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             'fullBaths', 'halfBaths', 'fireHydrantFeet',
             'burglarAlarm', 'smokeDetector',
             'liabilityLimits', 'pdLimit', 'compDeductible', 'autoDeductible',
-            'medPayments', 'umpdLimit', 'umLimits', 'residenceIs',
+            'medPayments', 'umpdLimit', 'umLimits', 'uimLimits', 'residenceIs',
             'policyTerm', 'priorPolicyTerm',
             'priorLiabilityLimits', 'continuousCoverage',
             'homePriorCarrier', 'homePriorYears', 'homePriorPolicyTerm',
-            'coGender', 'coRelationship',
+            'coGender', 'coRelationship', 'coEducation', 'coOccupation', 'coIndustry',
         ];
         for (const key of selectFields) {
             if (extractedData[key]) {
@@ -733,22 +739,33 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             }
         }
 
-        // Accidents & violations (textarea fields)
-        if (extractedData.accidents) {
-            const el = document.getElementById('accidents');
-            if (el) {
-                el.value = extractedData.accidents === '0' ? 'None' : extractedData.accidents + ' accident(s) in last 5 years';
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-                populated++;
+        // Co-applicant — reveal section if co-applicant data was collected
+        if (extractedData.coFirstName) {
+            const cbCoApp = document.getElementById('hasCoApplicant');
+            if (cbCoApp && !cbCoApp.checked) {
+                cbCoApp.checked = true;
+                if (typeof App !== 'undefined' && typeof App.toggleCoApplicant === 'function') {
+                    App.toggleCoApplicant();
+                } else {
+                    cbCoApp.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             }
         }
-        if (extractedData.violations) {
-            const el = document.getElementById('violations');
-            if (el) {
-                el.value = extractedData.violations === '0' ? 'None' : extractedData.violations + ' violation(s) in last 3 years';
-                el.dispatchEvent(new Event('input', { bubbles: true }));
+
+        // Accidents & violations — route to primary driver (global #accidents removed from form)
+        const _routeIncident = (field, formatted) => {
+            if (typeof App !== 'undefined' && Array.isArray(App.drivers) && App.drivers.length > 0) {
+                App.drivers[0][field] = formatted;
+                if (typeof App.renderDrivers === 'function') App.renderDrivers();
+                if (typeof App.saveDriversVehicles === 'function') App.saveDriversVehicles();
                 populated++;
             }
+        };
+        if (extractedData.accidents) {
+            _routeIncident('accidents', extractedData.accidents === '0' ? 'None' : extractedData.accidents + ' accident(s) in last 5 years');
+        }
+        if (extractedData.violations) {
+            _routeIncident('violations', extractedData.violations === '0' ? 'None' : extractedData.violations + ' violation(s) in last 3 years');
         }
 
         // Prior carrier + years (selects with text options)
@@ -1344,14 +1361,15 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             'medicalPayments', 'mortgagee',
             // Auto Coverage (AI key = form field ID)
             'liabilityLimits', 'pdLimit', 'compDeductible', 'autoDeductible',
-            'medPayments', 'umpdLimit', 'umLimits', 'residenceIs',
+            'medPayments', 'umpdLimit', 'umLimits', 'uimLimits', 'residenceIs',
             // Policy & History
             'effectiveDate', 'policyTerm', 'priorPolicyTerm',
-            'priorCarrier', 'priorYears', 'priorLiabilityLimits', 'continuousCoverage',
+            'priorCarrier', 'priorYears', 'priorLiabilityLimits', 'priorExp', 'continuousCoverage',
             'homePriorCarrier', 'homePriorPolicyTerm', 'homePriorYears', 'homePriorExp',
             'yearsAtAddress',
             // Co-applicant (AI key = form field ID)
             'coFirstName', 'coLastName', 'coDob', 'coGender', 'coRelationship',
+            'coEmail', 'coPhone', 'coOccupation', 'coEducation', 'coIndustry',
             // History
             'accidents', 'violations',
         ];
@@ -2450,7 +2468,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
                 // Auto-detect qType from fields if not set
                 if (!extractedData.qType) {
-                    const hasProperty = !!(extractedData.yrBuilt || extractedData.dwellingType || extractedData.sqFt || extractedData.roofType);
+                    const hasProperty = !!(extractedData.yearBuilt || extractedData.yrBuilt || extractedData.dwellingType || extractedData.sqFt || extractedData.roofType);
                     const hasAuto = !!(extractedData.vin || extractedData.vehDesc || (Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0));
                     if (hasProperty && hasAuto) extractedData.qType = 'both';
                     else if (hasProperty) extractedData.qType = 'home';
