@@ -967,7 +967,7 @@ Object.assign(App, {
 
             // Try 2: Vercel server endpoint (fallback when deployed)
             if (!result) {
-                console.log('[PolicyScan] Falling back to /api/policy-scan.js...');
+                console.log('[PolicyScan] Falling back to /api/policy-scan...');
                 const response = await fetch('/api/policy-scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

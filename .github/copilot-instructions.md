@@ -186,7 +186,22 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 23, 2026)
+### Latest Session Notes (March 24, 2026)
+
+- **Multi-File API URL .js Extension Bug Sweep:** Found that the `.js` extension bug (from prior session) was far more widespread than the 2 policy-qa.js fixes. Total of 13 broken API calls across 5 more files were silently 404-ing on Vercel:
+  - `app-popups.js`: `/api/vision-processor.js` ×4, `/api/historical-analyzer.js` ×4 — all aerial/satellite/DL/historical calls broken
+  - `app-vehicles.js`: `/api/vision-processor.js` ×1 — DL scan broken
+  - `dashboard-widgets.js`: `/api/compliance.js` ×1 — compliance background fetch broken
+  - `compliance-dashboard.js`: `/api/compliance.js` ×2 — main compliance fetch broken
+  - `policy-qa.js`: `'api/config.json'` (missing leading `/`)
+  - `email-composer.js`: `'api/config.json'` (missing leading `/`)
+- **alert() → toast() in app-property.js:** Replaced 6 `alert()` calls with `this.toast()`.
+- **Test fix:** `app.test.js` missing-address test updated to spy on `App.toast` instead of `window.alert`.
+- **Vercel function count confirmed:** Exactly 12 non-`_` files in `api/` — at the limit, not over.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **Files changed:** js/app-popups.js, js/app-scan.js, js/app-vehicles.js, js/dashboard-widgets.js, js/compliance-dashboard.js, js/app-property.js, js/email-composer.js, js/policy-qa.js, tests/app.test.js
+
+### Previous Session Notes (March 23, 2026)
 
 - **AI Intake ↔ EZLynx/PDF Field Alignment — 7-Gap Fix:** Cross-referenced INTAKE_PHASES, `_syncToAppData`, `populateForm`, and both export engines. Fixed 8 gaps: `_hasFieldData()` compat aliases for dual key naming (`yearBuilt`/`yrBuilt` etc.); `hasProperty` check uses both key variants; INTAKE_PHASES wrapUp adds `coEmail`, `coPhone`, `coOccupation`, `coEducation`, `coIndustry`; autoCoverage adds `uimLimits`; priorInsurance adds `priorExp`; `_syncToAppData()` DIRECT list updated; `populateForm()` now triggers `hasCoApplicant` toggle + routes accidents/violations to `App.drivers[0]`; AI schema template updated.
 - **Tests:** 23 suites, 1,515 tests (unchanged).
