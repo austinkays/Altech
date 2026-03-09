@@ -5,6 +5,7 @@ const EndorsementParser = {
     initialized: false,
     _parsedData: null,
     _geminiApiKey: null,
+    _hasAIProvider: false,
     _parsing: false,
 
     init() {
@@ -62,6 +63,16 @@ const EndorsementParser = {
     },
 
     async resolveGeminiKey() {
+        // Check if AIProvider is available — if so, we don't need a Gemini key
+        if (typeof AIProvider !== 'undefined' && AIProvider.ask) {
+            console.log('[EndorsementParser] AIProvider available — no Gemini key required');
+            this._hasAIProvider = true;
+            return;
+        }
+
+        // AIProvider not available, so we need a Gemini key
+        this._hasAIProvider = false;
+
         // Try localStorage first
         const localKey = localStorage.getItem('gemini_api_key');
         if (localKey && localKey.trim()) {
@@ -115,9 +126,10 @@ const EndorsementParser = {
             return;
         }
 
-        if (!this._geminiApiKey) {
-            console.warn('[EndorsementParser] No Gemini API key found');
-            this._showToast('Gemini API key required. Set in Settings or localStorage.', 'error');
+        // Only require Gemini key if AIProvider is not available
+        if (!this._hasAIProvider && !this._geminiApiKey) {
+            console.warn('[EndorsementParser] No AI provider configured');
+            this._showToast('AI provider required. Configure AIProvider or set a Gemini API key in Settings.', 'error');
             if (parseBtn) {
                 parseBtn.disabled = false;
                 parseBtn.textContent = '🔍 Parse Request';
@@ -787,3 +799,6 @@ Write a brief, professional but friendly email (3-4 sentences max) confirming th
         console.log('[EndorsementParser] Reset to paste view');
     }
 };
+
+// Expose module on window for app navigation system
+window.EndorsementParser = EndorsementParser;
