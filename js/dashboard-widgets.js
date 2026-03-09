@@ -459,7 +459,7 @@ window.DashboardWidgets = (() => {
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 65000);
-            const res = await fetch('/api/compliance.js', { signal: controller.signal });
+            const res = await fetch('/api/compliance', { signal: controller.signal });
             clearTimeout(timeout);
             if (!res.ok) throw new Error('API ' + res.status);
 

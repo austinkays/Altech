@@ -968,7 +968,7 @@ Object.assign(App, {
             // Try 2: Vercel server endpoint (fallback when deployed)
             if (!result) {
                 console.log('[PolicyScan] Falling back to /api/policy-scan.js...');
-                const response = await fetch('/api/policy-scan.js', {
+                const response = await fetch('/api/policy-scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ files: inlineData, aiSettings: window.AIProvider?.getSettings() })
@@ -1010,7 +1010,7 @@ Object.assign(App, {
                 inlineData.push(await this.fileToInlineData(file));
             }
 
-            const response = await fetch('/api/vision-processor.js', {
+            const response = await fetch('/api/vision-processor', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'documentIntel', files: inlineData, aiSettings: window.AIProvider?.getSettings() })

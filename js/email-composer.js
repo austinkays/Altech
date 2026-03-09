@@ -40,7 +40,7 @@ const EMAIL_STORAGE_KEY = 'altech_email_drafts';
                         if (res.ok) { const d = await res.json(); if (d.geminiKey) { this._geminiApiKey = d.geminiKey; return; } }
                     } catch (e) {}
                     try {
-                        const res = await fetch('api/config.json');
+                        const res = await fetch('/api/config.json');
                         if (res.ok) { const d = await res.json(); if (d.apiKey) { this._geminiApiKey = d.apiKey; return; } }
                     } catch (e) {}
                 },

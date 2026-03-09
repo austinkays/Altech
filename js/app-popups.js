@@ -366,7 +366,7 @@ Object.assign(App, {
                 const base64Data = e.target.result.split(',')[1];
                 
                 try {
-                    const response = await fetch('/api/vision-processor.js', {
+                    const response = await fetch('/api/vision-processor', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -404,7 +404,7 @@ Object.assign(App, {
                 const base64Data = e.target.result.split(',')[1];
                 
                 try {
-                    const response = await fetch('/api/vision-processor.js', {
+                    const response = await fetch('/api/vision-processor', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -450,7 +450,7 @@ Object.assign(App, {
                     const base64Data = e.target.result.split(',')[1];
                     
                     try {
-                        const response = await fetch('/api/vision-processor.js', {
+                        const response = await fetch('/api/vision-processor', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -486,7 +486,7 @@ Object.assign(App, {
         if (!visionResults) return null;
         
         try {
-            const response = await fetch('/api/vision-processor.js', {
+            const response = await fetch('/api/vision-processor', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -662,7 +662,7 @@ Object.assign(App, {
             }
             
             // Call Phase 5: Value history analysis
-            const response = await fetch('/api/historical-analyzer.js', {
+            const response = await fetch('/api/historical-analyzer', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -718,7 +718,7 @@ Object.assign(App, {
                 btn.innerHTML = '📈 Analyzing insurance trends...';
             }
             
-            const response = await fetch('/api/historical-analyzer.js', {
+            const response = await fetch('/api/historical-analyzer', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -776,7 +776,7 @@ Object.assign(App, {
                 btn.innerHTML = '🔍 Comparing to market...';
             }
             
-            const response = await fetch('/api/historical-analyzer.js', {
+            const response = await fetch('/api/historical-analyzer', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -836,7 +836,7 @@ Object.assign(App, {
                 btn.innerHTML = '📅 Generating timeline...';
             }
             
-            const response = await fetch('/api/historical-analyzer.js', {
+            const response = await fetch('/api/historical-analyzer', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

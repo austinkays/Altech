@@ -1077,7 +1077,7 @@ const ComplianceDashboard = {
             const controller = new AbortController();
             const apiTimeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
-            const apiUrl = (isBackground || bypassServerCache) ? '/api/compliance.js?refresh=true' : '/api/compliance.js';
+            const apiUrl = (isBackground || bypassServerCache) ? '/api/compliance?refresh=true' : '/api/compliance';
             const response = await fetch(apiUrl, { signal: controller.signal });
             clearTimeout(apiTimeout);
 

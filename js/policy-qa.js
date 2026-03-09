@@ -83,7 +83,7 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
 
                     // 3. Fallback: try api/config.json (local dev only)
                     try {
-                        const res = await fetch('api/config.json');
+                        const res = await fetch('/api/config.json');
                         if (res.ok) {
                             const data = await res.json();
                             if (data.apiKey) {

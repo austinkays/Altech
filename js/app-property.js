@@ -170,7 +170,7 @@ Object.assign(App, {
 
     openZillow() {
         const a = `${this.data.addrStreet || ''} ${this.data.addrCity || ''} ${this.data.addrState || ''} ${this.data.addrZip || ''}`.trim();
-        if (!a) { alert('Please enter an address first.'); return; }
+        if (!a) { this.toast('Please enter an address first.', 'error'); return; }
         // Google search for Zillow listing — clicking through from Google bypasses Zillow's CAPTCHA
         window.open(`https://www.google.com/search?q=${encodeURIComponent(a + ' zillow')}`, '_blank');
     },
@@ -295,7 +295,7 @@ Object.assign(App, {
         const zip = this.data.addrZip || '';
         const fullAddr = `${address} ${city} ${state} ${zip}`.trim();
         if (!address || !city || !state) {
-            alert('Please enter a complete address (street, city, and state) first.');
+            this.toast('Please enter a complete address (street, city, and state) first.', 'error');
             return;
         }
         // Copy address to clipboard so user can paste into assessor search
@@ -395,7 +395,7 @@ Object.assign(App, {
         const zip = this.data.addrZip || '';
         
         if (!address || !city || !state) {
-            alert('Please enter a complete address (street, city, and state) first.');
+            this.toast('Please enter a complete address (street, city, and state) first.', 'error');
             return;
         }
         
@@ -415,7 +415,7 @@ Object.assign(App, {
         const zip = this.data.addrZip || '';
 
         if (!address || !city || !state) {
-            alert('Please enter a complete address (street, city, and state) first.');
+            this.toast('Please enter a complete address (street, city, and state) first.', 'error');
             return;
         }
 
@@ -505,7 +505,7 @@ Object.assign(App, {
         } catch (error) {
             console.error('Smart auto-fill error:', error);
             btn.innerHTML = '❌ Failed';
-            alert('Failed to retrieve property data.\n\nTry:\n- Manually entering details\n- Using Zillow or GIS lookup\n- Checking County property records');
+            this.toast('Failed to retrieve property data. Try manually entering details or using Zillow lookup.', 'error');
 
             setTimeout(() => {
                 btn.innerHTML = originalText;
@@ -1482,7 +1482,7 @@ IMPORTANT: Use null for any field you cannot find. Only include data for THIS SP
         const zip = this.data.addrZip || '';
         
         if (!address || !city || !state) {
-            alert('Please enter a complete address (street, city, and state) first.');
+            this.toast('Please enter a complete address (street, city, and state) first.', 'error');
             return;
         }
         

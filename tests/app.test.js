@@ -1588,14 +1588,16 @@ describe('Altech App Tests', () => {
         expect(openedUrl).toContain('google.com/search');
       });
 
-      test('missing address shows alert, does not open URL', () => {
+      test('missing address shows toast, does not open URL', () => {
         if (typeof App.openPropertyRecords !== 'function') return;
         App.data.addrStreet = '';
         App.data.addrCity = '';
         App.data.addrState = '';
+        const toastSpy = jest.spyOn(App, 'toast').mockImplementation(() => {});
         App.openPropertyRecords();
-        expect(window.alert).toHaveBeenCalled();
+        expect(toastSpy).toHaveBeenCalled();
         expect(openedUrl).toBeNull();
+        toastSpy.mockRestore();
       });
     });
 

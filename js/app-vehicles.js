@@ -141,7 +141,7 @@ Object.assign(App, {
                 console.log(`[DL Scan] Uploading image: ${convertedFile.type}, size: ${(convertedFile.size / 1024).toFixed(1)}KB`);
 
                 try {
-                    const response = await fetch('/api/vision-processor.js', {
+                    const response = await fetch('/api/vision-processor', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
