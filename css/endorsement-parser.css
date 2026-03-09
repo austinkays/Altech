@@ -1,0 +1,393 @@
+/* endorsement-parser.css — Dark utilitarian styling for endorsement parser */
+
+/* ===== PASTE VIEW ===== */
+.ep-paste-view {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.ep-instructions {
+    margin-bottom: 24px;
+}
+
+.ep-instructions h2 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 12px 0;
+}
+
+.ep-instructions p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 8px 0;
+}
+
+.ep-hint {
+    font-size: 13px !important;
+    color: var(--text-tertiary) !important;
+    font-style: italic;
+}
+
+.ep-hint kbd {
+    display: inline-block;
+    padding: 2px 6px;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+}
+
+.ep-paste-area {
+    width: 100%;
+    min-height: 400px;
+    padding: 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+}
+
+.ep-paste-area:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+}
+
+.ep-paste-area::placeholder {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+.ep-actions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.ep-btn-primary {
+    padding: 12px 24px;
+    background: var(--apple-blue);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ep-btn-primary:hover:not(:disabled) {
+    background: var(--apple-blue-hover);
+    transform: translateY(-1px);
+}
+
+.ep-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ep-btn-secondary {
+    padding: 10px 20px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ep-btn-secondary:hover {
+    background: var(--bg-input);
+    color: var(--text);
+    border-color: var(--apple-blue);
+}
+
+/* ===== DISPLAY VIEW ===== */
+.ep-display-view {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.ep-display-header {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ep-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 20px;
+}
+
+/* ===== CARD COMPONENT ===== */
+.ep-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+}
+
+.ep-card:hover {
+    border-color: rgba(10, 132, 255, 0.3);
+}
+
+.ep-card-header {
+    padding: 14px 18px;
+    background: rgba(10, 132, 255, 0.08);
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ===== FIELD ROW ===== */
+.ep-field-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.ep-field-row:last-child {
+    border-bottom: none;
+}
+
+.ep-label {
+    flex-shrink: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-right: 16px;
+    min-width: 140px;
+}
+
+.ep-value {
+    flex-grow: 1;
+    text-align: right;
+    font-size: 14px;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    color: var(--text);
+    word-break: break-word;
+}
+
+.ep-value.ep-highlight {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--apple-blue);
+}
+
+/* ===== COVERAGE TABLE ===== */
+.ep-coverage-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.ep-coverage-table thead {
+    background: rgba(10, 132, 255, 0.05);
+}
+
+.ep-coverage-table th {
+    padding: 12px 18px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+}
+
+.ep-coverage-table td {
+    padding: 12px 18px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    color: var(--text);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.ep-coverage-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.ep-coverage-table tbody tr:hover {
+    background: rgba(10, 132, 255, 0.04);
+}
+
+/* ===== ADDITIONAL INTERESTS ===== */
+.ep-interest-block {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.ep-interest-block:last-child {
+    border-bottom: none;
+}
+
+.ep-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background: rgba(10, 132, 255, 0.15);
+    color: var(--apple-blue);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.ep-interest-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.ep-interest-address {
+    font-size: 13px;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* ===== DARK MODE OVERRIDES ===== */
+body.dark-mode .ep-paste-area {
+    background: var(--bg-input);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+body.dark-mode .ep-paste-area:focus {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+}
+
+body.dark-mode .ep-hint kbd {
+    background: var(--bg-input);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+body.dark-mode .ep-btn-primary {
+    background: var(--apple-blue);
+    color: #ffffff;
+}
+
+body.dark-mode .ep-btn-primary:hover:not(:disabled) {
+    background: var(--apple-blue-hover);
+}
+
+body.dark-mode .ep-btn-secondary {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-secondary);
+}
+
+body.dark-mode .ep-btn-secondary:hover {
+    background: var(--bg-input);
+    border-color: var(--apple-blue);
+    color: var(--text);
+}
+
+body.dark-mode .ep-card {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+
+body.dark-mode .ep-card:hover {
+    border-color: rgba(10, 132, 255, 0.4);
+}
+
+body.dark-mode .ep-card-header {
+    background: rgba(10, 132, 255, 0.1);
+    border-bottom-color: var(--border);
+    color: var(--text);
+}
+
+body.dark-mode .ep-field-row {
+    border-bottom-color: var(--border-subtle);
+}
+
+body.dark-mode .ep-coverage-table thead {
+    background: rgba(10, 132, 255, 0.08);
+}
+
+body.dark-mode .ep-coverage-table th {
+    border-bottom-color: var(--border);
+    color: var(--text-secondary);
+}
+
+body.dark-mode .ep-coverage-table td {
+    border-bottom-color: var(--border-subtle);
+    color: var(--text);
+}
+
+body.dark-mode .ep-coverage-table tbody tr:hover {
+    background: rgba(10, 132, 255, 0.06);
+}
+
+body.dark-mode .ep-interest-block {
+    border-bottom-color: var(--border-subtle);
+}
+
+body.dark-mode .ep-badge {
+    background: rgba(10, 132, 255, 0.2);
+    color: var(--apple-blue);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 767px) {
+    .ep-paste-view,
+    .ep-display-view {
+        padding: 16px;
+    }
+
+    .ep-cards-container {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .ep-field-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .ep-label {
+        min-width: unset;
+    }
+
+    .ep-value {
+        text-align: left;
+    }
+
+    .ep-coverage-table {
+        font-size: 12px;
+    }
+
+    .ep-coverage-table th,
+    .ep-coverage-table td {
+        padding: 10px 12px;
+    }
+}

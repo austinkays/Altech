@@ -1,0 +1,59 @@
+<!-- endorsement.html — Endorsement Parser Plugin UI -->
+
+<!-- Standard header (matches other plugins) -->
+<header>
+    <div class="header-top">
+        <div class="logo tool-header-brand">
+            <button onclick="App.goHome()" aria-label="Back to Dashboard">🏠</button>
+            <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" aria-label="Toggle Dark Mode">🌙</button>
+            <span>📄 Endorsement Parser</span>
+        </div>
+    </div>
+</header>
+
+<!-- Paste View (initial state) -->
+<div id="epPasteView" class="ep-paste-view">
+    <div class="ep-instructions">
+        <h2>📋 Parse Change Request Email</h2>
+        <p>Paste the raw endorsement or change request email from your carrier (Safeco, Progressive, State Farm, etc.) below. The AI will extract all relevant information into a structured, scannable format.</p>
+        <p class="ep-hint">💡 Tip: Press <kbd>Ctrl+Enter</kbd> to parse quickly</p>
+    </div>
+
+    <textarea 
+        id="epPasteArea" 
+        class="ep-paste-area" 
+        placeholder="Paste endorsement email here...
+
+Example:
+Subject: Endorsement Request Confirmation
+Policy: 12-345-678-90
+Insured: John Smith
+Effective: 03/15/2026
+
+Add Vehicle:
+2024 Honda Accord
+VIN: 1HGCV1F30KA000000
+Garaging: 123 Main St, Portland OR 97201
+Operator: John Smith
+Use: Commute
+
+Lienholder:
+Chase Auto Finance
+PO Box 901026, Fort Worth, TX 76101"
+        rows="20"></textarea>
+
+    <div class="ep-actions">
+        <button id="epParseBtn" class="ep-btn-primary">🔍 Parse Request</button>
+    </div>
+</div>
+
+<!-- Display View (shown after parsing) -->
+<div id="epDisplayView" class="ep-display-view" style="display: none;">
+    <div class="ep-display-header">
+        <button id="epResetBtn" class="ep-btn-secondary">← Parse Another</button>
+    </div>
+
+    <div id="epCardsContainer" class="ep-cards-container">
+        <!-- Cards will be injected by JS -->
+    </div>
+</div>
