@@ -8,25 +8,46 @@ const EndorsementParser = {
     _parsing: false,
 
     init() {
-        if (this.initialized) return;
-        this.initialized = true;
-
+        // Always try to wire events (in case HTML just loaded)
         this._wireEvents();
-        this.resolveGeminiKey();
-        console.log('[EndorsementParser] initialized');
+        
+        // Only resolve API key once
+        if (!this.initialized) {
+            this.initialized = true;
+            this.resolveGeminiKey();
+            console.log('[EndorsementParser] initialized');
+        }
     },
 
     _wireEvents() {
+        console.log('[EndorsementParser] Wiring events...');
         const parseBtn = document.getElementById('epParseBtn');
         const resetBtn = document.getElementById('epResetBtn');
         const pasteArea = document.getElementById('epPasteArea');
 
+        console.log('[EndorsementParser] Found elements:', { parseBtn: !!parseBtn, resetBtn: !!resetBtn, pasteArea: !!pasteArea });
+
         if (parseBtn) {
-            parseBtn.addEventListener('click', () => this.parse());
+            // Remove any existing listener first (safe to call even if none exists)
+            if (this._parseHandler) {
+                parseBtn.removeEventListener('click', this._parseHandler);
+            }
+            // Create and store the handler
+            this._parseHandler = () => {
+                console.log('[EndorsementParser] Parse button clicked!');
+                this.parse();
+            };
+            parseBtn.addEventListener('click', this._parseHandler);
+        } else {
+            console.warn('[EndorsementParser] Parse button not found in DOM!');
         }
 
         if (resetBtn) {
-            resetBtn.addEventListener('click', () => this.reset());
+            if (this._resetHandler) {
+                resetBtn.removeEventListener('click', this._resetHandler);
+            }
+            this._resetHandler = () => this.reset();
+            resetBtn.addEventListener('click', this._resetHandler);
         }
 
         // Allow Ctrl+Enter to parse
@@ -71,8 +92,12 @@ const EndorsementParser = {
     },
 
     async parse() {
+        console.log('[EndorsementParser] parse() method called');
+        
         const pasteArea = document.getElementById('epPasteArea');
         const rawText = pasteArea?.value?.trim();
+
+        console.log('[EndorsementParser] Raw text length:', rawText?.length || 0);
 
         if (!rawText) {
             this._showToast('Please paste the endorsement email text', 'error');
@@ -80,6 +105,7 @@ const EndorsementParser = {
         }
 
         if (!this._geminiApiKey) {
+            console.warn('[EndorsementParser] No Gemini API key found');
             this._showToast('Gemini API key required. Set in Settings or localStorage.', 'error');
             return;
         }
