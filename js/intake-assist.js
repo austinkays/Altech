@@ -675,7 +675,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
         // Select/dropdown fields (set value + dispatch change)
         const selectFields = [
-            'prefix', 'gender', 'maritalStatus',
+            'prefix', 'suffix', 'gender', 'maritalStatus',
             'education', 'occupation', 'industry', 'yearsAtAddress',
             'occupancyType', 'dwellingUsage', 'dwellingType', 'homePolicyType',
             'personalLiability', 'homeDeductible', 'windDeductible', 'theftDeductible',
@@ -1341,7 +1341,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         // Fields where AI JSON key matches the App.data / form field key directly
         const DIRECT = [
             // Personal
-            'firstName', 'lastName', 'middleName', 'dob', 'gender', 'maritalStatus',
+            'prefix', 'suffix', 'firstName', 'lastName', 'middleName', 'dob', 'gender', 'maritalStatus',
             'email', 'phone', 'county',
             'education', 'occupation', 'industry',
             // Address (AI key = form field ID)

@@ -298,6 +298,7 @@ const EZLynxTool = {
                 DLStatus: '',
                 Industry: appData.coIndustry || '',
                 Occupation: appData.coOccupation || '',
+                Education: appData.coEducation || '',
                 OccupationYears: '',
                 Address: appData.address || appData.addrStreet || '',
                 City: appData.city || appData.addrCity || '',

@@ -1,4 +1,4 @@
-﻿// js/app-export.js — Export engines (PDF, CMSMTF, Text/CSV)
+// js/app-export.js — Export engines (PDF, CMSMTF, Text/CSV)
 // Extracted from index.html during Phase 2 monolith decomposition
 'use strict';
 
@@ -265,7 +265,7 @@ Object.assign(App, {
         ]);
         const prefix = formatPrefix(v('prefix'));
         const suffix = formatSuffix(v('suffix'));
-        const nameParts = [prefix, v('firstName'), v('lastName'), suffix].filter(Boolean);
+        const nameParts = [prefix, v('firstName'), v('middleName'), v('lastName'), suffix].filter(Boolean);
         const clientName = nameParts.join(' ') || 'Client';
 
         // Top accent bar
@@ -359,6 +359,7 @@ Object.assign(App, {
         sectionHeader('Applicant');
         kvTable([
             ['Full Name', clientName],
+            ['Middle Name', v('middleName')],
             ['Date of Birth', formatDate(v('dob'))],
             ['Gender', v('gender') === 'M' ? 'Male' : v('gender') === 'F' ? 'Female' : v('gender')],
             ['Marital Status', v('maritalStatus')],
@@ -382,6 +383,9 @@ Object.assign(App, {
                 ['Email', v('coEmail')],
                 ['Phone', formatPhone(v('coPhone'))],
                 ['Relationship', v('coRelationship')],
+                ['Occupation', v('coOccupation')],
+                ['Education', v('coEducation')],
+                ['Industry', v('coIndustry')],
             ]);
         }
 
@@ -474,6 +478,12 @@ Object.assign(App, {
                 ['Service Line', v('serviceLine')],
                 ['Animal Liability', formatCurrency(v('animalLiability'))],
                 ['Earthquake Coverage', v('earthquakeCoverage')],
+                ...(v('theftDeductible') ? [['Theft Deductible', v('theftDeductible')]] : []),
+                ...(v('jewelryLimit') ? [['Jewelry Limit', v('jewelryLimit')]] : []),
+                ...(v('creditCardCoverage') ? [['Credit Card Coverage', v('creditCardCoverage')]] : []),
+                ...(v('moldDamage') ? [['Mold Damage', v('moldDamage')]] : []),
+                ...(v('earthquakeCoverage') === 'Yes' && v('earthquakeZone') ? [['EQ Zone', v('earthquakeZone')]] : []),
+                ...(v('earthquakeCoverage') === 'Yes' && v('earthquakeDeductible') ? [['EQ Deductible', v('earthquakeDeductible')]] : []),
             ]);
         }
 
@@ -797,13 +807,17 @@ Object.assign(App, {
     },
 
     exportCMSMTF() {
-        const result = this.buildCMSMTF(this.data);
-        this.downloadFile(result.content, result.filename, result.mime);
-        this.logExport('CMSMTF', result.filename);
-        this.toast('ðŸ“¥ HawkSoft File Generated!');
+        if (typeof HawkSoftExport !== 'undefined' && typeof HawkSoftExport.open === 'function') {
+            // Navigate to HawkSoft export plugin
+            this.navigateTo('hawksoft');
+            this.toast('\uD83D\uDCC2 Opening HawkSoft Export \u2014 review and click Export when ready');
+        } else {
+            this.toast('\u26A0\uFE0F HawkSoft module not loaded', 'error');
+        }
     },
 
     buildCMSMTF(data) {
+        console.warn('[DEPRECATED] App.buildCMSMTF() uses a non-standard bracket-tag format. Use HawkSoftExport module for proper HawkSoft 6 key=value CMSMTF generation.');
         const qType = data.qType || 'both';
         const includeHome = qType === 'home' || qType === 'both';
         const includeAuto = qType === 'auto' || qType === 'both';

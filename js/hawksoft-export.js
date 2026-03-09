@@ -107,6 +107,7 @@ window.HawkSoftExport = (() => {
         if (d.bedrooms) prop.push(`Bedrooms: ${d.bedrooms}`);
         if (d.fullBaths || d.halfBaths) prop.push(`Baths: ${d.fullBaths || 0} full / ${d.halfBaths || 0} half`);
         if (d.constructionStyle) prop.push(`Style: ${d.constructionStyle}`);
+        if (d.exteriorWalls) prop.push(`Exterior Walls: ${d.exteriorWalls}`);
         if (d.foundation) prop.push(`Foundation: ${d.foundation}`);
         if (d.roofType) prop.push(`Roof: ${d.roofType}`);
         if (d.roofShape) prop.push(`Roof Shape: ${d.roofShape}`);
@@ -118,6 +119,7 @@ window.HawkSoftExport = (() => {
         if (d.elecYr) prop.push(`Electrical Updated: ${d.elecYr}`);
         if (d.garageType) prop.push(`Garage: ${d.garageType}${d.garageSpaces ? ' (' + d.garageSpaces + ' spaces)' : ''}`);
         if (d.lotSize) prop.push(`Lot Size: ${d.lotSize}`);
+        if (d.numFireplaces && d.numFireplaces !== '0') prop.push(`Fireplaces: ${d.numFireplaces}`);
         if (d.pool) prop.push(`Pool: ${d.pool}`);
         if (d.dogInfo) prop.push(`Dogs: ${d.dogInfo}`);
         if (d.trampoline && d.trampoline !== 'No') prop.push(`Trampoline: ${d.trampoline}`);
@@ -165,6 +167,8 @@ window.HawkSoftExport = (() => {
         if (d.contactTime) risk.push(`Best Contact Time: ${d.contactTime}`);
         if (d.contactMethod) risk.push(`Contact Method: ${d.contactMethod}`);
         if (d.tcpaConsent) risk.push(`TCPA Consent: ${d.tcpaConsent}`);
+        if (d.rentalDeductible) risk.push(`Rental Reimbursement: ${d.rentalDeductible}`);
+        if (d.towingDeductible) risk.push(`Towing & Labor: ${d.towingDeductible}`);
         if (risk.length) sections.push('NOTES\n' + risk.join('\n'));
 
         return sections.join('\n\n');
@@ -254,6 +258,9 @@ window.HawkSoftExport = (() => {
                 coEmail: d.coEmail || '',
                 coPhone: d.coPhone || '',
                 coRelationship: d.coRelationship || '',
+                coOccupation: d.coOccupation || '',
+                coEducation: d.coEducation || '',
+                coIndustry: d.coIndustry || '',
                 county: d.county || '',
             },
             // Policy block
@@ -301,12 +308,18 @@ window.HawkSoftExport = (() => {
             home: {
                 protectionClass: d.protectionClass || '',
                 yearBuilt: d.yrBuilt || '',
-                construction: d.exteriorWalls || '',
+                construction: d.constructionStyle || '',
+                exteriorWalls: d.exteriorWalls || '',
                 burgAlarm: d.burglarAlarm || '',
                 fireAlarm: d.fireAlarm || '',
                 sprinkler: d.sprinklers || '',
                 deadbolt: d.deadbolt === 'Yes' || d.deadbolt === true,
                 fireExtinguisher: d.fireExtinguisher === 'Yes' || d.fireExtinguisher === true,
+                occupancyType: d.occupancyType || '',
+                windDeductible: d.windDeductible || '',
+                smokeDetector: d.smokeDetector || '',
+                rentalDeductible: d.rentalDeductible || '',
+                towingDeductible: d.towingDeductible || '',
                 county: d.county || '',
                 additionalRes: '',
                 covA: d.dwellingCoverage || '',
@@ -365,7 +378,11 @@ window.HawkSoftExport = (() => {
                 onlyOperator: 'No',
                 nonDriver: 'No',
                 occupation: drv.occupation || '',
-                sex: (drv.gender === 'M' || drv.gender === 'Male') ? 'Male' :
+                industry: drv.industry || '',
+                education: drv.education || '',
+                dlStatus: drv.dlStatus || '',
+                ageLicensed: drv.ageLicensed || '',
+                sex:(drv.gender === 'M' || drv.gender === 'Male') ? 'Male' :
                      (drv.gender === 'F' || drv.gender === 'Female') ? 'Female' : '',
                 maritalStatus: drv.maritalStatus || '',
                 sr22Filing: (drv.sr22 === 'Yes' || drv.sr22 === true || drv.fr44 === 'Yes' || drv.fr44 === true) ? 'Y' : '',
@@ -489,9 +506,16 @@ window.HawkSoftExport = (() => {
 
         // Client Misc Data Set 2: Co-Applicant
         const miscData2 = [
-            c.coFirstName, c.coLastName, c.coDob, c.coGender,
-            c.coEmail, c.coPhone, c.coRelationship,
-            '', '', ''
+            c.coFirstName,    // [0]
+            c.coLastName,     // [1]
+            c.coDob,          // [2]
+            c.coGender,       // [3]
+            c.coEmail,        // [4]
+            c.coPhone,        // [5]
+            c.coRelationship, // [6]
+            c.coOccupation,   // [7]
+            c.coEducation,    // [8]
+            c.coIndustry,     // [9]
         ];
         for (let i = 0; i < 10; i++) {
             lines.push(_line(`gen_sClientMisc2Data[${i}]`, miscData2[i] || ''));
@@ -619,6 +643,10 @@ window.HawkSoftExport = (() => {
                 lines.push(_line(`drv_bOnlyOperator${idx}`, d.onlyOperator));
                 lines.push(_line(`drv_bNonDriver${idx}`, d.nonDriver));
                 lines.push(_line(`drv_sDriversOccupation${idx}`, d.occupation));
+                lines.push(_line(`drv_sIndustry${idx}`, d.industry));
+                lines.push(_line(`drv_sEducation${idx}`, d.education));
+                lines.push(_line(`drv_sDLStatus${idx}`, d.dlStatus));
+                lines.push(_line(`drv_nAgeLicensed${idx}`, d.ageLicensed));
                 lines.push(_line(`drv_sSex${idx}`, d.sex));
                 lines.push(_line(`drv_sMaritalStatus${idx}`, d.maritalStatus));
                 lines.push(_line(`drv_bFiling${idx}`, d.sr22Filing));
@@ -683,6 +711,9 @@ window.HawkSoftExport = (() => {
             lines.push(_line('gen_bEQMasonryVeneer', h.eqMasonryVeneer ? 'Y' : ''));
             lines.push(_line('gen_lOrdinanceOrLawIncr', h.ordinanceLawIncr));
             lines.push(_line('gen_bMultiPolicy', h.multiPolicy ? 'Y' : ''));
+            lines.push(_line('gen_sOccupancyType', h.occupancyType));
+            lines.push(_line('gen_sSmokeDetector', h.smokeDetector));
+            lines.push(_line('gen_sWindHailDeductible', h.windDeductible));
 
             // Home premium block (blank placeholders)
             const hpmFields = [

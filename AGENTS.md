@@ -96,7 +96,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-property.js         # Property analysis, maps, assessor data (1,728 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
-│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,047 lines)
+│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,062 lines)
 │   ├── app-quotes.js           # Quote/draft management, client history auto-save (762 lines)
 │   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (302 lines)
 │   │
@@ -112,8 +112,8 @@ npm run deploy:vercel   # Production deploy
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
 │   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep (2,794 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
-│   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,028 lines)
-│   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,704 lines)
+│   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,119 lines)
+│   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,734 lines)
 │   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,423 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,917 lines)
@@ -1197,9 +1197,26 @@ KEY RULES:
 
 **1 file changed:** js/intake-assist.js (3,058→3,423 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
----
+### Intake-to-Export Pipeline Audit — 10 Field Mapping Fixes (March 2026)
 
-## Appendix A: Plugin System — Adding a New Plugin
+A full cross-reference audit of all fields collected by the quoting wizard and AI intake vs. what each exporter outputs. 20 gaps found; 10 fixed.
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|-----------------|
+| 209 | CRITICAL | js/app-export.js | **`App.exportCMSMTF()` routed to `HawkSoftExport.open()`:** Legacy `buildCMSMTF()` used a non-standard `[CO_NAM]John Smith` bracket-tag format that HawkSoft cannot import. Now opens the correct `HawkSoftExport` plugin. `buildCMSMTF()` kept with `console.warn` deprecation notice. |
+| 210 | CRITICAL | js/hawksoft-export.js | **`coOccupation/coEducation/coIndustry` added to HawkSoft CMSMTF:** Added to `_loadFromData()` client block and emitted as `gen_sClientMisc2Data[7-9]` (expanded from 7 to 10 slots). Education discounts and occupation surcharges now reach HawkSoft. |
+| 211 | CRITICAL | js/app-export.js | **`coOccupation/coEducation/coIndustry` added to PDF co-applicant section:** PDF now shows all 3 fields in the co-applicant block. |
+| 212 | HIGH | js/hawksoft-export.js | **`construction` field corrected to use `constructionStyle`:** Was incorrectly using `exteriorWalls` for `gen_sConstruction` — would classify Frame houses as "Vinyl Siding." Now uses `constructionStyle` (Frame/Masonry). `exteriorWalls` added as separate FSC note. |
+| 213 | HIGH | js/hawksoft-export.js | **Driver `ageLicensed`, `dlStatus`, `industry`, `education` added to HawkSoft:** All 4 fields added to `_loadFromData()` driver map and emitted as `drv_nAgeLicensed${idx}`, `drv_sDLStatus${idx}`, `drv_sIndustry${idx}`, `drv_sEducation${idx}`. Critical for teen driver surcharges (WA state). |
+| 214 | HIGH | js/intake-assist.js | **`prefix`/`suffix` added to `_syncToAppData()` DIRECT list:** Were missing from real-time AI sync whitelist — titles like "Dr." and suffixes like "Jr." never written to `App.data` during AI conversation. Also added `suffix` to `populateForm()` selectFields. |
+| 215 | MEDIUM | js/app-export.js | **`middleName` added to PDF:** Inserted between firstName/lastName in PDF header name, and added "Middle Name" row to Applicant kvTable (auto-hidden if empty). |
+| 216 | MEDIUM | js/app-export.js | **PDF Home Coverage gains 6 missing fields:** `theftDeductible`, `jewelryLimit`, `creditCardCoverage`, `moldDamage` added. Earthquake zone + deductible added conditionally when `earthquakeCoverage === 'Yes'`. |
+| 217 | MEDIUM | js/hawksoft-export.js | **HawkSoft home block gains `occupancyType`, `windDeductible`, `smokeDetector`:** Added to `_loadFromData()` and emitted as `gen_sOccupancyType`, `gen_sSmokeDetector`, `gen_sWindHailDeductible`. Also added `numFireplaces`, `rentalDeductible`, `towingDeductible` to FSC notes. |
+| 218 | MEDIUM | js/ezlynx-tool.js | **`coEducation` added to EZLynx home-only fallback CoApplicant:** The home-only fallback block (built from `appData.coFirstName` when no drivers exist) was missing `Education: appData.coEducation || ''`. |
+
+**4 files changed:** js/app-export.js (1,047→1,062 lines), js/hawksoft-export.js (1,704→1,734 lines), js/ezlynx-tool.js (1,028→1,119 lines), js/intake-assist.js (unchanged, 3,423 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+
 
 ### Step 1: Create JS Module
 
