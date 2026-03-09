@@ -673,7 +673,7 @@ const COI = {
             }
         } catch (err) {
             console.error('[COI] Export failed:', err);
-            alert('COI Export failed: ' + err.message);
+            if (typeof App !== 'undefined' && App.toast) App.toast('COI Export failed: ' + err.message, 'error');
             const btn = document.querySelector('[onclick="COI.exportPDF()"]');
             if (btn) {
                 btn.textContent = '📥 Export ACORD 25 PDF';

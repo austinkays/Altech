@@ -438,7 +438,7 @@ const ComplianceDashboard = {
             const backup = JSON.parse(text);
             // Validate format
             if (!backup.verifiedPolicies && !backup.dismissedPolicies && !backup.policyNotes) {
-                alert('Invalid backup file — missing annotation data.');
+                if (typeof App !== 'undefined' && App.toast) App.toast('Invalid backup file — missing annotation data.', 'error');
                 return;
             }
             const counts = {
@@ -456,9 +456,9 @@ const ComplianceDashboard = {
             this.saveState();
             this.filterPolicies();
             this.updateStats();
-            alert(`Backup restored! Merged ${counts.v} verified, ${counts.d} dismissed, ${counts.n} notes.`);
+            if (typeof App !== 'undefined' && App.toast) App.toast(`Backup restored! Merged ${counts.v} verified, ${counts.d} dismissed, ${counts.n} notes.`, 'success');
         } catch (e) {
-            alert('Failed to parse backup file: ' + e.message);
+            if (typeof App !== 'undefined' && App.toast) App.toast('Failed to parse backup file: ' + e.message, 'error');
         }
         fileInput.value = '';
     },
@@ -554,7 +554,7 @@ const ComplianceDashboard = {
             try {
                 data = JSON.parse(text);
             } catch (parseErr) {
-                alert('Invalid JSON file. Please select a valid CGL state export.');
+                if (typeof App !== 'undefined' && App.toast) App.toast('Invalid JSON file. Please select a valid CGL state export.', 'error');
                 return;
             }
 
@@ -598,7 +598,7 @@ const ComplianceDashboard = {
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error('[CGL] Error opening file:', err);
-                alert('Failed to open file: ' + err.message);
+                if (typeof App !== 'undefined' && App.toast) App.toast('Failed to open file: ' + err.message, 'error');
             }
         }
     },
@@ -645,7 +645,7 @@ const ComplianceDashboard = {
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error('[CGL] Error saving file:', err);
-                alert('Failed to save file: ' + err.message);
+                if (typeof App !== 'undefined' && App.toast) App.toast('Failed to save file: ' + err.message, 'error');
             }
         }
     },
@@ -667,7 +667,7 @@ const ComplianceDashboard = {
         } catch (err) {
             if (err.name !== 'AbortError') {
                 console.error('[CGL] Error saving file as:', err);
-                alert('Failed to save file: ' + err.message);
+                if (typeof App !== 'undefined' && App.toast) App.toast('Failed to save file: ' + err.message, 'error');
             }
         }
     },
@@ -684,7 +684,7 @@ const ComplianceDashboard = {
         }
 
         if (rows.length === 1) {
-            alert('Nothing to export yet. Verify or dismiss some policies first.');
+            if (typeof App !== 'undefined' && App.toast) App.toast('Nothing to export yet. Verify or dismiss some policies first.', 'error');
             return;
         }
 
@@ -739,7 +739,7 @@ const ComplianceDashboard = {
             this.saveState();
             this.filterPolicies();
             this.updateStats();
-            alert(`Restored ${imported} policy markers from backup.`);
+            if (typeof App !== 'undefined' && App.toast) App.toast(`Restored ${imported} policy markers from backup.`, 'success');
         };
         reader.readAsText(file);
         fileInput.value = '';

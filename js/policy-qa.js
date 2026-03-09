@@ -469,7 +469,7 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
                     // Attempt server-side vision extraction via existing policy-scan endpoint
                     try {
                         const base64 = await this.fileToBase64(file);
-                        const res = await fetch('/api/vision-processor.js', {
+                        const res = await fetch('/api/vision-processor', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -644,7 +644,7 @@ POLICY TEXT:\n${truncated}`;
 
                     // Try 2: Vercel serverless function (works when deployed to web)
                     try {
-                        const res = await fetch('/api/vision-processor.js', {
+                        const res = await fetch('/api/vision-processor', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
