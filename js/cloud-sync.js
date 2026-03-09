@@ -201,7 +201,7 @@ const CloudSync = (() => {
 
             // No conflict if same device or first sync
             if (remoteDevice === DEVICE_ID || !_hasConflict(remoteTime, docType)) {
-                _setLocalData(localStorageKey, remoteData);
+                if (localStorageKey != null) _setLocalData(localStorageKey, remoteData);
                 _markSynced(docType);
                 return { data: remoteData, conflict: false };
             }
@@ -222,7 +222,7 @@ const CloudSync = (() => {
             }
 
             // Data is identical, no real conflict
-            _setLocalData(localStorageKey, remoteData);
+            if (localStorageKey != null) _setLocalData(localStorageKey, remoteData);
             _markSynced(docType);
             return { data: remoteData, conflict: false };
         } catch (e) {
@@ -247,7 +247,12 @@ const CloudSync = (() => {
                 deviceId: DEVICE_ID
             }, { merge: true });
         }
-        await batch.commit();
+        await Promise.race([
+            batch.commit(),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('[CloudSync] Firestore batch commit timed out')), 15_000)
+            )
+        ]);
         _markSynced('quotes');
     }
 

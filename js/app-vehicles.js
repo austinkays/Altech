@@ -22,7 +22,7 @@ Object.assign(App, {
         this.drivers.push(driver);
         this.renderDrivers();
         this.renderVehicles();
-        this.saveDriversVehicles();
+        this.saveDriversVehicles().catch(e => console.error("[vehicles] save failed:", e));
     },
 
     removeDriver(id) {
@@ -44,7 +44,7 @@ Object.assign(App, {
         this.drivers = this.drivers.filter(d => d.id !== id);
         this.renderDrivers();
         this.renderVehicles();
-        this.saveDriversVehicles();
+        this.saveDriversVehicles().catch(e => console.error("[vehicles] save failed:", e));
     },
 
     updateDriver(id, field, value) {
@@ -58,7 +58,7 @@ Object.assign(App, {
             driver[field] = value;
             // Re-render vehicle dropdowns when driver name changes
             if (field === 'firstName' || field === 'lastName') this.renderVehicles();
-            this.saveDriversVehicles();
+            this.saveDriversVehicles().catch(e => console.error("[vehicles] save failed:", e));
         }
     },
 
@@ -106,7 +106,7 @@ Object.assign(App, {
         setFieldIfEmpty('addrState', data.state);
         setFieldIfEmpty('addrZip', data.zip);
 
-        this.saveDriversVehicles();
+        this.saveDriversVehicles().catch(e => console.error("[vehicles] save failed:", e));
         this.renderDrivers();
         this.toast('✅ License data captured');
     },
@@ -550,13 +550,13 @@ Object.assign(App, {
         };
         this.vehicles.push(vehicle);
         this.renderVehicles();
-        this.saveDriversVehicles();
+        this.saveDriversVehicles().catch(e => console.error("[vehicles] save failed:", e));
     },
 
     removeVehicle(id) {
         this.vehicles = this.vehicles.filter(v => v.id !== id);
         this.renderVehicles();
-        this.saveDriversVehicles();
+        this.saveDriversVehicles().catch(e => console.error("[vehicles] save failed:", e));
     },
 
     updateVehicle(id, field, value) {

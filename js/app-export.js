@@ -819,8 +819,10 @@ Object.assign(App, {
             { tag: 'PHN', value: data.phone ? data.phone.replace(/\D/g, '') : '' },
             { tag: 'EML', value: data.email },
             { tag: 'DOB', value: this.formatDateDisplay(data.dob) },
+            { tag: 'GENDER', value: data.gender === 'M' ? 'Male' : data.gender === 'F' ? 'Female' : (data.gender || '') },
             { tag: 'MARITAL_STATUS', value: data.maritalStatus },
             { tag: 'EDUCATION', value: data.education },
+            { tag: 'OCCUPATION', value: data.occupation },
             { tag: 'INDUSTRY', value: data.industry },
         ];
 

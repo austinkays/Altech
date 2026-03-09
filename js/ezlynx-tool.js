@@ -180,7 +180,7 @@ const EZLynxTool = {
         if (appData.heatYr) data.HeatingUpdateYear = appData.heatYr;
         if (appData.plumbYr) data.PlumbingUpdateYear = appData.plumbYr;
         if (appData.elecYr) data.ElectricalUpdateYear = appData.elecYr;
-        if (appData.roofUpdate) data.RoofUpdateYear = appData.roofUpdate;
+        if (appData.roofYr) data.RoofUpdateYear = appData.roofYr;
 
         // Home hazards / toggles (extension uses Yes/No toggles for these)
         if (appData.woodStove && appData.woodStove !== 'No') data.WoodStove = appData.woodStove;

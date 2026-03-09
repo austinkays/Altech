@@ -1329,9 +1329,11 @@ Object.assign(App, {
         if (!value) return '';
         const d = new Date(value);
         if (Number.isNaN(d.getTime())) return value;
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        const yyyy = String(d.getFullYear());
+        // Use UTC getters: ISO date strings ("YYYY-MM-DD") parse as midnight UTC.
+        // Local getters shift the date back 5-8 hours in US timezones → off-by-one calendar day.
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        const yyyy = String(d.getUTCFullYear());
         return `${mm}-${dd}-${yyyy}`;
     },
 
@@ -1358,7 +1360,8 @@ Phone: ${data.phone || ''}
 DOB: ${fmt(data.dob)}
 Marital Status: ${data.maritalStatus || ''}
 Education: ${data.education || ''}
-Occupation: ${data.industry || ''}`;
+Occupation: ${data.occupation || ''}
+Industry: ${data.industry || ''}`;
 
         // Co-Applicant
         if (data.hasCoApplicant === 'yes' && (data.coFirstName || data.coLastName)) {
@@ -1472,8 +1475,13 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
+        // Append to DOM so Firefox/Edge initiates the transfer before the ref is lost
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        // Defer revoke: browser needs time to start the byte transfer.
+        // Synchronous revoke causes 0-byte / failed downloads on Firefox and Edge.
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
     },
 
     // --- Export History ---
