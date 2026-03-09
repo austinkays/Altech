@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 23, 2026
+> **Last updated:** March 24, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -70,7 +70,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (747 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (1,202 lines)
-│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + needs-state-update badge + snooze styles (1,275 lines)
+│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + needs-state-update badge + snooze styles + fixed 6-col stat grid (1,293 lines)
 │   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
 │   ├── intake-assist.css       # AI intake professional UI — enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
@@ -83,7 +83,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── bug-report.css          # Bug reporter (227 lines)
 │   ├── quickref.css            # Quick reference — teal accent + editable number rows (261 lines)
 │   ├── security-info.css       # Security modal (217 lines)
-│   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, polished form/toolbar, card grid, dark mode (467 lines)
+│   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, polished form/toolbar, card grid, dark mode (468 lines)
 │   ├── email.css               # Email composer — purple accent + custom prompt styles (231 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
@@ -833,6 +833,17 @@ KEY RULES:
 - `ezlynx.css` top half uses hardcoded glassmorphism palette (design choice, bottom half uses variables)
 - 7 CSS files lack dark mode overrides (relies on variable auto-switching)
 - 3 CSS files use `.dark-mode` without `body` prefix (works due to specificity)
+
+### Visual Bug Fixes — Playwright Screenshot Audit (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|-----------------|
+| 201 | MEDIUM | css/accounting.css | **PIN input placeholder letter-spacing:** Added `.acct-pin-input::placeholder { letter-spacing: 0; font-size: 14px; font-weight: 400; }` — `letter-spacing: 8px` on the input itself was spacing out placeholder text as "E n t e r  P I N". Actual PIN digits still get 8px spacing, placeholder text is now normal. |
+| 202 | LOW | css/compliance.css | **CGL stat cards orphaned 6th card:** Changed `grid-template-columns` from `repeat(auto-fit, minmax(155px, 1fr))` and desktop `minmax(180px, 1fr)` to explicit `repeat(6, 1fr)` at all breakpoints — guarantees all 6 stat cards always appear in a single row on desktop. Added `repeat(3, 1fr)` at ≤767px and `repeat(2, 1fr)` at ≤480px for correct mobile stacking. |
+| 203 | MEDIUM | css/main.css | **Breadcrumb bar overlaps mobile header:** `#breadcrumbBar` has `position: fixed; left: 140px` — at 375px viewport width this clashes with the quoting header content. Added `@media (max-width: 767px) { #breadcrumbBar { display: none !important; } }`. The plugin header already shows the tool name on mobile, so the breadcrumb is redundant at that width. |
+
+**3 files changed:** css/accounting.css (467→468 lines), css/compliance.css (1,275→1,293 lines), css/main.css (3,486→3,488 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
 ### Desktop Layout Overhaul �" Full-Width Redesign (March 2026)
 
 | # | Scope | Files | Description |

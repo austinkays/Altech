@@ -27,7 +27,7 @@
 }
 .cgl-stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+    grid-template-columns: repeat(6, 1fr);
     gap: 14px;
     margin-bottom: 28px;
 }
@@ -1259,7 +1259,7 @@ body.dark-mode .cgl-print-selected > td { background: rgba(10,132,255,0.06) !imp
         padding: 24px 32px 100px;
     }
     .cgl-stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        grid-template-columns: repeat(6, 1fr);
         gap: 16px;
     }
     .cgl-stat-card {
@@ -1276,5 +1276,18 @@ body.dark-mode .cgl-print-selected > td { background: rgba(10,132,255,0.06) !imp
     .cgl-button {
         padding: 12px 24px;
         font-size: 15px;
+    }
+}
+
+/* ── Mobile: stack stat cards ── */
+@media (max-width: 767px) {
+    .cgl-stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+}
+@media (max-width: 480px) {
+    .cgl-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
