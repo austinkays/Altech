@@ -95,18 +95,33 @@ const EndorsementParser = {
         console.log('[EndorsementParser] parse() method called');
         
         const pasteArea = document.getElementById('epPasteArea');
+        const parseBtn = document.getElementById('epParseBtn');
         const rawText = pasteArea?.value?.trim();
 
         console.log('[EndorsementParser] Raw text length:', rawText?.length || 0);
 
+        // Show immediate visual feedback
+        if (parseBtn) {
+            parseBtn.disabled = true;
+            parseBtn.textContent = '⏳ Parsing...';
+        }
+
         if (!rawText) {
             this._showToast('Please paste the endorsement email text', 'error');
+            if (parseBtn) {
+                parseBtn.disabled = false;
+                parseBtn.textContent = '🔍 Parse Request';
+            }
             return;
         }
 
         if (!this._geminiApiKey) {
             console.warn('[EndorsementParser] No Gemini API key found');
             this._showToast('Gemini API key required. Set in Settings or localStorage.', 'error');
+            if (parseBtn) {
+                parseBtn.disabled = false;
+                parseBtn.textContent = '🔍 Parse Request';
+            }
             return;
         }
 
@@ -126,6 +141,10 @@ const EndorsementParser = {
                 // Step 3: Restore real values after AI parsing
                 const restoredData = this._restoreRedactedData(parsedData, tokenMap);
                 
+                // Step 4: Generate customer email draft
+                const emailDraft = await this._generateEmailDraft(restoredData);
+                restoredData.emailDraft = emailDraft;
+                
                 this._parsedData = restoredData;
                 this.render(restoredData);
                 this._showToast('Endorsement parsed successfully', 'success');
@@ -138,6 +157,10 @@ const EndorsementParser = {
         } finally {
             this._parsing = false;
             this._showParsingState(false);
+            if (parseBtn) {
+                parseBtn.disabled = false;
+                parseBtn.textContent = '🔍 Parse Request';
+            }
         }
     },
 
@@ -364,6 +387,77 @@ Rules:
         return cleaned;
     },
 
+    async _generateEmailDraft(data) {
+        console.log('[EndorsementParser] Generating customer email draft...');
+        
+        try {
+            const prompt = `You are a professional insurance agent. Based on the following endorsement details, write a short and friendly email to the insured letting them know their policy changes have been processed.
+
+Endorsement Details:
+- Insured: ${data.insuredName || 'the insured'}
+- Policy Number: ${data.policyNumber || '[policy number]'}
+- Policy Type: ${data.policyType || 'insurance policy'}
+- Effective Date: ${data.effectiveDate || '[effective date]'}
+- Request Type: ${data.requestType || 'endorsement request'}
+
+Changes Made:
+${this._summarizeChanges(data)}
+
+Write a brief, professional but friendly email (3-4 sentences max) confirming these changes were made. Use a warm tone, include the key details, and mention they can call with questions. Do NOT include subject line, just the email body.`;
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this._geminiApiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Email generation failed: ${response.status}`);
+            }
+
+            const result = await response.json();
+            const emailText = result.candidates?.[0]?.content?.parts?.[0]?.text || 
+                'Dear valued customer,\n\nYour endorsement request has been processed successfully. If you have any questions, please don\'t hesitate to contact us.\n\nThank you for your business!';
+
+            return emailText.trim();
+        } catch (error) {
+            console.error('[EndorsementParser] Email generation error:', error);
+            // Return fallback template
+            return `Dear ${data.insuredName || 'valued customer'},\n\nYour ${data.requestType || 'endorsement request'} for policy ${data.policyNumber || '[policy number]'} has been successfully processed, effective ${data.effectiveDate || 'as requested'}.\n\nIf you have any questions about these changes, please don't hesitate to call us.\n\nThank you for your business!`;
+        }
+    },
+
+    _summarizeChanges(data) {
+        const changes = [];
+        
+        if (data.vehicleDetails && Object.keys(data.vehicleDetails).length > 0) {
+            if (data.vehicleDetails.added) changes.push('- Vehicle added: ' + data.vehicleDetails.added);
+            if (data.vehicleDetails.removed) changes.push('- Vehicle removed: ' + data.vehicleDetails.removed);
+            if (data.vehicleDetails.changed) changes.push('- Vehicle updated: ' + data.vehicleDetails.changed);
+        }
+        
+        if (data.homeDetails && Object.keys(data.homeDetails).length > 0) {
+            if (data.homeDetails.addressChange) changes.push('- Property address updated');
+            if (data.homeDetails.coverageIncrease) changes.push('- Coverage increased');
+        }
+        
+        if (data.coverageChanges && data.coverageChanges.length > 0) {
+            data.coverageChanges.forEach(change => {
+                changes.push(`- ${change.type}: ${change.limit || change.deductible || 'updated'}`);
+            });
+        }
+        
+        if (data.additionalInterests && data.additionalInterests.length > 0) {
+            data.additionalInterests.forEach(interest => {
+                changes.push(`- ${interest.type} added: ${interest.name}`);
+            });
+        }
+        
+        return changes.length > 0 ? changes.join('\n') : '- Policy endorsement changes as requested';
+    },
+
     render(data) {
         const pasteView = document.getElementById('epPasteView');
         const displayView = document.getElementById('epDisplayView');
@@ -389,6 +483,7 @@ Rules:
         this._renderAdditionalInterests(data, cardsContainer);
         this._renderContactInfo(data, cardsContainer);
         this._renderOtherFields(data, cardsContainer);
+        this._renderEmailDraft(data, cardsContainer);
     },
 
     _renderRequestMetadata(data, container) {
@@ -589,6 +684,51 @@ Rules:
         });
 
         return card;
+    },
+
+    _renderEmailDraft(data, container) {
+        if (!data.emailDraft) return;
+
+        const card = document.createElement('div');
+        card.className = 'ep-card ep-email-card';
+
+        const header = document.createElement('div');
+        header.className = 'ep-card-header';
+        header.textContent = '📧 Customer Email Draft';
+        card.appendChild(header);
+
+        const emailContainer = document.createElement('div');
+        emailContainer.className = 'ep-email-content';
+
+        const emailText = document.createElement('pre');
+        emailText.className = 'ep-email-text';
+        emailText.id = 'epEmailText';
+        emailText.textContent = data.emailDraft;
+        emailContainer.appendChild(emailText);
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'ep-btn-secondary ep-copy-btn';
+        copyBtn.id = 'epCopyEmailBtn';
+        copyBtn.textContent = '📋 Copy to Clipboard';
+        copyBtn.addEventListener('click', () => {
+            const text = document.getElementById('epEmailText')?.textContent;
+            if (text) {
+                navigator.clipboard.writeText(text).then(() => {
+                    this._showToast('Email copied to clipboard', 'success');
+                    copyBtn.textContent = '✅ Copied!';
+                    setTimeout(() => {
+                        copyBtn.textContent = '📋 Copy to Clipboard';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('[EndorsementParser] Copy failed:', err);
+                    this._showToast('Failed to copy email', 'error');
+                });
+            }
+        });
+        emailContainer.appendChild(copyBtn);
+
+        card.appendChild(emailContainer);
+        container.appendChild(card);
     },
 
     _formatFieldName(str) {

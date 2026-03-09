@@ -391,3 +391,64 @@ body.dark-mode .ep-badge {
         padding: 10px 12px;
     }
 }
+
+/* ===== EMAIL DRAFT SECTION ===== */
+.ep-email-card {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(99, 102, 241, 0.05));
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+body.dark-mode .ep-email-card {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(99, 102, 241, 0.08));
+    border-color: rgba(139, 92, 246, 0.3);
+}
+
+.ep-email-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ep-email-text {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Pro', -apple-system, system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+}
+
+.ep-copy-btn {
+    align-self: flex-end;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    background: var(--apple-blue);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ep-copy-btn:hover {
+    background: var(--apple-blue-hover);
+    transform: translateY(-1px);
+}
+
+.ep-copy-btn:active {
+    transform: translateY(0);
+}
+
+body.dark-mode .ep-copy-btn {
+    background: var(--apple-blue);
+}
+
+body.dark-mode .ep-copy-btn:hover {
+    background: var(--apple-blue-hover);
+}
