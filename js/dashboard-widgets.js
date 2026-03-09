@@ -68,6 +68,7 @@ window.DashboardWidgets = (() => {
         quickref:     'bookOpen',
         vindecoder:   'car',
         calllogger:   'hawk',
+        endorsement:  'clipboard',
     };
 
     /**
