@@ -6,7 +6,7 @@
         <div class="logo tool-header-brand">
             <button onclick="App.goHome()" aria-label="Back to Dashboard">🏠</button>
             <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" aria-label="Toggle Dark Mode">🌙</button>
-            <span>📄 Endorsement Parser</span>
+            <span>� Endorsement Parser</span>
         </div>
     </div>
 </header>
@@ -17,6 +17,7 @@
         <h2>📋 Parse Change Request Email</h2>
         <p>Paste the raw endorsement or change request email from your carrier (Safeco, Progressive, State Farm, etc.) below. The AI will extract all relevant information into a structured, scannable format.</p>
         <p class="ep-hint">💡 Tip: Press <kbd>Ctrl+Enter</kbd> to parse quickly</p>
+        <p class="ep-hint" style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">🔒 <strong>Privacy:</strong> Sensitive data (policy numbers, VINs, phone/email, addresses) is automatically redacted before sending to Google AI, then restored in results.</p>
     </div>
 
     <textarea 

@@ -90,11 +90,18 @@ const EndorsementParser = {
         this._showParsingState(true);
 
         try {
-            const parsedData = await this._extractWithAI(rawText);
+            // Step 1: Redact sensitive data before sending to Google
+            const { redactedText, tokenMap } = this._redactSensitiveData(rawText);
+            
+            // Step 2: Send redacted text to AI
+            const parsedData = await this._extractWithAI(redactedText);
             
             if (parsedData) {
-                this._parsedData = parsedData;
-                this.render(parsedData);
+                // Step 3: Restore real values after AI parsing
+                const restoredData = this._restoreRedactedData(parsedData, tokenMap);
+                
+                this._parsedData = restoredData;
+                this.render(restoredData);
                 this._showToast('Endorsement parsed successfully', 'success');
             } else {
                 throw new Error('Failed to extract data from AI response');
@@ -106,6 +113,89 @@ const EndorsementParser = {
             this._parsing = false;
             this._showParsingState(false);
         }
+    },
+
+    _redactSensitiveData(text) {
+        const tokenMap = {};
+        let redactedText = text;
+        let tokenCounter = 1;
+
+        // Redact policy numbers (common patterns: ABC123456, 12-AB-345678, etc.)
+        const policyPattern = /\b([A-Z]{2,4}[-\s]?\d{6,10}|\d{2,3}[-\s][A-Z]{2}[-\s]\d{6,8})\b/g;
+        redactedText = redactedText.replace(policyPattern, (match) => {
+            const token = `POLICY-${tokenCounter++}`;
+            tokenMap[token] = match;
+            return token;
+        });
+
+        // Redact VINs (17 alphanumeric characters)
+        const vinPattern = /\b[A-HJ-NPR-Z0-9]{17}\b/g;
+        redactedText = redactedText.replace(vinPattern, (match) => {
+            const token = `VIN-${tokenCounter++}`;
+            tokenMap[token] = match;
+            return token;
+        });
+
+        // Redact phone numbers
+        const phonePattern = /\b(\+?1[-.\s]?)?(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})\b/g;
+        redactedText = redactedText.replace(phonePattern, (match) => {
+            const token = `PHONE-${tokenCounter++}`;
+            tokenMap[token] = match;
+            return token;
+        });
+
+        // Redact email addresses
+        const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+        redactedText = redactedText.replace(emailPattern, (match) => {
+            const token = `EMAIL-${tokenCounter++}`;
+            tokenMap[token] = match;
+            return token;
+        });
+
+        // Redact SSNs (###-##-####)
+        const ssnPattern = /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g;
+        redactedText = redactedText.replace(ssnPattern, (match) => {
+            const token = `SSN-${tokenCounter++}`;
+            tokenMap[token] = match;
+            return token;
+        });
+
+        // Redact full addresses (keep street name, redact house number, city, state, zip)
+        const addressPattern = /\b(\d+)\s+([A-Za-z\s]+)(?:,?\s+([A-Za-z\s]+),?\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?))\b/g;
+        redactedText = redactedText.replace(addressPattern, (match, number, street, city, state, zip) => {
+            const token = `ADDRESS-${tokenCounter++}`;
+            tokenMap[token] = match;
+            return `[REDACTED] ${street}`; // Keep street name for context
+        });
+
+        console.log('[EndorsementParser] Redacted', Object.keys(tokenMap).length, 'sensitive items');
+        
+        return { redactedText, tokenMap };
+    },
+
+    _restoreRedactedData(data, tokenMap) {
+        // Recursively restore redacted tokens with real values
+        if (!data || typeof data !== 'object') {
+            if (typeof data === 'string') {
+                // Check if string contains any tokens
+                let restored = data;
+                Object.keys(tokenMap).forEach(token => {
+                    restored = restored.replace(new RegExp(token, 'g'), tokenMap[token]);
+                });
+                return restored;
+            }
+            return data;
+        }
+
+        if (Array.isArray(data)) {
+            return data.map(item => this._restoreRedactedData(item, tokenMap));
+        }
+
+        const restored = {};
+        Object.keys(data).forEach(key => {
+            restored[key] = this._restoreRedactedData(data[key], tokenMap);
+        });
+        return restored;
     },
 
     async _extractWithAI(rawText) {
