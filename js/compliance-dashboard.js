@@ -2606,7 +2606,7 @@ const ComplianceDashboard = {
             try {
                 await new Promise((resolve, reject) => {
                     const s = document.createElement('script');
-                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+                    s.src = 'lib/jspdf.umd.min.js';
                     s.onload = resolve;
                     s.onerror = reject;
                     document.head.appendChild(s);

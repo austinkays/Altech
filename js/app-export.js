@@ -18,11 +18,11 @@ Object.assign(App, {
     },
 
     async buildPDF(data) {
-        // Lazy-load jsPDF if not already available (network hiccup, ad-blocker, etc.)
+        // Lazy-load jsPDF if not already available (network hiccup, etc.)
         if (!window.jspdf || !window.jspdf.jsPDF) {
             const cdnUrls = [
-                'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js',
-                'https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js'
+                'lib/jspdf.umd.min.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
             ];
             for (const url of cdnUrls) {
                 if (window.jspdf && window.jspdf.jsPDF) break;
@@ -34,10 +34,10 @@ Object.assign(App, {
                         s.onerror = () => reject(new Error('CDN unreachable'));
                         document.head.appendChild(s);
                     });
-                } catch (_) { /* try next CDN */ }
+                } catch (_) { /* try next */ }
             }
         }
-        // Normalise uppercase window.jsPDF (older versions / some CDN builds)
+        // Normalise uppercase window.jsPDF (older builds)
         if (!window.jspdf && window.jsPDF) window.jspdf = { jsPDF: window.jsPDF };
         if (!window.jspdf || !window.jspdf.jsPDF) {
             this.toast('PDF library not loaded — check your internet connection and reload', 'error');
