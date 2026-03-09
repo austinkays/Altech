@@ -317,8 +317,8 @@ Rules:
         try {
             // Use AIProvider if available (follows app pattern)
             if (typeof AIProvider !== 'undefined') {
-                const response = await AIProvider.ask(systemPrompt, userPrompt, this._geminiApiKey);
-                return this._parseAIResponse(response);
+                const result = await AIProvider.ask(systemPrompt, userPrompt, { temperature: 0.1 });
+                return this._parseAIResponse(result.text);
             } else {
                 // Fallback: direct Gemini API call
                 const response = await this._callGeminiDirect(systemPrompt, userPrompt);
