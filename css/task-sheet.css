@@ -902,9 +902,15 @@ body.dark-mode .ts-header-btn-outline:hover {
 }
 
 @media print {
-    /* Each agent section starts on a new page */
+    /* Every agent section gets its own page — break after so overflow pages
+       don't bleed into the next agent's section */
+    .ts-agent-section {
+        page-break-after: always;
+        break-after: page;
+    }
+
+    /* The -break variant just removes screen-only styles */
     .ts-agent-section-break {
-        page-break-before: always;
         border-top: none;
         padding-top: 0;
         margin-top: 0;
