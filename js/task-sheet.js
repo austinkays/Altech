@@ -276,7 +276,17 @@ window.TaskSheetModule = (() => {
         const outEl = document.getElementById('ts-output');
         if (!outEl) return;
 
-        let html = '<table class="ts-table">';
+        let html = '<table class="ts-table">' +
+            '<colgroup>' +
+            '<col style="width:7%">' +
+            '<col style="width:8%">' +
+            '<col style="width:14%">' +
+            '<col style="width:19%">' +
+            '<col style="width:10%">' +
+            '<col style="width:7%">' +
+            '<col style="width:12%">' +
+            '<col style="width:23%">' +
+            '</colgroup>';
         html += '<thead><tr>' +
             '<th>Priority</th>' +
             '<th>Due Date</th>' +
