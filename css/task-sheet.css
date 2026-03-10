@@ -474,8 +474,8 @@ body.dark-mode .ts-header-btn-outline:hover {
 
     .ts-table {
         width: 100%;
-        font-size: 8pt;
-        line-height: 1.4;
+        font-size: 7.5pt;
+        line-height: 1.35;
         border-collapse: collapse;
         border-radius: 0;
         background: #fff;
@@ -491,11 +491,11 @@ body.dark-mode .ts-header-btn-outline:hover {
     }
 
     .ts-table th {
-        font-size: 6.5pt;
+        font-size: 6pt;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        padding: 5px 6px;
+        padding: 4px 5px;
         color: #fff !important;
         border-bottom: none;
         text-align: left;
@@ -504,10 +504,9 @@ body.dark-mode .ts-header-btn-outline:hover {
     }
 
     .ts-table td {
-        padding: 9px 6px;
-        min-height: 44px;
+        padding: 6px 5px;
         color: #111;
-        border-bottom: 1pt solid #bbb;
+        border-bottom: 0.75pt solid #ccc;
         vertical-align: top;
         word-wrap: break-word;
         overflow-wrap: break-word;
@@ -516,6 +515,7 @@ body.dark-mode .ts-header-btn-outline:hover {
     /* No alternating shading — clean white rows are easier to write on */
     .ts-table tbody tr:nth-child(even) {
         background: #fff !important;
+        background-color: #fff !important;
     }
 
     .ts-table tbody tr:hover {
@@ -523,14 +523,17 @@ body.dark-mode .ts-header-btn-outline:hover {
     }
 
     /* Overdue rows — light grey with strong left rule */
-    .ts-row-overdue {
-        background: #efefef !important;
+    /* background-color overrides screen rgba rule that can bleed into PDF */
+    .ts-row-overdue,
+    .ts-row-overdue td {
+        background: #e8e8e8 !important;
+        background-color: #e8e8e8 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
 
     .ts-row-overdue td:first-child {
-        border-left: 3.5pt solid #000;
+        border-left: 3pt solid #000;
     }
 
     /* Overdue inline marker */
@@ -544,7 +547,7 @@ body.dark-mode .ts-header-btn-outline:hover {
         display: inline-block;
         padding: 1px 4px;
         border-radius: 3px;
-        font-size: 6.5pt;
+        font-size: 6pt;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.02em;
@@ -557,33 +560,33 @@ body.dark-mode .ts-header-btn-outline:hover {
     .ts-priority-medium   { background: #999 !important; color: #000 !important; }
     .ts-priority-low      { background: #ddd !important; color: #333 !important; }
 
-    /* Agent Notes column — ruled lines for handwriting */
+    /* Agent Notes column — ruled lines for handwriting.
+       Lines at 17px intervals starting at top-padding offset (6px),
+       so the first rule sits just below the first text baseline. */
     .ts-cell-notes {
-        border-left: 1pt solid #999;
-        padding: 0 6px;
-        /* Horizontal ruled lines spaced to match the row height */
+        border-left: 1pt solid #aaa;
+        padding: 5px 5px;
         background-image: repeating-linear-gradient(
             transparent,
-            transparent 21px,
-            #d8d8d8 21px,
-            #d8d8d8 22px
+            transparent 16px,
+            #d0d0d0 16px,
+            #d0d0d0 17px
         );
-        background-position: 0 10px;
+        background-position: 0 5px;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
-        min-height: 44px;
     }
 
     /* Policy date labels ("Eff:", "Exp:") */
     .ts-policy-label {
-        font-size: 85%;
+        font-size: 80%;
         font-weight: 600;
         color: #555;
     }
 
     /* Policy dates — compact */
     .ts-cell-policy-dates {
-        font-size: 7pt;
+        font-size: 6.5pt;
         white-space: normal;
         word-break: break-word;
     }
