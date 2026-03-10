@@ -69,6 +69,7 @@ window.DashboardWidgets = (() => {
         vindecoder:   'car',
         calllogger:   'hawk',
         endorsement:  'clipboard',
+        tasksheet:    'checkCircle',
     };
 
     /**
