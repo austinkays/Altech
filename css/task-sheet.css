@@ -196,12 +196,15 @@
 }
 
 /* Column widths */
-.ts-col-flag { width: 36px; text-align: center; }
-.ts-col-notes { min-width: 180px; }
-.ts-cell-flag { text-align: center; }
+.ts-col-notes { min-width: 280px; }
 .ts-cell-date { white-space: nowrap; }
-.ts-cell-client { max-width: 200px; }
-.ts-cell-task { max-width: 280px; }
+.ts-cell-client { max-width: 180px; }
+.ts-cell-category { max-width: 120px; }
+.ts-cell-task { max-width: 260px; }
+.ts-cell-carrier { max-width: 110px; }
+.ts-cell-status { white-space: nowrap; max-width: 110px; }
+.ts-cell-policy-dates { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.ts-cell-notes { min-width: 280px; }
 
 /* ── Overdue row ──────────────────────────────────────── */
 
@@ -213,8 +216,10 @@
     background: rgba(255, 59, 48, 0.08) !important;
 }
 
-.ts-overdue-icon {
-    font-size: 14px;
+.ts-overdue-inline {
+    color: var(--danger);
+    font-size: 12px;
+    margin-left: 4px;
 }
 
 /* ── Priority badges ──────────────────────────────────── */
@@ -412,7 +417,7 @@ body.dark-mode .ts-header-btn-outline:hover {
 
     /* Table print styling */
     .ts-table {
-        font-size: 10px;
+        font-size: 11pt;
         border: 1px solid #999;
         border-radius: 0;
         background: #fff;
@@ -425,33 +430,26 @@ body.dark-mode .ts-header-btn-outline:hover {
     }
 
     .ts-table th {
-        font-size: 9px;
+        font-size: 9pt;
         padding: 6px 8px;
         color: #000;
         border-bottom: 2px solid #666;
     }
 
     .ts-table td {
-        padding: 6px 8px;
+        padding: 8px 10px;
         color: #000;
         border-bottom: 1px solid #ccc;
-    }
-
-    .ts-table tbody tr:nth-child(even) {
-        background: #f6f6f6 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
     }
 
     .ts-table tbody tr:hover {
         background: inherit;
     }
 
-    /* Overdue rows */
-    .ts-row-overdue {
-        background: #fff0f0 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+    /* Overdue marker — text only, no background (saves toner) */
+    .ts-overdue-inline {
+        font-weight: 700;
+        color: #c00;
     }
 
     /* Priority badges for print */
@@ -469,15 +467,22 @@ body.dark-mode .ts-header-btn-outline:hover {
         font-weight: 800;
     }
 
-    /* Notes column — generous write-in area */
-    .ts-col-notes {
-        min-width: 200px;
+    /* Notes column — generous write-in area for handwriting */
+    .ts-col-notes,
+    .ts-cell-notes {
+        min-width: 3in;
+        width: auto;
     }
 
     .ts-cell-notes {
-        min-width: 200px;
-        min-height: 28px;
+        min-height: 32px;
         border-left: 2px solid #999;
+    }
+
+    /* Policy dates condensed */
+    .ts-cell-policy-dates {
+        white-space: nowrap;
+        font-size: 10pt;
     }
 
     /* Prevent page breaks inside rows */

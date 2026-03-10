@@ -16,9 +16,10 @@ window.TaskSheetModule = (() => {
 
     /* ── Expected CSV columns from HawkSoft ──────────── */
     const EXPECTED_HEADERS = [
-        'overdue', 'on log', 'on attachment', 'category',
+        'overdue', 'on log', 'on attachment', 'created date', 'category',
         'task title', 'due date', 'priority', 'client',
-        'carrier', 'status', 'created by'
+        'carrier', 'status', 'created by', 'client id',
+        'last updated date', 'policy expiration date', 'policy effective date', 'policy status date'
     ];
 
     let _rows = [];
@@ -187,14 +188,17 @@ window.TaskSheetModule = (() => {
             if (!taskTitle) continue;
 
             rows.push({
-                overdue:   get('overdue').toLowerCase() === 'yes',
-                category:  get('category'),
-                task:      taskTitle,
-                dueDate:   get('due date'),
-                priority:  get('priority'),
-                client:    get('client'),
-                carrier:   get('carrier'),
-                assignedTo: get('created by')
+                overdue:       get('overdue') !== '',
+                category:      get('category'),
+                task:          taskTitle,
+                dueDate:       get('due date'),
+                priority:      get('priority'),
+                client:        get('client'),
+                carrier:       get('carrier'),
+                status:        get('status'),
+                policyExpDate: get('policy expiration date'),
+                policyEffDate: get('policy effective date'),
+                assignedTo:    get('created by')
             });
         }
         return rows;
@@ -242,22 +246,25 @@ window.TaskSheetModule = (() => {
 
     function _sortRows(rows) {
         rows.sort((a, b) => {
-            // 1. Overdue first
-            if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
+            // 1. Due Date ascending (empty dates sort last)
+            const da = _parseDate(a.dueDate);
+            const db = _parseDate(b.dueDate);
+            if (da && db && da - db !== 0) return da - db;
+            if (da && !db) return -1;
+            if (!da && db) return 1;
 
-            // 2. Priority (lower number = higher priority)
+            // 2. Priority ascending (1-Critical first, empty last)
             const pa = PRIORITY_ORDER[a.priority.toLowerCase()] ?? 99;
             const pb = PRIORITY_ORDER[b.priority.toLowerCase()] ?? 99;
             if (pa !== pb) return pa - pb;
 
-            // 3. Due Date ascending
-            const da = _parseDate(a.dueDate);
-            const db = _parseDate(b.dueDate);
-            if (da && db) return da - db;
-            if (da) return -1;
-            if (db) return 1;
+            // 3. Overdue flag (overdue first within same tier)
+            if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
 
-            return 0;
+            // 4. Client name A-Z
+            const ca = _displayClient(a.client).trim();
+            const cb = _displayClient(b.client).trim();
+            return ca.localeCompare(cb);
         });
     }
 
@@ -271,14 +278,14 @@ window.TaskSheetModule = (() => {
 
         let html = '<table class="ts-table">';
         html += '<thead><tr>' +
-            '<th class="ts-col-flag">!</th>' +
-            '<th>Due Date</th>' +
             '<th>Priority</th>' +
+            '<th>Due Date</th>' +
             '<th>Client</th>' +
-            '<th>Carrier</th>' +
             '<th>Category</th>' +
             '<th>Task</th>' +
-            '<th>Assigned</th>' +
+            '<th>Carrier</th>' +
+            '<th>Status</th>' +
+            '<th>Policy Dates</th>' +
             '<th class="ts-col-notes">Notes</th>' +
         '</tr></thead><tbody>';
 
@@ -286,20 +293,16 @@ window.TaskSheetModule = (() => {
             const rowClass = row.overdue ? ' class="ts-row-overdue"' : '';
             html += '<tr' + rowClass + '>';
 
-            // Overdue flag
-            html += '<td class="ts-cell-flag">' + (row.overdue ? '<span class="ts-overdue-icon" title="Overdue">⚠️</span>' : '') + '</td>';
-
-            // Due Date
-            html += '<td class="ts-cell-date">' + _escapeHTML(_formatDate(row.dueDate)) + '</td>';
-
             // Priority badge
             html += '<td class="ts-cell-priority">' + _renderPriorityBadge(row.priority) + '</td>';
 
+            // Due Date with inline overdue marker
+            const dateDisplay = _escapeHTML(_formatDate(row.dueDate));
+            const overdueMarker = row.overdue ? ' <span class="ts-overdue-inline" title="Overdue">⚠</span>' : '';
+            html += '<td class="ts-cell-date">' + dateDisplay + overdueMarker + '</td>';
+
             // Client (strip trailing ID)
             html += '<td class="ts-cell-client">' + _escapeHTML(_displayClient(row.client)) + '</td>';
-
-            // Carrier
-            html += '<td class="ts-cell-carrier">' + _escapeHTML(row.carrier) + '</td>';
 
             // Category
             html += '<td class="ts-cell-category">' + _escapeHTML(row.category) + '</td>';
@@ -307,8 +310,14 @@ window.TaskSheetModule = (() => {
             // Task
             html += '<td class="ts-cell-task">' + _escapeHTML(row.task) + '</td>';
 
-            // Assigned To
-            html += '<td class="ts-cell-assigned">' + _escapeHTML(row.assignedTo) + '</td>';
+            // Carrier
+            html += '<td class="ts-cell-carrier">' + _escapeHTML(row.carrier) + '</td>';
+
+            // Status
+            html += '<td class="ts-cell-status">' + _escapeHTML(row.status) + '</td>';
+
+            // Policy Dates (condensed)
+            html += '<td class="ts-cell-policy-dates">' + _renderPolicyDates(row) + '</td>';
 
             // Notes (empty write-in column)
             html += '<td class="ts-cell-notes"></td>';
@@ -318,6 +327,15 @@ window.TaskSheetModule = (() => {
 
         html += '</tbody></table>';
         outEl.innerHTML = html;
+    }
+
+    function _renderPolicyDates(row) {
+        const eff = row.policyEffDate ? 'Eff: ' + _escapeHTML(row.policyEffDate) : '';
+        const exp = row.policyExpDate ? 'Exp: ' + _escapeHTML(row.policyExpDate) : '';
+        if (eff && exp) return eff + '<br>' + exp;
+        if (exp) return exp;
+        if (eff) return eff;
+        return '';
     }
 
     function _renderPriorityBadge(priority) {
@@ -358,7 +376,9 @@ window.TaskSheetModule = (() => {
     function _parseDate(val) {
         if (!val) return null;
         const cleaned = val.replace(/^Today,\s*/i, '');
-        const d = new Date(cleaned);
+        // If no 4-digit year (e.g. "Mar 9" from "Today, Mar 9"), append current year
+        const withYear = /\d{4}/.test(cleaned) ? cleaned : cleaned + ' ' + new Date().getFullYear();
+        const d = new Date(withYear);
         return isNaN(d.getTime()) ? null : d;
     }
 
