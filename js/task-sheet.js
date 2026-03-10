@@ -294,8 +294,8 @@ window.TaskSheetModule = (() => {
             '<col style="width:14%">' +
             '<col style="width:21%">' +
             '<col style="width:9%">' +
-            '<col style="width:16%">' +
-            '<col style="width:24%">' +
+            '<col style="width:10%">' +
+            '<col style="width:30%">' +
             '</colgroup>';
 
         html += '<thead><tr>' +
