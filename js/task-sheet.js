@@ -646,7 +646,10 @@ window.TaskSheetModule = (() => {
                 ? displayName + (displayName.endsWith('s') ? '\u2019 Tasks' : '\u2019s Tasks')
                 : 'Tasks';
 
-            const sectionClass = idx === 0 ? 'ts-agent-section' : 'ts-agent-section ts-agent-section-break';
+            const isLast = idx === sortedAgents.length - 1;
+            const sectionClass = 'ts-agent-section' +
+                (idx > 0 ? ' ts-agent-section-break' : '') +
+                (isLast ? ' ts-agent-section-last' : '');
 
             html += '<div class="' + sectionClass + '">';
 

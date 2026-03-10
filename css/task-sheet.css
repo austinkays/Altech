@@ -943,11 +943,17 @@ body.dark-mode .ts-overflow-notice {
 }
 
 @media print {
-    /* Every agent section gets its own page */
+    /* Every agent section gets its own page — but NOT the last one
+       (trailing page-break causes PDF to cut off the final agent) */
     .ts-agent-section {
         display: block;
         page-break-after: always;
         break-after: page;
+    }
+
+    .ts-agent-section-last {
+        page-break-after: auto !important;
+        break-after: auto !important;
     }
 
     /* The -break variant just removes screen-only styles */
