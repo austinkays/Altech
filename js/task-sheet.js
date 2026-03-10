@@ -660,7 +660,8 @@ window.TaskSheetModule = (() => {
                     '</div>' +
                 '</div>';
 
-            html += _buildTableHTML(agentRows);
+            // Hard cap at 20 rows per agent — team mode is always one page per person
+            html += _buildTableHTML(agentRows.slice(0, 20));
             html += '</div>';
         });
 
