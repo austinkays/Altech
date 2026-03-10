@@ -595,6 +595,7 @@ window.Reminders = (() => {
      * @returns {Array<{id, title, dueDate, category, priority, status, statusLabel}>}
      */
     function getUpcomingTasks(limit = 5) {
+        const freqOrd = { daily: 0, weekdays: 1, weekly: 2, biweekly: 3, monthly: 4, once: 5 };
         return _state.tasks
             .map(t => ({ ...t, status: _getStatus(t), statusLabel: _getStatusLabel(t) }))
             .filter(t => t.status !== 'completed')
@@ -602,6 +603,8 @@ window.Reminders = (() => {
                 const order = { 'overdue': 0, 'due-today': 1, 'snoozed': 2, 'due-soon': 3, 'upcoming': 4, 'no-date': 5 };
                 const diff = (order[a.status] ?? 6) - (order[b.status] ?? 6);
                 if (diff !== 0) return diff;
+                const fDiff = (freqOrd[a.frequency] ?? 2) - (freqOrd[b.frequency] ?? 2);
+                if (fDiff !== 0) return fDiff;
                 if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
                 return a.dueDate ? -1 : 1;
             })
@@ -688,11 +691,14 @@ window.Reminders = (() => {
 
         // Sort: overdue first, then due-today, snoozed, then due-soon, upcoming, completed last
         const order = { 'overdue': 0, 'due-today': 1, 'snoozed': 2, 'due-soon': 3, 'upcoming': 4, 'no-date': 5, 'completed': 6 };
+        const freqOrd = { daily: 0, weekdays: 1, weekly: 2, biweekly: 3, monthly: 4, once: 5 };
         tasks.sort((a, b) => {
             const sa = _getStatus(a), sb = _getStatus(b);
             if (order[sa] !== order[sb]) return order[sa] - order[sb];
             const pOrd = { high: 0, normal: 1, low: 2 };
             if (pOrd[a.priority] !== pOrd[b.priority]) return pOrd[a.priority] - pOrd[b.priority];
+            const fDiff = (freqOrd[a.frequency] ?? 2) - (freqOrd[b.frequency] ?? 2);
+            if (fDiff !== 0) return fDiff;
             return _parseLocalDate(a.dueDate) - _parseLocalDate(b.dueDate);
         });
 

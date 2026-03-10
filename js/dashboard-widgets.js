@@ -145,7 +145,7 @@ window.DashboardWidgets = (() => {
         // Get upcoming tasks
         let tasks = [];
         if (hasModule && Reminders.getUpcomingTasks) {
-            tasks = Reminders.getUpcomingTasks(5);
+            tasks = Reminders.getUpcomingTasks(20);
         }
 
         // Weekly summary
