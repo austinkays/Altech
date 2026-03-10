@@ -276,16 +276,14 @@ window.TaskSheetModule = (() => {
         const outEl = document.getElementById('ts-output');
         if (!outEl) return;
 
+        const showNotes = rows.some(r => r.notes && r.notes.trim());
+
         let html = '<table class="ts-table">' +
             '<colgroup>' +
-            '<col style="width:7%">' +
-            '<col style="width:8%">' +
-            '<col style="width:14%">' +
-            '<col style="width:19%">' +
-            '<col style="width:10%">' +
-            '<col style="width:7%">' +
-            '<col style="width:12%">' +
-            '<col style="width:23%">' +
+            (showNotes
+                ? '<col style="width:7%"><col style="width:8%"><col style="width:14%"><col style="width:19%"><col style="width:10%"><col style="width:7%"><col style="width:12%"><col style="width:23%">'
+                : '<col style="width:9%"><col style="width:10%"><col style="width:18%"><col style="width:25%"><col style="width:13%"><col style="width:9%"><col style="width:16%">'
+            ) +
             '</colgroup>';
         html += '<thead><tr>' +
             '<th>Priority</th>' +
@@ -295,7 +293,7 @@ window.TaskSheetModule = (() => {
             '<th>Carrier</th>' +
             '<th>Status</th>' +
             '<th>Policy Dates</th>' +
-            '<th class="ts-col-notes">Notes</th>' +
+            (showNotes ? '<th class="ts-col-notes">Notes</th>' : '') +
         '</tr></thead><tbody>';
 
         rows.forEach(row => {
@@ -325,8 +323,8 @@ window.TaskSheetModule = (() => {
             // Policy Dates (condensed)
             html += '<td class="ts-cell-policy-dates">' + _renderPolicyDates(row) + '</td>';
 
-            // Notes (empty write-in column)
-            html += '<td class="ts-cell-notes"></td>';
+            // Notes (only included when CSV data contains note text)
+            if (showNotes) html += '<td class="ts-cell-notes">' + _escapeHTML(row.notes || '') + '</td>';
 
             html += '</tr>';
         });
@@ -336,8 +334,8 @@ window.TaskSheetModule = (() => {
     }
 
     function _renderPolicyDates(row) {
-        const eff = row.policyEffDate ? 'Eff: ' + _escapeHTML(row.policyEffDate) : '';
-        const exp = row.policyExpDate ? 'Exp: ' + _escapeHTML(row.policyExpDate) : '';
+        const eff = row.policyEffDate ? '<span class="ts-policy-label">Eff:</span> ' + _escapeHTML(row.policyEffDate) : '';
+        const exp = row.policyExpDate ? '<span class="ts-policy-label">Exp:</span> ' + _escapeHTML(row.policyExpDate) : '';
         if (eff && exp) return eff + '<br>' + exp;
         if (exp) return exp;
         if (eff) return eff;

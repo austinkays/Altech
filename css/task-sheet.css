@@ -395,40 +395,57 @@ body.dark-mode .ts-header-btn-outline:hover {
 
     /* ── Print header ─────────────────────────────── */
     .ts-meta {
-        display: flex;
-        align-items: baseline;
-        gap: 0;
-        border: none;
+        display: block;
         background: none;
-        padding: 0 0 5px;
-        margin-bottom: 6px;
-        border-bottom: 1.5px solid #222;
+        border: none;
+        padding: 0 0 8px;
+        margin-bottom: 8px;
+        border-bottom: 2pt solid #000;
+    }
+
+    /* "TASK SHEET" title auto-injected above agency name */
+    .ts-meta::before {
+        content: "Task Sheet";
+        display: block;
+        font-size: 8.5pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: #555;
+        margin-bottom: 4px;
+    }
+
+    .ts-meta-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        line-height: 1.4;
     }
 
     .ts-meta-agency {
-        font-size: 9pt;
+        font-size: 10pt;
         font-weight: 700;
         color: #000;
-        flex: 1;
     }
 
     .ts-meta-date {
-        font-size: 7.5pt;
-        color: #444;
+        font-size: 7pt;
+        color: #555;
     }
 
     .ts-meta-count {
-        font-size: 7.5pt;
-        color: #444;
+        font-size: 7pt;
+        color: #333;
+        font-weight: 600;
     }
 
     .ts-meta-overdue {
-        font-size: 7.5pt;
-        color: #b00;
+        font-size: 7pt;
+        color: #000;
         font-weight: 700;
     }
 
-    /* Hide the divider dots and clear link */
+    /* Hide screen-only elements */
     .ts-meta-sep,
     .ts-meta-clear {
         display: none !important;
@@ -437,6 +454,11 @@ body.dark-mode .ts-header-btn-outline:hover {
     /* ── Table ────────────────────────────────────── */
     .ts-output {
         overflow: visible !important;
+    }
+
+    /* Ensure column headers repeat on every print page */
+    thead {
+        display: table-header-group;
     }
 
     .ts-table {
@@ -449,15 +471,8 @@ body.dark-mode .ts-header-btn-outline:hover {
         table-layout: fixed;
     }
 
-    /* Column width distribution (8 columns, portrait letter) */
-    .ts-table colgroup col:nth-child(1)  { width: 7%; }   /* Priority */
-    .ts-table colgroup col:nth-child(2)  { width: 8%; }   /* Due Date */
-    .ts-table colgroup col:nth-child(3)  { width: 14%; }  /* Client */
-    .ts-table colgroup col:nth-child(4)  { width: 19%; }  /* Subject/Task */
-    .ts-table colgroup col:nth-child(5)  { width: 10%; }  /* Carrier */
-    .ts-table colgroup col:nth-child(6)  { width: 7%; }   /* Status */
-    .ts-table colgroup col:nth-child(7)  { width: 12%; }  /* Policy Dates */
-    .ts-table colgroup col:nth-child(8)  { width: 23%; }  /* Notes */
+    /* Column widths are set via inline styles on <col> in task-sheet.js.
+       7 columns when no notes data; 8 columns when notes data is present. */
 
     .ts-table thead tr {
         background: #1a1a2e !important;
@@ -479,7 +494,7 @@ body.dark-mode .ts-header-btn-outline:hover {
     }
 
     .ts-table td {
-        padding: 4px 5px;
+        padding: 6px 5px;
         color: #111;
         border-bottom: 0.5pt solid #ddd;
         vertical-align: top;
@@ -498,20 +513,24 @@ body.dark-mode .ts-header-btn-outline:hover {
         background: inherit;
     }
 
-    /* Overdue rows — light red tint */
+    /* Overdue rows — greyscale with strong left rule */
     .ts-row-overdue {
-        background: #fff0f0 !important;
+        background: #e8e8e8 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
 
-    /* Overdue date text */
-    .ts-overdue-inline {
-        font-weight: 700;
-        color: #b00;
+    .ts-row-overdue td:first-child {
+        border-left: 3pt solid #000;
     }
 
-    /* Priority badges — compact, colored borders */
+    /* Overdue inline marker */
+    .ts-overdue-inline {
+        font-weight: 700;
+        color: #000;
+    }
+
+    /* Priority badges — greyscale filled */
     .ts-priority-badge {
         display: inline-block;
         padding: 1px 4px;
@@ -520,21 +539,26 @@ body.dark-mode .ts-header-btn-outline:hover {
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.02em;
-        border: 0.75pt solid currentColor;
-        background: none !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
 
-    .ts-priority-critical { color: #b00 !important; }
-    .ts-priority-high     { color: #c55200 !important; }
-    .ts-priority-medium   { color: #7a5c00 !important; }
-    .ts-priority-low      { color: #1a6b3a !important; }
+    .ts-priority-critical { background: #000 !important; color: #fff !important; }
+    .ts-priority-high     { background: #444 !important; color: #fff !important; }
+    .ts-priority-medium   { background: #999 !important; color: #000 !important; }
+    .ts-priority-low      { background: #ddd !important; color: #333 !important; }
 
     /* Notes write-in column */
     .ts-cell-notes {
         border-left: 0.75pt solid #bbb;
         min-height: 22px;
+    }
+
+    /* Policy date labels ("Eff:", "Exp:") — slightly smaller and greyed */
+    .ts-policy-label {
+        font-size: 85%;
+        font-weight: 600;
+        color: #555;
     }
 
     /* Policy dates — compact */
