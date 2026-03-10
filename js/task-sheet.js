@@ -119,19 +119,25 @@ window.TaskSheetModule = (() => {
                 // Show meta bar
                 const overdueCount = _rows.filter(r => r.overdue).length;
                 if (metaEl) {
+                    const pageTitle  = _getPageTitle();
                     const agencyName = _getAgencyName();
                     const now = new Date();
-                    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                    const countStr = _rows.length + ' task' + (_rows.length !== 1 ? 's' : '');
+                    const overdueStr = overdueCount > 0
+                        ? ' &nbsp;&middot;&nbsp; <span class="ts-meta-overdue">' + overdueCount + ' overdue</span>'
+                        : '';
+
+                    // Row 1: personalized title (left) + date (right)
+                    // Row 2: agency sub-line (left) + task count (right)
                     metaEl.innerHTML =
                         '<div class="ts-meta-row">' +
-                            '<span class="ts-meta-agency">' + _escapeHTML(agencyName) + '</span>' +
+                            '<span class="ts-meta-title">' + _escapeHTML(pageTitle) + '</span>' +
                             '<span class="ts-meta-date">' + _escapeHTML(dateStr) + '</span>' +
                         '</div>' +
-                        '<div class="ts-meta-row">' +
-                            '<span class="ts-meta-count">' + _rows.length + ' task' + (_rows.length !== 1 ? 's' : '') + '</span>' +
-                            (overdueCount > 0
-                                ? '<span class="ts-meta-overdue">' + overdueCount + ' overdue</span>'
-                                : '<span class="ts-meta-clear">All current</span>') +
+                        '<div class="ts-meta-row ts-meta-sub-row">' +
+                            '<span class="ts-meta-agency">' + _escapeHTML(agencyName) + '</span>' +
+                            '<span class="ts-meta-count">' + countStr + overdueStr + '</span>' +
                         '</div>';
                     metaEl.style.display = '';
                 }
@@ -416,6 +422,28 @@ window.TaskSheetModule = (() => {
        UTILITIES
        ═══════════════════════════════════════════════════ */
 
+    /**
+     * Returns a personalized title: "Austin's Tasks"
+     * Falls back to agency name, then generic fallback.
+     */
+    function _getPageTitle() {
+        try {
+            // Auth display name (Firebase — most authoritative)
+            if (typeof Auth !== 'undefined' && Auth.displayName) {
+                const first = Auth.displayName.trim().split(' ')[0];
+                if (first) return first + '\u2019s Tasks';
+            }
+            // Onboarding name stored in localStorage
+            const userName = localStorage.getItem('altech_user_name');
+            if (userName && userName.trim()) {
+                const first = userName.trim().split(' ')[0];
+                if (first) return first + '\u2019s Tasks';
+            }
+        } catch (e) { /* ignore */ }
+        return 'My Tasks';
+    }
+
+    /** Agency name for the sub-line. */
     function _getAgencyName() {
         try {
             const profile = localStorage.getItem('altech_agency_profile');
@@ -424,7 +452,7 @@ window.TaskSheetModule = (() => {
                 if (parsed && parsed.agencyName) return parsed.agencyName;
             }
         } catch (e) { /* ignore */ }
-        return 'Agency Task Sheet';
+        return '';
     }
 
     function _escapeHTML(str) {
