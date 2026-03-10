@@ -286,17 +286,16 @@ window.TaskSheetModule = (() => {
         // otherwise it stays blank for agents to write on during print.
         const hasCsvNotes = rows.some(r => r.notes && r.notes.trim());
 
-        // 8 columns always: Priority | Due Date | Client | Task | Carrier | Status | Policy Dates | Agent Notes
+        // 7 columns always: Priority | Due Date | Client | Task | Carrier | Policy Dates | Agent Notes
         let html = '<table class="ts-table">' +
             '<colgroup>' +
-            '<col style="width:8%">' +
+            '<col style="width:7%">' +
             '<col style="width:9%">' +
             '<col style="width:14%">' +
             '<col style="width:21%">' +
-            '<col style="width:10%">' +
-            '<col style="width:8%">' +
-            '<col style="width:12%">' +
-            '<col style="width:18%">' +
+            '<col style="width:9%">' +
+            '<col style="width:16%">' +
+            '<col style="width:24%">' +
             '</colgroup>';
 
         html += '<thead><tr>' +
@@ -305,7 +304,6 @@ window.TaskSheetModule = (() => {
             '<th>Client</th>' +
             '<th>Task</th>' +
             '<th>Carrier</th>' +
-            '<th>Status</th>' +
             '<th>Policy Dates</th>' +
             '<th class="ts-col-notes">Agent Notes</th>' +
         '</tr></thead><tbody>';
@@ -330,9 +328,6 @@ window.TaskSheetModule = (() => {
 
             // Carrier — truncate at 22 chars
             html += '<td class="ts-cell-carrier">' + _escapeHTML(_truncate(row.carrier, 22)) + '</td>';
-
-            // Status
-            html += '<td class="ts-cell-status">' + _escapeHTML(row.status) + '</td>';
 
             // Policy Dates (condensed)
             html += '<td class="ts-cell-policy-dates">' + _renderPolicyDates(row) + '</td>';
