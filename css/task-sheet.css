@@ -239,13 +239,84 @@ body.dark-mode .ts-dedupe-count {
 .ts-cell-policy-dates { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
 .ts-cell-notes { min-width: 180px; }
 
-/* Notes column — screen placeholder hint */
+/* Notes column — screen placeholder hint (kept for compat) */
 .ts-notes-placeholder {
     font-size: 11px;
     color: var(--text-tertiary);
     font-style: italic;
     opacity: 0.5;
     user-select: none;
+}
+
+/* ── Done checkbox ────────────────────────────────────── */
+.ts-col-check,
+.ts-cell-check {
+    width: 38px;
+    min-width: 38px;
+    text-align: center;
+    padding: 0 6px;
+    vertical-align: middle;
+}
+
+.ts-task-check {
+    width: 17px;
+    height: 17px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--success);
+    vertical-align: middle;
+    display: block;
+    margin: auto;
+}
+
+/* Checked rows: dim everything + strike the task text */
+.ts-table tbody tr:has(.ts-task-check:checked) td {
+    opacity: 0.38;
+    transition: opacity 0.18s;
+}
+
+.ts-table tbody tr:has(.ts-task-check:checked) .ts-cell-task {
+    text-decoration: line-through;
+    text-decoration-color: var(--text-secondary);
+}
+
+.ts-table tbody tr:has(.ts-task-check:checked) {
+    background: rgba(52, 199, 89, 0.04) !important;
+}
+
+/* ── Inline notes (contenteditable) ──────────────────── */
+.ts-notes-edit {
+    min-height: 1em;
+    outline: none;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    transition: background 0.15s, box-shadow 0.15s;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.ts-notes-edit:hover {
+    background: var(--bg-input);
+}
+
+.ts-notes-edit:focus {
+    background: var(--bg-input);
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.25);
+}
+
+/* CSS placeholder via :empty + ::before for contenteditable */
+.ts-notes-edit:not(:focus):empty::before {
+    content: attr(data-placeholder);
+    color: var(--text-tertiary);
+    font-style: italic;
+    opacity: 0.5;
+    pointer-events: none;
+    display: block;
+}
+
+body.dark-mode .ts-notes-edit:focus {
+    box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.3);
 }
 
 /* ── Overdue row ──────────────────────────────────────── */
@@ -493,7 +564,8 @@ body.dark-mode .ts-header-btn-outline:hover {
     /* Hide screen-only elements */
     .ts-meta-sep,
     .ts-meta-clear,
-    .ts-notes-placeholder {
+    .ts-notes-placeholder,
+    .ts-notes-edit::before {
         display: none !important;
     }
 
@@ -660,6 +732,36 @@ body.dark-mode .ts-header-btn-outline:hover {
         background: none;
         border: none;
         padding: 0;
+    }
+
+    /* Done checkbox — preserve checked/unchecked visual state in print */
+    .ts-task-check {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .ts-cell-check {
+        padding: 4px 3px;
+        vertical-align: middle;
+    }
+
+    /* Checked rows in print — strike + grey */
+    .ts-table tbody tr:has(.ts-task-check:checked) .ts-cell-task {
+        text-decoration: line-through;
+        color: #999;
+    }
+
+    .ts-table tbody tr:has(.ts-task-check:checked) td {
+        color: #999;
+    }
+
+    /* Inline notes — strip contenteditable chrome for clean print */
+    .ts-notes-edit {
+        min-height: auto;
+        padding: 0;
+        margin: 0;
+        background: none !important;
+        box-shadow: none !important;
     }
 
     /* Footer rule */

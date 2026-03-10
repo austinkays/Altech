@@ -341,19 +341,21 @@ window.TaskSheetModule = (() => {
         // otherwise it stays blank for agents to write on during print.
         const hasCsvNotes = rows.some(r => r.notes && r.notes.trim());
 
-        // 7 columns always: Priority | Due Date | Client | Task | Carrier | Policy Dates | Agent Notes
+        // 8 columns: ✓ | Priority | Due Date | Client | Task | Carrier | Policy Dates | Agent Notes
         let html = '<table class="ts-table">' +
             '<colgroup>' +
-            '<col style="width:7%">' +
+            '<col class="ts-col-check">' +
+            '<col style="width:6%">' +
+            '<col style="width:8%">' +
+            '<col style="width:13%">' +
+            '<col style="width:20%">' +
+            '<col style="width:8%">' +
             '<col style="width:9%">' +
-            '<col style="width:14%">' +
-            '<col style="width:21%">' +
-            '<col style="width:9%">' +
-            '<col style="width:10%">' +
-            '<col style="width:30%">' +
+            '<col style="width:32%">' +
             '</colgroup>';
 
         html += '<thead><tr>' +
+            '<th class="ts-col-check" title="Mark task done"></th>' +
             '<th>Priority</th>' +
             '<th>Due Date</th>' +
             '<th>Client</th>' +
@@ -366,6 +368,9 @@ window.TaskSheetModule = (() => {
         rows.forEach(row => {
             const rowClass = row.overdue ? ' class="ts-row-overdue"' : '';
             html += '<tr' + rowClass + '>';
+
+            // Done checkbox — checking this dims + strikes the row via CSS :has()
+            html += '<td class="ts-cell-check"><input type="checkbox" class="ts-task-check" aria-label="Mark task done"></td>';
 
             // Priority badge
             html += '<td class="ts-cell-priority">' + _renderPriorityBadge(row.priority) + '</td>';
@@ -389,11 +394,9 @@ window.TaskSheetModule = (() => {
             // Policy Dates (condensed)
             html += '<td class="ts-cell-policy-dates">' + _renderPolicyDates(row) + '</td>';
 
-            // Agent Notes — CSV data if present, otherwise blank for handwriting
-            const notesContent = hasCsvNotes && row.notes
-                ? _escapeHTML(row.notes)
-                : '<span class="ts-notes-placeholder">write here</span>';
-            html += '<td class="ts-cell-notes">' + notesContent + '</td>';
+            // Agent Notes — contenteditable: type on screen or write on the printout
+            const notesText = hasCsvNotes && row.notes ? _escapeHTML(row.notes) : '';
+            html += '<td class="ts-cell-notes"><div class="ts-notes-edit" contenteditable="true" spellcheck="false" data-placeholder="write here">' + notesText + '</div></td>';
 
             html += '</tr>';
         });
