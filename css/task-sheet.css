@@ -117,6 +117,66 @@ body.dark-mode .ts-dedupe-count {
     margin: 0;
 }
 
+/* ── Agent filter bar ────────────────────────────────── */
+
+.ts-agent-filter {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.ts-filter-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 2px;
+}
+
+.ts-agent-chip {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ts-agent-chip:hover {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+}
+
+.ts-agent-chip-on {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+    color: #fff;
+}
+
+.ts-agent-chip-on:hover {
+    background: var(--apple-blue-hover);
+    border-color: var(--apple-blue-hover);
+    color: #fff;
+}
+
+body.dark-mode .ts-agent-chip {
+    background: #1C1C1E;
+    border-color: #38383A;
+    color: #98989D;
+}
+
+body.dark-mode .ts-agent-chip-on {
+    background: #0A84FF;
+    border-color: #0A84FF;
+    color: #fff;
+}
+
 /* ── Secondary "add CSV" drop zone ───────────────────── */
 
 .ts-add-drop-zone {

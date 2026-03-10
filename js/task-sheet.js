@@ -245,10 +245,66 @@ window.TaskSheetModule = (() => {
         return expanded;
     }
 
+    /* ═══════════════════════════════════════════════════
+       AGENT FILTER — persistent exclusion list
+       ═══════════════════════════════════════════════════ */
+
+    const PROFILE_KEY = 'altech_agency_profile';
+
+    function _loadExcluded() {
+        try {
+            const p = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+            return Array.isArray(p.taskSheetExcludedAgents) ? p.taskSheetExcludedAgents : [];
+        } catch { return []; }
+    }
+
+    function _saveExcluded(excluded) {
+        try {
+            const p = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+            p.taskSheetExcludedAgents = excluded;
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+            if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) CloudSync.schedulePush();
+        } catch { /* ignore */ }
+    }
+
+    /**
+     * Render the agent filter chip bar.
+     * allAgents: sorted array of all agent keys found in the data.
+     * excluded: array of agent keys currently excluded.
+     * onToggle: called with the new excluded array whenever a chip is clicked.
+     */
+    function _renderAgentFilter(allAgents, excluded, onToggle) {
+        const bar = document.getElementById('ts-agent-filter');
+        if (!bar) return;
+
+        let html = '<span class="ts-filter-label">Print:</span>';
+        allAgents.forEach(agent => {
+            const isOn = !excluded.includes(agent);
+            const displayName = agent.replace(/^[A-Z]{2,4}\s*-\s*/, '').trim().split(' ')[0];
+            const cls = 'ts-agent-chip' + (isOn ? ' ts-agent-chip-on' : '');
+            html += '<button class="' + cls + '" data-agent="' + _escapeHTML(agent) + '">' + _escapeHTML(displayName) + '</button>';
+        });
+        bar.innerHTML = html;
+        bar.style.display = '';
+
+        bar.querySelectorAll('.ts-agent-chip').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const agent = btn.dataset.agent;
+                const current = _loadExcluded();
+                const next = current.includes(agent)
+                    ? current.filter(a => a !== agent)   // was excluded → include
+                    : [...current, agent];                // was included → exclude
+                _saveExcluded(next);
+                onToggle(next);
+            });
+        });
+    }
+
     /** Sort, detect team mode, and render. Called after any file load or merge. */
     function _mergeAndRender() {
         const errEl      = document.getElementById('ts-error');
         const metaEl     = document.getElementById('ts-meta');
+        const filterEl   = document.getElementById('ts-agent-filter');
         const outEl      = document.getElementById('ts-output');
         const dropEl     = document.getElementById('ts-drop-zone');
         const addDropEl  = document.getElementById('ts-add-drop-zone');
@@ -257,20 +313,30 @@ window.TaskSheetModule = (() => {
         const showAllBtn = document.getElementById('ts-show-all-btn');
         const dedupeBtn  = document.getElementById('ts-dedupe-btn');
 
-        if (errEl)  errEl.style.display = 'none';
-        if (metaEl) metaEl.style.display = 'none';
-        if (outEl)  outEl.innerHTML = '';
+        if (errEl)    errEl.style.display = 'none';
+        if (metaEl)   metaEl.style.display = 'none';
+        if (filterEl) filterEl.style.display = 'none';
+        if (outEl)    outEl.innerHTML = '';
 
         const rows = _expandMultiAssignee(_rows);
         _sortRows(rows);
 
         // Detect team mode: CSV has Assignee column with multiple distinct agents
-        const assignees = [...new Set(rows.map(r => r.assignee).filter(Boolean))];
-        _teamMode = assignees.length > 1;
+        const allAgents = [...new Set(rows.map(r => r.assignee).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+        _teamMode = allAgents.length > 1;
 
         if (_teamMode) {
-            _renderTeamTables(rows);
-            if (metaEl) metaEl.style.display = 'none';
+            const excluded = _loadExcluded();
+            const visibleRows = rows.filter(r => !r.assignee || !excluded.includes(r.assignee));
+            _renderTeamTables(visibleRows);
+
+            // Render agent filter chips; re-render on toggle
+            const onToggle = (newExcluded) => {
+                const filtered = rows.filter(r => !r.assignee || !newExcluded.includes(r.assignee));
+                _renderTeamTables(filtered);
+                _renderAgentFilter(allAgents, newExcluded, onToggle);
+            };
+            _renderAgentFilter(allAgents, excluded, onToggle);
         } else {
             _renderTable(rows);
 
@@ -722,6 +788,7 @@ window.TaskSheetModule = (() => {
     function _clearTable() {
         const outEl      = document.getElementById('ts-output');
         const metaEl     = document.getElementById('ts-meta');
+        const filterEl   = document.getElementById('ts-agent-filter');
         const dropEl     = document.getElementById('ts-drop-zone');
         const addDropEl  = document.getElementById('ts-add-drop-zone');
         const errEl      = document.getElementById('ts-error');
@@ -737,6 +804,7 @@ window.TaskSheetModule = (() => {
 
         if (outEl)      { outEl.innerHTML = ''; outEl.classList.remove('ts-show-all-rows'); }
         if (metaEl)     { metaEl.innerHTML = ''; metaEl.style.display = 'none'; }
+        if (filterEl)   { filterEl.innerHTML = ''; filterEl.style.display = 'none'; }
         if (errEl)      errEl.style.display = 'none';
         if (dropEl)     dropEl.style.display = '';
         if (addDropEl)  addDropEl.style.display = 'none';
