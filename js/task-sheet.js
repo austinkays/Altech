@@ -18,13 +18,14 @@ window.TaskSheetModule = (() => {
     const EXPECTED_HEADERS = [
         'overdue', 'on log', 'on attachment', 'created date', 'category',
         'task title', 'due date', 'priority', 'client',
-        'carrier', 'status', 'created by', 'client id',
+        'carrier', 'status', 'assignee', 'created by', 'client id',
         'last updated date', 'policy expiration date', 'policy effective date', 'policy status date'
     ];
 
     let _rows        = [];
     let _showAll     = false;
     let _dedupedMode = false;
+    let _teamMode    = false; // true when CSV has multi-agent Assignee data
 
     /* ═══════════════════════════════════════════════════
        PUBLIC
@@ -124,39 +125,46 @@ window.TaskSheetModule = (() => {
                 }
 
                 _sortRows(_rows);
-                _renderTable(_rows);
 
-                // Show meta bar
-                const overdueCount = _rows.filter(r => r.overdue).length;
-                if (metaEl) {
-                    const pageTitle  = _getPageTitle();
-                    const agencyName = _getAgencyName();
-                    const now = new Date();
-                    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-                    const countStr = _rows.length + ' task' + (_rows.length !== 1 ? 's' : '');
-                    const overdueStr = overdueCount > 0
-                        ? ' &nbsp;&middot;&nbsp; <span class="ts-meta-overdue">' + overdueCount + ' overdue</span>'
-                        : '';
+                // Detect team mode: CSV has Assignee column with multiple distinct agents
+                const assignees = [...new Set(_rows.map(r => r.assignee).filter(Boolean))];
+                _teamMode = assignees.length > 1;
 
-                    // Row 1: personalized title (left) + date (right)
-                    // Row 2: agency sub-line (left) + task count (right)
-                    metaEl.innerHTML =
-                        '<div class="ts-meta-row">' +
-                            '<span class="ts-meta-title">' + _escapeHTML(pageTitle) + '</span>' +
-                            '<span class="ts-meta-date">' + _escapeHTML(dateStr) + '</span>' +
-                        '</div>' +
-                        '<div class="ts-meta-row ts-meta-sub-row">' +
-                            '<span class="ts-meta-agency">' + _escapeHTML(agencyName) + '</span>' +
-                            '<span class="ts-meta-count">' + countStr + overdueStr + '</span>' +
-                        '</div>';
-                    metaEl.style.display = '';
+                if (_teamMode) {
+                    _renderTeamTables(_rows);
+                    if (metaEl) metaEl.style.display = 'none'; // team mode has per-agent headers
+                } else {
+                    _renderTable(_rows);
+
+                    // Show meta bar (single-agent mode)
+                    const overdueCount = _rows.filter(r => r.overdue).length;
+                    if (metaEl) {
+                        const pageTitle  = _getPageTitle();
+                        const agencyName = _getAgencyName();
+                        const now = new Date();
+                        const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                        const countStr = _rows.length + ' task' + (_rows.length !== 1 ? 's' : '');
+                        const overdueStr = overdueCount > 0
+                            ? ' &nbsp;&middot;&nbsp; <span class="ts-meta-overdue">' + overdueCount + ' overdue</span>'
+                            : '';
+                        metaEl.innerHTML =
+                            '<div class="ts-meta-row">' +
+                                '<span class="ts-meta-title">' + _escapeHTML(pageTitle) + '</span>' +
+                                '<span class="ts-meta-date">' + _escapeHTML(dateStr) + '</span>' +
+                            '</div>' +
+                            '<div class="ts-meta-row ts-meta-sub-row">' +
+                                '<span class="ts-meta-agency">' + _escapeHTML(agencyName) + '</span>' +
+                                '<span class="ts-meta-count">' + countStr + overdueStr + '</span>' +
+                            '</div>';
+                        metaEl.style.display = '';
+                    }
                 }
 
                 // Toggle visibility
                 if (dropEl)     dropEl.style.display = 'none';
                 if (printBtn)   printBtn.style.display = '';
-                if (showAllBtn) showAllBtn.style.display = '';
-                if (dedupeBtn)  dedupeBtn.style.display = '';
+                if (showAllBtn) { showAllBtn.style.display = _teamMode ? 'none' : ''; }
+                if (dedupeBtn)  { dedupeBtn.style.display = _teamMode ? 'none' : ''; }
                 if (clearBtn)   clearBtn.style.display = '';
 
             } catch (err) {
@@ -216,7 +224,8 @@ window.TaskSheetModule = (() => {
                 status:        get('status'),
                 policyExpDate: get('policy expiration date'),
                 policyEffDate: get('policy effective date'),
-                assignedTo:    get('created by')
+                assignedTo:    get('created by'),
+                assignee:      get('assignee')
             });
         }
         return rows;
@@ -336,7 +345,10 @@ window.TaskSheetModule = (() => {
     function _renderTable(rows) {
         const outEl = document.getElementById('ts-output');
         if (!outEl) return;
+        outEl.innerHTML = _buildTableHTML(rows);
+    }
 
+    function _buildTableHTML(rows) {
         // Notes column is always rendered — CSV data fills it if present,
         // otherwise it stays blank for agents to write on during print.
         const hasCsvNotes = rows.some(r => r.notes && r.notes.trim());
@@ -369,32 +381,22 @@ window.TaskSheetModule = (() => {
             const rowClass = row.overdue ? ' class="ts-row-overdue"' : '';
             html += '<tr' + rowClass + '>';
 
-            // Done checkbox — checking this dims + strikes the row via CSS :has()
             html += '<td class="ts-cell-check"><input type="checkbox" class="ts-task-check" aria-label="Mark task done"></td>';
-
-            // Priority badge
             html += '<td class="ts-cell-priority">' + _renderPriorityBadge(row.priority) + '</td>';
 
-            // Due Date with inline overdue marker
             const dateDisplay = _escapeHTML(_formatDate(row.dueDate));
             const overdueMarker = row.overdue ? ' <span class="ts-overdue-inline" title="Overdue">⚠</span>' : '';
             html += '<td class="ts-cell-date">' + dateDisplay + overdueMarker + '</td>';
 
-            // Client (strip ID + DBA, truncate)
             html += '<td class="ts-cell-client">' + _escapeHTML(_displayClient(row.client)) + '</td>';
 
-            // Task — truncate at 70 chars so long descriptions don't force multi-line rows
             let taskText = _escapeHTML(_truncate(row.task, 70));
             if (row._dupeCount) taskText += ' <span class="ts-dedupe-count">+' + row._dupeCount + ' more</span>';
             html += '<td class="ts-cell-task">' + taskText + '</td>';
 
-            // Carrier — truncate at 22 chars
             html += '<td class="ts-cell-carrier">' + _escapeHTML(_truncate(row.carrier, 22)) + '</td>';
-
-            // Policy Dates (condensed)
             html += '<td class="ts-cell-policy-dates">' + _renderPolicyDates(row) + '</td>';
 
-            // Agent Notes — contenteditable: type on screen or write on the printout
             const notesText = hasCsvNotes && row.notes ? _escapeHTML(row.notes) : '';
             html += '<td class="ts-cell-notes"><div class="ts-notes-edit" contenteditable="true" spellcheck="false" data-placeholder="write here">' + notesText + '</div></td>';
 
@@ -402,6 +404,64 @@ window.TaskSheetModule = (() => {
         });
 
         html += '</tbody></table>';
+        return html;
+    }
+
+    function _renderTeamTables(rows) {
+        const outEl = document.getElementById('ts-output');
+        if (!outEl) return;
+
+        const agencyName = _getAgencyName();
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+        // Group by assignee, preserving sort order within each group
+        const groups = new Map();
+        rows.forEach(row => {
+            const key = row.assignee || 'Unassigned';
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(row);
+        });
+
+        // Sort assignee names alphabetically so pages are predictable
+        const sortedAgents = [...groups.keys()].sort((a, b) => a.localeCompare(b));
+
+        let html = '';
+        sortedAgents.forEach((agent, idx) => {
+            const agentRows = groups.get(agent);
+            const overdueCount = agentRows.filter(r => r.overdue).length;
+            const countStr = agentRows.length + ' task' + (agentRows.length !== 1 ? 's' : '');
+            const overdueStr = overdueCount > 0
+                ? ' &nbsp;&middot;&nbsp; <span class="ts-meta-overdue">' + overdueCount + ' overdue</span>'
+                : '';
+
+            // Strip code prefix like "HRS - " to get just the name
+            const displayName = agent.replace(/^[A-Z]{2,4}\s*-\s*/, '').trim();
+            const pageTitle = displayName
+                ? displayName + (displayName.endsWith('s') ? '\u2019 Tasks' : '\u2019s Tasks')
+                : 'Tasks';
+
+            const sectionClass = idx === 0 ? 'ts-agent-section' : 'ts-agent-section ts-agent-section-break';
+
+            html += '<div class="' + sectionClass + '">';
+
+            // Per-agent meta header
+            html +=
+                '<div class="ts-meta ts-meta-print">' +
+                    '<div class="ts-meta-row">' +
+                        '<span class="ts-meta-title">' + _escapeHTML(pageTitle) + '</span>' +
+                        '<span class="ts-meta-date">' + _escapeHTML(dateStr) + '</span>' +
+                    '</div>' +
+                    '<div class="ts-meta-row ts-meta-sub-row">' +
+                        '<span class="ts-meta-agency">' + _escapeHTML(agencyName) + '</span>' +
+                        '<span class="ts-meta-count">' + countStr + overdueStr + '</span>' +
+                    '</div>' +
+                '</div>';
+
+            html += _buildTableHTML(agentRows);
+            html += '</div>';
+        });
+
         outEl.innerHTML = html;
     }
 
@@ -486,13 +546,13 @@ window.TaskSheetModule = (() => {
             // Auth display name (Firebase — most authoritative)
             if (typeof Auth !== 'undefined' && Auth.displayName) {
                 const first = Auth.displayName.trim().split(' ')[0];
-                if (first) return first + '\u2019s Tasks';
+                if (first) return first + (first.endsWith('s') ? '\u2019 Tasks' : '\u2019s Tasks');
             }
             // Onboarding name stored in localStorage
             const userName = localStorage.getItem('altech_user_name');
             if (userName && userName.trim()) {
                 const first = userName.trim().split(' ')[0];
-                if (first) return first + '\u2019s Tasks';
+                if (first) return first + (first.endsWith('s') ? '\u2019 Tasks' : '\u2019s Tasks');
             }
         } catch (e) { /* ignore */ }
         return 'My Tasks';
@@ -536,6 +596,7 @@ window.TaskSheetModule = (() => {
         _rows        = [];
         _showAll     = false;
         _dedupedMode = false;
+        _teamMode    = false;
 
         if (outEl)   { outEl.innerHTML = ''; outEl.classList.remove('ts-show-all-rows'); }
         if (metaEl)  { metaEl.innerHTML = ''; metaEl.style.display = 'none'; }

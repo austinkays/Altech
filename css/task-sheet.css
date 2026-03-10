@@ -774,6 +774,45 @@ body.dark-mode .ts-header-btn-outline:hover {
 }
 
 /* ═══════════════════════════════════════════════════════
+   TEAM MODE — per-agent sections
+   ═══════════════════════════════════════════════════════ */
+
+.ts-agent-section {
+    margin-bottom: 40px;
+}
+
+.ts-agent-section .ts-meta {
+    margin-bottom: 12px;
+}
+
+/* Screen: subtle divider between agents */
+.ts-agent-section-break {
+    border-top: 2px dashed var(--border);
+    padding-top: 32px;
+    margin-top: 8px;
+}
+
+@media print {
+    /* Each agent section starts on a new page */
+    .ts-agent-section-break {
+        page-break-before: always;
+        border-top: none;
+        padding-top: 0;
+        margin-top: 0;
+    }
+
+    /* Per-agent meta inside team sections uses the same print styles as .ts-meta */
+    .ts-agent-section .ts-meta {
+        display: block;
+        background: none;
+        border: none;
+        padding: 0 0 5px;
+        margin-bottom: 6px;
+        border-bottom: 1.5pt solid #000;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════════════════════ */
 
