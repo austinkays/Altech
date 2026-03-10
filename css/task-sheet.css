@@ -613,6 +613,13 @@ body.dark-mode .ts-header-btn-outline:hover {
         page-break-inside: avoid;
     }
 
+    /* Single-page default: hide rows beyond the first 20 (lower-priority tasks).
+       Tasks are pre-sorted overdue → priority → due date, so the most urgent
+       items are always at the top. */
+    .ts-table tbody tr:nth-child(n+21) {
+        display: none !important;
+    }
+
     /* Footer rule */
     .ts-table tfoot td {
         border-top: 1pt solid #999;
