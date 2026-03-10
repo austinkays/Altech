@@ -735,13 +735,11 @@ body.dark-mode .ts-header-btn-outline:hover {
         white-space: nowrap;
     }
 
-    /* Task — clamp to 2 lines max so long tasks don't balloon row height */
+    /* Task — allow up to 2 lines, overflow hidden (no line-clamp artifact) */
     .ts-cell-task {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
         overflow: hidden;
-        max-height: 2.8em;
+        max-height: 2.7em;
+        line-height: 1.35;
     }
 
     /* All rows white — no alternating fill, no shading */
@@ -945,13 +943,11 @@ body.dark-mode .ts-overflow-notice {
 }
 
 @media print {
-    /* Every agent section gets its own page — break after so overflow pages
-       don't bleed into the next agent's section */
+    /* Every agent section gets its own page */
     .ts-agent-section {
         display: block;
         page-break-after: always;
         break-after: page;
-        page-break-inside: avoid;
     }
 
     /* The -break variant just removes screen-only styles */
