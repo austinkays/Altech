@@ -46,6 +46,34 @@
     color: var(--text);
 }
 
+/* Active/toggled state for Print All + Dedupe buttons */
+.ts-header-btn-active {
+    background: var(--apple-blue) !important;
+    color: #fff !important;
+    border-color: var(--apple-blue) !important;
+}
+.ts-header-btn-active:hover {
+    background: var(--apple-blue-hover) !important;
+    border-color: var(--apple-blue-hover) !important;
+}
+
+/* Dedupe count badge — shown in Task cell when duplicates are collapsed */
+.ts-dedupe-count {
+    display: inline-block;
+    font-size: 0.72em;
+    padding: 1px 6px;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    border-radius: 10px;
+    margin-left: 4px;
+    vertical-align: middle;
+    font-weight: 500;
+}
+body.dark-mode .ts-dedupe-count {
+    background: #3a3a3c;
+    color: rgba(235,235,245,0.75);
+}
+
 /* ── Drop zone ────────────────────────────────────────── */
 
 .ts-drop-zone {
@@ -618,6 +646,20 @@ body.dark-mode .ts-header-btn-outline:hover {
        items are always at the top. */
     .ts-table tbody tr:nth-child(n+21) {
         display: none !important;
+    }
+
+    /* Override the 20-row cap when agent chose "Print All" */
+    .ts-show-all-rows .ts-table tbody tr:nth-child(n+21) {
+        display: table-row !important;
+    }
+
+    /* Dedupe count badge — compact grey text in print */
+    .ts-dedupe-count {
+        font-size: 6pt;
+        color: #666;
+        background: none;
+        border: none;
+        padding: 0;
     }
 
     /* Footer rule */

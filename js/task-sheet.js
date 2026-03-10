@@ -22,7 +22,9 @@ window.TaskSheetModule = (() => {
         'last updated date', 'policy expiration date', 'policy effective date', 'policy status date'
     ];
 
-    let _rows = [];
+    let _rows        = [];
+    let _showAll     = false;
+    let _dedupedMode = false;
 
     /* ═══════════════════════════════════════════════════
        PUBLIC
@@ -70,9 +72,15 @@ window.TaskSheetModule = (() => {
             });
         }
 
+        const showAllBtn = document.getElementById('ts-show-all-btn');
+        const dedupeBtn  = document.getElementById('ts-dedupe-btn');
+
         if (printBtn) {
             printBtn.addEventListener('click', () => window.print());
         }
+
+        if (showAllBtn) showAllBtn.addEventListener('click', _toggleShowAll);
+        if (dedupeBtn)  dedupeBtn.addEventListener('click', _toggleDedupe);
 
         if (clearBtn) {
             clearBtn.addEventListener('click', _clearTable);
@@ -84,12 +92,14 @@ window.TaskSheetModule = (() => {
        ═══════════════════════════════════════════════════ */
 
     function _handleFile(file) {
-        const errEl   = document.getElementById('ts-error');
-        const metaEl  = document.getElementById('ts-meta');
-        const outEl   = document.getElementById('ts-output');
-        const dropEl  = document.getElementById('ts-drop-zone');
-        const printBtn = document.getElementById('ts-print-btn');
-        const clearBtn = document.getElementById('ts-clear-btn');
+        const errEl      = document.getElementById('ts-error');
+        const metaEl     = document.getElementById('ts-meta');
+        const outEl      = document.getElementById('ts-output');
+        const dropEl     = document.getElementById('ts-drop-zone');
+        const printBtn   = document.getElementById('ts-print-btn');
+        const clearBtn   = document.getElementById('ts-clear-btn');
+        const showAllBtn = document.getElementById('ts-show-all-btn');
+        const dedupeBtn  = document.getElementById('ts-dedupe-btn');
 
         // Reset
         if (errEl)  errEl.style.display = 'none';
@@ -143,9 +153,11 @@ window.TaskSheetModule = (() => {
                 }
 
                 // Toggle visibility
-                if (dropEl) dropEl.style.display = 'none';
-                if (printBtn) printBtn.style.display = '';
-                if (clearBtn) clearBtn.style.display = '';
+                if (dropEl)     dropEl.style.display = 'none';
+                if (printBtn)   printBtn.style.display = '';
+                if (showAllBtn) showAllBtn.style.display = '';
+                if (dedupeBtn)  dedupeBtn.style.display = '';
+                if (clearBtn)   clearBtn.style.display = '';
 
             } catch (err) {
                 _showError('Failed to parse CSV: ' + err.message);
@@ -275,6 +287,49 @@ window.TaskSheetModule = (() => {
     }
 
     /* ═══════════════════════════════════════════════════
+       DISPLAY MODE TOGGLES
+       ═══════════════════════════════════════════════════ */
+
+    function _getDisplayRows() {
+        return _dedupedMode ? _dedupeRows([..._rows]) : [..._rows];
+    }
+
+    function _dedupeRows(rows) {
+        // Rows are already sorted — first occurrence per task title is most urgent
+        const seen = new Map(); // normalized title → index in result
+        const result = [];
+        rows.forEach(row => {
+            const key = row.task.toLowerCase().trim();
+            if (seen.has(key)) {
+                result[seen.get(key)]._dupeCount++;
+            } else {
+                const clone = Object.assign({}, row, { _dupeCount: 0 });
+                seen.set(key, result.length);
+                result.push(clone);
+            }
+        });
+        return result;
+    }
+
+    function _toggleShowAll() {
+        _showAll = !_showAll;
+        const outEl = document.getElementById('ts-output');
+        if (outEl) outEl.classList.toggle('ts-show-all-rows', _showAll);
+        const btn = document.getElementById('ts-show-all-btn');
+        if (btn) {
+            btn.classList.toggle('ts-header-btn-active', _showAll);
+            btn.textContent = _showAll ? 'Top 20 Only' : 'Print All';
+        }
+    }
+
+    function _toggleDedupe() {
+        _dedupedMode = !_dedupedMode;
+        const btn = document.getElementById('ts-dedupe-btn');
+        if (btn) btn.classList.toggle('ts-header-btn-active', _dedupedMode);
+        _renderTable(_getDisplayRows());
+    }
+
+    /* ═══════════════════════════════════════════════════
        RENDERING
        ═══════════════════════════════════════════════════ */
 
@@ -324,7 +379,9 @@ window.TaskSheetModule = (() => {
             html += '<td class="ts-cell-client">' + _escapeHTML(_displayClient(row.client)) + '</td>';
 
             // Task — truncate at 70 chars so long descriptions don't force multi-line rows
-            html += '<td class="ts-cell-task">' + _escapeHTML(_truncate(row.task, 70)) + '</td>';
+            let taskText = _escapeHTML(_truncate(row.task, 70));
+            if (row._dupeCount) taskText += ' <span class="ts-dedupe-count">+' + row._dupeCount + ' more</span>';
+            html += '<td class="ts-cell-task">' + taskText + '</td>';
 
             // Carrier — truncate at 22 chars
             html += '<td class="ts-cell-carrier">' + _escapeHTML(_truncate(row.carrier, 22)) + '</td>';
@@ -464,20 +521,27 @@ window.TaskSheetModule = (() => {
     }
 
     function _clearTable() {
-        const outEl   = document.getElementById('ts-output');
-        const metaEl  = document.getElementById('ts-meta');
-        const dropEl  = document.getElementById('ts-drop-zone');
-        const errEl   = document.getElementById('ts-error');
-        const printBtn = document.getElementById('ts-print-btn');
-        const clearBtn = document.getElementById('ts-clear-btn');
+        const outEl      = document.getElementById('ts-output');
+        const metaEl     = document.getElementById('ts-meta');
+        const dropEl     = document.getElementById('ts-drop-zone');
+        const errEl      = document.getElementById('ts-error');
+        const printBtn   = document.getElementById('ts-print-btn');
+        const clearBtn   = document.getElementById('ts-clear-btn');
+        const showAllBtn = document.getElementById('ts-show-all-btn');
+        const dedupeBtn  = document.getElementById('ts-dedupe-btn');
 
-        _rows = [];
-        if (outEl)   outEl.innerHTML = '';
+        _rows        = [];
+        _showAll     = false;
+        _dedupedMode = false;
+
+        if (outEl)   { outEl.innerHTML = ''; outEl.classList.remove('ts-show-all-rows'); }
         if (metaEl)  { metaEl.innerHTML = ''; metaEl.style.display = 'none'; }
         if (errEl)   errEl.style.display = 'none';
         if (dropEl)  dropEl.style.display = '';
-        if (printBtn) printBtn.style.display = 'none';
-        if (clearBtn) clearBtn.style.display = 'none';
+        if (printBtn)   printBtn.style.display = 'none';
+        if (showAllBtn) { showAllBtn.style.display = 'none'; showAllBtn.classList.remove('ts-header-btn-active'); showAllBtn.textContent = 'Print All'; }
+        if (dedupeBtn)  { dedupeBtn.style.display = 'none'; dedupeBtn.classList.remove('ts-header-btn-active'); }
+        if (clearBtn)   clearBtn.style.display = 'none';
     }
 
     /* ═══════════════════════════════════════════════════
