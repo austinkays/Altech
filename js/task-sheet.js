@@ -281,7 +281,6 @@ window.TaskSheetModule = (() => {
             '<th>Priority</th>' +
             '<th>Due Date</th>' +
             '<th>Client</th>' +
-            '<th>Category</th>' +
             '<th>Task</th>' +
             '<th>Carrier</th>' +
             '<th>Status</th>' +
@@ -303,9 +302,6 @@ window.TaskSheetModule = (() => {
 
             // Client (strip trailing ID)
             html += '<td class="ts-cell-client">' + _escapeHTML(_displayClient(row.client)) + '</td>';
-
-            // Category
-            html += '<td class="ts-cell-category">' + _escapeHTML(row.category) + '</td>';
 
             // Task
             html += '<td class="ts-cell-task">' + _escapeHTML(row.task) + '</td>';
