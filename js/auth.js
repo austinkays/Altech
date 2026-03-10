@@ -317,6 +317,13 @@ const Auth = (() => {
                 if (emailEl) emailEl.textContent = _user.email;
                 if (nameEl) nameEl.value = _user.displayName || '';
                 if (avatarEl) avatarEl.textContent = (_user.displayName || _user.email || '?')[0].toUpperCase();
+                const agencyEl = modal.querySelector('#authAccountAgency');
+                if (agencyEl) {
+                    try {
+                        const profile = JSON.parse(localStorage.getItem('altech_agency_profile') || '{}');
+                        agencyEl.value = profile.agencyName || '';
+                    } catch (e) { /* ignore */ }
+                }
 
                 // Only admins can see the "Invite Your Team" and admin panel sections
                 _refreshAdminVisibility();

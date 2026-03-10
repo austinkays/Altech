@@ -2457,6 +2457,20 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         hint.textContent = hints[provider] || '';
     },
 
+    /** Save agency name from the account settings field */
+    saveAgencyName(name) {
+        const trimmed = (name || '').trim();
+        try {
+            const existing = JSON.parse(localStorage.getItem('altech_agency_profile') || '{}');
+            existing.agencyName = trimmed || 'Altech Insurance Agency';
+            localStorage.setItem('altech_agency_profile', JSON.stringify(existing));
+            if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) CloudSync.schedulePush();
+            this.toast('\u2705 Agency name saved');
+        } catch (e) {
+            this.toast('Could not save agency name', { type: 'error' });
+        }
+    },
+
     /** Save AI settings from the form */
     saveAISettings() {
         if (typeof AIProvider === 'undefined') return;

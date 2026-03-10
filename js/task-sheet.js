@@ -452,7 +452,7 @@ window.TaskSheetModule = (() => {
                 if (parsed && parsed.agencyName) return parsed.agencyName;
             }
         } catch (e) { /* ignore */ }
-        return '';
+        return 'Altech Insurance Agency';
     }
 
     function _escapeHTML(str) {
