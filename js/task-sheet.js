@@ -276,15 +276,23 @@ window.TaskSheetModule = (() => {
         const outEl = document.getElementById('ts-output');
         if (!outEl) return;
 
-        const showNotes = rows.some(r => r.notes && r.notes.trim());
+        // Notes column is always rendered — CSV data fills it if present,
+        // otherwise it stays blank for agents to write on during print.
+        const hasCsvNotes = rows.some(r => r.notes && r.notes.trim());
 
+        // 8 columns always: Priority | Due Date | Client | Task | Carrier | Status | Policy Dates | Agent Notes
         let html = '<table class="ts-table">' +
             '<colgroup>' +
-            (showNotes
-                ? '<col style="width:7%"><col style="width:8%"><col style="width:14%"><col style="width:19%"><col style="width:10%"><col style="width:7%"><col style="width:12%"><col style="width:23%">'
-                : '<col style="width:9%"><col style="width:10%"><col style="width:18%"><col style="width:25%"><col style="width:13%"><col style="width:9%"><col style="width:16%">'
-            ) +
+            '<col style="width:8%">' +
+            '<col style="width:9%">' +
+            '<col style="width:14%">' +
+            '<col style="width:21%">' +
+            '<col style="width:10%">' +
+            '<col style="width:8%">' +
+            '<col style="width:12%">' +
+            '<col style="width:18%">' +
             '</colgroup>';
+
         html += '<thead><tr>' +
             '<th>Priority</th>' +
             '<th>Due Date</th>' +
@@ -293,7 +301,7 @@ window.TaskSheetModule = (() => {
             '<th>Carrier</th>' +
             '<th>Status</th>' +
             '<th>Policy Dates</th>' +
-            (showNotes ? '<th class="ts-col-notes">Notes</th>' : '') +
+            '<th class="ts-col-notes">Agent Notes</th>' +
         '</tr></thead><tbody>';
 
         rows.forEach(row => {
@@ -323,8 +331,11 @@ window.TaskSheetModule = (() => {
             // Policy Dates (condensed)
             html += '<td class="ts-cell-policy-dates">' + _renderPolicyDates(row) + '</td>';
 
-            // Notes (only included when CSV data contains note text)
-            if (showNotes) html += '<td class="ts-cell-notes">' + _escapeHTML(row.notes || '') + '</td>';
+            // Agent Notes — CSV data if present, otherwise blank for handwriting
+            const notesContent = hasCsvNotes && row.notes
+                ? _escapeHTML(row.notes)
+                : '<span class="ts-notes-placeholder">write here</span>';
+            html += '<td class="ts-cell-notes">' + notesContent + '</td>';
 
             html += '</tr>';
         });

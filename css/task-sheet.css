@@ -196,7 +196,7 @@
 }
 
 /* Column widths */
-.ts-col-notes { min-width: 280px; }
+.ts-col-notes { min-width: 180px; }
 .ts-cell-date { white-space: nowrap; }
 .ts-cell-client { max-width: 180px; }
 .ts-cell-category { max-width: 120px; }
@@ -204,7 +204,16 @@
 .ts-cell-carrier { max-width: 110px; }
 .ts-cell-status { white-space: nowrap; max-width: 110px; }
 .ts-cell-policy-dates { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
-.ts-cell-notes { min-width: 280px; }
+.ts-cell-notes { min-width: 180px; }
+
+/* Notes column — screen placeholder hint */
+.ts-notes-placeholder {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-style: italic;
+    opacity: 0.5;
+    user-select: none;
+}
 
 /* ── Overdue row ──────────────────────────────────────── */
 
@@ -344,13 +353,14 @@ body.dark-mode .ts-header-btn-outline:hover {
 }
 
 /* ═══════════════════════════════════════════════════════
-   PRINT STYLES
+   PRINT STYLES — handwriting-friendly layout
+   Generous row height, ruled notes column, clear borders
    ═══════════════════════════════════════════════════════ */
 
 @media print {
     @page {
-        size: letter portrait;
-        margin: 0.45in 0.4in 0.4in;
+        size: letter landscape;
+        margin: 0.5in 0.45in 0.45in;
     }
 
     /* Hide all non-content chrome */
@@ -398,7 +408,7 @@ body.dark-mode .ts-header-btn-outline:hover {
         display: block;
         background: none;
         border: none;
-        padding: 0 0 8px;
+        padding: 0 0 6px;
         margin-bottom: 8px;
         border-bottom: 2pt solid #000;
     }
@@ -407,12 +417,12 @@ body.dark-mode .ts-header-btn-outline:hover {
     .ts-meta::before {
         content: "Task Sheet";
         display: block;
-        font-size: 8.5pt;
+        font-size: 8pt;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.12em;
         color: #555;
-        margin-bottom: 4px;
+        margin-bottom: 3px;
     }
 
     .ts-meta-row {
@@ -423,31 +433,32 @@ body.dark-mode .ts-header-btn-outline:hover {
     }
 
     .ts-meta-agency {
-        font-size: 10pt;
+        font-size: 11pt;
         font-weight: 700;
         color: #000;
     }
 
     .ts-meta-date {
-        font-size: 7pt;
+        font-size: 8pt;
         color: #555;
     }
 
     .ts-meta-count {
-        font-size: 7pt;
+        font-size: 8pt;
         color: #333;
         font-weight: 600;
     }
 
     .ts-meta-overdue {
-        font-size: 7pt;
+        font-size: 8pt;
         color: #000;
         font-weight: 700;
     }
 
     /* Hide screen-only elements */
     .ts-meta-sep,
-    .ts-meta-clear {
+    .ts-meta-clear,
+    .ts-notes-placeholder {
         display: none !important;
     }
 
@@ -463,16 +474,15 @@ body.dark-mode .ts-header-btn-outline:hover {
 
     .ts-table {
         width: 100%;
-        font-size: 6.5pt;
-        line-height: 1.3;
+        font-size: 8pt;
+        line-height: 1.4;
         border-collapse: collapse;
         border-radius: 0;
         background: #fff;
         table-layout: fixed;
     }
 
-    /* Column widths are set via inline styles on <col> in task-sheet.js.
-       7 columns when no notes data; 8 columns when notes data is present. */
+    /* Column widths set via inline <col> in task-sheet.js (8 columns always) */
 
     .ts-table thead tr {
         background: #1a1a2e !important;
@@ -481,11 +491,11 @@ body.dark-mode .ts-header-btn-outline:hover {
     }
 
     .ts-table th {
-        font-size: 6pt;
+        font-size: 6.5pt;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.03em;
-        padding: 4px 5px;
+        letter-spacing: 0.04em;
+        padding: 5px 6px;
         color: #fff !important;
         border-bottom: none;
         text-align: left;
@@ -494,34 +504,33 @@ body.dark-mode .ts-header-btn-outline:hover {
     }
 
     .ts-table td {
-        padding: 6px 5px;
+        padding: 9px 6px;
+        min-height: 44px;
         color: #111;
-        border-bottom: 0.5pt solid #ddd;
+        border-bottom: 1pt solid #bbb;
         vertical-align: top;
         word-wrap: break-word;
         overflow-wrap: break-word;
     }
 
-    /* Alternating row shading */
+    /* No alternating shading — clean white rows are easier to write on */
     .ts-table tbody tr:nth-child(even) {
-        background: #f7f7f9 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        background: #fff !important;
     }
 
     .ts-table tbody tr:hover {
         background: inherit;
     }
 
-    /* Overdue rows — greyscale with strong left rule */
+    /* Overdue rows — light grey with strong left rule */
     .ts-row-overdue {
-        background: #e8e8e8 !important;
+        background: #efefef !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
 
     .ts-row-overdue td:first-child {
-        border-left: 3pt solid #000;
+        border-left: 3.5pt solid #000;
     }
 
     /* Overdue inline marker */
@@ -535,7 +544,7 @@ body.dark-mode .ts-header-btn-outline:hover {
         display: inline-block;
         padding: 1px 4px;
         border-radius: 3px;
-        font-size: 5.5pt;
+        font-size: 6.5pt;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.02em;
@@ -548,13 +557,24 @@ body.dark-mode .ts-header-btn-outline:hover {
     .ts-priority-medium   { background: #999 !important; color: #000 !important; }
     .ts-priority-low      { background: #ddd !important; color: #333 !important; }
 
-    /* Notes write-in column */
+    /* Agent Notes column — ruled lines for handwriting */
     .ts-cell-notes {
-        border-left: 0.75pt solid #bbb;
-        min-height: 22px;
+        border-left: 1pt solid #999;
+        padding: 0 6px;
+        /* Horizontal ruled lines spaced to match the row height */
+        background-image: repeating-linear-gradient(
+            transparent,
+            transparent 21px,
+            #d8d8d8 21px,
+            #d8d8d8 22px
+        );
+        background-position: 0 10px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        min-height: 44px;
     }
 
-    /* Policy date labels ("Eff:", "Exp:") — slightly smaller and greyed */
+    /* Policy date labels ("Eff:", "Exp:") */
     .ts-policy-label {
         font-size: 85%;
         font-weight: 600;
@@ -563,12 +583,12 @@ body.dark-mode .ts-header-btn-outline:hover {
 
     /* Policy dates — compact */
     .ts-cell-policy-dates {
-        font-size: 6pt;
+        font-size: 7pt;
         white-space: normal;
         word-break: break-word;
     }
 
-    /* Keep rows together */
+    /* Keep each row together on the page */
     .ts-table tr {
         page-break-inside: avoid;
     }
@@ -576,9 +596,9 @@ body.dark-mode .ts-header-btn-outline:hover {
     /* Footer rule */
     .ts-table tfoot td {
         border-top: 1pt solid #999;
-        font-size: 6pt;
+        font-size: 6.5pt;
         color: #666;
-        padding: 3px 5px;
+        padding: 4px 6px;
     }
 }
 
