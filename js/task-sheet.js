@@ -560,12 +560,12 @@ window.TaskSheetModule = (() => {
             '<colgroup>' +
             '<col class="ts-col-check">' +
             '<col style="width:6%">' +
-            '<col style="width:8%">' +
+            '<col style="width:10%">' +
             '<col style="width:13%">' +
             '<col style="width:20%">' +
             '<col style="width:8%">' +
             '<col style="width:9%">' +
-            '<col style="width:32%">' +
+            '<col style="width:30%">' +
             '</colgroup>';
 
         html += '<thead><tr>' +
