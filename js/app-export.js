@@ -131,7 +131,7 @@ Object.assign(App, {
         // â”€â”€â”€ Layout helpers â”€â”€â”€
         let y = 0;
 
-        const checkPage = (needed = 20) => {
+        const checkPage = (needed = 18) => {
             if (y + needed > pageH - 20) {
                 doc.addPage();
                 pageNum++;
@@ -159,14 +159,14 @@ Object.assign(App, {
         const sectionHeader = (title) => {
             checkPage(16);
             doc.setFillColor(...C.brand);
-            doc.roundedRect(margin, y, contentW, 7.5, 1.5, 1.5, 'F');
-            doc.setFontSize(8);
+            doc.roundedRect(margin, y, contentW, 8.5, 1.5, 1.5, 'F');
+            doc.setFontSize(9);
             doc.setFont(undefined, 'bold');
             doc.setTextColor(...C.white);
-            doc.text(title.toUpperCase(), margin + 4, y + 5.3);
+            doc.text(title.toUpperCase(), margin + 4, y + 5.8);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(...C.dark);
-            y += 10;
+            y += 12;
         };
 
         // Key-value rows in a two-column table style
@@ -174,7 +174,7 @@ Object.assign(App, {
             const filtered = fields.filter(([, v]) => v && String(v).trim());
             if (!filtered.length) return;
             const colW = contentW / cols;
-            const rowH = 6;
+            const rowH = 7;
             let rowIdx = 0;
             let col = 0;
             const startY = y;
@@ -199,10 +199,11 @@ Object.assign(App, {
                 // Value
                 doc.setFont(undefined, 'normal');
                 doc.setTextColor(...C.dark);
-                const valX = cellX + colW * 0.45;
-                const maxValW = colW * 0.52;
+                const valX = cellX + colW * 0.43;
+                const maxValW = colW * 0.56;
                 const valLines = doc.splitTextToSize(String(value), maxValW);
                 doc.text(valLines[0] || '', valX, cellY + 3.5);
+                if (valLines[1]) doc.text(valLines[1], valX, cellY + 3.5 + 3.5);
 
                 col++;
                 if (col >= cols) {
@@ -224,7 +225,7 @@ Object.assign(App, {
         const detailTable = (fields) => {
             const filtered = fields.filter(([, v]) => v && String(v).trim());
             if (!filtered.length) return;
-            const rowH = 5.5;
+            const rowH = 6.5;
             const labelW = 50;
 
             filtered.forEach(([label, value], i) => {
@@ -234,7 +235,7 @@ Object.assign(App, {
                 if (isHeader) {
                     // Driver/Vehicle heading row
                     if (i > 0) y += 2;
-                    doc.setFillColor(...C.brandLt);
+                    doc.setFillColor(...C.brand);
                     doc.rect(margin, y - 1, contentW, rowH + 1, 'F');
                     doc.setFontSize(9);
                     doc.setFont(undefined, 'bold');
@@ -384,6 +385,7 @@ Object.assign(App, {
         // â”€â”€ Co-Applicant (if provided) â”€â”€
         const hasCoApp = data.hasCoApplicant === 'yes' || data.hasCoApplicant === true || data.hasCoApplicant === 'on';
         if (hasCoApp && (v('coFirstName') || v('coLastName'))) {
+            y += 4;
             sectionHeader('Co-Applicant / Spouse');
             kvTable([
                 ['Full Name', `${v('coFirstName')} ${v('coLastName')}`.trim()],
@@ -399,7 +401,8 @@ Object.assign(App, {
         }
 
         // â”€â”€ Property Address â”€â”€
-        sectionHeader('Property Address');
+        y += 4;
+            sectionHeader('Property Address');
         kvTable([
             ['Street Address', v('addrStreet')],
             ['City', v('addrCity')],
@@ -411,6 +414,7 @@ Object.assign(App, {
 
         if (showHome) {
             // â”€â”€ Property Details â”€â”€
+            y += 4;
             sectionHeader('Property Details');
             kvTable([
                 ['Year Built', v('yrBuilt')],
@@ -499,7 +503,8 @@ Object.assign(App, {
         if (showAuto) {
             // â”€â”€ Drivers â”€â”€
             if (drivers.length) {
-                sectionHeader('Drivers');
+                y += 4;
+            sectionHeader('Drivers');
                 const driverRows = drivers.map((d, i) => {
                     const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
                     return [
@@ -531,7 +536,8 @@ Object.assign(App, {
 
             // â”€â”€ Vehicles â”€â”€
             if (vehicles.length) {
-                sectionHeader('Vehicles');
+                y += 4;
+            sectionHeader('Vehicles');
                 const vehicleRows = vehicles.map((v, i) => {
                     const vehDesc = [v.year, v.make, v.model].filter(Boolean).join(' ');
                     const driverDisplay = this.resolveDriverName(v.primaryDriver, drivers);
@@ -566,6 +572,7 @@ Object.assign(App, {
             }
 
             // â”€â”€ Auto Coverage â”€â”€
+            y += 4;
             sectionHeader('Auto Coverage');
             kvTable([
                 ['Auto Policy Type', v('autoPolicyType')],
@@ -585,7 +592,8 @@ Object.assign(App, {
         }
 
         // â”€â”€ Policy & Prior Insurance â”€â”€
-        sectionHeader('Policy & Prior Insurance');
+        y += 4;
+            sectionHeader('Policy & Prior Insurance');
         const pdfPriorRows = [
             ['Policy Term', v('policyTerm')],
             ['Effective Date', formatDate(v('effectiveDate'))],
@@ -620,7 +628,8 @@ Object.assign(App, {
         kvTable(pdfPriorRows);
 
         // â”€â”€ Additional Information â”€â”€
-        sectionHeader('Additional Information');
+        y += 4;
+            sectionHeader('Additional Information');
         kvTable([
             ['Additional Insureds', v('additionalInsureds')],
             ['Best Contact Time', v('contactTime')],
