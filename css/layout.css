@@ -1,0 +1,657 @@
+/* === HEADER (Plugin Headers) === */
+header {
+    position: sticky;
+    top: 0;
+    background: rgba(255, 252, 248, 0.55);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    padding: calc(env(safe-area-inset-top) + 14px) 20px 10px;
+    border-bottom: none;
+    z-index: 1000;
+    margin: 12px 12px 0;
+    border-radius: 16px;
+    border: 1px solid rgba(200, 150, 100, 0.10);
+    box-shadow:
+        0 4px 20px rgba(180, 120, 60, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+header::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    background:
+        radial-gradient(ellipse at 10% 50%, rgba(255, 160, 80, 0.05) 0%, transparent 60%),
+        radial-gradient(ellipse at 90% 30%, rgba(255, 120, 100, 0.04) 0%, transparent 50%);
+    pointer-events: none;
+    animation: pillGlow 6s ease-in-out infinite alternate;
+    z-index: -1;
+}
+body.dark-mode header {
+    background: rgba(15, 25, 45, 0.55);
+    border-color: rgba(56, 189, 248, 0.10);
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+body.dark-mode header::after {
+    background:
+        radial-gradient(ellipse at 10% 50%, rgba(0, 255, 135, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 90% 30%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(56, 189, 248, 0.06) 0%, transparent 50%);
+    animation: auroraGlow 8s ease-in-out infinite alternate;
+}
+.header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px; position: relative; z-index: 2; }
+.logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+}
+body:not(.dark-mode) .logo > span {
+    background: linear-gradient(135deg, #1a3a5c, #0f2027, #2c5364);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+body.dark-mode .logo > span {
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd, #93c5fd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.logo-controls { display: inline-flex; align-items: center; gap: 8px; }
+.tool-header-brand { margin-left: 0; }
+.logo-icon-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.logo-icon-button:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 4px;
+    border-radius: 10px;
+}
+.logo-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 60, 140, 0.06);
+    border: 1px solid rgba(0, 60, 140, 0.08);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--text);
+    box-shadow: none;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 2;
+}
+.logo-icon:hover {
+    background: rgba(0, 60, 140, 0.12);
+    transform: scale(1.05);
+}
+body.dark-mode .logo-icon {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.10);
+    color: #fff;
+}
+body.dark-mode .logo-icon:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+.header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.save-indicator { font-size: 13px; color: var(--success); opacity: 0; transition: opacity 0.3s; font-weight: 500; }
+
+/* Save to Client History Button */
+.btn-save-client {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s var(--transition-smooth);
+    white-space: nowrap;
+}
+.btn-save-client:hover {
+    background: rgba(0, 122, 255, 0.08);
+    color: var(--apple-blue);
+    border-color: var(--apple-blue);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.15);
+}
+.btn-save-client:active {
+    transform: scale(0.96);
+    box-shadow: none;
+}
+.btn-save-client svg {
+    flex-shrink: 0;
+}
+body.dark-mode .btn-save-client {
+    background: #2C2C2E;
+    border-color: #38383A;
+    color: #98989D;
+}
+body.dark-mode .btn-save-client:hover {
+    background: rgba(10, 132, 255, 0.15);
+    color: #0A84FF;
+    border-color: #0A84FF;
+    box-shadow: 0 2px 8px rgba(10, 132, 255, 0.2);
+}
+
+/* Dark Mode Toggle */
+.dark-mode-toggle {
+    background: rgba(0, 60, 140, 0.06);
+    border: 1px solid rgba(0, 60, 140, 0.08);
+    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+    position: relative;
+    z-index: 2;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.dark-mode-toggle:hover {
+    background: rgba(0, 60, 140, 0.12);
+    transform: scale(1.05);
+}
+body.dark-mode .dark-mode-toggle {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.10);
+    color: #fff;
+}
+body.dark-mode .dark-mode-toggle:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 600px) {
+    header {
+        padding: calc(env(safe-area-inset-top) + 10px) 14px 8px;
+        margin: 8px 8px 0;
+        border-radius: 14px;
+    }
+    .header-top { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .tool-header-brand { margin-left: 0; }
+    .logo { font-size: 17px; }
+    .logo-icon { width: 40px; height: 40px; border-radius: 10px; font-size: 16px; }
+    .dark-mode-toggle { width: 40px; height: 40px; font-size: 15px; }
+    .step-title { font-size: 12px; text-align: left; }
+    .header-right { width: 100%; justify-content: flex-start; gap: 8px; }
+    .save-indicator { margin-left: 0; }
+}
+
+@media (min-width: 1024px) {
+    header {
+        padding: calc(env(safe-area-inset-top) + 16px) 28px 12px;
+        margin: 14px 20px 0;
+        border-radius: 18px;
+    }
+    .tool-header-brand { margin-left: 0; }
+    .logo { font-size: 21px; }
+    .logo-icon { width: 36px; height: 36px; border-radius: 10px; }
+}
+
+/* Step indicator (quoting tool header) */
+.step-title {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: 8px;
+    letter-spacing: 0.2px;
+}
+.progress-track { height: 3px; background: rgba(200, 150, 100, 0.12); border-radius: 1.5px; overflow: hidden; }
+body.dark-mode .progress-track { background: rgba(255, 255, 255, 0.08); }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #F97316, #FB923C, #F59E0B, #FB923C, #F97316); background-size: 200% 100%; width: 0%; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); animation: progressGlow 6s ease-in-out infinite, progressShimmer 3s linear infinite; }
+body.dark-mode .progress-fill { background: linear-gradient(to right, var(--apple-blue), #5856D6); }
+
+/* === MAIN === */
+main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+    z-index: 1;
+}
+
+/* === FOOTER (layout shell) === */
+footer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    display: flex; gap: 10px; z-index: 1000;
+    box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.08);
+}
+body.dark-mode footer {
+    background: rgba(28, 28, 30, 0.95);
+    border-top-color: rgba(255, 255, 255, 0.10);
+}
+
+/* === DESKTOP: APP SHELL FOOTER OFFSET === */
+@media (min-width: 768px) {
+    .app-shell footer {
+        left: var(--sidebar-width, 240px);
+    }
+}
+@media (min-width: 768px) and (max-width: 1279px) {
+    .app-shell footer {
+        left: var(--sidebar-collapsed-width, 64px);
+    }
+}
+
+/* === DESKTOP-SPECIFIC: TAURI DRAG REGION === */
+.tauri-desktop .header-top { -webkit-app-region: drag; }
+.tauri-desktop .header-top button,
+.tauri-desktop .header-top .save-indicator { -webkit-app-region: no-drag; }
+.tauri-desktop .desktop-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    background: rgba(0, 122, 255, 0.12);
+    color: var(--apple-blue);
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+/* === BACK TO HOME BUTTON === */
+#backToHome {
+    display: none;
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom) + 16px);
+    left: 16px;
+    z-index: 1000;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 14px;
+    min-height: 44px;
+    min-width: 44px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    color: #fff;
+    background: var(--apple-blue);
+    border: none;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    transition: all 0.2s;
+}
+#backToHome:hover {
+    background: #0051d5;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+body.dark-mode #backToHome {
+    background: #3478f6;
+}
+body.dark-mode #backToHome:hover {
+    background: #2563eb;
+}
+body.tool-active #backToHome {
+    display: flex;
+}
+/* Quoting tool has its own header home button + footer nav — hide the floating exit button */
+body.tool-active.quoting-active #backToHome {
+    display: none;
+}
+
+/* === BREADCRUMB BAR === */
+#breadcrumbBar {
+    display: none;
+    position: fixed;
+    top: 18px;
+    left: 140px;
+    z-index: 1000;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.92);
+    padding: 6px 10px;
+    border-radius: 8px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    backdrop-filter: blur(12px);
+    max-width: calc(100vw - 170px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+body.dark-mode #breadcrumbBar {
+    background: rgba(28, 28, 30, 0.92);
+}
+@media (min-width: 1024px) {
+    #breadcrumbBar { display: none !important; }
+}
+@media (max-width: 767px) {
+    #breadcrumbBar { display: none !important; }
+}
+
+#complianceTool { background: var(--bg); }
+
+/* === PLUGIN CONTAINER === */
+.plugin-container { display: none; min-height: 300px; }
+.plugin-container.active { display: block; animation: pluginFadeIn 0.4s var(--transition-smooth) both; }
+/* Quoting tool uses opacity-only animation — transform breaks position:fixed on its footer */
+#quotingTool.active { animation: pluginFadeInNoTransform 0.4s var(--transition-smooth) both; min-height: 100%; }
+.plugin-container:not(.active) { content-visibility: auto; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DESKTOP-FIRST LAYOUT OVERHAUL
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── Quoting Wizard: Centered content wrapper ─── */
+@media (min-width: 960px) {
+    #quotingTool main {
+        max-width: none;
+        margin: 0 auto;
+        padding: 24px 32px calc(100px + env(safe-area-inset-bottom));
+    }
+    #quotingTool header {
+        max-width: none;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    #quotingTool .card {
+        padding: 24px 28px;
+    }
+}
+@media (min-width: 1280px) {
+    #quotingTool main {
+        padding: 28px 40px calc(100px + env(safe-area-inset-bottom));
+    }
+    #quotingTool .card {
+        padding: 28px 32px;
+    }
+}
+
+/* ─── Step 0 (Quick Start): Side-by-side cards on desktop ─── */
+@media (min-width: 960px) {
+    #step-0 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+    /* Smart Scan card spans full width below the two top cards */
+    #step-0 > .card:nth-child(n+3) {
+        grid-column: 1 / -1;
+    }
+}
+
+/* ─── Step 1 (Client Info): Dense 2-column card grid ─── */
+@media (min-width: 960px) {
+    #step-1 .grid-2-full {
+        gap: 20px 24px;
+    }
+    #step-1 .card,
+    #step-2 .card,
+    #step-5 .card {
+        padding: 24px 28px;
+    }
+}
+
+/* ─── Step 4 (Vehicles/Drivers): Side-by-side driver & vehicle cards ─── */
+@media (min-width: 1024px) {
+    #step-4 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+    #step-4 > .card:only-child,
+    #step-4 > button,
+    #step-4 > .hint,
+    #step-4 > .btn-full {
+        grid-column: 1 / -1;
+    }
+    .driver-vehicle-card {
+        margin-bottom: 0;
+    }
+}
+
+/* ─── Step 6 (Review & Export): Multi-column layout ─── */
+@media (min-width: 960px) {
+    #step-6 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+    #step-6 > .card:first-child,
+    #step-6 > .hero-export,
+    #step-6 > .card:has(.hero-export) {
+        grid-column: 1 / -1;
+    }
+    #step-6 > .card.export-card {
+        margin-bottom: 0;
+    }
+}
+
+/* ─── Desktop Footer: Centered, constrained width ─── */
+@media (min-width: 960px) {
+    #quotingTool footer {
+        max-width: none;
+        margin: 0 auto;
+        right: 0;
+        border-radius: 16px 16px 0 0;
+        padding: 12px 32px calc(12px + env(safe-area-inset-bottom));
+    }
+    footer .btn {
+        max-width: 280px;
+    }
+}
+
+/* ─── Form Grid Enhancements for Desktop ─── */
+@media (min-width: 960px) {
+    .grid-2 > div,
+    .grid-3 > div {
+        grid-template-columns: minmax(130px, 180px) minmax(0, 1fr);
+        column-gap: 14px;
+    }
+    .grid-addr-row2 {
+        grid-template-columns: 1fr 80px 100px 140px;
+        gap: 14px;
+    }
+    .toggle-grid-3 {
+        gap: 16px;
+    }
+    .toggle-grid-3 .toggle-card {
+        padding: 14px 18px;
+    }
+    .radio-grid {
+        gap: 14px;
+    }
+    .radio-card-content {
+        padding: 24px 12px;
+        font-size: 15px;
+    }
+    .scan-actions {
+        flex-direction: row;
+        gap: 12px;
+    }
+    .scan-actions .btn {
+        flex: 1;
+    }
+    .scan-preview {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+    .prop-layout > div:first-child .map-previews {
+        grid-template-columns: 1fr 1fr;
+    }
+    .hero-export-grid {
+        gap: 16px;
+    }
+    .hero-export-option {
+        padding: 24px 16px 18px;
+    }
+    .hero-export-icon {
+        font-size: 32px;
+    }
+    #quickStartDraftList,
+    #quotesList {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 12px;
+    }
+    .quote-card {
+        margin-bottom: 0;
+    }
+    .ch-row {
+        padding: 12px 16px;
+    }
+}
+
+/* ─── Desktop: Enhance card hover behavior ─── */
+@media (min-width: 960px) {
+    .card {
+        transition: transform 0.2s var(--transition-smooth), box-shadow 0.25s ease;
+    }
+    .card:hover {
+        transform: translateY(-2px);
+    }
+}
+
+/* ─── Desktop: Wider modals ─── */
+@media (min-width: 960px) {
+    .modal-content {
+        max-width: 680px;
+    }
+    .data-preview-modal .modal-content,
+    .scan-review-modal .modal-content {
+        max-width: 800px;
+    }
+}
+
+/* ─── Desktop: Plugin Header Enhancements ─── */
+@media (min-width: 960px) {
+    #quotingTool .header-top {
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+    #quotingTool .step-title {
+        font-size: 14px;
+        text-align: center;
+    }
+    #quotingTool .progress-track {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+}
+
+/* ─── Desktop: Confidence bars, scan fields in multi-column ─── */
+@media (min-width: 960px) {
+    .scan-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    .driver-vehicle-card .grid-2-full {
+        gap: 16px 20px;
+    }
+}
+
+/* ─── Desktop: Input sizing refinements ─── */
+@media (min-width: 960px) {
+    input, select, textarea {
+        padding: 11px 14px;
+        font-size: 15px !important;
+    }
+    .label {
+        font-size: 11.5px;
+        letter-spacing: 0.5px;
+    }
+    h2 {
+        font-size: 20px;
+    }
+    .section-subtitle {
+        font-size: 13px;
+    }
+}
+
+/* ─── Desktop: Review step data grid ─── */
+@media (min-width: 960px) {
+    .review-section .grid-2,
+    .review-section .grid-3 {
+        gap: 12px;
+    }
+}
+
+/* ─── Ultra-wide (1600px+): Extra breathing room ─── */
+@media (min-width: 1600px) {
+    #step0ClientCard {
+        grid-column: 1 / -1;
+    }
+    #step-0 > .card:nth-child(n+3) {
+        grid-column: 1 / -1;
+    }
+}
+
+/* ─── Desktop: Prospect Investigator content constraint ─── */
+@media (min-width: 960px) {
+    #prospectTool main {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 24px 32px 60px;
+    }
+    #prospectTool header {
+        max-width: 1400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+/* ─── Desktop: Policy Q&A wider chat area ─── */
+@media (min-width: 960px) {
+    .qna-container {
+        max-width: 1400px;
+        padding: 24px 32px 100px;
+    }
+    .qna-desktop-layout {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+    .qna-col-right {
+        position: sticky;
+        top: 24px;
+    }
+    .qna-chat-card {
+        display: flex;
+        flex-direction: column;
+    }
+    .qna-chat {
+        min-height: 500px;
+    }
+}
+
+/* ─── Desktop: Generic plugin main content constraint ─── */
+@media (min-width: 960px) {
+    .plugin-container > main:not(.ia-main) {
+        max-width: 1400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .plugin-container > header {
+        max-width: none;
+    }
+}

@@ -1,0 +1,191 @@
+/* === ALL @KEYFRAMES & GLOBAL MOTION === */
+
+/* Progress bar shimmer */
+@keyframes progressShimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Card entrance */
+@keyframes cardFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Section accordion open */
+@keyframes accordionOpen {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Smart Scan button */
+@keyframes smartScanPulse {
+    0%, 100% { box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3), 0 0 12px rgba(124, 58, 237, 0.15); }
+    50% { box-shadow: 0 4px 28px rgba(37, 99, 235, 0.4), 0 0 20px rgba(124, 58, 237, 0.25), 0 0 40px rgba(124, 58, 237, 0.1); }
+}
+@keyframes smartScanRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Badge pulse (duplicate badge) */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Modal entrance */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Hero export button pulse */
+@keyframes heroPulse {
+    0%, 100% { box-shadow: 0 4px 20px rgba(0,122,255,0.35), 0 0 40px rgba(0,122,255,0.10); }
+    50% { box-shadow: 0 4px 24px rgba(0,122,255,0.45), 0 0 56px rgba(0,122,255,0.18); }
+}
+
+/* Policy Q&A typing indicator */
+@keyframes qnaBounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+/* Landing page ambient orbs */
+@keyframes orbFloat1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-40px, 30px) scale(1.1); }
+    66% { transform: translate(20px, -20px) scale(0.95); }
+}
+@keyframes orbFloat2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -25px) scale(1.05); }
+    66% { transform: translate(-20px, 15px) scale(0.9); }
+}
+
+/* Aurora shimmer (dark mode orbs) */
+@keyframes auroraShimmer {
+    0% { filter: blur(50px) hue-rotate(0deg); opacity: 0.7; }
+    50% { filter: blur(60px) hue-rotate(30deg); opacity: 1; }
+    100% { filter: blur(50px) hue-rotate(-20deg); opacity: 0.8; }
+}
+
+/* Landing header pill entrance */
+@keyframes headerPillIn {
+    from { opacity: 0; transform: translateY(-16px) scale(0.97); filter: blur(4px); }
+    to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+/* Pill glow (header pill + plugin header) */
+@keyframes pillGlow {
+    from { opacity: 0.5; }
+    to { opacity: 1; }
+}
+
+/* Aurora glow (dark mode plugin header) */
+@keyframes auroraGlow {
+    0% { opacity: 0.4; filter: hue-rotate(0deg); }
+    33% { opacity: 0.8; filter: hue-rotate(15deg); }
+    66% { opacity: 0.6; filter: hue-rotate(-10deg); }
+    100% { opacity: 1; filter: hue-rotate(5deg); }
+}
+
+/* Brand text shimmer (landing header) */
+@keyframes brandTextShimmer {
+    0%, 100% { background-position: 0% center; }
+    50% { background-position: 200% center; }
+}
+
+/* Tool card entrance (landing bento) */
+@keyframes toolCardIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Notification badge pulse */
+@keyframes badgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* Progress bar glow */
+@keyframes progressGlow {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(249,115,22,0.0)); }
+    50% { filter: drop-shadow(0 0 6px rgba(249,115,22,0.40)); }
+}
+body.dark-mode .progress-fill {
+    animation-name: progressGlowDark;
+}
+@keyframes progressGlowDark {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(0,122,255,0.0)); }
+    50% { filter: drop-shadow(0 0 6px rgba(0,122,255,0.45)); }
+}
+
+/* Soft float (logo icon) */
+@keyframes floatSoft {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+    100% { transform: translateY(0); }
+}
+
+/* Pulse ring (dark mode toggle) */
+@keyframes pulseRing {
+    0% { box-shadow: 0 0 0 0 rgba(0,122,255,0.25); }
+    70% { box-shadow: 0 0 0 10px rgba(0,122,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,122,255,0); }
+}
+
+/* Aurora pulse (dark mode toggle) */
+@keyframes auroraPulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 255, 135, 0.20); }
+    35% { box-shadow: 0 0 0 8px rgba(168, 85, 247, 0.0); }
+    70% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.18); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 255, 135, 0); }
+}
+
+/* Plugin fade-in transitions */
+@keyframes pluginFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pluginFadeInNoTransform {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Loading spinner */
+@keyframes altech-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Skeleton pulse */
+@keyframes skeleton-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.25; }
+}
+
+/* === GLOBAL ANIMATION ASSIGNMENTS === */
+header .logo-icon {
+    animation: floatSoft 8s ease-in-out infinite;
+}
+.dark-mode-toggle {
+    animation: pulseRing 8s ease-in-out infinite;
+}
+body.dark-mode .dark-mode-toggle {
+    animation: auroraPulse 8s ease-in-out infinite;
+}
+.export-card,
+.driver-vehicle-card,
+.map-preview-item {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.export-card:hover,
+.driver-vehicle-card:hover,
+.map-preview-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+}
+
+/* === REDUCED MOTION === */
+@media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+}
