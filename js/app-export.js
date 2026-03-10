@@ -1,4 +1,4 @@
-// js/app-export.js — Export engines (PDF, CMSMTF, Text/CSV)
+﻿// js/app-export.js — Export engines (PDF, CMSMTF, Text/CSV)
 // Extracted from index.html during Phase 2 monolith decomposition
 'use strict';
 
@@ -7,38 +7,17 @@ Object.assign(App, {
         const result = await this.buildPDF(this.data);
         this.downloadBlob(result.blob, result.filename);
         this.logExport('PDF', result.filename);
-        this.toast('\u2713 PDF downloaded successfully');
+        this.toast('âœ“ PDF downloaded successfully');
     },
 
     exportText() {
         const result = this.buildText(this.data);
         this.downloadFile(result.content, result.filename, result.mime);
         this.logExport('Text', result.filename);
-        this.toast('📝 Text summary downloaded');
+        this.toast('ðŸ“ Text summary downloaded');
     },
 
     async buildPDF(data) {
-        // Lazy-load jsPDF if not already available (network hiccup, etc.)
-        if (!window.jspdf || !window.jspdf.jsPDF) {
-            const cdnUrls = [
-                'lib/jspdf.umd.min.js',
-                'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
-            ];
-            for (const url of cdnUrls) {
-                if (window.jspdf && window.jspdf.jsPDF) break;
-                try {
-                    await new Promise((resolve, reject) => {
-                        const s = document.createElement('script');
-                        s.src = url;
-                        s.onload = () => resolve();
-                        s.onerror = () => reject(new Error('CDN unreachable'));
-                        document.head.appendChild(s);
-                    });
-                } catch (_) { /* try next */ }
-            }
-        }
-        // Normalise uppercase window.jsPDF (older builds)
-        if (!window.jspdf && window.jsPDF) window.jspdf = { jsPDF: window.jsPDF };
         if (!window.jspdf || !window.jspdf.jsPDF) {
             this.toast('PDF library not loaded — check your internet connection and reload', 'error');
             throw new Error('jsPDF library not available (window.jspdf is undefined)');
@@ -47,12 +26,11 @@ Object.assign(App, {
         const doc = new jsPDF();
         const pageW = doc.internal.pageSize.getWidth();
         const pageH = doc.internal.pageSize.getHeight();
+        const margin = 14;
+        const contentW = pageW - margin * 2;
         let pageNum = 1;
 
-        // Helper: get value from data, falling back to the current DOM
-        // element value. This ensures fields with HTML default values
-        // (e.g. numStories="1", bedrooms="3") appear even if the user
-        // never manually changed them.
+        // Helper: get value from data, falling back to the current DOM element value.
         const v = (key) => {
             if (data[key] !== undefined && data[key] !== null && String(data[key]).trim() !== '') {
                 return String(data[key]);
@@ -65,79 +43,30 @@ Object.assign(App, {
             return '';
         };
 
-        // vo() — like v() but expands "Other" to "Other (detail)" in PDF exports only.
-        // HawkSoft and EZLynx read raw data.field values so they remain unaffected.
-        const vo = (key) => {
-            const base = v(key);
-            if (base === 'Other') {
-                const spec = (data[key + '_other'] || '').trim();
-                if (spec) return `Other (${spec})`;
-            }
-            return base;
-        };
-
-        // ─── Color palette ───────────────────────────────────────────
+        // ─── Greyscale palette (prints cleanly on B&W) ───
         const C = {
-            navy:     [15, 39, 69],       // #0f2745 — brand navy
-            dark:     [26, 26, 26],       // #1a1a1a — body / actionable text
-            body:     [17, 17, 17],       // #111    — value text
-            mid:      [85, 85, 85],       // #555    — address, secondary
-            label:    [68, 68, 68],       // #444    — field labels (spec minimum)
-            muted:    [68, 68, 68],       // #444    — de-emphasized values, normal weight
-            light:    [187, 187, 187],    // #bbb    — section header rule
-            border:   [221, 227, 235],    // #dde3eb — card/border
-            rule:     [204, 204, 204],    // #ccc    — footer rule
-            footerTx: [119, 119, 119],    // #777    — footer text
-            white:    [255, 255, 255],
+            summaryBg: [30, 30, 30],      // Near-black summary card
+            groupBar:  [65, 65, 65],       // Dark group divider bar
+            sectionBg: [210, 210, 210],    // Light grey section header fill
+            accent:    [140, 140, 140],    // Left accent stripe on headers
+            stripe:    [247, 247, 247],    // Alternating row fill
+            dark:      [20, 20, 20],       // Primary text
+            mid:       [120, 120, 120],    // Label text (55%-grey)
+            light:     [195, 195, 195],    // Borders / rules
+            white:     [255, 255, 255],
         };
-
-        // ─── Null-value detection ────────────────────────────────────
-        // Catches "None", "Not Updated", "N/A", "No Coverage", "Unknown"
-        // De-emphasized: same #444, normal weight — no italic (toner can't render it cleanly)
-        const isEmptyish = (val) => {
-            if (!val && val !== 0) return true;
-            const s = String(val).trim();
-            return /^(none|not updated|n\/a|no coverage|unknown)$/i.test(s);
-        };
-
 
         const formatDate = (value) => {
             if (!value) return '';
             const d = new Date(value);
             if (Number.isNaN(d.getTime())) return value;
-            // Use UTC getters — ISO date strings parse as midnight UTC;
-            // local getters shift the date backward in US timezones (off-by-one)
-            return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`;
+            return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`;
         };
         const formatCurrency = (v) => {
             if (!v) return '';
             const num = parseFloat(String(v).replace(/[$,\s]/g, ''));
             if (isNaN(num)) return v;
             return '$' + num.toLocaleString('en-US');
-        };
-        const formatRental = (val) => {
-            if (!val || val === 'No Coverage') return val || '';
-            const parts = val.split('/');
-            if (parts.length === 2 && !isNaN(parseInt(parts[0])) && !isNaN(parseInt(parts[1]))) {
-                return `$${parts[0]}/day, $${parseInt(parts[1]).toLocaleString()} max`;
-            }
-            if (/^\d+/.test(val)) return '$' + val;
-            return val;
-        };
-        const formatPrefix = (val) => ({ MR: 'Mr.', MRS: 'Mrs.', MS: 'Ms.', DR: 'Dr.' }[val] || val || '');
-        const formatSuffix = (val) => ({ JR: 'Jr.', SR: 'Sr.' }[val] || val || '');
-        const formatDeductible = (val) => {
-            if (!val) return '';
-            const s = String(val).trim();
-            if (/%/.test(s) || /same as all perils/i.test(s)) return s;
-            return formatCurrency(s);
-        };
-        const formatPhone = (val) => {
-            if (!val) return '';
-            const digits = String(val).replace(/\D/g, '');
-            if (digits.length === 10) return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
-            if (digits.length === 11 && digits[0] === '1') return `(${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
-            return val;
         };
         const formatDateTime = (value) => {
             const d = value instanceof Date ? value : new Date(value);
@@ -149,123 +78,120 @@ Object.assign(App, {
             return `${formatDate(d)} ${hours}:${minutes} ${ampm}`;
         };
 
-        // ─── Layout constants ────────────────────────────────────────
-        // jsPDF default unit is mm; letter = 215.9 × 279.4 mm
-        // @page margin: 0.55in top, 0.6in sides, 0.5in bottom = ~14mm/15.2mm/12.7mm
-        const margin = 15.2; // 0.6in side margins
-        const contentW = pageW - margin * 2;
+        // â”€â”€â”€ Layout helpers â”€â”€â”€
         let y = 0;
 
-        // ─── Helpers ─────────────────────────────────────────────────
-        const checkPage = (needed = 18) => {
-            if (y + needed > pageH - 16) {
+        const checkPage = (needed = 20) => {
+            if (y + needed > pageH - 20) {
                 doc.addPage();
                 pageNum++;
-                y = 14;
+                y = 20;
                 return true;
             }
             return false;
         };
 
-        // Footer — agency left, page count right — 8pt #777, 1px #ccc top rule
         const drawFooter = () => {
             const total = doc.internal.getNumberOfPages();
             for (let i = 1; i <= total; i++) {
                 doc.setPage(i);
-                doc.setDrawColor(...C.rule);
-                doc.setLineWidth(0.35);
-                doc.line(margin, pageH - 12, pageW - margin, pageH - 12);
-                doc.setFontSize(8);
-                doc.setFont(undefined, 'normal');
-                doc.setTextColor(...C.footerTx);
-                doc.text('Generated by Altech Insurance Tools', margin, pageH - 7);
-                doc.text(`Page ${i} of ${total}`, pageW - margin, pageH - 7, { align: 'right' });
+                doc.setFontSize(6.5);
+                doc.setTextColor(...C.mid);
+                doc.text(`Page ${i} of ${total}`, pageW / 2, pageH - 8, { align: 'center' });
+                doc.setDrawColor(...C.light);
+                doc.setLineWidth(0.3);
+                doc.line(margin, pageH - 14, pageW - margin, pageH - 14);
+                doc.text('Generated by Altech Insurance Tools', margin, pageH - 8);
+                doc.text(formatDateTime(new Date()), pageW - margin, pageH - 8, { align: 'right' });
             }
         };
 
-        // Section header — label left, rule filling remaining width
-        // 7pt bold uppercase #0f2745 | rule: 1px #bbb | margin: 4px 0 7px 0
-        const sectionHeader = (title) => {
-            checkPage(16);
-            // No top y-advance — outgoing kvTable provides 1mm trailing gap
-            const labelText = title.toUpperCase();
-            doc.setFontSize(7);
+        // Full-width dark group divider bar
+        const groupBar = (title) => {
+            checkPage(14);
+            y += 3;
+            doc.setFillColor(...C.groupBar);
+            doc.rect(0, y, pageW, 8, 'F');
+            doc.setFontSize(6.5);
             doc.setFont(undefined, 'bold');
-            doc.setTextColor(...C.navy);
-            doc.text(labelText, margin, y + 5.5);
-            const labelW = doc.getTextWidth(labelText);
-            doc.setDrawColor(...C.light); // #bbb
-            doc.setLineWidth(0.4);
-            doc.line(margin + labelW + 2.8, y + 4, pageW - margin, y + 4);
+            doc.setTextColor(...C.white);
+            doc.text(title.toUpperCase(), margin, y + 5.5);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(...C.dark);
-            y += 7; // 7mm post-label (≈ 7px margin-below)
+            y += 11;
         };
 
-        // Key-value grid
-        // Label: 6.5pt uppercase #444 | Value: 9.5pt weight-500 #111
-        // Contact fields (phone/email): 9.5pt bold #1a1a1a
-        // Null-ish values: #444 normal weight, no italic
-        // Orphaned last field in row: spans 2 cols, y += cellH - 3
-        const kvTable = (fields, cols = 3, cellH = 13) => {
-            const filtered = fields.filter(([, val]) => val !== undefined && val !== null && String(val).trim() !== '');
+        // Light-grey section header with left accent rule
+        const sectionHeader = (title) => {
+            checkPage(16);
+            doc.setFillColor(...C.sectionBg);
+            doc.rect(margin, y, contentW, 7.5, 'F');
+            doc.setFillColor(...C.accent);
+            doc.rect(margin, y, 2.5, 7.5, 'F');
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...C.dark);
+            doc.text(title.toUpperCase(), margin + 6, y + 5.3);
+            doc.setFont(undefined, 'normal');
+            y += 10;
+        };
+
+        // Key-value table: 2 or 3 columns, with multi-line value wrapping (up to 3 lines)
+        const kvTable = (fields, cols = 2) => {
+            const filtered = fields.filter(([, val]) => val && String(val).trim());
             if (!filtered.length) return;
             const colW = contentW / cols;
-            // cellH: 13mm default (3-4 col); pass 10mm for dense 2-col sections
-            const colGap = 2.8; // 8px column-gap
-            const usableColW = colW - colGap;
-            let col = 0;
-            let rowWrapped = false;
-            const spanLast = filtered.length % cols === 1 && cols > 1;
+            const baseRowH = 6;
+            const lineH = 4;
+            const maxLines = 3;
 
-            filtered.forEach(([label, value], i) => {
-                if (col === 0) {
-                    checkPage(cellH + 2);
-                    rowWrapped = false;
-                }
-                const cellX = margin + col * colW;
-                const cellY = y;
+            for (let rowStart = 0; rowStart < filtered.length; rowStart += cols) {
+                const rowItems = filtered.slice(rowStart, Math.min(rowStart + cols, filtered.length));
+                const rowIdx = Math.floor(rowStart / cols);
 
-                // Label — 6.5pt uppercase #444
-                doc.setFontSize(6.5);
-                doc.setFont(undefined, 'normal');
-                doc.setTextColor(...C.label);
-                doc.text(label.toUpperCase(), cellX, cellY + 3);
+                // Pre-compute wrapped lines for every cell so we know the row height before drawing
+                const rowLines = rowItems.map(([, value]) =>
+                    doc.splitTextToSize(String(value), colW * 0.52).slice(0, maxLines)
+                );
+                const rowH = Math.max(baseRowH, ...rowLines.map(lines => lines.length * lineH));
 
-                // Value — null-ish #444 normal; else #111 normal (font-weight: 500)
-                const deEmphasize = isEmptyish(value);
-                doc.setFontSize(9.5);
-                doc.setFont(undefined, 'normal');
-                doc.setTextColor(...(deEmphasize ? C.muted : C.body));
-                const isLastItem = (i === filtered.length - 1);
-                const effectiveMaxW = (spanLast && isLastItem) ? usableColW * 2 + colGap : usableColW;
-                const valLines = doc.splitTextToSize(String(value), effectiveMaxW);
-                doc.text(valLines[0] || '', cellX, cellY + 8.5);
-                if (valLines[1]) {
-                    doc.text(valLines[1], cellX, cellY + 12.5);
-                    rowWrapped = true;
+                checkPage(rowH + 2);
+
+                // Alternating stripe spans full content width at correct height
+                if (rowIdx % 2 === 0) {
+                    doc.setFillColor(...C.stripe);
+                    doc.rect(margin, y - 1, contentW, rowH + 1, 'F');
                 }
 
-                col++;
-                // Advance y only when a full row is complete (right-column field placed)
-                // For 2-col: fires at i % 2 === 1, not per-field
-                if (col >= cols) {
-                    col = 0;
-                    y += cellH + (rowWrapped && cols !== 2 ? 4 : 0);
-                }
-            });
-            if (col > 0) {
-                y += spanLast ? cellH - 3 : cellH;
+                rowItems.forEach(([label], colIdx) => {
+                    const cellX = margin + colIdx * colW;
+                    doc.setFontSize(8);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(...C.mid);
+                    doc.text(label, cellX + 2, y + 3.5);
+
+                    doc.setFontSize(9);
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(...C.dark);
+                    rowLines[colIdx].forEach((line, li) => {
+                        doc.text(line, cellX + colW * 0.45, y + 3.5 + li * lineH);
+                    });
+                });
+
+                y += rowH;
             }
-            doc.setFont(undefined, 'normal');
-            y += 1; // minimal trailing gap
+
+            doc.setDrawColor(...C.light);
+            doc.setLineWidth(0.2);
+            doc.line(margin, y, margin + contentW, y);
+            y += 5;
         };
 
-        // Detail table for drivers / vehicles — header row + indented sub-rows
+        // Driver/vehicle detail cards with grey header rows
         const detailTable = (fields) => {
-            const filtered = fields.filter(([, val]) => val !== undefined && val !== null && String(val).trim() !== '');
+            const filtered = fields.filter(([, val]) => val && String(val).trim());
             if (!filtered.length) return;
-            const rowH = 5.8;
+            const rowH = 5.5;
             const labelW = 50;
 
             filtered.forEach(([label, value], i) => {
@@ -273,34 +199,37 @@ Object.assign(App, {
                 const isHeader = !label.startsWith('  ');
 
                 if (isHeader) {
-                    if (i > 0) y += 2;
-                    doc.setDrawColor(...C.border);
-                    doc.setLineWidth(0.4);
-                    doc.line(margin, y, margin + contentW, y);
+                    if (i > 0) y += 3;
+                    doc.setFillColor(...C.sectionBg);
+                    doc.rect(margin, y - 1, contentW, rowH + 2, 'F');
+                    doc.setFillColor(...C.accent);
+                    doc.rect(margin, y - 1, 2.5, rowH + 2, 'F');
+                    doc.setFontSize(9.5);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(...C.dark);
+                    doc.text(label, margin + 6, y + 3.5);
+                    doc.text(String(value), margin + labelW, y + 3.5);
+                    doc.setFont(undefined, 'normal');
+                } else {
+                    if (i % 2 === 0) {
+                        doc.setFillColor(...C.stripe);
+                        doc.rect(margin, y - 1, contentW, rowH, 'F');
+                    }
                     doc.setFontSize(8);
                     doc.setFont(undefined, 'bold');
-                    doc.setTextColor(...C.navy);
-                    doc.text(label, margin, y + 4.5);
+                    doc.setTextColor(...C.mid);
+                    doc.text(label.trim(), margin + 12, y + 3.5);
+                    doc.setFontSize(9);
                     doc.setFont(undefined, 'normal');
-                    doc.setTextColor(...C.body);
-                    doc.text(String(value), margin + labelW, y + 4.5);
-                } else {
-                    doc.setFontSize(7.5);
-                    doc.setFont(undefined, 'normal');
-                    doc.setTextColor(...C.label); // #444
-                    doc.text(label.trim(), margin + 4, y + 4);
-                    const deEmphasize = isEmptyish(value);
-                    doc.setFont(undefined, 'normal');
-                    doc.setTextColor(...(deEmphasize ? C.muted : C.body));
-                    doc.text(String(value), margin + labelW, y + 4);
-                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(...C.dark);
+                    doc.text(String(value), margin + labelW, y + 3.5);
                 }
                 y += rowH;
             });
-            doc.setDrawColor(...C.border);
-            doc.setLineWidth(0.3);
+            doc.setDrawColor(...C.light);
+            doc.setLineWidth(0.2);
             doc.line(margin, y, margin + contentW, y);
-            y += 4;
+            y += 5;
         };
 
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -311,184 +240,89 @@ Object.assign(App, {
             this.getMapImages(address),
             this.fetchImageDataUrl('Resources/altech-logo.png')
         ]);
-        const prefix = formatPrefix(v('prefix'));
-        const suffix = formatSuffix(v('suffix'));
-        const nameParts = [prefix, v('firstName'), v('middleName'), v('lastName'), suffix].filter(Boolean);
+        const prefix = v('prefix');
+        const suffix = v('suffix');
+        const nameParts = [prefix, data.firstName || '', data.lastName || '', suffix].filter(Boolean);
         const clientName = nameParts.join(' ') || 'Client';
 
-        y = 11;
+        // Top accent bar (greyscale)
+        doc.setFillColor(...C.groupBar);
+        doc.rect(0, 0, pageW, 2.5, 'F');
+        y = 10;
 
-        // ── Document header ──────────────────────────────────────────
-        // Left: logo + agency name + subtitle | Right: doc ref + timestamp
-        const logoH = 18; // ~64px at 96dpi
-        const logoW = logoH; // locked aspect ratio (square logo)
+        // Logo + title header row
+        const logoSize = 18;
         let headerTextX = margin;
         if (logoImg?.dataUrl) {
-            doc.addImage(logoImg.dataUrl, logoImg.format, margin, y - 1, logoW, logoH);
-            headerTextX = margin + logoW + 3.5; // 10px margin-right from logo
+            doc.addImage(logoImg.dataUrl, logoImg.format, margin, y - 2, logoSize, logoSize);
+            headerTextX = margin + logoSize + 4;
         }
-        // Agency name — 11pt bold #0f2745
-        doc.setFontSize(11);
+        doc.setFontSize(14);
         doc.setFont(undefined, 'bold');
-        doc.setTextColor(...C.navy);
-        doc.text('Altech Insurance', headerTextX, y + 5);
-        // Subtitle — 8pt uppercase #555
-        doc.setFontSize(8);
+        doc.setTextColor(...C.dark);
+        doc.text('Altech Insurance', headerTextX, y + 4);
+        doc.setFontSize(7.5);
         doc.setFont(undefined, 'normal');
-        doc.setTextColor(85, 85, 85); // #555
-        doc.text('INSURANCE APPLICATION SUMMARY', headerTextX, y + 11);
+        doc.setTextColor(...C.mid);
+        doc.text('Insurance Application Summary', headerTextX, y + 9.5);
 
-        // Doc ref — 10pt bold #0f2745 | Timestamp — 9pt #555
+        // Document ref & date (right-aligned)
         const docRef = `APP-${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`;
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(...C.navy);
-        doc.text(docRef, pageW - margin, y + 5, { align: 'right' });
-        doc.setFontSize(9);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(85, 85, 85); // #555
-        doc.text(formatDateTime(new Date()), pageW - margin, y + 11, { align: 'right' });
+        doc.setFontSize(7);
+        doc.setTextColor(...C.mid);
+        doc.text(docRef, pageW - margin, y + 4, { align: 'right' });
+        doc.text(formatDateTime(new Date()), pageW - margin, y + 9, { align: 'right' });
+        doc.setTextColor(...C.dark);
 
-        y += Math.max(logoH + 1, 14);
+        y += Math.max(logoSize, 12) + 4;
 
-        // 2px solid #0f2745 separator under header
-        doc.setDrawColor(...C.navy);
-        doc.setLineWidth(0.7);
+        // Thin rule under header
+        doc.setDrawColor(...C.light);
+        doc.setLineWidth(0.5);
         doc.line(margin, y, pageW - margin, y);
         y += 5;
 
-        // ── Applicant card ───────────────────────────────────────────
-        // 4-line layout: name / address+badge / ph+email / (satellite floats right)
-        // border: 1px #dde3eb, border-left: 3px navy, border-radius: 4px, padding: 12px 14px
-        const satW = 32, satH = 25;
-        const hasSat = !!(mapImages?.satellite?.dataUrl);
-        const cardPadX = 5;    // 14px ≈ 5mm
-        const cardPadY = 4.2;  // 12px ≈ 4.2mm
-        // Content width available to text (subtract sat + gap if present)
-        const cardTextW = hasSat ? contentW - satW - cardPadX - 4 : contentW - cardPadX * 2;
-        // Card height: name(7) + addr(7) + info row(7) [+ overflow line(7)] + padding = ~35-42mm
-        // Overflow detection happens after doc init — use generous max for now, adjusted below
-        const cardH = Math.max(35, hasSat ? satH + cardPadY * 2 : 0);
-
-        // Card border (no fill — toner-safe)
-        doc.setDrawColor(...C.border);
-        doc.setLineWidth(0.4);
-        doc.roundedRect(margin, y, contentW, cardH, 1.4, 1.4, 'S');
-        // Left accent bar — 3px navy
-        doc.setFillColor(...C.navy);
-        doc.roundedRect(margin, y, 1, cardH, 0.5, 0.5, 'F');
-
-        // Line 1 — applicant name: 16pt bold #0f2745
-        doc.setFontSize(16);
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(...C.navy);
-        doc.text(clientName, margin + cardPadX, y + cardPadY + 7.5);
-
-        // Line 2 — address: 10.5pt weight-500 #333, badge(s) inline after •
-        const qt = (data.qType || '').toLowerCase();
-        const homePT = v('homePolicyType');
-        const badges = [];
-        if (qt === 'auto') {
-            badges.push('AUTO');
-        } else if (qt === 'both') {
-            badges.push(homePT || 'HOME');
-            badges.push('AUTO');
-        } else if (homePT) {
-            badges.push(homePT);
-        }
-
-        const addrY = y + cardPadY + 16.5;
-        doc.setFontSize(10.5);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(51, 51, 51); // #333
-        const addrText = address || '';
-        const addrTextW = doc.getTextWidth(addrText);
-        doc.text(addrText, margin + cardPadX, addrY);
-
-        // Inline badge(s) after address • separator
-        let badgeX = margin + cardPadX + addrTextW;
-        if (badges.length) {
-            doc.setFontSize(10.5);
-            doc.setTextColor(51, 51, 51);
-            doc.text('  \u2022  ', badgeX, addrY);
-            badgeX += doc.getTextWidth('  \u2022  ');
-            badges.forEach((badgeLabel) => {
-                doc.setFontSize(7);
-                doc.setFont(undefined, 'bold');
-                const bW = doc.getTextWidth(badgeLabel) + 3.6;
-                const bH = 4.2;
-                doc.setDrawColor(...C.navy);
-                doc.setLineWidth(0.35);
-                doc.roundedRect(badgeX, addrY - 3.5, bW, bH, 0.7, 0.7, 'S');
-                doc.setTextColor(...C.navy);
-                doc.text(badgeLabel, badgeX + 1.8, addrY - 0.5);
-                badgeX += bW + 1.5;
-                doc.setFont(undefined, 'normal');
-            });
-        }
-
-        // Line 3 — info row: Phone + Email on one line, Quote Type below if overflow
-        const infoY = y + cardPadY + 25.5;
-        const phone = formatPhone(v('phone'));
-        const email = v('email');
-        const qtDisplay = qt === 'home' ? 'Home' : qt === 'auto' ? 'Auto' : qt === 'both' ? 'Bundle' : qt;
-
-        // Measure combined width of Phone + Email to detect overflow
-        const drawInfoItem = (label, value, xPos, yPos) => {
-            doc.setFontSize(8);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(119, 119, 119);
-            doc.text(label, xPos, yPos);
-            const lW = doc.getTextWidth(label) + 2;
-            doc.setFontSize(9.5);
-            doc.setTextColor(...C.dark);
-            doc.text(value, xPos + lW, yPos);
-            return doc.getTextWidth(label) + 2 + doc.getTextWidth(value);
-        };
-
-        // Estimate total width if all three items on one line
-        doc.setFontSize(9.5);
-        const estPhone = phone ? doc.getTextWidth('Phone') + 2 + doc.getTextWidth(phone) + 8 : 0;
-        const estEmail = email ? doc.getTextWidth('Email') + 2 + doc.getTextWidth(email) + 8 : 0;
-        const estQt = qtDisplay ? doc.getTextWidth('Quote Type') + 2 + doc.getTextWidth(qtDisplay) : 0;
-        const overflow = (estPhone + estEmail + estQt) > cardTextW;
-
-        if (!overflow) {
-            // Single row: Phone | Email | Quote Type evenly spaced
-            const infoItems = [
-                phone && { label: 'Phone', value: phone },
-                email && { label: 'Email', value: email },
-                qtDisplay && { label: 'Quote Type', value: qtDisplay },
-            ].filter(Boolean);
-            const colW3 = cardTextW / infoItems.length;
-            infoItems.forEach((item, idx) => {
-                drawInfoItem(item.label, item.value, margin + cardPadX + idx * colW3, infoY);
-            });
-        } else {
-            // Two rows: Phone left + Email right on line 3, Quote Type on line 4
-            const halfW = cardTextW * 0.5;
-            if (phone) drawInfoItem('Phone', phone, margin + cardPadX, infoY);
-            if (email) drawInfoItem('Email', email, margin + cardPadX + halfW, infoY);
-            if (qtDisplay) drawInfoItem('Quote Type', qtDisplay, margin + cardPadX, infoY + 7);
-        }
-
-        // Satellite — right side, vertically centered, border 1px #ccc
-        if (hasSat) {
-            const satX = margin + contentW - satW - cardPadX;
-            const satY = y + (cardH - satH) / 2;
-            doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, satX, satY, satW, satH);
-            doc.setDrawColor(204, 204, 204); // #ccc
+        // Street View banner
+        if (mapImages?.streetView?.dataUrl) {
+            const bannerH = 46;
+            doc.addImage(mapImages.streetView.dataUrl, mapImages.streetView.format, margin, y, contentW, bannerH);
+            doc.setDrawColor(...C.light);
             doc.setLineWidth(0.3);
-            doc.roundedRect(satX, satY, satW, satH, 0.7, 0.7, 'S');
-            doc.setFontSize(6);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(136, 136, 136); // #888
-            doc.text('Satellite View', satX + satW, satY + satH + 3, { align: 'right' });
+            doc.rect(margin, y, contentW, bannerH, 'S');
+            y += bannerH + 2;
         }
 
-        y += cardH + 6;
+        // Client info strip (greyscale)
+        doc.setFillColor(...C.sectionBg);
+        doc.rect(margin, y, contentW, 13, 'F');
+        doc.setFillColor(...C.accent);
+        doc.rect(margin, y, 3, 13, 'F');
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
         doc.setTextColor(...C.dark);
+        doc.text(clientName, margin + 6, y + 5.5);
+        doc.setFontSize(7.5);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...C.mid);
+        doc.text(address || '', margin + 6, y + 10.5);
+        doc.setTextColor(...C.dark);
+        y += 16;
 
+        // Satellite thumbnail
+        if (mapImages?.satellite?.dataUrl) {
+            const satX = pageW - margin - 30;
+            doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, satX, y, 30, 24);
+            doc.setDrawColor(...C.light);
+            doc.setLineWidth(0.3);
+            doc.rect(satX, y, 30, 24, 'S');
+            doc.setFontSize(5.5);
+            doc.setTextColor(...C.mid);
+            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || '')}`;
+            doc.textWithLink('View on Maps', satX + 15, y + 27, { url: mapUrl, align: 'center' });
+            doc.setTextColor(...C.dark);
+        }
+
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  DATA SECTIONS
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         const quoteType = (data.qType || '').toLowerCase();
@@ -497,251 +331,261 @@ Object.assign(App, {
         const drivers = (data.drivers && data.drivers.length) ? data.drivers : (this.drivers || []);
         const vehicles = (data.vehicles && data.vehicles.length) ? data.vehicles : (this.vehicles || []);
 
-        // ── Applicant ────────────────────────────────────────────────
-        { sectionHeader('Applicant');
+        // ── Summary card ──
+        {
+            const cardH = 34;
+            checkPage(cardH + 4);
+            y += 4;
+            doc.setFillColor(...C.summaryBg);
+            doc.rect(margin, y, contentW, cardH, 'F');
+
+            const qTypeLabel = quoteType === 'home' ? 'HOME' : quoteType === 'auto' ? 'AUTO' : quoteType === 'both' ? 'HOME & AUTO' : 'QUOTE';
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...C.white);
+            doc.text(`${clientName}  —  ${qTypeLabel}`, margin + 5, y + 9);
+            doc.setFontSize(7);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(180, 180, 180);
+            doc.text(docRef, pageW - margin - 3, y + 9, { align: 'right' });
+
+            const dobStr = v('dob') ? `DOB: ${formatDate(v('dob'))}` : '';
+            const addrShort = [v('addrCity'), v('addrState'), v('addrZip')].filter(Boolean).join(', ');
+            const dobAddrLine = [dobStr, addrShort].filter(Boolean).join('  ·  ');
+            doc.setFontSize(8);
+            if (dobAddrLine) doc.text(dobAddrLine, margin + 5, y + 16);
+            doc.text(formatDateTime(new Date()), pageW - margin - 3, y + 16, { align: 'right' });
+
+            doc.setDrawColor(80, 80, 80);
+            doc.setLineWidth(0.3);
+            doc.line(margin + 5, y + 19, pageW - margin - 5, y + 19);
+
+            const statsItems = [];
+            if (showHome && v('dwellingCoverage')) statsItems.push(`Dwelling ${formatCurrency(v('dwellingCoverage'))}`);
+            if (showAuto && v('liabilityLimits')) statsItems.push(`Liability ${v('liabilityLimits')}`);
+            if (showAuto && vehicles.length) statsItems.push(`${vehicles.length} Vehicle${vehicles.length > 1 ? 's' : ''}`);
+            if (showAuto && drivers.length) statsItems.push(`${drivers.length} Driver${drivers.length > 1 ? 's' : ''}`);
+            doc.setFontSize(8.5);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...C.white);
+            if (statsItems.length) doc.text(statsItems.join('  |  '), margin + 5, y + 26);
+
+            const policyItems = [];
+            if (v('effectiveDate')) policyItems.push(`Eff. ${formatDate(v('effectiveDate'))}`);
+            const priorCarrierSummary = v('homePriorCarrier') || v('priorCarrier');
+            if (priorCarrierSummary) policyItems.push(`Prior: ${priorCarrierSummary}`);
+            if (v('accidents')) policyItems.push(`Accidents: ${v('accidents')}`);
+            doc.setFontSize(7.5);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(180, 180, 180);
+            if (policyItems.length) doc.text(policyItems.join('  |  '), margin + 5, y + 32);
+
+            y += cardH + 5;
+        }
+
+        // ── Risk callout (conditional, home only) ──
+        if (showHome) {
+            const flags = [];
+            const roofYrVal = parseInt(v('roofYr'));
+            const yrBuiltVal = parseInt(v('yrBuilt'));
+            const curYear = new Date().getFullYear();
+            if (!isNaN(roofYrVal) && roofYrVal > 1900 && (curYear - roofYrVal) >= 20)
+                flags.push(`Roof age: ${curYear - roofYrVal} yrs (updated ${roofYrVal})`);
+            if (!isNaN(yrBuiltVal) && yrBuiltVal > 1800 && yrBuiltVal < 1970)
+                flags.push(`Year built: ${yrBuiltVal}`);
+            const poolVal = v('pool');
+            if (poolVal && poolVal.toLowerCase() !== 'no') flags.push('Pool on property');
+            const trampolineVal = v('trampoline');
+            if (trampolineVal && trampolineVal.toLowerCase() !== 'no') flags.push('Trampoline on property');
+            const woodStoveVal = v('woodStove');
+            if (woodStoveVal && woodStoveVal.toLowerCase() !== 'none') flags.push(`Wood stove: ${woodStoveVal}`);
+            const fireStationMi = parseFloat(v('fireStationDist'));
+            if (!isNaN(fireStationMi) && fireStationMi > 5) flags.push(`Fire station: ${fireStationMi} mi`);
+
+            if (flags.length) {
+                const boxH = 8 + flags.length * 5.5;
+                checkPage(boxH + 4);
+                y += 2;
+                doc.setFillColor(248, 248, 248);
+                doc.setDrawColor(...C.light);
+                doc.setLineWidth(1);
+                doc.rect(margin, y, contentW, boxH, 'FD');
+                doc.setFontSize(7.5);
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(...C.dark);
+                doc.text('RISK FLAGS', margin + 3, y + 5.5);
+                doc.setFont(undefined, 'normal');
+                flags.forEach((flag, i) => {
+                    doc.text(`\u26A0  ${flag}`, margin + 3, y + 5.5 + (i + 1) * 5.5);
+                });
+                y += boxH + 4;
+            }
+        }
+
+        // ══ GROUP: PERSONAL INFORMATION ══
+        groupBar('Personal Information');
+
+        sectionHeader('Applicant');
         kvTable([
             ['Full Name', clientName],
-            [FIELD_BY_ID['middleName'].label, v('middleName')],
-            [FIELD_BY_ID['dob'].label, formatDate(v('dob'))],
-            [FIELD_BY_ID['gender'].label, v('gender') === 'M' ? 'Male' : v('gender') === 'F' ? 'Female' : v('gender')],
-            [FIELD_BY_ID['maritalStatus'].label, v('maritalStatus')],
-            [FIELD_BY_ID['phone'].label, formatPhone(v('phone'))],
-            [FIELD_BY_ID['email'].label, v('email')],
-            [FIELD_BY_ID['education'].label, v('education')],
-            [FIELD_BY_ID['industry'].label, vo('industry')],
-            [FIELD_BY_ID['occupation'].label, v('occupation')],
+            ['Date of Birth', formatDate(v('dob'))],
+            ['Gender', v('gender') === 'M' ? 'Male' : v('gender') === 'F' ? 'Female' : v('gender')],
+            ['Marital Status', v('maritalStatus')],
+            ['Phone', v('phone')],
+            ['Email', v('email')],
+            ['Education', v('education')],
+            ['Industry', v('industry')],
+            ['Occupation', v('occupation')],
+            ['Quote Type', quoteType === 'home' ? 'Home Only' : quoteType === 'auto' ? 'Auto Only' : quoteType === 'both' ? 'Home & Auto' : quoteType],
             ['Pronunciation', this.getNamePronunciation(data)],
-        ], 3); }
+        ]);
 
-        // ── Co-Applicant (if provided) ───────────────────────────────
-        const hasCoApp = data.hasCoApplicant === 'yes' || data.hasCoApplicant === true || data.hasCoApplicant === 'on';
-        if (hasCoApp && (v('coFirstName') || v('coLastName'))) {
+        if (data.hasCoApplicant === 'yes' && (data.coFirstName || data.coLastName)) {
             sectionHeader('Co-Applicant / Spouse');
             kvTable([
-                ['Full Name', `${v('coFirstName')} ${v('coLastName')}`.trim()],
-                [FIELD_BY_ID['coDob'].label, formatDate(v('coDob'))],
-                [FIELD_BY_ID['coGender'].label, v('coGender') === 'M' ? 'Male' : v('coGender') === 'F' ? 'Female' : v('coGender')],
-                [FIELD_BY_ID['coMaritalStatus'].label, vo('coMaritalStatus')],
-                [FIELD_BY_ID['coEmail'].label, v('coEmail')],
-                [FIELD_BY_ID['coPhone'].label, formatPhone(v('coPhone'))],
-                [FIELD_BY_ID['coRelationship'].label, vo('coRelationship')],
-                [FIELD_BY_ID['coOccupation'].label, v('coOccupation')],
-                [FIELD_BY_ID['coEducation'].label, v('coEducation')],
-                [FIELD_BY_ID['coIndustry'].label, vo('coIndustry')],
-            ], 3);
+                ['Full Name', `${data.coFirstName || ''} ${data.coLastName || ''}`.trim()],
+                ['Date of Birth', formatDate(v('coDob'))],
+                ['Gender', v('coGender') === 'M' ? 'Male' : v('coGender') === 'F' ? 'Female' : v('coGender')],
+                ['Email', v('coEmail')],
+                ['Phone', v('coPhone')],
+                ['Relationship', v('coRelationship')],
+            ]);
         }
 
-        // ── Property / Garaging Address ──────────────────────────────
-        { const isAutoOnly = data.qType === 'auto';
-        sectionHeader(isAutoOnly ? 'Garaging Address' : 'Property Address');
-        const addrRows = [
-            [FIELD_BY_ID['addrStreet'].label, v('addrStreet')],
-            [FIELD_BY_ID['addrCity'].label, v('addrCity')],
-            [FIELD_BY_ID['addrState'].label, v('addrState')],
-            [FIELD_BY_ID['addrZip'].label, v('addrZip')],
-            [FIELD_BY_ID['county'].label, v('county') || this.getCountyFromCity(data.addrCity, data.addrState) || ''],
-            [FIELD_BY_ID['yearsAtAddress'].label, v('yearsAtAddress')],
-        ];
-        if (v('previousAddrStreet')) {
-            addrRows.push(
-                [FIELD_BY_ID['previousAddrStreet'].label, v('previousAddrStreet')],
-                [FIELD_BY_ID['previousAddrCity'].label + ' (Prev)', v('previousAddrCity')],
-                [FIELD_BY_ID['previousAddrState'].label, v('previousAddrState')],
-                [FIELD_BY_ID['previousAddrZip'].label, v('previousAddrZip')],
-            );
-        }
-        if ((isAutoOnly || data.qType === 'both') && data.garagingSameAsMailing) addrRows.push(['Same as Insured Addr', 'Yes']);
-        kvTable(addrRows, 3); }
-
-        // ── Primary Home Address (non-primary residences only) ──────────
-        if (v('dwellingUsage') && v('dwellingUsage') !== 'Primary' &&
-            (v('primaryHomeAddr') || v('primaryHomeCity'))) {
-            checkPage(20);
-            sectionHeader("Client's Primary Home Address");
-            kvTable([
-                [FIELD_BY_ID['primaryHomeAddr'].label, v('primaryHomeAddr')],
-                [FIELD_BY_ID['primaryHomeCity'].label, v('primaryHomeCity')],
-                [FIELD_BY_ID['primaryHomeState'].label, v('primaryHomeState')],
-                [FIELD_BY_ID['primaryHomeZip'].label, v('primaryHomeZip')],
-            ], 3);
-        }
+        sectionHeader('Property Address');
+        kvTable([
+            ['Street Address', v('addrStreet')],
+            ['City', v('addrCity')],
+            ['State', v('addrState')],
+            ['ZIP Code', v('addrZip')],
+            ['County', this.getCountyFromCity(data.addrCity, data.addrState) || ''],
+            ['Years at Address', v('yearsAtAddress')],
+        ]);
 
         if (showHome) {
-            // ── Property Details ─────────────────────────────────────
-            { sectionHeader('Property Details');
+            // ══ GROUP: HOME ══
+            groupBar('Home');
+
+            // 3-column layout for dense property data
+            sectionHeader('Property Details');
             kvTable([
-                [FIELD_BY_ID['yrBuilt'].label, v('yrBuilt')],
-                [FIELD_BY_ID['sqFt'].label, v('sqFt') ? Number(v('sqFt')).toLocaleString() + ' sq ft' : ''],
-                [FIELD_BY_ID['lotSize'].label, v('lotSize') ? v('lotSize') + ' acres' : ''],
-                [FIELD_BY_ID['dwellingType'].label, v('dwellingType')],
-                [FIELD_BY_ID['dwellingUsage'].label, v('dwellingUsage')],
-                [FIELD_BY_ID['occupancyType'].label, v('occupancyType')],
-                [FIELD_BY_ID['numStories'].label, v('numStories')],
-                [FIELD_BY_ID['numOccupants'].label, v('numOccupants')],
-                [FIELD_BY_ID['bedrooms'].label, v('bedrooms')],
-                [FIELD_BY_ID['fullBaths'].label, v('fullBaths')],
-                [FIELD_BY_ID['halfBaths'].label, v('halfBaths')],
-                [FIELD_BY_ID['constructionStyle'].label, v('constructionStyle')],
-                [FIELD_BY_ID['exteriorWalls'].label, v('exteriorWalls')],
-                [FIELD_BY_ID['foundation'].label, vo('foundation')],
-                [FIELD_BY_ID['garageType'].label, v('garageType')],
-                [FIELD_BY_ID['garageSpaces'].label, v('garageSpaces')],
-                [FIELD_BY_ID['kitchenQuality'].label, v('kitchenQuality')],
-                [FIELD_BY_ID['flooring'].label, v('flooring')],
-                [FIELD_BY_ID['numFireplaces'].label, v('numFireplaces')],
-                [FIELD_BY_ID['purchaseDate'].label, formatDate(v('purchaseDate'))],
-            ], 4); }
+                ['Year Built', v('yrBuilt')],
+                ['Square Footage', v('sqFt') ? Number(v('sqFt')).toLocaleString() + ' sq ft' : ''],
+                ['Lot Size', v('lotSize') ? v('lotSize') + ' acres' : ''],
+                ['Dwelling Type', v('dwellingType')],
+                ['Dwelling Use', v('dwellingUsage')],
+                ['Occupancy', v('occupancyType')],
+                ['Stories', v('numStories')],
+                ['Occupants', v('numOccupants')],
+                ['Bedrooms', v('bedrooms')],
+                ['Full Baths', v('fullBaths')],
+                ['Half Baths', v('halfBaths')],
+                ['Construction', v('constructionStyle')],
+                ['Exterior Walls', v('exteriorWalls')],
+                ['Foundation', v('foundation')],
+                ['Garage Type', v('garageType')],
+                ['Garage Spaces', v('garageSpaces')],
+                ['Kitchen/Bath Quality', v('kitchenQuality')],
+                ['Flooring', v('flooring')],
+                ['Fireplaces', v('numFireplaces')],
+                ['Purchase Date', formatDate(v('purchaseDate'))],
+            ], 3);
 
-            // ── Building Systems ─────────────────────────────────────
-            checkPage(30); // ensure header + at least first data row stay together
-            { sectionHeader('Building Systems');
+            // 3-column layout for building systems (year-value fields)
+            sectionHeader('Building Systems');
             kvTable([
-                [FIELD_BY_ID['roofType'].label, vo('roofType')],
-                [FIELD_BY_ID['roofShape'].label, vo('roofShape')],
-                [FIELD_BY_ID['roofYr'].label, v('roofYr')],
-                [FIELD_BY_ID['roofUpdate'].label, v('roofUpdate')],
-                [FIELD_BY_ID['heatingType'].label, vo('heatingType')],
-                [FIELD_BY_ID['heatYr'].label, v('heatYr')],
-                [FIELD_BY_ID['cooling'].label, v('cooling')],
-                [FIELD_BY_ID['plumbYr'].label, v('plumbYr')],
-                [FIELD_BY_ID['elecYr'].label, v('elecYr')],
-                [FIELD_BY_ID['sewer'].label, v('sewer')],
-                [FIELD_BY_ID['waterSource'].label, v('waterSource')],
-            ], 4); }
+                ['Roof Type', v('roofType')],
+                ['Roof Shape', v('roofShape')],
+                ['Roof Updated', v('roofYr')],
+                ['Heating Type', v('heatingType')],
+                ['Heating Updated', v('heatYr')],
+                ['Cooling', v('cooling')],
+                ['Plumbing Updated', v('plumbYr')],
+                ['Electrical Updated', v('elecYr')],
+                ['Sewer', v('sewer')],
+                ['Water Source', v('waterSource')],
+            ], 3);
 
-            // ── Risk & Protection ────────────────────────────────────
-            { sectionHeader('Risk & Protection');
+            // â”€â”€ Risk & Protection â”€â”€
+            sectionHeader('Risk & Protection');
             kvTable([
-                [FIELD_BY_ID['burglarAlarm'].label, v('burglarAlarm')],
-                [FIELD_BY_ID['fireAlarm'].label, v('fireAlarm')],
-                [FIELD_BY_ID['smokeDetector'].label, v('smokeDetector')],
-                [FIELD_BY_ID['sprinklers'].label, v('sprinklers')],
-                [FIELD_BY_ID['pool'].label, v('pool') || 'No'],
-                [FIELD_BY_ID['trampoline'].label, v('trampoline') || 'No'],
-                [FIELD_BY_ID['woodStove'].label, v('woodStove') && v('woodStove') !== 'None' ? v('woodStove') : 'None'],
-                [FIELD_BY_ID['secondaryHeating'].label, vo('secondaryHeating')],
-                [FIELD_BY_ID['dogInfo'].label, data.dogInfo || 'None'],
-                [FIELD_BY_ID['businessOnProperty'].label, data.businessOnProperty || 'No'],
-                [FIELD_BY_ID['fireStationDist'].label, v('fireStationDist')],
-                [FIELD_BY_ID['fireHydrantFeet'].label, v('fireHydrantFeet')],
-                [FIELD_BY_ID['tidalWaterDist'].label, v('tidalWaterDist')],
-                [FIELD_BY_ID['protectionClass'].label, v('protectionClass')],
-            ], 4); }
+                ['Burglar Alarm', v('burglarAlarm')],
+                ['Fire Alarm', v('fireAlarm')],
+                ['Smoke Detector', v('smokeDetector')],
+                ['Sprinklers', v('sprinklers')],
+                ['Swimming Pool', v('pool') || 'No'],
+                ['Trampoline', v('trampoline') || 'No'],
+                ['Wood Stove', v('woodStove') && v('woodStove') !== 'None' ? v('woodStove') : 'None'],
+                ['Secondary Heating', v('secondaryHeating')],
+                ['Dog on Premises', data.dogInfo || 'None'],
+                ['Business on Property', data.businessOnProperty || 'No'],
+                ['Fire Station (mi)', v('fireStationDist')],
+                ['Fire Hydrant (ft)', v('fireHydrantFeet')],
+                ['Tidal Water (ft)', v('tidalWaterDist')],
+                ['Protection Class', v('protectionClass')],
+            ]);
 
-            // ── Home Coverage ────────────────────────────────────────
-            checkPage(30);
-            { sectionHeader('Home Coverage');
+            // â”€â”€ Home Coverage â”€â”€
+            sectionHeader('Home Coverage');
             kvTable([
-                [FIELD_BY_ID['homePolicyType'].label, v('homePolicyType')],
-                [FIELD_BY_ID['dwellingCoverage'].label, formatCurrency(v('dwellingCoverage'))],
-                [FIELD_BY_ID['otherStructures'].label, formatCurrency(v('otherStructures'))],
-                [FIELD_BY_ID['homePersonalProperty'].label, formatCurrency(v('homePersonalProperty'))],
-                [FIELD_BY_ID['homeLossOfUse'].label, formatCurrency(v('homeLossOfUse'))],
-                [FIELD_BY_ID['personalLiability'].label, v('personalLiability')],
-                [FIELD_BY_ID['medicalPayments'].label, v('medicalPayments')],
-                [FIELD_BY_ID['homeDeductible'].label, formatDeductible(v('homeDeductible'))],
-                [FIELD_BY_ID['windDeductible'].label, formatDeductible(v('windDeductible'))],
-                [FIELD_BY_ID['mortgagee'].label, v('mortgagee')],
-            ], 3); }
-
-            // ── Home Endorsements ────────────────────────────────────
-            { const endorsementRows = [
-                [FIELD_BY_ID['increasedReplacementCost'].label, v('increasedReplacementCost')],
-                [FIELD_BY_ID['ordinanceOrLaw'].label, v('ordinanceOrLaw')],
-                [FIELD_BY_ID['waterBackup'].label, formatCurrency(v('waterBackup'))],
-                [FIELD_BY_ID['lossAssessment'].label, formatCurrency(v('lossAssessment'))],
-                [FIELD_BY_ID['animalLiability'].label, formatCurrency(v('animalLiability'))],
-                [FIELD_BY_ID['theftDeductible'].label, formatDeductible(v('theftDeductible'))],
-                [FIELD_BY_ID['jewelryLimit'].label, formatCurrency(v('jewelryLimit'))],
-                [FIELD_BY_ID['creditCardCoverage'].label, formatCurrency(v('creditCardCoverage'))],
-                [FIELD_BY_ID['moldDamage'].label, formatCurrency(v('moldDamage'))],
-                [FIELD_BY_ID['equipmentBreakdown'].label, v('equipmentBreakdown') === 'yes' ? 'Yes' : v('equipmentBreakdown') || ''],
-                [FIELD_BY_ID['serviceLine'].label, v('serviceLine') === 'yes' ? 'Yes' : v('serviceLine') || ''],
-            ];
-            // Earthquake (conditional — only show if coverage selected)
-            const eqCov = v('earthquakeCoverage');
-            if (eqCov === 'yes' || eqCov === 'Yes') {
-                endorsementRows.push(
-                    [FIELD_BY_ID['earthquakeCoverage'].label, 'Yes'],
-                    [FIELD_BY_ID['earthquakeZone'].label, v('earthquakeZone')],
-                    [FIELD_BY_ID['earthquakeDeductible'].label, formatDeductible(v('earthquakeDeductible'))]
-                );
-            }
-            // Only render section if at least one endorsement has data
-            if (endorsementRows.some(r => r[1] && !isEmptyish(r[1]))) {
-                checkPage(30);
-                sectionHeader('Home Endorsements');
-                kvTable(endorsementRows, 3);
-            } }
-
+                ['Policy Type', v('homePolicyType')],
+                ['Dwelling Coverage', formatCurrency(v('dwellingCoverage'))],
+                ['Personal Liability', formatCurrency(v('personalLiability'))],
+                ['Medical Payments', formatCurrency(v('medicalPayments'))],
+                ['Deductible', formatCurrency(v('homeDeductible'))],
+                ['Wind/Hail Ded.', formatCurrency(v('windDeductible'))],
+                ['Mortgagee', v('mortgagee')],
+                ['Increased Repl. Cost', v('increasedReplacementCost')],
+                ['Ordinance or Law', v('ordinanceOrLaw')],
+                ['Water Backup', v('waterBackup')],
+                ['Loss Assessment', formatCurrency(v('lossAssessment'))],
+                ['Equipment Breakdown', v('equipmentBreakdown')],
+                ['Service Line', v('serviceLine')],
+                ['Animal Liability', formatCurrency(v('animalLiability'))],
+                ['Earthquake Coverage', v('earthquakeCoverage')],
+            ]);
         }
 
         if (showAuto) {
-            // ── Drivers ──────────────────────────────────────────────
+            // ══ GROUP: AUTO ══
+            groupBar('Auto');
+
             if (drivers.length) {
                 sectionHeader('Drivers');
-                drivers.forEach((d, i) => {
-                    if (i > 0) y += 4; // gap between driver groups
-                    const name = [d.firstName, d.lastName].filter(Boolean).join(' ') || 'Unknown';
-                    // Sub-header: "Driver 1 — Sarah Mitchell" spanning full width
-                    checkPage(20);
-                    doc.setFontSize(8);
-                    doc.setFont(undefined, 'bold');
-                    doc.setTextColor(...C.navy);
-                    doc.text(`Driver ${i + 1} \u2014 ${name}`, margin, y + 5.5);
-                    doc.setFont(undefined, 'normal');
-                    doc.setTextColor(...C.dark);
-                    y += 6;
-                    // Driver fields in 3-col kvTable
-                    kvTable([
-                        ['Date of Birth', formatDate(d.dob || '')],
-                        ['Gender', d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : (d.gender || '')],
-                        ['Marital Status', d.maritalStatus || ''],
-                        ['Relationship', d.relationship || ''],
-                        ['Education', d.education || ''],
-                        ['Occupation', d.occupation || ''],
-                        ['License #', (d.dlNum || '').toUpperCase()],
-                        ['License State', (d.dlState || '').toUpperCase()],
-                        ['Industry', d.industry || ''],
-                        ['DL Status', d.dlStatus || ''],
-                        ['Age Licensed', d.ageLicensed || ''],
-                        ['SR-22', d.sr22 || ''],
-                        ['FR-44', d.fr44 || ''],
-                        ['Good Driver', d.goodDriver || ''],
-                        ['Mature Driver', d.matureDriver || ''],
-                        ['License Susp/Rev', d.licenseSusRev || ''],
-                        ['Driver Education', d.driverEducation || ''],
-                        ['Student GPA', d.studentGPA || ''],
-                    ], 3);
-                });
+                const driverRows = drivers.map((d, i) => {
+                    const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
+                    return [
+                        [`Driver ${i + 1}`, name || 'Unknown'],
+                        ['  Date of Birth', formatDate(d.dob || '')],
+                        ['  Gender', d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : (d.gender || '')],
+                        ['  Marital Status', d.maritalStatus || ''],
+                        ['  Relationship', d.relationship || ''],
+                        ['  Education', d.education || ''],
+                        ['  Occupation', d.occupation || ''],
+                        ['  License #', (d.dlNum || '').toUpperCase()],
+                        ['  License State', (d.dlState || '').toUpperCase()],
+                    ];
+                }).flat();
+                detailTable(driverRows);
             }
 
-            // ── Vehicles ─────────────────────────────────────────────
             if (vehicles.length) {
                 sectionHeader('Vehicles');
-                const vehicleRows = vehicles.map((v, i) => {
-                    const vehDesc = [v.year, v.make, v.model].filter(Boolean).join(' ');
-                    const driverDisplay = this.resolveDriverName(v.primaryDriver, drivers);
+                const vehicleRows = vehicles.map((veh, i) => {
+                    const vehDesc = [veh.year, veh.make, veh.model].filter(Boolean).join(' ');
+                    const driverDisplay = this.resolveDriverName(veh.primaryDriver, drivers);
                     return [
                         [`Vehicle ${i + 1}`, vehDesc || 'Unknown'],
-                        ['  VIN', v.vin || ''],
-                        ['  Usage', v.use || ''],
-                        ['  Annual Miles', v.miles ? Number(v.miles).toLocaleString() : ''],
+                        ['  VIN', veh.vin || ''],
+                        ['  Usage', veh.use || ''],
+                        ['  Annual Miles', veh.miles ? Number(veh.miles).toLocaleString() : ''],
                         ['  Primary Driver', driverDisplay],
-                        ['  Ownership', v.ownershipType || ''],
-                        ['  Anti-Theft', v.antiTheft || ''],
-                        ['  Anti-Lock Brakes', v.antiLockBrakes || ''],
-                        ['  Passive Restraints', v.passiveRestraints || ''],
-                        ['  Telematics', v.telematics || ''],
-                        ['  TNC (Rideshare)', v.tnc || ''],
-                        ['  Carpool', v.carPool || ''],
-                        ['  New Vehicle', v.carNew || ''],
                     ];
                 }).flat();
                 detailTable(vehicleRows);
             }
 
-            // Legacy single-vehicle (if no multi-vehicle data)
+            // Legacy single-vehicle fallback
             if (!vehicles.length && (data.vehDesc || data.vin)) {
                 sectionHeader('Vehicle');
                 kvTable([
@@ -749,98 +593,68 @@ Object.assign(App, {
                     ['VIN', data.vin || ''],
                     ['Usage', data.use || ''],
                     ['Annual Miles', data.miles || ''],
-                ], 3);
+                ]);
             }
 
-            // ── Auto Coverage ────────────────────────────────────────
-            { sectionHeader('Auto Coverage');
+            sectionHeader('Auto Coverage');
             kvTable([
-                [FIELD_BY_ID['autoPolicyType'].label, v('autoPolicyType')],
-                [FIELD_BY_ID['residenceIs'].label, vo('residenceIs')],
-                [FIELD_BY_ID['liabilityLimits'].label, v('liabilityLimits')],
-                [FIELD_BY_ID['pdLimit'].label, formatCurrency(v('pdLimit'))],
-                [FIELD_BY_ID['medPayments'].label, formatCurrency(v('medPayments'))],
-                [FIELD_BY_ID['umLimits'].label, v('umLimits')],
-                [FIELD_BY_ID['uimLimits'].label, v('uimLimits')],
-                [FIELD_BY_ID['umpdLimit'].label, formatCurrency(v('umpdLimit'))],
-                [FIELD_BY_ID['compDeductible'].label, formatDeductible(v('compDeductible'))],
-                [FIELD_BY_ID['autoDeductible'].label, formatDeductible(v('autoDeductible'))],
-                [FIELD_BY_ID['rentalDeductible'].label, formatRental(v('rentalDeductible'))],
-                [FIELD_BY_ID['towingDeductible'].label, formatCurrency(v('towingDeductible'))],
-                [FIELD_BY_ID['studentGPA'].label, v('studentGPA')],
-            ], 2, 10); }
+                ['Auto Policy Type', v('autoPolicyType')],
+                ['Residence Is', v('residenceIs')],
+                ['Liability Limits', v('liabilityLimits')],
+                ['Property Damage', v('pdLimit')],
+                ['Med Pay (Auto)', formatCurrency(v('medPayments'))],
+                ['UM Limits', v('umLimits')],
+                ['UIM Limits', v('uimLimits')],
+                ['UMPD Limit', v('umpdLimit')],
+                ['Comprehensive Ded.', formatCurrency(v('compDeductible'))],
+                ['Collision Ded.', formatCurrency(v('autoDeductible'))],
+                ['Rental Reimburse.', v('rentalDeductible')],
+                ['Towing/Roadside', v('towingDeductible')],
+                ['Student GPA', v('studentGPA')],
+            ]);
         }
 
-        // ── Policy & Prior Insurance ─────────────────────────────────
-        { sectionHeader('Policy & Prior Insurance');
+        // ══ GROUP: POLICY & HISTORY ══
+        groupBar('Policy & History');
+
+        sectionHeader('Policy & Prior Insurance');
         const pdfPriorRows = [
-            [FIELD_BY_ID['homePolicyType'].label, v('homePolicyType')],
-            [FIELD_BY_ID['policyTerm'].label, v('policyTerm')],
-            [FIELD_BY_ID['effectiveDate'].label, formatDate(v('effectiveDate'))],
+            ['Policy Term', v('policyTerm')],
+            ['Effective Date', formatDate(v('effectiveDate'))],
         ];
         if (showHome) {
             const hCarrier = v('homePriorCarrier') || v('priorCarrier');
             pdfPriorRows.push(
-                [FIELD_BY_ID['homePriorCarrier'].label, hCarrier],
-                [FIELD_BY_ID['homePriorPolicyTerm'].label, v('homePriorPolicyTerm') || v('priorPolicyTerm')],
-                [FIELD_BY_ID['homePriorYears'].label, v('homePriorYears') || v('priorYears')],
-                [FIELD_BY_ID['homePriorExp'].label, formatDate(v('homePriorExp') || v('priorExp'))],
-                [FIELD_BY_ID['homePriorLiability'].label, v('homePriorLiability')]
+                ['Home Prior Carrier', hCarrier],
+                ['Home Prior Term', v('homePriorPolicyTerm') || v('priorPolicyTerm')],
+                ['Home Yrs w/ Prior', v('homePriorYears') || v('priorYears')],
+                ['Home Prior Exp.', formatDate(v('homePriorExp') || v('priorExp'))]
             );
         }
         if (showAuto) {
             pdfPriorRows.push(
-                [FIELD_BY_ID['priorCarrier'].label, v('priorCarrier')],
-                [FIELD_BY_ID['priorPolicyTerm'].label, v('priorPolicyTerm')],
-                [FIELD_BY_ID['priorYears'].label, v('priorYears')],
-                [FIELD_BY_ID['priorExp'].label, formatDate(v('priorExp'))],
-                [FIELD_BY_ID['priorLiabilityLimits'].label, v('priorLiabilityLimits')]
+                ['Auto Prior Carrier', v('priorCarrier')],
+                ['Auto Prior Term', v('priorPolicyTerm')],
+                ['Auto Yrs w/ Prior', v('priorYears')],
+                ['Auto Prior Exp.', formatDate(v('priorExp'))]
             );
         }
         pdfPriorRows.push(
-            [FIELD_BY_ID['continuousCoverage'].label, v('continuousCoverage')]
+            ['Continuous Coverage', v('continuousCoverage')],
+            ['Accidents', v('accidents')],
+            ['Violations', v('violations')]
         );
-        // Additional contact/referral info appended to policy section (no separate header needed)
-        if (v('additionalInsureds')) pdfPriorRows.push([FIELD_BY_ID['additionalInsureds'].label, v('additionalInsureds')]);
-        if (v('contactTime')) pdfPriorRows.push([FIELD_BY_ID['contactTime'].label, v('contactTime')]);
-        if (v('contactMethod')) pdfPriorRows.push([FIELD_BY_ID['contactMethod'].label, v('contactMethod')]);
-        if (v('referralSource')) pdfPriorRows.push([FIELD_BY_ID['referralSource'].label, vo('referralSource')]);
-        pdfPriorRows.push([FIELD_BY_ID['tcpaConsent'].label, data.tcpaConsent ? 'Yes' : 'No']);
-        // Per-driver accidents / violations — one row per driver in 2-col grid
-        if (drivers.length > 1) {
-            drivers.forEach((d, i) => {
-                if (d.accidents) pdfPriorRows.push([`Accidents \u2014 Driver ${i + 1}`, d.accidents]);
-                if (d.violations) pdfPriorRows.push([`Violations \u2014 Driver ${i + 1}`, d.violations]);
-            });
-        } else {
-            const acc = (drivers[0] && drivers[0].accidents) || v('accidents');
-            const vio = (drivers[0] && drivers[0].violations) || v('violations');
-            if (acc) pdfPriorRows.push(['Accidents', acc]);
-            if (vio) pdfPriorRows.push(['Violations', vio]);
-        }
-        kvTable(pdfPriorRows, 2, 10); }
+        kvTable(pdfPriorRows);
 
+        sectionHeader('Additional Information');
+        kvTable([
+            ['Additional Insureds', v('additionalInsureds')],
+            ['Best Contact Time', v('contactTime')],
+            ['Contact Method', v('contactMethod')],
+            ['Referral Source', v('referralSource')],
+            ['TCPA Consent', data.tcpaConsent ? 'Yes' : 'No'],
+        ]);
 
-        // ─── Additional Notes (PDF-only) ──────────────────────
-        const pdfNotes = v('pdfNotes');
-        if (pdfNotes && pdfNotes.trim()) {
-            checkPage(30);
-            sectionHeader('Notes');
-            y += 4; // breathing room below the NOTES header label
-            const notesMargin = 14;
-            const notesMaxW = pageW - notesMargin * 2;
-            doc.setFontSize(9);
-            doc.setTextColor(...C.body);
-            const wrappedLines = doc.splitTextToSize(pdfNotes.trim(), notesMaxW);
-            wrappedLines.forEach(line => {
-                checkPage(6);
-                doc.text(line, notesMargin, y);
-                y += 5;
-            });
-            y += 4;
-        }
-
-        // â”€â”€â”€ Footer on every page â”€â”€â”€
         drawFooter();
 
         const fileName = `Insurance_Application_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -857,7 +671,7 @@ Object.assign(App, {
         const result = this.buildCSV(this.data);
         this.downloadFile(result.content, result.filename, result.mime);
         this.logExport('CSV', result.filename);
-        this.toast('📥 CSV Generated!');
+        this.toast('ðŸ“¥ CSV Generated!');
     },
 
     buildCSV(data) {
@@ -887,7 +701,7 @@ Object.assign(App, {
         ].map(v => `"${v}"`).join(',');
         const content = `${headers.join(',')}\n${sample}`;
         this.downloadFile(content, 'Altech_Batch_Template.csv', 'text/csv');
-        this.toast('📄 CSV template downloaded');
+        this.toast('ðŸ“„ CSV template downloaded');
     },
 
     openBatchImport() {
@@ -902,7 +716,7 @@ Object.assign(App, {
         const text = await file.text();
         const parsed = this.parseCSV(text);
         if (!parsed || !parsed.rows.length) {
-            this.toast('⚠️ CSV has no rows.');
+            this.toast('âš ï¸ CSV has no rows.');
             return;
         }
 
@@ -934,11 +748,11 @@ Object.assign(App, {
         await this.renderQuoteList();
 
         if (created) {
-            this.toast(`✅ Imported ${created} draft${created > 1 ? 's' : ''}`);
+            this.toast(`âœ… Imported ${created} draft${created > 1 ? 's' : ''}`);
         }
         if (errors.length) {
             console.warn('Batch import warnings:', errors);
-            this.toast('⚠️ Some rows were skipped.');
+            this.toast('âš ï¸ Some rows were skipped.');
         }
     },
 
@@ -1027,21 +841,16 @@ Object.assign(App, {
     },
 
     exportCMSMTF() {
-        if (typeof HawkSoftExport !== 'undefined' && typeof HawkSoftExport.open === 'function') {
-            // Navigate to HawkSoft export plugin
-            this.navigateTo('hawksoft');
-            this.toast('\uD83D\uDCC2 Opening HawkSoft Export \u2014 review and click Export when ready');
-        } else {
-            this.toast('\u26A0\uFE0F HawkSoft module not loaded', 'error');
-        }
+        const result = this.buildCMSMTF(this.data);
+        this.downloadFile(result.content, result.filename, result.mime);
+        this.logExport('CMSMTF', result.filename);
+        this.toast('ðŸ“¥ HawkSoft File Generated!');
     },
 
     buildCMSMTF(data) {
-        console.warn('[DEPRECATED] App.buildCMSMTF() uses a non-standard bracket-tag format. Use HawkSoftExport module for proper HawkSoft 6 key=value CMSMTF generation.');
         const qType = data.qType || 'both';
         const includeHome = qType === 'home' || qType === 'both';
         const includeAuto = qType === 'auto' || qType === 'both';
-        const drivers = this.drivers || [];
         
         const fields = [
             // â”€â”€ Core Contact â”€â”€
@@ -1053,16 +862,13 @@ Object.assign(App, {
             { tag: 'PHN', value: data.phone ? data.phone.replace(/\D/g, '') : '' },
             { tag: 'EML', value: data.email },
             { tag: 'DOB', value: this.formatDateDisplay(data.dob) },
-            { tag: 'GENDER', value: data.gender === 'M' ? 'Male' : data.gender === 'F' ? 'Female' : (data.gender || '') },
             { tag: 'MARITAL_STATUS', value: data.maritalStatus },
             { tag: 'EDUCATION', value: data.education },
-            { tag: 'OCCUPATION', value: data.occupation },
             { tag: 'INDUSTRY', value: data.industry },
         ];
 
         // â”€â”€ Co-Applicant â”€â”€
-        const cmsmtfHasCoApp = data.hasCoApplicant === 'yes' || data.hasCoApplicant === true || data.hasCoApplicant === 'on';
-        if (cmsmtfHasCoApp && (data.coFirstName || data.coLastName)) {
+        if (data.hasCoApplicant === 'yes' && (data.coFirstName || data.coLastName)) {
             fields.push(
                 { tag: 'CO_NAM', value: `${data.coFirstName || ''} ${data.coLastName || ''}`.trim() },
                 { tag: 'CO_DOB', value: this.formatDateDisplay(data.coDob) },
@@ -1112,13 +918,13 @@ Object.assign(App, {
         if (includeAuto) {
             fields.push(
                 { tag: 'C1', value: data.liabilityLimits },
-                { tag: 'C4', value: drivers.map((d, i) => d.accidents ? `Driver ${i+1}: ${d.accidents}` : '').filter(Boolean).join('; ') || data.accidents },
-                { tag: 'C5', value: drivers.map((d, i) => d.violations ? `Driver ${i+1}: ${d.violations}` : '').filter(Boolean).join('; ') || data.violations },
+                { tag: 'C4', value: data.accidents },
+                { tag: 'C5', value: data.violations },
                 { tag: 'C6', value: data.miles },
                 { tag: 'C7', value: data.commuteDist },
                 { tag: 'C8', value: data.rideSharing },
                 { tag: 'C9', value: data.telematics },
-                { tag: 'C10', value: drivers.map(d => d.studentGPA).filter(Boolean)[0] || data.studentGPA },
+                { tag: 'C10', value: data.studentGPA },
                 { tag: 'VIN', value: data.vin },
                 { tag: 'VEH', value: data.vehDesc },
                 { tag: 'DL_NUM', value: (data.dlNum || '').toUpperCase() },
@@ -1161,6 +967,17 @@ Object.assign(App, {
     },
 
     // â”€â”€â”€ Shared Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    // Escape for safe HTML attribute/text content insertion
+    _escapeAttr(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    },
 
     // Shared system prompt for policy scan extraction (used by processScan + processScanFromText)
     _getScanSystemPrompt() {
@@ -1230,7 +1047,7 @@ Object.assign(App, {
             sprinklers: { type: 'string' }, smokeDetector: { type: 'string' },
             fireStationDist: { type: 'string' }, fireHydrantFeet: { type: 'string' }, protectionClass: { type: 'string' },
             // Home Coverage
-            homePolicyType: { type: 'string' }, dwellingCoverage: { type: 'string' }, otherStructures: { type: 'string' },
+            homePolicyType: { type: 'string' }, dwellingCoverage: { type: 'string' },
             personalLiability: { type: 'string' }, medicalPayments: { type: 'string' },
             homeDeductible: { type: 'string' }, windDeductible: { type: 'string' }, mortgagee: { type: 'string' },
             // Auto / Vehicles
@@ -1255,7 +1072,6 @@ Object.assign(App, {
             additionalInsureds: { type: 'string' },
             contactTime: { type: 'string' }, referralSource: { type: 'string' },
             additionalVehicles: { type: 'string' }, additionalDrivers: { type: 'string' },
-            altechDriversJson: { type: 'string' }, altechVehiclesJson: { type: 'string' },
         };
         const confProps = {};
         Object.keys(fieldProps).forEach(k => { confProps[k] = { type: 'number' }; });
