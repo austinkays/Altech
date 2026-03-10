@@ -117,6 +117,49 @@ body.dark-mode .ts-dedupe-count {
     margin: 0;
 }
 
+/* ── Secondary "add CSV" drop zone ───────────────────── */
+
+.ts-add-drop-zone {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    margin-bottom: 12px;
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s var(--transition-smooth),
+                color 0.2s var(--transition-smooth),
+                background 0.2s var(--transition-smooth);
+}
+
+.ts-add-drop-zone:hover,
+.ts-add-drop-zone.ts-drop-active {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+    background: var(--bg-widget-hover);
+}
+
+body.dark-mode .ts-add-drop-zone {
+    background: #1C1C1E;
+    border-color: #38383A;
+}
+
+body.dark-mode .ts-add-drop-zone:hover,
+body.dark-mode .ts-add-drop-zone.ts-drop-active {
+    border-color: #0A84FF;
+    color: #0A84FF;
+    background: #2C2C2E;
+}
+
+@media print {
+    .ts-add-drop-zone { display: none !important; }
+}
+
 /* ── Error ────────────────────────────────────────────── */
 
 .ts-error {

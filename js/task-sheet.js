@@ -42,11 +42,14 @@ window.TaskSheetModule = (() => {
        ═══════════════════════════════════════════════════ */
 
     function _wireEvents() {
-        const dropZone  = document.getElementById('ts-drop-zone');
-        const fileInput = document.getElementById('ts-file-input');
-        const printBtn  = document.getElementById('ts-print-btn');
-        const clearBtn  = document.getElementById('ts-clear-btn');
+        const dropZone    = document.getElementById('ts-drop-zone');
+        const fileInput   = document.getElementById('ts-file-input');
+        const addDropZone = document.getElementById('ts-add-drop-zone');
+        const addInput    = document.getElementById('ts-add-file-input');
+        const printBtn    = document.getElementById('ts-print-btn');
+        const clearBtn    = document.getElementById('ts-clear-btn');
 
+        // Primary drop zone
         if (dropZone) {
             dropZone.addEventListener('click', () => fileInput && fileInput.click());
             dropZone.addEventListener('dragover', (e) => {
@@ -59,16 +62,49 @@ window.TaskSheetModule = (() => {
             dropZone.addEventListener('drop', (e) => {
                 e.preventDefault();
                 dropZone.classList.remove('ts-drop-active');
-                const file = e.dataTransfer && e.dataTransfer.files[0];
-                if (file) _handleFile(file);
+                const files = e.dataTransfer && e.dataTransfer.files;
+                if (files && files.length >= 2) {
+                    _handleTwoFiles(files[0], files[1]);
+                } else if (files && files[0]) {
+                    _handleFile(files[0]);
+                }
             });
         }
 
         if (fileInput) {
             fileInput.addEventListener('change', () => {
-                if (fileInput.files && fileInput.files[0]) {
+                if (fileInput.files && fileInput.files.length >= 2) {
+                    _handleTwoFiles(fileInput.files[0], fileInput.files[1]);
+                } else if (fileInput.files && fileInput.files[0]) {
                     _handleFile(fileInput.files[0]);
-                    fileInput.value = '';
+                }
+                fileInput.value = '';
+            });
+        }
+
+        // Secondary "add another CSV" drop zone (shown after first load)
+        if (addDropZone) {
+            addDropZone.addEventListener('click', () => addInput && addInput.click());
+            addDropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                addDropZone.classList.add('ts-drop-active');
+            });
+            addDropZone.addEventListener('dragleave', () => {
+                addDropZone.classList.remove('ts-drop-active');
+            });
+            addDropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                addDropZone.classList.remove('ts-drop-active');
+                const file = e.dataTransfer && e.dataTransfer.files[0];
+                if (file) _handleMergeFile(file);
+            });
+        }
+
+        if (addInput) {
+            addInput.addEventListener('change', () => {
+                if (addInput.files && addInput.files[0]) {
+                    _handleMergeFile(addInput.files[0]);
+                    addInput.value = '';
                 }
             });
         }
@@ -93,86 +129,185 @@ window.TaskSheetModule = (() => {
        ═══════════════════════════════════════════════════ */
 
     function _handleFile(file) {
-        const errEl      = document.getElementById('ts-error');
-        const metaEl     = document.getElementById('ts-meta');
-        const outEl      = document.getElementById('ts-output');
-        const dropEl     = document.getElementById('ts-drop-zone');
-        const printBtn   = document.getElementById('ts-print-btn');
-        const clearBtn   = document.getElementById('ts-clear-btn');
-        const showAllBtn = document.getElementById('ts-show-all-btn');
-        const dedupeBtn  = document.getElementById('ts-dedupe-btn');
-
-        // Reset
-        if (errEl)  errEl.style.display = 'none';
-        if (metaEl) metaEl.style.display = 'none';
-        if (outEl)  outEl.innerHTML = '';
-
-        // Validate type
         if (!file.name.toLowerCase().endsWith('.csv')) {
             _showError('Please upload a .csv file exported from HawkSoft.');
             return;
         }
-
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const text = e.target.result;
-                _rows = _parseCSV(text);
-
-                if (_rows.length === 0) {
-                    _showError('No task rows found in this CSV. Make sure this is a HawkSoft "My Tasks" export.');
+                const rows = _parseCSV(e.target.result);
+                if (rows.length === 0) {
+                    _showError('No task rows found in this CSV. Make sure this is a HawkSoft export.');
                     return;
                 }
-
-                _sortRows(_rows);
-
-                // Detect team mode: CSV has Assignee column with multiple distinct agents
-                const assignees = [...new Set(_rows.map(r => r.assignee).filter(Boolean))];
-                _teamMode = assignees.length > 1;
-
-                if (_teamMode) {
-                    _renderTeamTables(_rows);
-                    if (metaEl) metaEl.style.display = 'none'; // team mode has per-agent headers
-                } else {
-                    _renderTable(_rows);
-
-                    // Show meta bar (single-agent mode)
-                    const overdueCount = _rows.filter(r => r.overdue).length;
-                    if (metaEl) {
-                        const pageTitle  = _getPageTitle();
-                        const agencyName = _getAgencyName();
-                        const now = new Date();
-                        const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-                        const countStr = _rows.length + ' task' + (_rows.length !== 1 ? 's' : '');
-                        const overdueStr = overdueCount > 0
-                            ? ' &nbsp;&middot;&nbsp; <span class="ts-meta-overdue">' + overdueCount + ' overdue</span>'
-                            : '';
-                        metaEl.innerHTML =
-                            '<div class="ts-meta-row">' +
-                                '<span class="ts-meta-title">' + _escapeHTML(pageTitle) + '</span>' +
-                                '<span class="ts-meta-date">' + _escapeHTML(dateStr) + '</span>' +
-                            '</div>' +
-                            '<div class="ts-meta-row ts-meta-sub-row">' +
-                                '<span class="ts-meta-agency">' + _escapeHTML(agencyName) + '</span>' +
-                                '<span class="ts-meta-count">' + countStr + overdueStr + '</span>' +
-                            '</div>';
-                        metaEl.style.display = '';
-                    }
-                }
-
-                // Toggle visibility
-                if (dropEl)     dropEl.style.display = 'none';
-                if (printBtn)   printBtn.style.display = '';
-                if (showAllBtn) { showAllBtn.style.display = _teamMode ? 'none' : ''; }
-                if (dedupeBtn)  { dedupeBtn.style.display = _teamMode ? 'none' : ''; }
-                if (clearBtn)   clearBtn.style.display = '';
-
+                _rows = rows;
+                _mergeAndRender();
             } catch (err) {
                 _showError('Failed to parse CSV: ' + err.message);
             }
         };
         reader.onerror = () => _showError('Could not read file.');
         reader.readAsText(file);
+    }
+
+    /** Reads a second CSV, merges with existing rows, dedupes, and re-renders. */
+    function _handleMergeFile(file) {
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            _showError('Please upload a .csv file exported from HawkSoft.');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const newRows = _parseCSV(e.target.result);
+                if (newRows.length === 0) {
+                    _showError('No task rows found in the second CSV.');
+                    return;
+                }
+                _rows = _dedupeByIdentity([..._rows, ...newRows]);
+                _mergeAndRender();
+                // Hide the secondary drop zone — both files loaded
+                const addEl = document.getElementById('ts-add-drop-zone');
+                if (addEl) addEl.style.display = 'none';
+            } catch (err) {
+                _showError('Failed to parse second CSV: ' + err.message);
+            }
+        };
+        reader.onerror = () => _showError('Could not read file.');
+        reader.readAsText(file);
+    }
+
+    /** When two files are dropped simultaneously, read both then merge. */
+    function _handleTwoFiles(fileA, fileB) {
+        const readFile = (f) => new Promise((resolve, reject) => {
+            if (!f.name.toLowerCase().endsWith('.csv')) {
+                reject(new Error('Please upload .csv files exported from HawkSoft.'));
+                return;
+            }
+            const r = new FileReader();
+            r.onload = (e) => resolve(e.target.result);
+            r.onerror = () => reject(new Error('Could not read file.'));
+            r.readAsText(f);
+        });
+
+        Promise.all([readFile(fileA), readFile(fileB)])
+            .then(([textA, textB]) => {
+                const rowsA = _parseCSV(textA);
+                const rowsB = _parseCSV(textB);
+                const combined = _dedupeByIdentity([...rowsA, ...rowsB]);
+                if (combined.length === 0) {
+                    _showError('No task rows found in these CSV files.');
+                    return;
+                }
+                _rows = combined;
+                _mergeAndRender();
+                // Hide secondary drop — both files already loaded
+                const addEl = document.getElementById('ts-add-drop-zone');
+                if (addEl) addEl.style.display = 'none';
+            })
+            .catch(err => _showError(err.message));
+    }
+
+    /**
+     * Deduplicate rows by identity: same clientId + normalized taskTitle + dueDate.
+     * Rows from the overdue export and due-today export often overlap exactly.
+     * Prefers the row where overdue=true (keep the more urgent copy).
+     */
+    function _dedupeByIdentity(rows) {
+        const seen = new Map();
+        rows.forEach(row => {
+            const key = (row.clientId || '') + '|' + row.task.toLowerCase().trim() + '|' + row.dueDate.toLowerCase().trim();
+            if (!seen.has(key)) {
+                seen.set(key, row);
+            } else if (row.overdue && !seen.get(key).overdue) {
+                seen.set(key, row); // prefer overdue copy
+            }
+        });
+        return [...seen.values()];
+    }
+
+    /**
+     * Expand rows where assignee contains semicolons (e.g. "KSN - Kathleen; AJK - Austin")
+     * into one row per assignee so each agent sees their own tasks.
+     */
+    function _expandMultiAssignee(rows) {
+        const expanded = [];
+        rows.forEach(row => {
+            if (row.assignee && row.assignee.includes(';')) {
+                row.assignee.split(';').forEach(a => {
+                    expanded.push(Object.assign({}, row, { assignee: a.trim() }));
+                });
+            } else {
+                expanded.push(row);
+            }
+        });
+        return expanded;
+    }
+
+    /** Sort, detect team mode, and render. Called after any file load or merge. */
+    function _mergeAndRender() {
+        const errEl      = document.getElementById('ts-error');
+        const metaEl     = document.getElementById('ts-meta');
+        const outEl      = document.getElementById('ts-output');
+        const dropEl     = document.getElementById('ts-drop-zone');
+        const addDropEl  = document.getElementById('ts-add-drop-zone');
+        const printBtn   = document.getElementById('ts-print-btn');
+        const clearBtn   = document.getElementById('ts-clear-btn');
+        const showAllBtn = document.getElementById('ts-show-all-btn');
+        const dedupeBtn  = document.getElementById('ts-dedupe-btn');
+
+        if (errEl)  errEl.style.display = 'none';
+        if (metaEl) metaEl.style.display = 'none';
+        if (outEl)  outEl.innerHTML = '';
+
+        const rows = _expandMultiAssignee(_rows);
+        _sortRows(rows);
+
+        // Detect team mode: CSV has Assignee column with multiple distinct agents
+        const assignees = [...new Set(rows.map(r => r.assignee).filter(Boolean))];
+        _teamMode = assignees.length > 1;
+
+        if (_teamMode) {
+            _renderTeamTables(rows);
+            if (metaEl) metaEl.style.display = 'none';
+        } else {
+            _renderTable(rows);
+
+            // Show meta bar (single-agent mode)
+            const overdueCount = rows.filter(r => r.overdue).length;
+            if (metaEl) {
+                const pageTitle  = _getPageTitle();
+                const agencyName = _getAgencyName();
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                const countStr = rows.length + ' task' + (rows.length !== 1 ? 's' : '');
+                const overdueStr = overdueCount > 0
+                    ? ' &nbsp;&middot;&nbsp; <span class="ts-meta-overdue">' + overdueCount + ' overdue</span>'
+                    : '';
+                metaEl.innerHTML =
+                    '<div class="ts-meta-row">' +
+                        '<span class="ts-meta-title">' + _escapeHTML(pageTitle) + '</span>' +
+                        '<span class="ts-meta-date">' + _escapeHTML(dateStr) + '</span>' +
+                    '</div>' +
+                    '<div class="ts-meta-row ts-meta-sub-row">' +
+                        '<span class="ts-meta-agency">' + _escapeHTML(agencyName) + '</span>' +
+                        '<span class="ts-meta-count">' + countStr + overdueStr + '</span>' +
+                    '</div>';
+                metaEl.style.display = '';
+            }
+        }
+
+        // Toggle visibility
+        if (dropEl)    dropEl.style.display = 'none';
+        if (printBtn)  printBtn.style.display = '';
+        if (showAllBtn) { showAllBtn.style.display = _teamMode ? 'none' : ''; }
+        if (dedupeBtn)  { dedupeBtn.style.display = _teamMode ? 'none' : ''; }
+        if (clearBtn)  clearBtn.style.display = '';
+
+        // Show secondary drop zone so they can add the second CSV
+        // (_handleMergeFile and _handleTwoFiles hide it once merged)
+        if (addDropEl) addDropEl.style.display = '';
     }
 
     /* ═══════════════════════════════════════════════════
@@ -225,7 +360,8 @@ window.TaskSheetModule = (() => {
                 policyExpDate: get('policy expiration date'),
                 policyEffDate: get('policy effective date'),
                 assignedTo:    get('created by'),
-                assignee:      get('assignee')
+                assignee:      get('assignee'),
+                clientId:      get('client id')
             });
         }
         return rows;
@@ -587,6 +723,7 @@ window.TaskSheetModule = (() => {
         const outEl      = document.getElementById('ts-output');
         const metaEl     = document.getElementById('ts-meta');
         const dropEl     = document.getElementById('ts-drop-zone');
+        const addDropEl  = document.getElementById('ts-add-drop-zone');
         const errEl      = document.getElementById('ts-error');
         const printBtn   = document.getElementById('ts-print-btn');
         const clearBtn   = document.getElementById('ts-clear-btn');
@@ -598,10 +735,11 @@ window.TaskSheetModule = (() => {
         _dedupedMode = false;
         _teamMode    = false;
 
-        if (outEl)   { outEl.innerHTML = ''; outEl.classList.remove('ts-show-all-rows'); }
-        if (metaEl)  { metaEl.innerHTML = ''; metaEl.style.display = 'none'; }
-        if (errEl)   errEl.style.display = 'none';
-        if (dropEl)  dropEl.style.display = '';
+        if (outEl)      { outEl.innerHTML = ''; outEl.classList.remove('ts-show-all-rows'); }
+        if (metaEl)     { metaEl.innerHTML = ''; metaEl.style.display = 'none'; }
+        if (errEl)      errEl.style.display = 'none';
+        if (dropEl)     dropEl.style.display = '';
+        if (addDropEl)  addDropEl.style.display = 'none';
         if (printBtn)   printBtn.style.display = 'none';
         if (showAllBtn) { showAllBtn.style.display = 'none'; showAllBtn.classList.remove('ts-header-btn-active'); showAllBtn.textContent = 'Print All'; }
         if (dedupeBtn)  { dedupeBtn.style.display = 'none'; dedupeBtn.classList.remove('ts-header-btn-active'); }
