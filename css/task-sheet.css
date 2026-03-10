@@ -591,36 +591,37 @@ body.dark-mode .ts-header-btn-outline:hover {
 
     /* Column widths set via inline <col> in task-sheet.js (8 columns always) */
 
+    /* Header — white background, bold bottom rule, no toner fill */
     .ts-table thead tr {
-        background: #1a1a2e !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        background: #fff !important;
     }
 
     .ts-table th {
         font-size: 6pt;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        padding: 4px 5px;
-        color: #fff !important;
-        border-bottom: none;
+        letter-spacing: 0.06em;
+        padding: 5px 6px 4px;
+        color: #000 !important;
+        border-bottom: 1.5pt solid #000;
         text-align: left;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
     }
 
     .ts-table td {
-        padding: 5px 5px;
+        padding: 7px 6px;
         color: #111;
-        border-bottom: 0.75pt solid #ccc;
+        border-bottom: 0.5pt solid #ddd;
         vertical-align: top;
         word-wrap: break-word;
         overflow-wrap: break-word;
     }
 
-    /* Single-line columns — nowrap + ellipsis prevents any height growth */
-    .ts-cell-date,
+    /* Date column — allow wrapping so "Mar 2, 2026" never truncates */
+    .ts-cell-date {
+        white-space: normal;
+    }
+
+    /* Client + carrier — single line with ellipsis is fine */
     .ts-cell-client,
     .ts-cell-carrier,
     .ts-cell-status {
@@ -629,26 +630,20 @@ body.dark-mode .ts-header-btn-outline:hover {
         text-overflow: ellipsis;
     }
 
-    /* No alternating shading — clean white rows are easier to write on */
-    .ts-table tbody tr:nth-child(even) {
+    /* All rows white — no alternating fill, no shading */
+    .ts-table tbody tr,
+    .ts-table tbody tr:nth-child(even),
+    .ts-row-overdue,
+    .ts-row-overdue td {
         background: #fff !important;
         background-color: #fff !important;
     }
 
     .ts-table tbody tr:hover {
-        background: inherit;
+        background: #fff !important;
     }
 
-    /* Overdue rows — light grey with strong left rule */
-    /* background-color overrides screen rgba rule that can bleed into PDF */
-    .ts-row-overdue,
-    .ts-row-overdue td {
-        background: #e8e8e8 !important;
-        background-color: #e8e8e8 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-
+    /* Overdue rows — left accent rule only, no fill */
     .ts-row-overdue td:first-child {
         border-left: 3pt solid #000;
     }
@@ -659,37 +654,48 @@ body.dark-mode .ts-header-btn-outline:hover {
         color: #000;
     }
 
-    /* Priority badges — greyscale filled */
+    /* Priority badges — outline style, no fill, toner-friendly */
     .ts-priority-badge {
         display: inline-block;
-        padding: 1px 4px;
+        padding: 1px 5px;
         border-radius: 3px;
         font-size: 6pt;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.04em;
+        background: none !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
 
-    .ts-priority-critical { background: #000 !important; color: #fff !important; }
-    .ts-priority-high     { background: #444 !important; color: #fff !important; }
-    .ts-priority-medium   { background: #999 !important; color: #000 !important; }
-    .ts-priority-low      { background: #ddd !important; color: #333 !important; }
+    .ts-priority-critical {
+        border: 1.5pt solid #000 !important;
+        color: #000 !important;
+    }
+    .ts-priority-high {
+        border: 1pt solid #333 !important;
+        color: #333 !important;
+    }
+    .ts-priority-medium {
+        border: 1pt solid #777 !important;
+        color: #777 !important;
+    }
+    .ts-priority-low {
+        border: 1pt solid #bbb !important;
+        color: #bbb !important;
+    }
 
-    /* Agent Notes column — ruled lines for handwriting.
-       Lines at 17px intervals starting at top-padding offset (6px),
-       so the first rule sits just below the first text baseline. */
+    /* Agent Notes column — ruled lines for handwriting */
     .ts-cell-notes {
-        border-left: 1pt solid #aaa;
-        padding: 4px 5px;
+        border-left: 0.75pt solid #bbb;
+        padding: 7px 6px;
         background-image: repeating-linear-gradient(
             transparent,
-            transparent 15px,
-            #d0d0d0 15px,
-            #d0d0d0 16px
+            transparent 16px,
+            #e0e0e0 16px,
+            #e0e0e0 17px
         );
-        background-position: 0 4px;
+        background-position: 0 7px;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
