@@ -53,7 +53,58 @@ body.dark-mode {
     --accent-gradient-text: linear-gradient(135deg, #0A84FF, #5E5CE6);
 }
 
-body.dark-mode .landing-header {
+/* ══════════════════════════════════════════════════════════════
+   Global Scrollbar Styling — light + dark mode
+   Slim pill-style thumb, transparent track, theme-aware colors
+══════════════════════════════════════════════════════════════ */
+
+/* Firefox — thin scrollbar with theme color */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(180, 150, 120, 0.4) transparent;
+}
+body.dark-mode * {
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* WebKit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(180, 150, 120, 0.35);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(150, 110, 75, 0.6);
+    background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Dark mode — WebKit */
+body.dark-mode ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.13);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
+    background-clip: padding-box;
+}
+
+
+/* ══════════════════════════════════════════════════════════════   Global Scrollbar Styling — light + dark mode
     background: transparent;
 }
 body.dark-mode .landing-header-pill {
