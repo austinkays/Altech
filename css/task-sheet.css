@@ -711,7 +711,7 @@ body.dark-mode .ts-header-btn-outline:hover {
     }
 
     .ts-table td {
-        padding: 7px 6px;
+        padding: 5px 6px;
         color: #111;
         border-bottom: 0.5pt solid #ddd;
         vertical-align: top;
@@ -791,14 +791,14 @@ body.dark-mode .ts-header-btn-outline:hover {
     /* Agent Notes column — ruled lines for handwriting */
     .ts-cell-notes {
         border-left: 0.75pt solid #bbb;
-        padding: 7px 6px;
+        padding: 5px 6px;
         background-image: repeating-linear-gradient(
             transparent,
-            transparent 16px,
-            #e0e0e0 16px,
-            #e0e0e0 17px
+            transparent 14px,
+            #e0e0e0 14px,
+            #e0e0e0 15px
         );
-        background-position: 0 7px;
+        background-position: 0 5px;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }

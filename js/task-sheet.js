@@ -630,8 +630,8 @@ window.TaskSheetModule = (() => {
 
         let html = '';
         sortedAgents.forEach((agent, idx) => {
-            // Hard cap at 20 rows — team mode is always one page per person
-            const agentRows = groups.get(agent).slice(0, 20);
+            // Hard cap at 15 rows — team mode is always one page per person
+            const agentRows = groups.get(agent).slice(0, 15);
             const overdueCount = agentRows.filter(r => r.overdue).length;
             const countStr = agentRows.length + ' task' + (agentRows.length !== 1 ? 's' : '');
             const overdueStr = overdueCount > 0
