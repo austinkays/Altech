@@ -316,14 +316,14 @@ window.TaskSheetModule = (() => {
             const overdueMarker = row.overdue ? ' <span class="ts-overdue-inline" title="Overdue">⚠</span>' : '';
             html += '<td class="ts-cell-date">' + dateDisplay + overdueMarker + '</td>';
 
-            // Client (strip trailing ID)
+            // Client (strip ID + DBA, truncate)
             html += '<td class="ts-cell-client">' + _escapeHTML(_displayClient(row.client)) + '</td>';
 
-            // Task
-            html += '<td class="ts-cell-task">' + _escapeHTML(row.task) + '</td>';
+            // Task — truncate at 70 chars so long descriptions don't force multi-line rows
+            html += '<td class="ts-cell-task">' + _escapeHTML(_truncate(row.task, 70)) + '</td>';
 
-            // Carrier
-            html += '<td class="ts-cell-carrier">' + _escapeHTML(row.carrier) + '</td>';
+            // Carrier — truncate at 22 chars
+            html += '<td class="ts-cell-carrier">' + _escapeHTML(_truncate(row.carrier, 22)) + '</td>';
 
             // Status
             html += '<td class="ts-cell-status">' + _escapeHTML(row.status) + '</td>';
@@ -376,9 +376,24 @@ window.TaskSheetModule = (() => {
         return val.replace(/^\d+-/, '');
     }
 
-    /** Strip trailing HawkSoft client ID: "Adams, Marsha C (11278)" → "Adams, Marsha C" */
+    /**
+     * Clean client name for display:
+     * 1. Strip trailing HawkSoft numeric ID:  "Adams, Marsha C (11278)" → "Adams, Marsha C"
+     * 2. Strip DBA suffix:  "Hardie Boys LLC DBA:Hardie Roofing" → "Hardie Boys LLC"
+     * 3. Truncate at 28 chars so long names don't wrap and stretch row height on print
+     */
     function _displayClient(val) {
-        return val.replace(/\s*\(\d+\)\s*$/, '');
+        if (!val) return '';
+        let clean = val.replace(/\s*\(\d+\)\s*$/, '');       // strip (ID)
+        clean = clean.replace(/\s+DBA:.*$/i, '').trim();     // strip DBA:...
+        clean = clean.replace(/\s+DBA\s+.*$/i, '').trim();   // strip DBA ...
+        return clean.length > 28 ? clean.slice(0, 27) + '…' : clean;
+    }
+
+    /** Truncate a string to maxLen chars, appending ellipsis if needed */
+    function _truncate(str, maxLen) {
+        if (!str || str.length <= maxLen) return str;
+        return str.slice(0, maxLen - 1) + '…';
     }
 
     /** Strip "Today, " prefix from dates */
