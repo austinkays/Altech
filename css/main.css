@@ -1,3 +1,15 @@
+/* === ALTECH CSS — SPLIT ARCHITECTURE ===
+   main.css is now an @import aggregator.
+   Edit the individual split files, not this file.
+   Load order matters — variables must come first.
+*/
+@import "variables.css";
+@import "base.css";
+@import "layout.css";
+@import "components.css";
+@import "landing.css";
+@import "animations.css";
+
 /* === APPLE-INSPIRED THEME === */
 :root {
     --apple-blue: #007AFF;

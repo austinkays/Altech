@@ -1,0 +1,83 @@
+/* === RESET === */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* === BODY === */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overscroll-behavior-y: none;
+    overflow-x: hidden;
+    font-weight: 400;
+}
+/* Light mode ambient bloom on form area — warm sunset */
+body:not(.dark-mode) main {
+    background:
+        radial-gradient(ellipse 60% 40% at 20% 10%, rgba(255, 160, 80, 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(240, 120, 100, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(255, 180, 120, 0.03) 0%, transparent 50%),
+        transparent;
+}
+
+/* === TYPOGRAPHY === */
+h2 { font-size: 19px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+h3 { font-size: 16px; font-weight: 600; margin: 18px 0 10px; color: var(--text); }
+.section-subtitle { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; font-weight: 400; }
+
+/* === GLOBAL UTILITIES === */
+.hidden { display: none !important; }
+.hint { font-size: 14px; color: var(--text-secondary); background: var(--bg-input); padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; line-height: 1.4; }
+.divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+/* ══════════════════════════════════════════════════════════════
+   Global Scrollbar Styling — light + dark mode
+   Slim pill-style thumb, transparent track, theme-aware colors
+══════════════════════════════════════════════════════════════ */
+
+/* Firefox — thin scrollbar with theme color */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(180, 150, 120, 0.4) transparent;
+}
+body.dark-mode * {
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* WebKit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(180, 150, 120, 0.35);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(150, 110, 75, 0.6);
+    background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Dark mode — WebKit */
+body.dark-mode ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.13);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
+    background-clip: padding-box;
+}
