@@ -31,20 +31,6 @@ const App = {
         both: ['step-0', 'step-1', 'step-2', 'step-3', 'step-4', 'step-5', 'step-6']
     },
 
-    toolNames: {
-        quoting: 'Personal Intake',
-        coi: 'COI Generator',
-        prospect: 'Prospect Investigator',
-        compliance: 'CGL Compliance',
-        qna: 'Policy Q&A',
-        email: 'Email Composer',
-        quickref: 'Quick Reference',
-        accounting: 'Accounting Export',
-        hawksoft: 'HawkSoft Export',
-        ezlynx: 'EZLynx Export',
-        quotecompare: 'Quote Compare'
-    },
-
     // Config-driven tool registry — single source of truth for landing page,
     // navigation, breadcrumbs, and init logic. Add/remove/reorder tools here.
     toolConfig: [
@@ -90,3 +76,20 @@ const App = {
 
 // Expose App globally for testing and external tool access
 window.App = App;
+
+// ── Production log suppression ──
+// console.warn and console.error always pass through.
+// console.log is suppressed on production (altech.agency) to avoid leaking
+// internal state to users who open DevTools. Toggle via localStorage:
+//   localStorage.setItem('altech_debug', 'true')  →  re-enables logs
+(function() {
+    const isProd = location.hostname === 'altech.agency' || location.hostname.endsWith('.vercel.app');
+    const debugOverride = localStorage.getItem('altech_debug') === 'true';
+    if (isProd && !debugOverride) {
+        // eslint-disable-next-line no-console
+        console.log = () => {};
+        // eslint-disable-next-line no-console
+        console.info = () => {};
+        // console.warn and console.error are intentionally preserved
+    }
+})();

@@ -290,10 +290,12 @@ const Auth = (() => {
         },
 
         /**
-         * Register a callback for auth state changes
+         * Register a callback for auth state changes.
+         * Deduplicates by function reference — calling with the same fn twice is a no-op.
          * @param {Function} fn - Called with user object (or null)
          */
         onAuthChange(fn) {
+            if (_listeners.includes(fn)) return;
             _listeners.push(fn);
             // Fire immediately with current state
             if (_user !== undefined) fn(_user);

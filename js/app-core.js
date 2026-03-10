@@ -1619,7 +1619,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
 
         const crumbs = [
             '<a href="#home" onclick="App.goHome(); return false;" style="color:var(--apple-blue);text-decoration:none;">Home</a>',
-            this.toolNames[toolKey] || toolKey
+            (this.toolConfig.find(t => t.key === toolKey)?.name) || toolKey
         ];
 
         if (toolKey === 'quoting') {

@@ -25,12 +25,7 @@ window.loadPlacesAPI = async function loadPlacesAPI() {
             // Server endpoint not available, try alternative methods
         }
         
-        // If no key from server, try checking window for injected key
-        if (!apiKey && window.__PLACES_API_KEY__) {
-            apiKey = window.__PLACES_API_KEY__;
-        }
-        
-        // If still no key, check if it was passed as query parameter (local dev)
+        // If no key from server, check if it was passed as query parameter (local dev)
         if (!apiKey && window.location.search) {
             const params = new URLSearchParams(window.location.search);
             apiKey = params.get('placesKey');
@@ -75,19 +70,6 @@ window.addEventListener('error', (e) => {
     console.error('[Global Error]', e.message, e.filename, e.lineno);
 });
 
-// ── Fallback: If window.onload never fires, try rendering dashboard after 5s ──
-setTimeout(() => {
-    try {
-        const greeting = document.getElementById('dashboardGreeting');
-        if (greeting && !greeting.innerHTML.trim() && typeof DashboardWidgets !== 'undefined') {
-            console.warn('[Boot] Fallback: window.onload may not have fired, force-rendering dashboard');
-            try { App.loadDarkMode(); } catch (_) {}
-            DashboardWidgets.init();
-            App.goHome();
-        }
-    } catch (e) { console.error('[Boot] Fallback error:', e); }
-}, 5000);
-
 // ── ServiceWorker Registration (offline app shell) ──
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').then((reg) => {
@@ -130,12 +112,8 @@ window.onload = async () => {
         }
     } catch (e) { console.error('[Boot] Firebase/Places init error:', e); }
 
-    // Render landing page tools from config (legacy, for backwards compat)
+    // Build landing page tool grid from toolConfig (must run once before goHome)
     try { App.renderLandingTools(); } catch (e) { console.error('[Boot] renderLandingTools error:', e); }
-
-    // Set landing greeting (legacy)
-    try { App.updateLandingGreeting(); } catch (e) { console.error('[Boot] updateLandingGreeting error:', e); }
-    try { App.updateCGLBadge(); } catch (e) { console.error('[Boot] updateCGLBadge error:', e); }
 
     // First-run onboarding for new users
     try {
@@ -233,13 +211,6 @@ window.onload = async () => {
             if (!modal) {
                 App.goHome();
             }
-            return;
-        }
-        // Cmd/Ctrl+K → Focus search (future: command palette)
-        if (mod && e.key === 'k') {
-            e.preventDefault();
-            // For now, navigate home to show the tool grid
-            App.goHome();
             return;
         }
         // Enter in wizard steps → advance to next step
