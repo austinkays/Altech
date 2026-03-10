@@ -53,6 +53,24 @@
                 window.postMessage({ type: 'ALTECH_EXTENSION_ACK', success: false, error: e.message }, '*');
             }
         }
+
+        // ── Property Data from Extension → Web App (Direct Auto-Fill) ──
+        // When extension scrapes Zillow and sends property data, forward to web app
+        if (msg.type === 'ALTECH_PROPERTY_DATA') {
+            const propertyData = msg.propertyData;
+            if (!propertyData || !propertyData.data) {
+                console.warn('[Altech Bridge] Invalid property data received');
+                return;
+            }
+
+            // Forward to web app via window.postMessage
+            window.postMessage({
+                type: 'ALTECH_PROPERTY_DATA',
+                propertyData: propertyData,
+                timestamp: Date.now()
+            }, '*');
+            console.log('[Altech Bridge] Property data forwarded to web app:', propertyData.fieldCount, 'fields');
+        }
     });
 
     // ── Bridge-Ready Handshake ──

@@ -161,6 +161,13 @@ window.onload = async () => {
         }
     } catch (e) { console.error('[Boot] DashboardWidgets.init error:', e); }
 
+    // Initialize Chrome extension property data listener
+    try {
+        if (typeof App !== 'undefined' && typeof App.initPropertyExtensionListener === 'function') {
+            App.initPropertyExtensionListener();
+        }
+    } catch (e) { console.error('[Boot] initPropertyExtensionListener error:', e); }
+
     // Don't auto-init the quoting tool anymore
     // It will init when user clicks the card
     try { App.observePluginVisibility(); } catch (e) { console.error('[Boot] observePluginVisibility error:', e); }

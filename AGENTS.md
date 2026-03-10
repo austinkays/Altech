@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 24, 2026
+> **Last updated:** March 25, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -15,10 +15,10 @@
 | Attribute | Value |
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
-| **Entry point** | `index.html` (~665 lines) |
-| **CSS** | 21 files in `css/` (~16,108 lines total) |
-| **JS** | 35 modules in `js/` (~33,658 lines total) |
-| **Plugins** | 15 HTML templates in `plugins/` (~5,530 lines total) |
+| **Entry point** | `index.html` (~742 lines) |
+| **CSS** | 23 files in `css/` (~17,230 lines total) |
+| **JS** | 37 modules in `js/` (~35,059 lines total) |
+| **Plugins** | 17 HTML templates in `plugins/` (~5,673 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -64,7 +64,7 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 21 stylesheets (~16,108 lines)
+├── css/                        # 23 stylesheets (~17,230 lines)
 │   ├── main.css                # ★ Core styles + :root variables + desktop overhaul + Save button (3,484 lines) — THE source of truth
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (747 lines)
@@ -85,15 +85,17 @@ npm run deploy:vercel   # Production deploy
 │   ├── security-info.css       # Security modal (217 lines)
 │   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, polished form/toolbar, card grid, dark mode (468 lines)
 │   ├── email.css               # Email composer — purple accent + custom prompt styles (231 lines)
+│   ├── endorsement-parser.css  # Endorsement parser — paste view, cards, dark utilitarian styling (455 lines)
+│   ├── task-sheet.css           # Task Sheet — HawkSoft CSV task viewer, priority badges, overdue rows, print layout (515 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
-├── js/                         # 35 modules (~33,658 lines)
+├── js/                         # 37 modules (~35,059 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
-│   ├── app-init.js             # State init, toolConfig[], workflows (86 lines)
+│   ├── app-init.js             # State init, toolConfig[], workflows (92 lines)
 │   ├── app-core.js             # Form handling, save/load, updateUI, navigation, schema migration, syncPrimaryApplicantToDriver, _populateCoOccupation, aggressive auto-save (2,495 lines)
 │   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,778 lines)
-│   ├── app-property.js         # Property analysis, maps, assessor data (1,728 lines)
+│   ├── app-property.js         # Property analysis, maps, assessor data (1,759 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
 │   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,062 lines)
@@ -112,6 +114,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
 │   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep (2,794 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
+│   ├── endorsement-parser.js   # AI-powered endorsement email parser, extracts structured data from carrier change requests (805 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,119 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,734 lines)
 │   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,423 lines)
@@ -122,7 +125,8 @@ npm run deploy:vercel   # Production deploy
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (914 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
 │   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator (856 lines)
-│   ├── call-logger.js          # HawkSoft Logger � two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,185 lines)
+│   ├── call-logger.js          # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,185 lines)
+│   ├── task-sheet.js            # HawkSoft CSV task viewer — upload, parse, sort (overdue→priority→date), 9-col table, print-friendly layout (415 lines)
 │   │
 │   │  ★ Support Modules
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
@@ -132,7 +136,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
 │   └── hawksoft-integration.js  # HawkSoft REST API client (261 lines)
 │
-├── plugins/                    # 15 HTML templates (~5,530 lines, loaded dynamically)
+├── plugins/                    # 17 HTML templates (~5,673 lines, loaded dynamically)
 │   ├── quoting.html            # ★ Main intake wizard — 7 steps, Employment & Education inline in About You card, 2,091 lines
 │   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
@@ -144,9 +148,11 @@ npm run deploy:vercel   # Production deploy
 │   ├── intake-assist.html      # AI chat two-pane (152 lines)
 │   ├── quotecompare.html       # Quote comparison (117 lines)
 │   ├── email.html              # Email composer + custom AI persona section (125 lines)
+│   ├── endorsement.html        # Endorsement parser — paste area, parsed cards display (54 lines)
 │   ├── qna.html                # Policy Q&A chat (95 lines)
 │   ├── quickref.html           # Quick reference — ID cards, speller, editable numbers, phonetic grid (78 lines)
 │   ├── call-logger.html        # HawkSoft Logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete + New Log button (135 lines)
+│   ├── task-sheet.html          # Task Sheet — drop zone, meta bar, table output, print/clear buttons (50 lines)
 │   └── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
 │
 ├── api/                        # 12 serverless functions + 2 helpers (~6,210 lines) ⚠️ Hobby plan MAX = 12 functions
@@ -1216,6 +1222,17 @@ A full cross-reference audit of all fields collected by the quoting wizard and A
 
 **4 files changed:** js/app-export.js (1,047→1,062 lines), js/hawksoft-export.js (1,704→1,734 lines), js/ezlynx-tool.js (1,028→1,119 lines), js/intake-assist.js (unchanged, 3,423 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
+### Task Sheet Plugin — HawkSoft CSV Task Viewer (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 219 | CRITICAL | js/task-sheet.js | **New plugin module (415 lines).** IIFE on `window.TaskSheetModule`. CSV upload via drag-and-drop or file picker. RFC 4180 parsing with BOM strip and quoted-field support. Rows sorted: overdue first → priority (critical→high→medium→low) → due date ascending. 9-column table: Priority, Due Date, Assigned To, Client, Subject, Description, Status, Follow-Up, Notes (empty write-in column for print). Color-coded priority badges. Client name display strips trailing HawkSoft ID (e.g., "(11278)"). Date display strips "Today, " prefix. Agency name header from `altech_agency_profile`. |
+| 220 | HIGH | plugins/task-sheet.html | **New plugin HTML (50 lines).** Standard `header-top`/`tool-header-brand` header with home button and dark mode toggle. Drop zone with file picker fallback. Error, meta bar, table output, and print/clear button containers. |
+| 221 | HIGH | css/task-sheet.css | **New plugin CSS (515 lines).** `.ts-drop-zone` dashed border with hover glow, `.ts-table` with sticky header, `.ts-priority-badge` colored pills (critical=red, high=orange, medium=yellow, low=green), `.ts-row-overdue` red tint, `.ts-notes-col` wide write-in column. Full `body.dark-mode` overrides. `@media print` landscape layout with expanded Notes column, `page-break-inside: avoid`, 10px font, agency name header. |
+| 222 | MEDIUM | index.html | **3 insertions (665→742 lines).** CSS link, plugin container div (`#taskSheetTool`), script tag — all in correct load-order positions. |
+| 223 | MEDIUM | js/app-init.js | **toolConfig entry (86→92 lines).** `{ key: 'tasksheet', icon: '✅', color: 'icon-teal', title: 'Task Sheet', category: 'ops' }` with `containerId: 'taskSheetTool'`, `initModule: 'TaskSheetModule'`, `htmlFile: 'plugins/task-sheet.html'`. |
+
+**3 new files:** js/task-sheet.js (415 lines), plugins/task-sheet.html (50 lines), css/task-sheet.css (515 lines). **2 files modified:** index.html (665→742 lines), js/app-init.js (86→92 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 
 ### Step 1: Create JS Module

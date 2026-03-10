@@ -204,89 +204,120 @@ Object.assign(App, {
             this.toast('⚠️ Not property data. Use the extension\'s "📋 Copy for Altech" button.');
             return;
         }
+        
+        // Use shared auto-fill function
+        this.autoFillPropertyData(parsed);
+    },
 
-        const data = parsed.data;
-        let filled = 0;
+        // ── Auto-fill property data (shared by clipboard and postMessage) ──
+        autoFillPropertyData(propertyData) {
+            if (!propertyData || !propertyData.data) {
+                this.toast('⚠️ Invalid property data received', 'error');
+                return;
+            }
 
-        // Map scraped field keys to Altech form IDs
-        const fieldMap = {
-            yrBuilt: 'yrBuilt',
-            sqFt: 'sqFt',
-            lotSize: 'lotSize',
-            bedrooms: 'bedrooms',
-            fullBaths: 'fullBaths',
-            halfBaths: 'halfBaths',
-            numStories: 'numStories',
-            numOccupants: 'numOccupants',
-            constructionStyle: 'constructionStyle',
-            exteriorWalls: 'exteriorWalls',
-            foundation: 'foundation',
-            garageType: 'garageType',
-            garageSpaces: 'garageSpaces',
-            roofType: 'roofType',
-            roofShape: 'roofShape',
-            roofYr: 'roofYr',
-            heatingType: 'heatingType',
-            heatYr: 'heatYr',
-            cooling: 'cooling',
-            plumbYr: 'plumbYr',
-            elecYr: 'elecYr',
-            flooring: 'flooring',
-            numFireplaces: 'numFireplaces',
-            pool: 'pool',
-            woodStove: 'woodStove',
-            sewer: 'sewer',
-            waterSource: 'waterSource',
-            dwellingType: 'dwellingType',
-            dwellingUsage: 'dwellingUsage',
-            occupancyType: 'occupancyType',
-            kitchenQuality: 'kitchenQuality',
-            purchaseDate: 'purchaseDate',
-            assessedValue: 'propertyValue',
-            ownerName: 'ownerName',
-            parcelId: 'parcelId',
-        };
+            const data = propertyData.data;
+            let filled = 0;
 
-        for (const [srcKey, formId] of Object.entries(fieldMap)) {
-            const value = data[srcKey];
-            if (!value) continue;
+            // Map scraped field keys to Altech form IDs
+            const fieldMap = {
+                yrBuilt: 'yrBuilt',
+                sqFt: 'sqFt',
+                lotSize: 'lotSize',
+                bedrooms: 'bedrooms',
+                fullBaths: 'fullBaths',
+                halfBaths: 'halfBaths',
+                numStories: 'numStories',
+                numOccupants: 'numOccupants',
+                constructionStyle: 'constructionStyle',
+                exteriorWalls: 'exteriorWalls',
+                foundation: 'foundation',
+                garageType: 'garageType',
+                garageSpaces: 'garageSpaces',
+                roofType: 'roofType',
+                roofShape: 'roofShape',
+                roofYr: 'roofYr',
+                heatingType: 'heatingType',
+                heatYr: 'heatYr',
+                cooling: 'cooling',
+                plumbYr: 'plumbYr',
+                elecYr: 'elecYr',
+                flooring: 'flooring',
+                numFireplaces: 'numFireplaces',
+                pool: 'pool',
+                woodStove: 'woodStove',
+                sewer: 'sewer',
+                waterSource: 'waterSource',
+                dwellingType: 'dwellingType',
+                dwellingUsage: 'dwellingUsage',
+                occupancyType: 'occupancyType',
+                kitchenQuality: 'kitchenQuality',
+                purchaseDate: 'purchaseDate',
+                assessedValue: 'propertyValue',
+                ownerName: 'ownerName',
+                parcelId: 'parcelId',
+            };
 
-            const el = document.getElementById(formId);
-            if (!el) continue;
+            for (const [srcKey, formId] of Object.entries(fieldMap)) {
+                const value = data[srcKey];
+                if (!value) continue;
 
-            // Only fill if field is currently empty (don't overwrite user edits)
-            if (el.value && el.value.trim()) continue;
+                const el = document.getElementById(formId);
+                if (!el) continue;
 
-            // For <select> elements, try to match the value to an option
-            if (el.tagName === 'SELECT') {
-                const options = Array.from(el.options);
-                const exact = options.find(o => o.value.toLowerCase() === String(value).toLowerCase());
-                const partial = options.find(o =>
-                    o.value.toLowerCase().includes(String(value).toLowerCase()) ||
-                    String(value).toLowerCase().includes(o.value.toLowerCase())
-                );
-                const match = exact || partial;
-                if (match) {
-                    el.value = match.value;
-                    this.data[formId] = match.value;
+                // Only fill if field is currently empty (don't overwrite user edits)
+                if (el.value && el.value.trim()) continue;
+
+                // For <select> elements, try to match the value to an option
+                if (el.tagName === 'SELECT') {
+                    const options = Array.from(el.options);
+                    const exact = options.find(o => o.value.toLowerCase() === String(value).toLowerCase());
+                    const partial = options.find(o =>
+                        o.value.toLowerCase().includes(String(value).toLowerCase()) ||
+                        String(value).toLowerCase().includes(o.value.toLowerCase())
+                    );
+                    const match = exact || partial;
+                    if (match) {
+                        el.value = match.value;
+                        this.data[formId] = match.value;
+                        this.markAutoFilled?.(el, 'extension');
+                        filled++;
+                    }
+                } else {
+                    el.value = String(value);
+                    this.data[formId] = String(value);
                     this.markAutoFilled?.(el, 'extension');
                     filled++;
                 }
-            } else {
-                el.value = String(value);
-                this.data[formId] = String(value);
-                this.markAutoFilled?.(el, 'extension');
-                filled++;
             }
-        }
 
-        // Save all changes
-        this.save({ target: { id: '_bulk', value: '' } });
+            // Save all changes
+            this.save({ target: { id: '_bulk', value: '' } });
 
-        const source = parsed._source || 'unknown';
-        const addr = parsed.address || '';
-        this.toast(`✅ Imported ${filled} property fields from ${source}${addr ? ` (${addr})` : ''}`);
-    },
+            const source = propertyData._source || 'extension';
+            const addr = propertyData.address || '';
+            this.toast(`✅ Auto-filled ${filled} property fields from ${source}${addr ? ` (${addr})` : ''}!`);
+        },
+
+        // ── Initialize postMessage listener for Chrome extension direct messaging ──
+        initPropertyExtensionListener() {
+            if (this._propertyListenerInitialized) return;
+            this._propertyListenerInitialized = true;
+
+            window.addEventListener('message', (event) => {
+                // Only accept messages from same window (forwarded by altech-bridge.js)
+                if (event.source !== window) return;
+
+                const msg = event.data;
+                if (msg.type === 'ALTECH_PROPERTY_DATA') {
+                    console.log('[Property Form] Received property data from extension:', msg.propertyData?.fieldCount, 'fields');
+                    this.autoFillPropertyData(msg.propertyData);
+                }
+            });
+
+            console.log('[Property Form] Extension postMessage listener initialized');
+        },
+
 
     openPropertyRecords() {
         const address = this.data.addrStreet || '';

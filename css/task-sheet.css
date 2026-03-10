@@ -1,0 +1,515 @@
+/* ═══════════════════════════════════════════════════════
+   Task Sheet — HawkSoft CSV Task Export Viewer
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Container ────────────────────────────────────────── */
+
+.ts-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 24px 40px;
+}
+
+/* ── Header buttons ───────────────────────────────────── */
+
+.ts-header-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: none;
+    border-radius: 8px;
+    background: var(--apple-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s var(--transition-smooth);
+}
+
+.ts-header-btn:hover {
+    background: var(--apple-blue-hover);
+}
+
+.ts-header-btn svg {
+    flex-shrink: 0;
+}
+
+.ts-header-btn-outline {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+.ts-header-btn-outline:hover {
+    background: var(--bg-widget-hover);
+    color: var(--text);
+}
+
+/* ── Drop zone ────────────────────────────────────────── */
+
+.ts-drop-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 48px 24px;
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: border-color 0.2s var(--transition-smooth),
+                box-shadow 0.2s var(--transition-smooth),
+                background 0.2s var(--transition-smooth);
+}
+
+.ts-drop-zone:hover,
+.ts-drop-zone.ts-drop-active {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+    background: var(--bg-widget-hover);
+}
+
+.ts-drop-icon {
+    color: var(--text-tertiary);
+    margin-bottom: 4px;
+}
+
+.ts-drop-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.ts-drop-hint {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin: 0;
+}
+
+/* ── Error ────────────────────────────────────────────── */
+
+.ts-error {
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: rgba(255, 59, 48, 0.08);
+    border: 1px solid rgba(255, 59, 48, 0.2);
+    color: var(--danger);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+/* ── Meta bar ─────────────────────────────────────────── */
+
+.ts-meta {
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+}
+
+.ts-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ts-meta-row + .ts-meta-row {
+    margin-top: 6px;
+}
+
+.ts-meta-agency {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+}
+
+.ts-meta-date {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.ts-meta-count {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.ts-meta-overdue {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--danger);
+}
+
+.ts-meta-clear {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--success);
+}
+
+/* ── Table ────────────────────────────────────────────── */
+
+.ts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.ts-table thead {
+    background: var(--bg-input);
+}
+
+.ts-table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+}
+
+.ts-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text);
+    vertical-align: top;
+}
+
+.ts-table tbody tr:nth-child(even) {
+    background: rgba(0, 0, 0, 0.015);
+}
+
+.ts-table tbody tr:hover {
+    background: var(--bg-widget-hover);
+}
+
+/* Column widths */
+.ts-col-flag { width: 36px; text-align: center; }
+.ts-col-notes { min-width: 180px; }
+.ts-cell-flag { text-align: center; }
+.ts-cell-date { white-space: nowrap; }
+.ts-cell-client { max-width: 200px; }
+.ts-cell-task { max-width: 280px; }
+
+/* ── Overdue row ──────────────────────────────────────── */
+
+.ts-row-overdue {
+    background: rgba(255, 59, 48, 0.05) !important;
+}
+
+.ts-row-overdue:hover {
+    background: rgba(255, 59, 48, 0.08) !important;
+}
+
+.ts-overdue-icon {
+    font-size: 14px;
+}
+
+/* ── Priority badges ──────────────────────────────────── */
+
+.ts-priority-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.ts-priority-critical {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.ts-priority-high {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.ts-priority-medium {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.ts-priority-low {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text-tertiary);
+}
+
+/* ═══════════════════════════════════════════════════════
+   DARK MODE
+   ═══════════════════════════════════════════════════════ */
+
+body.dark-mode .ts-drop-zone {
+    background: #1C1C1E;
+    border-color: #38383A;
+}
+
+body.dark-mode .ts-drop-zone:hover,
+body.dark-mode .ts-drop-zone.ts-drop-active {
+    border-color: #0A84FF;
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+    background: #2C2C2E;
+}
+
+body.dark-mode .ts-error {
+    background: rgba(255, 69, 58, 0.12);
+    border-color: rgba(255, 69, 58, 0.25);
+}
+
+body.dark-mode .ts-meta {
+    background: #1C1C1E;
+    border-color: #38383A;
+}
+
+body.dark-mode .ts-table {
+    background: #1C1C1E;
+    border-color: #38383A;
+}
+
+body.dark-mode .ts-table thead {
+    background: #2C2C2E;
+}
+
+body.dark-mode .ts-table th {
+    border-bottom-color: #38383A;
+}
+
+body.dark-mode .ts-table td {
+    border-bottom-color: #2C2C2E;
+}
+
+body.dark-mode .ts-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+body.dark-mode .ts-table tbody tr:hover {
+    background: #2C2C2E;
+}
+
+body.dark-mode .ts-row-overdue {
+    background: rgba(255, 69, 58, 0.1) !important;
+}
+
+body.dark-mode .ts-row-overdue:hover {
+    background: rgba(255, 69, 58, 0.15) !important;
+}
+
+body.dark-mode .ts-priority-critical {
+    background: rgba(255, 69, 58, 0.18);
+    color: #FF6961;
+}
+
+body.dark-mode .ts-priority-high {
+    background: rgba(255, 159, 10, 0.18);
+    color: #FF9F0A;
+}
+
+body.dark-mode .ts-priority-medium {
+    background: rgba(255, 214, 10, 0.15);
+    color: #FFD60A;
+}
+
+body.dark-mode .ts-priority-low {
+    background: rgba(255, 255, 255, 0.05);
+    color: #8E8E93;
+}
+
+body.dark-mode .ts-header-btn-outline {
+    border-color: #38383A;
+    color: #98989D;
+}
+
+body.dark-mode .ts-header-btn-outline:hover {
+    background: #2C2C2E;
+    color: #FFFFFF;
+}
+
+/* ═══════════════════════════════════════════════════════
+   PRINT STYLES
+   ═══════════════════════════════════════════════════════ */
+
+@media print {
+    @page {
+        size: landscape;
+        margin: 0.5in 0.4in;
+    }
+
+    /* Hide everything except the task sheet */
+    body > *:not(.app-shell),
+    .sidebar,
+    .mobile-bottom-nav,
+    #mobileBottomNav,
+    #syncIndicator,
+    #toast,
+    .no-print,
+    .header-top,
+    .ts-drop-zone,
+    .ts-error {
+        display: none !important;
+    }
+
+    /* Let the plugin container fill the page */
+    .app-shell,
+    .app-content,
+    .plugin-viewport,
+    .plugin-container {
+        overflow: visible !important;
+        position: static !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    .ts-container {
+        max-width: none;
+        padding: 0;
+    }
+
+    /* Meta bar print styling */
+    .ts-meta {
+        border: none;
+        background: none;
+        padding: 0 0 8px;
+        margin-bottom: 8px;
+        border-bottom: 2px solid #000;
+    }
+
+    .ts-meta-agency {
+        font-size: 16px;
+        color: #000;
+    }
+
+    .ts-meta-date {
+        color: #333;
+    }
+
+    .ts-meta-count,
+    .ts-meta-overdue,
+    .ts-meta-clear {
+        color: #333;
+    }
+
+    .ts-meta-overdue {
+        color: #c00;
+        font-weight: 700;
+    }
+
+    /* Table print styling */
+    .ts-table {
+        font-size: 10px;
+        border: 1px solid #999;
+        border-radius: 0;
+        background: #fff;
+    }
+
+    .ts-table thead {
+        background: #e8e8e8 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .ts-table th {
+        font-size: 9px;
+        padding: 6px 8px;
+        color: #000;
+        border-bottom: 2px solid #666;
+    }
+
+    .ts-table td {
+        padding: 6px 8px;
+        color: #000;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .ts-table tbody tr:nth-child(even) {
+        background: #f6f6f6 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .ts-table tbody tr:hover {
+        background: inherit;
+    }
+
+    /* Overdue rows */
+    .ts-row-overdue {
+        background: #fff0f0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Priority badges for print */
+    .ts-priority-badge {
+        border: 1px solid #999;
+        background: none !important;
+        color: #000;
+        padding: 1px 6px;
+    }
+
+    .ts-priority-critical,
+    .ts-priority-high {
+        border-color: #c00;
+        color: #c00;
+        font-weight: 800;
+    }
+
+    /* Notes column — generous write-in area */
+    .ts-col-notes {
+        min-width: 200px;
+    }
+
+    .ts-cell-notes {
+        min-width: 200px;
+        min-height: 28px;
+        border-left: 2px solid #999;
+    }
+
+    /* Prevent page breaks inside rows */
+    .ts-table tr {
+        page-break-inside: avoid;
+    }
+
+    /* Force border visibility */
+    .ts-table,
+    .ts-table th,
+    .ts-table td {
+        border-color: #999 !important;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 960px) {
+    .ts-output {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+@media (max-width: 600px) {
+    .ts-container {
+        padding: 12px 12px 24px;
+    }
+
+    .ts-drop-zone {
+        padding: 32px 16px;
+    }
+}

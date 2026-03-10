@@ -14,7 +14,7 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~665 lines), 21 CSS files in `css/` (~16,108 lines), 35 JS modules in `js/` (~33,658 lines), 15 plugin HTML files in `plugins/` (~5,530 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~742 lines), 23 CSS files in `css/` (~17,230 lines), 37 JS modules in `js/` (~35,059 lines), 17 plugin HTML files in `plugins/` (~5,673 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
 > **Full documentation:** See [AGENTS.md](../AGENTS.md) (985 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
@@ -32,7 +32,7 @@ Tools are registered in `toolConfig` array in `js/app-init.js`. Each entry has: 
 
 **Categories:** `quoting` | `export` | `docs` | `ops`
 
-**Current plugins (15):** quoting (Personal Lines), intake (AI Intake), qna (Policy Q&A), quotecompare, ezlynx, hawksoft, coi (hidden), compliance (CGL), reminders, prospect, email, accounting, quickref, vindecoder, calllogger (HawkSoft Logger).
+**Current plugins (17):** quoting (Personal Lines), intake (AI Intake), qna (Policy Q&A), quotecompare, ezlynx, hawksoft, coi (hidden), compliance (CGL), reminders, prospect, email, accounting, quickref, vindecoder, calllogger (HawkSoft Logger), tasksheet (Task Sheet), endorsement (Endorsement Parser).
 
 **Adding a new plugin requires 5 files/edits:**
 1. `js/your-plugin.js` — IIFE module on `window.YourModule` (see `js/reminders.js` for pattern)
@@ -186,7 +186,14 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 24, 2026)
+### Latest Session Notes (March 25, 2026)
+
+- **Task Sheet Plugin — HawkSoft CSV Task Viewer:** New plugin (`tasksheet`) for uploading HawkSoft "My Tasks" CSV exports and displaying a sortable, printable task table. Upload via drag-and-drop or file picker. CSV parsed client-side (RFC 4180, BOM-safe). Rows sorted: overdue first → priority (critical→high→medium→low) → due date ascending. 9-column table: Priority, Due Date, Assigned To, Client, Subject, Description, Status, Follow-Up, Notes (empty write-in column for print). Color-coded priority badges. Overdue rows highlighted red. Print layout via `window.print()` + `@media print` (landscape, expanded Notes column). Agency name header from `altech_agency_profile`.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **3 new files:** js/task-sheet.js (415 lines), plugins/task-sheet.html (50 lines), css/task-sheet.css (515 lines).
+- **2 files modified:** index.html (665→742 lines), js/app-init.js (86→92 lines).
+
+### Previous Session Notes (March 24, 2026)
 
 - **Multi-File API URL .js Extension Bug Sweep:** Found that the `.js` extension bug (from prior session) was far more widespread than the 2 policy-qa.js fixes. Total of 13 broken API calls across 5 more files were silently 404-ing on Vercel:
   - `app-popups.js`: `/api/vision-processor.js` ×4, `/api/historical-analyzer.js` ×4 — all aerial/satellite/DL/historical calls broken
@@ -372,4 +379,4 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - **24 files changed**, 183 insertions, 90 deletions.
 - Validation: `npx jest --no-coverage` → 23/23 suites passed, 1485/1485 tests.
 
-*Last updated: March 23, 2026*
+*Last updated: March 25, 2026*

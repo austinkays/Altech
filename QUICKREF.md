@@ -287,4 +287,11 @@ npm run deploy:vercel    # Production deploy
 - **Tests:** 23 suites, 1515 tests (unchanged).
 - **4 files changed:** js/dashboard-widgets.js (904→911), js/auth.js (537→540), js/app-boot.js (295→279), tests/auth-cloudsync.test.js (210→213).
 
-*Last updated: March 19, 2026*
+### Task Sheet Plugin (March 25, 2026)
+
+- **Task Sheet Plugin — HawkSoft CSV Task Viewer:** New plugin (`tasksheet`) for uploading HawkSoft "My Tasks" CSV exports and displaying a sortable, printable task table. Upload via drag-and-drop or file picker. CSV parsed client-side (RFC 4180, BOM-safe). Rows sorted: overdue first → priority (critical→high→medium→low) → due date ascending. 9-column table with color-coded priority badges, overdue row highlighting, and print layout via `window.print()` + `@media print`.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **3 new files:** js/task-sheet.js (415 lines), plugins/task-sheet.html (50 lines), css/task-sheet.css (515 lines).
+- **2 files modified:** index.html (665→742 lines), js/app-init.js (86→92 lines).
+
+*Last updated: March 25, 2026*

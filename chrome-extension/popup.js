@@ -451,9 +451,51 @@ async function scrapePropertyData() {
 
         // Display results
         displayPropertyResults(response);
+        
+        // ── Auto-send to Altech web app (Direct Auto-Fill) ──
+        try {
+            await sendPropertyToAltechApp(response);
+        } catch (err) {
+            console.warn('[Altech] Could not auto-send to web app:', err);
+            // Non-fatal — user can still use clipboard button
+        }
+        
         setStatus(`✅ Found ${response.fieldCount} property fields from ${response.siteType}!`, 'success');
     });
 }
+
+    // ── Auto-send property data to Altech web app tab ──
+    async function sendPropertyToAltechApp(propertyData) {
+        try {
+            // Find open Altech tab
+            const tabs = await chrome.tabs.query({});
+            const altechTab = tabs.find(t => 
+                t.url && (
+                    t.url.includes('altech-app.vercel.app') ||
+                    t.url.includes('altech.agency') ||
+                    t.url.includes('localhost')
+                )
+            );
+        
+            if (!altechTab) {
+                console.log('[Altech] No Altech tab found — skipping auto-send');
+                setStatus('💡 Tip: Open Altech intake form for instant auto-fill (or use "Copy for Altech")', 'info');
+                return;
+            }
+        
+            // Send to altech-bridge.js content script
+            await chrome.tabs.sendMessage(altechTab.id, {
+                type: 'ALTECH_PROPERTY_DATA',
+                propertyData: propertyData
+            });
+        
+            console.log('[Altech] Property data sent to Altech tab:', propertyData.fieldCount, 'fields');
+            setStatus(`✅ Property data sent to Altech form! (${propertyData.fieldCount} fields)`, 'success');
+        } catch (err) {
+            console.warn('[Altech] Error sending to web app:', err);
+            throw err; // Let caller handle
+        }
+    }
 
 // ── Display property results in popup ──
 function displayPropertyResults(result) {
