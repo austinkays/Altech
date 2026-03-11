@@ -254,20 +254,42 @@ const HOME_TEXT_FIELDS = {
     ],
 };
 
-/** Build the page-aware text field map, same pattern as getActiveDropdowns(). */
+/** Pick specific keys from a source object into a new object. */
+function pick(src, keys) {
+    const out = {};
+    for (const k of keys) { if (k in src) out[k] = src[k]; }
+    return out;
+}
+
+/**
+ * Build the page-specific text field map.
+ * Each EZLynx page has a distinct set of text inputs — attempting fields that
+ * don't exist on the current page wastes fill cycles and clutters the report.
+ */
 function getActiveTextFields() {
     const page = detectPage();
-    const active = { ...BASE_TEXT_FIELDS };
-    // Auto pages
-    if (page === 'auto-policy' || page === 'auto-driver' || page === 'auto-vehicle' ||
-        page === 'auto-coverage' || page === 'auto-incident') {
-        Object.assign(active, AUTO_TEXT_FIELDS);
+    switch (page) {
+        case 'auto-policy':
+            // Auto policy page only has the effective date as a text input
+            return pick(AUTO_TEXT_FIELDS, ['EffectiveDate']);
+        case 'auto-driver':
+            // Driver page has personal identity fields (no address/email/phone)
+            return pick(BASE_TEXT_FIELDS, ['FirstName', 'LastName', 'MiddleName', 'DOB', 'LicenseNumber']);
+        case 'auto-vehicle':
+            // Vehicle page: VIN, make, model, mileage
+            return pick(AUTO_TEXT_FIELDS, ['VIN', 'VehicleMake', 'VehicleModel', 'AnnualMiles']);
+        case 'auto-coverage':
+        case 'auto-incident':
+            // Coverage page uses only dropdowns; incidents have dedicated fill logic
+            return {};
+        case 'home-dwelling':
+            return { ...HOME_TEXT_FIELDS };
+        case 'home-coverage':
+            // Coverage page only needs dwelling amount and mortgagee, not property details
+            return pick(HOME_TEXT_FIELDS, ['DwellingCoverage', 'Mortgagee']);
+        default: // 'applicant', 'lead-info', 'unknown'
+            return { ...BASE_TEXT_FIELDS };
     }
-    // Home pages
-    if (page === 'home-dwelling' || page === 'home-coverage') {
-        Object.assign(active, HOME_TEXT_FIELDS);
-    }
-    return active;
 }
 
 // Combined set for smartData preprocessing (must include ALL keys so
@@ -832,31 +854,53 @@ function detectPage() {
     return 'unknown';
 }
 
+/**
+ * Build the page-specific dropdown map.
+ * Returns only the dropdowns that actually exist on the current EZLynx page,
+ * preventing wasted attempts and skipped-field noise in the fill report.
+ */
 function getActiveDropdowns() {
-    const url = location.href.toLowerCase();
     const page = detectPage();
-    const active = { ...BASE_DROPDOWN_LABELS };
-    // Auto pages
-    if (url.includes('/rating/auto/') || url.includes('/auto/') || 
-        page === 'auto-policy' || page === 'auto-driver' || page === 'auto-vehicle' || page === 'auto-coverage' || page === 'auto-incident') {
-        Object.assign(active, AUTO_DROPDOWN_LABELS);
+    switch (page) {
+        case 'auto-policy':
+            return {
+                ...pick(BASE_DROPDOWN_LABELS, ['State']),
+                ...pick(AUTO_DROPDOWN_LABELS, ['AutoPolicyType', 'PolicyTerm', 'PriorCarrier',
+                    'PriorPolicyTerm', 'PriorYearsWithCarrier', 'PriorLiabilityLimits',
+                    'YearsContinuousCoverage', 'NumResidents', 'ResidenceIs']),
+            };
+        case 'auto-driver':
+            return {
+                ...pick(BASE_DROPDOWN_LABELS, ['Gender', 'MaritalStatus', 'Education',
+                    'Occupation', 'Industry', 'Relationship', 'DLStatus']),
+                ...pick(AUTO_DROPDOWN_LABELS, ['DLState', 'AgeLicensed',
+                    'DriverEducation', 'GoodDriver', 'SR22Required']),
+            };
+        case 'auto-vehicle':
+            return {
+                ...pick(BASE_DROPDOWN_LABELS, ['State']),
+                ...pick(AUTO_DROPDOWN_LABELS, ['VehicleYear', 'VehicleUse',
+                    'PassiveRestraints', 'AntiLockBrakes', 'AntiTheft', 'OwnershipType']),
+            };
+        case 'auto-coverage':
+            return pick(AUTO_DROPDOWN_LABELS, ['BodilyInjury', 'PropertyDamage',
+                'MedPaymentsAuto', 'Comprehensive', 'Collision', 'UMPD']);
+        case 'auto-incident':
+            return {};
+        case 'home-dwelling':
+            return {
+                ...pick(BASE_DROPDOWN_LABELS, ['County']),
+                ...HOME_DROPDOWN_LABELS,
+            };
+        case 'home-coverage':
+            return pick(HOME_DROPDOWN_LABELS, ['HomePolicyType', 'AllPerilsDeductible',
+                'TheftDeductible', 'WindDeductible', 'HomePersonalLiability', 'HomeMedicalPayments']);
+        default: // 'applicant', 'lead-info', 'unknown'
+            return {
+                ...BASE_DROPDOWN_LABELS,
+                ...pick(AUTO_DROPDOWN_LABELS, ['DLState', 'AgeLicensed']),
+            };
     }
-    // Home pages
-    if (url.includes('/rating/home/') || url.includes('/home/') || 
-        page === 'home-dwelling' || page === 'home-coverage') {
-        Object.assign(active, HOME_DROPDOWN_LABELS);
-    }
-    // On the applicant page, only include a few auto fields that
-    // sometimes appear (DL-related). Home/auto dwelling/coverage dropdowns
-    // live on separate EZLynx pages and should NOT be attempted here.
-    if (page === 'applicant') {
-        // DL fields can appear on applicant page alongside personal info
-        const APPLICANT_AUTO_FIELDS = ['DLState', 'AgeLicensed'];
-        for (const k of APPLICANT_AUTO_FIELDS) {
-            if (AUTO_DROPDOWN_LABELS[k]) active[k] = AUTO_DROPDOWN_LABELS[k];
-        }
-    }
-    return active;
 }
 
 
