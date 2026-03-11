@@ -895,12 +895,12 @@ function getActiveDropdowns() {
     const page = detectPage();
     switch (page) {
         case 'auto-policy':
-            return {
-                ...pick(BASE_DROPDOWN_LABELS, ['State']),
-                ...pick(AUTO_DROPDOWN_LABELS, ['AutoPolicyType', 'PolicyTerm', 'PriorCarrier',
-                    'PriorPolicyTerm', 'PriorYearsWithCarrier', 'PriorLiabilityLimits',
-                    'YearsContinuousCoverage', 'NumResidents', 'ResidenceIs']),
-            };
+            // NOTE: State (BASE_DROPDOWN_LABELS) is intentionally excluded here.
+            // On the auto policy-info page, filling the Address State dropdown triggers
+            // an Angular cascade that resets the Prior Carrier selection.
+            return pick(AUTO_DROPDOWN_LABELS, ['AutoPolicyType', 'PolicyTerm', 'PriorCarrier',
+                'PriorPolicyTerm', 'PriorYearsWithCarrier', 'PriorLiabilityLimits',
+                'YearsContinuousCoverage', 'NumResidents', 'ResidenceIs']);
         case 'auto-driver':
             return {
                 ...pick(BASE_DROPDOWN_LABELS, ['Gender', 'MaritalStatus', 'Education',
@@ -5222,6 +5222,19 @@ async function fillPageSequential(clientData) {
         console.log(`[Altech §15] ${fieldsInOrder.length - primaryElements.length} tail field(s) — running fillPage() for remainder`);
         updateToolbarStatus('Running tail fill…');
         await fillPage(clientData);
+    }
+
+    // ── I. Co-applicant injection (Applicant page only) ──
+    // The co-applicant open+fill flow lives inside fillPage(). For the /details
+    // route, call fillPage() after the positional fill so the co-applicant
+    // injection runs. The positional fill already set the main fields, so the
+    // re-fill by fillPage() is idempotent. Without this, the "Add contact" button
+    // is never clicked and co-applicant data is silently skipped.
+    if (routeKey === '/details' && clientData.CoApplicant && clientData.CoApplicant.FirstName) {
+        console.log('[Altech §15] Co-applicant data detected — delegating to fillPage() for co-applicant injection');
+        updateToolbarStatus('Adding Co-Applicant…');
+        await fillPage(clientData);
+        return;
     }
 
     updateToolbarStatus('✓ Sequential fill complete');
