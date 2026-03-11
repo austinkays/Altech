@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 25, 2026
+> **Last updated:** March 11, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -116,7 +116,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
 │   ├── endorsement-parser.js   # AI-powered endorsement email parser, extracts structured data from carrier change requests (805 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,119 lines)
-│   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI (1,734 lines)
+│   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI, lossless vehicle+driver rebuild, per-driver FSC incidents, Client Office field (1,770 lines)
 │   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,423 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,917 lines)
@@ -1221,6 +1221,22 @@ A full cross-reference audit of all fields collected by the quoting wizard and A
 | 218 | MEDIUM | js/ezlynx-tool.js | **`coEducation` added to EZLynx home-only fallback CoApplicant:** The home-only fallback block (built from `appData.coFirstName` when no drivers exist) was missing `Education: appData.coEducation || ''`. |
 
 **4 files changed:** js/app-export.js (1,047→1,062 lines), js/hawksoft-export.js (1,704→1,734 lines), js/ezlynx-tool.js (1,028→1,119 lines), js/intake-assist.js (unchanged, 3,423 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### HawkSoft Export — Phase 3 Audit Fixes (March 2026)
+
+| # | Severity | Files | Fix Description |
+|---|----------|-------|------------------|
+| 224 | CRITICAL | js/hawksoft-export.js | **Lossless driver rebuild in `_readForm()`:** Was `Array.from(rows).map(row => ({...hardcoded empties}))` — overwrote per-driver fields (`industry`, `education`, `dlStatus`, `ageLicensed`, `accidents`, `violations`, `studentGPA`, `goodDriver`, `sr22Reason`, `dateLicensed`, `hiredDate`, `cdlDate`, `ssn`, `points`, `excluded`, `onlyOperator`, `nonDriver`) every time a UI interaction triggered `_readForm()`. Converted to spread-then-overlay: `const existing = _exportData.drivers[i] ?? {}; return { ...existing, <ui-only fields> };`. |
+| 225 | CRITICAL | js/hawksoft-export.js | **Lossless vehicle rebuild in `_readForm()`:** Same overwrite pattern on vehicles — lost `symbol`, `territory`, `addonEquip`, `assignedDriver`, `commuteMileage`, `gvw`, `umpd`, `uimpd`, `additionalInterest`, `lossPayeeAddr2` on every re-read. Converted to spread-then-overlay. |
+| 226 | CRITICAL | js/hawksoft-export.js | **`_buildFscNotes(d, drivers = [])` DRIVER INCIDENTS section:** Accepts `drivers` array param; adds `DRIVER INCIDENTS` section with per-driver name header + accidents/violations/studentGPA lines. Global `d.accidents/violations/studentGPA` labels updated to `(global):`. |
+| 227 | HIGH | js/hawksoft-export.js | **`_buildFscNotes` call site updated:** `_buildFscNotes(d)` → `_buildFscNotes(d, drivers)` so per-driver incidents reach FSC notes. |
+| 228 | HIGH | js/hawksoft-export.js | **Phone field fix in client block:** `phone: ''` → `phone: d.phone \|\| ''` (was always blank in CMSMTF). |
+| 229 | HIGH | js/hawksoft-export.js | **`goodStudent` now driven by `studentGPA`:** Was `drv.goodDriver === 'Yes' ? 'Yes' : 'No'` — GPA students were never flagged. Now `(drv.studentGPA && drv.studentGPA.trim()) ? 'Yes' : 'No'`. Added `accidents`, `violations`, `studentGPA`, `goodDriver` to driver map in `_loadFromData()`. |
+| 230 | MEDIUM | js/hawksoft-export.js | **8 blank boat CMSMTF keys added:** `gen_sBoatType1/2`, `gen_nHorsePower1/2`, `gen_nSpeed1/2`, `gen_nLength1/2` emitted as blank lines in home block so HawkSoft import doesn't reject the file. |
+| 231 | MEDIUM | js/hawksoft-export.js | **8 blank 2nd lienholder CMSMTF keys added:** `gen_sLPType2`, `gen_sLpName2`, `gen_sLPName2Line2`, `gen_sLpAddress2`, `gen_sLpCity2`, `gen_sLpState2`, `gen_sLpZip2`, `gen_sLpLoanNumber2` added after first lienholder block. |
+| 232 | MEDIUM | js/hawksoft-export.js | **Client Office UI + pipeline:** Added `hs_clientOffice` input to Agency Settings grid in `render()`. `_readForm()` reads and saves it to `_exportData.client.clientOffice`. Emitted as `gen_sClientOffice` in CMSMTF. |
+
+**1 file changed:** js/hawksoft-export.js (1,734→1,770 lines). Tests: 23 suites, 1,515 tests (unchanged).
 
 ### Task Sheet Plugin — HawkSoft CSV Task Viewer (March 2026)
 

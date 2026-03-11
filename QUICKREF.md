@@ -294,4 +294,15 @@ npm run deploy:vercel    # Production deploy
 - **3 new files:** js/task-sheet.js (415 lines), plugins/task-sheet.html (50 lines), css/task-sheet.css (515 lines).
 - **2 files modified:** index.html (665→742 lines), js/app-init.js (86→92 lines).
 
-*Last updated: March 25, 2026*
+### HawkSoft Export — Phase 3 Audit Fixes (March 11, 2026)
+
+- **Lossless driver + vehicle rebuild:** `_readForm()` now uses spread-then-overlay pattern — UI-editable fields overlay the existing `_exportData` object instead of replacing it. Per-driver fields (`industry`, `education`, `dlStatus`, `ageLicensed`, `accidents`, `violations`, `studentGPA`, `sr22Reason`, etc.) are no longer lost on each UI interaction.
+- **Per-driver FSC incidents:** `_buildFscNotes()` accepts `drivers` param; emits `DRIVER INCIDENTS` section with per-driver accidents/violations/GPA.
+- **Phone field fix:** `phone: ''` → `phone: d.phone || ''` (was always blank in CMSMTF).
+- **`goodStudent` fix:** Now driven by `studentGPA` presence, not `goodDriver === 'Yes'`.
+- **8 blank boat keys + 8 blank 2nd lienholder keys** added to home CMSMTF block.
+- **Client Office field:** `hs_clientOffice` UI input + read/save pipeline added.
+- **Tests:** 23 suites, 1515 tests (unchanged).
+- **1 file changed:** js/hawksoft-export.js (1,734→1,770 lines).
+
+*Last updated: March 11, 2026*
