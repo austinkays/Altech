@@ -616,8 +616,8 @@ body.dark-mode .ts-header-btn-outline:hover {
     /* ── Print header ─────────────────────────────── */
     .ts-meta {
         display: block;
-        background: none;
-        border: none;
+        background: none !important;
+        border: none !important;
         padding: 0 0 5px;
         margin-bottom: 6px;
         border-bottom: 1.5pt solid #000;

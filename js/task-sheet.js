@@ -343,7 +343,13 @@ window.TaskSheetModule = (() => {
             // Show meta bar (single-agent mode)
             const overdueCount = rows.filter(r => r.overdue).length;
             if (metaEl) {
-                const pageTitle  = _getPageTitle();
+                // In single-agent mode, use the assignee name from the CSV if available
+                const csvAssignee = rows.length > 0 && rows[0].assignee
+                    ? rows[0].assignee.replace(/^[A-Z]{2,4}\s*-\s*/, '').trim()
+                    : null;
+                const pageTitle  = csvAssignee
+                    ? csvAssignee + (csvAssignee.endsWith('s') ? '\u2019 Tasks' : '\u2019s Tasks')
+                    : _getPageTitle();
                 const agencyName = _getAgencyName();
                 const now = new Date();
                 const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
