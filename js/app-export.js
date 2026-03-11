@@ -7,14 +7,14 @@ Object.assign(App, {
         const result = await this.buildPDF(this.data);
         this.downloadBlob(result.blob, result.filename);
         this.logExport('PDF', result.filename);
-        this.toast('âœ“ PDF downloaded successfully');
+        this.toast('\u2713 PDF downloaded successfully');
     },
 
     exportText() {
         const result = this.buildText(this.data);
         this.downloadFile(result.content, result.filename, result.mime);
         this.logExport('Text', result.filename);
-        this.toast('ðŸ“ Text summary downloaded');
+        this.toast('📝 Text summary downloaded');
     },
 
     async buildPDF(data) {
@@ -69,15 +69,15 @@ Object.assign(App, {
 
         // â”€â”€â”€ Color palette â”€â”€â”€
         const C = {
-            brand:    [0, 102, 204],     // Professional blue
-            brandLt:  [235, 244, 255],   // Light blue tint
-            dark:     [30, 30, 30],       // Near-black text
-            mid:      [100, 110, 120],    // Secondary text
-            light:    [210, 216, 222],    // Borders
-            stripe:   [248, 249, 251],    // Alternating rows (subtle)
+            brand:    [0, 0, 0],          // Black (toner-safe: no blue ink)
+            brandLt:  [255, 255, 255],    // White (no fill)
+            dark:     [20, 20, 20],       // Near-black text
+            mid:      [85, 85, 85],       // Muted label text (#555)
+            light:    [200, 200, 200],    // Borders (#C8C8C8)
+            stripe:   [245, 245, 245],    // Very light gray row tint
             white:    [255, 255, 255],
-            accent:   [40, 167, 69],      // Green accent
-            warn:     [220, 53, 69],      // Red accent
+            accent:   [20, 20, 20],       // Black (toner-safe)
+            warn:     [20, 20, 20],       // Black (toner-safe)
         };
 
         const formatDate = (value) => {
@@ -158,67 +158,64 @@ Object.assign(App, {
 
         const sectionHeader = (title) => {
             checkPage(14);
-            // Thin left accent bar + hairline rule — toner-friendly
-            doc.setFillColor(...C.brand);
-            doc.rect(margin, y + 0.5, 2.5, 6.5, 'F');
-            doc.setFontSize(8.5);
+            // Top rule, bold uppercase label, bottom rule — no filled shapes (toner-safe)
+            doc.setDrawColor(...C.dark);
+            doc.setLineWidth(0.6);
+            doc.line(margin, y + 1, pageW - margin, y + 1);
+            doc.setFontSize(9);
             doc.setFont(undefined, 'bold');
-            doc.setTextColor(...C.brand);
-            doc.text(title.toUpperCase(), margin + 5, y + 5.2);
+            doc.setTextColor(...C.dark);
+            doc.text(title.toUpperCase(), margin, y + 7);
             doc.setDrawColor(...C.light);
             doc.setLineWidth(0.25);
-            doc.line(margin + 5, y + 7.5, pageW - margin, y + 7.5);
+            doc.line(margin, y + 9, pageW - margin, y + 9);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(...C.dark);
-            y += 11;
+            y += 13;
         };
 
-        // Key-value rows in a two-column table style
-        const kvTable = (fields, cols = 2) => {
+        // Key-value grid — 3 columns by default, toner-optimized
+        // Labels: 7pt uppercase muted; Values: 8.5pt bold black
+        const kvTable = (fields, cols = 3) => {
             const filtered = fields.filter(([, v]) => v && String(v).trim());
             if (!filtered.length) return;
             const colW = contentW / cols;
-            const rowH = 6;
+            const rowH = 8;
             let rowIdx = 0;
             let col = 0;
-            const startY = y;
 
             filtered.forEach(([label, value], i) => {
                 if (col === 0) checkPage(rowH + 2);
                 const cellX = margin + col * colW;
                 const cellY = y;
 
-                // Alternating stripe (per visual row, not per item)
-                if (col === 0 && rowIdx % 2 === 0) {
-                    doc.setFillColor(...C.stripe);
-                    doc.rect(margin, cellY - 0.5, contentW, rowH, 'F');
-                }
-
-                // Label
-                doc.setFontSize(7.5);
-                doc.setFont(undefined, 'bold');
-                doc.setTextColor(...C.mid);
-                doc.text(label, cellX + 2, cellY + 3.5);
-
-                // Value
+                // Label — small, uppercase, muted
+                doc.setFontSize(7);
                 doc.setFont(undefined, 'normal');
+                doc.setTextColor(...C.mid);
+                doc.text(label.toUpperCase(), cellX + 2, cellY + 3.5);
+
+                // Value — bold, black, larger
+                doc.setFontSize(8.5);
+                doc.setFont(undefined, 'bold');
                 doc.setTextColor(...C.dark);
-                const valX = cellX + colW * 0.40;
-                const maxValW = colW * 0.58;
+                const maxValW = colW - 6;
                 const valLines = doc.splitTextToSize(String(value), maxValW);
-                doc.text(valLines[0] || '', valX, cellY + 3.5);
-                if (valLines[1]) doc.text(valLines[1], valX, cellY + 3.5 + 3.0);
+                doc.text(valLines[0] || '', cellX + 2, cellY + 7);
+                if (valLines[1]) doc.text(valLines[1], cellX + 2, cellY + 10.5);
 
                 col++;
                 if (col >= cols) {
                     col = 0;
-                    y += rowH;
+                    y += rowH + (valLines[1] ? 3.5 : 0);
                     rowIdx++;
                 }
             });
             if (col > 0) { y += rowH; }
 
             // Bottom border line
+            doc.setFontSize(8.5);
+            doc.setFont(undefined, 'normal');
             doc.setDrawColor(...C.light);
             doc.setLineWidth(0.2);
             doc.line(margin, y, margin + contentW, y);
@@ -237,15 +234,16 @@ Object.assign(App, {
                 const isHeader = !label.startsWith('  ');
 
                 if (isHeader) {
-                    // Driver/Vehicle heading row
-                    if (i > 0) y += 2;
-                    doc.setFillColor(...C.brand);
-                    doc.rect(margin, y - 1, contentW, rowH + 1, 'F');
+                    // Driver/Vehicle heading row — toner-safe: rule + bold text, no fill
+                    if (i > 0) y += 3;
+                    doc.setDrawColor(...C.dark);
+                    doc.setLineWidth(0.5);
+                    doc.line(margin, y - 0.5, margin + contentW, y - 0.5);
                     doc.setFontSize(9);
                     doc.setFont(undefined, 'bold');
-                    doc.setTextColor(...C.brand);
-                    doc.text(label, margin + 3, y + 3);
-                    doc.text(String(value), margin + labelW, y + 3);
+                    doc.setTextColor(...C.dark);
+                    doc.text(label, margin + 2, y + 4);
+                    doc.text(String(value), margin + labelW, y + 4);
                     doc.setFont(undefined, 'normal');
                     doc.setTextColor(...C.dark);
                 } else {
@@ -282,60 +280,62 @@ Object.assign(App, {
         const nameParts = [prefix, v('firstName'), v('middleName'), v('lastName'), suffix].filter(Boolean);
         const clientName = nameParts.join(' ') || 'Client';
 
-        // Top accent bar
-        doc.setFillColor(...C.brand);
-        doc.rect(0, 0, pageW, 2.5, 'F');
-        y = 8;
+        y = 10;
 
-        // Logo + title header row (compact)
-        const logoSize = 16;
+        // Logo + agency name (left) | doc ref + timestamp (right)
+        const logoSize = 14;
         let headerTextX = margin;
         if (logoImg?.dataUrl) {
-            doc.addImage(logoImg.dataUrl, logoImg.format, margin, y, logoSize, logoSize);
-            headerTextX = margin + logoSize + 3;
+            doc.addImage(logoImg.dataUrl, logoImg.format, margin, y - 2, logoSize, logoSize);
+            headerTextX = margin + logoSize + 4;
         }
-        doc.setFontSize(13);
+        doc.setFontSize(11);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(...C.dark);
-        doc.text('Altech Insurance', headerTextX, y + 5.5);
-        doc.setFontSize(7);
+        doc.text('Altech Insurance', headerTextX, y + 4);
+        doc.setFontSize(7.5);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(...C.mid);
-        doc.text('Insurance Application Summary', headerTextX, y + 10);
+        doc.text('INSURANCE APPLICATION SUMMARY', headerTextX, y + 9);
 
         // Document ref & date (right-aligned)
         const docRef = `APP-${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`;
-        doc.setFontSize(7);
+        doc.setFontSize(7.5);
         doc.setTextColor(...C.mid);
-        doc.text(docRef, pageW - margin, y + 5.5, { align: 'right' });
-        doc.text(formatDateTime(new Date()), pageW - margin, y + 10, { align: 'right' });
+        doc.text(docRef, pageW - margin, y + 4, { align: 'right' });
+        doc.text(formatDateTime(new Date()), pageW - margin, y + 9, { align: 'right' });
         doc.setTextColor(...C.dark);
 
-        y += Math.max(logoSize, 12) + 3;
+        y += Math.max(logoSize + 2, 14);
 
-        // Thin rule under header
-        doc.setDrawColor(...C.brand);
-        doc.setLineWidth(0.4);
+        // 1px rule under header
+        doc.setDrawColor(...C.light);
+        doc.setLineWidth(0.5);
         doc.line(margin, y, pageW - margin, y);
-        y += 4;
+        y += 5;
 
         // Client info + satellite side by side
         const satW = 42, satH = 33;
         const hasSat = !!(mapImages?.satellite?.dataUrl);
         const infoW = hasSat ? contentW - satW - 4 : contentW;
 
-        // Client info strip (outline style, no fill)
+        // Client info strip (outline style, no fill) — name 16pt bold, address 9pt
+        const infoBoxH = 26;
         doc.setDrawColor(...C.light);
-        doc.setLineWidth(0.3);
-        doc.roundedRect(margin, y, infoW, 20, 1, 1, 'S');
-        doc.setFontSize(12);
+        doc.setLineWidth(0.4);
+        doc.roundedRect(margin, y, infoW, infoBoxH, 1, 1, 'S');
+        doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
-        doc.setTextColor(...C.brand);
-        doc.text(clientName, margin + 3, y + 7);
-        doc.setFontSize(7.5);
+        doc.setTextColor(...C.dark);
+        doc.text(clientName, margin + 4, y + 9);
+        doc.setFontSize(9);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(...C.mid);
-        doc.text(address || '', margin + 3, y + 13.5);
+        // Policy type badge inline with address if available
+        const policyTypeBadge = v('homePolicyType') ? `  \u2022  ${v('homePolicyType')}` : '';
+        doc.text((address || '') + policyTypeBadge, margin + 4, y + 17.5);
+        doc.setFontSize(7.5);
+        doc.text(formatPhone(v('phone')), margin + 4, y + 23);
         doc.setTextColor(...C.dark);
 
         // Satellite thumbnail (right of info strip)
@@ -351,7 +351,7 @@ Object.assign(App, {
             doc.setTextColor(...C.dark);
         }
 
-        y += Math.max(20, hasSat ? satH + 5 : 0) + 4;
+        y += Math.max(infoBoxH, hasSat ? satH + 5 : 0) + 4;
 
         //  DATA SECTIONS
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -433,7 +433,7 @@ Object.assign(App, {
                 ['Flooring', v('flooring')],
                 ['Fireplaces', v('numFireplaces')],
                 ['Purchase Date', formatDate(v('purchaseDate'))],
-            ]);
+            ], 4);
 
             // â”€â”€ Building Systems â”€â”€
             sectionHeader('Building Systems');
@@ -448,7 +448,7 @@ Object.assign(App, {
                 ['Electrical Updated', v('elecYr')],
                 ['Sewer', v('sewer')],
                 ['Water Source', v('waterSource')],
-            ]);
+            ], 4);
 
             // â”€â”€ Risk & Protection â”€â”€
             sectionHeader('Risk & Protection');
@@ -467,7 +467,7 @@ Object.assign(App, {
                 ['Fire Hydrant (ft)', v('fireHydrantFeet')],
                 ['Tidal Water (ft)', v('tidalWaterDist')],
                 ['Protection Class', v('protectionClass')],
-            ]);
+            ], 4);
 
             // â”€â”€ Home Coverage â”€â”€
             sectionHeader('Home Coverage');
@@ -646,7 +646,7 @@ Object.assign(App, {
         const result = this.buildCSV(this.data);
         this.downloadFile(result.content, result.filename, result.mime);
         this.logExport('CSV', result.filename);
-        this.toast('ðŸ“¥ CSV Generated!');
+        this.toast('📥 CSV Generated!');
     },
 
     buildCSV(data) {
@@ -676,7 +676,7 @@ Object.assign(App, {
         ].map(v => `"${v}"`).join(',');
         const content = `${headers.join(',')}\n${sample}`;
         this.downloadFile(content, 'Altech_Batch_Template.csv', 'text/csv');
-        this.toast('ðŸ“„ CSV template downloaded');
+        this.toast('📄 CSV template downloaded');
     },
 
     openBatchImport() {
@@ -691,7 +691,7 @@ Object.assign(App, {
         const text = await file.text();
         const parsed = this.parseCSV(text);
         if (!parsed || !parsed.rows.length) {
-            this.toast('âš ï¸ CSV has no rows.');
+            this.toast('⚠️ CSV has no rows.');
             return;
         }
 
@@ -723,11 +723,11 @@ Object.assign(App, {
         await this.renderQuoteList();
 
         if (created) {
-            this.toast(`âœ… Imported ${created} draft${created > 1 ? 's' : ''}`);
+            this.toast(`✅ Imported ${created} draft${created > 1 ? 's' : ''}`);
         }
         if (errors.length) {
             console.warn('Batch import warnings:', errors);
-            this.toast('âš ï¸ Some rows were skipped.');
+            this.toast('⚠️ Some rows were skipped.');
         }
     },
 
