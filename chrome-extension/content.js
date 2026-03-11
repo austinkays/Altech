@@ -697,6 +697,7 @@ const TOGGLE_MAP = {
     GatedCommunity:     { labels: ['gated community', 'gated'], trueValues: ['yes', 'true'], pages: ['home-dwelling'] },
     NewPurchase:        { labels: ['new purchase', 'newly purchased', 'recent purchase'], trueValues: ['yes', 'true'], pages: ['home-dwelling', 'applicant'] },
     MultiPolicy:        { labels: ['multi-policy', 'multipolicy', 'multi policy', 'package discount'], trueValues: ['yes', 'true'], pages: ['applicant', 'auto-policy', 'home-dwelling'] },
+    CreditCheckAuth:    { labels: ['credit check and other underwriting reports'], trueValues: ['yes', 'true'], pages: ['home-dwelling'] },
 };
 
 /**
@@ -898,9 +899,13 @@ function getActiveDropdowns() {
             // NOTE: State (BASE_DROPDOWN_LABELS) is intentionally excluded here.
             // On the auto policy-info page, filling the Address State dropdown triggers
             // an Angular cascade that resets the Prior Carrier selection.
-            return pick(AUTO_DROPDOWN_LABELS, ['AutoPolicyType', 'PolicyTerm', 'PriorCarrier',
+            // NOTE: ResidenceIs and NumResidents are filled FIRST — they trigger Angular
+            // cascades that load the correct prior-carrier options. Filling them after
+            // PriorCarrier caused the cascade to reset the already-filled Prior Carrier.
+            return pick(AUTO_DROPDOWN_LABELS, ['ResidenceIs', 'NumResidents',
+                'AutoPolicyType', 'PolicyTerm', 'PriorCarrier',
                 'PriorPolicyTerm', 'PriorYearsWithCarrier', 'PriorLiabilityLimits',
-                'YearsContinuousCoverage', 'NumResidents', 'ResidenceIs']);
+                'YearsContinuousCoverage']);
         case 'auto-driver':
             return {
                 ...pick(BASE_DROPDOWN_LABELS, ['Gender', 'MaritalStatus', 'Education',
@@ -5049,6 +5054,10 @@ const FIELD_LABEL_MAP = {
     'Years with Prior Carrier': 'HomePriorYears',
     'Years with Continuous Coverage': 'YearsContinuousCoverage',
     'Effective Date (New Policy)': 'EffectiveDate',
+    // Note: 'Credit Check and Other Underwriting Reports Authorized' is a toggle
+    // handled by fillYesNoToggles() via TOGGLE_MAP.CreditCheckAuth; positional
+    // fill skips it (no input/select/mat-select in harvestFormFields for toggles).
+    'Credit Check and Other Underwriting Reports Authorized': 'CreditCheckAuth',
     // ── Home rating setup ──
     'Rating State':             'State',
     'Policy/Form Type':         'HomePolicyType',
@@ -5218,21 +5227,25 @@ async function fillPageSequential(clientData) {
 
     // ── H. Tail: unmatched tail fields (DOM shorter than route spec) →
     //       delegate remainder to named-selector fillPage() pass ──
-    if (fieldsInOrder.length > primaryElements.length) {
+    // Skip for /details: many of its 44 spec fields are conditionally hidden
+    // (Angular renders only what's needed). Calling fillPage() here for /details
+    // would trigger co-applicant injection prematurely, then step I would trigger
+    // it again causing a double-fill race. Step I handles /details entirely.
+    if (fieldsInOrder.length > primaryElements.length && routeKey !== '/details') {
         console.log(`[Altech §15] ${fieldsInOrder.length - primaryElements.length} tail field(s) — running fillPage() for remainder`);
         updateToolbarStatus('Running tail fill…');
         await fillPage(clientData);
     }
 
-    // ── I. Co-applicant injection (Applicant page only) ──
-    // The co-applicant open+fill flow lives inside fillPage(). For the /details
-    // route, call fillPage() after the positional fill so the co-applicant
-    // injection runs. The positional fill already set the main fields, so the
-    // re-fill by fillPage() is idempotent. Without this, the "Add contact" button
-    // is never clicked and co-applicant data is silently skipped.
-    if (routeKey === '/details' && clientData.CoApplicant && clientData.CoApplicant.FirstName) {
-        console.log('[Altech §15] Co-applicant data detected — delegating to fillPage() for co-applicant injection');
-        updateToolbarStatus('Adding Co-Applicant…');
+    // ── I. Applicant page wrap-up ──
+    // Always delegate to fillPage() for /details. This handles:
+    //   1. Any named-selector fields the positional pass missed
+    //   2. Co-applicant injection (clicking "Add contact" and filling the modal)
+    // Running fillPage() unconditionally here (not just when CoApplicant exists)
+    // ensures named-selector fields are always filled even for solo applicants.
+    if (routeKey === '/details') {
+        console.log('[Altech §15] /details wrap-up — delegating to fillPage() for named-selector pass + co-applicant');
+        updateToolbarStatus('Completing applicant form…');
         await fillPage(clientData);
         return;
     }
