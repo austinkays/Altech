@@ -179,7 +179,7 @@ Object.assign(App, {
         // Returns tinted=true if this section should have the alternating tint background
         const sectionHeader = (title) => {
             checkPage(16);
-            y += 1; // 10px top margin
+            // No top y-advance here — outgoing kvTable provides 1mm trailing gap
             const labelText = title.toUpperCase();
             doc.setFontSize(7);
             doc.setFont(undefined, 'bold');
@@ -191,7 +191,7 @@ Object.assign(App, {
             doc.line(margin + labelW + 2.8, y + 4, pageW - margin, y + 4);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(...C.dark);
-            y += 8; // label height + 6px margin-below
+            y += 7; // label height + 4px margin-below (reduced from 8)
             const tinted = (sectionIndex % 2 === 0); // even index = tinted
             sectionIndex++;
             return tinted;
@@ -226,7 +226,7 @@ Object.assign(App, {
                         doc.setFillColor(...C.tint);
                         // Width of tint block; height set per-row after layout
                         // We draw it with a fixed height and accept minor imprecision
-                        doc.roundedRect(margin - 2, y - 1, contentW + 4, cellH + 2, 1, 1, 'F');
+                        doc.roundedRect(margin - 2, y - 1, contentW + 4, cellH + 1, 1, 1, 'F');
                     }
                 }
                 const cellX = margin + col * colW;
@@ -256,12 +256,11 @@ Object.assign(App, {
                 }
             });
             if (col > 0) {
-                // If only one field is left in a multi-col grid, span it across remaining cols
-                // by widening the text area — already rendered above, just advance y
-                y += cellH;
+                // Terminal partial row: spanLast item uses reduced height (4px pb instead of 9px)
+                y += spanLast ? cellH - 5 : cellH;
             }
             doc.setFont(undefined, 'normal');
-            y += 3; // trailing gap between sections
+            y += 1; // minimal trailing gap — section header provides its own top margin
         };
 
         // Single-column detail table for drivers / vehicles
