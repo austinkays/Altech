@@ -94,7 +94,7 @@ window.HawkSoftExport = (() => {
     }
 
     // ── Build structured FSC notes ──────────────────────────
-    function _buildFscNotes(d) {
+    function _buildFscNotes(d, drivers = []) {
         const sections = [];
 
         // Property Details
@@ -160,9 +160,9 @@ window.HawkSoftExport = (() => {
 
         // Risk / Other
         const risk = [];
-        if (d.accidents) risk.push(`Accidents: ${d.accidents}`);
-        if (d.violations) risk.push(`Violations: ${d.violations}`);
-        if (d.studentGPA) risk.push(`Student GPA: ${d.studentGPA}`);
+        if (d.accidents) risk.push(`Accidents (global): ${d.accidents}`);
+        if (d.violations) risk.push(`Violations (global): ${d.violations}`);
+        if (d.studentGPA) risk.push(`Student GPA (global): ${d.studentGPA}`);
         if (d.residenceIs) risk.push(`Residence: ${d.residenceIs}`);
         if (d.contactTime) risk.push(`Best Contact Time: ${d.contactTime}`);
         if (d.contactMethod) risk.push(`Contact Method: ${d.contactMethod}`);
@@ -170,6 +170,18 @@ window.HawkSoftExport = (() => {
         if (d.rentalDeductible) risk.push(`Rental Reimbursement: ${d.rentalDeductible}`);
         if (d.towingDeductible) risk.push(`Towing & Labor: ${d.towingDeductible}`);
         if (risk.length) sections.push('NOTES\n' + risk.join('\n'));
+
+        // Per-driver incidents
+        const drvIncidents = [];
+        drivers.forEach((drv, i) => {
+            const name = `Driver ${i + 1}${drv.firstName ? ' (' + drv.firstName + (drv.lastName ? ' ' + drv.lastName : '') + ')' : ''}`;
+            const dlines = [];
+            if (drv.accidents) dlines.push(`Accidents: ${drv.accidents}`);
+            if (drv.violations) dlines.push(`Violations: ${drv.violations}`);
+            if (drv.studentGPA) dlines.push(`Student GPA: ${drv.studentGPA}`);
+            if (dlines.length) drvIncidents.push(name + '\n' + dlines.join('\n'));
+        });
+        if (drvIncidents.length) sections.push('DRIVER INCIDENTS\n' + drvIncidents.join('\n\n'));
 
         return sections.join('\n\n');
     }
@@ -206,7 +218,7 @@ window.HawkSoftExport = (() => {
             _selectedTypes = { auto: true, home: false, commercial: false };
         }
 
-        const fscNotes = _buildFscNotes(d);
+        const fscNotes = _buildFscNotes(d, drivers);
 
         // Determine policy form from intake
         let policyForm = '';
@@ -236,7 +248,7 @@ window.HawkSoftExport = (() => {
                 city: d.addrCity || '',
                 state: d.addrState || '',
                 zip: d.addrZip || '',
-                phone: '',
+                phone: d.phone || '',
                 cellPhone: d.phone || '',
                 workPhone: '',
                 email: d.email || '',
@@ -392,9 +404,13 @@ window.HawkSoftExport = (() => {
                 dateLicensed: '',
                 hiredDate: '',
                 cdlDate: '',
-                goodStudent: drv.goodDriver === 'Yes' ? 'Yes' : 'No',
+                goodStudent: (drv.studentGPA && drv.studentGPA.trim()) ? 'Yes' : 'No',
                 driverTraining: drv.driverEducation === 'Yes' ? 'Yes' : 'No',
                 defensiveDriver: drv.matureDriver === 'Yes' ? 'Yes' : 'No',
+                accidents: drv.accidents || '',
+                violations: drv.violations || '',
+                studentGPA: drv.studentGPA || '',
+                goodDriver: drv.goodDriver || '',
                 ssn: '',
                 relationship: drv.relationship || 'Insured',
             })),
@@ -684,10 +700,26 @@ window.HawkSoftExport = (() => {
                 lines.push(_line('gen_sLpZip1', h.lienholderZip));
                 lines.push(_line('gen_sLpLoanNumber1', h.lienholderLoanNum));
             }
+            lines.push(_line('gen_sLPType2', ''));
+            lines.push(_line('gen_sLpName2', ''));
+            lines.push(_line('gen_sLPName2Line2', ''));
+            lines.push(_line('gen_sLpAddress2', ''));
+            lines.push(_line('gen_sLpCity2', ''));
+            lines.push(_line('gen_sLpState2', ''));
+            lines.push(_line('gen_sLpZip2', ''));
+            lines.push(_line('gen_sLpLoanNumber2', ''));
 
             lines.push(_line('gen_bDeadBolt', h.deadbolt ? 'Y' : ''));
             lines.push(_line('gen_bFireExtinguisher', h.fireExtinguisher ? 'Y' : ''));
             lines.push(_line('gen_sSprinkler', h.sprinkler));
+            lines.push(_line('gen_sBoatType1', ''));
+            lines.push(_line('gen_nHorsePower1', ''));
+            lines.push(_line('gen_nSpeed1', ''));
+            lines.push(_line('gen_nLength1', ''));
+            lines.push(_line('gen_sBoatType2', ''));
+            lines.push(_line('gen_nHorsePower2', ''));
+            lines.push(_line('gen_nSpeed2', ''));
+            lines.push(_line('gen_nLength2', ''));
 
             // Scheduled personal property
             const sppFields = ['Jewelry','Furs','Guns','Cameras','Coins','Stamps','Silverware','FineArt','GolfEquip','MusicalInst','Electronics'];
@@ -819,57 +851,59 @@ window.HawkSoftExport = (() => {
             const vehContainer = document.getElementById('hs_vehicleList');
             if (vehContainer) {
                 const rows = vehContainer.querySelectorAll('.hs-vehicle-row');
-                _exportData.vehicles = Array.from(rows).map(row => ({
-                    make: (row.querySelector('[data-field="make"]')?.value || '').toUpperCase(),
-                    model: row.querySelector('[data-field="model"]')?.value || '',
-                    year: row.querySelector('[data-field="year"]')?.value || '',
-                    vin: (row.querySelector('[data-field="vin"]')?.value || '').toUpperCase(),
-                    use: row.querySelector('[data-field="use"]')?.value || '',
-                    annualMileage: row.querySelector('[data-field="annualMileage"]')?.value || '',
-                    vehicleType: row.querySelector('[data-field="vehicleType"]')?.value || '',
-                    comp: row.querySelector('[data-field="comp"]')?.value || 'None',
-                    coll: row.querySelector('[data-field="coll"]')?.value || 'None',
-                    towing: row.querySelector('[data-field="towing"]')?.value || 'No',
-                    rental: row.querySelector('[data-field="rental"]')?.value || 'No',
-                    fourWd: row.querySelector('[data-field="fourWd"]')?.value || 'No',
-                    garagingZip: row.querySelector('[data-field="garagingZip"]')?.value || '',
-                    lossPayee: row.querySelector('[data-field="lossPayee"]')?.value || 'No',
-                    lossPayeeName: row.querySelector('[data-field="lossPayeeName"]')?.value || '',
-                    lossPayeeAddress: row.querySelector('[data-field="lossPayeeAddress"]')?.value || '',
-                    lossPayeeCity: row.querySelector('[data-field="lossPayeeCity"]')?.value || '',
-                    lossPayeeState: row.querySelector('[data-field="lossPayeeState"]')?.value || '',
-                    lossPayeeZip: row.querySelector('[data-field="lossPayeeZip"]')?.value || '',
-                    symbol: '', territory: '', addonEquip: '', assignedDriver: '',
-                    commuteMileage: '', gvw: '', umpd: '', uimpd: '',
-                    additionalInterest: 'No', lossPayeeAddr2: '',
-                }));
+                _exportData.vehicles = Array.from(rows).map((row, i) => {
+                    const existing = (_exportData.vehicles && _exportData.vehicles[i]) ? _exportData.vehicles[i] : {};
+                    return {
+                        ...existing,
+                        make: (row.querySelector('[data-field="make"]')?.value || '').toUpperCase(),
+                        model: row.querySelector('[data-field="model"]')?.value || '',
+                        year: row.querySelector('[data-field="year"]')?.value || '',
+                        vin: (row.querySelector('[data-field="vin"]')?.value || '').toUpperCase(),
+                        use: row.querySelector('[data-field="use"]')?.value || '',
+                        annualMileage: row.querySelector('[data-field="annualMileage"]')?.value || '',
+                        vehicleType: row.querySelector('[data-field="vehicleType"]')?.value || '',
+                        comp: row.querySelector('[data-field="comp"]')?.value || 'None',
+                        coll: row.querySelector('[data-field="coll"]')?.value || 'None',
+                        towing: row.querySelector('[data-field="towing"]')?.value || 'No',
+                        rental: row.querySelector('[data-field="rental"]')?.value || 'No',
+                        fourWd: row.querySelector('[data-field="fourWd"]')?.value || 'No',
+                        garagingZip: row.querySelector('[data-field="garagingZip"]')?.value || '',
+                        lossPayee: row.querySelector('[data-field="lossPayee"]')?.value || 'No',
+                        lossPayeeName: row.querySelector('[data-field="lossPayeeName"]')?.value || '',
+                        lossPayeeAddress: row.querySelector('[data-field="lossPayeeAddress"]')?.value || '',
+                        lossPayeeCity: row.querySelector('[data-field="lossPayeeCity"]')?.value || '',
+                        lossPayeeState: row.querySelector('[data-field="lossPayeeState"]')?.value || '',
+                        lossPayeeZip: row.querySelector('[data-field="lossPayeeZip"]')?.value || '',
+                    };
+                });
             }
 
             // Read driver rows
             const drvContainer = document.getElementById('hs_driverList');
             if (drvContainer) {
                 const rows = drvContainer.querySelectorAll('.hs-driver-row');
-                _exportData.drivers = Array.from(rows).map(row => ({
-                    lastName: row.querySelector('[data-field="lastName"]')?.value || '',
-                    firstName: row.querySelector('[data-field="firstName"]')?.value || '',
-                    middleInitial: row.querySelector('[data-field="middleInitial"]')?.value || '',
-                    birthDate: row.querySelector('[data-field="birthDate"]')?.value || '',
-                    licenseState: (row.querySelector('[data-field="licenseState"]')?.value || '').toUpperCase(),
-                    licenseNumber: (row.querySelector('[data-field="licenseNumber"]')?.value || '').toUpperCase(),
-                    sex: row.querySelector('[data-field="sex"]')?.value || '',
-                    maritalStatus: row.querySelector('[data-field="maritalStatus"]')?.value || '',
-                    occupation: row.querySelector('[data-field="occupation"]')?.value || '',
-                    relationship: row.querySelector('[data-field="relationship"]')?.value || 'Insured',
-                    principalOperator: row.querySelector('[data-field="principalOperator"]')?.value || 'No',
-                    sr22Filing: row.querySelector('[data-field="sr22Filing"]')?.value || '',
-                    sr22State: (row.querySelector('[data-field="sr22State"]')?.value || '').toUpperCase(),
-                    goodStudent: row.querySelector('[data-field="goodStudent"]')?.value || 'No',
-                    driverTraining: row.querySelector('[data-field="driverTraining"]')?.value || 'No',
-                    defensiveDriver: row.querySelector('[data-field="defensiveDriver"]')?.value || 'No',
-                    points: '', excluded: 'No', onlyOperator: 'No',
-                    nonDriver: 'No', sr22Reason: '', dateLicensed: '',
-                    hiredDate: '', cdlDate: '', ssn: '',
-                }));
+                _exportData.drivers = Array.from(rows).map((row, i) => {
+                    const existing = (_exportData.drivers && _exportData.drivers[i]) ? _exportData.drivers[i] : {};
+                    return {
+                        ...existing,
+                        lastName: row.querySelector('[data-field="lastName"]')?.value || '',
+                        firstName: row.querySelector('[data-field="firstName"]')?.value || '',
+                        middleInitial: row.querySelector('[data-field="middleInitial"]')?.value || '',
+                        birthDate: row.querySelector('[data-field="birthDate"]')?.value || '',
+                        licenseState: (row.querySelector('[data-field="licenseState"]')?.value || '').toUpperCase(),
+                        licenseNumber: (row.querySelector('[data-field="licenseNumber"]')?.value || '').toUpperCase(),
+                        sex: row.querySelector('[data-field="sex"]')?.value || '',
+                        maritalStatus: row.querySelector('[data-field="maritalStatus"]')?.value || '',
+                        occupation: row.querySelector('[data-field="occupation"]')?.value || '',
+                        relationship: row.querySelector('[data-field="relationship"]')?.value || 'Insured',
+                        principalOperator: row.querySelector('[data-field="principalOperator"]')?.value || 'No',
+                        sr22Filing: row.querySelector('[data-field="sr22Filing"]')?.value || '',
+                        sr22State: (row.querySelector('[data-field="sr22State"]')?.value || '').toUpperCase(),
+                        goodStudent: row.querySelector('[data-field="goodStudent"]')?.value || 'No',
+                        driverTraining: row.querySelector('[data-field="driverTraining"]')?.value || 'No',
+                        defensiveDriver: row.querySelector('[data-field="defensiveDriver"]')?.value || 'No',
+                    };
+                });
             }
         }
 
@@ -931,6 +965,7 @@ window.HawkSoftExport = (() => {
         }
 
         // Save agency settings
+        _exportData.client.clientOffice = el('hs_clientOffice') || _exportData.client.clientOffice;
         _settings.agencyId = _exportData.policy.agencyId;
         _settings.producer = _exportData.policy.producer;
         _settings.policyOffice = _exportData.policy.policyOffice;
@@ -1377,6 +1412,7 @@ window.HawkSoftExport = (() => {
                         <div class="hs-field"><label>Agency ID</label><input id="hs_agencyId" value="${_val(p.agencyId)}" placeholder="e.g. 65177"></div>
                         <div class="hs-field"><label>Producer Code</label><input id="hs_producer" value="${_val(p.producer)}" placeholder="e.g. BBB" maxlength="3"></div>
                         <div class="hs-field"><label>Policy Office</label><input id="hs_policyOffice" value="${_val(p.policyOffice)}" placeholder="1"></div>
+                        <div class="hs-field"><label>Client Office</label><input id="hs_clientOffice" value="${_val(c.clientOffice)}" placeholder="1"></div>
                     </div>
                 </div>
                 <div class="hs-subsection">
