@@ -18,6 +18,38 @@ const DROPDOWN_WAIT = 1200;  // ms to wait for overlay after click (was 1000)
 const RETRY_WAIT    = 2000;  // ms before retrying failed dropdowns (was 1800)
 
 // ═══════════════════════════════════════════════════════════════
+// §1b  FILL TRACE LOGGING
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Shared metadata slot — fill functions set this before returning true so
+ * fillPage() can log element/label details without changing function signatures.
+ * Shape: { elSig, labelFound, option, via }
+ */
+let _fillMeta = null;
+
+/**
+ * Emit a structured fill event to the DevTools console.
+ * seq:    integer sequence number within the current fill run
+ * status: 'ok' | 'skip' | 'retry' | 'dup' | 'warn' | 'info'
+ * field:  data key being filled (e.g. 'PriorCarrier')
+ * value:  the value being sent
+ * detail: extra context string (matched label, selector used, etc.)
+ */
+function elog(seq, status, field, value, detail) {
+    const badge = { ok: '✅', skip: '⬜', retry: '🔄', dup: '🔁', warn: '⚠️', info: 'ℹ️' }[status] || '▸';
+    const css   = status === 'dup'   ? 'color:orange;font-weight:bold'
+                : status === 'warn'  ? 'color:#cc4400'
+                : status === 'skip'  ? 'color:#999'
+                : status === 'retry' ? 'color:#888;font-style:italic'
+                : '';
+    const n = seq != null ? `[${String(seq).padStart(2, '0')}] ` : '';
+    const v = value  ? ` = "${value}"`  : '';
+    const d = detail ? `  ← ${detail}`  : '';
+    console.log(`%c[Altech] ${n}${badge} ${status.toUpperCase().padEnd(5)} ${field}${v}${d}`, css);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // §2  ABBREVIATION EXPANSIONS
 // ═══════════════════════════════════════════════════════════════
 
@@ -916,6 +948,7 @@ function fillText(selectors, value) {
             const el = document.querySelector(sel);
             if (el && isVisible(el) && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
                 setInputValue(el, String(value).trim());
+                _fillMeta = { via: `selector: ${sel}`, elSig: el.id || el.name || el.getAttribute('formcontrolname') || '' };
                 return true;
             }
         } catch (e) { /* selector might be invalid */ }
@@ -940,6 +973,7 @@ function fillTextByLabel(labelText, value) {
             const el = document.getElementById(forId);
             if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && isVisible(el)) {
                 setInputValue(el, String(value).trim());
+                _fillMeta = { via: `label: "${text}"`, elSig: el.id || el.name || '' };
                 return true;
             }
         }
@@ -953,6 +987,7 @@ function fillTextByLabel(labelText, value) {
             const inp = container.querySelector('input, textarea');
             if (inp && isVisible(inp)) {
                 setInputValue(inp, String(value).trim());
+                _fillMeta = { via: `label: "${text}" (container)`, elSig: inp.id || inp.name || '' };
                 return true;
             }
         }
@@ -1025,13 +1060,16 @@ function findDropdownByLabel(labelPatterns) {
             if (!text || text.length > 60) continue;
             if (text !== pat && !text.includes(pat)) continue;
 
+            // Capture which label text actually matched (surfaced in _fillMeta for logging)
+            const labelFound = `"${text}" [pattern: "${pattern}"]`;
+
             // Check label[for]
             const forId = lbl.getAttribute('for') || lbl.htmlFor;
             if (forId) {
                 const el = document.getElementById(forId);
                 if (el && (el.tagName === 'SELECT' || el.tagName === 'MAT-SELECT' ||
                     el.getAttribute('role') === 'listbox' || el.getAttribute('role') === 'combobox')) {
-                    return { el, type: el.tagName.toLowerCase() === 'select' ? 'native' : 'custom' };
+                    return { el, type: el.tagName.toLowerCase() === 'select' ? 'native' : 'custom', labelFound };
                 }
             }
 
@@ -1044,18 +1082,18 @@ function findDropdownByLabel(labelPatterns) {
 
             if (container) {
                 const sel = container.querySelector('select');
-                if (sel && isVisible(sel)) return { el: sel, type: 'native' };
+                if (sel && isVisible(sel)) return { el: sel, type: 'native', labelFound };
 
                 const matSel = container.querySelector('mat-select, [role="listbox"], [role="combobox"]');
-                if (matSel) return { el: matSel, type: 'custom' };
+                if (matSel) return { el: matSel, type: 'custom', labelFound };
             }
 
             // Check next sibling
             let next = lbl.nextElementSibling;
             while (next) {
-                if (next.tagName === 'SELECT') return { el: next, type: 'native' };
+                if (next.tagName === 'SELECT') return { el: next, type: 'native', labelFound };
                 if (next.tagName === 'MAT-SELECT' || next.getAttribute('role') === 'listbox') {
-                    return { el: next, type: 'custom' };
+                    return { el: next, type: 'custom', labelFound };
                 }
                 next = next.nextElementSibling;
             }
@@ -1101,6 +1139,7 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
         }
 
         if (!optionEls.length) {
+            console.log(`[Altech DD] "${fieldKey}": opened but NO OPTIONS found in overlay`);
             await dismissOverlay();
             return false;
         }
@@ -1108,6 +1147,8 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
         const optionTexts = optionEls
             .map(el => el.textContent.trim())
             .filter(t => t && !['', 'select', 'select one'].includes(t.toLowerCase()));
+
+        console.log(`[Altech DD] "${fieldKey}" options (${optionTexts.length}):`, optionTexts.slice(0, 12));
 
         // Find best match: exact first, then fuzzy
         let bestOpt = null;
@@ -1127,12 +1168,16 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
                 if (el.textContent.trim() === bestOpt) {
                     el.click();
                     await wait(FILL_DELAY);
+                    // Surface element signature and chosen option for the caller
+                    const elSig = ddEl.id || ddEl.getAttribute('formcontrolname') || fieldKey;
+                    _fillMeta = { ..._fillMeta, elSig, option: bestOpt };
                     return true;
                 }
             }
         }
 
-        // No match — close overlay cleanly
+        // No match — log what options were available to help diagnose mismatches
+        console.warn(`[Altech DD] "${fieldKey}" = "${target}" — NO MATCH. Available: [${optionTexts.slice(0, 6).join(' | ')}${optionTexts.length > 6 ? ' ...' : ''}]`);
         await dismissOverlay();
         return false;
     }
@@ -1141,7 +1186,8 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
     if (fieldKey && PRIORITY_SELECTORS[fieldKey]) {
         const priorityEl = document.querySelector(PRIORITY_SELECTORS[fieldKey]);
         if (priorityEl && isVisible(priorityEl)) {
-            console.log(`[Altech Filler] Using priority selector for ${fieldKey}`);
+            console.log(`[Altech DD] "${fieldKey}": using priority selector ${PRIORITY_SELECTORS[fieldKey]}`);
+            _fillMeta = { labelFound: `priority:${PRIORITY_SELECTORS[fieldKey]}`, elSig: priorityEl.id || priorityEl.getAttribute('formcontrolname') || fieldKey };
             const result = await openAndPick(priorityEl);
             if (result) return true;
             // Fall through to label-based lookup
@@ -1149,7 +1195,15 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
     }
 
     const found = findDropdownByLabel(labelPatterns);
-    if (!found) return false;
+    if (!found) {
+        console.log(`[Altech DD] "${fieldKey}": no label match (tried: ${labelPatterns.join(', ')})`);
+        return false;
+    }
+
+    // Surface what label was matched (key diagnostic for wrong-field fills)
+    const elSig = found.el.id || found.el.getAttribute('formcontrolname') || found.el.getAttribute('aria-labelledby') || fieldKey;
+    console.log(`[Altech DD] "${fieldKey}" matched label ${found.labelFound} → el sig="${elSig}" type=${found.type}`);
+    _fillMeta = { labelFound: found.labelFound, elSig };
 
     // Native <select> — no overlay issues
     if (found.type === 'native') {
@@ -1163,6 +1217,7 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
                 if (opt.text.toLowerCase() === attempt.toLowerCase() || opt.value.toLowerCase() === attempt.toLowerCase()) {
                     selectEl.value = opt.value;
                     selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    _fillMeta = { ..._fillMeta, option: opt.text };
                     return true;
                 }
             }
@@ -1174,9 +1229,11 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
             if (opt) {
                 selectEl.value = opt.value;
                 selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                _fillMeta = { ..._fillMeta, option: opt.text };
                 return true;
             }
         }
+        console.warn(`[Altech DD] "${fieldKey}" = "${target}" — no match in native select [${optTexts.slice(0, 4).join(' | ')}]`);
         return false;
     }
 
@@ -1851,21 +1908,46 @@ async function fillPage(clientData) {
     // ── Yes/No toggles (reveal hidden Angular sections FIRST) ──
     await fillYesNoToggles(smartData, report);
 
+    // Sequence counter + duplicate-element tracker (shared across all loops below)
+    let _seq = 0;
+    const _filledSig = new Map(); // elSig → { field, value, seq }
+
+    console.group(`[Altech] fillPage() — ${detectPage()}`);
+
     // ── Text fields (page-aware) ──
     const activeTextFields = getActiveTextFields();
     updateToolbarStatus('Filling text fields...');
     for (const [key, selectors] of Object.entries(activeTextFields)) {
         const value = smartData[key];
-        if (!value) continue;
+        if (!value) {
+            elog(++_seq, 'skip', key, '', 'no value in smartData');
+            continue;
+        }
 
+        _fillMeta = null;
         updateToolbarStatus(`Text: ${key}...`);
         const filled = fillText(selectors, value) || fillTextByLabel(key, value);
+        const meta = _fillMeta || {};
+        const elSig = meta.elSig || '';
+        const via   = meta.via   || '';
+
         if (filled) {
-            report.textFilled++;
-            report.details.push({ field: key, type: 'text', status: 'OK', value: value });
+            // Duplicate element check
+            if (elSig && _filledSig.has(elSig)) {
+                const prev = _filledSig.get(elSig);
+                elog(++_seq, 'dup', key, value,
+                    `same el as [${String(prev.seq).padStart(2,'0')}] ${prev.field}="${prev.value}" via ${via}`);
+                report.details.push({ seq: _seq, field: key, type: 'text', status: 'DUP', value, elSig, via });
+            } else {
+                elog(++_seq, 'ok', key, value, via || undefined);
+                if (elSig) _filledSig.set(elSig, { field: key, value, seq: _seq });
+                report.textFilled++;
+                report.details.push({ seq: _seq, field: key, type: 'text', status: 'OK', value, elSig, via });
+            }
         } else {
+            elog(++_seq, 'skip', key, value, 'no element found');
             report.textSkipped++;
-            report.details.push({ field: key, type: 'text', status: 'SKIP', value: value });
+            report.details.push({ seq: _seq, field: key, type: 'text', status: 'SKIP', value, elSig: '', via: '' });
         }
         await wait(FILL_DELAY);
     }
@@ -1890,8 +1972,12 @@ async function fillPage(clientData) {
     for (const key of orderedKeys) {
         const labelPatterns = activeDropdowns[key];
         const value = smartData[key];
-        if (!value) continue;
+        if (!value) {
+            elog(++_seq, 'skip', key, '', 'no value in smartData');
+            continue;
+        }
 
+        _fillMeta = null;
         updateToolbarStatus(`Dropdown: ${key}...`);
 
         // Try custom dropdown (label-based) first
@@ -1902,12 +1988,29 @@ async function fillPage(clientData) {
             filled = fillNativeSelect(DROPDOWN_SELECT_MAP[key], value, key);
         }
 
+        const meta = _fillMeta || {};
+        const elSig       = meta.elSig       || '';
+        const labelFound  = meta.labelFound  || '';
+        const optionPicked = meta.option     || '';
+        const detail = [labelFound, optionPicked ? `option="${optionPicked}"` : ''].filter(Boolean).join(' → ');
+
         if (filled) {
-            report.ddFilled++;
-            report.details.push({ field: key, type: 'dropdown', status: 'OK', value: value });
+            // Duplicate element check
+            if (elSig && _filledSig.has(elSig)) {
+                const prev = _filledSig.get(elSig);
+                elog(++_seq, 'dup', key, value,
+                    `same el as [${String(prev.seq).padStart(2,'0')}] ${prev.field}="${prev.value}" ${detail}`);
+                report.details.push({ seq: _seq, field: key, type: 'dropdown', status: 'DUP', value, elSig, labelFound, optionPicked });
+            } else {
+                elog(++_seq, 'ok', key, value, detail || undefined);
+                if (elSig) _filledSig.set(elSig, { field: key, value, seq: _seq });
+                report.ddFilled++;
+                report.details.push({ seq: _seq, field: key, type: 'dropdown', status: 'OK', value, elSig, labelFound, optionPicked });
+            }
         } else {
+            elog(++_seq, 'skip', key, value, `no match${labelFound ? ` (label: ${labelFound})` : ''}`);
             report.ddSkipped++;
-            report.details.push({ field: key, type: 'dropdown', status: 'SKIP', value: value });
+            report.details.push({ seq: _seq, field: key, type: 'dropdown', status: 'SKIP', value, elSig: '', labelFound, optionPicked: '' });
             failedDropdowns.push({ key, labelPatterns, value });
         }
         await wait(FILL_DELAY);
@@ -1928,21 +2031,48 @@ async function fillPage(clientData) {
         for (const { key, labelPatterns, value } of failedDropdowns) {
             updateToolbarStatus(`Retry: ${key}...`);
 
+            _fillMeta = null;
             let filled = await fillCustomDropdown(labelPatterns, value, key);
             if (!filled && DROPDOWN_SELECT_MAP[key]) {
                 filled = fillNativeSelect(DROPDOWN_SELECT_MAP[key], value, key);
             }
 
+            const meta = _fillMeta || {};
+            const elSig        = meta.elSig       || '';
+            const labelFound   = meta.labelFound  || '';
+            const optionPicked = meta.option      || '';
+            const detail = [labelFound, optionPicked ? `option="${optionPicked}"` : ''].filter(Boolean).join(' → ');
+
             if (filled) {
-                report.ddFilled++;
-                report.ddSkipped--;
-                // Update details
-                const entry = report.details.find(d => d.field === key && d.status === 'SKIP');
-                if (entry) entry.status = 'OK_RETRY';
+                // Duplicate element check on retry too
+                if (elSig && _filledSig.has(elSig)) {
+                    const prev = _filledSig.get(elSig);
+                    elog(++_seq, 'dup', key, value,
+                        `RETRY — same el as [${String(prev.seq).padStart(2,'0')}] ${prev.field}="${prev.value}" ${detail}`);
+                    report.details.push({ seq: _seq, field: key, type: 'dropdown', status: 'DUP_RETRY', value, elSig, labelFound, optionPicked });
+                } else {
+                    elog(++_seq, 'retry', key, value, detail || 'retry ok');
+                    if (elSig) _filledSig.set(elSig, { field: key, value, seq: _seq });
+                    report.ddFilled++;
+                    report.ddSkipped--;
+                    const entry = report.details.find(d => d.field === key && d.status === 'SKIP');
+                    if (entry) { entry.status = 'OK_RETRY'; entry.seq = _seq; entry.elSig = elSig; entry.labelFound = labelFound; entry.optionPicked = optionPicked; }
+                    else report.details.push({ seq: _seq, field: key, type: 'dropdown', status: 'OK_RETRY', value, elSig, labelFound, optionPicked });
+                }
+            } else {
+                elog(++_seq, 'warn', key, value, `RETRY FAILED${labelFound ? ` (label: ${labelFound})` : ''}`);
             }
             await wait(FILL_DELAY);
         }
     }
+
+    // ── Fill trace summary ──
+    console.groupEnd();
+    console.table(report.details.map(d => ({
+        seq: d.seq, field: d.field, type: d.type, status: d.status,
+        value: d.value, elSig: d.elSig || '', label: d.labelFound || '', option: d.optionPicked || '',
+    })));
+    try { chrome.storage.local.set({ fillTrace: report.details, fillTracePage: detectPage(), fillTraceTs: Date.now() }); } catch(_) {}
 
     // ── Co-Applicant injection (Applicant page only) ──
     const coApPage = detectPage();
