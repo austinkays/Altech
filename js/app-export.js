@@ -76,7 +76,7 @@ Object.assign(App, {
             light:    [221, 227, 235],    // #dde3eb — borders
             rule:     [238, 238, 238],    // #eee    — footer rule
             cardBg:   [247, 249, 252],    // #f7f9fc — applicant card bg
-            tint:     [250, 251, 253],    // #fafbfd — alternating section tint
+            tint:     [242, 245, 249],    // #f2f5f9 — perceptible at print resolution
             white:    [255, 255, 255],
         };
 
@@ -179,7 +179,7 @@ Object.assign(App, {
         // Returns tinted=true if this section should have the alternating tint background
         const sectionHeader = (title) => {
             checkPage(16);
-            y += 2; // 10px top margin
+            y += 1; // 10px top margin
             const labelText = title.toUpperCase();
             doc.setFontSize(7);
             doc.setFont(undefined, 'bold');
@@ -191,7 +191,7 @@ Object.assign(App, {
             doc.line(margin + labelW + 2.8, y + 4, pageW - margin, y + 4);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(...C.dark);
-            y += 10; // label height + 6px margin-bottom
+            y += 8; // label height + 6px margin-below
             const tinted = (sectionIndex % 2 === 0); // even index = tinted
             sectionIndex++;
             return tinted;
@@ -210,11 +210,15 @@ Object.assign(App, {
             const usableColW = colW - colGap;
             let col = 0;
 
+            // If only one field will be orphaned in the last row of a multi-col grid,
+            // span it across the remaining columns visually
+            const spanLast = filtered.length % cols === 1 && cols > 1;
+
             // Tint background rect for this section if odd-indexed
             // Drawn once per row, not per cell, to avoid overlap
             let rowStartY = y;
 
-            filtered.forEach(([label, value]) => {
+            filtered.forEach(([label, value], i) => {
                 if (col === 0) {
                     checkPage(cellH + 2);
                     rowStartY = y;
@@ -222,7 +226,7 @@ Object.assign(App, {
                         doc.setFillColor(...C.tint);
                         // Width of tint block; height set per-row after layout
                         // We draw it with a fixed height and accept minor imprecision
-                        doc.roundedRect(margin - 1.5, y - 1, contentW + 3, cellH + 1, 0.75, 0.75, 'F');
+                        doc.roundedRect(margin - 2, y - 1, contentW + 4, cellH + 2, 1, 1, 'F');
                     }
                 }
                 const cellX = margin + col * colW;
@@ -239,8 +243,9 @@ Object.assign(App, {
                 doc.setFontSize(9.5);
                 doc.setFont(undefined, deEmphasize ? 'italic' : 'normal');
                 doc.setTextColor(...(deEmphasize ? C.muted : C.body));
-                const maxValW = usableColW;
-                const valLines = doc.splitTextToSize(String(value), maxValW);
+                const isLastItem = (i === filtered.length - 1);
+                const effectiveMaxW = (spanLast && isLastItem) ? usableColW * 2 + colGap : usableColW;
+                const valLines = doc.splitTextToSize(String(value), effectiveMaxW);
                 doc.text(valLines[0] || '', cellX, cellY + 8.5);
                 if (valLines[1]) doc.text(valLines[1], cellX, cellY + 12.5);
 
@@ -250,7 +255,11 @@ Object.assign(App, {
                     y += cellH + (valLines[1] ? 4 : 0);
                 }
             });
-            if (col > 0) y += cellH;
+            if (col > 0) {
+                // If only one field is left in a multi-col grid, span it across remaining cols
+                // by widening the text area — already rendered above, just advance y
+                y += cellH;
+            }
             doc.setFont(undefined, 'normal');
             y += 3; // trailing gap between sections
         };
@@ -529,6 +538,7 @@ Object.assign(App, {
             ], 4, t); }
 
             // ── Building Systems ─────────────────────────────────────
+            checkPage(30); // ensure header + at least first data row stay together
             { const t = sectionHeader('Building Systems');
             kvTable([
                 ['Roof Type', v('roofType')],
