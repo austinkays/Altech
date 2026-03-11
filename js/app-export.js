@@ -70,11 +70,11 @@ Object.assign(App, {
         // â”€â”€â”€ Color palette â”€â”€â”€
         const C = {
             brand:    [0, 102, 204],     // Professional blue
-            brandLt:  [230, 241, 252],   // Light blue tint
-            dark:     [33, 37, 41],       // Near-black text
-            mid:      [108, 117, 125],    // Secondary text
-            light:    [206, 212, 218],    // Borders
-            stripe:   [245, 247, 250],    // Alternating rows
+            brandLt:  [235, 244, 255],   // Light blue tint
+            dark:     [30, 30, 30],       // Near-black text
+            mid:      [100, 110, 120],    // Secondary text
+            light:    [210, 216, 222],    // Borders
+            stripe:   [248, 249, 251],    // Alternating rows (subtle)
             white:    [255, 255, 255],
             accent:   [40, 167, 69],      // Green accent
             warn:     [220, 53, 69],      // Red accent
@@ -157,16 +157,20 @@ Object.assign(App, {
         };
 
         const sectionHeader = (title) => {
-            checkPage(16);
+            checkPage(14);
+            // Thin left accent bar + hairline rule — toner-friendly
             doc.setFillColor(...C.brand);
-            doc.roundedRect(margin, y, contentW, 8.5, 1.5, 1.5, 'F');
-            doc.setFontSize(9);
+            doc.rect(margin, y + 0.5, 2.5, 6.5, 'F');
+            doc.setFontSize(8.5);
             doc.setFont(undefined, 'bold');
-            doc.setTextColor(...C.white);
-            doc.text(title.toUpperCase(), margin + 4, y + 5.8);
+            doc.setTextColor(...C.brand);
+            doc.text(title.toUpperCase(), margin + 5, y + 5.2);
+            doc.setDrawColor(...C.light);
+            doc.setLineWidth(0.25);
+            doc.line(margin + 5, y + 7.5, pageW - margin, y + 7.5);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(...C.dark);
-            y += 12;
+            y += 11;
         };
 
         // Key-value rows in a two-column table style
@@ -174,7 +178,7 @@ Object.assign(App, {
             const filtered = fields.filter(([, v]) => v && String(v).trim());
             if (!filtered.length) return;
             const colW = contentW / cols;
-            const rowH = 7;
+            const rowH = 6;
             let rowIdx = 0;
             let col = 0;
             const startY = y;
@@ -187,11 +191,11 @@ Object.assign(App, {
                 // Alternating stripe (per visual row, not per item)
                 if (col === 0 && rowIdx % 2 === 0) {
                     doc.setFillColor(...C.stripe);
-                    doc.rect(margin, cellY - 1, contentW, rowH, 'F');
+                    doc.rect(margin, cellY - 0.5, contentW, rowH, 'F');
                 }
 
                 // Label
-                doc.setFontSize(8);
+                doc.setFontSize(7.5);
                 doc.setFont(undefined, 'bold');
                 doc.setTextColor(...C.mid);
                 doc.text(label, cellX + 2, cellY + 3.5);
@@ -199,11 +203,11 @@ Object.assign(App, {
                 // Value
                 doc.setFont(undefined, 'normal');
                 doc.setTextColor(...C.dark);
-                const valX = cellX + colW * 0.43;
-                const maxValW = colW * 0.56;
+                const valX = cellX + colW * 0.40;
+                const maxValW = colW * 0.58;
                 const valLines = doc.splitTextToSize(String(value), maxValW);
                 doc.text(valLines[0] || '', valX, cellY + 3.5);
-                if (valLines[1]) doc.text(valLines[1], valX, cellY + 3.5 + 3.5);
+                if (valLines[1]) doc.text(valLines[1], valX, cellY + 3.5 + 3.0);
 
                 col++;
                 if (col >= cols) {
@@ -225,8 +229,8 @@ Object.assign(App, {
         const detailTable = (fields) => {
             const filtered = fields.filter(([, v]) => v && String(v).trim());
             if (!filtered.length) return;
-            const rowH = 6.5;
-            const labelW = 50;
+            const rowH = 6.0;
+            const labelW = 48;
 
             filtered.forEach(([label, value], i) => {
                 checkPage(rowH + 2);
@@ -280,83 +284,75 @@ Object.assign(App, {
 
         // Top accent bar
         doc.setFillColor(...C.brand);
-        doc.rect(0, 0, pageW, 3, 'F');
-        y = 10;
+        doc.rect(0, 0, pageW, 2.5, 'F');
+        y = 8;
 
-        // Logo + title header row
-        const logoSize = 22;
+        // Logo + title header row (compact)
+        const logoSize = 16;
         let headerTextX = margin;
         if (logoImg?.dataUrl) {
-            doc.addImage(logoImg.dataUrl, logoImg.format, margin, y - 2, logoSize, logoSize);
-            headerTextX = margin + logoSize + 4;
+            doc.addImage(logoImg.dataUrl, logoImg.format, margin, y, logoSize, logoSize);
+            headerTextX = margin + logoSize + 3;
         }
-        doc.setFontSize(14);
+        doc.setFontSize(13);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(...C.dark);
-        doc.text('Altech Insurance', headerTextX, y + 4);
-        doc.setFontSize(7.5);
+        doc.text('Altech Insurance', headerTextX, y + 5.5);
+        doc.setFontSize(7);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(...C.mid);
-        doc.text('Insurance Application Summary', headerTextX, y + 9.5);
+        doc.text('Insurance Application Summary', headerTextX, y + 10);
 
         // Document ref & date (right-aligned)
         const docRef = `APP-${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`;
         doc.setFontSize(7);
         doc.setTextColor(...C.mid);
-        doc.text(docRef, pageW - margin, y + 4, { align: 'right' });
-        doc.text(formatDateTime(new Date()), pageW - margin, y + 9, { align: 'right' });
+        doc.text(docRef, pageW - margin, y + 5.5, { align: 'right' });
+        doc.text(formatDateTime(new Date()), pageW - margin, y + 10, { align: 'right' });
         doc.setTextColor(...C.dark);
 
-        y += Math.max(logoSize, 12) + 4;
+        y += Math.max(logoSize, 12) + 3;
 
         // Thin rule under header
         doc.setDrawColor(...C.brand);
-        doc.setLineWidth(0.5);
+        doc.setLineWidth(0.4);
         doc.line(margin, y, pageW - margin, y);
-        y += 5;
+        y += 4;
 
-        // Street View banner (clean â€” no overlay text)
-        if (mapImages?.streetView?.dataUrl) {
-            const bannerH = 46;
-            doc.addImage(mapImages.streetView.dataUrl, mapImages.streetView.format, margin, y, contentW, bannerH);
-            doc.setDrawColor(...C.light);
-            doc.setLineWidth(0.3);
-            doc.rect(margin, y, contentW, bannerH, 'S');
-            y += bannerH + 2;
-        }
+        // Client info + satellite side by side
+        const satW = 42, satH = 33;
+        const hasSat = !!(mapImages?.satellite?.dataUrl);
+        const infoW = hasSat ? contentW - satW - 4 : contentW;
 
-        // Client info strip
-        doc.setFillColor(...C.brandLt);
-        doc.rect(margin, y, contentW, 13, 'F');
+        // Client info strip (outline style, no fill)
+        doc.setDrawColor(...C.light);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(margin, y, infoW, 20, 1, 1, 'S');
         doc.setFontSize(12);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(...C.brand);
-        doc.text(clientName, margin + 3, y + 5.5);
+        doc.text(clientName, margin + 3, y + 7);
         doc.setFontSize(7.5);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(...C.mid);
-        doc.text(address || '', margin + 3, y + 10.5);
+        doc.text(address || '', margin + 3, y + 13.5);
         doc.setTextColor(...C.dark);
-        y += 18;
 
-        // Satellite thumbnail (right-aligned, larger for readability)
-        if (mapImages?.satellite?.dataUrl) {
-            const satW = 45, satH = 36;
-            const satY = y;
-            const satX = pageW - margin - satW;
-            doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, satX, satY, satW, satH);
+        // Satellite thumbnail (right of info strip)
+        if (hasSat) {
+            const satX = margin + infoW + 4;
+            doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, satX, y, satW, satH);
             doc.setDrawColor(...C.light);
             doc.setLineWidth(0.3);
-            doc.rect(satX, satY, satW, satH, 'S');
-            doc.setFontSize(6);
+            doc.rect(satX, y, satW, satH, 'S');
+            doc.setFontSize(5.5);
             doc.setTextColor(...C.mid);
-            doc.text('Satellite View', satX + satW / 2, satY + satH + 4, { align: 'center' });
+            doc.text('Satellite View', satX + satW / 2, y + satH + 3.5, { align: 'center' });
             doc.setTextColor(...C.dark);
-            // Advance y past satellite block so next section doesn't overlap
-            y = Math.max(y, satY + satH + 8);
         }
 
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        y += Math.max(20, hasSat ? satH + 5 : 0) + 4;
+
         //  DATA SECTIONS
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         const quoteType = (data.qType || '').toLowerCase();
@@ -385,7 +381,7 @@ Object.assign(App, {
         // â”€â”€ Co-Applicant (if provided) â”€â”€
         const hasCoApp = data.hasCoApplicant === 'yes' || data.hasCoApplicant === true || data.hasCoApplicant === 'on';
         if (hasCoApp && (v('coFirstName') || v('coLastName'))) {
-            y += 4;
+            y += 2;
             sectionHeader('Co-Applicant / Spouse');
             kvTable([
                 ['Full Name', `${v('coFirstName')} ${v('coLastName')}`.trim()],
@@ -401,7 +397,7 @@ Object.assign(App, {
         }
 
         // â”€â”€ Property Address â”€â”€
-        y += 4;
+        y += 2;
             sectionHeader('Property Address');
         kvTable([
             ['Street Address', v('addrStreet')],
@@ -414,7 +410,7 @@ Object.assign(App, {
 
         if (showHome) {
             // â”€â”€ Property Details â”€â”€
-            y += 4;
+            y += 2;
             sectionHeader('Property Details');
             kvTable([
                 ['Year Built', v('yrBuilt')],
@@ -503,7 +499,7 @@ Object.assign(App, {
         if (showAuto) {
             // â”€â”€ Drivers â”€â”€
             if (drivers.length) {
-                y += 4;
+                y += 2;
             sectionHeader('Drivers');
                 const driverRows = drivers.map((d, i) => {
                     const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
@@ -536,7 +532,7 @@ Object.assign(App, {
 
             // â”€â”€ Vehicles â”€â”€
             if (vehicles.length) {
-                y += 4;
+                y += 2;
             sectionHeader('Vehicles');
                 const vehicleRows = vehicles.map((v, i) => {
                     const vehDesc = [v.year, v.make, v.model].filter(Boolean).join(' ');
@@ -572,7 +568,7 @@ Object.assign(App, {
             }
 
             // â”€â”€ Auto Coverage â”€â”€
-            y += 4;
+            y += 2;
             sectionHeader('Auto Coverage');
             kvTable([
                 ['Auto Policy Type', v('autoPolicyType')],
@@ -592,7 +588,7 @@ Object.assign(App, {
         }
 
         // â”€â”€ Policy & Prior Insurance â”€â”€
-        y += 4;
+        y += 2;
             sectionHeader('Policy & Prior Insurance');
         const pdfPriorRows = [
             ['Policy Term', v('policyTerm')],
@@ -620,23 +616,18 @@ Object.assign(App, {
         pdfPriorRows.push(
             ['Continuous Coverage', v('continuousCoverage')]
         );
+        // Additional contact/referral info appended to policy section (no separate header needed)
+        if (v('additionalInsureds')) pdfPriorRows.push(['Additional Insureds', v('additionalInsureds')]);
+        if (v('contactTime')) pdfPriorRows.push(['Best Contact Time', v('contactTime')]);
+        if (v('contactMethod')) pdfPriorRows.push(['Contact Method', v('contactMethod')]);
+        if (v('referralSource')) pdfPriorRows.push(['Referral Source', v('referralSource')]);
+        pdfPriorRows.push(['TCPA Consent', data.tcpaConsent ? 'Yes' : 'No']);
         // Per-driver accidents / violations (fallback to global for backward compat)
         const allAccidents = drivers.map((d, i) => d.accidents ? `Driver ${i+1}: ${d.accidents}` : '').filter(Boolean).join('; ') || v('accidents');
         const allViolations = drivers.map((d, i) => d.violations ? `Driver ${i+1}: ${d.violations}` : '').filter(Boolean).join('; ') || v('violations');
         if (allAccidents) pdfPriorRows.push(['Accidents', allAccidents]);
         if (allViolations) pdfPriorRows.push(['Violations', allViolations]);
         kvTable(pdfPriorRows);
-
-        // â”€â”€ Additional Information â”€â”€
-        y += 4;
-            sectionHeader('Additional Information');
-        kvTable([
-            ['Additional Insureds', v('additionalInsureds')],
-            ['Best Contact Time', v('contactTime')],
-            ['Contact Method', v('contactMethod')],
-            ['Referral Source', v('referralSource')],
-            ['TCPA Consent', data.tcpaConsent ? 'Yes' : 'No'],
-        ], 2);
 
         // â”€â”€â”€ Footer on every page â”€â”€â”€
         drawFooter();

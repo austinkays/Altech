@@ -215,6 +215,12 @@ const EZLynxTool = {
         // Additional info
         if (appData.additionalInsureds) data.AdditionalInsureds = appData.additionalInsureds;
 
+        // Package / multi-policy discount (auto-set when quoting both auto + home)
+        if (appData.multiPolicy === 'yes') data.MultiPolicy = 'yes';
+
+        // Credit check and underwriting reports authorization (consent checkbox)
+        if (appData.creditCheckAuth) data.CreditCheckAuth = 'yes';
+
         // Append multi-driver array from App.drivers
         if (typeof App !== 'undefined' && Array.isArray(App.drivers) && App.drivers.length > 0) {
             data.Drivers = App.drivers.map(d => ({

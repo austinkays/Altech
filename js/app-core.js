@@ -2,6 +2,76 @@
 // Extracted from index.html during Phase 2 monolith decomposition
 'use strict';
 
+// ── Validation module ──────────────────────────────────────────────────────
+// Provides step-level required-field validation for the quoting wizard.
+// Called by App.next() before advancing to the next step.
+const Validation = {
+    /**
+     * Validate required fields for a given step number.
+     * Returns an array of { field, message } objects — empty = valid.
+     */
+    validateStep(step) {
+        const errors = [];
+        if (step !== 5) return errors; // only step 5 has required-field gates right now
+
+        const qType = document.querySelector('input[name="qType"]:checked')?.value || 'both';
+        const needsAuto = qType === 'auto' || qType === 'both';
+        const needsHome = qType === 'home' || qType === 'both';
+
+        // ── Auto prior insurance (required when auto is being quoted) ──
+        if (needsAuto) {
+            const autoRequired = [
+                { id: 'priorCarrier',        label: 'Prior Auto Carrier' },
+                { id: 'priorPolicyTerm',     label: 'Prior Auto Policy Term' },
+                { id: 'priorLiabilityLimits',label: 'Prior Liability Limits' },
+                { id: 'priorYears',          label: 'Years with Prior Carrier' },
+                { id: 'continuousCoverage',  label: 'Years with Continuous Coverage' },
+                { id: 'priorExp',            label: 'Prior Auto Policy Expiration' },
+            ];
+            autoRequired.forEach(({ id, label }) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const val = el.type === 'checkbox' ? el.checked : el.value;
+                if (!val) errors.push({ field: id, message: `${label} is required` });
+            });
+        }
+
+        // ── Home prior insurance (required when home is being quoted) ──
+        if (needsHome) {
+            const homeRequired = [
+                { id: 'homePriorCarrier',    label: 'Prior Home Carrier' },
+                { id: 'homePriorPolicyTerm', label: 'Prior Home Policy Term' },
+                { id: 'homePriorLiability',  label: 'Prior Liability Level' },
+                { id: 'homePriorYears',      label: 'Years with Prior Carrier (Home)' },
+                { id: 'homePriorExp',        label: 'Prior Home Policy Expiration' },
+            ];
+            homeRequired.forEach(({ id, label }) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const val = el.type === 'checkbox' ? el.checked : el.value;
+                if (!val) errors.push({ field: id, message: `${label} is required` });
+            });
+        }
+
+        return errors;
+    },
+
+    /**
+     * Insert a validation error message below the given field element.
+     * Highlights the field border red.
+     */
+    showError(fieldId, message) {
+        const el = document.getElementById(fieldId);
+        if (!el) return;
+        el.style.borderColor = 'var(--danger, #ff3b30)';
+
+        const err = document.createElement('span');
+        err.className = 'validation-error';
+        err.textContent = message;
+        el.insertAdjacentElement('afterend', err);
+    },
+};
+
 Object.assign(App, {
     // ── Initialization & Setup ──
     async init() {
@@ -495,11 +565,21 @@ Object.assign(App, {
             }
         });
 
+        // Auto-set multiPolicy = 'yes' when quoting both auto and home.
+        // This pre-populates the Package Discount toggle in EZLynx without
+        // requiring manual entry in the intake form.
+        const multiPolicyEl = document.getElementById('multiPolicy');
+        if (multiPolicyEl) {
+            const mpVal = t === 'both' ? 'yes' : '';
+            multiPolicyEl.value = mpVal;
+            this.data.multiPolicy = mpVal;
+        }
+
         // Move to next step automatically after selection
         if (this.step === 2) {
             this.step++;
         }
-        
+
         // Reset step if out of bounds
         if (this.step >= this.flow.length) this.step = 0;
         this.updateUI();

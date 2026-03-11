@@ -1505,6 +1505,9 @@
 
         <!-- STEP 5: INSURANCE HISTORY & ADDITIONAL INFO -->
         <div id="step-5" class="step hidden">
+            <!-- Hidden: auto-set by JS based on qType (both=yes) -->
+            <input type="hidden" id="multiPolicy" value="">
+
             <div class="card">
                 <h2>Policy Details</h2>
                 <p class="section-subtitle">Requested policy information</p>
@@ -1532,13 +1535,13 @@
 
                 <div class="grid-2">
                     <div>
-                        <label class="label">Prior Home Carrier</label>
+                        <label class="label">Prior Home Carrier <span class="required-star">*</span></label>
                         <select id="homePriorCarrier">
                             <option value="">Select carrier...</option>
                         </select>
                     </div>
                     <div>
-                        <label class="label">Prior Home Policy Term</label>
+                        <label class="label">Prior Home Policy Term <span class="required-star">*</span></label>
                         <select id="homePriorPolicyTerm">
                             <option value="">Select...</option>
                             <option value="6 Month">6 Month</option>
@@ -1549,7 +1552,7 @@
 
                 <div class="grid-2">
                     <div>
-                        <label class="label">Prior Liability Level</label>
+                        <label class="label">Prior Liability Level <span class="required-star">*</span></label>
                         <select id="homePriorLiability">
                             <option value="">Select...</option>
                             <option value="Greater than $300,000">Greater than $300,000</option>
@@ -1561,7 +1564,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="label">Years with Prior Carrier</label>
+                        <label class="label">Years with Prior Carrier <span class="required-star">*</span></label>
                         <select id="homePriorYears">
                             <option value="">Select...</option>
                             <option value="0">0</option>
@@ -1586,7 +1589,14 @@
                 </div>
 
                 <div class="grid-2">
-                    <div><label class="label">Prior Home Policy Expiration</label><input type="date" id="homePriorExp"></div>
+                    <div><label class="label">Prior Home Policy Expiration <span class="required-star">*</span></label><input type="date" id="homePriorExp"></div>
+                </div>
+
+                <div class="consent-row">
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="creditCheckAuth">
+                        <span>I authorize the use of a credit check and other underwriting reports for the purpose of obtaining an insurance quote.</span>
+                    </label>
                 </div>
             </div>
 
@@ -1597,7 +1607,7 @@
 
                 <div class="grid-2">
                     <div>
-                        <label class="label">Prior Auto Carrier</label>
+                        <label class="label">Prior Auto Carrier <span class="required-star">*</span></label>
                         <select id="priorCarrier">
                             <option value="">Select carrier...</option>
                         </select>
@@ -1607,7 +1617,7 @@
                         </label>
                     </div>
                     <div>
-                        <label class="label">Prior Auto Policy Term</label>
+                        <label class="label">Prior Auto Policy Term <span class="required-star">*</span></label>
                         <select id="priorPolicyTerm">
                             <option value="">Select...</option>
                             <option value="6 Month">6 Month</option>
@@ -1618,7 +1628,7 @@
 
                 <div class="grid-2">
                     <div>
-                        <label class="label">Prior Liability Limits</label>
+                        <label class="label">Prior Liability Limits <span class="required-star">*</span></label>
                         <select id="priorLiabilityLimits">
                             <option value="">Select...</option>
                             <option value="State Minimum">State Minimum</option>
@@ -1638,7 +1648,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="label">Years with Prior Carrier</label>
+                        <label class="label">Years with Prior Carrier <span class="required-star">*</span></label>
                         <select id="priorYears">
                             <option value="">Select...</option>
                             <option value="0">0</option>
@@ -1664,7 +1674,7 @@
 
                 <div class="grid-2">
                     <div>
-                        <label class="label">Years with Continuous Coverage</label>
+                        <label class="label">Years with Continuous Coverage <span class="required-star">*</span></label>
                         <select id="continuousCoverage">
                             <option value="">Select...</option>
                             <option value="0">0</option>
@@ -1686,7 +1696,7 @@
                             <option value="More than 15">More than 15</option>
                         </select>
                     </div>
-                    <div><label class="label">Prior Auto Policy Expiration</label><input type="date" id="priorExp"></div>
+                    <div><label class="label">Prior Auto Policy Expiration <span class="required-star">*</span></label><input type="date" id="priorExp"></div>
                 </div>
             </div>
 

@@ -1429,6 +1429,20 @@ body.dark-mode .qna-file-item { background: rgba(255,255,255,0.06); }
     color: var(--text);
 }
 
+/* === FORM VALIDATION === */
+.validation-error {
+    display: block;
+    color: var(--danger, #ff3b30);
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: 500;
+}
+.required-star {
+    color: var(--danger, #ff3b30);
+    margin-left: 2px;
+    font-weight: 600;
+}
+
 /* === DEMO CLIENT LINK === */
 .demo-client-link {
     background: none;
