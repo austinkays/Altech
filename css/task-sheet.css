@@ -13,7 +13,7 @@
 /* ── Header buttons ───────────────────────────────────── */
 
 .ts-header-btn {
-    display: inline-flex;
+    display: inline-flex;h
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
@@ -591,6 +591,7 @@ body.dark-mode .ts-header-btn-outline:hover {
 
     .app-shell,
     .app-content,
+    .app-main,
     .plugin-viewport,
     .plugin-container {
         overflow: visible !important;
@@ -608,6 +609,8 @@ body.dark-mode .ts-header-btn-outline:hover {
         max-width: none;
         padding: 0;
         background: #fff !important;
+        overflow: visible !important;
+        height: auto !important;
     }
 
     /* ── Print header ─────────────────────────────── */
