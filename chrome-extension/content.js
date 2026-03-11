@@ -1662,7 +1662,7 @@ function injectToolbar() {
             return;
         }
 
-        const result = await fillPage(clientData);
+        const result = await fillPageSequential(clientData);
         const total = result.textFilled + result.ddFilled;
         const skipped = result.textSkipped + result.ddSkipped;
         status.textContent = `✓ ${total} filled` + (skipped > 0 ? `, ${skipped} skipped` : '');
@@ -2710,7 +2710,11 @@ function onPageChange() {
                     'auto-coverage': 'Auto coverage', 'home-dwelling': 'Home dwelling',
                     'home-coverage': 'Home coverage', 'lead-info': 'Lead info',
                 };
-                status.textContent = pageNames[page] || 'Navigate to a form';
+                // Prefer route-table name (more granular) over detectPage() name.
+                const routeMatch = matchRoute(location.href);
+                status.textContent = routeMatch
+                    ? routeMatch.pageName
+                    : (pageNames[page] || 'Navigate to a form');
             }
         });
     }
@@ -2736,6 +2740,19 @@ const bodyObserver = new MutationObserver(() => {
     }
 });
 bodyObserver.observe(document.body, { childList: true });
+
+// Monkey-patch pushState / replaceState so Angular route transitions
+// fire onPageChange() immediately rather than waiting up to 1 second
+// for the polling interval.  The patch wraps whatever Angular has
+// already installed on history, so it composes correctly.
+['pushState', 'replaceState'].forEach(method => {
+    const _orig = history[method].bind(history);
+    history[method] = function (...args) {
+        const result = _orig(...args);
+        onPageChange();
+        return result;
+    };
+});
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -4804,6 +4821,415 @@ function findLabelFor(el) {
 
 
 // ═══════════════════════════════════════════════════════════════
+// §13  ROUTE REGISTRY
+// Source-of-truth route map built from live EZLynx page screenshots.
+// fieldsInOrder = positional label sequence matching DOM top-to-bottom.
+// ═══════════════════════════════════════════════════════════════
+
+const ROUTE_TABLE = {
+    '/details': {
+        pageName: 'Applicant Info',
+        fieldsInOrder: [
+            'Prefix', 'First Name', 'Middle Initial', 'Last Name', 'Suffix',
+            'Address State', 'Postal Code', 'Maiden Name', 'Nickname', 'Gender',
+            'DOB', 'Marital Status', 'SSN', 'DL#', 'DL Status', 'DL State',
+            'Education', 'Industry', 'Occupation', 'Prior Employer in Years',
+            'Applicant Type', 'Customer Since', 'Account Name', 'Assigned Producer',
+            'CSR', 'Lead source', 'Preferred Language', 'Deceased', 'Address Type',
+            'Address', 'Unit', 'Address Line 2', 'City', 'State', 'County',
+            'Postal Code', 'Postal Code Suffix', 'Years At Address', 'Months At Address',
+            'Phone Type', 'Phone Number', 'Email Type', 'Email Address',
+            'Bridge email address to carriers when rating', 'Contact Method', 'Contact Time',
+        ],
+    },
+    '/details#co-applicant': {
+        pageName: 'Co-Applicant Modal',
+        fieldsInOrder: [
+            'Make this contact Co-Applicant', 'Client Center Access', 'Relationship',
+            'Prefix', 'First Name', 'Middle Initial', 'Last Name', 'Suffix',
+            'Maiden Name', 'Nickname', 'Gender', 'DOB', 'Marital Status', 'SSN',
+            'DL#', 'DL Status', 'DL State', 'Industry', 'Occupation', 'Years',
+            'Country', 'Address', 'Unit', 'Address Line 2', 'City', 'State',
+            'County', 'Postal Code', 'Postal Code Suffix', 'Years At Address',
+            'Months At Address', 'Phone Type', 'Phone Number', 'Email Type', 'Email Address',
+        ],
+    },
+    '/rating/auto/*/vehicles-compact': {
+        pageName: 'Auto Vehicles',
+        fieldsInOrder: [
+            'VIN', 'Year', 'Make', 'Model', 'Sub-Model', 'Purchase Date',
+            'Passive Restraints', 'Anti-Lock Brakes', 'Daytime Running Lights',
+            'Anti-Theft', 'Cost New Value', 'Vehicle Use', 'Annual Miles',
+            'Current Odometer', 'Performance', 'Was the car new?', 'Ownership Type',
+            'Car Pool', 'Telematics', 'Transportation Network Company',
+            'Prior Damage Present', 'Alternate Garage', 'Used For Delivery', 'Double Deductible',
+        ],
+    },
+    '/rating/auto/*/drivers-compact': {
+        pageName: 'Auto Drivers',
+        fieldsInOrder: [
+            'First Name', 'Last Name', 'DOB', 'Gender', 'Marital Status',
+            'Relationship', 'SSN', 'Occupation Industry', 'Occupation Title',
+            'DL Status', 'Age Licensed', 'DL#', 'DL State', 'Rated Driver',
+            'Defensive Driver Course Date', 'License Sus/Rev (Last 5 years)',
+            'SR-22 Required', 'FR-44 Required', 'Good Student',
+            'Student > 100 miles away', 'Driver Education', 'Mature Driver',
+            'Good Driver', 'Driver Telematics/Smartride/Right Track Discount',
+            'Extended Non Owned Coverage for Driver', 'Driver Training Date(MM/DD/YYYY)',
+        ],
+    },
+    '/rating/home/*/rating': {
+        pageName: 'Home Rating Setup',
+        fieldsInOrder: ['Rating State', 'Policy/Form Type', 'Carrier Answers Prefill', 'Select Carriers'],
+    },
+    '/rating/home/*/policy-info': {
+        pageName: 'Home Policy Info',
+        fieldsInOrder: [
+            'Prior Carrier', 'Expiration Date (current policy)', 'Prior Policy Premium',
+            'Months', 'Years with Prior Carrier', 'Months', 'Years with Continuous Coverage',
+            'Credit Check and Other Underwriting Reports Authorized',
+            'Has property insurance been cancelled, declined or non-renewed in the last 5 yrs?',
+            'Is there a business or daycare on the premises?', '# of Employees',
+            'Is there a swimming pool on the premises?', 'Are dogs on the premises?',
+            'Quote as Package', 'Effective Date (New Policy)',
+            'Is the home under construction?', 'Trampoline',
+        ],
+    },
+    '/rating/home/*/dwelling-info': {
+        pageName: 'Home Dwelling Info',
+        fieldsInOrder: [
+            'Dwelling', 'Dwelling Usage', 'Number of Stories', 'Roof Type (main material)',
+            'Number Of Full Baths', 'Heating Source Type', 'Occupancy Type', 'Square Footage',
+            'Foundation Type', 'Number Of Half Baths', 'Burglar Alarm', 'Dwelling Type',
+            'Year Built', 'Roof Design', '# of Wood Burning Stoves', 'Dead Bolt',
+            'Number of Occupants', 'Construction Style', 'Exterior Walls', 'Heating Type',
+            'Fire Detection', 'Sprinkler System', 'Smoke Detector', 'Purchase Price',
+            'Distance To Tidal Water(miles)', 'Within Fire District', 'Purchase Date',
+            'Protection class', 'Distance From Fire Station(miles)',
+            'Number of Units in Fire Division', 'Feet From Hydrant', 'Inside City Limits',
+            'Heating Update', 'Year Updated', 'Electrical Update', 'Year Updated',
+            'Plumbing Update', 'Year Updated', 'Roofing Update', 'Year Updated',
+            'Multipolicy Discount', 'Non Smoker', 'Retirees Credit', 'Mature Discount',
+            'Retirement Community', 'Visible To Neighbor', 'Manned Security',
+            'Limited Access Community', 'Gated Community',
+        ],
+    },
+    '/rating/home/*/coverage': {
+        pageName: 'Home Coverage',
+        fieldsInOrder: [
+            'Dwelling', 'Personal Liability', 'Wind Deductible', 'Est. Replacement. Cost',
+            'Medical Payments', 'Personal Property', 'Loss Of Use', 'All Perils Deductible',
+            'Theft Deductible', 'First mortgagee', '# of Other Interests',
+            'Second mortgagee', 'Third mortgagee', 'Cosigner', 'Equity line of credit',
+        ],
+    },
+};
+
+function routeToRegex(key) {
+    // Escape regex special chars, then replace * with [^/]+ wildcard.
+    // Hash fragments (#co-applicant) are preserved and match location.href naturally.
+    const escaped = key.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^\\/]+');
+    return new RegExp(escaped + '($|\\?)');
+}
+
+function matchRoute(url) {
+    // Iterate in definition order — more-specific keys (with hash) must come before
+    // their base paths. ROUTE_TABLE is defined with /details#co-applicant before
+    // /details (but object property order follows insertion order in V8).
+    // We check #co-applicant first by construction.
+    for (const [key, meta] of Object.entries(ROUTE_TABLE)) {
+        if (routeToRegex(key).test(url)) return { routeKey: key, ...meta };
+    }
+    return null;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// §14  DOM FIELD HARVESTER + COLUMN SPLITTER
+// Collects visible form elements in DOM order, handles Angular
+// Material mat-select, and splits columnar layouts (2-driver pages).
+// ═══════════════════════════════════════════════════════════════
+
+function harvestFormFields(container = document) {
+    // Gather inputs (excluding non-fillable types), selects, textareas, and
+    // Angular Material mat-select (whose internal input is hidden).
+    const els = [...container.querySelectorAll(
+        'input:not([type=hidden]):not([type=submit]):not([type=button])' +
+        ':not([type=checkbox]):not([type=radio]),' +
+        'select, textarea, mat-select'
+    )].filter(isVisible);
+
+    // Deduplicate: mat-select children may surface via both the generic input
+    // query and the explicit mat-select query.
+    const seen = new Set();
+    return els.filter(el => {
+        if (seen.has(el)) return false;
+        seen.add(el);
+        return true;
+    });
+}
+
+function splitColumnarFields(elements, columnCount) {
+    // EZLynx drivers/vehicles compact pages render multiple entities in
+    // side-by-side columns.  DOM order on a 2-driver page is row-first:
+    //   Driver1.Field0 → Driver2.Field0 → Driver1.Field1 → Driver2.Field1 …
+    // Divide into columnCount equal slices so each slice represents one entity.
+    if (columnCount <= 1) return [elements];
+    const sliceSize = Math.ceil(elements.length / columnCount);
+    return Array.from({ length: columnCount }, (_, i) =>
+        elements.slice(i * sliceSize, (i + 1) * sliceSize)
+    );
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// §15  POSITIONAL FILL ENGINE
+// Maps route label strings to clientData keys, then fills each
+// harvested DOM element by its positional index in the route's
+// fieldsInOrder array.  Duplicate-label fields (Months×2,
+// Year Updated×4) are handled via POSITIONAL_OVERRIDES.
+// ═══════════════════════════════════════════════════════════════
+
+// Label → clientData key.  Labels that appear more than once in a single
+// route are OMITTED here and handled by POSITIONAL_OVERRIDES instead.
+const FIELD_LABEL_MAP = {
+    // ── Shared / Applicant ──
+    'Prefix':                   'Prefix',
+    'First Name':               'FirstName',
+    'Middle Initial':           'MiddleName',
+    'Last Name':                'LastName',
+    'Suffix':                   'Suffix',
+    'Gender':                   'Gender',
+    'DOB':                      'DOB',
+    'Marital Status':           'MaritalStatus',
+    'SSN':                      'SSN',
+    'DL#':                      'LicenseNumber',
+    'DL Status':                'DLStatus',
+    'DL State':                 'DLState',
+    'Education':                'Education',
+    'Industry':                 'Industry',
+    'Occupation':               'Occupation',
+    'Prior Employer in Years':  'OccupationYears',
+    'Address':                  'Address',
+    'Unit':                     'Unit',
+    'Address Line 2':           'Address2',
+    'City':                     'City',
+    'State':                    'State',
+    'County':                   'County',
+    'Postal Code':              'Zip',
+    'Years At Address':         'YearsAtAddress',
+    'Months At Address':        'MonthsAtAddress',
+    'Phone Number':             'Phone',
+    'Email Address':            'Email',
+    // ── Auto vehicle ──
+    'VIN':                      'VIN',
+    'Year':                     'VehicleYear',
+    'Make':                     'VehicleMake',
+    'Model':                    'VehicleModel',
+    'Annual Miles':             'AnnualMiles',
+    'Vehicle Use':              'VehicleUse',
+    'Ownership Type':           'OwnershipType',
+    'Purchase Date':            'PurchaseDate',
+    'Passive Restraints':       'PassiveRestraints',
+    'Anti-Lock Brakes':         'AntiLockBrakes',
+    'Anti-Theft':               'AntiTheft',
+    'Cost New Value':           'CostNew',
+    // ── Auto driver ──
+    'Occupation Industry':      'Industry',
+    'Occupation Title':         'Occupation',
+    'Age Licensed':             'AgeLicensed',
+    'Rated Driver':             'RatedDriver',
+    'SR-22 Required':           'SR22Required',
+    'Good Student':             'GoodStudent',
+    'Good Driver':              'GoodDriver',
+    'Driver Education':         'DriverEducation',
+    // ── Home policy-info (non-duplicate fields only) ──
+    'Prior Carrier':            'HomePriorCarrier',
+    'Prior Policy Premium':     'HomePriorPremium',
+    'Years with Prior Carrier': 'HomePriorYears',
+    'Years with Continuous Coverage': 'YearsContinuousCoverage',
+    'Effective Date (New Policy)': 'EffectiveDate',
+    // ── Home rating setup ──
+    'Rating State':             'State',
+    'Policy/Form Type':         'HomePolicyType',
+    // ── Home dwelling-info ──
+    'Dwelling Usage':           'DwellingUsage',
+    'Dwelling Type':            'DwellingType',
+    'Occupancy Type':           'OccupancyType',
+    'Square Footage':           'SqFt',
+    'Year Built':               'YearBuilt',
+    'Purchase Price':           'PurchasePrice',
+    'Protection class':         'ProtectionClass',
+    'Feet From Hydrant':        'FeetFromHydrant',
+    // ── Home coverage ──
+    'Dwelling':                 'DwellingCoverage',
+    'Personal Liability':       'HomePersonalLiability',
+    'Medical Payments':         'HomeMedicalPayments',
+    'All Perils Deductible':    'AllPerilsDeductible',
+    'Theft Deductible':         'TheftDeductible',
+    'Wind Deductible':          'WindDeductible',
+    'Personal Property':        'HomePersonalProperty',
+    'Loss Of Use':              'HomeLossOfUse',
+    'Est. Replacement. Cost':   'EstReplacementCost',
+    'First mortgagee':          'Mortgagee',
+    'Second mortgagee':         'SecondMortgagee',
+    'Third mortgagee':          'ThirdMortgagee',
+};
+
+// Per-route positional overrides for fields whose label string is duplicated
+// within a single route.  Key: `${routeKey}::${zeroBasedIndex}`.
+// Indices verified against fieldsInOrder arrays in ROUTE_TABLE above.
+const POSITIONAL_OVERRIDES = {
+    '/rating/home/*/policy-info::3':    'HomePriorMonths',       // first "Months" (prior policy term)
+    '/rating/home/*/policy-info::5':    'HomeContinuousMonths',  // second "Months" (continuous coverage)
+    '/rating/home/*/dwelling-info::33': 'HeatingUpdateYear',     // first "Year Updated"
+    '/rating/home/*/dwelling-info::35': 'ElectricalUpdateYear',  // second "Year Updated"
+    '/rating/home/*/dwelling-info::37': 'PlumbingUpdateYear',    // third "Year Updated"
+    '/rating/home/*/dwelling-info::39': 'RoofingUpdateYear',     // fourth "Year Updated"
+};
+
+function resolveValue(fieldLabel, fillData, routeKey, positionIndex) {
+    // Check positional override first, then fall back to label map.
+    const overrideKey = `${routeKey}::${positionIndex}`;
+    const cdKey = POSITIONAL_OVERRIDES[overrideKey] || FIELD_LABEL_MAP[fieldLabel];
+    if (!cdKey) return null;
+    const val = fillData[cdKey];
+    if (val == null || val === '') return null;
+    return expand(String(val), cdKey);
+}
+
+function buildPositionalPairs(fieldsInOrder, domElements) {
+    // Zip by index; truncates to the shorter of the two arrays.
+    const len = Math.min(fieldsInOrder.length, domElements.length);
+    return Array.from({ length: len }, (_, i) => ({
+        label: fieldsInOrder[i],
+        el:    domElements[i],
+        index: i,
+    }));
+}
+
+// Fill a mat-select element we already have a reference to.
+// Derives a unique CSS selector from the element's formcontrolname
+// attribute and delegates to the existing fillCustomDropdown().
+function fillMatSelectByEl(el, value, fieldKey) {
+    const fcn = el.getAttribute('formcontrolname');
+    if (fcn) return fillCustomDropdown([`mat-select[formcontrolname="${fcn}"]`], value, fieldKey);
+    // Fallback: assign a temporary ID and select by it.
+    if (!el.id) el.id = `_altech_ms_${Math.random().toString(36).slice(2)}`;
+    return fillCustomDropdown([`#${el.id}`], value, fieldKey);
+}
+
+// Route a single element to the appropriate existing fill primitive.
+function fillElementPositional(el, value, fieldLabel) {
+    if (!value) return Promise.resolve(false);
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'mat-select') return fillMatSelectByEl(el, value, fieldLabel);
+    if (tag === 'select') {
+        // Assign a temporary ID so fillNativeSelect can find it by selector.
+        if (!el.id) el.id = `_altech_sel_${Math.random().toString(36).slice(2)}`;
+        return Promise.resolve(fillNativeSelect(['#' + el.id], value, fieldLabel));
+    }
+    setInputValue(el, value);
+    return Promise.resolve(true);
+}
+
+// Primary fill entry point — route-aware positional strategy with
+// fillPage() as fallback.
+async function fillPageSequential(clientData) {
+    // ── A. Route detection ──
+    const match = matchRoute(location.href);
+    if (!match) {
+        console.log('[Altech §15] No route match — delegating to fillPage()');
+        return fillPage(clientData);
+    }
+
+    const { routeKey, pageName, fieldsInOrder } = match;
+    updateToolbarStatus(`Positional fill: ${pageName}`);
+    console.log(`[Altech §15] Route matched: ${pageName} (${routeKey})`);
+
+    // ── B. Co-applicant: use clientData.CoApplicant as fill data;
+    //       scope DOM harvest to the modal container. ──
+    const isCoApp = routeKey === '/details#co-applicant';
+    const fillData = (isCoApp && clientData.CoApplicant)
+        ? { ...clientData.CoApplicant }
+        : clientData;
+    const root = isCoApp
+        ? (document.querySelector('mat-dialog-container') ||
+           document.querySelector('[role="dialog"]') ||
+           document)
+        : document;
+
+    // ── C. Harvest visible form elements ──
+    let domElements = harvestFormFields(root);
+
+    // ── D. Threshold check: require at least max(50%, 3) expected fields ──
+    const threshold = Math.max(Math.floor(fieldsInOrder.length * 0.5), 3);
+    if (domElements.length < threshold) {
+        updateToolbarStatus('Waiting for Angular to render fields…');
+        await wait(2000);
+        domElements = harvestFormFields(root);
+    }
+
+    // ── E. Still below threshold → fall back ──
+    if (domElements.length < threshold) {
+        console.log(`[Altech §15] DOM count ${domElements.length} < threshold ${threshold} — falling back to fillPage()`);
+        updateToolbarStatus('Threshold not met — falling back');
+        return fillPage(clientData);
+    }
+
+    // ── F. Column detection for 2-driver / 2-vehicle compact pages ──
+    const isColumnar = routeKey.includes('drivers-compact') || routeKey.includes('vehicles-compact');
+    let primaryElements = domElements;
+
+    if (isColumnar && fieldsInOrder.length > 0) {
+        const firstLabel = fieldsInOrder[0].toLowerCase();
+        const labelHits = domElements.filter(el => {
+            const lbl = (findLabelFor(el) || '').toLowerCase();
+            return lbl.includes(firstLabel);
+        }).length;
+        const columnCount = Math.max(labelHits, 1);
+        console.log(`[Altech §15] Columnar layout detected: ${columnCount} column(s)`);
+        const slices = splitColumnarFields(domElements, columnCount);
+        primaryElements = slices[0];
+
+        // Fill second column with driver[1] / vehicle[1] data if present.
+        if (slices[1] && slices[1].length) {
+            const secondSrc = routeKey.includes('drivers') && clientData.Drivers?.[1]
+                ? { ...clientData, ...clientData.Drivers[1] }
+                : routeKey.includes('vehicles') && clientData.Vehicles?.[1]
+                ? { ...clientData, ...clientData.Vehicles[1] }
+                : null;
+            if (secondSrc) {
+                const pairs2 = buildPositionalPairs(fieldsInOrder, slices[1]);
+                for (const { label, el, index } of pairs2) {
+                    const val = resolveValue(label, secondSrc, routeKey, index);
+                    if (val) await fillElementPositional(el, val, label);
+                }
+            }
+        }
+    }
+
+    // ── G. Primary positional fill ──
+    const pairs = buildPositionalPairs(fieldsInOrder, primaryElements);
+    for (const { label, el, index } of pairs) {
+        const val = resolveValue(label, fillData, routeKey, index);
+        if (val) await fillElementPositional(el, val, label);
+    }
+
+    // ── H. Tail: unmatched tail fields (DOM shorter than route spec) →
+    //       delegate remainder to named-selector fillPage() pass ──
+    if (fieldsInOrder.length > primaryElements.length) {
+        console.log(`[Altech §15] ${fieldsInOrder.length - primaryElements.length} tail field(s) — running fillPage() for remainder`);
+        updateToolbarStatus('Running tail fill…');
+        await fillPage(clientData);
+    }
+
+    updateToolbarStatus('✓ Sequential fill complete');
+    console.log(`[Altech §15] fillPageSequential done for ${pageName}`);
+}
+
+
+// ═══════════════════════════════════════════════════════════════
 // §11  MESSAGE HANDLING
 // ═══════════════════════════════════════════════════════════════
 
@@ -4814,7 +5240,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
 
     if (msg.type === 'fillPage') {
-        fillPage(msg.clientData).then(report => {
+        fillPageSequential(msg.clientData).then(report => {
             // Show toolbar with fill report after popup-triggered fill
             injectToolbar();
             if (toolbarShadow) {

@@ -174,14 +174,23 @@ npm run deploy:vercel   # Production deploy
 ├── chrome-extension/           # EZLynx bridge Chrome extension
 │   ├── manifest.json
 │   ├── popup.html / popup.js
-│   ├── content.js / background.js
+│   ├── content.js              # Form-fill content script (5304 lines)
+│   │   ├── §1–§10.5            # Config, abbreviations, field maps, fill primitives,
+│   │   │                       #   toolbar, fill orchestration, SPA nav, page scraper
+│   │   ├── §13 Route Registry  # ROUTE_TABLE (8 routes), routeToRegex(), matchRoute()
+│   │   ├── §14 DOM Harvester   # harvestFormFields(), splitColumnarFields()
+│   │   └── §15 Positional Fill # FIELD_LABEL_MAP, POSITIONAL_OVERRIDES,
+│   │                           #   fillMatSelectByEl(), fillElementPositional(),
+│   │                           #   fillPageSequential() — primary fill entry point
+│   ├── background.js
 │   ├── altech-bridge.js
 │   ├── property-scraper.js
 │   └── defaultSchema.js
 │
 ├── tests/                      # Jest test suites
 │   ├── setup.js                # Test env setup (mock fetch, suppress crypto errors)
-│   └── *.test.js               # 23 test files, 1455 tests
+│   ├── ezlynx-extension-fill.test.js  # §13–§15 route registry + positional fill engine
+│   └── *.test.js               # 24 test files, 1455+ tests
 │
 ├── lib/                        # Shared server-side utilities
 ├── scripts/                    # Build/utility scripts
