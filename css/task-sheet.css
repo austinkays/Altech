@@ -714,10 +714,10 @@ body.dark-mode .ts-header-btn-outline:hover {
     }
 
     .ts-table td {
-        padding: 5px 6px;
+        padding: 11px 6px;
         color: #111;
         border-bottom: 0.5pt solid #ddd;
-        vertical-align: top;
+        vertical-align: middle;
         word-wrap: break-word;
         overflow-wrap: break-word;
     }
@@ -801,14 +801,14 @@ body.dark-mode .ts-header-btn-outline:hover {
     /* Agent Notes column — ruled lines for handwriting */
     .ts-cell-notes {
         border-left: 0.75pt solid #bbb;
-        padding: 5px 6px;
+        padding: 11px 6px;
         background-image: repeating-linear-gradient(
             transparent,
-            transparent 14px,
-            #e0e0e0 14px,
-            #e0e0e0 15px
+            transparent 18px,
+            #e0e0e0 18px,
+            #e0e0e0 19px
         );
-        background-position: 0 5px;
+        background-position: 0 11px;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
