@@ -738,11 +738,9 @@ body.dark-mode .ts-header-btn-outline:hover {
         white-space: nowrap;
     }
 
-    /* Task — allow up to 2 lines, overflow hidden (no line-clamp artifact) */
+    /* Task — no height constraint, let rows size naturally */
     .ts-cell-task {
         overflow: hidden;
-        max-height: 2.7em;
-        line-height: 1.35;
     }
 
     /* All rows white — no alternating fill, no shading */
