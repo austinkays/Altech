@@ -238,7 +238,9 @@ Object.assign(App, {
                 col++;
                 if (col >= cols) {
                     col = 0;
-                    y += cellH + (rowWrapped ? 4 : 0);
+                    // For 2-col sections, skip the wrap bonus — wrapping is expected
+                    // and the +4mm per row compounds across many rows
+                    y += cellH + (rowWrapped && cols !== 2 ? 4 : 0);
                 }
             });
             if (col > 0) {
@@ -418,7 +420,7 @@ Object.assign(App, {
         const infoY = y + cardPadY + 25.5;
         const phone = formatPhone(v('phone'));
         const email = v('email');
-        const qtDisplay = qt === 'home' ? 'Home Only' : qt === 'auto' ? 'Auto Only' : qt === 'both' ? 'Home & Auto' : qt;
+        const qtDisplay = qt === 'home' ? 'Home' : qt === 'auto' ? 'Auto' : qt === 'both' ? 'Bundle' : qt;
         const infoItems = [
             { label: 'Phone', value: phone },
             { label: 'Email', value: email },
@@ -492,8 +494,8 @@ Object.assign(App, {
                 ['Phone', formatPhone(v('coPhone'))],
                 ['Relationship', v('coRelationship')],
                 ['Occupation', v('coOccupation')],
-                ['Education', v('coEducation')],
                 ['Industry', v('coIndustry')],
+                ['Education', v('coEducation')],
             ], 3);
         }
 
