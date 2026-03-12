@@ -686,8 +686,8 @@ describe('Workflow Integrity', () => {
     expect(App.workflows.home).toContain('step-3');
   });
 
-  test('auto workflow skips step-3 (property)', () => {
-    expect(App.workflows.auto).not.toContain('step-3');
+  test('auto workflow includes step-3 (address) but skips home-specific cards', () => {
+    expect(App.workflows.auto).toContain('step-3');
     expect(App.workflows.auto).toContain('step-4');
   });
 

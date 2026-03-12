@@ -269,6 +269,18 @@
                             </select>
                         </div>
                         <div>
+                            <label class="label">Marital Status</label>
+                            <select id="coMaritalStatus">
+                                <option value="">Select...</option>
+                                <option value="Single">Single</option>
+                                <option value="Married">Married</option>
+                                <option value="Divorced">Divorced</option>
+                                <option value="Widowed">Widowed</option>
+                                <option value="Separated">Separated</option>
+                            </select>
+                        </div>
+                        <div></div>
+                        <div>
                             <label class="label">Email</label>
                             <input type="email" id="coEmail" placeholder="jane@email.com">
                         </div>
@@ -445,7 +457,7 @@
                 <div id="gisUploadResults" style="margin-top: 8px;"></div>
             </div>
 
-            <div class="card">
+            <div class="card qtype-home-only">
                 <h2>Home Basics</h2>
                 <p class="section-subtitle">Tell us about your property</p>
                 
@@ -542,7 +554,7 @@
                 </div>
             </div>
 
-            <details class="card section-accordion" open>
+            <details class="card section-accordion qtype-home-only" open>
                 <summary>
                     <div><h2 style="margin:0">Construction &amp; Roof</h2>
                     <p class="section-subtitle" style="margin:4px 0 0">Materials, foundation, garage, and roofing</p></div>
@@ -744,7 +756,7 @@
                 </div> <!-- end .accordion-body -->
             </details>
 
-            <div id="updatesCard" class="card hidden">
+            <div id="updatesCard" class="card hidden qtype-home-only">
                 <h2>System Updates</h2>
                 <p class="section-subtitle">When were these systems last updated? (Home built before 2000)</p>
                 
@@ -786,7 +798,7 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card qtype-home-only">
             <details class="section-accordion" open>
                 <summary>Systems &amp; Utilities</summary>
                 <div class="accordion-body">
@@ -883,7 +895,7 @@
             </details>
             </div>
 
-            <div class="card">
+            <div class="card qtype-home-only">
                 <h2>Safety & Location</h2>
                 <p class="section-subtitle">Fire protection and security</p>
                 
@@ -945,7 +957,7 @@
                 </select>
             </div>
 
-            <div class="card">
+            <div class="card qtype-home-only">
                 <h2>Home Risk Factors</h2>
                 <p class="section-subtitle">Help us understand potential risk factors</p>
 
@@ -992,7 +1004,7 @@
                 <textarea id="businessOnProperty" placeholder="Describe any business operations" rows="2"></textarea>
             </div>
 
-            <div class="card">
+            <div class="card qtype-home-only">
                 <h2>Home Coverage</h2>
                 <p class="section-subtitle">Coverage limits and policy details</p>
 
@@ -1095,7 +1107,7 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card qtype-home-only">
                 <h2>Home Endorsements</h2>
                 <p class="section-subtitle">Optional coverages and endorsements</p>
 
@@ -1267,7 +1279,7 @@
             </div> <!-- end .prop-main (left column) -->
 
             <!-- ═══ RIGHT COLUMN: Sticky Sidebar ═══ -->
-            <div class="prop-sidebar">
+            <div class="prop-sidebar qtype-home-only">
                 <div class="card map-preview-card">
                     <h2>Property Views</h2>
                     <p class="section-subtitle">Street &amp; satellite preview</p>

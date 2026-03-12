@@ -242,8 +242,8 @@ describe('Altech App Tests', () => {
       expect(App.workflows.home).toContain('step-3');
     });
 
-    test('auto workflow skips step-3 (property)', () => {
-      expect(App.workflows.auto).not.toContain('step-3');
+    test('auto workflow includes step-3 (address) but skips home-specific cards', () => {
+      expect(App.workflows.auto).toContain('step-3');
       expect(App.workflows.auto).toContain('step-4');
     });
 
@@ -1367,8 +1367,8 @@ describe('Altech App Tests', () => {
     });
 
     test('auto workflow step count is correct', () => {
-      // auto skips step-3 (property)
-      expect(App.workflows.auto.length).toBe(App.workflows.both.length - 1);
+      // auto includes step-3 (address) but skips home-specific property cards
+      expect(App.workflows.auto.length).toBe(App.workflows.both.length);
     });
 
     test('both workflow is superset of home and auto', () => {

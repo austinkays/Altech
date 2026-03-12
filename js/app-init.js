@@ -27,7 +27,7 @@ const App = {
     
     workflows: {
         home: ['step-0', 'step-1', 'step-2', 'step-3', 'step-5', 'step-6'],
-        auto: ['step-0', 'step-1', 'step-2', 'step-4', 'step-5', 'step-6'],
+        auto: ['step-0', 'step-1', 'step-2', 'step-3', 'step-4', 'step-5', 'step-6'],
         both: ['step-0', 'step-1', 'step-2', 'step-3', 'step-4', 'step-5', 'step-6']
     },
 

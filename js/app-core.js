@@ -615,6 +615,13 @@ Object.assign(App, {
         const autoCard = document.getElementById('autoPriorCard');
         if (homeCard) homeCard.style.display = showHome ? '' : 'none';
         if (autoCard) autoCard.style.display = showAuto ? '' : 'none';
+        // Hide "Same as Home Carrier" row on auto-only quotes
+        const sameCarrierRow = document.querySelector('.same-carrier-row');
+        if (sameCarrierRow) sameCarrierRow.style.display = showHome ? '' : 'none';
+        // Hide home-specific property cards on auto-only quotes
+        document.querySelectorAll('#step-3 .qtype-home-only').forEach(el => {
+            el.style.display = showHome ? '' : 'none';
+        });
         
         // Init Google Places autocomplete when address step is visible
         if (curId === 'step-2') {
@@ -984,6 +991,13 @@ Object.assign(App, {
     },
 
     handleSameCarrier() {
+        const qType = document.querySelector('input[name="qType"]:checked')?.value || 'both';
+        if (qType === 'auto') {
+            const cb2 = document.getElementById('sameAsHomeCarrier');
+            if (cb2) cb2.checked = false;
+            this.toast?.('No home carrier on file — this is an auto-only quote.', 'info');
+            return;
+        }
         const cb = document.getElementById('sameAsHomeCarrier');
         const autoInput = document.getElementById('priorCarrier');
         const homeInput = document.getElementById('homePriorCarrier');
@@ -1250,6 +1264,15 @@ Object.assign(App, {
         synced.gender = coGender;
         synced.relationship = coRelationship === 'Domestic Partner' ? 'Spouse' : (coRelationship || 'Spouse');
 
+        const coMarital = (this.data.coMaritalStatus || '').trim();
+        const coEducation = (this.data.coEducation || '').trim();
+        const coOccupation = (this.data.coOccupation || '').trim();
+        const coIndustry = (this.data.coIndustry || '').trim();
+        if (coMarital) synced.maritalStatus = coMarital;
+        if (coEducation) synced.education = coEducation;
+        if (coOccupation) synced.occupation = coOccupation;
+        if (coIndustry) synced.industry = coIndustry;
+
         this.renderDrivers();
         this.renderVehicles();
         this.saveDriversVehicles();
@@ -1264,7 +1287,8 @@ Object.assign(App, {
         section.classList.toggle('visible', show);
 
         // Attach co-applicant → driver sync listeners (idempotent)
-        const syncFields = ['coFirstName', 'coLastName', 'coDob', 'coGender', 'coRelationship'];
+        const syncFields = ['coFirstName', 'coLastName', 'coDob', 'coGender', 'coRelationship',
+                    'coMaritalStatus', 'coEducation', 'coOccupation', 'coIndustry'];
         syncFields.forEach(fieldId => {
             const el = document.getElementById(fieldId);
             if (el && !el.dataset.coSyncBound) {

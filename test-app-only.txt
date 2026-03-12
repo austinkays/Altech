@@ -1,0 +1,336 @@
+  console.error
+    Error: Not implemented: HTMLCanvasElement.prototype.getContext (without installing the canvas npm package)
+        at Object.<anonymous>.module.exports (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\browser\not-implemented.js:9:17)
+        at HTMLCanvasElementImpl.getContext (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\living\nodes\HTMLCanvasElement-impl.js:42:5)
+        at HTMLCanvasElement.getContext (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\living\generated\HTMLCanvasElement.js:131:58)
+        at a (http://localhost:8000/:176:6027)
+        at http://localhost:8000/:176:6088
+        at http://localhost:8000/:176:7714
+        at http://localhost:8000/:52:140
+        at http://localhost:8000/:52:164
+        at Script.runInContext (node:vm:149:12)
+        at Object.runInContext (node:vm:301:6)
+        at processJavaScript (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:238:10)
+        at HTMLScriptElementImpl._innerEval (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:173:5)
+        at C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:114:12
+        at ResourceQueue.push (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\browser\resources\resource-queue.js:53:16)
+        at HTMLScriptElementImpl._fetchInternalScript (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:113:21)
+        at HTMLScriptElementImpl._eval (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:167:12)
+        at HTMLScriptElementImpl._poppedOffStackOfOpenElements (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\living\nodes\HTMLScriptElement-impl.js:130:10)
+        at JSDOMParse5Adapter.onItemPop (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\browser\parser\html.js:175:43)
+        at Parser.onItemPop (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\parser\index.js:176:90)
+        at OpenElementStack.pop (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\parser\open-element-stack.js:83:22)
+        at endTagInText (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\parser\index.js:2353:20)
+        at Parser._endTagOutsideForeignContent (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\parser\index.js:992:17)
+        at Parser.onEndTag (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\parser\index.js:957:18)
+        at Tokenizer.emitCurrentTagToken (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\tokenizer\index.js:385:26)
+        at Tokenizer.handleSpecialEndTag (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\tokenizer\index.js:1060:22)
+        at Tokenizer._stateScriptDataEndTagName (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\tokenizer\index.js:1148:18)
+        at Tokenizer._stateScriptDataEndTagOpen (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\tokenizer\index.js:1137:18)
+        at Tokenizer._callState (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\tokenizer\index.js:556:22)
+        at Tokenizer._runParsingLoop (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\tokenizer\index.js:216:22)
+        at Tokenizer.write (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\tokenizer\index.js:241:14)
+        at Parser.parse (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\parser\index.js:116:26)
+        at Object.parse (C:\Users\austinkays\Documents\App Development\Altech\node_modules\parse5\dist\cjs\index.js:43:30)
+        at parseIntoDocument (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\browser\parser\html.js:202:17)
+        at parseIntoDocument (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\jsdom\browser\parser\index.js:31:10)
+        at new JSDOM (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jsdom\lib\api.js:42:5)
+        at createTestDOM (C:\Users\austinkays\Documents\App Development\Altech\tests\app.test.js:29:15)
+        at Object.createTestDOM (C:\Users\austinkays\Documents\App Development\Altech\tests\app.test.js:197:39)
+        at Promise.then.completed (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jest-circus\build\utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jest-circus\build\utils.js:231:10)
+        at _callCircusHook (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jest-circus\build\run.js:281:40)
+        at _runTestsForDescribeBlock (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jest-circus\build\run.js:95:7)
+        at _runTestsForDescribeBlock (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jest-circus\build\run.js:121:9)
+        at run (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jest-circus\build\run.js:71:3)
+        at runAndTransformResultsToJestFormat (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+        at jestAdapter (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+        at runTestInternal (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jest-runner\build\runTest.js:367:16)
+        at runTest (C:\Users\austinkays\Documents\App Development\Altech\node_modules\jest-runner\build\runTest.js:444:34) undefined
+
+    [0m [90m 22 |[39m       [36mreturn[39m[33m;[39m [90m// JSDOM lacks crypto.subtle ΓÇö these are expected[39m
+     [90m 23 |[39m     }
+    [31m[1m>[22m[39m[90m 24 |[39m     originalError[33m.[39mapply(console[33m,[39m args)[33m;[39m
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 25 |[39m   })[33m,[39m
+     [90m 26 |[39m }[33m;[39m
+     [90m 27 |[39m[0m
+
+      at Object.apply (tests/setup.js:24:19)
+      at VirtualConsole.<anonymous> (node_modules/jsdom/lib/jsdom/virtual-console.js:29:45)
+      at Object.<anonymous>.module.exports (node_modules/jsdom/lib/jsdom/browser/not-implemented.js:12:26)
+      at HTMLCanvasElementImpl.getContext (node_modules/jsdom/lib/jsdom/living/nodes/HTMLCanvasElement-impl.js:42:5)
+      at HTMLCanvasElement.getContext (node_modules/jsdom/lib/jsdom/living/generated/HTMLCanvasElement.js:131:58)
+      at a (http:/localhost:8000:176:6027)
+      at http:/localhost:8000:176:6088
+      at http:/localhost:8000:176:7714
+      at http:/localhost:8000:52:140
+      at http:/localhost:8000:52:164
+      at processJavaScript (node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:238:10)
+      at HTMLScriptElementImpl._innerEval (node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:173:5)
+      at node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:114:12
+      at ResourceQueue.push (node_modules/jsdom/lib/jsdom/browser/resources/resource-queue.js:53:16)
+      at HTMLScriptElementImpl._fetchInternalScript (node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:113:21)
+      at HTMLScriptElementImpl._eval (node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:167:12)
+      at HTMLScriptElementImpl._poppedOffStackOfOpenElements (node_modules/jsdom/lib/jsdom/living/nodes/HTMLScriptElement-impl.js:130:10)
+      at JSDOMParse5Adapter.onItemPop (node_modules/jsdom/lib/jsdom/browser/parser/html.js:175:43)
+      at Parser.onItemPop (node_modules/parse5/dist/cjs/parser/index.js:176:90)
+      at OpenElementStack.pop (node_modules/parse5/dist/cjs/parser/open-element-stack.js:83:22)
+      at endTagInText (node_modules/parse5/dist/cjs/parser/index.js:2353:20)
+      at Parser._endTagOutsideForeignContent (node_modules/parse5/dist/cjs/parser/index.js:992:17)
+      at Parser.onEndTag (node_modules/parse5/dist/cjs/parser/index.js:957:18)
+      at Tokenizer.emitCurrentTagToken (node_modules/parse5/dist/cjs/tokenizer/index.js:385:26)
+      at Tokenizer.handleSpecialEndTag (node_modules/parse5/dist/cjs/tokenizer/index.js:1060:22)
+      at Tokenizer._stateScriptDataEndTagName (node_modules/parse5/dist/cjs/tokenizer/index.js:1148:18)
+      at Tokenizer._stateScriptDataEndTagOpen (node_modules/parse5/dist/cjs/tokenizer/index.js:1137:18)
+      at Tokenizer._callState (node_modules/parse5/dist/cjs/tokenizer/index.js:556:22)
+      at Tokenizer._runParsingLoop (node_modules/parse5/dist/cjs/tokenizer/index.js:216:22)
+      at Tokenizer.write (node_modules/parse5/dist/cjs/tokenizer/index.js:241:14)
+      at Parser.parse (node_modules/parse5/dist/cjs/parser/index.js:116:26)
+      at Object.parse (node_modules/parse5/dist/cjs/index.js:43:30)
+      at parseIntoDocument (node_modules/jsdom/lib/jsdom/browser/parser/html.js:202:17)
+      at parseIntoDocument (node_modules/jsdom/lib/jsdom/browser/parser/index.js:31:10)
+      at new JSDOM (node_modules/jsdom/lib/api.js:42:5)
+      at createTestDOM (tests/app.test.js:29:15)
+      at Object.createTestDOM (tests/app.test.js:197:39)
+
+FAIL tests/app.test.js (9.03 s)
+  Altech App Tests
+    Data Validation
+      ΓêÜ normalizeDate returns correct ISO date (2 ms)
+      ΓêÜ sanitizeFilename removes invalid characters
+    Workflows
+      ΓêÜ workflows object has home, auto, both (1 ms)
+      ΓêÜ home workflow skips step-4 (vehicles) (1 ms)
+      ΓêÜ auto workflow includes step-3 (address) but skips home-specific cards (3 ms)
+      ΓêÜ both workflow includes all steps
+      ΓêÜ handleType sets flow for auto (151 ms)
+      ΓêÜ handleType sets flow for home (101 ms)
+    LocalStorage Operations
+      ΓêÜ save writes to localStorage
+      ΓêÜ load reads from localStorage
+      ΓêÜ applyData sets App.data and populates form fields (176 ms)
+      ΓêÜ setFieldValue updates both DOM and App.data (1 ms)
+      ΓêÜ setFieldValue handles missing element gracefully
+    CMSMTF Export
+      ΓêÜ buildCMSMTF returns correct structure (1 ms)
+      ΓêÜ buildCMSMTF filename includes lastName
+      ΓêÜ buildCMSMTF content uses [TAG]value format (1 ms)
+      ΓêÜ buildCMSMTF includes property fields
+      ΓêÜ buildCMSMTF includes auto fields (1 ms)
+      ΓêÜ buildCMSMTF strips phone formatting
+      ΓêÜ buildCMSMTF filters out empty fields
+      ΓêÜ buildCMSMTF handles empty data
+    CSV Export
+      ΓêÜ getCSVHeaders returns expected headers (1 ms)
+      ΓêÜ buildCSV returns correct structure
+      ΓêÜ buildCSV content includes header row and data row (1 ms)
+    Text Export
+      ΓêÜ buildText returns content and filename
+      ΓêÜ buildText includes client profile data
+    Quote Library
+      ΓêÜ saveQuote stores in separate localStorage key
+      ΓêÜ getQuoteTitle builds formatted title
+      ΓêÜ getQuoteTitle handles missing names
+    Address Parsing
+      ΓêÜ parseStreetAddress separates number and name
+      ΓêÜ parseStreetAddress handles no number
+    Vehicle Parsing
+      ΓêÜ parseVehicleDescription extracts year, make, model (1 ms)
+      ΓêÜ parseVehicleDescription handles lowercase (1 ms)
+    County Lookup
+      ΓêÜ getCountyFromCity returns Clark for Vancouver, WA (1 ms)
+      ΓêÜ getCountyFromCity returns King for Seattle, WA
+      ΓêÜ getCountyFromCity returns Multnomah for Portland, OR
+      ΓêÜ getCountyFromCity is case-insensitive
+      ΓêÜ getCountyFromCity returns null for unknown city
+      ΓêÜ getCountyFromCity returns null for empty input
+    Phone Formatting
+      ΓêÜ fmtPhone formats 10-digit number (1 ms)
+      ΓêÜ fmtPhone formats partial number
+      ΓêÜ fmtPhone strips non-digits
+    CSV Parsing
+      ΓêÜ parseCSV parses simple CSV (1 ms)
+      ΓêÜ parseCSV handles quoted fields with commas
+      ΓêÜ parseCSV handles empty input (1 ms)
+      ΓêÜ parseCSV handles null input
+      ΓêÜ mapCsvRowToData maps standard headers (1 ms)
+    Driver Management
+      ΓêÜ addDriver creates a new driver record (24 ms)
+      ΓêÜ removeDriver removes by ID (57 ms)
+      ΓêÜ updateDriver updates a specific field (38 ms)
+      ΓêÜ addDriver includes isCoApplicant: false by default (49 ms)
+      ΓêÜ updateDriver blocks locked fields on synced co-applicant driver
+    Co-Applicant Driver Sync
+      ΓêÜ syncCoApplicantToDriver creates a synced driver (63 ms)
+      ΓêÜ syncCoApplicantToDriver updates existing synced driver without duplicating (127 ms)
+      ΓêÜ toggleCoApplicant off removes the synced driver (125 ms)
+      ΓêÜ removeDriver for synced driver unchecks co-applicant (121 ms)
+      ΓêÜ synced driver preserves non-locked fields (125 ms)
+    Vehicle Management
+      ΓêÜ addVehicle creates a new vehicle record (9 ms)
+      ΓêÜ removeVehicle removes by ID (26 ms)
+      ΓêÜ updateVehicle updates a specific field (17 ms)
+    Date Formatting
+      ΓêÜ formatDateDisplay returns MM-DD-YYYY format
+      ΓêÜ formatDateDisplay handles empty input
+      ΓêÜ formatDateDisplay handles invalid date
+    Notes Generation
+      ΓêÜ getNotesForData returns comprehensive string (1 ms)
+      ΓêÜ getNotesForData handles empty data
+    Edge Cases
+      ΓêÜ buildCMSMTF handles undefined fields gracefully (1 ms)
+      ΓêÜ buildCMSMTF does not have XSS or injection risk
+      ΓêÜ applyData handles null gracefully (252 ms)
+      ΓêÜ applyData handles empty object (230 ms)
+    App Configuration
+      ΓêÜ stepTitles defined for all steps (1 ms)
+      ΓêÜ toolNames defined for all tools
+      ΓêÜ storageKey is altech_v6 (1 ms)
+    Resolve Driver Name
+      ΓêÜ resolveDriverName returns full name
+      ΓêÜ resolveDriverName returns empty for unknown ID
+    Toast Notifications
+      ΓêÜ toast function exists and does not throw (1 ms)
+    Auto-Fill Indicators
+      ΓêÜ markAutoFilled adds CSS class (1 ms)
+      ΓêÜ clearAutoFilledIndicator removes CSS class
+      ΓêÜ markAutoFilled handles null element
+    Quote Library Extended
+      ΓêÜ getQuotes returns empty array when nothing stored
+      ΓêÜ saveQuotes then getQuotes round-trip preserves data
+      ΓêÜ deleteQuote removes the correct quote (1 ms)
+      ΓêÜ loadQuote calls applyData with correct data (236 ms)
+      ΓêÜ loadQuote does nothing for nonexistent ID
+      ΓêÜ getQuoteTitle formats lastName, firstName correctly
+      ΓêÜ getQuoteTitle with only firstName (1 ms)
+      ΓêÜ getQuoteMeta returns formatted date string
+      ΓêÜ getQuotes handles corrupted JSON gracefully (1 ms)
+      ΓêÜ autoSaveCurrentQuote creates current_draft entry
+      ΓêÜ autoSaveCurrentQuote replaces previous auto-save (1 ms)
+    Navigation
+      ΓêÜ navigateTo function exists
+      ΓêÜ navigateTo ignores unknown tool names (170 ms)
+      ΓêÜ goHome function exists
+      ΓêÜ goHome hides all plugin containers (142 ms)
+      ΓêÜ goHome shows landing page (123 ms)
+      ΓêÜ navigateTo quoting shows quoting tool (2986 ms)
+      ΓêÜ navigateTo hides landing page (44 ms)
+      ΓêÜ updateBreadcrumb function exists (1 ms)
+    Step Navigation
+      ΓêÜ next function exists
+      ΓêÜ prev function exists (1 ms)
+      ΓêÜ updateUI function exists
+      ΓêÜ step starts at 0
+      ΓêÜ init function exists
+    Export Wrappers
+      ΓêÜ exportCMSMTF function exists (1 ms)
+      ΓêÜ buildPDF function exists
+      ΓêÜ buildCMSMTF with full data returns content and filename
+      ΓêÜ buildText with full data includes key fields (1 ms)
+    Form Storage Consistency
+      ΓêÜ storageKey matches expected value
+      ΓêÜ quotesKey exists for quote library
+      ΓêÜ applyData then buildCMSMTF produces consistent output (206 ms)
+      ΓêÜ applyData updates DOM fields (173 ms)
+      ΓêÜ save persists data to localStorage (181 ms)
+      ΓêÜ load function exists and is callable (1 ms)
+    CMSMTF Export Advanced
+      ΓêÜ buildCMSMTF includes email field
+      ΓêÜ buildCMSMTF with auto data includes vehicle info (1 ms)
+      ΓêÜ buildCMSMTF with minimal data still produces output
+      ΓêÜ buildCMSMTF output uses [TAG]value format (1 ms)
+    Workflow Integrity
+      ΓêÜ all workflow arrays start with step-0
+      ΓêÜ all workflow arrays end with step-6
+      ΓêÜ all workflow arrays include step-1 and step-2
+      ΓêÜ all workflow arrays include step-5 (review) (1 ms)
+      ΓêÜ home workflow step count is correct
+      ├ù auto workflow step count is correct (2 ms)
+      ΓêÜ both workflow is superset of home and auto (1 ms)
+    Tool Configuration
+      ΓêÜ toolNames has entries for all major tools (1 ms)
+      ΓêÜ stepTitles covers steps 0-6
+      ΓêÜ each step has a non-empty title (2 ms)
+    County Assessor URLs
+      ΓêÜ all county URLs are valid HTTP(S) URLs (4 ms)
+      ΓêÜ no county URL contains known dead domains (21 ms)
+      ΓêÜ no county URL ends with bare domain (should have path) (2 ms)
+      ΓêÜ openPropertyRecords and openGIS use same URLs for same cities (2 ms)
+      ΓêÜ openPropertyRecords copies address to clipboard (1 ms)
+      openPropertyRecords opens correct assessor site
+        ΓêÜ Vancouver, WA ΓåÆ Clark County assessor (1 ms)
+        ΓêÜ Camas, WA ΓåÆ Clark County assessor (1 ms)
+        ΓêÜ Seattle, WA ΓåÆ King County assessor
+        ΓêÜ Bellevue, WA ΓåÆ King County assessor (1 ms)
+        ΓêÜ Tacoma, WA ΓåÆ Pierce County assessor
+        ΓêÜ Puyallup, WA ΓåÆ Pierce County assessor
+        ΓêÜ Everett, WA ΓåÆ Snohomish County assessor (1 ms)
+        ΓêÜ Lynnwood, WA ΓåÆ Snohomish County assessor
+        ΓêÜ Spokane, WA ΓåÆ Spokane County assessor (1 ms)
+        ΓêÜ Bremerton, WA ΓåÆ Kitsap County assessor
+        ΓêÜ Olympia, WA ΓåÆ Thurston County assessor (1 ms)
+        ΓêÜ Bellingham, WA ΓåÆ Whatcom County assessor
+        ΓêÜ Yakima, WA ΓåÆ Yakima County assessor (1 ms)
+        ΓêÜ Longview, WA ΓåÆ Cowlitz County assessor
+        ΓêÜ Portland, OR ΓåÆ Multnomah County assessor
+        ΓêÜ Beaverton, OR ΓåÆ Washington County assessor (1 ms)
+        ΓêÜ Hillsboro, OR ΓåÆ Washington County assessor
+        ΓêÜ Happy Valley, OR ΓåÆ Clackamas County assessor
+        ΓêÜ Oregon City, OR ΓåÆ Clackamas County assessor (1 ms)
+        ΓêÜ Eugene, OR ΓåÆ Lane County assessor
+        ΓêÜ Salem, OR ΓåÆ Marion County assessor (1 ms)
+        ΓêÜ Bend, OR ΓåÆ Deschutes County assessor
+        ΓêÜ Medford, OR ΓåÆ Jackson County assessor
+        ΓêÜ Albany, OR ΓåÆ Linn County assessor (1 ms)
+        ΓêÜ Roseburg, OR ΓåÆ Douglas County assessor
+        ΓêÜ Phoenix, AZ ΓåÆ Maricopa County assessor (1 ms)
+        ΓêÜ Mesa, AZ ΓåÆ Maricopa County assessor
+        ΓêÜ Tucson, AZ ΓåÆ Pima County assessor
+        ΓêÜ Casa Grande, AZ ΓåÆ Pinal County assessor
+        ΓêÜ Prescott, AZ ΓåÆ Yavapai County assessor (1 ms)
+        ΓêÜ Flagstaff, AZ ΓåÆ Coconino County assessor
+        ΓêÜ Lake Havasu City, AZ ΓåÆ Mohave County assessor (1 ms)
+        ΓêÜ Yuma, AZ ΓåÆ Yuma County assessor
+        ΓêÜ unmapped WA city falls back to state assessor directory
+        ΓêÜ unmapped OR city falls back to state assessor directory (1 ms)
+        ΓêÜ unmapped AZ city falls back to state assessor directory
+        ΓêÜ unknown state falls back to Google search (1 ms)
+        ΓêÜ missing address shows toast, does not open URL
+      openGIS opens correct assessor site
+        ΓêÜ openGIS: Vancouver, WA ΓåÆ correct URL
+        ΓêÜ openGIS: Seattle, WA ΓåÆ correct URL
+        ΓêÜ openGIS: Tacoma, WA ΓåÆ correct URL (1 ms)
+        ΓêÜ openGIS: Portland, OR ΓåÆ correct URL
+        ΓêÜ openGIS: Beaverton, OR ΓåÆ correct URL (1 ms)
+        ΓêÜ openGIS: Happy Valley, OR ΓåÆ correct URL
+        ΓêÜ openGIS: Phoenix, AZ ΓåÆ correct URL
+        ΓêÜ openGIS: Tucson, AZ ΓåÆ correct URL (1 ms)
+        ΓêÜ openGIS: Prescott, AZ ΓåÆ correct URL
+    Robustness
+      ΓêÜ toast handles empty message without throwing
+      ΓêÜ applyData with special characters does not corrupt state (176 ms)
+
+  ΓùÅ Altech App Tests ΓÇ║ Workflow Integrity ΓÇ║ auto workflow step count is correct
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 6
+    Received: 7
+
+      1369 |     test('auto workflow step count is correct', () => {
+      1370 |       // auto skips step-3 (property)
+    > 1371 |       expect(App.workflows.auto.length).toBe(App.workflows.both.length - 1);
+           |                                         ^
+      1372 |     });
+      1373 |
+      1374 |     test('both workflow is superset of home and auto', () => {
+
+      at Object.toBe (tests/app.test.js:1371:41)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 179 passed, 180 total
+Snapshots:   0 total
+Time:        9.137 s
+Ran all test suites matching /tests\\app.test.js/i.
