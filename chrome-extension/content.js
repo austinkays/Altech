@@ -401,9 +401,11 @@ const AUTO_DROPDOWN_LABELS = {
     MedPaymentsAuto:   ['medical payments'],
     Comprehensive:     ['comprehensive'],
     Collision:         ['collision'],
+    TowingLabor:       ['towing and labor', 'towing labor', 'towing'],
+    RentalReimbursement: ['rental reimbursement', 'rental'],
     UMPD:              ['uninsured motorist property damage'],
     UMBI:              ['uninsured motorist bodily injury', 'um bodily injury', 'um/uim bodily injury'],
-    ResidenceIs:       ['residence is'],
+    ResidenceIs:       ['residence is', 'residence owned'],
 };
 
 // Home-specific — only on /rating/home/ pages
@@ -936,7 +938,8 @@ function getActiveDropdowns() {
             };
         case 'auto-coverage':
             return pick(AUTO_DROPDOWN_LABELS, ['BodilyInjury', 'PropertyDamage',
-                'MedPaymentsAuto', 'Comprehensive', 'Collision', 'UMPD', 'UMBI']);
+                'MedPaymentsAuto', 'Comprehensive', 'Collision',
+                'TowingLabor', 'RentalReimbursement', 'UMPD', 'UMBI']);
         case 'auto-incident':
             return {};
         case 'home-dwelling':
