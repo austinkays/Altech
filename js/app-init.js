@@ -55,6 +55,7 @@ const App = {
         { key: 'quickref',     icon: '📖', color: 'icon-teal',    title: 'Quick Reference', name: 'Quick Reference',        containerId: 'quickrefTool',     initModule: 'QuickRef',          htmlFile: 'plugins/quickref.html',    category: 'ops' },
         { key: 'vindecoder',   icon: '🚗', color: 'icon-emerald', title: 'VIN Decoder',     name: 'VIN Decoder',            containerId: 'vinDecoderTool',   initModule: 'VinDecoder',        htmlFile: 'plugins/vin-decoder.html', category: 'ops' },
         { key: 'tasksheet',    icon: '✅', color: 'icon-green',   title: 'Task Sheet',      name: 'Task Sheet',             containerId: 'taskSheetTool',    initModule: 'TaskSheetModule',   htmlFile: 'plugins/task-sheet.html',  category: 'export' },
+        { key: 'depositsheet', icon: '🏦', color: 'icon-green',   title: 'Deposit Sheet',   name: 'Deposit Sheet',          containerId: 'depositSheetTool', initModule: 'DepositSheetModule', htmlFile: 'plugins/deposit-sheet.html', category: 'ops' },
         // ┌────────────────────────────────────────────────────────────┐
         // │  ADD NEW TOOLS HERE                                        │
         // │  Copy a line above and set: key, icon, color, title,    │
