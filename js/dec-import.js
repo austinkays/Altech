@@ -39,18 +39,48 @@ window.DecImport = (() => {
     }
 
     /**
+     * Convert a string to Title Case (first letter of each word uppercase, rest lowercase).
+     */
+    function _toTitleCase(s) {
+        if (!s) return '';
+        return s.replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    }
+
+    /**
      * Parse "Last, First" or "First Last" into { firstName, lastName }.
+     * Returns Title Case names.
      */
     function _parseName(raw) {
         if (!raw) return { firstName: '', lastName: '' };
         const s = _val(raw);
         if (s.includes(',')) {
             const parts = s.split(',').map(p => p.trim());
-            return { lastName: parts[0] || '', firstName: parts.slice(1).join(' ').trim() };
+            return { lastName: _toTitleCase(parts[0] || ''), firstName: _toTitleCase(parts.slice(1).join(' ').trim()) };
         }
         const parts = s.split(/\s+/);
-        if (parts.length === 1) return { firstName: parts[0], lastName: '' };
-        return { firstName: parts.slice(0, -1).join(' '), lastName: parts[parts.length - 1] };
+        if (parts.length === 1) return { firstName: _toTitleCase(parts[0]), lastName: '' };
+        return { firstName: _toTitleCase(parts.slice(0, -1).join(' ')), lastName: _toTitleCase(parts[parts.length - 1]) };
+    }
+
+    /**
+     * Calculate policy term in months from effective and expiration dates.
+     * Returns '6' or '12' (defaults to '12' if indeterminate).
+     */
+    function _calcTerm(effDate, expDate) {
+        if (!effDate || !expDate) return '';
+        const parse = (d) => {
+            const s = _val(d);
+            const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+            if (iso) return new Date(+iso[1], +iso[2] - 1, +iso[3]);
+            const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (mdy) return new Date(+mdy[3], +mdy[1] - 1, +mdy[2]);
+            return null;
+        };
+        const eff = parse(effDate);
+        const exp = parse(expDate);
+        if (!eff || !exp) return '';
+        const months = (exp.getFullYear() - eff.getFullYear()) * 12 + (exp.getMonth() - eff.getMonth());
+        return months <= 6 ? '6' : '12';
     }
 
     /**
@@ -97,6 +127,7 @@ Return this exact JSON structure:
   "mailingAddress": { "street": "", "city": "", "state": "", "zip": "" },
   "policyNumber": "",
   "carrier": "",
+  "writingCarrier": "",
   "effectiveDate": "MM/DD/YYYY",
   "expirationDate": "MM/DD/YYYY",
   "policyType": "HOME|AUTO|BOTH",
@@ -209,8 +240,10 @@ Rules:
         // Policy section
         _setVal('diPolicyNumber', data.policyNumber);
         _setVal('diCarrier', data.carrier);
+        _setVal('diWritingCarrier', data.writingCarrier);
         _setVal('diEffective', data.effectiveDate);
         _setVal('diExpiration', data.expirationDate);
+        _setVal('diTerm', _calcTerm(data.effectiveDate, data.expirationDate));
         _setVal('diPolicyType', data.policyType);
         _setVal('diPremium', data.premium);
         _setVal('diPriorCarrier', data.priorCarrier);
@@ -340,8 +373,10 @@ Rules:
             mailingAddress: { street: g('diStreet'), city: g('diCity'), state: g('diState'), zip: g('diZip') },
             policyNumber: g('diPolicyNumber'),
             carrier: g('diCarrier'),
+            writingCarrier: g('diWritingCarrier'),
             effectiveDate: g('diEffective'),
             expirationDate: g('diExpiration'),
+            term: g('diTerm'),
             policyType: g('diPolicyType'),
             premium: g('diPremium'),
             priorCarrier: g('diPriorCarrier'),
@@ -445,6 +480,8 @@ Rules:
         lines.push(_line('gen_sCMSPolicyType', policyType));
         lines.push(_line('gen_sApplicationType', applicationType));
         lines.push(_line('gen_sCompany', data.carrier));
+        lines.push(_line('gen_sWritingCompany', data.writingCarrier));
+        lines.push(_line('gen_sTerm', data.term));
         lines.push(_line('gen_sLOBCode', lobCode));
         lines.push(_line('gen_sPolicyNumber', data.policyNumber));
         lines.push(_line('gen_tEffectiveDate', _fmtDate(data.effectiveDate)));
@@ -687,6 +724,8 @@ Rules:
         // Exposed for testing
         _generateCMSMTF,
         _parseName,
+        _toTitleCase,
+        _calcTerm,
         _fmtDate,
         _readForm,
         _val,

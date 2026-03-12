@@ -20,16 +20,38 @@ function _fmtDate(v) {
     return s;
 }
 
+function _toTitleCase(s) {
+    if (!s) return '';
+    return s.replace(/\S+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
 function _parseName(raw) {
     if (!raw) return { firstName: '', lastName: '' };
     const s = _val(raw);
     if (s.includes(',')) {
         const parts = s.split(',').map(p => p.trim());
-        return { lastName: parts[0] || '', firstName: parts.slice(1).join(' ').trim() };
+        return { lastName: _toTitleCase(parts[0] || ''), firstName: _toTitleCase(parts.slice(1).join(' ').trim()) };
     }
     const parts = s.split(/\s+/);
-    if (parts.length === 1) return { firstName: parts[0], lastName: '' };
-    return { firstName: parts.slice(0, -1).join(' '), lastName: parts[parts.length - 1] };
+    if (parts.length === 1) return { firstName: _toTitleCase(parts[0]), lastName: '' };
+    return { firstName: _toTitleCase(parts.slice(0, -1).join(' ')), lastName: _toTitleCase(parts[parts.length - 1]) };
+}
+
+function _calcTerm(effDate, expDate) {
+    if (!effDate || !expDate) return '';
+    const parse = (d) => {
+        const s = _val(d);
+        const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (iso) return new Date(+iso[1], +iso[2] - 1, +iso[3]);
+        const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (mdy) return new Date(+mdy[3], +mdy[1] - 1, +mdy[2]);
+        return null;
+    };
+    const eff = parse(effDate);
+    const exp = parse(expDate);
+    if (!eff || !exp) return '';
+    const months = (exp.getFullYear() - eff.getFullYear()) * 12 + (exp.getMonth() - eff.getMonth());
+    return months <= 6 ? '6' : '12';
 }
 
 // Stripped-down _generateCMSMTF matching the module's logic
@@ -69,6 +91,8 @@ function _generateCMSMTF(data) {
     lines.push(_line('gen_sCMSPolicyType', policyType));
     lines.push(_line('gen_sApplicationType', applicationType));
     lines.push(_line('gen_sCompany', data.carrier));
+    lines.push(_line('gen_sWritingCompany', data.writingCarrier));
+    lines.push(_line('gen_sTerm', data.term));
     lines.push(_line('gen_sLOBCode', lobCode));
     lines.push(_line('gen_sPolicyNumber', data.policyNumber));
     lines.push(_line('gen_tEffectiveDate', _fmtDate(data.effectiveDate)));
@@ -233,6 +257,63 @@ describe('Dec Import — _parseName', () => {
     test('trims whitespace', () => {
         expect(_parseName('  Smith , John  ')).toEqual({ firstName: 'John', lastName: 'Smith' });
     });
+    test('ALL CAPS converted to Title Case', () => {
+        expect(_parseName('SMITH, JOHN')).toEqual({ firstName: 'John', lastName: 'Smith' });
+    });
+    test('ALL CAPS "First Last" converted to Title Case', () => {
+        expect(_parseName('JOHN SMITH')).toEqual({ firstName: 'John', lastName: 'Smith' });
+    });
+    test('mixed case normalized to Title Case', () => {
+        expect(_parseName('mcDONALD, jANE')).toEqual({ firstName: 'Jane', lastName: 'Mcdonald' });
+    });
+});
+
+describe('Dec Import — _toTitleCase', () => {
+    test('converts ALL CAPS to Title Case', () => {
+        expect(_toTitleCase('JOHN SMITH')).toBe('John Smith');
+    });
+    test('converts lowercase to Title Case', () => {
+        expect(_toTitleCase('john smith')).toBe('John Smith');
+    });
+    test('single word', () => {
+        expect(_toTitleCase('MADONNA')).toBe('Madonna');
+    });
+    test('empty string returns empty', () => {
+        expect(_toTitleCase('')).toBe('');
+    });
+    test('null returns empty', () => {
+        expect(_toTitleCase(null)).toBe('');
+    });
+    test('already Title Case unchanged', () => {
+        expect(_toTitleCase('John Smith')).toBe('John Smith');
+    });
+});
+
+describe('Dec Import — _calcTerm', () => {
+    test('12-month term from ISO dates', () => {
+        expect(_calcTerm('2025-06-01', '2026-06-01')).toBe('12');
+    });
+    test('6-month term from MM/DD/YYYY dates', () => {
+        expect(_calcTerm('01/01/2025', '07/01/2025')).toBe('6');
+    });
+    test('6-month term from ISO dates', () => {
+        expect(_calcTerm('2025-01-01', '2025-07-01')).toBe('6');
+    });
+    test('3-month term returns 6', () => {
+        expect(_calcTerm('2025-01-01', '2025-04-01')).toBe('6');
+    });
+    test('9-month term returns 12', () => {
+        expect(_calcTerm('2025-01-01', '2025-10-01')).toBe('12');
+    });
+    test('empty effective returns empty', () => {
+        expect(_calcTerm('', '2025-06-01')).toBe('');
+    });
+    test('empty expiration returns empty', () => {
+        expect(_calcTerm('2025-01-01', '')).toBe('');
+    });
+    test('unparseable dates return empty', () => {
+        expect(_calcTerm('Jan 1 2025', 'Jul 1 2025')).toBe('');
+    });
 });
 
 describe('Dec Import — _generateCMSMTF', () => {
@@ -242,10 +323,12 @@ describe('Dec Import — _generateCMSMTF', () => {
         mailingAddress: { street: '123 Main St', city: 'Portland', state: 'OR', zip: '97201' },
         policyNumber: 'HO-123456',
         carrier: 'Safeco',
+        writingCarrier: 'Safeco Insurance',
         effectiveDate: '2025-06-01',
         expirationDate: '2026-06-01',
         policyType: 'HOME',
         premium: '1200',
+        term: '12',
         priorCarrier: '',
         agencyName: '',
         coverages: { dwelling: '350000', liability: '300000', deductibleAOP: '1000', deductibleWind: '' },
@@ -288,6 +371,17 @@ describe('Dec Import — _generateCMSMTF', () => {
         expect(out).toContain('gen_sLOBCode = HOME');
     });
 
+    test('carrier and writing carrier present', () => {
+        const out = _generateCMSMTF(homeData);
+        expect(out).toContain('gen_sCompany = Safeco');
+        expect(out).toContain('gen_sWritingCompany = Safeco Insurance');
+    });
+
+    test('term present', () => {
+        const out = _generateCMSMTF(homeData);
+        expect(out).toContain('gen_sTerm = 12');
+    });
+
     test('effective/expiration dates formatted', () => {
         const out = _generateCMSMTF(homeData);
         expect(out).toContain('gen_tEffectiveDate = 06/01/2025');
@@ -320,10 +414,12 @@ describe('Dec Import — _generateCMSMTF', () => {
         mailingAddress: { street: '789 Oak Ln', city: 'Seattle', state: 'WA', zip: '98101' },
         policyNumber: 'AU-789012',
         carrier: 'Progressive',
+        writingCarrier: 'Progressive Casualty',
         effectiveDate: '01/01/2025',
         expirationDate: '07/01/2025',
         policyType: 'AUTO',
         premium: '950',
+        term: '6',
         priorCarrier: '',
         agencyName: '',
         coverages: { bi: '100/300', pd: '100000', umBi: '100/300', uimBi: '100/300', medical: '5000', pip: '' },
@@ -343,6 +439,13 @@ describe('Dec Import — _generateCMSMTF', () => {
         const out = _generateCMSMTF(autoData);
         expect(out).toContain('gen_sCMSPolicyType = AUTO');
         expect(out).toContain('gen_sLOBCode = AUTOP');
+    });
+
+    test('AUTO carrier, writing carrier, and 6-month term', () => {
+        const out = _generateCMSMTF(autoData);
+        expect(out).toContain('gen_sCompany = Progressive');
+        expect(out).toContain('gen_sWritingCompany = Progressive Casualty');
+        expect(out).toContain('gen_sTerm = 6');
     });
 
     test('auto coverages present', () => {
