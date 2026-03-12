@@ -389,12 +389,16 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     font-weight: 700;
 }
 
+/* ── Print-only elements (hidden on screen) ───────────── */
+.ds-print-only { display: none !important; }
+
 /* ── Print ─────────────────────────────────────────────── */
 
 @media print {
     @page { size: landscape; margin: 0.3in 0.4in; }
 
     .no-print { display: none !important; }
+    .ds-print-only { display: inline !important; }
 
     * {
         -webkit-print-color-adjust: exact;
@@ -431,7 +435,7 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     .ds-meta-count   { font-size: 6pt;  color: #444; font-weight: 600; }
 
     .ds-meta-totals {
-        border-top: 0.5pt solid #ccc;
+        border-top: 0.5pt solid #999;
         padding-top: 3px;
         margin-top: 3px;
         gap: 16px;
@@ -440,23 +444,45 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     .ds-meta-total-label { font-size: 5pt; color: #666; }
     .ds-meta-total-val   { font-size: 8pt; font-weight: 700; color: #000; }
 
-    /* Bill counter — compact horizontal */
+    /* Bill counter — vertical layout for print */
     .ds-bill-counter {
         background: none !important;
         border: none !important;
-        border-bottom: 0.5pt solid #ccc !important;
+        border-bottom: 1pt solid #000 !important;
         border-radius: 0;
         padding: 2px 0 4px;
         margin-bottom: 4px;
     }
 
-    .ds-bill-counter-title { font-size: 6pt; margin-bottom: 4px; }
-    .ds-bill-grid   { gap: 2px 10px; }
-    .ds-bill-denom   { font-size: 7pt; color: #000; }
-    .ds-bill-x       { font-size: 6pt; }
-    .ds-bill-total   { font-size: 7pt; color: #333; }
-    .ds-bill-grand   { font-size: 8pt; font-weight: 700; color: #000; }
-    .ds-bill-row-total { border-left: 0.5pt solid #ccc; padding-left: 8px; margin-left: 2px; }
+    .ds-bill-counter-title { font-size: 7pt; font-weight: 700; color: #000; margin-bottom: 2px; }
+
+    .ds-bill-grid {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1px 0;
+    }
+
+    .ds-bill-row {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .ds-bill-denom       { font-size: 7pt; color: #000; font-weight: 600; min-width: 28px; }
+    .ds-bill-print-x     { font-size: 7pt; color: #000; }
+    .ds-bill-count        { font-size: 7pt; color: #000; font-weight: 700; min-width: 16px; text-align: right; }
+    .ds-bill-print-eq    { font-size: 7pt; color: #000; }
+    .ds-bill-total       { font-size: 7pt; color: #000; }
+    .ds-bill-grand       { font-size: 8pt; font-weight: 700; color: #000; }
+    .ds-bill-row-total {
+        border-left: none;
+        border-top: 0.5pt solid #000;
+        padding-left: 0;
+        padding-top: 2px;
+        margin-left: 0;
+        margin-top: 2px;
+    }
 
     /* Groups — compact */
     .ds-group { margin-bottom: 6pt; }
@@ -505,8 +531,8 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
 
     .ds-table td {
         padding: 2px 3px;
-        color: #111;
-        border-bottom: 0.25pt solid #ddd !important;
+        color: #000;
+        border-bottom: 0.5pt solid #999 !important;
         vertical-align: middle;
         white-space: nowrap;
         overflow: hidden;
@@ -521,16 +547,17 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     }
 
     .ds-td-money { text-align: right; }
-    .ds-money-zero { color: #aaa; }
+    .ds-money-zero { color: #666; }
 
     .ds-subtotal-row td {
-        background: #f5f5f5 !important;
+        background: #fff !important;
         border-top: 1pt solid #000 !important;
         font-size: 7pt;
+        font-weight: 600;
         padding: 2px 3px;
     }
 
-    .ds-subtotal-label { font-size: 5.5pt; color: #555; }
+    .ds-subtotal-label { font-size: 5.5pt; color: #333; }
 
     .ds-table tr { page-break-inside: avoid; }
 }

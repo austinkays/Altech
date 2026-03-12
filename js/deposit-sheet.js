@@ -406,6 +406,8 @@ window.DepositSheetModule = (() => {
             grand += total;
             const el = document.getElementById(`ds-bill-${denom}`);
             if (el) el.textContent = count > 0 ? _fmt(total) : '—';
+            const countEl = document.getElementById(`ds-bill-count-${denom}`);
+            if (countEl) countEl.textContent = count;
         });
         const grandEl = document.getElementById('ds-bill-counted');
         if (grandEl) grandEl.textContent = _fmt(grand);
