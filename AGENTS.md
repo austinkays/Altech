@@ -665,6 +665,10 @@ KEY RULES:
 15. FILE READING — grep/search for exact line numbers before opening any file.
     Never read a full file. Read only the specific line ranges needed.
     Max 50 lines per read unless you explicitly justify more.
+    After the first grep returns results, read only those line ranges.
+    Do not search again unless the first results were empty.
+    Do not trace callers, dependencies, or related functions unless
+    the fix explicitly requires it. Fix the thing, commit, stop.
 16. SESSION SCOPE — fix one bug per session. Do not read files unrelated to
     the current task. Do not re-read files already in context this session.
 17. BLOCKER RULE — if a fix requires reading more than 3 files to locate the
