@@ -355,7 +355,8 @@ Object.assign(App, {
         const cardPadY = 4.2;  // 12px ≈ 4.2mm
         // Content width available to text (subtract sat + gap if present)
         const cardTextW = hasSat ? contentW - satW - cardPadX - 4 : contentW - cardPadX * 2;
-        // Card height: name(7) + addr(7) + info row(7) + top+bottom padding = ~35mm min
+        // Card height: name(7) + addr(7) + info row(7) [+ overflow line(7)] + padding = ~35-42mm
+        // Overflow detection happens after doc init — use generous max for now, adjusted below
         const cardH = Math.max(35, hasSat ? satH + cardPadY * 2 : 0);
 
         // Card border (no fill — toner-safe)
@@ -415,30 +416,49 @@ Object.assign(App, {
             });
         }
 
-        // Line 3 — three evenly-spaced columns: Phone | Email | Quote Type
-        // label 8pt #777, value 9.5pt #1a1a1a, space-between within cardTextW
+        // Line 3 — info row: Phone + Email on one line, Quote Type below if overflow
         const infoY = y + cardPadY + 25.5;
         const phone = formatPhone(v('phone'));
         const email = v('email');
         const qtDisplay = qt === 'home' ? 'Home' : qt === 'auto' ? 'Auto' : qt === 'both' ? 'Bundle' : qt;
-        const infoItems = [
-            { label: 'Phone', value: phone },
-            { label: 'Email', value: email },
-            { label: 'Quote Type', value: qtDisplay },
-        ].filter(item => item.value);
-        if (infoItems.length) {
+
+        // Measure combined width of Phone + Email to detect overflow
+        const drawInfoItem = (label, value, xPos, yPos) => {
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(119, 119, 119);
+            doc.text(label, xPos, yPos);
+            const lW = doc.getTextWidth(label) + 2;
+            doc.setFontSize(9.5);
+            doc.setTextColor(...C.dark);
+            doc.text(value, xPos + lW, yPos);
+            return doc.getTextWidth(label) + 2 + doc.getTextWidth(value);
+        };
+
+        // Estimate total width if all three items on one line
+        doc.setFontSize(9.5);
+        const estPhone = phone ? doc.getTextWidth('Phone') + 2 + doc.getTextWidth(phone) + 8 : 0;
+        const estEmail = email ? doc.getTextWidth('Email') + 2 + doc.getTextWidth(email) + 8 : 0;
+        const estQt = qtDisplay ? doc.getTextWidth('Quote Type') + 2 + doc.getTextWidth(qtDisplay) : 0;
+        const overflow = (estPhone + estEmail + estQt) > cardTextW;
+
+        if (!overflow) {
+            // Single row: Phone | Email | Quote Type evenly spaced
+            const infoItems = [
+                phone && { label: 'Phone', value: phone },
+                email && { label: 'Email', value: email },
+                qtDisplay && { label: 'Quote Type', value: qtDisplay },
+            ].filter(Boolean);
             const colW3 = cardTextW / infoItems.length;
             infoItems.forEach((item, idx) => {
-                const ix = margin + cardPadX + idx * colW3;
-                doc.setFontSize(8);
-                doc.setFont(undefined, 'normal');
-                doc.setTextColor(119, 119, 119); // #777
-                doc.text(item.label, ix, infoY);
-                const lW = doc.getTextWidth(item.label) + 2;
-                doc.setFontSize(9.5);
-                doc.setTextColor(...C.dark); // #1a1a1a
-                doc.text(item.value, ix + lW, infoY);
+                drawInfoItem(item.label, item.value, margin + cardPadX + idx * colW3, infoY);
             });
+        } else {
+            // Two rows: Phone left + Email right on line 3, Quote Type on line 4
+            const halfW = cardTextW * 0.5;
+            if (phone) drawInfoItem('Phone', phone, margin + cardPadX, infoY);
+            if (email) drawInfoItem('Email', email, margin + cardPadX + halfW, infoY);
+            if (qtDisplay) drawInfoItem('Quote Type', qtDisplay, margin + cardPadX, infoY + 7);
         }
 
         // Satellite — right side, vertically centered, border 1px #ccc
@@ -577,33 +597,40 @@ Object.assign(App, {
             // ── Drivers ──────────────────────────────────────────────
             if (drivers.length) {
                 sectionHeader('Drivers');
-                const driverRows = drivers.map((d, i) => {
-                    const name = [d.firstName, d.lastName].filter(Boolean).join(' ');
-                    return [
-                        [`Driver ${i + 1}`, name || 'Unknown'],
-                        ['  Date of Birth', formatDate(d.dob || '')],
-                        ['  Gender', d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : (d.gender || '')],
-                        ['  Marital Status', d.maritalStatus || ''],
-                        ['  Relationship', d.relationship || ''],
-                        ['  Education', d.education || ''],
-                        ['  Occupation', d.occupation || ''],
-                        ['  License #', (d.dlNum || '').toUpperCase()],
-                        ['  License State', (d.dlState || '').toUpperCase()],
-                        ['  Industry', d.industry || ''],
-                        ['  DL Status', d.dlStatus || ''],
-                        ['  Age Licensed', d.ageLicensed || ''],
-                        ['  SR-22', d.sr22 || ''],
-                        ['  FR-44', d.fr44 || ''],
-                        ['  Good Driver', d.goodDriver || ''],
-                        ['  Mature Driver', d.matureDriver || ''],
-                        ['  License Susp/Rev', d.licenseSusRev || ''],
-                        ['  Driver Education', d.driverEducation || ''],
-                        ['  Accidents', d.accidents || ''],
-                        ['  Violations', d.violations || ''],
-                        ['  Student GPA', d.studentGPA || ''],
-                    ];
-                }).flat();
-                detailTable(driverRows);
+                drivers.forEach((d, i) => {
+                    if (i > 0) y += 4; // gap between driver groups
+                    const name = [d.firstName, d.lastName].filter(Boolean).join(' ') || 'Unknown';
+                    // Sub-header: "Driver 1 — Sarah Mitchell" spanning full width
+                    checkPage(20);
+                    doc.setFontSize(8);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(...C.navy);
+                    doc.text(`Driver ${i + 1} \u2014 ${name}`, margin, y + 5.5);
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(...C.dark);
+                    y += 6;
+                    // Driver fields in 3-col kvTable
+                    kvTable([
+                        ['Date of Birth', formatDate(d.dob || '')],
+                        ['Gender', d.gender === 'M' ? 'Male' : d.gender === 'F' ? 'Female' : (d.gender || '')],
+                        ['Marital Status', d.maritalStatus || ''],
+                        ['Relationship', d.relationship || ''],
+                        ['Education', d.education || ''],
+                        ['Occupation', d.occupation || ''],
+                        ['License #', (d.dlNum || '').toUpperCase()],
+                        ['License State', (d.dlState || '').toUpperCase()],
+                        ['Industry', d.industry || ''],
+                        ['DL Status', d.dlStatus || ''],
+                        ['Age Licensed', d.ageLicensed || ''],
+                        ['SR-22', d.sr22 || ''],
+                        ['FR-44', d.fr44 || ''],
+                        ['Good Driver', d.goodDriver || ''],
+                        ['Mature Driver', d.matureDriver || ''],
+                        ['License Susp/Rev', d.licenseSusRev || ''],
+                        ['Driver Education', d.driverEducation || ''],
+                        ['Student GPA', d.studentGPA || ''],
+                    ], 3);
+                });
             }
 
             // ── Vehicles ─────────────────────────────────────────────
@@ -696,11 +723,18 @@ Object.assign(App, {
         if (v('contactMethod')) pdfPriorRows.push(['Contact Method', v('contactMethod')]);
         if (v('referralSource')) pdfPriorRows.push(['Referral Source', v('referralSource')]);
         pdfPriorRows.push(['TCPA Consent', data.tcpaConsent ? 'Yes' : 'No']);
-        // Per-driver accidents / violations (fallback to global for backward compat)
-        const allAccidents = drivers.map((d, i) => d.accidents ? `Driver ${i+1}: ${d.accidents}` : '').filter(Boolean).join('; ') || v('accidents');
-        const allViolations = drivers.map((d, i) => d.violations ? `Driver ${i+1}: ${d.violations}` : '').filter(Boolean).join('; ') || v('violations');
-        if (allAccidents) pdfPriorRows.push(['Accidents', allAccidents]);
-        if (allViolations) pdfPriorRows.push(['Violations', allViolations]);
+        // Per-driver accidents / violations — one row per driver in 2-col grid
+        if (drivers.length > 1) {
+            drivers.forEach((d, i) => {
+                if (d.accidents) pdfPriorRows.push([`Accidents \u2014 Driver ${i + 1}`, d.accidents]);
+                if (d.violations) pdfPriorRows.push([`Violations \u2014 Driver ${i + 1}`, d.violations]);
+            });
+        } else {
+            const acc = (drivers[0] && drivers[0].accidents) || v('accidents');
+            const vio = (drivers[0] && drivers[0].violations) || v('violations');
+            if (acc) pdfPriorRows.push(['Accidents', acc]);
+            if (vio) pdfPriorRows.push(['Violations', vio]);
+        }
         kvTable(pdfPriorRows, 2, 10); }
 
         // â”€â”€â”€ Footer on every page â”€â”€â”€
