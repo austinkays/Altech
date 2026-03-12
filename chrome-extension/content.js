@@ -234,6 +234,10 @@ const AUTO_TEXT_FIELDS = {
         "input[name*='EffectiveDate' i]", "input[name*='InceptionDate' i]",
         "input[formcontrolname*='effectiveDate' i]",
     ],
+    PriorExpiration: [
+        "input[name*='PriorExpir' i]", "input[name*='ExpirationDate' i]",
+        "input[formcontrolname*='priorExpir' i]", "input[formcontrolname*='expirationDate' i]",
+    ],
 };
 
 // Home-specific text fields — only on /rating/home/ pages
@@ -312,8 +316,8 @@ function getActiveTextFields() {
     const page = detectPage();
     switch (page) {
         case 'auto-policy':
-            // Auto policy page only has the effective date as a text input
-            return pick(AUTO_TEXT_FIELDS, ['EffectiveDate']);
+            // Auto policy page: effective date + prior policy expiration date
+            return pick(AUTO_TEXT_FIELDS, ['EffectiveDate', 'PriorExpiration']);
         case 'auto-driver':
             // Driver page has personal identity fields (no address/email/phone)
             return pick(BASE_TEXT_FIELDS, ['FirstName', 'LastName', 'MiddleName', 'DOB', 'LicenseNumber']);
@@ -708,7 +712,7 @@ const TOGGLE_MAP = {
     GatedCommunity:     { labels: ['gated community', 'gated'], trueValues: ['yes', 'true'], pages: ['home-dwelling'] },
     NewPurchase:        { labels: ['new purchase', 'newly purchased', 'recent purchase'], trueValues: ['yes', 'true'], pages: ['home-dwelling', 'applicant'] },
     MultiPolicy:        { labels: ['multi-policy', 'multipolicy', 'multi policy', 'package discount'], trueValues: ['yes', 'true'], pages: ['applicant', 'auto-policy', 'home-dwelling'] },
-    CreditCheckAuth:    { labels: ['credit check and other underwriting reports'], trueValues: ['yes', 'true'], pages: ['home-dwelling'] },
+    CreditCheckAuth:    { labels: ['credit check and other underwriting reports'], trueValues: ['yes', 'true'], pages: ['home-dwelling', 'auto-policy'] },
 };
 
 /**
@@ -5061,6 +5065,7 @@ const FIELD_LABEL_MAP = {
     'Driver Education':         'DriverEducation',
     // ── Home policy-info (non-duplicate fields only) ──
     'Prior Carrier':            'HomePriorCarrier',
+    'Expiration Date (current policy)': 'PriorExpiration',
     'Prior Policy Premium':     'HomePriorPremium',
     'Years with Prior Carrier': 'HomePriorYears',
     'Years with Continuous Coverage': 'YearsContinuousCoverage',

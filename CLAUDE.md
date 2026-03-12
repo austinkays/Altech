@@ -1,5 +1,9 @@
 # Altech Toolkit — Claude Code Reference
 
+## Full Reference
+For detailed architecture, CSS variables, file structure, and landmines
+see AGENTS.md — read only the relevant section when needed, never in full.
+
 ## Project Overview
 
 Altech is a static insurance agency toolkit built with vanilla HTML/CSS/JS. No build step, no bundler, no framework. Deployed on Vercel via GitHub push to `main`. Firebase (compat mode) handles auth and Firestore.
