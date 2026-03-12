@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 11, 2026
+> **Last updated:** March 12, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -174,7 +174,7 @@ npm run deploy:vercel   # Production deploy
 ├── chrome-extension/           # EZLynx bridge Chrome extension
 │   ├── manifest.json
 │   ├── popup.html / popup.js
-│   ├── content.js              # Form-fill content script (5304 lines)
+│   ├── content.js              # Form-fill content script (5304 lines) ⚠️ Never read in full — always grep for line numbers first
 │   │   ├── §1–§10.5            # Config, abbreviations, field maps, fill primitives,
 │   │   │                       #   toolbar, fill orchestration, SPA nav, page scraper
 │   │   ├── §13 Route Registry  # ROUTE_TABLE (8 routes), routeToRegex(), matchRoute()
@@ -662,6 +662,13 @@ KEY RULES:
 13. ALWAYS commit & push when finishing a task — stage all files, commit, git push
 14. Vercel Hobby plan: MAX 12 serverless functions. Never add a new api/ file without
     checking the count. Use ?mode= routing or _ prefix helpers to consolidate. See §5.10
+15. FILE READING — grep/search for exact line numbers before opening any file.
+    Never read a full file. Read only the specific line ranges needed.
+    Max 50 lines per read unless you explicitly justify more.
+16. SESSION SCOPE — fix one bug per session. Do not read files unrelated to
+    the current task. Do not re-read files already in context this session.
+17. BLOCKER RULE — if a fix requires reading more than 3 files to locate the
+    problem, stop and report what's blocking you instead of continuing to read.
 ```
 
 ---
