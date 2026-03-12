@@ -307,34 +307,34 @@ Object.assign(App, {
 
         // ── Document header ──────────────────────────────────────────
         // Left: logo + agency name + subtitle | Right: doc ref + timestamp
-        const logoH = 14.5; // ~52px at 96dpi (increased from 11)
+        const logoH = 18; // ~64px at 96dpi
         const logoW = logoH; // locked aspect ratio (square logo)
         let headerTextX = margin;
         if (logoImg?.dataUrl) {
             doc.addImage(logoImg.dataUrl, logoImg.format, margin, y - 1, logoW, logoH);
             headerTextX = margin + logoW + 3.5; // 10px margin-right from logo
         }
-        // Agency name — 10pt bold #0f2745
+        // Agency name — 11pt bold #0f2745
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...C.navy);
+        doc.text('Altech Insurance', headerTextX, y + 5);
+        // Subtitle — 8pt uppercase #555
+        doc.setFontSize(8);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(85, 85, 85); // #555
+        doc.text('INSURANCE APPLICATION SUMMARY', headerTextX, y + 11);
+
+        // Doc ref — 10pt bold #0f2745 | Timestamp — 9pt #555
+        const docRef = `APP-${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`;
         doc.setFontSize(10);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(...C.navy);
-        doc.text('Altech Insurance', headerTextX, y + 4.5);
-        // Subtitle — 7pt uppercase #555
-        doc.setFontSize(7);
+        doc.text(docRef, pageW - margin, y + 5, { align: 'right' });
+        doc.setFontSize(9);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(85, 85, 85); // #555
-        doc.text('INSURANCE APPLICATION SUMMARY', headerTextX, y + 10);
-
-        // Doc ref — 9pt bold #0f2745 | Timestamp — 8.5pt #555
-        const docRef = `APP-${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`;
-        doc.setFontSize(9);
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(...C.navy);
-        doc.text(docRef, pageW - margin, y + 4.5, { align: 'right' });
-        doc.setFontSize(8.5);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(85, 85, 85); // #555 — clearly legible
-        doc.text(formatDateTime(new Date()), pageW - margin, y + 10, { align: 'right' });
+        doc.text(formatDateTime(new Date()), pageW - margin, y + 11, { align: 'right' });
 
         y += Math.max(logoH + 1, 14);
 
@@ -353,8 +353,8 @@ Object.assign(App, {
         const cardPadY = 4.2;  // 12px ≈ 4.2mm
         // Content width available to text (subtract sat + gap if present)
         const cardTextW = hasSat ? contentW - satW - cardPadX - 4 : contentW - cardPadX * 2;
-        // Card height: name(7) + addr(7) + ph/em(7) + top+bottom padding = ~33mm min
-        const cardH = Math.max(33, hasSat ? satH + cardPadY * 2 : 0);
+        // Card height: name(7) + addr(7) + phone/email(7) + quoteType(7) + padding = ~40mm min
+        const cardH = Math.max(40, hasSat ? satH + cardPadY * 2 : 0);
 
         // Card border (no fill — toner-safe)
         doc.setDrawColor(...C.border);
@@ -413,31 +413,44 @@ Object.assign(App, {
             });
         }
 
-        // Line 3 — Ph: / Em: two-column info row, 9.5pt #1a1a1a, label prefix 8pt #777
+        // Line 3 — Phone / Email two-column row, label 8pt #777, value 9.5pt #1a1a1a
         const contactY = y + cardPadY + 25.5;
         const phone = formatPhone(v('phone'));
         const email = v('email');
         if (phone) {
             doc.setFontSize(8);
             doc.setFont(undefined, 'normal');
-            doc.setTextColor(119, 119, 119); // #777 label prefix
-            doc.text('Ph:', margin + cardPadX, contactY);
-            const phLabelW = doc.getTextWidth('Ph:') + 1.5;
+            doc.setTextColor(119, 119, 119); // #777
+            doc.text('Phone', margin + cardPadX, contactY);
+            const phLabelW = doc.getTextWidth('Phone') + 2;
             doc.setFontSize(9.5);
             doc.setTextColor(...C.dark); // #1a1a1a
             doc.text(phone, margin + cardPadX + phLabelW, contactY);
         }
         if (email) {
-            // Email starts at midpoint of card text area
             const emailColX = margin + cardPadX + cardTextW * 0.48;
             doc.setFontSize(8);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(119, 119, 119); // #777
-            doc.text('Em:', emailColX, contactY);
-            const emLabelW = doc.getTextWidth('Em:') + 1.5;
+            doc.text('Email', emailColX, contactY);
+            const emLabelW = doc.getTextWidth('Email') + 2;
             doc.setFontSize(9.5);
             doc.setTextColor(...C.dark);
             doc.text(email, emailColX + emLabelW, contactY);
+        }
+
+        // Line 4 — Quote Type label 8pt #777, value 9.5pt #1a1a1a
+        const qtY = y + cardPadY + 34;
+        const qtDisplay = qt === 'home' ? 'Home Only' : qt === 'auto' ? 'Auto Only' : qt === 'both' ? 'Home & Auto' : qt;
+        if (qtDisplay) {
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(119, 119, 119); // #777
+            doc.text('Quote Type', margin + cardPadX, qtY);
+            const qtLabelW = doc.getTextWidth('Quote Type') + 2;
+            doc.setFontSize(9.5);
+            doc.setTextColor(...C.dark);
+            doc.text(qtDisplay, margin + cardPadX + qtLabelW, qtY);
         }
 
         // Satellite — right side, vertically centered, border 1px #ccc
@@ -478,7 +491,6 @@ Object.assign(App, {
             ['Education', v('education')],
             ['Industry', v('industry')],
             ['Occupation', v('occupation')],
-            ['Quote Type', quoteType === 'home' ? 'Home Only' : quoteType === 'auto' ? 'Auto Only' : quoteType === 'both' ? 'Home & Auto' : quoteType],
             ['Pronunciation', this.getNamePronunciation(data)],
         ], 3); }
 
@@ -571,31 +583,6 @@ Object.assign(App, {
                 ['Protection Class', v('protectionClass')],
             ], 4); }
 
-            // ── Home Coverage ────────────────────────────────────────
-            { sectionHeader('Home Coverage');
-            kvTable([
-                ['Policy Type', v('homePolicyType')],
-                ['Dwelling Coverage', formatCurrency(v('dwellingCoverage'))],
-                ['Personal Liability', formatCurrency(v('personalLiability'))],
-                ['Medical Payments', formatCurrency(v('medicalPayments'))],
-                ['Deductible', formatDeductible(v('homeDeductible'))],
-                ['Wind/Hail Ded.', formatDeductible(v('windDeductible'))],
-                ['Mortgagee', v('mortgagee')],
-                ['Increased Repl. Cost', v('increasedReplacementCost')],
-                ['Ordinance or Law', v('ordinanceOrLaw')],
-                ['Water Backup', v('waterBackup')],
-                ['Loss Assessment', formatCurrency(v('lossAssessment'))],
-                ['Equipment Breakdown', v('equipmentBreakdown')],
-                ['Service Line', v('serviceLine')],
-                ['Animal Liability', formatCurrency(v('animalLiability'))],
-                ['Earthquake Coverage', v('earthquakeCoverage')],
-                ...(v('theftDeductible') ? [['Theft Deductible', v('theftDeductible')]] : []),
-                ...(v('jewelryLimit') ? [['Jewelry Limit', v('jewelryLimit')]] : []),
-                ...(v('creditCardCoverage') ? [['Credit Card Coverage', v('creditCardCoverage')]] : []),
-                ...(v('moldDamage') ? [['Mold Damage', v('moldDamage')]] : []),
-                ...(v('earthquakeCoverage') === 'Yes' && v('earthquakeZone') ? [['EQ Zone', v('earthquakeZone')]] : []),
-                ...(v('earthquakeCoverage') === 'Yes' && v('earthquakeDeductible') ? [['EQ Deductible', v('earthquakeDeductible')]] : []),
-            ], 2); }
         }
 
         if (showAuto) {
@@ -689,6 +676,7 @@ Object.assign(App, {
         // ── Policy & Prior Insurance ─────────────────────────────────
         { sectionHeader('Policy & Prior Insurance');
         const pdfPriorRows = [
+            ['Policy Type', v('homePolicyType')],
             ['Policy Term', v('policyTerm')],
             ['Effective Date', formatDate(v('effectiveDate'))],
         ];
