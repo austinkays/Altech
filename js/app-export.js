@@ -89,8 +89,6 @@ Object.assign(App, {
             return /^(none|not updated|n\/a|no coverage|unknown)$/i.test(s);
         };
 
-        // Contact-critical labels — phone and email in data fields get bold #1a1a1a
-        const isContact = (label) => /^(phone|email|mobile|cell)/i.test(label.trim());
 
         const formatDate = (value) => {
             if (!value) return '';
@@ -223,20 +221,11 @@ Object.assign(App, {
                 doc.setTextColor(...C.label);
                 doc.text(label.toUpperCase(), cellX, cellY + 3);
 
-                // Value — contact fields bold #1a1a1a; null-ish #444 normal; else #111
+                // Value — null-ish #444 normal; else #111 normal (font-weight: 500)
                 const deEmphasize = isEmptyish(value);
-                const contact = isContact(label);
                 doc.setFontSize(9.5);
-                if (deEmphasize) {
-                    doc.setFont(undefined, 'normal');
-                    doc.setTextColor(...C.muted); // #444
-                } else if (contact) {
-                    doc.setFont(undefined, 'bold');
-                    doc.setTextColor(...C.dark); // #1a1a1a
-                } else {
-                    doc.setFont(undefined, 'normal');
-                    doc.setTextColor(...C.body); // #111
-                }
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(...(deEmphasize ? C.muted : C.body));
                 const isLastItem = (i === filtered.length - 1);
                 const effectiveMaxW = (spanLast && isLastItem) ? usableColW * 2 + colGap : usableColW;
                 const valLines = doc.splitTextToSize(String(value), effectiveMaxW);
@@ -288,17 +277,8 @@ Object.assign(App, {
                     doc.setTextColor(...C.label); // #444
                     doc.text(label.trim(), margin + 4, y + 4);
                     const deEmphasize = isEmptyish(value);
-                    const contact = isContact(label);
-                    if (deEmphasize) {
-                        doc.setFont(undefined, 'normal');
-                        doc.setTextColor(...C.muted); // #444, no italic
-                    } else if (contact) {
-                        doc.setFont(undefined, 'bold');
-                        doc.setTextColor(...C.dark); // #1a1a1a
-                    } else {
-                        doc.setFont(undefined, 'normal');
-                        doc.setTextColor(...C.body);
-                    }
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(...(deEmphasize ? C.muted : C.body));
                     doc.text(String(value), margin + labelW, y + 4);
                     doc.setFont(undefined, 'normal');
                 }
@@ -327,36 +307,36 @@ Object.assign(App, {
 
         // ── Document header ──────────────────────────────────────────
         // Left: logo + agency name + subtitle | Right: doc ref + timestamp
-        const logoH = 11; // ~40px at 96dpi
-        const logoW = logoH; // assume square-ish logo
+        const logoH = 14.5; // ~52px at 96dpi (increased from 11)
+        const logoW = logoH; // locked aspect ratio (square logo)
         let headerTextX = margin;
         if (logoImg?.dataUrl) {
             doc.addImage(logoImg.dataUrl, logoImg.format, margin, y - 1, logoW, logoH);
-            headerTextX = margin + logoW + 3.5;
+            headerTextX = margin + logoW + 3.5; // 10px margin-right from logo
         }
-        // Agency name — 9pt bold #0f2745
+        // Agency name — 10pt bold #0f2745
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...C.navy);
+        doc.text('Altech Insurance', headerTextX, y + 4.5);
+        // Subtitle — 7pt uppercase #555
+        doc.setFontSize(7);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(85, 85, 85); // #555
+        doc.text('INSURANCE APPLICATION SUMMARY', headerTextX, y + 10);
+
+        // Doc ref — 9pt bold #0f2745 | Timestamp — 8.5pt #555
+        const docRef = `APP-${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`;
         doc.setFontSize(9);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(...C.navy);
-        doc.text('Altech Insurance', headerTextX, y + 4);
-        // Subtitle — 6.5pt uppercase #666 letter-spaced
-        doc.setFontSize(6.5);
+        doc.text(docRef, pageW - margin, y + 4.5, { align: 'right' });
+        doc.setFontSize(8.5);
         doc.setFont(undefined, 'normal');
-        doc.setTextColor(102, 102, 102); // #666
-        doc.text('INSURANCE APPLICATION SUMMARY', headerTextX, y + 9);
+        doc.setTextColor(85, 85, 85); // #555 — clearly legible
+        doc.text(formatDateTime(new Date()), pageW - margin, y + 10, { align: 'right' });
 
-        // Doc ref — 8pt bold #0f2745 | Timestamp — 8pt #666
-        const docRef = `APP-${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`;
-        doc.setFontSize(8);
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(...C.navy);
-        doc.text(docRef, pageW - margin, y + 4, { align: 'right' });
-        doc.setFontSize(8);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(102, 102, 102); // #666 — readable, not decorative
-        doc.text(formatDateTime(new Date()), pageW - margin, y + 9, { align: 'right' });
-
-        y += Math.max(logoH + 1, 12);
+        y += Math.max(logoH + 1, 14);
 
         // 2px solid #0f2745 separator under header
         doc.setDrawColor(...C.navy);
@@ -365,30 +345,32 @@ Object.assign(App, {
         y += 5;
 
         // ── Applicant card ───────────────────────────────────────────
-        // Full-width, background #f7f9fc, border 1px #dde3eb, border-radius 4px
-        // Left edge accent: 3px solid #0f2745
+        // 4-line layout: name / address+badge / ph+email / (satellite floats right)
+        // border: 1px #dde3eb, border-left: 3px navy, border-radius: 4px, padding: 12px 14px
         const satW = 32, satH = 25;
         const hasSat = !!(mapImages?.satellite?.dataUrl);
-        const cardPadX = 5, cardPadY = 3.5;
-        const cardInnerW = hasSat ? contentW - satW - cardPadX - 4 : contentW - cardPadX * 2;
-        const cardH = Math.max(32, hasSat ? satH + cardPadY * 2 : 0);
+        const cardPadX = 5;    // 14px ≈ 5mm
+        const cardPadY = 4.2;  // 12px ≈ 4.2mm
+        // Content width available to text (subtract sat + gap if present)
+        const cardTextW = hasSat ? contentW - satW - cardPadX - 4 : contentW - cardPadX * 2;
+        // Card height: name(7) + addr(7) + ph/em(7) + top+bottom padding = ~33mm min
+        const cardH = Math.max(33, hasSat ? satH + cardPadY * 2 : 0);
 
         // Card border (no fill — toner-safe)
-        doc.setDrawColor(...C.light);
+        doc.setDrawColor(...C.border);
         doc.setLineWidth(0.4);
         doc.roundedRect(margin, y, contentW, cardH, 1.4, 1.4, 'S');
         // Left accent bar — 3px navy
         doc.setFillColor(...C.navy);
         doc.roundedRect(margin, y, 1, cardH, 0.5, 0.5, 'F');
 
-        // Applicant name — 16pt bold #0f2745
+        // Line 1 — applicant name: 16pt bold #0f2745
         doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(...C.navy);
-        doc.text(clientName, margin + cardPadX, y + cardPadY + 8);
+        doc.text(clientName, margin + cardPadX, y + cardPadY + 7.5);
 
-        // Address line — 9pt #555, policy type badge(s) inline
-        // Build badge labels from quote type
+        // Line 2 — address: 10.5pt weight-500 #333, badge(s) inline after •
         const qt = (data.qType || '').toLowerCase();
         const homePT = v('homePolicyType');
         const badges = [];
@@ -401,46 +383,64 @@ Object.assign(App, {
             badges.push(homePT);
         }
 
-        doc.setFontSize(9);
+        const addrY = y + cardPadY + 16.5;
+        doc.setFontSize(10.5);
         doc.setFont(undefined, 'normal');
-        doc.setTextColor(...C.mid);
+        doc.setTextColor(51, 51, 51); // #333
         const addrText = address || '';
         const addrTextW = doc.getTextWidth(addrText);
-        const addrY = y + cardPadY + 16;
         doc.text(addrText, margin + cardPadX, addrY);
 
         // Inline badge(s) after address • separator
         let badgeX = margin + cardPadX + addrTextW;
         if (badges.length) {
-            // Dot separator
-            doc.setFontSize(9);
-            doc.setTextColor(...C.mid);
+            doc.setFontSize(10.5);
+            doc.setTextColor(51, 51, 51);
             doc.text('  \u2022  ', badgeX, addrY);
             badgeX += doc.getTextWidth('  \u2022  ');
-            badges.forEach((badgeLabel, bi) => {
-                // Badge background — navy pill
-                const bText = badgeLabel;
+            badges.forEach((badgeLabel) => {
                 doc.setFontSize(7);
                 doc.setFont(undefined, 'bold');
-                const bW = doc.getTextWidth(bText) + 3.6;
+                const bW = doc.getTextWidth(badgeLabel) + 3.6;
                 const bH = 4.2;
                 doc.setDrawColor(...C.navy);
                 doc.setLineWidth(0.35);
                 doc.roundedRect(badgeX, addrY - 3.5, bW, bH, 0.7, 0.7, 'S');
                 doc.setTextColor(...C.navy);
-                doc.text(bText, badgeX + 1.8, addrY - 0.5);
-                badgeX += bW + 1.5; // 4px gap between badges
+                doc.text(badgeLabel, badgeX + 1.8, addrY - 0.5);
+                badgeX += bW + 1.5;
                 doc.setFont(undefined, 'normal');
             });
         }
 
-        // Phone — 10pt bold #1a1a1a (actionable, prominent)
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(...C.dark); // #1a1a1a
-        doc.text(formatPhone(v('phone')), margin + cardPadX, y + cardPadY + 24);
+        // Line 3 — Ph: / Em: two-column info row, 9.5pt #1a1a1a, label prefix 8pt #777
+        const contactY = y + cardPadY + 25.5;
+        const phone = formatPhone(v('phone'));
+        const email = v('email');
+        if (phone) {
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(119, 119, 119); // #777 label prefix
+            doc.text('Ph:', margin + cardPadX, contactY);
+            const phLabelW = doc.getTextWidth('Ph:') + 1.5;
+            doc.setFontSize(9.5);
+            doc.setTextColor(...C.dark); // #1a1a1a
+            doc.text(phone, margin + cardPadX + phLabelW, contactY);
+        }
+        if (email) {
+            // Email starts at midpoint of card text area
+            const emailColX = margin + cardPadX + cardTextW * 0.48;
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(119, 119, 119); // #777
+            doc.text('Em:', emailColX, contactY);
+            const emLabelW = doc.getTextWidth('Em:') + 1.5;
+            doc.setFontSize(9.5);
+            doc.setTextColor(...C.dark);
+            doc.text(email, emailColX + emLabelW, contactY);
+        }
 
-        // Satellite — right side inside card, border 1px #ccc, border-radius 2px
+        // Satellite — right side, vertically centered, border 1px #ccc
         if (hasSat) {
             const satX = margin + contentW - satW - cardPadX;
             const satY = y + (cardH - satH) / 2;
@@ -448,7 +448,6 @@ Object.assign(App, {
             doc.setDrawColor(204, 204, 204); // #ccc
             doc.setLineWidth(0.3);
             doc.roundedRect(satX, satY, satW, satH, 0.7, 0.7, 'S');
-            // "Satellite View" caption — 6pt #888
             doc.setFontSize(6);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(136, 136, 136); // #888
