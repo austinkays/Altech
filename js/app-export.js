@@ -71,8 +71,8 @@ Object.assign(App, {
             dark:     [26, 26, 26],       // #1a1a1a — body text
             body:     [17, 17, 17],       // #111    — value text
             mid:      [85, 85, 85],       // #555    — address
-            label:    [153, 153, 153],    // #999    — field labels
-            muted:    [187, 187, 187],    // #bbb    — de-emphasized values + footer
+            label:    [102, 102, 102],    // #666    — field labels (min legible on toner)
+            muted:    [136, 136, 136],    // #888    — de-emphasized values (bumped from #bbb)
             light:    [221, 227, 235],    // #dde3eb — borders
             rule:     [238, 238, 238],    // #eee    — footer rule
             cardBg:   [247, 249, 252],    // #f7f9fc — applicant card bg
@@ -200,7 +200,7 @@ Object.assign(App, {
         // Key-value grid — stacked label/value, alternating section tint support
         // Label: 6.5pt uppercase #999 | Value: 9.5pt medium #111
         // De-emphasizes null-ish values: #bbb italic
-        const kvTable = (fields, cols = 3, tinted = false) => {
+        const kvTable = (fields, cols = 3) => {
             const filtered = fields.filter(([, val]) => val !== undefined && val !== null && String(val).trim() !== '');
             if (!filtered.length) return;
             const colW = contentW / cols;
@@ -209,30 +209,21 @@ Object.assign(App, {
             const colGap = 2.8; // column-gap: 8px ≈ 2.8mm
             const usableColW = colW - colGap;
             let col = 0;
+            let rowWrapped = false; // tracks if any cell in current row wrapped to 2 lines
 
             // If only one field will be orphaned in the last row of a multi-col grid,
             // span it across the remaining columns visually
             const spanLast = filtered.length % cols === 1 && cols > 1;
 
-            // Tint background rect for this section if odd-indexed
-            // Drawn once per row, not per cell, to avoid overlap
-            let rowStartY = y;
-
             filtered.forEach(([label, value], i) => {
                 if (col === 0) {
                     checkPage(cellH + 2);
-                    rowStartY = y;
-                    if (tinted) {
-                        doc.setFillColor(...C.tint);
-                        // Width of tint block; height set per-row after layout
-                        // We draw it with a fixed height and accept minor imprecision
-                        doc.roundedRect(margin - 2, y - 1, contentW + 4, cellH + 1, 1, 1, 'F');
-                    }
+                    rowWrapped = false;
                 }
                 const cellX = margin + col * colW;
                 const cellY = y;
 
-                // Label — 6.5pt uppercase #999
+                // Label — 6.5pt uppercase #666
                 doc.setFontSize(6.5);
                 doc.setFont(undefined, 'normal');
                 doc.setTextColor(...C.label);
@@ -247,12 +238,15 @@ Object.assign(App, {
                 const effectiveMaxW = (spanLast && isLastItem) ? usableColW * 2 + colGap : usableColW;
                 const valLines = doc.splitTextToSize(String(value), effectiveMaxW);
                 doc.text(valLines[0] || '', cellX, cellY + 8.5);
-                if (valLines[1]) doc.text(valLines[1], cellX, cellY + 12.5);
+                if (valLines[1]) {
+                    doc.text(valLines[1], cellX, cellY + 12.5);
+                    rowWrapped = true;
+                }
 
                 col++;
                 if (col >= cols) {
                     col = 0;
-                    y += cellH + (valLines[1] ? 4 : 0);
+                    y += cellH + (rowWrapped ? 4 : 0);
                 }
             });
             if (col > 0) {
@@ -350,7 +344,7 @@ Object.assign(App, {
         doc.text(docRef, pageW - margin, y + 4, { align: 'right' });
         doc.setFontSize(7);
         doc.setFont(undefined, 'normal');
-        doc.setTextColor(170, 170, 170); // #aaa
+        doc.setTextColor(136, 136, 136); // #888 min for toner
         doc.text(formatDateTime(new Date()), pageW - margin, y + 9, { align: 'right' });
 
         y += Math.max(logoH + 1, 12);
@@ -370,10 +364,7 @@ Object.assign(App, {
         const cardInnerW = hasSat ? contentW - satW - cardPadX - 4 : contentW - cardPadX * 2;
         const cardH = Math.max(32, hasSat ? satH + cardPadY * 2 : 0);
 
-        // Card background fill
-        doc.setFillColor(...C.cardBg);
-        doc.roundedRect(margin, y, contentW, cardH, 1.4, 1.4, 'F');
-        // Card border
+        // Card border (no fill — toner-safe)
         doc.setDrawColor(...C.light);
         doc.setLineWidth(0.4);
         doc.roundedRect(margin, y, contentW, cardH, 1.4, 1.4, 'S');
@@ -424,19 +415,20 @@ Object.assign(App, {
                 doc.setFont(undefined, 'bold');
                 const bW = doc.getTextWidth(bText) + 3.6;
                 const bH = 4.2;
-                doc.setFillColor(...C.navy);
-                doc.roundedRect(badgeX, addrY - 3.5, bW, bH, 0.7, 0.7, 'F');
-                doc.setTextColor(...C.white);
+                doc.setDrawColor(...C.navy);
+                doc.setLineWidth(0.35);
+                doc.roundedRect(badgeX, addrY - 3.5, bW, bH, 0.7, 0.7, 'S');
+                doc.setTextColor(...C.navy);
                 doc.text(bText, badgeX + 1.8, addrY - 0.5);
                 badgeX += bW + 1.5; // 4px gap between badges
                 doc.setFont(undefined, 'normal');
             });
         }
 
-        // Phone — 8.5pt #777
+        // Phone — 8.5pt #666
         doc.setFontSize(8.5);
         doc.setFont(undefined, 'normal');
-        doc.setTextColor(119, 119, 119); // #777
+        doc.setTextColor(102, 102, 102); // #666
         doc.text(formatPhone(v('phone')), margin + cardPadX, y + cardPadY + 24);
 
         // Satellite — right side inside card, border 1px #ccc, border-radius 2px
@@ -450,7 +442,7 @@ Object.assign(App, {
             // "Satellite View" caption — 6pt #aaa right-aligned
             doc.setFontSize(6);
             doc.setFont(undefined, 'normal');
-            doc.setTextColor(170, 170, 170);
+            doc.setTextColor(136, 136, 136); // #888 min for toner
             doc.text('Satellite View', satX + satW, satY + satH + 3, { align: 'right' });
         }
 
@@ -466,7 +458,7 @@ Object.assign(App, {
         const vehicles = (data.vehicles && data.vehicles.length) ? data.vehicles : (this.vehicles || []);
 
         // ── Applicant ────────────────────────────────────────────────
-        { const t = sectionHeader('Applicant');
+        { sectionHeader('Applicant');
         kvTable([
             ['Full Name', clientName],
             ['Middle Name', v('middleName')],
@@ -480,12 +472,12 @@ Object.assign(App, {
             ['Occupation', v('occupation')],
             ['Quote Type', quoteType === 'home' ? 'Home Only' : quoteType === 'auto' ? 'Auto Only' : quoteType === 'both' ? 'Home & Auto' : quoteType],
             ['Pronunciation', this.getNamePronunciation(data)],
-        ], 3, t); }
+        ], 3); }
 
         // ── Co-Applicant (if provided) ───────────────────────────────
         const hasCoApp = data.hasCoApplicant === 'yes' || data.hasCoApplicant === true || data.hasCoApplicant === 'on';
         if (hasCoApp && (v('coFirstName') || v('coLastName'))) {
-            const t = sectionHeader('Co-Applicant / Spouse');
+            sectionHeader('Co-Applicant / Spouse');
             kvTable([
                 ['Full Name', `${v('coFirstName')} ${v('coLastName')}`.trim()],
                 ['Date of Birth', formatDate(v('coDob'))],
@@ -496,11 +488,11 @@ Object.assign(App, {
                 ['Occupation', v('coOccupation')],
                 ['Education', v('coEducation')],
                 ['Industry', v('coIndustry')],
-            ], 3, t);
+            ], 3);
         }
 
         // ── Property Address ─────────────────────────────────────────
-        { const t = sectionHeader('Property Address');
+        { sectionHeader('Property Address');
         kvTable([
             ['Street Address', v('addrStreet')],
             ['City', v('addrCity')],
@@ -508,11 +500,11 @@ Object.assign(App, {
             ['ZIP Code', v('addrZip')],
             ['County', v('county') || this.getCountyFromCity(data.addrCity, data.addrState) || ''],
             ['Years at Address', v('yearsAtAddress')],
-        ], 3, t); }
+        ], 3); }
 
         if (showHome) {
             // ── Property Details ─────────────────────────────────────
-            { const t = sectionHeader('Property Details');
+            { sectionHeader('Property Details');
             kvTable([
                 ['Year Built', v('yrBuilt')],
                 ['Square Footage', v('sqFt') ? Number(v('sqFt')).toLocaleString() + ' sq ft' : ''],
@@ -534,11 +526,11 @@ Object.assign(App, {
                 ['Flooring', v('flooring')],
                 ['Fireplaces', v('numFireplaces')],
                 ['Purchase Date', formatDate(v('purchaseDate'))],
-            ], 4, t); }
+            ], 4); }
 
             // ── Building Systems ─────────────────────────────────────
             checkPage(30); // ensure header + at least first data row stay together
-            { const t = sectionHeader('Building Systems');
+            { sectionHeader('Building Systems');
             kvTable([
                 ['Roof Type', v('roofType')],
                 ['Roof Shape', v('roofShape')],
@@ -550,10 +542,10 @@ Object.assign(App, {
                 ['Electrical Updated', v('elecYr')],
                 ['Sewer', v('sewer')],
                 ['Water Source', v('waterSource')],
-            ], 4, t); }
+            ], 4); }
 
             // ── Risk & Protection ────────────────────────────────────
-            { const t = sectionHeader('Risk & Protection');
+            { sectionHeader('Risk & Protection');
             kvTable([
                 ['Burglar Alarm', v('burglarAlarm')],
                 ['Fire Alarm', v('fireAlarm')],
@@ -569,10 +561,10 @@ Object.assign(App, {
                 ['Fire Hydrant (ft)', v('fireHydrantFeet')],
                 ['Tidal Water (ft)', v('tidalWaterDist')],
                 ['Protection Class', v('protectionClass')],
-            ], 4, t); }
+            ], 4); }
 
             // ── Home Coverage ────────────────────────────────────────
-            { const t = sectionHeader('Home Coverage');
+            { sectionHeader('Home Coverage');
             kvTable([
                 ['Policy Type', v('homePolicyType')],
                 ['Dwelling Coverage', formatCurrency(v('dwellingCoverage'))],
@@ -595,7 +587,7 @@ Object.assign(App, {
                 ...(v('moldDamage') ? [['Mold Damage', v('moldDamage')]] : []),
                 ...(v('earthquakeCoverage') === 'Yes' && v('earthquakeZone') ? [['EQ Zone', v('earthquakeZone')]] : []),
                 ...(v('earthquakeCoverage') === 'Yes' && v('earthquakeDeductible') ? [['EQ Deductible', v('earthquakeDeductible')]] : []),
-            ], 2, t); }
+            ], 2); }
         }
 
         if (showAuto) {
@@ -658,17 +650,17 @@ Object.assign(App, {
 
             // Legacy single-vehicle (if no multi-vehicle data)
             if (!vehicles.length && (data.vehDesc || data.vin)) {
-                const t = sectionHeader('Vehicle');
+                sectionHeader('Vehicle');
                 kvTable([
                     ['Vehicle', data.vehDesc || ''],
                     ['VIN', data.vin || ''],
                     ['Usage', data.use || ''],
                     ['Annual Miles', data.miles || ''],
-                ], 3, t);
+                ], 3);
             }
 
             // ── Auto Coverage ────────────────────────────────────────
-            { const t = sectionHeader('Auto Coverage');
+            { sectionHeader('Auto Coverage');
             kvTable([
                 ['Auto Policy Type', v('autoPolicyType')],
                 ['Residence Is', v('residenceIs')],
@@ -683,11 +675,11 @@ Object.assign(App, {
                 ['Rental Reimburse.', formatRental(v('rentalDeductible'))],
                 ['Towing/Roadside', formatCurrency(v('towingDeductible'))],
                 ['Student GPA', v('studentGPA')],
-            ], 2, t); }
+            ], 2); }
         }
 
         // ── Policy & Prior Insurance ─────────────────────────────────
-        { const t = sectionHeader('Policy & Prior Insurance');
+        { sectionHeader('Policy & Prior Insurance');
         const pdfPriorRows = [
             ['Policy Term', v('policyTerm')],
             ['Effective Date', formatDate(v('effectiveDate'))],
@@ -725,7 +717,7 @@ Object.assign(App, {
         const allViolations = drivers.map((d, i) => d.violations ? `Driver ${i+1}: ${d.violations}` : '').filter(Boolean).join('; ') || v('violations');
         if (allAccidents) pdfPriorRows.push(['Accidents', allAccidents]);
         if (allViolations) pdfPriorRows.push(['Violations', allViolations]);
-        kvTable(pdfPriorRows, 2, t); }
+        kvTable(pdfPriorRows, 2); }
 
         // â”€â”€â”€ Footer on every page â”€â”€â”€
         drawFooter();
