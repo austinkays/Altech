@@ -56,7 +56,7 @@ const App = {
         { key: 'vindecoder',   icon: '🚗', color: 'icon-emerald', title: 'VIN Decoder',     name: 'VIN Decoder',            containerId: 'vinDecoderTool',   initModule: 'VinDecoder',        htmlFile: 'plugins/vin-decoder.html', category: 'ops' },
         { key: 'tasksheet',    icon: '✅', color: 'icon-green',   title: 'Task Sheet',      name: 'Task Sheet',             containerId: 'taskSheetTool',    initModule: 'TaskSheetModule',   htmlFile: 'plugins/task-sheet.html',  category: 'export' },
         { key: 'depositsheet', icon: '🏦', color: 'icon-green',   title: 'Deposit Sheet',   name: 'Deposit Sheet',          containerId: 'depositSheetTool', initModule: 'DepositSheetModule', htmlFile: 'plugins/deposit-sheet.html', category: 'ops' },
-        { key: 'decimport',   icon: '📄', color: 'icon-blue',    title: 'Dec Page Import', name: 'Dec Page Import',        containerId: 'decImportTool',    initModule: 'DecImport',          htmlFile: 'plugins/dec-import.html',   category: 'export' },
+        { key: 'decimport',   icon: '⬇️', color: 'icon-blue',    title: 'PDF to HawkSoft', name: 'PDF to HawkSoft',        containerId: 'decImportTool',    initModule: 'DecImport',          htmlFile: 'plugins/dec-import.html',   category: 'export' },
         // ┌────────────────────────────────────────────────────────────┐
         // │  ADD NEW TOOLS HERE                                        │
         // │  Copy a line above and set: key, icon, color, title,    │
