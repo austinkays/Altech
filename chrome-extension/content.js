@@ -267,6 +267,16 @@ const HOME_TEXT_FIELDS = {
         "input[formcontrolname*='coverageA' i]",
         "input[name*='DwellingAmount' i]",
     ],
+    HomePersonalProperty: [
+        "input[name*='CoverageC' i]", "input[name*='PersonalProperty' i]",
+        "input[formcontrolname*='coverageC' i]",
+        "input[name*='CovCAmount' i]",
+    ],
+    HomeLossOfUse: [
+        "input[name*='CoverageD' i]", "input[name*='LossOfUse' i]",
+        "input[formcontrolname*='coverageD' i]",
+        "input[name*='CovDAmount' i]",
+    ],
     LotSize: [
         "input[name*='LotSize' i]", "input[name*='Lot' i]",
         "input[formcontrolname*='lotSize' i]",
@@ -318,7 +328,7 @@ function getActiveTextFields() {
             return { ...HOME_TEXT_FIELDS };
         case 'home-coverage':
             // Coverage page only needs dwelling amount and mortgagee, not property details
-            return pick(HOME_TEXT_FIELDS, ['DwellingCoverage', 'Mortgagee']);
+            return pick(HOME_TEXT_FIELDS, ['DwellingCoverage', 'HomePersonalProperty', 'HomeLossOfUse', 'Mortgagee']);
         default: // 'applicant', 'lead-info', 'unknown'
             return { ...BASE_TEXT_FIELDS };
     }
@@ -388,6 +398,7 @@ const AUTO_DROPDOWN_LABELS = {
     Comprehensive:     ['comprehensive'],
     Collision:         ['collision'],
     UMPD:              ['uninsured motorist property damage'],
+    UMBI:              ['uninsured motorist bodily injury', 'um bodily injury', 'um/uim bodily injury'],
     ResidenceIs:       ['residence is'],
 };
 
@@ -921,7 +932,7 @@ function getActiveDropdowns() {
             };
         case 'auto-coverage':
             return pick(AUTO_DROPDOWN_LABELS, ['BodilyInjury', 'PropertyDamage',
-                'MedPaymentsAuto', 'Comprehensive', 'Collision', 'UMPD']);
+                'MedPaymentsAuto', 'Comprehensive', 'Collision', 'UMPD', 'UMBI']);
         case 'auto-incident':
             return {};
         case 'home-dwelling':

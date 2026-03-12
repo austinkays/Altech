@@ -950,10 +950,10 @@ describe('Altech App Tests', () => {
     });
 
     test('toolNames defined for all tools', () => {
-      expect(App.toolNames).toBeDefined();
-      expect(App.toolNames.quoting).toBe('Personal Intake');
-      expect(App.toolNames.email).toBe('Email Composer');
-      expect(App.toolNames.ezlynx).toBe('EZLynx Export');
+      expect(App.toolConfig).toBeDefined();
+      expect(App.toolConfig.find(t => t.key === 'quoting')?.name).toBe('Personal Intake');
+      expect(App.toolConfig.find(t => t.key === 'email')?.name).toBe('Email Composer');
+      expect(App.toolConfig.find(t => t.key === 'ezlynx')?.name).toBe('EZLynx Export');
     });
 
     test('storageKey is altech_v6', () => {
@@ -1386,11 +1386,11 @@ describe('Altech App Tests', () => {
     test('toolNames has entries for all major tools', () => {
       const expectedTools = ['quoting', 'qna', 'coi', 'prospect', 'compliance'];
       expectedTools.forEach(tool => {
-        const hasKey = Object.keys(App.toolNames).some(k =>
-          k.toLowerCase().includes(tool) || App.toolNames[k]?.toLowerCase().includes(tool)
+        const hasKey = App.toolConfig.some(t =>
+          t.key.toLowerCase().includes(tool) || t.name?.toLowerCase().includes(tool)
         );
-        // At minimum toolNames should exist and have entries
-        expect(Object.keys(App.toolNames).length).toBeGreaterThan(0);
+        // At minimum toolConfig should exist and have entries
+        expect(App.toolConfig.length).toBeGreaterThan(0);
       });
     });
 

@@ -63,7 +63,7 @@ const EZLynxTool = {
         // Auto Policy & Coverage
         'ezPolicyTerm','ezPriorCarrier','ezPriorPolicyTerm','ezPriorYearsWithCarrier',
         'ezEffectiveDate','ezBodilyInjury','ezPropertyDamage','ezComprehensive',
-        'ezCollision','ezMedPaymentsAuto','ezUMPD','ezPriorLiabilityLimits',
+        'ezCollision','ezMedPaymentsAuto','ezUMPD','ezUMBI','ezPriorLiabilityLimits',
         'ezYearsContinuousCoverage','ezNumResidents','ezResidenceIs',
         'ezAccidents','ezViolations',
         // Driver & Vehicle
@@ -81,7 +81,8 @@ const EZLynxTool = {
         // Home Coverage
         'ezHomePolicyType','ezHomePriorCarrier','ezHomePriorPolicyTerm',
         'ezHomePriorYears','ezHomePriorExp',
-        'ezDwellingCoverage','ezHomePersonalLiability','ezHomeMedicalPayments',
+        'ezDwellingCoverage','ezHomePersonalProperty','ezHomeLossOfUse',
+        'ezHomePersonalLiability','ezHomeMedicalPayments',
         'ezAllPerilsDeductible','ezTheftDeductible','ezWindDeductible','ezMortgagee'],
 
     getFormData() {
@@ -100,7 +101,7 @@ const EZLynxTool = {
             ezEffectiveDate: 'EffectiveDate', ezBodilyInjury: 'BodilyInjury',
             ezPropertyDamage: 'PropertyDamage', ezComprehensive: 'Comprehensive',
             ezCollision: 'Collision', ezMedPaymentsAuto: 'MedPaymentsAuto',
-            ezUMPD: 'UMPD', ezPriorLiabilityLimits: 'PriorLiabilityLimits',
+            ezUMPD: 'UMPD', ezUMBI: 'UMBI', ezPriorLiabilityLimits: 'PriorLiabilityLimits',
             ezYearsContinuousCoverage: 'YearsContinuousCoverage',
             ezNumResidents: 'NumResidents', ezResidenceIs: 'ResidenceIs',
             ezAccidents: 'Accidents', ezViolations: 'Violations',
@@ -131,6 +132,8 @@ const EZLynxTool = {
             ezHomePriorPolicyTerm: 'HomePriorPolicyTerm',
             ezHomePriorYears: 'HomePriorYears', ezHomePriorExp: 'HomePriorExp',
             ezDwellingCoverage: 'DwellingCoverage',
+            ezHomePersonalProperty: 'HomePersonalProperty',
+            ezHomeLossOfUse: 'HomeLossOfUse',
             ezHomePersonalLiability: 'HomePersonalLiability',
             ezHomeMedicalPayments: 'HomeMedicalPayments',
             ezAllPerilsDeductible: 'AllPerilsDeductible',
@@ -622,6 +625,7 @@ const EZLynxTool = {
         this.setField('ezCollision', d.autoDeductible || '');
         this.setField('ezMedPaymentsAuto', d.medPayments || '');
         this.setField('ezUMPD', d.umpdLimit || '');
+        this.setField('ezUMBI', d.umLimits || '');
         this.setField('ezPriorLiabilityLimits', d.priorLiabilityLimits || '');
         this.setField('ezYearsContinuousCoverage', d.continuousCoverage || '');
         this.setField('ezNumResidents', d.numOccupants || '');
@@ -679,6 +683,8 @@ const EZLynxTool = {
         this.setField('ezHomePriorYears', d.homePriorYears || '');
         this.setField('ezHomePriorExp', fmtDate(d.homePriorExp));
         this.setField('ezDwellingCoverage', d.dwellingCoverage || '');
+        this.setField('ezHomePersonalProperty', d.homePersonalProperty || '');
+        this.setField('ezHomeLossOfUse', d.homeLossOfUse || '');
         this.setField('ezHomePersonalLiability', d.personalLiability || '');
         this.setField('ezHomeMedicalPayments', d.medicalPayments || '');
         this.setField('ezAllPerilsDeductible', d.homeDeductible || '');

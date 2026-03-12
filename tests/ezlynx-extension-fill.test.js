@@ -85,6 +85,8 @@ function buildContext(overrides = {}) {
         setTimeout:  global.setTimeout,
         clearTimeout: global.clearTimeout,
         setInterval: jest.fn(),
+        // getComputedStyle is called bare in isVisible() — must be a vm-context global
+        getComputedStyle: (...args) => window.getComputedStyle(...args),
         MutationObserver: jest.fn().mockImplementation(() => ({
             observe: jest.fn(),
             disconnect: jest.fn(),
@@ -95,6 +97,8 @@ function buildContext(overrides = {}) {
         Object:  Object,
         String:  String,
         Promise: Promise,
+        // Use the outer RegExp so vm-created RegExp instances pass toBeInstanceOf(RegExp)
+        RegExp:  RegExp,
         // Prevent auto-init double-injection guard from running
         __altechFillerLoaded: false,
         ...overrides,
@@ -447,12 +451,22 @@ describe('§5 fillPageSequential()', () => {
             })),
             console: global.console,
             Math, Array, Object, String, Promise,
+            RegExp,
+            getComputedStyle: (...args) => window.getComputedStyle(...args),
             __altechFillerLoaded: false,
         };
 
         const vmCtx = vm.createContext(stubs);
         try { vm.runInContext(contentSrc, vmCtx, { filename: 'content.js' }); }
         catch (e) { /* ignore init errors from stubs */ }
+
+        // Re-inject mocks overridden by content.js function declarations
+        vmCtx.fillPage = fillPageMock;
+        vmCtx.setInputValue = setInputValueMock;
+        vmCtx.fillNativeSelect = fillNativeSelectMock;
+        vmCtx.fillCustomDropdown = fillCustomDropdownMock;
+        // isVisible uses el.offsetParent which is always null in JSDOM — re-stub it
+        vmCtx.isVisible = jest.fn().mockReturnValue(true);
 
         return { vmCtx, fillPageMock, setInputValueMock };
     }

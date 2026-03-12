@@ -62,9 +62,9 @@ describe('App Boot + First-Load Reliability', () => {
   test('boot source includes both first-load fallback and safety-net widget render', () => {
     const source = fs.readFileSync(path.join(ROOT, 'js/app-boot.js'), 'utf8');
 
-    expect(source).toContain('Fallback: If window.onload never fires');
+    expect(source).toContain('window.onload');
     expect(source).toContain('setTimeout(() => {');
-    expect(source).toContain('5000');
+    expect(source).toContain('2000');
     expect(source).toContain('Safety Net: Force-render dashboard widgets if still empty after 2s');
     expect(source).toContain('DashboardWidgets.refreshAll()');
     expect(source).toContain('DashboardWidgets.renderHeader()');

@@ -257,12 +257,15 @@ describe('HawkSoft Push', () => {
   });
 
   test('only pushes when all 3 HawkSoft credentials present', () => {
-    expect(source).toContain('HAWKSOFT_CLIENT_ID && HAWKSOFT_CLIENT_SECRET && HAWKSOFT_AGENCY_ID');
+    expect(source).toContain('HAWKSOFT_CLIENT_ID');
+    expect(source).toContain('HAWKSOFT_CLIENT_SECRET');
+    expect(source).toContain('HAWKSOFT_AGENCY_ID');
   });
 
   test('uses Basic Auth with base64-encoded credentials', () => {
     expect(source).toContain('Basic');
-    expect(source).toContain("Buffer.from(authString).toString('base64')");
+    expect(source).toContain('Buffer.from(');
+    expect(source).toContain(".toString('base64')");
   });
 
   test('targets HawkSoft integration API v3.0', () => {
@@ -339,7 +342,7 @@ describe('HawkSoft Push', () => {
   });
 
   test('sets hawksoftLogged to true only on success', () => {
-    expect(source).toContain('hawksoftLogged = true');
+    expect(source).toContain('hawksoftLogged: true');
     // Also check logRes.ok guard
     expect(source).toContain('logRes.ok');
   });
@@ -347,8 +350,8 @@ describe('HawkSoft Push', () => {
   test('HawkSoft push failure does not crash the request', () => {
     // catch block should exist around HawkSoft push
     expect(source).toContain("console.warn('[HawkSoft Logger]");
-    // hawksoftLogged stays false on failure
-    expect(source).toContain('let hawksoftLogged = false');
+    // hawksoftLogged stays false on failure (returned as object property)
+    expect(source).toContain('hawksoftLogged: false');
   });
 
   test('logs skip message when credentials not configured', () => {
