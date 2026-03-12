@@ -236,10 +236,10 @@ Object.assign(App, {
                 }
 
                 col++;
+                // Advance y only when a full row is complete (right-column field placed)
+                // For 2-col: fires at i % 2 === 1, not per-field
                 if (col >= cols) {
                     col = 0;
-                    // For 2-col sections, skip the wrap bonus — wrapping is expected
-                    // and the +4mm per row compounds across many rows
                     y += cellH + (rowWrapped && cols !== 2 ? 4 : 0);
                 }
             });
@@ -494,8 +494,8 @@ Object.assign(App, {
                 ['Phone', formatPhone(v('coPhone'))],
                 ['Relationship', v('coRelationship')],
                 ['Occupation', v('coOccupation')],
-                ['Industry', v('coIndustry')],
                 ['Education', v('coEducation')],
+                ['Industry', v('coIndustry')],
             ], 3);
         }
 
