@@ -5175,7 +5175,7 @@ async function fillPageSequential(clientData) {
     // ── B. Co-applicant: use clientData.CoApplicant as fill data;
     //       scope DOM harvest to the modal container. ──
     const isCoApp = routeKey === '/details#co-applicant';
-    const fillData = (isCoApp && clientData.CoApplicant)
+    let fillData = (isCoApp && clientData.CoApplicant)
         ? { ...clientData.CoApplicant }
         : clientData;
     const root = isCoApp
@@ -5216,6 +5216,14 @@ async function fillPageSequential(clientData) {
         console.log(`[Altech §15] Columnar layout detected: ${columnCount} column(s)`);
         const slices = splitColumnarFields(domElements, columnCount);
         primaryElements = slices[0];
+
+        // Merge first-column array element into fillData so vehicle/driver
+        // fields (VIN, Make, etc.) that only exist on the sub-object are reachable.
+        if (routeKey.includes('drivers') && clientData.Drivers?.[0]) {
+            fillData = { ...fillData, ...clientData.Drivers[0] };
+        } else if (routeKey.includes('vehicles') && clientData.Vehicles?.[0]) {
+            fillData = { ...fillData, ...clientData.Vehicles[0] };
+        }
 
         // Fill second column with driver[1] / vehicle[1] data if present.
         if (slices[1] && slices[1].length) {
