@@ -563,6 +563,7 @@ Object.assign(App, {
                 ['Roof Type', v('roofType')],
                 ['Roof Shape', v('roofShape')],
                 ['Roof Updated', v('roofYr')],
+                ['Roof Update Type', v('roofUpdate')],
                 ['Heating Type', v('heatingType')],
                 ['Heating Updated', v('heatYr')],
                 ['Cooling', v('cooling')],
@@ -590,6 +591,51 @@ Object.assign(App, {
                 ['Tidal Water (ft)', v('tidalWaterDist')],
                 ['Protection Class', v('protectionClass')],
             ], 4); }
+
+            // ── Home Coverage ────────────────────────────────────────
+            checkPage(30);
+            { sectionHeader('Home Coverage');
+            kvTable([
+                ['Home Policy Type', v('homePolicyType')],
+                ['Dwelling Coverage', formatCurrency(v('dwellingCoverage'))],
+                ['Personal Property', formatCurrency(v('homePersonalProperty'))],
+                ['Loss of Use', formatCurrency(v('homeLossOfUse'))],
+                ['Personal Liability', v('personalLiability')],
+                ['Medical Payments', v('medicalPayments')],
+                ['Deductible (AOP)', formatDeductible(v('homeDeductible'))],
+                ['Wind/Hail Deductible', formatDeductible(v('windDeductible'))],
+                ['Mortgagee / Lienholder', v('mortgagee')],
+            ], 3); }
+
+            // ── Home Endorsements ────────────────────────────────────
+            { const endorsementRows = [
+                ['Increased Replacement Cost', v('increasedReplacementCost')],
+                ['Ordinance or Law', v('ordinanceOrLaw')],
+                ['Water Backup', formatCurrency(v('waterBackup'))],
+                ['Loss Assessment', formatCurrency(v('lossAssessment'))],
+                ['Animal Liability', formatCurrency(v('animalLiability'))],
+                ['Theft Deductible', formatDeductible(v('theftDeductible'))],
+                ['Jewelry/Valuables Limit', formatCurrency(v('jewelryLimit'))],
+                ['Credit Card Coverage', formatCurrency(v('creditCardCoverage'))],
+                ['Mold Damage', formatCurrency(v('moldDamage'))],
+                ['Equipment Breakdown', v('equipmentBreakdown') === 'yes' ? 'Yes' : v('equipmentBreakdown') || ''],
+                ['Service Line', v('serviceLine') === 'yes' ? 'Yes' : v('serviceLine') || ''],
+            ];
+            // Earthquake (conditional — only show if coverage selected)
+            const eqCov = v('earthquakeCoverage');
+            if (eqCov === 'yes' || eqCov === 'Yes') {
+                endorsementRows.push(
+                    ['Earthquake Coverage', 'Yes'],
+                    ['Earthquake Zone', v('earthquakeZone')],
+                    ['Earthquake Deductible', formatDeductible(v('earthquakeDeductible'))]
+                );
+            }
+            // Only render section if at least one endorsement has data
+            if (endorsementRows.some(r => r[1] && !isEmptyish(r[1]))) {
+                checkPage(30);
+                sectionHeader('Home Endorsements');
+                kvTable(endorsementRows, 3);
+            } }
 
         }
 
