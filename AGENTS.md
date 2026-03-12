@@ -673,6 +673,9 @@ KEY RULES:
     the current task. Do not re-read files already in context this session.
 17. BLOCKER RULE — if a fix requires reading more than 3 files to locate the
     problem, stop and report what's blocking you instead of continuing to read.
+18. BEFORE ANY BUG FIX — run `git log --oneline -10` first. If the fix
+    was already committed in a recent session, report that and stop.
+    Do not re-investigate or re-fix already committed work.
 ```
 
 ---
