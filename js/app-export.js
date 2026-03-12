@@ -196,11 +196,11 @@ Object.assign(App, {
         // Contact fields (phone/email): 9.5pt bold #1a1a1a
         // Null-ish values: #444 normal weight, no italic
         // Orphaned last field in row: spans 2 cols, y += cellH - 3
-        const kvTable = (fields, cols = 3) => {
+        const kvTable = (fields, cols = 3, cellH = 13) => {
             const filtered = fields.filter(([, val]) => val !== undefined && val !== null && String(val).trim() !== '');
             if (!filtered.length) return;
             const colW = contentW / cols;
-            const cellH = 13; // label 3pt + gap 1pt + value ~9.5pt + padding 9pt ≈ 13mm
+            // cellH: 13mm default (3-4 col); pass 10mm for dense 2-col sections
             const colGap = 2.8; // 8px column-gap
             const usableColW = colW - colGap;
             let col = 0;
@@ -353,8 +353,8 @@ Object.assign(App, {
         const cardPadY = 4.2;  // 12px ≈ 4.2mm
         // Content width available to text (subtract sat + gap if present)
         const cardTextW = hasSat ? contentW - satW - cardPadX - 4 : contentW - cardPadX * 2;
-        // Card height: name(7) + addr(7) + phone/email(7) + quoteType(7) + padding = ~40mm min
-        const cardH = Math.max(40, hasSat ? satH + cardPadY * 2 : 0);
+        // Card height: name(7) + addr(7) + info row(7) + top+bottom padding = ~35mm min
+        const cardH = Math.max(35, hasSat ? satH + cardPadY * 2 : 0);
 
         // Card border (no fill — toner-safe)
         doc.setDrawColor(...C.border);
@@ -413,44 +413,30 @@ Object.assign(App, {
             });
         }
 
-        // Line 3 — Phone / Email two-column row, label 8pt #777, value 9.5pt #1a1a1a
-        const contactY = y + cardPadY + 25.5;
+        // Line 3 — three evenly-spaced columns: Phone | Email | Quote Type
+        // label 8pt #777, value 9.5pt #1a1a1a, space-between within cardTextW
+        const infoY = y + cardPadY + 25.5;
         const phone = formatPhone(v('phone'));
         const email = v('email');
-        if (phone) {
-            doc.setFontSize(8);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(119, 119, 119); // #777
-            doc.text('Phone', margin + cardPadX, contactY);
-            const phLabelW = doc.getTextWidth('Phone') + 2;
-            doc.setFontSize(9.5);
-            doc.setTextColor(...C.dark); // #1a1a1a
-            doc.text(phone, margin + cardPadX + phLabelW, contactY);
-        }
-        if (email) {
-            const emailColX = margin + cardPadX + cardTextW * 0.48;
-            doc.setFontSize(8);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(119, 119, 119); // #777
-            doc.text('Email', emailColX, contactY);
-            const emLabelW = doc.getTextWidth('Email') + 2;
-            doc.setFontSize(9.5);
-            doc.setTextColor(...C.dark);
-            doc.text(email, emailColX + emLabelW, contactY);
-        }
-
-        // Line 4 — Quote Type label 8pt #777, value 9.5pt #1a1a1a
-        const qtY = y + cardPadY + 34;
         const qtDisplay = qt === 'home' ? 'Home Only' : qt === 'auto' ? 'Auto Only' : qt === 'both' ? 'Home & Auto' : qt;
-        if (qtDisplay) {
-            doc.setFontSize(8);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(119, 119, 119); // #777
-            doc.text('Quote Type', margin + cardPadX, qtY);
-            const qtLabelW = doc.getTextWidth('Quote Type') + 2;
-            doc.setFontSize(9.5);
-            doc.setTextColor(...C.dark);
-            doc.text(qtDisplay, margin + cardPadX + qtLabelW, qtY);
+        const infoItems = [
+            { label: 'Phone', value: phone },
+            { label: 'Email', value: email },
+            { label: 'Quote Type', value: qtDisplay },
+        ].filter(item => item.value);
+        if (infoItems.length) {
+            const colW3 = cardTextW / infoItems.length;
+            infoItems.forEach((item, idx) => {
+                const ix = margin + cardPadX + idx * colW3;
+                doc.setFontSize(8);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(119, 119, 119); // #777
+                doc.text(item.label, ix, infoY);
+                const lW = doc.getTextWidth(item.label) + 2;
+                doc.setFontSize(9.5);
+                doc.setTextColor(...C.dark); // #1a1a1a
+                doc.text(item.value, ix + lW, infoY);
+            });
         }
 
         // Satellite — right side, vertically centered, border 1px #ccc
@@ -670,7 +656,7 @@ Object.assign(App, {
                 ['Rental Reimburse.', formatRental(v('rentalDeductible'))],
                 ['Towing/Roadside', formatCurrency(v('towingDeductible'))],
                 ['Student GPA', v('studentGPA')],
-            ], 2); }
+            ], 2, 10); }
         }
 
         // ── Policy & Prior Insurance ─────────────────────────────────
@@ -713,7 +699,7 @@ Object.assign(App, {
         const allViolations = drivers.map((d, i) => d.violations ? `Driver ${i+1}: ${d.violations}` : '').filter(Boolean).join('; ') || v('violations');
         if (allAccidents) pdfPriorRows.push(['Accidents', allAccidents]);
         if (allViolations) pdfPriorRows.push(['Violations', allViolations]);
-        kvTable(pdfPriorRows, 2); }
+        kvTable(pdfPriorRows, 2, 10); }
 
         // â”€â”€â”€ Footer on every page â”€â”€â”€
         drawFooter();
