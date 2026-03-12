@@ -105,6 +105,27 @@ window.DepositSheetModule = (() => {
                 _updateBillCounter();
             }
         });
+
+        // Checkbox handling — select all & individual row checks
+        document.addEventListener('change', (e) => {
+            if (e.target && e.target.classList.contains('ds-check-all')) {
+                const table = e.target.closest('.ds-table');
+                if (table) {
+                    table.querySelectorAll('.ds-row-check').forEach(cb => { cb.checked = e.target.checked; });
+                }
+                _updateVerifiedCount();
+            }
+            if (e.target && e.target.classList.contains('ds-row-check')) {
+                const table = e.target.closest('.ds-table');
+                if (table) {
+                    const all = table.querySelectorAll('.ds-row-check');
+                    const checked = table.querySelectorAll('.ds-row-check:checked');
+                    const selectAll = table.querySelector('.ds-check-all');
+                    if (selectAll) selectAll.checked = all.length === checked.length;
+                }
+                _updateVerifiedCount();
+            }
+        });
     }
 
     /* ═══════════════════════════════════════════════════════
@@ -251,7 +272,7 @@ window.DepositSheetModule = (() => {
             </div>
             <div class="ds-meta-row ds-meta-sub-row">
                 <span class="ds-meta-agency">Altech Insurance Agency</span>
-                <span class="ds-meta-count">${_rows.length} receipt${_rows.length !== 1 ? 's' : ''}</span>
+                <span class="ds-meta-count">${_rows.length} receipt${_rows.length !== 1 ? 's' : ''} · <span id="ds-verified-count" class="ds-verified-count">0/${_rows.length} verified</span></span>
             </div>
             <div class="ds-meta-totals">
                 <div class="ds-meta-total-item">
@@ -299,50 +320,28 @@ window.DepositSheetModule = (() => {
     function _renderTable(rows) {
         const visibleCols = KEEP_COLS.filter(c => c !== 'pay method' && rows.some(r => r[c]));
 
-        // Build colgroup widths
-        const colWidths = {
-            'item #':        '90px',
-            'item date':     '80px',
-            'cust id':       '60px',
-            'name':          'auto',
-            'line item':     '100px',
-            'payee':         '120px',
-            'invoiced':      '80px',
-            'tendered':      '80px',
-            'credit used':   '70px',
-            'change':        '60px',
-            'disbursement':  '90px',
-            'non-fiduciary': '90px',
-            'memo':          'auto',
-            'agent name':    '110px'
-        };
-
         const colLabels = {
-            'item #':        'Receipt #',
+            'item #':        'Rcpt #',
             'item date':     'Date',
-            'cust id':       'Cust ID',
+            'cust id':       'ID',
             'name':          'Client',
             'line item':     'Line Item',
             'payee':         'Payee',
             'invoiced':      'Invoiced',
             'tendered':      'Tendered',
-            'credit used':   'Credit Used',
+            'credit used':   'Cr. Used',
             'change':        'Change',
-            'disbursement':  'Disbursement',
-            'non-fiduciary': 'Non-Fiduciary',
+            'disbursement':  'Disb.',
+            'non-fiduciary': 'Non-Fid.',
             'memo':          'Memo',
             'agent name':    'Agent'
         };
 
         let html = `<table class="ds-table">`;
-        html += `<colgroup>`;
-        for (const col of visibleCols) {
-            html += `<col style="width:${colWidths[col] || 'auto'}">`;
-        }
-        html += `</colgroup>`;
 
         // Header
         html += `<thead><tr>`;
+        html += `<th class="ds-check-col no-print"><input type="checkbox" class="ds-check-all" title="Select all"></th>`;
         for (const col of visibleCols) {
             const align = MONEY_COLS.has(col) ? ' class="ds-th-money"' : '';
             html += `<th${align}>${colLabels[col] || col}</th>`;
@@ -353,6 +352,7 @@ window.DepositSheetModule = (() => {
         html += `<tbody>`;
         for (const row of rows) {
             html += `<tr>`;
+            html += `<td class="ds-check-col no-print"><input type="checkbox" class="ds-row-check"></td>`;
             for (const col of visibleCols) {
                 const val = row[col] || '';
                 if (MONEY_COLS.has(col)) {
@@ -375,6 +375,7 @@ window.DepositSheetModule = (() => {
             }
         }
         html += `<tfoot><tr class="ds-subtotal-row">`;
+        html += `<td class="ds-check-col no-print"></td>`;
         for (const col of visibleCols) {
             if (MONEY_COLS.has(col)) {
                 const v = subtotals[col];
@@ -396,7 +397,7 @@ window.DepositSheetModule = (() => {
        ═══════════════════════════════════════════════════════ */
 
     function _updateBillCounter() {
-        const inputs = document.querySelectorAll('.ds-bill-input');
+        const inputs = document.querySelectorAll('input.ds-bill-input');
         let grand = 0;
         inputs.forEach(input => {
             const denom = parseInt(input.dataset.denom, 10);
@@ -408,6 +409,16 @@ window.DepositSheetModule = (() => {
         });
         const grandEl = document.getElementById('ds-bill-counted');
         if (grandEl) grandEl.textContent = _fmt(grand);
+    }
+
+    function _updateVerifiedCount() {
+        const total = document.querySelectorAll('.ds-row-check').length;
+        const checked = document.querySelectorAll('.ds-row-check:checked').length;
+        const el = document.getElementById('ds-verified-count');
+        if (el) {
+            el.textContent = checked + '/' + total + ' verified';
+            el.classList.toggle('ds-all-verified', checked === total && total > 0);
+        }
     }
 
     /* ═══════════════════════════════════════════════════════
@@ -459,7 +470,7 @@ window.DepositSheetModule = (() => {
         if (billBlock) billBlock.style.display = 'none';
 
         // Reset bill inputs
-        document.querySelectorAll('.ds-bill-input').forEach(i => { i.value = 0; });
+        document.querySelectorAll('input.ds-bill-input').forEach(i => { i.value = 0; });
         _updateBillCounter();
         _hideError();
     }
