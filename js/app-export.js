@@ -257,7 +257,7 @@ Object.assign(App, {
             });
             if (col > 0) {
                 // Terminal partial row: spanLast item uses reduced height (4px pb instead of 9px)
-                y += spanLast ? cellH - 5 : cellH;
+                y += spanLast ? cellH - 3 : cellH;
             }
             doc.setFont(undefined, 'normal');
             y += 1; // minimal trailing gap — section header provides its own top margin
