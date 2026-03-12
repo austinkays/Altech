@@ -152,6 +152,29 @@ Object.assign(App, {
         this.toast('✨ Fresh form ready');
     },
 
+    startNewClient() {
+        // Save current client to history, then reset to step 0 for a fresh intake
+        try { this._saveClientHistoryNow(); } catch(e) { /* ok */ }
+
+        this.data = {};
+        this.drivers = [];
+        this.vehicles = [];
+        // Clear all form inputs
+        document.querySelectorAll('#mainContainer input, #mainContainer select, #mainContainer textarea').forEach(el => {
+            if (el.type === 'checkbox' || el.type === 'radio') {
+                el.checked = false;
+            } else {
+                el.value = '';
+            }
+        });
+        // Save empty state and reset to step 0
+        safeSave(this.storageKey, JSON.stringify(this.data));
+        this.handleType();
+        this.step = 0;
+        this.updateUI();
+        this.toast('✅ Client saved — ready for new intake');
+    },
+
     renderStep0ClientHistory() {
         const container = document.getElementById('step0ClientHistoryList');
         if (!container) return;
