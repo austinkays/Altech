@@ -1,0 +1,141 @@
+<!-- Dec Page Importer — plugins/dec-import.html -->
+<header class="header-top">
+    <div class="tool-header-brand">
+        <div class="logo-controls">
+            <button class="home-btn" onclick="App.goHome()" aria-label="Back to Dashboard">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </button>
+            <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" aria-label="Toggle dark mode">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/>
+                </svg>
+            </button>
+        </div>
+        <h1>📄 Dec Page Importer</h1>
+    </div>
+</header>
+
+<main class="di-main">
+    <!-- Upload Section -->
+    <section class="di-upload-section">
+        <div class="di-drop-zone" id="diDropZone">
+            <svg class="di-drop-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <polyline points="9 15 12 12 15 15"/>
+            </svg>
+            <span class="di-drop-label">Drop a PDF dec page here, or click to browse</span>
+            <input type="file" id="diFileInput" accept=".pdf" class="di-hidden">
+        </div>
+        <button class="di-extract-btn" id="diExtractBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            Extract Data
+        </button>
+    </section>
+
+    <div id="diStatus" class="di-status di-hidden"></div>
+
+    <!-- Review Panel -->
+    <section id="diReviewPanel" class="di-review-panel di-hidden">
+
+        <!-- Client Info -->
+        <div class="di-section">
+            <h3 class="di-section-title">Client Information</h3>
+            <div class="di-grid">
+                <label class="di-field di-field-wide"><span>Named Insured(s)</span><input type="text" id="diNamedInsureds" placeholder="Comma-separated names"></label>
+                <label class="di-field di-field-wide"><span>Street Address</span><input type="text" id="diStreet"></label>
+                <label class="di-field"><span>City</span><input type="text" id="diCity"></label>
+                <label class="di-field"><span>State</span><input type="text" id="diState"></label>
+                <label class="di-field"><span>ZIP</span><input type="text" id="diZip"></label>
+            </div>
+        </div>
+
+        <!-- Policy Info -->
+        <div class="di-section">
+            <h3 class="di-section-title">Policy Information</h3>
+            <div class="di-grid">
+                <label class="di-field"><span>Policy Number</span><input type="text" id="diPolicyNumber"></label>
+                <label class="di-field"><span>Carrier</span><input type="text" id="diCarrier"></label>
+                <label class="di-field"><span>Effective Date</span><input type="text" id="diEffective" placeholder="MM/DD/YYYY"></label>
+                <label class="di-field"><span>Expiration Date</span><input type="text" id="diExpiration" placeholder="MM/DD/YYYY"></label>
+                <label class="di-field"><span>Policy Type</span><input type="text" id="diPolicyType" placeholder="HOME / AUTO / BOTH"></label>
+                <label class="di-field"><span>Total Premium</span><input type="text" id="diPremium"></label>
+                <label class="di-field"><span>Prior Carrier</span><input type="text" id="diPriorCarrier"></label>
+                <label class="di-field"><span>Agency Name</span><input type="text" id="diAgencyName"></label>
+            </div>
+        </div>
+
+        <!-- Coverages -->
+        <div class="di-section">
+            <h3 class="di-section-title">Coverages</h3>
+            <div class="di-grid">
+                <label class="di-field"><span>Dwelling</span><input type="text" id="diDwelling"></label>
+                <label class="di-field"><span>Liability</span><input type="text" id="diLiability"></label>
+                <label class="di-field"><span>Deductible (AOP)</span><input type="text" id="diDeductibleAOP"></label>
+                <label class="di-field"><span>Deductible (Wind)</span><input type="text" id="diDeductibleWind"></label>
+                <label class="di-field"><span>Bodily Injury</span><input type="text" id="diBi"></label>
+                <label class="di-field"><span>Property Damage</span><input type="text" id="diPd"></label>
+                <label class="di-field"><span>UM/BI</span><input type="text" id="diUmBi"></label>
+                <label class="di-field"><span>UIM/BI</span><input type="text" id="diUimBi"></label>
+                <label class="di-field"><span>Medical</span><input type="text" id="diMedical"></label>
+                <label class="di-field"><span>PIP</span><input type="text" id="diPip"></label>
+            </div>
+        </div>
+
+        <!-- Property -->
+        <div class="di-section">
+            <h3 class="di-section-title">Property Details</h3>
+            <div class="di-grid">
+                <label class="di-field"><span>Year Built</span><input type="text" id="diYearBuilt"></label>
+                <label class="di-field"><span>Sq Ft</span><input type="text" id="diSqFt"></label>
+                <label class="di-field"><span>Stories</span><input type="text" id="diStories"></label>
+                <label class="di-field"><span>Roof Type</span><input type="text" id="diRoofType"></label>
+                <label class="di-field"><span>Construction</span><input type="text" id="diConstructionStyle"></label>
+                <label class="di-field"><span>Foundation</span><input type="text" id="diFoundation"></label>
+                <label class="di-field"><span>Heating</span><input type="text" id="diHeating"></label>
+                <label class="di-field"><span>Protection Class</span><input type="text" id="diProtectionClass"></label>
+            </div>
+        </div>
+
+        <!-- Mortgagee -->
+        <div class="di-section">
+            <h3 class="di-section-title">Mortgagee / Lienholder</h3>
+            <div class="di-grid">
+                <label class="di-field di-field-wide"><span>Name</span><input type="text" id="diMortgageeName"></label>
+                <label class="di-field di-field-wide"><span>Address</span><input type="text" id="diMortgageeAddress"></label>
+                <label class="di-field"><span>City</span><input type="text" id="diMortgageeCity"></label>
+                <label class="di-field"><span>State</span><input type="text" id="diMortgageeState"></label>
+                <label class="di-field"><span>ZIP</span><input type="text" id="diMortgageeZip"></label>
+                <label class="di-field"><span>Loan Number</span><input type="text" id="diLoanNumber"></label>
+            </div>
+        </div>
+
+        <!-- Vehicles (dynamic) -->
+        <div class="di-section">
+            <h3 class="di-section-title">Vehicles</h3>
+            <div id="diVehiclesContainer"></div>
+        </div>
+
+        <!-- Drivers (dynamic) -->
+        <div class="di-section">
+            <h3 class="di-section-title">Drivers</h3>
+            <div id="diDriversContainer"></div>
+        </div>
+    </section>
+
+    <!-- Generate / Clear -->
+    <section id="diGenerateSection" class="di-generate-section di-hidden">
+        <button class="di-generate-btn" id="diGenerateBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download .CMSMTF
+        </button>
+        <button class="di-clear-btn" id="diClearBtn">Clear</button>
+    </section>
+</main>
