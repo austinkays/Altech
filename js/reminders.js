@@ -732,7 +732,7 @@ window.Reminders = (() => {
                         <div class="rem-task-meta">
                             <span class="rem-badge rem-badge-${status}">${_escapeHTML(statusLabel)}</span>
                             <span class="rem-badge rem-cat">${_escapeHTML(t.category)}</span>
-                            <span class="rem-badge rem-freq">${t.frequency === 'weekdays' ? 'Mon–Fri' : t.frequency}</span>
+                            <span class="rem-badge rem-freq${['daily','weekdays'].includes(t.frequency) ? ' rem-freq-daily' : ''}">${t.frequency === 'weekdays' ? 'Daily' : t.frequency}</span>
                         </div>
                         ${t.notes ? `<div class="rem-task-notes">${_escapeHTML(t.notes)}</div>` : ''}
                     </div>

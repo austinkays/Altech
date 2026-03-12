@@ -402,6 +402,11 @@
     color: #5856D6;
 }
 
+.rem-freq-daily {
+    background: rgba(255, 149, 0, 0.1);
+    color: #FF9500;
+}
+
 .rem-task-notes {
     font-size: 13px;
     color: var(--text-secondary);
@@ -1032,6 +1037,11 @@ body.dark-mode .rem-cat {
 body.dark-mode .rem-freq {
     background: rgba(94, 92, 230, 0.15);
     color: #BF5AF2;
+}
+
+body.dark-mode .rem-freq-daily {
+    background: rgba(255, 159, 10, 0.15);
+    color: #FF9F0A;
 }
 
 body.dark-mode .rem-check-btn {
