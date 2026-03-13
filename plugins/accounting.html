@@ -36,7 +36,7 @@
             <h3>Set Up Your Vault PIN</h3>
             <p class="acct-pin-hint">Choose a 4–6 digit PIN to protect your account info.</p>
             <input type="password" id="acctPinNew" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Enter PIN" autocomplete="off">
-            <input type="password" id="acctPinConfirm" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Confirm PIN" autocomplete="off">
+            <input type="password" id="acctPinConfirm" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Confirm PIN" autocomplete="off" onkeydown="if(event.key==='Enter')AccountingExport.setupPIN()">
             <button class="btn btn-primary acct-pin-btn" onclick="AccountingExport.setupPIN()">Set PIN</button>
         </div>
     </div>
@@ -49,7 +49,7 @@
             </div>
             <h3>Vault Locked</h3>
             <p class="acct-pin-hint">Enter your PIN to access account info.</p>
-            <input type="password" id="acctPinEntry" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Enter PIN" autocomplete="off">
+            <input type="password" id="acctPinEntry" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Enter PIN" autocomplete="off" onkeydown="if(event.key==='Enter')AccountingExport.unlockVault()">
             <div class="acct-pin-lockout" id="acctPinLockout" style="display:none;"></div>
             <button class="btn btn-primary acct-pin-btn" id="acctPinUnlockBtn" onclick="AccountingExport.unlockVault()">Unlock</button>
             <button class="acct-pin-forgot" onclick="AccountingExport.forgotPIN()">Forgot PIN?</button>
@@ -64,7 +64,7 @@
             </div>
             <h3>Reset Your PIN</h3>
             <p class="acct-pin-hint">Enter your Altech login password to verify your identity.</p>
-            <input type="password" id="acctRecoveryPassword" class="acct-pin-input" placeholder="Altech password" autocomplete="current-password">
+            <input type="password" id="acctRecoveryPassword" class="acct-pin-input" placeholder="Altech password" autocomplete="current-password" onkeydown="if(event.key==='Enter')AccountingExport.verifyRecovery()">
             <button class="btn btn-primary acct-pin-btn" onclick="AccountingExport.verifyRecovery()">Verify &amp; Reset PIN</button>
             <button class="acct-pin-forgot" onclick="AccountingExport._showScreen('lock')">← Back</button>
         </div>

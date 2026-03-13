@@ -127,11 +127,13 @@
 }
 .acct-pin-btn:hover { background: var(--apple-blue-hover); }
 .acct-pin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.acct-pin-link {
+.acct-pin-link,
+.acct-pin-forgot {
     display: inline-block; margin-top: 14px;
     font-size: 13px; color: var(--apple-blue);
     background: none; border: none; cursor: pointer;
     font-family: inherit; text-decoration: underline;
+    padding: 0;
 }
 .acct-pin-lockout {
     display: none; padding: 8px 12px;
