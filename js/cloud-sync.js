@@ -106,6 +106,32 @@ const CloudSync = (() => {
         }
     }
 
+    // ── Trim client history for cloud sync (Firestore 1MB doc limit) ──
+    const _CH_ESSENTIAL_FIELDS = [
+        'firstName', 'lastName', 'dob', 'gender', 'email', 'phone', 'maritalStatus',
+        'coFirstName', 'coLastName', 'coDob', 'coEmail', 'coPhone',
+        'hasCoApplicant', 'coRelationship',
+        'address', 'addrStreet', 'city', 'addrCity', 'state', 'addrState', 'zip', 'addrZip', 'county',
+        'qType', 'priorCarrier', 'priorYears',
+        'dwellingType', 'yrBuilt', 'sqFt', 'roofType', 'constructionType',
+        'dwelling', 'liability', 'deductibleAOP',
+        'bodInjury', 'propDamage', 'compDed', 'collDed',
+        'occupation', 'industry', 'education',
+    ];
+    function _trimClientHistoryForSync(clients) {
+        if (!Array.isArray(clients)) return clients;
+        // Cap at 25 entries for cloud (local keeps 50)
+        const capped = clients.slice(0, 25);
+        return capped.map(entry => {
+            if (!entry || !entry.data) return entry;
+            const slim = {};
+            for (const k of _CH_ESSENTIAL_FIELDS) {
+                if (entry.data[k] != null && entry.data[k] !== '') slim[k] = entry.data[k];
+            }
+            return { id: entry.id, name: entry.name, summary: entry.summary, savedAt: entry.savedAt, data: slim };
+        });
+    }
+
     // ── Read local data ──
     function _getLocalData() {
         const tryParse = (key) => {
@@ -119,7 +145,7 @@ const CloudSync = (() => {
             currentForm: tryParse('altech_v6'),
             quotes: tryParse('altech_v6_quotes'),
             cglState: tryParse('altech_cgl_state'),
-            clientHistory: tryParse('altech_client_history'),
+            clientHistory: _trimClientHistoryForSync(tryParse('altech_client_history')),
             quickRefCards: tryParse('altech_quickref_cards'),
             quickRefNumbers: tryParse('altech_quickref_numbers'),
             reminders: tryParse('altech_reminders'),
