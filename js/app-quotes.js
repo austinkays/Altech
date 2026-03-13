@@ -9,7 +9,34 @@ Object.assign(App, {
 
     getClientHistory() {
         try {
-            return JSON.parse(localStorage.getItem(this.clientHistoryKey)) || [];
+            const raw = JSON.parse(localStorage.getItem(this.clientHistoryKey)) || [];
+            // Deduplicate on load: collapse same-name entries, keep the one with most data
+            const seen = new Map();
+            const deduped = [];
+            for (const c of raw) {
+                const key = (c.name || '').toLowerCase();
+                if (!key) { deduped.push(c); continue; }
+                if (seen.has(key)) {
+                    // Keep whichever has more filled fields
+                    const prev = seen.get(key);
+                    const prevCount = this._countFilledFields(prev.data);
+                    const curCount = this._countFilledFields(c.data);
+                    if (curCount > prevCount) {
+                        // Replace the earlier entry in deduped
+                        const idx = deduped.indexOf(prev);
+                        if (idx >= 0) deduped[idx] = c;
+                        seen.set(key, c);
+                    }
+                } else {
+                    seen.set(key, c);
+                    deduped.push(c);
+                }
+            }
+            // Persist cleanup if duplicates were removed
+            if (deduped.length < raw.length) {
+                safeSave(this.clientHistoryKey, JSON.stringify(deduped));
+            }
+            return deduped;
         } catch (e) {
             console.warn('[ClientHistory] Corrupt JSON:', e);
             return [];
@@ -70,6 +97,20 @@ Object.assign(App, {
         this.toast(`✅ Restored ${client.name}`);
     },
 
+    // Count non-empty values in a data object (for dedup: keep entry with most info)
+    _countFilledFields(data) {
+        if (!data || typeof data !== 'object') return 0;
+        let count = 0;
+        for (const key in data) {
+            const v = data[key];
+            if (v === null || v === undefined || v === '') continue;
+            if (Array.isArray(v)) { if (v.length > 0) count++; }
+            else if (typeof v === 'object') { if (Object.keys(v).length > 0) count++; }
+            else count++;
+        }
+        return count;
+    },
+
     autoSaveClient() {
         const snapshot = JSON.parse(JSON.stringify(this.data || {}));
         const firstName = (snapshot.firstName || '').trim();
@@ -78,23 +119,43 @@ Object.assign(App, {
 
         const clients = this.getClientHistory();
         const name = [firstName, lastName].filter(Boolean).join(' ');
+        const nameLower = name.toLowerCase();
+        const snapshotFieldCount = this._countFilledFields(snapshot);
 
-        // Dedup: update existing entry if same name + address combo
-        const addr = `${snapshot.addrStreet || ''} ${snapshot.addrCity || ''} ${snapshot.addrState || ''}`.trim().toLowerCase();
-        const existingIdx = clients.findIndex(c => {
-            const cName = (c.name || '').toLowerCase();
-            const cAddr = `${c.data.addrStreet || ''} ${c.data.addrCity || ''} ${c.data.addrState || ''}`.trim().toLowerCase();
-            return cName === name.toLowerCase() && addr && cAddr === addr;
-        });
+        // Dedup: find ALL existing entries with the same name (case-insensitive)
+        const matchingIndices = [];
+        for (let i = 0; i < clients.length; i++) {
+            if ((clients[i].name || '').toLowerCase() === nameLower) {
+                matchingIndices.push(i);
+            }
+        }
 
-        if (existingIdx >= 0) {
-            // Update existing entry with latest data
-            clients[existingIdx].data = snapshot;
-            clients[existingIdx].summary = this.getClientSummary(snapshot);
-            clients[existingIdx].savedAt = new Date().toISOString();
-            // Move to top
-            const [updated] = clients.splice(existingIdx, 1);
-            clients.unshift(updated);
+        if (matchingIndices.length > 0) {
+            // Among all existing matches, find the one with the most filled fields
+            let bestIdx = matchingIndices[0];
+            let bestCount = this._countFilledFields(clients[bestIdx].data);
+            for (let j = 1; j < matchingIndices.length; j++) {
+                const idx = matchingIndices[j];
+                const cnt = this._countFilledFields(clients[idx].data);
+                if (cnt > bestCount) { bestCount = cnt; bestIdx = idx; }
+            }
+
+            // Merge: use whichever has more data — current snapshot or best existing
+            const mergedData = snapshotFieldCount >= bestCount ? snapshot : clients[bestIdx].data;
+
+            // Remove ALL matching entries (collapse duplicates)
+            for (let k = matchingIndices.length - 1; k >= 0; k--) {
+                clients.splice(matchingIndices[k], 1);
+            }
+
+            // Re-insert single merged entry at top
+            clients.unshift({
+                id: `ch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                name,
+                summary: this.getClientSummary(mergedData),
+                savedAt: new Date().toISOString(),
+                data: mergedData
+            });
         } else {
             // New client — add to top
             const id = `ch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
