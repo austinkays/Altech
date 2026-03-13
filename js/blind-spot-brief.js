@@ -150,6 +150,8 @@ OUTPUT FORMAT: Return a JSON object (and nothing else) with this structure:
         }
 
         const result = await response.json();
+        console.log('[BSB] API response stop_reason:', result.stop_reason);
+        console.log('[BSB] Content blocks:', result.content?.length, result.content?.map(b => b.type));
 
         // Extract JSON from response content blocks
         let jsonText = '';
@@ -161,6 +163,15 @@ OUTPUT FORMAT: Return a JSON object (and nothing else) with this structure:
             }
         }
 
+        if (!jsonText) {
+            console.error('[BSB] No text content found in response. Full result:', JSON.stringify(result).slice(0, 2000));
+            throw new Error('No text content in API response. stop_reason: ' + (result.stop_reason || 'unknown'));
+        }
+
+        console.log('[BSB] Raw text length:', jsonText.length);
+        console.log('[BSB] Raw text preview:', jsonText.slice(0, 500));
+        if (jsonText.length > 500) console.log('[BSB] Raw text tail:', jsonText.slice(-300));
+
         // Parse JSON — handle markdown code fences
         jsonText = jsonText.trim();
         if (jsonText.startsWith('```')) {
@@ -169,8 +180,11 @@ OUTPUT FORMAT: Return a JSON object (and nothing else) with this structure:
 
         try {
             return JSON.parse(jsonText);
-        } catch {
-            throw new Error('Could not parse analysis results. The AI response may have been incomplete.');
+        } catch (parseErr) {
+            console.error('[BSB] JSON parse failed:', parseErr.message);
+            console.error('[BSB] Attempted to parse (first 1000 chars):', jsonText.slice(0, 1000));
+            console.error('[BSB] Attempted to parse (last 500 chars):', jsonText.slice(-500));
+            throw new Error('Could not parse analysis results — check console for details. stop_reason: ' + (result.stop_reason || 'unknown'));
         }
     }
 
