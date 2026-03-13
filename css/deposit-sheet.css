@@ -319,12 +319,10 @@ body.dark-mode .ds-table thead { background: #2C2C2E; }
 .ds-th-money { text-align: right; }
 
 .ds-table td {
-    padding: 9px 10px;
+    padding: 7px 8px;
     border-bottom: 1px solid var(--border-subtle);
     color: var(--text);
-    vertical-align: middle;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    vertical-align: top;
     white-space: nowrap;
 }
 
@@ -338,6 +336,35 @@ body.dark-mode .ds-table tbody tr:nth-child(even) { background: rgba(255,255,255
     font-variant-numeric: tabular-nums;
 }
 .ds-money-zero { color: var(--text-tertiary); }
+
+/* Merged receipt column (# + date stacked) */
+.ds-td-receipt { white-space: nowrap; }
+.ds-receipt-date {
+    display: block;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.2;
+}
+
+/* Client column (name + merged cust-id) */
+.ds-td-client {
+    white-space: normal;
+    word-break: break-word;
+}
+.ds-client-id {
+    display: block;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.2;
+}
+
+/* Memo column — wrapping allowed */
+.ds-td-memo {
+    white-space: normal;
+    word-break: break-word;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
 
 /* Subtotal footer */
 .ds-subtotal-row td {
@@ -541,7 +568,7 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
         border-radius: 0;
         background: #fff !important;
         border: none !important;
-        table-layout: fixed;
+        table-layout: auto;
     }
 
     .ds-table thead { background: #fff !important; }
@@ -559,25 +586,9 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
         white-space: nowrap;
     }
 
-    .ds-table th:nth-child(1)  { width: 9%; }
-    .ds-table th:nth-child(2)  { width: 7%; }
-    .ds-table th:nth-child(3)  { width: 5%; }
-    .ds-table th:nth-child(4)  { width: 10%; }
-    .ds-table th:nth-child(5)  { width: 7%; }
-    .ds-table th:nth-child(6)  { width: 10%; }
-    .ds-table th:nth-child(7)  { width: 6%; }
-    .ds-table th:nth-child(8)  { width: 6%; }
-    .ds-table th:nth-child(9)  { width: 5%; }
-    .ds-table th:nth-child(10) { width: 5%; }
-    .ds-table th:nth-child(11) { width: 6%; }
-    .ds-table th:nth-child(12) { width: 6%; }
-    .ds-table th:nth-child(13) { width: 12%; }
-    .ds-table th:nth-child(14) { width: 6%; }
-
     .ds-table th,
     .ds-table td {
         word-wrap: break-word;
-        white-space: normal;
         overflow: visible;
     }
 
@@ -586,8 +597,20 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
         font-size: 8pt;
         color: #111 !important;
         border-bottom: 0.25pt solid #ddd !important;
-        vertical-align: middle;
+        vertical-align: top;
         background: #fff !important;
+    }
+
+    .ds-td-client,
+    .ds-td-memo {
+        white-space: normal !important;
+        word-break: break-word;
+    }
+
+    .ds-receipt-date,
+    .ds-client-id {
+        font-size: 6pt;
+        color: #777 !important;
     }
 
     .ds-td-money {

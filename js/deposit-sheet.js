@@ -318,10 +318,25 @@ window.DepositSheetModule = (() => {
     }
 
     function _renderTable(rows) {
-        const visibleCols = KEEP_COLS.filter(c => c !== 'pay method' && rows.some(r => r[c]));
+        const rawCols = KEEP_COLS.filter(c => c !== 'pay method' && rows.some(r => r[c]));
+
+        // Hide money columns where every row is zero
+        const visibleCols = rawCols.filter(c => {
+            if (MONEY_COLS.has(c)) return rows.some(r => _parseMoney(r[c]) !== 0);
+            return true;
+        });
+
+        // Merge columns for a more compact layout
+        const mergeDate = visibleCols.includes('item #') && visibleCols.includes('item date');
+        const mergeId   = visibleCols.includes('name')   && visibleCols.includes('cust id');
+        const columns = visibleCols.filter(c => {
+            if (c === 'item date' && mergeDate) return false;
+            if (c === 'cust id'   && mergeId)   return false;
+            return true;
+        });
 
         const colLabels = {
-            'item #':        'Rcpt #',
+            'item #':        mergeDate ? 'Receipt' : 'Rcpt #',
             'item date':     'Date',
             'cust id':       'ID',
             'name':          'Client',
@@ -342,9 +357,9 @@ window.DepositSheetModule = (() => {
         // Header
         html += `<thead><tr>`;
         html += `<th class="ds-check-col no-print"><input type="checkbox" class="ds-check-all" title="Select all"></th>`;
-        for (const col of visibleCols) {
-            const align = MONEY_COLS.has(col) ? ' class="ds-th-money"' : '';
-            html += `<th${align}>${colLabels[col] || col}</th>`;
+        for (const col of columns) {
+            const cls = MONEY_COLS.has(col) ? ' class="ds-th-money"' : '';
+            html += `<th${cls}>${colLabels[col] || col}</th>`;
         }
         html += `</tr></thead>`;
 
@@ -353,14 +368,23 @@ window.DepositSheetModule = (() => {
         for (const row of rows) {
             html += `<tr>`;
             html += `<td class="ds-check-col no-print"><input type="checkbox" class="ds-row-check"></td>`;
-            for (const col of visibleCols) {
-                const val = row[col] || '';
+            for (const col of columns) {
                 if (MONEY_COLS.has(col)) {
-                    const num = _parseMoney(val);
+                    const num = _parseMoney(row[col]);
                     const cls = num === 0 ? ' class="ds-td-money ds-money-zero"' : ' class="ds-td-money"';
-                    html += `<td${cls}>${num === 0 ? '—' : _fmt(num)}</td>`;
+                    html += `<td${cls}>${num === 0 ? '\u2014' : _fmt(num)}</td>`;
+                } else if (col === 'item #' && mergeDate) {
+                    const n = _esc(row['item #'] || '');
+                    const d = _esc(row['item date'] || '');
+                    html += `<td class="ds-td-receipt">${n}${d ? '<span class="ds-receipt-date">' + d + '</span>' : ''}</td>`;
+                } else if (col === 'name') {
+                    const nm = _esc(row['name'] || '');
+                    const id = mergeId ? _esc(row['cust id'] || '') : '';
+                    html += `<td class="ds-td-client">${nm}${id ? '<span class="ds-client-id">#' + id + '</span>' : ''}</td>`;
+                } else if (col === 'memo') {
+                    html += `<td class="ds-td-memo">${_esc(row[col] || '')}</td>`;
                 } else {
-                    html += `<td>${_esc(val)}</td>`;
+                    html += `<td>${_esc(row[col] || '')}</td>`;
                 }
             }
             html += `</tr>`;
@@ -368,18 +392,12 @@ window.DepositSheetModule = (() => {
         html += `</tbody>`;
 
         // Per-group subtotal row
-        const subtotals = {};
-        for (const col of visibleCols) {
-            if (MONEY_COLS.has(col)) {
-                subtotals[col] = rows.reduce((s, r) => s + _parseMoney(r[col]), 0);
-            }
-        }
         html += `<tfoot><tr class="ds-subtotal-row">`;
         html += `<td class="ds-check-col no-print"></td>`;
-        for (const col of visibleCols) {
+        for (const col of columns) {
             if (MONEY_COLS.has(col)) {
-                const v = subtotals[col];
-                html += `<td class="ds-td-money ds-subtotal-val">${v === 0 ? '—' : _fmt(v)}</td>`;
+                const v = rows.reduce((s, r) => s + _parseMoney(r[col]), 0);
+                html += `<td class="ds-td-money ds-subtotal-val">${v === 0 ? '\u2014' : _fmt(v)}</td>`;
             } else if (col === 'name') {
                 html += `<td class="ds-subtotal-label">Subtotal</td>`;
             } else {
