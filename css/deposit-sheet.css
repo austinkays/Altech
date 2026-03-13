@@ -423,7 +423,7 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
         display: block;
         background: none !important;
         border: none !important;
-        border-bottom: 2pt solid #000 !important;
+        border-bottom: 1pt solid #999 !important;
         border-radius: 0;
         padding: 0 0 4px;
         margin-bottom: 4px;
@@ -435,7 +435,7 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     .ds-meta-count   { font-size: 6pt;  color: #444; font-weight: 600; }
 
     .ds-meta-totals {
-        border-top: 0.5pt solid #999;
+        border-top: 0.5pt solid #bbb;
         padding-top: 3px;
         margin-top: 3px;
         gap: 16px;
@@ -448,7 +448,7 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     .ds-bill-counter {
         background: none !important;
         border: none !important;
-        border-bottom: 1pt solid #000 !important;
+        border-bottom: 0.5pt solid #999 !important;
         border-radius: 0;
         padding: 2px 0 4px;
         margin-bottom: 4px;
@@ -477,7 +477,7 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     .ds-bill-grand       { font-size: 8pt; font-weight: 700; color: #000; }
     .ds-bill-row-total {
         border-left: none;
-        border-top: 0.5pt solid #000;
+        border-top: 0.5pt solid #aaa;
         padding-left: 0;
         padding-top: 2px;
         margin-left: 0;
@@ -488,17 +488,17 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     .ds-group { margin-bottom: 6pt; }
 
     .ds-group-header {
-        background: #000 !important;
+        background: #fff !important;
         border: none !important;
-        border-top: 1pt solid #000 !important;
-        border-bottom: 1.5pt solid #000 !important;
+        border-top: 0.75pt solid #888 !important;
+        border-bottom: 0.75pt solid #888 !important;
         border-radius: 0;
         padding: 3px 3px 2px;
         margin-bottom: 2px;
     }
 
-    .ds-group-label  { font-size: 7pt; color: #fff !important; font-weight: 700; }
-    .ds-group-total  { font-size: 7pt; color: #fff !important; font-weight: 700; }
+    .ds-group-label  { font-size: 7pt; color: #000; font-weight: 700; }
+    .ds-group-total  { font-size: 7pt; color: #000; font-weight: 700; }
 
     /* Table — auto layout, compact */
     .ds-output { overflow: visible !important; }
@@ -524,7 +524,7 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
         letter-spacing: 0.04em;
         padding: 2px 3px;
         color: #000 !important;
-        border-bottom: 1pt solid #000 !important;
+        border-bottom: 0.5pt solid #999 !important;
         border-top: none;
         background: #fff !important;
         white-space: nowrap;
@@ -553,8 +553,8 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
 
     .ds-subtotal-row td {
         background: #fff !important;
-        border-top: 1.5pt solid #000 !important;
-        border-bottom: 1.5pt solid #000 !important;
+        border-top: 0.75pt solid #888 !important;
+        border-bottom: 0.75pt solid #888 !important;
         font-size: 7pt;
         font-weight: 700;
         padding: 2px 3px;
