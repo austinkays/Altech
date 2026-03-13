@@ -172,10 +172,24 @@ OUTPUT FORMAT: Return a JSON object (and nothing else) with this structure:
         console.log('[BSB] Raw text preview:', jsonText.slice(0, 500));
         if (jsonText.length > 500) console.log('[BSB] Raw text tail:', jsonText.slice(-300));
 
-        // Parse JSON — handle markdown code fences
+        // Parse JSON — strip preamble narration and code fences
         jsonText = jsonText.trim();
         if (jsonText.startsWith('```')) {
             jsonText = jsonText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+        }
+
+        // Model often returns thinking/search narration before the JSON object.
+        // Extract the outermost { ... } block.
+        const firstBrace = jsonText.indexOf('{');
+        if (firstBrace > 0) {
+            console.log('[BSB] Stripping', firstBrace, 'chars of preamble narration before JSON');
+            jsonText = jsonText.slice(firstBrace);
+        }
+        // Find the matching closing brace from the end
+        const lastBrace = jsonText.lastIndexOf('}');
+        if (lastBrace >= 0 && lastBrace < jsonText.length - 1) {
+            console.log('[BSB] Trimming', jsonText.length - lastBrace - 1, 'chars after final }');
+            jsonText = jsonText.slice(0, lastBrace + 1);
         }
 
         try {
