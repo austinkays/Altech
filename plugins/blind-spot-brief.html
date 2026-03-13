@@ -1,0 +1,40 @@
+<!-- Blind Spot Brief — Admin-only news analysis -->
+<header class="header-top">
+    <div class="tool-header-brand">
+        <button class="header-home-btn" onclick="App.goHome()" aria-label="Back to dashboard">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h1 class="tool-header-title">Blind Spot Brief</h1>
+        <button class="header-home-btn" onclick="App.toggleDarkMode()" aria-label="Toggle dark mode">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+    </div>
+</header>
+
+<main class="bsb-main">
+    <div class="bsb-intro">
+        <p class="bsb-tagline">Compare left &amp; right media coverage to find what each side isn't telling you.</p>
+    </div>
+
+    <div class="bsb-controls">
+        <div class="bsb-key-row">
+            <label for="bsbApiKey" class="bsb-label">Anthropic API Key</label>
+            <input type="password" id="bsbApiKey" class="bsb-input" placeholder="sk-ant-..." autocomplete="off">
+        </div>
+        <div class="bsb-actions">
+            <button id="bsbRunBtn" class="bsb-run-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Run Analysis
+            </button>
+            <button id="bsbClearBtn" class="bsb-clear-btn hidden">Clear</button>
+        </div>
+    </div>
+
+    <div id="bsbLoader" class="bsb-loader hidden">
+        <div class="bsb-spinner"></div>
+        <p class="bsb-loader-text">Searching news sources and analyzing coverage gaps...</p>
+        <p class="bsb-loader-sub">This typically takes 30–60 seconds</p>
+    </div>
+
+    <div id="bsbResults" class="bsb-results"></div>
+</main>

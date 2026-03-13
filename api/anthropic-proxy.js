@@ -23,7 +23,7 @@ async function handler(req, res) {
     }
 
     try {
-        const { model, system, messages, max_tokens, temperature, apiKey } = req.body || {};
+        const { model, system, messages, max_tokens, temperature, apiKey, tools } = req.body || {};
 
         if (!apiKey) {
             return res.status(400).json({ error: 'Missing Anthropic API key' });
@@ -46,6 +46,7 @@ async function handler(req, res) {
 
         if (system) body.system = system;
         if (typeof temperature === 'number') body.temperature = temperature;
+        if (tools) body.tools = tools;
 
         const response = await fetch(ANTHROPIC_API_URL, {
             method: 'POST',

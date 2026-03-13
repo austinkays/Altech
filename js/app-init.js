@@ -57,6 +57,7 @@ const App = {
         { key: 'tasksheet',    icon: '✅', color: 'icon-green',   title: 'Task Sheet',      name: 'Task Sheet',             containerId: 'taskSheetTool',    initModule: 'TaskSheetModule',   htmlFile: 'plugins/task-sheet.html',  category: 'export' },
         { key: 'depositsheet', icon: '🏦', color: 'icon-green',   title: 'Deposit Sheet',   name: 'Deposit Sheet',          containerId: 'depositSheetTool', initModule: 'DepositSheetModule', htmlFile: 'plugins/deposit-sheet.html', category: 'ops' },
         { key: 'decimport',   icon: '⬇️', color: 'icon-blue',    title: 'PDF to HawkSoft', name: 'PDF to HawkSoft',        containerId: 'decImportTool',    initModule: 'DecImport',          htmlFile: 'plugins/dec-import.html',   category: 'export' },
+        { key: 'blindspot',  icon: '🔒', color: 'icon-red',     title: 'Blind Spot Brief', name: 'Blind Spot Brief',       containerId: 'blindSpotTool',    initModule: 'BlindSpotBrief',     htmlFile: 'plugins/blind-spot-brief.html', category: 'admin', hidden: true },
         // ┌────────────────────────────────────────────────────────────┐
         // │  ADD NEW TOOLS HERE                                        │
         // │  Copy a line above and set: key, icon, color, title,    │

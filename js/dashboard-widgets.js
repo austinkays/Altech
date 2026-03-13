@@ -49,6 +49,7 @@ window.DashboardWidgets = (() => {
         hawk:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8 2 4 5 4 9c0 2 1 4 2.5 5.5L4 22l4-2 4 2 4-2 4 2-2.5-7.5C19 13 20 11 20 9c0-4-4-7-8-7z"/><path d="M12 2 9 8h6L12 2z"/><path d="M9 8c-1 2-1 4 0 6"/><path d="M15 8c1 2 1 4 0 6"/></svg>',
         bug:         '<svg viewBox="0 0 24 24"><path d="M8 2l1.88 1.88M14.12 3.88L16 2M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></svg>',
         edit:        '<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+        lock:        '<svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
     };
 
     // Tool → Lucide icon mapping
@@ -638,6 +639,7 @@ window.DashboardWidgets = (() => {
                     <button class="sidebar-footer-btn sidebar-bug-btn" onclick="BugReport.open()" title="Report a bug" aria-label="Report a bug">
                         ${icon('bug', 18)}
                     </button>
+                    ${typeof Auth !== 'undefined' && Auth.isAdmin ? `<button class="sidebar-footer-btn sidebar-admin-btn" onclick="App.navigateTo('blindspot')" title="Admin Tools" aria-label="Admin tools">${icon('lock', 18)}</button>` : ''}
                     <button class="sidebar-footer-btn" onclick="Auth.showModal()" title="Account" aria-label="Account">
                         ${icon('user', 18)}
                     </button>
