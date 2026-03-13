@@ -435,14 +435,16 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     .ds-meta-count   { font-size: 6pt;  color: #444; font-weight: 600; }
 
     .ds-meta-totals {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4pt 24pt;
         border-top: 0.5pt solid #ddd;
-        padding-top: 3px;
-        margin-top: 3px;
-        gap: 16px;
+        padding-top: 4pt;
+        margin-top: 4pt;
     }
 
-    .ds-meta-total-label { font-size: 6pt; color: #444; text-transform: uppercase; }
-    .ds-meta-total-val   { font-size: 10pt; font-weight: 700; color: #111; }
+    .ds-meta-total-label { font-size: 5.5pt; color: #444; text-transform: uppercase; }
+    .ds-meta-total-val   { font-size: 9pt; font-weight: 700; color: #111; }
 
     /* Bill counter — vertical layout for print */
     .ds-bill-counter {
@@ -512,7 +514,7 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
         border-radius: 0;
         background: #fff !important;
         border: none !important;
-        table-layout: auto;
+        table-layout: fixed;
     }
 
     .ds-table thead { background: #fff !important; }
@@ -530,16 +532,39 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
         white-space: nowrap;
     }
 
+    .ds-table th:nth-child(1)  { width: 9%; }
+    .ds-table th:nth-child(2)  { width: 7%; }
+    .ds-table th:nth-child(3)  { width: 5%; }
+    .ds-table th:nth-child(4)  { width: 10%; }
+    .ds-table th:nth-child(5)  { width: 7%; }
+    .ds-table th:nth-child(6)  { width: 10%; }
+    .ds-table th:nth-child(7)  { width: 6%; }
+    .ds-table th:nth-child(8)  { width: 6%; }
+    .ds-table th:nth-child(9)  { width: 5%; }
+    .ds-table th:nth-child(10) { width: 5%; }
+    .ds-table th:nth-child(11) { width: 6%; }
+    .ds-table th:nth-child(12) { width: 6%; }
+    .ds-table th:nth-child(13) { width: 12%; }
+    .ds-table th:nth-child(14) { width: 6%; }
+
+    .ds-table th,
     .ds-table td {
-        padding: 2px 3px;
+        word-wrap: break-word;
+        white-space: normal;
+        overflow: visible;
+    }
+
+    .ds-table td {
+        padding: 4pt 5pt;
         font-size: 8pt;
         color: #111;
         border-bottom: 0.25pt solid #ddd !important;
         vertical-align: middle;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 200px;
+    }
+
+    .ds-td-money {
+        padding: 4pt 4pt 4pt 2pt !important;
+        font-size: 7.5pt;
     }
 
     .ds-table tbody tr,
