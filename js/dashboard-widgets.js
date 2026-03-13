@@ -639,7 +639,6 @@ window.DashboardWidgets = (() => {
                     <button class="sidebar-footer-btn sidebar-bug-btn" onclick="BugReport.open()" title="Report a bug" aria-label="Report a bug">
                         ${icon('bug', 18)}
                     </button>
-                    ${typeof Auth !== 'undefined' && Auth.isAdmin ? `<button class="sidebar-footer-btn sidebar-admin-btn" onclick="App.navigateTo('blindspot')" title="Admin Tools" aria-label="Admin tools">${icon('lock', 18)}</button>` : ''}
                     <button class="sidebar-footer-btn" onclick="Auth.showModal()" title="Account" aria-label="Account">
                         ${icon('user', 18)}
                     </button>
@@ -884,6 +883,25 @@ window.DashboardWidgets = (() => {
 
     // ── Refresh All Widgets ──
 
+    function _updateAdminButton() {
+        const actions = document.querySelector('.sidebar-footer-actions');
+        if (!actions) return;
+        const existing = actions.querySelector('.sidebar-admin-btn');
+        const isAdmin = typeof Auth !== 'undefined' && Auth.isAdmin;
+        if (isAdmin && !existing) {
+            const btn = document.createElement('button');
+            btn.className = 'sidebar-footer-btn sidebar-admin-btn';
+            btn.onclick = () => App.navigateTo('blindspot');
+            btn.title = 'Admin Tools';
+            btn.setAttribute('aria-label', 'Admin tools');
+            btn.innerHTML = icon('lock', 18);
+            const userBtn = actions.querySelector('[title="Account"]');
+            actions.insertBefore(btn, userBtn);
+        } else if (!isAdmin && existing) {
+            existing.remove();
+        }
+    }
+
     function refreshAll() {
         try { renderGreeting(); } catch (e) { console.error('[DashboardWidgets] renderGreeting error:', e); }
         try { renderRemindersWidget(); } catch (e) { console.error('[DashboardWidgets] renderRemindersWidget error:', e); }
@@ -893,6 +911,7 @@ window.DashboardWidgets = (() => {
         try { renderQuickLaunch(); } catch (e) { console.error('[DashboardWidgets] renderQuickLaunch error:', e); }
         try { updateBadges(); } catch (e) { console.error('[DashboardWidgets] updateBadges error:', e); }
         try { renderHeader(); } catch (e) { console.error('[DashboardWidgets] renderHeader error:', e); }
+        try { _updateAdminButton(); } catch (e) { console.error('[DashboardWidgets] _updateAdminButton error:', e); }
     }
 
     // ── Show/Hide Dashboard ──
