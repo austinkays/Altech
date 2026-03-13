@@ -20,7 +20,17 @@ window.BlindSpotBrief = (() => {
 
     function _getApiKey() {
         try {
-            return localStorage.getItem(API_KEY_STORAGE) || '';
+            // 1. BSB-specific key (user override)
+            const bsbKey = localStorage.getItem(API_KEY_STORAGE);
+            if (bsbKey) return bsbKey;
+            // 2. Fall back to AI Provider settings if it's an Anthropic key
+            if (typeof AIProvider !== 'undefined') {
+                const settings = AIProvider.getSettings();
+                if (settings.apiKey && settings.apiKey.startsWith('sk-ant-')) {
+                    return settings.apiKey;
+                }
+            }
+            return '';
         } catch { return ''; }
     }
 
