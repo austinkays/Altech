@@ -20,46 +20,12 @@
 /* ── Controls ── */
 
 .bsb-controls {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
+    text-align: center;
     margin-bottom: 24px;
 }
 
-.bsb-key-row {
-    margin-bottom: 14px;
-}
-
-.bsb-label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 6px;
-}
-
-.bsb-input {
-    width: 100%;
-    padding: 10px 14px;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-size: 14px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    box-sizing: border-box;
-    transition: border-color 0.2s;
-}
-
-.bsb-input:focus {
-    outline: none;
-    border-color: var(--apple-blue);
-    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
-}
-
 .bsb-actions {
-    display: flex;
+    display: inline-flex;
     gap: 10px;
     align-items: center;
 }
@@ -107,30 +73,34 @@
     background: var(--bg-input);
 }
 
-/* ── Loader ── */
+/* ── Loader / Progress Bar ── */
 
 .bsb-loader {
     text-align: center;
-    padding: 40px 16px;
+    padding: 32px 16px;
 }
 
-.bsb-spinner {
-    width: 36px;
-    height: 36px;
-    border: 3px solid var(--border);
-    border-top-color: var(--apple-blue);
-    border-radius: 50%;
+.bsb-progress-bar {
+    width: 100%;
+    max-width: 420px;
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 3px;
     margin: 0 auto 16px;
-    animation: bsbSpin 0.8s linear infinite;
+    overflow: hidden;
 }
 
-@keyframes bsbSpin {
-    to { transform: rotate(360deg); }
+.bsb-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--apple-blue);
+    border-radius: 3px;
+    transition: width 0.6s ease;
 }
 
-.bsb-loader-text {
+.bsb-progress-step {
     color: var(--text);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     margin: 0 0 6px;
 }

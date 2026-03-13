@@ -10,17 +10,27 @@ window.BlindSpotBrief = (() => {
 
     const API_KEY_STORAGE = 'altech_bsb_apikey';
     let _isLoading = false;
+    let _progressTimer = null;
+
+    const PROGRESS_STEPS = [
+        { pct: 8,  text: 'Searching left-leaning outlets...' },
+        { pct: 22, text: 'Searching right-leaning outlets...' },
+        { pct: 40, text: 'Cross-referencing coverage...' },
+        { pct: 55, text: 'Identifying blind spots...' },
+        { pct: 70, text: 'Verifying sources...' },
+        { pct: 82, text: 'Compiling analysis...' },
+        { pct: 92, text: 'Formatting results...' }
+    ];
 
     function init() {
         _wireEvents();
-        _restoreApiKey();
     }
 
     // ── API Key Management ──
 
     function _getApiKey() {
         try {
-            // 1. BSB-specific key (user override)
+            // 1. BSB-specific key (user override via localStorage)
             const bsbKey = localStorage.getItem(API_KEY_STORAGE);
             if (bsbKey) return bsbKey;
             // 2. Fall back to AI Provider settings if it's an Anthropic key
@@ -34,23 +44,11 @@ window.BlindSpotBrief = (() => {
         } catch { return ''; }
     }
 
-    function _saveApiKey(key) {
-        try { localStorage.setItem(API_KEY_STORAGE, key); } catch {}
-    }
-
-    function _restoreApiKey() {
-        const input = document.getElementById('bsbApiKey');
-        if (input) input.value = _getApiKey();
-    }
-
     // ── Event Wiring ──
 
     function _wireEvents() {
         const runBtn = document.getElementById('bsbRunBtn');
         if (runBtn) runBtn.addEventListener('click', _run);
-
-        const keyInput = document.getElementById('bsbApiKey');
-        if (keyInput) keyInput.addEventListener('change', () => _saveApiKey(keyInput.value.trim()));
 
         const clearBtn = document.getElementById('bsbClearBtn');
         if (clearBtn) clearBtn.addEventListener('click', _clearResults);
@@ -63,7 +61,7 @@ window.BlindSpotBrief = (() => {
 
         const apiKey = _getApiKey();
         if (!apiKey || !apiKey.startsWith('sk-ant-')) {
-            App.toast('Enter a valid Anthropic API key (starts with sk-ant-)', 'error');
+            App.toast('Set an Anthropic API key in Settings → AI Provider first', 'error');
             return;
         }
 
@@ -139,7 +137,7 @@ OUTPUT FORMAT: Return a JSON object (and nothing else) with this structure:
             body: JSON.stringify({
                 apiKey,
                 model: 'claude-sonnet-4-20250514',
-                max_tokens: 16000,
+                max_tokens: 32000,
                 system: systemPrompt,
                 tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 20 }],
                 messages: [{ role: 'user', content: userMessage }]
@@ -257,6 +255,43 @@ OUTPUT FORMAT: Return a JSON object (and nothing else) with this structure:
         const runBtn = document.getElementById('bsbRunBtn');
         if (loader) loader.classList.toggle('hidden', !show);
         if (runBtn) runBtn.disabled = show;
+
+        if (show) {
+            _startProgressSteps();
+        } else {
+            _stopProgressSteps();
+        }
+    }
+
+    function _startProgressSteps() {
+        let idx = 0;
+        _updateProgress(PROGRESS_STEPS[0].pct, PROGRESS_STEPS[0].text);
+
+        _progressTimer = setInterval(() => {
+            idx++;
+            if (idx < PROGRESS_STEPS.length) {
+                _updateProgress(PROGRESS_STEPS[idx].pct, PROGRESS_STEPS[idx].text);
+            } else {
+                // Hold at last step — real completion will clear it
+                clearInterval(_progressTimer);
+                _progressTimer = null;
+            }
+        }, 8000); // ~8s per step, 7 steps ≈ 56s total
+    }
+
+    function _stopProgressSteps() {
+        if (_progressTimer) {
+            clearInterval(_progressTimer);
+            _progressTimer = null;
+        }
+        _updateProgress(100, 'Done!');
+    }
+
+    function _updateProgress(pct, text) {
+        const fill = document.getElementById('bsbProgressFill');
+        const step = document.getElementById('bsbProgressStep');
+        if (fill) fill.style.width = pct + '%';
+        if (step) step.textContent = text;
     }
 
     function _showError(msg) {
