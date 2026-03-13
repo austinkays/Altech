@@ -9,6 +9,7 @@ window.BlindSpotBrief = (() => {
     'use strict';
 
     const API_KEY_STORAGE = 'altech_bsb_apikey';
+    const CACHE_KEY = 'altech_bsb_cache';
     let _isLoading = false;
     let _progressTimer = null;
 
@@ -24,6 +25,7 @@ window.BlindSpotBrief = (() => {
 
     function init() {
         _wireEvents();
+        _restoreCache();
     }
 
     // ── API Key Management ──
@@ -71,6 +73,7 @@ window.BlindSpotBrief = (() => {
 
         try {
             const data = await _callApi(apiKey);
+            _saveCache(data);
             _renderResults(data);
         } catch (err) {
             _showError(err.message || 'Analysis failed');
@@ -98,8 +101,8 @@ RULES:
 3. Only include genuine blind spots — not just different framing of the same story
 4. If both sides cover a story but with different emphasis, note that separately
 5. Back every claim with a specific source and URL
-6. Aim for 3-5 blind spots per side
-7. Include 1-3 stories both sides ARE covering (for contrast)
+6. Aim for 5-8 blind spots per side — the more the better
+7. Include 3-5 stories both sides ARE covering but framing differently (for contrast)
 
 OUTPUT FORMAT: Return a JSON object (and nothing else) with this structure:
 {
@@ -136,7 +139,7 @@ OUTPUT FORMAT: Return a JSON object (and nothing else) with this structure:
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 apiKey,
-                model: 'claude-sonnet-4-20250514',
+                model: 'claude-haiku-4-20250514',
                 max_tokens: 32000,
                 system: systemPrompt,
                 tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 20 }],
@@ -204,15 +207,16 @@ OUTPUT FORMAT: Return a JSON object (and nothing else) with this structure:
 
     // ── Rendering ──
 
-    function _renderResults(data) {
+    function _renderResults(data, cachedTs) {
         const container = document.getElementById('bsbResults');
         if (!container) return;
 
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const d = cachedTs ? new Date(cachedTs) : new Date();
+        const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const label = cachedTs ? 'Cached from' : 'Generated';
 
-        let html = `<div class="bsb-date">Generated ${dateStr} at ${timeStr}</div>`;
+        let html = `<div class="bsb-date">${label} ${dateStr} at ${timeStr}</div>`;
 
         // Left blind spots (stories the LEFT is missing)
         if (data.leftBlindSpots?.length) {
@@ -333,6 +337,24 @@ OUTPUT FORMAT: Return a JSON object (and nothing else) with this structure:
         const container = document.getElementById('bsbResults');
         if (container) container.innerHTML = '';
         document.getElementById('bsbClearBtn')?.classList.add('hidden');
+    }
+
+    // ── Cache ──
+
+    function _saveCache(data) {
+        try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+        } catch (e) { console.warn('[BSB] Cache save failed:', e); }
+    }
+
+    function _restoreCache() {
+        try {
+            const raw = localStorage.getItem(CACHE_KEY);
+            if (!raw) return;
+            const { ts, data } = JSON.parse(raw);
+            if (!data || !ts) return;
+            _renderResults(data, ts);
+        } catch (e) { console.warn('[BSB] Cache restore failed:', e); }
     }
 
     // ── Escaping ──
