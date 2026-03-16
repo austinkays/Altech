@@ -2494,7 +2494,7 @@ const ComplianceDashboard = {
 
     getStatusLabel(daysUntilExpiration) {
         if (daysUntilExpiration < 0) return `Expired ${Math.abs(daysUntilExpiration)} days ago`;
-        if (daysUntilExpiration === 0) return 'Expires today';
+        if (daysUntilExpiration === 0) return 'Expired today';
         if (daysUntilExpiration === 1) return 'Expires tomorrow';
         return `${daysUntilExpiration} days`;
     },
