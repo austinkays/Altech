@@ -783,6 +783,25 @@ Object.assign(App, {
         }
         kvTable(pdfPriorRows, 2, 10); }
 
+
+        // ─── Additional Notes (PDF-only) ──────────────────────
+        const pdfNotes = v('pdfNotes');
+        if (pdfNotes && pdfNotes.trim()) {
+            checkPage(30);
+            sectionHeader('Notes');
+            const notesMargin = 14;
+            const notesMaxW = pageW - notesMargin * 2;
+            doc.setFontSize(9);
+            doc.setTextColor(...C.body);
+            const wrappedLines = doc.splitTextToSize(pdfNotes.trim(), notesMaxW);
+            wrappedLines.forEach(line => {
+                checkPage(6);
+                doc.text(line, notesMargin, y);
+                y += 5;
+            });
+            y += 4;
+        }
+
         // â”€â”€â”€ Footer on every page â”€â”€â”€
         drawFooter();
 

@@ -2066,6 +2066,18 @@
 
         <!-- STEP 6: REVIEW & EXPORT -->
         <div id="step-6" class="step hidden">
+            <!-- Additional Notes (PDF only) -->
+            <div class="card">
+                <h2>Additional Notes</h2>
+                <p class="section-subtitle">Optional notes for the PDF export only — not sent to HawkSoft or EZLynx</p>
+                <div>
+                    <label class="label" for="pdfNotes">Notes</label>
+                    <textarea id="pdfNotes" rows="4" placeholder="Any additional context, underwriting notes, or reminders for this client..."
+                        oninput="App.save(event)"
+                        style="width:100%;resize:vertical;"></textarea>
+                </div>
+            </div>
+
             <!-- Hero Export Card -->
             <div class="card export-card hero-export" id="ezlynx-export-card">
                 <h3>✓ Intake Complete</h3>
