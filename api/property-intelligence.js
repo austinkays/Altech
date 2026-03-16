@@ -1233,9 +1233,11 @@ async function handler(req, res) {
         return await handleFireStation(req, res);
       case 'rag-interpret':
         return await ragHandler(req, res);
+      case 'validate-address':
+        return await handleValidateAddress(req, res);
       default:
         return res.status(400).json({
-          error: `Invalid mode "${mode}". Use ?mode=arcgis|satellite|zillow|firestation|rag-interpret`
+          error: `Invalid mode "${mode}". Use ?mode=arcgis|satellite|zillow|firestation|rag-interpret|validate-address`
         });
     }
   } catch (error) {
@@ -1245,6 +1247,76 @@ async function handler(req, res) {
       details: error.message
     });
   }
+}
+
+// ===========================================================================
+// ADDRESS VALIDATION (Google Address Validation API)
+// ===========================================================================
+async function handleValidateAddress(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const { address } = req.body || {};
+  if (!address || typeof address !== 'string' || !address.trim()) {
+    return res.status(400).json({ error: 'address is required' });
+  }
+  const apiKey = getMapsApiKey();
+  if (!apiKey) return res.status(500).json({ error: 'Google API key not configured' });
+  let raw;
+  try {
+    const response = await fetch(
+      `https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: { addressLines: [address.trim()] } })
+      }
+    );
+    raw = await response.json();
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: raw.error?.message || 'Address Validation API error'
+      });
+    }
+  } catch (fetchErr) {
+    return res.status(502).json({ error: 'Failed to reach Address Validation API', details: fetchErr.message });
+  }
+  const verdict = raw.result?.verdict || {};
+  const addr = raw.result?.address || {};
+  const comps = addr.addressComponents || [];
+  const deliverability = verdict.deliverability || 'UNKNOWN';
+  const missing = comps
+    .filter(c => c.confirmationLevel === 'UNCONFIRMED_AND_SUSPICIOUS')
+    .map(c => c.componentType);
+  const unconfirmed = comps
+    .filter(c => c.confirmationLevel === 'UNCONFIRMED_BUT_PLAUSIBLE')
+    .map(c => c.componentType);
+  const inferred = comps
+    .filter(c => c.inferred)
+    .map(c => c.componentType);
+  let likelyReturnReason;
+  if (missing.includes('subpremise') || unconfirmed.includes('subpremise')) {
+    likelyReturnReason = 'Missing or incorrect unit number — address needs an apartment, suite, or unit number';
+  } else if (deliverability === 'UNDELIVERABLE') {
+    likelyReturnReason = 'Address not recognized — street number may not exist or street name may be incorrect';
+  } else if (inferred.includes('street_number')) {
+    likelyReturnReason = 'Street number could not be confirmed — may be invalid for this street';
+  } else if (comps.some(c => c.componentType === 'post_box')) {
+    likelyReturnReason = 'PO Box address — USPS may not deliver carrier route mail here';
+  } else if (deliverability === 'POSSIBLY_DELIVERABLE' && unconfirmed.length) {
+    likelyReturnReason = 'Address is incomplete or ambiguous — missing details that USPS requires';
+  } else if (deliverability === 'DELIVERABLE' && verdict.addressComplete) {
+    likelyReturnReason = 'Address appears valid — return reason may be occupant-related (moved, refused, unknown)';
+  } else {
+    likelyReturnReason = 'Could not determine return reason — review address manually';
+  }
+  return res.status(200).json({
+    standardizedAddress: addr.formattedAddress || address.trim(),
+    deliverability,
+    missingComponents: missing,
+    unconfirmedComponents: unconfirmed,
+    inferredComponents: inferred,
+    likelyReturnReason,
+    rawVerdict: verdict
+  });
 }
 
 export default securityMiddleware(handler);

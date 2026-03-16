@@ -1,0 +1,602 @@
+/* ═══════════════════════════════════════════════════════════════
+   Returned Mail Tracker — css/returned-mail.css
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Layout ─────────────────────────────────────────────────── */
+.rmt-main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 24px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ── Section Card ────────────────────────────────────────────── */
+.rmt-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+}
+
+.rmt-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 12px;
+}
+
+.rmt-section-title-inline {
+    margin-bottom: 0;
+}
+
+.rmt-section-hint {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: -6px 0 12px;
+}
+
+/* ── Header Button ───────────────────────────────────────────── */
+.rmt-header-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.rmt-header-btn:hover {
+    background: var(--bg-input);
+    border-color: var(--apple-blue);
+}
+
+/* ── Inputs ──────────────────────────────────────────────────── */
+.rmt-input,
+.rmt-select,
+.rmt-textarea {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+    font-family: inherit;
+}
+
+.rmt-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+}
+
+.rmt-input:focus,
+.rmt-select:focus,
+.rmt-textarea:focus {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+}
+
+.rmt-textarea {
+    resize: vertical;
+    min-height: 64px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.rmt-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--apple-blue);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.rmt-btn-primary:hover {
+    background: var(--apple-blue-hover);
+}
+
+.rmt-btn-primary:active {
+    transform: scale(0.97);
+}
+
+.rmt-btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.rmt-btn-ghost:hover {
+    background: var(--bg-input);
+    color: var(--text);
+}
+
+/* ── Validator Row ───────────────────────────────────────────── */
+.rmt-validator-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.rmt-validator-row .rmt-input {
+    flex: 1;
+}
+
+/* ── Validation Result Card ──────────────────────────────────── */
+.rmt-validation-card {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+}
+
+.rmt-validation-card.rmt-v-deliverable {
+    border-color: rgba(52, 199, 89, 0.4);
+    background: rgba(52, 199, 89, 0.07);
+}
+
+.rmt-validation-card.rmt-v-possible {
+    border-color: rgba(255, 159, 10, 0.4);
+    background: rgba(255, 159, 10, 0.07);
+}
+
+.rmt-validation-card.rmt-v-undeliverable {
+    border-color: rgba(255, 59, 48, 0.4);
+    background: rgba(255, 59, 48, 0.07);
+}
+
+.rmt-validation-error {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: rgba(255, 59, 48, 0.08);
+    border: 1px solid rgba(255, 59, 48, 0.3);
+    border-radius: 8px;
+    color: var(--danger);
+    font-size: 13px;
+}
+
+.rmt-validation-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.rmt-deliverability-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.rmt-badge-DELIVERABLE {
+    background: rgba(52, 199, 89, 0.15);
+    color: #1a7a38;
+}
+
+.rmt-badge-POSSIBLY_DELIVERABLE {
+    background: rgba(255, 159, 10, 0.15);
+    color: #a05a00;
+}
+
+.rmt-badge-UNDELIVERABLE {
+    background: rgba(255, 59, 48, 0.15);
+    color: #c0392b;
+}
+
+.rmt-badge-UNKNOWN {
+    background: rgba(142, 142, 147, 0.15);
+    color: var(--text-secondary);
+}
+
+.rmt-std-address {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 6px;
+}
+
+.rmt-return-reason-hint {
+    font-size: 13px;
+    color: var(--text);
+    margin: 0 0 10px;
+    line-height: 1.45;
+}
+
+.rmt-v-warning {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 4px 0 0;
+}
+
+.rmt-use-addr-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.1);
+    border: 1px solid rgba(0, 122, 255, 0.25);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.rmt-use-addr-btn:hover {
+    background: rgba(0, 122, 255, 0.18);
+}
+
+/* ── Form Grid ───────────────────────────────────────────────── */
+.rmt-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.rmt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.rmt-field-wide {
+    grid-column: span 2;
+}
+
+.rmt-field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.rmt-required {
+    color: var(--danger);
+}
+
+.rmt-form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+/* ── Table Toolbar ───────────────────────────────────────────── */
+.rmt-table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.rmt-table-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.rmt-search {
+    width: 220px;
+}
+
+.rmt-filter {
+    width: 150px;
+}
+
+.rmt-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 20px;
+    padding: 0 7px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--apple-blue);
+    border-radius: 100px;
+    margin-left: 4px;
+}
+
+/* ── Table ───────────────────────────────────────────────────── */
+.rmt-table-wrap {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.rmt-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.rmt-table thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.rmt-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+}
+
+.rmt-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.rmt-table tbody tr:hover {
+    background: var(--bg-input);
+}
+
+.rmt-table td {
+    padding: 10px 14px;
+    color: var(--text);
+    vertical-align: top;
+}
+
+.rmt-td-addr {
+    max-width: 200px;
+    word-break: break-word;
+}
+
+.rmt-td-notes {
+    max-width: 200px;
+    color: var(--text-secondary);
+    word-break: break-word;
+}
+
+.rmt-td-actions {
+    white-space: nowrap;
+}
+
+/* ── Status Badges ───────────────────────────────────────────── */
+.rmt-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.rmt-s-pending {
+    background: rgba(255, 159, 10, 0.12);
+    color: #a05a00;
+}
+
+.rmt-s-contacted {
+    background: rgba(0, 122, 255, 0.12);
+    color: #004db3;
+}
+
+.rmt-s-resolved {
+    background: rgba(52, 199, 89, 0.12);
+    color: #1a7a38;
+}
+
+/* ── Icon Action Buttons ─────────────────────────────────────── */
+.rmt-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.rmt-icon-btn:hover {
+    background: var(--bg-input);
+    color: var(--text);
+    border-color: var(--apple-blue);
+}
+
+.rmt-icon-btn-danger:hover {
+    background: rgba(255, 59, 48, 0.1);
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+/* ── Empty State ─────────────────────────────────────────────── */
+.rmt-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.rmt-empty-icon {
+    opacity: 0.3;
+    margin-bottom: 12px;
+}
+
+.rmt-empty p {
+    margin: 0 0 4px;
+    font-size: 14px;
+}
+
+.rmt-empty-sub {
+    font-size: 12px !important;
+    opacity: 0.7;
+}
+
+/* ── Dark Mode Overrides ─────────────────────────────────────── */
+body.dark-mode .rmt-validation-card.rmt-v-deliverable {
+    border-color: rgba(50, 215, 75, 0.3);
+    background: rgba(50, 215, 75, 0.08);
+}
+
+body.dark-mode .rmt-validation-card.rmt-v-possible {
+    border-color: rgba(255, 159, 10, 0.3);
+    background: rgba(255, 159, 10, 0.08);
+}
+
+body.dark-mode .rmt-validation-card.rmt-v-undeliverable {
+    border-color: rgba(255, 69, 58, 0.3);
+    background: rgba(255, 69, 58, 0.08);
+}
+
+body.dark-mode .rmt-badge-DELIVERABLE {
+    color: #32d74b;
+    background: rgba(50, 215, 75, 0.15);
+}
+
+body.dark-mode .rmt-badge-POSSIBLY_DELIVERABLE {
+    color: #ff9f0a;
+    background: rgba(255, 159, 10, 0.15);
+}
+
+body.dark-mode .rmt-badge-UNDELIVERABLE {
+    color: #ff453a;
+    background: rgba(255, 69, 58, 0.15);
+}
+
+body.dark-mode .rmt-s-pending {
+    color: #ff9f0a;
+    background: rgba(255, 159, 10, 0.15);
+}
+
+body.dark-mode .rmt-s-contacted {
+    color: #0a84ff;
+    background: rgba(10, 132, 255, 0.15);
+}
+
+body.dark-mode .rmt-s-resolved {
+    color: #32d74b;
+    background: rgba(50, 215, 75, 0.15);
+}
+
+body.dark-mode .rmt-validation-error {
+    background: rgba(255, 69, 58, 0.1);
+    border-color: rgba(255, 69, 58, 0.3);
+}
+
+body.dark-mode .rmt-use-addr-btn {
+    color: #0a84ff;
+    background: rgba(10, 132, 255, 0.12);
+    border-color: rgba(10, 132, 255, 0.3);
+}
+
+body.dark-mode .rmt-use-addr-btn:hover {
+    background: rgba(10, 132, 255, 0.2);
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 767px) {
+    .rmt-main {
+        padding: 12px 14px 40px;
+    }
+
+    .rmt-section {
+        padding: 16px;
+    }
+
+    .rmt-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rmt-field-wide {
+        grid-column: span 1;
+    }
+
+    .rmt-validator-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .rmt-table-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .rmt-table-controls {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .rmt-search,
+    .rmt-filter {
+        width: 100%;
+    }
+}
+
+/* ── Print ───────────────────────────────────────────────────── */
+@media print {
+    .rmt-validator-section,
+    .rmt-form-section,
+    .rmt-table-controls,
+    .rmt-td-actions,
+    .rmt-header-btn {
+        display: none !important;
+    }
+
+    .rmt-main {
+        padding: 0;
+    }
+
+    .rmt-section {
+        border: none;
+        padding: 0;
+    }
+
+    .rmt-table {
+        font-size: 11px;
+    }
+}
