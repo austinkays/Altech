@@ -632,6 +632,10 @@ Object.assign(App, {
         if (curId === 'step-4') {
             // Sync primary applicant into driver list (creates if absent, updates locked fields)
             this.syncPrimaryApplicantToDriver();
+            // Also re-sync co-applicant profile (marital, industry/occupation, education)
+            if (this.data.hasCoApplicant === 'yes') {
+                this.syncCoApplicantToDriver({ skipRender: true });
+            }
 
             // Migrate global driving history to Driver 1 (one-time: moves data.accidents/violations/studentGPA)
             if (this.drivers.length > 0) {
@@ -1168,6 +1172,21 @@ Object.assign(App, {
      * Locks Name, DOB, Gender, Marital Status — other fields stay editable.
      * Mirrors the co-applicant sync pattern but uses isPrimaryApplicant flag.
      */
+    // Maps Step 1 education values (verbose) to the shorter driver-card select values.
+    _mapEducationToDriverCard(val) {
+        const map = {
+            'No High School Diploma': 'No High School',
+            'High School Diploma':    'High School',
+            'Some College - No Degree': 'Some College',
+            'Vocational/Technical Degree': 'Some College',
+            'Associates Degree': 'Associates',
+            'Phd':            'Doctorate',
+            'Medical Degree': 'Doctorate',
+            'Law Degree':     'Doctorate',
+        };
+        return map[val] || val;  // 'Bachelors' / 'Masters' pass through unchanged
+    },
+
     syncPrimaryApplicantToDriver() {
         const first = (this.data.firstName || '').trim();
         const last = (this.data.lastName || '').trim();
@@ -1175,7 +1194,6 @@ Object.assign(App, {
         const gender = (this.data.gender || '').trim();
         const marital = (this.data.maritalStatus || '').trim();
         const education = (this.data.education || '').trim();
-        const occupation = (this.data.occupation || '').trim();
         const industry = (this.data.industry || '').trim();
 
         // Find existing synced driver or create one
@@ -1201,8 +1219,8 @@ Object.assign(App, {
         synced.dob = dob;
         synced.gender = gender;
         synced.maritalStatus = marital;
-        synced.education = education;
-        synced.occupation = occupation;
+        synced.education = this._mapEducationToDriverCard(education);
+        synced.occupation = industry;  // industry category → driver's "Occupation Industry" dropdown
         synced.industry = industry;
     },
 
@@ -1232,9 +1250,12 @@ Object.assign(App, {
 
     /**
      * Syncs co-applicant form data to a paired driver entry.
-     * Only locks Name, DOB, Gender — other fields (DL status, etc.) stay editable.
+     * Locks Name, DOB, Gender, Relationship, MaritalStatus, Occupation (Industry), Education.
+     * @param {object} [options]
+     * @param {boolean} [options.skipRender=false] Skip renderDrivers/Vehicles calls (used when
+     *   the caller will render immediately after, e.g. updateUI step-4 block).
      */
-    syncCoApplicantToDriver() {
+    syncCoApplicantToDriver(options = {}) {
         const coFirst = (this.data.coFirstName || '').trim();
         const coLast = (this.data.coLastName || '').trim();
         const coDob = (this.data.coDob || '').trim();
@@ -1266,16 +1287,22 @@ Object.assign(App, {
 
         const coMarital = (this.data.coMaritalStatus || '').trim();
         const coEducation = (this.data.coEducation || '').trim();
-        const coOccupation = (this.data.coOccupation || '').trim();
         const coIndustry = (this.data.coIndustry || '').trim();
+        // Only overwrite when Step 1 has a value — don't wipe existing driver card data with empty.
+        // Fields are locked in LOCKED_FIELDS so user cannot manually override via driver card UI.
         if (coMarital) synced.maritalStatus = coMarital;
-        if (coEducation) synced.education = coEducation;
-        if (coOccupation) synced.occupation = coOccupation;
-        if (coIndustry) synced.industry = coIndustry;
+        if (coEducation) synced.education = this._mapEducationToDriverCard(coEducation);
+        if (coIndustry) {
+            synced.occupation = coIndustry;  // industry category → driver's "Occupation Industry" dropdown
+            synced.industry = coIndustry;
+        }
 
-        this.renderDrivers();
-        this.renderVehicles();
-        this.saveDriversVehicles();
+        const { skipRender = false } = options;
+        if (!skipRender) {
+            this.renderDrivers();
+            this.renderVehicles();
+            this.saveDriversVehicles();
+        }
     },
 
     restoreCoApplicantUI() {

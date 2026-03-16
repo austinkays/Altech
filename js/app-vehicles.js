@@ -51,7 +51,7 @@ Object.assign(App, {
         const driver = this.drivers.find(d => d.id === id);
         if (driver) {
             // Prevent manual overwrite of synced co-applicant locked fields
-            const LOCKED_FIELDS = ['firstName', 'lastName', 'dob', 'gender', 'relationship'];
+            const LOCKED_FIELDS = ['firstName', 'lastName', 'dob', 'gender', 'relationship', 'maritalStatus', 'occupation', 'education'];
             if ((driver.isCoApplicant || driver.isPrimaryApplicant) && LOCKED_FIELDS.includes(field)) return;
             // Normalize license # and state to uppercase
             if (field === 'dlNum' || field === 'dlState') value = (value || '').toUpperCase();
