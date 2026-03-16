@@ -719,6 +719,11 @@ describe('Altech App Tests', () => {
   // ════════════════════════════════════════
 
   describe('Co-Applicant Driver Sync', () => {
+    beforeEach(() => {
+      // Ensure no leftover co-applicant driver from any earlier test can contaminate
+      if (App.drivers) App.drivers = App.drivers.filter(d => !d.isCoApplicant);
+    });
+
     test('syncCoApplicantToDriver creates a synced driver', () => {
       if (typeof App.syncCoApplicantToDriver !== 'function') return;
       App.data.coFirstName = 'Sarah';

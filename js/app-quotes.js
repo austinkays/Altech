@@ -148,9 +148,10 @@ Object.assign(App, {
                 clients.splice(matchingIndices[k], 1);
             }
 
-            // Re-insert single merged entry at top
+            // Re-insert single merged entry at top — preserve the existing ID so step-0
+            // delete buttons (which capture the ID at render time) never go stale.
             clients.unshift({
-                id: `ch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                id: clients[bestIdx].id,
                 name,
                 summary: this.getClientSummary(mergedData),
                 savedAt: new Date().toISOString(),
@@ -172,6 +173,7 @@ Object.assign(App, {
         if (clients.length > 50) clients.length = 50;
         this.saveClientHistory(clients);
         this.renderClientHistory();
+        this.renderStep0ClientHistory(); // Keep step-0 delete buttons in sync with current IDs
         // Schedule cloud sync
         if (typeof CloudSync !== 'undefined') {
             try { CloudSync.schedulePush(); } catch(e) { /* ok */ }
