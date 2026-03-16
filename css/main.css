@@ -624,8 +624,15 @@ textarea.auto-filled:focus {
 .grid-addr-row1 > div > select,
 .grid-addr-row2 > div > input,
 .grid-addr-row2 > div > select { margin-bottom: 0; width: 100%; }
+.grid-addr-csz { display: grid; grid-template-columns: 1fr 60px 90px; gap: 10px; align-items: start; }
+.grid-addr-csz > div { display: flex; flex-direction: column; }
+.grid-addr-csz > div > .label { margin-bottom: 4px; text-align: left; }
+.grid-addr-csz > div > input,
+.grid-addr-csz > div > select { margin-bottom: 0; width: 100%; }
+.primary-home-notice { background: var(--bg-input); border-left: 3px solid var(--apple-blue); color: var(--text-secondary); font-size: 12px; padding: 8px 12px; border-radius: 6px; margin: 10px 0 14px; }
 @media (max-width: 520px) {
     .grid-addr-row2 { grid-template-columns: 1fr 1fr; }
+    .grid-addr-csz { grid-template-columns: 1fr 1fr; }
 }
 
 /* ─── Property 2-Column Layout ─── */

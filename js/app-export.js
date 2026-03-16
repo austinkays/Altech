@@ -530,6 +530,19 @@ Object.assign(App, {
             ['Years at Address', v('yearsAtAddress')],
         ], 3); }
 
+        // ── Primary Home Address (non-primary residences only) ──────────
+        if (v('dwellingUsage') && v('dwellingUsage') !== 'Primary' &&
+            (v('primaryHomeAddr') || v('primaryHomeCity'))) {
+            checkPage(20);
+            sectionHeader("Client's Primary Home Address");
+            kvTable([
+                ['Street Address', v('primaryHomeAddr')],
+                ['City', v('primaryHomeCity')],
+                ['State', v('primaryHomeState')],
+                ['ZIP Code', v('primaryHomeZip')],
+            ], 3);
+        }
+
         if (showHome) {
             // ── Property Details ─────────────────────────────────────
             { sectionHeader('Property Details');

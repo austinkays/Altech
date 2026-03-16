@@ -342,6 +342,13 @@ Object.assign(App, {
             });
         }
 
+        // Dwelling Usage → primary home address progressive disclosure
+        document.body.addEventListener('change', (e) => {
+            if (e.target.id === 'dwellingUsage') {
+                this.updatePrimaryHomeSection(e.target.value);
+            }
+        });
+
         // Map previews: update when address fields change (guard: app-property.js may not be loaded)
         if (typeof this.scheduleMapPreviewUpdate === 'function') {
             ['addrStreet', 'addrCity', 'addrState', 'addrZip'].forEach(id => {
@@ -923,6 +930,7 @@ Object.assign(App, {
         this.handleType();
         this.updateNamePronunciationUI();
         this.restoreCoApplicantUI();
+        this.updatePrimaryHomeSection(this.data.dwellingUsage);
         this.restorePrimaryApplicantUI();
         this.syncSegmentedControls();
         // Refresh dynamic occupation dropdown for loaded industry
@@ -1140,6 +1148,12 @@ Object.assign(App, {
         // Close the other popup
         const other = document.getElementById(which === 'first' ? 'pronPopupLast' : 'pronPopupFirst');
         if (other) other.classList.remove('active');
+    },
+
+    updatePrimaryHomeSection(val) {
+        const section = document.getElementById('primaryHomeSection');
+        if (!section) return;
+        section.classList.toggle('hidden', !val || val === 'Primary');
     },
 
     toggleCoApplicant() {
