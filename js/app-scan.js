@@ -768,7 +768,7 @@ Object.assign(App, {
                 'Below is text extracted from an insurance policy document. Extract ALL available structured information from it.\n\n' +
                 '**POLICYHOLDER/INSURED:** Prefix (Mr/Mrs/Ms/Dr), first name, last name, suffix (Jr/Sr/III), date of birth, gender (M/F), marital status, phone, email, education, occupation, industry\n' +
                 '**CO-APPLICANT/SPOUSE:** First name, last name, date of birth, gender, email, phone, relationship (if listed)\n' +
-                '**ADDRESS:** Street address, city, state (2-letter code), ZIP, county, years at address\n' +
+                '**ADDRESS:** For home/property policies, extract the **property/risk location address** (the physical location of the insured dwelling) — NOT the insured\'s mailing address if the two differ. For auto policies, use the insured\'s mailing/garaging address. Never use the agent or agency address. Fields: street address, city, state (2-letter code), ZIP, county, years at address\n' +
                 '**PROPERTY:** Dwelling usage (primary/secondary/seasonal), occupancy type (owner/renter/vacant), year built, square footage, dwelling type (single family, condo, townhouse, mobile home, etc.), ' +
                 'stories, occupants, bedrooms, full baths, half baths, construction style, exterior walls (vinyl, brick, stucco, wood, etc.), foundation, ' +
                 'garage type (attached, detached, carport, none), garage spaces, kitchen/bath quality, flooring, fireplaces, lot size (acres), purchase date, ' +
@@ -877,7 +877,7 @@ Object.assign(App, {
                 'Analyze these insurance policy document(s) and extract ALL available information:\n\n' +
                 '**POLICYHOLDER/INSURED:** Prefix (Mr/Mrs/Ms/Dr), first name, last name, suffix (Jr/Sr/III), date of birth, gender (M/F), marital status, phone, email, education, occupation, industry\n' +
                 '**CO-APPLICANT/SPOUSE:** First name, last name, date of birth, gender, email, phone, relationship (if listed)\n' +
-                '**ADDRESS:** Street address, city, state (2-letter code), ZIP, county, years at address\n' +
+                '**ADDRESS:** For home/property policies, extract the **property/risk location address** (the physical location of the insured dwelling) — NOT the insured\'s mailing address if the two differ. For auto policies, use the insured\'s mailing/garaging address. Never use the agent or agency address. Fields: street address, city, state (2-letter code), ZIP, county, years at address\n' +
                 '**PROPERTY:** Dwelling usage (primary/secondary/seasonal), occupancy type (owner/renter/vacant), year built, square footage, dwelling type (single family, condo, townhouse, mobile home, etc.), ' +
                 'stories, occupants, bedrooms, full baths, half baths, construction style, exterior walls (vinyl, brick, stucco, wood, etc.), foundation, ' +
                 'garage type (attached, detached, carport, none), garage spaces, kitchen/bath quality, flooring, fireplaces, lot size (acres), purchase date, ' +
