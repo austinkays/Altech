@@ -129,6 +129,21 @@ window.ReturnedMailTracker = (() => {
                 ${unconfirmed
                     ? `<p class="rmt-v-warning">Unconfirmed: ${unconfirmed}</p>`
                     : ''}
+                ${(data.streetViewUrl || data.satelliteUrl) ? `
+                <div class="rmt-map-images">
+                    ${data.streetViewUrl ? `
+                    <div class="rmt-map-img-wrap">
+                        <div class="rmt-map-img-label">Street View</div>
+                        <img class="rmt-map-img" src="${data.streetViewUrl}" alt="Street view" loading="lazy"
+                             onerror="this.closest('.rmt-map-img-wrap').style.display='none'">
+                    </div>` : ''}
+                    ${data.satelliteUrl ? `
+                    <div class="rmt-map-img-wrap">
+                        <div class="rmt-map-img-label">Satellite</div>
+                        <img class="rmt-map-img" src="${data.satelliteUrl}" alt="Satellite view" loading="lazy"
+                             onerror="this.closest('.rmt-map-img-wrap').style.display='none'">
+                    </div>` : ''}
+                </div>` : ''}
                 <button type="button" class="rmt-use-addr-btn" onclick="ReturnedMailTracker.useValidatedAddress()">
                     Use this address ↓
                 </button>

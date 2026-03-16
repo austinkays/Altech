@@ -281,6 +281,37 @@
     margin: 4px 0 0;
 }
 
+.rmt-map-images {
+    display: flex;
+    gap: 8px;
+    margin: 10px 0 6px;
+}
+
+.rmt-map-img-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rmt-map-img-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+.rmt-map-img {
+    width: 100%;
+    border-radius: 8px;
+    display: block;
+    border: 1px solid var(--border);
+    object-fit: cover;
+    aspect-ratio: 16 / 9;
+}
+
 .rmt-use-addr-btn {
     display: inline-flex;
     align-items: center;
@@ -570,6 +601,10 @@ body.dark-mode .rmt-multiunit-warning {
     background: rgba(255, 159, 10, 0.13);
     border-color: rgba(255, 159, 10, 0.3);
     color: #ffbf52;
+}
+
+body.dark-mode .rmt-map-img {
+    border-color: rgba(255, 255, 255, 0.12);
 }
 
 body.dark-mode .rmt-use-addr-btn {

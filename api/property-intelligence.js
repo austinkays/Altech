@@ -1323,6 +1323,9 @@ async function handleValidateAddress(req, res) {
     likelyReturnReason = 'Could not determine return reason — review address manually';
   }
   const isMultiUnit = missing.includes('subpremise') || unconfirmed.includes('subpremise');
+  const _encodedAddr = encodeURIComponent(addr.formattedAddress || address.trim());
+  const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x340&location=${_encodedAddr}&fov=80&pitch=0&key=${apiKey}`;
+  const satelliteUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${_encodedAddr}&zoom=19&size=600x340&maptype=satellite&key=${apiKey}`;
   return res.status(200).json({
     standardizedAddress: addr.formattedAddress || address.trim(),
     deliverability,
@@ -1331,7 +1334,9 @@ async function handleValidateAddress(req, res) {
     inferredComponents: inferred,
     likelyReturnReason,
     isMultiUnit,
-    rawVerdict: verdict
+    rawVerdict: verdict,
+    streetViewUrl,
+    satelliteUrl
   });
 }
 
@@ -1403,6 +1408,10 @@ async function _geocodingFallback(address, apiKey, res) {
       likelyReturnReason = 'Could not determine return reason — review address manually';
     }
 
+    const _encodedFmt = encodeURIComponent(formatted);
+    const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x340&location=${_encodedFmt}&fov=80&pitch=0&key=${apiKey}`;
+    const satelliteUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${_encodedFmt}&zoom=19&size=600x340&maptype=satellite&key=${apiKey}`;
+
     return res.status(200).json({
       standardizedAddress: formatted,
       deliverability,
@@ -1412,7 +1421,9 @@ async function _geocodingFallback(address, apiKey, res) {
       likelyReturnReason,
       isMultiUnit,
       rawVerdict: {},
-      source: 'geocoding'
+      source: 'geocoding',
+      streetViewUrl,
+      satelliteUrl
     });
   } catch (err) {
     return res.status(502).json({ error: 'Address lookup failed — check that the address is correct' });
