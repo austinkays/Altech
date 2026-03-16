@@ -1260,7 +1260,10 @@ async function handleValidateAddress(req, res) {
   }
   const apiKey = getMapsApiKey();
   if (!apiKey) return res.status(500).json({ error: 'Google API key not configured' });
+
+  // Try Address Validation API first; fall back to Geocoding API if blocked/not enabled.
   let raw;
+  let usedFallback = false;
   try {
     const response = await fetch(
       `https://addressvalidation.googleapis.com/v1:validateAddress?key=${apiKey}`,
@@ -1272,13 +1275,24 @@ async function handleValidateAddress(req, res) {
     );
     raw = await response.json();
     if (!response.ok) {
-      return res.status(response.status).json({
-        error: raw.error?.message || 'Address Validation API error'
-      });
+      // If the API is disabled/blocked, fall through to geocoding fallback.
+      const errCode = raw.error?.status || '';
+      if (response.status === 403 || errCode === 'PERMISSION_DENIED' || errCode === 'API_KEY_HTTP_REFERRER_BLOCKED') {
+        usedFallback = true;
+      } else {
+        return res.status(response.status).json({
+          error: raw.error?.message || 'Address Validation API error'
+        });
+      }
     }
   } catch (fetchErr) {
-    return res.status(502).json({ error: 'Failed to reach Address Validation API', details: fetchErr.message });
+    usedFallback = true; // Network error — try geocoding
   }
+
+  if (usedFallback) {
+    return await _geocodingFallback(address.trim(), apiKey, res);
+  }
+
   const verdict = raw.result?.verdict || {};
   const addr = raw.result?.address || {};
   const comps = addr.addressComponents || [];
@@ -1317,6 +1331,76 @@ async function handleValidateAddress(req, res) {
     likelyReturnReason,
     rawVerdict: verdict
   });
+}
+
+// Geocoding API fallback for when Address Validation API is not enabled on the key.
+async function _geocodingFallback(address, apiKey, res) {
+  try {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.status === 'ZERO_RESULTS' || !data.results?.length) {
+      return res.status(200).json({
+        standardizedAddress: address,
+        deliverability: 'UNDELIVERABLE',
+        missingComponents: [],
+        unconfirmedComponents: [],
+        inferredComponents: [],
+        likelyReturnReason: 'Address not recognized — street number may not exist or street name may be incorrect',
+        rawVerdict: {},
+        source: 'geocoding'
+      });
+    }
+
+    const result = data.results[0];
+    const formatted = result.formatted_address || address;
+    const partial = result.partial_match === true;
+    const types = result.types || [];
+    const comps = result.address_components || [];
+
+    // Approximate deliverability from geocoding data.
+    let deliverability;
+    if (data.status !== 'OK') {
+      deliverability = 'UNKNOWN';
+    } else if (partial || types.includes('route') || types.includes('locality')) {
+      deliverability = 'POSSIBLY_DELIVERABLE';
+    } else {
+      deliverability = 'DELIVERABLE';
+    }
+
+    // Check for missing unit/subpremise clue.
+    const hasSubpremise = comps.some(c => c.types.includes('subpremise'));
+    const isPoBox = comps.some(c => c.types.includes('post_box'));
+
+    let likelyReturnReason;
+    if (deliverability === 'UNDELIVERABLE') {
+      likelyReturnReason = 'Address not recognized — street number may not exist or street name may be incorrect';
+    } else if (isPoBox) {
+      likelyReturnReason = 'PO Box address — USPS may not deliver carrier route mail here';
+    } else if (partial) {
+      likelyReturnReason = 'Address is incomplete or ambiguous — missing details that USPS requires';
+    } else if (!hasSubpremise && (address.match(/\bapt\b|\bunit\b|\bste\b|\bsuite\b|\b#/i))) {
+      likelyReturnReason = 'Unit number may be unrecognized — verify apartment or suite number';
+    } else if (deliverability === 'DELIVERABLE') {
+      likelyReturnReason = 'Address appears valid — return reason may be occupant-related (moved, refused, unknown)';
+    } else {
+      likelyReturnReason = 'Could not determine return reason — review address manually';
+    }
+
+    return res.status(200).json({
+      standardizedAddress: formatted,
+      deliverability,
+      missingComponents: [],
+      unconfirmedComponents: [],
+      inferredComponents: [],
+      likelyReturnReason,
+      rawVerdict: {},
+      source: 'geocoding'
+    });
+  } catch (err) {
+    return res.status(502).json({ error: 'Address lookup failed — check that the address is correct' });
+  }
 }
 
 export default securityMiddleware(handler);
