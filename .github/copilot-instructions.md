@@ -14,13 +14,13 @@ known bugs, and rules. Do not write any code until you have read it.
 
 **Altech** = desktop-first insurance intake wizard. Scan policy → AI extracts data → user corrects form → save drafts → export to HawkSoft (.cmsmtf) + EZLynx (.xml) + PDF. No build step — edit HTML/CSS/JS → reload → see changes.
 
-**Stack:** Vanilla JS SPA (`index.html` ~742 lines), 23 CSS files in `css/` (~17,230 lines), 37 JS modules in `js/` (~35,059 lines), 17 plugin HTML files in `plugins/` (~5,673 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
+**Stack:** Vanilla JS SPA (`index.html` ~742 lines), 24 CSS files in `css/` (~17,568 lines), 38 JS modules in `js/` (~35,526 lines), 18 plugin HTML files in `plugins/` (~5,800 lines), 12 serverless APIs in `api/` (~6,307 lines). Firebase Auth + Firestore for cloud sync. Deployed to Vercel.
 
 > **Full documentation:** See [AGENTS.md](../AGENTS.md) (985 lines) and [QUICKREF.md](../QUICKREF.md) for complete architecture reference.
 
 ```bash
 npm run dev          # Local server
-npm test             # 23 test suites, 1515 tests (Jest + JSDOM)
+npm test             # 25 test suites, 1631 tests (Jest + JSDOM)
 npx jest --no-coverage  # Faster (skip coverage)
 ```
 
@@ -32,7 +32,7 @@ Tools are registered in `toolConfig` array in `js/app-init.js`. Each entry has: 
 
 **Categories:** `quoting` | `export` | `docs` | `ops`
 
-**Current plugins (17):** quoting (Personal Lines), intake (AI Intake), qna (Policy Q&A), quotecompare, ezlynx, hawksoft, coi (hidden), compliance (CGL), reminders, prospect, email, accounting, quickref, vindecoder, calllogger (HawkSoft Logger), tasksheet (Task Sheet), endorsement (Endorsement Parser).
+**Current plugins (18):** quoting (Personal Lines), intake (AI Intake), qna (Policy Q&A), quotecompare, ezlynx, hawksoft, coi (hidden), compliance (CGL), reminders, prospect, email, accounting, quickref, vindecoder, calllogger (HawkSoft Logger), tasksheet (Task Sheet), endorsement (Endorsement Parser), returnedmail (Returned Mail Tracker).
 
 **Adding a new plugin requires 5 files/edits:**
 1. `js/your-plugin.js` — IIFE module on `window.YourModule` (see `js/reminders.js` for pattern)
@@ -147,7 +147,7 @@ Every `<input id="fieldName">` auto-syncs to `App.data.fieldName` via `localStor
 ## Testing
 
 ```bash
-npm test                    # All 23 suites, 1515 tests
+npm test                    # All 25 suites, 1631 tests
 npx jest --no-coverage      # Faster (skip coverage)
 npx jest tests/app.test.js  # Single suite
 ```
@@ -186,7 +186,14 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 25, 2026)
+### Latest Session Notes (March 26, 2026)
+
+- **Returned Mail Tracker Plugin:** New plugin (`returnedmail`) with three sections: (1) Address Validator calls `POST /api/property-intelligence?mode=validate-address` and shows a deliverability badge (DELIVERABLE/POSSIBLY_DELIVERABLE/UNDELIVERABLE/UNKNOWN) plus likelyReturnReason. (2) Log Entry Form — client name, policy #, address, 10 return-reason options, date returned, status, notes; full add/edit/cancel. (3) Log Table — search, filter by status, sortable columns, Edit/Delete/Copy To HawkSoft actions, CSV export. `validate-address` mode added to existing `api/property-intelligence.js` — Vercel count stays at 12.
+- **Tests:** 25 suites, 1631 tests (unchanged).
+- **3 new files:** js/returned-mail.js (467 lines), plugins/returned-mail.html (127 lines), css/returned-mail.css (338 lines).
+- **2 files modified:** api/property-intelligence.js (`validate-address` mode), index.html + js/app-init.js (registration).
+
+### Previous Session Notes (March 25, 2026)
 
 - **Task Sheet Plugin — HawkSoft CSV Task Viewer:** New plugin (`tasksheet`) for uploading HawkSoft "My Tasks" CSV exports and displaying a sortable, printable task table. Upload via drag-and-drop or file picker. CSV parsed client-side (RFC 4180, BOM-safe). Rows sorted: overdue first → priority (critical→high→medium→low) → due date ascending. 9-column table: Priority, Due Date, Assigned To, Client, Subject, Description, Status, Follow-Up, Notes (empty write-in column for print). Color-coded priority badges. Overdue rows highlighted red. Print layout via `window.print()` + `@media print` (landscape, expanded Notes column). Agency name header from `altech_agency_profile`.
 - **Tests:** 23 suites, 1515 tests (unchanged).

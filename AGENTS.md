@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 12, 2026
+> **Last updated:** March 26, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
-| **CSS** | 23 files in `css/` (~17,230 lines total) |
-| **JS** | 37 modules in `js/` (~35,059 lines total) |
-| **Plugins** | 17 HTML templates in `plugins/` (~5,673 lines total) |
+| **CSS** | 24 files in `css/` (~17,568 lines total) |
+| **JS** | 38 modules in `js/` (~35,526 lines total) |
+| **Plugins** | 18 HTML templates in `plugins/` (~5,800 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 23 suites, 1515 tests |
+| **Tests** | Jest + JSDOM, 25 suites, 1631 tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -87,9 +87,10 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.css               # Email composer — purple accent + custom prompt styles (231 lines)
 │   ├── endorsement-parser.css  # Endorsement parser — paste view, cards, dark utilitarian styling (455 lines)
 │   ├── task-sheet.css           # Task Sheet — HawkSoft CSV task viewer, priority badges, overdue rows, print layout (515 lines)
+│   ├── returned-mail.css        # Returned Mail Tracker — deliverability badges, status badges, responsive form+table, print styles, full dark mode (338 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
-├── js/                         # 37 modules (~35,059 lines)
+├── js/                         # 38 modules (~35,526 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows (92 lines)
@@ -127,6 +128,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator (856 lines)
 │   ├── call-logger.js          # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,185 lines)
 │   ├── task-sheet.js            # HawkSoft CSV task viewer — upload, parse, sort (overdue→priority→date), 9-col table, print-friendly layout (415 lines)
+│   ├── returned-mail.js         # Returned Mail Tracker — address validator (Google API), log CRUD, HawkSoft copy output, CSV export (467 lines)
 │   │
 │   │  ★ Support Modules
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
@@ -136,7 +138,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
 │   └── hawksoft-integration.js  # HawkSoft REST API client (261 lines)
 │
-├── plugins/                    # 17 HTML templates (~5,673 lines, loaded dynamically)
+├── plugins/                    # 18 HTML templates (~5,800 lines, loaded dynamically)
 │   ├── quoting.html            # ★ Main intake wizard — 7 steps, Employment & Education inline in About You card, 2,091 lines
 │   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
@@ -153,6 +155,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── quickref.html           # Quick reference — ID cards, speller, editable numbers, phonetic grid (78 lines)
 │   ├── call-logger.html        # HawkSoft Logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete + New Log button (135 lines)
 │   ├── task-sheet.html          # Task Sheet — drop zone, meta bar, table output, print/clear buttons (50 lines)
+│   ├── returned-mail.html       # Returned Mail Tracker — address validator, log form, table + actions (127 lines)
 │   └── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
 │
 ├── api/                        # 12 serverless functions + 2 helpers (~6,210 lines) ⚠️ Hobby plan MAX = 12 functions
@@ -160,7 +163,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── config.js               # Firebase config, API keys, phonetics, bug reports
 │   ├── policy-scan.js          # OCR document extraction via Gemini (260 lines)
 │   ├── vision-processor.js     # Image/PDF analysis, DL scanning, aerial analysis (880 lines)
-│   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations (1,247 lines)
+│   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations, address validation (1,247+ lines)
 │   ├── prospect-lookup.js      # Multi-source business investigation (1,788 lines)
 │   ├── compliance.js           # HawkSoft API CGL policy fetcher + Redis cache + allClientsList + hawksoftPolicyId (478 lines)
 │   ├── historical-analyzer.js  # AI property value/insurance trend analysis
@@ -1260,6 +1263,19 @@ A full cross-reference audit of all fields collected by the quoting wizard and A
 | 232 | MEDIUM | js/hawksoft-export.js | **Client Office UI + pipeline:** Added `hs_clientOffice` input to Agency Settings grid in `render()`. `_readForm()` reads and saves it to `_exportData.client.clientOffice`. Emitted as `gen_sClientOffice` in CMSMTF. |
 
 **1 file changed:** js/hawksoft-export.js (1,734→1,770 lines). Tests: 23 suites, 1,515 tests (unchanged).
+
+### Returned Mail Tracker Plugin (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 233 | CRITICAL | js/returned-mail.js | **New plugin module (467 lines).** IIFE on `window.ReturnedMailTracker`. Three sections: (1) Address Validator — calls `POST /api/property-intelligence?mode=validate-address`, shows deliverability badge + likelyReturnReason. (2) Log Entry Form — client name, policy number, address, return reason (10 options), date returned, status, notes. Add/edit with cancel support. (3) Log Table — search/filter by status, sortable by any column, Actions: Edit/Delete/Copy To HawkSoft. Copy To HawkSoft generates formatted HawkSoft activity note. CSV export. Storage: `altech_returned_mail`. |
+| 234 | HIGH | plugins/returned-mail.html | **New plugin HTML (127 lines).** Standard `header-top`/`tool-header-brand` header with home button, dark mode toggle, and Export CSV button. Three `<section>` blocks: `.rmt-validator-section`, `#rmtFormSection` (2-column grid), `.rmt-table-section` with toolbar, empty state, and `<table>`. |
+| 235 | HIGH | css/returned-mail.css | **New plugin CSS (338 lines).** `.rmt-validator-section` card, `.rmt-deliverability-badge` with 4 variants (DELIVERABLE=green, POSSIBLY_DELIVERABLE=yellow, UNDELIVERABLE=red, UNKNOWN=gray), `.rmt-status-badge` with 3 variants (pending=orange, contacted=blue, resolved=green), `.rmt-table` with sticky header, sort arrows, responsive collapse at 767px, print styles. Full `body.dark-mode` overrides for all elements. |
+| 236 | HIGH | api/property-intelligence.js | **Added `validate-address` mode.** New `case 'validate-address'` in switch + `handleValidateAddress()` function. Calls Google Address Validation API (`addressvalidation.googleapis.com/v1:validateAddress`) using existing `getMapsApiKey()` helper. Returns `standardizedAddress`, `deliverability`, `missingComponents`, `unconfirmedComponents`, `inferredComponents`, `likelyReturnReason` (7 logic cases), `rawVerdict`. Vercel function count stays at 12. |
+| 237 | MEDIUM | index.html | **3 insertions.** CSS link for `returned-mail.css`, plugin container `#returnedMailTool`, script tag for `returned-mail.js`. |
+| 238 | MEDIUM | js/app-init.js | **toolConfig entry.** `{ key: 'returnedmail', icon: '📬', color: 'icon-red', title: 'Returned Mail', category: 'ops' }`. |
+
+**3 new files:** js/returned-mail.js (467 lines), plugins/returned-mail.html (127 lines), css/returned-mail.css (338 lines). **2 files modified:** api/property-intelligence.js (validate-address mode), index.html + js/app-init.js (registration). Tests: 25 suites, 1,631 tests (unchanged).
 
 ### Task Sheet Plugin — HawkSoft CSV Task Viewer (March 2026)
 
