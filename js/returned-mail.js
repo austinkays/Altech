@@ -104,13 +104,22 @@ window.ReturnedMailTracker = (() => {
 
         const missing = (data.missingComponents || []).map(_esc).join(', ');
         const unconfirmed = (data.unconfirmedComponents || []).map(_esc).join(', ');
+        const suggestedAddr = data.standardizedAddress;
 
         el.innerHTML = `
             <div class="rmt-validation-card ${deliverClass}">
                 <div class="rmt-validation-header">
                     <span class="rmt-deliverability-badge rmt-badge-${deliverability.toLowerCase()}">${deliverability.replace(/_/g, ' ')}</span>
-                    <span class="rmt-std-address">${_esc(data.standardizedAddress || 'Address returned no result')}</span>
                 </div>
+                ${suggestedAddr ? `
+                <div class="rmt-suggested-row">
+                    <span class="rmt-suggested-label">Google suggests:</span>
+                    <span class="rmt-suggested-addr">${_esc(suggestedAddr)}</span>
+                </div>` : ''}
+                ${data.isMultiUnit ? `
+                <div class="rmt-multiunit-warning">
+                    🏢 Multi-unit building detected — add apartment or unit number before logging
+                </div>` : ''}
                 ${data.likelyReturnReason
                     ? `<p class="rmt-return-reason-hint">📬 ${_esc(data.likelyReturnReason)}</p>`
                     : ''}

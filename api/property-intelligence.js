@@ -1322,6 +1322,7 @@ async function handleValidateAddress(req, res) {
   } else {
     likelyReturnReason = 'Could not determine return reason — review address manually';
   }
+  const isMultiUnit = missing.includes('subpremise') || unconfirmed.includes('subpremise');
   return res.status(200).json({
     standardizedAddress: addr.formattedAddress || address.trim(),
     deliverability,
@@ -1329,6 +1330,7 @@ async function handleValidateAddress(req, res) {
     unconfirmedComponents: unconfirmed,
     inferredComponents: inferred,
     likelyReturnReason,
+    isMultiUnit,
     rawVerdict: verdict
   });
 }
@@ -1373,11 +1375,24 @@ async function _geocodingFallback(address, apiKey, res) {
     const hasSubpremise = comps.some(c => c.types.includes('subpremise'));
     const isPoBox = comps.some(c => c.types.includes('post_box'));
 
+    // Detect multi-unit buildings: geocoding resolves to a premise (building) not a specific unit.
+    const inputHasUnit = /\bapt\b|\bunit\b|\bste\b|\bsuite\b|\b#\s*\d|\bfloor\b|\bfl\.?\s*\d|\broom\b/i.test(address);
+    const isMultiUnit = !inputHasUnit && (
+      types.includes('premise') ||
+      (types.includes('establishment') && !types.includes('street_address'))
+    );
+
+    if (isMultiUnit) {
+      deliverability = 'POSSIBLY_DELIVERABLE';
+    }
+
     let likelyReturnReason;
     if (deliverability === 'UNDELIVERABLE') {
       likelyReturnReason = 'Address not recognized — street number may not exist or street name may be incorrect';
     } else if (isPoBox) {
       likelyReturnReason = 'PO Box address — USPS may not deliver carrier route mail here';
+    } else if (isMultiUnit) {
+      likelyReturnReason = 'Apartment complex or multi-unit building — add apartment or unit number';
     } else if (partial) {
       likelyReturnReason = 'Address is incomplete or ambiguous — missing details that USPS requires';
     } else if (!hasSubpremise && (address.match(/\bapt\b|\bunit\b|\bste\b|\bsuite\b|\b#/i))) {
@@ -1395,6 +1410,7 @@ async function _geocodingFallback(address, apiKey, res) {
       unconfirmedComponents: [],
       inferredComponents: [],
       likelyReturnReason,
+      isMultiUnit,
       rawVerdict: {},
       source: 'geocoding'
     });
