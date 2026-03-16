@@ -802,6 +802,7 @@ Object.assign(App, {
         if (pdfNotes && pdfNotes.trim()) {
             checkPage(30);
             sectionHeader('Notes');
+            y += 4; // breathing room below the NOTES header label
             const notesMargin = 14;
             const notesMaxW = pageW - notesMargin * 2;
             doc.setFontSize(9);
