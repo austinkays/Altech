@@ -60,6 +60,61 @@ window.Reminders = (() => {
         }
     }
 
+    /**
+     * Auto-advance stale recurring task dueDates to the current cycle.
+     * Called once on load — if a daily/weekday task's dueDate is in the past,
+     * advance it to today (or next weekday) so it shows "Due today" instead of "Missed".
+     */
+    function _autoAdvanceRecurring() {
+        const today = _todayDate();
+        const todayStr = _todayPST();
+        const dow = today.getDay(); // 0=Sun…6=Sat
+        let changed = false;
+
+        for (const task of _state.tasks) {
+            if (!task.dueDate || task.frequency === 'once') continue;
+
+            const due = _parseLocalDate(task.dueDate);
+            if (due >= today) continue; // Not stale — nothing to advance
+
+            const freq = task.frequency;
+
+            if (freq === 'daily') {
+                task.dueDate = todayStr;
+                changed = true;
+            } else if (freq === 'weekdays') {
+                if (dow >= 1 && dow <= 5) {
+                    // Today is a weekday — set due to today
+                    task.dueDate = todayStr;
+                    changed = true;
+                }
+                // On weekends, leave stale — _getStatus already returns 'overdue'
+                // which shows "Missed — resets tonight at midnight" (correct for sat/sun)
+            } else if (freq === 'weekly' || freq === 'biweekly') {
+                // Weekly tasks have grace period logic in _getStatus, but still
+                // advance dueDate to this week's Monday if it's from a prior week
+                const monday = _getMostRecentMonday();
+                if (due < monday) {
+                    task.dueDate = _toDateStr(monday);
+                    changed = true;
+                }
+            } else if (freq === 'monthly') {
+                // Monthly — advance to current month if past
+                const thisMonth = new Date(today.getFullYear(), today.getMonth(), due.getDate());
+                if (thisMonth >= today) {
+                    task.dueDate = _toDateStr(thisMonth);
+                } else {
+                    // Already past this month's date — advance to next month
+                    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, due.getDate());
+                    task.dueDate = _toDateStr(nextMonth);
+                }
+                changed = true;
+            }
+        }
+
+        if (changed) _save();
+    }
+
     // ── PST Date Helpers ──
 
     /** Get the current date/time in PST as a Date-like object */
@@ -867,6 +922,7 @@ window.Reminders = (() => {
 
     function init() {
         _load();
+        _autoAdvanceRecurring();
         render();
         _updateBadge();
         checkAlerts();
