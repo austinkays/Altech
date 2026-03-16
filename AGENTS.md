@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 26, 2026
+> **Last updated:** March 27, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -87,7 +87,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.css               # Email composer — purple accent + custom prompt styles (231 lines)
 │   ├── endorsement-parser.css  # Endorsement parser — paste view, cards, dark utilitarian styling (455 lines)
 │   ├── task-sheet.css           # Task Sheet — HawkSoft CSV task viewer, priority badges, overdue rows, print layout (515 lines)
-│   ├── returned-mail.css        # Returned Mail Tracker — deliverability badges, status badges, responsive form+table, print styles, full dark mode (338 lines)
+│   ├── returned-mail.css        # Returned Mail Tracker — deliverability badges, status badges, responsive form+table, print styles, full dark mode, Street View + satellite map images (681 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
 ├── js/                         # 38 modules (~35,526 lines)
@@ -128,7 +128,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator (856 lines)
 │   ├── call-logger.js          # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,185 lines)
 │   ├── task-sheet.js            # HawkSoft CSV task viewer — upload, parse, sort (overdue→priority→date), 9-col table, print-friendly layout (415 lines)
-│   ├── returned-mail.js         # Returned Mail Tracker — address validator (Google API), log CRUD, HawkSoft copy output, CSV export (467 lines)
+│   ├── returned-mail.js         # Returned Mail Tracker — address validator (Google API), Street View + satellite imagery, log CRUD, HawkSoft copy output, CSV export (458 lines)
 │   │
 │   │  ★ Support Modules
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
@@ -163,7 +163,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── config.js               # Firebase config, API keys, phonetics, bug reports
 │   ├── policy-scan.js          # OCR document extraction via Gemini (260 lines)
 │   ├── vision-processor.js     # Image/PDF analysis, DL scanning, aerial analysis (880 lines)
-│   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations, address validation (1,247+ lines)
+│   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations, address validation, Street View/satellite URL generation (1,433 lines)
 │   ├── prospect-lookup.js      # Multi-source business investigation (1,788 lines)
 │   ├── compliance.js           # HawkSoft API CGL policy fetcher + Redis cache + allClientsList + hawksoftPolicyId (478 lines)
 │   ├── historical-analyzer.js  # AI property value/insurance trend analysis
@@ -1275,7 +1275,17 @@ A full cross-reference audit of all fields collected by the quoting wizard and A
 | 237 | MEDIUM | index.html | **3 insertions.** CSS link for `returned-mail.css`, plugin container `#returnedMailTool`, script tag for `returned-mail.js`. |
 | 238 | MEDIUM | js/app-init.js | **toolConfig entry.** `{ key: 'returnedmail', icon: '📬', color: 'icon-red', title: 'Returned Mail', category: 'ops' }`. |
 
-**3 new files:** js/returned-mail.js (467 lines), plugins/returned-mail.html (127 lines), css/returned-mail.css (338 lines). **2 files modified:** api/property-intelligence.js (validate-address mode), index.html + js/app-init.js (registration). Tests: 25 suites, 1,631 tests (unchanged).
+**3 new files:** js/returned-mail.js (458 lines), plugins/returned-mail.html (127 lines), css/returned-mail.css (681 lines). **2 files modified:** api/property-intelligence.js (validate-address mode + Street View/satellite URLs), index.html + js/app-init.js (registration). Tests: 25 suites, 1,631 tests (unchanged).
+
+### Street View + Satellite Imagery in Returned Mail Validator (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 239 | HIGH | api/property-intelligence.js | **Street View + satellite URLs in `handleValidateAddress()` and `_geocodingFallback()`:** Both paths now build `streetViewUrl` (`maps.googleapis.com/maps/api/streetview`, 600×340, fov=80) and `satelliteUrl` (`maps.googleapis.com/maps/api/staticmap`, zoom=19, satellite) using `getMapsApiKey()` and return them in the JSON response. API key stays server-side. |
+| 240 | HIGH | js/returned-mail.js | **`.rmt-map-images` block in `_renderValidationResult()`:** Side-by-side Street View and Satellite thumbnails inserted between unconfirmed-components warning and "Use this address" button. Each `<img>` has `onerror` to hide its wrapper if image unavailable (e.g., no Street View coverage). |
+| 241 | MEDIUM | css/returned-mail.css | **`.rmt-map-images` flex row styles + dark mode override:** `.rmt-map-img` with `aspect-ratio: 16/9`, `object-fit: cover`, `border-radius: 8px`. Dark mode: `border-color: rgba(255,255,255,0.12)`. |
+
+**3 files changed:** api/property-intelligence.js (1,433 lines), js/returned-mail.js (458 lines), css/returned-mail.css (681 lines). Tests: 25 suites, 1,631 tests (unchanged).
 
 ### Task Sheet Plugin — HawkSoft CSV Task Viewer (March 2026)
 

@@ -186,11 +186,17 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 26, 2026)
+### Latest Session Notes (March 27, 2026)
+
+- **Street View + Satellite Imagery in Returned Mail Validator:** `handleValidateAddress()` and `_geocodingFallback()` in `api/property-intelligence.js` now build `streetViewUrl` (600×340, fov=80) and `satelliteUrl` (zoom=19, satellite) server-side using `getMapsApiKey()` and return them in the JSON response. `_renderValidationResult()` in `js/returned-mail.js` shows a side-by-side image pair between the unconfirmed-components warning and "Use this address" button. `onerror` hides individual images gracefully if unavailable (e.g., no Street View coverage).
+- **Tests:** 25 suites, 1631 tests (unchanged).
+- **3 files modified:** api/property-intelligence.js (1,433 lines), js/returned-mail.js (458 lines), css/returned-mail.css (681 lines).
+
+### Previous Session Notes (March 26, 2026)
 
 - **Returned Mail Tracker Plugin:** New plugin (`returnedmail`) with three sections: (1) Address Validator calls `POST /api/property-intelligence?mode=validate-address` and shows a deliverability badge (DELIVERABLE/POSSIBLY_DELIVERABLE/UNDELIVERABLE/UNKNOWN) plus likelyReturnReason. (2) Log Entry Form — client name, policy #, address, 10 return-reason options, date returned, status, notes; full add/edit/cancel. (3) Log Table — search, filter by status, sortable columns, Edit/Delete/Copy To HawkSoft actions, CSV export. `validate-address` mode added to existing `api/property-intelligence.js` — Vercel count stays at 12.
 - **Tests:** 25 suites, 1631 tests (unchanged).
-- **3 new files:** js/returned-mail.js (467 lines), plugins/returned-mail.html (127 lines), css/returned-mail.css (338 lines).
+- **3 new files:** js/returned-mail.js (458 lines), plugins/returned-mail.html (127 lines), css/returned-mail.css (681 lines).
 - **2 files modified:** api/property-intelligence.js (`validate-address` mode), index.html + js/app-init.js (registration).
 
 ### Previous Session Notes (March 25, 2026)
