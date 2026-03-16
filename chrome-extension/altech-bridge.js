@@ -54,23 +54,35 @@
             }
         }
 
-        // ── Property Data from Extension → Web App (Direct Auto-Fill) ──
-        // When extension scrapes Zillow and sends property data, forward to web app
-        if (msg.type === 'ALTECH_PROPERTY_DATA') {
-            const propertyData = msg.propertyData;
-            if (!propertyData || !propertyData.data) {
-                console.warn('[Altech Bridge] Invalid property data received');
-                return;
+        // ── Web App requests stored property data (for 📥 Import button) ──
+        if (msg.type === 'REQUEST_PROPERTY_DATA') {
+            try {
+                const { propertyData } = await chrome.storage.local.get('propertyData');
+                window.postMessage({
+                    type: 'PROPERTY_DATA_RESPONSE',
+                    propertyData: propertyData || null
+                }, '*');
+            } catch (e) {
+                window.postMessage({ type: 'PROPERTY_DATA_RESPONSE', propertyData: null }, '*');
             }
+            return;
+        }
+    });
 
-            // Forward to web app via window.postMessage
+    // ── Extension → Page: property data forwarded via chrome.tabs.sendMessage ──
+    // sendPropertyToAltechApp() uses chrome.tabs.sendMessage which arrives here,
+    // NOT via window.postMessage — so it needs chrome.runtime.onMessage.
+    chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+        if (msg.type === 'ALTECH_PROPERTY_DATA' && msg.propertyData) {
             window.postMessage({
                 type: 'ALTECH_PROPERTY_DATA',
-                propertyData: propertyData,
+                propertyData: msg.propertyData,
                 timestamp: Date.now()
             }, '*');
-            console.log('[Altech Bridge] Property data forwarded to web app:', propertyData.fieldCount, 'fields');
+            console.log('[Altech Bridge] Property data forwarded to web app:', msg.propertyData.fieldCount, 'fields');
+            sendResponse({ success: true });
         }
+        return false;
     });
 
     // ── Bridge-Ready Handshake ──

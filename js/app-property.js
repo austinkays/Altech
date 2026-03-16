@@ -176,8 +176,20 @@ Object.assign(App, {
     },
 
     // ── Import Property Data from Chrome Extension ──
-    // Reads clipboard JSON from extension's "Copy for Altech" button
+    // Tries the extension bridge first (REQUEST_PROPERTY_DATA → PROPERTY_DATA_RESPONSE),
+    // then falls back to reading clipboard JSON from "📋 Copy for Altech".
     async importPropertyFromExtension() {
+        // If extension is installed, ask it for stored property data directly.
+        const hasExtension = document.documentElement.getAttribute('data-altech-extension') === 'true';
+        if (hasExtension) {
+            const fromExtension = await this._requestPropertyFromExtension();
+            if (fromExtension) {
+                this.autoFillPropertyData(fromExtension);
+                return;
+            }
+        }
+
+        // Fallback: read clipboard JSON
         let text = '';
         try {
             text = await navigator.clipboard.readText();
@@ -204,9 +216,32 @@ Object.assign(App, {
             this.toast('⚠️ Not property data. Use the extension\'s "📋 Copy for Altech" button.');
             return;
         }
-        
+
         // Use shared auto-fill function
         this.autoFillPropertyData(parsed);
+    },
+
+    // ── Request stored property data from the extension bridge ──
+    // Posts REQUEST_PROPERTY_DATA to the bridge content script; waits up to 2s.
+    _requestPropertyFromExtension() {
+        return new Promise((resolve) => {
+            const timeout = setTimeout(() => {
+                window.removeEventListener('message', handler);
+                resolve(null);
+            }, 2000);
+
+            function handler(event) {
+                if (event.source !== window) return;
+                if (event.data?.type === 'PROPERTY_DATA_RESPONSE') {
+                    clearTimeout(timeout);
+                    window.removeEventListener('message', handler);
+                    resolve(event.data.propertyData || null);
+                }
+            }
+
+            window.addEventListener('message', handler);
+            window.postMessage({ type: 'REQUEST_PROPERTY_DATA' }, '*');
+        });
     },
 
         // ── Auto-fill property data (shared by clipboard and postMessage) ──

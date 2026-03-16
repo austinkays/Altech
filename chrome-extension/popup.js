@@ -449,6 +449,9 @@ async function scrapePropertyData() {
             return;
         }
 
+        // Save to storage so clipboard button and Import button can access it later
+        await chrome.storage.local.set({ propertyData: response });
+
         // Display results
         displayPropertyResults(response);
         
