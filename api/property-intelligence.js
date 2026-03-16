@@ -1306,9 +1306,31 @@ async function handleValidateAddress(req, res) {
   const inferred = comps
     .filter(c => c.inferred)
     .map(c => c.componentType);
+
+  // Additional signals from Address Validation API response
+  const uspsData = raw.result?.uspsData || {};
+  const dpvMatchCode = uspsData.dpvMatchCode || '';
+  const dpvFootnote = uspsData.dpvFootnote || '';
+  const geocodeGranularity = verdict.geocodeGranularity || '';
+  const inputHasUnit = /\bapt\b|\bunit\b|\bste\b|\bsuite\b|\b#\s*\d|\bfloor\b|\bfl\.?\s*\d|\broom\b/i.test(address);
+
+  // Multi-unit detection: explicit subpremise flags OR building-level geocode OR USPS secondary required
+  const isMultiUnit = !inputHasUnit && (
+    missing.includes('subpremise') ||
+    unconfirmed.includes('subpremise') ||
+    geocodeGranularity === 'PREMISE' ||              // Geocoded to building, not a specific unit
+    dpvMatchCode === 'S' ||                          // USPS: secondary address info required
+    dpvFootnote.includes('S') ||                     // USPS: high-rise default
+    // Address incomplete but street/number are valid → missing unit is likely cause
+    (!verdict.addressComplete &&
+     !missing.includes('street_number') &&
+     !missing.includes('route') &&
+     geocodeGranularity !== '')
+  );
+
   let likelyReturnReason;
-  if (missing.includes('subpremise') || unconfirmed.includes('subpremise')) {
-    likelyReturnReason = 'Missing or incorrect unit number — address needs an apartment, suite, or unit number';
+  if (isMultiUnit) {
+    likelyReturnReason = 'Apartment complex or multi-unit building — add apartment or unit number';
   } else if (deliverability === 'UNDELIVERABLE') {
     likelyReturnReason = 'Address not recognized — street number may not exist or street name may be incorrect';
   } else if (inferred.includes('street_number')) {
@@ -1322,7 +1344,6 @@ async function handleValidateAddress(req, res) {
   } else {
     likelyReturnReason = 'Could not determine return reason — review address manually';
   }
-  const isMultiUnit = missing.includes('subpremise') || unconfirmed.includes('subpremise');
   const _encodedAddr = encodeURIComponent(addr.formattedAddress || address.trim());
   const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x340&location=${_encodedAddr}&fov=80&pitch=0&key=${apiKey}`;
   const satelliteUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${_encodedAddr}&zoom=19&size=600x340&maptype=satellite&key=${apiKey}`;
@@ -1379,16 +1400,22 @@ async function _geocodingFallback(address, apiKey, res) {
     // Check for missing unit/subpremise clue.
     const hasSubpremise = comps.some(c => c.types.includes('subpremise'));
     const isPoBox = comps.some(c => c.types.includes('post_box'));
+    const locationType = result.geometry?.location_type || '';
 
-    // Detect multi-unit buildings: geocoding resolves to a premise (building) not a specific unit.
+    // Detect multi-unit buildings: various geocoding signals for building-level matches.
     const inputHasUnit = /\bapt\b|\bunit\b|\bste\b|\bsuite\b|\b#\s*\d|\bfloor\b|\bfl\.?\s*\d|\broom\b/i.test(address);
     const isMultiUnit = !inputHasUnit && (
       types.includes('premise') ||
-      (types.includes('establishment') && !types.includes('street_address'))
+      (types.includes('establishment') && !types.includes('street_address')) ||
+      comps.some(c => c.types.includes('premise')) ||        // Component-level premise type
+      data.results.length > 1                                // Multiple matches = ambiguous address
     );
 
     if (isMultiUnit) {
       deliverability = 'POSSIBLY_DELIVERABLE';
+    } else if (locationType === 'RANGE_INTERPOLATED' || locationType === 'APPROXIMATE') {
+      // Less precise geocode — address was estimated, not a confirmed delivery point
+      if (deliverability === 'DELIVERABLE') deliverability = 'POSSIBLY_DELIVERABLE';
     }
 
     let likelyReturnReason;
