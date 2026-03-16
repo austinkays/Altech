@@ -186,11 +186,17 @@ Files prefixed with `_` in `api/` are NOT counted as serverless functions. Curre
 - `REDIS_URL` — KV store + compliance cache
 - `HAWKSOFT_CLIENT_ID` / `HAWKSOFT_CLIENT_SECRET` / `HAWKSOFT_AGENCY_ID` — HawkSoft API
 
-### Latest Session Notes (March 27, 2026)
+### Latest Session Notes (March 28, 2026)
+
+- **Smarter Multi-Unit Detection in Returned Mail Validator:** `handleValidateAddress()` now computes `isMultiUnit` using `geocodeGranularity === 'PREMISE'` (building-level geocode), `dpvMatchCode === 'S'` (USPS secondary info required), `dpvFootnote.includes('S')` (USPS high-rise), and `!addressComplete` with valid street/number (missing unit). `isMultiUnit` checked first in reason chain — addresses like "11301 NE 7th St" (apartment complex without unit) now correctly return "Apartment complex or multi-unit building — add apartment or unit number" instead of "Could not determine." `_geocodingFallback()` also improved: adds `comps.some(c => c.types.includes('premise'))`, `data.results.length > 1`, and degrades DELIVERABLE to POSSIBLY_DELIVERABLE when `locationType` is RANGE_INTERPOLATED or APPROXIMATE.
+- **Tests:** 25 suites, 1631 tests (unchanged).
+- **1 file modified:** api/property-intelligence.js (1,433→1,460 lines).
+
+### Previous Session Notes (March 27, 2026)
 
 - **Street View + Satellite Imagery in Returned Mail Validator:** `handleValidateAddress()` and `_geocodingFallback()` in `api/property-intelligence.js` now build `streetViewUrl` (600×340, fov=80) and `satelliteUrl` (zoom=19, satellite) server-side using `getMapsApiKey()` and return them in the JSON response. `_renderValidationResult()` in `js/returned-mail.js` shows a side-by-side image pair between the unconfirmed-components warning and "Use this address" button. `onerror` hides individual images gracefully if unavailable (e.g., no Street View coverage).
 - **Tests:** 25 suites, 1631 tests (unchanged).
-- **3 files modified:** api/property-intelligence.js (1,433 lines), js/returned-mail.js (458 lines), css/returned-mail.css (681 lines).
+- **3 files modified:** api/property-intelligence.js (1,460 lines), js/returned-mail.js (458 lines), css/returned-mail.css (681 lines).
 
 ### Previous Session Notes (March 26, 2026)
 

@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 27, 2026
+> **Last updated:** March 28, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -163,7 +163,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── config.js               # Firebase config, API keys, phonetics, bug reports
 │   ├── policy-scan.js          # OCR document extraction via Gemini (260 lines)
 │   ├── vision-processor.js     # Image/PDF analysis, DL scanning, aerial analysis (880 lines)
-│   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations, address validation, Street View/satellite URL generation (1,433 lines)
+│   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations, address validation, Street View/satellite URL generation, improved multi-unit detection (1,460 lines)
 │   ├── prospect-lookup.js      # Multi-source business investigation (1,788 lines)
 │   ├── compliance.js           # HawkSoft API CGL policy fetcher + Redis cache + allClientsList + hawksoftPolicyId (478 lines)
 │   ├── historical-analyzer.js  # AI property value/insurance trend analysis
@@ -1286,6 +1286,15 @@ A full cross-reference audit of all fields collected by the quoting wizard and A
 | 241 | MEDIUM | css/returned-mail.css | **`.rmt-map-images` flex row styles + dark mode override:** `.rmt-map-img` with `aspect-ratio: 16/9`, `object-fit: cover`, `border-radius: 8px`. Dark mode: `border-color: rgba(255,255,255,0.12)`. |
 
 **3 files changed:** api/property-intelligence.js (1,433 lines), js/returned-mail.js (458 lines), css/returned-mail.css (681 lines). Tests: 25 suites, 1,631 tests (unchanged).
+
+### Smarter Multi-Unit Detection in Returned Mail Address Validator (March 2026)
+
+| # | Scope | Files | Description |
+|---|-------|-------|-------------|
+| 242 | CRITICAL | api/property-intelligence.js | **`handleValidateAddress()` — comprehensive multi-unit signals:** Old `isMultiUnit` only checked `missing/unconfirmed.includes('subpremise')` — passed through for apartment complexes where Google returns `deliverability: UNKNOWN` + `geocodeGranularity: PREMISE` without flagging subpremise. New logic adds `geocodeGranularity === 'PREMISE'` (building-level geocode), `dpvMatchCode === 'S'` (USPS secondary info required), `dpvFootnote.includes('S')` (USPS high-rise), and `!addressComplete && street/number are valid` (incomplete for non-street reason → missing unit). `isMultiUnit` now checked **first** in the reason chain. `inputHasUnit` regex prevents false positives when address already contains a unit. |
+| 243 | HIGH | api/property-intelligence.js | **`_geocodingFallback()` — expanded multi-unit signals + locationType downgrade:** Added `comps.some(c => c.types.includes('premise'))` (component-level premise check) and `data.results.length > 1` (multiple results = ambiguous address) to `isMultiUnit`. Added `locationType` extraction — when `RANGE_INTERPOLATED` or `APPROXIMATE`, degrades DELIVERABLE to POSSIBLY_DELIVERABLE since geocode is interpolated/approximate, not confirmed. |
+
+**1 file changed:** api/property-intelligence.js (1,433→1,460 lines). Tests: 25 suites, 1,631 tests (unchanged).
 
 ### Task Sheet Plugin — HawkSoft CSV Task Viewer (March 2026)
 
