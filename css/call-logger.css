@@ -64,6 +64,13 @@
     min-width: 0;
 }
 
+.cl-status-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
 .cl-status-indicator {
     width: 8px;
     height: 8px;
