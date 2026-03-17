@@ -65,6 +65,17 @@ Object.assign(App, {
             return '';
         };
 
+        // vo() — like v() but expands "Other" to "Other (detail)" in PDF exports only.
+        // HawkSoft and EZLynx read raw data.field values so they remain unaffected.
+        const vo = (key) => {
+            const base = v(key);
+            if (base === 'Other') {
+                const spec = (data[key + '_other'] || '').trim();
+                if (spec) return `Other (${spec})`;
+            }
+            return base;
+        };
+
         // ─── Color palette ───────────────────────────────────────────
         const C = {
             navy:     [15, 39, 69],       // #0f2745 — brand navy
@@ -497,7 +508,7 @@ Object.assign(App, {
             ['Phone', formatPhone(v('phone'))],
             ['Email', v('email')],
             ['Education', v('education')],
-            ['Industry', v('industry')],
+            ['Industry', vo('industry')],
             ['Occupation', v('occupation')],
             ['Pronunciation', this.getNamePronunciation(data)],
         ], 3); }
@@ -512,10 +523,10 @@ Object.assign(App, {
                 ['Gender', v('coGender') === 'M' ? 'Male' : v('coGender') === 'F' ? 'Female' : v('coGender')],
                 ['Email', v('coEmail')],
                 ['Phone', formatPhone(v('coPhone'))],
-                ['Relationship', v('coRelationship')],
+                ['Relationship', vo('coRelationship')],
                 ['Occupation', v('coOccupation')],
                 ['Education', v('coEducation')],
-                ['Industry', v('coIndustry')],
+                ['Industry', vo('coIndustry')],
             ], 3);
         }
 
@@ -560,7 +571,7 @@ Object.assign(App, {
                 ['Half Baths', v('halfBaths')],
                 ['Construction', v('constructionStyle')],
                 ['Exterior Walls', v('exteriorWalls')],
-                ['Foundation', v('foundation')],
+                ['Foundation', vo('foundation')],
                 ['Garage Type', v('garageType')],
                 ['Garage Spaces', v('garageSpaces')],
                 ['Kitchen/Bath Quality', v('kitchenQuality')],
@@ -573,11 +584,11 @@ Object.assign(App, {
             checkPage(30); // ensure header + at least first data row stay together
             { sectionHeader('Building Systems');
             kvTable([
-                ['Roof Type', v('roofType')],
-                ['Roof Shape', v('roofShape')],
+                ['Roof Type', vo('roofType')],
+                ['Roof Shape', vo('roofShape')],
                 ['Roof Updated', v('roofYr')],
                 ['Roof Update Type', v('roofUpdate')],
-                ['Heating Type', v('heatingType')],
+                ['Heating Type', vo('heatingType')],
                 ['Heating Updated', v('heatYr')],
                 ['Cooling', v('cooling')],
                 ['Plumbing Updated', v('plumbYr')],
@@ -596,7 +607,7 @@ Object.assign(App, {
                 ['Swimming Pool', v('pool') || 'No'],
                 ['Trampoline', v('trampoline') || 'No'],
                 ['Wood Stove', v('woodStove') && v('woodStove') !== 'None' ? v('woodStove') : 'None'],
-                ['Secondary Heating', v('secondaryHeating')],
+                ['Secondary Heating', vo('secondaryHeating')],
                 ['Dog on Premises', data.dogInfo || 'None'],
                 ['Business on Property', data.businessOnProperty || 'No'],
                 ['Fire Station (mi)', v('fireStationDist')],
@@ -732,7 +743,7 @@ Object.assign(App, {
             { sectionHeader('Auto Coverage');
             kvTable([
                 ['Auto Policy Type', v('autoPolicyType')],
-                ['Residence Is', v('residenceIs')],
+                ['Residence Is', vo('residenceIs')],
                 ['Liability Limits', v('liabilityLimits')],
                 ['Property Damage', formatCurrency(v('pdLimit'))],
                 ['Med Pay (Auto)', formatCurrency(v('medPayments'))],
@@ -780,7 +791,7 @@ Object.assign(App, {
         if (v('additionalInsureds')) pdfPriorRows.push(['Additional Insureds', v('additionalInsureds')]);
         if (v('contactTime')) pdfPriorRows.push(['Best Contact Time', v('contactTime')]);
         if (v('contactMethod')) pdfPriorRows.push(['Contact Method', v('contactMethod')]);
-        if (v('referralSource')) pdfPriorRows.push(['Referral Source', v('referralSource')]);
+        if (v('referralSource')) pdfPriorRows.push(['Referral Source', vo('referralSource')]);
         pdfPriorRows.push(['TCPA Consent', data.tcpaConsent ? 'Yes' : 'No']);
         // Per-driver accidents / violations — one row per driver in 2-col grid
         if (drivers.length > 1) {

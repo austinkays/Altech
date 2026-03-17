@@ -219,6 +219,14 @@ Object.assign(App, {
             if (e.target.matches('#quotingTool input, #quotingTool select, #quotingTool textarea')) {
                 this.clearAutoFilledIndicator(e.target);
                 this.save(e);
+                // Show/hide "please specify" input when "Other" is selected in a dropdown
+                if (e.target.tagName === 'SELECT') {
+                    if (e.target.value === 'Other') {
+                        this._showOtherField(e.target);
+                    } else {
+                        this._hideOtherField(e.target);
+                    }
+                }
             }
         });
 
@@ -938,6 +946,8 @@ Object.assign(App, {
         this._populateCoOccupation && this._populateCoOccupation(this.data.coIndustry || '', this.data.coOccupation || '');
         // Restore drivers/vehicles arrays and render cards
         this.loadDriversVehicles();
+        // Re-inject "Other" specify fields for dropdowns that were saved with "Other" selected
+        this._restoreOtherFields();
         // Debounced save to capture full form state (including DOM defaults)
         // after loading client data from Firestore or local history
         clearTimeout(this.saveTimeout);
@@ -1046,6 +1056,55 @@ Object.assign(App, {
                 this.toast(`\u2139\ufe0f Continuous coverage updated to match ${yrsVal} years with carrier`);
             }
         }
+    },
+
+    // === OTHER FIELD HANDLERS ===
+    // When a dropdown is set to "Other", a text input is injected directly below
+    // it so agents can specify what "Other" means. The value is stored as
+    // `fieldId_other` in App.data and appears in PDF exports only
+    // (HawkSoft / EZLynx export pipelines use the raw "Other" value unchanged).
+    _showOtherField(sel) {
+        const wrapperId = sel.id + '_other_wrap';
+        if (document.getElementById(wrapperId)) return; // already visible
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = sel.id + '_other';
+        input.name = sel.id + '_other';
+        input.placeholder = 'Please specify…';
+        input.setAttribute('maxlength', '120');
+        input.value = this.data[sel.id + '_other'] || '';
+        const wrapper = document.createElement('div');
+        wrapper.id = wrapperId;
+        wrapper.className = 'other-specify-wrapper';
+        wrapper.style.cssText = 'margin-top: 6px;';
+        wrapper.appendChild(input);
+        const formGroup = sel.closest('.form-group');
+        if (formGroup) {
+            formGroup.appendChild(wrapper);
+        } else {
+            sel.parentNode.insertBefore(wrapper, sel.nextSibling);
+        }
+    },
+
+    _hideOtherField(sel) {
+        const wrap = document.getElementById(sel.id + '_other_wrap');
+        if (wrap) wrap.remove();
+        if (sel.id + '_other' in this.data) {
+            delete this.data[sel.id + '_other'];
+            this.save();
+        }
+    },
+
+    _restoreOtherFields() {
+        document.querySelectorAll('#quotingTool select').forEach(sel => {
+            if (sel.value === 'Other') {
+                if (!document.getElementById(sel.id + '_other_wrap')) {
+                    this._showOtherField(sel);
+                }
+                const inp = document.getElementById(sel.id + '_other');
+                if (inp) inp.value = this.data[sel.id + '_other'] || '';
+            }
+        });
     },
 
     // === PROGRESSIVE DISCLOSURE ===
