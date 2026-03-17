@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Dead home (`logo-icon-button`) and dark-mode-toggle buttons stripped from all 20 plugin HTML headers (`plugins/accounting.html`, `call-logger.html`, `coi.html`, `compliance.html`, `dec-import.html`, `deposit-sheet.html`, `email.html`, `endorsement.html`, `ezlynx.html`, `hawksoft.html`, `intake-assist.html`, `prospect.html`, `qna.html`, `quickref.html`, `quotecompare.html`, `reminders.html`, `returned-mail.html`, `task-sheet.html`, `vin-decoder.html`, `blind-spot-brief.html`). These ~40 buttons were permanently hidden by `sidebar.css` (`.app-shell .plugin-container header .tool-header-brand { display: none }`) — navigation is fully owned by the sidebar. `quoting.html` intentionally unchanged. (commit `04554a3`)
+
+---
+
 ### Added
 - `js/fields.js` — canonical field registry (`window.FIELDS` array + `window.FIELD_BY_ID` lookup map) covering all ~175 `App.data` intake form fields with `id`, `label`, `type`, `section` metadata
 - `FIELDS` / `FIELD_BY_ID` entry added to JS Symbol Index table in `QUICKREF.md`
