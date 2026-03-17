@@ -2,7 +2,7 @@
 
 > One-page cheatsheet. For full docs see [AGENTS.md](AGENTS.md).
 >
-> **⚠️ LIVING DOC:** Update this file, AGENTS.md, and `.github/copilot-instructions.md` after every work session. Run `npm run audit-docs` to check for drift.
+> **⚠️ LIVING DOC:** Add an entry to `CHANGELOG.md` after every work session. Run `npm run audit-docs` to check for drift.
 
 ---
 
@@ -52,6 +52,25 @@
 **Dark mode selector:** `body.dark-mode .your-class` (NOT `[data-theme="dark"]`)
 
 **Dark mode colors:** Prefer solid (`#1C1C1E`) over low-opacity rgba — low opacity is invisible on `#000000`
+
+---
+
+## CSS File Ownership Map
+
+> Never edit `css/main.css` — it is an `@import` aggregator **not loaded by the browser**. Edit the specific file below.
+
+| File | Contains | When to Edit |
+|------|----------|-------------|
+| `css/variables.css` | `:root` CSS vars + `body.dark-mode` overrides | Color changes, new theme tokens |
+| `css/base.css` | Reset, body, typography, scrollbars | Global typography / body styles |
+| `css/layout.css` | Header, sidebar, plugin container, media queries | Layout shifts, sidebar changes |
+| `css/components.css` | Cards, inputs, buttons, modals, toasts, forms | Shared component styles |
+| `css/landing.css` | Dashboard bento grid, tool-row 3D tilt | Home page / dashboard only |
+| `css/animations.css` | All `@keyframes` + global animation assignments | Any new animation |
+| `css/sidebar.css` | Desktop/tablet/mobile sidebar layouts, logo | Sidebar navigation UI |
+| `css/dashboard.css` | Dashboard widgets + compliance widget | Home page widgets |
+| `css/auth.css` | Login/signup modals, settings panel, Agency Glossary | Auth screens, settings |
+| `css/[plugin].css` | Styles scoped to one plugin only | That plugin's UI |
 
 ---
 
@@ -172,6 +191,30 @@ priorCarrier, priorYears, priorLapse
 
 ---
 
+## JS Symbol Index
+
+| Symbol | Defined In | Notes |
+|--------|-----------|-------|
+| `App` object | `js/app-init.js` | Created here; assembled via `Object.assign` across 9 files |
+| `App.save()` | `js/app-core.js` | Debounced encrypted write to `altech_v6` |
+| `App.load()` | `js/app-core.js` | Decrypt + restore form data from localStorage |
+| `App.updateUI()` | `js/app-core.js` | Re-render wizard step, sync field values |
+| `App.navigateTo()` | `js/app-core.js` | Plugin navigation + lazy HTML fetch |
+| `App.toast()` | `js/app-core.js` | Global notification toast — use instead of `alert()` |
+| `App.boot()` | `js/app-boot.js` | Initialization entry point — called last |
+| `App.exportPDF()` | `js/app-export.js` | PDF via jsPDF |
+| `App.exportCMSMTF()` | `js/app-export.js` | Routes to `HawkSoftExport.open()` |
+| `App.drivers` / `App.vehicles` | `js/app-init.js` | Mutable arrays shared across modules |
+| `toolConfig[]` | `js/app-init.js` | Plugin registry — add new plugins here |
+| `Auth.apiFetch()` | `js/auth.js` | Authenticated fetch with Firebase ID token |
+| `Auth.isSignedIn` | `js/auth.js` | Boolean auth state |
+| `CloudSync.schedulePush()` | `js/cloud-sync.js` | Debounced 3s Firestore push — call after localStorage writes |
+| `CryptoHelper.encrypt/decrypt` | `js/crypto-helper.js` | AES-256-GCM via Web Crypto API |
+| `AIProvider.ask/chat` | `js/ai-provider.js` | Multi-provider AI abstraction |
+| `DashboardWidgets.refreshAll()` | `js/dashboard-widgets.js` | Re-render all home page widgets |
+
+---
+
 ## Three Workflows (Test ALL on Step Changes)
 
 | Type | Steps | Skip |
@@ -221,88 +264,3 @@ npx jest --no-coverage   # Faster
 npx jest tests/app.test.js  # Single suite
 npm run deploy:vercel    # Production deploy
 ```
-
----
-
-## Session Notes (March 13, 2026)
-
-- **8 UI/UX Improvements — Full Session:**
-  1. **Sidebar logo:** Replaced blue "AL" text with `<img>` of `Resources/altech-logo.png`. Restyled `.sidebar-brand-logo` for image display.
-  2. **Personal Lines icon:** Changed from house (duplicate of Dashboard) to pencil/edit ✏️ SVG. Updated `toolConfig` icon + `TOOL_ICONS` mapping.
-  3. **Footer behind sidebar:** Removed errant `left: 0` from `#quotingTool footer` override in main.css.
-  4. **Policy Q&A hidden:** Added `hidden: true` to toolConfig entry — invisible to users until finished.
-  5. **Bug report page detection:** Rewrote `getCurrentPage()` with hash-based detection + title/step fallbacks.
-  6. **Browser title:** Changed `<title>` from "Altech Field Lead" to "Altech Toolkit".
-  7. **CGL Snooze/Sleep:** Full snooze system — `snoozePolicy(pn)` sets midnight-tonight expiry, logs note with count, auto-expires in `filterPolicies()`. UI: 🛏️ Sleep button next to Dismiss, amber snoozed badge + Wake button in showHidden mode, "Sleep Until Tomorrow" in quick-note row. `_isSnoozeActive()`, `_expireSnoozes()`, `unsnoozePolicy()` methods.
-  8. **QuickRef reorganized:** Reordered to ID Cards → Speller → Quick Dial Numbers → Phonetic Grid. Replaced hardcoded Common Numbers with editable CRUD system (add/edit/delete with defaults: NAIC, CLUE, MVR). Cloud synced as `quickRefNumbers` (11th doc type).
-- **Tests:** 23 suites, 1515 tests (unchanged).
-- **12 files changed:** js/compliance-dashboard.js (2,448→2,502), css/compliance.css (1,234→1,275), js/quick-ref.js (293→346), css/quickref.css (233→261), plugins/quickref.html (79→78), js/cloud-sync.js (664→672), js/dashboard-widgets.js (976→886), css/sidebar.css (765→726), js/bug-report.js (260→232), css/main.css (3,486→3,366), js/app-init.js (85→86), index.html (665).
-
-### Email Composer — Dynamic AI Persona + Custom Prompt Override (March 16, 2026)
-
-- **Dynamic AI persona:** Replaced hardcoded "Altech Insurance Agency"/"Altech Insurance" in AI system prompt with `_getAgentName()` (Auth.displayName → localStorage name → fallback) and `_getAgencyName()` (parsed from `altech_agency_profile` → fallback). New `buildDefaultPrompt()` constructs persona dynamically.
-- **Custom prompt override:** Collapsible "🎭 Customize AI Persona" UI section with textarea (≤ 2000 chars), save/reset, char counter. Stored in `altech_email_custom_prompt`. `compose()` uses custom prompt if set, otherwise `buildDefaultPrompt()`.
-- **Onboarding hint:** Hint text under agency name field: "Used in the Email Composer AI persona & sign-off".
-- **Tests:** 23 suites, 1515 tests (unchanged).
-- **4 files changed:** js/email-composer.js (420→497), plugins/email.html (98→125), css/email.css (165→231), index.html (665).
-
-### CGL State-Wipe Bugfix (March 15, 2026)
-
-- **checkForRenewals() no longer overwrites user actions:** All 4 renewal detection blocks were unconditionally clearing `stateUpdated`/`renewedTo` and resetting `needsStateUpdate = true` every fetch. Fix: `markStateUpdated()` records `stateUpdatedForExp` (the specific expiration acknowledged). All 4 blocks skip re-flagging if user already acknowledged that exact expiration. Genuinely new renewals (different exp) still trigger re-flagging.
-- **Cloud sync CGL reload:** `pullFromCloud()` now calls `ComplianceDashboard.loadState()` after writing cglState to localStorage.
-- **Tests:** 23 suites, 1515 tests (unchanged).
-- **2 files changed:** js/compliance-dashboard.js (2,502→2,513), js/cloud-sync.js (672→676).
-
-### Previous Session (March 12, 2026)
-
-- **Encrypted Accounting Vault:** PIN + AES-256-GCM + multi-account CRUD. Tabbed layout (Account Info / Export Tools). PIN lockout escalation (3/6 tries), Firebase re-auth recovery. Cloud sync: vaultData + vaultMeta (10 doc types total).
-- **Vault UI Polish:** Replaced heavy gradient toolbar buttons with dedicated ghost/solid classes + inline SVG icons. Removed double-border form nesting. 3-column form grid with proper labels. Color picker squircle. SVG empty state. Full dark mode.
-- **Tests:** 23 suites, 1515 tests (unchanged).
-- **4+3 files changed:** js/accounting-export.js (392→856 lines), css/accounting.css (225→467 lines), plugins/accounting.html (252→329 lines), js/cloud-sync.js (651→664 lines).
-
-### Previous Session (March 5, 2026)
-
-- **+ New Log Button:** Added reset button in HawkSoft Logger header — clears client, channel (→Inbound), activity, notes, preview/confirm panels. Keeps agent initials. SVG + icon.
-- **Agency Glossary:** New textarea in Settings (500-char max) for custom shorthand terms (e.g., "MoE = Mutual of Enumclaw"). Stored in `altech_agency_glossary`, sent in formatOnly fetch, injected into AI userMessage, cloud-synced as 8th doc type.
-- **CHANNEL_MAP LogAction Fix:** Walk-In 2→21, Email 3→33, Text 4→41. Were incorrectly using Phone sub-codes.
-- **Tests:** 26 new tests. Total: 23 suites, 1515 tests.
-- **9 files changed:** api/hawksoft-logger.js, plugins/call-logger.html, css/call-logger.css, js/call-logger.js, index.html, css/auth.css, js/cloud-sync.js, tests/call-logger.test.js, tests/hawksoft-logger.test.js
-
-### Previous Session (March 4, 2026)
-
-- **Call Logger Redesign:** Replaced `<select>` dropdown with 5 SVG-icon channel quick-tap buttons (Inbound/Outbound/Walk-In/Email/Text) + 8 activity-type pill buttons with note templates. Full HTML/CSS/JS rewrite. Added CHANNEL_MAP to hawksoft-logger.js.
-- **HawkSoft Logger Bug Fixes + Rename:** Fixed wrong method/direction/party in log push. Fixed invisible agent initials. Renamed Call Logger to HawkSoft Logger across 7 files.
-
-### Previous Session (March 3, 2026)
-
-- Fixed narrow-width viewport collapse/black-screen behavior by hardening shell and plugin flex containment.
-- Desktop Layout Overhaul: Widened all 15 plugin containers from 1200px→1400px. Added 2-column desktop grids for Q&A, Email, VIN Decoder, and Accounting. 24 files changed.
-- Verification: `npx jest --no-coverage` → 23/23 suites passed, 1515/1515 tests.
-
-### Auth Gate + Places API Retry (March 19, 2026)
-
-- **CGL Compliance widget auth gate:** `renderComplianceWidget()`, `_backgroundComplianceFetch()`, and `updateBadges()` now check `Auth.isSignedIn` before rendering or fetching. Unauthenticated visitors see empty state.
-- **Places API retry on sign-in:** `_onAuthStateChanged` retries `loadPlacesAPI()` when user signs in and `google.maps.places` isn't loaded. Added idempotency guard (`_placesAPILoading`) to prevent duplicate `<script>` loads.
-- **Dashboard refresh on sign-in:** `_onAuthStateChanged` calls `DashboardWidgets.refreshAll()` after sign-in.
-- **Tests:** 23 suites, 1515 tests (unchanged).
-- **4 files changed:** js/dashboard-widgets.js (904→911), js/auth.js (537→540), js/app-boot.js (295→279), tests/auth-cloudsync.test.js (210→213).
-
-### Task Sheet Plugin (March 25, 2026)
-
-- **Task Sheet Plugin — HawkSoft CSV Task Viewer:** New plugin (`tasksheet`) for uploading HawkSoft "My Tasks" CSV exports and displaying a sortable, printable task table. Upload via drag-and-drop or file picker. CSV parsed client-side (RFC 4180, BOM-safe). Rows sorted: overdue first → priority (critical→high→medium→low) → due date ascending. 9-column table with color-coded priority badges, overdue row highlighting, and print layout via `window.print()` + `@media print`.
-- **Tests:** 23 suites, 1515 tests (unchanged).
-- **3 new files:** js/task-sheet.js (415 lines), plugins/task-sheet.html (50 lines), css/task-sheet.css (515 lines).
-- **2 files modified:** index.html (665→742 lines), js/app-init.js (86→92 lines).
-
-### HawkSoft Export — Phase 3 Audit Fixes (March 11, 2026)
-
-- **Lossless driver + vehicle rebuild:** `_readForm()` now uses spread-then-overlay pattern — UI-editable fields overlay the existing `_exportData` object instead of replacing it. Per-driver fields (`industry`, `education`, `dlStatus`, `ageLicensed`, `accidents`, `violations`, `studentGPA`, `sr22Reason`, etc.) are no longer lost on each UI interaction.
-- **Per-driver FSC incidents:** `_buildFscNotes()` accepts `drivers` param; emits `DRIVER INCIDENTS` section with per-driver accidents/violations/GPA.
-- **Phone field fix:** `phone: ''` → `phone: d.phone || ''` (was always blank in CMSMTF).
-- **`goodStudent` fix:** Now driven by `studentGPA` presence, not `goodDriver === 'Yes'`.
-- **8 blank boat keys + 8 blank 2nd lienholder keys** added to home CMSMTF block.
-- **Client Office field:** `hs_clientOffice` UI input + read/save pipeline added.
-- **Tests:** 23 suites, 1515 tests (unchanged).
-- **1 file changed:** js/hawksoft-export.js (1,734→1,770 lines).
-
-*Last updated: March 11, 2026*
