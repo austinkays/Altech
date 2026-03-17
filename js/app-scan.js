@@ -759,12 +759,38 @@ Object.assign(App, {
         });
     },
 
+    _getAltechRestorePrompt(text) {
+        return 'Below is structured client data exported from Altech Insurance Tools (a client summary PDF). ' +
+            'This is NOT a standard insurance policy — it is a pre-filled form export from agency software.\n\n' +
+            'Extract every labeled field precisely. The document uses labeled sections:\n' +
+            '- "Applicant Information" — first/last name, DOB, gender (M/F), marital status, phone, email, education, occupation, industry, prefix, suffix\n' +
+            '- "Co-Applicant" — first/last name, DOB, gender, email, phone, relationship\n' +
+            '- "Address" / "Property Address" — street, city, state (2-letter), ZIP, county\n' +
+            '- "Property Details" — year built, sq footage, construction style, exterior walls, foundation, roof type, roof shape, roof year, heating type, cooling, garage, etc.\n' +
+            '- "Coverage" / "Home Coverage" / "Auto Coverage" — dwelling amount, liability, deductibles, limits\n' +
+            '- "Vehicles" — year, make, model, VIN for each vehicle listed\n' +
+            '- "Drivers" — name, DOB, gender, and all fields for each driver\n' +
+            '- "Prior Insurance" — prior carrier, expiration date, years insured\n\n' +
+            '**CRITICAL — return these two fields as JSON-encoded array strings:**\n' +
+            'altechVehiclesJson: JSON array of ALL vehicles: ' +
+            '[ { year, make, model, vin, use, miles, primaryDriver, ownershipType, ' +
+            'antiTheft, antiLockBrakes, passiveRestraints, telematics, tnc, carPool, carNew } ]\n' +
+            'altechDriversJson: JSON array of ALL drivers: ' +
+            '[ { firstName, lastName, dob, gender, maritalStatus, relationship, education, occupation, industry, ' +
+            'dlNum, dlState, dlStatus, ageLicensed, sr22, fr44, goodDriver, matureDriver, ' +
+            'licenseSusRev, driverEducation, studentGPA, accidents, violations } ]\n\n' +
+            'Notes: dates as YYYY-MM-DD; currency as plain numbers; gender as M or F; ' +
+            'this is trusted complete data — extract every field you see.\n\n' +
+            '--- DOCUMENT TEXT ---\n' + text.substring(0, 30000);
+    },
+
     // Process already-extracted text through AI for structured field extraction (desktop drag-drop)
     async processScanFromText(text, fileName) {
         const status = document.getElementById('scanStatus');
 
         try {
-            const userPrompt =
+            const isAltechPDF = text && text.includes('Altech Insurance Tools');
+            const userPrompt = isAltechPDF ? this._getAltechRestorePrompt(text) :
                 'Below is text extracted from an insurance policy document. Extract ALL available structured information from it.\n\n' +
                 '**POLICYHOLDER/INSURED:** Prefix (Mr/Mrs/Ms/Dr), first name, last name, suffix (Jr/Sr/III), date of birth, gender (M/F), marital status, phone, email, education, occupation, industry\n' +
                 '**CO-APPLICANT/SPOUSE:** First name, last name, date of birth, gender, email, phone, relationship (if listed)\n' +
@@ -1453,6 +1479,17 @@ Object.assign(App, {
         // Drivers (additional)
         if (fields.additionalDrivers) renderField('additionalDrivers', 'Additional Drivers', fields.additionalDrivers);
 
+        // Altech-specific hidden inputs for rich JSON restore (not shown to user)
+        ['altechDriversJson', 'altechVehiclesJson'].forEach(key => {
+            if (fields[key]) {
+                const inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.dataset.field = key;
+                inp.value = fields[key];
+                results.appendChild(inp);
+            }
+        });
+
         // Policy & Prior Insurance
         const polHeader = document.createElement('h3');
         polHeader.textContent = '📋 Policy & Prior Insurance';
@@ -1522,6 +1559,8 @@ Object.assign(App, {
         let hasCoApplicant = false;
         let additionalVehiclesText = '';
         let additionalDriversText = '';
+        let altechDriversJson = '';
+        let altechVehiclesJson = '';
 
         // ── Extraction debug log ──
         const log = [];
@@ -1562,6 +1601,8 @@ Object.assign(App, {
             // Capture additional vehicles/drivers text for parsing below
             if (field === 'additionalVehicles') { additionalVehiclesText = extractedValue; return; }
             if (field === 'additionalDrivers') { additionalDriversText = extractedValue; return; }
+            if (field === 'altechDriversJson') { altechDriversJson = extractedValue; return; }
+            if (field === 'altechVehiclesJson') { altechVehiclesJson = extractedValue; return; }
 
             // Smart merge: protect existing data if merge mode is on
             if (mergeMode && currentValue && currentValue !== extractedValue) {
@@ -1765,6 +1806,52 @@ Object.assign(App, {
         if (this.drivers && this.drivers.length > 0) {
             this.saveDriversVehicles();
             this.renderDrivers();
+        }
+
+        // Rich Altech JSON restore — overrides lossy text parsing when present
+        if (altechVehiclesJson) {
+            try {
+                const vArr = JSON.parse(altechVehiclesJson);
+                if (Array.isArray(vArr) && vArr.length > 0) {
+                    this.vehicles = vArr.map((v, i) => ({
+                        id: `vehicle_${Date.now() + i}`,
+                        year: v.year || '', make: v.make || '', model: v.model || '', vin: v.vin || '',
+                        use: v.use || 'Commute', miles: v.miles || '12000',
+                        primaryDriver: v.primaryDriver || '',
+                        ownershipType: v.ownershipType || '',
+                        antiTheft: v.antiTheft || '', antiLockBrakes: v.antiLockBrakes || '',
+                        passiveRestraints: v.passiveRestraints || '', telematics: v.telematics || '',
+                        tnc: v.tnc || '', carPool: v.carPool || '', carNew: v.carNew || ''
+                    }));
+                    this.saveDriversVehicles(); this.renderVehicles();
+                }
+            } catch(e) { console.warn('[Scan] altechVehiclesJson parse error:', e); }
+        }
+        if (altechDriversJson) {
+            try {
+                const dArr = JSON.parse(altechDriversJson);
+                if (Array.isArray(dArr) && dArr.length > 0) {
+                    const _normG = g => { const s = (g||'').trim().toUpperCase(); return s === 'MALE' ? 'M' : s === 'FEMALE' ? 'F' : s || ''; };
+                    this.drivers = dArr.map((d, i) => ({
+                        id: `driver_${Date.now() + i}`,
+                        firstName: d.firstName || '', lastName: d.lastName || '',
+                        dob: d.dob || '', gender: _normG(d.gender),
+                        maritalStatus: d.maritalStatus || '',
+                        relationship: d.relationship || (i === 0 ? 'Self' : 'Other'),
+                        education: d.education || '', occupation: d.occupation || '',
+                        industry: d.industry || '', dlNum: d.dlNum || '',
+                        dlState: d.dlState || this.data.addrState || this.data.state || 'WA',
+                        dlStatus: d.dlStatus || '', ageLicensed: d.ageLicensed || '',
+                        sr22: d.sr22 || '', fr44: d.fr44 || '',
+                        goodDriver: d.goodDriver || '', matureDriver: d.matureDriver || '',
+                        licenseSusRev: d.licenseSusRev || '', driverEducation: d.driverEducation || '',
+                        studentGPA: d.studentGPA || '', accidents: d.accidents || '',
+                        violations: d.violations || '',
+                        isPrimaryApplicant: i === 0, isCoApplicant: false
+                    }));
+                    this.saveDriversVehicles(); this.renderDrivers();
+                }
+            } catch(e) { console.warn('[Scan] altechDriversJson parse error:', e); }
         }
 
         this.updateScanCoverage();

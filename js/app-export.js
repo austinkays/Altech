@@ -1242,6 +1242,7 @@ Object.assign(App, {
             additionalInsureds: { type: 'string' },
             contactTime: { type: 'string' }, referralSource: { type: 'string' },
             additionalVehicles: { type: 'string' }, additionalDrivers: { type: 'string' },
+            altechDriversJson: { type: 'string' }, altechVehiclesJson: { type: 'string' },
         };
         const confProps = {};
         Object.keys(fieldProps).forEach(k => { confProps[k] = { type: 'number' }; });
