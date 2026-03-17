@@ -48,13 +48,21 @@ async function handler(req, res) {
         if (typeof temperature === 'number') body.temperature = temperature;
         if (tools) body.tools = tools;
 
+        // Determine required beta headers based on tools in use
+        const hasWebSearch = Array.isArray(tools) && tools.some(t => t.type?.startsWith('web_search'));
+        const betaHeaders = [];
+        if (hasWebSearch) betaHeaders.push('web-search-2025-03-05');
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01'
+        };
+        if (betaHeaders.length) headers['anthropic-beta'] = betaHeaders.join(',');
+
         const response = await fetch(ANTHROPIC_API_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01'
-            },
+            headers,
             body: JSON.stringify(body)
         });
 
