@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Dead home (`logo-icon-button`) and dark-mode-toggle buttons stripped from all 20 plugin HTML headers (`plugins/accounting.html`, `call-logger.html`, `coi.html`, `compliance.html`, `dec-import.html`, `deposit-sheet.html`, `email.html`, `endorsement.html`, `ezlynx.html`, `hawksoft.html`, `intake-assist.html`, `prospect.html`, `qna.html`, `quickref.html`, `quotecompare.html`, `reminders.html`, `returned-mail.html`, `task-sheet.html`, `vin-decoder.html`, `blind-spot-brief.html`). These ~40 buttons were permanently hidden by `sidebar.css` (`.app-shell .plugin-container header .tool-header-brand { display: none }`) — navigation is fully owned by the sidebar. `quoting.html` intentionally unchanged. (commit `04554a3`)
+- `css/main.css` — dead `@import` aggregator file; never linked in `index.html`, never loaded by the browser (documented with warning comment in AGENTS.md §5.12). (commit `7e55123`)
+- Stale git worktree `.claude/worktrees/magical-swirles` and `claude/magical-swirles` branch removed. (commit `7e55123`)
+- Debug/test output files removed from git tracking: `calltest.txt`, `calltest2.txt`, `test_full_results.txt`, `test-failures.json`, `test-out2.json`, `BUGFIX_LOG_2026-02-12.md`. Added these patterns to `.gitignore`. (commit `7e55123`)
+- Stale cache-busting query strings stripped from `index.html`: `deposit-sheet.css?v=3` → `deposit-sheet.css`, `compliance-dashboard.js?v=20260217j` → `compliance-dashboard.js`. (commit `7e55123`)
 
 ---
 
