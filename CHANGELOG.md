@@ -10,7 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- CSS ownership map table to `QUICKREF.md`  
+- `js/fields.js` — canonical field registry (`window.FIELDS` array + `window.FIELD_BY_ID` lookup map) covering all ~175 `App.data` intake form fields with `id`, `label`, `type`, `section` metadata
+- `FIELDS` / `FIELD_BY_ID` entry added to JS Symbol Index table in `QUICKREF.md`
+
+### Changed
+- `js/app-export.js`: all hardcoded label strings in `buildPDF()` `kvTable()` calls replaced with `FIELD_BY_ID[id].label`
+- `js/hawksoft-export.js`: all hardcoded label strings in `_buildFscNotes()` replaced with `FIELD_BY_ID[id].label` (Baths compound and Towing & Labor kept as intentional display labels; Prior Expiration kept as-is for formatted date display)
+- `index.html`: added `<script src="js/fields.js"></script>` load order entry (before `app-init.js`)
+- `QUICKREF.md` Data Object Shapes: corrected address field names (`address/city/state/zip` → `addrStreet/addrCity/addrState/addrZip`) and `dogBreed` → `dogInfo`
+
+### Added
+- CSS ownership map table to `QUICKREF.md`
 - JS symbol-to-file index table to `QUICKREF.md`
 
 ### Changed
