@@ -99,11 +99,11 @@
 firstName, lastName, dob, gender, email, phone, maritalStatus
 coApplicantFirst, coApplicantLast, coApplicantDob, coApplicantGender,
   coApplicantEmail, coApplicantPhone, coApplicantRelationship
-address, city, state, zip, county
+addrStreet, addrCity, addrState, addrZip, county
 dwellingType, dwellingUsage, occupancy, yrBuilt, sqFt, numStories,
   numBathrooms, constructionType, exteriorWalls, foundation, roofType,
   roofShape, heatingType, coolingType, garageSpaces, pool, trampoline,
-  dogBreed, woodStove, fireAlarm, sprinklers, protectionClass
+  dogInfo, woodStove, fireAlarm, sprinklers, protectionClass
 qType (home|auto|both), dwelling, liability, deductibleAOP, deductibleWind,
   bodInjury, propDamage, umUim, compDed, collDed, medPay, rental, towing
 priorCarrier, priorYears, priorLapse
@@ -212,6 +212,7 @@ priorCarrier, priorYears, priorLapse
 | `CryptoHelper.encrypt/decrypt` | `js/crypto-helper.js` | AES-256-GCM via Web Crypto API |
 | `AIProvider.ask/chat` | `js/ai-provider.js` | Multi-provider AI abstraction |
 | `DashboardWidgets.refreshAll()` | `js/dashboard-widgets.js` | Re-render all home page widgets |
+| `FIELDS` / `FIELD_BY_ID` | `js/fields.js` | Canonical field registry — id, label, type, section for all `App.data` intake form fields |
 
 ---
 

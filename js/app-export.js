@@ -501,15 +501,15 @@ Object.assign(App, {
         { sectionHeader('Applicant');
         kvTable([
             ['Full Name', clientName],
-            ['Middle Name', v('middleName')],
-            ['Date of Birth', formatDate(v('dob'))],
+            [FIELD_BY_ID['middleName'].label, v('middleName')],
+            [FIELD_BY_ID['dob'].label, formatDate(v('dob'))],
             ['Gender', v('gender') === 'M' ? 'Male' : v('gender') === 'F' ? 'Female' : v('gender')],
-            ['Marital Status', v('maritalStatus')],
-            ['Phone', formatPhone(v('phone'))],
-            ['Email', v('email')],
-            ['Education', v('education')],
-            ['Industry', vo('industry')],
-            ['Occupation', v('occupation')],
+            [FIELD_BY_ID['maritalStatus'].label, v('maritalStatus')],
+            [FIELD_BY_ID['phone'].label, formatPhone(v('phone'))],
+            [FIELD_BY_ID['email'].label, v('email')],
+            [FIELD_BY_ID['education'].label, v('education')],
+            [FIELD_BY_ID['industry'].label, vo('industry')],
+            [FIELD_BY_ID['occupation'].label, v('occupation')],
             ['Pronunciation', this.getNamePronunciation(data)],
         ], 3); }
 
@@ -519,26 +519,26 @@ Object.assign(App, {
             sectionHeader('Co-Applicant / Spouse');
             kvTable([
                 ['Full Name', `${v('coFirstName')} ${v('coLastName')}`.trim()],
-                ['Date of Birth', formatDate(v('coDob'))],
+                [FIELD_BY_ID['coDob'].label, formatDate(v('coDob'))],
                 ['Gender', v('coGender') === 'M' ? 'Male' : v('coGender') === 'F' ? 'Female' : v('coGender')],
-                ['Email', v('coEmail')],
-                ['Phone', formatPhone(v('coPhone'))],
-                ['Relationship', vo('coRelationship')],
-                ['Occupation', v('coOccupation')],
-                ['Education', v('coEducation')],
-                ['Industry', vo('coIndustry')],
+                [FIELD_BY_ID['coEmail'].label, v('coEmail')],
+                [FIELD_BY_ID['coPhone'].label, formatPhone(v('coPhone'))],
+                [FIELD_BY_ID['coRelationship'].label, vo('coRelationship')],
+                [FIELD_BY_ID['coOccupation'].label, v('coOccupation')],
+                [FIELD_BY_ID['coEducation'].label, v('coEducation')],
+                [FIELD_BY_ID['coIndustry'].label, vo('coIndustry')],
             ], 3);
         }
 
         // ── Property Address ─────────────────────────────────────────
         { sectionHeader('Property Address');
         kvTable([
-            ['Street Address', v('addrStreet')],
-            ['City', v('addrCity')],
-            ['State', v('addrState')],
-            ['ZIP Code', v('addrZip')],
-            ['County', v('county') || this.getCountyFromCity(data.addrCity, data.addrState) || ''],
-            ['Years at Address', v('yearsAtAddress')],
+            [FIELD_BY_ID['addrStreet'].label, v('addrStreet')],
+            [FIELD_BY_ID['addrCity'].label, v('addrCity')],
+            [FIELD_BY_ID['addrState'].label, v('addrState')],
+            [FIELD_BY_ID['addrZip'].label, v('addrZip')],
+            [FIELD_BY_ID['county'].label, v('county') || this.getCountyFromCity(data.addrCity, data.addrState) || ''],
+            [FIELD_BY_ID['yearsAtAddress'].label, v('yearsAtAddress')],
         ], 3); }
 
         // ── Primary Home Address (non-primary residences only) ──────────
@@ -547,10 +547,10 @@ Object.assign(App, {
             checkPage(20);
             sectionHeader("Client's Primary Home Address");
             kvTable([
-                ['Street Address', v('primaryHomeAddr')],
-                ['City', v('primaryHomeCity')],
-                ['State', v('primaryHomeState')],
-                ['ZIP Code', v('primaryHomeZip')],
+                [FIELD_BY_ID['primaryHomeAddr'].label, v('primaryHomeAddr')],
+                [FIELD_BY_ID['primaryHomeCity'].label, v('primaryHomeCity')],
+                [FIELD_BY_ID['primaryHomeState'].label, v('primaryHomeState')],
+                [FIELD_BY_ID['primaryHomeZip'].label, v('primaryHomeZip')],
             ], 3);
         }
 
@@ -558,100 +558,100 @@ Object.assign(App, {
             // ── Property Details ─────────────────────────────────────
             { sectionHeader('Property Details');
             kvTable([
-                ['Year Built', v('yrBuilt')],
-                ['Square Footage', v('sqFt') ? Number(v('sqFt')).toLocaleString() + ' sq ft' : ''],
-                ['Lot Size', v('lotSize') ? v('lotSize') + ' acres' : ''],
-                ['Dwelling Type', v('dwellingType')],
-                ['Dwelling Use', v('dwellingUsage')],
-                ['Occupancy', v('occupancyType')],
-                ['Stories', v('numStories')],
-                ['Occupants', v('numOccupants')],
-                ['Bedrooms', v('bedrooms')],
-                ['Full Baths', v('fullBaths')],
-                ['Half Baths', v('halfBaths')],
-                ['Construction', v('constructionStyle')],
-                ['Exterior Walls', v('exteriorWalls')],
-                ['Foundation', vo('foundation')],
-                ['Garage Type', v('garageType')],
-                ['Garage Spaces', v('garageSpaces')],
-                ['Kitchen/Bath Quality', v('kitchenQuality')],
-                ['Flooring', v('flooring')],
-                ['Fireplaces', v('numFireplaces')],
-                ['Purchase Date', formatDate(v('purchaseDate'))],
+                [FIELD_BY_ID['yrBuilt'].label, v('yrBuilt')],
+                [FIELD_BY_ID['sqFt'].label, v('sqFt') ? Number(v('sqFt')).toLocaleString() + ' sq ft' : ''],
+                [FIELD_BY_ID['lotSize'].label, v('lotSize') ? v('lotSize') + ' acres' : ''],
+                [FIELD_BY_ID['dwellingType'].label, v('dwellingType')],
+                [FIELD_BY_ID['dwellingUsage'].label, v('dwellingUsage')],
+                [FIELD_BY_ID['occupancyType'].label, v('occupancyType')],
+                [FIELD_BY_ID['numStories'].label, v('numStories')],
+                [FIELD_BY_ID['numOccupants'].label, v('numOccupants')],
+                [FIELD_BY_ID['bedrooms'].label, v('bedrooms')],
+                [FIELD_BY_ID['fullBaths'].label, v('fullBaths')],
+                [FIELD_BY_ID['halfBaths'].label, v('halfBaths')],
+                [FIELD_BY_ID['constructionStyle'].label, v('constructionStyle')],
+                [FIELD_BY_ID['exteriorWalls'].label, v('exteriorWalls')],
+                [FIELD_BY_ID['foundation'].label, vo('foundation')],
+                [FIELD_BY_ID['garageType'].label, v('garageType')],
+                [FIELD_BY_ID['garageSpaces'].label, v('garageSpaces')],
+                [FIELD_BY_ID['kitchenQuality'].label, v('kitchenQuality')],
+                [FIELD_BY_ID['flooring'].label, v('flooring')],
+                [FIELD_BY_ID['numFireplaces'].label, v('numFireplaces')],
+                [FIELD_BY_ID['purchaseDate'].label, formatDate(v('purchaseDate'))],
             ], 4); }
 
             // ── Building Systems ─────────────────────────────────────
             checkPage(30); // ensure header + at least first data row stay together
             { sectionHeader('Building Systems');
             kvTable([
-                ['Roof Type', vo('roofType')],
-                ['Roof Shape', vo('roofShape')],
-                ['Roof Updated', v('roofYr')],
-                ['Roof Update Type', v('roofUpdate')],
-                ['Heating Type', vo('heatingType')],
-                ['Heating Updated', v('heatYr')],
-                ['Cooling', v('cooling')],
-                ['Plumbing Updated', v('plumbYr')],
-                ['Electrical Updated', v('elecYr')],
-                ['Sewer', v('sewer')],
-                ['Water Source', v('waterSource')],
+                [FIELD_BY_ID['roofType'].label, vo('roofType')],
+                [FIELD_BY_ID['roofShape'].label, vo('roofShape')],
+                [FIELD_BY_ID['roofYr'].label, v('roofYr')],
+                [FIELD_BY_ID['roofUpdate'].label, v('roofUpdate')],
+                [FIELD_BY_ID['heatingType'].label, vo('heatingType')],
+                [FIELD_BY_ID['heatYr'].label, v('heatYr')],
+                [FIELD_BY_ID['cooling'].label, v('cooling')],
+                [FIELD_BY_ID['plumbYr'].label, v('plumbYr')],
+                [FIELD_BY_ID['elecYr'].label, v('elecYr')],
+                [FIELD_BY_ID['sewer'].label, v('sewer')],
+                [FIELD_BY_ID['waterSource'].label, v('waterSource')],
             ], 4); }
 
             // ── Risk & Protection ────────────────────────────────────
             { sectionHeader('Risk & Protection');
             kvTable([
-                ['Burglar Alarm', v('burglarAlarm')],
-                ['Fire Alarm', v('fireAlarm')],
-                ['Smoke Detector', v('smokeDetector')],
-                ['Sprinklers', v('sprinklers')],
-                ['Swimming Pool', v('pool') || 'No'],
-                ['Trampoline', v('trampoline') || 'No'],
-                ['Wood Stove', v('woodStove') && v('woodStove') !== 'None' ? v('woodStove') : 'None'],
-                ['Secondary Heating', vo('secondaryHeating')],
-                ['Dog on Premises', data.dogInfo || 'None'],
-                ['Business on Property', data.businessOnProperty || 'No'],
-                ['Fire Station (mi)', v('fireStationDist')],
-                ['Fire Hydrant (ft)', v('fireHydrantFeet')],
-                ['Tidal Water (ft)', v('tidalWaterDist')],
-                ['Protection Class', v('protectionClass')],
+                [FIELD_BY_ID['burglarAlarm'].label, v('burglarAlarm')],
+                [FIELD_BY_ID['fireAlarm'].label, v('fireAlarm')],
+                [FIELD_BY_ID['smokeDetector'].label, v('smokeDetector')],
+                [FIELD_BY_ID['sprinklers'].label, v('sprinklers')],
+                [FIELD_BY_ID['pool'].label, v('pool') || 'No'],
+                [FIELD_BY_ID['trampoline'].label, v('trampoline') || 'No'],
+                [FIELD_BY_ID['woodStove'].label, v('woodStove') && v('woodStove') !== 'None' ? v('woodStove') : 'None'],
+                [FIELD_BY_ID['secondaryHeating'].label, vo('secondaryHeating')],
+                [FIELD_BY_ID['dogInfo'].label, data.dogInfo || 'None'],
+                [FIELD_BY_ID['businessOnProperty'].label, data.businessOnProperty || 'No'],
+                [FIELD_BY_ID['fireStationDist'].label, v('fireStationDist')],
+                [FIELD_BY_ID['fireHydrantFeet'].label, v('fireHydrantFeet')],
+                [FIELD_BY_ID['tidalWaterDist'].label, v('tidalWaterDist')],
+                [FIELD_BY_ID['protectionClass'].label, v('protectionClass')],
             ], 4); }
 
             // ── Home Coverage ────────────────────────────────────────
             checkPage(30);
             { sectionHeader('Home Coverage');
             kvTable([
-                ['Home Policy Type', v('homePolicyType')],
-                ['Dwelling Coverage', formatCurrency(v('dwellingCoverage'))],
-                ['Personal Property', formatCurrency(v('homePersonalProperty'))],
-                ['Loss of Use', formatCurrency(v('homeLossOfUse'))],
-                ['Personal Liability', v('personalLiability')],
-                ['Medical Payments', v('medicalPayments')],
-                ['Deductible (AOP)', formatDeductible(v('homeDeductible'))],
-                ['Wind/Hail Deductible', formatDeductible(v('windDeductible'))],
-                ['Mortgagee / Lienholder', v('mortgagee')],
+                [FIELD_BY_ID['homePolicyType'].label, v('homePolicyType')],
+                [FIELD_BY_ID['dwellingCoverage'].label, formatCurrency(v('dwellingCoverage'))],
+                [FIELD_BY_ID['homePersonalProperty'].label, formatCurrency(v('homePersonalProperty'))],
+                [FIELD_BY_ID['homeLossOfUse'].label, formatCurrency(v('homeLossOfUse'))],
+                [FIELD_BY_ID['personalLiability'].label, v('personalLiability')],
+                [FIELD_BY_ID['medicalPayments'].label, v('medicalPayments')],
+                [FIELD_BY_ID['homeDeductible'].label, formatDeductible(v('homeDeductible'))],
+                [FIELD_BY_ID['windDeductible'].label, formatDeductible(v('windDeductible'))],
+                [FIELD_BY_ID['mortgagee'].label, v('mortgagee')],
             ], 3); }
 
             // ── Home Endorsements ────────────────────────────────────
             { const endorsementRows = [
-                ['Increased Replacement Cost', v('increasedReplacementCost')],
-                ['Ordinance or Law', v('ordinanceOrLaw')],
-                ['Water Backup', formatCurrency(v('waterBackup'))],
-                ['Loss Assessment', formatCurrency(v('lossAssessment'))],
-                ['Animal Liability', formatCurrency(v('animalLiability'))],
-                ['Theft Deductible', formatDeductible(v('theftDeductible'))],
-                ['Jewelry/Valuables Limit', formatCurrency(v('jewelryLimit'))],
-                ['Credit Card Coverage', formatCurrency(v('creditCardCoverage'))],
-                ['Mold Damage', formatCurrency(v('moldDamage'))],
-                ['Equipment Breakdown', v('equipmentBreakdown') === 'yes' ? 'Yes' : v('equipmentBreakdown') || ''],
-                ['Service Line', v('serviceLine') === 'yes' ? 'Yes' : v('serviceLine') || ''],
+                [FIELD_BY_ID['increasedReplacementCost'].label, v('increasedReplacementCost')],
+                [FIELD_BY_ID['ordinanceOrLaw'].label, v('ordinanceOrLaw')],
+                [FIELD_BY_ID['waterBackup'].label, formatCurrency(v('waterBackup'))],
+                [FIELD_BY_ID['lossAssessment'].label, formatCurrency(v('lossAssessment'))],
+                [FIELD_BY_ID['animalLiability'].label, formatCurrency(v('animalLiability'))],
+                [FIELD_BY_ID['theftDeductible'].label, formatDeductible(v('theftDeductible'))],
+                [FIELD_BY_ID['jewelryLimit'].label, formatCurrency(v('jewelryLimit'))],
+                [FIELD_BY_ID['creditCardCoverage'].label, formatCurrency(v('creditCardCoverage'))],
+                [FIELD_BY_ID['moldDamage'].label, formatCurrency(v('moldDamage'))],
+                [FIELD_BY_ID['equipmentBreakdown'].label, v('equipmentBreakdown') === 'yes' ? 'Yes' : v('equipmentBreakdown') || ''],
+                [FIELD_BY_ID['serviceLine'].label, v('serviceLine') === 'yes' ? 'Yes' : v('serviceLine') || ''],
             ];
             // Earthquake (conditional — only show if coverage selected)
             const eqCov = v('earthquakeCoverage');
             if (eqCov === 'yes' || eqCov === 'Yes') {
                 endorsementRows.push(
-                    ['Earthquake Coverage', 'Yes'],
-                    ['Earthquake Zone', v('earthquakeZone')],
-                    ['Earthquake Deductible', formatDeductible(v('earthquakeDeductible'))]
+                    [FIELD_BY_ID['earthquakeCoverage'].label, 'Yes'],
+                    [FIELD_BY_ID['earthquakeZone'].label, v('earthquakeZone')],
+                    [FIELD_BY_ID['earthquakeDeductible'].label, formatDeductible(v('earthquakeDeductible'))]
                 );
             }
             // Only render section if at least one endorsement has data
@@ -742,19 +742,19 @@ Object.assign(App, {
             // ── Auto Coverage ────────────────────────────────────────
             { sectionHeader('Auto Coverage');
             kvTable([
-                ['Auto Policy Type', v('autoPolicyType')],
-                ['Residence Is', vo('residenceIs')],
-                ['Liability Limits', v('liabilityLimits')],
-                ['Property Damage', formatCurrency(v('pdLimit'))],
-                ['Med Pay (Auto)', formatCurrency(v('medPayments'))],
-                ['UM Limits', v('umLimits')],
-                ['UIM Limits', v('uimLimits')],
-                ['UMPD Limit', formatCurrency(v('umpdLimit'))],
-                ['Comprehensive Ded.', formatDeductible(v('compDeductible'))],
-                ['Collision Ded.', formatDeductible(v('autoDeductible'))],
+                [FIELD_BY_ID['autoPolicyType'].label, v('autoPolicyType')],
+                [FIELD_BY_ID['residenceIs'].label, vo('residenceIs')],
+                [FIELD_BY_ID['liabilityLimits'].label, v('liabilityLimits')],
+                [FIELD_BY_ID['pdLimit'].label, formatCurrency(v('pdLimit'))],
+                [FIELD_BY_ID['medPayments'].label, formatCurrency(v('medPayments'))],
+                [FIELD_BY_ID['umLimits'].label, v('umLimits')],
+                [FIELD_BY_ID['uimLimits'].label, v('uimLimits')],
+                [FIELD_BY_ID['umpdLimit'].label, formatCurrency(v('umpdLimit'))],
+                [FIELD_BY_ID['compDeductible'].label, formatDeductible(v('compDeductible'))],
+                [FIELD_BY_ID['autoDeductible'].label, formatDeductible(v('autoDeductible'))],
                 ['Rental Reimburse.', formatRental(v('rentalDeductible'))],
-                ['Towing/Roadside', formatCurrency(v('towingDeductible'))],
-                ['Student GPA', v('studentGPA')],
+                [FIELD_BY_ID['towingDeductible'].label, formatCurrency(v('towingDeductible'))],
+                [FIELD_BY_ID['studentGPA'].label, v('studentGPA')],
             ], 2, 10); }
         }
 
@@ -762,37 +762,37 @@ Object.assign(App, {
         { sectionHeader('Policy & Prior Insurance');
         const pdfPriorRows = [
             ['Policy Type', v('homePolicyType')],
-            ['Policy Term', v('policyTerm')],
-            ['Effective Date', formatDate(v('effectiveDate'))],
+            [FIELD_BY_ID['policyTerm'].label, v('policyTerm')],
+            [FIELD_BY_ID['effectiveDate'].label, formatDate(v('effectiveDate'))],
         ];
         if (showHome) {
             const hCarrier = v('homePriorCarrier') || v('priorCarrier');
             pdfPriorRows.push(
-                ['Home Prior Carrier', hCarrier],
-                ['Home Prior Term', v('homePriorPolicyTerm') || v('priorPolicyTerm')],
-                ['Home Yrs w/ Prior', v('homePriorYears') || v('priorYears')],
-                ['Home Prior Exp.', formatDate(v('homePriorExp') || v('priorExp'))],
-                ['Home Prior Liability', v('homePriorLiability')]
+                [FIELD_BY_ID['homePriorCarrier'].label, hCarrier],
+                [FIELD_BY_ID['homePriorPolicyTerm'].label, v('homePriorPolicyTerm') || v('priorPolicyTerm')],
+                [FIELD_BY_ID['homePriorYears'].label, v('homePriorYears') || v('priorYears')],
+                [FIELD_BY_ID['homePriorExp'].label, formatDate(v('homePriorExp') || v('priorExp'))],
+                [FIELD_BY_ID['homePriorLiability'].label, v('homePriorLiability')]
             );
         }
         if (showAuto) {
             pdfPriorRows.push(
-                ['Auto Prior Carrier', v('priorCarrier')],
-                ['Auto Prior Term', v('priorPolicyTerm')],
-                ['Auto Yrs w/ Prior', v('priorYears')],
-                ['Auto Prior Exp.', formatDate(v('priorExp'))],
-                ['Prior Auto Limits', v('priorLiabilityLimits')]
+                [FIELD_BY_ID['priorCarrier'].label, v('priorCarrier')],
+                [FIELD_BY_ID['priorPolicyTerm'].label, v('priorPolicyTerm')],
+                [FIELD_BY_ID['priorYears'].label, v('priorYears')],
+                [FIELD_BY_ID['priorExp'].label, formatDate(v('priorExp'))],
+                [FIELD_BY_ID['priorLiabilityLimits'].label, v('priorLiabilityLimits')]
             );
         }
         pdfPriorRows.push(
             ['Continuous Coverage', v('continuousCoverage')]
         );
         // Additional contact/referral info appended to policy section (no separate header needed)
-        if (v('additionalInsureds')) pdfPriorRows.push(['Additional Insureds', v('additionalInsureds')]);
-        if (v('contactTime')) pdfPriorRows.push(['Best Contact Time', v('contactTime')]);
-        if (v('contactMethod')) pdfPriorRows.push(['Contact Method', v('contactMethod')]);
-        if (v('referralSource')) pdfPriorRows.push(['Referral Source', vo('referralSource')]);
-        pdfPriorRows.push(['TCPA Consent', data.tcpaConsent ? 'Yes' : 'No']);
+        if (v('additionalInsureds')) pdfPriorRows.push([FIELD_BY_ID['additionalInsureds'].label, v('additionalInsureds')]);
+        if (v('contactTime')) pdfPriorRows.push([FIELD_BY_ID['contactTime'].label, v('contactTime')]);
+        if (v('contactMethod')) pdfPriorRows.push([FIELD_BY_ID['contactMethod'].label, v('contactMethod')]);
+        if (v('referralSource')) pdfPriorRows.push([FIELD_BY_ID['referralSource'].label, vo('referralSource')]);
+        pdfPriorRows.push([FIELD_BY_ID['tcpaConsent'].label, data.tcpaConsent ? 'Yes' : 'No']);
         // Per-driver accidents / violations — one row per driver in 2-col grid
         if (drivers.length > 1) {
             drivers.forEach((d, i) => {
