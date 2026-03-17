@@ -57,7 +57,7 @@ window.YourModule = (() => {
 
 ## CSS Variables (CRITICAL — Use These Exact Names)
 
-**Never use** `--card`, `--accent`, `--muted` — they don't exist. The actual variables are defined in `css/main.css` `:root` (24 variables) + `body.dark-mode` (19 overrides):
+**Never use** `--card`, `--accent`, `--muted` — they don't exist. The actual variables are defined in `css/variables.css` `:root` (24 variables) + `body.dark-mode` (19 overrides). ⚠️ Never edit `css/main.css` — it is a dead `@import` aggregator not linked in `index.html` and never loaded by the browser:
 
 | Variable | Light | Dark | Common Mistake |
 |----------|-------|------|----------------|

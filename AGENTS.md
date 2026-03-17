@@ -503,6 +503,24 @@ Tests run in JSDOM, which lacks:
 
 **Before adding any new file to `api/`:** Count non-`_` files: `ls api/ | grep -v '^_' | wc -l` — must be ≤ 12.
 
+### 5.12 css/main.css Is Never Loaded by the Browser (CRITICAL)
+
+`css/main.css` is an `@import` aggregator — it is **not linked in `index.html`** and is never
+served to the browser. Editing it has **zero effect in production**. It exists only as a dev
+convenience for editors that follow `@import` chains.
+
+| ✅ Edit this file | For what |
+|------------------|----------|
+| `css/variables.css` | CSS custom properties / `:root` |
+| `css/base.css` | Scrollbars, body, typography |
+| `css/layout.css` | Sidebar, header, shell layout |
+| `css/components.css` | Buttons, cards, inputs |
+| `css/dashboard.css` | Dashboard & bento widgets |
+| `css/[plugin].css` | Per-plugin styles |
+
+**How to find the right file:** `grep_search` the class/property across `css/` — the match
+that also appears in `index.html`'s `<link>` tags is the one to edit.
+
 ### 5.11 HawkSoft REST API Integration Gotchas (CRITICAL)
 
 The HawkSoft Logger pushes log notes to HawkSoft via `api/hawksoft-logger.js`. Several API quirks were discovered through live debugging (March 2026):
@@ -649,7 +667,8 @@ You are working on Altech Field Lead, a vanilla JS SPA for insurance agents.
 KEY RULES:
 1. CSS variables: Use --bg-card (not --card/--surface), --text (not --text-primary),
    --apple-blue (not --accent), --text-secondary (not --muted), --bg-input (not --input-bg),
-   --border (not --border-color/--border-light). Check css/main.css :root for truth.
+   --border (not --border-color/--border-light). Check css/variables.css :root for truth.
+   ⚠️ NEVER edit css/main.css — it is a dead @import aggregator not loaded by index.html (see §5.12).
 2. Dark mode: Use `body.dark-mode .class` selector (not [data-theme="dark"])
 3. Field IDs are storage keys — NEVER rename an input id without a migration
 4. All form writes go through App.save() — never write to altech_v6 directly

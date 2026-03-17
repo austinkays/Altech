@@ -10,15 +10,15 @@
 
 | ❌ NEVER USE | ✅ USE INSTEAD | Where Defined |
 |-------------|---------------|---------------|
-| `--card` | `--bg-card` | main.css `:root` |
-| `--card-bg` | `--bg-card` | main.css `:root` |
-| `--surface` | `--bg-card` | main.css `:root` |
-| `--accent` | `--apple-blue` | main.css `:root` |
-| `--muted` | `--text-secondary` | main.css `:root` |
-| `--text-primary` | `--text` | main.css `:root` |
-| `--input-bg` | `--bg-input` | main.css `:root` |
-| `--border-color` | `--border` | main.css `:root` |
-| `--border-light` | `--border` | main.css `:root` |
+| `--card` | `--bg-card` | variables.css `:root` |
+| `--card-bg` | `--bg-card` | variables.css `:root` |
+| `--surface` | `--bg-card` | variables.css `:root` |
+| `--accent` | `--apple-blue` | variables.css `:root` |
+| `--muted` | `--text-secondary` | variables.css `:root` |
+| `--text-primary` | `--text` | variables.css `:root` |
+| `--input-bg` | `--bg-input` | variables.css `:root` |
+| `--border-color` | `--border` | variables.css `:root` |
+| `--border-light` | `--border` | variables.css `:root` |
 
 ### Complete Variable List
 
@@ -166,7 +166,7 @@ priorCarrier, priorYears, priorLapse
 | `js/crypto-helper.js` | 🔴 | Encryption for all user data — any bug → data loss or plaintext leak |
 | `js/app-boot.js` | 🟡 | Boot sequence — if it fails, entire app doesn't load |
 | `js/auth.js` | 🟡 | Authentication + `apiFetch()` used by most plugins |
-| `css/main.css` | 🟡 | ~3,366 lines, :root variable source of truth, 100+ dark mode selectors, desktop layout overhaul |
+| `css/main.css` | ⚠️ | ⚠️ NOT loaded by index.html — `@import` aggregator only. Never edit directly. Real files: `variables.css`, `base.css`, `layout.css`, `components.css` |
 | `plugins/quoting.html` | 🟡 | 2,019 lines, all form field IDs — renaming breaks persistence |
 | `js/compliance-dashboard.js` | 🟡 | 2,513 lines, 6-layer persistence, complex merge logic, needsStateUpdate flag, snooze/sleep system |
 
