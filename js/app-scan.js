@@ -880,6 +880,19 @@ Object.assign(App, {
         }
     },
 
+    // Extract all text from a PDF file client-side using PDF.js
+    async _extractPdfText(file) {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pages = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            pages.push(content.items.map(item => item.str).join(' '));
+        }
+        return pages.join('\n\n');
+    },
+
     async processScan() {
         if (!this.scanFiles.length) return;
 
@@ -890,6 +903,29 @@ Object.assign(App, {
         }
 
         try {
+            // For PDF files, extract text client-side and use the text path.
+            // This avoids Gemini 400 errors (PDF binary not supported) and
+            // Vercel 413 errors (4.5MB platform body limit).
+            const pdfFiles = this.scanFiles.filter(f => f.type === 'application/pdf' || f.name?.toLowerCase().endsWith('.pdf'));
+            if (pdfFiles.length && window.pdfjsLib) {
+                if (status) status.textContent = '⏳ Reading PDF text...';
+                const textParts = [];
+                for (const f of pdfFiles) {
+                    try {
+                        textParts.push(await this._extractPdfText(f));
+                    } catch (e) {
+                        console.warn('[PolicyScan] PDF.js text extraction failed for', f.name, e);
+                    }
+                }
+                const combinedText = textParts.join('\n\n---\n\n').trim();
+                if (combinedText) {
+                    const name = pdfFiles.map(f => f.name).join(', ');
+                    return await this.processScanFromText(combinedText, name);
+                }
+                // If text extraction yielded nothing (scanned/image PDF), fall through to binary path
+                if (status) status.textContent = '⏳ No text found in PDF — trying image path...';
+            }
+
             const inlineData = [];
             for (const file of this.scanFiles) {
                 inlineData.push(await this.fileToInlineData(file));
