@@ -760,28 +760,90 @@ Object.assign(App, {
     },
 
     _getAltechRestorePrompt(text) {
-        return 'Below is structured client data exported from Altech Insurance Tools (a client summary PDF). ' +
-            'This is NOT a standard insurance policy — it is a pre-filled form export from agency software.\n\n' +
-            'Extract every labeled field precisely. The document uses labeled sections:\n' +
-            '- "Applicant Information" — first/last name, DOB, gender (M/F), marital status, phone, email, education, occupation, industry, prefix, suffix\n' +
-            '- "Co-Applicant" — first/last name, DOB, gender, email, phone, relationship\n' +
-            '- "Address" / "Property Address" — street, city, state (2-letter), ZIP, county\n' +
-            '- "Property Details" — year built, sq footage, construction style, exterior walls, foundation, roof type, roof shape, roof year, heating type, cooling, garage, etc.\n' +
-            '- "Coverage" / "Home Coverage" / "Auto Coverage" — dwelling amount, liability, deductibles, limits\n' +
-            '- "Vehicles" — year, make, model, VIN for each vehicle listed\n' +
-            '- "Drivers" — name, DOB, gender, and all fields for each driver\n' +
-            '- "Prior Insurance" — prior carrier, expiration date, years insured\n\n' +
-            '**CRITICAL — return these two fields as JSON-encoded array strings:**\n' +
-            'altechVehiclesJson: JSON array of ALL vehicles: ' +
-            '[ { year, make, model, vin, use, miles, primaryDriver, ownershipType, ' +
-            'antiTheft, antiLockBrakes, passiveRestraints, telematics, tnc, carPool, carNew } ]\n' +
-            'altechDriversJson: JSON array of ALL drivers: ' +
-            '[ { firstName, lastName, dob, gender, maritalStatus, relationship, education, occupation, industry, ' +
-            'dlNum, dlState, dlStatus, ageLicensed, sr22, fr44, goodDriver, matureDriver, ' +
-            'licenseSusRev, driverEducation, studentGPA, accidents, violations } ]\n\n' +
-            'Notes: dates as YYYY-MM-DD; currency as plain numbers; gender as M or F; ' +
-            'this is trusted complete data — extract every field you see.\n\n' +
-            '--- DOCUMENT TEXT ---\n' + text.substring(0, 30000);
+        return `Below is text extracted from a client summary PDF exported by Altech Insurance Tools.
+This is a structured agency form export — NOT a carrier policy document.
+The text may be jumbled due to PDF multi-column layout extraction. Field labels appear in ALL CAPS near their values.
+
+Extract ALL fields listed below. Return null for any field not present. Do NOT guess or infer values.
+Dates → YYYY-MM-DD | Currency → plain number, no $ or commas | Gender → M or F | State → 2-letter code
+
+=== SECTION: APPLICANT ===
+"FULL NAME" → firstName (first word) + lastName (rest) | "PREFIX" → prefix | "SUFFIX" → suffix
+"DATE OF BIRTH" → dob | "GENDER" → gender | "MARITAL STATUS" → maritalStatus
+"PHONE" → phone | "EMAIL" → email | "EDUCATION" → education
+"INDUSTRY" → industry | "OCCUPATION" → occupation
+
+=== SECTION: CO-APPLICANT / SPOUSE ===
+"FULL NAME" (in co-app block) → coFirstName + coLastName
+"DATE OF BIRTH" (co-app) → coApplicantDob | "GENDER" (co-app) → coApplicantGender
+"EMAIL" (co-app) → coApplicantEmail | "PHONE" (co-app) → coApplicantPhone
+"RELATIONSHIP" → coApplicantRelationship | "OCCUPATION" (co-app) → coOccupation
+"EDUCATION" (co-app) → coEducation | "INDUSTRY" (co-app) → coIndustry
+
+=== SECTION: PROPERTY ADDRESS ===
+"STREET ADDRESS" → address | "CITY" → city | "STATE" → state | "ZIP CODE" → zip
+"COUNTY" → county | "YEARS AT ADDRESS" → yearsAtAddress
+
+=== SECTION: PROPERTY DETAILS ===
+"YEAR BUILT" → yrBuilt | "SQUARE FOOTAGE" → sqFt (number only, strip "sq ft" or commas)
+"LOT SIZE" → lotSize | "DWELLING TYPE" → dwellingType | "DWELLING USAGE" → dwellingUsage
+"OCCUPANCY" → occupancyType | "STORIES" → numStories | "OCCUPANTS" → numOccupants
+"BEDROOMS" → bedrooms | "FULL BATHS" → fullBaths | "HALF BATHS" → halfBaths
+"CONSTRUCTION" → constructionStyle | "EXTERIOR WALLS" → exteriorWalls | "FOUNDATION" → foundation
+"GARAGE TYPE" → garageType | "GARAGE SPACES" → garageSpaces
+"KITCHEN/BATH QUALITY" → kitchenQuality | "FLOORING" → flooring
+"FIREPLACES" → numFireplaces | "PURCHASE DATE" → purchaseDate
+
+=== SECTION: BUILDING SYSTEMS ===
+"ROOF TYPE" → roofType | "ROOF SHAPE" → roofShape | "ROOF YEAR" → roofYr | "ROOF UPDATE TYPE" → roofUpdate
+"HEATING TYPE" → heatingType | "HEATING UPDATED" → heatYr | "COOLING" → cooling
+"PLUMBING UPDATED" → plumbYr | "ELECTRICAL UPDATED" → elecYr
+"SEWER" → sewer | "WATER SOURCE" → waterSource
+
+=== SECTION: RISK & PROTECTION ===
+"BURGLAR ALARM" → burglarAlarm | "FIRE ALARM" → fireAlarm | "SMOKE DETECTOR" → smokeDetector
+"SPRINKLERS" → sprinklers | "SWIMMING POOL" → pool | "TRAMPOLINE" → trampoline
+"WOOD STOVE" → woodStove | "SECONDARY HEATING" → secondaryHeating
+"DOGS" → dogInfo | "BUSINESS ON PROPERTY" → businessOnProperty
+"FIRE STATION (MI)" → fireStationDist | "FIRE HYDRANT (FT)" → fireHydrantFeet
+"TIDAL WATER (FT)" → tidalWaterDist | "PROTECTION CLASS" → protectionClass
+
+=== SECTION: HOME COVERAGE ===
+"POLICY TYPE" → homePolicyType
+"DWELLING COVERAGE" → dwellingCoverage (number) | "PERSONAL PROPERTY" → homePersonalProperty (number)
+"LOSS OF USE" → homeLossOfUse (number) | "PERSONAL LIABILITY" → personalLiability (number)
+"MEDICAL PAYMENTS" → medicalPayments (number) | "DEDUCTIBLE (AOP)" → homeDeductible (number)
+"WIND/HAIL DEDUCTIBLE" → windDeductible (number) | "MORTGAGEE / LIENHOLDER" → mortgagee
+
+=== SECTION: HOME ENDORSEMENTS ===
+"INCREASED REPLACEMENT COST" → increasedReplacementCost | "ORDINANCE OR LAW" → ordinanceOrLaw
+"WATER BACKUP" → waterBackup | "LOSS ASSESSMENT" → lossAssessment
+"ANIMAL LIABILITY" → animalLiability | "THEFT DEDUCTIBLE" → theftDeductible
+"JEWELRY/VALUABLES LIMIT" → jewelryLimit | "CREDIT CARD COVERAGE" → creditCardCoverage
+"MOLD DAMAGE" → moldDamage | "EQUIPMENT BREAKDOWN" → equipmentBreakdown | "SERVICE LINE" → serviceLine
+
+=== SECTION: AUTO COVERAGE ===
+"BODILY INJURY" → bodInjury | "PROPERTY DAMAGE" → propDamage
+"UNINSURED MOTORIST" → umLimits | "UNDERINSURED MOTORIST" → uimLimits
+"COMPREHENSIVE" → compDed (deductible number) | "COLLISION" → collDed (deductible number)
+"MED PAY (AUTO)" → autoMedPay | "RENTAL REIMBURSEMENT" → rental | "TOWING/ROADSIDE" → towing
+
+=== SECTION: PRIOR INSURANCE ===
+"PRIOR CARRIER" → priorCarrier | "PRIOR CARRIER (HOME)" → homePriorCarrier
+"PRIOR CARRIER (AUTO)" → autoPriorCarrier | "PRIOR EXPIRATION" → priorExpiration
+"YEARS WITH CARRIER" → priorYears | "CONTINUOUS COVERAGE" → continuousCoverage
+
+**CRITICAL — return these two fields as JSON-encoded array strings:**
+altechVehiclesJson: JSON array of ALL vehicles from the VEHICLES section:
+[ { year, make, model, vin, use, miles, primaryDriver, ownershipType, antiTheft, antiLockBrakes, passiveRestraints, telematics, tnc, carPool, carNew } ]
+altechDriversJson: JSON array of ALL drivers from the DRIVERS section:
+[ { firstName, lastName, dob, gender, maritalStatus, relationship, education, occupation, industry, dlNum, dlState, dlStatus, ageLicensed, sr22, fr44, goodDriver, matureDriver, licenseSusRev, driverEducation, studentGPA, accidents, violations } ]
+
+The PDF uses a 4-column grid — labels and values may appear interleaved in extracted text. The uppercase label always corresponds to the value that immediately follows or appears nearby it in the same section.
+This is trusted, complete agency data — extract every field you can find.
+
+--- DOCUMENT TEXT ---
+` + text.substring(0, 30000);
     },
 
     // Process already-extracted text through AI for structured field extraction (desktop drag-drop)
