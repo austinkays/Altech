@@ -40,10 +40,10 @@ h3 { font-size: 16px; font-weight: 600; margin: 18px 0 10px; color: var(--text);
 /* Firefox — thin scrollbar with theme color */
 * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(180, 150, 120, 0.4) transparent;
+    scrollbar-color: rgba(150, 150, 150, 0.4) transparent;
 }
 body.dark-mode * {
-    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    scrollbar-color: rgba(150, 150, 150, 0.45) transparent;
 }
 
 /* WebKit (Chrome, Edge, Safari) */
@@ -56,14 +56,14 @@ body.dark-mode * {
     border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb {
-    background: rgba(180, 150, 120, 0.35);
+    background: rgba(150, 150, 150, 0.35);
     border-radius: 10px;
     border: 2px solid transparent;
     background-clip: padding-box;
     transition: background 0.2s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(150, 110, 75, 0.6);
+    background: rgba(120, 120, 120, 0.6);
     background-clip: padding-box;
 }
 ::-webkit-scrollbar-corner {
@@ -72,12 +72,12 @@ body.dark-mode * {
 
 /* Dark mode — WebKit */
 body.dark-mode ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.13);
+    background: rgba(150, 150, 150, 0.45);
     border-radius: 10px;
     border: 2px solid transparent;
     background-clip: padding-box;
 }
 body.dark-mode ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.28);
+    background: rgba(150, 150, 150, 0.7);
     background-clip: padding-box;
 }
