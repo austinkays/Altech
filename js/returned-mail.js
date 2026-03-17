@@ -14,6 +14,7 @@ window.ReturnedMailTracker = (() => {
         'Attempted — Not Known',
         'Vacant',
         'Refused',
+        'Unclaimed',
         'Wrong Address',
         'Return to Sender',
         'No Such Number',
@@ -318,18 +319,7 @@ window.ReturnedMailTracker = (() => {
         const item = _items.find(i => i.id === id);
         if (!item) return;
 
-        const statusLabel = (item.status || 'pending');
-        const statusCap = statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1);
-
-        const lines = [
-            `📬 Returned Mail — ${item.clientName}`,
-            `Date Returned: ${item.dateReturned || 'N/A'}`,
-            `Address: ${item.clientAddress}`,
-            item.policyNumber ? `Policy #: ${item.policyNumber}` : null,
-            `Return Reason: ${item.returnReason || 'Unknown'}`,
-            `Status: ${statusCap}`,
-            item.notes ? `Notes: ${item.notes}` : null,
-        ].filter(Boolean).join('\n');
+        const lines = _buildPushNote(item);
 
         if (navigator.clipboard?.writeText) {
             navigator.clipboard.writeText(lines).then(() => {
@@ -349,6 +339,126 @@ window.ReturnedMailTracker = (() => {
         try { document.execCommand('copy'); App.toast('Copied — paste into HawkSoft logger.', 'success'); }
         catch (e) { App.toast('Copy failed — select and copy manually.', 'error'); }
         finally { document.body.removeChild(ta); }
+    }
+
+    // ─── HawkSoft Direct Push ─────────────────────────────────────────────────
+
+    function _buildPushNote(item) {
+        const statusCap = (item.status || 'pending');
+        const s = statusCap.charAt(0).toUpperCase() + statusCap.slice(1);
+        return [
+            `📬 Returned Mail — ${item.clientName}`,
+            `Date Returned: ${item.dateReturned || 'N/A'}`,
+            `Address: ${item.clientAddress}`,
+            item.policyNumber ? `Policy #: ${item.policyNumber}` : null,
+            `Return Reason: ${item.returnReason || 'Unknown'}`,
+            `Status: ${s}`,
+            item.notes ? `Notes: ${item.notes}` : null,
+        ].filter(Boolean).join('\n');
+    }
+
+    function showPushModal(id) {
+        const item = _items.find(i => i.id === id);
+        if (!item) return;
+
+        closePushModal();
+
+        const defaultNote = _buildPushNote(item);
+
+        const overlay = document.createElement('div');
+        overlay.id = 'rmtHsModalOverlay';
+        overlay.className = 'rmt-modal-overlay';
+        overlay.innerHTML = `
+            <div class="rmt-modal-box" role="dialog" aria-modal="true" aria-labelledby="rmtModalTitle">
+                <div class="rmt-modal-header">
+                    <h3 id="rmtModalTitle" class="rmt-modal-title">Push to HawkSoft</h3>
+                    <button class="rmt-modal-close" onclick="ReturnedMailTracker.closePushModal()" aria-label="Close">\u2715</button>
+                </div>
+                <p class="rmt-modal-subtitle">Log this returned mail entry directly to the client\u2019s HawkSoft profile.</p>
+                <div class="rmt-modal-field">
+                    <label for="rmtHsClientNum" class="rmt-modal-label">HawkSoft Client # <span class="rmt-required">*</span></label>
+                    <input id="rmtHsClientNum" type="text" class="rmt-input" placeholder="e.g. 12345" autocomplete="off">
+                </div>
+                <div class="rmt-modal-field">
+                    <label for="rmtHsNote" class="rmt-modal-label">Log Note</label>
+                    <textarea id="rmtHsNote" class="rmt-modal-textarea" rows="7">${_esc(defaultNote)}</textarea>
+                </div>
+                <div class="rmt-modal-footer">
+                    <button type="button" class="rmt-btn-ghost" onclick="ReturnedMailTracker.closePushModal()">Cancel</button>
+                    <button type="button" class="rmt-btn-primary" id="rmtHsPushBtn" onclick="ReturnedMailTracker.submitPushModal('${_esc(id)}')">
+                        Push to HawkSoft
+                    </button>
+                </div>
+            </div>`;
+
+        overlay.addEventListener('click', e => { if (e.target === overlay) closePushModal(); });
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => overlay.classList.add('rmt-modal-open'));
+        document.getElementById('rmtHsClientNum')?.focus();
+    }
+
+    function closePushModal() {
+        const existing = document.getElementById('rmtHsModalOverlay');
+        if (existing) existing.remove();
+    }
+
+    async function submitPushModal(id) {
+        const item = _items.find(i => i.id === id);
+        if (!item) return;
+
+        const clientNum = document.getElementById('rmtHsClientNum')?.value.trim();
+        const noteText  = document.getElementById('rmtHsNote')?.value.trim();
+        const pushBtn   = document.getElementById('rmtHsPushBtn');
+
+        if (!clientNum) {
+            App.toast('HawkSoft Client # is required.', 'error');
+            document.getElementById('rmtHsClientNum')?.focus();
+            return;
+        }
+        if (!noteText) {
+            App.toast('Log note cannot be empty.', 'error');
+            return;
+        }
+
+        if (pushBtn) { pushBtn.disabled = true; pushBtn.textContent = 'Pushing\u2026'; }
+
+        try {
+            const fetchFn = (typeof Auth !== 'undefined' && Auth.apiFetch)
+                ? Auth.apiFetch.bind(Auth)
+                : fetch;
+
+            const res = await fetchFn('/api/hawksoft-logger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    policyId: item.policyNumber || item.clientName,
+                    clientNumber: clientNum,
+                    callType: 'Mail',
+                    formattedLog: noteText,
+                }),
+            });
+
+            const result = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                throw new Error(result.error || `Server error (${res.status})`);
+            }
+
+            if (result.hawksoftLogged) {
+                App.toast(`\u2705 Logged to HawkSoft for ${item.clientName}`, 'success');
+                closePushModal();
+            } else if (result.hawksoftStatus === 'push_failed' || result.hawksoftStatus === 'push_error') {
+                const detail = result.hawksoftError ? ` — ${result.hawksoftError}` : '';
+                App.toast(`\u26a0\ufe0f HawkSoft push failed${detail}`, 'error');
+                if (pushBtn) { pushBtn.disabled = false; pushBtn.textContent = 'Push to HawkSoft'; }
+            } else {
+                App.toast('HawkSoft connection unavailable — note was not saved.', 'error');
+                if (pushBtn) { pushBtn.disabled = false; pushBtn.textContent = 'Push to HawkSoft'; }
+            }
+        } catch (err) {
+            App.toast('Push failed: ' + (err.message || 'Unknown error'), 'error');
+            if (pushBtn) { pushBtn.disabled = false; pushBtn.textContent = 'Push to HawkSoft'; }
+        }
     }
 
     // ─── Table Render ────────────────────────────────────────────────────────
@@ -391,7 +501,10 @@ window.ReturnedMailTracker = (() => {
                 <td data-label="Policy">${_esc(item.policyNumber || '—')}</td>
                 <td data-label="Notes" class="rmt-td-notes">${_esc(item.notes || '—')}</td>
                 <td data-label="Actions" class="rmt-td-actions">
-                    <button class="rmt-icon-btn" onclick="ReturnedMailTracker.copyToHawkSoft('${item.id}')" title="Copy HawkSoft note">
+                    <button class="rmt-icon-btn" onclick="ReturnedMailTracker.showPushModal('${item.id}')" title="Push to HawkSoft">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                    <button class="rmt-icon-btn" onclick="ReturnedMailTracker.copyToHawkSoft('${item.id}')" title="Copy log to clipboard">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     </button>
                     <button class="rmt-icon-btn" onclick="ReturnedMailTracker.editItem('${item.id}')" title="Edit">
@@ -452,6 +565,9 @@ window.ReturnedMailTracker = (() => {
         editItem,
         deleteItem,
         copyToHawkSoft,
+        showPushModal,
+        closePushModal,
+        submitPushModal,
         cancelEdit,
         exportCSV,
     };

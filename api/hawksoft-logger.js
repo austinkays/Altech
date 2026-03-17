@@ -61,7 +61,8 @@ const CHANNEL_MAP = {
     'Outbound': { channel: 1,  method: 'Phone',   direction: 'To',   party: 'Insured' },
     'Walk-In':  { channel: 21, method: 'Walk In',  direction: 'From', party: 'Insured' },
     'Email':    { channel: 33, method: 'Email',    direction: 'To',   party: 'Insured' },
-    'Text':     { channel: 41, method: 'Text',     direction: 'To',   party: 'Insured' }
+    'Text':     { channel: 41, method: 'Text',     direction: 'To',   party: 'Insured' },
+    'Mail':     { channel: 9,  method: 'Mail',     direction: 'To',   party: 'Insured' },
 };
 const DEFAULT_CHANNEL = { channel: 5, method: 'Phone', direction: 'From', party: 'Insured' };
 

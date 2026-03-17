@@ -679,3 +679,120 @@ body.dark-mode .rmt-use-addr-btn:hover {
         font-size: 11px;
     }
 }
+
+/* ── HawkSoft Push Modal ─────────────────────────────────────── */
+.rmt-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.52);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+}
+
+.rmt-modal-overlay.rmt-modal-open {
+    opacity: 1;
+}
+
+.rmt-modal-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    width: min(480px, 92vw);
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.2);
+    transform: translateY(10px);
+    transition: transform 0.18s ease;
+}
+
+.rmt-modal-overlay.rmt-modal-open .rmt-modal-box {
+    transform: translateY(0);
+}
+
+.rmt-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.rmt-modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.rmt-modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: background 0.15s, color 0.15s;
+}
+
+.rmt-modal-close:hover {
+    background: var(--bg-input);
+    color: var(--text);
+}
+
+.rmt-modal-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0 0 18px;
+    line-height: 1.45;
+}
+
+.rmt-modal-field {
+    margin-bottom: 14px;
+}
+
+.rmt-modal-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 5px;
+}
+
+.rmt-modal-textarea {
+    width: 100%;
+    min-height: 130px;
+    resize: vertical;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
+    font-size: 12px;
+    font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+    line-height: 1.55;
+    box-sizing: border-box;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rmt-modal-textarea:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+}
+
+.rmt-modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+body.dark-mode .rmt-modal-textarea:focus {
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+}
