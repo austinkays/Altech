@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Refactored
+- **Session 1 — Shared utilities & storage-key registry** (March 17, 2026):
+  - `js/utils.js` created: `window.Utils = { escapeHTML, escapeAttr }` — canonical DOM-based HTML escape and regex-based attribute escape, loaded globally before all plugins.
+  - `js/storage-keys.js` created: `window.STORAGE_KEYS` frozen constant map of all 37 `altech_*` localStorage keys — single source of truth replacing scattered string literals.
+  - `index.html`: `<script>` tags for `storage-keys.js` and `utils.js` added immediately after `crypto-helper.js` (before `app-init.js`).
+  - 10 duplicate escape function definitions removed across 9 files — all now delegate to `Utils.*`:
+    `js/admin-panel.js` (`_escapeHtml`), `js/call-logger.js` (`_escapeHTML`), `js/reminders.js` (`_escapeHTML`), `js/bug-report.js` (`escapeHTML`), `js/task-sheet.js` (`_escapeHTML`), `js/dashboard-widgets.js` (`_escapeHTML`), `js/hawksoft-export.js` (`_escapeAttr`), `js/app-quotes.js` (`escapeHTML`), `js/endorsement-parser.js` (`_escapeHtml`), `js/app-export.js` (`_escapeAttr`).
+  - Tests: 1599 passing (pre-existing failures in `layout-regressions` and `plugin-integration` suites unchanged).
+
 ### Fixed
 - Smart Scan — `_getAltechRestorePrompt()` rewritten with exhaustive section/field mapping: now lists every exact uppercase label from the PDF (PROPERTY DETAILS, BUILDING SYSTEMS, RISK & PROTECTION, HOME COVERAGE, HOME ENDORSEMENTS, AUTO COVERAGE, PRIOR INSURANCE) mapped to the corresponding JSON field ID. Previously the prompt only vaguely described these sections, causing Year Built, Square Footage, Dwelling Type, Stories, Roof/Heating/Cooling systems, all risk/protection flags, coverage limits, and endorsements to be silently omitted from scan results. (`js/app-scan.js` commit `d2ecbd3`)
 

@@ -792,10 +792,7 @@ window.TaskSheetModule = (() => {
         return 'Altech Insurance Agency';
     }
 
-    function _escapeHTML(str) {
-        if (!str) return '';
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+    function _escapeHTML(str) { return Utils.escapeHTML(str); }
 
     function _showError(msg) {
         const errEl = document.getElementById('ts-error');

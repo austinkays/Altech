@@ -97,11 +97,7 @@ window.DashboardWidgets = (() => {
 
     // ── Helpers ──
 
-    function _escapeHTML(str) {
-        const div = document.createElement('div');
-        div.textContent = str || '';
-        return div.innerHTML;
-    }
+    function _escapeHTML(str) { return Utils.escapeHTML(str); }
 
     function _relativeTime(dateStr) {
         if (!dateStr) return '';

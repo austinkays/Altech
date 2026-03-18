@@ -107,10 +107,7 @@ window.AdminPanel = (() => {
         `;
     }
 
-    function _escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
+    function _escapeHtml(str) { return Utils.escapeHTML(str); }
 
     function _renderBody() {
         const body = _overlay?.querySelector('.admin-panel-body');

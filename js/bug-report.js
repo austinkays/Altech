@@ -16,11 +16,7 @@ window.BugReport = (() => {
     let _screenshotData = null;
 
     // ── Helpers ──────────────────────────────────────────────
-    function escapeHTML(str) {
-        const d = document.createElement('div');
-        d.textContent = str || '';
-        return d.innerHTML;
-    }
+    function escapeHTML(str) { return Utils.escapeHTML(str); }
 
     function getCurrentPage() {
         // Hash-based detection (most reliable)

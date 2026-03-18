@@ -1059,11 +1059,7 @@ window.CallLogger = (() => {
         if (policyEl) policyEl.focus();
     }
 
-    function _escapeHTML(str) {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
+    function _escapeHTML(str) { return Utils.escapeHTML(str); }
 
     /**
      * Build a clickable HawkSoft link for a client name.

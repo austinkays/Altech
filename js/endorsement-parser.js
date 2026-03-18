@@ -754,12 +754,7 @@ Write a brief, professional but friendly email (3-4 sentences max) confirming th
             .join(' ');
     },
 
-    _escapeHtml(str) {
-        if (!str) return '';
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    },
+    _escapeHtml(str) { return Utils.escapeHTML(str); },
 
     _showParsingState(parsing) {
         const btn = document.getElementById('epParseBtn');

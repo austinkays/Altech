@@ -390,11 +390,7 @@ window.Reminders = (() => {
     }
     }
 
-    function _escapeHTML(str) {
-        const div = document.createElement('div');
-        div.textContent = str || '';
-        return div.innerHTML;
-    }
+    function _escapeHTML(str) { return Utils.escapeHTML(str); }
 
     // ── Task CRUD ──
 

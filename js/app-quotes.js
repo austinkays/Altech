@@ -287,12 +287,7 @@ Object.assign(App, {
         }).join('');
     },
 
-    escapeHTML(str) {
-        if (!str) return '';
-        const d = document.createElement('div');
-        d.textContent = str;
-        return d.innerHTML;
-    },
+    escapeHTML(str) { return Utils.escapeHTML(str); },
 
     async getQuotes() {
         const encrypted = localStorage.getItem(this.quotesKey);

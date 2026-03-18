@@ -50,10 +50,7 @@ window.HawkSoftExport = (() => {
         }).join('');
     }
 
-    function _escapeAttr(s) {
-        if (!s) return '';
-        return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
+    function _escapeAttr(s) { return Utils.escapeAttr(s); }
 
     // Format date to MM/DD/YYYY for HawkSoft
     function _fmtDate(v) {

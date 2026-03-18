@@ -1150,15 +1150,7 @@ Object.assign(App, {
     // â”€â”€â”€ Shared Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     // Escape for safe HTML attribute/text content insertion
-    _escapeAttr(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    },
+    _escapeAttr(str) { return Utils.escapeAttr(str); },
 
     // Shared system prompt for policy scan extraction (used by processScan + processScanFromText)
     _getScanSystemPrompt() {
