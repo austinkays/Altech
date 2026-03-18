@@ -252,15 +252,13 @@ window.TaskSheetModule = (() => {
     const PROFILE_KEY = 'altech_agency_profile';
 
     function _loadExcluded() {
-        try {
-            const p = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
-            return Array.isArray(p.taskSheetExcludedAgents) ? p.taskSheetExcludedAgents : [];
-        } catch { return []; }
+        const p = Utils.tryParseLS(PROFILE_KEY, {});
+        return Array.isArray(p.taskSheetExcludedAgents) ? p.taskSheetExcludedAgents : [];
     }
 
     function _saveExcluded(excluded) {
         try {
-            const p = JSON.parse(localStorage.getItem(PROFILE_KEY) || '{}');
+            const p = Utils.tryParseLS(PROFILE_KEY, {});
             p.taskSheetExcludedAgents = excluded;
             localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
             if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) CloudSync.schedulePush();

@@ -563,8 +563,8 @@ Object.assign(App, {
         const vehicle = this.vehicles.find(v => v.id === id);
         if (vehicle) {
             vehicle[field] = value;
-            clearTimeout(this._vehicleSaveTimer);
-            this._vehicleSaveTimer = setTimeout(() => this.saveDriversVehicles(), 300);
+            if (!this._debouncedVehicleSave) this._debouncedVehicleSave = Utils.debounce(() => this.saveDriversVehicles(), 300);
+            this._debouncedVehicleSave();
         }
     },
 

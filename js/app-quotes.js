@@ -9,7 +9,7 @@ Object.assign(App, {
 
     getClientHistory() {
         try {
-            const raw = JSON.parse(localStorage.getItem(this.clientHistoryKey)) || [];
+            const raw = Utils.tryParseLS(this.clientHistoryKey, []);
             // Deduplicate on load: collapse same-name entries, keep the one with most data
             const seen = new Map();
             const deduped = [];

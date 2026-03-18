@@ -42,11 +42,7 @@ const EZLynxTool = {
     },
 
     _wireAutoSave() {
-        let timer;
-        const save = () => {
-            clearTimeout(timer);
-            timer = setTimeout(() => this.saveFormData(), 300);
-        };
+        const save = Utils.debounce(() => this.saveFormData(), 300);
         this.formFields.forEach(id => {
             const el = document.getElementById(id);
             if (el) {

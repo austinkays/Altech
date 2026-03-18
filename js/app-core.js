@@ -1459,8 +1459,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         };
         // Save to localStorage
         const key = 'altech_export_history';
-        let history = [];
-        try { history = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) {}
+        let history = Utils.tryParseLS(key, []);
         history.unshift(entry);
         history = history.slice(0, 200);
         localStorage.setItem(key, JSON.stringify(history));
@@ -1485,7 +1484,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             }
         } catch (e) {}
         if (entries.length === 0) {
-            try { entries = JSON.parse(localStorage.getItem('altech_export_history') || '[]'); } catch (e) {}
+            entries = Utils.tryParseLS('altech_export_history', []);
         }
         if (entries.length === 0) {
             container.innerHTML = '<p style="color:var(--text-secondary);font-style:italic;">No exports yet. Export a file to see it here.</p>';
@@ -2029,7 +2028,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
     saveAgencyName(name) {
         const trimmed = (name || '').trim();
         try {
-            const existing = JSON.parse(localStorage.getItem('altech_agency_profile') || '{}');
+            const existing = Utils.tryParseLS('altech_agency_profile', {});
             existing.agencyName = trimmed || 'Altech Insurance Agency';
             localStorage.setItem('altech_agency_profile', JSON.stringify(existing));
             if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) CloudSync.schedulePush();

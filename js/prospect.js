@@ -1799,8 +1799,7 @@ ${ai.underwritingNotes || 'N/A'}`;
     // ── Save / Load / Delete Prospects ──────────────────────────
 
     function _getSavedProspects() {
-        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
-        catch { return []; }
+        return Utils.tryParseLS(STORAGE_KEY, []);
     }
 
     function _setSavedProspects(list) {

@@ -579,9 +579,7 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
                 // ── Saved Comparisons ─────────────────────────
 
                 getSaved() {
-                    try {
-                        return JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '[]');
-                    } catch { return []; }
+                    return Utils.tryParseLS(this.STORAGE_KEY, []);
                 },
 
                 autoSave() {

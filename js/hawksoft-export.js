@@ -1043,7 +1043,7 @@ window.HawkSoftExport = (() => {
     // ── Export history ───────────────────────────────────────
     function _addToExportHistory(filename) {
         try {
-            const history = JSON.parse(localStorage.getItem('altech_hawksoft_history') || '[]');
+            const history = Utils.tryParseLS('altech_hawksoft_history', []);
             history.unshift({ filename, date: new Date().toISOString() });
             if (history.length > 20) history.length = 20;
             localStorage.setItem('altech_hawksoft_history', JSON.stringify(history));

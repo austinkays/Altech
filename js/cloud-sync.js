@@ -31,7 +31,7 @@ const CloudSync = (() => {
     ];
 
     // ── State ──
-    let _syncTimer = null;
+    let _debouncedPush = null;
     let _syncing = false;
     let _isPulling = false; // Guard: prevent push during pull operations
     let _lastSyncTime = 0;
@@ -49,9 +49,7 @@ const CloudSync = (() => {
 
     // ── Sync metadata ──
     function _getSyncMeta() {
-        try {
-            return JSON.parse(localStorage.getItem(SYNC_META_KEY)) || {};
-        } catch { return {}; }
+        return Utils.tryParseLS(SYNC_META_KEY, {});
     }
 
     function _setSyncMeta(meta) {
@@ -242,9 +240,7 @@ const CloudSync = (() => {
             }
 
             // Conflict! Keep both versions
-            const localData = (() => {
-                try { return JSON.parse(localStorage.getItem(localStorageKey)); } catch { return null; }
-            })();
+            const localData = Utils.tryParseLS(localStorageKey, null);
 
             if (localData && JSON.stringify(localData) !== JSON.stringify(remoteData)) {
                 return {
@@ -539,9 +535,7 @@ const CloudSync = (() => {
                 // Pull quotes (merge strategy)
                 const remoteQuotes = await _pullQuotes();
                 if (remoteQuotes.length > 0) {
-                    const localQuotesRaw = localStorage.getItem('altech_v6_quotes');
-                    let localQuotes = [];
-                    try { localQuotes = JSON.parse(localQuotesRaw) || []; } catch {}
+                    let localQuotes = Utils.tryParseLS('altech_v6_quotes', []);
 
                     const { merged, conflicts: quoteConflicts } = _mergeQuotes(localQuotes, remoteQuotes);
                     _setLocalData('altech_v6_quotes', merged);
@@ -586,8 +580,8 @@ const CloudSync = (() => {
          */
         schedulePush() {
             if (!this.isAvailable || _isPulling) return;
-            clearTimeout(_syncTimer);
-            _syncTimer = setTimeout(() => this.pushToCloud(), SYNC_DEBOUNCE_MS);
+            if (!_debouncedPush) _debouncedPush = Utils.debounce(() => this.pushToCloud(), SYNC_DEBOUNCE_MS);
+            _debouncedPush();
         },
 
         /**

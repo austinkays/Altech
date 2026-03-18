@@ -58,7 +58,7 @@ const EMAIL_STORAGE_KEY = 'altech_email_drafts';
 
                 _getAgencyName() {
                     try {
-                        const profile = JSON.parse(localStorage.getItem('altech_agency_profile') || '{}');
+                        const profile = Utils.tryParseLS('altech_agency_profile', {});
                         if (profile.agencyName) return profile.agencyName;
                     } catch (_) {}
                     return 'our agency';

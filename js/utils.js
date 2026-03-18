@@ -39,5 +39,35 @@ window.Utils = (() => {
             .replace(/'/g, '&#39;');
     }
 
-    return { escapeHTML, escapeAttr };
+    /**
+     * Parse a JSON value from localStorage, returning fallback on missing key or parse error.
+     *
+     * @param {string} key
+     * @param {*} fallback
+     * @returns {*}
+     */
+    function tryParseLS(key, fallback) {
+        try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
+        catch { return fallback; }
+    }
+
+    /**
+     * Returns a debounced version of fn that delays invocation by ms milliseconds.
+     * The returned function has a `.cancel()` method to clear the pending timer.
+     *
+     * @param {Function} fn
+     * @param {number} ms
+     * @returns {Function}
+     */
+    function debounce(fn, ms) {
+        let timer;
+        function debounced(...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), ms);
+        }
+        debounced.cancel = () => { clearTimeout(timer); timer = null; };
+        return debounced;
+    }
+
+    return { escapeHTML, escapeAttr, tryParseLS, debounce };
 })();

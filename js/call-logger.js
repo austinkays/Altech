@@ -10,7 +10,6 @@ window.CallLogger = (() => {
 
     const STORAGE_KEY = 'altech_call_logger';
     const CGL_CACHE_KEY = 'altech_cgl_cache';
-    let _searchTimer = null;
     let _selectedClient = null;  // { name, policies: [...] }
     let _selectedPolicy = null;  // { policyNumber, type, typeLabel, expirationDate, hawksoftId, hawksoftPolicyId }
 
@@ -1084,10 +1083,8 @@ window.CallLogger = (() => {
         // Client search / autocomplete on the policy ID input
         const policyInput = document.getElementById('clPolicyId');
         if (policyInput && !policyInput._clSearchWired) {
-            policyInput.addEventListener('input', () => {
-                clearTimeout(_searchTimer);
-                _searchTimer = setTimeout(_handleClientSearch, 150);
-            });
+            const _debouncedSearch = Utils.debounce(_handleClientSearch, 150);
+            policyInput.addEventListener('input', _debouncedSearch);
             policyInput.addEventListener('focus', () => {
                 // Re-show dropdown if there's already text
                 if (policyInput.value.trim().length >= 2) {

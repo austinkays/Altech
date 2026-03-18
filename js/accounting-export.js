@@ -43,15 +43,12 @@ const AccountingExport = {
     // ═══════════════════════════════════════════
 
     _hasPIN() {
-        try {
-            const meta = JSON.parse(localStorage.getItem(this._META_KEY) || 'null');
-            return !!(meta && meta.pinHash && meta.pinSalt);
-        } catch { return false; }
+        const meta = Utils.tryParseLS(this._META_KEY, null);
+        return !!(meta && meta.pinHash && meta.pinSalt);
     },
 
     _getMeta() {
-        try { return JSON.parse(localStorage.getItem(this._META_KEY) || 'null'); }
-        catch { return null; }
+        return Utils.tryParseLS(this._META_KEY, null);
     },
 
     async _hashPIN(pin, salt) {
@@ -163,7 +160,7 @@ const AccountingExport = {
         this._unlocked = false;
         this._vaultData = null;
         this._editingIdx = -1;
-        clearTimeout(this._autoLockTimer);
+        this._debouncedLock?.cancel();
         this._clearAllClipboardTimers();
         this._showScreen('lock');
         const input = document.getElementById('acctPinEntry');
@@ -232,9 +229,9 @@ const AccountingExport = {
     },
 
     _resetAutoLock() {
-        clearTimeout(this._autoLockTimer);
-        if (!this._unlocked) return;
-        this._autoLockTimer = setTimeout(() => this.lockVault(), this._AUTO_LOCK_MS);
+        if (!this._debouncedLock) this._debouncedLock = Utils.debounce(() => this.lockVault(), this._AUTO_LOCK_MS);
+        if (!this._unlocked) { this._debouncedLock.cancel(); return; }
+        this._debouncedLock();
     },
 
     // ═══════════════════════════════════════════
@@ -737,9 +734,7 @@ const AccountingExport = {
     // ── History ──
 
     getHistory() {
-        try {
-            return JSON.parse(localStorage.getItem('altech_acct_history') || '[]');
-        } catch { return []; }
+        return Utils.tryParseLS('altech_acct_history', []);
     },
 
     saveHistory(history) {

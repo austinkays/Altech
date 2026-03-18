@@ -85,8 +85,8 @@ Object.assign(App, {
     },
 
     scheduleMapPreviewUpdate() {
-        clearTimeout(this.mapPreviewTimer);
-        this.mapPreviewTimer = setTimeout(() => this.updateMapPreviews(), 450);
+        if (!this._debouncedMapPreview) this._debouncedMapPreview = Utils.debounce(() => this.updateMapPreviews(), 450);
+        this._debouncedMapPreview();
     },
 
     openGoogleMaps() {

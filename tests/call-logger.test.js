@@ -893,7 +893,7 @@ describe('Client & Policy Lookup — Source', () => {
 
   test('defines _handleClientSearch with debounced search', () => {
     expect(source).toContain('function _handleClientSearch()');
-    expect(source).toContain('_searchTimer');
+    expect(source).toContain('Utils.debounce(_handleClientSearch, 150)');
   });
 
   test('_handleClientSearch enforces minimum 2 char query', () => {
@@ -923,7 +923,7 @@ describe('Client & Policy Lookup — Source', () => {
 
   test('wires input event for search with debounce', () => {
     expect(source).toContain("policyInput.addEventListener('input'");
-    expect(source).toContain('setTimeout(_handleClientSearch, 150)');
+    expect(source).toContain('Utils.debounce(_handleClientSearch, 150)');
   });
 
   test('wires focus event to re-show dropdown', () => {

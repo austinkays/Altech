@@ -354,9 +354,7 @@ window.Onboarding = (() => {
      * Get saved agency profile
      */
     function getAgencyProfile() {
-        try {
-            return JSON.parse(localStorage.getItem('altech_agency_profile') || '{}');
-        } catch { return {}; }
+        return Utils.tryParseLS('altech_agency_profile', {});
     }
 
     /**

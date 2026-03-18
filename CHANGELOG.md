@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Refactored
+- **Utils: added `tryParseLS` + `debounce`; replaced all call sites** (March 28, 2026):
+  - `js/utils.js`: Added `tryParseLS(key, fallback)` (safe JSON parse from localStorage) and `debounce(fn, ms)` (standard debounce with `.cancel()` method); both exported on `window.Utils`.
+  - **Phase 1 — `tryParseLS` (17 replacements across 11 files):** `accounting-export.js` (`_hasPIN`, `_getMeta`, `getHistory`), `app-core.js` (history load, entries load, agency profile read), `cloud-sync.js` (`_getSyncMeta`, IIFE parse, quotes split), `onboarding.js` (`getAgencyProfile`), `quote-compare.js` (`getSaved`), `prospect.js` (`_getSavedProspects`), `task-sheet.js` (`_loadExcluded`), `app-quotes.js` (`getClientHistory`), `auth.js` (agency profile read), `email-composer.js` (`_getAgencyName`), `hawksoft-export.js` (`_addToExportHistory`).
+  - **Phase 2 — `debounce` module-level patterns (3 files + 1 test fix):** `ezlynx-tool.js` (`_wireAutoSave` timer), `call-logger.js` (`_handleClientSearch` timer), `cloud-sync.js` (`schedulePush` lazy-init debounce). Fixed `tests/call-logger.test.js` source-check assertions to match new `Utils.debounce` pattern.
+  - **Phase 3 — `debounce` `this`-context patterns (3 files):** `app-property.js` (`scheduleMapPreviewUpdate`), `app-vehicles.js` (`updateVehicle` save timer), `accounting-export.js` (`lockVault` cancel + `_resetAutoLock` lazy-init).
+  - Tests: **27/27 suites passing, 0 failures** (targeted suites fully green).
+
+### Refactored
 - **CSS dark mode Pass 1 — add body.dark-mode blocks to 6 zero-coverage files** (March 18, 2026):
   - `css/vin-decoder.css`: 17 overrides — boost all low-opacity rgba backgrounds (blue/purple/green/amber/red segments, badges, tags, error state) that were invisible on `#000000`.
   - `css/quote-compare.css`: 11 overrides — boost low-opacity drop-zone/table-row/badge fills; align `#34c759` → `#32D74B` and `#ff3b30` → `#FF453A` for best-card, included/missing badges, discount border, delete button.
