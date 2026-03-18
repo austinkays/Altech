@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tests: 1599 passing (pre-existing failures in `layout-regressions` and `plugin-integration` suites unchanged).
 
 ### Fixed
+- **Session 2 — Test hygiene: fix pre-existing CSS regression failures** (March 17, 2026):
+  - `css/main.css` was deleted in a prior commit (`7e55123`) but 2 test files still referenced it — causing all 21 failures across those suites.
+  - `tests/layout-regressions.test.js`: Replaced single top-level `read('css/main.css')` (ENOENT at module load = entire suite crash) with three targeted reads: `css/base.css` (`overflow-x: hidden`), `css/layout.css` (`#quotingTool.active` / `min-height: 100%`), `css/components.css` (QnA clamp height + scroll containment).
+  - `tests/plugin-integration.test.js`: Replaced all 8 inline `readFileSync('css/main.css')` calls with `readFileSync('css/components.css')` — fixes 10 previously failing CSS presence tests: `.grid-12`, `.span-4/6/8`, responsive grid fallback, `.disclosure-hidden`, `.toggle-switch`, `.grid-2-full`, `.full-span`, `.toggle-grid-3`, `.toggle-card`, toggle-grid-3 mobile fallback.
+  - Result: **212 tests passing across both suites, 0 failures.** Total suite now fully green.
+
+### Fixed
 - Smart Scan — `_getAltechRestorePrompt()` rewritten with exhaustive section/field mapping: now lists every exact uppercase label from the PDF (PROPERTY DETAILS, BUILDING SYSTEMS, RISK & PROTECTION, HOME COVERAGE, HOME ENDORSEMENTS, AUTO COVERAGE, PRIOR INSURANCE) mapped to the corresponding JSON field ID. Previously the prompt only vaguely described these sections, causing Year Built, Square Footage, Dwelling Type, Stories, Roof/Heating/Cooling systems, all risk/protection flags, coverage limits, and endorsements to be silently omitted from scan results. (`js/app-scan.js` commit `d2ecbd3`)
 
 ### Removed

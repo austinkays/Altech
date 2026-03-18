@@ -8,23 +8,25 @@ function read(relPath) {
 }
 
 describe('Layout Regression Guardrails', () => {
-  const mainCss = read('css/main.css');
+  const baseCss = read('css/base.css');
+  const layoutCss = read('css/layout.css');
+  const componentsCss = read('css/components.css');
   const sidebarCss = read('css/sidebar.css');
   const intakeCss = read('css/intake-assist.css');
   const quoteCompareCss = read('css/quote-compare.css');
 
   test('global body prevents horizontal overflow bleed', () => {
-    expect(mainCss).toContain('overflow-x: hidden;');
+    expect(baseCss).toContain('overflow-x: hidden;');
   });
 
   test('quoting tool no longer forces 100vh inside shell', () => {
-    expect(mainCss).toContain('#quotingTool.active { animation: pluginFadeInNoTransform 0.4s var(--transition-smooth) both; min-height: 100%; }');
-    expect(mainCss).not.toContain('#quotingTool.active { animation: pluginFadeInNoTransform 0.4s var(--transition-smooth) both; min-height: 100vh; }');
+    expect(layoutCss).toContain('#quotingTool.active { animation: pluginFadeInNoTransform 0.4s var(--transition-smooth) both; min-height: 100%; }');
+    expect(layoutCss).not.toContain('#quotingTool.active { animation: pluginFadeInNoTransform 0.4s var(--transition-smooth) both; min-height: 100vh; }');
   });
 
   test('policy Q&A chat uses responsive height clamp + inner scroll shrink guard', () => {
-    expect(mainCss).toContain('height: clamp(320px, 56dvh, 520px);');
-    expect(mainCss).toContain('.qna-messages { flex: 1; min-height: 0; overflow-y: auto;');
+    expect(componentsCss).toContain('height: clamp(320px, 56dvh, 520px);');
+    expect(componentsCss).toContain('.qna-messages { flex: 1; min-height: 0; overflow-y: auto;');
   });
 
   test('app-main has min-width guard and explicit background', () => {
