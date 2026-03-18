@@ -129,3 +129,9 @@
     font-weight: 600;
 }
 .paywall-signin-note a:hover { text-decoration: underline; }
+
+/* ─── Dark Mode ─────────────────────────────────────────────────────────────
+   paywall.css relies almost entirely on CSS variables. No structural overrides
+   needed — the overlay rgba(0,0,0,0.5) and #fff button text are correct in
+   both modes.
+   ─────────────────────────────────────────────────────────────────────────── */

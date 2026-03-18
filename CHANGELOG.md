@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Refactored
+- **CSS dark mode Pass 1 — add body.dark-mode blocks to 6 zero-coverage files** (March 18, 2026):
+  - `css/vin-decoder.css`: 17 overrides — boost all low-opacity rgba backgrounds (blue/purple/green/amber/red segments, badges, tags, error state) that were invisible on `#000000`.
+  - `css/quote-compare.css`: 11 overrides — boost low-opacity drop-zone/table-row/badge fills; align `#34c759` → `#32D74B` and `#ff3b30` → `#FF453A` for best-card, included/missing badges, discount border, delete button.
+  - `css/onboarding.css`: 1 override — swap gradient purple stop `#5856D6` → `#5E5CE6` (system purple) on `.onboarding-logo` and `.team-invite-icon`; reduce shadow alpha.
+  - `css/quickref.css`: 6 overrides — boost teal low-opacity card hover/copied/speller-item backgrounds; increase focus-ring shadow alpha from 0.15 → 0.28.
+  - `css/email.css`: 5 overrides — lighten focus rings to `#a78bfa` (avoids near-black outline on dark bg); align hover/active chip and history-item to lighter purple; fix success badge `rgba(5,150,105,0.1)` → `rgba(52,211,153,0.18)` + `#34D399`.
+  - `css/paywall.css`: comment block only — relies entirely on CSS variables; `rgba(0,0,0,0.5)` overlay and `#fff` text are correct in both modes.
+  - All 6 files now have `body.dark-mode` coverage. Tests: **1631/1631 passing, 25/25 suites**.
+
+### Refactored
 - **Phase 3 — cloud-sync.js SYNC_DOCS consolidation** (March 18, 2026):
   - `js/cloud-sync.js`: Added `SYNC_DOCS` constant array — single source of truth for all 10 synced Firestore document types (`settings`, `currentForm`, `cglState`, `clientHistory`, `quickRefCards`, `quickRefNumbers`, `reminders`, `glossary`, `vaultData`, `vaultMeta`).
   - `pushToCloud()`: replaced 10 manual `_pushDoc(...)` calls with `...SYNC_DOCS.map(key => _pushDoc(key, local[key], key))` — saves 8 lines, adding a new sync type now auto-covers push.

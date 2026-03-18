@@ -265,3 +265,29 @@
         grid-template-columns: repeat(4, 1fr);
     }
 }
+
+/* ─── Dark Mode ─────────────────────────────────────────────────────────────
+   The teal palette (#0d9488) is intentional. Boost low-opacity backgrounds
+   and increase focus-ring alpha so they read on the #000 background.
+   ─────────────────────────────────────────────────────────────────────────── */
+body.dark-mode .qr-card:hover {
+    border-color: #0d9488;
+    box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+}
+body.dark-mode .qr-card-value:hover  { background: rgba(13, 148, 136, 0.22); }
+body.dark-mode .qr-card-value.copied {
+    background: rgba(5, 150, 105, 0.28);
+    color: #34D399;
+}
+body.dark-mode .qr-add-card:hover    { border-color: #0d9488; color: #0d9488; }
+body.dark-mode .qr-add-input:focus {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.28);
+}
+body.dark-mode .qr-speller-input:focus {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.28);
+}
+body.dark-mode .qr-speller-item {
+    background: rgba(13, 148, 136, 0.22);
+}

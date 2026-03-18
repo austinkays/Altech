@@ -229,3 +229,27 @@
         padding: 14px 18px;
     }
 }
+
+/* ─── Dark Mode ─────────────────────────────────────────────────────────────
+   Purple accent (#7c3aed) is intentional. Boost focus-ring alpha and the
+   low-opacity success badge background.
+   ─────────────────────────────────────────────────────────────────────────── */
+body.dark-mode .email-textarea:focus,
+body.dark-mode .email-context-input:focus {
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.25);
+}
+body.dark-mode .email-tone-chip.active {
+    background: #6d28d9;
+    border-color: #6d28d9;
+}
+body.dark-mode .email-tone-chip:hover:not(.active) {
+    border-color: #a78bfa;
+    color: #a78bfa;
+}
+body.dark-mode .email-history-item:hover  { border-color: #a78bfa; }
+body.dark-mode .email-output .cursor-blink { background: #a78bfa; }
+body.dark-mode .email-lock-badge {
+    background: rgba(52, 211, 153, 0.18);
+    color: #34D399;
+}

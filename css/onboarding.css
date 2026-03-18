@@ -409,3 +409,13 @@
     color: var(--text-secondary);
     font-size: 18px;
 }
+
+/* ─── Dark Mode ─────────────────────────────────────────────────────────────
+   Most of onboarding.css uses CSS variables that auto-switch. Only the
+   hardcoded purple gradient stop needs a dark-mode refinement.
+   ─────────────────────────────────────────────────────────────────────────── */
+body.dark-mode .onboarding-logo,
+body.dark-mode .team-invite-icon {
+    background: linear-gradient(135deg, var(--apple-blue), #5E5CE6);
+    box-shadow: 0 8px 24px rgba(10, 132, 255, 0.25);
+}
