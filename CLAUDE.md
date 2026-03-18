@@ -1,119 +1,259 @@
-# Altech Toolkit — Claude Code Reference
+# Altech Toolkit — Agent Reference
 
-## Full Reference
-For detailed architecture, CSS variables, file structure, and landmines
-see AGENTS.md — read only the relevant section when needed, never in full.
+> **Cold-start guide.** For deep dives see `AGENTS.md` — read only the sections relevant to your task.
 
-## Project Overview
+## Project
 
-Altech is a static insurance agency toolkit built with vanilla HTML/CSS/JS. No build step, no bundler, no framework. Deployed on Vercel via GitHub push to `main`. Firebase (compat mode) handles auth and Firestore.
+Vanilla HTML/CSS/JS SPA. No build step, no framework. Vercel deploy (push `main`). Firebase compat for auth + Firestore.
+
+```bash
+npm run dev               # port 3000
+npm test                  # 25 suites, 1631 tests
+npx jest --no-coverage    # faster
+```
 
 ---
 
-## File Structure
+## JS Module Architecture
+
+### Global Singletons (loaded before `App`)
+
+| Global | File | Exposes |
+|--------|------|---------|
+| `CryptoHelper` | `js/crypto-helper.js` | AES-256-GCM encrypt/decrypt |
+| `window.STORAGE_KEYS` | `js/storage-keys.js` | Frozen map of all 37 `altech_*` localStorage keys |
+| `window.Utils` | `js/utils.js` | `escapeHTML`, `escapeAttr`, `tryParseLS`, `debounce` |
+| `window.FIELDS` / `window.FIELD_BY_ID` | `js/fields.js` | ~175 intake form field definitions with id/label/type/section |
+
+### App Assembly — `Object.assign` Pattern
+
+`window.App` is created in `app-init.js` then extended across 8 files via `Object.assign(App, { ... })`. Each file adds its own slice; all share the same object.
+
+| File | Owns |
+|------|------|
+| `app-init.js` | `App` creation, `App.data`, `App.workflows`, `App.toolConfig[]`, `App.stepTitles` |
+| `app-ui-utils.js` | `App.toast()`, `App.toggleDarkMode()`, `App.loadDarkMode()`, `App.formatDateDisplay()`, `App.copyToClipboard()` |
+| `app-navigation.js` | `App.updateUI()`, `App.navigateTo()`, step progression, hash routing |
+| `app-core.js` | `App.save()`, `App.load()`, form field persistence, schema migration, encryption |
+| `app-scan.js` | `App.processScan()`, OCR, Gemini AI |
+| `app-property.js` | `App.smartAutoFill()`, Maps, assessor data |
+| `app-vehicles.js` | `App.renderDrivers()`, `App.renderVehicles()`, DL scan |
+| `app-popups.js` | `App.processImage()`, hazard detection |
+| `app-export.js` | `App.exportPDF()`, `App.exportCMSMTF()` |
+| `app-quotes.js` | `App.saveAsQuote()`, `App.loadQuote()` |
+| `app-boot.js` | `App.boot()` — SW, hash router, keyboard shortcuts — **must load last** |
+
+### Plugin IIFE Pattern
+
+Every plugin (not part of App core) uses:
+
+```javascript
+window.ModuleName = (() => {
+    'use strict';
+    const STORAGE_KEY = STORAGE_KEYS.YOUR_KEY;
+    // private state
+    return { init, render /*, public API */ };
+})();
+```
+
+Plugins are lazy-loaded: `App.navigateTo(key)` fetches `htmlFile`, injects into the container div, calls `window[initModule].init()`. HTML is fetched once and cached via `container.dataset.loaded`.
+
+---
+
+## Script Load Order
 
 ```
-Altech/
-├── index.html              # App shell — all plugins loaded here
-├── css/
-│   ├── variables.css       # :root CSS vars + body.dark-mode overrides ONLY
-│   ├── base.css            # Reset, body, typography, global utilities
-│   ├── layout.css          # Header, sidebar, app shell, plugin container, media queries
-│   ├── components.css      # Buttons, inputs, modals, cards, forms, toasts, etc.
-│   ├── landing.css         # .landing-page, bento grid, tool-row, landing header
-│   ├── animations.css      # All @keyframes + global animation assignments
-│   ├── main.css            # @import only — loads the 6 files above in order
-│   ├── sidebar.css         # Sidebar plugin (standalone)
-│   ├── dashboard.css       # Dashboard plugin
-│   ├── compliance.css      # Compliance plugin
-│   ├── reminders.css       # Reminders plugin
-│   ├── auth.css            # Auth screens
-│   ├── admin.css           # Admin panel
-│   ├── onboarding.css      # Onboarding flow
-│   ├── paywall.css         # Paywall screens
-│   └── [plugin].css        # One file per plugin — do not modify from global refactors
-├── js/
-│   └── [module].js         # Plugin JS files
-├── api/                    # Vercel serverless functions (Node.js)
-└── vercel.json             # Vercel routing config
+CDN libraries (firebase-compat, jszip, jspdf, pdf.js, pdf-lib)
+  ↓ synchronous <script> tags:
+1.  crypto-helper.js       → CryptoHelper
+2.  storage-keys.js        → window.STORAGE_KEYS   ← before App
+3.  utils.js               → window.Utils           ← before App
+4.  fields.js              → window.FIELDS, window.FIELD_BY_ID
+
+5.  app-init.js            → window.App (state only)
+6.  app-ui-utils.js        → App += toast, dark mode, clipboard
+7.  app-navigation.js      → App += updateUI, navigateTo
+8.  app-core.js            → App += save, load
+9.  app-scan.js            → App += processScan
+10. app-property.js        → App += smartAutoFill
+11. app-vehicles.js        → App += renderDrivers/Vehicles
+12. app-popups.js          → App += processImage
+13. app-export.js          → App += exportPDF, exportCMSMTF
+14. app-quotes.js          → App += saveAsQuote
+
+15. ai-provider.js         → window.AIProvider
+16. dashboard-widgets.js   → window.DashboardWidgets
+
+17–36. Plugin IIFEs (coi, prospect, quick-ref, accounting-export,
+       compliance-dashboard, ezlynx-tool, quote-compare, intake-assist,
+       email-composer, policy-qa, reminders, hawksoft-export, vin-decoder,
+       call-logger, endorsement-parser, task-sheet, returned-mail,
+       deposit-sheet, dec-import, blind-spot-brief)
+
+37. data-backup.js, bug-report.js
+38. firebase-config.js     ← must precede auth.js
+39. auth.js                ← must precede cloud-sync.js
+40. admin-panel.js
+41. cloud-sync.js          → CloudSync
+42. paywall.js, onboarding.js
+43. app-boot.js            ← ★ MUST BE LAST — runs App.boot()
 ```
+
+---
+
+## Shared Utilities (`window.Utils`)
+
+| Function | Signature | Use when |
+|----------|-----------|----------|
+| `escapeHTML` | `(str) → string` | Inserting user/AI data into HTML text nodes |
+| `escapeAttr` | `(str) → string` | Building `attr="${val}"` strings in templates |
+| `tryParseLS` | `(key, fallback) → any` | Reading any localStorage value that might be JSON |
+| `debounce` | `(fn, ms) → fn` | Delaying saves, search inputs; returned fn has `.cancel()` |
+
+**Never define these inline in plugins** — always delegate to `Utils.*`.
+
+---
+
+## Storage Keys (`window.STORAGE_KEYS`)
+
+`STORAGE_KEYS` is a **frozen** global — the single source of truth for all `altech_*` strings. **Never hardcode key strings in modules.**
+
+```javascript
+// ✅ correct
+Utils.tryParseLS(STORAGE_KEYS.REMINDERS, []);
+localStorage.setItem(STORAGE_KEYS.REMINDERS, JSON.stringify(data));
+
+// ❌ wrong
+JSON.parse(localStorage.getItem('altech_reminders'));
+```
+
+Key entries (see `js/storage-keys.js` for full list):
+
+| Constant | Value | Notes |
+|----------|-------|-------|
+| `FORM` | `altech_v6` | `App.data` — encrypted, cloud-synced |
+| `QUOTES` | `altech_v6_quotes` | Drafts — encrypted, cloud-synced |
+| `CGL_STATE` | `altech_cgl_state` | Cloud-synced |
+| `REMINDERS` | `altech_reminders` | Cloud-synced |
+| `DARK_MODE` | `altech_dark_mode` | Cloud-synced via settings doc |
+| `ENCRYPTION_SALT` | `altech_encryption_salt` | Never sync to cloud |
+
+---
+
+## Cloud Sync Pattern
+
+`js/cloud-sync.js` exposes `CloudSync`. All synced Firestore doc types live in one array:
+
+```javascript
+// js/cloud-sync.js ~line 27
+const SYNC_DOCS = [
+    'settings', 'currentForm', 'cglState', 'clientHistory',
+    'quickRefCards', 'quickRefNumbers', 'reminders', 'glossary',
+    'vaultData', 'vaultMeta',
+];
+```
+
+**To add a new sync type:** add one string to `SYNC_DOCS`. Push and delete pick it up automatically — no other changes required.
+
+**After any write to a synced key:** call `CloudSync.schedulePush()` (debounced 3 s).
+
+**Firestore paths:** `users/{uid}/sync/{docType}` | quotes: `users/{uid}/quotes/{id}`
 
 ---
 
 ## CSS Architecture
 
-### Load Order (index.html)
+### Load Order in `index.html`
+
 ```html
-<link rel="stylesheet" href="css/variables.css">
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/layout.css">
-<link rel="stylesheet" href="css/components.css">
-<link rel="stylesheet" href="css/landing.css">
-<link rel="stylesheet" href="css/animations.css">
-<!-- Plugin-specific CSS files follow -->
+<link href="css/variables.css">   <!-- :root vars + body.dark-mode overrides ONLY -->
+<link href="css/base.css">        <!-- reset, body, typography -->
+<link href="css/layout.css">      <!-- shell, sidebar, header, plugin container -->
+<link href="css/components.css">  <!-- buttons, inputs, cards, modals, toasts -->
+<link href="css/landing.css">     <!-- bento grid, tool-row -->
+<link href="css/animations.css">  <!-- all @keyframes -->
+<!-- plugin CSS files follow -->
 ```
 
 ### File Responsibilities
 
-| File | Contains |
+| File | Edit for |
 |------|----------|
-| `variables.css` | `:root { }` custom properties and `body.dark-mode { }` variable overrides **only** |
-| `base.css` | `* { }` reset, `body { }`, `h2`, `h3`, `.section-subtitle`, `.hidden`, `.hint`, `.divider` |
-| `layout.css` | Plugin header glassmorphism pill, step-title/progress, `main { }`, `footer { }` shell, `#breadcrumbBar`, `.plugin-container`, desktop layout `@media (min-width: 960px)` block |
-| `components.css` | Cards, inputs, selects, textareas, buttons (all variants), modals, toasts, accordion, segmented control, iOS toggle, quote cards, driver/vehicle cards, export cards, scan components, Q&A assistant, skeleton loading, print styles, COI form |
-| `landing.css` | `.landing-page`, `.landing-header`, `.tool-row` (3D tilt), `.bento-*`, tool badges, landing footer |
-| `animations.css` | All `@keyframes`, global animation assignments, `@media (prefers-reduced-motion)` |
+| `variables.css` | CSS custom properties, `body.dark-mode` variable overrides — **only** |
+| `base.css` | Global reset, body, typography |
+| `layout.css` | App shell, sidebar dimensions, plugin container |
+| `components.css` | Shared UI components (cards, buttons, modals, toasts) |
+| `animations.css` | All `@keyframes` — never define them in plugin CSS |
+| `[plugin].css` | Styles scoped to one plugin — standalone, do not touch in global refactors |
+
+### Critical Rules
+
+- **Never edit `css/main.css`** — dead `@import` aggregator, not linked in `index.html`, has zero effect
+- **Dark mode selector:** `body.dark-mode .class` (not `[data-theme="dark"]`)
+- **Default is dark:** `loadDarkMode()` defaults to dark when no preference is stored
+- **Valid variables:** `--bg-card`, `--text`, `--apple-blue`, `--text-secondary`, `--bg-input`, `--border`
+- **Invalid (don't exist):** `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
+- **Prefer solid colors** (`#1C1C1E`) over low-opacity rgba for dark mode backgrounds
+- **`/* no var */` comments** mark hardcoded colors still needing a design token — leave them intact, do not remove. Currently in `css/compliance.css` (3× `#FF9500` warning/saving states) and `css/components.css` (1× low-opacity rgba background). Search `/* no var */` to find all instances.
 
 ---
 
-## Theme System
+## Three Workflows
 
-- **Light mode**: default (no class on body)
-- **Dark mode**: `body.dark-mode` class — toggled by JS, **not** `prefers-color-scheme`
-- All colors use CSS custom properties from `variables.css`
-- Key layout vars: `--header-height: 56px`, `--sidebar-width: 240px`, `--sidebar-collapsed-width: 64px`
-- Key easing vars: `--transition-spring`, `--transition-smooth`
-- Primary brand color: `--apple-blue` (#007AFF light / #0A84FF dark)
+| Workflow | Steps | Skips |
+|----------|-------|-------|
+| `home` | 0→1→2→3→5→6 | Step 4 (vehicles) |
+| `auto` | 0→1→2→3→4→5→6 | — |
+| `both` | 0→1→2→3→4→5→6 | — |
 
-### Dark Mode Rule Placement
-- Variable overrides → `variables.css` (`body.dark-mode { --var: value; }`)
-- Layout-scoped dark rules → `layout.css` (`body.dark-mode footer { }`)
-- Component-scoped dark rules → `components.css` (`body.dark-mode .card { }`)
-- Landing-scoped dark rules → `landing.css` (`body.dark-mode .tool-row { }`)
+Test all three workflows when changing step logic or conditions.
 
 ---
 
-## Deploy Workflow
+## Testing
 
-1. Edit files locally
-2. `git add` + `git commit` + `git push origin main`
-3. Vercel auto-deploys on push to `main`
-4. No build step, no npm run build — files are served as-is
+```bash
+npm test                          # 25 suites, 1631 tests
+npx jest --no-coverage            # faster
+npx jest tests/app.test.js        # single suite
+```
 
-Serverless API functions live in `api/` and are deployed as Vercel functions automatically.
+- **JSDOM limitations:** no `crypto.subtle`, no `ImageBitmap`, no `showOpenFilePicker`, no `IntersectionObserver`
+- **Utils injection:** test helper functions that create mini DOMs must inject `js/utils.js` source before any plugin that calls `Utils.*`
+- **CSS tests:** read `css/base.css` / `css/layout.css` / `css/components.css` — **never** `css/main.css` (deleted)
+
+---
+
+## Vercel API Limit
+
+Hobby plan max: **12 serverless functions**. Current count: **12 (at the limit)**.
+
+Before adding any file to `api/`: count non-`_` files — must stay ≤ 12.
+
+To add new API behavior: use `?mode=` or `?type=` routing inside an existing function, or prefix the file with `_` (helper, not counted).
 
 ---
 
 ## Key Conventions
 
-- **Vanilla JS only** — no React, Vue, or framework
-- **Firebase compat mode** — use `firebase.auth()`, `firebase.firestore()` (not modular imports)
-- **Plugin pattern** — each tool is a self-contained plugin with its own JS + CSS file; loaded conditionally
-- **No CSS preprocessors** — plain CSS with custom properties
-- **`@keyframes` always go in `animations.css`** — never define them in plugin CSS or other global files
-- **Plugin CSS files are standalone** — they may define their own transitions/animations locally
-- **CSS specificity** — prefer class selectors; avoid `!important` except for `.hidden` and reduced-motion
-- **JS dark mode toggle** — adds/removes `body.dark-mode` class and persists to `localStorage`
-
----
+- **Vanilla JS only** — no React, Vue, Svelte, or any framework
+- **No ES modules in plugins** — plain `<script>` tags; use IIFE pattern
+- **No build step** — edit files, reload browser
+- **Firebase compat mode** — `firebase.auth()`, `firebase.firestore()` (not modular imports)
+- **`@keyframes` in `animations.css` only** — never in plugin CSS files
+- **Field IDs are storage keys** — never rename an `<input id="...">` without a migration in `App.load()`
+- **All form writes via `App.save()`** — never write to `STORAGE_KEYS.FORM` directly
+- **After any work session:** add an entry to `CHANGELOG.md`, run `npm run audit-docs`
 
 ## What NOT To Do
 
-- **Do not add a build step** — this is intentionally a no-build static site
-- **Do not use CSS `@import` inside plugin CSS files** — link them directly in index.html
-- **Do not move `@keyframes` into component or layout files** — they all belong in `animations.css`
-- **Do not edit `main.css`** — it contains only `@import` statements; add new global CSS to the appropriate split file
-- **Do not modify plugin-specific CSS files** (`dashboard.css`, `compliance.css`, etc.) during global CSS refactors
-- **Do not use `prefers-color-scheme`** for dark mode — the app uses `body.dark-mode` class toggled by user
-- **Do not use ES modules (`import`/`export`)** in plugin JS files — they are plain scripts loaded via `<script>` tags
-- **Do not push directly to `main` with broken CSS** — Vercel deploys immediately; test locally first
+| ❌ | ✅ |
+|----|-----|
+| Hardcode `'altech_reminders'` | Use `STORAGE_KEYS.REMINDERS` |
+| Define `escapeHTML` in a plugin | Call `Utils.escapeHTML()` |
+| Write `localStorage.setItem('altech_v6', ...)` | Call `App.save()` |
+| Add a new `api/` file without checking count | Count with `(ls api/ \| grep -v '^_' \| wc -l)` — max 12 |
+| Use `var(--accent)` or `var(--muted)` | Use `var(--apple-blue)` or `var(--text-secondary)` |
+| Edit `css/main.css` | Edit the split file where the selector lives |
+| Load `app-boot.js` before plugins | It must always be the last `<script>` tag |
+| Remove a `/* no var */` comment | Leave it — it marks work still to be done |

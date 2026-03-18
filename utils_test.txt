@@ -1,0 +1,53 @@
+PASS tests/utils.test.js
+  Utils.escapeHTML
+    ΓêÜ is exposed as a function (1 ms)
+    ΓêÜ returns empty string for null
+    ΓêÜ returns empty string for undefined (1 ms)
+    ΓêÜ returns plain string unchanged when no special chars (1 ms)
+    ΓêÜ escapes & to &amp; (1 ms)
+    ΓêÜ escapes < to &lt; (1 ms)
+    ΓêÜ escapes > to &gt;
+    ΓêÜ escapes multiple special chars in one string (1 ms)
+    ΓêÜ does not escape double quotes ΓÇö text node safe, use escapeAttr for attributes (1 ms)
+    ΓêÜ does not escape single quotes ΓÇö text node safe, use escapeAttr for attributes (1 ms)
+  Utils.escapeAttr
+    ΓêÜ is exposed as a function (1 ms)
+    ΓêÜ returns empty string for null
+    ΓêÜ returns empty string for undefined (1 ms)
+    ΓêÜ returns plain string unchanged when no special chars
+    ΓêÜ escapes & to &amp;
+    ΓêÜ escapes < to &lt;
+    ΓêÜ escapes > to &gt;
+    ΓêÜ escapes " to &quot; (1 ms)
+    ΓêÜ escapes ' to &#39;
+    ΓêÜ escapes all five special chars in one string
+    ΓêÜ coerces numbers to string before escaping
+    ΓêÜ returns empty string for empty string input (1 ms)
+  Utils.tryParseLS
+    ΓêÜ is exposed as a function
+    ΓêÜ returns fallback when key is absent from localStorage (1 ms)
+    ΓêÜ returns fallback for invalid JSON
+    ΓêÜ returns parsed object for valid JSON object
+    ΓêÜ returns parsed array for valid JSON array (1 ms)
+    ΓêÜ returns parsed number for stored JSON number
+    ΓêÜ returns parsed string for stored JSON string
+    ΓêÜ returns false ΓÇö falsy stored value is not overridden by fallback (uses ?? not ||)
+    ΓêÜ returns 0 ΓÇö falsy stored value is not overridden by fallback (uses ?? not ||)
+    ΓêÜ returns empty string ΓÇö falsy stored value is not overridden by fallback (uses ?? not ||)
+    ΓêÜ returns fallback when stored value is JSON null (null ?? fallback)
+  Utils.debounce
+    ΓêÜ is exposed as a function (1 ms)
+    ΓêÜ does not call fn immediately on first invocation (1 ms)
+    ΓêÜ calls fn once after the delay elapses (1 ms)
+    ΓêÜ resets the timer on repeated calls within the delay window
+    ΓêÜ calls fn with the correct arguments (1 ms)
+    ΓêÜ .cancel() prevents the pending call from firing
+    ΓêÜ .cancel() is safe to call when no timer is pending
+    ΓêÜ fires again on a new invocation after the delay has already elapsed
+
+Test Suites: 1 passed, 1 total
+Tests:       41 passed, 41 total
+Snapshots:   0 total
+Time:        1.808 s
+Ran all test suites matching /utils/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
