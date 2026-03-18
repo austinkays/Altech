@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tests
+- **tests/utils.test.js: new suite — 41 tests for window.Utils** (March 18, 2026):
+  - Covers all four `Utils` functions: `escapeHTML`, `escapeAttr`, `tryParseLS`, `debounce`
+  - Hybrid eval approach: `js/utils.js` loaded via `fs.readFileSync` + `eval()` in Node.js context; `global.document` set to JSDOM document so `escapeHTML`'s `createElement` works; `setTimeout` in `debounce` uses Node.js global so `jest.useFakeTimers()` patches it reliably
+  - `escapeHTML` quote tests named explicitly: "does not escape double/single quotes — text node safe, use escapeAttr for attributes"
+  - `tryParseLS` tests verify `??` (not `||`) semantics — falsy stored values (`false`, `0`, `""`) are returned, not replaced by fallback
+  - Full suite: 26 suites, 1672 tests, 0 failures
+
 ### Docs
 - **AGENTS.md: sync to post-refactor architecture** (March 18, 2026):
   - Added `storage-keys.js`, `utils.js`, `fields.js`, `app-ui-utils.js`, `app-navigation.js` to file tree
