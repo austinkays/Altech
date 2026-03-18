@@ -311,13 +311,13 @@ Object.assign(App, {
                 <div class="grid-2">
                     <div>
                         <label class="label">First Name</label>
-                        <input type="text" value="${this._escapeAttr(driver.firstName || '')}" 
+                        <input type="text" value="${Utils.escapeAttr(driver.firstName || '')}" 
                             onchange="App.updateDriver('${driver.id}', 'firstName', this.value)" 
                             placeholder="First name" ${lockedAttr}>
                     </div>
                     <div>
                         <label class="label">Last Name</label>
-                        <input type="text" value="${this._escapeAttr(driver.lastName || '')}" 
+                        <input type="text" value="${Utils.escapeAttr(driver.lastName || '')}" 
                             onchange="App.updateDriver('${driver.id}', 'lastName', this.value)" 
                             placeholder="Last name" ${lockedAttr}>
                     </div>
@@ -500,7 +500,7 @@ Object.assign(App, {
                     ${driver.dlScanConfidence ? `<span class="hint" style="margin:0; padding:6px 10px;">${driver.dlScanConfidence}% confidence</span>` : ''}
                 </div>
                 <div class="grid-2">
-                    <input type="text" value="${this._escapeAttr(driver.dlNum || '')}" 
+                    <input type="text" value="${Utils.escapeAttr(driver.dlNum || '')}" 
                         onchange="App.updateDriver('${driver.id}', 'dlNum', this.value)" 
                         style="text-transform:uppercase;font-family:monospace" 
                         placeholder="License #">
@@ -515,16 +515,16 @@ Object.assign(App, {
                     <h4 style="margin:0 0 8px;font-size:14px;font-weight:600;">Driving History</h4>
                     <label class="label">Accidents (Last 5 Years)</label>
                     <textarea rows="2" placeholder="Date, description, claim amount"
-                        onchange="App.updateDriver('${driver.id}', 'accidents', this.value)">${this._escapeAttr(driver.accidents || '')}</textarea>
+                        onchange="App.updateDriver('${driver.id}', 'accidents', this.value)">${Utils.escapeAttr(driver.accidents || '')}</textarea>
 
                     <label class="label">Violations / Tickets (Last 3 Years)</label>
                     <textarea rows="2" placeholder="Date, type of violation"
-                        onchange="App.updateDriver('${driver.id}', 'violations', this.value)">${this._escapeAttr(driver.violations || '')}</textarea>
+                        onchange="App.updateDriver('${driver.id}', 'violations', this.value)">${Utils.escapeAttr(driver.violations || '')}</textarea>
 
                     <div class="grid-2">
                         <div>
                             <label class="label">Student GPA (if applicable)</label>
-                            <input type="text" value="${this._escapeAttr(driver.studentGPA || '')}" 
+                            <input type="text" value="${Utils.escapeAttr(driver.studentGPA || '')}" 
                                 onchange="App.updateDriver('${driver.id}', 'studentGPA', this.value)" 
                                 placeholder="3.5">
                         </div>
@@ -636,17 +636,17 @@ Object.assign(App, {
         
         container.innerHTML = this.vehicles.map((vehicle, index) => {
         const driverOptions = this.drivers.map(d => 
-            `<option value="${d.id}" ${vehicle.primaryDriver === d.id ? 'selected' : ''}>${this._escapeAttr(d.firstName)} ${this._escapeAttr(d.lastName)}</option>`
+            `<option value="${d.id}" ${vehicle.primaryDriver === d.id ? 'selected' : ''}>${Utils.escapeAttr(d.firstName)} ${Utils.escapeAttr(d.lastName)}</option>`
         ).join('');
         return `
             <div class="driver-vehicle-card">
                 <div class="driver-vehicle-header">
-                    <h3>Vehicle ${index + 1} ${vehicle.year && vehicle.make ? `— ${this._escapeAttr(vehicle.year)} ${this._escapeAttr(vehicle.make)}` : ''}</h3>
+                    <h3>Vehicle ${index + 1} ${vehicle.year && vehicle.make ? `— ${Utils.escapeAttr(vehicle.year)} ${Utils.escapeAttr(vehicle.make)}` : ''}</h3>
                     <button class="remove-btn" onclick="App.removeVehicle('${vehicle.id}')" title="Remove vehicle">×</button>
                 </div>
                 
                 <label class="label">VIN (optional) - Auto-fills year/make/model</label>
-                <input type="text" maxlength="17" value="${this._escapeAttr(vehicle.vin || '')}" 
+                <input type="text" maxlength="17" value="${Utils.escapeAttr(vehicle.vin || '')}" 
                     onchange="App.decodeVehicleVin('${vehicle.id}', this.value)" 
                     style="text-transform:uppercase;font-family:monospace" 
                     placeholder="1HG...">
@@ -655,21 +655,21 @@ Object.assign(App, {
                 <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                     <div>
                         <label class="label">Year</label>
-                        <input type="text" inputmode="numeric" maxlength="4" value="${this._escapeAttr(vehicle.year || '')}" 
+                        <input type="text" inputmode="numeric" maxlength="4" value="${Utils.escapeAttr(vehicle.year || '')}" 
                             oninput="App.updateVehicle('${vehicle.id}', 'year', this.value)"
                             onchange="App.updateVehicle('${vehicle.id}', 'year', this.value)" 
                             placeholder="2020" style="min-width:0;">
                     </div>
                     <div>
                         <label class="label">Make</label>
-                        <input type="text" value="${this._escapeAttr(vehicle.make || '')}" 
+                        <input type="text" value="${Utils.escapeAttr(vehicle.make || '')}" 
                             oninput="App.updateVehicle('${vehicle.id}', 'make', this.value)"
                             onchange="App.updateVehicle('${vehicle.id}', 'make', this.value)" 
                             placeholder="Honda">
                     </div>
                     <div>
                         <label class="label">Model</label>
-                        <input type="text" value="${this._escapeAttr(vehicle.model || '')}" 
+                        <input type="text" value="${Utils.escapeAttr(vehicle.model || '')}" 
                             oninput="App.updateVehicle('${vehicle.id}', 'model', this.value)"
                             onchange="App.updateVehicle('${vehicle.id}', 'model', this.value)" 
                             placeholder="Civic">

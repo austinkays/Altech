@@ -10,10 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Refactor
-- **refactor(escape-attr): replace App._escapeAttr call sites with Utils.escapeAttr** (March 18, 2026):
-  - `js/hawksoft-export.js`: replaced 3 `_escapeAttr()` call sites with `Utils.escapeAttr()` directly; removed the now-redundant local `_escapeAttr` wrapper function
-  - `js/app-export.js`: no call sites existed — the `App._escapeAttr` definition remains as a thin backward-compat wrapper for `app-vehicles.js` callers via `this._escapeAttr()`
-  - Updated AGENTS.md §5.2 to mark cross-file dependency as resolved
+- **refactor(escape-attr): remove App._escapeAttr compat bridge entirely** (March 18, 2026):
+  - `js/app-vehicles.js`: replaced all 14 `this._escapeAttr()` call sites with `Utils.escapeAttr()` directly
+  - `js/app-export.js`: removed the `_escapeAttr(str) { return Utils.escapeAttr(str); }` bridge definition
+  - `js/app-core.js`: untouched — existing `typeof this._escapeAttr === 'function' ? ... : fallback` guard now always takes the fallback path (harmless)
+  - Updated AGENTS.md §5.2 to mark compat bridge as fully removed
   - 26 suites, 1672 tests — all passing
 
 ### Tests

@@ -1149,9 +1149,6 @@ Object.assign(App, {
 
     // â”€â”€â”€ Shared Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    // Escape for safe HTML attribute/text content insertion
-    _escapeAttr(str) { return Utils.escapeAttr(str); },
-
     // Shared system prompt for policy scan extraction (used by processScan + processScanFromText)
     _getScanSystemPrompt() {
         return 'You are a senior insurance underwriter and document analyst with 20+ years experience reading policies from every major US carrier ' +
