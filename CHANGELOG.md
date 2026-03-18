@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Test suite: layout-regressions + plugin-integration fully green** (March 18, 2026):
+  - `tests/layout-regressions.test.js`: replaced `css/main.css` reads with correct split CSS files (`css/base.css`, `css/layout.css`, `css/components.css`) — suite was crashing at module load since `main.css` was removed as a browser-loaded file.
+  - `tests/plugin-integration.test.js`: redirected all 8 `readFileSync('css/main.css')` calls to `css/components.css` — fixes 10 CSS presence tests (grid-12, toggle-grid-3, etc.).
+  - Full suite result: **1631/1631 tests passing, 25/25 suites green**.
+
 ### Refactored
 - **Utils: added `tryParseLS` + `debounce`; replaced all call sites** (March 28, 2026):
   - `js/utils.js`: Added `tryParseLS(key, fallback)` (safe JSON parse from localStorage) and `debounce(fn, ms)` (standard debounce with `.cancel()` method); both exported on `window.Utils`.
