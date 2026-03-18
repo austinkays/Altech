@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs
+- **AGENTS.md: sync to post-refactor architecture** (March 18, 2026):
+  - Added `storage-keys.js`, `utils.js`, `fields.js`, `app-ui-utils.js`, `app-navigation.js` to file tree
+  - Fixed `app-core.js` description (persistence-only; navigation/UI moved to new files)
+  - Fixed CSS source-of-truth reference (`css/variables.css`, not `css/main.css`)
+  - Added §3.7 CSS file responsibility table + `/* no var */` comment documentation
+  - Updated §4.1 JS assembly block to 11 files with correct per-file method ownership
+  - Fixed §4.2 plugin IIFE pattern to use `STORAGE_KEYS.*` not hardcoded strings
+  - Added `Utils.*` helper rows to §4.4 cross-file deps table; fixed `App.toast()` source → `app-ui-utils.js`
+  - Added §7.4 SYNC_DOCS one-string how-to for new cloud sync types
+  - Updated §8 agent prompt rules 7 + 8 (11 files, 1631 tests); added rules 19 + 20 (STORAGE_KEYS.* and Utils.*)
+  - Updated §9 checklist to 25 suites / 1631 tests; XSS check → `Utils.escapeHTML()` — never inline
+  - Clarified §5.2 landmine: `App._escapeAttr()` old call still exists in `app-export.js` + `hawksoft-export.js`, NOT cleaned up
+
 ### Refactored
 - **CSS Pass 2 — replace hardcoded colors with design system variables** (March 18, 2026):
   - `css/layout.css` (5 replacements): `.logo-icon` dark `#fff` → `var(--text)`, `.btn-save-client` dark bg/border/color → `var(--bg-input)`/`var(--border)`/`var(--apple-gray)`, `.btn-save-client:hover` dark `#0A84FF` → `var(--apple-blue)`, `.dark-mode-toggle` dark `#fff` → `var(--text)`, `#backToHome:hover` bg `#0051d5` → `var(--apple-blue-hover)`.

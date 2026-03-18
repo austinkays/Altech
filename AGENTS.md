@@ -65,7 +65,7 @@ npm run deploy:vercel   # Production deploy
 ├── sw.js                       # Service worker
 │
 ├── css/                        # 23 stylesheets (~17,230 lines)
-│   ├── main.css                # ★ Core styles + :root variables + desktop overhaul + Save button (3,484 lines) — THE source of truth
+│   ├── main.css                # ⚠️ Dead @import aggregator — NOT linked in index.html, never loaded by the browser. Editing has zero effect. See §5.12.
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (747 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
@@ -94,7 +94,9 @@ npm run deploy:vercel   # Production deploy
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows (92 lines)
-│   ├── app-core.js             # Form handling, save/load, updateUI, navigation, schema migration, syncPrimaryApplicantToDriver, _populateCoOccupation, aggressive auto-save (2,495 lines)
+│   ├── app-ui-utils.js         # App.toast(), App.toggleDarkMode(), App.loadDarkMode(), App.formatDateDisplay(), App.copyToClipboard()
+│   ├── app-navigation.js       # App.updateUI(), App.navigateTo(), step progression, hash routing
+│   ├── app-core.js             # save/load, form field persistence, schema migration, encryption — persistence-only (updateUI/navigateTo → app-navigation.js; toast/dark-mode → app-ui-utils.js)
 │   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,778 lines)
 │   ├── app-property.js         # Property analysis, maps, assessor data (1,759 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
@@ -105,6 +107,9 @@ npm run deploy:vercel   # Production deploy
 │   │
 │   │  ★ Infrastructure
 │   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
+│   ├── storage-keys.js         # window.STORAGE_KEYS — frozen map of all 37 altech_* localStorage key strings (single source of truth — never hardcode keys)
+│   ├── utils.js                # window.Utils: escapeHTML, escapeAttr, tryParseLS, debounce — never define these inline in plugins
+│   ├── fields.js               # window.FIELDS / window.FIELD_BY_ID — ~175 intake form field definitions with id/label/type/section
 │   ├── firebase-config.js      # Firebase app init (fetches config from /api/config)
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
@@ -209,7 +214,7 @@ npm run deploy:vercel   # Production deploy
 
 ### 3.1 Design System Variables
 
-All CSS variables are defined in `css/main.css`. There are **24 variables in `:root`** and **19 overrides in `body.dark-mode`**.
+All CSS variables are defined in `css/variables.css`. There are **24 variables in `:root`** and **19 overrides in `body.dark-mode`**.
 
 #### `:root` (Light Mode)
 
@@ -321,6 +326,21 @@ Some plugins use their own hardcoded color palettes instead of the design system
 - **email.css** — Purple accent (`#7c3aed`, `#6d28d9`)
 - **compliance.css** — Mixed slate/blue for type badges
 
+### 3.7 CSS File Responsibilities
+
+| File | Edit for |
+|------|----------|
+| `variables.css` | CSS custom properties, `body.dark-mode` variable overrides — **only** |
+| `base.css` | Global reset, body, typography |
+| `layout.css` | App shell, sidebar dimensions, plugin container |
+| `components.css` | Shared UI components (cards, buttons, modals, toasts) |
+| `animations.css` | All `@keyframes` — **never define `@keyframes` in a plugin CSS file** |
+| `[plugin].css` | Styles scoped to one plugin — standalone, do not touch in global refactors |
+
+**How to find the right file:** `grep_search` the class/property across `css/` — the match that also appears in `index.html`'s `<link>` tags is the one to edit.
+
+**`/* no var */` comments** mark hardcoded colors that still need a design token. Leave them intact — do not remove. Currently: `css/compliance.css` (3× `#FF9500` warning/saving states) and `css/components.css` (1× low-opacity rgba background). Run `grep -r "/* no var */" css/` to find all instances.
+
 ---
 
 ## 4. JavaScript Architecture
@@ -330,18 +350,20 @@ Some plugins use their own hardcoded color palettes instead of the design system
 The core app state lives on `window.App`. It is built incrementally across 9 files via `Object.assign(App, { ... })`:
 
 ```
-app-init.js      →  App = { data, step, flow, storageKey, ... }
-app-core.js      →  Object.assign(App, { save, load, updateUI, navigateTo, ... })
-app-scan.js      →  Object.assign(App, { processScan, openScanPicker, ... })
-app-property.js  →  Object.assign(App, { smartAutoFill, openPropertyRecords, ... })
-app-vehicles.js  →  Object.assign(App, { renderDrivers, renderVehicles, scanDL, ... })
-app-popups.js    →  Object.assign(App, { processImage, analyzeAerial, detectHazards, ... })
-app-export.js    →  Object.assign(App, { exportPDF, exportText, exportCMSMTF, ... })
-app-quotes.js    →  Object.assign(App, { saveAsQuote, loadQuote, renderQuotesList, ... })
-app-boot.js      →  Object.assign(App, { boot })  +  calls App.boot()
+app-init.js       →  App = { data, step, flow, storageKey, toolConfig[], stepTitles }
+app-ui-utils.js   →  Object.assign(App, { toast, toggleDarkMode, loadDarkMode, formatDateDisplay, copyToClipboard })
+app-navigation.js →  Object.assign(App, { updateUI, navigateTo, ... })
+app-core.js       →  Object.assign(App, { save, load, ... })
+app-scan.js       →  Object.assign(App, { processScan, openScanPicker, ... })
+app-property.js   →  Object.assign(App, { smartAutoFill, openPropertyRecords, ... })
+app-vehicles.js   →  Object.assign(App, { renderDrivers, renderVehicles, scanDL, ... })
+app-popups.js     →  Object.assign(App, { processImage, analyzeAerial, detectHazards, ... })
+app-export.js     →  Object.assign(App, { exportPDF, exportText, exportCMSMTF, ... })
+app-quotes.js     →  Object.assign(App, { saveAsQuote, loadQuote, renderQuotesList, ... })
+app-boot.js       →  Object.assign(App, { boot })  +  calls App.boot()
 ```
 
-**Script load order matters.** `app-init.js` must load first (creates `window.App`), `app-boot.js` must load last (runs boot sequence). The order of everything in between doesn't matter as long as they all load before `app-boot.js`.
+**Script load order matters.** `app-init.js` must load first (creates `window.App`), `app-boot.js` must load last (runs boot sequence). Among the core assembly files, the order above is required: `app-ui-utils.js` before `app-navigation.js` before `app-core.js`. Plugin modules loading after `app-core.js` are order-independent among themselves.
 
 ### 4.2 Plugin Module Pattern
 
@@ -350,7 +372,7 @@ Every plugin follows the same IIFE pattern:
 ```javascript
 window.ModuleName = (() => {
     'use strict';
-    const STORAGE_KEY = 'altech_some_key';
+    const STORAGE_KEY = STORAGE_KEYS.YOUR_KEY;  // ✅ use STORAGE_KEYS — never hardcode
     // ... private state and functions ...
     return { init, render, /* public API */ };
 })();
@@ -372,40 +394,45 @@ CDN Libraries (defer):
 
 Core App (order-dependent):
   1. crypto-helper.js        ← CryptoHelper (used by many)
-  2. app-init.js             ← Creates window.App
-  3. app-core.js             ← App.save(), App.load(), App.updateUI()
-  4. app-scan.js             ← App.processScan()
-  5. app-property.js         ← App.smartAutoFill()
-  6. app-vehicles.js         ← App.renderDrivers()
-  7. app-popups.js           ← App.processImage()
-  8. app-export.js           ← App.exportPDF(), App.exportCMSMTF()
-  9. app-quotes.js           ← App.saveAsQuote()
+  2. storage-keys.js         ← window.STORAGE_KEYS  ✟ must precede App
+  3. utils.js                ← window.Utils          ✟ must precede App
+  4. fields.js               ← window.FIELDS / window.FIELD_BY_ID
+  5. app-init.js             ← Creates window.App
+  6. app-ui-utils.js         ← App.toast(), App.toggleDarkMode()
+  7. app-navigation.js       ← App.updateUI(), App.navigateTo()
+  8. app-core.js             ← App.save(), App.load()
+  9. app-scan.js             ← App.processScan()
+ 10. app-property.js         ← App.smartAutoFill()
+ 11. app-vehicles.js         ← App.renderDrivers()
+ 12. app-popups.js           ← App.processImage()
+ 13. app-export.js           ← App.exportPDF(), App.exportCMSMTF()
+ 14. app-quotes.js           ← App.saveAsQuote()
 
 Standalone Modules (order-independent):
-  10. ai-provider.js         ← window.AIProvider
-  11. dashboard-widgets.js   ← window.DashboardWidgets
+  15. ai-provider.js         ← window.AIProvider
+  16. dashboard-widgets.js   ← window.DashboardWidgets
 
 Plugin Modules (order-independent among themselves):
-  12-25. coi, prospect, quick-ref, accounting-export, compliance-dashboard,
+  17–36. coi, prospect, quick-ref, accounting-export, compliance-dashboard,
          ezlynx-tool, quote-compare, intake-assist, email-composer, policy-qa,
          reminders, hawksoft-export, vin-decoder, data-backup
 
 Support Modules (load after plugins):
-  26. bug-report.js
-  27. firebase-config.js     ← Must precede auth.js
-  28. auth.js                ← Must precede cloud-sync.js
-  29. admin-panel.js
-  30. cloud-sync.js
-  31. paywall.js
-  32. onboarding.js
-  33. app-boot.js            ← ★ MUST BE LAST — runs boot()
+  37. bug-report.js
+  38. firebase-config.js     ← Must precede auth.js
+  39. auth.js                ← Must precede cloud-sync.js
+  40. admin-panel.js
+  41. cloud-sync.js
+  42. paywall.js
+  43. onboarding.js
+  44. app-boot.js            ← ★ MUST BE LAST — runs boot()
 ```
 
 ### 4.4 Cross-File Dependencies
 
 | Method | Defined In | Called From |
 |--------|-----------|------------|
-| `App.toast()` | app-core.js | Almost every module |
+| `App.toast()` | app-ui-utils.js | Almost every module |
 | `App.save()` | app-core.js | app-scan, app-property, app-vehicles, app-popups, intake-assist |
 | `App.data` | app-init.js | Every module that reads form data |
 | `App.drivers` / `App.vehicles` | app-init.js | vehicles, ezlynx, hawksoft, intake-assist, export |
@@ -415,6 +442,10 @@ Support Modules (load after plugins):
 | `Auth.isSignedIn` | auth.js | cloud-sync, paywall, admin |
 | `CryptoHelper.encrypt/decrypt` | crypto-helper.js | app-core, app-quotes, app-vehicles, app-scan, cloud-sync, email-composer |
 | `AIProvider.ask/chat` | ai-provider.js | intake-assist, email-composer, policy-qa, quote-compare |
+| `Utils.escapeHTML(str)` | utils.js | Any plugin rendering user/AI data into HTML |
+| `Utils.escapeAttr(str)` | utils.js | Any plugin building HTML attribute strings |
+| `Utils.tryParseLS(key, fallback)` | utils.js | Any plugin reading localStorage JSON |
+| `Utils.debounce(fn, ms)` | utils.js | Any plugin debouncing saves or input events |
 
 ### 4.5 Encryption Flow
 
@@ -455,6 +486,8 @@ Every `<input id="fieldName">` in `plugins/quoting.html` auto-syncs to `App.data
 ### 5.2 Cross-File Function Dependencies
 
 `App._escapeAttr()` is defined in `app-export.js` but called from `app-quotes.js`. If `app-export.js` hasn't loaded yet (or fails to load), `app-quotes.js` crashes. This is now guarded with a fallback, but the pattern is fragile.
+
+**New code should use `Utils.escapeAttr()` instead.** However, the old `App._escapeAttr()` call still exists in `app-export.js` and `hawksoft-export.js` and has NOT been removed as of March 2026. Do not assume cleanup is complete.
 
 ### 5.3 Encryption Bypass Risk
 
@@ -655,6 +688,22 @@ Each sync doc contains: `{ data: <serialized>, updatedAt: Timestamp, deviceId: "
 
 Quotes use a subcollection: `users/{uid}/quotes/{quoteId}` with full quote data as fields.
 
+### How to add a new synced data type
+
+Add one string to the `SYNC_DOCS` array near the top of `js/cloud-sync.js`:
+
+```javascript
+// js/cloud-sync.js ~line 27
+const SYNC_DOCS = [
+    'settings', 'currentForm', 'cglState', 'clientHistory',
+    'quickRefCards', 'quickRefNumbers', 'reminders', 'glossary',
+    'vaultData', 'vaultMeta',
+    'yourNewType',   // ← add here
+];
+```
+
+That's it. Push and delete operations pick it up automatically — no other changes required. After writing to the synced localStorage key, call `CloudSync.schedulePush()` (debounced 3 s).
+
 ---
 
 ## 8. Standard Agent Prompt
@@ -674,8 +723,8 @@ KEY RULES:
 4. All form writes go through App.save() — never write to altech_v6 directly
 5. After localStorage writes on synced data, call CloudSync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
-7. App is built via Object.assign(App, {...}) across 9 files — app-boot.js loads LAST
-8. Test with: npm test (1455 tests, all must pass)
+7. App is built via Object.assign(App, {...}) across 11 files (incl. app-ui-utils.js, app-navigation.js) — app-boot.js loads LAST
+8. Test with: npm test (1631 tests, 25 suites, all must pass)
 9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, add an entry to CHANGELOG.md with what changed (files, test counts, date). Run: npm run audit-docs
@@ -697,6 +746,8 @@ KEY RULES:
 18. BEFORE ANY BUG FIX — run `git log --oneline -10` first. If the fix
     was already committed in a recent session, report that and stop.
     Do not re-investigate or re-fix already committed work.
+19. Use STORAGE_KEYS.* for all altech_* localStorage key strings — never hardcode 'altech_...' strings in modules. window.STORAGE_KEYS is the single source of truth.
+20. Use Utils.escapeHTML(), Utils.escapeAttr(), Utils.tryParseLS(), Utils.debounce() — never define these inline in plugins. window.Utils is loaded before App.
 ```
 
 ---
@@ -705,7 +756,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` → 23 suites, 1455 tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 25 suites, 1631 tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements
@@ -716,7 +767,7 @@ KEY RULES:
 - [ ] **Cloud sync:** Sign in, make a change, verify `CloudSync.schedulePush()` fires (3s debounce)
 - [ ] **Field IDs unchanged:** No input `id` attributes were renamed without migration code
 - [ ] **No hardcoded API keys:** Search for API key strings — they should be in env vars only
-- [ ] **XSS check:** Any user/AI-generated content displayed in HTML uses `escapeHTML()` or equivalent
+- [ ] **XSS check:** Any user/AI-generated content displayed in HTML uses `Utils.escapeHTML()` — never define inline in plugins
 - [ ] **Memory check:** Open DevTools Memory tab, run scan/analyze flow, verify no canvas/ImageBitmap leaks
 - [ ] **Serverless function count ≤ 12:** Count non-`_` files in `api/` — Vercel Hobby plan max is 12. If over, consolidate via `?mode=` routing or `_` prefix helper pattern (see §5.10)
 - [ ] **Docs updated:** Add an entry to `CHANGELOG.md` with what changed. Run `npm run audit-docs` to check for drift.
