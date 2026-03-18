@@ -448,10 +448,10 @@ Object.assign(App, {
 
         // Category labels for bento section headers
         const categoryLabels = {
-            quoting: 'Quoting & Sales',
-            export: 'Export & Integration',
-            docs: 'Documents & Compliance',
-            ops: 'Operations'
+            quoting: 'Quoting',
+            export: 'Export',
+            docs: 'Compliance',
+            ops: 'Tools'
         };
 
         const renderCard = (t) => {
