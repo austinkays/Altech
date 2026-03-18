@@ -485,9 +485,12 @@ Every `<input id="fieldName">` in `plugins/quoting.html` auto-syncs to `App.data
 
 ### 5.2 Cross-File Function Dependencies
 
-`App._escapeAttr()` is defined in `app-export.js` but called from `app-quotes.js`. If `app-export.js` hasn't loaded yet (or fails to load), `app-quotes.js` crashes. This is now guarded with a fallback, but the pattern is fragile.
+`App._escapeAttr()` is defined in `app-export.js` as a thin wrapper: `_escapeAttr(str) { return Utils.escapeAttr(str); }`. It is kept for backward compatibility because `app-vehicles.js` calls `this._escapeAttr()` throughout its HTML templates. All other call sites have been migrated:
 
-**New code should use `Utils.escapeAttr()` instead.** However, the old `App._escapeAttr()` call still exists in `app-export.js` and `hawksoft-export.js` and has NOT been removed as of March 2026. Do not assume cleanup is complete.
+- `hawksoft-export.js`: local `_escapeAttr` wrapper and its call sites replaced with direct `Utils.escapeAttr()` calls (March 2026) ✅
+- `app-quotes.js`: no longer references `App._escapeAttr` ✅
+
+**New code should use `Utils.escapeAttr()` directly.** The only remaining `_escapeAttr` is the definition in `app-export.js` (needed by `app-vehicles.js`) and the `this._escapeAttr()` callers in `app-vehicles.js`.
 
 ### 5.3 Encryption Bypass Risk
 

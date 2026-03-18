@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Refactor
+- **refactor(escape-attr): replace App._escapeAttr call sites with Utils.escapeAttr** (March 18, 2026):
+  - `js/hawksoft-export.js`: replaced 3 `_escapeAttr()` call sites with `Utils.escapeAttr()` directly; removed the now-redundant local `_escapeAttr` wrapper function
+  - `js/app-export.js`: no call sites existed — the `App._escapeAttr` definition remains as a thin backward-compat wrapper for `app-vehicles.js` callers via `this._escapeAttr()`
+  - Updated AGENTS.md §5.2 to mark cross-file dependency as resolved
+  - 26 suites, 1672 tests — all passing
+
 ### Tests
 - **tests/utils.test.js: new suite — 41 tests for window.Utils** (March 18, 2026):
   - Covers all four `Utils` functions: `escapeHTML`, `escapeAttr`, `tryParseLS`, `debounce`

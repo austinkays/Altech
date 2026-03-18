@@ -45,12 +45,10 @@ window.HawkSoftExport = (() => {
         return clients.map(c => {
             const date = new Date(c.savedAt).toLocaleDateString();
             const addr = [c.data && c.data.addrCity, c.data && c.data.addrState].filter(Boolean).join(', ');
-            const label = `${_escapeAttr(c.name)}${addr ? ' — ' + _escapeAttr(addr) : ''} (${date})`;
-            return `<option value="${_escapeAttr(c.id)}">${label}</option>`;
+            const label = `${Utils.escapeAttr(c.name)}${addr ? ' — ' + Utils.escapeAttr(addr) : ''} (${date})`;
+            return `<option value="${Utils.escapeAttr(c.id)}">${label}</option>`;
         }).join('');
     }
-
-    function _escapeAttr(s) { return Utils.escapeAttr(s); }
 
     // Format date to MM/DD/YYYY for HawkSoft
     function _fmtDate(v) {
