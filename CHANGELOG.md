@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Refactored
+- **Phase 3 — cloud-sync.js SYNC_DOCS consolidation** (March 18, 2026):
+  - `js/cloud-sync.js`: Added `SYNC_DOCS` constant array — single source of truth for all 10 synced Firestore document types (`settings`, `currentForm`, `cglState`, `clientHistory`, `quickRefCards`, `quickRefNumbers`, `reminders`, `glossary`, `vaultData`, `vaultMeta`).
+  - `pushToCloud()`: replaced 10 manual `_pushDoc(...)` calls with `...SYNC_DOCS.map(key => _pushDoc(key, local[key], key))` — saves 8 lines, adding a new sync type now auto-covers push.
+  - `deleteCloudData()`: removed inline duplicate `syncDocs` array, now references `SYNC_DOCS` — eliminates the second copy of the doc-type list.
+  - `tests/call-logger.test.js`: fixed pre-existing Session 1 regression — both `createMiniDOM()` and `createClientDOM()` now inject `js/utils.js` source before `call-logger.js` so `Utils` is defined; updated stale source-inspection test to expect `Utils.escapeHTML` delegation instead of inline `div.textContent` implementation.
+  - Tests: **1631/1631 passing, 25/25 suites** (fully green).
+
+### Refactored
 - **Session 1 — Shared utilities & storage-key registry** (March 17, 2026):
   - `js/utils.js` created: `window.Utils = { escapeHTML, escapeAttr }` — canonical DOM-based HTML escape and regex-based attribute escape, loaded globally before all plugins.
   - `js/storage-keys.js` created: `window.STORAGE_KEYS` frozen constant map of all 37 `altech_*` localStorage keys — single source of truth replacing scattered string literals.

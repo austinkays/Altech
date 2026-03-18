@@ -17,6 +17,8 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const SOURCE_PATH = path.join(ROOT, 'js', 'call-logger.js');
 const source = fs.readFileSync(SOURCE_PATH, 'utf8');
+const UTILS_PATH = path.join(ROOT, 'js', 'utils.js');
+const utilsSource = fs.readFileSync(UTILS_PATH, 'utf8');
 
 // ────────────────────────────────────────────────────
 // Module Structure (source analysis)
@@ -255,6 +257,7 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
         // Mock CloudSync
         window.CloudSync = { schedulePush: function() { window._pushCalled = true; } };
       </script>
+      <script>${utilsSource}</script>
       <script>${source}</script>
     </body></html>`;
 
@@ -587,8 +590,8 @@ describe('Two-Step Workflow', () => {
 
   test('has XSS protection via _escapeHTML', () => {
     expect(source).toContain('function _escapeHTML');
-    expect(source).toContain('div.textContent = str');
-    expect(source).toContain('div.innerHTML');
+    // _escapeHTML delegates to Utils.escapeHTML (implementation lives in js/utils.js)
+    expect(source).toContain('Utils.escapeHTML');
   });
 
   test('defines _buildClientLink for HawkSoft deep linking', () => {
@@ -981,6 +984,7 @@ describe('Client & Policy Lookup — Behavioral', () => {
         window.Auth = { apiFetch: null };
         window.CloudSync = { schedulePush: function() {} };
       </script>
+      <script>${utilsSource}</script>
       <script>${source}</script>
     </body></html>`;
 

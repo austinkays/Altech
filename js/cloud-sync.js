@@ -21,6 +21,15 @@ const CloudSync = (() => {
     const SYNC_DEBOUNCE_MS = 3000; // Debounce cloud writes
     const SYNC_META_KEY = 'altech_sync_meta'; // localStorage key for sync metadata
 
+    // Single source of truth for all synced Firestore documents (excludes quotes, which use a subcollection).
+    // Each string is both the Firestore doc name under users/{uid}/sync/ AND the key in _getLocalData().
+    // Add new sync types here; push & delete automatically pick them up.
+    const SYNC_DOCS = [
+        'settings', 'currentForm', 'cglState', 'clientHistory',
+        'quickRefCards', 'quickRefNumbers', 'reminders', 'glossary',
+        'vaultData', 'vaultMeta',
+    ];
+
     // ── State ──
     let _syncTimer = null;
     let _syncing = false;
@@ -397,16 +406,7 @@ const CloudSync = (() => {
 
                 // Push all data types in parallel (tolerant of individual failures)
                 const results = await Promise.allSettled([
-                    _pushDoc('settings', local.settings, 'settings'),
-                    _pushDoc('currentForm', local.currentForm, 'currentForm'),
-                    _pushDoc('cglState', local.cglState, 'cglState'),
-                    _pushDoc('clientHistory', local.clientHistory, 'clientHistory'),
-                    _pushDoc('quickRefCards', local.quickRefCards, 'quickRefCards'),
-                    _pushDoc('quickRefNumbers', local.quickRefNumbers, 'quickRefNumbers'),
-                    _pushDoc('reminders', local.reminders, 'reminders'),
-                    _pushDoc('glossary', local.glossary, 'glossary'),
-                    _pushDoc('vaultData', local.vaultData, 'vaultData'),
-                    _pushDoc('vaultMeta', local.vaultMeta, 'vaultMeta'),
+                    ...SYNC_DOCS.map(key => _pushDoc(key, local[key], key)),
                     local.quotes?.length ? _pushQuotes(local.quotes) : Promise.resolve()
                 ]);
 
@@ -615,8 +615,7 @@ const CloudSync = (() => {
                 const db = FirebaseConfig.db;
 
                 // Delete sync docs
-                const syncDocs = ['settings', 'currentForm', 'cglState', 'clientHistory', 'quickRefCards', 'quickRefNumbers', 'reminders', 'glossary', 'vaultData', 'vaultMeta'];
-                await Promise.all(syncDocs.map(doc =>
+                await Promise.all(SYNC_DOCS.map(doc =>
                     db.collection('users').doc(uid).collection('sync').doc(doc).delete()
                 ));
 
