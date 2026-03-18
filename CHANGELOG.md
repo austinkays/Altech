@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Refactored
+- **CSS Pass 2 — replace hardcoded colors with design system variables** (March 18, 2026):
+  - `css/layout.css` (5 replacements): `.logo-icon` dark `#fff` → `var(--text)`, `.btn-save-client` dark bg/border/color → `var(--bg-input)`/`var(--border)`/`var(--apple-gray)`, `.btn-save-client:hover` dark `#0A84FF` → `var(--apple-blue)`, `.dark-mode-toggle` dark `#fff` → `var(--text)`, `#backToHome:hover` bg `#0051d5` → `var(--apple-blue-hover)`.
+  - `css/compliance.css` (8 replacements + 3 `/* no var */` comments): stat-card `.critical`/`.updated` and `.cgl-save-dot.saved`/`.error` → `var(--danger)`/`var(--success)`, `.expired`/`.loading` `#8E8E93` → `var(--text-tertiary)`, `.cgl-button.secondary:hover` `#6e6e73` → `var(--apple-gray)`, toggle slider `#34C759` → `var(--success)`, `#FF9500` warning/saving states annotated `/* no var */`.
+  - `css/components.css` (15 replacements + 1 `/* no var */` comment): `.toggle-switch` checked slider `#34c759` → `var(--success)`, three `rgba(0,0,0,0.12)` → `var(--shadow)`, `.btn-primary` gradient start `#007AFF` → `var(--apple-blue)`, `.btn-primary:active` `#0051D5` → `var(--apple-blue-hover)`, dark `.btn-primary` `#0A84FF` → `var(--apple-blue)`, `.hero-btn` gradient `#007AFF` → `var(--apple-blue)`, dark `.hero-export-option`/`.hero-secondary-btn` `#1C1C1E`/`#38383A`/`#98989D` → `var(--bg-card)`/`var(--border)`/`var(--apple-gray)`, `.file-status.error` text `#FF3B30` → `var(--danger)` (rgba bg annotated `/* no var */`), `.qna-file-remove:hover` `#FF3B30` → `var(--danger)`, dark `.pac-container`/`.pac-item` `#1C1C1E`/`#38383A` → `var(--bg-card)`/`var(--border)`, `.pac-matched` `#0A84FF` → `var(--apple-blue)`.
+  - Tests: **25/25 suites, 1631/1631 passing** — no regression.
+
 ### Fixed
 - **Test suite: layout-regressions + plugin-integration fully green** (March 18, 2026):
   - `tests/layout-regressions.test.js`: replaced `css/main.css` reads with correct split CSS files (`css/base.css`, `css/layout.css`, `css/components.css`) — suite was crashing at module load since `main.css` was removed as a browser-loaded file.

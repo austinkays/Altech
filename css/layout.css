@@ -103,7 +103,7 @@ body.dark-mode .logo > span {
 body.dark-mode .logo-icon {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.10);
-    color: #fff;
+    color: var(--text);
 }
 body.dark-mode .logo-icon:hover {
     background: rgba(255, 255, 255, 0.15);
@@ -142,14 +142,14 @@ body.dark-mode .logo-icon:hover {
     flex-shrink: 0;
 }
 body.dark-mode .btn-save-client {
-    background: #2C2C2E;
-    border-color: #38383A;
-    color: #98989D;
+    background: var(--bg-input);
+    border-color: var(--border);
+    color: var(--apple-gray);
 }
 body.dark-mode .btn-save-client:hover {
     background: rgba(10, 132, 255, 0.15);
-    color: #0A84FF;
-    border-color: #0A84FF;
+    color: var(--apple-blue);
+    border-color: var(--apple-blue);
     box-shadow: 0 2px 8px rgba(10, 132, 255, 0.2);
 }
 
@@ -176,7 +176,7 @@ body.dark-mode .btn-save-client:hover {
 body.dark-mode .dark-mode-toggle {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.10);
-    color: #fff;
+    color: var(--text);
 }
 body.dark-mode .dark-mode-toggle:hover {
     background: rgba(255, 255, 255, 0.15);
@@ -299,7 +299,7 @@ body.dark-mode footer {
     transition: all 0.2s;
 }
 #backToHome:hover {
-    background: #0051d5;
+    background: var(--apple-blue-hover);
     box-shadow: 0 4px 16px rgba(0,0,0,0.25);
 }
 body.dark-mode #backToHome {

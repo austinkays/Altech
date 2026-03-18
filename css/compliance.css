@@ -64,11 +64,11 @@
     display: block;
     opacity: 0.85;
 }
-.cgl-stat-card.critical { border-left-color: #FF3B30; color: #FF3B30; }
-.cgl-stat-card.warning { border-left-color: #FF9500; color: #FF9500; }
-.cgl-stat-card.expired { border-left-color: #8E8E93; color: #8E8E93; }
-.cgl-stat-card.manual { border-left-color: #FF9500; color: #FF9500; }
-.cgl-stat-card.updated { border-left-color: #34C759; color: #34C759; }
+.cgl-stat-card.critical { border-left-color: var(--danger); color: var(--danger); }
+.cgl-stat-card.warning { border-left-color: #FF9500; color: #FF9500; } /* no var */
+.cgl-stat-card.expired { border-left-color: var(--text-tertiary); color: var(--text-tertiary); }
+.cgl-stat-card.manual { border-left-color: #FF9500; color: #FF9500; } /* no var */
+.cgl-stat-card.updated { border-left-color: var(--success); color: var(--success); }
 .cgl-stat-value {
     font-size: 32px;
     font-weight: 800;
@@ -128,7 +128,7 @@
     background: var(--apple-gray);
 }
 .cgl-button.secondary:hover {
-    background: #6e6e73;
+    background: var(--apple-gray);
 }
 .cgl-table-container {
     background: var(--bg-card);
@@ -263,7 +263,7 @@
     transition: 0.3s;
 }
 .cgl-toggle input:checked + .cgl-toggle-slider {
-    background-color: #34C759;
+    background-color: var(--success);
 }
 .cgl-toggle input:checked + .cgl-toggle-slider:before {
     transform: translateX(20px);
@@ -485,10 +485,10 @@
     display: inline-block;
     transition: background-color 0.3s;
 }
-.cgl-save-dot.saved { background-color: #34C759; }
-.cgl-save-dot.saving { background-color: #FF9500; animation: cgl-pulse 1s ease-in-out infinite; }
-.cgl-save-dot.error { background-color: #FF3B30; }
-.cgl-save-dot.loading { background-color: #8E8E93; animation: cgl-pulse 1s ease-in-out infinite; }
+.cgl-save-dot.saved { background-color: var(--success); }
+.cgl-save-dot.saving { background-color: #FF9500; animation: cgl-pulse 1s ease-in-out infinite; } /* no var */
+.cgl-save-dot.error { background-color: var(--danger); }
+.cgl-save-dot.loading { background-color: var(--text-tertiary); animation: cgl-pulse 1s ease-in-out infinite; }
 @keyframes cgl-pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
