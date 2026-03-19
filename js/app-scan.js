@@ -199,20 +199,36 @@ Object.assign(App, {
             };
 
             const prompt =
-                'Analyze this county assessor / GIS page screenshot or PDF and extract ALL available property details.\n\n' +
-                'Look for:\n' +
-                '- Year built, square footage, lot size (in acres)\n' +
-                '- Dwelling type (Single Family, Condo, Townhouse, Mobile Home, etc.)\n' +
-                '- Stories, bedrooms, bathrooms (full + half)\n' +
-                '- Construction style, exterior walls material, foundation type\n' +
-                '- Roof type (Composition, Metal, Tile, etc.), roof shape\n' +
-                '- Heating type (Forced Air Gas, Electric, Heat Pump, etc.), cooling (Central AC, etc.)\n' +
-                '- Garage type (Attached, Detached, Carport, None), garage spaces\n' +
-                '- Fireplaces count, sewer type, water source\n' +
-                '- Pool (Yes/No), flooring type, kitchen quality\n' +
-                '- Parcel/Tax ID number, zoning, owner name\n\n' +
+                'You are reading a county assessor record, GIS map screenshot, or property tax document for an insurance quote.\n\n' +
+                'Extract EVERY available property detail. Be precise — insurance underwriters need exact values, not approximations.\n\n' +
+                'FIELD EXTRACTION RULES:\n' +
+                '- Year Built: extract the 4-digit year the structure was originally constructed (not renovated)\n' +
+                '- Square Footage: heated/finished living area only (not total including garage or basement unless finished)\n' +
+                '- Lot Size: convert to acres if shown in sq ft (divide by 43,560). Round to 2 decimal places.\n' +
+                '- Dwelling Type: map to one of: One Family, Two Family, Three Family, Four Family, Condo, Townhome, Mobile Home\n' +
+                '- Construction Style: map to one of: Ranch, Colonial, Cape Cod, Bi-Level, Split Level, Contemporary, Victorian, Bungalow, Townhouse, Condo\n' +
+                '- Exterior Walls: map to one of: Siding Vinyl, Siding Wood, Brick, Brick Veneer, Stucco, Stone, Cement Fiber, Concrete\n' +
+                '- Foundation: map to one of: Slab, Crawl Space - Enclosed, Crawl Space - Open, Basement - Finished, Basement - Unfinished, Basement - Walkout\n' +
+                '- Roof Type: map to one of: Architectural Shingles, Asphalt Shingles, Metal (Pitched), Tile (Clay), Tile (Concrete), Wood Shake, Slate, Flat\n' +
+                '- Roof Shape: map to one of: Gable, Hip, Flat, Gambrel, Mansard, Shed\n' +
+                '- Heating: map to one of: Gas - Forced Air, Gas - Hot Water, Electric, Oil - Forced Air, Heat Pump, Other\n' +
+                '- Cooling: map to one of: Central Air, Window Units, None\n' +
+                '- Garage: map type to one of: Attached, Detached, Built-in, Carport, None. Extract number of spaces as integer.\n' +
+                '- Pool: extract Yes or No (any mention of pool or swimming pool = Yes)\n' +
+                '- Sewer: map to one of: Public, Septic\n' +
+                '- Water: map to one of: Public, Well\n' +
+                '- Flooring: map to one of: Hardwood, Carpet, Tile, Laminate, Mixed\n' +
+                '- Kitchen/Bath Quality: map to one of: Builder\'s Grade, Semi-Custom, Custom\n' +
+                '- Parcel/Tax ID: extract exactly as shown\n' +
+                '- Zoning: extract the zoning code exactly as shown\n' +
+                '- Owner Name: extract full name of property owner if shown\n\n' +
+                'CONFIDENCE SCORING:\n' +
+                '- Score 1.0 if the value is explicitly stated on the document\n' +
+                '- Score 0.7 if you inferred it from related data (e.g. calculated lot size from sq ft)\n' +
+                '- Score 0.4 if it is a reasonable assumption based on property type or age\n' +
+                '- Score 0 or omit if not determinable\n\n' +
                 'Extract exact values as shown on the document. Use empty string if not found.\n' +
-                'Return structured JSON.';
+                'Return structured JSON matching the schema exactly.';
 
             const parts = [{ text: prompt }].concat(
                 inlineData.map(f => ({ inlineData: { mimeType: f.mimeType, data: f.data } }))
