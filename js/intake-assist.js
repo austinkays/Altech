@@ -344,7 +344,7 @@ window.IntakeAssist = (() => {
             }
         }
 
-        instruction += 'Ask naturally in 1-2 sentences. Group these related fields into ONE question.\n';
+        instruction += 'Ask naturally in 1-2 sentences. If multiple fields are listed, pick only the MOST IMPORTANT one and ask about that single thing. Never bundle multiple questions. If you already know the answer from context or common knowledge, fill it in silently and move to the next unfilled field.\n';
         instruction += '=== END FLOW INSTRUCTION ===\n';
 
         return { instruction, complete: false, next };
