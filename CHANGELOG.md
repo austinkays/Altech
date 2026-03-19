@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **feat(intake-assist): smarter BASE_SYSTEM_PROMPT** (March 19, 2026):
+  - `js/intake-assist.js`: replaced `BASE_SYSTEM_PROMPT` template literal with a more comprehensive, personality-driven prompt
+  - New opening: "You are a sharp, experienced insurance intake assistant…" — replaces the generic "fast, friendly" version
+  - Added `YOUR PERSONALITY` section: colleague tone, no filler affirmations, proactive fact-stating with confirmation
+  - Added 3 new CRITICAL RULES (10–12): risk flag follow-up, driver list completion check, vehicle list completion check
+  - Split "IMPORTANT — AFTER EVERY REPLY" header onto its own line (separated from "Use EXACTLY these keys:")
+  - JSON schema: corrected `priorExp`/`priorLiabilityLimits` field order to match `_syncToAppData` DIRECT array; `medPayments` and `priorLiabilityLimits` confirmed present; `bedrooms` (not `numBedrooms`) kept to match form field ID
+  - 25 suites, 1631 tests — all passing
+
 ### Refactor
 - **refactor(escape-attr): remove App._escapeAttr compat bridge entirely** (March 18, 2026):
   - `js/app-vehicles.js`: replaced all 14 `this._escapeAttr()` call sites with `Utils.escapeAttr()` directly
