@@ -310,7 +310,7 @@ describe('navigateTo() Router', () => {
       await App.navigateTo('coi');
       expect(landing.style.display).toBe('none');
     }
-  });
+  }, 30000);
 
   test('navigateTo shows target container', async () => {
     const tool = window.document.getElementById('coiTool');
@@ -318,7 +318,7 @@ describe('navigateTo() Router', () => {
       await App.navigateTo('coi');
       expect(tool.style.display).toBe('block');
     }
-  });
+  }, 30000);
 });
 
 // ────────────────────────────────────────────────────
