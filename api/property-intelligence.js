@@ -1030,6 +1030,7 @@ async function fetchRentcastData(address, city, state, zip) {
   }
 
   console.log(`[Rentcast] Response status: ${response.status}`);
+  console.log('[Rentcast] Headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
 
   if (response.status === 404) {
     console.log('[Rentcast] Miss — 404 status');
