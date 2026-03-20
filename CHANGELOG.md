@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(app-property): Map all property API fields to intake form + fix stories merge priority** (March 28, 2026):
+  - `applyParcelData()`: added 13 previously unmapped fields — `exteriorWalls`, `garageType`, `cooling`, `roofShape`, `flooring`, `sewer`, `waterSource`, `dwellingType`, `pool`, `woodStove`, `roofYr`, `numFireplaces`, `ownerName`, `parcelId`
+  - Added `matchSelectOption()` fuzzy helper inside `applyParcelData` for case-insensitive option matching with partial fallback
+  - Pool normalization: `"Yes"/"True"` → `"In Ground"`, `"No"/"None"/"False"` skipped, otherwise fuzzy-matched
+  - Wood stove normalization: `"Yes"/"True"` → `"1"`, numeric pass-through for `"2"`/`"3"`, otherwise fuzzy-matched
+  - Fireplace fallback: if `parcelData.fireplace === 'Yes'` but no count, sets `numFireplaces` to `"1"` when form is empty
+  - `numStories` SELECT: changed from bare `field.value = parcelData.stories` (silent failure on non-matching values) to validate against actual `<option>` list, then fall back to rounded integer
+  - Stories merge priority: Zillow now always preferred over ArcGIS when available — county assessors frequently mis-count split-levels and half-stories
+  - `applyZillowSelects()`: added empty-guard (`if (el.value && el.value.trim()) continue`) so Zillow never overwrites parcel data already applied
+  - Tests: 26 suites / 1672 tests — all green
+
 ### Added
 - **feat(app-property): Phase 2 Rentcast merge fix — `showUnifiedDataPopup()` in `js/app-property.js`** (March 20, 2026):
   - Deleted unused `mergeZField` helper (was never called)
