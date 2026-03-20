@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No new `api/` file created — stays within 12-function Vercel Hobby limit
   - `RENTCAST_API_KEY` env var required in Vercel dashboard (manual step)
   - Related files: `api/property-intelligence.js` only
+
+- **feat(property-intelligence): Rentcast Phase 2 — Gemini source attribution** (March 20, 2026):
+  - **Step 6** (`fetchViaGeminiSearch()` prompt): Changed JSON schema so every non-`notes` field returns `{"value": <extracted>, "source": "where found"} or null` instead of plain scalars; appended "Return null for ANY field you cannot find explicitly stated in the source data. Never infer, estimate, or use typical values for this property type or neighborhood." to IMPORTANT block
+  - **Step 7** (`mapZillowToAltech()`): Added `extractVal(v)` and `extractSrc(v)` inner helpers to unpack `{value, source}` objects (backward-compat with plain scalars); replaced all `raw.fieldName` reads with `extractVal(rawPick)` pattern; built parallel `sources` object tracking the Gemini source string for every mapped field; return signature changed from `{ data, fieldsFound }` to `{ data, fieldsFound, sources }`
+  - **Step 8** (`handleZillow()` response): Destructures `sources` from `mapZillowToAltech`; includes `sources` in the 200 JSON response so callers can log per-field provenance
+  - Tests: 26 suites, 1672 tests, 0 failures
+  - Related files: `api/property-intelligence.js` only
   - Test suite: 1671/1672 pass (1 pre-existing timeout in plugin-integration.test.js, unrelated)
 
 - **feat(quote-compare): dual-line schema, auto/home tabs, referenceNumber fix** (March 28, 2026):

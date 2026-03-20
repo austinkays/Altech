@@ -699,160 +699,196 @@ function parseNum(v) {
 }
 
 function mapZillowToAltech(raw) {
+  function extractVal(v) { if (v !== null && v !== undefined && typeof v === 'object' && 'value' in v) return v.value; return v ?? null; }
+  function extractSrc(v) { if (v !== null && v !== undefined && typeof v === 'object' && 'source' in v) return v.source; return null; }
+
   const mapped = {};
   const fieldsFound = [];
+  const sources = {};
 
-  const heatingRaw = raw.heating || raw.heatingFeatures || raw.heatingType || '';
+  const heatingPick = raw.heating || raw.heatingFeatures || raw.heatingType || '';
+  const heatingRaw = extractVal(heatingPick);
   const heatingVal = fuzzyMapLookup(
-    Array.isArray(heatingRaw) ? heatingRaw.join(' ') : heatingRaw,
+    Array.isArray(heatingRaw) ? heatingRaw.join(' ') : (heatingRaw || ''),
     HEATING_MAP
   );
-  if (heatingVal) { mapped.heatingType = heatingVal; fieldsFound.push('heatingType'); }
+  if (heatingVal) { mapped.heatingType = heatingVal; fieldsFound.push('heatingType'); sources.heatingType = extractSrc(heatingPick); }
 
-  const coolingRaw = raw.cooling || raw.coolingFeatures || raw.coolingType || '';
+  const coolingPick = raw.cooling || raw.coolingFeatures || raw.coolingType || '';
+  const coolingRaw = extractVal(coolingPick);
   const coolingVal = fuzzyMapLookup(
-    Array.isArray(coolingRaw) ? coolingRaw.join(' ') : coolingRaw,
+    Array.isArray(coolingRaw) ? coolingRaw.join(' ') : (coolingRaw || ''),
     COOLING_MAP
   );
-  if (coolingVal) { mapped.cooling = coolingVal; fieldsFound.push('cooling'); }
+  if (coolingVal) { mapped.cooling = coolingVal; fieldsFound.push('cooling'); sources.cooling = extractSrc(coolingPick); }
 
-  const roofRaw = raw.roof || raw.roofType || raw.roofing || '';
+  const roofPick = raw.roof || raw.roofType || raw.roofing || '';
+  const roofRaw = extractVal(roofPick);
   const roofVal = fuzzyMapLookup(
-    Array.isArray(roofRaw) ? roofRaw.join(' ') : roofRaw,
+    Array.isArray(roofRaw) ? roofRaw.join(' ') : (roofRaw || ''),
     ROOF_MAP
   );
-  if (roofVal) { mapped.roofType = roofVal; fieldsFound.push('roofType'); }
+  if (roofVal) { mapped.roofType = roofVal; fieldsFound.push('roofType'); sources.roofType = extractSrc(roofPick); }
 
-  const foundRaw = raw.foundation || raw.foundationDetails || raw.basement || '';
+  const foundPick = raw.foundation || raw.foundationDetails || raw.basement || '';
+  const foundRaw = extractVal(foundPick);
   const foundVal = fuzzyMapLookup(
-    Array.isArray(foundRaw) ? foundRaw.join(' ') : foundRaw,
+    Array.isArray(foundRaw) ? foundRaw.join(' ') : (foundRaw || ''),
     FOUNDATION_MAP
   );
-  if (foundVal) { mapped.foundation = foundVal; fieldsFound.push('foundation'); }
+  if (foundVal) { mapped.foundation = foundVal; fieldsFound.push('foundation'); sources.foundation = extractSrc(foundPick); }
 
-  const constRaw = raw.constructionMaterials || raw.construction || raw.buildingStyle || '';
+  const constPick = raw.constructionMaterials || raw.construction || raw.buildingStyle || '';
+  const constRaw = extractVal(constPick);
   const constVal = fuzzyMapLookup(
-    Array.isArray(constRaw) ? constRaw.join(' ') : constRaw,
+    Array.isArray(constRaw) ? constRaw.join(' ') : (constRaw || ''),
     CONSTRUCTION_MAP
   );
-  if (constVal) { mapped.constructionStyle = constVal; fieldsFound.push('constructionStyle'); }
+  if (constVal) { mapped.constructionStyle = constVal; fieldsFound.push('constructionStyle'); sources.constructionStyle = extractSrc(constPick); }
 
-  const extRaw = raw.exteriorFeatures || raw.exterior || raw.siding || '';
+  const extPick = raw.exteriorFeatures || raw.exterior || raw.siding || '';
+  const extRaw = extractVal(extPick);
   const extVal = fuzzyMapLookup(
-    Array.isArray(extRaw) ? extRaw.join(' ') : extRaw,
+    Array.isArray(extRaw) ? extRaw.join(' ') : (extRaw || ''),
     EXTERIOR_MAP
   );
-  if (extVal) { mapped.exteriorWalls = extVal; fieldsFound.push('exteriorWalls'); }
+  if (extVal) { mapped.exteriorWalls = extVal; fieldsFound.push('exteriorWalls'); sources.exteriorWalls = extractSrc(extPick); }
 
-  const garageRaw = raw.garageSpaces || raw.parkingFeatures || raw.garage || '';
+  const garagePick = raw.garageSpaces || raw.parkingFeatures || raw.garage || '';
+  const garageRaw = extractVal(garagePick);
   const garageNum = parseNum(Array.isArray(garageRaw) ? garageRaw.join(' ') : garageRaw);
   if (garageNum && garageNum > 0 && garageNum <= 10) {
     mapped.garageSpaces = garageNum;
     fieldsFound.push('garageSpaces');
+    sources.garageSpaces = extractSrc(garagePick);
   }
 
-  const beds = parseNum(raw.bedrooms || raw.beds);
-  if (beds && beds > 0) { mapped.bedrooms = beds; fieldsFound.push('bedrooms'); }
+  const bedsPick = raw.bedrooms || raw.beds;
+  const beds = parseNum(extractVal(bedsPick));
+  if (beds && beds > 0) { mapped.bedrooms = beds; fieldsFound.push('bedrooms'); sources.bedrooms = extractSrc(bedsPick); }
 
-  const baths = parseNum(raw.bathrooms || raw.fullBathrooms || raw.bathroomsFull);
-  if (baths && baths > 0) { mapped.fullBaths = baths; fieldsFound.push('fullBaths'); }
+  const bathsPick = raw.bathrooms || raw.fullBathrooms || raw.bathroomsFull;
+  const baths = parseNum(extractVal(bathsPick));
+  if (baths && baths > 0) { mapped.fullBaths = baths; fieldsFound.push('fullBaths'); sources.fullBaths = extractSrc(bathsPick); }
 
-  const yr = parseNum(raw.yearBuilt || raw.year_built);
+  const yrPick = raw.yearBuilt || raw.year_built;
+  const yr = parseNum(extractVal(yrPick));
   if (yr && yr > 1800 && yr <= new Date().getFullYear()) {
     mapped.yrBuilt = String(yr);
     mapped.yearBuilt = yr;
     fieldsFound.push('yrBuilt');
+    sources.yrBuilt = extractSrc(yrPick);
   }
 
-  const stories = parseNum(raw.stories || raw.levels);
+  const storiesPick = raw.stories || raw.levels;
+  const stories = parseNum(extractVal(storiesPick));
   if (stories && stories > 0 && stories <= 10) {
     mapped.stories = stories;
     fieldsFound.push('stories');
+    sources.stories = extractSrc(storiesPick);
   }
 
-  const sqft = parseNum(raw.livingArea || raw.totalSqft || raw.finishedSqFt);
-  if (sqft && sqft > 0) { mapped.totalSqft = sqft; fieldsFound.push('totalSqft'); }
+  const sqftPick = raw.livingArea || raw.totalSqft || raw.finishedSqFt;
+  const sqft = parseNum(extractVal(sqftPick));
+  if (sqft && sqft > 0) { mapped.totalSqft = sqft; fieldsFound.push('totalSqft'); sources.totalSqft = extractSrc(sqftPick); }
 
-  const fpRaw = raw.fireplaces || raw.fireplace || raw.fireplaceFeatures || '';
-  const fpStr = Array.isArray(fpRaw) ? fpRaw.join(' ') : String(fpRaw);
+  const fpPick = raw.fireplaces || raw.fireplace || raw.fireplaceFeatures || '';
+  const fpRaw = extractVal(fpPick);
+  const fpStr = Array.isArray(fpRaw) ? fpRaw.join(' ') : String(fpRaw ?? '');
   const fpNum = parseNum(fpStr);
   if (fpNum && fpNum > 0) {
     mapped.fireplace = 'Yes';
     mapped.numFireplaces = fpNum;
     fieldsFound.push('fireplace');
+    sources.fireplace = extractSrc(fpPick);
   } else if (/yes/i.test(fpStr) || /true/i.test(fpStr)) {
     mapped.fireplace = 'Yes';
     fieldsFound.push('fireplace');
+    sources.fireplace = extractSrc(fpPick);
   }
 
   // Garage type (Attached/Detached/Built-in/Carport/None)
-  if (raw.garageType && typeof raw.garageType === 'string') {
-    mapped.garageType = raw.garageType;
+  const garageTypePick = raw.garageType;
+  const garageTypeVal = extractVal(garageTypePick);
+  if (garageTypeVal && typeof garageTypeVal === 'string') {
+    mapped.garageType = garageTypeVal;
     fieldsFound.push('garageType');
+    sources.garageType = extractSrc(garageTypePick);
   }
 
   // Flooring (Hardwood/Carpet/Tile/Laminate/Mixed)
-  const flooringRaw = raw.flooring || raw.flooringType || '';
-  const flooringStr = Array.isArray(flooringRaw) ? flooringRaw.join(', ') : String(flooringRaw);
+  const flooringPick = raw.flooring || raw.flooringType || '';
+  const flooringRaw = extractVal(flooringPick);
+  const flooringStr = Array.isArray(flooringRaw) ? flooringRaw.join(', ') : String(flooringRaw ?? '');
   if (flooringStr && flooringStr.length > 1) {
     mapped.flooring = flooringStr;
     fieldsFound.push('flooring');
+    sources.flooring = extractSrc(flooringPick);
   }
 
   // Sewer (Public/Septic)
-  const sewerRaw = raw.sewer || raw.sewerType || '';
-  const sewerStr = Array.isArray(sewerRaw) ? sewerRaw.join(' ') : String(sewerRaw);
+  const sewerPick = raw.sewer || raw.sewerType || '';
+  const sewerRaw = extractVal(sewerPick);
+  const sewerStr = Array.isArray(sewerRaw) ? sewerRaw.join(' ') : String(sewerRaw ?? '');
   if (/public|municipal|city/i.test(sewerStr)) {
-    mapped.sewer = 'Public'; fieldsFound.push('sewer');
+    mapped.sewer = 'Public'; fieldsFound.push('sewer'); sources.sewer = extractSrc(sewerPick);
   } else if (/septic|private/i.test(sewerStr)) {
-    mapped.sewer = 'Septic'; fieldsFound.push('sewer');
+    mapped.sewer = 'Septic'; fieldsFound.push('sewer'); sources.sewer = extractSrc(sewerPick);
   }
 
   // Water source (Public/Well)
-  const waterRaw = raw.waterSource || raw.water || '';
-  const waterStr = Array.isArray(waterRaw) ? waterRaw.join(' ') : String(waterRaw);
+  const waterPick = raw.waterSource || raw.water || '';
+  const waterRaw = extractVal(waterPick);
+  const waterStr = Array.isArray(waterRaw) ? waterRaw.join(' ') : String(waterRaw ?? '');
   if (/public|municipal|city/i.test(waterStr)) {
-    mapped.waterSource = 'Public'; fieldsFound.push('waterSource');
+    mapped.waterSource = 'Public'; fieldsFound.push('waterSource'); sources.waterSource = extractSrc(waterPick);
   } else if (/well|private/i.test(waterStr)) {
-    mapped.waterSource = 'Well'; fieldsFound.push('waterSource');
+    mapped.waterSource = 'Well'; fieldsFound.push('waterSource'); sources.waterSource = extractSrc(waterPick);
   }
 
   // Pool (map yes/no to form values)
-  const poolRaw = raw.pool || '';
-  const poolStr = Array.isArray(poolRaw) ? poolRaw.join(' ') : String(poolRaw);
+  const poolPick = raw.pool || '';
+  const poolRaw = extractVal(poolPick);
+  const poolStr = Array.isArray(poolRaw) ? poolRaw.join(' ') : String(poolRaw ?? '');
   if (/yes|in.?ground|above.?ground/i.test(poolStr)) {
     mapped.pool = /above/i.test(poolStr) ? 'Above Ground' : 'In Ground';
     fieldsFound.push('pool');
+    sources.pool = extractSrc(poolPick);
   } else if (/no|none/i.test(poolStr)) {
     mapped.pool = 'None';
     fieldsFound.push('pool');
+    sources.pool = extractSrc(poolPick);
   }
 
   // Wood stove
-  const woodRaw = raw.woodStove || raw.woodBurningStove || '';
-  const woodStr = Array.isArray(woodRaw) ? woodRaw.join(' ') : String(woodRaw);
+  const woodPick = raw.woodStove || raw.woodBurningStove || '';
+  const woodRaw = extractVal(woodPick);
+  const woodStr = Array.isArray(woodRaw) ? woodRaw.join(' ') : String(woodRaw ?? '');
   if (/yes|true/i.test(woodStr)) {
-    mapped.woodStove = 'Yes'; fieldsFound.push('woodStove');
+    mapped.woodStove = 'Yes'; fieldsFound.push('woodStove'); sources.woodStove = extractSrc(woodPick);
   } else if (/no|none|false/i.test(woodStr)) {
-    mapped.woodStove = 'None'; fieldsFound.push('woodStove');
+    mapped.woodStove = 'None'; fieldsFound.push('woodStove'); sources.woodStove = extractSrc(woodPick);
   }
 
   // Roof year updated
-  const roofYrRaw = raw.roofYearUpdated || raw.roofYear || '';
-  const roofYrNum = parseNum(roofYrRaw);
+  const roofYrPick = raw.roofYearUpdated || raw.roofYear || '';
+  const roofYrNum = parseNum(extractVal(roofYrPick));
   if (roofYrNum && roofYrNum > 1900 && roofYrNum <= new Date().getFullYear()) {
     mapped.roofYr = String(roofYrNum);
     fieldsFound.push('roofYr');
+    sources.roofYr = extractSrc(roofYrPick);
   }
 
   // Basement finish percentage
-  const bsmtPct = parseNum(raw.basementFinishPct);
+  const bsmtPick = raw.basementFinishPct;
+  const bsmtPct = parseNum(extractVal(bsmtPick));
   if (bsmtPct != null && bsmtPct >= 0 && bsmtPct <= 100) {
     mapped.basementFinishPct = bsmtPct;
     fieldsFound.push('basementFinishPct');
+    sources.basementFinishPct = extractSrc(bsmtPick);
   }
 
-  return { data: mapped, fieldsFound };
+  return { data: mapped, fieldsFound, sources };
 }
 
 // ===========================================================================
@@ -869,33 +905,33 @@ async function fetchViaGeminiSearch(address, city, state, zip, diag, ai) {
 
 Search real estate listings, public records, and property databases for this exact property. I need EVERY available construction and feature detail for insurance underwriting.
 
-Return ONLY valid JSON with this exact structure:
+Return ONLY valid JSON with this exact structure. Each field (except notes) must be EITHER {"value": <extracted_value>, "source": "where you found this (e.g. Zillow Facts & Features)"} OR null:
 {
-  "heating": "heating system type (e.g. Forced Air, Baseboard, Heat Pump, Boiler, Radiant, Electric)",
-  "cooling": "cooling system type (e.g. Central Air, Window Units, None)",
-  "roofType": "roof material (e.g. Composition, Asphalt Shingle, Metal, Tile, Wood Shake, Slate)",
-  "roofYearUpdated": year_number_or_null,
-  "foundation": "foundation type (e.g. Crawl Space, Slab, Basement, Pier, Daylight Basement)",
-  "basementFinishPct": percentage_number_or_null,
-  "construction": "construction type (e.g. Wood Frame, Masonry, Brick, Stucco, Log)",
-  "exterior": "exterior wall material (e.g. Vinyl Siding, Wood Siding, Brick, Stucco, Fiber Cement, Hardie, Stone)",
-  "garageType": "Attached or Detached or Built-in or Carport or None",
-  "garageSpaces": number_or_null,
-  "bedrooms": number_or_null,
-  "bathrooms": number_or_null,
-  "yearBuilt": number_or_null,
-  "stories": number_or_null,
-  "livingArea": square_feet_number_or_null,
-  "flooring": "primary flooring (e.g. Hardwood, Carpet, Tile, Laminate, Mixed)",
-  "fireplaces": number_or_null,
-  "sewer": "Public or Septic or null",
-  "waterSource": "Public or Well or null",
-  "pool": "Yes or No or null",
-  "woodStove": "Yes or No or null",
+  "heating": {"value": "heating system type (e.g. Forced Air, Baseboard, Heat Pump, Boiler, Radiant, Electric)", "source": "source name"} or null,
+  "cooling": {"value": "cooling system type (e.g. Central Air, Window Units, None)", "source": "source name"} or null,
+  "roofType": {"value": "roof material (e.g. Composition, Asphalt Shingle, Metal, Tile, Wood Shake, Slate)", "source": "source name"} or null,
+  "roofYearUpdated": {"value": year_number, "source": "source name"} or null,
+  "foundation": {"value": "foundation type (e.g. Crawl Space, Slab, Basement, Pier, Daylight Basement)", "source": "source name"} or null,
+  "basementFinishPct": {"value": percentage_number, "source": "source name"} or null,
+  "construction": {"value": "construction type (e.g. Wood Frame, Masonry, Brick, Stucco, Log)", "source": "source name"} or null,
+  "exterior": {"value": "exterior wall material (e.g. Vinyl Siding, Wood Siding, Brick, Stucco, Fiber Cement, Hardie, Stone)", "source": "source name"} or null,
+  "garageType": {"value": "Attached or Detached or Built-in or Carport or None", "source": "source name"} or null,
+  "garageSpaces": {"value": number, "source": "source name"} or null,
+  "bedrooms": {"value": number, "source": "source name"} or null,
+  "bathrooms": {"value": number, "source": "source name"} or null,
+  "yearBuilt": {"value": number, "source": "source name"} or null,
+  "stories": {"value": number, "source": "source name"} or null,
+  "livingArea": {"value": square_feet_number, "source": "source name"} or null,
+  "flooring": {"value": "primary flooring (e.g. Hardwood, Carpet, Tile, Laminate, Mixed)", "source": "source name"} or null,
+  "fireplaces": {"value": number, "source": "source name"} or null,
+  "sewer": {"value": "Public or Septic", "source": "source name"} or null,
+  "waterSource": {"value": "Public or Well", "source": "source name"} or null,
+  "pool": {"value": "Yes or No", "source": "source name"} or null,
+  "woodStove": {"value": "Yes or No", "source": "source name"} or null,
   "notes": "source of data and confidence level"
 }
 
-IMPORTANT: Look in the listing description text for renovation info like "New roof 2024" → set roofYearUpdated. Check "Facts & Features" sections thoroughly. Use null for any field you cannot find. Only include data for THIS SPECIFIC address.`;
+IMPORTANT: Look in the listing description text for renovation info like "New roof 2024" → set roofYearUpdated. Check "Facts & Features" sections thoroughly. Use null for any field you cannot find. Only include data for THIS SPECIFIC address. Return null for ANY field you cannot find explicitly stated in the source data. Never infer, estimate, or use typical values for this property type or neighborhood.`;
 
   try {
     // askWithSearch returns { text, grounded, groundingMetadata }
@@ -1072,7 +1108,7 @@ async function handleZillow(req, res) {
       });
     }
 
-    const { data, fieldsFound } = mapZillowToAltech(result.raw);
+    const { data, fieldsFound, sources } = mapZillowToAltech(result.raw);
 
     console.log(`[Zillow] Success: ${fieldsFound.length} fields via ${result.source} (${elapsed}s)`);
 
@@ -1082,6 +1118,7 @@ async function handleZillow(req, res) {
       zillowUrl: result.zillowUrl,
       data,
       fieldsFound,
+      sources,
       diagnostics: diag,
       elapsedSeconds: parseFloat(elapsed),
     });
