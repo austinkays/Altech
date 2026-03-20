@@ -968,6 +968,58 @@ IMPORTANT: Look in the listing description text for renovation info like "New ro
   }
 }
 
+// ---------------------------------------------------------------------------
+// Rentcast property data helper
+// ---------------------------------------------------------------------------
+async function fetchRentcastData(address, city, state, zip) {
+  if (!process.env.RENTCAST_API_KEY) return null;
+
+  const params = new URLSearchParams({ address, city, state, limit: '1' });
+  if (zip) params.set('zipCode', zip);
+
+  const response = await fetch(
+    `https://api.rentcast.io/v1/properties?${params.toString()}`,
+    { headers: { 'X-Api-Key': process.env.RENTCAST_API_KEY, 'Accept': 'application/json' } }
+  );
+
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Rentcast ${response.status}: ${response.statusText}`);
+
+  const json = await response.json();
+  if (!Array.isArray(json) || json.length === 0) return null;
+
+  const p = json[0];
+  const f = p.features || {};
+
+  const mapped = {};
+  if (p.yearBuilt != null)       mapped.yearBuilt       = p.yearBuilt;
+  if (p.squareFootage != null)   mapped.totalSqft       = p.squareFootage;
+  if (p.bedrooms != null)        mapped.bedrooms        = p.bedrooms;
+  if (p.bathrooms != null)       mapped.fullBaths       = p.bathrooms;
+  if (p.stories != null)         mapped.stories         = p.stories;
+  if (p.garageType != null)      mapped.garageType      = p.garageType;
+  if (p.garageSpaces != null)    mapped.garageSpaces    = p.garageSpaces;
+  if (p.roofType != null)        mapped.roofType        = p.roofType;
+  if (p.lotSize != null)         mapped.lotSize         = p.lotSize;
+  if (f.heating != null)         mapped.heatingType     = f.heating;
+  if (f.cooling != null)         mapped.cooling         = f.cooling;
+  if (f.exteriorWalls != null)   mapped.exteriorWalls   = f.exteriorWalls;
+  if (f.foundation != null)      mapped.foundationType  = f.foundation;
+  if (f.pool != null)            mapped.pool            = f.pool === true ? 'Yes' : f.pool === false ? 'No' : null;
+  if (f.sewer != null)           mapped.sewer           = f.sewer;
+  if (f.waterSource != null)     mapped.waterSource     = f.waterSource;
+  if (f.flooring != null)        mapped.flooring        = f.flooring;
+  if (f.fireplaces != null)      mapped.numFireplaces   = f.fireplaces;
+
+  // Remove null values introduced by the pool conditional
+  Object.keys(mapped).forEach(k => { if (mapped[k] === null) delete mapped[k]; });
+
+  mapped.notes = 'Rentcast (assessor/MLS records)';
+
+  const fieldsFound = Object.keys(mapped).filter(k => k !== 'notes');
+  return { data: mapped, fieldsFound };
+}
+
 async function handleZillow(req, res) {
   const { address, city, state, zip, aiSettings } = req.body;
 
@@ -983,6 +1035,26 @@ async function handleZillow(req, res) {
   const diag = {};
 
   const ai = createRouter(aiSettings);
+
+  // --- Try Rentcast first ---
+  try {
+    const rentcast = await fetchRentcastData(address, city, state, zip || '');
+    if (rentcast) {
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+      console.log(`[Zillow] Rentcast hit — ${rentcast.fieldsFound.length} fields (${elapsed}s)`);
+      return res.status(200).json({
+        success: true,
+        source: 'Rentcast',
+        data: rentcast.data,
+        fieldsFound: rentcast.fieldsFound,
+        diagnostics: {},
+        elapsedSeconds: parseFloat(elapsed),
+      });
+    }
+    console.log('[Zillow] Rentcast miss — falling back to Gemini');
+  } catch (rentErr) {
+    console.warn('[Zillow] Rentcast error, falling back to Gemini:', rentErr.message);
+  }
 
   try {
     const result = await fetchViaGeminiSearch(address, city, state, zip || '', diag, ai);
@@ -1229,6 +1301,19 @@ async function handler(req, res) {
         return await handleSatellite(req, res);
       case 'zillow':
         return await handleZillow(req, res);
+      case 'rentcast': {
+        const { address, city, state, zip } = req.body || {};
+        if (!address || !city || !state) {
+          return res.status(400).json({ error: 'Missing required fields: address, city, state' });
+        }
+        try {
+          const result = await fetchRentcastData(address, city, state, zip || '');
+          if (!result) return res.status(404).json({ error: 'not_found' });
+          return res.status(200).json({ success: true, source: 'Rentcast', ...result });
+        } catch (e) {
+          return res.status(500).json({ success: false, error: e.message });
+        }
+      }
       case 'firestation':
         return await handleFireStation(req, res);
       case 'rag-interpret':
@@ -1237,7 +1322,7 @@ async function handler(req, res) {
         return await handleValidateAddress(req, res);
       default:
         return res.status(400).json({
-          error: `Invalid mode "${mode}". Use ?mode=arcgis|satellite|zillow|firestation|rag-interpret|validate-address`
+          error: `Invalid mode "${mode}". Use ?mode=arcgis|satellite|zillow|rentcast|firestation|rag-interpret|validate-address`
         });
     }
   } catch (error) {

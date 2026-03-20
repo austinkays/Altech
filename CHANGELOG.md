@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **feat(property-intelligence): Rentcast API integration — Phase 1** (March 20, 2026):
+  - `api/property-intelligence.js`: added `fetchRentcastData(address, city, state, zip)` helper that calls `https://api.rentcast.io/v1/properties` and maps top-level + `features.*` fields to Altech keys; returns null on 404/empty; throws on 5xx for upstream catch
+  - `handleZillow()`: now tries Rentcast first before falling back to Gemini; logs `[Zillow] Rentcast hit` or `[Zillow] Rentcast miss` accordingly; Rentcast errors are swallowed with a warning so Gemini path still runs
+  - Added `case 'rentcast':` to the mode switch router — direct endpoint for `?mode=rentcast` POST requests; returns 200+data, 404 on miss, 500 on error
+  - Updated `default:` error message to include `rentcast` in the valid modes list
+  - No new `api/` file created — stays within 12-function Vercel Hobby limit
+  - `RENTCAST_API_KEY` env var required in Vercel dashboard (manual step)
+  - Related files: `api/property-intelligence.js` only
+  - Test suite: 1671/1672 pass (1 pre-existing timeout in plugin-integration.test.js, unrelated)
+
 - **feat(quote-compare): dual-line schema, auto/home tabs, referenceNumber fix** (March 28, 2026):
   - `js/quote-compare.js`: replaced home-only `quotes[]` schema with `autoQuotes[]`/`homeQuotes[]` dual-line extraction
   - `extractWithGemini`: new system prompt captures all 4 referenceNumber formats (CCF#, Quote Number, Policy Number, Reference Number); adds `premiumAmount`, `premiumTerm`, `isAlternate`, `hasCarrierError`, `carrierErrorMessage` fields
