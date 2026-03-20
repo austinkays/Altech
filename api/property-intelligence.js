@@ -1008,21 +1008,44 @@ IMPORTANT: Look in the listing description text for renovation info like "New ro
 // Rentcast property data helper
 // ---------------------------------------------------------------------------
 async function fetchRentcastData(address, city, state, zip) {
-  if (!process.env.RENTCAST_API_KEY) return null;
+  if (!process.env.RENTCAST_API_KEY) {
+    console.log('[Rentcast] Skipped — RENTCAST_API_KEY not set');
+    return null;
+  }
 
   const params = new URLSearchParams({ address, city, state, limit: '1' });
   if (zip) params.set('zipCode', zip);
 
-  const response = await fetch(
-    `https://api.rentcast.io/v1/properties?${params.toString()}`,
-    { headers: { 'X-Api-Key': process.env.RENTCAST_API_KEY, 'Accept': 'application/json' } }
-  );
+  const url = `https://api.rentcast.io/v1/properties?${params.toString()}`;
+  console.log(`[Rentcast] Requesting: ${url}`);
 
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`Rentcast ${response.status}: ${response.statusText}`);
+  let response;
+  try {
+    response = await fetch(url, {
+      headers: { 'X-Api-Key': process.env.RENTCAST_API_KEY, 'Accept': 'application/json' },
+    });
+  } catch (err) {
+    console.log(`[Rentcast] Error: ${err.message}`);
+    throw err;
+  }
+
+  console.log(`[Rentcast] Response status: ${response.status}`);
+
+  if (response.status === 404) {
+    console.log('[Rentcast] Miss — 404 status');
+    return null;
+  }
+  if (!response.ok) {
+    const msg = `Rentcast ${response.status}: ${response.statusText}`;
+    console.log(`[Rentcast] Error: ${msg}`);
+    throw new Error(msg);
+  }
 
   const json = await response.json();
-  if (!Array.isArray(json) || json.length === 0) return null;
+  if (!Array.isArray(json) || json.length === 0) {
+    console.log('[Rentcast] Miss — empty array returned');
+    return null;
+  }
 
   const p = json[0];
   const f = p.features || {};
@@ -1053,6 +1076,8 @@ async function fetchRentcastData(address, city, state, zip) {
   mapped.notes = 'Rentcast (assessor/MLS records)';
 
   const fieldsFound = Object.keys(mapped).filter(k => k !== 'notes');
+  const rawPreview = JSON.stringify(json[0]).slice(0, 300);
+  console.log(`[Rentcast] Hit — raw: ${rawPreview}${rawPreview.length === 300 ? ' (truncated)' : ''}`);
   return { data: mapped, fieldsFound };
 }
 
