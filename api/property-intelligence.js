@@ -1107,11 +1107,19 @@ async function handleZillow(req, res) {
     if (rentcast) {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
       console.log(`[Zillow] Rentcast hit — ${rentcast.fieldsFound.length} fields (${elapsed}s)`);
+      const rentcastSources = {};
+      const sourceLabel = 'Rentcast (assessor/MLS records)';
+      for (const key of Object.keys(rentcast.data)) {
+        if (key !== 'notes' && rentcast.data[key] !== null && rentcast.data[key] !== undefined) {
+          rentcastSources[key] = sourceLabel;
+        }
+      }
       return res.status(200).json({
         success: true,
         source: 'Rentcast',
         data: rentcast.data,
         fieldsFound: rentcast.fieldsFound,
+        sources: rentcastSources,
         diagnostics: {},
         elapsedSeconds: parseFloat(elapsed),
       });
