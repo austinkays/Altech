@@ -1012,7 +1012,9 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             const zd = zillowData.data;
             // Collect field-level source attributions from the API response
             const zSrc = zillowData.sources || {};
-            sources.push('Property Listings');
+            // Detect whether data came from Rentcast or Gemini AI fallback
+            const zdSourceName = zillowData.source === 'Rentcast' ? 'Rentcast' : 'AI Search';
+            sources.push(zdSourceName);
             // Only fill gaps — don't overwrite ArcGIS data
             if ((!merged.heatingType || merged.heatingType === 'Unknown') && zd.heatingType) { merged.heatingType = zd.heatingType; if (zSrc.heatingType) fieldSources.heatingType = zSrc.heatingType; }
             if ((!merged.cooling || merged.cooling === 'Unknown') && zd.cooling) { merged.cooling = zd.cooling; if (zSrc.cooling) fieldSources.cooling = zSrc.cooling; }
@@ -1051,6 +1053,9 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             merged.protectionClass = fireData.protectionClass;
         }
 
+        // Determine the property listings source name for this data set
+        const zdSourceName = (zillowData && zillowData.source === 'Rentcast') ? 'Rentcast' : 'AI Search';
+
         // Build modal
         const modal = document.createElement('div');
         modal.id = 'parcelDataModal';
@@ -1065,7 +1070,7 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         const content = document.createElement('div');
         content.style.cssText = `
             background: white; border-radius: 12px; padding: 24px;
-            max-width: 520px; max-height: 85vh; overflow-y: auto;
+            max-width: 600px; width: 95vw; max-height: 85vh; overflow-y: auto;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             font-family: system-ui, sans-serif;
         `;
@@ -1079,8 +1084,18 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         // Source badges
         const badgeRow = document.createElement('div');
         badgeRow.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;';
-        const badgeColors = { 'County Records': '#0066cc', 'Property Listings': '#6f42c1', 'Fire Protection': '#dc3545' };
-        const badgeIcons = { 'County Records': '🏛', 'Property Listings': '🏠', 'Fire Protection': '🚒' };
+        const badgeColors = {
+            'County Records': '#0066cc',
+            'Rentcast': '#0d7a4e',
+            'AI Search': '#6f42c1',
+            'Fire Protection': '#dc3545'
+        };
+        const badgeIcons = {
+            'County Records': '🏛',
+            'Rentcast': '📊',
+            'AI Search': '🏠',
+            'Fire Protection': '🚒'
+        };
         sources.forEach(src => {
             const badge = document.createElement('span');
             badge.style.cssText = `
@@ -1100,11 +1115,121 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         addressLine.textContent = `${address}, ${city}, ${state}${merged.parcelId ? ' · Parcel: ' + merged.parcelId : ''}`;
         content.appendChild(addressLine);
 
-        // Data grid
-        const grid = document.createElement('div');
-        grid.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0;';
+        // ── Tab bar ──────────────────────────────────────────────────────────
+        const tabDefs = [{ id: 'summary', label: '✦ Summary' }];
+        if (arcgisData && arcgisData.data) tabDefs.push({ id: 'county', label: '🏛 County' });
+        if (zillowData && zillowData.data) tabDefs.push({ id: 'listings', label: zdSourceName === 'Rentcast' ? '📊 Rentcast' : '🏠 AI Search' });
+        if (fireData) tabDefs.push({ id: 'fire', label: '🚒 Fire / PC' });
 
-        const fields = [
+        const tabBar = document.createElement('div');
+        tabBar.style.cssText = 'display: flex; gap: 4px; border-bottom: 2px solid #e9ecef; margin-bottom: 14px;';
+
+        const panels = {};
+
+        function activateTab(tabId) {
+            tabBar.querySelectorAll('[data-tab]').forEach(btn => {
+                const active = btn.dataset.tab === tabId;
+                btn.style.borderBottom = active ? '2px solid #28a745' : '2px solid transparent';
+                btn.style.color = active ? '#28a745' : '#666';
+                btn.style.fontWeight = active ? '700' : '400';
+                btn.style.marginBottom = '-2px';
+            });
+            Object.entries(panels).forEach(([id, el]) => {
+                el.style.display = id === tabId ? '' : 'none';
+            });
+        }
+
+        tabDefs.forEach(({ id, label }) => {
+            const btn = document.createElement('button');
+            btn.dataset.tab = id;
+            btn.textContent = label;
+            btn.style.cssText = `
+                background: none; border: none; border-bottom: 2px solid transparent;
+                padding: 6px 14px; cursor: pointer; font-size: 13px;
+                color: #666; margin-bottom: -2px; border-radius: 4px 4px 0 0;
+                transition: color 0.15s;
+            `;
+            btn.onclick = () => activateTab(id);
+            tabBar.appendChild(btn);
+
+            const panel = document.createElement('div');
+            panel.style.display = 'none';
+            panels[id] = panel;
+        });
+
+        content.appendChild(tabBar);
+
+        // Helper: build a 2-col grid of {label, value, source?} items
+        function buildGrid(fieldList) {
+            const g = document.createElement('div');
+            g.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 4px 0;';
+            const visible = fieldList.filter(f => f.value != null && f.value !== '' && f.value !== 'N/A');
+            if (!visible.length) {
+                const empty = document.createElement('p');
+                empty.style.cssText = 'color: #999; font-size: 13px; grid-column: span 2;';
+                empty.textContent = 'No data available for this source.';
+                g.appendChild(empty);
+                return { el: g, count: 0 };
+            }
+            visible.forEach(field => {
+                const box = document.createElement('div');
+                box.style.cssText = 'background: #f5f5f5; padding: 10px; border-radius: 6px;';
+                if (field.source) { box.title = `Source: ${field.source}`; box.style.cursor = 'help'; }
+
+                const lbl = document.createElement('div');
+                lbl.style.cssText = 'font-size: 11px; color: #999; text-transform: uppercase; margin-bottom: 3px;';
+                lbl.textContent = field.label;
+
+                const val = document.createElement('div');
+                val.style.cssText = 'font-size: 15px; font-weight: 600; color: #333;';
+                val.textContent = field.value;
+
+                box.appendChild(lbl);
+                box.appendChild(val);
+
+                if (field.source) {
+                    const chip = document.createElement('div');
+                    chip.style.cssText = 'font-size: 10px; color: #6f42c1; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+                    chip.textContent = `✓ ${field.source}`;
+                    box.appendChild(chip);
+                }
+
+                g.appendChild(box);
+            });
+            return { el: g, count: visible.length };
+        }
+
+        // Helper: camelCase → Title Case
+        function camelToLabel(key) {
+            return key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
+        }
+
+        // Helper: flatten an object into buildGrid-compatible fields
+        function rawToFields(obj, zSrcMap) {
+            if (!obj || typeof obj !== 'object') return [];
+            return Object.entries(obj)
+                .filter(([, v]) => v != null && v !== '' && v !== 'Unknown')
+                .map(([k, v]) => ({
+                    label: camelToLabel(k),
+                    value: typeof v === 'object' ? JSON.stringify(v) : String(v),
+                    source: zSrcMap ? (zSrcMap[k] || null) : null
+                }));
+        }
+
+        // ── Summary tab ───────────────────────────────────────────────────────
+        const labelToMergedKey = {
+            'Year Built': 'yearBuilt', 'Stories': 'stories', 'Total Sq Ft': 'totalSqft',
+            'Bedrooms': 'bedrooms', 'Bathrooms': 'bathrooms', 'Garage Type': 'garageType',
+            'Garage Spaces': 'garageSpaces', 'Foundation': 'foundationType', 'Roof Type': 'roofType',
+            'Roof Year': 'roofYr', 'Heating': 'heatingType', 'Cooling': 'cooling',
+            'Construction': 'constructionStyle', 'Exterior': 'exteriorWalls', 'Flooring': 'flooring',
+            'Fireplaces': 'numFireplaces', 'Sewer': 'sewer', 'Water': 'waterSource',
+            'Pool': 'pool', 'Wood Stove': 'woodStove',
+            'Architecture': 'architectureType', 'Fireplace Type': 'fireplaceType',
+            'HOA Fee': 'hoaFee', 'View': 'viewType',
+        };
+
+        const summaryFieldDefs = [
             { label: 'Year Built', value: merged.yearBuilt && merged.yearBuilt > 0 ? merged.yearBuilt : null },
             { label: 'Stories', value: merged.stories && merged.stories > 0 ? merged.stories : null },
             { label: 'Total Sq Ft', value: merged.totalSqft && merged.totalSqft > 0 ? merged.totalSqft.toLocaleString() : null },
@@ -1133,74 +1258,76 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             { label: 'View', value: merged.viewType || null },
         ];
 
-        // Add fire station fields if available
         if (fireData) {
             const reliabilityBadge = fireData.stationReliability === 'volunteer' ? ' 🟡' :
                                      fireData.stationReliability === 'review' ? ' ⚠️' : '';
-            fields.push({ label: 'Fire Station', value: `${fireData.fireStationDist} mi — ${fireData.fireStationName || 'Nearest'}${reliabilityBadge}` });
-            fields.push({ label: 'Protection Class', value: fireData.protectionClass });
-            if (fireData.reviewNote) {
-                fields.push({ label: 'Station Note', value: fireData.reviewNote });
-            }
+            summaryFieldDefs.push({ label: 'Fire Station', value: `${fireData.fireStationDist} mi — ${fireData.fireStationName || 'Nearest'}${reliabilityBadge}` });
+            summaryFieldDefs.push({ label: 'Protection Class', value: fireData.protectionClass });
+            if (fireData.reviewNote) summaryFieldDefs.push({ label: 'Station Note', value: fireData.reviewNote });
         }
 
-        // Only show fields that have data
-        const fieldsWithData = fields.filter(f => f.value != null && f.value !== '' && f.value !== 'N/A');
-
-        // Build a label→mergedKey lookup for source attribution tooltips
-        const labelToMergedKey = {
-            'Year Built': 'yearBuilt', 'Stories': 'stories', 'Total Sq Ft': 'totalSqft',
-            'Bedrooms': 'bedrooms', 'Bathrooms': 'bathrooms', 'Garage Type': 'garageType',
-            'Garage Spaces': 'garageSpaces', 'Foundation': 'foundationType', 'Roof Type': 'roofType',
-            'Roof Year': 'roofYr', 'Heating': 'heatingType', 'Cooling': 'cooling',
-            'Construction': 'constructionStyle', 'Exterior': 'exteriorWalls', 'Flooring': 'flooring',
-            'Fireplaces': 'numFireplaces', 'Sewer': 'sewer', 'Water': 'waterSource',
-            'Pool': 'pool', 'Wood Stove': 'woodStove',
-            'Architecture': 'architectureType', 'Fireplace Type': 'fireplaceType',
-            'HOA Fee': 'hoaFee', 'View': 'viewType',
-        };
-
-        fieldsWithData.forEach(field => {
-            const mergedKey = labelToMergedKey[field.label];
-            const citedSource = mergedKey ? fieldSources[mergedKey] : null;
-
-            const box = document.createElement('div');
-            box.style.cssText = 'background: #f5f5f5; padding: 10px; border-radius: 6px; position: relative;';
-            if (citedSource) {
-                box.title = `Source: ${citedSource}`;
-                box.style.cursor = 'help';
-            }
-
-            const label = document.createElement('div');
-            label.style.cssText = 'font-size: 11px; color: #999; text-transform: uppercase; margin-bottom: 3px;';
-            label.textContent = field.label;
-
-            const value = document.createElement('div');
-            value.style.cssText = 'font-size: 15px; font-weight: 600; color: #333;';
-            value.textContent = field.value;
-
-            box.appendChild(label);
-            box.appendChild(value);
-
-            // Source citation chip — shown below value when field has explicit attribution
-            if (citedSource) {
-                const srcChip = document.createElement('div');
-                srcChip.style.cssText = 'font-size: 10px; color: #6f42c1; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
-                srcChip.textContent = `✓ ${citedSource}`;
-                box.appendChild(srcChip);
-            }
-
-            grid.appendChild(box);
+        // Attach per-field source citations for summary tab
+        const summaryFields = summaryFieldDefs.map(f => {
+            const mk = labelToMergedKey[f.label];
+            return { ...f, source: mk ? (fieldSources[mk] || null) : null };
         });
 
-        content.appendChild(grid);
+        const { el: summaryGrid, count: summaryCount } = buildGrid(summaryFields);
+        panels.summary.appendChild(summaryGrid);
+
+        // ── County tab ────────────────────────────────────────────────────────
+        if (panels.county) {
+            const desc = document.createElement('p');
+            desc.style.cssText = 'font-size: 12px; color: #666; margin: 0 0 10px 0;';
+            desc.textContent = 'Raw county assessor / ArcGIS parcel data.';
+            panels.county.appendChild(desc);
+            const { el: cGrid } = buildGrid(rawToFields(arcgisData && arcgisData.data, null));
+            panels.county.appendChild(cGrid);
+        }
+
+        // ── Rentcast / AI Search tab ───────────────────────────────────────────
+        if (panels.listings) {
+            const desc = document.createElement('p');
+            desc.style.cssText = 'font-size: 12px; color: #666; margin: 0 0 10px 0;';
+            desc.textContent = zdSourceName === 'Rentcast'
+                ? 'MLS / assessor records from Rentcast API. Fields with ✓ chips indicate individual field attribution.'
+                : 'Property characteristics extracted by Gemini AI from public listing data.';
+            panels.listings.appendChild(desc);
+            const zSrc = (zillowData && zillowData.sources) || {};
+            const { el: zGrid } = buildGrid(rawToFields(zillowData && zillowData.data, zSrc));
+            panels.listings.appendChild(zGrid);
+        }
+
+        // ── Fire / PC tab ──────────────────────────────────────────────────────
+        if (panels.fire && fireData) {
+            const stationType = fireData.stationReliability === 'volunteer' ? '🟡 Volunteer' :
+                                fireData.stationReliability === 'review' ? '⚠️ Review' : '✅ Career';
+            const fireFields = [
+                { label: 'Station Name', value: fireData.fireStationName || 'Nearest Station' },
+                { label: 'Distance', value: `${fireData.fireStationDist} mi` },
+                { label: 'Protection Class', value: fireData.protectionClass },
+                { label: 'Station Type', value: stationType },
+            ];
+            if (fireData.reviewNote) fireFields.push({ label: 'Note', value: fireData.reviewNote });
+            const { el: fGrid } = buildGrid(fireFields);
+            panels.fire.appendChild(fGrid);
+        }
+
+        // Add all panels to content
+        Object.values(panels).forEach(p => content.appendChild(p));
+
+        // Activate summary tab by default
+        activateTab('summary');
+
+        // summary count used for "Use This Data" button label
+        const fieldsWithData = summaryFields.filter(f => f.value != null && f.value !== '' && f.value !== 'N/A');
 
         // Buttons
         const buttonBox = document.createElement('div');
         buttonBox.style.cssText = 'display: flex; gap: 12px; margin-top: 16px;';
 
         const useBtn = document.createElement('button');
-        useBtn.textContent = `✓ Use This Data (${fieldsWithData.length} fields)`;
+        useBtn.textContent = `✓ Use This Data (${summaryCount} fields)`;
         useBtn.style.cssText = `
             flex: 1; padding: 12px; background: #28a745; color: white;
             border: none; border-radius: 6px; font-weight: 600;
