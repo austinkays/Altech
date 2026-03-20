@@ -100,7 +100,7 @@ window.HawkSoftExport = (() => {
         if (d.sqFt) prop.push(`${FIELD_BY_ID['sqFt'].label}: ${d.sqFt}`);
         if (d.numStories) prop.push(`${FIELD_BY_ID['numStories'].label}: ${d.numStories}`);
         if (d.bedrooms) prop.push(`${FIELD_BY_ID['bedrooms'].label}: ${d.bedrooms}`);
-        if (d.fullBaths || d.halfBaths) prop.push(`Baths: ${d.fullBaths || 0} full / ${d.halfBaths || 0} half`);
+        if (d.fullBaths) prop.push(`${FIELD_BY_ID['fullBaths'].label}: ${d.fullBaths}`);
         if (d.constructionStyle) prop.push(`${FIELD_BY_ID['constructionStyle'].label}: ${d.constructionStyle}`);
         if (d.exteriorWalls) prop.push(`${FIELD_BY_ID['exteriorWalls'].label}: ${d.exteriorWalls}`);
         if (d.foundation) prop.push(`${FIELD_BY_ID['foundation'].label}: ${d.foundation}`);
@@ -147,7 +147,7 @@ window.HawkSoftExport = (() => {
         if (d.priorYears) hist.push(`${FIELD_BY_ID['priorYears'].label}: ${d.priorYears}`);
         if (d.priorPolicyTerm) hist.push(`${FIELD_BY_ID['priorPolicyTerm'].label}: ${d.priorPolicyTerm}`);
         if (d.priorLiabilityLimits) hist.push(`${FIELD_BY_ID['priorLiabilityLimits'].label}: ${d.priorLiabilityLimits}`);
-        if (d.priorExp) hist.push(`Prior Expiration: ${_fmtDate(d.priorExp)}`);
+        if (d.priorExp) hist.push(`${FIELD_BY_ID['priorExp'].label}: ${_fmtDate(d.priorExp)}`);
         if (d.continuousCoverage) hist.push(`${FIELD_BY_ID['continuousCoverage'].label}: ${d.continuousCoverage}`);
         if (d.homePriorCarrier) hist.push(`${FIELD_BY_ID['homePriorCarrier'].label}: ${d.homePriorCarrier}`);
         if (d.homePriorYears) hist.push(`${FIELD_BY_ID['homePriorYears'].label}: ${d.homePriorYears}`);
@@ -163,7 +163,7 @@ window.HawkSoftExport = (() => {
         if (d.contactMethod) risk.push(`${FIELD_BY_ID['contactMethod'].label}: ${d.contactMethod}`);
         if (d.tcpaConsent) risk.push(`${FIELD_BY_ID['tcpaConsent'].label}: ${d.tcpaConsent}`);
         if (d.rentalDeductible) risk.push(`${FIELD_BY_ID['rentalDeductible'].label}: ${d.rentalDeductible}`);
-        if (d.towingDeductible) risk.push(`Towing & Labor: ${d.towingDeductible}`);
+        if (d.towingDeductible) risk.push(`${FIELD_BY_ID['towingDeductible'].label}: ${d.towingDeductible}`);
         if (risk.length) sections.push('NOTES\n' + risk.join('\n'));
 
         // Per-driver incidents

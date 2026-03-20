@@ -503,7 +503,7 @@ Object.assign(App, {
             ['Full Name', clientName],
             [FIELD_BY_ID['middleName'].label, v('middleName')],
             [FIELD_BY_ID['dob'].label, formatDate(v('dob'))],
-            ['Gender', v('gender') === 'M' ? 'Male' : v('gender') === 'F' ? 'Female' : v('gender')],
+            [FIELD_BY_ID['gender'].label, v('gender') === 'M' ? 'Male' : v('gender') === 'F' ? 'Female' : v('gender')],
             [FIELD_BY_ID['maritalStatus'].label, v('maritalStatus')],
             [FIELD_BY_ID['phone'].label, formatPhone(v('phone'))],
             [FIELD_BY_ID['email'].label, v('email')],
@@ -520,7 +520,7 @@ Object.assign(App, {
             kvTable([
                 ['Full Name', `${v('coFirstName')} ${v('coLastName')}`.trim()],
                 [FIELD_BY_ID['coDob'].label, formatDate(v('coDob'))],
-                ['Gender', v('coGender') === 'M' ? 'Male' : v('coGender') === 'F' ? 'Female' : v('coGender')],
+                [FIELD_BY_ID['coGender'].label, v('coGender') === 'M' ? 'Male' : v('coGender') === 'F' ? 'Female' : v('coGender')],
                 [FIELD_BY_ID['coEmail'].label, v('coEmail')],
                 [FIELD_BY_ID['coPhone'].label, formatPhone(v('coPhone'))],
                 [FIELD_BY_ID['coRelationship'].label, vo('coRelationship')],
@@ -752,7 +752,7 @@ Object.assign(App, {
                 [FIELD_BY_ID['umpdLimit'].label, formatCurrency(v('umpdLimit'))],
                 [FIELD_BY_ID['compDeductible'].label, formatDeductible(v('compDeductible'))],
                 [FIELD_BY_ID['autoDeductible'].label, formatDeductible(v('autoDeductible'))],
-                ['Rental Reimburse.', formatRental(v('rentalDeductible'))],
+                [FIELD_BY_ID['rentalDeductible'].label, formatRental(v('rentalDeductible'))],
                 [FIELD_BY_ID['towingDeductible'].label, formatCurrency(v('towingDeductible'))],
                 [FIELD_BY_ID['studentGPA'].label, v('studentGPA')],
             ], 2, 10); }
@@ -761,7 +761,7 @@ Object.assign(App, {
         // ── Policy & Prior Insurance ─────────────────────────────────
         { sectionHeader('Policy & Prior Insurance');
         const pdfPriorRows = [
-            ['Policy Type', v('homePolicyType')],
+            [FIELD_BY_ID['homePolicyType'].label, v('homePolicyType')],
             [FIELD_BY_ID['policyTerm'].label, v('policyTerm')],
             [FIELD_BY_ID['effectiveDate'].label, formatDate(v('effectiveDate'))],
         ];
@@ -785,7 +785,7 @@ Object.assign(App, {
             );
         }
         pdfPriorRows.push(
-            ['Continuous Coverage', v('continuousCoverage')]
+            [FIELD_BY_ID['continuousCoverage'].label, v('continuousCoverage')]
         );
         // Additional contact/referral info appended to policy section (no separate header needed)
         if (v('additionalInsureds')) pdfPriorRows.push([FIELD_BY_ID['additionalInsureds'].label, v('additionalInsureds')]);
