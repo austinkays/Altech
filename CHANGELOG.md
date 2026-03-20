@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **feat(quote-compare): dual-line schema, auto/home tabs, referenceNumber fix** (March 28, 2026):
+  - `js/quote-compare.js`: replaced home-only `quotes[]` schema with `autoQuotes[]`/`homeQuotes[]` dual-line extraction
+  - `extractWithGemini`: new system prompt captures all 4 referenceNumber formats (CCF#, Quote Number, Policy Number, Reference Number); adds `premiumAmount`, `premiumTerm`, `isAlternate`, `hasCarrierError`, `carrierErrorMessage` fields
+  - AIProvider validation guard accepts `parsed.autoQuotes || parsed.homeQuotes || parsed.quotes || parsed.applicant`
+  - `buildQuoteContext()`: separate `=== AUTO QUOTES ===` / `=== HOME QUOTES ===` sections
+  - `getRecommendation()`: auto/home split summaries; no dwelling property references
+  - `renderResults()`: normalization block (legacy `quotes[]` → `homeQuotes[]`); tab bar injected when both lines present; delegates to `_renderLine(tab)`
+  - New `_switchTab(tab)`: thin wrapper → `_renderLine(tab)`; called from HTML onclick as `QuoteCompare._switchTab('auto')`
+  - New `_renderLine(tab)`: full line-specific render — 8-col auto coverage table (BI/PD/Comp/Coll/UM/PIP/Towing/Rental), home table with Deductible; endorsements hidden for auto; error cards sorted last, excluded from tables
+  - `autoSave()`, `copyTable()`, `exportPDF()`: updated to merge `allQuotes` from both arrays; use `premiumAmount || premium12Month`
+  - `reset()`: clears `_activeTab`
+  - Legacy `quotes[]` auto-normalized to `homeQuotes[]` for backward compat with saved comparisons
+  - `css/quote-compare.css`: appended tab bar, `.qc-card-ref`, `.qc-card.alt` (purple badge), `.qc-card.error` (muted/danger border), full dark mode overrides
+  - 26 suites, 1672 tests — all passing
+
 - **feat(intake-assist): smarter BASE_SYSTEM_PROMPT** (March 19, 2026):
   - `js/intake-assist.js`: replaced `BASE_SYSTEM_PROMPT` template literal with a more comprehensive, personality-driven prompt
   - New opening: "You are a sharp, experienced insurance intake assistant…" — replaces the generic "fast, friendly" version
