@@ -1021,7 +1021,8 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             if ((!merged.constructionStyle || merged.constructionStyle === 'Unknown') && zd.constructionStyle) { merged.constructionStyle = zd.constructionStyle; if (zSrc.constructionStyle) fieldSources.constructionStyle = zSrc.constructionStyle; }
             if ((!merged.exteriorWalls || merged.exteriorWalls === 'Unknown') && zd.exteriorWalls) { merged.exteriorWalls = zd.exteriorWalls; if (zSrc.exteriorWalls) fieldSources.exteriorWalls = zSrc.exteriorWalls; }
             if ((!merged.yearBuilt || merged.yearBuilt === 0) && zd.yearBuilt) { merged.yearBuilt = zd.yearBuilt; if (zSrc.yearBuilt) fieldSources.yearBuilt = zSrc.yearBuilt; }
-            if ((!merged.stories || merged.stories === 0) && zd.stories) { merged.stories = zd.stories; if (zSrc.stories) fieldSources.stories = zSrc.stories; }
+            // Prefer Zillow for stories — county assessors frequently mis-count split-levels, lofts, and half-stories
+            if (zd.stories && zd.stories > 0) { merged.stories = zd.stories; if (zSrc.stories) fieldSources.stories = zSrc.stories; }
             if ((!merged.totalSqft || merged.totalSqft === 0) && zd.totalSqft) { merged.totalSqft = zd.totalSqft; if (zSrc.totalSqft) fieldSources.totalSqft = zSrc.totalSqft; }
             if ((!merged.bedrooms || merged.bedrooms === 0) && zd.bedrooms) { merged.bedrooms = zd.bedrooms; if (zSrc.bedrooms) fieldSources.bedrooms = zSrc.bedrooms; }
             if ((!merged.bathrooms || merged.bathrooms === 0) && zd.fullBaths) { merged.bathrooms = zd.fullBaths; if (zSrc.fullBaths) fieldSources.bathrooms = zSrc.fullBaths; }
@@ -1263,6 +1264,8 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             if (!zd[fid]) continue;
             const el = document.getElementById(fid);
             if (!el) continue;
+            // Only fill if currently empty — don't overwrite parcel data already applied
+            if (el.value && el.value.trim()) continue;
             const opts = Array.from(el.options).map(o => o.value);
             if (opts.includes(zd[fid])) {
                 el.value = zd[fid];
@@ -1331,10 +1334,18 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         if (parcelData.stories && parcelData.stories > 0) {
             const field = document.getElementById('numStories');
             if (field) {
-                field.value = parcelData.stories;
-                this.data.numStories = parcelData.stories;
-                this.markAutoFilled(field, 'parcel');
-                fieldsApplied++;
+                // Try float directly first (handles "1", "1.5", "2", etc.)
+                const storiesStr = String(parseFloat(parcelData.stories));
+                field.value = storiesStr;
+                // Verify the value was accepted by the select; if empty, try integer fallback
+                if (!field.value) {
+                    field.value = String(Math.round(parseFloat(parcelData.stories)));
+                }
+                if (field.value) {
+                    this.data.numStories = field.value;
+                    this.markAutoFilled(field, 'parcel');
+                    fieldsApplied++;
+                }
             }
         }
 
@@ -1465,6 +1476,145 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
                     this.markAutoFilled(field, 'parcel');
                     fieldsApplied++;
                 }
+            }
+        }
+
+        // Helper: fuzzy-match a value against a <select>'s options (exact, then partial)
+        const matchSelectOption = (selectEl, rawValue) => {
+            const valLower = String(rawValue).toLowerCase().trim();
+            const opts = Array.from(selectEl.options);
+            return opts.find(o => o.value.toLowerCase() === valLower) ||
+                   opts.find(o => o.value.toLowerCase().includes(valLower) || valLower.includes(o.value.toLowerCase()));
+        };
+
+        // Remaining select fields with fuzzy matching
+        const additionalSelectFields = [
+            { key: 'exteriorWalls', formId: 'exteriorWalls', sentinel: 'Unknown' },
+            { key: 'garageType',    formId: 'garageType',    sentinel: 'Unknown' },
+            { key: 'cooling',       formId: 'cooling',       sentinel: null },
+            { key: 'roofShape',     formId: 'roofShape',     sentinel: null },
+            { key: 'flooring',      formId: 'flooring',      sentinel: null },
+            { key: 'sewer',         formId: 'sewer',         sentinel: null },
+            { key: 'waterSource',   formId: 'waterSource',   sentinel: null },
+            { key: 'dwellingType',  formId: 'dwellingType',  sentinel: null },
+        ];
+        for (const { key, formId, sentinel } of additionalSelectFields) {
+            const raw = parcelData[key];
+            if (!raw || raw === sentinel) continue;
+            const el = document.getElementById(formId);
+            if (!el) continue;
+            const match = matchSelectOption(el, raw);
+            if (match) {
+                el.value = match.value;
+                this.data[formId] = match.value;
+                this.markAutoFilled(el, 'parcel');
+                fieldsApplied++;
+            }
+        }
+
+        // Pool — normalize Yes/No to form values
+        if (parcelData.pool && parcelData.pool !== 'None') {
+            const el = document.getElementById('pool');
+            if (el) {
+                const raw = String(parcelData.pool).toLowerCase();
+                let poolVal = null;
+                if (raw === 'yes' || raw === 'true' || raw === '1') {
+                    poolVal = 'In Ground'; // Most common, agent should verify
+                } else if (raw === 'no' || raw === 'false' || raw === '0' || raw === 'none') {
+                    // skip — no pool
+                } else {
+                    // Try direct fuzzy match (e.g. "above ground", "in ground")
+                    const match = matchSelectOption(el, parcelData.pool);
+                    if (match) poolVal = match.value;
+                }
+                if (poolVal) {
+                    el.value = poolVal;
+                    this.data.pool = poolVal;
+                    this.markAutoFilled(el, 'parcel');
+                    fieldsApplied++;
+                }
+            }
+        }
+
+        // Wood Stove — normalize Yes/No to form values (count)
+        if (parcelData.woodStove && parcelData.woodStove !== 'None') {
+            const el = document.getElementById('woodStove');
+            if (el) {
+                const raw = String(parcelData.woodStove).toLowerCase();
+                let stoveVal = null;
+                if (raw === 'yes' || raw === 'true' || raw === '1') {
+                    stoveVal = '1';
+                } else if (raw === 'no' || raw === 'false' || raw === '0' || raw === 'none') {
+                    // skip
+                } else if (/^[23]$/.test(raw)) {
+                    stoveVal = raw; // direct numeric match
+                } else {
+                    const match = matchSelectOption(el, parcelData.woodStove);
+                    if (match) stoveVal = match.value;
+                }
+                if (stoveVal) {
+                    el.value = stoveVal;
+                    this.data.woodStove = stoveVal;
+                    this.markAutoFilled(el, 'parcel');
+                    fieldsApplied++;
+                }
+            }
+        }
+
+        // Roof year
+        if (parcelData.roofYr) {
+            const el = document.getElementById('roofYr');
+            if (el) {
+                el.value = parcelData.roofYr;
+                this.data.roofYr = String(parcelData.roofYr);
+                this.markAutoFilled(el, 'parcel');
+                fieldsApplied++;
+            }
+        }
+
+        // Fireplace count
+        if (parcelData.numFireplaces != null && String(parcelData.numFireplaces) !== '') {
+            const el = document.getElementById('numFireplaces');
+            if (el) {
+                const countVal = String(Math.min(Number(parcelData.numFireplaces), 5));
+                const opts = Array.from(el.options).map(o => o.value);
+                if (opts.includes(countVal)) {
+                    el.value = countVal;
+                    this.data.numFireplaces = countVal;
+                    this.markAutoFilled(el, 'parcel');
+                    fieldsApplied++;
+                }
+            }
+        } else if (parcelData.fireplace === 'Yes') {
+            // Fallback: if we only know there IS a fireplace but not how many, record 1
+            const el = document.getElementById('numFireplaces');
+            if (el && (!el.value || el.value === '0')) {
+                el.value = '1';
+                this.data.numFireplaces = '1';
+                this.markAutoFilled(el, 'parcel');
+                fieldsApplied++;
+            }
+        }
+
+        // Owner name (text input — only fill if currently empty)
+        if (parcelData.ownerName) {
+            const el = document.getElementById('ownerName');
+            if (el && !el.value) {
+                el.value = parcelData.ownerName;
+                this.data.ownerName = parcelData.ownerName;
+                this.markAutoFilled(el, 'parcel');
+                fieldsApplied++;
+            }
+        }
+
+        // Parcel ID (text input — only fill if currently empty)
+        if (parcelData.parcelId) {
+            const el = document.getElementById('parcelId');
+            if (el && !el.value) {
+                el.value = parcelData.parcelId;
+                this.data.parcelId = parcelData.parcelId;
+                this.markAutoFilled(el, 'parcel');
+                fieldsApplied++;
             }
         }
 
