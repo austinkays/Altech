@@ -636,7 +636,13 @@ Object.assign(App, {
                 console.warn('[Zillow] No data:', result.error);
                 return null;
             }
-            return { data: result.data, source: result.source, zillowUrl: result.zillowUrl };
+            // Step 9 — log field-level source attribution when present
+            if (result.sources) {
+                Object.entries(result.sources).forEach(([field, src]) => {
+                    if (src) console.log(`[Zillow source] ${field}: ${src}`);
+                });
+            }
+            return { data: result.data, source: result.source, zillowUrl: result.zillowUrl, sources: result.sources || null };
         } catch (e) {
             console.warn('[Zillow] Error:', e.message);
             return null;
@@ -682,33 +688,33 @@ Object.assign(App, {
 
 Search real estate listings, public records, and property databases for this exact property. I need EVERY available construction and feature detail for insurance underwriting.
 
-Return ONLY valid JSON (no markdown, no code fences) with this exact structure:
+Return ONLY valid JSON (no markdown, no code fences) with this exact structure. For each field, return an object with "value" (the data) and "source" (the specific page/listing/record where you found it), or null if not found:
 {
-  "heating": "heating system type (e.g. Forced Air, Baseboard, Heat Pump, Boiler, Radiant, Electric)",
-  "cooling": "cooling system type (e.g. Central Air, Window Units, None)",
-  "roofType": "roof material (e.g. Composition, Asphalt Shingle, Metal, Tile, Wood Shake, Slate)",
-  "roofYearUpdated": year_number_or_null,
-  "foundation": "foundation type (e.g. Crawl Space, Slab, Basement, Pier, Daylight Basement)",
-  "basementFinishPct": percentage_number_or_null,
-  "construction": "construction type (e.g. Wood Frame, Masonry, Brick, Stucco, Log)",
-  "exterior": "exterior wall material (e.g. Vinyl Siding, Wood Siding, Brick, Stucco, Fiber Cement, Hardie, Stone)",
-  "garageType": "Attached or Detached or Built-in or Carport or None",
-  "garageSpaces": number_or_null,
-  "bedrooms": number_or_null,
-  "bathrooms": number_or_null,
-  "yearBuilt": number_or_null,
-  "stories": number_or_null,
-  "livingArea": square_feet_number_or_null,
-  "flooring": "primary flooring (e.g. Hardwood, Carpet, Tile, Laminate, Mixed)",
-  "fireplaces": number_or_null,
-  "sewer": "Public or Septic or null",
-  "waterSource": "Public or Well or null",
-  "pool": "Yes or No or null",
-  "woodStove": "Yes or No or null",
-  "notes": "source of data and confidence level"
+  "heating": {"value": "heating system type (e.g. Forced Air, Baseboard, Heat Pump, Boiler, Radiant, Electric)", "source": "e.g. Zillow Facts & Features"} or null,
+  "cooling": {"value": "cooling system type (e.g. Central Air, Window Units, None)", "source": "source name"} or null,
+  "roofType": {"value": "roof material (e.g. Composition, Asphalt Shingle, Metal, Tile, Wood Shake, Slate)", "source": "source name"} or null,
+  "roofYearUpdated": {"value": year_number, "source": "source name"} or null,
+  "foundation": {"value": "foundation type (e.g. Crawl Space, Slab, Basement, Pier, Daylight Basement)", "source": "source name"} or null,
+  "basementFinishPct": {"value": percentage_number, "source": "source name"} or null,
+  "construction": {"value": "construction type (e.g. Wood Frame, Masonry, Brick, Stucco, Log)", "source": "source name"} or null,
+  "exterior": {"value": "exterior wall material (e.g. Vinyl Siding, Wood Siding, Brick, Stucco, Fiber Cement, Hardie, Stone)", "source": "source name"} or null,
+  "garageType": {"value": "Attached or Detached or Built-in or Carport or None", "source": "source name"} or null,
+  "garageSpaces": {"value": number, "source": "source name"} or null,
+  "bedrooms": {"value": number, "source": "source name"} or null,
+  "bathrooms": {"value": number, "source": "source name"} or null,
+  "yearBuilt": {"value": number, "source": "source name"} or null,
+  "stories": {"value": number, "source": "source name"} or null,
+  "livingArea": {"value": square_feet_number, "source": "source name"} or null,
+  "flooring": {"value": "primary flooring (e.g. Hardwood, Carpet, Tile, Laminate, Mixed)", "source": "source name"} or null,
+  "fireplaces": {"value": number, "source": "source name"} or null,
+  "sewer": {"value": "Public or Septic", "source": "source name"} or null,
+  "waterSource": {"value": "Public or Well", "source": "source name"} or null,
+  "pool": {"value": "Yes or No", "source": "source name"} or null,
+  "woodStove": {"value": "Yes or No", "source": "source name"} or null,
+  "notes": "summary of sources used"
 }
 
-IMPORTANT: Use null for any field you cannot find. Only include data for THIS SPECIFIC address.`;
+IMPORTANT: Return null for ANY field you cannot find explicitly stated in the source data. Never infer, estimate, or use typical values for this property type or neighborhood. Only include data for THIS SPECIFIC address.`;
 
         try {
             const controller = new AbortController();
@@ -744,36 +750,52 @@ IMPORTANT: Use null for any field you cannot find. Only include data for THIS SP
             if (!jsonMatch) return null;
 
             const raw = JSON.parse(jsonMatch[0]);
-            const nonNullKeys = Object.keys(raw).filter(k => raw[k] != null && k !== 'notes');
+
+            // Step 11 — flatten {value, source} objects; backward-compat with plain values
+            const flatRaw = {};
+            const geminiSources = {};
+            for (const [k, v] of Object.entries(raw)) {
+                if (v !== null && v !== undefined && typeof v === 'object' && 'value' in v) {
+                    if (v.source) console.log(`[GeminiProperty source] ${k}: ${v.source}`);
+                    flatRaw[k] = v.value;
+                    if (v.source) geminiSources[k] = v.source;
+                } else {
+                    flatRaw[k] = v;
+                }
+            }
+
+            const nonNullKeys = Object.keys(flatRaw).filter(k => flatRaw[k] != null && k !== 'notes');
             if (nonNullKeys.length < 2) return null;
 
             console.log(`[GeminiProperty] Found ${nonNullKeys.length} fields: ${nonNullKeys.join(', ')}`);
 
             // Map to the format showUnifiedDataPopup expects (same as Zillow data shape)
             const data = {};
-            if (raw.heating) data.heatingType = raw.heating;
-            if (raw.cooling) data.cooling = raw.cooling;
-            if (raw.roofType) data.roofType = raw.roofType;
-            if (raw.foundation) data.foundation = raw.foundation;
-            if (raw.construction) data.constructionStyle = raw.construction;
-            if (raw.exterior) data.exteriorWalls = raw.exterior;
-            if (raw.garageSpaces != null) data.garageSpaces = raw.garageSpaces;
-            if (raw.garageType) data.garageType = raw.garageType;
-            if (raw.bedrooms != null) data.bedrooms = raw.bedrooms;
-            if (raw.bathrooms != null) data.fullBaths = raw.bathrooms;
-            if (raw.yearBuilt != null) { data.yearBuilt = raw.yearBuilt; data.yrBuilt = raw.yearBuilt; }
-            if (raw.stories != null) { data.stories = raw.stories; }
-            if (raw.livingArea != null) { data.totalSqft = raw.livingArea; }
-            if (raw.fireplaces != null) data.numFireplaces = raw.fireplaces;
-            if (raw.roofYearUpdated != null) data.roofYr = raw.roofYearUpdated;
-            if (raw.basementFinishPct != null) data.basementFinishPct = raw.basementFinishPct;
-            if (raw.flooring) data.flooring = raw.flooring;
-            if (raw.sewer) data.sewer = raw.sewer;
-            if (raw.waterSource) data.waterSource = raw.waterSource;
-            if (raw.pool) data.pool = raw.pool;
-            if (raw.woodStove) data.woodStove = raw.woodStove;
+            const sources = {};
+            function mapSrc(rawKey, mappedKey) { if (geminiSources[rawKey]) sources[mappedKey] = geminiSources[rawKey]; }
+            if (flatRaw.heating) { data.heatingType = flatRaw.heating; mapSrc('heating', 'heatingType'); }
+            if (flatRaw.cooling) { data.cooling = flatRaw.cooling; mapSrc('cooling', 'cooling'); }
+            if (flatRaw.roofType) { data.roofType = flatRaw.roofType; mapSrc('roofType', 'roofType'); }
+            if (flatRaw.foundation) { data.foundation = flatRaw.foundation; mapSrc('foundation', 'foundation'); }
+            if (flatRaw.construction) { data.constructionStyle = flatRaw.construction; mapSrc('construction', 'constructionStyle'); }
+            if (flatRaw.exterior) { data.exteriorWalls = flatRaw.exterior; mapSrc('exterior', 'exteriorWalls'); }
+            if (flatRaw.garageSpaces != null) { data.garageSpaces = flatRaw.garageSpaces; mapSrc('garageSpaces', 'garageSpaces'); }
+            if (flatRaw.garageType) { data.garageType = flatRaw.garageType; mapSrc('garageType', 'garageType'); }
+            if (flatRaw.bedrooms != null) { data.bedrooms = flatRaw.bedrooms; mapSrc('bedrooms', 'bedrooms'); }
+            if (flatRaw.bathrooms != null) { data.fullBaths = flatRaw.bathrooms; mapSrc('bathrooms', 'fullBaths'); }
+            if (flatRaw.yearBuilt != null) { data.yearBuilt = flatRaw.yearBuilt; data.yrBuilt = flatRaw.yearBuilt; mapSrc('yearBuilt', 'yearBuilt'); }
+            if (flatRaw.stories != null) { data.stories = flatRaw.stories; mapSrc('stories', 'stories'); }
+            if (flatRaw.livingArea != null) { data.totalSqft = flatRaw.livingArea; mapSrc('livingArea', 'totalSqft'); }
+            if (flatRaw.fireplaces != null) { data.numFireplaces = flatRaw.fireplaces; mapSrc('fireplaces', 'numFireplaces'); }
+            if (flatRaw.roofYearUpdated != null) { data.roofYr = flatRaw.roofYearUpdated; mapSrc('roofYearUpdated', 'roofYr'); }
+            if (flatRaw.basementFinishPct != null) { data.basementFinishPct = flatRaw.basementFinishPct; mapSrc('basementFinishPct', 'basementFinishPct'); }
+            if (flatRaw.flooring) { data.flooring = flatRaw.flooring; mapSrc('flooring', 'flooring'); }
+            if (flatRaw.sewer) { data.sewer = flatRaw.sewer; mapSrc('sewer', 'sewer'); }
+            if (flatRaw.waterSource) { data.waterSource = flatRaw.waterSource; mapSrc('waterSource', 'waterSource'); }
+            if (flatRaw.pool) { data.pool = flatRaw.pool; mapSrc('pool', 'pool'); }
+            if (flatRaw.woodStove) { data.woodStove = flatRaw.woodStove; mapSrc('woodStove', 'woodStove'); }
 
-            return { data, source: 'gemini-direct' };
+            return { data, source: 'gemini-direct', sources: Object.keys(sources).length > 0 ? sources : null };
         } catch (err) {
             console.warn('[GeminiProperty] Error:', err.message);
             return null;
@@ -978,6 +1000,8 @@ IMPORTANT: Use null for any field you cannot find. Only include data for THIS SP
         // Merge data from all sources: ArcGIS (primary) → Zillow (fill gaps) → FireStation
         const merged = {};
         const sources = [];
+        // fieldSources tracks the specific citation for each merged field (for tooltip display)
+        const fieldSources = {};
 
         if (arcgisData && arcgisData.data) {
             Object.assign(merged, arcgisData.data);
@@ -986,30 +1010,38 @@ IMPORTANT: Use null for any field you cannot find. Only include data for THIS SP
 
         if (zillowData && zillowData.data) {
             const zd = zillowData.data;
+            // Collect field-level source attributions from the API response
+            const zSrc = zillowData.sources || {};
             sources.push('Property Listings');
             // Only fill gaps — don't overwrite ArcGIS data
-            if (!merged.heatingType && zd.heatingType) merged.heatingType = zd.heatingType;
-            if (!merged.cooling && zd.cooling) merged.cooling = zd.cooling;
-            if (!merged.roofType && zd.roofType) merged.roofType = zd.roofType;
-            if (!merged.foundationType && zd.foundation) merged.foundationType = zd.foundation;
-            if (!merged.constructionStyle && zd.constructionStyle) merged.constructionStyle = zd.constructionStyle;
-            if (!merged.exteriorWalls && zd.exteriorWalls) merged.exteriorWalls = zd.exteriorWalls;
-            if ((!merged.yearBuilt || merged.yearBuilt === 0) && zd.yearBuilt) merged.yearBuilt = zd.yearBuilt;
-            if ((!merged.stories || merged.stories === 0) && zd.stories) merged.stories = zd.stories;
-            if ((!merged.totalSqft || merged.totalSqft === 0) && zd.totalSqft) merged.totalSqft = zd.totalSqft;
-            if ((!merged.bedrooms || merged.bedrooms === 0) && zd.bedrooms) merged.bedrooms = zd.bedrooms;
-            if ((!merged.bathrooms || merged.bathrooms === 0) && zd.fullBaths) merged.bathrooms = zd.fullBaths;
-            if ((!merged.garageSpaces || merged.garageSpaces === 0) && zd.garageSpaces) merged.garageSpaces = zd.garageSpaces;
+            function mergeZField(mergedKey, zdKey) {
+                if (!merged[mergedKey] && zd[zdKey != null ? zdKey : mergedKey] != null) {
+                    merged[mergedKey] = zd[zdKey != null ? zdKey : mergedKey];
+                    if (zSrc[zdKey != null ? zdKey : mergedKey]) fieldSources[mergedKey] = zSrc[zdKey != null ? zdKey : mergedKey];
+                }
+            }
+            if (!merged.heatingType && zd.heatingType) { merged.heatingType = zd.heatingType; if (zSrc.heatingType) fieldSources.heatingType = zSrc.heatingType; }
+            if (!merged.cooling && zd.cooling) { merged.cooling = zd.cooling; if (zSrc.cooling) fieldSources.cooling = zSrc.cooling; }
+            if (!merged.roofType && zd.roofType) { merged.roofType = zd.roofType; if (zSrc.roofType) fieldSources.roofType = zSrc.roofType; }
+            if (!merged.foundationType && zd.foundation) { merged.foundationType = zd.foundation; if (zSrc.foundation) fieldSources.foundationType = zSrc.foundation; }
+            if (!merged.constructionStyle && zd.constructionStyle) { merged.constructionStyle = zd.constructionStyle; if (zSrc.constructionStyle) fieldSources.constructionStyle = zSrc.constructionStyle; }
+            if (!merged.exteriorWalls && zd.exteriorWalls) { merged.exteriorWalls = zd.exteriorWalls; if (zSrc.exteriorWalls) fieldSources.exteriorWalls = zSrc.exteriorWalls; }
+            if ((!merged.yearBuilt || merged.yearBuilt === 0) && zd.yearBuilt) { merged.yearBuilt = zd.yearBuilt; if (zSrc.yearBuilt) fieldSources.yearBuilt = zSrc.yearBuilt; }
+            if ((!merged.stories || merged.stories === 0) && zd.stories) { merged.stories = zd.stories; if (zSrc.stories) fieldSources.stories = zSrc.stories; }
+            if ((!merged.totalSqft || merged.totalSqft === 0) && zd.totalSqft) { merged.totalSqft = zd.totalSqft; if (zSrc.totalSqft) fieldSources.totalSqft = zSrc.totalSqft; }
+            if ((!merged.bedrooms || merged.bedrooms === 0) && zd.bedrooms) { merged.bedrooms = zd.bedrooms; if (zSrc.bedrooms) fieldSources.bedrooms = zSrc.bedrooms; }
+            if ((!merged.bathrooms || merged.bathrooms === 0) && zd.fullBaths) { merged.bathrooms = zd.fullBaths; if (zSrc.fullBaths) fieldSources.bathrooms = zSrc.fullBaths; }
+            if ((!merged.garageSpaces || merged.garageSpaces === 0) && zd.garageSpaces) { merged.garageSpaces = zd.garageSpaces; if (zSrc.garageSpaces) fieldSources.garageSpaces = zSrc.garageSpaces; }
             if (zd.fireplace) merged.fireplace = zd.fireplace;
-            if (!merged.garageType && zd.garageType) merged.garageType = zd.garageType;
-            if (!merged.flooring && zd.flooring) merged.flooring = zd.flooring;
-            if (!merged.numFireplaces && zd.numFireplaces) merged.numFireplaces = zd.numFireplaces;
-            if (!merged.sewer && zd.sewer) merged.sewer = zd.sewer;
-            if (!merged.waterSource && zd.waterSource) merged.waterSource = zd.waterSource;
-            if (!merged.pool && zd.pool) merged.pool = zd.pool;
-            if (!merged.woodStove && zd.woodStove) merged.woodStove = zd.woodStove;
-            if (!merged.roofYr && zd.roofYr) merged.roofYr = zd.roofYr;
-            if (!merged.basementFinishPct && zd.basementFinishPct) merged.basementFinishPct = zd.basementFinishPct;
+            if (!merged.garageType && zd.garageType) { merged.garageType = zd.garageType; if (zSrc.garageType) fieldSources.garageType = zSrc.garageType; }
+            if (!merged.flooring && zd.flooring) { merged.flooring = zd.flooring; if (zSrc.flooring) fieldSources.flooring = zSrc.flooring; }
+            if (!merged.numFireplaces && zd.numFireplaces) { merged.numFireplaces = zd.numFireplaces; if (zSrc.numFireplaces) fieldSources.numFireplaces = zSrc.numFireplaces; }
+            if (!merged.sewer && zd.sewer) { merged.sewer = zd.sewer; if (zSrc.sewer) fieldSources.sewer = zSrc.sewer; }
+            if (!merged.waterSource && zd.waterSource) { merged.waterSource = zd.waterSource; if (zSrc.waterSource) fieldSources.waterSource = zSrc.waterSource; }
+            if (!merged.pool && zd.pool) { merged.pool = zd.pool; if (zSrc.pool) fieldSources.pool = zSrc.pool; }
+            if (!merged.woodStove && zd.woodStove) { merged.woodStove = zd.woodStove; if (zSrc.woodStove) fieldSources.woodStove = zSrc.woodStove; }
+            if (!merged.roofYr && zd.roofYr) { merged.roofYr = zd.roofYr; if (zSrc.roofYr) fieldSources.roofYr = zSrc.roofYr; }
+            if (!merged.basementFinishPct && zd.basementFinishPct) { merged.basementFinishPct = zd.basementFinishPct; if (zSrc.basementFinishPct) fieldSources.basementFinishPct = zSrc.basementFinishPct; }
         }
 
         if (fireData) {
@@ -1111,9 +1143,27 @@ IMPORTANT: Use null for any field you cannot find. Only include data for THIS SP
         // Only show fields that have data
         const fieldsWithData = fields.filter(f => f.value != null && f.value !== '' && f.value !== 'N/A');
 
+        // Build a label→mergedKey lookup for source attribution tooltips
+        const labelToMergedKey = {
+            'Year Built': 'yearBuilt', 'Stories': 'stories', 'Total Sq Ft': 'totalSqft',
+            'Bedrooms': 'bedrooms', 'Bathrooms': 'bathrooms', 'Garage Type': 'garageType',
+            'Garage Spaces': 'garageSpaces', 'Foundation': 'foundationType', 'Roof Type': 'roofType',
+            'Roof Year': 'roofYr', 'Heating': 'heatingType', 'Cooling': 'cooling',
+            'Construction': 'constructionStyle', 'Exterior': 'exteriorWalls', 'Flooring': 'flooring',
+            'Fireplaces': 'numFireplaces', 'Sewer': 'sewer', 'Water': 'waterSource',
+            'Pool': 'pool', 'Wood Stove': 'woodStove',
+        };
+
         fieldsWithData.forEach(field => {
+            const mergedKey = labelToMergedKey[field.label];
+            const citedSource = mergedKey ? fieldSources[mergedKey] : null;
+
             const box = document.createElement('div');
-            box.style.cssText = 'background: #f5f5f5; padding: 10px; border-radius: 6px;';
+            box.style.cssText = 'background: #f5f5f5; padding: 10px; border-radius: 6px; position: relative;';
+            if (citedSource) {
+                box.title = `Source: ${citedSource}`;
+                box.style.cursor = 'help';
+            }
 
             const label = document.createElement('div');
             label.style.cssText = 'font-size: 11px; color: #999; text-transform: uppercase; margin-bottom: 3px;';
@@ -1125,6 +1175,15 @@ IMPORTANT: Use null for any field you cannot find. Only include data for THIS SP
 
             box.appendChild(label);
             box.appendChild(value);
+
+            // Source citation chip — shown below value when field has explicit attribution
+            if (citedSource) {
+                const srcChip = document.createElement('div');
+                srcChip.style.cssText = 'font-size: 10px; color: #6f42c1; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+                srcChip.textContent = `✓ ${citedSource}`;
+                box.appendChild(srcChip);
+            }
+
             grid.appendChild(box);
         });
 
