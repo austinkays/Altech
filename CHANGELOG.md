@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(app-property): Phase 2 Rentcast merge fix — `showUnifiedDataPopup()` in `js/app-property.js`** (March 20, 2026):
+  - Deleted unused `mergeZField` helper (was never called)
+  - Fixed "Unknown" blocking: 7 merge conditions now use `(!merged[key] || merged[key] === 'Unknown')` so Rentcast wins when ArcGIS returns `"Unknown"` — `heatingType`, `cooling`, `roofType`, `foundationType`, `constructionStyle`, `exteriorWalls`, `garageType`
+  - Added 5 new merge entries for Rentcast fields: `lotSizeAcres` (converted from `lotSize` ÷ 43560, 2 decimal places), `architectureType`, `fireplaceType`, `hoaFee`, `viewType`
+  - Added 4 display cards in the data grid: Architecture, Fireplace Type, HOA Fee (`$X/mo`), View
+  - Wired `labelToMergedKey` entries for all 4 new display cards
+  - Tests: 26 suites / 1672 tests — all green
+
+### Added
 - **feat(property-intelligence): 4 new Rentcast field mappings in `fetchRentcastData()`** (March 20, 2026):
   - `api/property-intelligence.js` — `fetchRentcastData()` only; no other functions touched
   - `architectureType` — from `f.architectureType` (e.g. `"Ranch"`, `"Split Level"`, `"Colonial"`)

@@ -1014,18 +1014,12 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             const zSrc = zillowData.sources || {};
             sources.push('Property Listings');
             // Only fill gaps — don't overwrite ArcGIS data
-            function mergeZField(mergedKey, zdKey) {
-                if (!merged[mergedKey] && zd[zdKey != null ? zdKey : mergedKey] != null) {
-                    merged[mergedKey] = zd[zdKey != null ? zdKey : mergedKey];
-                    if (zSrc[zdKey != null ? zdKey : mergedKey]) fieldSources[mergedKey] = zSrc[zdKey != null ? zdKey : mergedKey];
-                }
-            }
-            if (!merged.heatingType && zd.heatingType) { merged.heatingType = zd.heatingType; if (zSrc.heatingType) fieldSources.heatingType = zSrc.heatingType; }
-            if (!merged.cooling && zd.cooling) { merged.cooling = zd.cooling; if (zSrc.cooling) fieldSources.cooling = zSrc.cooling; }
-            if (!merged.roofType && zd.roofType) { merged.roofType = zd.roofType; if (zSrc.roofType) fieldSources.roofType = zSrc.roofType; }
-            if (!merged.foundationType && zd.foundation) { merged.foundationType = zd.foundation; if (zSrc.foundation) fieldSources.foundationType = zSrc.foundation; }
-            if (!merged.constructionStyle && zd.constructionStyle) { merged.constructionStyle = zd.constructionStyle; if (zSrc.constructionStyle) fieldSources.constructionStyle = zSrc.constructionStyle; }
-            if (!merged.exteriorWalls && zd.exteriorWalls) { merged.exteriorWalls = zd.exteriorWalls; if (zSrc.exteriorWalls) fieldSources.exteriorWalls = zSrc.exteriorWalls; }
+            if ((!merged.heatingType || merged.heatingType === 'Unknown') && zd.heatingType) { merged.heatingType = zd.heatingType; if (zSrc.heatingType) fieldSources.heatingType = zSrc.heatingType; }
+            if ((!merged.cooling || merged.cooling === 'Unknown') && zd.cooling) { merged.cooling = zd.cooling; if (zSrc.cooling) fieldSources.cooling = zSrc.cooling; }
+            if ((!merged.roofType || merged.roofType === 'Unknown') && zd.roofType) { merged.roofType = zd.roofType; if (zSrc.roofType) fieldSources.roofType = zSrc.roofType; }
+            if ((!merged.foundationType || merged.foundationType === 'Unknown') && zd.foundation) { merged.foundationType = zd.foundation; if (zSrc.foundation) fieldSources.foundationType = zSrc.foundation; }
+            if ((!merged.constructionStyle || merged.constructionStyle === 'Unknown') && zd.constructionStyle) { merged.constructionStyle = zd.constructionStyle; if (zSrc.constructionStyle) fieldSources.constructionStyle = zSrc.constructionStyle; }
+            if ((!merged.exteriorWalls || merged.exteriorWalls === 'Unknown') && zd.exteriorWalls) { merged.exteriorWalls = zd.exteriorWalls; if (zSrc.exteriorWalls) fieldSources.exteriorWalls = zSrc.exteriorWalls; }
             if ((!merged.yearBuilt || merged.yearBuilt === 0) && zd.yearBuilt) { merged.yearBuilt = zd.yearBuilt; if (zSrc.yearBuilt) fieldSources.yearBuilt = zSrc.yearBuilt; }
             if ((!merged.stories || merged.stories === 0) && zd.stories) { merged.stories = zd.stories; if (zSrc.stories) fieldSources.stories = zSrc.stories; }
             if ((!merged.totalSqft || merged.totalSqft === 0) && zd.totalSqft) { merged.totalSqft = zd.totalSqft; if (zSrc.totalSqft) fieldSources.totalSqft = zSrc.totalSqft; }
@@ -1033,7 +1027,7 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             if ((!merged.bathrooms || merged.bathrooms === 0) && zd.fullBaths) { merged.bathrooms = zd.fullBaths; if (zSrc.fullBaths) fieldSources.bathrooms = zSrc.fullBaths; }
             if ((!merged.garageSpaces || merged.garageSpaces === 0) && zd.garageSpaces) { merged.garageSpaces = zd.garageSpaces; if (zSrc.garageSpaces) fieldSources.garageSpaces = zSrc.garageSpaces; }
             if (zd.fireplace) merged.fireplace = zd.fireplace;
-            if (!merged.garageType && zd.garageType) { merged.garageType = zd.garageType; if (zSrc.garageType) fieldSources.garageType = zSrc.garageType; }
+            if ((!merged.garageType || merged.garageType === 'Unknown') && zd.garageType) { merged.garageType = zd.garageType; if (zSrc.garageType) fieldSources.garageType = zSrc.garageType; }
             if (!merged.flooring && zd.flooring) { merged.flooring = zd.flooring; if (zSrc.flooring) fieldSources.flooring = zSrc.flooring; }
             if (!merged.numFireplaces && zd.numFireplaces) { merged.numFireplaces = zd.numFireplaces; if (zSrc.numFireplaces) fieldSources.numFireplaces = zSrc.numFireplaces; }
             if (!merged.sewer && zd.sewer) { merged.sewer = zd.sewer; if (zSrc.sewer) fieldSources.sewer = zSrc.sewer; }
@@ -1042,6 +1036,11 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             if (!merged.woodStove && zd.woodStove) { merged.woodStove = zd.woodStove; if (zSrc.woodStove) fieldSources.woodStove = zSrc.woodStove; }
             if (!merged.roofYr && zd.roofYr) { merged.roofYr = zd.roofYr; if (zSrc.roofYr) fieldSources.roofYr = zSrc.roofYr; }
             if (!merged.basementFinishPct && zd.basementFinishPct) { merged.basementFinishPct = zd.basementFinishPct; if (zSrc.basementFinishPct) fieldSources.basementFinishPct = zSrc.basementFinishPct; }
+            if (!merged.lotSizeAcres && zd.lotSize) { merged.lotSizeAcres = Math.round(zd.lotSize / 43560 * 100) / 100; fieldSources.lotSizeAcres = zSrc.lotSize || 'Rentcast'; }
+            if (!merged.architectureType && zd.architectureType) { merged.architectureType = zd.architectureType; if (zSrc.architectureType) fieldSources.architectureType = zSrc.architectureType; }
+            if (!merged.fireplaceType && zd.fireplaceType) { merged.fireplaceType = zd.fireplaceType; if (zSrc.fireplaceType) fieldSources.fireplaceType = zSrc.fireplaceType; }
+            if (!merged.hoaFee && zd.hoaFee) { merged.hoaFee = zd.hoaFee; if (zSrc.hoaFee) fieldSources.hoaFee = zSrc.hoaFee; }
+            if (!merged.viewType && zd.viewType) { merged.viewType = zd.viewType; if (zSrc.viewType) fieldSources.viewType = zSrc.viewType; }
         }
 
         if (fireData) {
@@ -1127,6 +1126,10 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             { label: 'Pool', value: merged.pool && merged.pool !== 'None' ? merged.pool : null },
             { label: 'Wood Stove', value: merged.woodStove && merged.woodStove !== 'None' ? merged.woodStove : null },
             { label: 'Land Use', value: merged.landUse || null },
+            { label: 'Architecture', value: merged.architectureType || null },
+            { label: 'Fireplace Type', value: merged.fireplaceType || null },
+            { label: 'HOA Fee', value: merged.hoaFee ? `$${merged.hoaFee}/mo` : null },
+            { label: 'View', value: merged.viewType || null },
         ];
 
         // Add fire station fields if available
@@ -1152,6 +1155,8 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             'Construction': 'constructionStyle', 'Exterior': 'exteriorWalls', 'Flooring': 'flooring',
             'Fireplaces': 'numFireplaces', 'Sewer': 'sewer', 'Water': 'waterSource',
             'Pool': 'pool', 'Wood Stove': 'woodStove',
+            'Architecture': 'architectureType', 'Fireplace Type': 'fireplaceType',
+            'HOA Fee': 'hoaFee', 'View': 'viewType',
         };
 
         fieldsWithData.forEach(field => {
