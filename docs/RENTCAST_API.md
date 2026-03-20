@@ -115,12 +115,12 @@ const prop = data[0]; // first result
 
 | Field | Type | Altech mapped key | Notes |
 |-------|------|-------------------|-------|
-| `features.architectureType` | string | — | Not mapped. See enum values below |
+| `features.architectureType` | string | `architectureType` | ✅ mapped |
 | `features.cooling` | boolean | — | Presence flag only |
 | `features.coolingType` | string | `cooling` | ✅ mapped. e.g. `"Central"` |
 | `features.exteriorType` | string | `exteriorWalls` | ✅ mapped (renamed) |
 | `features.fireplace` | boolean | — | Presence flag only |
-| `features.fireplaceType` | string | — | ⚠️ Not a count — string like `"Masonry"` |
+| `features.fireplaceType` | string | `fireplaceType` | ✅ mapped. e.g. `"Masonry"`, `"Gas Log"` |
 | `features.floorCount` | number | `stories` | ✅ **USE THIS for stories** (Bug 1 fix) |
 | `features.foundationType` | string | `foundationType` | ✅ mapped |
 | `features.garage` | boolean | — | Presence flag only |
@@ -133,7 +133,7 @@ const prop = data[0]; // first result
 | `features.roofType` | string | `roofType` | ✅ mapped |
 | `features.roomCount` | number | — | Total interior rooms |
 | `features.unitCount` | number | — | Units in building |
-| `features.viewType` | string | — | Not mapped |
+| `features.viewType` | string | `viewType` | ✅ mapped. Watch for `"Waterfront"`, `"Flood Plain"` |
 | ~~`features.flooring`~~ | — | — | ❌ DOES NOT EXIST in Rentcast (Bug 2) |
 | ~~`features.stories`~~ | — | — | ❌ DOES NOT EXIST in Rentcast (Bug 1) |
 
@@ -141,7 +141,7 @@ const prop = data[0]; // first result
 
 | Object | Contents | Use case |
 |--------|----------|----------|
-| `hoa.fee` | Monthly HOA amount | Not currently used |
+| `hoa.fee` | Monthly HOA amount | ✅ mapped → `hoaFee` |
 | `taxAssessments[YYYY]` | `year`, `value`, `land`, `improvements` | Not currently used |
 | `propertyTaxes[YYYY]` | `year`, `total` | Not currently used |
 | `history[YYYY-MM-DD]` | `event`, `date`, `price` | Sale history — not currently used |
