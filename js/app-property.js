@@ -500,6 +500,22 @@ Object.assign(App, {
             }
         }
 
+        // ── Rentcast usage check ──────────────────────────────────
+        const { count: _rentcastCount } = await this._getRentcastCounter();
+        this._updateRentcastDisplay(_rentcastCount);
+        let _skipRentcast = false;
+        if (_rentcastCount >= 50) {
+            const _choice = await this._showRentcastOverageModal(_rentcastCount);
+            if (_choice === 'skip') {
+                _skipRentcast = true;
+            } else {
+                await this._logRentcastOverage(
+                    `${address}, ${city}, ${state} ${zip}`.trim(),
+                    _rentcastCount
+                );
+            }
+        }
+
         try {
             btn.disabled = true;
             btn.innerHTML = '🔄 Gathering property data from all sources...';
@@ -507,13 +523,20 @@ Object.assign(App, {
             // Fire ALL enrichment sources in parallel
             const [arcgisResult, zillowResult, fireStationResult] = await Promise.allSettled([
                 this.fetchArcgisAndRag(address, city, state, county),
-                this.fetchZillowData(address, city, state, zip),
+                _skipRentcast ? Promise.resolve(null) : this.fetchZillowData(address, city, state, zip),
                 this.fetchFireStationData(address, city, state, zip)
             ]);
 
             let arcgisData = arcgisResult.status === 'fulfilled' ? arcgisResult.value : null;
             let zillowData = zillowResult.status === 'fulfilled' ? zillowResult.value : null;
             const fireData = fireStationResult.status === 'fulfilled' ? fireStationResult.value : null;
+
+            // Increment counter and update display on confirmed Rentcast hit
+            if (zillowData?.source === 'Rentcast') {
+                await this._incrementRentcastCounter();
+                const { count: _newCount } = await this._getRentcastCounter();
+                this._updateRentcastDisplay(_newCount);
+            }
 
             console.log('[SmartFill] Results:', {
                 arcgis: arcgisData ? arcgisData.source : 'none',
@@ -2128,6 +2151,182 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         } else {
             // Generic Google search for county GIS
             window.open(`https://www.google.com/search?q=${city}+${state}+county+gis+assessor+property+search`, '_blank');
+        }
+    },
+
+    // ── Rentcast Usage Counter ────────────────────────────────────────────────
+
+    /**
+     * Returns { count, resetDate } for the current billing month from Firestore.
+     * Returns { count: 0, resetDate } when no doc exists yet or in test environments.
+     */
+    async _getRentcastCounter() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const monthKey = `${year}-${month}`;
+        const resetDate = `${year}-${month}-01`;
+        try {
+            const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
+            const db = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
+            if (!uid || !db) return { count: 0, resetDate };
+            const doc = await db.collection('users').doc(uid)
+                .collection('rentcast_usage').doc(monthKey).get();
+            if (!doc.exists) return { count: 0, resetDate };
+            const data = doc.data();
+            return { count: data.count || 0, resetDate: data.resetDate || resetDate };
+        } catch (e) {
+            console.warn('[RentcastCounter] Failed to read counter:', e.message);
+            return { count: 0, resetDate };
+        }
+    },
+
+    /**
+     * Atomically increments the current month's Rentcast usage counter in Firestore.
+     * No-op in test environments where Firebase is not available.
+     */
+    async _incrementRentcastCounter() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const monthKey = `${year}-${month}`;
+        const resetDate = `${year}-${month}-01`;
+        try {
+            const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
+            const db = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
+            if (!uid || !db) return;
+            await db.collection('users').doc(uid)
+                .collection('rentcast_usage').doc(monthKey)
+                .set({
+                    count: firebase.firestore.FieldValue.increment(1),
+                    resetDate
+                }, { merge: true });
+        } catch (e) {
+            console.warn('[RentcastCounter] Failed to increment:', e.message);
+        }
+    },
+
+    /**
+     * Updates the #rentcastUsageDisplay element with remaining / over-limit text.
+     * No-op if the element is not present in the DOM.
+     */
+    _updateRentcastDisplay(count) {
+        const el = document.getElementById('rentcastUsageDisplay');
+        if (!el) return;
+        const now = new Date();
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        const resetLabel = nextMonth.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+        const remaining = Math.max(0, 50 - count);
+        if (count < 50) {
+            el.innerHTML =
+                `<span>${remaining} of 50 Rentcast lookups remaining</span><br>` +
+                `<span style="color:var(--text-tertiary)">Resets ${resetLabel}</span>`;
+        } else {
+            const over = count - 50;
+            el.innerHTML =
+                `<span class="rentcast-over">0 remaining (${over > 0 ? over + ' over limit' : 'limit reached'})</span><br>` +
+                `<span style="color:var(--text-tertiary)">Resets ${resetLabel}</span>`;
+        }
+    },
+
+    /**
+     * Shows a non-blocking overage confirmation modal.
+     * Returns a Promise that resolves to 'proceed' or 'skip'.
+     */
+    _showRentcastOverageModal(currentCount) {
+        return new Promise(resolve => {
+            const over = currentCount - 50;
+            const overlay = document.createElement('div');
+            overlay.style.cssText = [
+                'position:fixed', 'top:0', 'left:0', 'width:100%', 'height:100%',
+                'background:rgba(0,0,0,0.6)', 'display:flex', 'align-items:center',
+                'justify-content:center', 'z-index:10001'
+            ].join(';');
+
+            const box = document.createElement('div');
+            box.style.cssText = [
+                'background:var(--bg-card)', 'border:1px solid var(--border)',
+                'border-radius:14px', 'padding:24px 28px', 'max-width:400px', 'width:90%',
+                'box-shadow:0 8px 40px var(--shadow)', 'font-family:system-ui,sans-serif'
+            ].join(';');
+
+            const title = document.createElement('h3');
+            title.textContent = '⚠️ Rentcast Limit Reached';
+            title.style.cssText = 'margin:0 0 12px 0;color:var(--danger);font-size:16px;';
+
+            const msg = document.createElement('p');
+            msg.textContent = `You've used all 50 free Rentcast lookups this month${over > 0 ? ' (' + over + ' over limit)' : ''}. Additional lookups cost ~$0.50 each. Run anyway or skip Rentcast and use AI only?`;
+            msg.style.cssText = 'margin:0 0 20px 0;color:var(--text);font-size:14px;line-height:1.5;';
+
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex;gap:10px;';
+
+            const proceedBtn = document.createElement('button');
+            proceedBtn.textContent = 'Run anyway (+$0.50)';
+            proceedBtn.style.cssText = [
+                'flex:1', 'padding:10px', 'background:var(--apple-blue)', 'color:#fff',
+                'border:none', 'border-radius:8px', 'font-weight:600', 'cursor:pointer',
+                'font-size:13px'
+            ].join(';');
+            proceedBtn.onclick = () => { overlay.remove(); resolve('proceed'); };
+
+            const skipBtn = document.createElement('button');
+            skipBtn.textContent = 'Use AI only';
+            skipBtn.style.cssText = [
+                'flex:1', 'padding:10px', 'background:var(--bg-input)', 'color:var(--text)',
+                'border:1px solid var(--border)', 'border-radius:8px', 'font-weight:600',
+                'cursor:pointer', 'font-size:13px'
+            ].join(';');
+            skipBtn.onclick = () => { overlay.remove(); resolve('skip'); };
+
+            btnRow.appendChild(proceedBtn);
+            btnRow.appendChild(skipBtn);
+            box.appendChild(title);
+            box.appendChild(msg);
+            box.appendChild(btnRow);
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+        });
+    },
+
+    /**
+     * Writes a permanent consent record to Firestore when user approves an overage lookup.
+     * No-op in test environments. These records must never be deleted.
+     */
+    async _logRentcastOverage(address, currentCount) {
+        try {
+            const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
+            const db = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
+            if (!uid || !db) return;
+            const timestamp = new Date().toISOString();
+            const docId = timestamp.replace(/[:.]/g, '-');
+            const email = (typeof firebase !== 'undefined' && firebase.auth().currentUser?.email) || 'unknown';
+            await db.collection('users').doc(uid)
+                .collection('rentcast_overage_log').doc(docId)
+                .set({
+                    timestamp,
+                    address,
+                    monthlyCount: currentCount,
+                    approvedBy: email,
+                    action: 'approved_overage'
+                });
+        } catch (e) {
+            console.warn('[RentcastCounter] Failed to log overage:', e.message);
+        }
+    },
+
+    /**
+     * Called when the property step (step-3) becomes visible.
+     * Reads current month counter from Firestore and populates the display.
+     */
+    async initPropertyStepUI() {
+        const el = document.getElementById('rentcastUsageDisplay');
+        if (!el) return;
+        try {
+            const { count } = await this._getRentcastCounter();
+            this._updateRentcastDisplay(count);
+        } catch (e) {
+            // Silently fail — display remains empty until next Smart Scan click
         }
     },
 

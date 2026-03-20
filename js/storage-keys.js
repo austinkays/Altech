@@ -44,4 +44,12 @@ window.STORAGE_KEYS = Object.freeze({
     ENCRYPTION_SALT:        'altech_encryption_salt', // PBKDF2 salt — never sync
     SYNC_META:              'altech_sync_meta',
     GEMINI_KEY:             'gemini_api_key',
+
+    // ── Firestore-only paths (not localStorage) ─────────────────────────────────
+    // These are Firestore document paths written directly — NOT localStorage keys.
+    // RENTCAST_USAGE:      users/{uid}/rentcast_usage/{YYYY-MM}
+    //   Fields: { count: number, resetDate: "YYYY-MM-01" }
+    // RENTCAST_OVERAGE_LOG: users/{uid}/rentcast_overage_log/{ISO-timestamp}
+    //   Fields: { timestamp, address, monthlyCount, approvedBy, action: "approved_overage" }
+    //   These records are permanent and must never be deleted.
 });

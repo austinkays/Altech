@@ -69,7 +69,12 @@ Object.assign(App, {
             this.renderVehicles();
             this.saveDriversVehicles();
         }
-        
+
+        // Load Rentcast usage counter when property step is visible
+        if (curId === 'step-3' && typeof this.initPropertyStepUI === 'function') {
+            this.initPropertyStepUI();
+        }
+
         // Render client history on Quick Start page
         if (curId === 'step-0') {
             this.renderStep0ClientHistory();

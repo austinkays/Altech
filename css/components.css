@@ -1782,6 +1782,20 @@ body.dark-mode [style*="background: #e3f2fd"] { background: rgba(0,122,255,0.1) 
 body.dark-mode [style*="background: #fff3e0"] { background: rgba(255,149,0,0.1) !important; }
 body.dark-mode [style*="background: #f3e5f5"] { background: rgba(124,58,237,0.1) !important; }
 
+/* ── Rentcast usage hint (below Smart Scan button) ─────────────────────── */
+.rentcast-usage-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    text-align: center;
+    line-height: 1.5;
+    min-height: 32px; /* prevent layout shift before counter loads */
+}
+.rentcast-usage-hint .rentcast-over {
+    color: var(--danger);
+    font-weight: 600;
+}
+
 /* === DARK MODE: BADGES & STATUS INDICATORS === */
 body.dark-mode .badge-home { color: #6ee7b7; }
 body.dark-mode .badge-auto { color: #93c5fd; }
