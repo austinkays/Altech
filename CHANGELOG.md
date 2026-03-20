@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(property-intelligence): 4 new Rentcast field mappings in `fetchRentcastData()`** (March 20, 2026):
+  - `api/property-intelligence.js` — `fetchRentcastData()` only; no other functions touched
+  - `architectureType` — from `f.architectureType` (e.g. `"Ranch"`, `"Split Level"`, `"Colonial"`)
+  - `hoaFee` — from `p.hoa?.fee` (monthly HOA amount — top-level object, not in features)
+  - `fireplaceType` — from `f.fireplaceType` (string e.g. `"Masonry"`, `"Gas Log"`, `"Prefab"`)
+  - `viewType` — from `f.viewType` (underwriting flags: `"Waterfront"`, `"Flood Plain"`, `"Flood Zone"`)
+  - All 4 keys counted automatically by the dynamic `fieldsFound` array (no separate change needed)
+  - Tests: 26 suites / 1672 tests — all green
+
 ### Fixed
 - **fix(property-intelligence): Rentcast field mapping — 10 bugs corrected in `fetchRentcastData()`** (March 20, 2026):
   - `api/property-intelligence.js` — `fetchRentcastData()` only; no other functions touched

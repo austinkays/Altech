@@ -1067,6 +1067,10 @@ async function fetchRentcastData(address, city, state, zip) {
   if (f.pool != null)            mapped.pool            = f.pool === true ? 'Yes' : f.pool === false ? 'No' : null;
   if (f.sewer != null)           mapped.sewer           = f.sewer;
   if (f.waterSource != null)     mapped.waterSource     = f.waterSource;
+  if (f.architectureType != null) mapped.architectureType = f.architectureType;
+  if (p.hoa?.fee != null)         mapped.hoaFee           = p.hoa.fee;
+  if (f.fireplaceType != null)    mapped.fireplaceType    = f.fireplaceType;
+  if (f.viewType != null)         mapped.viewType         = f.viewType;
   // Bug 2 fix: removed f.flooring — field does not exist in Rentcast schema; Gemini handles flooring
   // Bug 3 fix: removed f.fireplaces — no numeric count field; Rentcast has features.fireplace (bool) + fireplaceType (string)
 
