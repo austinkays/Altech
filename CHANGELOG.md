@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(property-intelligence): Rentcast field mapping — 10 bugs corrected in `fetchRentcastData()`** (March 20, 2026):
+  - `api/property-intelligence.js` — `fetchRentcastData()` only; no other functions touched
+  - Bug 1: `p.stories` → `f.floorCount` (`stories` doesn't exist at Rentcast top-level; correct path is `features.floorCount`)
+  - Bug 2: Removed `f.flooring` mapping entirely — field does not exist in Rentcast schema; Gemini fallback handles flooring
+  - Bug 3: Removed `f.fireplaces` → `numFireplaces` mapping — Rentcast has `features.fireplace` (bool) and `features.fireplaceType` (string), not a numeric count
+  - Bug 4: `f.heating` → `f.heatingType` (`features.heating` is a boolean presence flag; `features.heatingType` is the string value)
+  - Bug 5: `f.cooling` → `f.coolingType` (same — boolean flag vs. string value)
+  - Bug 6: `f.exteriorWalls` → `f.exteriorType` (Rentcast field is `features.exteriorType`, not `exteriorWalls`)
+  - Bug 7: `f.foundation` → `f.foundationType` (Rentcast field is `features.foundationType`, not `foundation`)
+  - Bug 8: `p.garageType` → `f.garageType` (`garageType` is in `features`, not at top-level)
+  - Bug 9: `p.garageSpaces` → `f.garageSpaces` (`garageSpaces` is in `features`, not at top-level)
+  - Bug 10: `p.roofType` → `f.roofType` (`roofType` is in `features`, not at top-level)
+  - Tests: 26 suites / 1672 tests — all green
+
 ### Changed
 - **feat(property): Rentcast/Gemini source attribution — Phase 3** (March 20, 2026):
   - `js/app-property.js` — `fetchZillowData()`: logs field-level source citations from `result.sources` and passes them through to callers (`sources` key on return object)

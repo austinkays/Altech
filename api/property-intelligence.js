@@ -1055,20 +1055,20 @@ async function fetchRentcastData(address, city, state, zip) {
   if (p.squareFootage != null)   mapped.totalSqft       = p.squareFootage;
   if (p.bedrooms != null)        mapped.bedrooms        = p.bedrooms;
   if (p.bathrooms != null)       mapped.fullBaths       = p.bathrooms;
-  if (p.stories != null)         mapped.stories         = p.stories;
-  if (p.garageType != null)      mapped.garageType      = p.garageType;
-  if (p.garageSpaces != null)    mapped.garageSpaces    = p.garageSpaces;
-  if (p.roofType != null)        mapped.roofType        = p.roofType;
+  if (f.floorCount != null)      mapped.stories         = f.floorCount;       // Bug 1 fix: was p.stories (doesn't exist top-level)
+  if (f.garageType != null)      mapped.garageType      = f.garageType;       // Bug 8 fix: was p.garageType (field is in features)
+  if (f.garageSpaces != null)    mapped.garageSpaces    = f.garageSpaces;     // Bug 9 fix: was p.garageSpaces (field is in features)
+  if (f.roofType != null)        mapped.roofType        = f.roofType;         // Bug 10 fix: was p.roofType (field is in features)
   if (p.lotSize != null)         mapped.lotSize         = p.lotSize;
-  if (f.heating != null)         mapped.heatingType     = f.heating;
-  if (f.cooling != null)         mapped.cooling         = f.cooling;
-  if (f.exteriorWalls != null)   mapped.exteriorWalls   = f.exteriorWalls;
-  if (f.foundation != null)      mapped.foundationType  = f.foundation;
+  if (f.heatingType != null)     mapped.heatingType     = f.heatingType;      // Bug 4 fix: was f.heating (boolean flag)
+  if (f.coolingType != null)     mapped.cooling         = f.coolingType;      // Bug 5 fix: was f.cooling (boolean flag)
+  if (f.exteriorType != null)    mapped.exteriorWalls   = f.exteriorType;     // Bug 6 fix: was f.exteriorWalls (field is exteriorType)
+  if (f.foundationType != null)  mapped.foundationType  = f.foundationType;  // Bug 7 fix: was f.foundation (field is foundationType)
   if (f.pool != null)            mapped.pool            = f.pool === true ? 'Yes' : f.pool === false ? 'No' : null;
   if (f.sewer != null)           mapped.sewer           = f.sewer;
   if (f.waterSource != null)     mapped.waterSource     = f.waterSource;
-  if (f.flooring != null)        mapped.flooring        = f.flooring;
-  if (f.fireplaces != null)      mapped.numFireplaces   = f.fireplaces;
+  // Bug 2 fix: removed f.flooring — field does not exist in Rentcast schema; Gemini handles flooring
+  // Bug 3 fix: removed f.fireplaces — no numeric count field; Rentcast has features.fireplace (bool) + fireplaceType (string)
 
   // Remove null values introduced by the pool conditional
   Object.keys(mapped).forEach(k => { if (mapped[k] === null) delete mapped[k]; });
