@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(app-property): Tabbed property modal with Rentcast/AI Search source detection** (March 20, 2026):
+  - `showUnifiedDataPopup()` in `js/app-property.js` — replaced single merged grid with a 4-tab layout: **✦ Summary** / **🏛 County** / **📊 Rentcast** or **🏠 AI Search** / **🚒 Fire / PC** (tabs only appear when that source has data)
+  - Fixed source label: `sources.push('Property Listings')` → detects `zillowData.source === 'Rentcast'` and pushes `'Rentcast'` or `'AI Search'` accordingly
+  - Source badge colors: Rentcast = green `#0d7a4e` (📊), AI Search = purple `#6f42c1` (🏠)
+  - County tab shows raw ArcGIS parcel dump; Listings tab shows raw Rentcast/Gemini fields with per-field `✓` attribution chips; Fire tab shows station name/distance/PC/station type (Career ✅ / Volunteer 🟡 / Review ⚠️)
+  - Summary tab and "Use This Data" button behavior unchanged
+  - Modal widened from `max-width: 520px` to `max-width: 600px`
+  - Helper functions: `buildGrid()`, `rawToFields()` (camelCase key auto-labeling), `camelToLabel()`
+  - Tests: 26 suites / 1672 tests — all green
+
 ### Fixed
 - **fix(app-property): Map all property API fields to intake form + fix stories merge priority** (March 28, 2026):
   - `applyParcelData()`: added 13 previously unmapped fields — `exteriorWalls`, `garageType`, `cooling`, `roofShape`, `flooring`, `sewer`, `waterSource`, `dwellingType`, `pool`, `woodStove`, `roofYr`, `numFireplaces`, `ownerName`, `parcelId`
