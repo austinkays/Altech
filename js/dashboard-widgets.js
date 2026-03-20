@@ -382,7 +382,7 @@ window.DashboardWidgets = (() => {
         // Build policy list HTML when there are flagged policies
         let policyListHtml = '';
         if (flaggedPolicies.length > 0) {
-            const rows = flaggedPolicies.slice(0, 10).map(p => {
+            const rows = flaggedPolicies.map(p => {
                 const rawName = _escapeHTML(p.clientName || p.businessName || p.insuredName || p.namedInsured || 'Unknown Insured');
                 const hsId = p.hawksoftId || p.clientNumber;
                 let nameHtml;
@@ -409,9 +409,7 @@ window.DashboardWidgets = (() => {
                     <div class="compliance-policy-exp ${p.severity}">${_escapeHTML(daysText)}</div>
                 </div>`;
             }).join('');
-            const moreCount = flaggedPolicies.length > 10 ? flaggedPolicies.length - 10 : 0;
-            const moreHtml = moreCount > 0 ? `<div class="compliance-policy-more">+${moreCount} more — <a href="#" onclick="event.preventDefault(); App.navigateTo('compliance')">View all</a></div>` : '';
-            policyListHtml = `<div class="compliance-policy-list">${rows}${moreHtml}</div>`;
+            policyListHtml = `<div class="compliance-policy-list">${rows}</div>`;
         } else if (totalPolicies === 0) {
             policyListHtml = `<div class="widget-empty">
                 <div class="widget-empty-icon">${icon('shieldCheck', 32)}</div>
@@ -567,7 +565,10 @@ window.DashboardWidgets = (() => {
 
         container.innerHTML = `
             <div class="widget-header">
-                <div class="widget-title">${icon('arrowRight', 16)} More Tools</div>
+                <button class="widget-title quick-launch-toggle" onclick="this.closest('.widget-quick-launch').classList.toggle('is-open')" aria-expanded="false" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:0;color:inherit;font:inherit;width:100%;">
+                    ${icon('arrowRight', 16)} More Tools
+                    <span class="toggle-chevron" style="margin-left:auto;display:flex;align-items:center;">${icon('chevronRight', 14)}</span>
+                </button>
             </div>
             <div class="quick-launch-strip">${itemsHtml}</div>`;
     }

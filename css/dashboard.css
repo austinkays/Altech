@@ -60,10 +60,10 @@ body.dark-mode .dashboard-view::after {
 .dashboard-greeting {
     position: relative;
     z-index: 1;
-    margin-bottom: 24px;
+    margin-bottom: 14px;
 }
 .dashboard-greeting h1 {
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 700;
     color: var(--text);
     margin: 0 0 4px;
@@ -181,11 +181,13 @@ body.dark-mode .widget-card:hover {
    Widget 1: Reminders (Hero — 6col × 2row)
    ═══════════════════════════════════════ */
 .widget-reminders {
-    grid-column: span 6;
+    grid-column: span 5;
     grid-row: span 2;
     display: flex;
     flex-direction: column;
-    max-height: calc(100dvh - var(--header-height) - 220px);
+    max-height: calc(100dvh - var(--header-height) - 160px);
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 /* Stat Pills Row */
@@ -549,10 +551,13 @@ body.dark-mode .stat-pill-snoozed {
    Widget 3: CGL Compliance (6col × 2row hero)
    ═══════════════════════════════════════ */
 .widget-compliance {
-    grid-column: span 6;
+    grid-column: span 7;
     grid-row: span 2;
     display: flex;
     flex-direction: column;
+    max-height: calc(100dvh - var(--header-height) - 160px);
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 /* Compliance Stat Pills */
@@ -837,15 +842,25 @@ body.dark-mode .compliance-policy-exp.warning {
    ═══════════════════════════════════════ */
 .widget-quick-launch {
     grid-column: 1 / -1;
-    padding: 16px 20px;
+    padding: 10px 20px;
 }
 .quick-launch-strip {
-    display: flex;
+    display: none;
     gap: 8px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scrollbar-width: thin;
     padding-bottom: 4px;
+}
+.widget-quick-launch.is-open .quick-launch-strip {
+    display: flex;
+    padding-top: 10px;
+}
+.quick-launch-toggle .toggle-chevron {
+    transition: transform 0.25s ease;
+}
+.widget-quick-launch.is-open .toggle-chevron {
+    transform: rotate(90deg);
 }
 .quick-launch-strip::-webkit-scrollbar {
     height: 4px;
