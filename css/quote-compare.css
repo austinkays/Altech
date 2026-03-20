@@ -492,3 +492,64 @@ body.dark-mode .qc-saved-item-delete {
     color: #FF453A;
 }
 body.dark-mode .qc-saved-item-delete:hover { background: rgba(255, 69, 58, 0.3); }
+
+/* ── Tab bar ──────────────────────────────────────── */
+.qc-tab-bar {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px 4px;
+}
+.qc-tab-btn {
+    padding: 6px 18px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+.qc-tab-btn:hover {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+}
+.qc-tab-btn.active {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.08);
+}
+body.dark-mode .qc-tab-btn { border-color: #38383A; color: #98989D; }
+body.dark-mode .qc-tab-btn:hover,
+body.dark-mode .qc-tab-btn.active { border-color: #0A84FF; color: #0A84FF; }
+body.dark-mode .qc-tab-btn.active { background: rgba(10, 132, 255, 0.12); }
+
+/* ── Card ref number ──────────────────────────────── */
+.qc-card-ref {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    margin-bottom: 4px;
+    word-break: break-all;
+}
+
+/* ── Alternate carrier badge ──────────────────────── */
+.qc-card.alt .qc-card-badge {
+    background: #7c3aed;
+}
+body.dark-mode .qc-card.alt .qc-card-badge { background: #9f66ff; }
+
+/* ── Error/unavailable carrier card ──────────────── */
+.qc-card.error {
+    opacity: 0.55;
+    border-color: var(--danger);
+    pointer-events: none;
+}
+.qc-card-error-msg {
+    font-size: 11px;
+    color: var(--danger);
+    margin-top: 6px;
+    line-height: 1.4;
+}
+body.dark-mode .qc-card.error { border-color: #FF453A; }
+body.dark-mode .qc-card-error-msg { color: #FF453A; }

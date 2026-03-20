@@ -68,6 +68,7 @@ You have access to the full quote data. Reference specific numbers, carriers, an
                 reset() {
                     this.data = null;
                     this.chatHistory = [];
+                    this._activeTab = null;
                     const zone = document.getElementById('qcUploadZone');
                     const loading = document.getElementById('qcLoading');
                     const results = document.getElementById('qcResults');
@@ -167,88 +168,126 @@ You have access to the full quote data. Reference specific numbers, carriers, an
                 },
 
                 async extractWithGemini(parts, apiKey) {
-                    const systemPrompt = 'You are an expert insurance analyst who specializes in parsing EZLynx comparative rater output documents. ' +
-                        'You extract structured quote data with precision, never hallucinating carriers or numbers. ' +
-                        'You understand insurance terminology: HO3/HO5 policies, ordinance or law coverage, loss assessment, water backup, replacement cost, ' +
-                        'all perils vs named perils deductibles, payment plan structures, and carrier rating messages. ' +
-                        'Return valid JSON only — no markdown fences, no commentary.';
+                    const systemPrompt = `You are an expert insurance analyst parsing EZLynx comparative rater output documents from independent insurance agencies. These documents may contain Auto quotes, Home (HO3/HO5) quotes, or both in the same PDF.
 
-                    const prompt = `Analyze this EZLynx quote document and extract ALL carrier quotes into structured JSON.
+CRITICAL RULES:
+- Return valid JSON only — no markdown, no commentary, no code fences
+- Never hallucinate carriers, premiums, or quote numbers
+- Extract EVERY carrier quote, including "Alternate Quote" variants
+- Auto quotes use 6-month terms; Home quotes use 12-month terms — do NOT convert
+- Quote identifiers appear as: "CCF#:", "Quote Number:", "Reference Number:", "Policy Number:", or "REFERENCE NUMBER:" — capture all variants
+- Carrier errors (e.g. "Carrier Error: Invalid SubProduct") should still be extracted with an error flag
+- "Agent Input" = standard quote; "Alternate Quote" = modified/alternate version — capture both with isAlternate flag`;
 
-Return ONLY valid JSON with this exact structure:
+                    const prompt = `Analyze this EZLynx quote document and extract ALL quotes into this exact JSON structure:
+
 {
   "applicant": {
-    "name": "Full Name",
-    "address": "Full Address",
-    "county": "County",
-    "phone": "Phone",
+    "name": "Full name",
+    "address": "Full address",
+    "county": "County name",
+    "homePhone": "Phone",
+    "cellPhone": "Phone",
     "email": "Email",
-    "policyType": "HO3/HO5/Auto etc",
     "effectiveDate": "MM/DD/YYYY",
-    "expirationDate": "MM/DD/YYYY",
-    "priorCarrier": "Carrier Name",
-    "yearsWithCarrier": "Duration"
+    "priorCarrier": "Carrier name or empty",
+    "yearsWithCarrier": "X years or empty"
   },
-  "dwelling": {
-    "replacementCost": "Amount",
-    "yearBuilt": "Year",
-    "sqft": "Square Footage",
-    "stories": "Number",
-    "constructionType": "Type",
-    "roofType": "Type",
-    "protectionClass": "Class",
-    "heatingType": "Type"
-  },
-  "quotes": [
+  "autoQuotes": [
     {
-      "carrier": "Carrier Name (e.g. Travelers Protect, Safeco, etc.)",
-      "issuingCompany": "Full issuing company name if different",
-      "premium12Month": 1234.00,
-      "premiumLabel": "Total Premium or Paid-In-Full etc",
-      "referenceNumber": "CCF# or Reference Number",
+      "carrier": "Carrier name (e.g. Progressive, Travelers, Safeco, Nationwide, PEMCO, Mutual of Enumclaw, Dairyland)",
+      "isAlternate": false,
+      "alternateName": "e.g. Smart Savings Rate, PAF Ded-Increase Comp/Coll, or empty",
+      "referenceNumber": "Any of: CCF#, Quote Number, Policy Number, Reference Number value — include the label prefix if helpful",
+      "premiumAmount": 462.00,
+      "premiumTerm": "6 Month",
+      "premiumLabel": "Paid-In-Full or Total Premium",
       "creditOrdered": "Yes/No/NA",
+      "hasCarrierError": false,
+      "carrierErrorMessage": "Error text or empty",
       "discounts": [
-        { "name": "Discount Name", "amount": "-$123.00 or empty" }
+        { "name": "Discount name", "amount": "-$123 or empty" }
       ],
-      "totalSavings": "$123.00 or empty",
+      "totalSavings": "$421.00 or empty",
       "ratingMessages": ["Message 1", "Message 2"],
       "coverages": {
-        "dwelling": "$Amount or INCLUDED",
-        "otherStructures": "$Amount or INCLUDED",
-        "lossOfUse": "$Amount or INCLUDED",
-        "personalProperty": "$Amount or INCLUDED",
-        "personalLiability": "$Amount or INCLUDED",
-        "medicalPayments": "$Amount or INCLUDED"
+        "bodilyInjury": { "limit": "250/500", "premium": 119.00 },
+        "propertyDamage": { "limit": "100000", "premium": 56.00 },
+        "uninsuredMotorist": { "limit": "250/500", "premium": 0 },
+        "underinsuredMotorist": { "limit": "250/500", "premium": 73.00 },
+        "umpd": { "limit": "100000", "premium": 0 },
+        "uimpd": { "limit": "100000", "premium": 0 },
+        "comprehensive": { "deductible": "500", "premium": 56.00 },
+        "collision": { "deductible": "500", "premium": 172.00 },
+        "towing": { "limit": "100", "premium": 5.00 },
+        "rentalReimbursement": { "limit": "30/900", "premium": 10.00 },
+        "pip": { "limit": "10000", "premium": 14.00 },
+        "pipDeductible": 14.00,
+        "apip": { "limit": "", "premium": 0 }
+      },
+      "paymentPlans": [
+        { "description": "Paid-In-Full", "totalPremium": "$462.00", "downPayment": "", "installment": "" },
+        { "description": "6 Payments 16.67% Down EFT", "totalPremium": "$528.00", "downPayment": "$88.03", "installment": "$89.00" }
+      ]
+    }
+  ],
+  "homeQuotes": [
+    {
+      "carrier": "Carrier name",
+      "issuingCompany": "Full issuing company name if different",
+      "isAlternate": false,
+      "alternateName": "e.g. Protect Plus or empty",
+      "referenceNumber": "CCF#, Quote Number, or Reference Number value",
+      "premiumAmount": 943.42,
+      "premiumTerm": "12 Month",
+      "premiumLabel": "Total Premium or Paid-In-Full",
+      "creditOrdered": "Yes/No/NA",
+      "hasCarrierError": false,
+      "carrierErrorMessage": "",
+      "discounts": [
+        { "name": "Discount name", "amount": "-$232.00 or empty" }
+      ],
+      "totalSavings": "$481.00 or empty",
+      "ratingMessages": ["Message 1"],
+      "coverages": {
+        "dwelling": "$711,100 or INCLUDED",
+        "otherStructures": "INCLUDED or $amount",
+        "lossOfUse": "INCLUDED or $amount",
+        "personalProperty": "INCLUDED or $amount",
+        "personalLiability": "$500,000 or INCLUDED",
+        "medicalPayments": "$5,000 or INCLUDED",
+        "deductible": "$2,500 or INCLUDED"
       },
       "endorsements": {
         "creditCardLimit": "INCLUDED or Not Included",
         "increasedMold": "INCLUDED or Not Included",
         "lossAssessment": "INCLUDED or Not Included",
-        "ordinanceOrLaw": "INCLUDED or 10% or Not Included",
+        "ordinanceOrLaw": "10% or INCLUDED or Not Included",
         "replacementCostContent": "INCLUDED or Not Included",
         "replacementCostDwelling": "INCLUDED or Not Included",
         "waterBackup": "INCLUDED or Not Included",
-        "allPerilsDeductible": "INCLUDED or $Amount or Not Included",
+        "allPerilsDeductible": "INCLUDED or $2,500 or Not Included",
         "personalInjury": "INCLUDED or Not Included",
         "identityTheft": "INCLUDED or Not Included",
         "earthquake": "INCLUDED or Not Included",
         "scheduledPersonalProperty": "INCLUDED or Not Included"
       },
       "paymentPlans": [
-        { "description": "Plan name", "totalPremium": "$Amount", "downPayment": "$Amount", "installment": "$Amount" }
+        { "description": "Total Premium", "totalPremium": "$943.42", "downPayment": "", "installment": "" }
       ]
     }
   ]
 }
 
-IMPORTANT:
-- Extract EVERY carrier quote found in the document
-- Sort quotes by premium (lowest first)
-- If a carrier name is not explicitly stated, use the issuing company name
-- Parse dollar amounts as numbers (no $ sign) for premium12Month
-- Include ALL endorsements found, even if "Not Included"
-- Include ALL payment plans for each carrier
-- If data is missing, use empty string, not null`;
+RULES:
+- premiumAmount must be a NUMBER (no $ sign)
+- Coverage premiums must be NUMBERs
+- Extract every carrier including those with errors (set hasCarrierError: true)
+- Sort autoQuotes by premiumAmount ascending; sort homeQuotes by premiumAmount ascending
+- Alternate quotes are SEPARATE entries in the array with isAlternate: true
+- If a coverage field is "INCLUDED" keep it as the string "INCLUDED"
+- If a coverage is not present in the quote, use empty string ""
+- The referenceNumber field should capture: CCF# values, Quote Numbers, Policy Numbers, and Reference Numbers — include whatever identifier is present`;
 
                     // Try AIProvider first (supports all providers with multimodal)
                     if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) {
@@ -261,7 +300,7 @@ IMPORTANT:
                                 const parsed = (typeof AIProvider !== 'undefined' && AIProvider.extractJSON)
                                     ? AIProvider.extractJSON(aiResult.text)
                                     : JSON.parse(aiResult.text.match(/\{[\s\S]*\}/)?.[0] || '{}');
-                                if (parsed && (parsed.quotes || parsed.applicant)) {
+                                if (parsed && (parsed.autoQuotes || parsed.homeQuotes || parsed.quotes || parsed.applicant)) {
                                     console.log('[QuoteCompare] AIProvider extraction successful');
                                     return parsed;
                                 }
@@ -318,49 +357,88 @@ IMPORTANT:
                 },
 
                 buildQuoteContext() {
-                    if (!this.data?.quotes?.length) return 'No quote data available.';
+                    const autoQ = this.data?.autoQuotes || [];
+                    const homeQ = this.data?.homeQuotes || this.data?.quotes || [];
+                    if (!autoQ.length && !homeQ.length) return 'No quote data available.';
                     const q = this.data;
                     const lines = [];
                     lines.push(`Applicant: ${q.applicant?.name || 'Unknown'}`);
                     lines.push(`Address: ${q.applicant?.address || 'Unknown'}`);
-                    lines.push(`Policy: ${q.applicant?.policyType || 'HO3'}, Eff: ${q.applicant?.effectiveDate || '?'}, Prior: ${q.applicant?.priorCarrier || '?'} (${q.applicant?.yearsWithCarrier || '?'})`);
-                    lines.push(`Property: ${q.dwelling?.sqft || '?'}sqft, built ${q.dwelling?.yearBuilt || '?'}, ${q.dwelling?.constructionType || '?'}, ${q.dwelling?.roofType || '?'} roof, protection class ${q.dwelling?.protectionClass || '?'}`);
+                    lines.push(`Eff: ${q.applicant?.effectiveDate || '?'}, Prior: ${q.applicant?.priorCarrier || '?'} (${q.applicant?.yearsWithCarrier || '?'})`);
                     lines.push('');
-                    q.quotes.forEach(carrier => {
-                        lines.push(`--- ${carrier.carrier} ---`);
-                        lines.push(`  Premium: $${carrier.premium12Month || '?'}/yr (${carrier.premiumLabel || ''})`);
-                        lines.push(`  Ref: ${carrier.referenceNumber || 'N/A'}`);
-                        lines.push(`  Credit ordered: ${carrier.creditOrdered || 'N/A'}`);
-                        if (carrier.discounts?.length) {
-                            lines.push(`  Discounts: ${carrier.discounts.map(d => d.name + (d.amount ? ' ' + d.amount : '')).join(', ')}`);
-                            if (carrier.totalSavings) lines.push(`  Total savings: ${carrier.totalSavings}`);
-                        }
-                        lines.push(`  Coverages:`);
-                        Object.entries(carrier.coverages || {}).forEach(([k, v]) => lines.push(`    ${k}: ${v}`));
-                        lines.push(`  Endorsements:`);
-                        Object.entries(carrier.endorsements || {}).forEach(([k, v]) => lines.push(`    ${k}: ${v}`));
-                        if (carrier.ratingMessages?.length) {
-                            lines.push(`  Rating Messages:`);
-                            carrier.ratingMessages.forEach(m => lines.push(`    - ${m}`));
-                        }
-                        if (carrier.paymentPlans?.length) {
-                            lines.push(`  Payment Plans:`);
-                            carrier.paymentPlans.forEach(p => lines.push(`    ${p.description}: total ${p.totalPremium}, down ${p.downPayment}, installment ${p.installment}`));
-                        }
-                        lines.push('');
-                    });
+                    if (autoQ.length) {
+                        lines.push('=== AUTO QUOTES ===');
+                        autoQ.forEach(carrier => {
+                            lines.push(`--- ${carrier.carrier} ---`);
+                            lines.push(`  Premium: $${carrier.premiumAmount || '?'}/6mo (${carrier.premiumLabel || ''})`);
+                            lines.push(`  Ref: ${carrier.referenceNumber || 'N/A'}`);
+                            lines.push(`  Credit ordered: ${carrier.creditOrdered || 'N/A'}`);
+                            if (carrier.hasCarrierError) lines.push(`  ⚠ Carrier Error: ${carrier.carrierErrorMessage || 'unknown'}`);
+                            if (carrier.discounts?.length) {
+                                lines.push(`  Discounts: ${carrier.discounts.map(d => d.name + (d.amount ? ' ' + d.amount : '')).join(', ')}`);
+                                if (carrier.totalSavings) lines.push(`  Total savings: ${carrier.totalSavings}`);
+                            }
+                            const cov = carrier.coverages || {};
+                            if (cov.bodilyInjury) lines.push(`  BI: ${cov.bodilyInjury.limit}`);
+                            if (cov.propertyDamage) lines.push(`  PD: ${cov.propertyDamage.limit}`);
+                            if (cov.comprehensive) lines.push(`  Comp ded: $${cov.comprehensive.deductible}`);
+                            if (cov.collision) lines.push(`  Coll ded: $${cov.collision.deductible}`);
+                            if (cov.pip) lines.push(`  PIP: ${cov.pip.limit}`);
+                            if (carrier.ratingMessages?.length) {
+                                lines.push(`  Rating Messages:`);
+                                carrier.ratingMessages.forEach(m => lines.push(`    - ${m}`));
+                            }
+                            lines.push('');
+                        });
+                    }
+                    if (homeQ.length) {
+                        lines.push('=== HOME QUOTES ===');
+                        homeQ.forEach(carrier => {
+                            lines.push(`--- ${carrier.carrier} ---`);
+                            lines.push(`  Premium: $${carrier.premiumAmount || carrier.premium12Month || '?'}/yr (${carrier.premiumLabel || ''})`);
+                            lines.push(`  Ref: ${carrier.referenceNumber || 'N/A'}`);
+                            lines.push(`  Credit ordered: ${carrier.creditOrdered || 'N/A'}`);
+                            if (carrier.hasCarrierError) lines.push(`  ⚠ Carrier Error: ${carrier.carrierErrorMessage || 'unknown'}`);
+                            if (carrier.discounts?.length) {
+                                lines.push(`  Discounts: ${carrier.discounts.map(d => d.name + (d.amount ? ' ' + d.amount : '')).join(', ')}`);
+                                if (carrier.totalSavings) lines.push(`  Total savings: ${carrier.totalSavings}`);
+                            }
+                            lines.push(`  Coverages:`);
+                            Object.entries(carrier.coverages || {}).forEach(([k, v]) => lines.push(`    ${k}: ${v}`));
+                            lines.push(`  Endorsements:`);
+                            Object.entries(carrier.endorsements || {}).forEach(([k, v]) => lines.push(`    ${k}: ${v}`));
+                            if (carrier.ratingMessages?.length) {
+                                lines.push(`  Rating Messages:`);
+                                carrier.ratingMessages.forEach(m => lines.push(`    - ${m}`));
+                            }
+                            if (carrier.paymentPlans?.length) {
+                                lines.push(`  Payment Plans:`);
+                                carrier.paymentPlans.forEach(p => lines.push(`    ${p.description}: total ${p.totalPremium}, down ${p.downPayment}, installment ${p.installment}`));
+                            }
+                            lines.push('');
+                        });
+                    }
                     return lines.join('\n');
                 },
 
                 async getRecommendation(extracted, apiKey) {
-                    if (!extracted?.quotes?.length) return '';
+                    const autoQ = extracted?.autoQuotes || [];
+                    const homeQ = extracted?.homeQuotes || extracted?.quotes || [];
+                    if (!autoQ.length && !homeQ.length) return '';
 
-                    const summaryForAI = extracted.quotes.map(q => {
-                        const endorsements = Object.entries(q.endorsements || {})
-                            .filter(([, v]) => v && v.toUpperCase().includes('INCLUDED'))
-                            .map(([k]) => k);
-                        return `${q.carrier}: $${q.premium12Month}/yr, ${endorsements.length} endorsements included (${endorsements.join(', ')}), discounts: ${(q.discounts || []).map(d => d.name).join(', ') || 'none'}, ${q.ratingMessages?.length || 0} rating messages`;
-                    }).join('\n');
+                    const autoSummary = autoQ
+                        .filter(q => !q.hasCarrierError)
+                        .map(q => `AUTO ${q.carrier}: $${q.premiumAmount}/6mo, discounts: ${(q.discounts || []).map(d => d.name).join(', ') || 'none'}, ${q.ratingMessages?.length || 0} rating messages`)
+                        .join('\n');
+                    const homeSummary = homeQ
+                        .filter(q => !q.hasCarrierError)
+                        .map(q => {
+                            const endorsements = Object.entries(q.endorsements || {})
+                                .filter(([, v]) => v && v.toUpperCase().includes('INCLUDED'))
+                                .map(([k]) => k);
+                            return `HOME ${q.carrier}: $${q.premiumAmount || q.premium12Month}/yr, ${endorsements.length} endorsements included (${endorsements.join(', ')}), discounts: ${(q.discounts || []).map(d => d.name).join(', ') || 'none'}, ${q.ratingMessages?.length || 0} rating messages`;
+                        }).join('\n');
+                    const summaryForAI = [autoSummary, homeSummary].filter(Boolean).join('\n');
 
                     const systemPrompt = `You are a sharp insurance analyst giving a thoughtful, non-obvious recommendation. The user can already SEE the premiums, carrier names, and basic coverage amounts — do NOT restate those. Instead, provide insights they would NOT get from just reading the table.
 
@@ -375,9 +453,9 @@ Rules:
                     const userMessage = `Here are the quotes:
 ${summaryForAI}
 
-Property info: ${extracted.dwelling?.sqft || '?'}sqft, built ${extracted.dwelling?.yearBuilt || '?'}, ${extracted.dwelling?.constructionType || '?'} construction, ${extracted.dwelling?.roofType || '?'} roof, protection class ${extracted.dwelling?.protectionClass || '?'}
 Prior carrier: ${extracted.applicant?.priorCarrier || 'Unknown'}
 Years insured: ${extracted.applicant?.yearsWithCarrier || 'Unknown'}
+Effective date: ${extracted.applicant?.effectiveDate || 'Unknown'}
 
 Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the obvious. Focus on:
 
@@ -385,7 +463,7 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
 
 2. **The real cost difference** — Break down the price gap into what it actually buys. "The $170/yr difference between Carrier A and B gets you [specific endorsements], which would cover [specific scenario]." Calculate the cost-per-endorsement value.
 
-3. **Red flags & deal-breakers** — Any rating messages, missing endorsements, or exclusions that are genuinely concerning for THIS specific property (age, construction type, location). Don't just list them — explain why they matter for this home.
+3. **Red flags & deal-breakers** — Any rating messages, missing endorsements, or exclusions that are genuinely concerning for THIS specific risk. Don't just list them — explain why they matter.
 
 4. **Bottom line** — One clear sentence: which carrier and why, from a "protect your biggest asset" perspective, not just price.`;
 
@@ -429,7 +507,20 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
                     const results = document.getElementById('qcResults');
                     if (!results || !this.data) return;
 
-                    const { applicant, dwelling, quotes, recommendation } = this.data;
+                    // Normalize legacy format: old quotes[] → homeQuotes[]
+                    if (this.data.quotes && !this.data.autoQuotes && !this.data.homeQuotes) {
+                        this.data.homeQuotes = this.data.quotes;
+                    }
+                    const autoQuotes = this.data.autoQuotes || [];
+                    const homeQuotes = this.data.homeQuotes || [];
+                    const hasAuto = autoQuotes.length > 0;
+                    const hasHome = homeQuotes.length > 0;
+                    const { applicant, recommendation } = this.data;
+
+                    // Default active tab — auto if available, else home
+                    if (!this._activeTab || (this._activeTab === 'auto' && !hasAuto) || (this._activeTab === 'home' && !hasHome)) {
+                        this._activeTab = hasAuto ? 'auto' : 'home';
+                    }
 
                     // -- Applicant bar --
                     const bar = document.getElementById('qcApplicantBar');
@@ -438,122 +529,32 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
                             <div class="qc-applicant-name">${this.esc(applicant.name || 'Unknown Applicant')}</div>
                             <div class="qc-applicant-detail">
                                 <span>📍 ${this.esc(applicant.address || '')}</span>
-                                <span>📋 ${this.esc(applicant.policyType || 'HO3')}</span>
                                 <span>📅 Eff: ${this.esc(applicant.effectiveDate || '')}</span>
                                 ${applicant.priorCarrier ? `<span>🔄 Prior: ${this.esc(applicant.priorCarrier)}</span>` : ''}
                             </div>`;
                     }
 
-                    // -- Sort quotes by premium --
-                    const sorted = [...(quotes || [])].sort((a, b) => (a.premium12Month || 0) - (b.premium12Month || 0));
-                    const cheapest = sorted[0]?.premium12Month || 0;
-                    const mostExpensive = sorted[sorted.length - 1]?.premium12Month || 0;
-
-                    // -- Premium cards --
-                    const cards = document.getElementById('qcCards');
-                    if (cards) {
-                        cards.innerHTML = sorted.map((q, i) => {
-                            const isBest = i === 0;
-                            const monthly = q.premium12Month ? (q.premium12Month / 12).toFixed(0) : '—';
-                            const savingsVsMax = mostExpensive && q.premium12Month ? (mostExpensive - q.premium12Month) : 0;
-                            return `
-                            <div class="qc-card${isBest ? ' best' : ''}">
-                                ${isBest ? '<div class="qc-card-badge">Lowest Price</div>' : ''}
-                                <div class="qc-card-carrier">${this.esc(q.carrier)}</div>
-                                <div class="qc-card-premium">$${(q.premium12Month || 0).toLocaleString()}</div>
-                                <div class="qc-card-monthly">~$${monthly}/mo</div>
-                                ${savingsVsMax > 0 && !isBest ? '' :
-                                  savingsVsMax > 0 ? `<div class="qc-card-savings">Save $${savingsVsMax.toLocaleString()} vs highest</div>` : ''}
-                                <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">${this.esc(q.premiumLabel || '')}</div>
-                            </div>`;
-                        }).join('');
+                    // -- Tab bar (only when both lines present) --
+                    let tabBar = document.getElementById('qcTabBar');
+                    if (!tabBar && bar) {
+                        tabBar = document.createElement('div');
+                        tabBar.id = 'qcTabBar';
+                        bar.insertAdjacentElement('afterend', tabBar);
+                    }
+                    if (tabBar) {
+                        if (hasAuto && hasHome) {
+                            tabBar.className = 'qc-tab-bar';
+                            tabBar.innerHTML = `
+                                <button class="qc-tab-btn${this._activeTab === 'auto' ? ' active' : ''}" data-tab-target="auto" onclick="QuoteCompare._switchTab('auto')">Auto (${autoQuotes.length} carrier${autoQuotes.length !== 1 ? 's' : ''})</button>
+                                <button class="qc-tab-btn${this._activeTab === 'home' ? ' active' : ''}" data-tab-target="home" onclick="QuoteCompare._switchTab('home')">Home (${homeQuotes.length} carrier${homeQuotes.length !== 1 ? 's' : ''})</button>`;
+                        } else {
+                            tabBar.className = '';
+                            tabBar.innerHTML = '';
+                        }
                     }
 
-                    // -- Coverage table --
-                    const coverageKeys = ['dwelling', 'otherStructures', 'lossOfUse', 'personalProperty', 'personalLiability', 'medicalPayments'];
-                    const coverageLabels = { dwelling: 'Dwelling (Cov A)', otherStructures: 'Other Structures (Cov B)', lossOfUse: 'Loss of Use (Cov D)', personalProperty: 'Personal Property (Cov C)', personalLiability: 'Personal Liability (Cov E)', medicalPayments: 'Medical Payments (Cov F)' };
-
-                    const thead = document.getElementById('qcTableHead');
-                    const tbody = document.getElementById('qcTableBody');
-                    if (thead && tbody) {
-                        thead.innerHTML = `<tr><th>Coverage</th>${sorted.map(q => `<th>${this.esc(q.carrier)}</th>`).join('')}</tr>`;
-                        tbody.innerHTML = coverageKeys.map(key => `
-                            <tr>
-                                <td class="qc-row-label">${coverageLabels[key] || key}</td>
-                                ${sorted.map(q => {
-                                    const val = q.coverages?.[key] || '';
-                                    return `<td>${this.formatCoverageVal(val)}</td>`;
-                                }).join('')}
-                            </tr>
-                        `).join('');
-                    }
-
-                    // -- Endorsements table --
-                    const allEndorsementKeys = new Set();
-                    sorted.forEach(q => {
-                        Object.keys(q.endorsements || {}).forEach(k => allEndorsementKeys.add(k));
-                    });
-                    const endorsementLabels = {
-                        creditCardLimit: 'Credit Card Limit', increasedMold: 'Increased Mold',
-                        lossAssessment: 'Loss Assessment', ordinanceOrLaw: 'Ordinance or Law',
-                        replacementCostContent: 'Replacement Cost Content', replacementCostDwelling: 'Replacement Cost Dwelling',
-                        waterBackup: 'Water Backup', allPerilsDeductible: 'All Perils Deductible',
-                        personalInjury: 'Personal Injury', identityTheft: 'Identity Theft',
-                        earthquake: 'Earthquake', scheduledPersonalProperty: 'Scheduled Personal Property'
-                    };
-
-                    const ehead = document.getElementById('qcEndorsementHead');
-                    const ebody = document.getElementById('qcEndorsementBody');
-                    if (ehead && ebody) {
-                        ehead.innerHTML = `<tr><th>Endorsement</th>${sorted.map(q => `<th>${this.esc(q.carrier)}</th>`).join('')}</tr>`;
-                        ebody.innerHTML = [...allEndorsementKeys].map(key => `
-                            <tr>
-                                <td class="qc-row-label">${endorsementLabels[key] || this.camelToTitle(key)}</td>
-                                ${sorted.map(q => {
-                                    const val = q.endorsements?.[key] || 'Not Included';
-                                    return `<td>${this.formatEndorsementVal(val)}</td>`;
-                                }).join('')}
-                            </tr>
-                        `).join('');
-                    }
-
-                    // -- Discounts & Messages --
-                    const discountsDiv = document.getElementById('qcDiscounts');
-                    if (discountsDiv) {
-                        discountsDiv.innerHTML = sorted.map(q => `
-                            <div style="margin-bottom: 16px;">
-                                <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:var(--text);">${this.esc(q.carrier)}</div>
-                                ${q.discounts?.length ? `
-                                    <div style="font-size:12px;font-weight:600;color:#34c759;margin-bottom:4px;">Discounts${q.totalSavings ? ' (Total: ' + this.esc(q.totalSavings) + ')' : ''}</div>
-                                    <ul class="qc-detail-list">
-                                        ${q.discounts.map(d => `<li class="qc-discount">${this.esc(d.name)}${d.amount ? ': ' + this.esc(d.amount) : ''}</li>`).join('')}
-                                    </ul>` : '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">No discounts listed</div>'}
-                                ${q.ratingMessages?.length ? `
-                                    <div style="font-size:12px;font-weight:600;color:#ff9500;margin:8px 0 4px;">Rating Messages</div>
-                                    <ul class="qc-detail-list">
-                                        ${q.ratingMessages.map(m => `<li class="qc-warning">${this.esc(m)}</li>`).join('')}
-                                    </ul>` : ''}
-                            </div>
-                        `).join('');
-                    }
-
-                    // -- Payment Plans --
-                    const payDiv = document.getElementById('qcPaymentPlans');
-                    if (payDiv) {
-                        payDiv.innerHTML = sorted.map(q => {
-                            if (!q.paymentPlans?.length) return '';
-                            return `
-                            <div class="qc-payment-card">
-                                <div class="qc-payment-carrier">${this.esc(q.carrier)}</div>
-                                ${q.paymentPlans.map(p => `
-                                    <div class="qc-payment-row">
-                                        <span>${this.esc(p.description)}</span>
-                                        <span>${this.esc(p.installment || p.totalPremium || '')}</span>
-                                    </div>
-                                `).join('')}
-                            </div>`;
-                        }).join('');
-                    }
+                    // -- Render active line (cards, tables, discounts, payments) --
+                    this._renderLine(this._activeTab);
 
                     // -- Smart Recommendation --
                     const recDiv = document.getElementById('qcRecommendation');
@@ -576,6 +577,167 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
                     results.classList.add('active');
                 },
 
+                _switchTab(tab) {
+                    this._renderLine(tab);
+                },
+
+                _renderLine(tab) {
+                    this._activeTab = tab;
+                    const isAuto = tab === 'auto';
+                    const quotes = isAuto
+                        ? (this.data?.autoQuotes || [])
+                        : (this.data?.homeQuotes || this.data?.quotes || []);
+
+                    // Update tab button active states
+                    const tabBar = document.getElementById('qcTabBar');
+                    if (tabBar) {
+                        tabBar.querySelectorAll('.qc-tab-btn').forEach(btn => {
+                            btn.classList.toggle('active', btn.dataset.tabTarget === tab);
+                        });
+                    }
+
+                    // Split valid vs error carriers; sort valid ascending by premium
+                    const validQuotes = quotes.filter(q => !q.hasCarrierError)
+                        .sort((a, b) => (a.premiumAmount || 0) - (b.premiumAmount || 0));
+                    const errorQuotes = quotes.filter(q => q.hasCarrierError);
+                    const sorted = [...validQuotes, ...errorQuotes];
+                    const divisor = isAuto ? 6 : 12;
+                    const periodLabel = isAuto ? '6mo' : 'mo';
+                    const mostExpensive = validQuotes.length > 0 ? (validQuotes[validQuotes.length - 1]?.premiumAmount || 0) : 0;
+
+                    // -- Premium cards --
+                    const cards = document.getElementById('qcCards');
+                    if (cards) {
+                        cards.innerHTML = sorted.map((q, i) => {
+                            if (q.hasCarrierError) {
+                                return `
+                                <div class="qc-card error">
+                                    <div class="qc-card-carrier">${this.esc(q.carrier)}</div>
+                                    <div class="qc-card-error-msg">⚠ ${this.esc(q.carrierErrorMessage || 'Carrier error — quote unavailable')}</div>
+                                </div>`;
+                            }
+                            const isBest = i === 0 && !q.isAlternate;
+                            const isAlt = q.isAlternate;
+                            const premium = q.premiumAmount || 0;
+                            const monthly = premium ? (premium / divisor).toFixed(0) : '—';
+                            const savingsVsMax = isBest && mostExpensive ? (mostExpensive - premium) : 0;
+                            const badgeText = isAlt ? (q.alternateName || 'Alternate') : (isBest ? 'Lowest Price' : null);
+                            return `
+                            <div class="qc-card${isBest ? ' best' : ''}${isAlt ? ' alt' : ''}">
+                                ${badgeText ? `<div class="qc-card-badge">${this.esc(badgeText)}</div>` : ''}
+                                <div class="qc-card-carrier">${this.esc(q.carrier)}</div>
+                                ${q.referenceNumber ? `<div class="qc-card-ref">${this.esc(q.referenceNumber)}</div>` : ''}
+                                <div class="qc-card-premium">$${premium.toLocaleString()}</div>
+                                <div class="qc-card-monthly">~$${monthly}/${periodLabel}</div>
+                                ${isBest && savingsVsMax > 0 ? `<div class="qc-card-savings">Save $${savingsVsMax.toLocaleString()} vs highest</div>` : ''}
+                                <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">${this.esc(q.premiumLabel || '')}</div>
+                            </div>`;
+                        }).join('');
+                    }
+
+                    // -- Coverage table --
+                    const thead = document.getElementById('qcTableHead');
+                    const tbody = document.getElementById('qcTableBody');
+                    if (thead && tbody) {
+                        if (isAuto) {
+                            const autoCovKeys = [
+                                { label: 'Bodily Injury',   get: c => c?.bodilyInjury?.limit },
+                                { label: 'Property Damage', get: c => c?.propertyDamage?.limit },
+                                { label: 'Comp Ded',        get: c => c?.comprehensive?.deductible },
+                                { label: 'Collision Ded',   get: c => c?.collision?.deductible },
+                                { label: 'UM/UIM',          get: c => c?.uninsuredMotorist?.limit || c?.underinsuredMotorist?.limit },
+                                { label: 'PIP',             get: c => c?.pip?.limit },
+                                { label: 'Towing',          get: c => c?.towing?.limit },
+                                { label: 'Rental',          get: c => c?.rentalReimbursement?.limit },
+                            ];
+                            thead.innerHTML = `<tr><th>Coverage</th>${validQuotes.map(q => `<th>${this.esc(q.carrier)}</th>`).join('')}</tr>`;
+                            tbody.innerHTML = autoCovKeys.map(({ label, get }) => `
+                                <tr>
+                                    <td class="qc-row-label">${label}</td>
+                                    ${validQuotes.map(q => `<td>${this.formatCoverageVal(get(q.coverages) || '')}</td>`).join('')}
+                                </tr>`).join('');
+                        } else {
+                            const homeCovKeys = ['dwelling', 'otherStructures', 'lossOfUse', 'personalProperty', 'personalLiability', 'medicalPayments', 'deductible'];
+                            const homeCovLabels = {
+                                dwelling: 'Dwelling (Cov A)', otherStructures: 'Other Structures (Cov B)',
+                                lossOfUse: 'Loss of Use (Cov D)', personalProperty: 'Personal Property (Cov C)',
+                                personalLiability: 'Personal Liability (Cov E)', medicalPayments: 'Medical Payments (Cov F)',
+                                deductible: 'Deductible'
+                            };
+                            thead.innerHTML = `<tr><th>Coverage</th>${validQuotes.map(q => `<th>${this.esc(q.carrier)}</th>`).join('')}</tr>`;
+                            tbody.innerHTML = homeCovKeys.map(key => `
+                                <tr>
+                                    <td class="qc-row-label">${homeCovLabels[key] || key}</td>
+                                    ${validQuotes.map(q => `<td>${this.formatCoverageVal(q.coverages?.[key] || '')}</td>`).join('')}
+                                </tr>`).join('');
+                        }
+                    }
+
+                    // -- Endorsements section: visible for home only --
+                    const endorsementsDetails = document.getElementById('qcEndorsementHead')?.closest('details');
+                    if (endorsementsDetails) endorsementsDetails.style.display = isAuto ? 'none' : '';
+                    if (!isAuto) {
+                        const ehead = document.getElementById('qcEndorsementHead');
+                        const ebody = document.getElementById('qcEndorsementBody');
+                        if (ehead && ebody) {
+                            const allEndorsementKeys = new Set();
+                            validQuotes.forEach(q => Object.keys(q.endorsements || {}).forEach(k => allEndorsementKeys.add(k)));
+                            const endorsementLabels = {
+                                creditCardLimit: 'Credit Card Limit', increasedMold: 'Increased Mold',
+                                lossAssessment: 'Loss Assessment', ordinanceOrLaw: 'Ordinance or Law',
+                                replacementCostContent: 'Replacement Cost Content', replacementCostDwelling: 'Replacement Cost Dwelling',
+                                waterBackup: 'Water Backup', allPerilsDeductible: 'All Perils Deductible',
+                                personalInjury: 'Personal Injury', identityTheft: 'Identity Theft',
+                                earthquake: 'Earthquake', scheduledPersonalProperty: 'Scheduled Personal Property'
+                            };
+                            ehead.innerHTML = `<tr><th>Endorsement</th>${validQuotes.map(q => `<th>${this.esc(q.carrier)}</th>`).join('')}</tr>`;
+                            ebody.innerHTML = [...allEndorsementKeys].map(key => `
+                                <tr>
+                                    <td class="qc-row-label">${endorsementLabels[key] || this.camelToTitle(key)}</td>
+                                    ${validQuotes.map(q => {
+                                        const val = q.endorsements?.[key] || 'Not Included';
+                                        return `<td>${this.formatEndorsementVal(val)}</td>`;
+                                    }).join('')}
+                                </tr>`).join('');
+                        }
+                    }
+
+                    // -- Discounts & Messages --
+                    const discountsDiv = document.getElementById('qcDiscounts');
+                    if (discountsDiv) {
+                        discountsDiv.innerHTML = validQuotes.map(q => `
+                            <div style="margin-bottom: 16px;">
+                                <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:var(--text);">${this.esc(q.carrier)}</div>
+                                ${q.discounts?.length ? `
+                                    <div style="font-size:12px;font-weight:600;color:#34c759;margin-bottom:4px;">Discounts${q.totalSavings ? ' (Total: ' + this.esc(q.totalSavings) + ')' : ''}</div>
+                                    <ul class="qc-detail-list">
+                                        ${q.discounts.map(d => `<li class="qc-discount">${this.esc(d.name)}${d.amount ? ': ' + this.esc(d.amount) : ''}</li>`).join('')}
+                                    </ul>` : '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">No discounts listed</div>'}
+                                ${q.ratingMessages?.length ? `
+                                    <div style="font-size:12px;font-weight:600;color:#ff9500;margin:8px 0 4px;">Rating Messages</div>
+                                    <ul class="qc-detail-list">
+                                        ${q.ratingMessages.map(m => `<li class="qc-warning">${this.esc(m)}</li>`).join('')}
+                                    </ul>` : ''}
+                            </div>
+                        `).join('');
+                    }
+
+                    // -- Payment Plans --
+                    const payDiv = document.getElementById('qcPaymentPlans');
+                    if (payDiv) {
+                        payDiv.innerHTML = validQuotes.filter(q => q.paymentPlans?.length).map(q => `
+                            <div class="qc-payment-card">
+                                <div class="qc-payment-carrier">${this.esc(q.carrier)}</div>
+                                ${q.paymentPlans.map(p => `
+                                    <div class="qc-payment-row">
+                                        <span>${this.esc(p.description)}</span>
+                                        <span>${this.esc(p.installment || p.totalPremium || '')}</span>
+                                    </div>
+                                `).join('')}
+                            </div>`).join('');
+                    }
+                },
+
                 // ── Saved Comparisons ─────────────────────────
 
                 getSaved() {
@@ -583,17 +745,21 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
                 },
 
                 autoSave() {
-                    if (!this.data?.quotes?.length) return;
+                    const allQuotes = [
+                        ...(this.data?.autoQuotes || []),
+                        ...(this.data?.homeQuotes || this.data?.quotes || [])
+                    ];
+                    if (!allQuotes.length) return;
                     const saved = this.getSaved();
                     const name = this.data.applicant?.name || 'Unknown';
-                    const carriers = this.data.quotes.map(q => q.carrier).join(', ');
+                    const carriers = [...new Set(allQuotes.map(q => q.carrier))].join(', ');
                     const entry = {
                         id: Date.now(),
                         timestamp: new Date().toISOString(),
                         name,
                         carriers,
-                        carrierCount: this.data.quotes.length,
-                        lowestPremium: Math.min(...this.data.quotes.map(q => q.premium12Month || Infinity)),
+                        carrierCount: allQuotes.length,
+                        lowestPremium: Math.min(...allQuotes.map(q => q.premiumAmount || q.premium12Month || Infinity)),
                         data: this.data
                     };
                     // Avoid duplicates — if same applicant name already saved within last 60s, overwrite
@@ -696,12 +862,17 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
                 },
 
                 copyTable() {
-                    if (!this.data?.quotes) return App.toast('No data to copy');
-                    const quotes = this.data.quotes;
+                    const allQuotes = [
+                        ...(this.data?.autoQuotes || []),
+                        ...(this.data?.homeQuotes || this.data?.quotes || [])
+                    ];
+                    if (!allQuotes.length) return App.toast('No data to copy');
+                    const quotes = allQuotes;
                     const coverageKeys = ['dwelling', 'otherStructures', 'lossOfUse', 'personalProperty', 'personalLiability', 'medicalPayments'];
                     const rows = [
                         ['Coverage', ...quotes.map(q => q.carrier)],
-                        ['12-Month Premium', ...quotes.map(q => '$' + (q.premium12Month || 0).toLocaleString())],
+                        ['Premium', ...quotes.map(q => '$' + (q.premiumAmount || q.premium12Month || 0).toLocaleString() + (q.premiumTerm ? ' ' + q.premiumTerm : ''))],
+
                         ...coverageKeys.map(k => [
                             k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()),
                             ...quotes.map(q => q.coverages?.[k] || 'N/A')
@@ -715,7 +886,11 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
                 },
 
                 async exportPDF() {
-                    if (!this.data?.quotes) return App.toast('No data to export');
+                    const allExportQuotes = [
+                        ...(this.data?.autoQuotes || []),
+                        ...(this.data?.homeQuotes || this.data?.quotes || [])
+                    ];
+                    if (!allExportQuotes.length) return App.toast('No data to export');
                     // Lazy-load jsPDF from CDN if missing
                     if (typeof jspdf === 'undefined' && typeof window.jspdf === 'undefined') {
                         try {
@@ -734,7 +909,7 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
 
                     const { jsPDF } = typeof jspdf !== 'undefined' ? jspdf : (window.jspdf || { jsPDF: window.jsPDF });
                     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-                    const quotes = [...this.data.quotes].sort((a, b) => (a.premium12Month || 0) - (b.premium12Month || 0));
+                    const quotes = [...allExportQuotes].sort((a, b) => (a.premiumAmount || a.premium12Month || 0) - (b.premiumAmount || b.premium12Month || 0));
                     const applicant = this.data.applicant || {};
                     const pageW = doc.internal.pageSize.getWidth();
 
@@ -744,7 +919,7 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
                     doc.text('Quote Comparison Summary', 14, 18);
                     doc.setFontSize(10);
                     doc.setFont('helvetica', 'normal');
-                    doc.text(`${applicant.name || 'N/A'} | ${applicant.policyType || 'HO3'} | Eff: ${applicant.effectiveDate || 'N/A'}`, 14, 25);
+                    doc.text(`${applicant.name || 'N/A'} | Eff: ${applicant.effectiveDate || 'N/A'}`, 14, 25);
                     doc.text(`Generated by Altech Insurance Tools — ${new Date().toLocaleDateString()}`, 14, 30);
 
                     // Premium comparison
@@ -753,12 +928,16 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
                     doc.text('Premium Comparison', 14, 40);
 
                     const premHeaders = ['Carrier', 'Annual Premium', 'Monthly Est.', 'Discounts'];
-                    const premRows = quotes.map(q => [
-                        q.carrier || 'Unknown',
-                        '$' + (q.premium12Month || 0).toLocaleString(),
-                        '~$' + (q.premium12Month ? (q.premium12Month / 12).toFixed(0) : '—'),
-                        q.totalSavings || (q.discounts?.length ? q.discounts.length + ' applied' : 'None')
-                    ]);
+                    const premRows = quotes.map(q => {
+                        const prem = q.premiumAmount || q.premium12Month || 0;
+                        const divisor = q.premiumTerm === '6 Month' ? 6 : 12;
+                        return [
+                            q.carrier || 'Unknown',
+                            '$' + prem.toLocaleString() + (q.premiumTerm ? ' ' + q.premiumTerm : ''),
+                            '~$' + (prem ? (prem / divisor).toFixed(0) : '—') + '/mo',
+                            q.totalSavings || (q.discounts?.length ? q.discounts.length + ' applied' : 'None')
+                        ];
+                    });
 
                     doc.autoTable ? doc.autoTable({
                         head: [premHeaders], body: premRows,
