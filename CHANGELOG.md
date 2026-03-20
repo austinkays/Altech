@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **feat(property): Rentcast/Gemini source attribution — Phase 3** (March 20, 2026):
+  - `js/app-property.js` — `fetchZillowData()`: logs field-level source citations from `result.sources` and passes them through to callers (`sources` key on return object)
+  - `js/app-property.js` — `fetchPropertyViaGemini()`: prompt updated to request `{value, source}` object format for every field + "Never infer, estimate, or use typical values" constraint added to IMPORTANT block
+  - `js/app-property.js` — `fetchPropertyViaGemini()`: `flatRaw` flattening block added after `JSON.parse` — backward-compat with both new `{value,source}` objects and legacy plain strings; builds per-field `geminiSources` map; logs `[GeminiProperty source]` lines; returns `sources` alongside `data`
+  - `js/app-property.js` — `showUnifiedDataPopup()`: tracks `fieldSources` from `zillowData.sources` during ArcGIS→Zillow gap-fill merge; field cards now show a purple `✓ <source name>` chip and `title` tooltip when explicit attribution is present
+
 - **feat(property-intelligence): Rentcast API integration — Phase 1** (March 20, 2026):
   - `api/property-intelligence.js`: added `fetchRentcastData(address, city, state, zip)` helper that calls `https://api.rentcast.io/v1/properties` and maps top-level + `features.*` fields to Altech keys; returns null on 404/empty; throws on 5xx for upstream catch
   - `handleZillow()`: now tries Rentcast first before falling back to Gemini; logs `[Zillow] Rentcast hit` or `[Zillow] Rentcast miss` accordingly; Rentcast errors are swallowed with a warning so Gemini path still runs
