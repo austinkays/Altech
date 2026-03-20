@@ -1030,7 +1030,7 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             if ((!merged.bathrooms || merged.bathrooms === 0) && zd.fullBaths) { merged.bathrooms = zd.fullBaths; if (zSrc.fullBaths) fieldSources.bathrooms = zSrc.fullBaths; }
             if ((!merged.garageSpaces || merged.garageSpaces === 0) && zd.garageSpaces) { merged.garageSpaces = zd.garageSpaces; if (zSrc.garageSpaces) fieldSources.garageSpaces = zSrc.garageSpaces; }
             if (zd.fireplace) merged.fireplace = zd.fireplace;
-            if ((!merged.garageType || merged.garageType === 'Unknown') && zd.garageType) { merged.garageType = zd.garageType; if (zSrc.garageType) fieldSources.garageType = zSrc.garageType; }
+            if ((!merged.garageType || merged.garageType === 'Unknown' || merged.garageType === 'None') && zd.garageType) { merged.garageType = zd.garageType; if (zSrc.garageType) fieldSources.garageType = zSrc.garageType; }
             if (!merged.flooring && zd.flooring) { merged.flooring = zd.flooring; if (zSrc.flooring) fieldSources.flooring = zSrc.flooring; }
             if (!merged.numFireplaces && zd.numFireplaces) { merged.numFireplaces = zd.numFireplaces; if (zSrc.numFireplaces) fieldSources.numFireplaces = zSrc.numFireplaces; }
             if (!merged.sewer && zd.sewer) { merged.sewer = zd.sewer; if (zSrc.sewer) fieldSources.sewer = zSrc.sewer; }
