@@ -20,9 +20,9 @@
 
 ---
 
-## ⚠️ KNOWN BUGS IN CURRENT IMPLEMENTATION
+## ~~⚠️ KNOWN BUGS~~ — All Fixed (commit 910b97b, March 20, 2026)
 
-> Fix these before adding new Rentcast features.
+> ~~Fix these before adding new Rentcast features.~~ All 3 bugs listed below were corrected in commit 910b97b. Kept for historical reference only.
 
 ### Bug 1 — Wrong field name for stories/floor count (CRITICAL)
 **File:** `api/property-intelligence.js` → `fetchRentcastData()`  

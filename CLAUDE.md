@@ -8,7 +8,7 @@ Vanilla HTML/CSS/JS SPA. No build step, no framework. Vercel deploy (push `main`
 
 ```bash
 npm run dev               # port 3000
-npm test                  # 25 suites, 1631 tests
+npm test                  # 26 suites, 1672 tests
 npx jest --no-coverage    # faster
 ```
 
@@ -213,7 +213,7 @@ Test all three workflows when changing step logic or conditions.
 ## Testing
 
 ```bash
-npm test                          # 25 suites, 1631 tests
+npm test                          # 26 suites, 1672 tests
 npx jest --no-coverage            # faster
 npx jest tests/app.test.js        # single suite
 ```
@@ -231,6 +231,23 @@ Hobby plan max: **12 serverless functions**. Current count: **12 (at the limit)*
 Before adding any file to `api/`: count non-`_` files — must stay ≤ 12.
 
 To add new API behavior: use `?mode=` or `?type=` routing inside an existing function, or prefix the file with `_` (helper, not counted).
+
+---
+
+## Property Intelligence Pipeline (`api/property-intelligence.js`)
+
+The `?mode=zillow` (Rentcast/Gemini) and `?mode=arcgis` (ArcGIS + FEMA) flows use 4 data sources:
+
+| Step | Source | Handler | Notes |
+|------|--------|---------|-------|
+| 1 | **Rentcast** | `fetchRentcastData()` | `/v1/properties` — structural features, HOA, architecture. Null on 404/miss. |
+| 2 | **Gemini AI** | `fetchViaGeminiSearch()` | Fallback when Rentcast misses. Returns `{value, source}` per field. |
+| 3 | **ArcGIS / Clark County** | `handleArcgis()` | Parcel geometry, PC, fire stations. Runs parallel with FEMA. |
+| 4 | **FEMA NFHL** | `fetchFloodZone()` | Public flood zone API (no key). 5-second timeout. Attached to ArcGIS response as `floodData`. |
+
+**`js/app-property.js` Rentcast usage counter:** tracks per-user call count in Firestore (`users/{uid}/rentcastUsage`). Overage modal fires when count exceeds limit. All Rentcast calls write `{ ts, address, source: 'rentcast' }` to audit log.
+
+**Authoritative ref:** `docs/RENTCAST_API.md` — read this first before touching any Rentcast or FEMA code. Covers full field schema, enum values, and fields that do NOT exist in Rentcast (use Gemini fallback).
 
 ---
 

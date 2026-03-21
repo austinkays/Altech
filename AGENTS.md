@@ -205,7 +205,9 @@ npm run deploy:vercel   # Production deploy
 ├── src-tauri/                  # Tauri desktop app (Rust)
 ├── python_backend/             # Python automation (Playwright HawkSoft, trust reports)
 ├── Resources/                  # Static assets
-└── docs/                       # Architecture docs, roadmaps, guides
+├── docs/                       # Architecture docs, roadmaps, guides
+│   ├── RENTCAST_API.md         # ★ Authoritative Rentcast + FEMA flood zone reference — read before touching property-intelligence.js
+│   └── ...                     # ARCHITECTURE.md, DOCUMENTATION_INDEX.md, technical/, guides/, etc.
 ```
 
 ---
@@ -731,7 +733,7 @@ KEY RULES:
 5. After localStorage writes on synced data, call CloudSync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
 7. App is built via Object.assign(App, {...}) across 11 files (incl. app-ui-utils.js, app-navigation.js) — app-boot.js loads LAST
-8. Test with: npm test (1631 tests, 25 suites, all must pass)
+8. Test with: npm test (1672 tests, 26 suites, all must pass)
 9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, add an entry to CHANGELOG.md with what changed (files, test counts, date). Run: npm run audit-docs
@@ -755,6 +757,7 @@ KEY RULES:
     Do not re-investigate or re-fix already committed work.
 19. Use STORAGE_KEYS.* for all altech_* localStorage key strings — never hardcode 'altech_...' strings in modules. window.STORAGE_KEYS is the single source of truth.
 20. Use Utils.escapeHTML(), Utils.escapeAttr(), Utils.tryParseLS(), Utils.debounce() — never define these inline in plugins. window.Utils is loaded before App.
+21. Read docs/RENTCAST_API.md before making ANY changes to api/property-intelligence.js Rentcast or FEMA integration — it is the authoritative endpoint spec, field schema, and known-missing-field list.
 ```
 
 ---
@@ -763,7 +766,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` → 25 suites, 1631 tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 26 suites, 1672 tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements

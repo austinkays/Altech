@@ -29,6 +29,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Helper functions: `buildGrid()`, `rawToFields()` (camelCase key auto-labeling), `camelToLabel()`
   - Tests: 26 suites / 1672 tests — all green
 
+- **feat(app-property): Rentcast usage counter + overage modal + Firestore audit log** (March 20, 2026):
+  - `js/app-property.js`: tracks per-user Rentcast API call count in Firestore under `users/{uid}/rentcastUsage`
+  - Overage modal fires when call count exceeds configured threshold — shows current count, limit, and "Contact Support" CTA
+  - All Rentcast invocations write an audit entry `{ ts, address, source: 'rentcast' }` to the Firestore audit log
+  - Tests: 26 suites / 1672 tests — all green
+
+- **docs(property-intelligence): Add Rentcast API bible — `docs/RENTCAST_API.md`** (March 20, 2026):
+  - Created `docs/RENTCAST_API.md` — authoritative reference for all Rentcast + FEMA NFHL usage in `api/property-intelligence.js`
+  - Covers all 3 Rentcast endpoints, full `/v1/properties` schema with `features.*` field types and all enum values
+  - Documents fields NOT available in Rentcast (use Gemini fallback): `flooring`, `numFireplaces`, `roofAge`, `heatingFuel`, etc.
+  - FEMA Flood Zone section: endpoint spec, field mapping (`floodZone`, `floodZoneSubtype`, `sfha`, `baseFloodElevation`), zone designation table, integration notes
+  - ⚠️ Known bugs section documents pre-fix state for historical reference (all 3 bugs fixed in commit 910b97b)
+  - Tests: 26 suites / 1672 tests — all green
+
 ### Fixed
 - **fix(app-property): Map all property API fields to intake form + fix stories merge priority** (March 28, 2026):
   - `applyParcelData()`: added 13 previously unmapped fields — `exteriorWalls`, `garageType`, `cooling`, `roofShape`, `flooring`, `sewer`, `waterSource`, `dwellingType`, `pool`, `woodStove`, `roofYr`, `numFireplaces`, `ownerName`, `parcelId`
@@ -39,6 +53,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `numStories` SELECT: changed from bare `field.value = parcelData.stories` (silent failure on non-matching values) to validate against actual `<option>` list, then fall back to rounded integer
   - Stories merge priority: Zillow now always preferred over ArcGIS when available — county assessors frequently mis-count split-levels and half-stories
   - `applyZillowSelects()`: added empty-guard (`if (el.value && el.value.trim()) continue`) so Zillow never overwrites parcel data already applied
+  - Tests: 26 suites / 1672 tests — all green
+
+- **fix(property-intelligence): treat garageType `'None'` same as `'Unknown'` in Rentcast merge** (March 20, 2026):
+  - `js/app-property.js` — `showUnifiedDataPopup()` merge block: added `|| merged.garageType === 'None'` guard so Rentcast wins when ArcGIS returns the literal string `'None'` for garage type (was only checking for `'Unknown'`)
+  - Tests: 26 suites / 1672 tests — all green
+
+- **fix(dashboard): adjust margins, font sizes, and widget dimensions** (March 20, 2026):
+  - `css/dashboard.css`: tightened widget padding, font sizes, and bento grid cell dimensions for a more consistent layout across desktop and tablet viewports
+  - Tests: 26 suites / 1672 tests — all green
+
+- **feat(property-intelligence): add diagnostic logging to `fetchRentcastData()` + response headers** (March 20, 2026):
+  - `api/property-intelligence.js`: added `console.log('[Rentcast]')` trace lines to track hit/miss; logs `X-Ratelimit-Limit-Month` and `X-Ratelimit-Remaining-Month` response headers when present for API quota monitoring
+  - Tests: 26 suites / 1672 tests — all green
+
+### Changed
+- **chore(sidebar): move Quick Reference to first position under Operations** (March 20, 2026):
+  - `js/app-init.js` — reordered `toolConfig[]`: Quick Reference (`quickref`) entry moved to the top of the `ops` category, making it the first tool listed under Operations in the sidebar
   - Tests: 26 suites / 1672 tests — all green
 
 ### Added
