@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(property-intelligence): FEMA flood zone lookup in property intelligence pipeline** (March 20, 2026):
+  - Added `fetchFloodZone(lat, lng)` helper in `api/property-intelligence.js` — queries FEMA NFHL ArcGIS public REST API (MapServer/28), 5-second timeout, graceful null on error/miss
+  - Clark County enrichment + flood zone now run in parallel via `Promise.allSettled([clarkPromise, floodPromise])` inside `handleArcgis()` — no sequential blocking
+  - `floodData` (`floodZone`, `floodZoneSubtype`, `sfha`, `baseFloodElevation`) threaded through `fetchArcgisAndRag()` return paths and passed as 7th arg to `showUnifiedDataPopup()`
+  - **Flood Zone card** in `showUnifiedDataPopup()`: SFHA risk chip — red `⚠️ High Risk` (sfha=true) or green `✓ Low/Moderate Risk` (sfha=false); 🌊 FEMA Flood source badge
+  - No new Vercel serverless function — bundled in existing `?mode=arcgis` endpoint (stays at 12/12 limit)
+  - Updated `docs/RENTCAST_API.md` with full FEMA Flood Zone section (endpoint, field mapping, zone designation table)
+  - Tests: 26 suites / 1672 tests — all green
+
 - **feat(app-property): Tabbed property modal with Rentcast/AI Search source detection** (March 20, 2026):
   - `showUnifiedDataPopup()` in `js/app-property.js` — replaced single merged grid with a 4-tab layout: **✦ Summary** / **🏛 County** / **📊 Rentcast** or **🏠 AI Search** / **🚒 Fire / PC** (tabs only appear when that source has data)
   - Fixed source label: `sources.push('Property Listings')` → detects `zillowData.source === 'Rentcast'` and pushes `'Rentcast'` or `'AI Search'` accordingly

@@ -538,10 +538,13 @@ Object.assign(App, {
                 this._updateRentcastDisplay(_newCount);
             }
 
+            const floodData = arcgisData?.floodData || null;
+
             console.log('[SmartFill] Results:', {
                 arcgis: arcgisData ? arcgisData.source : 'none',
                 zillow: zillowData ? zillowData.source : 'none',
-                fire: fireData ? 'ok' : 'none'
+                fire: fireData ? 'ok' : 'none',
+                flood: floodData ? floodData.floodZone : 'none'
             });
 
             // If no property details (only fire data), try direct Gemini property search
@@ -562,7 +565,7 @@ Object.assign(App, {
             if (arcgisData || zillowData || fireData) {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                this.showUnifiedDataPopup(arcgisData, zillowData, fireData, address, city, state);
+                this.showUnifiedDataPopup(arcgisData, zillowData, fireData, address, city, state, floodData);
                 return;
             }
 
@@ -618,6 +621,8 @@ Object.assign(App, {
                 return null;
             }
 
+            const floodData = arcgisData.floodData || null;
+
             // Try RAG interpretation
             const ragResponse = await fetch('/api/property-intelligence?mode=rag-interpret', {
                 method: 'POST',
@@ -627,11 +632,11 @@ Object.assign(App, {
             if (ragResponse.ok) {
                 const ragData = await ragResponse.json();
                 if (ragData.success && ragData.parcelData) {
-                    return { data: ragData.parcelData, source: 'arcgis-rag', confidence: 0.99 };
+                    return { data: ragData.parcelData, source: 'arcgis-rag', confidence: 0.99, floodData };
                 }
             }
             // RAG failed, return raw ArcGIS data
-            const result = { data: arcgisData.parcelData, source: 'arcgis-raw', confidence: 0.95 };
+            const result = { data: arcgisData.parcelData, source: 'arcgis-raw', confidence: 0.95, floodData };
             // If Clark County enrichment happened, note it
             if (arcgisData.enrichedBy === 'clark-factsheet') {
                 result.source = 'arcgis+clark-factsheet';
@@ -1019,7 +1024,7 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         }
     },
 
-    showUnifiedDataPopup(arcgisData, zillowData, fireData, address, city, state) {
+    showUnifiedDataPopup(arcgisData, zillowData, fireData, address, city, state, floodData) {
         // Merge data from all sources: ArcGIS (primary) → Zillow (fill gaps) → FireStation
         const merged = {};
         const sources = [];
@@ -1076,6 +1081,10 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             merged.protectionClass = fireData.protectionClass;
         }
 
+        if (floodData) {
+            sources.push('FEMA Flood');
+        }
+
         // Determine the property listings source name for this data set
         const zdSourceName = (zillowData && zillowData.source === 'Rentcast') ? 'Rentcast' : 'AI Search';
 
@@ -1111,13 +1120,15 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             'County Records': '#0066cc',
             'Rentcast': '#0d7a4e',
             'AI Search': '#6f42c1',
-            'Fire Protection': '#dc3545'
+            'Fire Protection': '#dc3545',
+            'FEMA Flood': '#1a6496'
         };
         const badgeIcons = {
             'County Records': '🏛',
             'Rentcast': '📊',
             'AI Search': '🏠',
-            'Fire Protection': '🚒'
+            'Fire Protection': '🚒',
+            'FEMA Flood': '🌊'
         };
         sources.forEach(src => {
             const badge = document.createElement('span');
@@ -1289,6 +1300,12 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             if (fireData.reviewNote) summaryFieldDefs.push({ label: 'Station Note', value: fireData.reviewNote });
         }
 
+        if (floodData) {
+            summaryFieldDefs.push({ label: 'Flood Zone', value: floodData.floodZone || null });
+            if (floodData.floodZoneSubtype) summaryFieldDefs.push({ label: 'Zone Subtype', value: floodData.floodZoneSubtype });
+            if (floodData.baseFloodElevation != null) summaryFieldDefs.push({ label: 'Base Flood Elev.', value: `${floodData.baseFloodElevation} ft` });
+        }
+
         // Attach per-field source citations for summary tab
         const summaryFields = summaryFieldDefs.map(f => {
             const mk = labelToMergedKey[f.label];
@@ -1297,6 +1314,23 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
 
         const { el: summaryGrid, count: summaryCount } = buildGrid(summaryFields);
         panels.summary.appendChild(summaryGrid);
+
+        if (floodData) {
+            const isHighRisk = floodData.sfha === true;
+            const floodChip = document.createElement('div');
+            floodChip.style.cssText = `
+                display: inline-flex; align-items: center; gap: 6px;
+                margin-top: 10px; padding: 8px 14px; border-radius: 20px;
+                font-size: 12px; font-weight: 600;
+                background: ${isHighRisk ? '#fff3f3' : '#f0fff4'};
+                color: ${isHighRisk ? '#c0392b' : '#1a7a40'};
+                border: 1.5px solid ${isHighRisk ? '#e74c3c' : '#27ae60'};
+            `;
+            floodChip.textContent = isHighRisk
+                ? '⚠️ High Risk — flood insurance may be required'
+                : '✓ Low/Moderate Risk';
+            panels.summary.appendChild(floodChip);
+        }
 
         // ── County tab ────────────────────────────────────────────────────────
         if (panels.county) {

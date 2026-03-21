@@ -389,6 +389,44 @@ function enrichParcelWithFactSheet(parcelData, factSheet) {
   return parcelData;
 }
 
+// ===========================================================================
+// FEMA NFHL Flood Zone Lookup (public endpoint — no API key required)
+// ===========================================================================
+async function fetchFloodZone(lat, lng) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const url = `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query?geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=FLD_ZONE,ZONE_SUBTY,SFHA_TF,STATIC_BFE&returnGeometry=false&f=json`;
+    const resp = await fetch(url, { signal: controller.signal });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (!data.features || data.features.length === 0) {
+      console.log('[FloodZone] miss — no FEMA data for this location');
+      return null;
+    }
+    const attrs = data.features[0].attributes;
+    const sfha = attrs.SFHA_TF === 'T';
+    const bfe = parseFloat(attrs.STATIC_BFE);
+    const result = {
+      floodZone: attrs.FLD_ZONE || null,
+      floodZoneSubtype: attrs.ZONE_SUBTY || null,
+      sfha,
+      baseFloodElevation: isNaN(bfe) ? null : bfe
+    };
+    console.log(`[FloodZone] Zone: ${result.floodZone}, SFHA: ${sfha}`);
+    return result;
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      console.warn('[FloodZone] Timed out after 5s — skipping flood data');
+    } else {
+      console.warn('[FloodZone] Error:', e.message);
+    }
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function handleArcgis(req, res) {
   const { address, city, state, county } = req.body;
 
@@ -401,20 +439,32 @@ async function handleArcgis(req, res) {
 
   const result = await arcgisQueryByAddress(address, city, state, county);
 
-  // Clark County enrichment: if ArcGIS succeeded, try the Fact Sheet scrape
-  if (result.success && county === 'Clark' && result.rawResponse) {
-    const acctNum = result.rawResponse.DATA_LINK || result.rawResponse.ORIG_PARCEL_ID || result.parcelData?.parcelId;
-    if (acctNum) {
-      console.log(`[ArcGIS] Clark County detected — attempting Fact Sheet enrichment (acct: ${acctNum})`);
-      const factSheet = await fetchClarkFactSheet(acctNum);
-      if (factSheet) {
-        result.parcelData = enrichParcelWithFactSheet(result.parcelData, factSheet);
-        result.enrichedBy = 'clark-factsheet';
-        result.factSheetFields = factSheet.fieldsFound;
-        console.log(`[ArcGIS] Clark enrichment added ${factSheet.fieldsFound.length} fields`);
-      }
-    }
+  // Run Clark County enrichment and FEMA flood zone lookup in parallel
+  const lat = result.parcelData?.latitude;
+  const lng = result.parcelData?.longitude;
+
+  const clarkPromise = (result.success && county === 'Clark' && result.rawResponse)
+    ? (() => {
+        const acctNum = result.rawResponse.DATA_LINK || result.rawResponse.ORIG_PARCEL_ID || result.parcelData?.parcelId;
+        if (!acctNum) return Promise.resolve(null);
+        console.log(`[ArcGIS] Clark County detected — attempting Fact Sheet enrichment (acct: ${acctNum})`);
+        return fetchClarkFactSheet(acctNum);
+      })()
+    : Promise.resolve(null);
+
+  const floodPromise = (lat && lng) ? fetchFloodZone(lat, lng) : Promise.resolve(null);
+
+  const [clarkSettled, floodSettled] = await Promise.allSettled([clarkPromise, floodPromise]);
+
+  const factSheet = clarkSettled.status === 'fulfilled' ? clarkSettled.value : null;
+  if (factSheet) {
+    result.parcelData = enrichParcelWithFactSheet(result.parcelData, factSheet);
+    result.enrichedBy = 'clark-factsheet';
+    result.factSheetFields = factSheet.fieldsFound;
+    console.log(`[ArcGIS] Clark enrichment added ${factSheet.fieldsFound.length} fields`);
   }
+
+  result.floodData = floodSettled.status === 'fulfilled' ? floodSettled.value : null;
 
   res.status(200).json(result);
 }

@@ -314,3 +314,55 @@ These fields cannot be obtained from Rentcast and must come from Gemini or ArcGI
 - `dwellingType` / `constructionType` — not in schema
 - Fire protection class / distance to station — ArcGIS only
 - Parcel/APN geometry data — ArcGIS only (Rentcast has `assessorID` string but not parcel geometry)
+
+---
+
+## FEMA Flood Zone (NFHL ArcGIS)
+
+> **No API key required.** Public FEMA endpoint, bundled into the `?mode=arcgis` response as `floodData`.
+
+### Endpoint
+
+```
+GET https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query
+  ?geometry={lng},{lat}
+  &geometryType=esriGeometryPoint
+  &inSR=4326
+  &spatialRel=esriSpatialRelIntersects
+  &outFields=FLD_ZONE,ZONE_SUBTY,SFHA_TF,STATIC_BFE
+  &returnGeometry=false
+  &f=json
+```
+
+Coordinates are sourced from the ArcGIS parcel result (`parcelData.latitude` / `parcelData.longitude`) — no separate geocoding step.
+
+### Response Field Mapping
+
+| FEMA Field | Altech Field | Type | Notes |
+|-----------|-------------|------|-------|
+| `FLD_ZONE` | `floodZone` | `string` | e.g. `"AE"`, `"X"`, `"VE"` |
+| `ZONE_SUBTY` | `floodZoneSubtype` | `string\|null` | e.g. `"0.2 PCT ANNUAL CHANCE FLOOD HAZARD"` |
+| `SFHA_TF` | `sfha` | `boolean` | `"T"` → `true` (high risk, flood insurance typically required), `"F"` → `false` |
+| `STATIC_BFE` | `baseFloodElevation` | `number\|null` | Base Flood Elevation in feet; `null` if not available |
+
+### Integration Notes
+
+- Called inside `fetchFloodZone(lat, lng)` in `api/property-intelligence.js`
+- Runs in parallel with Clark County enrichment via `Promise.allSettled` in `handleArcgis()`
+- **5-second timeout** enforced via `AbortController` — returns `null` and continues on timeout
+- Result is attached to the `?mode=arcgis` response as `result.floodData`
+- Client (`js/app-property.js → fetchArcgisAndRag()`) threads `floodData` through to `showUnifiedDataPopup()`
+- UI: Flood Zone fields appear in the Summary tab grid; SFHA risk chip shown below the grid
+  - `sfha === true` → red `⚠️ High Risk — flood insurance may be required`
+  - `sfha === false` → green `✓ Low/Moderate Risk`
+  - No flood data returned → card/chip absent (silent fallback)
+
+### Common Zone Designations
+
+| Zone | SFHA | Description |
+|------|:----:|-------------|
+| `A`, `AE`, `AH`, `AO` | ✅ Yes | High risk — 1% annual flood chance |
+| `VE`, `V` | ✅ Yes | High risk + wave action (coastal) |
+| `X` (shaded) | ❌ No | Moderate risk — 0.2% annual chance |
+| `X` (unshaded) | ❌ No | Minimal risk — outside 500-yr floodplain |
+| `D` | ❌ No | Undetermined risk |
