@@ -393,6 +393,7 @@ function enrichParcelWithFactSheet(parcelData, factSheet) {
 // FEMA NFHL Flood Zone Lookup (public endpoint — no API key required)
 // ===========================================================================
 async function fetchFloodZone(lat, lng) {
+  console.log('[FloodZone] called with lat:', lat, 'lng:', lng);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
   try {
@@ -442,6 +443,7 @@ async function handleArcgis(req, res) {
   // Run Clark County enrichment and FEMA flood zone lookup in parallel
   const lat = result.parcelData?.latitude;
   const lng = result.parcelData?.longitude;
+  console.log('[ArcGIS] Flood prereqs — lat:', lat, ', lng:', lng, '| will call flood:', !!(lat && lng));
 
   const clarkPromise = (result.success && county === 'Clark' && result.rawResponse)
     ? (() => {
