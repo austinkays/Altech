@@ -1,8 +1,8 @@
 // QuickRef - Extracted from index.html
 // Do not edit this section in index.html; edit this file instead.
 
-const QR_STORAGE_KEY = 'altech_quickref_cards';
-const QR_NUMBERS_KEY = 'altech_quickref_numbers';
+const QR_STORAGE_KEY = STORAGE_KEYS.QUICKREF_CARDS;
+const QR_NUMBERS_KEY = STORAGE_KEYS.QUICKREF_NUMBERS;
 const PHONETIC_ALPHABET = {
     A:'Adam',B:'Boy',C:'Charles',D:'David',E:'Edward',F:'Frank',
     G:'George',H:'Henry',I:'Ida',J:'John',K:'King',L:'Lincoln',
@@ -63,8 +63,8 @@ const QuickRef = {
         output.innerHTML = upper.split('').map(ch => {
             if (ch === ' ') return '<span class="qr-speller-item space">(space)</span>';
             const word = NATO[ch];
-            if (!word) return `<span class="qr-speller-item"><span class="qr-spell-letter">${this.escHtml(ch)}</span>${this.escHtml(ch)}</span>`;
-            return `<span class="qr-speller-item"><span class="qr-spell-letter">${this.escHtml(ch)}</span> ${word}</span>`;
+            if (!word) return `<span class="qr-speller-item"><span class="qr-spell-letter">${Utils.escapeHTML(ch)}</span>${Utils.escapeHTML(ch)}</span>`;
+            return `<span class="qr-speller-item"><span class="qr-spell-letter">${Utils.escapeHTML(ch)}</span> ${word}</span>`;
         }).join('');
     },
 
@@ -165,12 +165,12 @@ const QuickRef = {
                 </div>
                 <div class="qr-card-carrier">
                     <span class="qr-carrier-dot" style="background:${card.color || '#0d9488'}"></span>
-                    ${this.escHtml(card.carrier)}
+                    ${Utils.escapeHTML(card.carrier)}
                 </div>
                 ${card.fields.map(f => `
                     <div class="qr-card-field">
-                        <span>${this.escHtml(f.label)}</span>
-                        <span class="qr-card-value" onclick="QuickRef.copyVal(this)">${this.escHtml(f.value) || '—'}</span>
+                        <span>${Utils.escapeHTML(f.label)}</span>
+                        <span class="qr-card-value" onclick="QuickRef.copyVal(this)">${Utils.escapeHTML(f.value) || '—'}</span>
                     </div>
                 `).join('')}
             </div>
@@ -263,8 +263,8 @@ const QuickRef = {
         const list = document.getElementById('qrAddFieldsList');
         list.innerHTML = card.fields.map(f => `
             <div class="qr-add-field-row">
-                <input type="text" class="qr-add-input" placeholder="Label" data-role="label" value="${this.escAttr(f.label)}">
-                <input type="text" class="qr-add-input" placeholder="Value" data-role="value" value="${this.escAttr(f.value)}">
+                <input type="text" class="qr-add-input" placeholder="Label" data-role="label" value="${Utils.escapeAttr(f.label)}">
+                <input type="text" class="qr-add-input" placeholder="Value" data-role="value" value="${Utils.escapeAttr(f.value)}">
                 <button class="qr-card-btn delete" onclick="this.parentElement.remove()" title="Remove">✕</button>
             </div>
         `).join('');
@@ -312,8 +312,8 @@ const QuickRef = {
         }
         container.innerHTML = this.numbers.map((n, i) => `
             <div class="qr-number-row">
-                <span class="qr-number-label">${this.escHtml(n.label)}</span>
-                <span class="qr-card-value" onclick="QuickRef.copyVal(this)">${this.escHtml(n.value)}</span>
+                <span class="qr-number-label">${Utils.escapeHTML(n.label)}</span>
+                <span class="qr-card-value" onclick="QuickRef.copyVal(this)">${Utils.escapeHTML(n.value)}</span>
                 <span class="qr-number-actions">
                     <button class="qr-card-btn" onclick="QuickRef.editNumber(${i})" title="Edit">✏️</button>
                     <button class="qr-card-btn delete" onclick="QuickRef.deleteNumber(${i})" title="Delete">✕</button>
@@ -368,19 +368,6 @@ const QuickRef = {
         App.toast('🗑️ Number removed');
     },
 
-    // ─── Helpers ────────────────────
-
-    escHtml(text) {
-        if (!text) return '';
-        const d = document.createElement('div');
-        d.textContent = text;
-        return d.innerHTML;
-    },
-
-    escAttr(text) {
-        if (!text) return '';
-        return String(text).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
 };
 
 window.QuickRef = QuickRef;

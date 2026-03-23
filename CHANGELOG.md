@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(tooling): SDL-MCP code intelligence server integrated** (March 23, 2026):
+  - Initialized SDL-MCP v0.9.2 for the Altech codebase — indexes 110 files, 2183 symbols, 11543 edges across JS, Python, and Rust
+  - Added `.mcp.json` with `sdl-mcp` server config (stdio transport via `npx sdl-mcp@latest serve --stdio`)
+  - SDL config at `/root/.config/sdl-mcp/sdlmcp.config.json`; graph DB at `/root/.config/sdl-mcp/sdl-mcp-graph.lbug`
+  - Provides 29 MCP tools across 4 namespaces: `sdl.query.*`, `sdl.code.*`, `sdl.repo.*`, `sdl.agent.*`
+  - Iris Gate escalation ladder delivers 4–20x token savings on code-understanding queries vs. full-file reads
+
 - **feat(property-intelligence): FEMA flood zone lookup in property intelligence pipeline** (March 20, 2026):
   - Added `fetchFloodZone(lat, lng)` helper in `api/property-intelligence.js` — queries FEMA NFHL ArcGIS public REST API (MapServer/28), 5-second timeout, graceful null on error/miss
   - Clark County enrichment + flood zone now run in parallel via `Promise.allSettled([clarkPromise, floodPromise])` inside `handleArcgis()` — no sequential blocking

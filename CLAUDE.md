@@ -262,6 +262,35 @@ The `?mode=zillow` (Rentcast/Gemini) and `?mode=arcgis` (ArcGIS + FEMA) flows us
 - **All form writes via `App.save()`** — never write to `STORAGE_KEYS.FORM` directly
 - **After any work session:** add an entry to `CHANGELOG.md`, run `npm run audit-docs`
 
+## SDL-MCP Code Intelligence
+
+SDL-MCP (Symbol Delta Ledger) is configured as an MCP server for this project via `.mcp.json`. It indexes the codebase into a symbol graph and provides token-efficient code context to agents.
+
+**Config:** `.mcp.json` → `npx sdl-mcp@latest serve --stdio` with `SDL_CONFIG=/root/.config/sdl-mcp/sdlmcp.config.json`
+
+**Index stats:** 110 files · 2183 symbols · 11543 call edges (JS, Python, Rust)
+
+**Key tools available:**
+
+| Tool | Use for |
+|------|---------|
+| `sdl_symbol_search` | Find a function/class by name before reading a file |
+| `sdl_slice_build` | Get task-relevant symbol cards in one call — start here for any investigation |
+| `sdl_code_getSkeleton` | Signatures + control flow without reading full source |
+| `sdl_code_getHotPath` | Lines matching specific identifiers with context |
+| `sdl_repo_overview` | Directory summary + hotspots — use for orientation |
+| `sdl_memory_store` / `sdl_memory_query` | Persist decisions across sessions |
+
+**Iris Gate escalation ladder** — always start at the lowest rung:
+1. Symbol card (~100 tokens) — name, signature, deps
+2. Skeleton (~300 tokens) — signatures + control flow, bodies elided
+3. Hot-path excerpt (~600 tokens) — only lines matching your identifiers
+4. Full source (~2000 tokens) — policy-gated, requires justification
+
+Re-index after large changes: `npx sdl-mcp@latest index --mode incremental`
+
+---
+
 ## What NOT To Do
 
 | ❌ | ✅ |

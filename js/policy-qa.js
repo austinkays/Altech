@@ -1,7 +1,7 @@
 // PolicyQA - Extracted from index.html
 // Do not edit this section in index.html; edit this file instead.
 
-const QNA_STORAGE_KEY = 'altech_v6_qna';
+const QNA_STORAGE_KEY = STORAGE_KEYS.QNA;
 
             const PolicyQA = {
                 isTauri: false,
@@ -58,7 +58,7 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
 
                 async resolveGeminiKey() {
                     // 1. Check localStorage (previously saved by user)
-                    const savedKey = localStorage.getItem('gemini_api_key');
+                    const savedKey = localStorage.getItem(STORAGE_KEYS.GEMINI_KEY);
                     if (savedKey) {
                         this._geminiApiKey = savedKey;
                         this.addSystemMessage('✅ Ready — drop a PDF to get started.');
@@ -103,7 +103,7 @@ const QNA_STORAGE_KEY = 'altech_v6_qna';
                     const key = prompt('Enter your Google Gemini API key (get one at https://aistudio.google.com/apikey):');
                     if (key && key.trim()) {
                         this._geminiApiKey = key.trim();
-                        localStorage.setItem('gemini_api_key', key.trim());
+                        localStorage.setItem(STORAGE_KEYS.GEMINI_KEY, key.trim());
                         this.addSystemMessage('✅ API key saved. Smart Q&A is now active!');
                         App.toast('✅ Gemini API key configured');
                     }
@@ -613,7 +613,7 @@ POLICY TEXT:\n${truncated}`;
                     }
 
                     // Try 1b: Legacy direct Gemini fallback (when AIProvider not configured)
-                    const geminiKey = this._geminiApiKey || localStorage.getItem('gemini_api_key');
+                    const geminiKey = this._geminiApiKey || localStorage.getItem(STORAGE_KEYS.GEMINI_KEY);
                     if (geminiKey && (typeof AIProvider === 'undefined' || !AIProvider.isConfigured())) {
                         try {
                             const geminiRes = await fetch(
@@ -794,7 +794,7 @@ POLICY TEXT:\n${truncated}`;
                     div.className = 'qna-msg ai';
 
                     // Render text with citation badges
-                    let html = this.escapeHtml(answer.text);
+                    let html = Utils.escapeHTML(answer.text);
                     // Replace [Section X.X] patterns with styled citations
                     html = html.replace(/\[(Section\s+[\d.]+[^\]]*|Page\s+\d+[^\]]*|§\s*[\d.]+[^\]]*|Part\s+[A-Z0-9]+[^\]]*)\]/gi,
                         '<span class="citation" title="Policy reference">$1</span>');
@@ -849,7 +849,7 @@ POLICY TEXT:\n${truncated}`;
                             : '✗ Error';
                         return `<div class="qna-file-item">
                             <div class="file-info">
-                                <span class="file-name">📄 ${this.escapeHtml(f.name)}</span>
+                                <span class="file-name">📄 ${Utils.escapeHTML(f.name)}</span>
                                 <span class="file-size">${sizeStr}</span>
                             </div>
                             <div style="display:flex;align-items:center;gap:8px;">
@@ -921,7 +921,7 @@ POLICY TEXT:\n${truncated}`;
                         const hasText = !!r.extractedText;
                         return `<div class="qna-recent-item" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;cursor:${hasText ? 'pointer' : 'default'};background:${isActive ? 'var(--primary-color-light, #e8f0fe)' : 'transparent'};border:1px solid ${isActive ? 'var(--primary-color, #007AFF)' : '#e0e0e0'};margin-bottom:6px;transition:background 0.15s">
                             <div style="flex:1;min-width:0" onclick="PolicyQA.loadRecent(${idx})">
-                                <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📄 ${this.escapeHtml(r.name)}${isActive ? ' <span style="color:var(--primary-color,#007AFF);font-size:0.8em">(active)</span>' : ''}</div>
+                                <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📄 ${Utils.escapeHTML(r.name)}${isActive ? ' <span style="color:var(--primary-color,#007AFF);font-size:0.8em">(active)</span>' : ''}</div>
                                 <div style="font-size:0.82em;color:#888;margin-top:2px">${meta}${hasText ? '' : ' · <em>re-upload needed</em>'}</div>
                             </div>
                             <button onclick="event.stopPropagation();PolicyQA.deleteRecent(${idx})" title="Delete" style="background:none;border:none;cursor:pointer;font-size:1.1em;padding:4px 6px;border-radius:4px;color:#999;transition:color 0.15s" onmouseover="this.style.color='#e53e3e'" onmouseout="this.style.color='#999'">✕</button>
@@ -1026,11 +1026,6 @@ POLICY TEXT:\n${truncated}`;
                     });
                 },
 
-                escapeHtml(text) {
-                    const div = document.createElement('div');
-                    div.textContent = text;
-                    return div.innerHTML;
-                }
             };
 
             window.PolicyQA = PolicyQA;
