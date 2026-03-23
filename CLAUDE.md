@@ -194,17 +194,19 @@ const SYNC_DOCS = [
 - **Valid variables:** `--bg-card`, `--text`, `--apple-blue`, `--text-secondary`, `--bg-input`, `--border`
 - **Invalid (don't exist):** `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - **Prefer solid colors** (`#1C1C1E`) over low-opacity rgba for dark mode backgrounds
-- **`/* no var */` comments** mark hardcoded colors still needing a design token — leave them intact, do not remove. Currently in `css/compliance.css` (3× `#FF9500` warning/saving states) and `css/components.css` (1× low-opacity rgba background). Search `/* no var */` to find all instances.
+- **`/* no var */` comments** mark hardcoded colors still needing a design token — leave them intact, do not remove. Currently in `css/compliance.css` (3× `#FF9500` warning/saving states) and `css/components.css` (2×: 1 low-opacity rgba background, 1 `#ff9500` orange on `.btn-import`). Search `/* no var */` to find all instances.
 
 ---
 
 ## Three Workflows
 
+Coverage type selection (HOME / AUTO / HOME & AUTO) is embedded in step 1. Step 2 DOM element is kept as an empty placeholder for stability but is not part of any workflow.
+
 | Workflow | Steps | Skips |
 |----------|-------|-------|
-| `home` | 0→1→2→3→5→6 | Step 4 (vehicles) |
-| `auto` | 0→1→2→3→4→5→6 | — |
-| `both` | 0→1→2→3→4→5→6 | — |
+| `home` | 0→1→3→5→6 | Steps 2 and 4 |
+| `auto` | 0→1→3→4→5→6 | Step 2 |
+| `both` | 0→1→3→4→5→6 | Step 2 |
 
 Test all three workflows when changing step logic or conditions.
 
@@ -274,3 +276,6 @@ The `?mode=zillow` (Rentcast/Gemini) and `?mode=arcgis` (ArcGIS + FEMA) flows us
 | Edit `css/main.css` | Edit the split file where the selector lives |
 | Load `app-boot.js` before plugins | It must always be the last `<script>` tag |
 | Remove a `/* no var */` comment | Leave it — it marks work still to be done |
+| Add inline `style="..."` to HTML or JS templates | Define a CSS class in `components.css` or the relevant plugin CSS |
+| Use `style="opacity:0.6;cursor:not-allowed;"` on locked fields | Add class `locked-field` |
+| Use `style="font-size:Xpx !important"` to override input sizing | Add a scoped CSS class — never use `!important` in HTML |

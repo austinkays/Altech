@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 28, 2026
+> **Last updated:** March 23, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -102,7 +102,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
 │   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,062 lines)
-│   ├── app-quotes.js           # Quote/draft management, client history auto-save (762 lines)
+│   ├── app-quotes.js           # Quote/draft management, client history auto-save, .empty-state rendering (~852 lines)
 │   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (302 lines)
 │   │
 │   │  ★ Infrastructure
@@ -144,7 +144,7 @@ npm run deploy:vercel   # Production deploy
 │   └── hawksoft-integration.js  # HawkSoft REST API client (261 lines)
 │
 ├── plugins/                    # 18 HTML templates (~5,800 lines, loaded dynamically)
-│   ├── quoting.html            # ★ Main intake wizard — 7 steps, Employment & Education inline in About You card, 2,091 lines
+│   ├── quoting.html            # ★ Main intake wizard — 6-step flow (step-2 DOM kept empty), coverage type in step 1, ~2,169 lines
 │   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
 │   ├── prospect.html           # Commercial investigation UI (333 lines)
@@ -341,7 +341,7 @@ Some plugins use their own hardcoded color palettes instead of the design system
 
 **How to find the right file:** `grep_search` the class/property across `css/` — the match that also appears in `index.html`'s `<link>` tags is the one to edit.
 
-**`/* no var */` comments** mark hardcoded colors that still need a design token. Leave them intact — do not remove. Currently: `css/compliance.css` (3× `#FF9500` warning/saving states) and `css/components.css` (1× low-opacity rgba background). Run `grep -r "/* no var */" css/` to find all instances.
+**`/* no var */` comments** mark hardcoded colors that still need a design token. Leave them intact — do not remove. Currently: `css/compliance.css` (3× `#FF9500` warning/saving states) and `css/components.css` (2×: 1 low-opacity rgba background, 1 `#ff9500` orange on `.btn-import`). Run `grep -r "/* no var */" css/` to find all instances.
 
 ---
 
@@ -460,13 +460,17 @@ Support Modules (load after plugins):
 
 ### 4.6 Three Workflows
 
+Coverage type selection (HOME / AUTO / HOME & AUTO) is embedded at the bottom of step 1 (Personal Information). The `step-2` DOM element is retained as an empty placeholder for stability but is excluded from all workflow arrays.
+
 | Workflow | Steps | Skip |
 |----------|-------|------|
-| `home` | 0 → 1 → 2 → 3 → 5 → 6 | Step 4 (vehicles) |
-| `auto` | 0 → 1 → 2 → 4 → 5 → 6 | Step 3 (property) |
-| `both` | 0 → 1 → 2 → 3 → 4 → 5 → 6 | Nothing |
+| `home` | 0 → 1 → 3 → 5 → 6 | Steps 2 and 4 |
+| `auto` | 0 → 1 → 3 → 4 → 5 → 6 | Step 2 |
+| `both` | 0 → 1 → 3 → 4 → 5 → 6 | Step 2 |
 
-Steps: 0=Policy Scan, 1=Applicant Info, 2=Address, 3=Property Details, 4=Vehicles & Drivers, 5=Coverage, 6=Review & Export
+Steps: 0=Policy Scan, 1=Personal Info + Coverage Type, 3=Property Details, 4=Vehicles & Drivers, 5=Risk Factors & History, 6=Review & Export
+
+`handleType()` in `app-core.js` reads the `qType` radio, sets `App.flow`, clears excluded step data, and calls `updateUI()`. It no longer auto-advances (previously advanced from step index 2; that logic was removed when step 2 was folded into step 1).
 
 ### 4.7 Navigation System
 
@@ -758,6 +762,7 @@ KEY RULES:
 19. Use STORAGE_KEYS.* for all altech_* localStorage key strings — never hardcode 'altech_...' strings in modules. window.STORAGE_KEYS is the single source of truth.
 20. Use Utils.escapeHTML(), Utils.escapeAttr(), Utils.tryParseLS(), Utils.debounce() — never define these inline in plugins. window.Utils is loaded before App.
 21. Read docs/RENTCAST_API.md before making ANY changes to api/property-intelligence.js Rentcast or FEMA integration — it is the authoritative endpoint spec, field schema, and known-missing-field list.
+22. No inline style= attributes in HTML or JS templates — define a CSS class in components.css (shared) or the relevant plugin CSS file. Key classes to reuse: .locked-field (readonly synced inputs), .empty-state (no-data states), .driver-badge + .driver-badge-primary/.driver-badge-co (driver card badges), .mono-input (DL/VIN monospace fields), .subsection-header (section dividers with optional badge), .autofill-input (read-only auto-filled fields). Never use !important to override input sizing — add a scoped class instead.
 ```
 
 ---
