@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(skills): add repo-hygiene and storage-keys Copilot skill files** (March 28, 2026):
+  - Added `.github/skills/repo-hygiene/SKILL.md` — end-of-session close-out sequence (5 steps), commit/CHANGELOG format, session scope rules (one bug/session, max 3 files), pre-deploy quality gate, Vercel function count check
+  - Added `.github/skills/storage-keys/SKILL.md` — STORAGE_KEYS registry reference, how to add a new key, full table of all 35 constants with sync status, Utils.escapeHTML/escapeAttr usage guide
+  - Tests: 26 suites / 1672 tests — all green
 - **feat(property-intelligence): FEMA flood zone lookup in property intelligence pipeline** (March 20, 2026):
   - Added `fetchFloodZone(lat, lng)` helper in `api/property-intelligence.js` — queries FEMA NFHL ArcGIS public REST API (MapServer/28), 5-second timeout, graceful null on error/miss
   - Clark County enrichment + flood zone now run in parallel via `Promise.allSettled([clarkPromise, floodPromise])` inside `handleArcgis()` — no sequential blocking
