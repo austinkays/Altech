@@ -950,10 +950,13 @@
             </details>
             </div>
 
-            <div class="card qtype-home-only">
-                <h2>Safety & Location</h2>
-                <p class="section-subtitle">Fire protection and security</p>
-                
+            <details class="card section-accordion qtype-home-only">
+                <summary>
+                    <div><h2 style="margin:0">Safety &amp; Location</h2>
+                    <p class="section-subtitle" style="margin:4px 0 0">Fire protection and security</p></div>
+                </summary>
+                <div class="accordion-body">
+
                 <div class="grid-3">
                     <div><label class="label">Distance to Fire Station (Miles)</label><input type="number" id="fireStationDist" step="0.1" placeholder="2.5"></div>
                     <div>
@@ -1010,7 +1013,9 @@
                     <option value="Central">Central Station</option>
                     <option value="Direct">Direct to Fire Dept.</option>
                 </select>
-            </div>
+
+                </div>
+            </details>
 
             <div class="card qtype-home-only">
                 <h2>Home Risk Factors</h2>
@@ -1364,7 +1369,7 @@
 
         <!-- STEP 4: VEHICLE & DRIVER INFO -->
         <div id="step-4" class="step hidden">
-            <div class="card">
+            <div id="step4DriversCard" class="card">
                 <h2>Drivers</h2>
                 <p class="section-subtitle">Add all household drivers (you can add more later)</p>
                 
@@ -1373,13 +1378,17 @@
                 <button class="btn btn-secondary" style="margin-top: 12px;" onclick="App.addDriver()">+ Add Driver</button>
             </div>
 
-            <div class="card">
+            <div id="step4VehiclesCard" class="card">
                 <h2>Vehicles</h2>
                 <p class="section-subtitle">Add all vehicles to insure</p>
                 
                 <div id="vehiclesList"></div>
                 
                 <button class="btn btn-secondary" style="margin-top: 12px;" onclick="App.addVehicle()">+ Add Vehicle</button>
+            </div>
+
+            <div id="step4NonOwnersNotice" class="non-owners-notice hidden">
+                <span>&#9888; Non-Owners / Broadform policy selected &mdash; vehicle details not required. Only liability limits and driver info are needed.</span>
             </div>
 
             <div class="card">
@@ -1389,7 +1398,7 @@
                 <div class="grid-2">
                     <div>
                         <label class="label">Auto Policy Type</label>
-                        <select id="autoPolicyType">
+                        <select id="autoPolicyType" onchange="App.handleAutoType && App.handleAutoType(this.value)">
                             <option value="Standard">Standard</option>
                             <option value="NonOwners">Non-Owners</option>
                             <option value="BroadForm">Broad Form</option>

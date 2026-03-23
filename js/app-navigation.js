@@ -68,6 +68,10 @@ Object.assign(App, {
             this.renderDrivers();
             this.renderVehicles();
             this.saveDriversVehicles();
+
+            // Restore broadform/non-owners display state from saved value
+            const savedAutoType = document.getElementById('autoPolicyType')?.value || 'Standard';
+            this.handleAutoType(savedAutoType);
         }
 
         // Load Rentcast usage counter when property step is visible
@@ -646,6 +650,18 @@ Object.assign(App, {
 
         // Scroll to top
         window.scrollTo(0, 0);
+    },
+
+    /** Show/hide Vehicles & Drivers section based on auto policy type.
+     *  Called from #autoPolicyType onchange and on step-4 entry. */
+    handleAutoType(val) {
+        const isBroadform = val === 'NonOwners' || val === 'BroadForm';
+        const driversCard  = document.getElementById('step4DriversCard');
+        const vehiclesCard = document.getElementById('step4VehiclesCard');
+        const notice       = document.getElementById('step4NonOwnersNotice');
+        if (driversCard)  driversCard.classList.toggle('hidden', isBroadform);
+        if (vehiclesCard) vehiclesCard.classList.toggle('hidden', isBroadform);
+        if (notice)       notice.classList.toggle('hidden', !isBroadform);
     },
 
 });

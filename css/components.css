@@ -181,6 +181,24 @@ textarea.auto-filled:focus {
     animation: accordionOpen 0.25s ease;
 }
 
+/* ─── Non-Owners / Broadform Notice Banner ─── */
+.non-owners-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--bg-input);
+    border-left: 3px solid var(--apple-blue);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+body.dark-mode .non-owners-notice {
+    background: #2C2C2E;
+}
+
 /* ─── Carrier Autocomplete ─── */
 .carrier-ac-wrap { position: relative; }
 .carrier-ac-list {
