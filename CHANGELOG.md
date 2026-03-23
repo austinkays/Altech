@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-28 — Collapse Safety & Location + broadform inline mode
+- **feat(intake):** Safety & Location card in Step 3 now starts collapsed (`<details class="card section-accordion">` with no `open` attribute)
+- **feat(intake):** Broadform / Non-Owners inline mode — selecting either from `#autoPolicyType` hides Vehicles and Drivers cards and shows a notice banner; restores on step-4 entry
+- **js/app-navigation.js:** Added `handleAutoType(val)` method; called on step-4 entry to restore broadform state
+- **plugins/quoting.html:** Safety & Location wrapped in `<details>` accordion; IDs added to Drivers/Vehicles cards; `#step4NonOwnersNotice` banner; `onchange` wired on `#autoPolicyType`
+- **css/components.css:** `.non-owners-notice` banner styles added
+- **Tests:** 27 suites, 1688 tests — all pass
+
 ## 2026-03-28 — EZLynx Required Field Indicators (✦)
 - **feat(fields):** Added `ezlynxRequired: true` flag to ~55 fields across 10 sections in `js/fields.js`; updated header comment documenting the new optional property
 - **feat(navigation):** Added `_stampEzlynxLabels(container)` DOM pass in `js/app-navigation.js`; called once after quoting plugin HTML first loads; stamps a gold ✦ (`color:#f5c842`) next to any `label.label` whose field has `ezlynxRequired: true`
