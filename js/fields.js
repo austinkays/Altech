@@ -65,7 +65,7 @@ window.FIELDS = [
     { id: 'occupancyType',    label: 'Occupancy',            type: 'select', section: 'property', ezlynxRequired: true },
     { id: 'numStories',       label: 'Stories',              type: 'select', section: 'property', ezlynxRequired: true },
     { id: 'numOccupants',     label: 'Occupants',            type: 'number', section: 'property', ezlynxRequired: true },
-    { id: 'bedrooms',         label: 'Bedrooms',             type: 'select', section: 'property' },
+    { id: 'bedrooms',         label: 'Bedrooms',             type: 'select', section: 'property', ezlynxRequired: true },
     { id: 'fullBaths',        label: 'Full Baths',           type: 'select', section: 'property', ezlynxRequired: true },
     { id: 'halfBaths',        label: 'Half Baths',           type: 'select', section: 'property' },
     { id: 'constructionStyle',label: 'Construction',         type: 'select', section: 'property', ezlynxRequired: true },

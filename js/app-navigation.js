@@ -597,7 +597,10 @@ Object.assign(App, {
         const EZ_SPAN = '<span class="ez-req" title="Required for EZLynx rating" style="color:#f5c842;margin-left:3px;font-size:0.85em;">✦</span>';
         container.querySelectorAll('[id]').forEach(el => {
             if (!window.FIELD_BY_ID?.[el.id]?.ezlynxRequired) return;
-            const lbl = el.closest('div')?.querySelector('label.label');
+            // Walk up two levels: handles both plain wrappers and input-with-action nesting
+            const p = el.parentElement;
+            const lbl = p?.querySelector(':scope > label.label')
+                      || p?.parentElement?.querySelector(':scope > label.label');
             if (lbl && !lbl.querySelector('.ez-req')) lbl.insertAdjacentHTML('beforeend', EZ_SPAN);
         });
     },
