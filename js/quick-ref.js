@@ -1,8 +1,8 @@
 // QuickRef - Extracted from index.html
 // Do not edit this section in index.html; edit this file instead.
 
-const QR_STORAGE_KEY = 'altech_quickref_cards';
-const QR_NUMBERS_KEY = 'altech_quickref_numbers';
+const QR_STORAGE_KEY = STORAGE_KEYS.QUICKREF_CARDS;
+const QR_NUMBERS_KEY = STORAGE_KEYS.QUICKREF_NUMBERS;
 const PHONETIC_ALPHABET = {
     A:'Adam',B:'Boy',C:'Charles',D:'David',E:'Edward',F:'Frank',
     G:'George',H:'Henry',I:'Ida',J:'John',K:'King',L:'Lincoln',

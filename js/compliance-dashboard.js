@@ -2,9 +2,9 @@
 // Do not edit this section in index.html; edit this file instead.
 
 // CGL Compliance Dashboard JavaScript
-const STORAGE_KEY = 'altech_cgl_state';
+const STORAGE_KEY = STORAGE_KEYS.CGL_STATE;
 
-const CGL_CACHE_KEY = 'altech_cgl_cache';
+const CGL_CACHE_KEY = STORAGE_KEYS.CGL_CACHE;
 const CGL_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 const IDB_POLICY_KEY = 'hawksoft_policy_data';
 const IDB_ANNOTATIONS_KEY = 'user_annotations';

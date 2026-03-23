@@ -1,7 +1,7 @@
 // PolicyQA - Extracted from index.html
 // Do not edit this section in index.html; edit this file instead.
 
-const QNA_STORAGE_KEY = 'altech_v6_qna';
+const QNA_STORAGE_KEY = STORAGE_KEYS.QNA;
 
             const PolicyQA = {
                 isTauri: false,

@@ -1,7 +1,7 @@
 // EmailComposer - Extracted from index.html
 // Do not edit this section in index.html; edit this file instead.
 
-const EMAIL_STORAGE_KEY = 'altech_email_drafts';
+const EMAIL_STORAGE_KEY = STORAGE_KEYS.EMAIL_DRAFTS;
 
             const EmailComposer = {
                 initialized: false,
