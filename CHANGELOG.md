@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-23 — Carrier Eligibility tool — multi-policy expansion
+- **feat(tools):** Expanded "Broadform Filter" into a multi-policy "Carrier Eligibility" tool
+- **broadform-data.js:** Added `policyTypes` array (Broadform, Non-Owners); restructured `carriers` map with `policyRules.{type}.stateRules.{state}` (eligible/referOut/disqualifiers); added `questionsByType`, `disqualifierMessages`, kept `questions` alias for test backward-compat; `evaluate()` now accepts optional 4th `policyType` param (default `'broadform'`)
+- **broadform.js:** Added `_selectedPolicyType` state; policy-type pill bar (Broadform / Non-Owners); Reset button; data-driven rendering with green (ready), amber (referOut), red-muted (ineligible) carrier cards; heading "Carrier Eligibility" rendered inside `#bfContainer`
+- **Tests:** 16/16 broadform tests pass (was 16, unchanged); full suite 1688/1688 pass across 27 suites
+- **Files changed:** `js/tools/broadform-data.js`, `js/tools/broadform.js`
+
+## 2026-03-23 — Sidebar bubble-button fix
+- **Bug:** All inactive `.sidebar-nav-item` elements displayed a filled `rgb(44,44,46)` background and `1px solid` border, making them appear as rounded "bubble" buttons
+- **Root cause:** `[data-tooltip]` rule in `css/components.css` (intended for small circular help-icon tooltips) applied `background: var(--bg-input)`, `border: 1px solid var(--border)`, `height: 18px`, and `font-size: 11px` to any element with a `data-tooltip` attribute — including sidebar nav items. The `.sidebar-nav-item` rule didn't override these properties.
+- **Fix:** Added `background: transparent`, `border: none`, `height: auto`, and `font-size: 14px` resets to the `.sidebar-nav-item` base rule in `css/sidebar.css` (commit `0926855`)
+- **Files changed:** `css/sidebar.css`
+
 ### Fixed
 - **fix(sidebar): nav items showing as icon-only buttons with no text labels** (March 2026):
   - Root cause: `.sidebar-nav-item` lacked an explicit `width` declaration, causing the flex containers to shrink to content-size (~26 px) instead of filling their 223 px parent.

@@ -1,6 +1,6 @@
 /**
  * broadform.js
- * Broadform / Non-Owner Eligibility Filter — Plugin IIFE module.
+ * Carrier Eligibility Tool — Broadform & Non-Owners — Plugin IIFE module.
  *
  * Stateless questionnaire — answers are held in memory only; no localStorage.
  * Depends on: window.ToolComponents (js/tools/_tool-components.js)
@@ -14,6 +14,7 @@ window.Broadform = (() => {
 
     // ── Private state ────────────────────────────────────────────────────────
     // Reset on every init() — questionnaire is stateless across navigations.
+    let _selectedPolicyType = 'broadform';
     let _answers = {
         state:         null,   // 'WA' | 'OR' | null
         ownedAuto:     null,   // true | false | null
@@ -27,6 +28,7 @@ window.Broadform = (() => {
      * Resets state and rebuilds the questionnaire UI.
      */
     function init() {
+        _selectedPolicyType = 'broadform';
         _answers = { state: null, ownedAuto: null, regularAccess: null };
         _buildUI();
     }
@@ -37,7 +39,17 @@ window.Broadform = (() => {
         const container = document.getElementById('bfContainer');
         if (!container) return;
 
-        const questionsHTML = BroadformData.questions.map(q => {
+        // Policy-type pill bar
+        const policyBarHTML = BroadformData.policyTypes.map(pt => {
+            const safeId    = Utils.escapeAttr(pt.id);
+            const safeLabel = Utils.escapeHTML(pt.label);
+            const activeClass = (pt.id === _selectedPolicyType) ? ' tc-toggle-active' : '';
+            return `<button class="tc-toggle-btn${activeClass}" data-type="${safeId}" aria-pressed="${pt.id === _selectedPolicyType}">${safeLabel}</button>`;
+        }).join('');
+
+        // Questions for current policy type
+        const qs = BroadformData.questionsByType[_selectedPolicyType] || [];
+        const questionsHTML = qs.map(q => {
             if (q.type === 'stateDropdown') {
                 return ToolComponents.stateDropdown(q.id, q.label, q.states);
             }
@@ -48,8 +60,15 @@ window.Broadform = (() => {
         }).join('');
 
         container.innerHTML = `
+            <h2 style="font-size:20px;font-weight:700;color:var(--text);margin:0 0 20px;">Carrier Eligibility</h2>
+            <div id="bfPolicyTypeBar" style="display:flex;gap:10px;margin-bottom:24px;" role="group" aria-label="Policy type">
+                ${policyBarHTML}
+            </div>
             <p class="bf-section-title">Questionnaire</p>
             <div class="bf-questions" id="bfQuestions">${questionsHTML}</div>
+            <div style="margin-top:12px;">
+                <button id="bfResetBtn" class="tc-toggle-btn" style="max-width:none;width:auto;padding:9px 20px;">Reset</button>
+            </div>
             <div class="bf-results" id="bfResults" aria-live="polite"></div>
         `;
 
@@ -65,9 +84,27 @@ window.Broadform = (() => {
             _updateResults();
         });
 
-        // Yes / No button clicks (delegated)
+        // All click delegation
         container.addEventListener('click', e => {
-            const btn = e.target.closest('.tc-toggle-btn');
+            // Policy type pill bar
+            const typeBtn = e.target.closest('[data-type]');
+            if (typeBtn && document.getElementById('bfPolicyTypeBar') &&
+                document.getElementById('bfPolicyTypeBar').contains(typeBtn)) {
+                _selectedPolicyType = typeBtn.dataset.type;
+                _answers = { state: null, ownedAuto: null, regularAccess: null };
+                _buildUI();
+                return;
+            }
+
+            // Reset button
+            if (e.target.matches('#bfResetBtn')) {
+                _answers = { state: null, ownedAuto: null, regularAccess: null };
+                _buildUI();
+                return;
+            }
+
+            // Yes / No toggle buttons (questions only)
+            const btn = e.target.closest('.tc-toggle-btn[data-id]');
             if (!btn) return;
 
             const { id, value } = btn.dataset;
@@ -88,6 +125,18 @@ window.Broadform = (() => {
         });
     }
 
+    function _renderCarrierCard(c) {
+        if (c.status === 'referOut') {
+            return `
+                <div class="tc-carrier-card" style="border-color:#FF9F0A;box-shadow:0 0 0 1px #FF9F0A,0 4px 16px rgba(255,159,10,.10);">
+                    <div class="tc-carrier-name">${Utils.escapeHTML(c.name)}</div>
+                    <div class="tc-badge" style="background:rgba(255,159,10,.15);color:#FF9F0A;">Refer Out</div>
+                    ${c.note ? `<div class="tc-carrier-note">${Utils.escapeHTML(c.note)}</div>` : ''}
+                </div>`;
+        }
+        return ToolComponents.carrierCard(c);
+    }
+
     function _updateResults() {
         const resultsEl = document.getElementById('bfResults');
         if (!resultsEl) return;
@@ -95,7 +144,8 @@ window.Broadform = (() => {
         const result = BroadformData.rules.evaluate(
             _answers.state,
             _answers.ownedAuto,
-            _answers.regularAccess
+            _answers.regularAccess,
+            _selectedPolicyType
         );
 
         if (result === null) {
@@ -113,7 +163,7 @@ window.Broadform = (() => {
 
         if (result.outcome === 'eligible') {
             const cardsHTML = result.carriers
-                .map(c => ToolComponents.carrierCard(c))
+                .map(c => _renderCarrierCard(c))
                 .join('');
             resultsEl.innerHTML = `
                 <p class="bf-results-title">Available Carriers</p>
