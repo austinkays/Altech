@@ -547,6 +547,36 @@ Tests run in JSDOM, which lacks:
 - 3 CSS files use legacy `.dark-mode` instead of `body.dark-mode` (see §3.3)
 - 4 plugins use their own hardcoded color palettes (see §3.6)
 
+### 5.13 `[data-tooltip]` Rule Bleeds into Nav Items (CRITICAL)
+
+`css/components.css` contains a global `[data-tooltip]` rule intended for small circular help-icon badges. That rule sets:
+
+```css
+[data-tooltip] {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    height: 18px;
+    font-size: 11px;
+    /* ... and more */
+}
+```
+
+**Any element that carries a `data-tooltip` attribute inherits these styles unless it explicitly resets them.** Sidebar nav items use `data-tooltip` for collapsed-mode tooltip text. Without resets in `.sidebar-nav-item`, every inactive item gets a filled `--bg-input` background and border, making them look like "bubble buttons."
+
+**Fix applied (March 2026, commit `0926855`):** The `.sidebar-nav-item` base rule in `css/sidebar.css` now explicitly resets these properties:
+
+```css
+.sidebar-nav-item {
+    /* ... existing properties ... */
+    background: transparent;
+    border: none;
+    height: auto;
+    font-size: 14px;
+}
+```
+
+**Rule for new elements:** Whenever you add a `data-tooltip` attribute to any non-icon element (buttons, nav items, list rows, etc.), confirm the element's CSS rule resets `background`, `border`, `height`, and `font-size` — otherwise the global `[data-tooltip]` badge styles will bleed through.
+
 ### 5.10 Vercel Hobby Plan — 12 Serverless Function Limit (CRITICAL)
 
 **Vercel's Hobby plan allows a maximum of 12 Serverless Functions per deployment.** Exceeding this causes the entire deployment to fail with "No more than 12 Serverless Functions can be added to a Deployment on the Hobby plan" — which means ALL API endpoints return 404 in production, not just the new one.
