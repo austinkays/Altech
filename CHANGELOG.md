@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-23 — Hide Smart Scan button and counter for auto-only qType
+- **fix(quoting):** Smart Scan button (`#smartFillBtn`) and Rentcast usage counter (`#rentcastUsageDisplay`) now hidden when qType is `auto`, using the existing `qtype-home-only` class pattern
+- **plugins/quoting.html:** Added `class="qtype-home-only"` to Smart Scan wrapper div and `qtype-home-only` to `#rentcastUsageDisplay` class list
+- Google autocomplete and Street View remain functional for auto flow
+- No JS or CSS changes — leverages existing `updateUI()` hide/show logic
+- **Tests:** 27 suites, 1688 tests — all pass
+
 ## 2026-03-28 — Collapse Safety & Location + broadform inline mode
 - **feat(intake):** Safety & Location card in Step 3 now starts collapsed (`<details class="card section-accordion">` with no `open` attribute)
 - **feat(intake):** Broadform / Non-Owners inline mode — selecting either from `#autoPolicyType` hides Vehicles and Drivers cards and shows a notice banner; restores on step-4 entry
