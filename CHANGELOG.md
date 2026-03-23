@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(sidebar): nav items showing as icon-only buttons with no text labels** (March 2026):
+  - Root cause: `.sidebar-nav-item` lacked an explicit `width` declaration, causing the flex containers to shrink to content-size (~26 px) instead of filling their 223 px parent.
+  - Fix: added `width: 100%` and `box-sizing: border-box` to the `.sidebar-nav-item` base rule in `css/sidebar.css`.
+  - All category groups (Quoting, Export, Documents, Operations, Agent Tools) now render with full-width items and visible text labels at all viewport widths ≥ 1280 px.
+
 ### Added
 - **feat(tools): Agent Tools foundation + Broadform / Non-Owner Eligibility Filter** (March 2026):
   - New `js/tools/` subdirectory for all future Agent Tools plugin modules.
