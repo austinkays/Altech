@@ -501,8 +501,8 @@ Object.assign(App, {
         }
 
         // ── Rentcast usage check ──────────────────────────────────
-        const { count: _rentcastCount } = await this._getRentcastCounter();
-        this._updateRentcastDisplay(_rentcastCount);
+        const { count: _rentcastCount, periodDay: _rentcastPeriodDay } = await this._getRentcastCounter();
+        this._updateRentcastDisplay(_rentcastCount, _rentcastPeriodDay);
         let _skipRentcast = false;
         if (_rentcastCount >= 50) {
             const _choice = await this._showRentcastOverageModal(_rentcastCount);
@@ -534,8 +534,8 @@ Object.assign(App, {
             // Increment counter and update display on confirmed Rentcast hit
             if (zillowData?.source === 'Rentcast') {
                 await this._incrementRentcastCounter();
-                const { count: _newCount } = await this._getRentcastCounter();
-                this._updateRentcastDisplay(_newCount);
+                const { count: _newCount, periodDay: _newPeriodDay } = await this._getRentcastCounter();
+                this._updateRentcastDisplay(_newCount, _newPeriodDay);
             }
 
             const floodData = arcgisData?.floodData || null;
@@ -2189,130 +2189,213 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
     },
 
     // ── Rentcast Usage Counter ────────────────────────────────────────────────
+    // Data lives in users/{uid}/sync/rentcastUsage (covered by existing Firestore rules).
+    // Schema: { count: number, periodDay: number (1–28), periodStart: "YYYY-MM-DD" }
+    // periodDay = day of month the billing cycle resets (default 1).
+    // periodStart = ISO date of the most recent reset.
+
+    /** Computes the most recent billing period start date for a given day-of-month. */
+    _rentcastPeriodStart(periodDay) {
+        const now = new Date();
+        const thisMonth = new Date(now.getFullYear(), now.getMonth(), periodDay);
+        if (now >= thisMonth) return thisMonth;
+        return new Date(now.getFullYear(), now.getMonth() - 1, periodDay);
+    },
+
+    /** Computes the next billing period reset date for a given day-of-month. */
+    _rentcastNextReset(periodDay) {
+        const now = new Date();
+        const thisMonth = new Date(now.getFullYear(), now.getMonth(), periodDay);
+        if (now < thisMonth) return thisMonth;
+        return new Date(now.getFullYear(), now.getMonth() + 1, periodDay);
+    },
 
     /**
-     * Returns { count, resetDate } for the current billing month from Firestore.
-     * Returns { count: 0, resetDate } when no doc exists yet or in test environments.
+     * Reads the Rentcast usage doc from users/{uid}/sync/rentcastUsage.
+     * Returns { count, periodDay, nextReset } — count is auto-zeroed if a new period has started.
      */
     async _getRentcastCounter() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const monthKey = `${year}-${month}`;
-        const resetDate = `${year}-${month}-01`;
+        const fallback = { count: 0, periodDay: 1, nextReset: this._rentcastNextReset(1) };
         try {
             const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
-            const db = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
-            if (!uid || !db) return { count: 0, resetDate };
-            const doc = await db.collection('users').doc(uid)
-                .collection('rentcast_usage').doc(monthKey).get();
-            if (!doc.exists) return { count: 0, resetDate };
-            const data = doc.data();
-            return { count: data.count || 0, resetDate: data.resetDate || resetDate };
+            const db  = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
+            if (!uid || !db) return fallback;
+            const docRef = db.collection('users').doc(uid).collection('sync').doc('rentcastUsage');
+            const snap = await docRef.get();
+            if (!snap.exists) return fallback;
+            const d = snap.data();
+            const periodDay    = d.periodDay || 1;
+            const periodStart  = d.periodStart || '';
+            const nextReset    = this._rentcastNextReset(periodDay);
+            const lastReset    = this._rentcastPeriodStart(periodDay);
+            const lastResetStr = lastReset.toISOString().slice(0, 10);
+            // If stored periodStart is older than the last computed reset → new cycle
+            if (periodStart < lastResetStr) {
+                // Auto-reset: write the new period asynchronously (fire-and-forget)
+                docRef.set({ count: 0, periodDay, periodStart: lastResetStr }, { merge: true })
+                    .catch(err => console.warn('[RentcastCounter] Auto-reset write failed:', err.message));
+                return { count: 0, periodDay, nextReset };
+            }
+            return { count: d.count || 0, periodDay, nextReset };
         } catch (e) {
             console.warn('[RentcastCounter] Failed to read counter:', e.message);
-            return { count: 0, resetDate };
+            return fallback;
         }
     },
 
     /**
-     * Atomically increments the current month's Rentcast usage counter in Firestore.
-     * No-op in test environments where Firebase is not available.
+     * Increments the usage counter by 1. If a new billing period has started since the
+     * last write, resets to 1 instead of incrementing.
      */
     async _incrementRentcastCounter() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const monthKey = `${year}-${month}`;
-        const resetDate = `${year}-${month}-01`;
         try {
             const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
-            const db = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
+            const db  = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
             if (!uid || !db) return;
-            await db.collection('users').doc(uid)
-                .collection('rentcast_usage').doc(monthKey)
-                .set({
-                    count: firebase.firestore.FieldValue.increment(1),
-                    resetDate
-                }, { merge: true });
+            const docRef = db.collection('users').doc(uid).collection('sync').doc('rentcastUsage');
+            const snap = await docRef.get();
+            const d = snap.exists ? snap.data() : {};
+            const periodDay   = d.periodDay || 1;
+            const lastReset   = this._rentcastPeriodStart(periodDay);
+            const lastResetStr = lastReset.toISOString().slice(0, 10);
+            const isNewPeriod = !d.periodStart || d.periodStart < lastResetStr;
+            if (isNewPeriod) {
+                await docRef.set({ count: 1, periodDay, periodStart: lastResetStr }, { merge: true });
+            } else {
+                await docRef.set({ count: firebase.firestore.FieldValue.increment(1) }, { merge: true });
+            }
         } catch (e) {
             console.warn('[RentcastCounter] Failed to increment:', e.message);
         }
     },
 
     /**
-     * Updates the #rentcastUsageDisplay element with remaining / over-limit text.
-     * Includes a small "sync" link that lets the user correct the count to match
-     * what their Rentcast dashboard shows.
-     * No-op if the element is not present in the DOM.
+     * Saves a specific count and/or periodDay to Firestore.
+     * Used by the settings modal to correct the count to match the real Rentcast dashboard.
      */
-    _updateRentcastDisplay(count) {
+    async _setRentcastCounter(count, periodDay) {
+        try {
+            const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
+            const db  = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
+            if (!uid || !db) { this.toast('Sign in to save Rentcast settings', 'error'); return false; }
+            const lastReset    = this._rentcastPeriodStart(periodDay);
+            const lastResetStr = lastReset.toISOString().slice(0, 10);
+            await db.collection('users').doc(uid).collection('sync').doc('rentcastUsage')
+                .set({ count, periodDay, periodStart: lastResetStr }, { merge: true });
+            return true;
+        } catch (e) {
+            console.warn('[RentcastCounter] Failed to set counter:', e.message);
+            this.toast('Failed to save Rentcast settings', 'error');
+            return false;
+        }
+    },
+
+    /**
+     * Updates the #rentcastUsageDisplay element.
+     * Shows remaining calls + next reset date with a subtle gear icon for settings.
+     */
+    _updateRentcastDisplay(count, periodDay) {
         const el = document.getElementById('rentcastUsageDisplay');
         if (!el) return;
-        const now = new Date();
-        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-        const resetLabel = nextMonth.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-        const remaining = Math.max(0, 50 - count);
-        const syncLink = `<a href="#" onclick="event.preventDefault();App._promptSyncRentcastCounter()" ` +
-            `style="color:var(--text-tertiary);font-size:11px;margin-left:6px;text-decoration:underline dotted;" ` +
-            `title="Correct the count to match your Rentcast dashboard">sync</a>`;
+        const nextReset   = this._rentcastNextReset(periodDay || 1);
+        const resetLabel  = nextReset.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+        const remaining   = Math.max(0, 50 - count);
+        const gearBtn =
+            `<button onclick="App._openRentcastSettings()" ` +
+            `style="background:none;border:none;cursor:pointer;color:var(--text-tertiary);` +
+            `font-size:13px;padding:0 0 0 5px;vertical-align:middle;line-height:1;" ` +
+            `title="Rentcast settings">⚙</button>`;
         if (count < 50) {
             el.innerHTML =
-                `<span>${remaining} of 50 Rentcast lookups remaining${syncLink}</span><br>` +
+                `<span>${remaining} of 50 lookups remaining${gearBtn}</span><br>` +
                 `<span style="color:var(--text-tertiary)">Resets ${resetLabel}</span>`;
         } else {
             const over = count - 50;
             el.innerHTML =
-                `<span class="rentcast-over">0 remaining (${over > 0 ? over + ' over limit' : 'limit reached'})${syncLink}</span><br>` +
+                `<span class="rentcast-over">0 remaining (${over > 0 ? over + ' over limit' : 'limit reached'})${gearBtn}</span><br>` +
                 `<span style="color:var(--text-tertiary)">Resets ${resetLabel}</span>`;
         }
     },
 
     /**
-     * Overwrites the current month's Rentcast usage counter in Firestore with a specific value.
-     * Used to manually correct the count to match the actual Rentcast dashboard.
+     * Opens a modal that lets the user correct their Rentcast API count and billing reset day.
      */
-    async _setRentcastCounter(count) {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const monthKey = `${year}-${month}`;
-        const resetDate = `${year}-${month}-01`;
-        try {
-            const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
-            const db = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
-            if (!uid || !db) {
-                this.toast('Not signed in — counter not saved', 'error');
-                return;
-            }
-            await db.collection('users').doc(uid)
-                .collection('rentcast_usage').doc(monthKey)
-                .set({ count, resetDate }, { merge: true });
-            this._updateRentcastDisplay(count);
-            this.toast(`Rentcast usage set to ${count} of 50`, 'success');
-        } catch (e) {
-            console.warn('[RentcastCounter] Failed to set counter:', e.message);
-            this.toast('Failed to update Rentcast counter', 'error');
-        }
-    },
+    async _openRentcastSettings() {
+        const { count: currentCount, periodDay: currentDay } = await this._getRentcastCounter();
 
-    /**
-     * Prompts the user to enter their actual Rentcast API request count from their
-     * Rentcast dashboard, then writes that value to Firestore.
-     */
-    async _promptSyncRentcastCounter() {
-        const { count: current } = await this._getRentcastCounter();
-        const input = window.prompt(
-            `Enter your actual Rentcast API requests used this month\n(currently tracked as ${current} of 50):`,
-            String(current)
-        );
-        if (input === null) return; // user cancelled
-        const parsed = parseInt(input, 10);
-        if (isNaN(parsed) || parsed < 0 || parsed > 999) {
-            this.toast('Invalid number — enter a value between 0 and 999', 'error');
-            return;
-        }
-        await this._setRentcastCounter(parsed);
+        const overlay = document.createElement('div');
+        overlay.style.cssText = [
+            'position:fixed', 'top:0', 'left:0', 'width:100%', 'height:100%',
+            'background:rgba(0,0,0,0.55)', 'display:flex', 'align-items:center',
+            'justify-content:center', 'z-index:10001'
+        ].join(';');
+
+        const box = document.createElement('div');
+        box.style.cssText = [
+            'background:var(--bg-card)', 'border:1px solid var(--border)',
+            'border-radius:14px', 'padding:24px 28px', 'max-width:340px', 'width:90%',
+            'box-shadow:0 8px 40px var(--shadow)', 'font-family:system-ui,sans-serif'
+        ].join(';');
+
+        box.innerHTML = `
+            <h3 style="margin:0 0 16px 0;color:var(--text);font-size:15px;font-weight:600;">
+                Rentcast Usage Settings
+            </h3>
+            <label style="display:block;margin-bottom:14px;">
+                <span style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:5px;">
+                    API requests used this period
+                </span>
+                <input id="_rc_count" type="number" min="0" max="999" value="${currentCount}"
+                    style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;
+                    border:1px solid var(--border);background:var(--bg-input);color:var(--text);
+                    font-size:14px;">
+            </label>
+            <label style="display:block;margin-bottom:20px;">
+                <span style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:5px;">
+                    Billing resets on day of month (1–28)
+                </span>
+                <input id="_rc_day" type="number" min="1" max="28" value="${currentDay}"
+                    style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;
+                    border:1px solid var(--border);background:var(--bg-input);color:var(--text);
+                    font-size:14px;">
+            </label>
+            <div style="display:flex;gap:10px;">
+                <button id="_rc_save"
+                    style="flex:1;padding:10px;background:var(--apple-blue);color:#fff;border:none;
+                    border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;">
+                    Save
+                </button>
+                <button id="_rc_cancel"
+                    style="flex:1;padding:10px;background:var(--bg-input);color:var(--text);
+                    border:1px solid var(--border);border-radius:8px;font-weight:600;
+                    cursor:pointer;font-size:13px;">
+                    Cancel
+                </button>
+            </div>`;
+
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        box.querySelector('#_rc_cancel').onclick = () => overlay.remove();
+
+        box.querySelector('#_rc_save').onclick = async () => {
+            const rawCount = parseInt(box.querySelector('#_rc_count').value, 10);
+            const rawDay   = parseInt(box.querySelector('#_rc_day').value, 10);
+            if (isNaN(rawCount) || rawCount < 0 || rawCount > 999) {
+                this.toast('Enter a valid request count (0–999)', 'error'); return;
+            }
+            if (isNaN(rawDay) || rawDay < 1 || rawDay > 28) {
+                this.toast('Reset day must be between 1 and 28', 'error'); return;
+            }
+            const ok = await this._setRentcastCounter(rawCount, rawDay);
+            if (ok) {
+                overlay.remove();
+                this._updateRentcastDisplay(rawCount, rawDay);
+                this.toast('Rentcast settings saved', 'success');
+            }
+        };
+
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
     },
 
     /**
@@ -2409,8 +2492,8 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         const el = document.getElementById('rentcastUsageDisplay');
         if (!el) return;
         try {
-            const { count } = await this._getRentcastCounter();
-            this._updateRentcastDisplay(count);
+            const { count, periodDay } = await this._getRentcastCounter();
+            this._updateRentcastDisplay(count, periodDay);
         } catch (e) {
             // Silently fail — display remains empty until next Smart Scan click
         }
