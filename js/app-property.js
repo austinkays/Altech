@@ -2242,6 +2242,8 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
 
     /**
      * Updates the #rentcastUsageDisplay element with remaining / over-limit text.
+     * Includes a small "sync" link that lets the user correct the count to match
+     * what their Rentcast dashboard shows.
      * No-op if the element is not present in the DOM.
      */
     _updateRentcastDisplay(count) {
@@ -2251,16 +2253,66 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
         const resetLabel = nextMonth.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
         const remaining = Math.max(0, 50 - count);
+        const syncLink = `<a href="#" onclick="event.preventDefault();App._promptSyncRentcastCounter()" ` +
+            `style="color:var(--text-tertiary);font-size:11px;margin-left:6px;text-decoration:underline dotted;" ` +
+            `title="Correct the count to match your Rentcast dashboard">sync</a>`;
         if (count < 50) {
             el.innerHTML =
-                `<span>${remaining} of 50 Rentcast lookups remaining</span><br>` +
+                `<span>${remaining} of 50 Rentcast lookups remaining${syncLink}</span><br>` +
                 `<span style="color:var(--text-tertiary)">Resets ${resetLabel}</span>`;
         } else {
             const over = count - 50;
             el.innerHTML =
-                `<span class="rentcast-over">0 remaining (${over > 0 ? over + ' over limit' : 'limit reached'})</span><br>` +
+                `<span class="rentcast-over">0 remaining (${over > 0 ? over + ' over limit' : 'limit reached'})${syncLink}</span><br>` +
                 `<span style="color:var(--text-tertiary)">Resets ${resetLabel}</span>`;
         }
+    },
+
+    /**
+     * Overwrites the current month's Rentcast usage counter in Firestore with a specific value.
+     * Used to manually correct the count to match the actual Rentcast dashboard.
+     */
+    async _setRentcastCounter(count) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const monthKey = `${year}-${month}`;
+        const resetDate = `${year}-${month}-01`;
+        try {
+            const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
+            const db = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
+            if (!uid || !db) {
+                this.toast('Not signed in — counter not saved', 'error');
+                return;
+            }
+            await db.collection('users').doc(uid)
+                .collection('rentcast_usage').doc(monthKey)
+                .set({ count, resetDate }, { merge: true });
+            this._updateRentcastDisplay(count);
+            this.toast(`Rentcast usage set to ${count} of 50`, 'success');
+        } catch (e) {
+            console.warn('[RentcastCounter] Failed to set counter:', e.message);
+            this.toast('Failed to update Rentcast counter', 'error');
+        }
+    },
+
+    /**
+     * Prompts the user to enter their actual Rentcast API request count from their
+     * Rentcast dashboard, then writes that value to Firestore.
+     */
+    async _promptSyncRentcastCounter() {
+        const { count: current } = await this._getRentcastCounter();
+        const input = window.prompt(
+            `Enter your actual Rentcast API requests used this month\n(currently tracked as ${current} of 50):`,
+            String(current)
+        );
+        if (input === null) return; // user cancelled
+        const parsed = parseInt(input, 10);
+        if (isNaN(parsed) || parsed < 0 || parsed > 999) {
+            this.toast('Invalid number — enter a value between 0 and 999', 'error');
+            return;
+        }
+        await this._setRentcastCounter(parsed);
     },
 
     /**
