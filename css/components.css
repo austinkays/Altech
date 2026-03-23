@@ -459,11 +459,11 @@ input[placeholder="1HG..."] {
 .qs-draft-delete:hover { opacity: 1; color: #ff3b30; background: rgba(255, 59, 48, 0.08); }
 
 /* === UTILITY BUTTONS === */
-.utility-buttons { display: flex; gap: 8px; margin-top: 8px; }
+.utility-buttons { display: flex; gap: 8px; margin-top: 8px; justify-content: center; flex-wrap: wrap; }
 .btn-utility {
-    flex: 1;
-    padding: 10px 12px;
-    font-size: 13px;
+    flex: 0 1 auto;
+    padding: 7px 14px;
+    font-size: 12px;
     font-weight: 600;
     background: var(--bg-card);
     color: var(--apple-blue);
@@ -485,6 +485,16 @@ input[placeholder="1HG..."] {
 .btn-utility:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+/* Import variant — orange gradient, matches #ff9500 warning token */ /* no var */
+.btn-import {
+    background: linear-gradient(135deg, #ff9500, #e68600);
+    color: #fff;
+    border-color: transparent;
+}
+.btn-import:hover {
+    background: linear-gradient(135deg, #e68600, #cc7700);
+    border-color: transparent;
 }
 
 /* ── Smart Scan Button (glowing magic) ── */
@@ -809,6 +819,13 @@ input[placeholder="1HG..."] {
     color: var(--apple-blue);
 }
 .radio-card-content:active { transform: scale(0.97); }
+.radio-card-icon  { font-size: 48px; line-height: 1; }
+.radio-card-title { margin-top: 12px; font-size: 16px; font-weight: 600; }
+.radio-card-desc  { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+.radio-card input:checked + .radio-card-content .radio-card-desc { color: var(--apple-blue); opacity: 0.8; }
+@media (max-width: 480px) {
+    .radio-grid { grid-template-columns: 1fr; }
+}
 
 /* === BUTTONS === */
 .btn { flex: 1; padding: 14px 18px; border-radius: 12px; font-weight: 600; font-size: 15px; border: none; cursor: pointer; transition: all 0.25s var(--transition-smooth); position: relative; overflow: hidden; }
@@ -1105,6 +1122,139 @@ body.dark-mode .quote-card.starred {
     color: var(--apple-blue);
     font-weight: 700;
 }
+
+/* ── Card heading hierarchy ── */
+.card h3 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.2px;
+}
+.card h4 {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+/* Export hero card h3 keeps its own styling */
+.hero-export .card h3,
+.hero-export h3 { color: var(--text); font-size: 18px; }
+/* Driver/vehicle header h3 keeps its blue colour */
+.driver-vehicle-header h3 { color: var(--apple-blue); font-size: 18px; }
+
+/* ── Subsection dividers (Employment & Education, Driving History, etc.) ── */
+.subsection-header {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+.subsection-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.subsection-badge {
+    font-size: 11px;
+    color: var(--apple-blue);
+    white-space: nowrap;
+    background: rgba(0, 122, 255, 0.08);
+    padding: 4px 9px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 122, 255, 0.2);
+    flex-shrink: 0;
+}
+
+/* ── Driver status badges ── */
+.driver-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+    font-weight: 600;
+    color: #fff;
+}
+.driver-badge-primary { background: var(--success); }
+.driver-badge-co      { background: var(--apple-blue); }
+
+/* ── Locked / synced form fields ── */
+.locked-field {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: var(--bg-input) !important;
+}
+
+/* ── Auto-filled display fields (e.g. county, read-only scan results) ── */
+.autofill-input {
+    font-size: 14px;
+    padding: 8px 10px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* ── DL scan thumbnail in driver cards ── */
+.dl-preview-thumb {
+    width: 48px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+/* ── Vehicle Year / Make / Model grid ── */
+.vehicle-ymm-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+}
+
+/* ── Driving history subsection inside driver cards ── */
+.driving-history-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+/* ── Empty state (no clients, no drivers, no vehicles) ── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 24px 16px;
+    border-radius: 12px;
+    background: rgba(0, 122, 255, 0.03);
+    border: 1px dashed var(--border);
+    text-align: center;
+    color: var(--text-secondary);
+}
+body.dark-mode .empty-state { background: rgba(255, 255, 255, 0.02); }
+.empty-state-icon { font-size: 28px; line-height: 1; }
+.empty-state-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.empty-state-hint { font-size: 12px; }
+
+/* ── Step-level hint banner ── */
+.step-hint {
+    margin-bottom: 16px;
+}
+
+/* ── Client history section label ── */
+.ch-section-label {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+/* ── Monospace inputs (DL number, VIN) ── */
+.mono-input {
+    text-transform: uppercase;
+    font-family: ui-monospace, 'SFMono-Regular', monospace;
+}
 .remove-btn {
     background: rgba(255, 59, 48, 0.1);
     color: var(--danger);
@@ -1123,6 +1273,13 @@ body.dark-mode .quote-card.starred {
     background: rgba(255, 59, 48, 0.2);
     transform: rotate(90deg);
 }
+
+/* ── Misc utilities used by quoting plugin ── */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+.textarea-resizable { width: 100%; resize: vertical; }
+.scan-demo-row { text-align: center; margin-top: 8px; }
+.scan-coverage { margin-top: 12px; }
+.export-history-body { margin-top: 12px; font-size: 13px; color: var(--text-secondary); }
 
 /* Scan components */
 .scan-actions { display: flex; flex-direction: column; gap: 10px; }

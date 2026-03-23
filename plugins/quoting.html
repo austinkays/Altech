@@ -30,7 +30,7 @@
             <div class="card" id="step0ClientCard">
                 <h2>👤 Begin Intake</h2>
                 <p class="section-subtitle">Start a new client or restore a previous one</p>
-                <button class="btn btn-primary" onclick="App.startFresh()" style="width:100%;margin-bottom:12px;">✨ New Client</button>
+                <button class="btn btn-primary btn-full" onclick="App.startFresh()" style="margin-bottom:12px;">✨ New Client</button>
                 <div id="step0ClientHistoryList"></div>
             </div>
 
@@ -60,7 +60,7 @@
                     <input id="initialDlScanInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="App.handleInitialDriverLicenseFile(this.files[0])" />
                     <input id="docIntelInput" type="file" accept="image/*,application/pdf" multiple class="hidden" />
                 </div>
-                <div style="text-align:center; margin-top:8px;">
+                <div class="scan-demo-row">
                     <button class="demo-client-link" onclick="App.loadDemoClient()">🧪 Load demo data</button>
                 </div>
 
@@ -76,13 +76,13 @@
                 <div id="initialDlResults"></div>
                 <div id="docIntelResults"></div>
                 
-                <div id="scanCoverage" class="hint" style="margin-top:12px; display:none;">Scan coverage: 0/0 fields applied</div>
+                <div id="scanCoverage" class="hint scan-coverage" style="display:none;">Scan coverage: 0/0 fields applied</div>
             </div>
         </div>
 
         <!-- STEP 1: CLIENT INFORMATION -->
         <div id="step-1" class="step hidden">
-            <div class="hint" style="margin-bottom:16px;">
+            <div class="hint step-hint">
                 💡 Tip: Use the policy/document scans on the previous step to auto-fill this form.
             </div>
             <div class="card">
@@ -172,13 +172,13 @@
 
                 
                 <!-- Employment & Education (Primary Applicant) -->
-                <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border);">
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div class="subsection-header">
+                    <div class="subsection-header-row">
                         <div>
-                            <h3 style="margin:0; font-size:14px; font-weight:700; color:var(--text); letter-spacing:-0.2px;">Employment &amp; Education</h3>
-                            <p style="margin:2px 0 0; font-size:11px; color:var(--text-secondary);">This helps us find the best coverage options</p>
+                            <h3>Employment &amp; Education</h3>
+                            <p class="section-subtitle" style="margin:2px 0 0;">This helps us find the best coverage options</p>
                         </div>
-                        <span style="font-size:11px; color:var(--apple-blue); white-space:nowrap; background:rgba(0,122,255,0.08); padding:4px 9px; border-radius:20px; border:1px solid rgba(0,122,255,0.2);" title="Education and Occupation are also collected on the Drivers step">→ Also on Drivers</span>
+                        <span class="subsection-badge" title="Education and Occupation are also collected on the Drivers step">→ Also on Drivers</span>
                     </div>
                     <div class="grid-2">
                     <div>
@@ -299,13 +299,13 @@
                         <div></div>
                     </div>
                 <!-- Employment & Education (Co-Applicant) -->
-                <div id="coEmploymentSection" style="margin-top:16px; padding-top:12px; border-top:1px solid var(--border);">
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div id="coEmploymentSection" class="subsection-header">
+                    <div class="subsection-header-row">
                         <div>
-                            <h3 style="margin:0; font-size:14px; font-weight:700; color:var(--text); letter-spacing:-0.2px;">Employment &amp; Education</h3>
-                            <p style="margin:2px 0 0; font-size:11px; color:var(--text-secondary);">Co-applicant employment &amp; education info</p>
+                            <h3>Employment &amp; Education</h3>
+                            <p class="section-subtitle" style="margin:2px 0 0;">Co-applicant employment &amp; education info</p>
                         </div>
-                        <span style="font-size:11px; color:var(--apple-blue); white-space:nowrap; background:rgba(0,122,255,0.08); padding:4px 9px; border-radius:20px; border:1px solid rgba(0,122,255,0.2);" title="Education and Occupation are also collected on the Drivers step">→ Also on Drivers</span>
+                        <span class="subsection-badge" title="Education and Occupation are also collected on the Drivers step">→ Also on Drivers</span>
                     </div>
                     <div class="grid-2">
                         <div>
@@ -372,23 +372,23 @@
                 <div class="radio-grid">
                     <label class="radio-card"><input type="radio" name="qType" value="home" onchange="App.handleType()">
                         <div class="radio-card-content">
-                            <span style="font-size:48px">🏠</span>
-                            <span style="margin-top:12px; font-size:16px; font-weight:600">HOME</span>
-                            <span style="font-size:13px; color:var(--text-secondary); margin-top:4px">Property insurance</span>
+                            <span class="radio-card-icon">🏠</span>
+                            <span class="radio-card-title">HOME</span>
+                            <span class="radio-card-desc">Property insurance</span>
                         </div>
                     </label>
                     <label class="radio-card"><input type="radio" name="qType" value="auto" onchange="App.handleType()">
                         <div class="radio-card-content">
-                            <span style="font-size:48px">🚗</span>
-                            <span style="margin-top:12px; font-size:16px; font-weight:600">AUTO</span>
-                            <span style="font-size:13px; color:var(--text-secondary); margin-top:4px">Vehicle insurance</span>
+                            <span class="radio-card-icon">🚗</span>
+                            <span class="radio-card-title">AUTO</span>
+                            <span class="radio-card-desc">Vehicle insurance</span>
                         </div>
                     </label>
                     <label class="radio-card"><input type="radio" name="qType" value="both" checked onchange="App.handleType()">
                         <div class="radio-card-content">
-                            <span style="font-size:48px">🎯</span>
-                            <span style="margin-top:12px; font-size:16px; font-weight:600">HOME & AUTO</span>
-                            <span style="font-size:13px; color:var(--text-secondary); margin-top:4px">Bundle coverage</span>
+                            <span class="radio-card-icon">🎯</span>
+                            <span class="radio-card-title">HOME & AUTO</span>
+                            <span class="radio-card-desc">Bundle coverage</span>
                         </div>
                     </label>
                 </div>
@@ -433,7 +433,7 @@
                     </select></div>
                     <div><label class="label">Zip</label><input type="tel" id="addrZip" placeholder="98686" maxlength="5" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,5)"></div>
                     <div><label class="label">County</label>
-                        <input type="text" id="county" placeholder="Auto-fills ✨" autocomplete="off" style="font-size: 13px !important; padding: 8px 8px;">
+                        <input type="text" id="county" placeholder="Auto-fills ✨" autocomplete="off" class="autofill-input">
                     </div>
                 </div>
 
@@ -444,10 +444,10 @@
                 <div id="rentcastUsageDisplay" class="rentcast-usage-hint"></div>
 
                 <!-- Secondary tools row -->
-                <div class="utility-buttons" style="margin-top: 8px; justify-content: center;">
-                    <button class="btn-utility" onclick="App.openZillow()" title="Search this address on Zillow" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px;">🔍 Zillow</button>
-                    <button class="btn-utility" onclick="App.openPropertyRecords()" title="Copies address to clipboard & opens county assessor site" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px;">🏛️ Assessor</button>
-                    <button class="btn-utility" onclick="App.importPropertyFromExtension()" title="Import property data scraped by the Chrome Extension from Zillow/GIS" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px; background: linear-gradient(135deg, #ff9500, #e68600); color: white;">📥 Import</button>
+                <div class="utility-buttons">
+                    <button class="btn-utility" onclick="App.openZillow()" title="Search this address on Zillow">🔍 Zillow</button>
+                    <button class="btn-utility" onclick="App.openPropertyRecords()" title="Copies address to clipboard & opens county assessor site">🏛️ Assessor</button>
+                    <button class="btn-utility btn-import" onclick="App.importPropertyFromExtension()" title="Import property data scraped by the Chrome Extension from Zillow/GIS">📥 Import</button>
                 </div>
 
                 <!-- Hidden file input kept for backward compatibility -->
@@ -590,8 +590,8 @@
 
             <details class="card section-accordion qtype-home-only" open>
                 <summary>
-                    <div><h2 style="margin:0">Construction &amp; Roof</h2>
-                    <p class="section-subtitle" style="margin:4px 0 0">Materials, foundation, garage, and roofing</p></div>
+                    <div><h2>Construction &amp; Roof</h2>
+                    <p class="section-subtitle">Materials, foundation, garage, and roofing</p></div>
                 </summary>
                 <div class="accordion-body">
 
@@ -722,8 +722,8 @@
                     </select></div>
                 </div>
 
-                <div class="divider" style="margin:12px 0;"></div>
-                <h3 style="font-size:15px; font-weight:600; margin-bottom:8px;">Roof</h3>
+                <div class="divider"></div>
+                <h3>Roof</h3>
 
                 <div class="grid-12">
                     <div class="span-8"><label class="label">Roof Type</label>
@@ -2107,8 +2107,7 @@
                 <div>
                     <label class="label" for="pdfNotes">Notes</label>
                     <textarea id="pdfNotes" rows="4" placeholder="Any additional context, underwriting notes, or reminders for this client..."
-                        oninput="App.save(event)"
-                        style="width:100%;resize:vertical;"></textarea>
+                        oninput="App.save(event)" class="textarea-resizable"></textarea>
                 </div>
             </div>
 
@@ -2133,15 +2132,15 @@
                         <span class="hero-export-hint">Client summary</span>
                     </button>
                 </div>
-                <button class="btn btn-secondary" onclick="App.startNewClient()" style="width:100%;margin-top:16px;">✨ Start New Client</button>
+                <button class="btn btn-secondary btn-full" onclick="App.startNewClient()" style="margin-top:16px;">✨ Start New Client</button>
             </div>
 
             <!-- Saved Clients -->
             <div class="card export-card">
                 <div class="ch-header">
-                    <h3 style="margin:0;">👤 Saved Clients</h3>
+                    <h3>👤 Saved Clients</h3>
                 </div>
-                <p class="section-subtitle" style="margin-bottom:12px;">Click any client to reload their data</p>
+                <p class="section-subtitle">Click any client to reload their data</p>
                 <div id="clientHistoryList"></div>
             </div>
 
@@ -2151,8 +2150,8 @@
                     <summary class="export-summary" onclick="App.loadExportHistory()">
                         <span>📋 Export History</span>
                     </summary>
-                    <div id="exportHistoryList" style="margin-top:12px;font-size:13px;color:var(--text-secondary);">
-                        <p>Loading...</p>
+                    <div id="exportHistoryList" class="export-history-body">
+                        <p class="hint">Loading...</p>
                     </div>
                 </details>
             </div>

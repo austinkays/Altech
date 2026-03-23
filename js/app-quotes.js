@@ -243,10 +243,14 @@ Object.assign(App, {
         if (!container) return;
         const clients = this.getClientHistory().slice(0, 5);
         if (!clients.length) {
-            container.innerHTML = '<div class="hint" style="text-align:center;padding:12px 0;">No previous clients yet</div>';
+            container.innerHTML = `<div class="empty-state">
+                <span class="empty-state-icon">🗂️</span>
+                <span class="empty-state-title">No previous clients yet</span>
+                <span class="empty-state-hint">Clients are saved automatically as you work</span>
+            </div>`;
             return;
         }
-        container.innerHTML = '<div style="font-weight:600;font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Recent Clients</div>' +
+        container.innerHTML = '<div class="ch-section-label">Recent Clients</div>' +
             clients.map(c => {
                 const date = new Date(c.savedAt).toLocaleDateString();
                 const addr = [c.data.addrCity, c.data.addrState].filter(Boolean).join(', ');
@@ -255,7 +259,7 @@ Object.assign(App, {
                         <span class="ch-name">${this.escapeHTML(c.name)}</span>
                         <span class="ch-meta">${this.escapeHTML(c.summary)}${addr ? ' • ' + this.escapeHTML(addr) : ''} • ${date}</span>
                     </div>
-                    <div class="ch-actions" style="display:flex;align-items:center;gap:6px;">
+                    <div class="ch-actions">
                         <button class="btn btn-primary btn-sm" onclick="App.loadClientFromHistory('${c.id}'); App.next();">Restore</button>
                         <button class="ch-delete-btn" title="Delete this client" onclick="App.deleteClientFromHistory('${c.id}')">🗑</button>
                     </div>
@@ -268,7 +272,11 @@ Object.assign(App, {
         if (!container) return;
         const clients = this.getClientHistory();
         if (!clients.length) {
-            container.innerHTML = '<div class="hint" style="text-align:center;padding:24px 0;">No saved clients yet.<br>Clients are saved automatically when you complete the form.</div>';
+            container.innerHTML = `<div class="empty-state">
+                <span class="empty-state-icon">👤</span>
+                <span class="empty-state-title">No saved clients yet</span>
+                <span class="empty-state-hint">Clients are saved automatically as you fill out the form</span>
+            </div>`;
             return;
         }
         container.innerHTML = clients.map(c => {

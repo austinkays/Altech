@@ -286,17 +286,22 @@ Object.assign(App, {
         if (!container) return;
         
         if (this.drivers.length === 0) {
-            container.innerHTML = '<div class="hint">No drivers added yet. Click "+ Add Driver" below to get started.</div>';
+            container.innerHTML = `<div class="empty-state">
+                <span class="empty-state-icon">👥</span>
+                <span class="empty-state-title">No drivers added yet</span>
+                <span class="empty-state-hint">Click "+ Add Driver" below to get started</span>
+            </div>`;
             return;
         }
         
         container.innerHTML = this.drivers.map((driver, index) => {
             const isPrimary = index === 0;
             const isSynced = driver.isCoApplicant === true || driver.isPrimaryApplicant === true;
-            const lockedAttr = isSynced ? 'readonly style="opacity:0.6;cursor:not-allowed;"' : '';
-            const lockedSelAttr = isSynced ? 'disabled style="opacity:0.6;cursor:not-allowed;"' : '';
-            const syncedBadge = driver.isCoApplicant ? '<span style="background:var(--apple-blue);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px;">🔗 Synced from Co-Applicant</span>'
-                : (driver.isPrimaryApplicant ? '<span style="background:var(--success);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px;">👤 Primary Applicant</span>' : '');
+            const lockedAttr = isSynced ? 'readonly class="locked-field"' : '';
+            const lockedSelAttr = isSynced ? 'disabled class="locked-field"' : '';
+            const syncedBadge = driver.isCoApplicant
+                ? '<span class="driver-badge driver-badge-co">🔗 Synced from Co-Applicant</span>'
+                : (driver.isPrimaryApplicant ? '<span class="driver-badge driver-badge-primary">👤 Primary Applicant</span>' : '');
             const relationshipLabel = driver.relationship
                 ? (driver.relationship === 'Self' && isPrimary ? '• Self' : (driver.relationship !== 'Self' ? `• ${driver.relationship}` : ''))
                 : '';
@@ -496,13 +501,13 @@ Object.assign(App, {
                 <div class="export-row" style="margin-bottom:10px; align-items:center;">
                     <button class="btn btn-tertiary" onclick="App.openDriverLicensePicker('${driver.id}')">📸 Scan Driver's License</button>
                     <input id="dlScan_${driver.id}" type="file" accept="image/*" class="hidden" onchange="App.handleDriverLicenseFile('${driver.id}', this.files[0])" />
-                    ${driver.dlScanPreview ? `<img src="${driver.dlScanPreview}" alt="DL preview" style="width:48px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" />` : ''}
-                    ${driver.dlScanConfidence ? `<span class="hint" style="margin:0; padding:6px 10px;">${driver.dlScanConfidence}% confidence</span>` : ''}
+                    ${driver.dlScanPreview ? `<img src="${driver.dlScanPreview}" alt="DL preview" class="dl-preview-thumb" />` : ''}
+                    ${driver.dlScanConfidence ? `<span class="hint">${driver.dlScanConfidence}% confidence</span>` : ''}
                 </div>
                 <div class="grid-2">
-                    <input type="text" value="${Utils.escapeAttr(driver.dlNum || '')}" 
-                        onchange="App.updateDriver('${driver.id}', 'dlNum', this.value)" 
-                        style="text-transform:uppercase;font-family:monospace" 
+                    <input type="text" value="${Utils.escapeAttr(driver.dlNum || '')}"
+                        onchange="App.updateDriver('${driver.id}', 'dlNum', this.value)"
+                        class="mono-input"
                         placeholder="License #">
                     <select onchange="App.updateDriver('${driver.id}', 'dlState', this.value)">
                         ${['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(s =>
@@ -511,8 +516,8 @@ Object.assign(App, {
                     </select>
                 </div>
 
-                <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
-                    <h4 style="margin:0 0 8px;font-size:14px;font-weight:600;">Driving History</h4>
+                <div class="driving-history-section">
+                    <h4>Driving History</h4>
                     <label class="label">Accidents (Last 5 Years)</label>
                     <textarea rows="2" placeholder="Date, description, claim amount"
                         onchange="App.updateDriver('${driver.id}', 'accidents', this.value)">${Utils.escapeAttr(driver.accidents || '')}</textarea>
@@ -630,7 +635,11 @@ Object.assign(App, {
         if (!container) return;
         
         if (this.vehicles.length === 0) {
-            container.innerHTML = '<div class="hint">No vehicles added yet. Click "+ Add Vehicle" below to get started.</div>';
+            container.innerHTML = `<div class="empty-state">
+                <span class="empty-state-icon">🚗</span>
+                <span class="empty-state-title">No vehicles added yet</span>
+                <span class="empty-state-hint">Click "+ Add Vehicle" below to get started</span>
+            </div>`;
             return;
         }
         
@@ -646,13 +655,13 @@ Object.assign(App, {
                 </div>
                 
                 <label class="label">VIN (optional) - Auto-fills year/make/model</label>
-                <input type="text" maxlength="17" value="${Utils.escapeAttr(vehicle.vin || '')}" 
-                    onchange="App.decodeVehicleVin('${vehicle.id}', this.value)" 
-                    style="text-transform:uppercase;font-family:monospace" 
+                <input type="text" maxlength="17" value="${Utils.escapeAttr(vehicle.vin || '')}"
+                    onchange="App.decodeVehicleVin('${vehicle.id}', this.value)"
+                    class="mono-input"
                     placeholder="1HG...">
-                <div class="hint" style="margin-top:6px;">No VIN? Leave blank and fill Year/Make/Model below.</div>
+                <div class="hint">No VIN? Leave blank and fill Year/Make/Model below.</div>
                 
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <div class="vehicle-ymm-grid">
                     <div>
                         <label class="label">Year</label>
                         <input type="text" inputmode="numeric" maxlength="4" value="${Utils.escapeAttr(vehicle.year || '')}" 

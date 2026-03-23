@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **ux(intake): intake wizard polish pass — inline style extraction, typography, and empty states** (March 23, 2026):
+  - **Step elimination:** Folded coverage type (HOME / AUTO / HOME & AUTO) radio into step 1 (Personal Information), removing the dedicated step 2 — both/auto workflow is now 6 steps, home is 5
+  - **CSS classes added to `components.css`:**
+    - `.subsection-header` / `.subsection-header-row` / `.subsection-badge` — employment & education section divider with "→ Also on Drivers" pill
+    - `.driver-badge`, `.driver-badge-primary`, `.driver-badge-co` — replaces 5-property inline badge strings in driver cards
+    - `.locked-field` — replaces `style="opacity:0.6;cursor:not-allowed;"` on synced/readonly driver fields
+    - `.autofill-input` — replaces `font-size:13px !important` on county field (removes `!important`)
+    - `.empty-state`, `.empty-state-icon`, `.empty-state-title`, `.empty-state-hint` — visual empty state component used by client history, drivers, and vehicles
+    - `.ch-section-label` — "Recent Clients" label replacing inline style string
+    - `.radio-card-icon`, `.radio-card-title`, `.radio-card-desc` — replaces 3 inline-styled spans per coverage card
+    - `.vehicle-ymm-grid` — replaces inline `display:grid` in vehicle cards
+    - `.driving-history-section` — replaces inline border/padding on driving history subsection
+    - `.dl-preview-thumb` — replaces inline image styles on DL scan thumbnail
+    - `.mono-input` — replaces `style="text-transform:uppercase;font-family:monospace"` on DL and VIN inputs
+    - `.btn-import` — orange gradient import button replacing hardcoded inline gradient
+    - `.divider` — horizontal rule with token margin (was `style="margin:12px 0"`)
+    - `.textarea-resizable`, `.scan-demo-row`, `.scan-coverage`, `.export-history-body`, `.step-hint` — misc utility classes
+    - `h3`/`h4` rules inside `.card` — consistent heading hierarchy; eliminates 5+ incompatible inline heading styles
+    - `.utility-buttons` updated: added `justify-content: center; flex-wrap: wrap`
+    - `.btn-utility` updated: `flex: 0 1 auto`, `font-size: 12px`, `padding: 7px 14px` — matches actual usage (removes all 3 per-button inline overrides)
+  - **`plugins/quoting.html`:** ~18 inline style removals; accordion `h2`/`p` and "Roof" `h3` stripped of inline sizing; co-applicant `h3` now uses card rule
+  - **`js/app-vehicles.js`:** badge, locked-field, mono-input, DL thumb, VIN hint, driving-history-section, vehicle-ymm-grid all converted to classes
+  - **`js/app-quotes.js`:** `renderStep0ClientHistory` and `renderClientHistory` empty states replaced with `.empty-state` component; inline `ch-actions` style removed (rule already in CSS); "Recent Clients" label uses `.ch-section-label`
+  - Tests: 26 suites / passing count unchanged
+
 ### Added
 - **feat(property-intelligence): FEMA flood zone lookup in property intelligence pipeline** (March 20, 2026):
   - Added `fetchFloodZone(lat, lng)` helper in `api/property-intelligence.js` — queries FEMA NFHL ArcGIS public REST API (MapServer/28), 5-second timeout, graceful null on error/miss
