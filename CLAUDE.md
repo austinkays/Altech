@@ -240,6 +240,30 @@ Never fall back to `grep_search` for source files. Start with terminal.
 
 ---
 
+## Editing HTML Files
+
+Never use regex for multi-line replacements in `.html` files — line ending mismatches (CRLF/LF) cause silent no-matches.
+
+Always use PowerShell `.Contains()` + `.Replace()` with explicit line endings:
+
+```powershell
+$file = "path/to/file.html"
+$content = Get-Content $file -Raw -Encoding UTF8
+$old = 'exact string line 1' + "`r`n" + 'exact string line 2'
+$new = 'replacement line 1' + "`r`n" + 'replacement line 2'
+if ($content.Contains($old)) {
+    $content = $content.Replace($old, $new)
+    Set-Content $file -Value $content -Encoding UTF8 -NoNewline
+    Write-Host "Replaced"
+} else {
+    Write-Host "No match — check indentation or line endings"
+}
+```
+
+If `.Contains()` also fails, check indentation and whitespace exactly — copy the target string directly from a terminal read, do not type it by hand.
+
+---
+
 ## Vercel API Limit
 
 Hobby plan max: **12 serverless functions**. Current count: **12 (at the limit)**.

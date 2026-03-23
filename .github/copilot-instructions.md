@@ -181,6 +181,30 @@ Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously'
 
 ---
 
+## Editing HTML Files
+
+Never use regex for multi-line replacements in `.html` files — line ending mismatches (CRLF/LF) cause silent no-matches.
+
+Always use PowerShell `.Contains()` + `.Replace()` with explicit line endings:
+
+```powershell
+$file = "path/to/file.html"
+$content = Get-Content $file -Raw -Encoding UTF8
+$old = 'exact string line 1' + "`r`n" + 'exact string line 2'
+$new = 'replacement line 1' + "`r`n" + 'replacement line 2'
+if ($content.Contains($old)) {
+    $content = $content.Replace($old, $new)
+    Set-Content $file -Value $content -Encoding UTF8 -NoNewline
+    Write-Host "Replaced"
+} else {
+    Write-Host "No match — check indentation or line endings"
+}
+```
+
+If `.Contains()` also fails, check indentation and whitespace exactly — copy the target string directly from a terminal read, do not type it by hand.
+
+---
+
 ## ⚠️ Vercel Hobby Plan — 12 Serverless Function Limit (CRITICAL)
 
 Vercel's Hobby plan allows **max 12 Serverless Functions** per deployment. Exceeding this causes the **entire deployment to fail** — ALL API endpoints return 404, not just the new one.
