@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
-| **CSS** | 24 files in `css/` (~17,568 lines total) |
-| **JS** | 38 modules in `js/` (~35,526 lines total) |
-| **Plugins** | 18 HTML templates in `plugins/` (~5,800 lines total) |
+| **CSS** | 32 files in `css/` (~19,918 lines total) |
+| **JS** | 45 modules in `js/` (~39,337 lines total) |
+| **Plugins** | 21 HTML templates in `plugins/` (~6,055 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 25 suites, 1631 tests |
+| **Tests** | Jest + JSDOM, 26 suites, 1672 tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 23 test suites, 1485 tests
+npm test              # All 26 test suites, 1672 tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
@@ -64,7 +64,7 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 23 stylesheets (~17,230 lines)
+├── css/                        # 32 stylesheets (~19,918 lines)
 │   ├── main.css                # ⚠️ Dead @import aggregator — NOT linked in index.html, never loaded by the browser. Editing has zero effect. See §5.12.
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (747 lines)
@@ -75,35 +75,35 @@ npm run deploy:vercel   # Production deploy
 │   ├── reminders.css           # Task reminders (1,120 lines)
 │   ├── intake-assist.css       # AI intake professional UI — enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
 │   ├── ezlynx.css              # EZLynx export — standalone dark palette (590 lines)
-│   ├── vin-decoder.css         # VIN decoder (600 lines)
+│   ├── vin-decoder.css         # VIN decoder (646 lines)
 │   ├── hawksoft.css            # HawkSoft export (555 lines)
-│   ├── quote-compare.css       # Quote comparison tool (462 lines)
+│   ├── quote-compare.css       # Quote comparison tool (555 lines)
 │   ├── onboarding.css          # First-run wizard (411 lines)
 │   ├── admin.css               # Admin panel (300 lines)
 │   ├── bug-report.css          # Bug reporter (227 lines)
-│   ├── quickref.css            # Quick reference — teal accent + editable number rows (261 lines)
+│   ├── quickref.css            # Quick reference — teal accent + editable number rows (293 lines)
 │   ├── security-info.css       # Security modal (217 lines)
 │   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, polished form/toolbar, card grid, dark mode (468 lines)
-│   ├── email.css               # Email composer — purple accent + custom prompt styles (231 lines)
+│   ├── email.css               # Email composer — purple accent + custom prompt styles (255 lines)
 │   ├── endorsement-parser.css  # Endorsement parser — paste view, cards, dark utilitarian styling (455 lines)
-│   ├── task-sheet.css           # Task Sheet — HawkSoft CSV task viewer, priority badges, overdue rows, print layout (515 lines)
-│   ├── returned-mail.css        # Returned Mail Tracker — deliverability badges, status badges, responsive form+table, print styles, full dark mode, Street View + satellite map images (681 lines)
+│   ├── task-sheet.css           # Task Sheet — HawkSoft CSV task viewer, priority badges, overdue rows, print layout (743 lines)
+│   ├── returned-mail.css        # Returned Mail Tracker — deliverability badges, status badges, responsive form+table, print styles, full dark mode, Street View + satellite map images (798 lines)
 │   └── paywall.css             # Paywall modal (131 lines)
 │
-├── js/                         # 38 modules (~35,526 lines)
+├── js/                         # 45 modules (~39,337 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows (92 lines)
 │   ├── app-ui-utils.js         # App.toast(), App.toggleDarkMode(), App.loadDarkMode(), App.formatDateDisplay(), App.copyToClipboard()
 │   ├── app-navigation.js       # App.updateUI(), App.navigateTo(), step progression, hash routing
 │   ├── app-core.js             # save/load, form field persistence, schema migration, encryption — persistence-only (updateUI/navigateTo → app-navigation.js; toast/dark-mode → app-ui-utils.js)
-│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,778 lines)
-│   ├── app-property.js         # Property analysis, maps, assessor data (1,759 lines)
+│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,978 lines)
+│   ├── app-property.js         # Property analysis, maps, assessor data (2,367 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
-│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,062 lines)
+│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,259 lines)
 │   ├── app-quotes.js           # Quote/draft management, client history auto-save, .empty-state rendering (~852 lines)
-│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (302 lines)
+│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (279 lines)
 │   │
 │   │  ★ Infrastructure
 │   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
@@ -114,7 +114,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget (1,014 lines)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget (1,037 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
@@ -127,13 +127,13 @@ npm run deploy:vercel   # Production deploy
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,917 lines)
 │   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (387 lines)
-│   ├── quote-compare.js         # Quote comparison + AI recommendation (921 lines)
-│   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (914 lines)
+│   ├── quote-compare.js         # Quote comparison + AI recommendation (1,097 lines)
+│   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (971 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
 │   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator (856 lines)
 │   ├── call-logger.js          # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,185 lines)
-│   ├── task-sheet.js            # HawkSoft CSV task viewer — upload, parse, sort (overdue→priority→date), 9-col table, print-friendly layout (415 lines)
-│   ├── returned-mail.js         # Returned Mail Tracker — address validator (Google API), Street View + satellite imagery, log CRUD, HawkSoft copy output, CSV export (458 lines)
+│   ├── task-sheet.js            # HawkSoft CSV task viewer — upload, parse, sort (overdue→priority→date), 9-col table, print-friendly layout (837 lines)
+│   ├── returned-mail.js         # Returned Mail Tracker — address validator (Google API), Street View + satellite imagery, log CRUD, HawkSoft copy output, CSV export (574 lines)
 │   │
 │   │  ★ Support Modules
 │   ├── onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
@@ -143,7 +143,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
 │   └── hawksoft-integration.js  # HawkSoft REST API client (261 lines)
 │
-├── plugins/                    # 18 HTML templates (~5,800 lines, loaded dynamically)
+├── plugins/                    # 21 HTML templates (~6,055 lines, loaded dynamically)
 │   ├── quoting.html            # ★ Main intake wizard — 6-step flow (step-2 DOM kept empty), coverage type in step 1, ~2,169 lines
 │   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
