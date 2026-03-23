@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(docs): update file counts + line counts for 3 new plugins** (March 28, 2026):
+  - 3 plugins (blind-spot-brief, dec-import, deposit-sheet) were in the codebase but absent from all docs
+  - Updated `AGENTS.md` overview table: CSS 24→32 files (~19,761 lines), JS 38→45 modules (~39,326 lines), Plugins 18→21 templates (~6,058 lines), Tests 25→26 suites / 1631→1672
+  - Updated `AGENTS.md` §2 file tree: removed deleted `main.css`, added 6 missing core CSS files (variables, base, components, layout, animations, landing), added 3 new plugin CSS/JS/HTML entries
+  - Fixed 16 stale individual file line counts in AGENTS.md §2 (app-boot, app-export, app-property, app-scan, app-quotes, dashboard-widgets, quote-compare, reminders, returned-mail, task-sheet + 6 CSS files)
+  - Updated `.github/copilot-instructions.md`: stack counts, test count
+  - Updated `QUICKREF.md`: test suite count 23→26
+  - `npm run audit-docs` → exit 0, all 45 JS / 32 CSS / 21 plugin / 26 suites verified
+
 ### Added
 - **feat(skills): add repo-hygiene and storage-keys Copilot skill files** (March 28, 2026):
   - Added `.github/skills/repo-hygiene/SKILL.md` — end-of-session close-out sequence (5 steps), commit/CHANGELOG format, session scope rules (one bug/session, max 3 files), pre-deploy quality gate, Vercel function count check
