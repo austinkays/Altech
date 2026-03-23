@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "sdl-mcp": {
+      "command": "npx",
+      "args": [
+        "--yes",
+        "sdl-mcp@latest",
+        "serve",
+        "--stdio"
+      ],
+      "env": {
+        "SDL_CONFIG": "/root/.config/sdl-mcp/sdlmcp.config.json"
+      }
+    }
+  }
+}
