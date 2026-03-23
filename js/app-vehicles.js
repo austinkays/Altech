@@ -25,6 +25,32 @@ Object.assign(App, {
         this.saveDriversVehicles().catch(e => console.error("[vehicles] save failed:", e));
     },
 
+    /**
+     * Check whether a driver with the same name+DOB already exists.
+     * Called by updateDriver() when firstName, lastName, or dob changes.
+     * Shows a warning toast but does not block the save.
+     */
+    _warnDuplicateDriver(updatedId) {
+        const updated = this.drivers.find(d => d.id === updatedId);
+        if (!updated) return;
+        const { firstName, lastName, dob } = updated;
+        if (!firstName || !lastName) return; // not enough data to compare
+        const duplicate = this.drivers.find(d => {
+            if (d.id === updatedId) return false;
+            const nameMatch = d.firstName?.toLowerCase() === firstName.toLowerCase()
+                           && d.lastName?.toLowerCase() === lastName.toLowerCase();
+            if (!nameMatch) return false;
+            // If both have DOB, require it to match too; if either is blank, name alone is enough
+            if (dob && d.dob) return d.dob === dob;
+            return true;
+        });
+        if (duplicate) {
+            if (typeof this.toast === 'function') {
+                this.toast(`⚠️ ${firstName} ${lastName} may already be listed as a driver`, { type: 'warning', duration: 4000 });
+            }
+        }
+    },
+
     removeDriver(id) {
         const driver = this.drivers.find(d => d.id === id);
         // Prevent removing the synced primary applicant driver
@@ -58,6 +84,10 @@ Object.assign(App, {
             driver[field] = value;
             // Re-render vehicle dropdowns when driver name changes
             if (field === 'firstName' || field === 'lastName') this.renderVehicles();
+            // Warn on duplicate name+DOB after identity fields change
+            if (field === 'firstName' || field === 'lastName' || field === 'dob') {
+                this._warnDuplicateDriver(id);
+            }
             this.saveDriversVehicles().catch(e => console.error("[vehicles] save failed:", e));
         }
     },

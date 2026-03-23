@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 28, 2026
+> **Last updated:** March 23, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -562,6 +562,45 @@ convenience for editors that follow `@import` chains.
 
 **How to find the right file:** `grep_search` the class/property across `css/` — the match
 that also appears in `index.html`'s `<link>` tags is the one to edit.
+
+### 5.13 Validation Module — What's Implemented (March 2026)
+
+The `Validation` object in `js/app-core.js` (top of file, before `Object.assign`) now provides:
+
+| Method | Signature | Notes |
+|--------|-----------|-------|
+| `validateStep(step)` | `(number) → [{field, message}]` | Steps 1, 2, and 5 are gated; all others pass through |
+| `showError(fieldId, message)` | `(string, string) → void` | Inserts `.validation-error` span; guards against duplicates |
+| `clearError(fieldId)` | `(string) → void` | Removes error span and red border |
+| `email(value)` | `(string) → {valid, message}` | Optional — passes if empty |
+| `phone(value)` | `(string) → {valid, message}` | 10-digit US; optional |
+| `dob(value)` | `(string) → {valid, message}` | Must be 16–110 yrs old |
+| `stateCode(value)` | `(string) → {valid, message}` | 2-letter US state |
+| `zipCode(value)` | `(string) → {valid, message}` | 5 or 5-4 digit US ZIP |
+| `year(value, label)` | `(string, string) → {valid, message}` | 1800 to current year + 1 |
+| `required(value, label)` | `(string, string) → {valid, message}` | Non-empty check |
+
+**Step gates:**
+- **Step 1** — First Name and Last Name required
+- **Step 2** — Street, City, State, ZIP required; ZIP format-checked via `Validation.zipCode()`
+- **Step 5** — Prior insurance fields (auto and/or home depending on qType)
+
+Steps 0, 3, 4, 6 have no required-field gates (agents often fill those ad-hoc).
+
+The blur handler in `init()` calls these methods for `email`, `phone`, `dob`, `addrState`, `addrZip`, `yrBuilt`, `roofYr`, `heatYr`, `firstName`, `lastName` and uses `Validation.clearError` / `Validation.showError` to give inline feedback.
+
+### 5.14 Duplicate Driver Warning
+
+`App._warnDuplicateDriver(driverId)` in `js/app-vehicles.js` compares `firstName + lastName` (case-insensitive) and `dob` across the `this.drivers` array. Called automatically by `updateDriver()` whenever `firstName`, `lastName`, or `dob` changes. Shows a warning toast but does **not** block saving — agents legitimately have households with similar names.
+
+### 5.15 Date Formatting in PDF Export
+
+`formatDate()` in `js/app-export.js` now handles three formats without timezone drift:
+1. **`MM/DD/YYYY`** — returned as-is (already formatted)
+2. **`YYYY-MM-DD`** (ISO date) — split by regex, no Date object; avoids UTC midnight → local day shift
+3. **Other** — generic `new Date()` parse with local getters as fallback
+
+Previously, all formats went through `new Date()` with UTC getters, which caused non-ISO strings like `"03/15/2025"` to produce `Invalid Date`.
 
 ### 5.11 HawkSoft REST API Integration Gotchas (CRITICAL)
 

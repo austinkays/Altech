@@ -103,11 +103,18 @@ Object.assign(App, {
 
         const formatDate = (value) => {
             if (!value) return '';
-            const d = new Date(value);
-            if (Number.isNaN(d.getTime())) return value;
-            // Use UTC getters — ISO date strings parse as midnight UTC;
-            // local getters shift the date backward in US timezones (off-by-one)
-            return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`;
+            const s = String(value).trim();
+            // Already MM/DD/YYYY — return as-is to avoid timezone shift
+            if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) return s;
+            // ISO YYYY-MM-DD — parse as UTC to avoid off-by-one in US timezones
+            const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (isoMatch) {
+                return `${isoMatch[2]}/${isoMatch[3]}/${isoMatch[1]}`;
+            }
+            // Fallback: try generic Date parse (may drift in non-UTC zones)
+            const d = new Date(s);
+            if (Number.isNaN(d.getTime())) return value; // unparseable — pass through raw
+            return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`;
         };
         const formatCurrency = (v) => {
             if (!v) return '';

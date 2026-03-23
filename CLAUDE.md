@@ -251,6 +251,27 @@ The `?mode=zillow` (Rentcast/Gemini) and `?mode=arcgis` (ArcGIS + FEMA) flows us
 
 ---
 
+## Validation Module (`js/app-core.js`)
+
+The `Validation` object (top of `app-core.js`, before `Object.assign`) provides field-level and step-level validation. **Do not add inline validation logic in plugins — always extend `Validation` here.**
+
+- `validateStep(step)` gates steps 1 (first/last name), 2 (address + ZIP format), and 5 (prior insurance). Steps 0, 3, 4, 6 are ungated.
+- `showError(id, msg)` / `clearError(id)` — insert/remove inline error spans without duplicates.
+- Field validators (`email`, `phone`, `dob`, `stateCode`, `zipCode`, `year`, `required`) all return `{ valid, message }` and treat empty values as valid (optional by default).
+
+## Duplicate Driver Detection
+
+`App._warnDuplicateDriver(driverId)` in `js/app-vehicles.js` auto-fires when `firstName`, `lastName`, or `dob` changes via `updateDriver()`. Matching logic: same name (case-insensitive) + same DOB if both present. Shows a warning toast; does **not** block save.
+
+## Date Formatting
+
+`formatDate()` in `js/app-export.js` handles three input formats:
+1. `MM/DD/YYYY` — returned unchanged
+2. `YYYY-MM-DD` — regex-split to avoid UTC timezone shift
+3. Anything else — generic `new Date()` fallback with local getters
+
+When adding new date fields, store them as `YYYY-MM-DD` (HTML `<input type="date">` default) for best compatibility.
+
 ## Key Conventions
 
 - **Vanilla JS only** — no React, Vue, Svelte, or any framework
@@ -274,3 +295,5 @@ The `?mode=zillow` (Rentcast/Gemini) and `?mode=arcgis` (ArcGIS + FEMA) flows us
 | Edit `css/main.css` | Edit the split file where the selector lives |
 | Load `app-boot.js` before plugins | It must always be the last `<script>` tag |
 | Remove a `/* no var */` comment | Leave it — it marks work still to be done |
+| Define field validators inline in a plugin | Add to the `Validation` object in `app-core.js` |
+| Call `Validation.showError` without first calling `Validation.clearError` on re-validate | `showError` guards against duplicate spans, but always clear first for clean state |

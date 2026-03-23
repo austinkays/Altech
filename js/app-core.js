@@ -12,45 +12,73 @@ const Validation = {
      */
     validateStep(step) {
         const errors = [];
-        if (step !== 5) return errors; // only step 5 has required-field gates right now
 
-        const qType = document.querySelector('input[name="qType"]:checked')?.value || 'both';
-        const needsAuto = qType === 'auto' || qType === 'both';
-        const needsHome = qType === 'home' || qType === 'both';
-
-        // ── Auto prior insurance (required when auto is being quoted) ──
-        if (needsAuto) {
-            const autoRequired = [
-                { id: 'priorCarrier',        label: 'Prior Auto Carrier' },
-                { id: 'priorPolicyTerm',     label: 'Prior Auto Policy Term' },
-                { id: 'priorLiabilityLimits',label: 'Prior Liability Limits' },
-                { id: 'priorYears',          label: 'Years with Prior Carrier' },
-                { id: 'continuousCoverage',  label: 'Years with Continuous Coverage' },
-                { id: 'priorExp',            label: 'Prior Auto Policy Expiration' },
-            ];
-            autoRequired.forEach(({ id, label }) => {
+        // ── Step 1: Applicant basics ──
+        if (step === 1) {
+            [
+                { id: 'firstName', label: 'First Name' },
+                { id: 'lastName',  label: 'Last Name' },
+            ].forEach(({ id, label }) => {
                 const el = document.getElementById(id);
-                if (!el) return;
-                const val = el.type === 'checkbox' ? el.checked : el.value;
-                if (!val) errors.push({ field: id, message: `${label} is required` });
+                if (el && !el.value.trim()) errors.push({ field: id, message: `${label} is required` });
             });
         }
 
-        // ── Home prior insurance (required when home is being quoted) ──
-        if (needsHome) {
-            const homeRequired = [
-                { id: 'homePriorCarrier',    label: 'Prior Home Carrier' },
-                { id: 'homePriorPolicyTerm', label: 'Prior Home Policy Term' },
-                { id: 'homePriorLiability',  label: 'Prior Liability Level' },
-                { id: 'homePriorYears',      label: 'Years with Prior Carrier (Home)' },
-                { id: 'homePriorExp',        label: 'Prior Home Policy Expiration' },
-            ];
-            homeRequired.forEach(({ id, label }) => {
+        // ── Step 2: Address ──
+        if (step === 2) {
+            [
+                { id: 'addrStreet', label: 'Street Address' },
+                { id: 'addrCity',   label: 'City' },
+                { id: 'addrState',  label: 'State' },
+                { id: 'addrZip',    label: 'ZIP Code' },
+            ].forEach(({ id, label }) => {
                 const el = document.getElementById(id);
-                if (!el) return;
-                const val = el.type === 'checkbox' ? el.checked : el.value;
-                if (!val) errors.push({ field: id, message: `${label} is required` });
+                if (el && !el.value.trim()) errors.push({ field: id, message: `${label} is required` });
             });
+            // Format-check ZIP if present
+            const zipEl = document.getElementById('addrZip');
+            if (zipEl && zipEl.value.trim()) {
+                const r = Validation.zipCode(zipEl.value);
+                if (r && !r.valid) errors.push({ field: 'addrZip', message: r.message });
+            }
+        }
+
+        // ── Step 5: Prior insurance ──
+        if (step === 5) {
+            const qType = document.querySelector('input[name="qType"]:checked')?.value || 'both';
+            const needsAuto = qType === 'auto' || qType === 'both';
+            const needsHome = qType === 'home' || qType === 'both';
+
+            if (needsAuto) {
+                [
+                    { id: 'priorCarrier',         label: 'Prior Auto Carrier' },
+                    { id: 'priorPolicyTerm',      label: 'Prior Auto Policy Term' },
+                    { id: 'priorLiabilityLimits', label: 'Prior Liability Limits' },
+                    { id: 'priorYears',           label: 'Years with Prior Carrier' },
+                    { id: 'continuousCoverage',   label: 'Years with Continuous Coverage' },
+                    { id: 'priorExp',             label: 'Prior Auto Policy Expiration' },
+                ].forEach(({ id, label }) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const val = el.type === 'checkbox' ? el.checked : el.value;
+                    if (!val) errors.push({ field: id, message: `${label} is required` });
+                });
+            }
+
+            if (needsHome) {
+                [
+                    { id: 'homePriorCarrier',    label: 'Prior Home Carrier' },
+                    { id: 'homePriorPolicyTerm', label: 'Prior Home Policy Term' },
+                    { id: 'homePriorLiability',  label: 'Prior Liability Level' },
+                    { id: 'homePriorYears',      label: 'Years with Prior Carrier (Home)' },
+                    { id: 'homePriorExp',        label: 'Prior Home Policy Expiration' },
+                ].forEach(({ id, label }) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const val = el.type === 'checkbox' ? el.checked : el.value;
+                    if (!val) errors.push({ field: id, message: `${label} is required` });
+                });
+            }
         }
 
         return errors;
@@ -64,11 +92,79 @@ const Validation = {
         const el = document.getElementById(fieldId);
         if (!el) return;
         el.style.borderColor = 'var(--danger, #ff3b30)';
-
+        // Don't add duplicate error spans
+        if (el.nextElementSibling?.classList.contains('validation-error')) return;
         const err = document.createElement('span');
         err.className = 'validation-error';
         err.textContent = message;
         el.insertAdjacentElement('afterend', err);
+    },
+
+    /** Remove error styling from a field. */
+    clearError(fieldId) {
+        const el = document.getElementById(fieldId);
+        if (!el) return;
+        el.style.borderColor = '';
+        const next = el.nextElementSibling;
+        if (next?.classList.contains('validation-error')) next.remove();
+    },
+
+    /** Returns { valid, message } for an email address. */
+    email(value) {
+        if (!value) return { valid: true }; // optional field — only validate if filled
+        const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+        return ok ? { valid: true } : { valid: false, message: 'Enter a valid email address' };
+    },
+
+    /** Returns { valid, message } for a US phone number (10 digits). */
+    phone(value) {
+        if (!value) return { valid: true };
+        const digits = value.replace(/\D/g, '');
+        const ok = digits.length === 10 || (digits.length === 11 && digits[0] === '1');
+        return ok ? { valid: true } : { valid: false, message: 'Enter a 10-digit phone number' };
+    },
+
+    /** Returns { valid, message } for a date of birth (must be in the past, age 16–110). */
+    dob(value) {
+        if (!value) return { valid: true };
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return { valid: false, message: 'Enter a valid date of birth' };
+        const now = new Date();
+        const age = (now - d) / (365.25 * 24 * 3600 * 1000);
+        if (age < 16) return { valid: false, message: 'Age must be at least 16' };
+        if (age > 110) return { valid: false, message: 'Enter a valid date of birth' };
+        return { valid: true };
+    },
+
+    /** Returns { valid, message } for a 2-letter US state code. */
+    stateCode(value) {
+        if (!value) return { valid: true };
+        const STATES = new Set(['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC']);
+        return STATES.has(value.toUpperCase()) ? { valid: true } : { valid: false, message: 'Enter a valid 2-letter state code' };
+    },
+
+    /** Returns { valid, message } for a US ZIP code (5 or 9 digits). */
+    zipCode(value) {
+        if (!value) return { valid: true };
+        const ok = /^\d{5}(-\d{4})?$/.test(value.trim());
+        return ok ? { valid: true } : { valid: false, message: 'Enter a valid 5-digit ZIP code' };
+    },
+
+    /** Returns { valid, message } for a 4-digit year within a sane range. */
+    year(value, label = 'Year') {
+        if (!value) return { valid: true };
+        const n = parseInt(value, 10);
+        const now = new Date().getFullYear();
+        if (isNaN(n) || n < 1800 || n > now + 1) {
+            return { valid: false, message: `${label} must be between 1800 and ${now + 1}` };
+        }
+        return { valid: true };
+    },
+
+    /** Returns { valid, message } for a required field. */
+    required(value, label = 'This field') {
+        const ok = value !== null && value !== undefined && String(value).trim() !== '';
+        return ok ? { valid: true } : { valid: false, message: `${label} is required` };
     },
 };
 

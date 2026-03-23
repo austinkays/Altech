@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(app-core): Add missing Validation methods; step 1 + 2 now gated** (March 23, 2026):
+  - Added `Validation.clearError()`, `.email()`, `.phone()`, `.dob()`, `.stateCode()`, `.zipCode()`, `.year()`, `.required()` — all were called by the blur handler but never defined (would throw `TypeError` at runtime)
+  - `Validation.validateStep()` now gates **Step 1** (first/last name required) and **Step 2** (street, city, state, ZIP required + ZIP format check) in addition to the existing Step 5 prior-insurance gate
+  - `Validation.showError()` now guards against duplicate error spans (was adding a second span on re-validate without first clearing)
+
+- **fix(app-vehicles): Warn on duplicate driver name+DOB** (March 23, 2026):
+  - Added `App._warnDuplicateDriver(driverId)` — compares firstName + lastName (case-insensitive) and DOB across all drivers; shows a warning toast if a potential duplicate is found
+  - `updateDriver()` now calls `_warnDuplicateDriver()` whenever `firstName`, `lastName`, or `dob` changes
+
+- **fix(app-export): Robust date formatting for non-ISO date strings** (March 23, 2026):
+  - `formatDate()` previously called `new Date(value)` for all inputs and used UTC getters — this caused `MM/DD/YYYY` strings to parse as `Invalid Date` and ISO strings to shift one day back in US timezones
+  - Now: `MM/DD/YYYY` returned as-is; `YYYY-MM-DD` split by regex (no Date object); other formats fall back to `new Date()` with local getters
+
 ### Added
 - **feat(property-intelligence): FEMA flood zone lookup in property intelligence pipeline** (March 20, 2026):
   - Added `fetchFloodZone(lat, lng)` helper in `api/property-intelligence.js` — queries FEMA NFHL ArcGIS public REST API (MapServer/28), 5-second timeout, graceful null on error/miss
