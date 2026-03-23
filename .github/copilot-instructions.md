@@ -32,7 +32,7 @@ Tools are registered in `toolConfig` array in `js/app-init.js`. Each entry has: 
 
 **Categories:** `quoting` | `export` | `docs` | `ops`
 
-**Current plugins (18):** quoting (Personal Lines), intake (AI Intake), qna (Policy Q&A), quotecompare, ezlynx, hawksoft, coi (hidden), compliance (CGL), reminders, prospect, email, accounting, quickref, vindecoder, calllogger (HawkSoft Logger), tasksheet (Task Sheet), endorsement (Endorsement Parser), returnedmail (Returned Mail Tracker).
+**Current plugins (22):** quoting (Personal Lines), intake (AI Intake), qna (Policy Q&A), quotecompare, ezlynx, hawksoft, coi (hidden), compliance (CGL), reminders, prospect, email, accounting, quickref, vindecoder, calllogger (HawkSoft Logger), tasksheet (Task Sheet), endorsement (Endorsement Parser), returnedmail (Returned Mail Tracker), blindspot (Blind Spot Brief), decimport (Dec Page Importer), depositsheet (Deposit Sheet), broadform (Broadform Eligibility).
 
 **Adding a new plugin requires 5 files/edits:**
 1. `js/your-plugin.js` — IIFE module on `window.YourModule` (see `js/reminders.js` for pattern)
@@ -47,11 +47,13 @@ Tools are registered in `toolConfig` array in `js/app-init.js`. Each entry has: 
 ```javascript
 window.YourModule = (() => {
     'use strict';
-    const STORAGE_KEY = 'altech_your_key';
+    const STORAGE_KEY = STORAGE_KEYS.YOUR_KEY;  // ✅ use STORAGE_KEYS — never hardcode 'altech_...'
     // ... private state and functions ...
     return { init, render, /* public API */ };
 })();
 ```
+
+**Shared tool components (`js/tools/`):** Stateless tools use a `js/tools/` subdirectory. Files prefixed with `_` in this folder (e.g., `_tool-components.js`) are shared component factories exposed on `window.ToolComponents`. Tool modules (e.g., `broadform.js`) live alongside them and depend on `window.ToolComponents`. Stateless tools skip localStorage entirely.
 
 ---
 
@@ -86,11 +88,17 @@ For dark mode overrides, prefer solid colors (`#1C1C1E`) over low-opacity rgba (
 
 **Synced data (11 types):** settings, currentForm (`altech_v6`), cglState, clientHistory, quickRefCards, quickRefNumbers, reminders, quotes, glossary, vaultData, vaultMeta.
 
-When adding sync for a new data type, update 4 places in `js/cloud-sync.js`:
-- `_getLocalData()` — add `yourKey: tryParse('altech_your_key')`
-- `pushToCloud()` — add `_pushDoc(...)` to Promise.all
-- `pullFromCloud()` — add pull + UI refresh
-- `deleteCloudData()` — add to `syncDocs` array
+When adding sync for a new data type, **add one string to `SYNC_DOCS[]`** near the top of `js/cloud-sync.js` — push and delete pick it up automatically. No other changes required.
+
+```javascript
+// js/cloud-sync.js ~line 27
+const SYNC_DOCS = [
+    'settings', 'currentForm', 'cglState', 'clientHistory',
+    'quickRefCards', 'quickRefNumbers', 'reminders', 'glossary',
+    'vaultData', 'vaultMeta',
+    'yourNewType',  // ← add here
+];
+```
 
 **Trigger sync:** Call `CloudSync.schedulePush()` after saving to localStorage (debounced 3s).
 
@@ -158,9 +166,18 @@ Tests load `index.html` into JSDOM: `new JSDOM(html, { runScripts: 'dangerously'
 
 ## DO ✅ / DON'T ❌
 
-**DO:** Use exact CSS variable names (`--bg-card` not `--card`) · Keep field IDs stable · Test all 3 workflows when changing steps · Test all 3 export types · Use `|| ''` fallbacks in exports · Call `CloudSync.schedulePush()` after localStorage writes · Always use `App.save()` for form data writes · Update AGENTS.md + copilot-instructions.md + QUICKREF.md after every work session
+**DO:** Use exact CSS variable names (`--bg-card` not `--card`) · Keep field IDs stable · Test all 3 workflows when changing steps · Test all 3 export types · Use `|| ''` fallbacks in exports · Call `CloudSync.schedulePush()` after localStorage writes · Always use `App.save()` for form data writes · Use `STORAGE_KEYS.*` for all localStorage key strings · Use `Utils.escapeHTML()`, `Utils.escapeAttr()`, `Utils.tryParseLS()`, `Utils.debounce()` — never redefine inline · Update AGENTS.md + copilot-instructions.md + QUICKREF.md after every work session
 
-**DON'T:** Change `altech_v6` storage key without migration · Use rgba with opacity < 0.1 for dark mode backgrounds · Hardcode API keys · Skip `escapeXML()` for XML output · Use `var(--accent)` or `var(--muted)` (they don't exist) · Write to `altech_v6` directly (bypasses encryption) · Add a new file to `api/` without checking the serverless function count (see below)
+**DON'T:** Change `altech_v6` storage key without migration · Use rgba with opacity < 0.1 for dark mode backgrounds · Hardcode API keys · Skip `escapeXML()` for XML output · Use `var(--accent)` or `var(--muted)` (they don't exist) · Write to `altech_v6` directly (bypasses encryption) · Add a new file to `api/` without checking the serverless function count (see below) · Hardcode `'altech_*'` strings in modules (use `STORAGE_KEYS.*`)
+
+---
+
+## Agent File-Reading Discipline
+
+- **Grep first, read targeted lines.** Use terminal `Select-String` to find exact line numbers, then read only those ranges. Never open a full file blindly.
+- **One bug per session.** Don't trace callers or related functions unless the fix explicitly requires it.
+- **Run `git log --oneline -10` before any bugfix.** If it was already committed, stop — don't re-fix it.
+- **3-file blocker rule.** If locating the problem requires reading more than 3 files, stop and report what's blocking you.
 
 ---
 
