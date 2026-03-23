@@ -584,7 +584,8 @@ window.DashboardWidgets = (() => {
             quoting: 'Quoting',
             export: 'Export',
             docs: 'Documents',
-            ops: 'Operations'
+            ops: 'Operations',
+            tools: 'Agent Tools',
         };
 
         // Group tools by category

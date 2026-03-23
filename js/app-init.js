@@ -65,6 +65,8 @@ const App = {
         // │  name, containerId, initModule, category                │
         // │  Categories: 'quoting' | 'docs' | 'ops' | 'ref'        │
         // └────────────────────────────────────────────────────────────┘
+        // ── Agent Tools (eligibility filters, calculators) ──
+        { key: 'broadform', icon: '🚫', color: 'icon-amber', title: 'Broadform Filter', name: 'Broadform / Non-Owner Eligibility', containerId: 'broadformTool', initModule: 'Broadform', htmlFile: 'plugins/tools/broadform.html', category: 'tools' },
     ],
 
     stepTitles: {

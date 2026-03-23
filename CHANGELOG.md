@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(tools): Agent Tools foundation + Broadform / Non-Owner Eligibility Filter** (March 2026):
+  - New `js/tools/` subdirectory for all future Agent Tools plugin modules.
+  - New `plugins/tools/` subdirectory for plugin HTML templates.
+  - **`js/tools/_tool-components.js`** — `window.ToolComponents` shared UI factory: `yesNoToggle()`, `stateDropdown()`, `carrierCard()`, `hardStop()`. All output XSS-safe via `Utils.escapeHTML` / `Utils.escapeAttr`.
+  - **`js/tools/broadform-data.js`** — `window.BroadformData` pure data + rule layer. `rules.evaluate(state, ownedAuto, regularAccess)` returns hard-stop, eligible carriers (WA: Progressive + Dairyland; OR: Progressive only), or null for incomplete answers.
+  - **`js/tools/broadform.js`** — `window.Broadform` IIFE plugin. Stateless questionnaire — answers reset on each `init()`. Event-delegation for state dropdown and Yes/No toggles. Renders results in an `aria-live` region.
+  - **`plugins/tools/broadform.html`** — Thin plugin HTML shell (header + container div).
+  - **`css/broadform.css`** — Full CSS for `bf-` (plugin) and `tc-` (shared component) namespaces, with dark mode overrides and 520 px mobile breakpoint.
+  - **`index.html`** — Added CSS link, `broadformTool` container div, and three Agent Tools script tags.
+  - **`js/app-init.js`** — New `broadform` tool entry registered in `toolConfig[]` under `category: 'tools'`.
+  - **`js/dashboard-widgets.js`** — Added `tools: 'Agent Tools'` to `categoryLabels`.
+  - **`tests/broadform.test.js`** — 16 unit tests covering all branches of `rules.evaluate()`: hard-stop (owned auto / regular access), WA + OR eligible paths, and null/incomplete states. **27 suites, 1688 tests — all pass.**
+
 - **feat(quoting): UX overhaul — coverage type merged into Step 0** (March 28, 2026):
   - **Coverage type migration (Phase 0):** The standalone "Coverage Type" step (old Step 2) has
     been removed from all workflow arrays. Three coverage-type cards (HOME / AUTO / HOME & AUTO)

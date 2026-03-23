@@ -1,0 +1,262 @@
+/* ===== BROADFORM / NON-OWNER ELIGIBILITY FILTER STYLES =====
+ * Namespace:
+ *   bf-  — plugin-scoped styles (Broadform container, layout, titles)
+ *   tc-  — ToolComponents shared styles (questions, toggles, cards)
+ *
+ * All colors use CSS design system variables from css/variables.css.
+ * dark mode: body.dark-mode .class (solid colors for any non-variable values)
+ * No @keyframes here — animations live in css/animations.css
+ * ============================================================ */
+
+/* ── Plugin Container ──────────────────────────────────────── */
+
+.bf-container {
+    max-width: 660px;
+    margin: 0 auto;
+    padding: 0 16px 48px;
+}
+
+/* ── Section / Results Labels ──────────────────────────────── */
+
+.bf-section-title,
+.bf-results-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin: 0 0 12px;
+}
+
+.bf-results-title {
+    margin-top: 32px;
+}
+
+/* ── Question Stack ────────────────────────────────────────── */
+
+.bf-questions {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Shared question card wrapper (used by both stateDropdown and yesNoToggle) */
+.tc-question {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-color 0.2s ease;
+}
+
+.tc-question-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.45;
+}
+
+/* ── State Dropdown ────────────────────────────────────────── */
+
+.tc-state-select {
+    background: var(--bg-input);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 9px 12px;
+    appearance: none;
+    cursor: pointer;
+    width: 100%;
+    max-width: 200px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tc-state-select:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+/* ── Yes / No Toggle Buttons ───────────────────────────────── */
+
+.tc-toggle-group {
+    display: flex;
+    gap: 10px;
+}
+
+.tc-toggle-btn {
+    flex: 1;
+    max-width: 120px;
+    padding: 9px 0;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.tc-toggle-btn:hover {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+}
+
+/* Active / selected state */
+.tc-toggle-btn.tc-toggle-active {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+    color: #fff;
+}
+
+/* ── Results Area ──────────────────────────────────────────── */
+
+.bf-results {
+    min-height: 0; /* Collapses cleanly when empty */
+}
+
+/* ── Hard Stop Alert ───────────────────────────────────────── */
+
+.tc-hard-stop {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: rgba(255, 59, 48, 0.08);
+    border: 1.5px solid var(--danger);
+    border-radius: 14px;
+    padding: 18px 20px;
+}
+
+.tc-hard-stop-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    line-height: 1.2;
+}
+
+.tc-hard-stop-message {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--danger);
+    line-height: 1.5;
+}
+
+/* ── Carrier Card Grid ─────────────────────────────────────── */
+
+.bf-carrier-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.tc-carrier-card {
+    flex: 1;
+    min-width: 220px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: box-shadow 0.2s ease;
+}
+
+/* Ready — green border glow */
+.tc-carrier-card.tc-carrier-ready {
+    border-color: var(--success);
+    box-shadow: 0 0 0 1px var(--success), 0 4px 16px rgba(52, 199, 89, 0.10);
+}
+
+/* Disabled — greyed out, non-interactive */
+.tc-carrier-card.tc-carrier-disabled {
+    opacity: 0.5;
+    border-color: var(--border);
+    box-shadow: none;
+}
+
+.tc-carrier-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+/* ── Status Badges ─────────────────────────────────────────── */
+
+.tc-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    align-self: flex-start;
+}
+
+.tc-badge-ready {
+    background: rgba(52, 199, 89, 0.14);
+    color: var(--success);
+}
+
+.tc-badge-disabled {
+    background: rgba(142, 142, 147, 0.12);
+    color: var(--text-secondary);
+}
+
+/* ── Carrier Notes ─────────────────────────────────────────── */
+
+.tc-carrier-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Warning note (e.g. OR Dairyland) */
+.tc-carrier-note-warning {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--danger);
+}
+
+/* ── Dark Mode Overrides ───────────────────────────────────── */
+/* Only needed for hardcoded rgba values that don't auto-switch */
+
+body.dark-mode .tc-hard-stop {
+    background: rgba(255, 69, 58, 0.12); /* slightly more visible on OLED black */
+}
+
+body.dark-mode .tc-carrier-card.tc-carrier-ready {
+    box-shadow: 0 0 0 1px var(--success), 0 4px 16px rgba(50, 215, 75, 0.08);
+}
+
+body.dark-mode .tc-badge-ready {
+    background: rgba(50, 215, 75, 0.18);
+}
+
+/* ── Responsive — Mobile ───────────────────────────────────── */
+
+@media (max-width: 520px) {
+    .bf-container {
+        padding: 0 8px 32px;
+    }
+
+    .tc-question {
+        padding: 14px;
+    }
+
+    .tc-toggle-btn {
+        max-width: none; /* Full-width on small screens */
+    }
+
+    .bf-carrier-grid {
+        flex-direction: column;
+    }
+
+    .tc-state-select {
+        max-width: 100%;
+    }
+}
