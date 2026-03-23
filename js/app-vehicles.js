@@ -492,7 +492,7 @@ Object.assign(App, {
                     </div>
                 </div>
 
-                <label class="label">Driver's License</label>
+                <label class="label">Driver's License <span class="ez-req" title="Required for EZLynx rating" style="color:#f5c842;margin-left:3px;font-size:0.85em;">✦</span></label>
                 <div class="export-row" style="margin-bottom:10px; align-items:center;">
                     <button class="btn btn-tertiary" onclick="App.openDriverLicensePicker('${driver.id}')">📸 Scan Driver's License</button>
                     <input id="dlScan_${driver.id}" type="file" accept="image/*" class="hidden" onchange="App.handleDriverLicenseFile('${driver.id}', this.files[0])" />
@@ -645,7 +645,7 @@ Object.assign(App, {
                     <button class="remove-btn" onclick="App.removeVehicle('${vehicle.id}')" title="Remove vehicle">×</button>
                 </div>
                 
-                <label class="label">VIN (optional) - Auto-fills year/make/model</label>
+                <label class="label">VIN (optional) - Auto-fills year/make/model <span class="ez-req" title="Required for EZLynx rating" style="color:#f5c842;margin-left:3px;font-size:0.85em;">✦</span></label>
                 <input type="text" maxlength="17" value="${Utils.escapeAttr(vehicle.vin || '')}" 
                     onchange="App.decodeVehicleVin('${vehicle.id}', this.value)" 
                     style="text-transform:uppercase;font-family:monospace" 
@@ -678,7 +678,7 @@ Object.assign(App, {
                 
                 <div class="grid-2">
                     <div>
-                        <label class="label">Primary Use</label>
+                        <label class="label">Primary Use <span class="ez-req" title="Required for EZLynx rating" style="color:#f5c842;margin-left:3px;font-size:0.85em;">✦</span></label>
                         <select onchange="App.updateVehicle('${vehicle.id}', 'use', this.value)">
                             <option value="Pleasure" ${vehicle.use === 'Pleasure' ? 'selected' : ''}>Pleasure</option>
                             <option value="Commute" ${vehicle.use === 'Commute' ? 'selected' : ''}>To/From Work</option>
@@ -688,7 +688,7 @@ Object.assign(App, {
                         </select>
                     </div>
                     <div>
-                        <label class="label">Annual Mileage</label>
+                        <label class="label">Annual Mileage <span class="ez-req" title="Required for EZLynx rating" style="color:#f5c842;margin-left:3px;font-size:0.85em;">✦</span></label>
                         <input type="number" value="${vehicle.miles || '12000'}" 
                             onchange="App.updateVehicle('${vehicle.id}', 'miles', this.value)" 
                             placeholder="12000">
@@ -697,7 +697,7 @@ Object.assign(App, {
                 
                 <div class="grid-2">
                     <div>
-                        <label class="label">Ownership Type</label>
+                        <label class="label">Ownership Type <span class="ez-req" title="Required for EZLynx rating" style="color:#f5c842;margin-left:3px;font-size:0.85em;">✦</span></label>
                         <select onchange="App.updateVehicle('${vehicle.id}', 'ownershipType', this.value)">
                             <option value="" ${!vehicle.ownershipType ? 'selected' : ''}>Select...</option>
                             <option value="Owned" ${vehicle.ownershipType === 'Owned' ? 'selected' : ''}>Owned</option>

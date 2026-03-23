@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-28 — EZLynx Required Field Indicators (✦)
+- **feat(fields):** Added `ezlynxRequired: true` flag to ~55 fields across 10 sections in `js/fields.js`; updated header comment documenting the new optional property
+- **feat(navigation):** Added `_stampEzlynxLabels(container)` DOM pass in `js/app-navigation.js`; called once after quoting plugin HTML first loads; stamps a gold ✦ (`color:#f5c842`) next to any `label.label` whose field has `ezlynxRequired: true`
+- **feat(vehicles):** Inline ✦ spans added to 5 dynamic template labels in `js/app-vehicles.js`: Driver's License, VIN, Primary Use, Annual Mileage, Ownership Type
+- **Tests:** 27 suites, 1688 tests — all pass (no regressions)
+- **Files changed:** `js/fields.js`, `js/app-navigation.js`, `js/app-vehicles.js`
+
 ## 2026-03-23 — Carrier Eligibility tool — multi-policy expansion
 - **feat(tools):** Expanded "Broadform Filter" into a multi-policy "Carrier Eligibility" tool
 - **broadform-data.js:** Added `policyTypes` array (Broadform, Non-Owners); restructured `carriers` map with `policyRules.{type}.stateRules.{state}` (eligible/referOut/disqualifiers); added `questionsByType`, `disqualifierMessages`, kept `questions` alias for test backward-compat; `evaluate()` now accepts optional 4th `policyType` param (default `'broadform'`)

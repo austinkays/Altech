@@ -383,6 +383,7 @@ Object.assign(App, {
                 if (resp.ok) {
                     tool.innerHTML = await resp.text();
                     tool.dataset.loaded = 'true';
+                    if (toolName === 'quoting') this._stampEzlynxLabels(tool);
                 } else {
                     console.error('[navigateTo] Failed to load plugin HTML:', entry.htmlFile, resp.status);
                     tool.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text-secondary,#666)">
@@ -590,6 +591,15 @@ Object.assign(App, {
             badge.dataset.count = '0';
             badge.classList.remove('badge-critical', 'badge-warning');
         }
+    },
+
+    _stampEzlynxLabels(container) {
+        const EZ_SPAN = '<span class="ez-req" title="Required for EZLynx rating" style="color:#f5c842;margin-left:3px;font-size:0.85em;">✦</span>';
+        container.querySelectorAll('[id]').forEach(el => {
+            if (!window.FIELD_BY_ID?.[el.id]?.ezlynxRequired) return;
+            const lbl = el.closest('div')?.querySelector('label.label');
+            if (lbl && !lbl.querySelector('.ez-req')) lbl.insertAdjacentHTML('beforeend', EZ_SPAN);
+        });
     },
 
     goHome() {
