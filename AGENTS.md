@@ -810,3 +810,62 @@ KEY RULES:
 | `SAM_GOV_API_KEY` | ⚠️ | SAM.gov federal lookups |
 
 ---
+
+## 10. SDL-MCP Code Intelligence
+
+SDL-MCP is configured as an MCP server (`.mcp.json`) and indexes the Altech codebase into a queryable symbol graph. Use it to find and understand code without reading whole files.
+
+**Index:** 110 files · 2183 symbols · 11543 call edges · languages: JS, Python, Rust
+
+**Config files:**
+- `.mcp.json` — project MCP server definition (committed)
+- `claude-code-mcp-config.json` — generated reference copy (committed)
+- `/root/.config/sdl-mcp/sdlmcp.config.json` — runtime config (machine-local, not committed)
+
+### Iris Gate Escalation — Always Start Cheap
+
+| Rung | Tool | Tokens | Use when |
+|------|------|--------|----------|
+| 1 | `sdl_symbol_search` / `sdl_symbol_getCard` | ~100 | You know the symbol name |
+| 2 | `sdl_code_getSkeleton` | ~300 | Need control flow / all method signatures in a file |
+| 3 | `sdl_code_getHotPath` | ~600 | Need only lines touching specific identifiers |
+| 4 | `sdl_code_needWindow` (policy-gated) | ~2000 | Must see full source — requires justification |
+
+### Common Patterns
+
+```javascript
+// Start any task with a slice — auto-discovers relevant symbols
+sdl_slice_build({ repoId: 'altech-field-lead', taskText: 'how does App.save() encrypt data' })
+
+// Search before reading a file
+sdl_symbol_search({ repoId: 'altech-field-lead', query: 'processScan' })
+
+// Get a file outline without reading 500 lines
+sdl_code_getSkeleton({ repoId: 'altech-field-lead', file: 'js/app-core.js' })
+
+// Find just the lines that matter
+sdl_code_getHotPath({ repoId: 'altech-field-lead', symbolId: '...', identifiersToFind: ['encrypt', 'STORAGE_KEYS'] })
+
+// Codebase overview for orientation
+sdl_repo_overview({ repoId: 'altech-field-lead', level: 'directories', includeHotspots: true })
+```
+
+### Re-indexing
+
+After significant edits (new files, renamed functions):
+```bash
+npx sdl-mcp@latest index --mode incremental   # fast, picks up changes
+npx sdl-mcp@latest index --mode full          # rebuild everything
+npx sdl-mcp@latest doctor                     # verify health
+```
+
+### Memories
+
+Store architectural decisions so future agents don't re-derive them:
+```javascript
+sdl_memory_store({ repoId: 'altech-field-lead', type: 'decision', title: '...', content: '...' })
+sdl_memory_query({ repoId: 'altech-field-lead', query: 'encryption' })
+```
+Memories are automatically surfaced in `sdl_slice_build` results when touching related symbols.
+
+---
