@@ -17,7 +17,7 @@
 window.Reminders = (() => {
     'use strict';
 
-    const STORAGE_KEY = 'altech_reminders';
+    const STORAGE_KEY = STORAGE_KEYS.REMINDERS;
     const PST_TIMEZONE = 'America/Los_Angeles';
     const DEFAULT_CATEGORIES = ['Renewals', 'Follow-ups', 'Admin', 'Marketing', 'Compliance'];
 
@@ -216,25 +216,12 @@ window.Reminders = (() => {
         const now = _nowPST();
         const until = new Date(task.snooze.until);
         if (now > until) {
-            // Snooze expired — clean up
-            _clearExpiredSnooze(task);
+            // Snooze expired — clean up and persist the removal
+            delete task.snooze;
+            _save();
             return false;
         }
         return true;
-    }
-
-    function _clearExpiredSnooze(task) {
-        if (!task.snooze) return;
-        const sType = task.snooze.type;
-
-        if (sType === 'push-tomorrow' && task.snooze.originalDueDate) {
-            // Already pushed — dueDate was updated, nothing to revert
-        }
-        if (sType === 'skip-week') {
-            // If the next week has started, reset the task for the new week
-            // The completion cycle logic handles this naturally
-        }
-        delete task.snooze;
     }
 
     /** Get human-readable label for a snoozed task */
@@ -714,6 +701,13 @@ window.Reminders = (() => {
             const summary = getWeeklySummary();
             summaryEl.textContent = `${summary.done}/${summary.total} tasks done this week`;
             summaryEl.title = `${summary.done} of ${summary.total} tasks active this week completed. Stat cards above show all-time totals (${counts.total} total, ${counts.completed} done).`;
+
+            // Update progress bar
+            const pct = summary.total > 0 ? Math.round((summary.done / summary.total) * 100) : 0;
+            const barEl = document.getElementById('remWeeklyProgressBar');
+            if (barEl) barEl.style.width = `${pct}%`;
+            const trackEl = document.getElementById('remWeeklyProgressTrack');
+            if (trackEl) trackEl.title = `${pct}% complete`;
         }
     }
 
@@ -783,7 +777,7 @@ window.Reminders = (() => {
                         <div class="rem-task-meta">
                             <span class="rem-badge rem-badge-${status}">${_escapeHTML(statusLabel)}</span>
                             <span class="rem-badge rem-cat">${_escapeHTML(t.category)}</span>
-                            <span class="rem-badge rem-freq${['daily','weekdays'].includes(t.frequency) ? ' rem-freq-daily' : ''}">${t.frequency === 'weekdays' ? 'Daily' : t.frequency}</span>
+                            <span class="rem-badge rem-freq${['daily','weekdays'].includes(t.frequency) ? ' rem-freq-daily' : ''}">${t.frequency === 'weekdays' ? 'Weekdays' : t.frequency === 'biweekly' ? 'Biweekly' : t.frequency}</span>
                         </div>
                         ${t.notes ? `<div class="rem-task-notes">${_escapeHTML(t.notes)}</div>` : ''}
                     </div>
@@ -900,10 +894,50 @@ window.Reminders = (() => {
         render();
     }
 
+    // Pending delete: id of the task awaiting confirmation, and its timeout handle
+    let _pendingDeleteId = null;
+    let _pendingDeleteTimeout = null;
+
     function remove(id) {
-        if (!confirm('Delete this reminder?')) return;
+        // If already pending delete for this id, execute immediately
+        if (_pendingDeleteId === id) {
+            _commitDelete(id);
+            return;
+        }
+        // Cancel any prior pending delete for a different task
+        if (_pendingDeleteId) _cancelPendingDelete();
+
+        _pendingDeleteId = id;
+
+        // Mark the card visually
+        const card = document.querySelector(`.rem-task-card[data-id="${id}"]`);
+        if (card) card.classList.add('rem-pending-delete');
+
+        if (typeof App !== 'undefined' && App.toast) {
+            App.toast('Tap delete again to confirm, or wait to cancel', 'info');
+        }
+
+        // Auto-cancel after 4 seconds
+        _pendingDeleteTimeout = setTimeout(() => _cancelPendingDelete(), 4000);
+    }
+
+    function _commitDelete(id) {
+        clearTimeout(_pendingDeleteTimeout);
+        _pendingDeleteId = null;
+        _pendingDeleteTimeout = null;
         deleteTask(id);
         render();
+        if (typeof App !== 'undefined' && App.toast) {
+            App.toast('Reminder deleted', 'success');
+        }
+    }
+
+    function _cancelPendingDelete() {
+        clearTimeout(_pendingDeleteTimeout);
+        const card = document.querySelector(`.rem-task-card[data-id="${_pendingDeleteId}"]`);
+        if (card) card.classList.remove('rem-pending-delete');
+        _pendingDeleteId = null;
+        _pendingDeleteTimeout = null;
     }
 
     function setFilter(filter) {
@@ -925,7 +959,7 @@ window.Reminders = (() => {
 
         const searchInput = document.getElementById('remSearchInput');
         if (searchInput) {
-            searchInput.addEventListener('input', () => render());
+            searchInput.addEventListener('input', Utils.debounce(() => render(), 200));
         }
         const catFilter = document.getElementById('remCategoryFilter');
         if (catFilter) {
