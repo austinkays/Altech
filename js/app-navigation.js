@@ -44,7 +44,7 @@ Object.assign(App, {
         });
         
         // Init Google Places autocomplete when address step is visible
-        if (curId === 'step-2') {
+        if (curId === 'step-3') {
             this.initPlaces();
         }
 
@@ -87,6 +87,14 @@ Object.assign(App, {
         // Render full client history on export page
         if (curId === 'step-6') {
             this.renderClientHistory();
+            // Show/hide quick-edit jump buttons based on active workflow
+            const hasVehicles = this.flow.includes('step-4');
+            const jv = document.getElementById('editJumpVehicles');
+            const jp = document.getElementById('editJumpProperty');
+            if (jv) jv.style.display = hasVehicles ? '' : 'none';
+            // Property step always present in current workflows — but guard anyway
+            const hasProperty = this.flow.includes('step-3');
+            if (jp) jp.style.display = hasProperty ? '' : 'none';
         }
         
         // Update step title
@@ -162,6 +170,26 @@ Object.assign(App, {
                     return; // Don't proceed
                 }
             }
+
+            // Soft (non-blocking) completion hints on steps 1 and 3.
+            // The user can still continue — we just nudge them not to forget.
+            if (stepNumber === 1) {
+                const missing = ['firstName', 'lastName'].filter(id => {
+                    const el = document.getElementById(id);
+                    return el && !el.value.trim();
+                });
+                if (missing.length > 0) {
+                    this.toast('💡 Tip: First and last name are needed for exports — you can fill them in any time.', 'info');
+                }
+            } else if (stepNumber === 3) {
+                const missing = ['addrStreet', 'addrCity', 'addrState', 'addrZip'].filter(id => {
+                    const el = document.getElementById(id);
+                    return el && !el.value.trim();
+                });
+                if (missing.length > 0) {
+                    this.toast('💡 Tip: Property address is used in exports and carrier lookups — fill it in when ready.', 'info');
+                }
+            }
             
             if (this.step < this.flow.length - 1) {
                 this.step++;
@@ -188,6 +216,32 @@ Object.assign(App, {
         } catch(e) {
             console.error('[App.prev] Error:', e);
         }
+    },
+
+    // Select a coverage type and start a fresh intake from Step 1.
+    // Called by the coverage-type cards on Step 0 (replaces the old "New Client" button +
+    // the separate Step 2 coverage-selection screen).
+    selectTypeAndStart(type) {
+        // startFresh() clears all radios then calls handleType() which defaults to 'both'.
+        // After it returns we re-apply the user's actual selection.
+        this.startFresh();
+        const radio = document.querySelector(`input[name="qType"][value="${CSS.escape(type)}"]`);
+        if (radio) radio.checked = true;
+        this.handleType(); // re-run with the correct radio now checked
+    },
+
+    // Jump directly to a step by its step ID string (e.g. 'step-1') or 0-based flow index.
+    // Used by edit-shortcut buttons on the Review & Export page.
+    jumpToStep(stepIdOrIndex) {
+        let idx;
+        if (typeof stepIdOrIndex === 'string') {
+            idx = this.flow.indexOf(stepIdOrIndex);
+        } else {
+            idx = stepIdOrIndex;
+        }
+        if (idx < 0 || idx >= this.flow.length) return;
+        this.step = idx;
+        this.updateUI();
     },
 
     // ── Plugin Navigation & Landing Page ──

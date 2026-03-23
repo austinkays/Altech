@@ -29,8 +29,27 @@
             <!-- New Client & Recent Clients (primary action — first) -->
             <div class="card" id="step0ClientCard">
                 <h2>👤 Begin Intake</h2>
-                <p class="section-subtitle">Start a new client or restore a previous one</p>
-                <button class="btn btn-primary" onclick="App.startFresh()" style="width:100%;margin-bottom:12px;">✨ New Client</button>
+                <p class="section-subtitle">Choose what you'd like to insure to start a new client</p>
+
+                <!-- Coverage-type selection — clicking a card starts a fresh intake -->
+                <div class="coverage-type-cards">
+                    <button class="coverage-card" onclick="App.selectTypeAndStart('home')" type="button" aria-label="Start Home insurance intake">
+                        <span class="coverage-card-icon">🏠</span>
+                        <span class="coverage-card-label">HOME</span>
+                        <span class="coverage-card-sub">Property insurance</span>
+                    </button>
+                    <button class="coverage-card" onclick="App.selectTypeAndStart('auto')" type="button" aria-label="Start Auto insurance intake">
+                        <span class="coverage-card-icon">🚗</span>
+                        <span class="coverage-card-label">AUTO</span>
+                        <span class="coverage-card-sub">Vehicle insurance</span>
+                    </button>
+                    <button class="coverage-card" onclick="App.selectTypeAndStart('both')" type="button" aria-label="Start Home &amp; Auto insurance intake">
+                        <span class="coverage-card-icon">🎯</span>
+                        <span class="coverage-card-label">HOME &amp; AUTO</span>
+                        <span class="coverage-card-sub">Bundle — best value</span>
+                    </button>
+                </div>
+
                 <div id="step0ClientHistoryList"></div>
             </div>
 
@@ -518,7 +537,7 @@
                     <option value="Vacant">Vacant</option>
                 </select>
                 
-                <label class="label">Dwelling Type</label>
+                <div class="label-with-hint"><label class="label">Dwelling Type</label><span data-tooltip="The physical structure type — e.g. single-family home, condo, or townhouse. This affects the rating tier and which carriers will quote.">ⓘ</span></div>
                 <select id="dwellingType">
                     <option value="">Select...</option>
                     <option value="One Family">One Family</option>
@@ -635,7 +654,7 @@
                         <option value="Backsplit">Backsplit</option>
                         <option value="Substandard">Substandard</option>
                     </select></div>
-                    <div><label class="label">Exterior Walls</label>
+                    <div><div class="label-with-hint"><label class="label">Exterior Walls</label><span data-tooltip="Primary material covering the outside of the home. Brick and masonry rate better. Wood/T-111 siding may flag as higher fire/wind risk.">ⓘ</span></div>
                     <select id="exteriorWalls">
                         <option value="">Select...</option>
                         <option value="Aluminum/Vinyl">Aluminum / Vinyl</option>
@@ -680,7 +699,7 @@
                 </div>
 
                 <div class="grid-2">
-                    <div><label class="label">Foundation Type</label>
+                    <div><div class="label-with-hint"><label class="label">Foundation Type</label><span data-tooltip="How the home is supported. Slab = poured concrete, no space below. Crawl Space = small clearance under floor. Basement = full livable/storage level underground.">ⓘ</span></div>
                     <select id="foundation">
                         <option value="">Select...</option>
                         <option value="Slab">Slab</option>
@@ -953,7 +972,7 @@
                             <option value="None in Area">None in Area</option>
                         </select>
                     </div>
-                    <div><label class="label">Protection Class (1-10)</label>
+                    <div><div class="label-with-hint"><label class="label">Protection Class (1-10)</label><span data-tooltip="ISO fire protection rating. Class 1 = best (city fire hydrant + full-time dept). Class 10 = no public fire protection. Lower number = lower premium.">ⓘ</span></div>
                     <select id="protectionClass">
                         <option value="">Select...</option>
                         <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
@@ -2111,6 +2130,20 @@
                     <textarea id="pdfNotes" rows="4" placeholder="Any additional context, underwriting notes, or reminders for this client..."
                         oninput="App.save(event)"
                         style="width:100%;resize:vertical;"></textarea>
+                </div>
+            </div>
+
+            <!-- Quick Edit shortcuts — jump back to any section without clicking Back many times -->
+            <div class="card export-card">
+                <div class="section-edit-row">
+                    <h2 style="font-size:15px; margin:0;">✏️ Quick Edit</h2>
+                </div>
+                <p class="section-subtitle" style="margin-bottom:12px;">Jump back to any section to make changes</p>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button class="btn-edit-jump" onclick="App.jumpToStep('step-1')" type="button">👤 Personal Info</button>
+                    <button class="btn-edit-jump" onclick="App.jumpToStep('step-3')" type="button" id="editJumpProperty">🏠 Property Details</button>
+                    <button class="btn-edit-jump" onclick="App.jumpToStep('step-4')" type="button" id="editJumpVehicles">🚗 Vehicles &amp; Drivers</button>
+                    <button class="btn-edit-jump" onclick="App.jumpToStep('step-5')" type="button">📋 Prior Insurance</button>
                 </div>
             </div>
 

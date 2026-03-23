@@ -1847,3 +1847,253 @@ body.dark-mode .file-status.processing { color: #93c5fd; }
     h2, h3 { page-break-after: avoid; }
     @page { margin: 0.25in; size: letter; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   COVERAGE-TYPE CARDS — Step 0 intake entry point
+   (replaces old Step 2 radio-card screen)
+   ═══════════════════════════════════════════════════════════════ */
+
+.coverage-type-cards {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.coverage-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 20px 12px;
+    background: var(--bg-input);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: border-color 0.18s var(--transition-smooth),
+                background 0.18s var(--transition-smooth),
+                transform 0.15s var(--transition-spring),
+                box-shadow 0.18s var(--transition-smooth);
+    text-align: center;
+    font-family: inherit;
+    color: var(--text);
+}
+
+.coverage-card:hover {
+    border-color: var(--apple-blue);
+    background: var(--bg-card);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--shadow);
+}
+
+.coverage-card:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.coverage-card-icon {
+    font-size: 40px;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.coverage-card-label {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    pointer-events: none;
+}
+
+.coverage-card-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+body.dark-mode .coverage-card {
+    background: var(--bg-input);
+    border-color: var(--border);
+}
+
+body.dark-mode .coverage-card:hover {
+    background: #2C2C2E;
+    border-color: var(--apple-blue);
+}
+
+@media (max-width: 520px) {
+    .coverage-type-cards {
+        gap: 8px;
+    }
+    .coverage-card {
+        padding: 16px 8px;
+    }
+    .coverage-card-icon {
+        font-size: 32px;
+    }
+    .coverage-card-label {
+        font-size: 13px;
+    }
+    .coverage-card-sub {
+        font-size: 11px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOOLTIP HINTS — [data-tooltip] CSS-only hover popovers
+   Usage: <span data-tooltip="Explanation text">ⓘ</span>
+   ═══════════════════════════════════════════════════════════════ */
+
+[data-tooltip] {
+    position: relative;
+    cursor: help;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-style: normal;
+    vertical-align: middle;
+    flex-shrink: 0;
+    margin-left: 5px;
+    transition: background 0.15s, color 0.15s;
+}
+
+[data-tooltip]:hover {
+    background: var(--apple-blue);
+    color: #fff;
+    border-color: var(--apple-blue);
+}
+
+[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a2e;
+    color: #f0f0f5;
+    font-size: 12px;
+    line-height: 1.45;
+    padding: 8px 12px;
+    border-radius: 8px;
+    white-space: normal;
+    width: 220px;
+    max-width: 90vw;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 9999;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    font-family: inherit;
+    font-weight: 400;
+}
+
+[data-tooltip]::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #1a1a2e;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 9999;
+}
+
+[data-tooltip]:hover::after,
+[data-tooltip]:hover::before {
+    opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LABEL WITH HINT ICON — wraps label + tooltip together
+   ═══════════════════════════════════════════════════════════════ */
+
+.label-with-hint {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 6px;
+}
+
+.label-with-hint .label {
+    margin-bottom: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION DIVIDER LABEL — named separator between field groups
+   ═══════════════════════════════════════════════════════════════ */
+
+.section-divider-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 6px;
+    margin: 20px 0 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXPORT BUTTON SUBTITLES — step 6
+   ═══════════════════════════════════════════════════════════════ */
+
+.export-btn-sub {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.75;
+    margin-top: 2px;
+    pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STEP-6 SECTION EDIT SHORTCUTS
+   ═══════════════════════════════════════════════════════════════ */
+
+.section-edit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.section-edit-row h2 {
+    margin: 0;
+}
+
+.btn-edit-jump {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--apple-blue);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.btn-edit-jump:hover {
+    background: var(--bg-card);
+    border-color: var(--apple-blue);
+}
+
+body.dark-mode .btn-edit-jump {
+    background: var(--bg-input);
+    border-color: var(--border);
+}
+
+body.dark-mode .btn-edit-jump:hover {
+    background: #2C2C2E;
+    border-color: var(--apple-blue);
+}

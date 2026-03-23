@@ -560,11 +560,6 @@ Object.assign(App, {
             this.data.multiPolicy = mpVal;
         }
 
-        // Move to next step automatically after selection
-        if (this.step === 2) {
-            this.step++;
-        }
-
         // Reset step if out of bounds
         if (this.step >= this.flow.length) this.step = 0;
         this.updateUI();

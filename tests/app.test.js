@@ -250,7 +250,8 @@ describe('Altech App Tests', () => {
     test('both workflow includes all steps', () => {
       expect(App.workflows.both).toContain('step-3');
       expect(App.workflows.both).toContain('step-4');
-      expect(App.workflows.both.length).toBe(7);
+      // step-2 (coverage type) was merged into step-0 — both workflow now has 6 steps
+      expect(App.workflows.both.length).toBe(6);
     });
 
     test('handleType sets flow for auto', () => {
@@ -1353,10 +1354,12 @@ describe('Altech App Tests', () => {
       });
     });
 
-    test('all workflow arrays include step-1 and step-2', () => {
+    test('all workflow arrays include step-0 and step-1', () => {
+      // step-2 (coverage type) was merged into step-0; it is no longer in any workflow array
       ['home', 'auto', 'both'].forEach(type => {
+        expect(App.workflows[type]).toContain('step-0');
         expect(App.workflows[type]).toContain('step-1');
-        expect(App.workflows[type]).toContain('step-2');
+        expect(App.workflows[type]).not.toContain('step-2');
       });
     });
 

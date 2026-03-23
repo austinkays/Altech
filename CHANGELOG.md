@@ -10,6 +10,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(quoting): UX overhaul — coverage type merged into Step 0** (March 28, 2026):
+  - **Coverage type migration (Phase 0):** The standalone "Coverage Type" step (old Step 2) has
+    been removed from all workflow arrays. Three coverage-type cards (HOME / AUTO / HOME & AUTO)
+    now live directly on Step 0 (Quick Start) and serve as the primary call-to-action. Clicking
+    a card starts a fresh intake with the correct coverage type pre-selected. This shortens every
+    workflow by one step and makes the entry experience immediate and intuitive.
+  - **`App.selectTypeAndStart(type)`** — new method on `App` (in `app-navigation.js`) that sets
+    the coverage radio to the chosen type, calls `startFresh()`, then re-applies the type so the
+    correct workflow (home/auto/both) is active from the start.
+  - **`App.jumpToStep(stepIdOrIndex)`** — new method accepting either a step ID string (e.g.
+    `'step-1'`) or a 0-based flow index to jump directly to any step. Used by step-6 edit shortcuts.
+  - **Step-6 Quick Edit shortcuts:** A "✏️ Quick Edit" card on the Review & Export page lets
+    agents jump back to Personal Info, Property Details, Vehicles & Drivers, or Prior Insurance
+    in one click without clicking "Back" repeatedly. The Vehicles button auto-hides on home-only quotes.
+  - **Tooltip hints on 4 confusing fields:** Dwelling Type, Exterior Walls, Foundation Type, and
+    Protection Class now have inline `ⓘ` icons with CSS-only hover popovers explaining each field.
+  - **Soft (non-blocking) completion warnings:** Leaving Step 1 with no firstName/lastName,
+    or leaving Step 3 with no address fields, now shows an informational toast reminder. Navigation
+    is never blocked — the agent can proceed immediately.
+  - **CSS additions to `components.css`:** `.coverage-type-cards` / `.coverage-card` responsive
+    flex cards with hover/active states; `[data-tooltip]` CSS-only tooltip system; `.label-with-hint`
+    helper; `.section-divider-label`; `.btn-edit-jump`; `.section-edit-row`; `.export-btn-sub`.
+    All include `body.dark-mode` overrides and mobile breakpoints.
+
+### Changed
+  - `api/app-init.js` — All 3 workflow arrays no longer include `'step-2'` (step-2 DOM stays as
+    dead HTML, eliminating any regression risk for old saved data).
+  - `app-core.js` `handleType()` — Removed the `if (this.step === 2) { this.step++; }` auto-advance
+    block that was only meaningful when step-2 was in the active flow.
+  - `app-navigation.js` `updateUI()` — `initPlaces()` now fires on `step-3` (property/address step)
+    instead of `step-2`.
+
+### Fixed
 - **feat: Rentcast usage sync — manual count correction** (March 23, 2026):
   - Fixed root cause: counter writes were hitting a Firestore rules catch-all deny. Moved
     storage from `users/{uid}/rentcast_usage/{monthKey}` (not in rules) to
