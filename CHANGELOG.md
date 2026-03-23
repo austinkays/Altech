@@ -11,13 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **feat: Rentcast usage sync — manual count correction** (March 23, 2026):
-  - Added `_setRentcastCounter(count)` to `js/app-property.js` — writes a specific count directly to
-    Firestore `users/{uid}/rentcast_usage/{YYYY-MM}`, correcting drift between app tracking and the
-    real Rentcast dashboard
-  - Added `_promptSyncRentcastCounter()` — shows a native prompt pre-filled with the current tracked
-    count; validates input (0–999 integer) then calls `_setRentcastCounter()`
-  - Updated `_updateRentcastDisplay()` to include a small "sync" dotted-underline link inline with the
-    usage text; clicking it opens the sync prompt
+  - Fixed root cause: counter writes were hitting a Firestore rules catch-all deny. Moved
+    storage from `users/{uid}/rentcast_usage/{monthKey}` (not in rules) to
+    `users/{uid}/sync/rentcastUsage` (covered by existing `sync/{docType}` rules)
+  - Replaced inline "sync" text link (too cluttered) with a ⚙ gear icon button that opens
+    a clean modal with two fields:
+    - **API requests used this period** — correct the count to match your Rentcast dashboard
+    - **Billing resets on day of month (1–28)** — set your actual billing cycle day (e.g. 20)
+  - Added `_rentcastPeriodStart()` / `_rentcastNextReset()` helpers that compute period dates
+    from `periodDay` instead of always assuming the 1st of the month
+  - `_incrementRentcastCounter` now detects new billing periods and resets to 1 instead of
+    incrementing from a stale count
+  - Auto-reset: `_getRentcastCounter` detects a new period and fire-and-forget resets the doc
   - All 26 suites, 1672 tests pass
 
 ### Fixed
