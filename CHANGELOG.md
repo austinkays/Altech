@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-28 — Auto Property Location: garaging address relabel + checkbox
+- **fix(quoting):** When `qType === 'auto'`, Step 3 now shows "Garaging Address" heading and "Primary garaging address for the vehicle." subtext; utility-buttons row (Zillow/Assessor/Import) is hidden
+- **plugins/quoting.html:** Added `qtype-home-only` to existing `<h2>`, `<p class="section-subtitle">`, and `utility-buttons` divs; added new `qtype-auto-only` equivalents with `style="display:none"`; added `#garagingSameAsMailing` checkbox block (auto-only)
+- **js/app-navigation.js:** Added `querySelectorAll('#step-3 .qtype-auto-only')` forEach loop in `updateUI()` — shows when `qType === 'auto'` only (strict, not `'both'`)
+- **js/app-export.js:** Property Address PDF section now conditionally uses "Garaging Address" header + appends "Same as Mailing: Yes" row when `garagingSameAsMailing` is checked
+- **js/hawksoft-export.js:** `fscNotes` appends `\n\nGARAGING\nSame as mailing address` when `garagingSameAsMailing` is truthy
+- **Tests:** 27 suites, 1688 tests — all pass
+
 ## 2026-03-23 — Hide Smart Scan button and counter for auto-only qType
 - **fix(quoting):** Smart Scan button (`#smartFillBtn`) and Rentcast usage counter (`#rentcastUsageDisplay`) now hidden when qType is `auto`, using the existing `qtype-home-only` class pattern
 - **plugins/quoting.html:** Added `class="qtype-home-only"` to Smart Scan wrapper div and `qtype-home-only` to `#rentcastUsageDisplay` class list

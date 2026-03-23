@@ -42,7 +42,11 @@ Object.assign(App, {
         document.querySelectorAll('#step-3 .qtype-home-only').forEach(el => {
             el.style.display = showHome ? '' : 'none';
         });
-        
+        // Show auto-only elements (garaging address label, same-as-mailing checkbox)
+        document.querySelectorAll('#step-3 .qtype-auto-only').forEach(el => {
+            el.style.display = (qType === 'auto') ? '' : 'none';
+        });
+
         // Init Google Places autocomplete when address step is visible
         if (curId === 'step-3') {
             this.initPlaces();

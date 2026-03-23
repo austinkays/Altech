@@ -213,7 +213,8 @@ window.HawkSoftExport = (() => {
             _selectedTypes = { auto: true, home: false, commercial: false };
         }
 
-        const fscNotes = _buildFscNotes(d, drivers);
+        const fscNotes = _buildFscNotes(d, drivers) +
+            (d.garagingSameAsMailing ? '\n\nGARAGING\nSame as mailing address' : '');
 
         // Determine policy form from intake
         let policyForm = '';

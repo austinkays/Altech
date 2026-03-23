@@ -530,16 +530,19 @@ Object.assign(App, {
             ], 3);
         }
 
-        // ── Property Address ─────────────────────────────────────────
-        { sectionHeader('Property Address');
-        kvTable([
+        // ── Property / Garaging Address ──────────────────────────────
+        { const isAutoOnly = data.qType === 'auto';
+        sectionHeader(isAutoOnly ? 'Garaging Address' : 'Property Address');
+        const addrRows = [
             [FIELD_BY_ID['addrStreet'].label, v('addrStreet')],
             [FIELD_BY_ID['addrCity'].label, v('addrCity')],
             [FIELD_BY_ID['addrState'].label, v('addrState')],
             [FIELD_BY_ID['addrZip'].label, v('addrZip')],
             [FIELD_BY_ID['county'].label, v('county') || this.getCountyFromCity(data.addrCity, data.addrState) || ''],
             [FIELD_BY_ID['yearsAtAddress'].label, v('yearsAtAddress')],
-        ], 3); }
+        ];
+        if (isAutoOnly && data.garagingSameAsMailing) addrRows.push(['Same as Mailing', 'Yes']);
+        kvTable(addrRows, 3); }
 
         // ── Primary Home Address (non-primary residences only) ──────────
         if (v('dwellingUsage') && v('dwellingUsage') !== 'Primary' &&

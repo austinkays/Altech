@@ -427,8 +427,10 @@
             <div class="prop-main">
 
             <div class="card">
-                <h2>Property Location</h2>
-                <p class="section-subtitle">Where is the property located?</p>
+                <h2 class="qtype-home-only">Property Location</h2>
+                <h2 class="qtype-auto-only" style="display:none">Garaging Address</h2>
+                <p class="section-subtitle qtype-home-only">Where is the property located?</p>
+                <p class="section-subtitle qtype-auto-only" style="display:none">Primary garaging address for the vehicle.</p>
                 
                 <div class="grid-addr-row1">
                     <div><label class="label">Street Address</label><input type="text" id="addrStreet" placeholder="123 Main St" autocomplete="off"></div>
@@ -465,10 +467,16 @@
                 <div id="rentcastUsageDisplay" class="rentcast-usage-hint qtype-home-only"></div>
 
                 <!-- Secondary tools row -->
-                <div class="utility-buttons" style="margin-top: 8px; justify-content: center;">
+                <div class="utility-buttons qtype-home-only" style="margin-top: 8px; justify-content: center;">
                     <button class="btn-utility" onclick="App.openZillow()" title="Search this address on Zillow" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px;">🔍 Zillow</button>
                     <button class="btn-utility" onclick="App.openPropertyRecords()" title="Copies address to clipboard & opens county assessor site" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px;">🏛️ Assessor</button>
                     <button class="btn-utility" onclick="App.importPropertyFromExtension()" title="Import property data scraped by the Chrome Extension from Zillow/GIS" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px; background: linear-gradient(135deg, #ff9500, #e68600); color: white;">📥 Import</button>
+                </div>
+                <div class="qtype-auto-only" style="display:none; margin-top:12px;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+                        <input type="checkbox" id="garagingSameAsMailing">
+                        <span>Garaging address is same as mailing address</span>
+                    </label>
                 </div>
 
                 <!-- Hidden file input kept for backward compatibility -->
