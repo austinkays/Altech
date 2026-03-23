@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat: Rentcast usage sync — manual count correction** (March 23, 2026):
+  - Added `_setRentcastCounter(count)` to `js/app-property.js` — writes a specific count directly to
+    Firestore `users/{uid}/rentcast_usage/{YYYY-MM}`, correcting drift between app tracking and the
+    real Rentcast dashboard
+  - Added `_promptSyncRentcastCounter()` — shows a native prompt pre-filled with the current tracked
+    count; validates input (0–999 integer) then calls `_setRentcastCounter()`
+  - Updated `_updateRentcastDisplay()` to include a small "sync" dotted-underline link inline with the
+    usage text; clicking it opens the sync prompt
+  - All 26 suites, 1672 tests pass
+
 ### Fixed
 - **fix(docs): update file counts + line counts for 3 new plugins** (March 28, 2026):
   - 3 plugins (blind-spot-brief, dec-import, deposit-sheet) were in the codebase but absent from all docs
