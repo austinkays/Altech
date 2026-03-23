@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(reminders): Hardcoded `STORAGE_KEY` replaced with `STORAGE_KEYS.REMINDERS`** (March 23, 2026) — violated CLAUDE.md rule against hardcoded `altech_*` strings
+- **fix(reminders): Move `@keyframes` to `animations.css`** (March 23, 2026) — `remCardIn`, `remModalIn`, `remSnoozeOverlayIn`, `remSnoozeMenuIn` were defined in `reminders.css` in violation of CLAUDE.md; relocated to `animations.css`
+- **fix(reminders): Expired snooze now persisted on cleanup** (March 23, 2026) — `_isSnoozeActive()` was deleting `task.snooze` in memory but never calling `_save()`, so expired snoozes would survive page reloads
+- **fix(reminders): `weekdays` frequency badge label** (March 23, 2026) — badge was rendering "Daily" for weekday-only tasks; now correctly shows "Weekdays"
+
+### Added
+- **feat(reminders): Two-tap delete replaces native `confirm()` dialog** (March 23, 2026) — first tap highlights the card with a dashed red outline and shows a toast hint; second tap within 4 s commits the delete; auto-cancels after 4 s. Added `.rem-pending-delete` CSS class to `reminders.css`
+- **feat(reminders): Weekly progress bar in summary bar** (March 23, 2026) — animated fill bar shows percentage of this week's tasks completed at a glance; emoji icon replaced with SVG
+- **feat(reminders): Debounced search input** (March 23, 2026) — search listener now wrapped in `Utils.debounce(200ms)` instead of firing `render()` on every keystroke
+- **feat(reminders): Corrected empty-state placeholder text** (March 23, 2026) — HTML placeholder was "Loading..." which would persist if JS failed; now shows "No reminders yet. Click + to add one."
+
 ### Added
 - **feat(property-intelligence): FEMA flood zone lookup in property intelligence pipeline** (March 20, 2026):
   - Added `fetchFloodZone(lat, lng)` helper in `api/property-intelligence.js` — queries FEMA NFHL ArcGIS public REST API (MapServer/28), 5-second timeout, graceful null on error/miss
