@@ -403,8 +403,8 @@
 }
 
 .rem-freq-daily {
-    background: rgba(255, 149, 0, 0.1);
-    color: #FF9500;
+    background: rgba(0, 122, 255, 0.1);
+    color: var(--apple-blue);
 }
 
 .rem-task-notes {
