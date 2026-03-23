@@ -759,7 +759,23 @@ That's it. Push and delete operations pick it up automatically — no other chan
 
 ---
 
-## 8. Standard Agent Prompt
+## 8. Search Tools
+
+`grep_search` and `file_search` are unreliable on this project — `js/`, `plugins/`, `api/`, and `css/` are excluded from VS Code's search index via `settings.json`.
+
+Always use `run_in_terminal` with PowerShell `Select-String` for string searches:
+
+```powershell
+Select-String -Path "js/fields.js" -Pattern "firstName"
+Select-String -Path "plugins/*.html" -Pattern "bedroom"
+Select-String -Path "js/*.js" -Pattern "ezlynxRequired"
+```
+
+Never fall back to `grep_search` for source files. Start with terminal.
+
+---
+
+## 9. Standard Agent Prompt
 
 When starting work on this codebase, include this context in your system prompt:
 
@@ -806,7 +822,7 @@ KEY RULES:
 
 ---
 
-## 9. Pre-Deploy Checklist
+## 10. Pre-Deploy Checklist
 
 ### Before Every Deploy
 
