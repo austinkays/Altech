@@ -250,7 +250,7 @@ describe('Altech App Tests', () => {
     test('both workflow includes all steps', () => {
       expect(App.workflows.both).toContain('step-3');
       expect(App.workflows.both).toContain('step-4');
-      expect(App.workflows.both.length).toBe(7);
+      expect(App.workflows.both.length).toBe(6);
     });
 
     test('handleType sets flow for auto', () => {
@@ -1353,10 +1353,10 @@ describe('Altech App Tests', () => {
       });
     });
 
-    test('all workflow arrays include step-1 and step-2', () => {
+    test('all workflow arrays include step-1 and step-3', () => {
       ['home', 'auto', 'both'].forEach(type => {
         expect(App.workflows[type]).toContain('step-1');
-        expect(App.workflows[type]).toContain('step-2');
+        expect(App.workflows[type]).toContain('step-3');
       });
     });
 

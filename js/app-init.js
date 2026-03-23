@@ -26,9 +26,9 @@ const App = {
     saveToken: 0,
     
     workflows: {
-        home: ['step-0', 'step-1', 'step-2', 'step-3', 'step-5', 'step-6'],
-        auto: ['step-0', 'step-1', 'step-2', 'step-3', 'step-4', 'step-5', 'step-6'],
-        both: ['step-0', 'step-1', 'step-2', 'step-3', 'step-4', 'step-5', 'step-6']
+        home: ['step-0', 'step-1', 'step-3', 'step-5', 'step-6'],
+        auto: ['step-0', 'step-1', 'step-3', 'step-4', 'step-5', 'step-6'],
+        both: ['step-0', 'step-1', 'step-3', 'step-4', 'step-5', 'step-6']
     },
 
     // Config-driven tool registry — single source of truth for landing page,
@@ -70,7 +70,6 @@ const App = {
     stepTitles: {
         'step-0': 'Policy Scan',
         'step-1': 'Personal Information',
-        'step-2': 'Coverage Type',
         'step-3': 'Property Details',
         'step-4': 'Vehicle & Driver Info',
         'step-5': 'Risk Factors & Additional Info',

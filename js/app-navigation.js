@@ -44,7 +44,7 @@ Object.assign(App, {
         });
         
         // Init Google Places autocomplete when address step is visible
-        if (curId === 'step-2') {
+        if (curId === 'step-3') {
             this.initPlaces();
         }
 
