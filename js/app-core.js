@@ -484,6 +484,58 @@ Object.assign(App, {
 
             refreshSessionToken();
         });
+
+        // Previous address autocomplete
+        const prevStreetInput = document.getElementById('previousAddrStreet');
+        if (prevStreetInput) {
+            let prevSessionToken = new google.maps.places.AutocompleteSessionToken();
+            const prevAutocomplete = new google.maps.places.Autocomplete(prevStreetInput, {
+                types: ['address'],
+                componentRestrictions: { country: 'us' },
+                fields: ['address_components', 'formatted_address'],
+                sessionToken: prevSessionToken
+            });
+
+            const refreshPrevToken = () => {
+                prevSessionToken = new google.maps.places.AutocompleteSessionToken();
+                prevAutocomplete.setOptions({ sessionToken: prevSessionToken });
+            };
+
+            prevStreetInput.addEventListener('focus', () => refreshPrevToken());
+
+            prevAutocomplete.addListener('place_changed', () => {
+                const place = prevAutocomplete.getPlace();
+                if (!place || !place.address_components) return;
+
+                const parts = {
+                    street_number: '',
+                    route: '',
+                    locality: '',
+                    postal_town: '',
+                    administrative_area_level_1: '',
+                    postal_code: ''
+                };
+
+                place.address_components.forEach((component) => {
+                    const type = component.types?.[0];
+                    if (type && Object.prototype.hasOwnProperty.call(parts, type)) {
+                        parts[type] = component.short_name || component.long_name || '';
+                    }
+                });
+
+                const street = [parts.street_number, parts.route].filter(Boolean).join(' ').trim();
+                const city = parts.locality || parts.postal_town || '';
+                const state = parts.administrative_area_level_1 || '';
+                const zip = parts.postal_code || '';
+
+                this.setFieldValue('previousAddrStreet', street || place.formatted_address || '', { autoFilled: true, source: 'places' });
+                this.setFieldValue('previousAddrCity', city, { autoFilled: true, source: 'places' });
+                this.setFieldValue('previousAddrState', state, { autoFilled: true, source: 'places' });
+                this.setFieldValue('previousAddrZip', zip, { autoFilled: true, source: 'places' });
+
+                refreshPrevToken();
+            });
+        }
     },
 
     setFieldValue(id, value, options = {}) {
