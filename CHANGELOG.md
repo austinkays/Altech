@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-28 — Phase 2: HawkSoft CMSMTF structured block — wire 5 missing fields
+- **feat(hawksoft):** Wired 5 previously-empty fields in `js/hawksoft-export.js` `_loadFromData()`:
+  - `gen_cInitial` — now reads `d.middleName.charAt(0)` (was always `''`)
+  - `gen_lCovC` — now reads `d.homePersonalProperty` (Personal Property coverage; was `''`)
+  - `gen_lCovD` — now reads `d.homeLossOfUse` (Loss of Use coverage; was `''`)
+  - `gen_bMultiPolicy` — now reads `d.multiPolicy === 'Yes' || true` (was hardcoded `false`)
+  - `gen_sClientMiscData[7]` — now writes `c.maritalStatus` (primary applicant marital status; slot was `''`)
+- **Note:** `middleName` has no form input yet (field defined in `fields.js`, no `<input>` in `quoting.html`) — mapping is correct but will always be empty until UI input is added in a future phase
+
 ## 2026-03-24 — Phase 1: Add coMaritalStatus to PDF export
 - **feat(export):** Added `coMaritalStatus` ("Co-App Marital Status") row to the PDF co-applicant section in `js/app-export.js` — rendered immediately after the Co-Gender row using the existing `vo()` option-label helper
 - **fix(quoting):** Added `btn-compact` class to the Scan Driver's License button in driver cards (`js/app-vehicles.js`) for better layout fit on Step 4

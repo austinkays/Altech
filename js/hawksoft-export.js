@@ -240,7 +240,7 @@ window.HawkSoftExport = (() => {
                 custType: 'Personal',
                 lastName: d.lastName || '',
                 firstName: d.firstName || '',
-                middleInitial: '',
+                middleInitial: d.middleName ? d.middleName.trim().charAt(0).toUpperCase() : '',
                 address1: d.addrStreet || '',
                 city: d.addrCity || '',
                 state: d.addrState || '',
@@ -270,6 +270,7 @@ window.HawkSoftExport = (() => {
                 coOccupation: d.coOccupation || '',
                 coEducation: d.coEducation || '',
                 coIndustry: d.coIndustry || '',
+                maritalStatus: d.maritalStatus || '',
                 county: d.county || '',
             },
             // Policy block
@@ -333,8 +334,8 @@ window.HawkSoftExport = (() => {
                 additionalRes: '',
                 covA: d.dwellingCoverage || '',
                 covB: d.otherStructures || '',
-                covC: '',
-                covD: '',
+                covC: d.homePersonalProperty || '',
+                covD: d.homeLossOfUse || '',
                 contentsReplacement: '',
                 homeReplacement: d.increasedReplacementCost === 'Yes' || d.increasedReplacementCost === true,
                 liability: d.personalLiability || '',
@@ -345,7 +346,7 @@ window.HawkSoftExport = (() => {
                 eqZone: d.earthquakeZone || '',
                 eqMasonryVeneer: false,
                 ordinanceLawIncr: d.ordinanceOrLaw || '',
-                multiPolicy: false,
+                multiPolicy: d.multiPolicy === 'Yes' || d.multiPolicy === true,
                 lienholderName: d.mortgagee || '',
                 lienholderAddress: '',
                 lienholderCity: '',
@@ -507,11 +508,11 @@ window.HawkSoftExport = (() => {
         lines.push(_line('gen_sEmailWork', c.emailWork));
         lines.push(_line('gen_lClientOffice', c.clientOffice));
 
-        // Client Misc Data Set 1: DOB, prefix, suffix, gender, education, occupation, industry
+        // Client Misc Data Set 1: DOB, prefix, suffix, gender, education, occupation, industry, maritalStatus
         const miscData1 = [
             c.dob, c.prefix, c.suffix, c.gender,
             c.education, c.occupation, c.industry,
-            '', '', ''
+            c.maritalStatus || '', '', ''
         ];
         for (let i = 0; i < 10; i++) {
             lines.push(_line(`gen_sClientMiscData[${i}]`, miscData1[i] || ''));
