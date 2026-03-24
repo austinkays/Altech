@@ -633,6 +633,7 @@ Object.assign(App, {
             kvTable([
                 [FIELD_BY_ID['homePolicyType'].label, v('homePolicyType')],
                 [FIELD_BY_ID['dwellingCoverage'].label, formatCurrency(v('dwellingCoverage'))],
+                [FIELD_BY_ID['otherStructures'].label, formatCurrency(v('otherStructures'))],
                 [FIELD_BY_ID['homePersonalProperty'].label, formatCurrency(v('homePersonalProperty'))],
                 [FIELD_BY_ID['homeLossOfUse'].label, formatCurrency(v('homeLossOfUse'))],
                 [FIELD_BY_ID['personalLiability'].label, v('personalLiability')],
@@ -1228,7 +1229,7 @@ Object.assign(App, {
             sprinklers: { type: 'string' }, smokeDetector: { type: 'string' },
             fireStationDist: { type: 'string' }, fireHydrantFeet: { type: 'string' }, protectionClass: { type: 'string' },
             // Home Coverage
-            homePolicyType: { type: 'string' }, dwellingCoverage: { type: 'string' },
+            homePolicyType: { type: 'string' }, dwellingCoverage: { type: 'string' }, otherStructures: { type: 'string' },
             personalLiability: { type: 'string' }, medicalPayments: { type: 'string' },
             homeDeductible: { type: 'string' }, windDeductible: { type: 'string' }, mortgagee: { type: 'string' },
             // Auto / Vehicles

@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-24 — Other Structures calculated coverage field
+- **feat(quoting):** Added `otherStructures` (Cov B) as a read-only calculated field in the Home Coverage card; auto-computes as 10% of dwelling coverage, updates live on `oninput`, and restores from saved data on load
+- **plugins/quoting.html:** Added `oninput="App.computeOtherStructures()"` to `#dwellingCoverage`; inserted new `full-span` div with `#otherStructures` (readonly, tabindex=-1) and a `label-with-hint` + `ⓘ` tooltip matching the foundation/exterior-walls pattern
+- **js/fields.js:** Added `{ id: 'otherStructures', label: 'Other Structures (Cov B)', type: 'text', section: 'home-coverage', ezlynxRequired: false }` after `dwellingCoverage` entry
+- **js/app-core.js:** Added `computeOtherStructures()` method (strips non-numeric from `data.dwellingCoverage`, multiplies by 0.10, writes raw number string to DOM + `this.data.otherStructures`); called from `applyData()` so value restores on data load
+- **js/app-export.js:** Added `otherStructures` row in the PDF Home Coverage `kvTable` (formatted via `formatCurrency()`) and in the scan schema
+- **js/hawksoft-export.js:** Populated the previously stubbed `covB: ''` field with `d.otherStructures || ''`
+- **EZLynx:** No change — EZLynx calculates Cov B internally; no mapping exists in the extension or tool
+- Tests: 1672 tests, 26 suites, all pass
+
 ## 2026-03-24 — Previous address label cleanup and Google autocomplete
 - **fix(quoting):** Removed redundant "Previous " prefix from the four field labels inside `#previousAddressBlock` — labels now read "Street Address", "City", "State", "ZIP"; the existing "Previous Address" section heading provides context
 - **plugins/quoting.html:** Updated 4 label strings (Previous Street Address → Street Address, Previous City → City, Previous State → State, Previous ZIP → ZIP)

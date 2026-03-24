@@ -118,6 +118,7 @@ window.FIELDS = [
     // ── Home Coverage ──────────────────────────────────────────────────────
     { id: 'homePolicyType',       label: 'Policy Type',                 type: 'select',   section: 'home-coverage' },
     { id: 'dwellingCoverage',     label: 'Dwelling Coverage',           type: 'text',     section: 'home-coverage', ezlynxRequired: true },
+    { id: 'otherStructures',      label: 'Other Structures (Cov B)',    type: 'text',     section: 'home-coverage', ezlynxRequired: false },
     { id: 'homePersonalProperty', label: 'Personal Property',           type: 'text',     section: 'home-coverage' },
     { id: 'homeLossOfUse',        label: 'Loss of Use',                 type: 'text',     section: 'home-coverage' },
     { id: 'personalLiability',    label: 'Personal Liability',          type: 'text',     section: 'home-coverage', ezlynxRequired: true },

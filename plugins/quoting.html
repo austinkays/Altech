@@ -1118,7 +1118,14 @@
 
                     <div class="full-span">
                         <label class="label">Dwelling Coverage (Coverage A)</label>
-                        <input type="text" id="dwellingCoverage" placeholder="e.g. 600000" inputmode="numeric">
+                        <input type="text" id="dwellingCoverage" placeholder="e.g. 600000" inputmode="numeric" oninput="App.computeOtherStructures()">
+                    </div>
+                    <div class="full-span">
+                        <div class="label-with-hint">
+                            <label class="label">Other Structures (Cov B)</label>
+                            <span data-tooltip="Automatically set to 10% of dwelling coverage per standard policy terms">ⓘ</span>
+                        </div>
+                        <input type="text" id="otherStructures" readonly tabindex="-1" placeholder="—" style="opacity:0.7; cursor:default;">
                     </div>
                     <div>
                         <label class="label">Personal Property (Cov C)</label>

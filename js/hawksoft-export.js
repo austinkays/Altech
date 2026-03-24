@@ -332,7 +332,7 @@ window.HawkSoftExport = (() => {
                 county: d.county || '',
                 additionalRes: '',
                 covA: d.dwellingCoverage || '',
-                covB: '',
+                covB: d.otherStructures || '',
                 covC: '',
                 covD: '',
                 contentsReplacement: '',

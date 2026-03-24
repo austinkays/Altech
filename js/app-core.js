@@ -781,6 +781,7 @@ Object.assign(App, {
         this.checkUpdates();
         this.handleType();
         this.updateNamePronunciationUI();
+        this.computeOtherStructures();
         this.restoreCoApplicantUI();
         this.updatePrimaryHomeSection(this.data.dwellingUsage);
         this.restorePrimaryApplicantUI();
@@ -1030,6 +1031,15 @@ Object.assign(App, {
         if (first && last) return `First: ${first} | Last: ${last}`;
         if (first) return `First: ${first}`;
         return `Last: ${last}`;
+    },
+
+    computeOtherStructures() {
+        const raw = (this.data.dwellingCoverage || '').replace(/[^0-9.]/g, '');
+        const dwelling = parseFloat(raw) || 0;
+        const other = dwelling ? String(Math.round(dwelling * 0.10)) : '';
+        const el = document.getElementById('otherStructures');
+        if (el) el.value = other;
+        this.data.otherStructures = other;
     },
 
     updateNamePronunciationUI() {
