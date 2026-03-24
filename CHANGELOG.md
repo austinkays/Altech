@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-24 — Remove blocking required-field validation on step 5
+- **fix(quoting):** Removed blocking required-field validation from the Prior Insurance step — `validateStep()` in `js/app-core.js` now always returns an empty array so no fields block quote progression
+- **plugins/quoting.html:** Removed all red `<span class="required-star">*</span>` asterisks from Prior Insurance label text (10 instances); yellow EZLynx `✦` stars remain as informational indicators
+- **js/app-core.js:** Changed `validateStep()` to short-circuit with `return errors` unconditionally instead of blocking on step 5 fields
+
 ## 2026-03-28 — Roof Shape visual picker + Construction Style info panel
 - **feat(quoting):** Added ⓘ info buttons next to **Roof Shape** and **Construction Style** labels in the Personal Intake form
 - **Roof Shape** — opens a visual SVG picker modal (10 shapes: Gable, Hip, Flat, Gambrel, Mansard, Shed, Pyramid, Dormer, Turret, Other); clicking a cell sets `#roofShape` value, dispatches `change` event, and closes. Dormer description: "Add-on only — describes dormers on a base roof shape."

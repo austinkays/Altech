@@ -12,7 +12,7 @@ const Validation = {
      */
     validateStep(step) {
         const errors = [];
-        if (step !== 5) return errors; // only step 5 has required-field gates right now
+        return errors; // validation never blocks — yellow ✦ stars are informational only
 
         const qType = document.querySelector('input[name="qType"]:checked')?.value || 'both';
         const needsAuto = qType === 'auto' || qType === 'both';
