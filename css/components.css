@@ -66,7 +66,7 @@ textarea.auto-filled:focus {
     border-left-color: var(--success);
     box-shadow: 0 0 0 2px rgba(52, 199, 89, 0.2), 0 0 18px rgba(52, 199, 89, 0.35), 0 2px 8px rgba(0, 0, 0, 0.08);
 }
-.label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; display: block; }
+.label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; display: block; line-height: 18px; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 6px; }
 .grid-2-full { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 0; }
