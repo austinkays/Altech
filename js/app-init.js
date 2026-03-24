@@ -36,6 +36,7 @@ const App = {
     toolConfig: [
         // ── Quoting ──
         { key: 'quoting',      icon: '✏️', color: 'icon-blue',    title: 'Personal Lines',  name: 'Personal Intake',       containerId: 'quotingTool',      htmlFile: 'plugins/quoting.html', category: 'quoting' },
+        { key: 'commercial',   icon: '🏢', color: 'icon-amber',   title: 'Commercial Lines', name: 'Commercial Intake',     containerId: 'commercialQuoterTool', initModule: 'CommercialQuoter', htmlFile: 'plugins/commercial-quoter.html', category: 'quoting' },
         { key: 'intake',       icon: '✨', color: 'icon-violet',  title: 'AI Intake',       name: 'AI Intake',             containerId: 'intakeTool',       initModule: 'IntakeAssist',      htmlFile: 'plugins/intake-assist.html', category: 'quoting' },
         { key: 'quotecompare', icon: '⚖️', color: 'icon-emerald', title: 'Quote Compare',   name: 'Quote Compare',          containerId: 'quoteCompareTool', initModule: 'QuoteCompare',      htmlFile: 'plugins/quotecompare.html', category: 'quoting' },
         { key: 'qna',          icon: '💬', color: 'icon-rose',    title: 'Policy Q&A',      name: 'Policy Q&A',            containerId: 'qnaTool',          initModule: 'PolicyQA',          htmlFile: 'plugins/qna.html',         category: 'quoting', hidden: true },

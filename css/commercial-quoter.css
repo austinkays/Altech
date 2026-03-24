@@ -1,0 +1,247 @@
+/* ============================================================
+   Commercial Lines Quoter — Plugin Styles
+   Scoped to #cq-app and .cq-* classes.
+   All colors via CSS variables; no hardcoded values.
+   Dark mode handled automatically by CSS variable switching.
+   ============================================================ */
+
+/* ── Step Navigation Dots ─────────────────────────────────── */
+.cq-step-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 0 4px;
+}
+
+.cq-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.2s, transform 0.2s;
+    cursor: default;
+    display: inline-block;
+}
+
+.cq-dot.active {
+    background: var(--apple-blue);
+    transform: scale(1.4);
+}
+
+/* ── Step Panels ──────────────────────────────────────────── */
+.cq-step {
+    padding: 0 16px 16px;
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+/* ── Coverage Rows ────────────────────────────────────────── */
+.cq-coverage-row {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.cq-cov-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text);
+    user-select: none;
+}
+
+.cq-cov-label input[type="checkbox"] {
+    accent-color: var(--apple-blue);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.cq-coverage-detail {
+    padding: 12px 14px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-input);
+}
+
+/* ── Y/N Radio Rows ───────────────────────────────────────── */
+.cq-yn-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.cq-yn-row .form-label {
+    flex: 1;
+    min-width: 200px;
+}
+
+.cq-radio-group {
+    display: flex;
+    gap: 16px;
+}
+
+.cq-radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 14px;
+}
+
+.cq-radio-group input[type="radio"] {
+    accent-color: var(--apple-blue);
+    cursor: pointer;
+}
+
+/* ── Step Footer (nav buttons) ────────────────────────────── */
+.cq-step-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px 24px;
+    max-width: 760px;
+    margin: 0 auto;
+    gap: 10px;
+}
+
+/* ── Export Button Group ──────────────────────────────────── */
+.cq-export-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 0 16px 16px;
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.cq-export-group .btn {
+    flex: 1 1 auto;
+    min-width: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* ── Summary (Step 6) ─────────────────────────────────────── */
+.cq-summary-section {
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.cq-summary-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.cq-summary-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.cq-summary-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: var(--text);
+    flex-wrap: wrap;
+}
+
+.cq-summary-label {
+    color: var(--text-secondary);
+    font-size: 13px;
+    min-width: 140px;
+    flex-shrink: 0;
+}
+
+/* ── Coverage Badges ──────────────────────────────────────── */
+.cq-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--bg-input);
+    color: var(--apple-blue);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+/* ── Recent Quote Items (Step 0) ──────────────────────────── */
+.cq-recent-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    flex-wrap: wrap;
+}
+
+.cq-recent-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.cq-recent-info strong {
+    font-size: 14px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cq-recent-info .hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* ── Textarea ─────────────────────────────────────────────── */
+#cq-app .form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 520px) {
+    .cq-export-group {
+        flex-direction: column;
+    }
+
+    .cq-yn-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .cq-step-footer {
+        flex-direction: row;
+    }
+
+    .cq-summary-label {
+        min-width: 110px;
+    }
+}

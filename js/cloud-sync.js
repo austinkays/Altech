@@ -28,6 +28,7 @@ const CloudSync = (() => {
         'settings', 'currentForm', 'cglState', 'clientHistory',
         'quickRefCards', 'quickRefNumbers', 'reminders', 'glossary',
         'vaultData', 'vaultMeta',
+        'commercialDraft', 'commercialQuotes',
     ];
 
     // ── State ──
@@ -159,6 +160,8 @@ const CloudSync = (() => {
             glossary: localStorage.getItem('altech_agency_glossary') || null,
             vaultData: localStorage.getItem('altech_acct_vault_v2') || null,
             vaultMeta: tryParse('altech_acct_vault_meta'),
+            commercialDraft: localStorage.getItem(STORAGE_KEYS.COMMERCIAL_DRAFT) || null,
+            commercialQuotes: localStorage.getItem(STORAGE_KEYS.COMMERCIAL_QUOTES) || null,
             settings: {
                 darkMode: localStorage.getItem('altech_dark_mode') === 'true',
             }
@@ -512,6 +515,17 @@ const CloudSync = (() => {
                 if (remResult?.data && typeof Reminders !== 'undefined') {
                     Reminders.state = remResult.data;
                     if (Reminders.render) Reminders.render();
+                }
+
+                // Pull Commercial Quoter draft + saved quotes
+                const commDraftResult = await _pullDoc('commercialDraft', STORAGE_KEYS.COMMERCIAL_DRAFT, 'commercialDraft');
+                if (commDraftResult?.data != null) {
+                    localStorage.setItem(STORAGE_KEYS.COMMERCIAL_DRAFT, typeof commDraftResult.data === 'string' ? commDraftResult.data : JSON.stringify(commDraftResult.data));
+                    if (typeof CommercialQuoter !== 'undefined' && CommercialQuoter.render) CommercialQuoter.render();
+                }
+                const commQuotesResult = await _pullDoc('commercialQuotes', STORAGE_KEYS.COMMERCIAL_QUOTES, 'commercialQuotes');
+                if (commQuotesResult?.data != null) {
+                    localStorage.setItem(STORAGE_KEYS.COMMERCIAL_QUOTES, typeof commQuotesResult.data === 'string' ? commQuotesResult.data : JSON.stringify(commQuotesResult.data));
                 }
 
                 // Pull Agency Glossary

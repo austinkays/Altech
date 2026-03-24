@@ -1,0 +1,550 @@
+    <header>
+        <div class="header-top">
+            <div class="logo tool-header-brand">
+                <span class="logo-controls">
+                    <a class="logo-icon-button" href="#home" onclick="App.goHome(); return false;" aria-label="Back to home">
+                        <span class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+                    </a>
+                    <button class="dark-mode-toggle" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+                        <span class="dark-mode-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+                    </button>
+                </span>
+                <span>Commercial Lines Quoter</span>
+            </div>
+            <div class="header-right">
+                <button class="btn-save-client" onclick="CommercialQuoter.saveQuote()" title="Save to Commercial History">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    <span class="btn-save-label">Save</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Step indicator dots -->
+    <nav class="cq-step-nav" aria-label="Commercial quoter steps">
+        <span class="cq-dot active" aria-label="Step 0: Start"></span>
+        <span class="cq-dot" aria-label="Step 1: Business Info"></span>
+        <span class="cq-dot" aria-label="Step 2: Coverage Types"></span>
+        <span class="cq-dot" aria-label="Step 3: Locations"></span>
+        <span class="cq-dot" aria-label="Step 4: Owner &amp; Background"></span>
+        <span class="cq-dot" aria-label="Step 5: Prior Insurance"></span>
+        <span class="cq-dot" aria-label="Step 6: Review &amp; Export"></span>
+    </nav>
+
+    <main id="cq-app">
+
+        <!-- ═══ STEP 0: QUICK START ═══════════════════════════════════════ -->
+        <div id="cq-step-0" class="cq-step">
+            <div class="card">
+                <h2 class="card-title">Commercial Lines Intake</h2>
+                <p class="hint">Start a new commercial quote or load a recent one.</p>
+                <button class="btn btn-primary" style="margin-bottom:16px" onclick="CommercialQuoter.newQuote()">+ New Commercial Quote</button>
+                <div class="section-title">Recent Quotes</div>
+                <div id="cq-recent-list"></div>
+            </div>
+        </div>
+
+        <!-- ═══ STEP 1: BUSINESS INFO ════════════════════════════════════ -->
+        <div id="cq-step-1" class="cq-step hidden">
+            <div class="card">
+                <h2 class="card-title">Business Information</h2>
+
+                <div class="form-row">
+                    <label class="form-label" for="cq_bizName">Business Legal Name *</label>
+                    <input id="cq_bizName" type="text" class="form-input" placeholder="ACME Contractors LLC" autocomplete="organization">
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label" for="cq_contactName">Primary Contact Name *</label>
+                    <input id="cq_contactName" type="text" class="form-input" placeholder="Jane Smith" autocomplete="name">
+                </div>
+
+                <div class="form-grid form-grid-2">
+                    <div class="form-row">
+                        <label class="form-label" for="cq_contactEmail">Contact Email</label>
+                        <input id="cq_contactEmail" type="email" class="form-input" placeholder="jane@example.com" autocomplete="email">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_bizPhone">Business Phone</label>
+                        <input id="cq_bizPhone" type="tel" class="form-input" placeholder="(503) 555-0100" autocomplete="tel">
+                    </div>
+                </div>
+
+                <div class="section-title">Business Address</div>
+                <div class="form-row">
+                    <label class="form-label" for="cq_bizStreet">Street Address</label>
+                    <input id="cq_bizStreet" type="text" class="form-input" placeholder="123 Main St" autocomplete="street-address">
+                </div>
+                <div class="form-grid form-grid-3">
+                    <div class="form-row">
+                        <label class="form-label" for="cq_bizCity">City</label>
+                        <input id="cq_bizCity" type="text" class="form-input" placeholder="Portland" autocomplete="address-level2">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_bizState">State</label>
+                        <input id="cq_bizState" type="text" class="form-input" placeholder="OR" maxlength="2" autocomplete="address-level1">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_bizZip">ZIP</label>
+                        <input id="cq_bizZip" type="text" class="form-input" placeholder="97201" maxlength="10" autocomplete="postal-code">
+                    </div>
+                </div>
+
+                <div class="section-title">Business History</div>
+                <div class="form-grid form-grid-2">
+                    <div class="form-row">
+                        <label class="form-label" for="cq_dateStarted">Date Business Started</label>
+                        <input id="cq_dateStarted" type="date" class="form-input">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_yrsIndustry">Years in Industry</label>
+                        <input id="cq_yrsIndustry" type="number" class="form-input" placeholder="5" min="0">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_yrsMgtExp">Years Mgmt Experience</label>
+                        <input id="cq_yrsMgtExp" type="number" class="form-input" placeholder="3" min="0">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_effectiveDate">Desired Effective Date</label>
+                        <input id="cq_effectiveDate" type="date" class="form-input">
+                    </div>
+                </div>
+
+                <div class="form-grid form-grid-2">
+                    <div class="form-row">
+                        <label class="form-label" for="cq_annualReceiptsEst">Annual Receipts (Est.)</label>
+                        <input id="cq_annualReceiptsEst" type="text" class="form-input" placeholder="$500,000">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_annualReceiptsPrior">Prior Year Receipts</label>
+                        <input id="cq_annualReceiptsPrior" type="text" class="form-input" placeholder="$450,000">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label" for="cq_marketingAgent">Marketing Agent / Rep</label>
+                    <input id="cq_marketingAgent" type="text" class="form-input" placeholder="Agent name">
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ STEP 2: COVERAGE TYPES ═══════════════════════════════════ -->
+        <div id="cq-step-2" class="cq-step hidden">
+            <div class="card">
+                <h2 class="card-title">Coverage Types</h2>
+                <p class="hint">Select all coverage types needed. Fill in details for each selected line.</p>
+
+                <!-- General Liability -->
+                <div class="cq-coverage-row">
+                    <label class="cq-cov-label">
+                        <input id="cq_covGL" type="checkbox" class="cq-cov-check">
+                        <span>General Liability (CGL)</span>
+                    </label>
+                    <div class="cq-coverage-detail hidden">
+                        <div class="form-grid form-grid-3">
+                            <div class="form-row">
+                                <label class="form-label" for="cq_glOccLimit">Occurrence Limit</label>
+                                <input id="cq_glOccLimit" type="text" class="form-input" placeholder="$1,000,000">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_glAggLimit">Aggregate Limit</label>
+                                <input id="cq_glAggLimit" type="text" class="form-input" placeholder="$2,000,000">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_glDeductible">Deductible</label>
+                                <input id="cq_glDeductible" type="text" class="form-input" placeholder="$0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bond -->
+                <div class="cq-coverage-row">
+                    <label class="cq-cov-label">
+                        <input id="cq_covBond" type="checkbox" class="cq-cov-check">
+                        <span>Bond</span>
+                    </label>
+                    <div class="cq-coverage-detail hidden">
+                        <div class="form-grid form-grid-2">
+                            <div class="form-row">
+                                <label class="form-label" for="cq_bondType">Bond Type</label>
+                                <input id="cq_bondType" type="text" class="form-input" placeholder="Contractor License Bond">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_bondAmount">Bond Amount</label>
+                                <input id="cq_bondAmount" type="text" class="form-input" placeholder="$20,000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Professional Liability -->
+                <div class="cq-coverage-row">
+                    <label class="cq-cov-label">
+                        <input id="cq_covPL" type="checkbox" class="cq-cov-check">
+                        <span>Professional Liability (E&amp;O)</span>
+                    </label>
+                    <div class="cq-coverage-detail hidden">
+                        <div class="form-grid form-grid-3">
+                            <div class="form-row">
+                                <label class="form-label" for="cq_plLimit">Limit</label>
+                                <input id="cq_plLimit" type="text" class="form-input" placeholder="$1,000,000">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_plDeductible">Deductible</label>
+                                <input id="cq_plDeductible" type="text" class="form-input" placeholder="$2,500">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_plRetro">Retroactive Date</label>
+                                <input id="cq_plRetro" type="date" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Auto -->
+                <div class="cq-coverage-row">
+                    <label class="cq-cov-label">
+                        <input id="cq_covBA" type="checkbox" class="cq-cov-check">
+                        <span>Business Auto</span>
+                    </label>
+                    <div class="cq-coverage-detail hidden">
+                        <div class="form-grid form-grid-2">
+                            <div class="form-row">
+                                <label class="form-label" for="cq_baNumVehicles"># Vehicles</label>
+                                <input id="cq_baNumVehicles" type="number" class="form-input" placeholder="3" min="1">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_baVehicleTypes">Vehicle Types</label>
+                                <input id="cq_baVehicleTypes" type="text" class="form-input" placeholder="Pickup trucks, vans">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_baBILimits">BI Limits (CSL)</label>
+                                <input id="cq_baBILimits" type="text" class="form-input" placeholder="$1,000,000 CSL">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_baPDLimit">PD Limit</label>
+                                <input id="cq_baPDLimit" type="text" class="form-input" placeholder="$500,000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Property -->
+                <div class="cq-coverage-row">
+                    <label class="cq-cov-label">
+                        <input id="cq_covProp" type="checkbox" class="cq-cov-check">
+                        <span>Commercial Property</span>
+                    </label>
+                    <div class="cq-coverage-detail hidden">
+                        <div class="form-grid form-grid-2">
+                            <div class="form-row">
+                                <label class="form-label" for="cq_propBuildingValue">Building Value</label>
+                                <input id="cq_propBuildingValue" type="text" class="form-input" placeholder="$500,000">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_propContentsValue">Contents Value</label>
+                                <input id="cq_propContentsValue" type="text" class="form-input" placeholder="$50,000">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_propDeductible">Deductible</label>
+                                <input id="cq_propDeductible" type="text" class="form-input" placeholder="$1,000">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_propConstruction">Construction Type</label>
+                                <input id="cq_propConstruction" type="text" class="form-input" placeholder="Frame, Masonry">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_propYearBuilt">Year Built</label>
+                                <input id="cq_propYearBuilt" type="number" class="form-input" placeholder="1995" min="1800" max="2030">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_propSprinklers">Sprinklers?</label>
+                                <input id="cq_propSprinklers" type="text" class="form-input" placeholder="Yes / Partial / No">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Personal Property -->
+                <div class="cq-coverage-row">
+                    <label class="cq-cov-label">
+                        <input id="cq_covBPP" type="checkbox" class="cq-cov-check">
+                        <span>Business Personal Property (BPP)</span>
+                    </label>
+                    <div class="cq-coverage-detail hidden">
+                        <div class="form-grid form-grid-2">
+                            <div class="form-row">
+                                <label class="form-label" for="cq_bppValue">BPP Value</label>
+                                <input id="cq_bppValue" type="text" class="form-input" placeholder="$25,000">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_bppDeductible">Deductible</label>
+                                <input id="cq_bppDeductible" type="text" class="form-input" placeholder="$500">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inland Marine -->
+                <div class="cq-coverage-row">
+                    <label class="cq-cov-label">
+                        <input id="cq_covIM" type="checkbox" class="cq-cov-check">
+                        <span>Inland Marine</span>
+                    </label>
+                    <div class="cq-coverage-detail hidden">
+                        <div class="form-grid form-grid-2">
+                            <div class="form-row">
+                                <label class="form-label" for="cq_imDescription">Description of Items</label>
+                                <input id="cq_imDescription" type="text" class="form-input" placeholder="Tools, equipment, cameras">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_imValue">Total Value</label>
+                                <input id="cq_imValue" type="text" class="form-input" placeholder="$15,000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cargo -->
+                <div class="cq-coverage-row">
+                    <label class="cq-cov-label">
+                        <input id="cq_covCargo" type="checkbox" class="cq-cov-check">
+                        <span>Motor Truck Cargo</span>
+                    </label>
+                    <div class="cq-coverage-detail hidden">
+                        <div class="form-grid form-grid-3">
+                            <div class="form-row">
+                                <label class="form-label" for="cq_cargoNumVehicles"># Vehicles</label>
+                                <input id="cq_cargoNumVehicles" type="number" class="form-input" placeholder="2" min="1">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_cargoRadius">Radius (miles)</label>
+                                <input id="cq_cargoRadius" type="text" class="form-input" placeholder="200">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_cargoValue">Max Load Value</label>
+                                <input id="cq_cargoValue" type="text" class="form-input" placeholder="$50,000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ═══ STEP 3: LOCATIONS ════════════════════════════════════════ -->
+        <div id="cq-step-3" class="cq-step hidden">
+            <div class="card">
+                <h2 class="card-title">Locations &amp; Operations</h2>
+
+                <div class="form-grid form-grid-2">
+                    <div class="form-row">
+                        <label class="form-label" for="cq_numLocations"># of Business Locations</label>
+                        <input id="cq_numLocations" type="number" class="form-input" placeholder="1" min="1">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_ownLeaseBuild">Own or Lease Building?</label>
+                        <select id="cq_ownLeaseBuild" class="form-input form-select">
+                            <option value="">Select…</option>
+                            <option value="Own">Own</option>
+                            <option value="Lease">Lease</option>
+                            <option value="N/A">N/A — Mobile / No Fixed Location</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label" for="cq_locAddress">Location Address(es)</label>
+                    <textarea id="cq_locAddress" class="form-input form-textarea" rows="3" placeholder="List all business location addresses"></textarea>
+                </div>
+
+                <div class="form-grid form-grid-2">
+                    <div class="form-row">
+                        <label class="form-label" for="cq_statesOperate">States of Operation</label>
+                        <input id="cq_statesOperate" type="text" class="form-input" placeholder="OR, WA, CA">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_countriesOperate">Countries (if outside US)</label>
+                        <input id="cq_countriesOperate" type="text" class="form-input" placeholder="Leave blank if US only">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label" for="cq_buildingValue">Total Owned Building Value</label>
+                    <input id="cq_buildingValue" type="text" class="form-input" placeholder="$0 if leasing">
+                </div>
+
+                <div class="section-title">Work Description</div>
+                <div class="form-row">
+                    <label class="form-label" for="cq_workDescription">Describe Business Operations</label>
+                    <textarea id="cq_workDescription" class="form-input form-textarea" rows="4" placeholder="Describe what the business does, types of jobs, and any specialty services"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ STEP 4: OWNER & BACKGROUND ══════════════════════════════ -->
+        <div id="cq-step-4" class="cq-step hidden">
+            <div class="card">
+                <h2 class="card-title">Owner &amp; Background</h2>
+
+                <div class="form-grid form-grid-2">
+                    <div class="form-row">
+                        <label class="form-label" for="cq_numOwners"># of Owners</label>
+                        <input id="cq_numOwners" type="number" class="form-input" placeholder="1" min="1">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_ownerDOB">Primary Owner DOB</label>
+                        <input id="cq_ownerDOB" type="date" class="form-input">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label" for="cq_ownerNames">Owner Name(s)</label>
+                    <input id="cq_ownerNames" type="text" class="form-input" placeholder="John Doe, Jane Doe">
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label" for="cq_ownerHomeAddress">Primary Owner Home Address</label>
+                    <input id="cq_ownerHomeAddress" type="text" class="form-input" placeholder="456 Oak Ave, Portland OR 97202" autocomplete="off">
+                </div>
+
+                <div class="section-title">Background Questions</div>
+
+                <div class="form-row cq-yn-row">
+                    <span class="form-label">Prior felony conviction (any owner/officer)?</span>
+                    <span class="cq-radio-group">
+                        <label><input type="radio" id="cq_convicted_y" name="cq_convicted" value="Y"> Yes</label>
+                        <label><input type="radio" id="cq_convicted_n" name="cq_convicted" value="N"> No</label>
+                    </span>
+                </div>
+
+                <div class="form-row cq-yn-row">
+                    <span class="form-label">Bankruptcy in last 5 years?</span>
+                    <span class="cq-radio-group">
+                        <label><input type="radio" id="cq_bankruptcy_y" name="cq_bankruptcy" value="Y"> Yes</label>
+                        <label><input type="radio" id="cq_bankruptcy_n" name="cq_bankruptcy" value="N"> No</label>
+                    </span>
+                </div>
+
+                <div class="form-row cq-yn-row">
+                    <span class="form-label">Pending lawsuits against the business?</span>
+                    <span class="cq-radio-group">
+                        <label><input type="radio" id="cq_lawsuits_y" name="cq_lawsuits" value="Y"> Yes</label>
+                        <label><input type="radio" id="cq_lawsuits_n" name="cq_lawsuits" value="N"> No</label>
+                    </span>
+                </div>
+
+                <div class="section-title">Workforce</div>
+
+                <div class="form-grid form-grid-2">
+                    <div class="form-row">
+                        <label class="form-label" for="cq_ftEmployees">Full-Time Employees</label>
+                        <input id="cq_ftEmployees" type="number" class="form-input" placeholder="0" min="0">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_ptEmployees">Part-Time Employees</label>
+                        <input id="cq_ptEmployees" type="number" class="form-input" placeholder="0" min="0">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_payroll">Annual Payroll</label>
+                        <input id="cq_payroll" type="text" class="form-input" placeholder="$120,000">
+                    </div>
+                </div>
+
+                <div class="form-row cq-yn-row">
+                    <span class="form-label">Use subcontractors?</span>
+                    <span class="cq-radio-group">
+                        <label><input type="radio" id="cq_sub_y" name="cq_hasSubcontractors" value="Y"> Yes</label>
+                        <label><input type="radio" id="cq_sub_n" name="cq_hasSubcontractors" value="N"> No</label>
+                    </span>
+                </div>
+
+                <div id="cq-sub-detail" class="hidden">
+                    <div class="form-grid form-grid-2">
+                        <div class="form-row">
+                            <label class="form-label" for="cq_subcontractingCosts">Annual Subcontracting Costs</label>
+                            <input id="cq_subcontractingCosts" type="text" class="form-input" placeholder="$50,000">
+                        </div>
+                        <div class="form-row">
+                            <label class="form-label" for="cq_obtainCerts">Obtain COIs from subs?</label>
+                            <select id="cq_obtainCerts" class="form-input form-select">
+                                <option value="">Select…</option>
+                                <option value="Always">Always</option>
+                                <option value="Sometimes">Sometimes</option>
+                                <option value="Never">Never</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ═══ STEP 5: PRIOR INSURANCE ══════════════════════════════════ -->
+        <div id="cq-step-5" class="cq-step hidden">
+            <div class="card">
+                <h2 class="card-title">Prior Insurance</h2>
+
+                <div class="form-grid form-grid-2">
+                    <div class="form-row">
+                        <label class="form-label" for="cq_currentInsurance">Current / Prior Carrier</label>
+                        <input id="cq_currentInsurance" type="text" class="form-input" placeholder="State Farm, None">
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" for="cq_policyExpiration">Current Policy Expiration</label>
+                        <input id="cq_policyExpiration" type="date" class="form-input">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label" for="cq_reasonForQuote">Reason for Seeking Quote</label>
+                    <select id="cq_reasonForQuote" class="form-input form-select">
+                        <option value="">Select…</option>
+                        <option value="New Business">New Business</option>
+                        <option value="Shopping Better Rate">Shopping Better Rate</option>
+                        <option value="Non-Renewal">Non-Renewal</option>
+                        <option value="Cancellation">Cancellation</option>
+                        <option value="Coverage Change">Coverage Change</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label" for="cq_insuranceClaims">Claims History (last 5 years)</label>
+                    <textarea id="cq_insuranceClaims" class="form-input form-textarea" rows="4" placeholder="List any claims: date, type, amount paid. Enter 'None' if no claims."></textarea>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ═══ STEP 6: REVIEW & EXPORT ══════════════════════════════════ -->
+        <div id="cq-step-6" class="cq-step hidden">
+            <div class="card">
+                <h2 class="card-title">Review &amp; Export</h2>
+                <div id="cq-summary"></div>
+            </div>
+
+            <div id="cq-export-group" class="cq-export-group hidden">
+                <button class="btn btn-primary" onclick="CommercialQuoter.exportPDF()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    Export PDF
+                </button>
+                <button class="btn btn-secondary" onclick="CommercialQuoter.exportCMSMTF()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                    HawkSoft (.CMSMTF)
+                </button>
+                <button class="btn" onclick="CommercialQuoter.saveQuote()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Save to History
+                </button>
+            </div>
+        </div>
+
+        <!-- ═══ STEP FOOTER (navigation) ═════════════════════════════════ -->
+        <div class="cq-step-footer">
+            <button id="cq-btn-prev" class="btn hidden" onclick="CommercialQuoter.prev()">← Back</button>
+            <button id="cq-btn-next" class="btn btn-primary" onclick="CommercialQuoter.next()">Next →</button>
+        </div>
+
+    </main>

@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-28 — feat(commercial): Commercial Lines Quoter plugin
+- **feat(commercial):** New Commercial Lines Quoter plugin — 7-step wizard for CGL/BOP intake
+  - `js/commercial-quoter.js` — full IIFE module (`window.CommercialQuoter`); steps 0–6; AES-256-GCM encrypt/decrypt draft + quotes; PDF export (jsPDF); CMSMTF/HawkSoft export; quote history (last 5)
+  - `plugins/commercial-quoter.html` — 7-step HTML fragment; 45+ `cq_`-prefixed field IDs; coverage checkboxes with detail panels; subcontractor reveal; step nav dots; export footer
+  - `css/commercial-quoter.css` — plugin-scoped styles using design system CSS vars; dark mode via `body.dark-mode`; responsive at 520px
+  - `js/storage-keys.js` — added `COMMERCIAL_DRAFT` + `COMMERCIAL_QUOTES` entries
+  - `js/cloud-sync.js` — added `commercialDraft` + `commercialQuotes` to `SYNC_DOCS`, `_getLocalData()`, and `pullFromCloud()`
+  - `js/app-init.js` — registered `{ key: 'commercial', ... }` in `toolConfig[]` under quoting category
+  - `index.html` — CSS link, container div, and script tag wired
+- Tests: 1688 passed, 27 suites, 0 failures ✅
+
 ## 2026-03-28 — feat(quickref): add Quick Emojis clipboard section
 - **feat(quickref):** Added Quick Emojis card above Quick Dial Numbers in the Quick Reference plugin
   - `plugins/quickref.html` — new `.card` block with 6 pill buttons (✅ Done, 📁 Logged, ⚠️ Pending, 🔄 Follow-up, ✉️ Emailed, 📞 Called)

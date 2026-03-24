@@ -11,6 +11,8 @@ window.STORAGE_KEYS = Object.freeze({
     DOC_INTEL:              'altech_v6_docintel',   // document intel results
 
     // ── Plugin data (cloud-synced) ───────────────────────────────────────────
+    COMMERCIAL_DRAFT:       'altech_commercial_v1',      // commercial intake draft (encrypted, cloud-synced)
+    COMMERCIAL_QUOTES:      'altech_commercial_quotes',  // saved commercial quotes (encrypted, cloud-synced)
     CGL_STATE:              'altech_cgl_state',
     QUICKREF_CARDS:         'altech_quickref_cards',
     QUICKREF_NUMBERS:       'altech_quickref_numbers',
