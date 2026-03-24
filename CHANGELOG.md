@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-28 — Roof Shape visual picker + Construction Style info panel
+- **feat(quoting):** Added ⓘ info buttons next to **Roof Shape** and **Construction Style** labels in the Personal Intake form
+- **Roof Shape** — opens a visual SVG picker modal (10 shapes: Gable, Hip, Flat, Gambrel, Mansard, Shed, Pyramid, Dormer, Turret, Other); clicking a cell sets `#roofShape` value, dispatches `change` event, and closes. Dormer description: "Add-on only — describes dormers on a base roof shape."
+- **Construction Style** — opens a grouped chip picker (5 categories: One-Story, Two-Story, Split/Multi-Level, Attached/Multi-Unit, Other); clicking a chip sets `#constructionStyle` and closes
+- **plugins/quoting.html:** Wrapped both labels in `.label-with-hint` + new `.info-modal-btn` buttons with `onclick` attributes
+- **css/components.css:** Added `.info-modal-btn`, `.modal-close`, and all `.fi-*` scoped styles (`.fi-grid`, `.fi-cell`, `.fi-name`, `.fi-desc`, `.fi-note`, `.fi-group`, `.fi-group-label`, `.fi-chips`, `.fi-chip`) — CSS vars only, full dark mode support
+- **js/quoting-info-panels.js:** New file; defines `window.showRoofShapeInfo()`, `window.showConstructionStyleInfo()`, `window.closeFieldInfoModal()` as global helpers (plugin HTML loads via `innerHTML` — inline scripts don't execute, so these must pre-load)
+- **index.html:** Added `<script src="js/quoting-info-panels.js">` before `app-boot.js`
+- Tests: 1688 tests, 27 suites, all pass
+
 ## 2026-03-24 — Other Structures calculated coverage field
 - **feat(quoting):** Added `otherStructures` (Cov B) as a read-only calculated field in the Home Coverage card; auto-computes as 10% of dwelling coverage, updates live on `oninput`, and restores from saved data on load
 - **plugins/quoting.html:** Added `oninput="App.computeOtherStructures()"` to `#dwellingCoverage`; inserted new `full-span` div with `#otherStructures` (readonly, tabindex=-1) and a `label-with-hint` + `ⓘ` tooltip matching the foundation/exterior-walls pattern
