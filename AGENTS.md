@@ -16,8 +16,8 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
-| **CSS** | 32 files in `css/` (~19,761 lines total) |
-| **JS** | 45 modules in `js/` (~39,326 lines total) |
+| **CSS** | 33 files in `css/` (~20,506 lines total) |
+| **JS** | 46 modules in `js/` (~39,879 lines total) |
 | **Plugins** | 21 HTML templates in `plugins/` (~6,058 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 26 suites, 1672 tests |
+| **Tests** | Jest + JSDOM, 27 suites, 1688 tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 26 suites, 1672 tests
+npm test              # All 27 suites, 1688 tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
@@ -64,7 +64,7 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 32 stylesheets (~19,761 lines)
+├── css/                        # 33 stylesheets (~20,506 lines)
 │   ├── variables.css           # :root CSS custom properties + body.dark-mode overrides (all theme tokens)
 │   ├── base.css                # Reset, body, typography, scrollbars
 │   ├── components.css          # Cards, inputs, buttons, modals, toasts (shared components)
@@ -98,7 +98,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── dec-import.css          # Dec Page Importer plugin (354 lines)
 │   └── deposit-sheet.css       # Deposit Sheet plugin (662 lines)
 │
-├── js/                         # 45 modules (~39,326 lines)
+├── js/                         # 46 modules (~39,879 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows (92 lines)
@@ -106,7 +106,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-navigation.js       # App.updateUI(), App.navigateTo(), step progression, hash routing
 │   ├── app-core.js             # save/load, form field persistence, schema migration, encryption — persistence-only (updateUI/navigateTo → app-navigation.js; toast/dark-mode → app-ui-utils.js)
 │   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,979 lines)
-│   ├── app-property.js         # Property analysis, maps, assessor data (2,368 lines)
+│   ├── app-property.js         # Property analysis, maps, assessor data (2,503 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
 │   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,260 lines)
@@ -817,7 +817,7 @@ KEY RULES:
 5. After localStorage writes on synced data, call CloudSync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
 7. App is built via Object.assign(App, {...}) across 11 files (incl. app-ui-utils.js, app-navigation.js) — app-boot.js loads LAST
-8. Test with: npm test (1672 tests, 26 suites, all must pass)
+8. Test with: npm test (1688 tests, 27 suites, all must pass)
 9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, add an entry to CHANGELOG.md with what changed (files, test counts, date). Run: npm run audit-docs
@@ -850,7 +850,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` → 26 suites, 1672 tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 27 suites, 1688 tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements

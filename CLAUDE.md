@@ -8,7 +8,7 @@ Vanilla HTML/CSS/JS SPA. No build step, no framework. Vercel deploy (push `main`
 
 ```bash
 npm run dev               # port 3000
-npm test                  # 26 suites, 1672 tests
+npm test                  # 27 suites, 1688 tests
 npx jest --no-coverage    # faster
 ```
 
@@ -213,7 +213,7 @@ Test all three workflows when changing step logic or conditions.
 ## Testing
 
 ```bash
-npm test                          # 26 suites, 1672 tests
+npm test                          # 27 suites, 1688 tests
 npx jest --no-coverage            # faster
 npx jest tests/app.test.js        # single suite
 ```
