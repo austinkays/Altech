@@ -13,6 +13,8 @@ window.DashboardWidgets = (() => {
     let _complianceBgFetching = false;
     const COMPLIANCE_BG_FETCH_INTERVAL = 60 * 60 * 1000; // 1 hour
     let _initialized = false;
+    let _crumbTool = null;
+    let _crumbTitle = null;
 
     // ── SVG Icon Library (Lucide-style, 24×24, stroke-based) ──
     const ICONS = {
@@ -770,6 +772,8 @@ window.DashboardWidgets = (() => {
     // ── Update breadcrumb ──
 
     function updateBreadcrumb(toolName, toolTitle) {
+        _crumbTool = toolName;
+        _crumbTitle = toolTitle;
         const bc = document.getElementById('dashBreadcrumb');
         if (!bc) return;
         const menuBtn = `<button class="mobile-menu-btn" onclick="DashboardWidgets.toggleMobileSidebar()" aria-label="Menu">${icon('menu', 20)}</button>`;
@@ -777,10 +781,21 @@ window.DashboardWidgets = (() => {
         if (!toolName || toolName === 'home') {
             bc.innerHTML = `${menuBtn}<span class="breadcrumb-current">Dashboard</span>`;
         } else {
+            let crumbLabel = _escapeHTML(toolTitle || toolName);
+            if (toolName === 'quoting') {
+                const first = (document.getElementById('firstName')?.value || '').trim();
+                const last = (document.getElementById('lastName')?.value || '').trim();
+                const insuredName = [first, last].filter(Boolean).join(' ');
+                if (insuredName) crumbLabel += ` \u2014 ${_escapeHTML(insuredName)}`;
+            }
             bc.innerHTML = `${menuBtn}<a href="#home" onclick="event.preventDefault(); App.goHome()">Dashboard</a>
                 <span class="breadcrumb-separator">›</span>
-                <span class="breadcrumb-current">${_escapeHTML(toolTitle || toolName)}</span>`;
+                <span class="breadcrumb-current">${crumbLabel}</span>`;
         }
+    }
+
+    function refreshBreadcrumb() {
+        if (_crumbTool) updateBreadcrumb(_crumbTool, _crumbTitle);
     }
 
     // ── Update sidebar badges ──
@@ -1028,6 +1043,7 @@ window.DashboardWidgets = (() => {
         toggleNotes,
         setActiveSidebarItem,
         updateBreadcrumb,
+        refreshBreadcrumb,
         updateBadges,
         renderHeader,
         icon,

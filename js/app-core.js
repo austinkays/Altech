@@ -213,6 +213,10 @@ Object.assign(App, {
             if (e.target.matches('#quotingTool input, #quotingTool select, #quotingTool textarea')) {
                 this.clearAutoFilledIndicator(e.target);
                 this.save(e);
+                if ((e.target.id === 'firstName' || e.target.id === 'lastName') &&
+                    typeof DashboardWidgets !== 'undefined') {
+                    DashboardWidgets.refreshBreadcrumb();
+                }
             }
         });
         document.body.addEventListener('change', (e) => {
