@@ -521,6 +521,7 @@ Object.assign(App, {
                 ['Full Name', `${v('coFirstName')} ${v('coLastName')}`.trim()],
                 [FIELD_BY_ID['coDob'].label, formatDate(v('coDob'))],
                 [FIELD_BY_ID['coGender'].label, v('coGender') === 'M' ? 'Male' : v('coGender') === 'F' ? 'Female' : v('coGender')],
+                [FIELD_BY_ID['coMaritalStatus'].label, vo('coMaritalStatus')],
                 [FIELD_BY_ID['coEmail'].label, v('coEmail')],
                 [FIELD_BY_ID['coPhone'].label, formatPhone(v('coPhone'))],
                 [FIELD_BY_ID['coRelationship'].label, vo('coRelationship')],

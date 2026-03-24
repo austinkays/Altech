@@ -494,7 +494,7 @@ Object.assign(App, {
 
                 <label class="label">Driver's License <span class="ez-req" title="Required for EZLynx rating" style="color:#f5c842;margin-left:3px;font-size:0.85em;">✦</span></label>
                 <div class="export-row" style="margin-bottom:10px; align-items:center;">
-                    <button class="btn btn-tertiary" onclick="App.openDriverLicensePicker('${driver.id}')">📸 Scan Driver's License</button>
+                    <button class="btn btn-compact btn-tertiary" onclick="App.openDriverLicensePicker('${driver.id}')">📸 Scan Driver's License</button>
                     <input id="dlScan_${driver.id}" type="file" accept="image/*" class="hidden" onchange="App.handleDriverLicenseFile('${driver.id}', this.files[0])" />
                     ${driver.dlScanPreview ? `<img src="${driver.dlScanPreview}" alt="DL preview" style="width:48px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" />` : ''}
                     ${driver.dlScanConfidence ? `<span class="hint" style="margin:0; padding:6px 10px;">${driver.dlScanConfidence}% confidence</span>` : ''}

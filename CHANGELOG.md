@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-24 — Phase 1: Add coMaritalStatus to PDF export
+- **feat(export):** Added `coMaritalStatus` ("Co-App Marital Status") row to the PDF co-applicant section in `js/app-export.js` — rendered immediately after the Co-Gender row using the existing `vo()` option-label helper
+- **fix(quoting):** Added `btn-compact` class to the Scan Driver's License button in driver cards (`js/app-vehicles.js`) for better layout fit on Step 4
+
 ## 2026-03-24 — Remove blocking required-field validation on step 5
 - **fix(quoting):** Removed blocking required-field validation from the Prior Insurance step — `validateStep()` in `js/app-core.js` now always returns an empty array so no fields block quote progression
 - **plugins/quoting.html:** Removed all red `<span class="required-star">*</span>` asterisks from Prior Insurance label text (10 instances); yellow EZLynx `✦` stars remain as informational indicators
