@@ -22,6 +22,12 @@ Object.assign(App, {
         this.data.yearsAtResidence = years;
     },
 
+    togglePreviousAddress(val) {
+        const block = document.getElementById('previousAddressBlock');
+        if (!block) return;
+        block.style.display = ['Less than 1 year', '1', '2'].includes(val) ? '' : 'none';
+    },
+
     async enrichFireStation(address, city, state) {
         const zip = this.data.addrZip || '';
         console.log(`[FireStation] Enrichment starting: ${address}, ${city}, ${state} ${zip}`);

@@ -541,6 +541,14 @@ Object.assign(App, {
             [FIELD_BY_ID['county'].label, v('county') || this.getCountyFromCity(data.addrCity, data.addrState) || ''],
             [FIELD_BY_ID['yearsAtAddress'].label, v('yearsAtAddress')],
         ];
+        if (v('previousAddrStreet')) {
+            addrRows.push(
+                [FIELD_BY_ID['previousAddrStreet'].label, v('previousAddrStreet')],
+                [FIELD_BY_ID['previousAddrCity'].label + ' (Prev)', v('previousAddrCity')],
+                [FIELD_BY_ID['previousAddrState'].label, v('previousAddrState')],
+                [FIELD_BY_ID['previousAddrZip'].label, v('previousAddrZip')],
+            );
+        }
         if (isAutoOnly && data.garagingSameAsMailing) addrRows.push(['Same as Mailing', 'Yes']);
         kvTable(addrRows, 3); }
 

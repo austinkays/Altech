@@ -90,6 +90,7 @@ Object.assign(App, {
         console.log('[App.init] handleType done, flow:', this.flow, 'step:', this.step);
         this.updateScanCoverage();
         this.calculateResidenceTime(); // Show residence time if purchaseDate loaded
+        this.togglePreviousAddress(this.data.yearsAtAddress || ''); // Restore conditional previous address block
         try { await this.renderQuoteList(); } catch(e) { console.error('[App.init] renderQuoteList() failed:', e); }
         try { this.renderClientHistory(); } catch(e) { console.error('[App.init] renderClientHistory() failed:', e); }
 

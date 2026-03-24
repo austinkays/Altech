@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-23 — Previous address block (conditional on years at address)
+- **feat(quoting):** When "Years at Address" is "Less than 1 year", "1", or "2", a Previous Address block appears inline below the field; hides when ≥ 3 years or empty; triggers on change and restores on draft load
+- **plugins/quoting.html:** Added `onchange="App.togglePreviousAddress(this.value)"` to `#yearsAtAddress` select; inserted `#previousAddressBlock` div (hidden by default) with `previousAddrStreet`, `previousAddrCity`, `previousAddrState` (full 50-state select, no default), `previousAddrZip` — plain inputs, no autocomplete, no smart-fill buttons
+- **js/fields.js:** Added 4 fields after `yearsAtAddress`: `previousAddrStreet`, `previousAddrCity`, `previousAddrState`, `previousAddrZip` — all `section: 'address'`, `ezlynxRequired: false`
+- **js/app-popups.js:** Added `togglePreviousAddress(val)` to `Object.assign(App, {...})` — shows block when val is in `['Less than 1 year', '1', '2']`, hides otherwise
+- **js/app-core.js:** `init()` calls `this.togglePreviousAddress(this.data.yearsAtAddress || '')` after `calculateResidenceTime()` to restore block state on draft load
+- **js/hawksoft-export.js:** Previous address appended as "Previous Address: street, city, state, zip" in the PROPERTY section when `previousAddrStreet` is present
+- **js/app-export.js:** Previous address fields appended as individual `kvTable` rows in the Property Address PDF section when `previousAddrStreet` is present
+- **Tests:** 27 suites, 1688 tests — all pass
+
 ## 2026-03-23 — Show insured name in quoting breadcrumb
 - **feat(quoting):** Dashboard breadcrumb now shows `Dashboard > Personal Lines — Jane Smith` when firstName/lastName are filled in; updates live as user types; falls back to `Dashboard > Personal Lines` when both fields are empty
 - **js/dashboard-widgets.js:** `updateBreadcrumb()` saves last params (`_crumbTool`/`_crumbTitle`), reads `firstName`/`lastName` from DOM when `toolName === 'quoting'`, appends ` — {name}` using `_escapeHTML()`; new `refreshBreadcrumb()` function re-invokes `updateBreadcrumb` with saved params; exported in public API

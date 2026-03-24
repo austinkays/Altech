@@ -124,6 +124,7 @@ window.HawkSoftExport = (() => {
         if (d.kitchenQuality) prop.push(`${FIELD_BY_ID['kitchenQuality'].label}: ${d.kitchenQuality}`);
         if (d.purchaseDate) prop.push(`${FIELD_BY_ID['purchaseDate'].label}: ${d.purchaseDate}`);
         if (d.yearsAtAddress) prop.push(`${FIELD_BY_ID['yearsAtAddress'].label}: ${d.yearsAtAddress}`);
+        if (d.previousAddrStreet) prop.push(`Previous Address: ${[d.previousAddrStreet, d.previousAddrCity, d.previousAddrState, d.previousAddrZip].filter(Boolean).join(', ')}`);
         if (d.numOccupants) prop.push(`${FIELD_BY_ID['numOccupants'].label}: ${d.numOccupants}`);
         if (d.windDeductible) prop.push(`${FIELD_BY_ID['windDeductible'].label}: ${d.windDeductible}`);
         if (prop.length) sections.push('PROPERTY\n' + prop.join('\n'));
