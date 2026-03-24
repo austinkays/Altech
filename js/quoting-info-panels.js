@@ -146,11 +146,11 @@
         var currentVal = (document.getElementById('constructionStyle') || {}).value || '';
 
         var groups = [
-            { label: 'One-Story',             values: ['Ranch', 'Rambler', 'Bungalow', 'Cottage'] },
-            { label: 'Two-Story',             values: ['Colonial', 'Victorian', 'Ornate Victorian', 'Queen Anne', 'Federal Colonial', 'Contemporary', 'Mediterranean', 'Southwest Adobe'] },
-            { label: 'Split / Multi-Level',   values: ['Bi-Level', 'Split Level', 'Split Foyer', 'Tri-Level', 'Raised Ranch', 'Cape Cod'] },
-            { label: 'Attached / Multi-Unit', values: ['Townhouse', 'Townhouse Center', 'Townhouse End', 'Rowhouse', 'Rowhouse Center', 'Rowhouse End', 'Condo', 'Coop', 'Apartment'] },
-            { label: 'Other',                 values: ['Dwelling', 'Backsplit', 'Substandard'] }
+            { label: 'One-Story',             desc: 'Single floor, all living space on the ground level. Easiest to insure \u2014 no stair/fall risk, simpler roof.',                                                                  values: ['Ranch', 'Rambler', 'Bungalow', 'Cottage'] },
+            { label: 'Two-Story',             desc: 'Two full floors stacked vertically. Standard construction. Upper floors add replacement cost.',                                                                                      values: ['Colonial', 'Victorian', 'Ornate Victorian', 'Queen Anne', 'Federal Colonial', 'Contemporary', 'Mediterranean', 'Southwest Adobe'] },
+            { label: 'Split / Multi-Level',   desc: 'Floors are offset by half-flights of stairs. Cape Cod has a finished upper half-story under a sloped roof.',                                                                        values: ['Bi-Level', 'Split Level', 'Split Foyer', 'Tri-Level', 'Raised Ranch', 'Cape Cod'] },
+            { label: 'Attached / Multi-Unit', desc: 'Shares one or more walls with adjacent units. Coverage applies only to the individual unit \u2014 not shared walls or common areas.',                                             values: ['Townhouse', 'Townhouse Center', 'Townhouse End', 'Rowhouse', 'Rowhouse Center', 'Rowhouse End', 'Condo', 'Coop', 'Apartment'] },
+            { label: 'Other',                 desc: "Generic, unusual, or non-standard structures. 'Substandard' typically indicates below-code construction and may affect insurability.",                                             values: ['Dwelling', 'Backsplit', 'Substandard'] }
         ];
 
         var groupsHtml = groups.map(function (g) {
@@ -158,7 +158,7 @@
                 var isSel = v === currentVal;
                 return '<span class="fi-chip' + (isSel ? ' selected' : '') + '" data-val="' + v + '" tabindex="0" role="button" aria-pressed="' + isSel + '">' + v + '</span>';
             }).join('');
-            return '<div class="fi-group"><div class="fi-group-label">' + g.label + '</div><div class="fi-chips">' + chips + '</div></div>';
+            return '<div class="fi-group"><div class="fi-group-label">' + g.label + '</div><p class="fi-group-desc">' + g.desc + '</p><div class="fi-chips">' + chips + '</div></div>';
         }).join('');
 
         var html =
