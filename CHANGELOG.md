@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-23 — Show insured name in quoting breadcrumb
+- **feat(quoting):** Dashboard breadcrumb now shows `Dashboard > Personal Lines — Jane Smith` when firstName/lastName are filled in; updates live as user types; falls back to `Dashboard > Personal Lines` when both fields are empty
+- **js/dashboard-widgets.js:** `updateBreadcrumb()` saves last params (`_crumbTool`/`_crumbTitle`), reads `firstName`/`lastName` from DOM when `toolName === 'quoting'`, appends ` — {name}` using `_escapeHTML()`; new `refreshBreadcrumb()` function re-invokes `updateBreadcrumb` with saved params; exported in public API
+- **js/app-core.js:** Input event listener now calls `DashboardWidgets.refreshBreadcrumb()` when `e.target.id` is `firstName` or `lastName` (guarded with `typeof DashboardWidgets !== 'undefined'`)
+- **Tests:** 27 suites, 1688 tests — all pass
+
 ## 2026-03-28 — Auto Property Location: garaging address relabel + checkbox
 - **fix(quoting):** When `qType === 'auto'`, Step 3 now shows "Garaging Address" heading and "Primary garaging address for the vehicle." subtext; utility-buttons row (Zillow/Assessor/Import) is hidden
 - **plugins/quoting.html:** Added `qtype-home-only` to existing `<h2>`, `<p class="section-subtitle">`, and `utility-buttons` divs; added new `qtype-auto-only` equivalents with `style="display:none"`; added `#garagingSameAsMailing` checkbox block (auto-only)
