@@ -485,6 +485,15 @@ window.CommercialQuoter = (() => {
             dot.setAttribute('aria-current', i === _step ? 'step' : 'false');
         });
 
+        // Step title + progress bar
+        var STEP_TITLES = ['Quick Start', 'Business Info', 'Coverage Types', 'Locations', 'Owner & Background', 'Prior Insurance', 'Review & Export'];
+        var titleEl = document.getElementById('cq-step-title');
+        if (titleEl) titleEl.textContent = 'Step ' + (_step + 1) + ' / 7 \u2014 ' + STEP_TITLES[_step];
+        var progressEl = document.getElementById('cq-progress-bar');
+        if (progressEl) progressEl.style.width = Math.round(_step / 6 * 100) + '%';
+        var counterEl = document.getElementById('cq-step-counter');
+        if (counterEl) counterEl.textContent = (_step + 1) + ' / 7';
+
         // Footer button visibility
         const prevBtn     = document.getElementById('cq-btn-prev');
         const nextBtn     = document.getElementById('cq-btn-next');

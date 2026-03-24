@@ -1,247 +1,544 @@
-/* ============================================================
+/* =========================================================
    Commercial Lines Quoter — Plugin Styles
-   Scoped to #cq-app and .cq-* classes.
-   All colors via CSS variables; no hardcoded values.
-   Dark mode handled automatically by CSS variable switching.
-   ============================================================ */
+   Uses design-system CSS variables from variables.css
+   Dark mode: body.dark-mode .selector pattern
+   ========================================================= */
 
-/* ── Step Navigation Dots ─────────────────────────────────── */
+/* ── Step Progress Header ─────────────────────────────── */
+/* .step-title and .progress-track/.progress-fill are
+   defined in layout.css / components.css and reused here */
+
+/* ── Step Nav (inside #cq-app) ────────────────────────── */
 .cq-step-nav {
+    padding: 20px 20px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.cq-step-nav::-webkit-scrollbar { display: none; }
+
+.cq-step-track {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 0 4px;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: relative;
+    min-width: 420px;
+}
+.cq-step-track::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    right: 18px;
+    height: 2px;
+    background: var(--border);
+    z-index: 0;
 }
 
 .cq-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--border);
-    transition: background 0.2s, transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
     cursor: default;
-    display: inline-block;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    background: none;
+    border: none;
+    height: auto;
+    font-size: 14px; /* reset global [data-tooltip] bleed */
 }
 
-.cq-dot.active {
+.cq-dot-inner {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    color: var(--text-secondary);
+    transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s var(--transition-spring);
+}
+
+.cq-dot-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transition: color 0.2s ease;
+}
+
+/* Active step */
+.cq-dot.active .cq-dot-inner {
     background: var(--apple-blue);
-    transform: scale(1.4);
+    border-color: var(--apple-blue);
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.18);
+    transform: scale(1.12);
+}
+.cq-dot.active .cq-dot-label {
+    color: var(--apple-blue);
+    font-weight: 600;
 }
 
-/* ── Step Panels ──────────────────────────────────────────── */
+/* Completed steps — dots that precede the active one */
+.cq-dot:has(~ .cq-dot.active) .cq-dot-inner,
+.cq-dot.cq-done .cq-dot-inner {
+    background: rgba(52, 199, 89, 0.12);
+    border-color: var(--success);
+    color: var(--success);
+}
+.cq-dot:has(~ .cq-dot.active) .cq-dot-label,
+.cq-dot.cq-done .cq-dot-label {
+    color: var(--success);
+}
+
+/* ── Step Panels ──────────────────────────────────────── */
 .cq-step {
-    padding: 0 16px 16px;
-    max-width: 760px;
-    margin: 0 auto;
+    padding: 16px 20px 0;
+    animation: fadeInUp 0.22s ease;
+}
+.cq-step.hidden { display: none; }
+
+@keyframes cqFadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.cq-step { animation: cqFadeUp 0.2s ease; }
+
+/* ── Welcome Card (Step 0) ────────────────────────────── */
+.cq-welcome-card {
+    text-align: center;
+    padding: 36px 24px 28px;
+    margin-bottom: 16px;
+}
+.cq-welcome-icon {
+    font-size: 48px;
+    line-height: 1;
+    margin-bottom: 16px;
+}
+.cq-welcome-card h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 8px;
+}
+.cq-start-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    padding: 12px 28px;
+    border-radius: 12px;
+    margin-top: 8px;
+}
+.cq-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 18px;
+}
+.cq-feature-pill {
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
 }
 
-/* ── Coverage Rows ────────────────────────────────────────── */
+/* ── Form Layout Helpers ──────────────────────────────── */
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+}
+.form-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0 16px;
+}
+
+.section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    margin: 20px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.cq-required {
+    color: var(--danger);
+    margin-left: 1px;
+}
+
+/* ── Coverage Toggle Rows ─────────────────────────────── */
 .cq-coverage-row {
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-card);
     margin-bottom: 10px;
     overflow: hidden;
-    background: var(--bg-card);
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.cq-coverage-row:hover {
+    border-color: var(--apple-blue);
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+/* Selected state */
+.cq-coverage-row:has(.cq-cov-check:checked) {
+    border-color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.04);
+    box-shadow: 0 2px 12px rgba(0, 122, 255, 0.12);
 }
 
 .cq-cov-label {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
+    gap: 12px;
+    padding: 14px 16px;
     cursor: pointer;
-    font-weight: 500;
-    color: var(--text);
     user-select: none;
 }
 
-.cq-cov-label input[type="checkbox"] {
-    accent-color: var(--apple-blue);
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
+.cq-cov-icon {
+    font-size: 22px;
+    width: 32px;
+    text-align: center;
     flex-shrink: 0;
 }
 
-.cq-coverage-detail {
-    padding: 12px 14px 14px;
-    border-top: 1px solid var(--border);
-    background: var(--bg-input);
+.cq-cov-meta {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.cq-cov-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+.cq-cov-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
 }
 
-/* ── Y/N Radio Rows ───────────────────────────────────────── */
+/* Hide native checkbox */
+.cq-cov-check {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+/* Toggle track */
+.cq-toggle-track {
+    width: 44px;
+    height: 26px;
+    border-radius: 13px;
+    background: var(--border);
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.25s ease;
+}
+.cq-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    transition: transform 0.25s var(--transition-spring);
+}
+
+/* Toggle active state */
+.cq-coverage-row:has(.cq-cov-check:checked) .cq-toggle-track {
+    background: var(--apple-blue);
+}
+.cq-coverage-row:has(.cq-cov-check:checked) .cq-toggle-thumb {
+    transform: translateX(18px);
+}
+
+/* Coverage detail panel */
+.cq-coverage-detail {
+    padding: 12px 16px 16px;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-input);
+}
+.cq-coverage-detail.hidden { display: none; }
+
+/* ── Y/N Pill Buttons ─────────────────────────────────── */
 .cq-yn-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    flex-wrap: wrap;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-subtle);
 }
+.cq-yn-row:last-of-type { border-bottom: none; }
 
-.cq-yn-row .form-label {
+.cq-yn-question {
+    font-size: 14px;
+    color: var(--text);
     flex: 1;
-    min-width: 200px;
 }
 
 .cq-radio-group {
     display: flex;
-    gap: 16px;
-}
-
-.cq-radio-group label {
-    display: flex;
-    align-items: center;
     gap: 6px;
-    cursor: pointer;
-    color: var(--text);
-    font-size: 14px;
-}
-
-.cq-radio-group input[type="radio"] {
-    accent-color: var(--apple-blue);
-    cursor: pointer;
-}
-
-/* ── Step Footer (nav buttons) ────────────────────────────── */
-.cq-step-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px 24px;
-    max-width: 760px;
-    margin: 0 auto;
-    gap: 10px;
-}
-
-/* ── Export Button Group ──────────────────────────────────── */
-.cq-export-group {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    padding: 0 16px 16px;
-    max-width: 760px;
-    margin: 0 auto;
-}
-
-.cq-export-group .btn {
-    flex: 1 1 auto;
-    min-width: 140px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-/* ── Summary (Step 6) ─────────────────────────────────────── */
-.cq-summary-section {
-    margin-bottom: 18px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--border);
-}
-
-.cq-summary-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-
-.cq-summary-title {
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
-}
-
-.cq-summary-row {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    margin-bottom: 5px;
-    font-size: 14px;
-    color: var(--text);
-    flex-wrap: wrap;
-}
-
-.cq-summary-label {
-    color: var(--text-secondary);
-    font-size: 13px;
-    min-width: 140px;
     flex-shrink: 0;
 }
 
-/* ── Coverage Badges ──────────────────────────────────────── */
-.cq-badge {
-    display: inline-block;
-    padding: 3px 9px;
-    border-radius: 12px;
-    font-size: 12px;
+.cq-yn-btn {
+    cursor: pointer;
+}
+.cq-yn-btn input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+.cq-yn-btn span {
+    display: block;
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 13px;
     font-weight: 500;
+    color: var(--text-secondary);
     background: var(--bg-input);
-    color: var(--apple-blue);
-    border: 1px solid var(--border);
-    white-space: nowrap;
+    border: 1.5px solid var(--border);
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    user-select: none;
+}
+.cq-yn-btn:has(input:checked) span {
+    background: var(--apple-blue);
+    color: #fff;
+    border-color: var(--apple-blue);
 }
 
-/* ── Recent Quote Items (Step 0) ──────────────────────────── */
+/* Subcontractor detail expansion */
+#cq-sub-detail.hidden { display: none; }
+.cq-sub-detail-inner {
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+/* ── Review Card (Step 6) ─────────────────────────────── */
+.cq-review-card { padding: 24px; }
+.cq-review-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.cq-review-icon { font-size: 40px; line-height: 1; }
+.cq-review-header h2 { margin: 0 0 4px; font-size: 20px; }
+
+/* Summary sections (rendered by JS) */
+.cq-summary-section {
+    margin-bottom: 20px;
+}
+.cq-summary-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.cq-summary-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 14px;
+}
+.cq-summary-label {
+    color: var(--text-secondary);
+    min-width: 160px;
+    flex-shrink: 0;
+    font-size: 13px;
+}
+.cq-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 122, 255, 0.1);
+    color: var(--apple-blue);
+    border: 1px solid rgba(0, 122, 255, 0.2);
+    border-radius: 6px;
+    padding: 2px 9px;
+    font-size: 12px;
+    font-weight: 500;
+    margin: 2px 3px 2px 0;
+}
+
+/* ── Export Buttons (Step 6) ──────────────────────────── */
+.cq-export-group {
+    display: flex;
+    gap: 10px;
+    padding: 16px 20px 20px;
+    flex-wrap: wrap;
+}
+.cq-export-group.hidden { display: none; }
+.cq-export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    padding: 10px 20px;
+    border-radius: 10px;
+}
+
+/* ── Recent Quote Items (rendered by JS) ──────────────── */
 .cq-recent-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     padding: 10px 14px;
-    margin-bottom: 8px;
-    background: var(--bg-card);
+    background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: 10px;
-    flex-wrap: wrap;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background 0.18s ease;
 }
-
+.cq-recent-item:hover {
+    border-color: var(--apple-blue);
+    background: var(--bg-card);
+}
 .cq-recent-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
     flex: 1;
-    min-width: 0;
 }
-
 .cq-recent-info strong {
+    display: block;
     font-size: 14px;
     color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-weight: 600;
 }
-
-.cq-recent-info .hint {
+.cq-recent-info span {
     font-size: 12px;
-    color: var(--text-secondary);
-    margin: 0;
+    color: var(--text-tertiary);
 }
 
-/* ── Textarea ─────────────────────────────────────────────── */
-#cq-app .form-textarea {
-    resize: vertical;
-    min-height: 80px;
+/* ── Step Footer ──────────────────────────────────────── */
+.cq-step-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 24px;
+    gap: 12px;
+}
+.cq-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    padding: 10px 22px;
+    border-radius: 10px;
+}
+.cq-nav-btn.hidden { visibility: hidden; pointer-events: none; }
+.cq-step-counter {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    letter-spacing: 0.03em;
 }
 
-/* ── Responsive ───────────────────────────────────────────── */
-@media (max-width: 520px) {
-    .cq-export-group {
-        flex-direction: column;
-    }
+/* ── Dark Mode ────────────────────────────────────────── */
+body.dark-mode .cq-dot-inner {
+    background: #2C2C2E;
+}
+body.dark-mode .cq-coverage-row {
+    background: #1C1C1E;
+}
+body.dark-mode .cq-coverage-row:has(.cq-cov-check:checked) {
+    background: rgba(10, 132, 255, 0.08);
+}
+body.dark-mode .cq-toggle-track {
+    background: #3A3A3C;
+}
+body.dark-mode .cq-toggle-thumb {
+    background: #E5E5EA;
+}
+body.dark-mode .cq-yn-btn span {
+    background: #2C2C2E;
+    border-color: #38383A;
+}
+body.dark-mode .cq-feature-pill {
+    background: #2C2C2E;
+    border-color: #38383A;
+}
+body.dark-mode .cq-recent-item {
+    background: #2C2C2E;
+    border-color: #38383A;
+}
+body.dark-mode .cq-recent-item:hover {
+    background: #1C1C1E;
+    border-color: var(--apple-blue);
+}
+body.dark-mode .cq-coverage-detail {
+    background: #2C2C2E;
+}
+body.dark-mode .cq-sub-detail-inner {
+    background: #2C2C2E;
+    border-color: #38383A;
+}
 
-    .cq-yn-row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 600px) {
+    .form-grid-2,
+    .form-grid-3 { grid-template-columns: 1fr; gap: 0; }
 
-    .cq-step-footer {
-        flex-direction: row;
-    }
+    .cq-step-track { min-width: 360px; }
+    .cq-dot-inner { width: 30px; height: 30px; font-size: 12px; }
+    .cq-dot-label { display: none; }
+    .cq-step-track::before { top: 15px; left: 15px; right: 15px; }
 
-    .cq-summary-label {
-        min-width: 110px;
-    }
+    .cq-cov-label { gap: 10px; padding: 12px; }
+    .cq-cov-icon { font-size: 18px; width: 26px; }
+    .cq-cov-name { font-size: 13px; }
+    .cq-cov-sub { display: none; }
+
+    .cq-yn-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+    .cq-export-group { flex-direction: column; }
+    .cq-export-btn { width: 100%; justify-content: center; }
+
+    .cq-welcome-card { padding: 24px 16px; }
+    .cq-welcome-icon { font-size: 36px; }
+
+    .cq-step-footer { padding: 12px 16px 20px; }
+    .cq-nav-btn { padding: 9px 16px; }
+}
+
+@media (max-width: 380px) {
+    .cq-dot-inner { width: 26px; height: 26px; font-size: 11px; }
+    .cq-step-track::before { top: 13px; left: 13px; right: 13px; }
 }

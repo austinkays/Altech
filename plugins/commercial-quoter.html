@@ -18,28 +18,66 @@
                 </button>
             </div>
         </div>
+        <div id="cq-step-title" class="step-title">Commercial Lines Intake</div>
+        <div class="progress-track"><div id="cq-progress-bar" class="progress-fill" style="width:0%"></div></div>
     </header>
-
-    <!-- Step indicator dots -->
-    <nav class="cq-step-nav" aria-label="Commercial quoter steps">
-        <span class="cq-dot active" aria-label="Step 0: Start"></span>
-        <span class="cq-dot" aria-label="Step 1: Business Info"></span>
-        <span class="cq-dot" aria-label="Step 2: Coverage Types"></span>
-        <span class="cq-dot" aria-label="Step 3: Locations"></span>
-        <span class="cq-dot" aria-label="Step 4: Owner &amp; Background"></span>
-        <span class="cq-dot" aria-label="Step 5: Prior Insurance"></span>
-        <span class="cq-dot" aria-label="Step 6: Review &amp; Export"></span>
-    </nav>
 
     <main id="cq-app">
 
+        <!-- Step indicator — inside #cq-app so JS can find .cq-dot elements -->
+        <nav class="cq-step-nav" aria-label="Commercial quoter steps">
+            <div class="cq-step-track">
+                <span class="cq-dot active" aria-current="step" aria-label="Step 1: Quick Start">
+                    <span class="cq-dot-inner">1</span>
+                    <span class="cq-dot-label">Start</span>
+                </span>
+                <span class="cq-dot" aria-current="false" aria-label="Step 2: Business Info">
+                    <span class="cq-dot-inner">2</span>
+                    <span class="cq-dot-label">Business</span>
+                </span>
+                <span class="cq-dot" aria-current="false" aria-label="Step 3: Coverage Types">
+                    <span class="cq-dot-inner">3</span>
+                    <span class="cq-dot-label">Coverage</span>
+                </span>
+                <span class="cq-dot" aria-current="false" aria-label="Step 4: Locations">
+                    <span class="cq-dot-inner">4</span>
+                    <span class="cq-dot-label">Locations</span>
+                </span>
+                <span class="cq-dot" aria-current="false" aria-label="Step 5: Owner &amp; Background">
+                    <span class="cq-dot-inner">5</span>
+                    <span class="cq-dot-label">Background</span>
+                </span>
+                <span class="cq-dot" aria-current="false" aria-label="Step 6: Prior Insurance">
+                    <span class="cq-dot-inner">6</span>
+                    <span class="cq-dot-label">Insurance</span>
+                </span>
+                <span class="cq-dot" aria-current="false" aria-label="Step 7: Review &amp; Export">
+                    <span class="cq-dot-inner">7</span>
+                    <span class="cq-dot-label">Review</span>
+                </span>
+            </div>
+        </nav>
+
         <!-- ═══ STEP 0: QUICK START ═══════════════════════════════════════ -->
         <div id="cq-step-0" class="cq-step">
+            <div class="card cq-welcome-card">
+                <div class="cq-welcome-icon">🏢</div>
+                <h2>Commercial Lines Intake</h2>
+                <p class="section-subtitle">Build a complete commercial insurance profile for export to HawkSoft or PDF in 7 guided steps.</p>
+                <button class="btn btn-primary cq-start-btn" onclick="CommercialQuoter.newQuote()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New Commercial Quote
+                </button>
+                <div class="cq-features">
+                    <span class="cq-feature-pill">🛡️ CGL</span>
+                    <span class="cq-feature-pill">⚖️ E&amp;O</span>
+                    <span class="cq-feature-pill">🚗 Auto</span>
+                    <span class="cq-feature-pill">🏢 Property</span>
+                    <span class="cq-feature-pill">📦 BPP</span>
+                </div>
+            </div>
             <div class="card">
-                <h2 class="card-title">Commercial Lines Intake</h2>
-                <p class="hint">Start a new commercial quote or load a recent one.</p>
-                <button class="btn btn-primary" style="margin-bottom:16px" onclick="CommercialQuoter.newQuote()">+ New Commercial Quote</button>
-                <div class="section-title">Recent Quotes</div>
+                <h2>📋 Recent Commercial Quotes</h2>
                 <div id="cq-recent-list"></div>
             </div>
         </div>
@@ -47,18 +85,17 @@
         <!-- ═══ STEP 1: BUSINESS INFO ════════════════════════════════════ -->
         <div id="cq-step-1" class="cq-step hidden">
             <div class="card">
-                <h2 class="card-title">Business Information</h2>
+                <h2>🏢 Business Information</h2>
+                <p class="section-subtitle">Legal name, contact details, and business history</p>
 
                 <div class="form-row">
-                    <label class="form-label" for="cq_bizName">Business Legal Name *</label>
+                    <label class="form-label" for="cq_bizName">Business Legal Name <span class="cq-required">*</span></label>
                     <input id="cq_bizName" type="text" class="form-input" placeholder="ACME Contractors LLC" autocomplete="organization">
                 </div>
-
                 <div class="form-row">
-                    <label class="form-label" for="cq_contactName">Primary Contact Name *</label>
+                    <label class="form-label" for="cq_contactName">Primary Contact Name <span class="cq-required">*</span></label>
                     <input id="cq_contactName" type="text" class="form-input" placeholder="Jane Smith" autocomplete="name">
                 </div>
-
                 <div class="form-grid form-grid-2">
                     <div class="form-row">
                         <label class="form-label" for="cq_contactEmail">Contact Email</label>
@@ -97,6 +134,10 @@
                         <input id="cq_dateStarted" type="date" class="form-input">
                     </div>
                     <div class="form-row">
+                        <label class="form-label" for="cq_effectiveDate">Desired Effective Date</label>
+                        <input id="cq_effectiveDate" type="date" class="form-input">
+                    </div>
+                    <div class="form-row">
                         <label class="form-label" for="cq_yrsIndustry">Years in Industry</label>
                         <input id="cq_yrsIndustry" type="number" class="form-input" placeholder="5" min="0">
                     </div>
@@ -104,13 +145,6 @@
                         <label class="form-label" for="cq_yrsMgtExp">Years Mgmt Experience</label>
                         <input id="cq_yrsMgtExp" type="number" class="form-input" placeholder="3" min="0">
                     </div>
-                    <div class="form-row">
-                        <label class="form-label" for="cq_effectiveDate">Desired Effective Date</label>
-                        <input id="cq_effectiveDate" type="date" class="form-input">
-                    </div>
-                </div>
-
-                <div class="form-grid form-grid-2">
                     <div class="form-row">
                         <label class="form-label" for="cq_annualReceiptsEst">Annual Receipts (Est.)</label>
                         <input id="cq_annualReceiptsEst" type="text" class="form-input" placeholder="$500,000">
@@ -120,7 +154,6 @@
                         <input id="cq_annualReceiptsPrior" type="text" class="form-input" placeholder="$450,000">
                     </div>
                 </div>
-
                 <div class="form-row">
                     <label class="form-label" for="cq_marketingAgent">Marketing Agent / Rep</label>
                     <input id="cq_marketingAgent" type="text" class="form-input" placeholder="Agent name">
@@ -131,14 +164,19 @@
         <!-- ═══ STEP 2: COVERAGE TYPES ═══════════════════════════════════ -->
         <div id="cq-step-2" class="cq-step hidden">
             <div class="card">
-                <h2 class="card-title">Coverage Types</h2>
-                <p class="hint">Select all coverage types needed. Fill in details for each selected line.</p>
+                <h2>📋 Coverage Types</h2>
+                <p class="section-subtitle">Toggle each coverage line needed — details will expand when selected</p>
 
                 <!-- General Liability -->
                 <div class="cq-coverage-row">
                     <label class="cq-cov-label">
+                        <span class="cq-cov-icon">🛡️</span>
+                        <span class="cq-cov-meta">
+                            <span class="cq-cov-name">General Liability (CGL)</span>
+                            <span class="cq-cov-sub">Occurrence &amp; aggregate limits, property damage</span>
+                        </span>
                         <input id="cq_covGL" type="checkbox" class="cq-cov-check">
-                        <span>General Liability (CGL)</span>
+                        <span class="cq-toggle-track"><span class="cq-toggle-thumb"></span></span>
                     </label>
                     <div class="cq-coverage-detail hidden">
                         <div class="form-grid form-grid-3">
@@ -161,8 +199,13 @@
                 <!-- Bond -->
                 <div class="cq-coverage-row">
                     <label class="cq-cov-label">
+                        <span class="cq-cov-icon">🔗</span>
+                        <span class="cq-cov-meta">
+                            <span class="cq-cov-name">Bond</span>
+                            <span class="cq-cov-sub">Contractor license, surety, or fidelity bond</span>
+                        </span>
                         <input id="cq_covBond" type="checkbox" class="cq-cov-check">
-                        <span>Bond</span>
+                        <span class="cq-toggle-track"><span class="cq-toggle-thumb"></span></span>
                     </label>
                     <div class="cq-coverage-detail hidden">
                         <div class="form-grid form-grid-2">
@@ -181,8 +224,13 @@
                 <!-- Professional Liability -->
                 <div class="cq-coverage-row">
                     <label class="cq-cov-label">
+                        <span class="cq-cov-icon">⚖️</span>
+                        <span class="cq-cov-meta">
+                            <span class="cq-cov-name">Professional Liability (E&amp;O)</span>
+                            <span class="cq-cov-sub">Errors &amp; omissions, retroactive date</span>
+                        </span>
                         <input id="cq_covPL" type="checkbox" class="cq-cov-check">
-                        <span>Professional Liability (E&amp;O)</span>
+                        <span class="cq-toggle-track"><span class="cq-toggle-thumb"></span></span>
                     </label>
                     <div class="cq-coverage-detail hidden">
                         <div class="form-grid form-grid-3">
@@ -205,8 +253,13 @@
                 <!-- Business Auto -->
                 <div class="cq-coverage-row">
                     <label class="cq-cov-label">
+                        <span class="cq-cov-icon">🚗</span>
+                        <span class="cq-cov-meta">
+                            <span class="cq-cov-name">Business Auto</span>
+                            <span class="cq-cov-sub">Commercial vehicle fleet, BI/PD limits</span>
+                        </span>
                         <input id="cq_covBA" type="checkbox" class="cq-cov-check">
-                        <span>Business Auto</span>
+                        <span class="cq-toggle-track"><span class="cq-toggle-thumb"></span></span>
                     </label>
                     <div class="cq-coverage-detail hidden">
                         <div class="form-grid form-grid-2">
@@ -230,11 +283,16 @@
                     </div>
                 </div>
 
-                <!-- Property -->
+                <!-- Commercial Property -->
                 <div class="cq-coverage-row">
                     <label class="cq-cov-label">
+                        <span class="cq-cov-icon">🏗️</span>
+                        <span class="cq-cov-meta">
+                            <span class="cq-cov-name">Commercial Property</span>
+                            <span class="cq-cov-sub">Building value, contents, construction type</span>
+                        </span>
                         <input id="cq_covProp" type="checkbox" class="cq-cov-check">
-                        <span>Commercial Property</span>
+                        <span class="cq-toggle-track"><span class="cq-toggle-thumb"></span></span>
                     </label>
                     <div class="cq-coverage-detail hidden">
                         <div class="form-grid form-grid-2">
@@ -269,8 +327,13 @@
                 <!-- Business Personal Property -->
                 <div class="cq-coverage-row">
                     <label class="cq-cov-label">
+                        <span class="cq-cov-icon">📦</span>
+                        <span class="cq-cov-meta">
+                            <span class="cq-cov-name">Business Personal Property (BPP)</span>
+                            <span class="cq-cov-sub">Equipment, furniture, inventory at location</span>
+                        </span>
                         <input id="cq_covBPP" type="checkbox" class="cq-cov-check">
-                        <span>Business Personal Property (BPP)</span>
+                        <span class="cq-toggle-track"><span class="cq-toggle-thumb"></span></span>
                     </label>
                     <div class="cq-coverage-detail hidden">
                         <div class="form-grid form-grid-2">
@@ -289,8 +352,13 @@
                 <!-- Inland Marine -->
                 <div class="cq-coverage-row">
                     <label class="cq-cov-label">
+                        <span class="cq-cov-icon">⚓</span>
+                        <span class="cq-cov-meta">
+                            <span class="cq-cov-name">Inland Marine</span>
+                            <span class="cq-cov-sub">Moveable equipment, tools, specialized items</span>
+                        </span>
                         <input id="cq_covIM" type="checkbox" class="cq-cov-check">
-                        <span>Inland Marine</span>
+                        <span class="cq-toggle-track"><span class="cq-toggle-thumb"></span></span>
                     </label>
                     <div class="cq-coverage-detail hidden">
                         <div class="form-grid form-grid-2">
@@ -306,11 +374,16 @@
                     </div>
                 </div>
 
-                <!-- Cargo -->
+                <!-- Motor Truck Cargo -->
                 <div class="cq-coverage-row">
                     <label class="cq-cov-label">
+                        <span class="cq-cov-icon">🚛</span>
+                        <span class="cq-cov-meta">
+                            <span class="cq-cov-name">Motor Truck Cargo</span>
+                            <span class="cq-cov-sub">Cargo liability for goods in transit</span>
+                        </span>
                         <input id="cq_covCargo" type="checkbox" class="cq-cov-check">
-                        <span>Motor Truck Cargo</span>
+                        <span class="cq-toggle-track"><span class="cq-toggle-thumb"></span></span>
                     </label>
                     <div class="cq-coverage-detail hidden">
                         <div class="form-grid form-grid-3">
@@ -336,7 +409,8 @@
         <!-- ═══ STEP 3: LOCATIONS ════════════════════════════════════════ -->
         <div id="cq-step-3" class="cq-step hidden">
             <div class="card">
-                <h2 class="card-title">Locations &amp; Operations</h2>
+                <h2>📍 Locations &amp; Operations</h2>
+                <p class="section-subtitle">Where the business operates and what it does</p>
 
                 <div class="form-grid form-grid-2">
                     <div class="form-row">
@@ -386,7 +460,8 @@
         <!-- ═══ STEP 4: OWNER & BACKGROUND ══════════════════════════════ -->
         <div id="cq-step-4" class="cq-step hidden">
             <div class="card">
-                <h2 class="card-title">Owner &amp; Background</h2>
+                <h2>👤 Owner &amp; Background</h2>
+                <p class="section-subtitle">Owner details, workforce, and underwriting questions</p>
 
                 <div class="form-grid form-grid-2">
                     <div class="form-row">
@@ -398,12 +473,10 @@
                         <input id="cq_ownerDOB" type="date" class="form-input">
                     </div>
                 </div>
-
                 <div class="form-row">
                     <label class="form-label" for="cq_ownerNames">Owner Name(s)</label>
                     <input id="cq_ownerNames" type="text" class="form-input" placeholder="John Doe, Jane Doe">
                 </div>
-
                 <div class="form-row">
                     <label class="form-label" for="cq_ownerHomeAddress">Primary Owner Home Address</label>
                     <input id="cq_ownerHomeAddress" type="text" class="form-input" placeholder="456 Oak Ave, Portland OR 97202" autocomplete="off">
@@ -411,27 +484,27 @@
 
                 <div class="section-title">Background Questions</div>
 
-                <div class="form-row cq-yn-row">
-                    <span class="form-label">Prior felony conviction (any owner/officer)?</span>
+                <div class="cq-yn-row">
+                    <span class="cq-yn-question">Prior felony conviction (any owner/officer)?</span>
                     <span class="cq-radio-group">
-                        <label><input type="radio" id="cq_convicted_y" name="cq_convicted" value="Y"> Yes</label>
-                        <label><input type="radio" id="cq_convicted_n" name="cq_convicted" value="N"> No</label>
+                        <label class="cq-yn-btn"><input type="radio" id="cq_convicted_y" name="cq_convicted" value="Y"><span>Yes</span></label>
+                        <label class="cq-yn-btn"><input type="radio" id="cq_convicted_n" name="cq_convicted" value="N"><span>No</span></label>
                     </span>
                 </div>
 
-                <div class="form-row cq-yn-row">
-                    <span class="form-label">Bankruptcy in last 5 years?</span>
+                <div class="cq-yn-row">
+                    <span class="cq-yn-question">Bankruptcy in last 5 years?</span>
                     <span class="cq-radio-group">
-                        <label><input type="radio" id="cq_bankruptcy_y" name="cq_bankruptcy" value="Y"> Yes</label>
-                        <label><input type="radio" id="cq_bankruptcy_n" name="cq_bankruptcy" value="N"> No</label>
+                        <label class="cq-yn-btn"><input type="radio" id="cq_bankruptcy_y" name="cq_bankruptcy" value="Y"><span>Yes</span></label>
+                        <label class="cq-yn-btn"><input type="radio" id="cq_bankruptcy_n" name="cq_bankruptcy" value="N"><span>No</span></label>
                     </span>
                 </div>
 
-                <div class="form-row cq-yn-row">
-                    <span class="form-label">Pending lawsuits against the business?</span>
+                <div class="cq-yn-row">
+                    <span class="cq-yn-question">Pending lawsuits against the business?</span>
                     <span class="cq-radio-group">
-                        <label><input type="radio" id="cq_lawsuits_y" name="cq_lawsuits" value="Y"> Yes</label>
-                        <label><input type="radio" id="cq_lawsuits_n" name="cq_lawsuits" value="N"> No</label>
+                        <label class="cq-yn-btn"><input type="radio" id="cq_lawsuits_y" name="cq_lawsuits" value="Y"><span>Yes</span></label>
+                        <label class="cq-yn-btn"><input type="radio" id="cq_lawsuits_n" name="cq_lawsuits" value="N"><span>No</span></label>
                     </span>
                 </div>
 
@@ -452,39 +525,41 @@
                     </div>
                 </div>
 
-                <div class="form-row cq-yn-row">
-                    <span class="form-label">Use subcontractors?</span>
+                <div class="cq-yn-row">
+                    <span class="cq-yn-question">Use subcontractors?</span>
                     <span class="cq-radio-group">
-                        <label><input type="radio" id="cq_sub_y" name="cq_hasSubcontractors" value="Y"> Yes</label>
-                        <label><input type="radio" id="cq_sub_n" name="cq_hasSubcontractors" value="N"> No</label>
+                        <label class="cq-yn-btn"><input type="radio" id="cq_sub_y" name="cq_hasSubcontractors" value="Y"><span>Yes</span></label>
+                        <label class="cq-yn-btn"><input type="radio" id="cq_sub_n" name="cq_hasSubcontractors" value="N"><span>No</span></label>
                     </span>
                 </div>
 
                 <div id="cq-sub-detail" class="hidden">
-                    <div class="form-grid form-grid-2">
-                        <div class="form-row">
-                            <label class="form-label" for="cq_subcontractingCosts">Annual Subcontracting Costs</label>
-                            <input id="cq_subcontractingCosts" type="text" class="form-input" placeholder="$50,000">
-                        </div>
-                        <div class="form-row">
-                            <label class="form-label" for="cq_obtainCerts">Obtain COIs from subs?</label>
-                            <select id="cq_obtainCerts" class="form-input form-select">
-                                <option value="">Select…</option>
-                                <option value="Always">Always</option>
-                                <option value="Sometimes">Sometimes</option>
-                                <option value="Never">Never</option>
-                            </select>
+                    <div class="cq-sub-detail-inner">
+                        <div class="form-grid form-grid-2">
+                            <div class="form-row">
+                                <label class="form-label" for="cq_subcontractingCosts">Annual Subcontracting Costs</label>
+                                <input id="cq_subcontractingCosts" type="text" class="form-input" placeholder="$50,000">
+                            </div>
+                            <div class="form-row">
+                                <label class="form-label" for="cq_obtainCerts">Obtain COIs from subs?</label>
+                                <select id="cq_obtainCerts" class="form-input form-select">
+                                    <option value="">Select…</option>
+                                    <option value="Always">Always</option>
+                                    <option value="Sometimes">Sometimes</option>
+                                    <option value="Never">Never</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
 
         <!-- ═══ STEP 5: PRIOR INSURANCE ══════════════════════════════════ -->
         <div id="cq-step-5" class="cq-step hidden">
             <div class="card">
-                <h2 class="card-title">Prior Insurance</h2>
+                <h2>📄 Prior Insurance</h2>
+                <p class="section-subtitle">Current coverage, expiration, and claims history</p>
 
                 <div class="form-grid form-grid-2">
                     <div class="form-row">
@@ -514,37 +589,49 @@
                     <label class="form-label" for="cq_insuranceClaims">Claims History (last 5 years)</label>
                     <textarea id="cq_insuranceClaims" class="form-input form-textarea" rows="4" placeholder="List any claims: date, type, amount paid. Enter 'None' if no claims."></textarea>
                 </div>
-
             </div>
         </div>
 
         <!-- ═══ STEP 6: REVIEW & EXPORT ══════════════════════════════════ -->
         <div id="cq-step-6" class="cq-step hidden">
-            <div class="card">
-                <h2 class="card-title">Review &amp; Export</h2>
+            <div class="card cq-review-card">
+                <div class="cq-review-header">
+                    <span class="cq-review-icon">✅</span>
+                    <div>
+                        <h2>Review &amp; Export</h2>
+                        <p class="section-subtitle">Verify all details before exporting to HawkSoft or PDF</p>
+                    </div>
+                </div>
                 <div id="cq-summary"></div>
             </div>
 
             <div id="cq-export-group" class="cq-export-group hidden">
-                <button class="btn btn-primary" onclick="CommercialQuoter.exportPDF()">
+                <button class="btn btn-primary cq-export-btn" onclick="CommercialQuoter.exportPDF()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                     Export PDF
                 </button>
-                <button class="btn btn-secondary" onclick="CommercialQuoter.exportCMSMTF()">
+                <button class="btn btn-secondary cq-export-btn" onclick="CommercialQuoter.exportCMSMTF()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                     HawkSoft (.CMSMTF)
                 </button>
-                <button class="btn" onclick="CommercialQuoter.saveQuote()">
+                <button class="btn cq-export-btn" onclick="CommercialQuoter.saveQuote()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                     Save to History
                 </button>
             </div>
         </div>
 
-        <!-- ═══ STEP FOOTER (navigation) ═════════════════════════════════ -->
+        <!-- ═══ STEP FOOTER ═══════════════════════════════════════════════ -->
         <div class="cq-step-footer">
-            <button id="cq-btn-prev" class="btn hidden" onclick="CommercialQuoter.prev()">← Back</button>
-            <button id="cq-btn-next" class="btn btn-primary" onclick="CommercialQuoter.next()">Next →</button>
+            <button id="cq-btn-prev" class="btn cq-nav-btn hidden" onclick="CommercialQuoter.prev()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                Back
+            </button>
+            <span class="cq-step-counter" id="cq-step-counter">1 / 7</span>
+            <button id="cq-btn-next" class="btn btn-primary cq-nav-btn" onclick="CommercialQuoter.next()">
+                Continue
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
         </div>
 
     </main>
