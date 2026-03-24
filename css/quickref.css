@@ -247,6 +247,38 @@
 }
 .qr-number-row:hover .qr-number-actions { opacity: 1; }
 
+/* ── Quick Emojis ── */
+.qr-emoji-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+.qr-emoji-btn {
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    white-space: nowrap;
+    font-family: inherit;
+}
+.qr-emoji-btn:hover {
+    border-color: #0d9488;
+    background: color-mix(in srgb, #0d9488 10%, var(--bg-card));
+}
+.qr-emoji-btn:active { transform: scale(0.96); }
+.qr-emoji-btn.copied {
+    background: rgba(5, 150, 105, 0.15);
+    color: #059669;
+    border-color: #059669;
+}
+.qr-emoji-btn:focus-visible { outline: 2px solid var(--apple-blue); outline-offset: 2px; }
+
 /* ── Desktop enhancements ── */
 @media (min-width: 960px) {
     .qr-container {

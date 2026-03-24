@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-28 — feat(quickref): add Quick Emojis clipboard section
+- **feat(quickref):** Added Quick Emojis card above Quick Dial Numbers in the Quick Reference plugin
+  - `plugins/quickref.html` — new `.card` block with 6 pill buttons (✅ Done, 📁 Logged, ⚠️ Pending, 🔄 Follow-up, ✉️ Emailed, 📞 Called)
+  - `js/quick-ref.js` — added `copyEmoji(emoji, btn)` method; copies to clipboard, flips button text to `✓ Copied!` for 1200ms, fires `App.toast('📋 Emoji copied')`
+  - `css/quickref.css` — added `.qr-emoji-grid` (flex-wrap) and `.qr-emoji-btn` (pill shape, teal accent `#0d9488`, dark-mode safe via CSS vars, `.copied` feedback state)
+- Tests: 1687 passed, 1 pre-existing failure (plugin-integration `dwellingCoverage` full-span — unrelated), 1688 total
+
 ## 2026-03-28 — Phases 3–5: FSC Notes additions + EZLynx coApplicant maritalStatus fix
 - **feat(hawksoft):** FSC Notes PROPERTY section — added `halfBaths` and `primaryHomeAddr` composite (addr, city, state, zip) to `_buildFscNotes()` in `js/hawksoft-export.js`
 - **feat(hawksoft):** FSC Notes ENDORSEMENTS section — added `homePersonalProperty`, `homeLossOfUse`, `increasedReplacementCost` at the top of the endorsements block

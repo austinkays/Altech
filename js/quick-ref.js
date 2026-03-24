@@ -368,6 +368,18 @@ const QuickRef = {
         App.toast('🗑️ Number removed');
     },
 
+    // ─── Quick Emojis ────────────────
+
+    copyEmoji(emoji, btn) {
+        navigator.clipboard.writeText(emoji).then(() => {
+            const orig = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1200);
+            App.toast('📋 Emoji copied');
+        });
+    },
+
     // ─── Helpers ────────────────────
 
     escHtml(text) {

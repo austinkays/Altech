@@ -86,7 +86,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── onboarding.css          # First-run wizard (411 lines)
 │   ├── admin.css               # Admin panel (300 lines)
 │   ├── bug-report.css          # Bug reporter (227 lines)
-│   ├── quickref.css            # Quick reference — teal accent + editable number rows (294 lines)
+│   ├── quickref.css            # Quick reference — teal accent + editable number rows (326 lines)
 │   ├── security-info.css       # Security modal (217 lines)
 │   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, polished form/toolbar, card grid, dark mode (468 lines)
 │   ├── email.css               # Email composer — purple accent + custom prompt styles (256 lines)
