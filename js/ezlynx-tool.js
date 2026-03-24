@@ -291,7 +291,7 @@ const EZLynxTool = {
                 MiddleName: '',
                 DOB: appData.coDob || '',
                 Gender: appData.coGender || '',
-                MaritalStatus: appData.maritalStatus || '',
+                MaritalStatus: appData.coMaritalStatus || '',
                 Relationship: appData.coRelationship || '',
                 Prefix: '',
                 Suffix: '',

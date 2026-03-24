@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-28 — Phases 3–5: FSC Notes additions + EZLynx coApplicant maritalStatus fix
+- **feat(hawksoft):** FSC Notes PROPERTY section — added `halfBaths` and `primaryHomeAddr` composite (addr, city, state, zip) to `_buildFscNotes()` in `js/hawksoft-export.js`
+- **feat(hawksoft):** FSC Notes ENDORSEMENTS section — added `homePersonalProperty`, `homeLossOfUse`, `increasedReplacementCost` at the top of the endorsements block
+- **feat(hawksoft):** FSC Notes CLIENT section (new) — added `coMaritalStatus` in a new dedicated CLIENT section between PROPERTY and ENDORSEMENTS
+- **feat(hawksoft):** FSC Notes NOTES/risk section — added `creditCheckAuth` after `towingDeductible`
+- **fix(ezlynx):** CoApplicant fallback block in `js/ezlynx-tool.js` now correctly uses `appData.coMaritalStatus` (was incorrectly reading primary applicant `appData.maritalStatus`)
+- Tests: 256 passed, 256 total (3 suites: hawksoft-logger, ezlynx-extension-fill, ezlynx-pipeline)
+
 ## 2026-03-28 — Phase 2: HawkSoft CMSMTF structured block — wire 5 missing fields
 - **feat(hawksoft):** Wired 5 previously-empty fields in `js/hawksoft-export.js` `_loadFromData()`:
   - `gen_cInitial` — now reads `d.middleName.charAt(0)` (was always `''`)

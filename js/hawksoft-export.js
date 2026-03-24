@@ -101,6 +101,7 @@ window.HawkSoftExport = (() => {
         if (d.numStories) prop.push(`${FIELD_BY_ID['numStories'].label}: ${d.numStories}`);
         if (d.bedrooms) prop.push(`${FIELD_BY_ID['bedrooms'].label}: ${d.bedrooms}`);
         if (d.fullBaths) prop.push(`${FIELD_BY_ID['fullBaths'].label}: ${d.fullBaths}`);
+        if (d.halfBaths) prop.push(`${FIELD_BY_ID['halfBaths'].label}: ${d.halfBaths}`);
         if (d.constructionStyle) prop.push(`${FIELD_BY_ID['constructionStyle'].label}: ${d.constructionStyle}`);
         if (d.exteriorWalls) prop.push(`${FIELD_BY_ID['exteriorWalls'].label}: ${d.exteriorWalls}`);
         if (d.foundation) prop.push(`${FIELD_BY_ID['foundation'].label}: ${d.foundation}`);
@@ -125,12 +126,21 @@ window.HawkSoftExport = (() => {
         if (d.purchaseDate) prop.push(`${FIELD_BY_ID['purchaseDate'].label}: ${d.purchaseDate}`);
         if (d.yearsAtAddress) prop.push(`${FIELD_BY_ID['yearsAtAddress'].label}: ${d.yearsAtAddress}`);
         if (d.previousAddrStreet) prop.push(`Previous Address: ${[d.previousAddrStreet, d.previousAddrCity, d.previousAddrState, d.previousAddrZip].filter(Boolean).join(', ')}`);
+        if (d.primaryHomeAddr) prop.push(`Primary Home: ${[d.primaryHomeAddr, d.primaryHomeCity, d.primaryHomeState, d.primaryHomeZip].filter(Boolean).join(', ')}`);
         if (d.numOccupants) prop.push(`${FIELD_BY_ID['numOccupants'].label}: ${d.numOccupants}`);
         if (d.windDeductible) prop.push(`${FIELD_BY_ID['windDeductible'].label}: ${d.windDeductible}`);
         if (prop.length) sections.push('PROPERTY\n' + prop.join('\n'));
 
+        // Co-Applicant Client Details
+        const clientFsc = [];
+        if (d.coMaritalStatus) clientFsc.push(`${FIELD_BY_ID['coMaritalStatus'].label}: ${d.coMaritalStatus}`);
+        if (clientFsc.length) sections.push('CLIENT\n' + clientFsc.join('\n'));
+
         // Home Endorsements
         const endorse = [];
+        if (d.homePersonalProperty) endorse.push(`${FIELD_BY_ID['homePersonalProperty'].label}: ${d.homePersonalProperty}`);
+        if (d.homeLossOfUse) endorse.push(`${FIELD_BY_ID['homeLossOfUse'].label}: ${d.homeLossOfUse}`);
+        if (d.increasedReplacementCost && d.increasedReplacementCost !== 'No') endorse.push(`${FIELD_BY_ID['increasedReplacementCost'].label}: ${d.increasedReplacementCost}`);
         if (d.waterBackup && d.waterBackup !== 'No') endorse.push(`${FIELD_BY_ID['waterBackup'].label}: ${d.waterBackup}`);
         if (d.lossAssessment) endorse.push(`${FIELD_BY_ID['lossAssessment'].label}: ${d.lossAssessment}`);
         if (d.animalLiability && d.animalLiability !== 'No') endorse.push(`${FIELD_BY_ID['animalLiability'].label}: ${d.animalLiability}`);
@@ -165,6 +175,7 @@ window.HawkSoftExport = (() => {
         if (d.tcpaConsent) risk.push(`${FIELD_BY_ID['tcpaConsent'].label}: ${d.tcpaConsent}`);
         if (d.rentalDeductible) risk.push(`${FIELD_BY_ID['rentalDeductible'].label}: ${d.rentalDeductible}`);
         if (d.towingDeductible) risk.push(`${FIELD_BY_ID['towingDeductible'].label}: ${d.towingDeductible}`);
+        if (d.creditCheckAuth) risk.push(`${FIELD_BY_ID['creditCheckAuth'].label}: ${d.creditCheckAuth}`);
         if (risk.length) sections.push('NOTES\n' + risk.join('\n'));
 
         // Per-driver incidents
