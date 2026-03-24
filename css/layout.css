@@ -421,7 +421,9 @@ body.dark-mode #breadcrumbBar {
     #step-4 > .card:only-child,
     #step-4 > button,
     #step-4 > .hint,
-    #step-4 > .btn-full {
+    #step-4 > .btn-full,
+    #step-4 > .non-owners-notice,
+    #step-4 > .card:not(#step4DriversCard):not(#step4VehiclesCard) {
         grid-column: 1 / -1;
     }
     .driver-vehicle-card {

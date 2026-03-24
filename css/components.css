@@ -1130,6 +1130,22 @@ body.dark-mode .quote-card.starred {
     border-color: var(--apple-blue);
     box-shadow: 0 4px 16px rgba(0, 122, 255, 0.08);
 }
+/* Stacked label-above-input layout — the 50/50 column split leaves each
+   grid-2 cell too narrow for side-by-side label+input. Override to stack. */
+.driver-vehicle-card .grid-2,
+.driver-vehicle-card .grid-3 {
+    margin-bottom: 10px;
+}
+.driver-vehicle-card .grid-2 > div,
+.driver-vehicle-card .grid-3 > div {
+    grid-template-columns: 1fr;
+    row-gap: 4px;
+}
+.driver-vehicle-card .grid-2 > div > .label,
+.driver-vehicle-card .grid-3 > div > .label {
+    text-align: left;
+    margin-bottom: 2px;
+}
 .driver-vehicle-header {
     display: flex;
     justify-content: space-between;
