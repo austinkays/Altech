@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-24 — Previous address label cleanup and Google autocomplete
+- **fix(quoting):** Removed redundant "Previous " prefix from the four field labels inside `#previousAddressBlock` — labels now read "Street Address", "City", "State", "ZIP"; the existing "Previous Address" section heading provides context
+- **plugins/quoting.html:** Updated 4 label strings (Previous Street Address → Street Address, Previous City → City, Previous State → State, Previous ZIP → ZIP)
+- **js/app-core.js:** Extended `initPlaces()` to also wire up a Google Places Autocomplete on `#previousAddrStreet`; on selection, auto-populates `previousAddrCity`, `previousAddrState`, `previousAddrZip` using the same session-token + `place_changed` pattern as the primary address
+
 ## 2026-03-23 — Previous address block (conditional on years at address)
 - **feat(quoting):** When "Years at Address" is "Less than 1 year", "1", or "2", a Previous Address block appears inline below the field; hides when ≥ 3 years or empty; triggers on change and restores on draft load
 - **plugins/quoting.html:** Added `onchange="App.togglePreviousAddress(this.value)"` to `#yearsAtAddress` select; inserted `#previousAddressBlock` div (hidden by default) with `previousAddrStreet`, `previousAddrCity`, `previousAddrState` (full 50-state select, no default), `previousAddrZip` — plain inputs, no autocomplete, no smart-fill buttons
