@@ -380,6 +380,7 @@ window.HawkSoftExport = (() => {
                 website: '',
                 businessType: '',
                 lobCode: 'CGL',
+                ownerSSN: '',
                 coverages: [
                     { name: 'General Liability', limits: '$1,000,000 / $2,000,000', deductible: '$0' },
                     { name: 'Products / Completed Ops', limits: '$1,000,000', deductible: '$0' },
@@ -505,6 +506,7 @@ window.HawkSoftExport = (() => {
         lines.push(_line('gen_sZip', c.zip));
         lines.push(_line('gen_sFEIN', isCommercial ? _exportData.commercial.fein : ''));
         lines.push(_line('gen_sBusinessLicense', isCommercial ? _exportData.commercial.businessLicense : ''));
+        lines.push(_line('gen_sSSN', isCommercial ? (_exportData.commercial.ownerSSN || '') : ''));
         lines.push(_line('gen_sClientSource', c.clientSource));
         lines.push(_line('gen_sClientNotes', c.clientNotes));
         lines.push(_line('gen_sNAICS', isCommercial ? _exportData.commercial.naics : ''));
@@ -960,6 +962,7 @@ window.HawkSoftExport = (() => {
             _exportData.commercial.website = el('hs_website');
             _exportData.commercial.businessType = el('hs_businessType');
             _exportData.commercial.lobCode = el('hs_lobCode');
+            _exportData.commercial.ownerSSN = el('hs_ownerSSN');
 
             // Read coverage rows
             const covContainer = document.getElementById('hs_coverageList');
@@ -1200,6 +1203,7 @@ window.HawkSoftExport = (() => {
                 <div class="hs-field"><label>SR-22</label>
                     <select data-field="sr22Filing"><option value="">No</option><option value="Y" ${d.sr22Filing === 'Y' ? 'selected' : ''}>Yes</option></select>
                 </div>
+                <div class="hs-field"><label>SSN</label><input type="password" data-field="ssn" value="${_val(d.ssn)}" placeholder="XXX-XX-XXXX" maxlength="11" autocomplete="off" inputmode="numeric"></div>
                 <div class="hs-field"><label>Filing State</label><input type="text" data-field="sr22State" value="${_val(d.sr22State)}" maxlength="2" style="text-transform:uppercase"></div>
                 <div class="hs-field"><label>Good Student</label>
                     <select data-field="goodStudent"><option value="No">No</option><option value="Yes" ${d.goodStudent === 'Yes' ? 'selected' : ''}>Yes</option></select>
@@ -1596,6 +1600,7 @@ window.HawkSoftExport = (() => {
                         </select>
                     </div>
                     <div class="hs-field"><label>FEIN</label><input id="hs_fein" value="${_val(cm.fein)}" placeholder="XX-XXXXXXX"></div>
+                    <div class="hs-field"><label>Principal Owner SSN</label><input id="hs_ownerSSN" type="password" value="${_val(cm.ownerSSN)}" placeholder="XXX-XX-XXXX" maxlength="11" autocomplete="off" inputmode="numeric"></div>
                     <div class="hs-field"><label>Business License</label><input id="hs_businessLicense" value="${_val(cm.businessLicense)}"></div>
                     <div class="hs-field"><label>NAICS Code</label><input id="hs_naics" value="${_val(cm.naics)}" placeholder="e.g. 524210"></div>
                     <div class="hs-field"><label>Website</label><input id="hs_website" value="${_val(cm.website)}" placeholder="https://"></div>
