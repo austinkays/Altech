@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Select-String -Path \"C:\\\\Users\\\\austinkays\\\\Documents\\\\App Development\\\\Altech\\\\plugins\\\\commercial-quoter.html\" -Pattern \"export|pdf|print\" -CaseSensitive:$false)",
+      "Bash(Select-Object -First 30)"
+    ]
+  }
+}

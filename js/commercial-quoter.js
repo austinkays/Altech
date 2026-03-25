@@ -109,71 +109,148 @@ window.CommercialQuoter = (() => {
             return;
         }
         const { jsPDF } = window.jspdf;
-        const doc     = new jsPDF();
-        const pageW   = doc.internal.pageSize.getWidth();
-        const margin  = 15;
-        let y         = 24;
+        const doc    = new jsPDF({ unit: 'mm', format: 'a4' });
+        const pageW  = doc.internal.pageSize.getWidth();
+        const pageH  = doc.internal.pageSize.getHeight();
+        const ML     = 12;      // left margin
+        const MR     = 12;      // right margin
+        const LABEL_W = 56;     // label column width (right-aligned)
+        const VALUE_X = ML + LABEL_W + 3.5;
+        const VALUE_W = pageW - VALUE_X - MR;
+        const LINE_H  = 4.3;    // line-height for 9pt body text
+        const FOOTER_RESERVE = 13;
 
-        function addLine(text, opts) {
-            opts = opts || {};
-            if (y > 272) { doc.addPage(); y = 20; }
-            const fs = opts.fontSize || 10;
-            doc.setFontSize(fs);
-            doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
-            doc.setTextColor.apply(doc, opts.color || [30, 30, 30]);
-            const lines = doc.splitTextToSize(String(text || ''), pageW - margin * 2);
-            doc.text(lines, margin, y);
-            y += lines.length * (fs * 0.42) + (opts.gap !== undefined ? opts.gap : 4);
+        let y = 0;
+        let rowIdx = 0;
+
+        // ── Palette ──────────────────────────────────────────────────────
+        const BLUE      = [0, 102, 204];
+        const BLUE_MID  = [0, 78, 168];
+        const BLUE_LT   = [224, 236, 255];
+        const WHITE     = [255, 255, 255];
+        const DARK      = [28, 28, 30];
+        const GRAY      = [105, 105, 110];
+        const ROW_ALT   = [247, 250, 255];
+        const DIVIDER   = [210, 218, 232];
+
+        // ── Helpers ──────────────────────────────────────────────────────
+
+        function checkBreak(needed) {
+            if (y + (needed || 8) > pageH - FOOTER_RESERVE) {
+                doc.addPage();
+                y = 12;
+                rowIdx = 0;
+            }
         }
 
         function sectionHeader(title) {
+            checkBreak(14);
             y += 4;
-            doc.setFillColor(0, 122, 255);
-            doc.rect(margin, y - 4, pageW - margin * 2, 9, 'F');
-            doc.setFontSize(10);
+            doc.setFillColor(...BLUE_MID);
+            doc.rect(ML, y, pageW - ML - MR, 8, 'F');
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(255, 255, 255);
-            doc.text(title, margin + 2, y + 2);
+            doc.setFontSize(8.5);
+            doc.setTextColor(...WHITE);
+            doc.text(title.toUpperCase(), ML + 3, y + 5.5);
             y += 12;
-            doc.setTextColor(30, 30, 30);
+            rowIdx = 0;
         }
 
-        function field(label, key) {
-            const v = _data[key];
-            if (v === undefined || v === null || v === '' || v === false) return;
-            addLine(label + ': ' + v);
+        // Two-column field row: right-aligned gray label | left-aligned dark value
+        function row(label, value) {
+            if (value === undefined || value === null || String(value).trim() === '' || value === false) return;
+            value = String(value);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            const lines = doc.splitTextToSize(value, VALUE_W);
+            const rh = Math.max(7, lines.length * LINE_H + 3);
+
+            checkBreak(rh);
+
+            if (rowIdx % 2 === 1) {
+                doc.setFillColor(...ROW_ALT);
+                doc.rect(ML, y, pageW - ML - MR, rh, 'F');
+            }
+
+            const ty = y + LINE_H + 0.3;   // text baseline
+
+            // Label
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(...GRAY);
+            doc.text(label, ML + LABEL_W, ty, { align: 'right' });
+
+            // Vertical divider
+            doc.setDrawColor(...DIVIDER);
+            doc.setLineWidth(0.25);
+            doc.line(ML + LABEL_W + 1.8, y + 1, ML + LABEL_W + 1.8, y + rh - 1);
+
+            // Value
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(...DARK);
+            doc.text(lines, VALUE_X, ty);
+
+            y += rh;
+            rowIdx++;
         }
 
-        // ── Header bar ──
-        doc.setFillColor(0, 122, 255);
-        doc.rect(0, 0, pageW, 15, 'F');
-        doc.setFontSize(12);
+        // Highlight row for selected coverage type names
+        function covRow(name) {
+            checkBreak(9);
+            doc.setFillColor(...BLUE_LT);
+            doc.rect(ML, y, pageW - ML - MR, 8, 'F');
+            doc.setFillColor(...BLUE);
+            doc.roundedRect(ML + 2, y + 2, 3.5, 4, 0.8, 0.8, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.setTextColor(...BLUE_MID);
+            doc.text(name, ML + 7.5, y + 5.5);
+            y += 9;
+            rowIdx = 0;
+        }
+
+        // ── Header ───────────────────────────────────────────────────────
+        doc.setFillColor(...BLUE);
+        doc.rect(0, 0, pageW, 20, 'F');
+
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(255, 255, 255);
-        doc.text('Commercial Insurance Intake', margin, 10);
-        const bizLabel = (_data.bizName || 'Unnamed').slice(0, 35);
+        doc.setFontSize(13);
+        doc.setTextColor(...WHITE);
+        doc.text('Commercial Insurance Intake', ML, 10);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(180, 210, 255);
+        const genDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        doc.text('Generated ' + genDate, ML, 16.5);
+
+        const bizLabel = (_data.bizName || 'Unnamed Business').slice(0, 42);
+        doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
-        doc.text(bizLabel, pageW - margin - doc.getTextWidth(bizLabel), 10);
-        y = 24;
+        doc.setTextColor(...WHITE);
+        doc.text(bizLabel, pageW - MR - doc.getTextWidth(bizLabel), 12);
 
-        // ── Business Info ──
+        y = 27;
+
+        // ── Business Info ─────────────────────────────────────────────────
         sectionHeader('Business Information');
-        field('Business Name', 'bizName');
-        field('Contact', 'contactName');
-        field('Email', 'contactEmail');
-        field('Phone', 'bizPhone');
-        field('Address', 'bizStreet');
+        row('Business Name', _data.bizName);
+        row('Contact', _data.contactName);
+        row('Email', _data.contactEmail);
+        row('Phone', _fmtPhone(_data.bizPhone));
+        row('Address', _data.bizStreet);
         const cityLine = [_data.bizCity, _data.bizState, _data.bizZip].filter(Boolean).join(', ');
-        if (cityLine) addLine('City/State/Zip: ' + cityLine);
-        field('Date Started', 'dateStarted');
-        field('Years in Industry', 'yrsIndustry');
-        field('Years Mgmt Exp', 'yrsMgtExp');
-        field('Annual Receipts (Est)', 'annualReceiptsEst');
-        field('Prior Year Receipts', 'annualReceiptsPrior');
-        field('Effective Date', 'effectiveDate');
-        field('Marketing Agent', 'marketingAgent');
+        if (cityLine) row('City / State / Zip', cityLine);
+        row('Date Started', _data.dateStarted);
+        row('Years in Industry', _data.yrsIndustry);
+        row('Yrs Mgmt Experience', _data.yrsMgtExp);
+        row('Annual Receipts (Est)', _fmtDollar(_data.annualReceiptsEst));
+        row('Prior Year Receipts', _fmtDollar(_data.annualReceiptsPrior));
+        row('Effective Date', _data.effectiveDate);
+        row('Marketing Agent', _data.marketingAgent);
 
-        // ── Coverage Types ──
+        // ── Coverage Types ────────────────────────────────────────────────
         sectionHeader('Coverage Types Selected');
         const covList = ['covGL','covBond','covPL','covBA','covProp','covBPP','covIM','covCargo'];
         const covNames = {
@@ -195,49 +272,64 @@ window.CommercialQuoter = (() => {
         covList.forEach(k => {
             if (!_data[k]) return;
             anyCov = true;
-            addLine('• ' + covNames[k], { bold: true });
+            covRow(covNames[k]);
             (detailMap[k] || []).forEach(pair => {
-                const sep   = pair.indexOf(':');
-                const fKey  = pair.slice(0, sep);
-                const fLabel= pair.slice(sep + 1);
-                if (_data[fKey]) addLine('    ' + fLabel + ': ' + _data[fKey], { color: [80, 80, 80] });
+                const sep    = pair.indexOf(':');
+                const fKey   = pair.slice(0, sep);
+                const fLabel = pair.slice(sep + 1);
+                if (_data[fKey]) row(fLabel, DOLLAR_KEYS.has(fKey) ? _fmtDollar(_data[fKey]) : _data[fKey]);
             });
         });
-        if (!anyCov) addLine('None selected');
+        if (!anyCov) row('Coverages', 'None selected');
 
-        // ── Locations ──
+        // ── Locations ─────────────────────────────────────────────────────
         sectionHeader('Locations & Property');
-        field('# Locations', 'numLocations');
-        field('States of Operation', 'statesOperate');
-        field('Countries', 'countriesOperate');
-        field('Own/Lease Building', 'ownLeaseBuild');
-        field('Building Value', 'buildingValue');
-        field('Location Address(es)', 'locAddress');
+        row('# Locations', _data.numLocations);
+        row('States of Operation', _data.statesOperate);
+        row('Countries', _data.countriesOperate);
+        row('Own / Lease Building', _data.ownLeaseBuild);
+        row('Building Value', _fmtDollar(_data.buildingValue));
+        row('Location Address(es)', _data.locAddress);
 
-        // ── Owner & Background ──
+        // ── Owner & Background ────────────────────────────────────────────
         sectionHeader('Owner & Background');
-        field('# Owners', 'numOwners');
-        field('Owner Name(s)', 'ownerNames');
-        field('Owner Home Address', 'ownerHomeAddress');
-        field('Owner DOB', 'ownerDOB');
-        field('Prior Conviction', 'convicted');
-        field('Bankruptcy', 'bankruptcy');
-        field('Lawsuits', 'lawsuits');
-        field('FT Employees', 'ftEmployees');
-        field('PT Employees', 'ptEmployees');
-        field('Payroll', 'payroll');
-        field('Subcontractors', 'hasSubcontractors');
+        row('# Owners', _data.numOwners);
+        row('Owner Name(s)', _data.ownerNames);
+        row('Owner Home Address', _data.ownerHomeAddress);
+        row('Owner DOB', _data.ownerDOB);
+        row('Prior Conviction', _data.convicted);
+        row('Bankruptcy', _data.bankruptcy);
+        row('Lawsuits', _data.lawsuits);
+        row('FT Employees', _data.ftEmployees);
+        row('PT Employees', _data.ptEmployees);
+        row('Payroll', _fmtDollar(_data.payroll));
+        row('Subcontractors', _data.hasSubcontractors);
         if (_data.hasSubcontractors === 'Y') {
-            field('Subcontracting Costs', 'subcontractingCosts');
-            field('Obtain Certs of Insurance', 'obtainCerts');
+            row('Subcontracting Costs', _fmtDollar(_data.subcontractingCosts));
+            row('Obtain Certs', _data.obtainCerts);
         }
 
-        // ── Prior Insurance ──
+        // ── Prior Insurance ───────────────────────────────────────────────
         sectionHeader('Prior Insurance');
-        field('Current Carrier', 'currentInsurance');
-        field('Policy Expiration', 'policyExpiration');
-        field('Reason for Quote', 'reasonForQuote');
-        field('Claims', 'insuranceClaims');
+        row('Current Carrier', _data.currentInsurance);
+        row('Policy Expiration', _data.policyExpiration);
+        row('Reason for Quote', _data.reasonForQuote);
+        row('Claims', _data.insuranceClaims);
+
+        // ── Footer on every page ──────────────────────────────────────────
+        const totalPages = doc.getNumberOfPages ? doc.getNumberOfPages() : doc.internal.pages.length - 1;
+        for (let p = 1; p <= totalPages; p++) {
+            doc.setPage(p);
+            doc.setDrawColor(...DIVIDER);
+            doc.setLineWidth(0.3);
+            doc.line(ML, pageH - 10, pageW - MR, pageH - 10);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.5);
+            doc.setTextColor(...GRAY);
+            doc.text('Altech Commercial Lines', ML, pageH - 6);
+            const pgStr = 'Page ' + p + ' of ' + totalPages;
+            doc.text(pgStr, pageW - MR - doc.getTextWidth(pgStr), pageH - 6);
+        }
 
         const safeName = (_data.bizName || 'Commercial').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
         doc.save(safeName + '_Commercial_Quote.pdf');
@@ -430,6 +522,43 @@ window.CommercialQuoter = (() => {
         }
     }
 
+    // ── Private — Formatting helpers ──────────────────────────────────────────
+
+    const DOLLAR_IDS = new Set([
+        'cq_annualReceiptsEst','cq_annualReceiptsPrior',
+        'cq_glOccLimit','cq_glAggLimit','cq_glDeductible',
+        'cq_bondAmount','cq_plLimit','cq_plDeductible',
+        'cq_baBILimits','cq_baPDLimit',
+        'cq_propBuildingValue','cq_propContentsValue','cq_propDeductible',
+        'cq_bppValue','cq_bppDeductible','cq_imValue','cq_cargoValue',
+        'cq_buildingValue','cq_payroll','cq_subcontractingCosts',
+    ]);
+
+    // Dollar keys without the "cq_" prefix, for use in exportPDF
+    const DOLLAR_KEYS = new Set([
+        'annualReceiptsEst','annualReceiptsPrior',
+        'glOccLimit','glAggLimit','glDeductible',
+        'bondAmount','plLimit','plDeductible',
+        'baBILimits','baPDLimit',
+        'propBuildingValue','propContentsValue','propDeductible',
+        'bppValue','bppDeductible','imValue','cargoValue',
+        'buildingValue','payroll','subcontractingCosts',
+    ]);
+
+    function _fmtDollar(val) {
+        const raw = String(val || '').replace(/[^0-9.]/g, '');
+        if (!raw) return String(val || '');
+        const num = parseFloat(raw);
+        if (isNaN(num)) return String(val || '');
+        return '$' + Math.round(num).toLocaleString('en-US');
+    }
+
+    function _fmtPhone(val) {
+        const d = String(val || '').replace(/\D/g, '').slice(0, 10);
+        if (d.length < 10) return String(val || '');
+        return '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6);
+    }
+
     // ── Private — UI ──────────────────────────────────────────────────────────
 
     function _collectFields() {
@@ -472,6 +601,18 @@ window.CommercialQuoter = (() => {
         if (sub) sub.classList.toggle('hidden', !el || el.value !== 'Y');
     }
 
+    // Pre-fill location address from business address when step 3 is first shown
+    function _autofillLocation() {
+        const locEl = document.getElementById('cq_locAddress');
+        if (!locEl || locEl.value.trim()) return;
+        const addr = [_data.bizStreet, _data.bizCity, _data.bizState, _data.bizZip]
+            .filter(Boolean).join(', ');
+        if (addr) {
+            locEl.value = addr;
+            _data.locAddress = addr;
+        }
+    }
+
     function _updateUI() {
         const app = document.getElementById('cq-app');
         if (!app) return;
@@ -512,6 +653,8 @@ window.CommercialQuoter = (() => {
         _populateFields();
         // Initialise Places autocomplete + map preview when on Business Info step
         if (_step === 1) setTimeout(_initCQPlaces, 50);
+        // Pre-fill location address from biz address on first visit to step 3
+        if (_step === 3) _autofillLocation();
     }
 
     function _renderStep0() {
@@ -596,6 +739,24 @@ window.CommercialQuoter = (() => {
     function _wireEvents() {
         const app = document.getElementById('cq-app');
         if (!app) return;
+
+        // Phone number live formatter — runs before the debounced save
+        app.addEventListener('input', function(e) {
+            if (e.target.id !== 'cq_bizPhone') return;
+            const el = e.target;
+            const digits = el.value.replace(/\D/g, '').slice(0, 10);
+            if (!digits)          { el.value = '';                                                              return; }
+            if (digits.length <= 3) { el.value = '(' + digits;                                                 return; }
+            if (digits.length <= 6) { el.value = '(' + digits.slice(0,3) + ') ' + digits.slice(3);            return; }
+            el.value = '(' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6);
+        });
+
+        // Dollar formatter on blur (capture phase so it fires before save)
+        app.addEventListener('blur', function(e) {
+            if (!DOLLAR_IDS.has(e.target.id)) return;
+            const formatted = _fmtDollar(e.target.value);
+            if (formatted) e.target.value = formatted;
+        }, true);
 
         // Debounced auto-save on any input change
         app.addEventListener('input', Utils.debounce(function() {
