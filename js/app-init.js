@@ -79,6 +79,15 @@ const App = {
         'step-5': 'Risk Factors & Additional Info',
         'step-6': 'Review & Export'
     },
+
+    stepDotLabels: {
+        'step-0': 'Start',
+        'step-1': 'Personal',
+        'step-3': 'Property',
+        'step-4': 'Vehicles',
+        'step-5': 'Risk',
+        'step-6': 'Review'
+    },
 };
 
 // Expose App globally for testing and external tool access

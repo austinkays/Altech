@@ -24,6 +24,9 @@
     </header>
 
     <main id="mainContainer">
+        <!-- Step dot-tracker nav (rebuilt dynamically by App.updateUI) -->
+        <nav id="pq-step-nav" class="pq-step-nav" aria-label="Intake steps"></nav>
+
         <!-- STEP 0: QUICK START -->
         <div id="step-0" class="step">
             <!-- New Client & Recent Clients (primary action — first) -->
@@ -2264,6 +2267,13 @@
     <div id="modalContainer"></div>
 
     <footer>
-        <button id="btnBack" class="btn btn-step-back" onclick="App.prev()">← Previous Step</button>
-        <button id="btnNext" class="btn btn-primary" onclick="App.next()">Next</button>
+        <button id="btnBack" class="btn btn-secondary pq-nav-btn" onclick="App.prev()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            Back
+        </button>
+        <span id="pq-step-counter" class="pq-step-counter"></span>
+        <button id="btnNext" class="btn btn-primary pq-nav-btn" onclick="App.next()">
+            <span class="btn-label">Next</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
     </footer>

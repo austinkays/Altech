@@ -1,0 +1,144 @@
+/* =========================================================
+   Personal Lines Quoter — Plugin Styles
+   Uses design-system CSS variables from variables.css
+   Dark mode: body.dark-mode .selector pattern
+   Mirrors commercial-quoter.css with pq- prefix
+   ========================================================= */
+
+/* ── Step Nav (inside #mainContainer) ────────────────── */
+.pq-step-nav {
+    padding: 20px 20px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.pq-step-nav::-webkit-scrollbar { display: none; }
+
+.pq-step-track {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: relative;
+    min-width: 320px;
+}
+.pq-step-track::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    right: 18px;
+    height: 2px;
+    background: var(--border);
+    z-index: 0;
+}
+
+.pq-dot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: default;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    background: none;
+    border: none;
+    height: auto;
+    font-size: 14px;
+}
+
+.pq-dot-inner {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    color: var(--text-secondary);
+    transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s var(--transition-spring);
+}
+
+.pq-dot-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transition: color 0.2s ease;
+}
+
+/* Active step */
+.pq-dot.active .pq-dot-inner {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.18);
+    transform: scale(1.12);
+}
+.pq-dot.active .pq-dot-label {
+    color: var(--apple-blue);
+    font-weight: 600;
+}
+
+/* Completed steps */
+.pq-dot.pq-done .pq-dot-inner {
+    background: rgba(52, 199, 89, 0.12);
+    border-color: var(--success);
+    color: var(--success);
+}
+.pq-dot.pq-done .pq-dot-label {
+    color: var(--success);
+}
+
+/* ── Footer Nav ───────────────────────────────────────── */
+#quotingTool footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 24px;
+    gap: 12px;
+}
+
+.pq-step-counter {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    letter-spacing: 0.03em;
+}
+
+.pq-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    padding: 10px 22px;
+    border-radius: 10px;
+    min-width: 100px;
+    justify-content: center;
+}
+.pq-nav-btn.hidden { visibility: hidden; pointer-events: none; }
+
+/* ── Dark Mode ────────────────────────────────────────── */
+body.dark-mode .pq-dot-inner {
+    background: #2C2C2E;
+}
+
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 600px) {
+    .pq-step-track { min-width: 260px; }
+    .pq-dot-inner { width: 30px; height: 30px; font-size: 12px; }
+    .pq-dot-label { display: none; }
+    .pq-step-track::before { top: 15px; left: 15px; right: 15px; }
+
+    #quotingTool footer { padding: 12px 16px 20px; }
+    .pq-nav-btn { padding: 9px 16px; min-width: 80px; }
+}
+
+@media (max-width: 380px) {
+    .pq-dot-inner { width: 26px; height: 26px; font-size: 11px; }
+    .pq-step-track::before { top: 13px; left: 13px; right: 13px; }
+}

@@ -122,13 +122,38 @@ Object.assign(App, {
         const back = document.getElementById('btnBack');
         const next = document.getElementById('btnNext');
         if (back) back.disabled = this.step === 0;
-        if (next) next.textContent = this.step === this.flow.length - 1 ? 'Finish' : 'Next';
-        
+        if (next) {
+            const nextText = this.step === this.flow.length - 1 ? 'Finish' : 'Next';
+            const nextLabel = next.querySelector('.btn-label');
+            if (nextLabel) { nextLabel.textContent = nextText; } else { next.textContent = nextText; }
+        }
+
+        // Dot nav + step counter (personal quoting tool)
+        const pqNav = document.getElementById('pq-step-nav');
+        if (pqNav) pqNav.innerHTML = this._buildPqDotNav();
+        const pqCounter = document.getElementById('pq-step-counter');
+        if (pqCounter) pqCounter.textContent = `Step ${currentStep} of ${totalSteps}`;
+
         // Mark quoting-active on body so footer/exit-button don't overlap
         document.body.classList.add('quoting-active');
 
         const mainContainer = document.getElementById('mainContainer');
         if (mainContainer) mainContainer.scrollTo(0,0);
+    },
+
+    _buildPqDotNav() {
+        if (!this.flow || this.flow.length === 0) return '';
+        const dots = this.flow.map((stepId, i) => {
+            const label = (this.stepDotLabels || {})[stepId] || String(i + 1);
+            const isActive = i === this.step;
+            const isDone = i < this.step;
+            const cls = ['pq-dot', isActive ? 'active' : '', isDone ? 'pq-done' : ''].filter(Boolean).join(' ');
+            return `<span class="${cls}" aria-label="Step ${i + 1}: ${Utils.escapeAttr(label)}">` +
+                `<span class="pq-dot-inner">${isDone ? '✓' : i + 1}</span>` +
+                `<span class="pq-dot-label">${Utils.escapeHTML(label)}</span>` +
+                `</span>`;
+        });
+        return `<div class="pq-step-track">${dots.join('')}</div>`;
     },
 
     next() {
