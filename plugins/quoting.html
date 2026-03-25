@@ -474,7 +474,7 @@
                     <button class="btn-utility" onclick="App.importPropertyFromExtension()" title="Import property data scraped by the Chrome Extension from Zillow/GIS" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px; background: linear-gradient(135deg, #ff9500, #e68600); color: white;">📥 Import</button>
                 </div>
                 <div class="qtype-auto-show" style="display:none; margin-top:12px;">
-                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+                    <label class="checkbox-row">
                         <input type="checkbox" id="garagingSameAsMailing">
                         <span>Garaging address is same as insured address</span>
                     </label>
@@ -491,7 +491,7 @@
                 <h2>Residence Details</h2>
                 <p class="section-subtitle">The insured&rsquo;s current housing situation</p>
 
-                <div style="max-width:280px">
+                <div>
                     <label class="label">Residence Is</label>
                     <select id="residenceIs">
                         <option value="">Select...</option>
