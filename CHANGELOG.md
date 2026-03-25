@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-25 — fix(layout): Personal Lines full-width layout overhaul
+- **Step 0:** `#step0ClientCard` (Begin Intake) now spans full width via `grid-column: 1/-1` — no longer half-width at desktop
+- **Step 5:** Added 2-col CSS grid; Policy Details spans full-width, Home/Auto Insurance History display side-by-side at 960px+
+- **Step 6:** Added `id="quickEditCard"` to Quick Edit card and set `grid-column: 1/-1` — no longer in col 1 with empty col 2
+- **Footer:** Added `justify-content: space-between` + `align-items: center`; step counter span `#footerStepCount` shows "Step X of Y" between nav buttons; btn `max-width` reduced from 280px to 200px
+- **`js/app-navigation.js`:** `updateUI()` now populates `#footerStepCount` text on every step change
+- Files changed: `css/layout.css`, `plugins/quoting.html`, `js/app-navigation.js`
+- Tests: 1688/1688 pass
+
 ## 2026-03-25 — fix(step3): improve Property step for auto/both workflows
 - **fix(step3):** Step 3 (Property) was nearly empty for auto/both quotes — now looks intentional
   - Added `Residence Details` card to step 3 with `residenceIs` (own/rent/apartment) — shown for auto + both via new `qtype-auto-show` CSS class
