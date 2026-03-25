@@ -1203,7 +1203,7 @@ window.HawkSoftExport = (() => {
                 <div class="hs-field"><label>SR-22</label>
                     <select data-field="sr22Filing"><option value="">No</option><option value="Y" ${d.sr22Filing === 'Y' ? 'selected' : ''}>Yes</option></select>
                 </div>
-                <div class="hs-field"><label>SSN</label><input type="password" data-field="ssn" value="${_val(d.ssn)}" placeholder="XXX-XX-XXXX" maxlength="11" autocomplete="off" inputmode="numeric"></div>
+                <div class="hs-field"><label>SSN</label><input type="text" data-field="ssn" value="${_val(d.ssn)}" placeholder="XXX-XX-XXXX" maxlength="11" autocomplete="off" spellcheck="false" inputmode="numeric" oninput="var v=this.value.replace(/\D/g,'').slice(0,9);this.value=v.length>5?v.slice(0,3)+'-'+v.slice(3,5)+'-'+v.slice(5):v.length>3?v.slice(0,3)+'-'+v.slice(3):v"></div>
                 <div class="hs-field"><label>Filing State</label><input type="text" data-field="sr22State" value="${_val(d.sr22State)}" maxlength="2" style="text-transform:uppercase"></div>
                 <div class="hs-field"><label>Good Student</label>
                     <select data-field="goodStudent"><option value="No">No</option><option value="Yes" ${d.goodStudent === 'Yes' ? 'selected' : ''}>Yes</option></select>
@@ -1600,7 +1600,7 @@ window.HawkSoftExport = (() => {
                         </select>
                     </div>
                     <div class="hs-field"><label>FEIN</label><input id="hs_fein" value="${_val(cm.fein)}" placeholder="XX-XXXXXXX"></div>
-                    <div class="hs-field"><label>Principal Owner SSN</label><input id="hs_ownerSSN" type="password" value="${_val(cm.ownerSSN)}" placeholder="XXX-XX-XXXX" maxlength="11" autocomplete="off" inputmode="numeric"></div>
+                    <div class="hs-field"><label>Principal Owner SSN</label><input id="hs_ownerSSN" type="text" value="${_val(cm.ownerSSN)}" placeholder="XXX-XX-XXXX" maxlength="11" autocomplete="off" spellcheck="false" inputmode="numeric" oninput="var v=this.value.replace(/\D/g,'').slice(0,9);this.value=v.length>5?v.slice(0,3)+'-'+v.slice(3,5)+'-'+v.slice(5):v.length>3?v.slice(0,3)+'-'+v.slice(3):v"></div>
                     <div class="hs-field"><label>Business License</label><input id="hs_businessLicense" value="${_val(cm.businessLicense)}"></div>
                     <div class="hs-field"><label>NAICS Code</label><input id="hs_naics" value="${_val(cm.naics)}" placeholder="e.g. 524210"></div>
                     <div class="hs-field"><label>Website</label><input id="hs_website" value="${_val(cm.website)}" placeholder="https://"></div>

@@ -499,7 +499,7 @@
                     </div>
                     <div class="form-row">
                         <label class="form-label" for="cq_ownerSSN">Primary Owner SSN <span class="cq-ssn-note">(bonds &amp; background checks)</span></label>
-                        <input id="cq_ownerSSN" type="password" class="form-input" placeholder="XXX-XX-XXXX" maxlength="11" autocomplete="off" inputmode="numeric">
+                        <input id="cq_ownerSSN" type="text" class="form-input" placeholder="XXX-XX-XXXX" maxlength="11" autocomplete="off" spellcheck="false" inputmode="numeric" oninput="var v=this.value.replace(/\D/g,'').slice(0,9);this.value=v.length>5?v.slice(0,3)+'-'+v.slice(3,5)+'-'+v.slice(5):v.length>3?v.slice(0,3)+'-'+v.slice(3):v">
                     </div>
                 </div>
                 <div class="form-row">
