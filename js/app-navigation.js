@@ -46,6 +46,10 @@ Object.assign(App, {
         document.querySelectorAll('#step-3 .qtype-auto-only').forEach(el => {
             el.style.display = (qType === 'auto') ? '' : 'none';
         });
+        // Show auto-show elements for both auto and both workflows (e.g. garaging checkbox, residence details)
+        document.querySelectorAll('#step-3 .qtype-auto-show').forEach(el => {
+            el.style.display = showAuto ? '' : 'none';
+        });
 
         // Init Google Places autocomplete when address step is visible
         if (curId === 'step-3') {

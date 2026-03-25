@@ -550,7 +550,7 @@ Object.assign(App, {
                 [FIELD_BY_ID['previousAddrZip'].label, v('previousAddrZip')],
             );
         }
-        if (isAutoOnly && data.garagingSameAsMailing) addrRows.push(['Same as Mailing', 'Yes']);
+        if ((isAutoOnly || data.qType === 'both') && data.garagingSameAsMailing) addrRows.push(['Same as Insured Addr', 'Yes']);
         kvTable(addrRows, 3); }
 
         // ── Primary Home Address (non-primary residences only) ──────────
