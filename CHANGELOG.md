@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-28 — style(commercial): full UI overhaul — match Personal Lines design quality
+- **style(commercial):** Complete visual redesign of Commercial Lines Quoter to match Personal Lines wizard quality
+  - `plugins/commercial-quoter.html` — full rewrite (637 lines); progress header with step title + progress bar; `<nav class="cq-step-nav">` moved inside `#cq-app` (fixes JS dot-update bug); numbered pill dots with inner/label structure; coverage toggle rows with custom switch UI; Y/N pill buttons for Step 4; review card header; SVG export buttons; step counter in footer
+  - `css/commercial-quoter.css` — full rewrite (544 lines); step track with connecting line pseudo-element; numbered dot active/completed states via `:has(~)`; coverage toggle animation; Y/N pill styling; welcome card; full dark mode block; responsive breakpoints at 600px and 380px
+  - `js/commercial-quoter.js` — `_updateUI()` updated: step title + progress bar fill + step counter sync after dot loop
+  - `plugins/quoting.html` — fixed `dwellingCoverage` wrapper: added `class="full-span"` to its parent div so it properly spans full width in the Home Coverage grid (fixes pre-existing test failure)
+- Tests: 1688 passed, 27 suites, 0 failures ✅
+
 ## 2026-03-28 — feat(commercial): Commercial Lines Quoter plugin
 - **feat(commercial):** New Commercial Lines Quoter plugin — 7-step wizard for CGL/BOP intake
   - `js/commercial-quoter.js` — full IIFE module (`window.CommercialQuoter`); steps 0–6; AES-256-GCM encrypt/decrypt draft + quotes; PDF export (jsPDF); CMSMTF/HawkSoft export; quote history (last 5)

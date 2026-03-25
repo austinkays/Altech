@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
-| **CSS** | 33 files in `css/` (~20,506 lines total) |
-| **JS** | 46 modules in `js/` (~39,879 lines total) |
-| **Plugins** | 21 HTML templates in `plugins/` (~6,058 lines total) |
+| **CSS** | 34 files in `css/` (~21,082 lines total) |
+| **JS** | 47 modules in `js/` (~40,530 lines total) |
+| **Plugins** | 22 HTML templates in `plugins/` (~6,808 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -64,7 +64,7 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 33 stylesheets (~20,506 lines)
+├── css/                        # 34 stylesheets (~21,082 lines)
 │   ├── variables.css           # :root CSS custom properties + body.dark-mode overrides (all theme tokens)
 │   ├── base.css                # Reset, body, typography, scrollbars
 │   ├── components.css          # Cards, inputs, buttons, modals, toasts (shared components)
@@ -98,7 +98,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── dec-import.css          # Dec Page Importer plugin (354 lines)
 │   └── deposit-sheet.css       # Deposit Sheet plugin (662 lines)
 │
-├── js/                         # 46 modules (~39,879 lines)
+├── js/                         # 47 modules (~40,530 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows (92 lines)
@@ -154,7 +154,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
 │   └── hawksoft-integration.js  # HawkSoft REST API client (261 lines)
 │
-├── plugins/                    # 21 HTML templates (~6,058 lines, loaded dynamically)
+├── plugins/                    # 22 HTML templates (~6,808 lines, loaded dynamically)
 │   ├── quoting.html            # ★ Main intake wizard — 7 steps, Employment & Education inline in About You card, 2,091 lines
 │   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
