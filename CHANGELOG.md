@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-25 — fix(commercial-quoter): add missing .form-label CSS rule
+- **fix(commercial-quoter):** Labels in the commercial quoter now render correctly in light and dark mode
+  - `css/commercial-quoter.css` — added `.form-label` rule mirroring `.label` from `components.css` (11px, 700 weight, `var(--text-secondary)`, uppercase, 0.4px letter-spacing)
+
 ## 2026-03-25 — style(commercial-quoter): remove emoji from section title h2 headers
 - **style(commercial-quoter):** Removed emoji prefixes from all 6 step-card `<h2>` section titles in `plugins/commercial-quoter.html` to match Personal Lines intake header style
   - Titles changed: "📋 Recent Commercial Quotes", "🏢 Business Information", "📋 Coverage Types", "📍 Locations & Operations", "👤 Owner & Background", "📄 Prior Insurance"

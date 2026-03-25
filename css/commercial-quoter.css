@@ -8,6 +8,18 @@
 /* .step-title and .progress-track/.progress-fill are
    defined in layout.css / components.css and reused here */
 
+/* ── Form Labels ──────────────────────────────────────── */
+.form-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+    display: block;
+    line-height: 18px;
+}
+
 /* ── Step Nav (inside #cq-app) ────────────────────────── */
 .cq-step-nav {
     padding: 20px 20px 0;
