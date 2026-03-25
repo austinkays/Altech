@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-25 — style(commercial-quoter): remove emoji from section title h2 headers
+- **style(commercial-quoter):** Removed emoji prefixes from all 6 step-card `<h2>` section titles in `plugins/commercial-quoter.html` to match Personal Lines intake header style
+  - Titles changed: "📋 Recent Commercial Quotes", "🏢 Business Information", "📋 Coverage Types", "📍 Locations & Operations", "👤 Owner & Background", "📄 Prior Insurance"
+  - No CSS changes needed — `h2` already inherits `base.css` global style (`19px`, `700` weight, `var(--text)`) matching personal intake; `.section-subtitle` already styled as small muted gray (`12px`, `var(--text-secondary)`)
+
 ## 2026-03-28 — feat(commercial-quoter): Google Places autocomplete + map previews on Business Info step
 - **feat(commercial-quoter):** Business Info step (Step 1) now mirrors Personal Lines address tooling
   - `plugins/commercial-quoter.html` — added `prop-layout` two-column grid wrapper; `prop-sidebar` with `map-preview-card` containing Street View and Satellite image previews (`#cq-biz-streetViewImg`, `#cq-biz-satelliteViewImg`); changed `#cq_bizStreet` `autocomplete` to `"off"` (required for Google Places)
