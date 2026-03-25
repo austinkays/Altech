@@ -492,6 +492,10 @@ body.dark-mode #breadcrumbBar {
         gap: 16px;
         align-items: start;
     }
+    /* Begin Intake card always spans full width */
+    #step-0 > #step0ClientCard {
+        grid-column: 1 / -1;
+    }
     /* Smart Scan card spans full width below the two top cards */
     #step-0 > .card:nth-child(n+3) {
         grid-column: 1 / -1;
@@ -531,6 +535,19 @@ body.dark-mode #breadcrumbBar {
     }
 }
 
+/* ─── Step 5 (Prior Insurance): Side-by-side history cards on desktop ─── */
+@media (min-width: 960px) {
+    #step-5 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+    #step-5 > .card:first-child {
+        grid-column: 1 / -1;
+    }
+}
+
 /* ─── Step 6 (Review & Export): Multi-column layout ─── */
 @media (min-width: 960px) {
     #step-6 {
@@ -542,6 +559,9 @@ body.dark-mode #breadcrumbBar {
     #step-6 > .card:first-child,
     #step-6 > .hero-export,
     #step-6 > .card:has(.hero-export) {
+        grid-column: 1 / -1;
+    }
+    #step-6 > #quickEditCard {
         grid-column: 1 / -1;
     }
     #step-6 > .card.export-card {
@@ -557,9 +577,17 @@ body.dark-mode #breadcrumbBar {
         right: 0;
         border-radius: 16px 16px 0 0;
         padding: 12px 32px calc(12px + env(safe-area-inset-bottom));
+        justify-content: space-between;
+        align-items: center;
     }
     footer .btn {
-        max-width: 280px;
+        max-width: 200px;
+    }
+    .footer-step-count {
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-weight: 500;
+        white-space: nowrap;
     }
 }
 

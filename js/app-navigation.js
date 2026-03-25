@@ -115,6 +115,8 @@ Object.assign(App, {
         const currentStep = this.step + 1;
         const stepName = this.stepTitles[curId] || 'Step';
         if (stepTitle) stepTitle.textContent = `Step ${currentStep} of ${totalSteps}: ${stepName}`;
+        const footerStepCount = document.getElementById('footerStepCount');
+        if (footerStepCount) footerStepCount.textContent = `Step ${currentStep} of ${totalSteps}`;
         this.updateBreadcrumb();
         
         // Progress

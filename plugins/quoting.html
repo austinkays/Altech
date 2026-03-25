@@ -2204,7 +2204,7 @@
             </div>
 
             <!-- Quick Edit shortcuts — jump back to any section without clicking Back many times -->
-            <div class="card export-card">
+            <div class="card export-card" id="quickEditCard">
                 <div class="section-edit-row">
                     <h2 style="font-size:15px; margin:0;">✏️ Quick Edit</h2>
                 </div>
@@ -2269,5 +2269,6 @@
 
     <footer>
         <button id="btnBack" class="btn btn-step-back" onclick="App.prev()">← Previous Step</button>
+        <span id="footerStepCount" class="footer-step-count"></span>
         <button id="btnNext" class="btn btn-primary" onclick="App.next()">Next</button>
     </footer>
