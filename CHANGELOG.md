@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - js/hawksoft-export.js: Added SSN input to driver form grid (data-field="ssn" → drv_sSSNum{n} in CMSMTF); added hs_ownerSSN input, ownerSSN data field, and gen_sSSN CMSMTF output for commercial principal owner SSN export
 
+## 2026-03-29 — fix(sidebar): Remove blue hover bleed from [data-tooltip] on nav items
+- **Bug:** Hovering over any sidebar nav item showed a blue square/border (apple-blue background and border-color from the global `[data-tooltip]:hover` rule in `css/components.css`), and a stray upward tooltip arrow from `[data-tooltip]::before` was visible above the item.
+- **Root cause:** `[data-tooltip]:hover { background: var(--apple-blue); border-color: var(--apple-blue) }` in `components.css` (a rule intended for small help-icon badges) bled into all `.sidebar-nav-item` elements — which all carry `data-tooltip` attributes for collapsed-mode tooltips. Prior March-23 fix (commit `0926855`) addressed the BASE state only; hover state was untouched. Additionally, `[data-tooltip]::before` (tooltip arrow) had no sidebar-specific override (only `::after` was suppressed).
+- **Fix (css/sidebar.css):** Added `.sidebar-nav-item[data-tooltip]:hover` (specificity 0-3-0, beats `[data-tooltip]:hover` 0-2-0) with explicit transparent `border-color` and correct background for light/dark mode. Added `.sidebar-nav-item[data-tooltip]::before { display: none }` to suppress the arrow pseudo-element. Added `display: block` to `.sidebar-nav-item.active::before` to protect the active indicator bar from the new `display: none` rule.
+- Files changed: `css/sidebar.css`
+- Tests: 1688/1688 pass
+
 ## 2026-03-25 — feat(commercial-quoter): Add SSN field to Owner & Background step
 - **`plugins/commercial-quoter.html`:** Added `cq_ownerSSN` password input (Step 4, Owner & Background) in the 2-column grid alongside Primary Owner DOB; labeled with "(bonds & background checks)" hint; `autocomplete="off"`, `maxlength="11"`, `inputmode="numeric"`
 - **`js/commercial-quoter.js`:** Added `Owner SSN` row to PDF export, masked as `***-**-XXXX` (last 4 digits only) for security

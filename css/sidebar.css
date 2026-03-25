@@ -149,6 +149,22 @@ body.sidebar-collapsed .sidebar-nav-label {
 body.dark-mode .sidebar-nav-item:hover {
     background: rgba(255, 255, 255, 0.06);
 }
+/* Override [data-tooltip]:hover bleed from components.css — prevents the
+   blue help-badge hover treatment (background: var(--apple-blue)) from
+   applying to sidebar nav items that carry data-tooltip for collapsed tooltips. */
+.sidebar-nav-item[data-tooltip]:hover {
+    background: rgba(255, 180, 80, 0.08);
+    color: var(--text);
+    border-color: transparent;
+}
+body.dark-mode .sidebar-nav-item[data-tooltip]:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+/* Also hide the [data-tooltip]::before arrow (from components.css popover system)
+   — sidebar uses its own ::after tooltip positioned to the right, never a top arrow. */
+.sidebar-nav-item[data-tooltip]::before {
+    display: none;
+}
 .sidebar-nav-item.active {
     background: var(--sidebar-active);
     color: var(--text);
@@ -157,6 +173,7 @@ body.dark-mode .sidebar-nav-item:hover {
 /* Active indicator bar */
 .sidebar-nav-item.active::before {
     content: '';
+    display: block;
     position: absolute;
     left: 0;
     top: 50%;
