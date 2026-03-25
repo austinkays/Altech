@@ -19,10 +19,24 @@ window.DashboardWidgets = (() => {
     // ── SVG Icon Library (Lucide-style, 24×24, stroke-based) ──
     const ICONS = {
         // Sidebar & widget icons
-        home:        '<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+        home:             '<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+        layoutDashboard:  '<svg viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="3" y="15" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/></svg>',
+        briefcaseBusiness:'<svg viewBox="0 0 24 24"><path d="M12 12h.01"/><path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M22 13a18.15 18.15 0 0 1-20 0"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>',
+        bot:              '<svg viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>',
         scanLine:    '<svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>',
         messageCircle: '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
-        scale:       '<svg viewBox="0 0 24 24"><line x1="12" y1="3" x2="12" y2="21"/><polyline points="8 8 4 12 8 16"/><polyline points="16 8 20 12 16 16"/></svg>',
+        scale:       '<svg viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21H17"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>',
+        filePlus:    '<svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M12 18v-6"/></svg>',
+        clipboardCheck:'<svg viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>',
+        bellRing:    '<svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M20 2c1.2 1.7 2 3.7 2 6"/></svg>',
+        bird:        '<svg viewBox="0 0 24 24"><path d="M16 7h.01"/><path d="M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20"/><path d="m20 7 2 .5-2 .5"/><path d="M10 18v3"/><path d="M14 17.75V21"/><path d="M7 18a6 6 0 0 0 3.84-10.61"/></svg>',
+        mailQuestion:'<svg viewBox="0 0 24 24"><path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="M18 15.28c.2-.4.5-.8.9-1a2.1 2.1 0 0 1 2.6.4c.3.4.5.8.5 1.3 0 1.3-2 2-2 2"/><path d="M20 22v.01"/></svg>',
+        badgeHelp:   '<svg viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>',
+        scanText:    '<svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" x2="8" y1="12" y2="12"/><line x1="12" x2="17" y1="12" y2="12"/><line x1="7" x2="17" y1="16" y2="16"/><line x1="7" x2="13" y1="8" y2="8"/></svg>',
+        telescope:   '<svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="2"/><path d="M22 22 16.05 16.05"/><path d="M10.4 21.9c5-1.4 6.2-3.2 6.5-6.7 0 0 .1-.2-.5-.8-1.6-1.5-3.8-2.4-5.7-3.5-2.3-1.4-4.2-3.1-5.5-5.4 0 0-.4-.2-.9.3-.7.7-1.1 1.7-1.1 2.6 0 4.3 3.2 8.5 7.2 13.5Z"/><path d="M14.5 15.7c.5.3.9.5 1.4.7"/><path d="M9.9 12.4c-.1 0-.2-.1-.3-.1"/></svg>',
+        landmark:    '<svg viewBox="0 0 24 24"><line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>',
+        carFront:    '<svg viewBox="0 0 24 24"><path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.354a2 2 0 0 0-1.853 1.257L5 10 3 8"/><path d="M7 14h.01"/><path d="M17 14h.01"/><rect width="18" height="8" x="3" y="10" rx="2"/><path d="M5 18v2"/><path d="M19 18v2"/></svg>',
+        wallet:      '<svg viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>',
         zap:         '<svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
         upload:      '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
         shieldCheck: '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>',
@@ -58,25 +72,28 @@ window.DashboardWidgets = (() => {
 
     // Tool → Lucide icon mapping
     const TOOL_ICONS = {
-        quoting:      'edit',
-        intake:       'scanLine',
+        quoting:      'user',
+        commercial:   'briefcaseBusiness',
+        intake:       'bot',
         qna:          'messageCircle',
         quotecompare: 'scale',
         ezlynx:       'zap',
         hawksoft:     'upload',
         coi:          'fileText',
         compliance:   'shieldCheck',
-        reminders:    'bell',
-        prospect:     'search',
+        reminders:    'bellRing',
+        prospect:     'telescope',
         email:        'mail',
-        accounting:   'calculator',
+        accounting:   'landmark',
         quickref:     'bookOpen',
-        vindecoder:   'car',
-        calllogger:   'hawk',
-        endorsement:  'clipboard',
-        tasksheet:    'checkCircle',
-        depositsheet: 'dollarSign',
-        decimport:    'userPlus',
+        vindecoder:   'carFront',
+        calllogger:   'bird',
+        endorsement:  'scanText',
+        tasksheet:    'clipboardCheck',
+        depositsheet: 'wallet',
+        decimport:    'filePlus',
+        returnedmail: 'mailQuestion',
+        broadform:    'badgeHelp',
     };
 
     /**
@@ -629,7 +646,7 @@ window.DashboardWidgets = (() => {
                 <div class="sidebar-nav-group">
                     <a class="sidebar-nav-item active" data-tool="home" data-tooltip="Dashboard"
                         href="#home" onclick="event.preventDefault(); App.goHome()">
-                        <span class="sidebar-nav-icon">${icon('home', 20)}</span>
+                        <span class="sidebar-nav-icon">${icon('layoutDashboard', 20)}</span>
                         <span class="sidebar-nav-item-label">Dashboard</span>
                     </a>
                 </div>
