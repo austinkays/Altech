@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-25 — feat(quoting): add circle step-flow nav to personal lines wizard
+- **feat(quoting):** Personal lines intake wizard now shows the same numbered-circle step-flow nav as the Commercial Lines quoter
+  - Added `<nav id="pq-step-nav" class="pq-step-nav">` inside the quoting plugin header (`plugins/quoting.html`) after the progress track
+  - Added `.pq-step-nav`, `.pq-step-track`, `.pq-dot`, `.pq-dot-inner`, `.pq-dot-label` CSS classes in `css/layout.css` — active step gets blue circle + scale pop, completed steps show a checkmark + green tint, all using design-system variables
+  - Added `App._renderStepNav()` in `js/app-navigation.js` — renders dots dynamically from `this.flow` (adapts to home/auto/both workflows), called from `updateUI()` on every step change
+  - Tests: 180/180 app tests pass (`npm test --testPathPattern="app.test"`)
+
 ## 2026-03-25 — feat(commercial-quoter): align PDF export design to personal lines
 - **feat(commercial-quoter):** Rewrote `exportPDF()` in `js/commercial-quoter.js` to match personal lines design language
   - **Format:** A4 → US Letter (jsPDF default)

@@ -117,6 +117,9 @@ Object.assign(App, {
         const pct = ((this.step + 1) / this.flow.length) * 100;
         const progressBar = document.getElementById('progressBar');
         if (progressBar) progressBar.style.width = pct + '%';
+
+        // Step-circle nav
+        this._renderStepNav();
         
         // Buttons
         const back = document.getElementById('btnBack');
@@ -293,6 +296,41 @@ Object.assign(App, {
             if (el.classList.contains('active')) return true;
             return window.getComputedStyle(el).display !== 'none';
         }) || '';
+    },
+
+    _renderStepNav() {
+        const nav = document.getElementById('pq-step-nav');
+        if (!nav || !this.flow || this.flow.length === 0) return;
+
+        // Short human labels for the step circles
+        const shortLabels = {
+            'step-0': 'Scan',
+            'step-1': 'Info',
+            'step-2': 'Type',
+            'step-3': 'Property',
+            'step-4': 'Vehicles',
+            'step-5': 'History',
+            'step-6': 'Review',
+        };
+
+        let html = '<div class="pq-step-track">';
+        this.flow.forEach((stepId, i) => {
+            const label = shortLabels[stepId] || (i + 1);
+            let cls = 'pq-dot';
+            if (i === this.step) cls += ' pq-active';
+            else if (i < this.step) cls += ' pq-done';
+            const aria = i === this.step ? 'aria-current="step"' : '';
+            // Done icon: checkmark svg; otherwise step number
+            const inner = (i < this.step)
+                ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+                : (i + 1);
+            html += `<span class="${cls}" ${aria} aria-label="Step ${i + 1}: ${shortLabels[stepId] || stepId}">` +
+                    `<span class="pq-dot-inner">${inner}</span>` +
+                    `<span class="pq-dot-label">${label}</span>` +
+                    `</span>`;
+        });
+        html += '</div>';
+        nav.innerHTML = html;
     },
 
     updateBreadcrumb() {

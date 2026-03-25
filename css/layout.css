@@ -223,6 +223,106 @@ body.dark-mode .progress-track { background: rgba(255, 255, 255, 0.08); }
 .progress-fill { height: 100%; background: linear-gradient(90deg, #F97316, #FB923C, #F59E0B, #FB923C, #F97316); background-size: 200% 100%; width: 0%; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); animation: progressGlow 6s ease-in-out infinite, progressShimmer 3s linear infinite; }
 body.dark-mode .progress-fill { background: linear-gradient(to right, var(--apple-blue), #5856D6); }
 
+/* ── Personal Lines Step-Circle Nav ──────────────────────────────── */
+.pq-step-nav {
+    padding: 12px 20px 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.pq-step-nav::-webkit-scrollbar { display: none; }
+
+.pq-step-track {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: relative;
+    min-width: 280px;
+}
+.pq-step-track::before {
+    content: '';
+    position: absolute;
+    top: 17px;
+    left: 18px;
+    right: 18px;
+    height: 2px;
+    background: var(--border);
+    z-index: 0;
+}
+
+.pq-dot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    cursor: default;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    /* reset [data-tooltip] bleed */
+    background: none;
+    border: none;
+    height: auto;
+    font-size: 14px;
+}
+
+.pq-dot-inner {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    color: var(--text-secondary);
+    transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease,
+                box-shadow 0.25s ease, transform 0.25s var(--transition-spring);
+}
+
+.pq-dot-label {
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transition: color 0.2s ease;
+    text-align: center;
+    max-width: 52px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Active step */
+.pq-dot.pq-active .pq-dot-inner {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.18);
+    transform: scale(1.12);
+}
+.pq-dot.pq-active .pq-dot-label {
+    color: var(--apple-blue);
+    font-weight: 600;
+}
+
+/* Completed steps */
+.pq-dot.pq-done .pq-dot-inner {
+    background: rgba(52, 199, 89, 0.12);
+    border-color: var(--success);
+    color: var(--success);
+}
+.pq-dot.pq-done .pq-dot-label {
+    color: var(--success);
+}
+
+/* Dark mode adjustments */
+body.dark-mode .pq-dot.pq-active .pq-dot-inner {
+    box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.25);
+}
+
 /* === MAIN === */
 main {
     flex: 1;
