@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-28 — fix(step-3): Property Step layout & styling fixes
+- **`.prop-layout`:** Converted from CSS grid (`3fr 2fr`) to flexbox — when sidebar is hidden (auto/both workflows), `.prop-main` now expands to 100% width automatically
+- **`.prop-main`:** Added `flex: 1 1 0; display: flex; flex-direction: column; gap: 16px` so cards stack with consistent spacing
+- **`.prop-sidebar`:** Added `flex: 0 0 300px; width: 300px; position: sticky` at desktop for fixed-width sidebar
+- **`.grid-addr-row2`:** Changed base column template from `0.8fr 90px 80px 1fr` → `2fr 80px 90px 1fr` so City gets more space than County at mid-viewports
+- **Garaging checkbox:** Changed inline `style="display:flex;align-items:center..."` label to `class="checkbox-row"` — uses existing utility class that correctly overrides global `input { width:100% }` for checkboxes
+- **Residence Details:** Removed `max-width:280px` from wrapper div so the `select { width:100% }` global rule applies
+- Files changed: `css/components.css`, `plugins/quoting.html`
+- Tests: 1688/1688 pass
+
 ## 2026-03-25 — fix(layout): Personal Lines full-width layout overhaul
 - **Step 0:** `#step0ClientCard` (Begin Intake) now spans full width via `grid-column: 1/-1` — no longer half-width at desktop
 - **Step 5:** Added 2-col CSS grid; Policy Details spans full-width, Home/Auto Insurance History display side-by-side at 960px+
