@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-28 — feat(commercial-quoter): Google Places autocomplete + map previews on Business Info step
+- **feat(commercial-quoter):** Business Info step (Step 1) now mirrors Personal Lines address tooling
+  - `plugins/commercial-quoter.html` — added `prop-layout` two-column grid wrapper; `prop-sidebar` with `map-preview-card` containing Street View and Satellite image previews (`#cq-biz-streetViewImg`, `#cq-biz-satelliteViewImg`); changed `#cq_bizStreet` `autocomplete` to `"off"` (required for Google Places)
+  - `js/commercial-quoter.js` — added `_initCQPlaces()`: Google Places `Autocomplete` on `#cq_bizStreet`, fills city/state/zip, session token refresh; `_updateCQMapPreviews()`: static Maps + Street View images via `App.ensureMapApiKey()`; `_scheduleCQMapPreview()`: debounced 450 ms wrapper; `_openBizStreetView()` / `_openBizMaps()`: open Google Maps in new tab; wired `_initCQPlaces` to `_updateUI` when `_step === 1`; map preview schedule added to input debounce handler; `openBizStreetView` and `openBizMaps` exposed on public API
+- No new CSS needed — all required classes (`prop-layout`, `prop-sidebar`, `map-preview-card`, etc.) already exist in `css/components.css`
+- Tests: 1688 passed, 27 suites, 0 failures ✅
+
 ## 2026-03-28 — style(commercial): full UI overhaul — match Personal Lines design quality
 - **style(commercial):** Complete visual redesign of Commercial Lines Quoter to match Personal Lines wizard quality
   - `plugins/commercial-quoter.html` — full rewrite (637 lines); progress header with step title + progress bar; `<nav class="cq-step-nav">` moved inside `#cq-app` (fixes JS dot-update bug); numbered pill dots with inner/label structure; coverage toggle rows with custom switch UI; Y/N pill buttons for Step 4; review card header; SVG export buttons; step counter in footer
