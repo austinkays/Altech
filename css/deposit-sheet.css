@@ -416,6 +416,9 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     font-weight: 700;
 }
 
+/* ── Left column wrapper (transparent on screen) ──────── */
+.ds-left-col { display: contents; }
+
 /* ── Print-only elements (hidden on screen) ───────────── */
 .ds-print-only { display: none !important; }
 
@@ -454,8 +457,7 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     .app-content,
     .plugin-container,
     .plugin-viewport,
-    main,
-    .ds-container {
+    main {
         background: #fff !important;
         color: #111 !important;
         max-width: none !important;
@@ -466,6 +468,93 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
         border: none !important;
         box-shadow: none !important;
         overflow: visible !important;
+    }
+
+    /* — Two-column print layout ———————————————————————— */
+    .ds-container {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-start !important;
+        gap: 14pt !important;
+        background: #fff !important;
+        color: #111 !important;
+        max-width: none !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+    }
+
+    .ds-left-col {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    /* — Chase receipt panel ———————————————————————————— */
+    .ds-receipt-area {
+        display: flex !important;
+        flex-direction: column !important;
+        flex: 0 0 190pt !important;
+        width: 190pt !important;
+        align-self: stretch !important;
+        border: 1pt solid #bbb !important;
+        border-radius: 4pt !important;
+        padding: 8pt 8pt 0 !important;
+        background: #fff !important;
+    }
+
+    .ds-receipt-area-heading {
+        font-size: 7pt !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.06em !important;
+        color: #0f2745 !important;
+        margin-bottom: 5pt !important;
+    }
+
+    .ds-receipt-slip-box {
+        flex: 0 0 auto !important;
+        height: 140pt !important;
+        border: 1.5pt dashed #aaa !important;
+        border-radius: 3pt !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-bottom: 8pt !important;
+        background: #fafafa !important;
+    }
+
+    .ds-receipt-slip-hint {
+        font-size: 7pt !important;
+        color: #aaa !important;
+        letter-spacing: 0.04em !important;
+        font-style: italic !important;
+    }
+
+    .ds-receipt-notes-heading {
+        font-size: 7pt !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.06em !important;
+        color: #0f2745 !important;
+        margin-bottom: 4pt !important;
+    }
+
+    .ds-receipt-notes {
+        flex: 1 !important;
+        min-height: 60pt !important;
+        background-image: repeating-linear-gradient(
+            to bottom,
+            transparent 0pt,
+            transparent 14.5pt,
+            #ccc 14.5pt,
+            #ccc 15pt
+        ) !important;
+        background-size: 100% 15pt !important;
     }
 
     /* — Meta bar — compact ————————————————————————————— */
