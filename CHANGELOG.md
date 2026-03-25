@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-25 — fix(step3): improve Property step for auto/both workflows
+- **fix(step3):** Step 3 (Property) was nearly empty for auto/both quotes — now looks intentional
+  - Added `Residence Details` card to step 3 with `residenceIs` (own/rent/apartment) — shown for auto + both via new `qtype-auto-show` CSS class
+  - Moved `residenceIs` out of step 4 Auto Coverage card (was duplicated/buried); `autoPolicyType` is now full-width there
+  - Garaging checkbox (`garagingSameAsMailing`) now shows for both auto AND both workflows (was auto-only); label updated to "same as insured address"
+  - Added `qtype-auto-show` visibility handling in `app-navigation.js` (shows when `showAuto` — auto or both)
+  - Fixed PDF export to include garaging note for both workflow too
+- **Files changed:** `plugins/quoting.html`, `js/app-navigation.js`, `js/app-export.js`
+- **Tests:** 1688/1688 pass
+
 ## 2026-03-25 — feat(quoting): add circle step-flow nav to personal lines wizard
 - **feat(quoting):** Personal lines intake wizard now shows the same numbered-circle step-flow nav as the Commercial Lines quoter
   - Added `<nav id="pq-step-nav" class="pq-step-nav">` inside the quoting plugin header (`plugins/quoting.html`) after the progress track
