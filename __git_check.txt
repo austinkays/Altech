@@ -1,5 +1,0 @@
-bf9adc2 docs: changelog entry for _getAltechRestorePrompt fix
-d2ecbd3 fix(scan): rewrite _getAltechRestorePrompt with exact PDF section/label mapping
-a86cd78 fix: extract PDF text client-side via PDF.js to avoid Gemini 400 and Vercel 413 on scan
-a396018 fix: add anthropic-beta web-search header to proxy when web_search tool is used
-1b84e29 docs: update CHANGELOG for dead code cleanup
