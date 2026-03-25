@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## 2026-03-25 — feat(commercial-quoter): Add SSN field to Owner & Background step
+- **`plugins/commercial-quoter.html`:** Added `cq_ownerSSN` password input (Step 4, Owner & Background) in the 2-column grid alongside Primary Owner DOB; labeled with "(bonds & background checks)" hint; `autocomplete="off"`, `maxlength="11"`, `inputmode="numeric"`
+- **`js/commercial-quoter.js`:** Added `Owner SSN` row to PDF export, masked as `***-**-XXXX` (last 4 digits only) for security
+- **`css/commercial-quoter.css`:** Added `.cq-ssn-note` helper class for the subdued parenthetical label hint
+
 ## 2026-03-28 — fix(step-3): Property Step layout & styling fixes
 - **`.prop-layout`:** Converted from CSS grid (`3fr 2fr`) to flexbox — when sidebar is hidden (auto/both workflows), `.prop-main` now expands to 100% width automatically
 - **`.prop-main`:** Added `flex: 1 1 0; display: flex; flex-direction: column; gap: 16px` so cards stack with consistent spacing
