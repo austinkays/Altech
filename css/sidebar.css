@@ -160,6 +160,15 @@ body.dark-mode .sidebar-nav-item:hover {
 body.dark-mode .sidebar-nav-item[data-tooltip]:hover {
     background: rgba(255, 255, 255, 0.06);
 }
+/* Active items must keep their highlight on hover — the broad dark-mode rule above
+   (specificity 0-4-1) would otherwise override .sidebar-nav-item.active (0-2-0).
+   These rules beat both the broad hover override and [data-tooltip]:hover. */
+.sidebar-nav-item.active[data-tooltip]:hover {
+    background: var(--sidebar-active);
+}
+body.dark-mode .sidebar-nav-item.active[data-tooltip]:hover {
+    background: var(--sidebar-active);
+}
 /* Also hide the [data-tooltip]::before arrow (from components.css popover system)
    — sidebar uses its own ::after tooltip positioned to the right, never a top arrow. */
 .sidebar-nav-item[data-tooltip]::before {
