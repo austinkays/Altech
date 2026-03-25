@@ -20,6 +20,14 @@
     line-height: 18px;
 }
 
+.cq-ssn-note {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-tertiary);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
 /* ── Step Nav (inside #cq-app) ────────────────────────── */
 .cq-step-nav {
     padding: 20px 20px 0;

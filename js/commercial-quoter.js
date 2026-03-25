@@ -403,6 +403,7 @@ window.CommercialQuoter = (() => {
             ['Owner Name(s)',       _data.ownerNames],
             ['Owner Home Address',  _data.ownerHomeAddress],
             ['Owner DOB',           _data.ownerDOB],
+            ['Owner SSN',           _data.ownerSSN ? '***-**-' + String(_data.ownerSSN).replace(/\D/g, '').slice(-4) : ''],
             ['Prior Conviction',    _data.convicted],
             ['Bankruptcy',          _data.bankruptcy],
             ['Lawsuits',            _data.lawsuits],
