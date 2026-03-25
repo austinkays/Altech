@@ -103,233 +103,327 @@ window.CommercialQuoter = (() => {
         if (_step === 6) _renderSummary();
     }
 
-    function exportPDF() {
+    async function exportPDF() {
         if (!window.jspdf || !window.jspdf.jsPDF) {
             if (typeof App !== 'undefined' && App.toast) App.toast('PDF library not loaded — reload and try again', 'error');
             return;
         }
         const { jsPDF } = window.jspdf;
-        const doc    = new jsPDF({ unit: 'mm', format: 'a4' });
-        const pageW  = doc.internal.pageSize.getWidth();
-        const pageH  = doc.internal.pageSize.getHeight();
-        const ML     = 12;      // left margin
-        const MR     = 12;      // right margin
-        const LABEL_W = 56;     // label column width (right-aligned)
-        const VALUE_X = ML + LABEL_W + 3.5;
-        const VALUE_W = pageW - VALUE_X - MR;
-        const LINE_H  = 4.3;    // line-height for 9pt body text
-        const FOOTER_RESERVE = 13;
+        const doc   = new jsPDF({ unit: 'mm' }); // Letter format (jsPDF default)
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const FOOTER_RESERVE = 16;
 
         let y = 0;
-        let rowIdx = 0;
 
-        // ── Palette ──────────────────────────────────────────────────────
-        const BLUE      = [0, 102, 204];
-        const BLUE_MID  = [0, 78, 168];
-        const BLUE_LT   = [224, 236, 255];
-        const WHITE     = [255, 255, 255];
-        const DARK      = [28, 28, 30];
-        const GRAY      = [105, 105, 110];
-        const ROW_ALT   = [247, 250, 255];
-        const DIVIDER   = [210, 218, 232];
+        // ── Palette (matches personal lines C object) ─────────────────────
+        const C = {
+            navy:     [15, 39, 69],       // #0f2745 — brand navy
+            dark:     [26, 26, 26],       // #1a1a1a
+            body:     [17, 17, 17],       // #111    — value text
+            mid:      [85, 85, 85],       // #555    — secondary text
+            label:    [68, 68, 68],       // #444    — field labels
+            muted:    [68, 68, 68],       // #444    — de-emphasized values
+            light:    [187, 187, 187],    // #bbb    — section header rule
+            border:   [221, 227, 235],    // #dde3eb — card/border
+            rule:     [204, 204, 204],    // #ccc    — footer rule
+            footerTx: [119, 119, 119],    // #777    — footer text
+            white:    [255, 255, 255],
+        };
 
-        // ── Helpers ──────────────────────────────────────────────────────
+        const margin   = 15.2; // 0.6in side margins (matches personal lines)
+        const contentW = pageW - margin * 2;
 
-        function checkBreak(needed) {
-            if (y + (needed || 8) > pageH - FOOTER_RESERVE) {
+        // ── Null-value detection ──────────────────────────────────────────
+        const isEmptyish = (val) => {
+            if (!val && val !== 0) return true;
+            const s = String(val).trim();
+            return /^(none|not updated|n\/a|no coverage|unknown)$/i.test(s);
+        };
+
+        // ── Page-break guard ──────────────────────────────────────────────
+        const checkPage = (needed = 18) => {
+            if (y + needed > pageH - FOOTER_RESERVE) {
                 doc.addPage();
-                y = 12;
-                rowIdx = 0;
+                y = 14;
+                return true;
             }
-        }
+            return false;
+        };
 
-        function sectionHeader(title) {
-            checkBreak(14);
-            y += 4;
-            doc.setFillColor(...BLUE_MID);
-            doc.rect(ML, y, pageW - ML - MR, 8, 'F');
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(8.5);
-            doc.setTextColor(...WHITE);
-            doc.text(title.toUpperCase(), ML + 3, y + 5.5);
-            y += 12;
-            rowIdx = 0;
-        }
-
-        // Two-column field row: right-aligned gray label | left-aligned dark value
-        function row(label, value) {
-            if (value === undefined || value === null || String(value).trim() === '' || value === false) return;
-            value = String(value);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            const lines = doc.splitTextToSize(value, VALUE_W);
-            const rh = Math.max(7, lines.length * LINE_H + 3);
-
-            checkBreak(rh);
-
-            if (rowIdx % 2 === 1) {
-                doc.setFillColor(...ROW_ALT);
-                doc.rect(ML, y, pageW - ML - MR, rh, 'F');
+        // ── Footer — matches personal lines drawFooter() ──────────────────
+        const drawFooter = () => {
+            const total = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= total; i++) {
+                doc.setPage(i);
+                doc.setDrawColor(...C.rule);
+                doc.setLineWidth(0.35);
+                doc.line(margin, pageH - 12, pageW - margin, pageH - 12);
+                doc.setFontSize(8);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(...C.footerTx);
+                doc.text('Generated by Altech Insurance Tools', margin, pageH - 7);
+                doc.text(`Page ${i} of ${total}`, pageW - margin, pageH - 7, { align: 'right' });
             }
+        };
 
-            const ty = y + LINE_H + 0.3;   // text baseline
+        // ── Section header — text + rule (personal lines pattern) ─────────
+        const sectionHeader = (title) => {
+            checkPage(16);
+            const labelText = title.toUpperCase();
+            doc.setFontSize(7);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...C.navy);
+            doc.text(labelText, margin, y + 5.5);
+            const labelW = doc.getTextWidth(labelText);
+            doc.setDrawColor(...C.light);
+            doc.setLineWidth(0.4);
+            doc.line(margin + labelW + 2.8, y + 4, pageW - margin, y + 4);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(...C.dark);
+            y += 7;
+        };
 
-            // Label
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8);
-            doc.setTextColor(...GRAY);
-            doc.text(label, ML + LABEL_W, ty, { align: 'right' });
-
-            // Vertical divider
-            doc.setDrawColor(...DIVIDER);
-            doc.setLineWidth(0.25);
-            doc.line(ML + LABEL_W + 1.8, y + 1, ML + LABEL_W + 1.8, y + rh - 1);
-
-            // Value
-            doc.setFont('helvetica', 'normal');
+        // ── Coverage sub-header (lighter treatment, visually distinct) ────
+        const covRow = (name) => {
+            checkPage(10);
+            doc.setFillColor(...C.border);
+            doc.rect(margin, y, contentW, 7.5, 'F');
+            doc.setFillColor(...C.navy);
+            doc.rect(margin, y, 2, 7.5, 'F');
+            doc.setFont(undefined, 'bold');
             doc.setFontSize(9);
-            doc.setTextColor(...DARK);
-            doc.text(lines, VALUE_X, ty);
+            doc.setTextColor(...C.navy);
+            doc.text(name, margin + 5, y + 5.2);
+            y += 8.5;
+        };
 
-            y += rh;
-            rowIdx++;
+        // ── Key-value grid — 2-col, matches personal lines kvTable ────────
+        const kvTable = (fields, cols = 2, cellH = 13) => {
+            const filtered = fields.filter(([, val]) => val !== undefined && val !== null && String(val).trim() !== '');
+            if (!filtered.length) return;
+            const colW = contentW / cols;
+            const colGap = 2.8;
+            const usableColW = colW - colGap;
+            let col = 0;
+            let rowWrapped = false;
+            const spanLast = filtered.length % cols === 1 && cols > 1;
+
+            filtered.forEach(([label, value], i) => {
+                if (col === 0) {
+                    checkPage(cellH + 2);
+                    rowWrapped = false;
+                }
+                const cellX = margin + col * colW;
+                const cellY = y;
+
+                // Label — 6.5pt uppercase #444
+                doc.setFontSize(6.5);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(...C.label);
+                doc.text(label.toUpperCase(), cellX, cellY + 3);
+
+                // Value — null-ish → #444 normal; else → #111 normal
+                const deEmphasize = isEmptyish(value);
+                doc.setFontSize(9.5);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(...(deEmphasize ? C.muted : C.body));
+                const isLastItem = (i === filtered.length - 1);
+                const effectiveMaxW = (spanLast && isLastItem) ? usableColW * 2 + colGap : usableColW;
+                const valLines = doc.splitTextToSize(String(value), effectiveMaxW);
+                doc.text(valLines[0] || '', cellX, cellY + 8.5);
+                if (valLines[1]) {
+                    doc.text(valLines[1], cellX, cellY + 12.5);
+                    rowWrapped = true;
+                }
+
+                col++;
+                if (col >= cols) {
+                    col = 0;
+                    y += cellH + (rowWrapped && cols !== 2 ? 4 : 0);
+                }
+            });
+            if (col > 0) {
+                y += spanLast ? cellH - 3 : cellH;
+            }
+            doc.setFont(undefined, 'normal');
+            y += 1; // minimal trailing gap
+        };
+
+        // ── Logo fetch (async, defensive) ────────────────────────────────
+        let logoImg = null;
+        try {
+            if (typeof App !== 'undefined' && App.fetchImageDataUrl) {
+                logoImg = await App.fetchImageDataUrl('Resources/altech-logo.png');
+            }
+        } catch (e) { /* graceful skip — logo is optional */ }
+
+        // ── Timestamp helper ──────────────────────────────────────────────
+        const now  = new Date();
+        const pad2 = (n) => String(n).padStart(2, '0');
+        const tsDate = `${pad2(now.getMonth() + 1)}/${pad2(now.getDate())}/${now.getFullYear()}`;
+        let hrs = now.getHours();
+        const ampm = hrs >= 12 ? 'PM' : 'AM';
+        hrs = hrs % 12 || 12;
+        const tsStr = `${tsDate} ${hrs}:${pad2(now.getMinutes())} ${ampm}`;
+
+        // ── Page 1 header ─────────────────────────────────────────────────
+        y = 11;
+        const logoH = 18;
+        const logoW = 18;
+        let headerTextX = margin;
+        if (logoImg?.dataUrl) {
+            doc.addImage(logoImg.dataUrl, logoImg.format, margin, y - 1, logoW, logoH);
+            headerTextX = margin + logoW + 3.5;
         }
-
-        // Highlight row for selected coverage type names
-        function covRow(name) {
-            checkBreak(9);
-            doc.setFillColor(...BLUE_LT);
-            doc.rect(ML, y, pageW - ML - MR, 8, 'F');
-            doc.setFillColor(...BLUE);
-            doc.roundedRect(ML + 2, y + 2, 3.5, 4, 0.8, 0.8, 'F');
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(9);
-            doc.setTextColor(...BLUE_MID);
-            doc.text(name, ML + 7.5, y + 5.5);
-            y += 9;
-            rowIdx = 0;
-        }
-
-        // ── Header ───────────────────────────────────────────────────────
-        doc.setFillColor(...BLUE);
-        doc.rect(0, 0, pageW, 20, 'F');
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
-        doc.setTextColor(...WHITE);
-        doc.text('Commercial Insurance Intake', ML, 10);
-
-        doc.setFont('helvetica', 'normal');
+        // Agency name — 11pt bold navy
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...C.navy);
+        doc.text('Altech Insurance', headerTextX, y + 5);
+        // Subtitle — 8pt uppercase #555
         doc.setFontSize(8);
-        doc.setTextColor(180, 210, 255);
-        const genDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        doc.text('Generated ' + genDate, ML, 16.5);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...C.mid);
+        doc.text('COMMERCIAL INSURANCE INTAKE', headerTextX, y + 11);
 
-        const bizLabel = (_data.bizName || 'Unnamed Business').slice(0, 42);
-        doc.setFont('helvetica', 'bold');
+        // Doc ref — 10pt bold navy | Timestamp — 9pt #555
+        const docRef = `CQ-${now.getFullYear()}-${pad2(now.getMonth() + 1)}${pad2(now.getDate())}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
         doc.setFontSize(10);
-        doc.setTextColor(...WHITE);
-        doc.text(bizLabel, pageW - MR - doc.getTextWidth(bizLabel), 12);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...C.navy);
+        doc.text(docRef, pageW - margin, y + 5, { align: 'right' });
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...C.mid);
+        doc.text(tsStr, pageW - margin, y + 11, { align: 'right' });
 
-        y = 27;
+        y += Math.max(logoH + 1, 14);
 
-        // ── Business Info ─────────────────────────────────────────────────
+        // 0.7px navy separator under header
+        doc.setDrawColor(...C.navy);
+        doc.setLineWidth(0.7);
+        doc.line(margin, y, pageW - margin, y);
+        y += 5;
+
+        // ── Business card (applicant-card analog) ─────────────────────────
+        const cardPadX    = 5;
+        const cardPadY    = 4.2;
+        const bizName     = _data.bizName || 'Unnamed Business';
+        const contactLine = [_data.contactName, _data.contactEmail].filter(Boolean).join('  ·  ');
+        const cardH       = contactLine ? 28 : 22;
+        doc.setDrawColor(...C.border);
+        doc.setLineWidth(0.4);
+        doc.roundedRect(margin, y, contentW, cardH, 1.4, 1.4, 'S');
+        // Left navy accent bar
+        doc.setFillColor(...C.navy);
+        doc.roundedRect(margin, y, 1, cardH, 0.5, 0.5, 'F');
+        // Business name — 14pt bold navy
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...C.navy);
+        doc.text(bizName, margin + cardPadX, y + cardPadY + 8);
+        // Contact row — 9pt #555
+        if (contactLine) {
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(...C.mid);
+            doc.text(contactLine, margin + cardPadX, y + cardPadY + 17);
+        }
+        y += cardH + 6;
+
+        // ── Business Information ──────────────────────────────────────────
         sectionHeader('Business Information');
-        row('Business Name', _data.bizName);
-        row('Contact', _data.contactName);
-        row('Email', _data.contactEmail);
-        row('Phone', _fmtPhone(_data.bizPhone));
-        row('Address', _data.bizStreet);
         const cityLine = [_data.bizCity, _data.bizState, _data.bizZip].filter(Boolean).join(', ');
-        if (cityLine) row('City / State / Zip', cityLine);
-        row('Date Started', _data.dateStarted);
-        row('Years in Industry', _data.yrsIndustry);
-        row('Yrs Mgmt Experience', _data.yrsMgtExp);
-        row('Annual Receipts (Est)', _fmtDollar(_data.annualReceiptsEst));
-        row('Prior Year Receipts', _fmtDollar(_data.annualReceiptsPrior));
-        row('Effective Date', _data.effectiveDate);
-        row('Marketing Agent', _data.marketingAgent);
+        kvTable([
+            ['Business Name',          _data.bizName],
+            ['Contact',                _data.contactName],
+            ['Email',                  _data.contactEmail],
+            ['Phone',                  _fmtPhone(_data.bizPhone)],
+            ['Address',                _data.bizStreet],
+            ['City / State / Zip',     cityLine || null],
+            ['Date Started',           _data.dateStarted],
+            ['Years in Industry',      _data.yrsIndustry],
+            ['Yrs Mgmt Experience',    _data.yrsMgtExp],
+            ['Annual Receipts (Est)',  _fmtDollar(_data.annualReceiptsEst)],
+            ['Prior Year Receipts',    _fmtDollar(_data.annualReceiptsPrior)],
+            ['Effective Date',         _data.effectiveDate],
+            ['Marketing Agent',        _data.marketingAgent],
+        ]);
 
         // ── Coverage Types ────────────────────────────────────────────────
         sectionHeader('Coverage Types Selected');
-        const covList = ['covGL','covBond','covPL','covBA','covProp','covBPP','covIM','covCargo'];
+        const covList  = ['covGL', 'covBond', 'covPL', 'covBA', 'covProp', 'covBPP', 'covIM', 'covCargo'];
         const covNames = {
-            covGL:'General Liability', covBond:'Bond', covPL:'Professional Liability',
-            covBA:'Business Auto', covProp:'Property', covBPP:'Business Personal Property',
-            covIM:'Inland Marine', covCargo:'Cargo',
+            covGL: 'General Liability', covBond: 'Bond', covPL: 'Professional Liability',
+            covBA: 'Business Auto', covProp: 'Property', covBPP: 'Business Personal Property',
+            covIM: 'Inland Marine', covCargo: 'Cargo',
         };
         const detailMap = {
-            covGL:   ['glOccLimit:Occ Limit','glAggLimit:Agg Limit','glDeductible:Deductible'],
-            covBond: ['bondType:Bond Type','bondAmount:Bond Amount'],
-            covPL:   ['plLimit:PL Limit','plDeductible:PL Deductible','plRetro:Retroactive Date'],
-            covBA:   ['baNumVehicles:# Vehicles','baVehicleTypes:Vehicle Types','baBILimits:BI Limits','baPDLimit:PD Limit'],
-            covProp: ['propBuildingValue:Building Value','propContentsValue:Contents Value','propDeductible:Deductible','propConstruction:Construction','propYearBuilt:Year Built','propSprinklers:Sprinklers'],
-            covBPP:  ['bppValue:BPP Value','bppDeductible:Deductible'],
-            covIM:   ['imDescription:Description','imValue:Total Value'],
-            covCargo:['cargoNumVehicles:# Vehicles','cargoRadius:Radius (mi)','cargoValue:Max Load Value'],
+            covGL:    [['glOccLimit', 'Occ Limit'], ['glAggLimit', 'Agg Limit'], ['glDeductible', 'Deductible']],
+            covBond:  [['bondType', 'Bond Type'], ['bondAmount', 'Bond Amount']],
+            covPL:    [['plLimit', 'PL Limit'], ['plDeductible', 'PL Deductible'], ['plRetro', 'Retroactive Date']],
+            covBA:    [['baNumVehicles', '# Vehicles'], ['baVehicleTypes', 'Vehicle Types'], ['baBILimits', 'BI Limits'], ['baPDLimit', 'PD Limit']],
+            covProp:  [['propBuildingValue', 'Building Value'], ['propContentsValue', 'Contents Value'], ['propDeductible', 'Deductible'], ['propConstruction', 'Construction'], ['propYearBuilt', 'Year Built'], ['propSprinklers', 'Sprinklers']],
+            covBPP:   [['bppValue', 'BPP Value'], ['bppDeductible', 'Deductible']],
+            covIM:    [['imDescription', 'Description'], ['imValue', 'Total Value']],
+            covCargo: [['cargoNumVehicles', '# Vehicles'], ['cargoRadius', 'Radius (mi)'], ['cargoValue', 'Max Load Value']],
         };
         let anyCov = false;
         covList.forEach(k => {
             if (!_data[k]) return;
             anyCov = true;
             covRow(covNames[k]);
-            (detailMap[k] || []).forEach(pair => {
-                const sep    = pair.indexOf(':');
-                const fKey   = pair.slice(0, sep);
-                const fLabel = pair.slice(sep + 1);
-                if (_data[fKey]) row(fLabel, DOLLAR_KEYS.has(fKey) ? _fmtDollar(_data[fKey]) : _data[fKey]);
-            });
+            const details = (detailMap[k] || []).map(([fKey, fLabel]) => [
+                fLabel, DOLLAR_KEYS.has(fKey) ? _fmtDollar(_data[fKey]) : _data[fKey],
+            ]);
+            kvTable(details);
         });
-        if (!anyCov) row('Coverages', 'None selected');
+        if (!anyCov) kvTable([['Coverages', 'None selected']]);
 
-        // ── Locations ─────────────────────────────────────────────────────
+        // ── Locations & Property ──────────────────────────────────────────
         sectionHeader('Locations & Property');
-        row('# Locations', _data.numLocations);
-        row('States of Operation', _data.statesOperate);
-        row('Countries', _data.countriesOperate);
-        row('Own / Lease Building', _data.ownLeaseBuild);
-        row('Building Value', _fmtDollar(_data.buildingValue));
-        row('Location Address(es)', _data.locAddress);
+        kvTable([
+            ['# Locations',          _data.numLocations],
+            ['States of Operation',  _data.statesOperate],
+            ['Countries',            _data.countriesOperate],
+            ['Own / Lease Building', _data.ownLeaseBuild],
+            ['Building Value',       _fmtDollar(_data.buildingValue)],
+            ['Location Address(es)', _data.locAddress],
+        ]);
 
         // ── Owner & Background ────────────────────────────────────────────
         sectionHeader('Owner & Background');
-        row('# Owners', _data.numOwners);
-        row('Owner Name(s)', _data.ownerNames);
-        row('Owner Home Address', _data.ownerHomeAddress);
-        row('Owner DOB', _data.ownerDOB);
-        row('Prior Conviction', _data.convicted);
-        row('Bankruptcy', _data.bankruptcy);
-        row('Lawsuits', _data.lawsuits);
-        row('FT Employees', _data.ftEmployees);
-        row('PT Employees', _data.ptEmployees);
-        row('Payroll', _fmtDollar(_data.payroll));
-        row('Subcontractors', _data.hasSubcontractors);
-        if (_data.hasSubcontractors === 'Y') {
-            row('Subcontracting Costs', _fmtDollar(_data.subcontractingCosts));
-            row('Obtain Certs', _data.obtainCerts);
-        }
+        const subFields = _data.hasSubcontractors === 'Y' ? [
+            ['Subcontracting Costs', _fmtDollar(_data.subcontractingCosts)],
+            ['Obtain Certs',         _data.obtainCerts],
+        ] : [];
+        kvTable([
+            ['# Owners',           _data.numOwners],
+            ['Owner Name(s)',       _data.ownerNames],
+            ['Owner Home Address',  _data.ownerHomeAddress],
+            ['Owner DOB',           _data.ownerDOB],
+            ['Prior Conviction',    _data.convicted],
+            ['Bankruptcy',          _data.bankruptcy],
+            ['Lawsuits',            _data.lawsuits],
+            ['FT Employees',        _data.ftEmployees],
+            ['PT Employees',        _data.ptEmployees],
+            ['Payroll',             _fmtDollar(_data.payroll)],
+            ['Subcontractors',      _data.hasSubcontractors],
+            ...subFields,
+        ]);
 
         // ── Prior Insurance ───────────────────────────────────────────────
         sectionHeader('Prior Insurance');
-        row('Current Carrier', _data.currentInsurance);
-        row('Policy Expiration', _data.policyExpiration);
-        row('Reason for Quote', _data.reasonForQuote);
-        row('Claims', _data.insuranceClaims);
+        kvTable([
+            ['Current Carrier',   _data.currentInsurance],
+            ['Policy Expiration', _data.policyExpiration],
+            ['Reason for Quote',  _data.reasonForQuote],
+            ['Claims',            _data.insuranceClaims],
+        ]);
 
-        // ── Footer on every page ──────────────────────────────────────────
-        const totalPages = doc.getNumberOfPages ? doc.getNumberOfPages() : doc.internal.pages.length - 1;
-        for (let p = 1; p <= totalPages; p++) {
-            doc.setPage(p);
-            doc.setDrawColor(...DIVIDER);
-            doc.setLineWidth(0.3);
-            doc.line(ML, pageH - 10, pageW - MR, pageH - 10);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7.5);
-            doc.setTextColor(...GRAY);
-            doc.text('Altech Commercial Lines', ML, pageH - 6);
-            const pgStr = 'Page ' + p + ' of ' + totalPages;
-            doc.text(pgStr, pageW - MR - doc.getTextWidth(pgStr), pageH - 6);
-        }
+        // ── Footer ────────────────────────────────────────────────────────
+        drawFooter();
 
         const safeName = (_data.bizName || 'Commercial').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
         doc.save(safeName + '_Commercial_Quote.pdf');
