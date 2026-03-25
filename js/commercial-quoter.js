@@ -17,6 +17,8 @@ window.CommercialQuoter = (() => {
     let _data   = {};
     let _step   = 0;
     let _quotes = [];
+    let _cqPlacesInit   = false;
+    let _debouncedCQMap = null;
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -508,6 +510,8 @@ window.CommercialQuoter = (() => {
 
         // Restore saved values into visible fields
         _populateFields();
+        // Initialise Places autocomplete + map preview when on Business Info step
+        if (_step === 1) setTimeout(_initCQPlaces, 50);
     }
 
     function _renderStep0() {
@@ -597,6 +601,7 @@ window.CommercialQuoter = (() => {
         app.addEventListener('input', Utils.debounce(function() {
             _collectFields();
             _save();
+            if (_step === 1) _scheduleCQMapPreview();
         }, 400));
 
         // Coverage checkbox toggles + subcontractor reveal
@@ -613,9 +618,119 @@ window.CommercialQuoter = (() => {
         });
     }
 
+    function _getCQAddress() {
+        return [_data.bizStreet, _data.bizCity, _data.bizState, _data.bizZip]
+            .filter(Boolean).join(', ').trim();
+    }
+
+    async function _updateCQMapPreviews() {
+        const streetImg = document.getElementById('cq-biz-streetViewImg');
+        const satImg    = document.getElementById('cq-biz-satelliteViewImg');
+        const hint      = document.getElementById('cq-biz-mapHint');
+        if (!streetImg || !satImg) return;
+
+        const address = _getCQAddress();
+        if (!address) {
+            if (hint) hint.textContent = 'Enter an address to load previews.';
+            streetImg.removeAttribute('src');
+            satImg.removeAttribute('src');
+            return;
+        }
+
+        if (typeof App === 'undefined' || !App.ensureMapApiKey) return;
+        const apiKey = await App.ensureMapApiKey();
+        if (!apiKey) {
+            if (hint) hint.textContent = 'Map previews unavailable.';
+            return;
+        }
+
+        const enc = encodeURIComponent(address);
+        streetImg.src = 'https://maps.googleapis.com/maps/api/streetview?size=640x360&location=' + enc + '&fov=80&pitch=0&key=' + apiKey;
+        satImg.src    = 'https://maps.googleapis.com/maps/api/staticmap?center=' + enc + '&zoom=19&size=640x360&maptype=satellite&key=' + apiKey;
+        streetImg.style.cursor = 'pointer';
+        satImg.style.cursor    = 'pointer';
+        streetImg.onclick = _openBizStreetView;
+        satImg.onclick    = _openBizMaps;
+        if (hint) hint.textContent = '\u00a0';
+    }
+
+    function _scheduleCQMapPreview() {
+        if (!_debouncedCQMap) _debouncedCQMap = Utils.debounce(_updateCQMapPreviews, 450);
+        _debouncedCQMap();
+    }
+
+    function _initCQPlaces() {
+        if (_cqPlacesInit) return;
+        const streetInput = document.getElementById('cq_bizStreet');
+        if (!streetInput) return;
+        if (!window.google?.maps?.places) {
+            setTimeout(_initCQPlaces, 600);
+            return;
+        }
+        _cqPlacesInit = true;
+
+        let sessionToken = new google.maps.places.AutocompleteSessionToken();
+        const ac = new google.maps.places.Autocomplete(streetInput, {
+            types: ['address'],
+            componentRestrictions: { country: 'us' },
+            fields: ['address_components', 'formatted_address'],
+            sessionToken
+        });
+
+        const refreshToken = () => {
+            sessionToken = new google.maps.places.AutocompleteSessionToken();
+            ac.setOptions({ sessionToken });
+        };
+        streetInput.addEventListener('focus', refreshToken);
+
+        ac.addListener('place_changed', () => {
+            const place = ac.getPlace();
+            if (!place?.address_components) {
+                if (typeof App !== 'undefined' && App.toast) App.toast('\u26a0\ufe0f Address not found.', 'error');
+                return;
+            }
+            const parts = { street_number: '', route: '', locality: '', postal_town: '',
+                            administrative_area_level_1: '', postal_code: '' };
+            place.address_components.forEach(c => {
+                const t = c.types?.[0];
+                if (t && Object.prototype.hasOwnProperty.call(parts, t)) {
+                    parts[t] = c.short_name || c.long_name || '';
+                }
+            });
+            const street = [parts.street_number, parts.route].filter(Boolean).join(' ').trim();
+            const city   = parts.locality || parts.postal_town || '';
+            const state  = parts.administrative_area_level_1 || '';
+            const zip    = parts.postal_code || '';
+
+            const setField = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) { el.value = val; _data[id.slice(3)] = val; }
+            };
+            setField('cq_bizStreet', street || place.formatted_address || '');
+            setField('cq_bizCity',   city);
+            setField('cq_bizState',  state);
+            setField('cq_bizZip',    zip);
+            _save();
+            _scheduleCQMapPreview();
+            refreshToken();
+        });
+    }
+
+    function _openBizStreetView() {
+        const addr = _getCQAddress();
+        if (!addr) return;
+        window.open('https://www.google.com/maps/@?api=1&map_action=pano&parameters=&viewpoint=' + encodeURIComponent(addr), '_blank');
+    }
+
+    function _openBizMaps() {
+        const addr = _getCQAddress();
+        if (!addr) return;
+        window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addr), '_blank');
+    }
+
     function _genId() {
         return 'cq_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
     }
 
-    return { init, save, load, getQuotes, saveQuote, loadQuote, newQuote, prev, next, exportPDF, exportCMSMTF, render };
+    return { init, save, load, getQuotes, saveQuote, loadQuote, newQuote, prev, next, exportPDF, exportCMSMTF, render, openBizStreetView: _openBizStreetView, openBizMaps: _openBizMaps };
 })();

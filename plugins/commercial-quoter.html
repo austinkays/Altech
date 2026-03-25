@@ -1,4 +1,4 @@
-    <header>
+﻿    <header>
         <div class="header-top">
             <div class="logo tool-header-brand">
                 <span class="logo-controls">
@@ -84,6 +84,7 @@
 
         <!-- ═══ STEP 1: BUSINESS INFO ════════════════════════════════════ -->
         <div id="cq-step-1" class="cq-step hidden">
+            <div class="prop-layout">
             <div class="card">
                 <h2>🏢 Business Information</h2>
                 <p class="section-subtitle">Legal name, contact details, and business history</p>
@@ -110,7 +111,7 @@
                 <div class="section-title">Business Address</div>
                 <div class="form-row">
                     <label class="form-label" for="cq_bizStreet">Street Address</label>
-                    <input id="cq_bizStreet" type="text" class="form-input" placeholder="123 Main St" autocomplete="street-address">
+                    <input id="cq_bizStreet" type="text" class="form-input" placeholder="123 Main St" autocomplete="off">
                 </div>
                 <div class="form-grid form-grid-3">
                     <div class="form-row">
@@ -158,6 +159,30 @@
                     <label class="form-label" for="cq_marketingAgent">Marketing Agent / Rep</label>
                     <input id="cq_marketingAgent" type="text" class="form-input" placeholder="Agent name">
                 </div>
+            </div>
+            <div class="prop-sidebar">
+                <div class="card map-preview-card">
+                    <h2>Business Views</h2>
+                    <p class="section-subtitle">Street &amp; satellite preview</p>
+                    <div class="map-previews">
+                        <div class="map-preview-item">
+                            <div class="map-preview-label">Street View</div>
+                            <img id="cq-biz-streetViewImg" class="map-preview-img" alt="Street View preview" />
+                            <div class="map-preview-actions">
+                                <button class="btn-utility" onclick="CommercialQuoter.openBizStreetView()">🚶 Street View</button>
+                            </div>
+                        </div>
+                        <div class="map-preview-item">
+                            <div class="map-preview-label">Satellite View</div>
+                            <img id="cq-biz-satelliteViewImg" class="map-preview-img" alt="Satellite preview" />
+                            <div class="map-preview-actions">
+                                <button class="btn-utility" onclick="CommercialQuoter.openBizMaps()">🗺️ Maps</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="cq-biz-mapHint" class="hint">Enter an address to load previews.</div>
+                </div>
+            </div>
             </div>
         </div>
 
