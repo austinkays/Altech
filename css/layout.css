@@ -543,8 +543,31 @@ body.dark-mode #breadcrumbBar {
         gap: 16px;
         align-items: start;
     }
-    #step-5 > .card:first-child {
+    /* Hint banner and policy details card both span full width */
+    #step-5 > .hint,
+    #step-5 > input[type="hidden"],
+    #step-5 > .card:first-of-type {
         grid-column: 1 / -1;
+    }
+
+    /* In side-by-side cards, revert inline label+control to vertical stacking
+       so selects and date inputs aren't crushed into narrow columns */
+    #step-5 .card .grid-2 > div,
+    #step-5 .card .grid-3 > div {
+        grid-template-columns: 1fr;
+        row-gap: 6px;
+    }
+    #step-5 .card .grid-2 > div > .label,
+    #step-5 .card .grid-3 > div > .label {
+        text-align: left;
+        margin-bottom: 2px;
+    }
+    #step-5 .card .grid-2 > div > input,
+    #step-5 .card .grid-2 > div > select,
+    #step-5 .card .grid-3 > div > input,
+    #step-5 .card .grid-3 > div > select {
+        width: 100%;
+        box-sizing: border-box;
     }
 }
 
