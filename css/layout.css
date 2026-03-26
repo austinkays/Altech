@@ -255,7 +255,7 @@ body.dark-mode .progress-fill { background: linear-gradient(to right, var(--appl
     flex-direction: column;
     align-items: center;
     gap: 5px;
-    cursor: default;
+    cursor: pointer;
     position: relative;
     z-index: 1;
     flex: 1;

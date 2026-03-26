@@ -95,6 +95,14 @@ window.CommercialQuoter = (() => {
         }
     }
 
+    function goToStep(i) {
+        if (i === _step || i < 0 || i > 6) return;
+        _collectFields();
+        _save();
+        _step = i;
+        _updateUI();
+    }
+
     async function render() {
         // Called by cloud sync after pull
         await _load();
@@ -721,6 +729,7 @@ window.CommercialQuoter = (() => {
         app.querySelectorAll('.cq-dot').forEach(function(dot, i) {
             dot.classList.toggle('active', i === _step);
             dot.setAttribute('aria-current', i === _step ? 'step' : 'false');
+            dot.onclick = function() { goToStep(i); };
         });
 
         // Step title + progress bar
@@ -988,5 +997,5 @@ window.CommercialQuoter = (() => {
         return 'cq_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
     }
 
-    return { init, save, load, getQuotes, saveQuote, loadQuote, newQuote, prev, next, exportPDF, exportCMSMTF, render, openBizStreetView: _openBizStreetView, openBizMaps: _openBizMaps };
+    return { init, save, load, getQuotes, saveQuote, loadQuote, newQuote, prev, next, goToStep, exportPDF, exportCMSMTF, render, openBizStreetView: _openBizStreetView, openBizMaps: _openBizMaps };
 })();

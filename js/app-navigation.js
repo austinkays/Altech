@@ -330,13 +330,21 @@ Object.assign(App, {
             const inner = (i < this.step)
                 ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
                 : (i + 1);
-            html += `<span class="${cls}" ${aria} aria-label="Step ${i + 1}: ${shortLabels[stepId] || stepId}">` +
+            html += `<span class="${cls}" ${aria} aria-label="Step ${i + 1}: ${shortLabels[stepId] || stepId}" onclick="App.jumpToStep(${i})">` +
                     `<span class="pq-dot-inner">${inner}</span>` +
                     `<span class="pq-dot-label">${label}</span>` +
                     `</span>`;
         });
         html += '</div>';
         nav.innerHTML = html;
+    },
+
+    jumpToStep(i) {
+        if (i === this.step || i < 0 || i >= this.flow.length) return;
+        this._saveClientHistoryNow();
+        this.save();
+        this.step = i;
+        this.updateUI();
     },
 
     updateBreadcrumb() {
