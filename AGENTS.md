@@ -575,7 +575,32 @@ Tests run in JSDOM, which lacks:
 }
 ```
 
-**Rule for new elements:** Whenever you add a `data-tooltip` attribute to any non-icon element (buttons, nav items, list rows, etc.), confirm the element's CSS rule resets `background`, `border`, `height`, and `font-size` — otherwise the global `[data-tooltip]` badge styles will bleed through.
+**Additional bleed sources from `[data-tooltip]` in `components.css`** (all affect `::before` pseudo-elements):
+
+```css
+[data-tooltip]::before {
+    opacity: 0;                    /* ← hides ::before at rest */
+    border: 6px solid transparent; /* ← tooltip arrow shape */
+}
+[data-tooltip]:hover::before {
+    opacity: 1;                    /* ← makes ::before visible on hover */
+}
+```
+
+The active indicator bar on `.sidebar-nav-item.active` is drawn via `::before`. Without explicit overrides, it **inherits `opacity: 0` at rest** (invisible bar) and **`opacity: 1` on hover** (bar pops in suddenly as a "blue box on the left"). It also inherits `border: 6px solid transparent` which distorts the bar shape.
+
+**Fix applied (March 2026, commit `21098a8`):** `.sidebar-nav-item.active::before` now explicitly sets `opacity: 1` and `border: none`. A compound rule `.sidebar-nav-item.active[data-tooltip]:hover::before { opacity: 1 }` locks the opacity so no hover rule can reset it.
+
+**Rule for new elements:** Whenever you add a `data-tooltip` attribute to any non-icon element (buttons, nav items, list rows, etc.), confirm the element's CSS rule resets ALL of the following — otherwise the global `[data-tooltip]` badge styles will bleed through:
+
+| Property | `[data-tooltip]` value | Override needed |
+|----------|------------------------|-----------------|
+| `background` | `var(--bg-input)` | `background: transparent` |
+| `border` | `1px solid var(--border)` | `border: none` |
+| `height` | `18px` | `height: auto` |
+| `font-size` | `11px` | `font-size: <correct value>` |
+| `::before opacity` | `0` (hidden) / `1` on hover | `opacity: 1` if the `::before` should be visible |
+| `::before border` | `6px solid transparent` | `border: none` if `::before` is not a tooltip arrow |
 
 ### 5.10 Vercel Hobby Plan — 12 Serverless Function Limit (CRITICAL)
 

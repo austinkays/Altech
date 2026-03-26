@@ -196,6 +196,21 @@ const SYNC_DOCS = [
 - **Prefer solid colors** (`#1C1C1E`) over low-opacity rgba for dark mode backgrounds
 - **`/* no var */` comments** mark hardcoded colors still needing a design token — leave them intact, do not remove. Currently in `css/compliance.css` (3× `#FF9500` warning/saving states) and `css/components.css` (1× low-opacity rgba background). Search `/* no var */` to find all instances.
 
+### `[data-tooltip]` Bleed — Full Property Matrix (CRITICAL)
+
+`css/components.css` bleeds **six** properties onto any element carrying a `data-tooltip` attribute. Sidebar nav items all carry it for collapsed-mode tooltips. Any new element that gets `data-tooltip` must explicitly reset every property it doesn't want:
+
+| Property | Bleeds via | Value | If `::before` is NOT a tooltip arrow |
+|----------|-----------|-------|---------------------------------------|
+| `background` | `[data-tooltip]` | `var(--bg-input)` | reset to `transparent` |
+| `border` | `[data-tooltip]` | `1px solid var(--border)` | reset to `none` |
+| `height` | `[data-tooltip]` | `18px` | reset to `auto` |
+| `font-size` | `[data-tooltip]` | `11px` | reset to correct value |
+| `::before opacity` | `[data-tooltip]::before` + `:hover` | `0` → `1` on hover | set `opacity: 1` always to prevent pop-in |
+| `::before border` | `[data-tooltip]::before` | `6px solid transparent` | reset to `none` |
+
+**The `::before` opacity bleed is the most subtle.** If an element draws a custom `::before` (e.g., the active indicator bar), it inherits `opacity: 0` at rest — making it invisible — then `[data-tooltip]:hover::before { opacity: 1 }` fires on hover, causing it to suddenly appear as an unexpected element. Always add `opacity: 1; border: none` to custom `::before` pseudo-elements on any element that also has `data-tooltip`.
+
 ---
 
 ## Three Workflows
