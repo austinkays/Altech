@@ -3,11 +3,7 @@
         <div class="logo tool-header-brand">
             <span>Task Reminders</span>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
-            <button class="btn-utility" onclick="Reminders.showAdd()" style="font-size: 14px; padding: 8px 16px;">
-                ＋ New
-            </button>
-        </div>
+        <div></div>
     </div>
     <div class="step-title">Task Reminders</div>
 </header>
@@ -50,13 +46,16 @@
 
     <!-- Filters & Search -->
     <div class="rem-controls">
-        <div class="rem-filter-row">
-            <button class="rem-filter-btn active" data-filter="all" onclick="Reminders.setFilter('all')">All</button>
-            <button class="rem-filter-btn" data-filter="active" onclick="Reminders.setFilter('active')">Active</button>
-            <button class="rem-filter-btn" data-filter="overdue" onclick="Reminders.setFilter('overdue')">Missed</button>
-            <button class="rem-filter-btn" data-filter="snoozed" onclick="Reminders.setFilter('snoozed')">Snoozed</button>
-            <button class="rem-filter-btn" data-filter="due-today" onclick="Reminders.setFilter('due-today')">Today</button>
-            <button class="rem-filter-btn" data-filter="completed" onclick="Reminders.setFilter('completed')">Done</button>
+        <div class="rem-filter-bar">
+            <div class="rem-filter-row">
+                <button class="rem-filter-btn active" data-filter="all" onclick="Reminders.setFilter('all')">All</button>
+                <button class="rem-filter-btn" data-filter="active" onclick="Reminders.setFilter('active')">Active</button>
+                <button class="rem-filter-btn" data-filter="overdue" onclick="Reminders.setFilter('overdue')">Missed</button>
+                <button class="rem-filter-btn" data-filter="snoozed" onclick="Reminders.setFilter('snoozed')">Snoozed</button>
+                <button class="rem-filter-btn" data-filter="due-today" onclick="Reminders.setFilter('due-today')">Today</button>
+                <button class="rem-filter-btn" data-filter="completed" onclick="Reminders.setFilter('completed')">Done</button>
+            </div>
+            <button class="btn-utility rem-new-btn" onclick="Reminders.showAdd()">＋ New</button>
         </div>
         <div class="rem-search-row">
             <input type="text" class="rem-search" id="remSearchInput" placeholder="Search reminders...">

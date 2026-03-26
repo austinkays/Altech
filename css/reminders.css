@@ -97,8 +97,8 @@
     box-shadow: 0 3px 10px rgba(255, 59, 48, 0.3);
 }
 .rem-stat-card.due-today .rem-stat-icon {
-    background: linear-gradient(135deg, #FF9500, #CC7600);
-    box-shadow: 0 3px 10px rgba(255, 149, 0, 0.3);
+    background: linear-gradient(135deg, #5AC8FA, #32ADE6);
+    box-shadow: 0 3px 10px rgba(90, 200, 250, 0.25);
 }
 .rem-stat-card.completed .rem-stat-icon {
     background: linear-gradient(135deg, #34C759, #28A745);
@@ -127,12 +127,26 @@
     margin-bottom: 20px;
 }
 
+.rem-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 12px;
+}
+
 .rem-filter-row {
     display: flex;
     gap: 6px;
     overflow-x: auto;
-    padding-bottom: 12px;
+    flex: 1;
+    min-width: 0;
     -webkit-overflow-scrolling: touch;
+}
+
+.rem-new-btn {
+    flex-shrink: 0;
+    font-size: 13px;
+    padding: 7px 14px;
 }
 
 .rem-filter-btn {
@@ -261,7 +275,7 @@
 }
 
 .rem-task-card.rem-status-due-today {
-    border-left: 4px solid #FF9500;
+    border-left: 4px solid #5AC8FA;
 }
 
 .rem-task-card.rem-status-due-soon {
@@ -387,8 +401,8 @@
 }
 
 .rem-badge-due-today {
-    background: rgba(255, 149, 0, 0.12);
-    color: #FF9500;
+    background: rgba(90, 200, 250, 0.12);
+    color: #5AC8FA;
 }
 
 .rem-badge-due-soon {
@@ -655,7 +669,7 @@
 /* ===== Snoozed Task Card State ===== */
 .rem-task-card.rem-snoozed {
     opacity: 0.55;
-    border-left: 4px solid #FF9500;
+    border-left: 4px solid #8E8E93;
 }
 
 .rem-task-card.rem-snoozed:hover {
@@ -663,12 +677,12 @@
 }
 
 .rem-task-card.rem-status-snoozed {
-    border-left: 4px solid #FF9500;
+    border-left: 4px solid #8E8E93;
 }
 
 .rem-badge-snoozed {
-    background: rgba(255, 149, 0, 0.12);
-    color: #FF9500;
+    background: rgba(142, 142, 147, 0.12);
+    color: #8E8E93;
 }
 
 /* Snooze indicator inside task title */
