@@ -520,7 +520,7 @@ window.CallLogger = (() => {
         const query = input.value.trim().toLowerCase();
 
         // Clear previous selection if user edits the input
-        if (_selectedClient && input.value.trim() !== _selectedClient.name) {
+        if (_selectedClient && input.value.trim() !== (_selectedClient.displayName || _selectedClient.name)) {
             _selectedClient = null;
             _selectedPolicy = null;
             const policySelect = document.getElementById('clPolicySelect');
@@ -576,20 +576,22 @@ window.CallLogger = (() => {
 
         // Wire click handlers on rows
         dropdown.querySelectorAll('.cl-client-row').forEach((row, idx) => {
-            row.addEventListener('click', () => _selectClient(shown[idx].client));
+            row.addEventListener('click', () => _selectClient(shown[idx].client, shown[idx].matchedAlias));
         });
     }
 
     /**
      * User selected a client from the dropdown.
      */
-    function _selectClient(client) {
+    function _selectClient(client, matchedAlias) {
         const input = document.getElementById('clPolicyId');
         const dropdown = document.getElementById('clClientDropdown');
         const policySelect = document.getElementById('clPolicySelect');
         const policyList = document.getElementById('clPolicyList');
 
         _selectedClient = client;
+        // Store the display name so the input shows the name the agent searched, not the stored account name
+        _selectedClient.displayName = matchedAlias ? matchedAlias.toUpperCase() : client.name;
         _selectedPolicy = null;
 
         // Close dropdown
@@ -613,7 +615,7 @@ window.CallLogger = (() => {
 
         // If client has policies, show policy picker — keep input as client name
         if (client.policies.length > 0 && policySelect && policyList) {
-            input.value = client.name;
+            input.value = _selectedClient.displayName;
             policyList.innerHTML = client.policies.map((p, i) => {
                 const icon = _policyTypeIcon(p.type);
                 const exp = p.expirationDate
@@ -637,7 +639,7 @@ window.CallLogger = (() => {
             });
         } else {
             // No policies — just set the name
-            input.value = client.name;
+            input.value = _selectedClient.displayName;
             if (policySelect) policySelect.style.display = 'none';
         }
     }
@@ -778,11 +780,11 @@ window.CallLogger = (() => {
                 infoHtml += '<div class="cl-confirm-row"><span class="cl-confirm-label">Client:</span> ';
                 if (_selectedClient && _selectedPolicy) {
                     const hsId = _selectedPolicy.hawksoftId || '';
-                    infoHtml += _buildClientLink(_selectedClient.name, hsId);
+                    infoHtml += _buildClientLink(_selectedClient.displayName || _selectedClient.name, hsId);
                 } else if (_selectedClient) {
                     // Client selected from autocomplete but no policy (prospect/policy-less)
                     const hsId = _selectedClient.hawksoftId || '';
-                    infoHtml += _buildClientLink(_selectedClient.name, hsId);
+                    infoHtml += _buildClientLink(_selectedClient.displayName || _selectedClient.name, hsId);
                 } else {
                     infoHtml += `<strong>${_escapeHTML(policyId)}</strong>`;
                 }

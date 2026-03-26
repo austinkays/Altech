@@ -616,7 +616,7 @@ describe('Two-Step Workflow', () => {
   });
 
   test('confirm section shows HawkSoft link when client+policy selected', () => {
-    expect(source).toContain('_buildClientLink(_selectedClient.name, hsId)');
+    expect(source).toContain('_buildClientLink(_selectedClient.displayName || _selectedClient.name, hsId)');
   });
 
   test('confirm section shows policy badge with icon and label', () => {
@@ -905,7 +905,7 @@ describe('Client & Policy Lookup — Source', () => {
   });
 
   test('defines _selectClient function', () => {
-    expect(source).toContain('function _selectClient(client)');
+    expect(source).toContain('function _selectClient(client, matchedAlias)');
   });
 
   test('defines _selectPolicy function', () => {
