@@ -8,7 +8,8 @@
 </header>
 
 <div class="cl-container">
-    <!-- Client Sync Status Bar -->
+
+    <!-- Status Bar -->
     <div class="cl-status-bar" id="clStatusBar">
         <div class="cl-status-left">
             <div class="cl-status-indicator" id="clStatusDot"></div>
@@ -16,66 +17,84 @@
         </div>
         <div class="cl-status-actions">
             <button type="button" class="cl-new-log-btn" id="clNewLogBtn" title="Start a new log entry">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 New Log
             </button>
             <button class="cl-refresh-btn" id="clRefreshBtn" title="Refresh client list from HawkSoft">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 Refresh
             </button>
         </div>
     </div>
 
-    <!-- Desktop two-column layout -->
-    <div class="cl-desktop-grid">
-        <!-- Left column: Form -->
-        <div class="cl-col-form">
-            <div class="cl-form">
+    <!-- Main Card -->
+    <div class="cl-card">
+
+        <!-- Initials Bar — persistent, sits above the grid -->
+        <div class="cl-initials-bar">
+            <span class="cl-initials-bar-label">Logging as</span>
+            <input type="text" id="clAgentInitials" class="cl-input cl-input-initials" placeholder="AJK" maxlength="5">
+        </div>
+
+        <!-- Two-column grid -->
+        <div class="cl-desktop-grid">
+
+            <!-- Left column: Form -->
+            <div class="cl-col-form">
+
                 <!-- CLIENT section -->
                 <div class="cl-section">
-                    <div class="cl-section-header">
-                        <span class="cl-section-label">Client</span>
-                    </div>
-                    <div class="cl-search-wrapper">
+                    <div class="cl-section-label">Client</div>
+
+                    <!-- Search state (shown when no client is selected) -->
+                    <div class="cl-search-wrapper" id="clSearchWrapper">
                         <svg class="cl-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         <input type="text" id="clPolicyId" class="cl-input cl-input-search" placeholder="Search by name or client number…" autocomplete="off">
                         <div id="clClientDropdown" class="cl-client-dropdown" style="display: none;"></div>
                     </div>
-                    <div id="clViewInHawksoft" class="cl-view-in-hawksoft" style="display: none;"></div>
-                    <div id="clPolicySelect" class="cl-policy-select" style="display: none;">
-                        <div class="cl-policy-select-label">Active Policies</div>
-                        <div id="clPolicyList" class="cl-policy-list"></div>
+
+                    <!-- Selected state (shown after client is chosen) -->
+                    <div id="clClientBanner" class="cl-client-banner" style="display: none;">
+                        <div class="cl-banner-row">
+                            <div class="cl-banner-info">
+                                <div class="cl-banner-name" id="clBannerName"></div>
+                                <div class="cl-banner-meta" id="clBannerMeta"></div>
+                            </div>
+                            <div class="cl-banner-actions">
+                                <div id="clViewInHawksoft" class="cl-view-in-hawksoft"></div>
+                                <button type="button" class="cl-change-client-btn" id="clChangeClientBtn">← change</button>
+                            </div>
+                        </div>
+                        <!-- Policy selector lives inside the banner -->
+                        <div id="clPolicySelect" class="cl-policy-select" style="display: none;">
+                            <div class="cl-policy-select-label">Active Policies</div>
+                            <div id="clPolicyList" class="cl-policy-list"></div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- CHANNEL section -->
                 <div class="cl-section">
-                    <div class="cl-section-header">
-                        <span class="cl-section-label">Channel</span>
-                        <div class="cl-initials-inline">
-                            <label class="cl-initials-label" for="clAgentInitials">Initials</label>
-                            <input type="text" id="clAgentInitials" class="cl-input cl-input-initials" placeholder="AJK" maxlength="5">
-                        </div>
-                    </div>
+                    <div class="cl-section-label">Channel</div>
                     <div id="clChannelGroup" class="cl-channel-group">
                         <button type="button" class="cl-channel-btn cl-channel-selected" data-channel="Inbound">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/><polyline points="15 3 15 8 20 8"/></svg>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/><polyline points="15 3 15 8 20 8"/></svg>
                             Inbound
                         </button>
                         <button type="button" class="cl-channel-btn" data-channel="Outbound">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/><polyline points="9 21 9 16 4 16"/></svg>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/><polyline points="9 21 9 16 4 16"/></svg>
                             Outbound
                         </button>
                         <button type="button" class="cl-channel-btn" data-channel="Walk-In">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>
                             Walk-In
                         </button>
                         <button type="button" class="cl-channel-btn" data-channel="Email">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                             Email
                         </button>
                         <button type="button" class="cl-channel-btn" data-channel="Text">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                             Text
                         </button>
                     </div>
@@ -83,7 +102,7 @@
 
                 <!-- ACTIVITY section -->
                 <div class="cl-section">
-                    <span class="cl-section-label">Activity</span>
+                    <div class="cl-section-label">Activity</div>
                     <div id="clActivityGroup" class="cl-activity-group">
                         <button type="button" class="cl-activity-btn" data-activity="Coverage Q" data-template="Coverage question re: [POLICY TYPE]&#10;— Q: &#10;— A: &#10;— Action taken: ">Coverage Q</button>
                         <button type="button" class="cl-activity-btn" data-activity="Claim" data-template="Claim reported&#10;— Claim #: &#10;— Date of loss: &#10;— Description: &#10;— Next step: ">Claim</button>
@@ -97,41 +116,44 @@
                 </div>
 
                 <!-- NOTES section -->
-                <div class="cl-section">
-                    <span class="cl-section-label">Notes</span>
-                    <textarea id="clRawNotes" class="cl-textarea" placeholder="Raw notes — type fast, we'll clean it up"></textarea>
-                </div>
-
-                <button id="clSubmitBtn" class="cl-submit-btn">
-                    <span class="cl-btn-text">Format &amp; Preview</span>
-                    <svg class="cl-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                    <span class="cl-btn-spinner"></span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Right column: Preview + Confirm (sticky on desktop) -->
-        <div class="cl-col-output">
-            <!-- Preview Card -->
-            <div id="clPreview" class="cl-preview" style="display: none;">
-                <div class="cl-preview-header">
-                    <span class="cl-preview-label">Formatted Log</span>
-                    <button id="clCopyBtn" class="cl-copy-btn" title="Copy to clipboard">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                <div class="cl-section cl-section-notes">
+                    <div class="cl-section-label">Notes</div>
+                    <textarea id="clRawNotes" class="cl-textarea" placeholder="Type fast — we'll clean it up"></textarea>
+                    <button id="clSubmitBtn" class="cl-submit-btn">
+                        <span class="cl-btn-text">Format with AI</span>
+                        <svg class="cl-btn-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        <span class="cl-btn-spinner"></span>
                     </button>
                 </div>
-                <pre id="clPreviewText" class="cl-preview-text"></pre>
+
             </div>
 
-            <!-- Confirm Card -->
-            <div id="clConfirmSection" class="cl-confirm-section" style="display: none;">
-                <div class="cl-confirm-header">Confirm &amp; Push</div>
-                <div id="clConfirmInfo" class="cl-confirm-info"></div>
-                <p class="cl-confirm-notice">Review the formatted log, then confirm to push to HawkSoft.</p>
-                <div class="cl-confirm-actions">
-                    <button id="clConfirmBtn" class="cl-confirm-btn">Confirm &amp; Push to HawkSoft</button>
-                    <button id="clCancelBtn" class="cl-cancel-btn">Edit</button>
+            <!-- Right column: Preview + Confirm -->
+            <div class="cl-col-output">
+
+                <!-- Preview Card -->
+                <div id="clPreview" class="cl-preview" style="display: none;">
+                    <div class="cl-preview-header">
+                        <span class="cl-preview-label">Formatted Log</span>
+                        <button id="clCopyBtn" class="cl-copy-btn" title="Copy to clipboard">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            Copy
+                        </button>
+                    </div>
+                    <pre id="clPreviewText" class="cl-preview-text"></pre>
                 </div>
+
+                <!-- Confirm Card -->
+                <div id="clConfirmSection" class="cl-confirm-section" style="display: none;">
+                    <div class="cl-confirm-header">Confirm &amp; Push</div>
+                    <div id="clConfirmInfo" class="cl-confirm-info"></div>
+                    <p class="cl-confirm-notice">Review the formatted log, then confirm to push to HawkSoft.</p>
+                    <div class="cl-confirm-actions">
+                        <button id="clConfirmBtn" class="cl-confirm-btn">Confirm &amp; Push to HawkSoft</button>
+                        <button id="clCancelBtn" class="cl-cancel-btn">Edit</button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>

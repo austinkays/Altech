@@ -1,66 +1,31 @@
 /* ═══════════════════════════════════════════════════
-   Call Logger — Channel buttons, Activity pills, HawkSoft log
-   Desktop-first design, quick-tap interaction model
+   Call Logger — Redesigned dark-native UI
+   Two-column unified card with accent client banner
    ═══════════════════════════════════════════════════ */
 
+/* ── Container ── */
+
 .cl-container {
-    max-width: 1400px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 0 24px 80px;
 }
 
-/* ── Desktop Two-Column Layout ── */
-
-.cl-desktop-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-}
-
-@media (min-width: 960px) {
-    .cl-desktop-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 28px;
-        align-items: start;
-    }
-
-    /* When right column is hidden, let left column fill width */
-    .cl-desktop-grid:has(> .cl-col-output[style*="display: none"]),
-    .cl-desktop-grid:has(> .cl-col-output:empty) {
-        grid-template-columns: 1fr;
-    }
-
-    .cl-col-output {
-        position: sticky;
-        top: 24px;
-    }
-}
-
-/* ── Client Sync Status Bar ── */
+/* ── Status Bar ── */
 
 .cl-status-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 10px 16px;
-    margin-bottom: 16px;
-    background: rgba(255, 255, 255, 0.65);
-    backdrop-filter: blur(16px) saturate(1.8);
-    -webkit-backdrop-filter: blur(16px) saturate(1.8);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 12px;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.04),
-        0 4px 12px rgba(0, 0, 0, 0.03),
-        inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    transition: opacity 0.3s ease;
+    padding: 10px 0;
+    margin-bottom: 12px;
 }
 
 .cl-status-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     min-width: 0;
 }
 
@@ -72,11 +37,11 @@
 }
 
 .cl-status-indicator {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
-    background: var(--text-tertiary);
+    background: var(--text-tertiary, #636366);
     transition: background 0.3s ease;
 }
 
@@ -86,16 +51,16 @@
 }
 
 .cl-status-indicator.cl-status-ready {
-    background: var(--success);
+    background: var(--success, #30d158);
 }
 
 .cl-status-indicator.cl-status-error {
-    background: var(--danger);
+    background: var(--danger, #ff453a);
 }
 
 @keyframes cl-dot-pulse {
     0%, 100% { opacity: 0.4; transform: scale(0.9); }
-    50% { opacity: 1; transform: scale(1.2); }
+    50%       { opacity: 1;   transform: scale(1.2); }
 }
 
 .cl-status-text {
@@ -107,43 +72,9 @@
     text-overflow: ellipsis;
 }
 
-.cl-refresh-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--apple-blue);
-    background: rgba(0, 122, 255, 0.08);
-    border: 1px solid rgba(0, 122, 255, 0.15);
-    border-radius: 8px;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: all 0.2s ease;
-}
+/* ── Status Bar Buttons ── */
 
-.cl-refresh-btn:hover {
-    background: rgba(0, 122, 255, 0.14);
-    border-color: rgba(0, 122, 255, 0.3);
-}
-
-.cl-refresh-btn:active {
-    transform: scale(0.96);
-}
-
-.cl-refresh-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.cl-refresh-btn.cl-refreshing svg {
-    animation: cl-spin 0.8s linear infinite;
-}
-
-/* ── + New Log Button (header) ── */
-
+.cl-refresh-btn,
 .cl-new-log-btn {
     display: inline-flex;
     align-items: center;
@@ -151,13 +82,29 @@
     padding: 5px 12px;
     font-size: 12px;
     font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.cl-refresh-btn {
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+}
+
+.cl-refresh-btn:hover {
+    color: var(--text);
+    border-color: var(--text-tertiary, #636366);
+}
+
+.cl-new-log-btn {
     color: var(--apple-blue);
     background: rgba(0, 122, 255, 0.08);
     border: 1px solid rgba(0, 122, 255, 0.2);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
 }
 
 .cl-new-log-btn:hover {
@@ -165,68 +112,141 @@
     border-color: rgba(0, 122, 255, 0.35);
 }
 
+.cl-refresh-btn:active,
 .cl-new-log-btn:active {
     transform: scale(0.96);
+}
+
+.cl-refresh-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.cl-refresh-btn.cl-refreshing svg {
+    animation: cl-spin 0.8s linear infinite;
 }
 
 @keyframes cl-spin {
     to { transform: rotate(360deg); }
 }
 
-/* ── Form Card — Glassmorphism ── */
+/* ── Main Card ── */
 
-.cl-form {
-    background: rgba(255, 255, 255, 0.65);
-    backdrop-filter: blur(16px) saturate(1.8);
-    -webkit-backdrop-filter: blur(16px) saturate(1.8);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+.cl-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 24px;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.04),
-        0 4px 12px rgba(0, 0, 0, 0.03),
-        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    overflow: hidden;
+}
+
+/* ── Initials Bar ── */
+
+.cl-initials-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.12);
+}
+
+body.dark-mode .cl-initials-bar {
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.cl-initials-bar-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+}
+
+.cl-input-initials {
+    width: 60px;
+    padding: 5px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    color: var(--apple-blue);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cl-input-initials:focus-visible {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+}
+
+/* ── Desktop Two-Column Grid ── */
+
+.cl-desktop-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+    .cl-desktop-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.cl-col-form {
+    border-right: 1px solid var(--border);
+}
+
+/* When right column is hidden, let form fill width */
+@media (min-width: 900px) {
+    .cl-desktop-grid:has(> .cl-col-output > *[style*="display: none"]:only-child),
+    .cl-desktop-grid:has(> .cl-col-output:empty) {
+        grid-template-columns: 1fr;
+    }
+
+    .cl-desktop-grid:has(> .cl-col-output > *[style*="display: none"]:only-child) .cl-col-form,
+    .cl-desktop-grid:has(> .cl-col-output:empty) .cl-col-form {
+        border-right: none;
+    }
 }
 
 /* ── Form Sections ── */
 
 .cl-section {
-    margin-bottom: 20px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
 }
 
-.cl-section:last-of-type {
-    margin-bottom: 24px;
-}
-
-.cl-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 10px;
+.cl-section-notes {
+    border-bottom: none;
 }
 
 .cl-section-label {
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 700;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.8px;
+    margin-bottom: 10px;
 }
 
-/* ── Inputs ── */
+/* ── Base Input ── */
 
 .cl-input {
     width: 100%;
-    padding: 11px 14px;
-    font-size: 15px;
+    padding: 10px 14px;
+    font-size: 14px;
     color: var(--text);
     background-color: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 10px;
     outline: none;
-    transition: border-color 0.2s var(--transition-smooth),
-                box-shadow 0.2s var(--transition-smooth);
+    transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
     font-family: inherit;
 }
@@ -236,7 +256,7 @@
     box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
 }
 
-/* Search input with icon */
+/* ── Search Input ── */
 
 .cl-search-wrapper {
     position: relative;
@@ -244,66 +264,265 @@
 
 .cl-search-icon {
     position: absolute;
-    left: 14px;
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     pointer-events: none;
     z-index: 1;
 }
 
 .cl-input-search {
-    padding-left: 40px;
+    padding-left: 38px;
 }
 
-/* Initials inline within channel header */
+/* ── Client Dropdown ── */
 
-.cl-initials-inline {
+.cl-client-dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.cl-client-row {
+    padding: 9px 14px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
+    gap: 8px;
+    transition: background 0.15s;
+}
+
+.cl-client-row:last-child {
+    border-bottom: none;
+}
+
+.cl-client-row:hover {
+    background: rgba(0, 122, 255, 0.07);
+}
+
+.cl-client-badge {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.1);
+    border-radius: 6px;
+    padding: 2px 7px;
+    flex-shrink: 0;
+}
+
+.cl-client-badge-none {
+    color: var(--text-secondary);
+    background: var(--bg-input);
+}
+
+.cl-client-number {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+
+.cl-client-aka {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+/* ── Client Banner (selected state) ── */
+
+.cl-client-banner {
+    background: rgba(0, 122, 255, 0.07);
+    border: 1px solid rgba(0, 122, 255, 0.18);
+    border-radius: 10px;
+    padding: 12px 14px;
+    animation: cl-banner-in 0.2s ease both;
+}
+
+@keyframes cl-banner-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.cl-banner-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.cl-banner-info { flex: 1; min-width: 0; }
+
+.cl-banner-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cl-banner-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+}
+
+.cl-banner-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+/* HawkSoft link inside banner */
+.cl-view-in-hawksoft {
+    line-height: 1;
+}
+
+.cl-view-hs-link,
+.cl-client-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--apple-blue);
+    text-decoration: none;
+    transition: opacity 0.15s;
+}
+
+.cl-view-hs-link:hover,
+.cl-client-link:hover {
+    opacity: 0.75;
+}
+
+/* "← change" button */
+.cl-change-client-btn {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.15s;
+}
+
+.cl-change-client-btn:hover {
+    color: var(--text);
+}
+
+/* ── Policy Selector (inside banner) ── */
+
+.cl-policy-select {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0, 122, 255, 0.12);
+}
+
+.cl-policy-select-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    margin-bottom: 7px;
+}
+
+.cl-policy-list {
+    display: flex;
+    flex-wrap: wrap;
     gap: 6px;
 }
 
-.cl-initials-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
+.cl-policy-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    line-height: 1;
 }
 
-.cl-input-initials {
-    width: 64px;
-    padding: 6px 10px;
-    font-size: 13px;
-    font-weight: 600;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+.cl-policy-chip:hover {
+    border-color: var(--apple-blue);
+    color: var(--text);
 }
 
-/* ── Channel Buttons (5-across row) ── */
+.cl-policy-chip.cl-policy-selected {
+    background: rgba(0, 122, 255, 0.12);
+    border-color: rgba(0, 122, 255, 0.4);
+    color: var(--apple-blue);
+    font-weight: 600;
+}
+
+.cl-policy-icon { font-size: 13px; line-height: 1; }
+
+.cl-policy-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.cl-policy-type {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.cl-policy-num {
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+
+.cl-policy-exp {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-left: 4px;
+}
+
+/* ── Channel Buttons ── */
 
 .cl-channel-group {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
 }
 
 .cl-channel-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 14px;
+    padding: 7px 13px;
     font-size: 13px;
     font-weight: 600;
     color: var(--text-secondary);
     background: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s var(--transition-smooth);
+    transition: all 0.15s ease;
     font-family: inherit;
     white-space: nowrap;
     line-height: 1;
@@ -311,23 +530,18 @@
 
 .cl-channel-btn svg {
     flex-shrink: 0;
-    opacity: 0.7;
-    transition: opacity 0.2s;
+    opacity: 0.6;
+    transition: opacity 0.15s;
 }
 
 .cl-channel-btn:hover {
     border-color: var(--apple-blue);
-    background: rgba(0, 122, 255, 0.05);
     color: var(--text);
 }
 
-.cl-channel-btn:hover svg {
-    opacity: 1;
-}
+.cl-channel-btn:hover svg { opacity: 1; }
 
-.cl-channel-btn:active {
-    transform: scale(0.96);
-}
+.cl-channel-btn:active { transform: scale(0.96); }
 
 .cl-channel-btn:focus-visible {
     outline: none;
@@ -337,8 +551,7 @@
 .cl-channel-btn.cl-channel-selected {
     color: var(--apple-blue);
     background: rgba(0, 122, 255, 0.1);
-    border-color: var(--apple-blue);
-    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.12);
+    border-color: rgba(0, 122, 255, 0.35);
 }
 
 .cl-channel-btn.cl-channel-selected svg {
@@ -346,17 +559,16 @@
     color: var(--apple-blue);
 }
 
-/* ── Activity Type Buttons (pill row) ── */
+/* ── Activity Buttons ── */
 
 .cl-activity-group {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 8px;
 }
 
 .cl-activity-btn {
-    padding: 6px 12px;
+    padding: 5px 12px;
     font-size: 12px;
     font-weight: 600;
     color: var(--text-secondary);
@@ -364,21 +576,18 @@
     border: 1px solid var(--border);
     border-radius: 20px;
     cursor: pointer;
-    transition: all 0.2s var(--transition-smooth);
+    transition: all 0.15s ease;
     font-family: inherit;
     white-space: nowrap;
-    line-height: 1.2;
+    line-height: 1.3;
 }
 
 .cl-activity-btn:hover {
     border-color: var(--apple-blue);
     color: var(--text);
-    background: rgba(0, 122, 255, 0.05);
 }
 
-.cl-activity-btn:active {
-    transform: scale(0.95);
-}
+.cl-activity-btn:active { transform: scale(0.95); }
 
 .cl-activity-btn:focus-visible {
     outline: none;
@@ -389,27 +598,26 @@
     color: #fff;
     background: var(--apple-blue);
     border-color: var(--apple-blue);
-    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
 }
 
 /* ── Textarea ── */
 
 .cl-textarea {
     width: 100%;
-    min-height: 120px;
-    padding: 14px 16px;
-    font-size: 15px;
+    min-height: 110px;
+    padding: 12px 14px;
+    font-size: 14px;
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
     line-height: 1.6;
     color: var(--text);
     background-color: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 10px;
     outline: none;
     resize: vertical;
-    transition: border-color 0.2s var(--transition-smooth),
-                box-shadow 0.2s var(--transition-smooth);
+    transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
+    margin-bottom: 12px;
 }
 
 .cl-textarea:focus-visible {
@@ -418,8 +626,9 @@
 }
 
 .cl-textarea::placeholder {
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     font-family: inherit;
+    font-style: italic;
 }
 
 /* ── Submit Button ── */
@@ -428,61 +637,47 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 7px;
     width: 100%;
-    padding: 14px 20px;
-    font-size: 16px;
+    padding: 12px 20px;
+    font-size: 14px;
     font-weight: 600;
     color: #fff;
-    background: linear-gradient(135deg, var(--apple-blue), #5856D6);
+    background: var(--apple-blue);
     border: none;
-    border-radius: 12px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: transform 0.15s var(--transition-spring),
-                box-shadow 0.3s ease,
-                opacity 0.2s;
-    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+    transition: opacity 0.2s, transform 0.15s;
     font-family: inherit;
 }
 
 .cl-submit-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 122, 255, 0.35);
+    opacity: 0.88;
 }
 
 .cl-submit-btn:active:not(:disabled) {
-    transform: translateY(0) scale(0.98);
+    transform: scale(0.98);
 }
 
 .cl-submit-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.45;
     cursor: not-allowed;
     transform: none;
 }
 
 .cl-submit-btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3),
-                0 4px 14px rgba(0, 122, 255, 0.3);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
 }
 
-.cl-btn-text {
-    display: inline;
-}
-
-.cl-btn-arrow {
-    display: inline;
-    transition: transform 0.2s;
-}
-
-.cl-submit-btn:hover:not(:disabled) .cl-btn-arrow {
-    transform: translateX(3px);
-}
+.cl-btn-text { display: inline; }
+.cl-btn-arrow { display: inline; transition: transform 0.2s; flex-shrink: 0; }
+.cl-submit-btn:hover:not(:disabled) .cl-btn-arrow { transform: translateX(2px); }
 
 .cl-btn-spinner {
     display: none;
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-top-color: #fff;
     border-radius: 50%;
@@ -490,107 +685,103 @@
 }
 
 .cl-submit-btn.cl-loading .cl-btn-text,
-.cl-submit-btn.cl-loading .cl-btn-arrow {
-    display: none;
-}
+.cl-submit-btn.cl-loading .cl-btn-arrow { display: none; }
+.cl-submit-btn.cl-loading .cl-btn-spinner { display: inline-block; }
 
-.cl-submit-btn.cl-loading .cl-btn-spinner {
-    display: inline-block;
-}
-
-/* ── Edit Mode (outline style) ── */
-
+/* Re-format / edit mode */
 .cl-submit-btn.cl-edit-mode {
     background: transparent;
     color: var(--apple-blue);
-    border: 2px solid var(--apple-blue);
-    box-shadow: none;
+    border: 1px solid rgba(0, 122, 255, 0.35);
 }
 
 .cl-submit-btn.cl-edit-mode:hover:not(:disabled) {
-    background: var(--apple-blue);
-    color: #fff;
-    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+    background: rgba(0, 122, 255, 0.08);
+    opacity: 1;
+}
+
+/* ── Right Column ── */
+
+.cl-col-output {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+@media (min-width: 900px) {
+    .cl-col-output {
+        position: sticky;
+        top: 24px;
+        align-self: start;
+    }
 }
 
 /* ── Preview Card ── */
 
 .cl-preview {
-    margin-top: 20px;
-    background: rgba(255, 255, 255, 0.65);
-    backdrop-filter: blur(16px) saturate(1.8);
-    -webkit-backdrop-filter: blur(16px) saturate(1.8);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-left: 4px solid var(--apple-blue);
-    border-radius: 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--apple-blue);
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.04),
-        0 4px 12px rgba(0, 0, 0, 0.03),
-        inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    animation: cl-card-in 0.35s ease both;
+    animation: cl-card-in 0.3s ease both;
 }
 
 @keyframes cl-card-in {
-    from { opacity: 0; transform: translateY(12px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .cl-preview-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-subtle);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
 }
 
 .cl-preview-label {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 700;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.7px;
 }
 
 .cl-preview-text {
-    padding: 16px;
+    padding: 14px;
     margin: 0;
-    font-size: 14px;
+    font-size: 13px;
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
-    line-height: 1.6;
+    line-height: 1.65;
     color: var(--text);
     white-space: pre-wrap;
     word-wrap: break-word;
-    max-height: 400px;
+    max-height: 380px;
     overflow-y: auto;
 }
 
-/* ── Inline Edit Textarea (replaces <pre> during editing) ── */
+/* ── Inline Edit Textarea ── */
 
 .cl-edit-textarea {
     display: block;
     width: 100%;
-    min-height: 220px;
-    max-height: 400px;
-    padding: 16px;
+    min-height: 200px;
+    max-height: 380px;
+    padding: 14px;
     margin: 0;
-    font-size: 14px;
+    font-size: 13px;
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
-    line-height: 1.6;
+    line-height: 1.65;
     color: var(--text);
     background: var(--bg-input);
     border: none;
     border-top: 2px solid var(--apple-blue);
-    border-radius: 0 0 12px 12px;
+    border-radius: 0 0 9px 9px;
     resize: vertical;
     box-sizing: border-box;
     outline: none;
-    transition: border-color 0.2s;
-}
-
-.cl-edit-textarea:focus {
-    border-top-color: var(--apple-blue-hover);
-    box-shadow: inset 0 2px 8px rgba(0, 122, 255, 0.08);
 }
 
 /* ── Copy Button ── */
@@ -598,23 +789,22 @@
 .cl-copy-btn {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    padding: 6px 10px;
-    font-size: 12px;
+    gap: 5px;
+    padding: 4px 10px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--apple-blue);
     background: rgba(0, 122, 255, 0.08);
     border: 1px solid rgba(0, 122, 255, 0.2);
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background 0.2s, color 0.2s, transform 0.15s;
+    transition: background 0.15s, color 0.15s;
     font-family: inherit;
 }
 
 .cl-copy-btn:hover {
     background: var(--apple-blue);
     color: #fff;
-    transform: translateY(-1px);
 }
 
 .cl-copy-btn:focus-visible {
@@ -625,604 +815,121 @@
 /* ── Confirmation Section ── */
 
 .cl-confirm-section {
-    margin-top: 16px;
-    background: rgba(255, 255, 255, 0.65);
-    backdrop-filter: blur(16px) saturate(1.8);
-    -webkit-backdrop-filter: blur(16px) saturate(1.8);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.04),
-        0 4px 12px rgba(0, 0, 0, 0.03),
-        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
     animation: cl-card-in 0.3s ease both;
 }
 
 .cl-confirm-header {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 12px;
-    letter-spacing: -0.2px;
+    margin-bottom: 10px;
+    letter-spacing: -0.1px;
 }
 
 .cl-confirm-info {
-    font-size: 15px;
+    font-size: 13px;
     color: var(--text);
-    padding: 14px 16px;
-    background: var(--bg-input);
-    border-radius: 12px;
-    margin-bottom: 16px;
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    margin-bottom: 12px;
     line-height: 1.5;
-    border: 1px solid var(--border-subtle);
+    border: 1px solid var(--border);
 }
 
 .cl-confirm-summary {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .cl-confirm-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
+    gap: 6px;
+    font-size: 13px;
     color: var(--text);
 }
 
 .cl-confirm-label {
     font-weight: 600;
     color: var(--text-secondary);
-    min-width: 70px;
+    min-width: 64px;
     flex-shrink: 0;
 }
 
+.cl-confirm-policy {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(0, 122, 255, 0.08);
+    color: var(--apple-blue);
+    vertical-align: middle;
+}
+
 .cl-confirm-notice {
-    font-size: 13px;
-    color: var(--text-tertiary);
-    margin: 12px 0 16px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 10px 0 14px;
     line-height: 1.4;
 }
 
-/* ── View in HawkSoft link (appears after client selection) ── */
-
-.cl-view-in-hawksoft {
-    margin-top: 6px;
+.cl-confirm-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.cl-view-hs-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    font-weight: 500;
+.cl-confirm-btn {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--success, #30d158);
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.2s, transform 0.15s;
 }
 
-/* ── HawkSoft Client Link in Confirm Section ── */
+.cl-confirm-btn:hover:not(:disabled) { opacity: 0.88; }
+.cl-confirm-btn:active:not(:disabled) { transform: scale(0.98); }
+.cl-confirm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.cl-cancel-btn {
+    width: 100%;
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.cl-cancel-btn:hover {
+    color: var(--text);
+    border-color: var(--text-secondary);
+}
+
+/* ── HawkSoft client link in confirm section ── */
 
 .cl-client-link {
     color: var(--apple-blue);
     font-weight: 600;
     text-decoration: none;
-    border-bottom: 1px solid transparent;
-    transition: border-color 0.2s, color 0.2s;
+    transition: opacity 0.15s;
 }
 
-.cl-client-link:hover {
-    border-bottom-color: var(--apple-blue);
-    color: var(--apple-blue-hover);
-}
-
-.cl-client-link:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
-    border-radius: 2px;
-}
-
-.cl-confirm-policy {
-    display: inline-block;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 2px 8px;
-    margin-left: 6px;
-    border-radius: 6px;
-    background: rgba(0, 122, 255, 0.08);
-    color: var(--apple-blue);
-    vertical-align: middle;
-    letter-spacing: 0.3px;
-}
-
-.cl-confirm-actions {
-    display: flex;
-    gap: 12px;
-}
-
-.cl-confirm-btn {
-    flex: 1;
-    padding: 14px 20px;
-    font-size: 16px;
-    font-weight: 600;
-    color: #fff;
-    background: linear-gradient(135deg, #34C759, #28A745);
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: transform 0.15s var(--transition-spring),
-                box-shadow 0.3s ease,
-                opacity 0.2s;
-    box-shadow: 0 4px 14px rgba(52, 199, 89, 0.3);
-    font-family: inherit;
-}
-
-.cl-confirm-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(52, 199, 89, 0.35);
-}
-
-.cl-confirm-btn:active:not(:disabled) {
-    transform: translateY(0) scale(0.98);
-}
-
-.cl-confirm-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.cl-confirm-btn:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.3),
-                0 4px 14px rgba(52, 199, 89, 0.3);
-}
-
-.cl-cancel-btn {
-    padding: 14px 20px;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: background 0.2s var(--transition-smooth),
-                color 0.2s,
-                transform 0.15s;
-    font-family: inherit;
-}
-
-.cl-cancel-btn:hover {
-    color: var(--text);
-    background: var(--bg-card);
-    transform: translateY(-1px);
-}
-
-.cl-cancel-btn:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
-}
-
-/* ── Client Search Autocomplete ── */
-
-.cl-client-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    z-index: 50;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-top: none;
-    border-radius: 0 0 12px 12px;
-    box-shadow: 0 8px 24px var(--shadow);
-    max-height: 260px;
-    overflow-y: auto;
-}
-
-.cl-client-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    font-size: 14px;
-    color: var(--text);
-    cursor: pointer;
-    transition: background 0.15s;
-    border-bottom: 1px solid var(--border-subtle);
-}
-
-.cl-client-row:last-child {
-    border-bottom: none;
-}
-
-.cl-client-row:hover {
-    background: var(--bg-input);
-}
-
-.cl-client-badge {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: rgba(0, 122, 255, 0.1);
-    color: var(--apple-blue);
-    white-space: nowrap;
-    flex-shrink: 0;
-    margin-left: 8px;
-}
-
-.cl-client-badge-none {
-    background: var(--bg-input);
-    color: var(--text-tertiary);
-}
-
-.cl-client-number {
-    font-size: 11px;
-    color: var(--text-tertiary);
-    font-weight: 500;
-    margin-left: 4px;
-    flex-shrink: 0;
-}
-
-.cl-client-aka {
-    font-size: 11px;
-    color: var(--text-secondary);
-    font-weight: 400;
-}
-
-/* ── Policy Selector ── */
-
-.cl-policy-select {
-    margin-top: 10px;
-    animation: cl-card-in 0.25s ease both;
-}
-
-.cl-policy-select-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
-}
-
-.cl-policy-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.cl-policy-chip {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.15s;
-    min-width: 0;
-}
-
-.cl-policy-chip:hover {
-    border-color: var(--apple-blue);
-    background: rgba(0, 122, 255, 0.05);
-    transform: translateY(-1px);
-}
-
-.cl-policy-chip.cl-policy-selected {
-    border-color: var(--apple-blue);
-    background: rgba(0, 122, 255, 0.08);
-    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.15);
-}
-
-.cl-policy-icon {
-    font-size: 18px;
-    flex-shrink: 0;
-}
-
-.cl-policy-info {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.cl-policy-type {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.cl-policy-num {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.cl-policy-exp {
-    font-size: 11px;
-    color: var(--text-tertiary);
-    margin-left: auto;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-/* ═══════════════════════════════════════
-   Dark Mode
-   ═══════════════════════════════════════ */
-
-body.dark-mode .cl-status-bar {
-    background: #1C1C1E;
-    border-color: #38383A;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.2),
-        0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-body.dark-mode .cl-refresh-btn {
-    background: rgba(10, 132, 255, 0.12);
-    border-color: rgba(10, 132, 255, 0.25);
-}
-
-body.dark-mode .cl-refresh-btn:hover {
-    background: rgba(10, 132, 255, 0.2);
-    border-color: rgba(10, 132, 255, 0.4);
-}
-
-body.dark-mode .cl-new-log-btn {
-    background: rgba(10, 132, 255, 0.12);
-    border-color: rgba(10, 132, 255, 0.25);
-}
-
-body.dark-mode .cl-new-log-btn:hover {
-    background: rgba(10, 132, 255, 0.2);
-    border-color: rgba(10, 132, 255, 0.4);
-}
-
-body.dark-mode .cl-form {
-    background: #1C1C1E;
-    border-color: #38383A;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.2),
-        0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-body.dark-mode .cl-channel-btn {
-    background: #2C2C2E;
-    border-color: #38383A;
-}
-
-body.dark-mode .cl-channel-btn:hover {
-    background: rgba(10, 132, 255, 0.1);
-    border-color: rgba(10, 132, 255, 0.4);
-}
-
-body.dark-mode .cl-channel-btn.cl-channel-selected {
-    background: rgba(10, 132, 255, 0.2);
-    border-color: var(--apple-blue);
-}
-
-body.dark-mode .cl-activity-btn {
-    background: #2C2C2E;
-    border-color: #38383A;
-}
-
-body.dark-mode .cl-activity-btn:hover {
-    background: rgba(10, 132, 255, 0.1);
-    border-color: rgba(10, 132, 255, 0.4);
-}
-
-body.dark-mode .cl-activity-btn.cl-activity-selected {
-    background: var(--apple-blue);
-    border-color: var(--apple-blue);
-}
-
-body.dark-mode .cl-preview {
-    background: #1C1C1E;
-    border-color: #38383A;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.2),
-        0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-body.dark-mode .cl-preview-header {
-    border-bottom-color: #2C2C2E;
-}
-
-body.dark-mode .cl-confirm-section {
-    background: #1C1C1E;
-    border-color: #38383A;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.2),
-        0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-body.dark-mode .cl-confirm-info {
-    border-color: #2C2C2E;
-}
-
-body.dark-mode .cl-client-dropdown {
-    background: #1C1C1E;
-    border-color: #38383A;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-body.dark-mode .cl-client-row:hover {
-    background: #2C2C2E;
-}
-
-body.dark-mode .cl-client-badge {
-    background: rgba(10, 132, 255, 0.15);
-}
-
-body.dark-mode .cl-client-number {
-    color: var(--text-tertiary);
-}
-
-body.dark-mode .cl-policy-chip:hover {
-    background: rgba(10, 132, 255, 0.1);
-}
-
-body.dark-mode .cl-policy-chip.cl-policy-selected {
-    background: rgba(10, 132, 255, 0.15);
-    box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2);
-}
-
-body.dark-mode .cl-copy-btn {
-    background: rgba(10, 132, 255, 0.12);
-    border-color: rgba(10, 132, 255, 0.25);
-}
-
-body.dark-mode .cl-submit-btn.cl-edit-mode {
-    color: var(--apple-blue);
-    background: transparent;
-}
-
-body.dark-mode .cl-submit-btn.cl-edit-mode:hover:not(:disabled) {
-    color: #fff;
-    background: var(--apple-blue);
-}
-
-body.dark-mode .cl-edit-textarea {
-    background: #1C1C1E;
-    color: #FFFFFF;
-}
-
-body.dark-mode .cl-edit-textarea:focus {
-    box-shadow: inset 0 2px 8px rgba(10, 132, 255, 0.12);
-}
-
-body.dark-mode .cl-confirm-policy {
-    background: rgba(10, 132, 255, 0.15);
-    color: var(--apple-blue);
-}
-
-body.dark-mode .cl-client-link {
-    color: var(--apple-blue);
-}
-
-body.dark-mode .cl-client-link:hover {
-    border-bottom-color: var(--apple-blue);
-}
-
-/* ═══════════════════════════════════════
-   Responsive
-   ═══════════════════════════════════════ */
-
-@media (min-width: 960px) {
-    .cl-container {
-        padding: 0 32px 80px;
-    }
-
-    .cl-form {
-        padding: 32px;
-    }
-
-    .cl-textarea {
-        min-height: 180px;
-    }
-
-    .cl-preview {
-        margin-top: 0;
-    }
-
-    .cl-confirm-section {
-        margin-top: 16px;
-    }
-}
-
-@media (min-width: 1280px) {
-    .cl-desktop-grid {
-        gap: 36px;
-    }
-
-    .cl-container {
-        padding: 0 40px 80px;
-    }
-}
-
-@media (max-width: 959px) {
-    .cl-col-output {
-        /* On mobile/tablet, preview/confirm flow below form */
-    }
-
-    .cl-preview {
-        margin-top: 20px;
-    }
-}
-
-@media (max-width: 600px) {
-    .cl-channel-group {
-        gap: 6px;
-    }
-
-    .cl-channel-btn {
-        padding: 7px 10px;
-        font-size: 12px;
-        gap: 4px;
-    }
-
-    .cl-channel-btn svg {
-        width: 12px;
-        height: 12px;
-    }
-
-    .cl-activity-group {
-        gap: 5px;
-    }
-
-    .cl-activity-btn {
-        padding: 5px 10px;
-        font-size: 11px;
-    }
-
-    .cl-section-header {
-        flex-wrap: wrap;
-    }
-
-    .cl-status-bar {
-        padding: 8px 12px;
-    }
-
-    .cl-status-text {
-        font-size: 12px;
-    }
-
-    .cl-refresh-btn {
-        padding: 4px 10px;
-        font-size: 11px;
-    }
-}
-
-@media (max-width: 480px) {
-    .cl-container {
-        padding: 0 12px 60px;
-    }
-
-    .cl-form {
-        padding: 16px;
-        border-radius: 12px;
-    }
-
-    .cl-textarea {
-        min-height: 100px;
-        font-size: 14px;
-    }
-
-    .cl-submit-btn,
-    .cl-confirm-btn,
-    .cl-cancel-btn {
-        font-size: 15px;
-        padding: 12px 16px;
-    }
-
-    .cl-confirm-actions {
-        flex-direction: column;
-    }
-}
+.cl-client-link:hover { opacity: 0.75; }

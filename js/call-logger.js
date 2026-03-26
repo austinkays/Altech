@@ -642,6 +642,9 @@ window.CallLogger = (() => {
             input.value = _selectedClient.displayName;
             if (policySelect) policySelect.style.display = 'none';
         }
+
+        // Show the accent banner, hide the search input
+        _showClientBanner(client, matchedAlias);
     }
 
     /**
@@ -1052,6 +1055,9 @@ window.CallLogger = (() => {
         if (policyEl) policyEl.value = '';
         if (notesEl) notesEl.value = '';
 
+        // Hide client banner, restore search
+        _hideClientBanner();
+
         // Hide client dropdown + policy selector + HawkSoft link
         const dropdown = document.getElementById('clClientDropdown');
         const policySelect = document.getElementById('clPolicySelect');
@@ -1090,6 +1096,36 @@ window.CallLogger = (() => {
     }
 
     function _escapeHTML(str) { return Utils.escapeHTML(str); }
+
+    // ── Client Banner (show/hide selected-client state) ──
+
+    function _showClientBanner(client, matchedAlias) {
+        const searchWrapper = document.getElementById('clSearchWrapper');
+        const banner = document.getElementById('clClientBanner');
+        const bannerName = document.getElementById('clBannerName');
+        const bannerMeta = document.getElementById('clBannerMeta');
+        if (!banner) return;
+
+        const displayName = matchedAlias ? matchedAlias.toUpperCase() : client.name;
+        if (bannerName) bannerName.textContent = displayName;
+
+        const metaParts = [];
+        if (client.hawksoftId) metaParts.push(`#${client.hawksoftId}`);
+        if (matchedAlias && matchedAlias.toLowerCase() !== client.name.toLowerCase()) {
+            metaParts.push(client.name);
+        }
+        if (bannerMeta) bannerMeta.textContent = metaParts.join(' · ') || 'No client number';
+
+        if (searchWrapper) searchWrapper.style.display = 'none';
+        banner.style.display = '';
+    }
+
+    function _hideClientBanner() {
+        const searchWrapper = document.getElementById('clSearchWrapper');
+        const banner = document.getElementById('clClientBanner');
+        if (banner) banner.style.display = 'none';
+        if (searchWrapper) searchWrapper.style.display = '';
+    }
 
     /**
      * Build a clickable HawkSoft link for a client name.
@@ -1181,6 +1217,23 @@ window.CallLogger = (() => {
         if (newLogBtn && !newLogBtn._clWired) {
             newLogBtn.addEventListener('click', _resetForm);
             newLogBtn._clWired = true;
+        }
+
+        // Change client button (inside the banner)
+        const changeClientBtn = document.getElementById('clChangeClientBtn');
+        if (changeClientBtn && !changeClientBtn._clWired) {
+            changeClientBtn.addEventListener('click', () => {
+                _selectedClient = null;
+                _selectedPolicy = null;
+                _hideClientBanner();
+                const policyEl = document.getElementById('clPolicyId');
+                if (policyEl) { policyEl.value = ''; policyEl.focus(); }
+                const dropdown = document.getElementById('clClientDropdown');
+                if (dropdown) { dropdown.style.display = 'none'; dropdown.innerHTML = ''; }
+                const policySelect = document.getElementById('clPolicySelect');
+                if (policySelect) policySelect.style.display = 'none';
+            });
+            changeClientBtn._clWired = true;
         }
 
         // Channel buttons (event delegation)
