@@ -16,6 +16,10 @@
             <span class="cl-status-text" id="clStatusText">Checking client data…</span>
         </div>
         <div class="cl-status-actions">
+            <div class="cl-initials-inline">
+                <span class="cl-initials-as">as</span>
+                <input type="text" id="clAgentInitials" class="cl-input cl-input-initials" placeholder="AJK" maxlength="5">
+            </div>
             <button type="button" class="cl-new-log-btn" id="clNewLogBtn" title="Start a new log entry">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 New Log
@@ -29,12 +33,6 @@
 
     <!-- Main Card -->
     <div class="cl-card">
-
-        <!-- Initials Bar — persistent, sits above the grid -->
-        <div class="cl-initials-bar">
-            <span class="cl-initials-bar-label">Logging as</span>
-            <input type="text" id="clAgentInitials" class="cl-input cl-input-initials" placeholder="AJK" maxlength="5">
-        </div>
 
         <!-- Two-column grid -->
         <div class="cl-desktop-grid">

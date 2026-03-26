@@ -16,7 +16,6 @@ window.CallLogger = (() => {
     let _policiesReady = false;  // true once we have policy data in cache
     let _selectedChannel = 'Inbound';   // Channel button selection
     let _selectedActivityType = null;   // Activity type pill selection
-    let _lastTemplate = '';             // Last-applied activity template text
 
     function init() {
         _load();
@@ -229,36 +228,10 @@ window.CallLogger = (() => {
         });
     }
 
-    function _handleActivitySelect(activity, template) {
-        const notesEl = document.getElementById('clRawNotes');
-        if (_selectedActivityType === activity) {
-            // Deselect — remove template if it's still the default
-            _selectedActivityType = null;
-            if (notesEl && _lastTemplate && notesEl.value === _lastTemplate) {
-                notesEl.value = '';
-            }
-            _lastTemplate = '';
-            _applyActivityUI();
-            return;
-        }
-        _selectedActivityType = activity;
+    function _handleActivitySelect(activity) {
+        // Toggle selection — activity type only influences AI formatting, not notes content
+        _selectedActivityType = (_selectedActivityType === activity) ? null : activity;
         _applyActivityUI();
-        // Insert template only if textarea is empty or still has old template
-        if (notesEl && template) {
-            if (!notesEl.value.trim() || notesEl.value === _lastTemplate) {
-                notesEl.value = template;
-                _lastTemplate = template;
-                notesEl.focus();
-                // Place cursor after first blank to fill
-                const blankIdx = template.indexOf('[');
-                if (blankIdx !== -1) {
-                    const endIdx = template.indexOf(']', blankIdx);
-                    if (endIdx !== -1) notesEl.setSelectionRange(blankIdx, endIdx + 1);
-                }
-            }
-        } else {
-            _lastTemplate = '';
-        }
     }
 
     function _applyActivityUI() {
@@ -1046,7 +1019,6 @@ window.CallLogger = (() => {
         _selectedPolicy = null;
         _selectedChannel = 'Inbound';
         _selectedActivityType = null;
-        _lastTemplate = '';
         _pendingLog = null;
 
         // Clear form inputs
@@ -1251,7 +1223,7 @@ window.CallLogger = (() => {
         if (activityGroup && !activityGroup._clWired) {
             activityGroup.addEventListener('click', (e) => {
                 const btn = e.target.closest('.cl-activity-btn');
-                if (btn && btn.dataset.activity) _handleActivitySelect(btn.dataset.activity, btn.dataset.template || '');
+                if (btn && btn.dataset.activity) _handleActivitySelect(btn.dataset.activity);
             });
             activityGroup._clWired = true;
         }
