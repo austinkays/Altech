@@ -42,7 +42,7 @@ Object.assign(App, {
         let y = mg;
 
         const addPage = () => { doc.addPage(); y = mg; };
-        const need = (h) => { if (y + h > pageH - 16) addPage(); };
+        const need = (h) => { if (y + h > pageH - 14) addPage(); };
 
         const v = (key) => {
             if (data[key] !== undefined && data[key] !== null && String(data[key]).trim() !== '')
@@ -103,29 +103,30 @@ Object.assign(App, {
                 doc.setFontSize(6.5); doc.setFont(undefined,'normal');
                 doc.setTextColor(...MID);
                 doc.setDrawColor(...RULE); doc.setLineWidth(0.3);
-                doc.line(mg, pageH-12, pageW-mg, pageH-12);
-                doc.text('Altech Insurance Tools', mg, pageH-8);
-                doc.text(`Page ${i} of ${total}`, pageW/2, pageH-8, {align:'center'});
-                doc.text(fmtDateTime(new Date()), pageW-mg, pageH-8, {align:'right'});
+                doc.line(mg, pageH-10, pageW-mg, pageH-10);
+                doc.text('Altech Insurance Tools', mg, pageH-6);
+                doc.text(`Page ${i} of ${total}`, pageW/2, pageH-6, {align:'center'});
+                doc.text(fmtDateTime(new Date()), pageW-mg, pageH-6, {align:'right'});
             }
         };
 
         // ─── Section label (thin rule + small caps label) ────────────────
         const sectionLabel = (title) => {
             need(10);
-            y += 3;
+            y += 4;
             doc.setDrawColor(...RULE); doc.setLineWidth(0.4);
             doc.line(mg, y, pageW-mg, y);
             doc.setFontSize(6.5); doc.setFont(undefined,'bold');
             doc.setTextColor(...MID);
             doc.text(title.toUpperCase(), mg, y+4.5);
             doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
-            y += 7;
+            y += 8;
         };
 
         // ─── Sub-header (small caps, no fill, just bold text + underline) ─
         const subHeader = (title) => {
-            need(8);
+            need(9);
+            y += 2;
             doc.setFontSize(7); doc.setFont(undefined,'bold');
             doc.setTextColor(...INK);
             doc.text(title.toUpperCase(), mg, y+4);
@@ -142,7 +143,7 @@ Object.assign(App, {
             const rows = [];
             const filtered = fields.filter(([,val]) => val && String(val).trim());
             for (let i = 0; i < filtered.length; i += cols) rows.push(filtered.slice(i, i+cols));
-            const rowH = 4.8;
+            const rowH = 5.2;
             rows.forEach((row, ri) => {
                 need(rowH + 1);
                 if (ri % 2 === 1) {
@@ -153,17 +154,17 @@ Object.assign(App, {
                 row.forEach(([label, value], ci) => {
                     const x = mg + ci * colW;
                     const labelW = colW * 0.38;
-                    doc.setFontSize(6.5); doc.setFont(undefined,'normal'); doc.setTextColor(160,160,160);
-                    doc.text(String(label), x+1, y+3.4);
-                    doc.setFontSize(8.5); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
+                    doc.setFontSize(6); doc.setFont(undefined,'normal'); doc.setTextColor(175,175,175);
+                    doc.text(String(label), x+1, y+3);
+                    doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
                     const valStr = String(value);
                     const maxW = colW - labelW - 4;
                     const lines = doc.splitTextToSize(valStr, maxW);
-                    doc.text(lines[0], x + labelW, y+3.4);
+                    doc.text(lines[0], x + labelW, y+3);
                 });
                 y += rowH;
             });
-            y += 2;
+            y += 0.5;
         };
 
         // ─── Inline driver/vehicle card ───────────────────────────────────
@@ -196,24 +197,24 @@ Object.assign(App, {
         y = 6;
 
         // Logo + agency name on left, doc ref on right
-        const logoH = 14;
+        const logoH = 10;
         if (logoImg?.dataUrl) {
             doc.addImage(logoImg.dataUrl, logoImg.format, mg, y, logoH, logoH);
         }
         const txtX = mg + (logoImg?.dataUrl ? logoH + 3 : 0);
-        doc.setFontSize(13); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
-        doc.text('Altech Insurance', txtX, y+6);
-        doc.setFontSize(7.5); doc.setFont(undefined,'normal'); doc.setTextColor(...MID);
-        doc.text('Insurance Application Summary', txtX, y+11);
-        doc.setFontSize(7); doc.setTextColor(...MID);
+        doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
+        doc.text('Altech Insurance', txtX, y+5);
+        doc.setFontSize(6.5); doc.setFont(undefined,'normal'); doc.setTextColor(...MID);
+        doc.text('Insurance Application Summary', txtX, y+9);
+        doc.setFontSize(6.5); doc.setTextColor(...MID);
         doc.text(docRef, pageW-mg, y+4, {align:'right'});
-        doc.text(fmtDateTime(new Date()), pageW-mg, y+9, {align:'right'});
-        y += logoH + 4;
+        doc.text(fmtDateTime(new Date()), pageW-mg, y+8.5, {align:'right'});
+        y += logoH + 2;
 
         // Thin rule
         doc.setDrawColor(...LIGHT); doc.setLineWidth(0.5);
         doc.line(mg, y, pageW-mg, y);
-        y += 4;
+        y += 2;
 
         // ════════════════════════════════════════════════════════════════
         //  ② PROPERTY PHOTO + CLIENT SUMMARY CARD (side by side)
@@ -221,7 +222,7 @@ Object.assign(App, {
         const photoW = mapImages?.streetView?.dataUrl ? 72 : 0;
         const cardX  = mg + (photoW > 0 ? photoW + 4 : 0);
         const cardW  = cw - (photoW > 0 ? photoW + 4 : 0);
-        const blockH = 38;
+        const blockH = 24;
 
         // Street view photo (left side, lightened)
         if (mapImages?.streetView?.dataUrl) {
@@ -247,54 +248,29 @@ Object.assign(App, {
         doc.rect(cardX, y, cardW, blockH, 'S');
 
         // Client name + quote type
-        doc.setFontSize(13); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
-        doc.text(clientName, cardX+6, y+8);
-        doc.setFontSize(7.5); doc.setFont(undefined,'normal'); doc.setTextColor(...MID);
-        doc.text(qLabel, pageW-mg-2, y+8, {align:'right'});
+        doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
+        doc.text(clientName, cardX+5, y+6);
+        doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(...MID);
+        doc.text(qLabel, pageW-mg-2, y+6, {align:'right'});
 
         // Address
-        doc.setFontSize(8); doc.setTextColor(...INK);
-        doc.text(address || addrLine, cardX+6, y+14);
+        doc.setFontSize(7.5); doc.setTextColor(...INK);
+        doc.text(address || addrLine, cardX+5, y+11);
 
         // Thin rule
         doc.setDrawColor(...LIGHT); doc.setLineWidth(0.3);
-        doc.line(cardX+4, y+17, pageW-mg-2, y+17);
+        doc.line(cardX+4, y+13.5, pageW-mg-2, y+13.5);
 
-        // Key stats row
-        const stats = [];
-        if (v('dob')) stats.push(['DOB', fmtDate(v('dob'))]);
-        if (v('phone')) stats.push(['Phone', v('phone')]);
-        if (v('email')) stats.push(['Email', v('email')]);
-        const statColW = cardW / Math.max(stats.length, 1);
-        stats.forEach(([lbl, val], i) => {
-            const sx = cardX + 6 + i * statColW;
-            doc.setFontSize(6.5); doc.setFont(undefined,'bold'); doc.setTextColor(...MID);
-            doc.text(lbl, sx, y+22);
-            doc.setFontSize(7.5); doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
-            doc.text(val, sx, y+27);
-        });
-
-        // Second rule
-        doc.setDrawColor(...LIGHT); doc.setLineWidth(0.3);
-        doc.line(cardX+4, y+29, pageW-mg-2, y+29);
-
-        // Coverage highlights
-        const hi = [];
-        if (showHome && v('dwellingCoverage')) hi.push(`Dwelling ${fmtMoney(v('dwellingCoverage'))}`);
-        if (showHome && v('homeDeductible'))   hi.push(`Ded. ${fmtMoney(v('homeDeductible'))}`);
-        if (showAuto && v('liabilityLimits'))  hi.push(`Liability ${v('liabilityLimits')}`);
-        if (showAuto && vehicles.length)       hi.push(`${vehicles.length} Vehicle${vehicles.length>1?'s':''}`);
-        if (showAuto && drivers.length)        hi.push(`${drivers.length} Driver${drivers.length>1?'s':''}`);
-        if (v('effectiveDate'))                hi.push(`Eff. ${fmtDate(v('effectiveDate'))}`);
-        doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
-        if (hi.length) {
-            const hiStr = hi.join('   ·   ');
-            doc.text(hiStr, cardX+6, y+35, {maxWidth: cardW-10});
-        }
+        // Phone + Email inline
+        const contactParts = [];
+        if (v('phone')) contactParts.push(v('phone'));
+        if (v('email')) contactParts.push(v('email'));
+        doc.setFontSize(7.5); doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
+        doc.text(contactParts.join('   |   '), cardX+5, y+19);
 
         // Satellite mini-map (bottom-right corner of card)
         if (mapImages?.satellite?.dataUrl) {
-            const satW = 18, satH = 14;
+            const satW = 14, satH = 10;
             const satX2 = pageW - mg - satW - 2;
             const satY2 = y + blockH - satH - 2;
             doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, satX2, satY2, satW, satH);
@@ -306,14 +282,14 @@ Object.assign(App, {
             doc.rect(satX2, satY2, satW, satH, 'S');
         }
 
-        y += blockH + 5;
+        y += blockH + 3;
 
         // ════════════════════════════════════════════════════════════════
         //  ③ PERSONAL INFORMATION
         // ════════════════════════════════════════════════════════════════
         sectionLabel('Client Information');
 
-        subHeader('Applicant');
+        // Applicant row — name/contact/personal info, 3 cols for density
         kvRow([
             ['Full Name',       clientName],
             ['Date of Birth',   fmtDate(v('dob'))],
@@ -322,14 +298,23 @@ Object.assign(App, {
             ['Phone',           v('phone')],
             ['Email',           v('email')],
             ['Education',       v('education')],
-            ['Industry',        v('industry')],
             ['Occupation',      v('occupation')],
+            ['Industry',        v('industry')],
             ['Yrs at Address',  v('yearsAtAddress')],
-        ], 2);
+            ['County',          this.getCountyFromCity(data.addrCity, data.addrState) || ''],
+            ['Residence Is',    v('residenceIs')],
+        ], 3);
 
-        // Co-applicant
+        // Co-applicant — compact, no separate subHeader
         if (data.hasCoApplicant === 'yes' && (data.coFirstName || data.coLastName)) {
-            subHeader('Co-Applicant');
+            // Thin label row to separate
+            need(6);
+            doc.setFontSize(6.5); doc.setFont(undefined,'bold'); doc.setTextColor(...MID);
+            doc.text('CO-APPLICANT', mg, y+3.5);
+            doc.setDrawColor(...RULE); doc.setLineWidth(0.25);
+            doc.line(mg+20, y+3, pageW-mg, y+3);
+            doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
+            y += 5;
             kvRow([
                 ['Full Name',       `${data.coFirstName||''} ${data.coLastName||''}`.trim()],
                 ['Date of Birth',   fmtDate(v('coDob'))],
@@ -338,18 +323,8 @@ Object.assign(App, {
                 ['Relationship',    v('coRelationship')],
                 ['Phone',           v('coPhone')],
                 ['Email',           v('coEmail')],
-            ], 2);
+            ], 3);
         }
-
-        subHeader('Property Address');
-        kvRow([
-            ['Street',          v('addrStreet')],
-            ['City',            v('addrCity')],
-            ['State',           v('addrState')],
-            ['ZIP',             v('addrZip')],
-            ['County',          this.getCountyFromCity(data.addrCity, data.addrState) || ''],
-            ['Residence Is',    v('residenceIs')],
-        ], 3);
 
         // ════════════════════════════════════════════════════════════════
         //  ④ HOME INSURANCE
@@ -468,12 +443,12 @@ Object.assign(App, {
                         const cy = y;
                         // Card header
                         doc.setFillColor(...FILL);
-                        doc.rect(offsetX, cy, cardWid, 5.5, 'F');
-                        doc.setFillColor(...ACCENT); doc.rect(offsetX, cy, 2, 5.5, 'F');
-                        doc.setFontSize(7.5); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
-                        doc.text(name, offsetX+4, cy+3.9);
-                        doc.setFontSize(6.5); doc.setFont(undefined,'normal'); doc.setTextColor(...MID);
-                        doc.text(d.relationship||'', offsetX+cardWid-2, cy+3.9, {align:'right'});
+                        doc.rect(offsetX, cy, cardWid, 4.5, 'F');
+                        doc.setFillColor(...ACCENT); doc.rect(offsetX, cy, 2, 4.5, 'F');
+                        doc.setFontSize(7); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
+                        doc.text(name, offsetX+4, cy+3.2);
+                        doc.setFontSize(6); doc.setFont(undefined,'normal'); doc.setTextColor(...MID);
+                        doc.text(d.relationship||'', offsetX+cardWid-2, cy+3.2, {align:'right'});
                         doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
 
                         const dFields = [
@@ -487,20 +462,20 @@ Object.assign(App, {
                             ...(d.sr22 && d.sr22!=='No' ? [['SR-22', d.sr22]] : []),
                         ].filter(([,val])=>val);
 
-                        const rowH = 4.5, labW = cardWid*0.38;
-                        let ry = cy + 6.5;
+                        const rowH = 4.0, labW = cardWid*0.38;
+                        let ry = cy + 5.5;
                         dFields.forEach(([lbl,val],i) => {
                             if (i%2===1) {
                                 doc.setFillColor(...FILL);
                                 doc.rect(offsetX, ry-0.5, cardWid, rowH, 'F');
                             }
-                            doc.setFontSize(6.5); doc.setFont(undefined,'normal'); doc.setTextColor(160,160,160);
-                            doc.text(lbl, offsetX+2, ry+3);
-                            doc.setFontSize(8.5); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
-                            doc.text(val, offsetX+labW, ry+3);
+                            doc.setFontSize(6); doc.setFont(undefined,'normal'); doc.setTextColor(175,175,175);
+                            doc.text(lbl, offsetX+2, ry+2.8);
+                            doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
+                            doc.text(val, offsetX+labW, ry+2.8);
                             ry += rowH;
                         });
-                        return ry - cy + 3;
+                        return ry - cy + 1.5;
                     };
 
                     const startY = y;
@@ -512,7 +487,7 @@ Object.assign(App, {
                     } else {
                         y = startY + leftH;
                     }
-                    y += 3;
+                    y += 2;
                 }
             }
 
@@ -529,10 +504,10 @@ Object.assign(App, {
                         const driverName = this.resolveDriverName(veh.primaryDriver, drivers);
                         const cy = y;
                         doc.setFillColor(...FILL);
-                        doc.rect(offsetX, cy, cardWid, 5.5, 'F');
-                        doc.setFillColor(...ACCENT); doc.rect(offsetX, cy, 2, 5.5, 'F');
-                        doc.setFontSize(7.5); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
-                        doc.text(desc, offsetX+4, cy+3.9);
+                        doc.rect(offsetX, cy, cardWid, 4.5, 'F');
+                        doc.setFillColor(...ACCENT); doc.rect(offsetX, cy, 2, 4.5, 'F');
+                        doc.setFontSize(7); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
+                        doc.text(desc, offsetX+4, cy+3.2);
                         doc.setFont(undefined,'normal');
 
                         const vFields = [
@@ -542,17 +517,17 @@ Object.assign(App, {
                             ['Annual Miles',   veh.miles ? Number(veh.miles).toLocaleString() : ''],
                         ].filter(([,val])=>val);
 
-                        const rowH=4.5, labW=cardWid*0.38;
-                        let ry=cy+6.5;
+                        const rowH=4.0, labW=cardWid*0.38;
+                        let ry=cy+5.5;
                         vFields.forEach(([lbl,val],i)=>{
                             if(i%2===1){doc.setFillColor(...FILL);doc.rect(offsetX,ry-0.5,cardWid,rowH,'F');}
-                            doc.setFontSize(6.5);doc.setFont(undefined,'normal');doc.setTextColor(160,160,160);
-                            doc.text(lbl,offsetX+2,ry+3);
-                            doc.setFontSize(8.5);doc.setFont(undefined,'bold');doc.setTextColor(...INK);
-                            doc.text(val,offsetX+labW,ry+3);
+                            doc.setFontSize(6);doc.setFont(undefined,'normal');doc.setTextColor(175,175,175);
+                            doc.text(lbl,offsetX+2,ry+2.8);
+                            doc.setFontSize(8);doc.setFont(undefined,'bold');doc.setTextColor(...INK);
+                            doc.text(val,offsetX+labW,ry+2.8);
                             ry+=rowH;
                         });
-                        return ry-cy+3;
+                        return ry-cy+1.5;
                     };
 
                     const vStartY = y;
@@ -562,7 +537,7 @@ Object.assign(App, {
                         const rightH = drawVehicleCard(right, mg + cw/2 + 2, pairW);
                         y = vStartY + Math.max(leftH, rightH);
                     } else { y = vStartY + leftH; }
-                    y += 3;
+                    y += 2;
                 }
             }
 
@@ -601,25 +576,25 @@ Object.assign(App, {
             ['Cont. Coverage',v('continuousCoverage')],
         ], 2);
 
+        // Prior insurance — combined into one table, labelled by line
+        const priorRows = [];
         if (showHome) {
-            subHeader('Home Prior Insurance');
-            kvRow([
-                ['Prior Carrier',   v('homePriorCarrier') || v('priorCarrier')],
-                ['Prior Liability', v('homePriorLiability')],
-                ['Prior Term',      v('homePriorPolicyTerm') || v('priorPolicyTerm')],
-                ['Yrs w/ Prior',    v('homePriorYears') || v('priorYears')],
-                ['Prior Exp.',      fmtDate(v('homePriorExp') || v('priorExp'))],
-            ], 3);
+            priorRows.push(['Home Carrier',    v('homePriorCarrier') || v('priorCarrier')]);
+            priorRows.push(['Home Liability',  v('homePriorLiability')]);
+            priorRows.push(['Home Term',       v('homePriorPolicyTerm') || v('priorPolicyTerm')]);
+            priorRows.push(['Home Yrs',        v('homePriorYears') || v('priorYears')]);
+            priorRows.push(['Home Exp.',       fmtDate(v('homePriorExp') || v('priorExp'))]);
         }
         if (showAuto) {
-            subHeader('Auto Prior Insurance');
-            kvRow([
-                ['Prior Carrier',   v('priorCarrier')],
-                ['Prior Liability', v('priorLiabilityLimits')],
-                ['Prior Term',      v('priorPolicyTerm')],
-                ['Yrs w/ Prior',    v('priorYears')],
-                ['Prior Exp.',      fmtDate(v('priorExp'))],
-            ], 3);
+            priorRows.push(['Auto Carrier',    v('priorCarrier')]);
+            priorRows.push(['Auto Liability',  v('priorLiabilityLimits')]);
+            priorRows.push(['Auto Term',       v('priorPolicyTerm')]);
+            priorRows.push(['Auto Yrs',        v('priorYears')]);
+            priorRows.push(['Auto Exp.',       fmtDate(v('priorExp'))]);
+        }
+        if (priorRows.length) {
+            subHeader('Prior Insurance');
+            kvRow(priorRows, 3);
         }
 
         // ════════════════════════════════════════════════════════════════
@@ -639,10 +614,10 @@ Object.assign(App, {
         if (notes) {
             subHeader('Notes');
             need(12);
-            doc.setFontSize(8.5); doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
+            doc.setFontSize(8); doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
             const noteLines = doc.splitTextToSize(notes, cw-4);
-            noteLines.forEach(line => { need(5.5); doc.text(line, mg+2, y+4); y+=5; });
-            y+=3;
+            noteLines.forEach(line => { need(5); doc.text(line, mg+2, y+3.5); y+=4.5; });
+            y+=2;
         }
 
         // ════════════════════════════════════════════════════════════════
