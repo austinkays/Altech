@@ -5,17 +5,80 @@
             <span>Quick Reference</span>
         </div>
     </div>
-    <div class="step-title">Agent IDs, carrier info &amp; phonetic alphabet — your phone companion</div>
+    <div class="step-title">Your phone companion — spell names, copy emojis &amp; look up carrier IDs</div>
 </header>
 
 <div class="qr-container">
 
-    <!-- Agent ID Cards -->
+    <!-- ① Spell It Out -->
+    <div class="card qr-section" id="qrs-speller">
+        <div class="qr-section-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex: 1;">
+                <h2 style="margin:0;">🔤 Spell It Out</h2>
+                <button class="qr-section-toggle" onclick="QuickRef.toggleSection('speller')" title="Collapse section">
+                    <span class="qr-chevron">▾</span>
+                </button>
+            </div>
+        </div>
+        <div class="qr-section-body">
+            <div class="qr-speller-input-wrap">
+                <input type="text" class="qr-speller-input" id="qrSpellerInput"
+                    placeholder="Type a name, word, or number…"
+                    oninput="QuickRef.spell(this.value)"
+                    autocomplete="off" spellcheck="false">
+                <button class="qr-speller-clear" id="qrSpellerClear" onclick="QuickRef.clearSpeller()" title="Clear" style="display:none;">✕</button>
+            </div>
+            <div class="qr-speller-output" id="qrSpellerOutput"></div>
+        </div>
+    </div>
+
+    <!-- ② Quick Emojis -->
+    <div class="card qr-section" id="qrs-emojis">
+        <div class="qr-section-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex: 1;">
+                <h2 style="margin:0;">😊 Quick Emojis</h2>
+                <button class="qr-section-toggle" onclick="QuickRef.toggleSection('emojis')" title="Collapse section">
+                    <span class="qr-chevron">▾</span>
+                </button>
+            </div>
+        </div>
+        <div class="qr-section-body">
+            <div class="qr-emoji-grid">
+                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\u2705', this)">
+                    <span class="qr-emoji-icon">&#x2705;</span>
+                    <span class="qr-emoji-label">Done</span>
+                </button>
+                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\uD83D\uDCC1', this)">
+                    <span class="qr-emoji-icon">&#x1F4C1;</span>
+                    <span class="qr-emoji-label">Logged</span>
+                </button>
+                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\u26A0\uFE0F', this)">
+                    <span class="qr-emoji-icon">&#x26A0;&#xFE0F;</span>
+                    <span class="qr-emoji-label">Pending</span>
+                </button>
+                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\uD83D\uDD04', this)">
+                    <span class="qr-emoji-icon">&#x1F504;</span>
+                    <span class="qr-emoji-label">Follow-up</span>
+                </button>
+                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\u2709\uFE0F', this)">
+                    <span class="qr-emoji-icon">&#x2709;&#xFE0F;</span>
+                    <span class="qr-emoji-label">Emailed</span>
+                </button>
+                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\uD83D\uDCDE', this)">
+                    <span class="qr-emoji-icon">&#x1F4DE;</span>
+                    <span class="qr-emoji-label">Called</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ③ Agent ID Cards -->
     <div class="card qr-section" id="qrs-agent-cards">
         <div class="qr-section-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex: 1;">
                 <h2 style="margin:0;">🪪 Agent ID Cards</h2>
                 <div style="display:flex;gap:6px;align-items:center;">
+                    <button class="qr-btn qr-btn-secondary" id="qrSortBtn" onclick="QuickRef.toggleSort()" style="padding: 6px 12px; font-size: 12px;" title="Sort A–Z">A–Z</button>
                     <button class="qr-btn qr-btn-secondary" onclick="QuickRef.toggleAddForm()" style="padding: 6px 12px; font-size: 12px;">+ Add Card</button>
                     <button class="qr-section-toggle" onclick="QuickRef.toggleSection('agent-cards')" title="Collapse section">
                         <span class="qr-chevron">▾</span>
@@ -24,7 +87,7 @@
             </div>
         </div>
         <div class="qr-section-body">
-            <p class="section-subtitle">Click any value to copy it. Hover a card for edit/delete.</p>
+            <p class="section-subtitle">Click any value to copy it. ⭐ star your most-used cards to pin them first.</p>
 
             <!-- Add Form -->
             <div class="qr-add-form" id="qrAddForm">
@@ -50,7 +113,7 @@
         </div>
     </div>
 
-    <!-- Quick Dial Numbers -->
+    <!-- ④ Quick Dial Numbers -->
     <div class="card qr-section" id="qrs-numbers">
         <div class="qr-section-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex: 1;">
@@ -64,7 +127,6 @@
             </div>
         </div>
         <div class="qr-section-body">
-            <p class="section-subtitle">Click any value to copy. Hover for edit/delete.</p>
             <div class="qr-add-form" id="qrNumberForm">
                 <div class="qr-add-row">
                     <input type="text" class="qr-add-input" id="qrNumLabel" placeholder="Label (e.g. CLUE Report)">
@@ -79,47 +141,7 @@
         </div>
     </div>
 
-    <!-- Phonetic Speller -->
-    <div class="card qr-section" id="qrs-speller">
-        <div class="qr-section-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex: 1;">
-                <h2 style="margin:0;">🔤 Spell It Out</h2>
-                <button class="qr-section-toggle" onclick="QuickRef.toggleSection('speller')" title="Collapse section">
-                    <span class="qr-chevron">▾</span>
-                </button>
-            </div>
-        </div>
-        <div class="qr-section-body">
-            <p class="section-subtitle">Type any word and get the phonetic spelling instantly</p>
-            <input type="text" class="qr-speller-input" id="qrSpellerInput" placeholder="Type here… e.g. SMITH" oninput="QuickRef.spell(this.value)">
-            <div class="qr-speller-output" id="qrSpellerOutput"></div>
-        </div>
-    </div>
-
-    <!-- Quick Emojis -->
-    <div class="card qr-section" id="qrs-emojis">
-        <div class="qr-section-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex: 1;">
-                <h2 style="margin:0;">&#x1F60A; Quick Emojis</h2>
-                <button class="qr-section-toggle" onclick="QuickRef.toggleSection('emojis')" title="Collapse section">
-                    <span class="qr-chevron">▾</span>
-                </button>
-            </div>
-        </div>
-        <div class="qr-section-body">
-            <p class="section-subtitle">Click any emoji to copy it to your clipboard</p>
-            <div class="qr-emoji-grid">
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\u2705', this)">&#x2705; Done</button>
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\uD83D\uDCC1', this)">&#x1F4C1; Logged</button>
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\u26A0\uFE0F', this)">&#x26A0;&#xFE0F; Pending</button>
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\uD83D\uDD04', this)">&#x1F504; Follow-up</button>
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\u2709\uFE0F', this)">&#x2709;&#xFE0F; Emailed</button>
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\uD83D\uDCDE', this)">&#x1F4DE; Called</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Phonetic Alphabet -->
+    <!-- ⑤ APCO Phonetic Alphabet -->
     <div class="card qr-section" id="qrs-phonetic">
         <div class="qr-section-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex: 1;">

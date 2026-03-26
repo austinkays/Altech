@@ -19,6 +19,7 @@ const QuickRef = {
     initialized: false,
     cards: [],
     numbers: [],
+    sortMode: 'default', // 'default' | 'alpha'
 
     init() {
         if (this.initialized) return;
@@ -71,7 +72,11 @@ const QuickRef = {
 
     spell(text) {
         const output = document.getElementById('qrSpellerOutput');
+        const clearBtn = document.getElementById('qrSpellerClear');
         if (!output) return;
+
+        if (clearBtn) clearBtn.style.display = text ? 'flex' : 'none';
+
         const upper = (text || '').toUpperCase();
 
         // Highlight phonetic grid cells
@@ -83,11 +88,19 @@ const QuickRef = {
         if (!upper.trim()) { output.innerHTML = ''; return; }
 
         output.innerHTML = upper.split('').map(ch => {
-            if (ch === ' ') return '<span class="qr-speller-item space">(space)</span>';
+            if (ch === ' ') return '<span class="qr-speller-item space"><span class="qr-spell-word">space</span></span>';
             const word = NATO[ch];
-            if (!word) return `<span class="qr-speller-item"><span class="qr-spell-letter">${this.escHtml(ch)}</span>${this.escHtml(ch)}</span>`;
-            return `<span class="qr-speller-item"><span class="qr-spell-letter">${this.escHtml(ch)}</span> ${word}</span>`;
+            if (!word) return `<span class="qr-speller-item"><span class="qr-spell-letter">${this.escHtml(ch)}</span><span class="qr-spell-word">${this.escHtml(ch)}</span></span>`;
+            return `<span class="qr-speller-item"><span class="qr-spell-letter">${this.escHtml(ch)}</span><span class="qr-spell-word">${word}</span></span>`;
         }).join('');
+    },
+
+    clearSpeller() {
+        const input = document.getElementById('qrSpellerInput');
+        const clearBtn = document.getElementById('qrSpellerClear');
+        if (input) { input.value = ''; input.focus(); }
+        if (clearBtn) clearBtn.style.display = 'none';
+        this.spell('');
     },
 
     // ─── Card CRUD ──────────────────
@@ -179,11 +192,34 @@ const QuickRef = {
             grid.innerHTML = '<p style="color: var(--text-secondary); font-style: italic; grid-column: 1/-1;">No cards yet. Click "+ Add Card" to create one.</p>';
             return;
         }
-        grid.innerHTML = this.cards.map((card, i) => `
-            <div class="qr-card">
+
+        // Build indexed array so we always pass the original index to edit/delete/star
+        let indexed = this.cards.map((card, i) => ({ card, origIdx: i }));
+
+        if (this.sortMode === 'alpha') {
+            indexed.sort((a, b) => {
+                // Starred first, then A–Z
+                if (!!b.card.starred !== !!a.card.starred) return b.card.starred ? 1 : -1;
+                return a.card.carrier.localeCompare(b.card.carrier);
+            });
+        } else {
+            // Default: starred float to top, otherwise preserve insertion order
+            indexed.sort((a, b) => {
+                if (!!b.card.starred !== !!a.card.starred) return b.card.starred ? 1 : -1;
+                return 0;
+            });
+        }
+
+        grid.innerHTML = indexed.map(({ card, origIdx }) => `
+            <div class="qr-card${card.starred ? ' starred' : ''}">
+                <button class="qr-card-star${card.starred ? ' active' : ''}"
+                    onclick="QuickRef.toggleStar(${origIdx})"
+                    title="${card.starred ? 'Unstar' : 'Star — pins to top'}">
+                    ${card.starred ? '⭐' : '☆'}
+                </button>
                 <div class="qr-card-actions">
-                    <button class="qr-card-btn" onclick="QuickRef.editCard(${i})" title="Edit">✏️</button>
-                    <button class="qr-card-btn delete" onclick="QuickRef.deleteCard(${i})" title="Delete">✕</button>
+                    <button class="qr-card-btn" onclick="QuickRef.editCard(${origIdx})" title="Edit">✏️</button>
+                    <button class="qr-card-btn delete" onclick="QuickRef.deleteCard(${origIdx})" title="Delete">✕</button>
                 </div>
                 <div class="qr-card-carrier">
                     <span class="qr-carrier-dot" style="background:${card.color || '#0d9488'}"></span>
@@ -197,6 +233,25 @@ const QuickRef = {
                 `).join('')}
             </div>
         `).join('');
+    },
+
+    toggleStar(idx) {
+        if (!this.cards[idx]) return;
+        this.cards[idx].starred = !this.cards[idx].starred;
+        this.save();
+        this.renderCards();
+        App.toast(this.cards[idx].starred ? '⭐ Pinned to top' : '☆ Unpinned');
+    },
+
+    toggleSort() {
+        this.sortMode = this.sortMode === 'alpha' ? 'default' : 'alpha';
+        const btn = document.getElementById('qrSortBtn');
+        if (btn) {
+            btn.textContent = this.sortMode === 'alpha' ? '↺ Default' : 'A–Z';
+            btn.classList.toggle('active', this.sortMode === 'alpha');
+            btn.classList.toggle('qr-sort-btn', true);
+        }
+        this.renderCards();
     },
 
     // Copy a value on click
@@ -394,10 +449,18 @@ const QuickRef = {
 
     copyEmoji(emoji, btn) {
         navigator.clipboard.writeText(emoji).then(() => {
-            const orig = btn.textContent;
-            btn.textContent = '✓ Copied!';
+            const labelEl = btn.querySelector('.qr-emoji-label');
+            const iconEl = btn.querySelector('.qr-emoji-icon');
+            const origLabel = labelEl ? labelEl.textContent : '';
+            const origIcon = iconEl ? iconEl.textContent : '';
             btn.classList.add('copied');
-            setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1200);
+            if (iconEl) iconEl.textContent = '✓';
+            if (labelEl) labelEl.textContent = 'Copied!';
+            setTimeout(() => {
+                btn.classList.remove('copied');
+                if (iconEl) iconEl.textContent = origIcon;
+                if (labelEl) labelEl.textContent = origLabel;
+            }, 1200);
             App.toast('📋 Emoji copied');
         });
     },
