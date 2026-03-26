@@ -29,14 +29,14 @@ Object.assign(App, {
         const mg     = 12;   // margin
         const cw     = pageW - mg * 2;  // content width ~186mm
 
-        // ── Minimal toner-friendly palette ──────────────────────────────
+        // ── Toner-friendly palette (print-optimized) ─────────────────────
         const INK   = [30, 30, 30];      // near-black text
-        const MID   = [120, 120, 120];   // grey labels / secondary text
-        const LIGHT = [200, 200, 200];   // borders
-        const RULE  = [230, 230, 230];   // very light dividers
-        const FILL  = [245, 245, 245];   // barely-there header fill
+        const MID   = [100, 100, 100];   // grey labels / secondary text
+        const LIGHT = [175, 175, 175];   // borders
+        const RULE  = [200, 200, 200];   // light dividers
+        const FILL  = [235, 235, 235];   // alt-row fill
         const WHITE = [255, 255, 255];
-        const ACCENT= [80, 80, 80];      // dark accent for header bar
+        const ACCENT= [70, 70, 70];      // dark accent for header bar
 
         // ── Utility helpers ──────────────────────────────────────────────
         let y = mg;
@@ -170,7 +170,7 @@ Object.assign(App, {
                 }
                 row.forEach(([label], ci) => {
                     const x = mg + ci * colW;
-                    doc.setFontSize(6); doc.setFont(undefined,'normal'); doc.setTextColor(175,175,175);
+                    doc.setFontSize(6); doc.setFont(undefined,'normal'); doc.setTextColor(...MID);
                     doc.text(String(label), x+1, y+3);
                     doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
                     const lines = splitCache[ci];
@@ -554,7 +554,7 @@ Object.assign(App, {
                                 doc.setFillColor(...FILL);
                                 doc.rect(offsetX, ry-0.5, cardWid, rowH, 'F');
                             }
-                            doc.setFontSize(6); doc.setFont(undefined,'normal'); doc.setTextColor(175,175,175);
+                            doc.setFontSize(6); doc.setFont(undefined,'normal'); doc.setTextColor(...MID);
                             doc.text(lbl, offsetX+2, ry+2.8);
                             doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
                             doc.text(val, offsetX+labW, ry+2.8);
@@ -611,7 +611,7 @@ Object.assign(App, {
                         let ry=cy+5.5;
                         vFields.forEach(([lbl,val],i)=>{
                             if(i%2===1){doc.setFillColor(...FILL);doc.rect(offsetX,ry-0.5,cardWid,rowH,'F');}
-                            doc.setFontSize(6);doc.setFont(undefined,'normal');doc.setTextColor(175,175,175);
+                            doc.setFontSize(6);doc.setFont(undefined,'normal');doc.setTextColor(...MID);
                             doc.text(lbl,offsetX+2,ry+2.8);
                             doc.setFontSize(8);doc.setFont(undefined,'bold');doc.setTextColor(...INK);
                             doc.text(val,offsetX+labW,ry+2.8);
