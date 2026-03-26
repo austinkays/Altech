@@ -153,9 +153,9 @@ Object.assign(App, {
                 row.forEach(([label, value], ci) => {
                     const x = mg + ci * colW;
                     const labelW = colW * 0.38;
-                    doc.setFontSize(7); doc.setFont(undefined,'bold'); doc.setTextColor(...MID);
+                    doc.setFontSize(6.5); doc.setFont(undefined,'normal'); doc.setTextColor(160,160,160);
                     doc.text(String(label), x+1, y+3.4);
-                    doc.setFontSize(8); doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
+                    doc.setFontSize(8.5); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
                     const valStr = String(value);
                     const maxW = colW - labelW - 4;
                     const lines = doc.splitTextToSize(valStr, maxW);
@@ -494,9 +494,9 @@ Object.assign(App, {
                                 doc.setFillColor(...FILL);
                                 doc.rect(offsetX, ry-0.5, cardWid, rowH, 'F');
                             }
-                            doc.setFontSize(7); doc.setFont(undefined,'bold'); doc.setTextColor(...MID);
+                            doc.setFontSize(6.5); doc.setFont(undefined,'normal'); doc.setTextColor(160,160,160);
                             doc.text(lbl, offsetX+2, ry+3);
-                            doc.setFontSize(8); doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
+                            doc.setFontSize(8.5); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
                             doc.text(val, offsetX+labW, ry+3);
                             ry += rowH;
                         });
@@ -546,9 +546,9 @@ Object.assign(App, {
                         let ry=cy+6.5;
                         vFields.forEach(([lbl,val],i)=>{
                             if(i%2===1){doc.setFillColor(...FILL);doc.rect(offsetX,ry-0.5,cardWid,rowH,'F');}
-                            doc.setFontSize(7);doc.setFont(undefined,'bold');doc.setTextColor(...MID);
+                            doc.setFontSize(6.5);doc.setFont(undefined,'normal');doc.setTextColor(160,160,160);
                             doc.text(lbl,offsetX+2,ry+3);
-                            doc.setFontSize(8);doc.setFont(undefined,'normal');doc.setTextColor(...INK);
+                            doc.setFontSize(8.5);doc.setFont(undefined,'bold');doc.setTextColor(...INK);
                             doc.text(val,offsetX+labW,ry+3);
                             ry+=rowH;
                         });
