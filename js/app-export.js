@@ -42,7 +42,7 @@ Object.assign(App, {
         let y = mg;
 
         const addPage = () => { doc.addPage(); y = mg; };
-        const need = (h) => { if (y + h > pageH - 18) addPage(); };
+        const need = (h) => { if (y + h > pageH - 22) addPage(); };
 
         const v = (key) => {
             if (data[key] !== undefined && data[key] !== null && String(data[key]).trim() !== '')
@@ -141,28 +141,42 @@ Object.assign(App, {
         // ─── 2-col key-value table (label left, value right, side by side) ─
         // fields: array of [label, value] — empties auto-skipped
         // cols: how many label-value pairs per row (1, 2, or 3)
+        const baseRowH = 5.2;
+        const lineH    = 3.8;   // extra height per wrapped line
+
         const kvRow = (fields, cols = 2) => {
             const rows = [];
             const filtered = fields.filter(([,val]) => val && String(val).trim());
             for (let i = 0; i < filtered.length; i += cols) rows.push(filtered.slice(i, i+cols));
-            const rowH = 5.2;
+            const colW = cw / cols;
+            const labelW = colW * 0.38;
+            const maxW = colW - labelW - 4;
+
             rows.forEach((row, ri) => {
+                // Pre-calculate how tall this row needs to be (find max wrapped lines)
+                doc.setFontSize(8); doc.setFont(undefined,'bold');
+                let maxLines = 1;
+                const splitCache = row.map(([, value]) => {
+                    const lines = doc.splitTextToSize(String(value), maxW);
+                    if (lines.length > maxLines) maxLines = lines.length;
+                    return lines;
+                });
+                const rowH = baseRowH + (maxLines - 1) * lineH;
+
                 need(rowH + 1);
                 if (ri % 2 === 1) {
                     doc.setFillColor(...FILL);
                     doc.rect(mg, y-0.5, cw, rowH+0.5, 'F');
                 }
-                const colW = cw / cols;
-                row.forEach(([label, value], ci) => {
+                row.forEach(([label], ci) => {
                     const x = mg + ci * colW;
-                    const labelW = colW * 0.38;
                     doc.setFontSize(6); doc.setFont(undefined,'normal'); doc.setTextColor(175,175,175);
                     doc.text(String(label), x+1, y+3);
                     doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
-                    const valStr = String(value);
-                    const maxW = colW - labelW - 4;
-                    const lines = doc.splitTextToSize(valStr, maxW);
-                    doc.text(lines[0], x + labelW, y+3);
+                    const lines = splitCache[ci];
+                    lines.forEach((line, li) => {
+                        doc.text(line, x + labelW, y + 3 + li * lineH);
+                    });
                 });
                 y += rowH;
             });
@@ -193,9 +207,9 @@ Object.assign(App, {
         // ════════════════════════════════════════════════════════════════
         y = mg;
 
-        // Thin accent bar at top — inset from edge so it prints reliably
+        // Thin accent bar at top — inset to margin so it prints reliably
         doc.setFillColor(...ACCENT);
-        doc.rect(0, mg-4, pageW, 1.5, 'F');
+        doc.rect(mg, mg-4, cw, 1.5, 'F');
         y = mg + 1;
 
         // Logo + agency name on left, doc ref on right
@@ -313,8 +327,9 @@ Object.assign(App, {
             need(6);
             doc.setFontSize(6.5); doc.setFont(undefined,'bold'); doc.setTextColor(...MID);
             doc.text('PREVIOUS ADDRESS', mg, y+3.5);
+            const prevLabelW = doc.getTextWidth('PREVIOUS ADDRESS');
             doc.setDrawColor(...RULE); doc.setLineWidth(0.25);
-            doc.line(mg+28, y+3, pageW-mg, y+3);
+            doc.line(mg + prevLabelW + 3, y+3, pageW-mg, y+3);
             doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
             y += 5;
             kvRow([
@@ -331,8 +346,9 @@ Object.assign(App, {
             need(6);
             doc.setFontSize(6.5); doc.setFont(undefined,'bold'); doc.setTextColor(...MID);
             doc.text('PRIMARY HOME ADDRESS', mg, y+3.5);
+            const priLabelW = doc.getTextWidth('PRIMARY HOME ADDRESS');
             doc.setDrawColor(...RULE); doc.setLineWidth(0.25);
-            doc.line(mg+32, y+3, pageW-mg, y+3);
+            doc.line(mg + priLabelW + 3, y+3, pageW-mg, y+3);
             doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
             y += 5;
             kvRow([
@@ -349,8 +365,9 @@ Object.assign(App, {
             need(6);
             doc.setFontSize(6.5); doc.setFont(undefined,'bold'); doc.setTextColor(...MID);
             doc.text('CO-APPLICANT', mg, y+3.5);
+            const coLabelW = doc.getTextWidth('CO-APPLICANT');
             doc.setDrawColor(...RULE); doc.setLineWidth(0.25);
-            doc.line(mg+20, y+3, pageW-mg, y+3);
+            doc.line(mg + coLabelW + 3, y+3, pageW-mg, y+3);
             doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
             y += 5;
             kvRow([
@@ -546,6 +563,11 @@ Object.assign(App, {
                         return ry - cy + 1.5;
                     };
 
+                    // Estimate card height: header (5.5) + rows * 4 + padding
+                    const leftFields = [left.dob,left.gender,left.maritalStatus,left.education,left.occupation,left.dlNum,left.dlState].filter(Boolean).length;
+                    const estH = 5.5 + Math.max(leftFields, 4) * 4 + 4;
+                    need(estH);
+
                     const startY = y;
                     const leftH  = drawDriverCard(left, mg, pairW);
                     if (right) {
@@ -597,6 +619,9 @@ Object.assign(App, {
                         });
                         return ry-cy+1.5;
                     };
+
+                    // Estimate vehicle card height: header + up to 4 fields + padding
+                    need(5.5 + 4 * 4 + 4);
 
                     const vStartY = y;
                     const leftH = drawVehicleCard(left, mg, pairW);
