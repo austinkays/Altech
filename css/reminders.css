@@ -377,20 +377,20 @@
     letter-spacing: 0.1px;
 }
 
-/* Category & frequency: all neutral gray */
+/* Category: teal | Frequency: purple | Daily/weekdays: blue */
 .rem-cat {
-    background: rgba(0, 0, 0, 0.05);
-    color: var(--text-secondary);
+    background: rgba(90, 200, 250, 0.1);
+    color: #32ADE6;
 }
 
 .rem-freq {
-    background: rgba(0, 0, 0, 0.05);
-    color: var(--text-secondary);
+    background: rgba(88, 86, 214, 0.1);
+    color: #5856D6;
 }
 
 .rem-freq-daily {
-    background: rgba(0, 0, 0, 0.05);
-    color: var(--text-secondary);
+    background: rgba(0, 122, 255, 0.1);
+    color: var(--apple-blue);
 }
 
 /* Status badges keep subtle colors */
@@ -928,20 +928,20 @@ body.dark-mode .rem-snooze-btn:hover {
     color: #fff;
 }
 
-/* Dark mode badges — neutral for cat/freq */
+/* Dark mode badges — cool-toned cat/freq */
 body.dark-mode .rem-cat {
-    background: #2C2C2E;
-    color: #98989D;
+    background: rgba(100, 210, 255, 0.12);
+    color: #64D2FF;
 }
 
 body.dark-mode .rem-freq {
-    background: #2C2C2E;
-    color: #98989D;
+    background: rgba(94, 92, 230, 0.12);
+    color: #BF5AF2;
 }
 
 body.dark-mode .rem-freq-daily {
-    background: #2C2C2E;
-    color: #98989D;
+    background: rgba(10, 132, 255, 0.12);
+    color: #0A84FF;
 }
 
 /* Dark mode status badges keep subtle colors */
