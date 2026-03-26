@@ -23,7 +23,7 @@ window.DepositSheetModule = (() => {
         'disbursement',
         'non-fiduciary',
         'memo',
-        'agent name',   // full name — not initials
+        'teller',       // transaction agent (who processed the receipt)
         'pay method'
     ];
 
@@ -349,7 +349,8 @@ window.DepositSheetModule = (() => {
             'disbursement':  'Disb.',
             'non-fiduciary': 'Non-Fid.',
             'memo':          'Memo',
-            'agent name':    'Agent'
+            'agent name':    'Agent',
+            'teller':        'Agent'
         };
 
         let html = `<table class="ds-table">`;
