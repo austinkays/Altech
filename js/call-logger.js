@@ -235,11 +235,8 @@ window.CallLogger = (() => {
     }
 
     function _applyActivityUI() {
-        const group = document.getElementById('clActivityGroup');
-        if (!group) return;
-        group.querySelectorAll('.cl-activity-btn').forEach(btn => {
-            btn.classList.toggle('cl-activity-selected', btn.dataset.activity === _selectedActivityType);
-        });
+        const sel = document.getElementById('clActivitySelect');
+        if (sel) sel.value = _selectedActivityType || '';
     }
 
     /**
@@ -362,7 +359,11 @@ window.CallLogger = (() => {
                     if (!clientMap[key].hawksoftId && (p.hawksoftId || p.clientNumber)) {
                         clientMap[key].hawksoftId = String(p.hawksoftId || p.clientNumber);
                     }
-                    const pType = p.policyType || p.type || 'unknown';
+                    let pType = p.policyType || p.type || 'unknown';
+                    // Client-side fallback: OP-prefixed = Owners Policy (HO equivalent)
+                    if (pType === 'personal' && (p.policyNumber || '').toUpperCase().startsWith('OP')) {
+                        pType = 'homeowner';
+                    }
                     clientMap[key].policies.push({
                         policyNumber: p.policyNumber || '',
                         type: pType,
@@ -1218,14 +1219,13 @@ window.CallLogger = (() => {
             channelGroup._clWired = true;
         }
 
-        // Activity type pills (event delegation)
-        const activityGroup = document.getElementById('clActivityGroup');
-        if (activityGroup && !activityGroup._clWired) {
-            activityGroup.addEventListener('click', (e) => {
-                const btn = e.target.closest('.cl-activity-btn');
-                if (btn && btn.dataset.activity) _handleActivitySelect(btn.dataset.activity);
+        // Activity type dropdown
+        const activitySelect = document.getElementById('clActivitySelect');
+        if (activitySelect && !activitySelect._clWired) {
+            activitySelect.addEventListener('change', () => {
+                _selectedActivityType = activitySelect.value || null;
             });
-            activityGroup._clWired = true;
+            activitySelect._clWired = true;
         }
     }
 

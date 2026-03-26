@@ -101,16 +101,17 @@
                 <!-- ACTIVITY section -->
                 <div class="cl-section">
                     <div class="cl-section-label">Activity</div>
-                    <div id="clActivityGroup" class="cl-activity-group">
-                        <button type="button" class="cl-activity-btn" data-activity="Coverage Q" data-template="Coverage question re: [POLICY TYPE]&#10;— Q: &#10;— A: &#10;— Action taken: ">Coverage Q</button>
-                        <button type="button" class="cl-activity-btn" data-activity="Claim" data-template="Claim reported&#10;— Claim #: &#10;— Date of loss: &#10;— Description: &#10;— Next step: ">Claim</button>
-                        <button type="button" class="cl-activity-btn" data-activity="Payment" data-template="Payment received&#10;— Amount: $&#10;— Type: (renewal / invoice / other)&#10;— Receipt: ">Payment</button>
-                        <button type="button" class="cl-activity-btn" data-activity="Policy Change" data-template="Policy change processed&#10;— Change: &#10;— Effective: &#10;— Notes: ">Policy Change</button>
-                        <button type="button" class="cl-activity-btn" data-activity="New Quote" data-template="New quote — [TYPE]&#10;— Requester: &#10;— Details: &#10;— Quoted premium: &#10;— Follow-up: ">New Quote</button>
-                        <button type="button" class="cl-activity-btn" data-activity="Renewal" data-template="Renewal processed&#10;— Renewal date: &#10;— Premium: $&#10;— Changes: &#10;— Decision: ">Renewal</button>
-                        <button type="button" class="cl-activity-btn" data-activity="Certificate" data-template="Certificate issued&#10;— Holder: &#10;— Purpose: &#10;— Delivered via: ">Certificate</button>
-                        <button type="button" class="cl-activity-btn" data-activity="Other" data-template="">Other</button>
-                    </div>
+                    <select id="clActivitySelect" class="cl-input cl-activity-select">
+                        <option value="">— select activity —</option>
+                        <option value="Coverage Q">Coverage Question</option>
+                        <option value="Claim">Claim</option>
+                        <option value="Payment">Payment</option>
+                        <option value="Policy Change">Policy Change</option>
+                        <option value="New Quote">New Quote</option>
+                        <option value="Renewal">Renewal</option>
+                        <option value="Certificate">Certificate</option>
+                        <option value="Other">Other</option>
+                    </select>
                 </div>
 
                 <!-- NOTES section -->
