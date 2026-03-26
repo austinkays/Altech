@@ -62,7 +62,10 @@ Object.assign(App, {
         };
         const fmtMoney = (val) => {
             if (!val) return '';
-            const n = parseFloat(String(val).replace(/[$,\s]/g,''));
+            const s = String(val).trim();
+            // Preserve percentage values (e.g. "2%", "25%")
+            if (s.endsWith('%')) return s;
+            const n = parseFloat(s.replace(/[$,\s]/g,''));
             if (isNaN(n)) return val;
             return '$' + n.toLocaleString('en-US');
         };
@@ -340,9 +343,10 @@ Object.assign(App, {
             ], 3);
         }
 
-        // Primary home address — show if different from insured location
+        // Primary home address — show only if different from insured location
         const priHomeAddr = [v('primaryHomeAddr'), v('primaryHomeCity'), v('primaryHomeState'), v('primaryHomeZip')].filter(Boolean).join(', ');
-        if (priHomeAddr) {
+        const insuredAddr = [v('addrStreet'), v('addrCity'), v('addrState'), v('addrZip')].filter(Boolean).join(', ');
+        if (priHomeAddr && priHomeAddr !== insuredAddr) {
             need(6);
             doc.setFontSize(6.5); doc.setFont(undefined,'bold'); doc.setTextColor(...MID);
             doc.text('PRIMARY HOME ADDRESS', mg, y+3.5);
@@ -473,10 +477,11 @@ Object.assign(App, {
             ], 3);
 
             subHeader('Endorsements');
+            const fmtPct = (val) => { if (!val) return ''; const s = String(val).trim(); return s.endsWith('%') ? s : s + '%'; };
             kvRow([
-                ['Incr. Repl. Cost',  v('increasedReplacementCost')],
-                ['Ordinance/Law',     v('ordinanceOrLaw')],
-                ['Water Backup',      v('waterBackup')],
+                ['Incr. Repl. Cost',  v('increasedReplacementCost') ? fmtPct(v('increasedReplacementCost')) : ''],
+                ['Ordinance/Law',     v('ordinanceOrLaw') ? fmtPct(v('ordinanceOrLaw')) : ''],
+                ['Water Backup',      fmtMoney(v('waterBackup'))],
                 ['Loss Assessment',   fmtMoney(v('lossAssessment'))],
                 ['Animal Liability',  fmtMoney(v('animalLiability'))],
                 ['Theft Deductible',  fmtMoney(v('theftDeductible'))],
@@ -544,7 +549,10 @@ Object.assign(App, {
                             ['Occupation',  d.occupation||''],
                             ['License #',   (d.dlNum||'').toUpperCase()],
                             ['Lic. State',  (d.dlState||'').toUpperCase()],
+                            ['Age Licensed',d.ageLicensed||''],
+                            ['Good Driver', d.goodDriver||''],
                             ...(d.sr22 && d.sr22!=='No' ? [['SR-22', d.sr22]] : []),
+                            ...(d.driverEducation && d.driverEducation!=='No' ? [['Driver Ed.', d.driverEducation]] : []),
                         ].filter(([,val])=>val);
 
                         const rowH = 4.0, labW = cardWid*0.38;
@@ -605,6 +613,12 @@ Object.assign(App, {
                             ['Primary Driver', driverName],
                             ['Usage',          veh.use||''],
                             ['Annual Miles',   veh.miles ? Number(veh.miles).toLocaleString() : ''],
+                            ['Ownership',      veh.ownershipType||''],
+                            ['Anti-Theft',     veh.antiTheft||''],
+                            ['Restraints',     veh.passiveRestraints||''],
+                            ['ABS',            veh.antiLockBrakes||''],
+                            ...(veh.telematics && veh.telematics!=='No' ? [['Telematics', veh.telematics]] : []),
+                            ...(veh.tnc && veh.tnc!=='No' ? [['Rideshare (TNC)', veh.tnc]] : []),
                         ].filter(([,val])=>val);
 
                         const rowH=4.0, labW=cardWid*0.38;
@@ -620,8 +634,8 @@ Object.assign(App, {
                         return ry-cy+1.5;
                     };
 
-                    // Estimate vehicle card height: header + up to 4 fields + padding
-                    need(5.5 + 4 * 4 + 4);
+                    // Estimate vehicle card height: header + up to 10 fields + padding
+                    need(5.5 + 10 * 4 + 4);
 
                     const vStartY = y;
                     const leftH = drawVehicleCard(left, mg, pairW);
@@ -638,15 +652,15 @@ Object.assign(App, {
             kvRow([
                 ['Policy Type',     v('autoPolicyType')],
                 ['Liability',       v('liabilityLimits')],
-                ['Prop. Damage',    v('pdLimit')],
+                ['Prop. Damage',    fmtMoney(v('pdLimit'))],
                 ['Med Pay',         fmtMoney(v('medPayments'))],
                 ['UM Limits',       v('umLimits')],
                 ['UIM Limits',      v('uimLimits')],
-                ['UMPD Limit',      v('umpdLimit')],
+                ['UMPD Limit',      fmtMoney(v('umpdLimit'))],
                 ['Comp Ded.',       fmtMoney(v('compDeductible'))],
                 ['Collision Ded.',  fmtMoney(v('autoDeductible'))],
-                ['Rental',          v('rentalDeductible')],
-                ['Towing',          v('towingDeductible')],
+                ['Rental',          v('rentalDeductible') ? '$' + v('rentalDeductible').replace('/', '/day — $') + ' max' : ''],
+                ['Towing',          fmtMoney(v('towingDeductible'))],
                 ['Commute Dist.',   v('commuteDist') ? v('commuteDist')+' mi' : ''],
                 ['Ride Sharing',    v('rideSharing')],
                 ['Telematics',      v('telematics')],
@@ -680,7 +694,7 @@ Object.assign(App, {
         }
         if (showAuto) {
             priorRows.push(['Auto Carrier',    v('priorCarrier')]);
-            priorRows.push(['Auto Liability',  v('priorLiabilityLimits')]);
+            priorRows.push(['Auto Liability',  v('priorLiabilityLimits') ? v('priorLiabilityLimits') + ' (BI/PD)' : '']);
             priorRows.push(['Auto Term',       v('priorPolicyTerm')]);
             priorRows.push(['Auto Yrs',        v('priorYears')]);
             priorRows.push(['Auto Exp.',       fmtDate(v('priorExp'))]);
