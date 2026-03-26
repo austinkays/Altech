@@ -48,15 +48,17 @@ RULES:
     - Other or unspecified: follow whatever the raw notes suggest
 11. Put action items inline at the end of the body using "Action: [text]" — not on a separate line
 
-FORMAT (3 lines max — no blank lines):
-RE: [Brief Subject] — [Agent Initials, if provided]
-[Channel] | [Date/Time]
-[Body sentences in past tense. Key facts inline using dashes: "— [field]: [value]". End with "Action: [follow-up or None.]"]
+FORMAT (2 lines — no blank lines):
+RE: [Brief Subject] | [Channel] | [Agent Initials, if provided] | [Date]
+[Body: lead with the single most important outcome or fact. Then supporting detail. End with "Action: [follow-up or None.]"]
+
+IMPORTANT: HawkSoft shows the log summary by truncating the full text at ~120 characters.
+Pack the most useful information into the first ~80 characters so other agents can understand
+what happened at a glance in the log list. The body line (line 2) is what they'll see most of.
 
 EXAMPLE OUTPUT:
-RE: Auto Policy — Vehicle Added — AJK
-Outbound | Mar 26, 2026
-Client added a 2023 Toyota Camry (VIN 1HGBH41JXMN109186) to their personal auto policy — effective date: 4/1/2026. Binder issued verbally; endorsement will follow from carrier. Action: Send endorsement to client upon receipt.`;
+RE: Vehicle Added — Personal Auto | Outbound | AJK | Mar 26, 2026
+Added 2023 Toyota Camry (VIN 1HGBH41JXMN109186) to personal auto policy, effective 4/1/2026. Binder issued verbally; endorsement to follow from carrier. Action: Send endorsement to client upon receipt.`;
 
 // ── Channel Code Mapping (HawkSoft API v3.0) ──────────────────
 // Maps client-side callType strings to HawkSoft log field objects.
