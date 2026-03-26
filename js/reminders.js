@@ -912,7 +912,7 @@ window.Reminders = (() => {
         document.querySelectorAll('.rem-filter-btn').forEach(b => {
             b.classList.toggle('active', b.dataset.filter === filter);
         });
-        document.querySelectorAll('.rem-stat-card').forEach(c => {
+        document.querySelectorAll('.rem-stat-pill').forEach(c => {
             c.classList.toggle('active', c.dataset.filter === filter);
         });
         render(filter);

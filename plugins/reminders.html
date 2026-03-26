@@ -8,7 +8,7 @@
     <div class="step-title">Task Reminders</div>
 </header>
 
-<div style="padding-top: 20px;">
+<div style="padding-top: 12px;">
 <div class="rem-container">
 
     <!-- Dashboard Header Panel -->
@@ -16,31 +16,22 @@
         <div class="rem-progress-track">
             <div class="rem-progress-fill" id="remProgressFill" style="width:0%"></div>
         </div>
-        <div class="rem-weekly-label">
-            <span id="remWeeklySummary">0 / 0 tasks completed this week</span>
+        <div class="rem-stats-strip">
+            <span class="rem-weekly-label" id="remWeeklySummary">0 / 0 tasks completed this week</span>
             <span class="rem-weekly-pct" id="remWeeklyPct"></span>
-        </div>
-        <div class="rem-stats-grid">
-            <div class="rem-stat-card" data-filter="all" onclick="Reminders.setFilter('all')">
-                <div class="rem-stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
-                <div class="rem-stat-value" id="remStatTotal">0</div>
-                <div class="rem-stat-label">Total</div>
-            </div>
-            <div class="rem-stat-card overdue" data-filter="overdue" onclick="Reminders.setFilter('overdue')">
-                <div class="rem-stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-                <div class="rem-stat-value" id="remStatOverdue">0</div>
-                <div class="rem-stat-label">Missed</div>
-            </div>
-            <div class="rem-stat-card due-today" data-filter="due-today" onclick="Reminders.setFilter('due-today')">
-                <div class="rem-stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-                <div class="rem-stat-value" id="remStatDueToday">0</div>
-                <div class="rem-stat-label">Due Today</div>
-            </div>
-            <div class="rem-stat-card completed" data-filter="completed" onclick="Reminders.setFilter('completed')">
-                <div class="rem-stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
-                <div class="rem-stat-value" id="remStatCompleted">0</div>
-                <div class="rem-stat-label">Done</div>
-            </div>
+            <span class="rem-stats-divider"></span>
+            <button class="rem-stat-pill" data-filter="all" onclick="Reminders.setFilter('all')">
+                <span class="rem-stat-dot dot-total"></span><span class="rem-stat-value" id="remStatTotal">0</span> Total
+            </button>
+            <button class="rem-stat-pill" data-filter="overdue" onclick="Reminders.setFilter('overdue')">
+                <span class="rem-stat-dot dot-overdue"></span><span class="rem-stat-value" id="remStatOverdue">0</span> Missed
+            </button>
+            <button class="rem-stat-pill" data-filter="due-today" onclick="Reminders.setFilter('due-today')">
+                <span class="rem-stat-dot dot-today"></span><span class="rem-stat-value" id="remStatDueToday">0</span> Today
+            </button>
+            <button class="rem-stat-pill" data-filter="completed" onclick="Reminders.setFilter('completed')">
+                <span class="rem-stat-dot dot-done"></span><span class="rem-stat-value" id="remStatCompleted">0</span> Done
+            </button>
         </div>
     </div>
 
@@ -55,7 +46,7 @@
                 <button class="rem-filter-btn" data-filter="due-today" onclick="Reminders.setFilter('due-today')">Today</button>
                 <button class="rem-filter-btn" data-filter="completed" onclick="Reminders.setFilter('completed')">Done</button>
             </div>
-            <button class="btn-utility rem-new-btn" onclick="Reminders.showAdd()">＋ New</button>
+            <button class="rem-new-btn" onclick="Reminders.showAdd()">＋ New</button>
         </div>
         <div class="rem-search-row">
             <input type="text" class="rem-search" id="remSearchInput" placeholder="Search reminders...">

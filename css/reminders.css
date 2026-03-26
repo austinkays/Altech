@@ -1,5 +1,5 @@
 /* ===== REMINDERS PLUGIN STYLES ===== */
-/* Modernized glassmorphism design — matches app tool cards */
+/* Clean, compact design — neutral badges, inline stats */
 
 .rem-container {
     max-width: 1400px;
@@ -11,34 +11,40 @@
 .rem-dashboard-panel {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 0 16px 16px;
-    margin-bottom: 20px;
+    border-radius: 12px;
+    padding: 0 16px 10px;
+    margin-bottom: 16px;
     overflow: hidden;
 }
 
 .rem-progress-track {
-    height: 4px;
+    height: 3px;
     background: var(--border);
-    margin: 0 -16px 12px;
+    margin: 0 -16px 10px;
     position: relative;
     overflow: hidden;
 }
 
 .rem-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #34C759, #28A745);
+    background: #34C759;
     border-radius: 0 2px 2px 0;
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.rem-weekly-label {
+/* ===== Stats Strip (inline) ===== */
+.rem-stats-strip {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
     font-size: 12px;
     color: var(--text-secondary);
-    margin-bottom: 12px;
+}
+
+.rem-weekly-label {
+    font-size: 12px;
+    color: var(--text-secondary);
 }
 
 .rem-weekly-pct {
@@ -47,96 +53,72 @@
     font-size: 12px;
 }
 
-/* ===== Stats Grid ===== */
-.rem-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+.rem-stats-divider {
+    width: 1px;
+    height: 14px;
+    background: var(--border);
+    flex-shrink: 0;
 }
 
-.rem-stat-card {
-    background: rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    border-radius: 12px;
-    padding: 14px 10px 12px;
-    text-align: center;
-    cursor: pointer;
-    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.15s ease;
-    position: relative;
-}
-
-.rem-stat-card:hover {
-    background: rgba(0, 0, 0, 0.06);
-    transform: translateY(-1px);
-}
-
-.rem-stat-card:active { transform: scale(0.97); }
-
-.rem-stat-card.active {
-    box-shadow: 0 0 0 2px var(--apple-blue);
-    background: rgba(0, 122, 255, 0.05);
-}
-
-.rem-stat-icon {
-    display: flex;
+.rem-stat-pill {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    margin: 0 auto 8px;
-    font-size: 18px;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
 }
 
-.rem-stat-card:first-child .rem-stat-icon {
-    background: linear-gradient(135deg, #007AFF, #0055CC);
-    box-shadow: 0 3px 10px rgba(0, 122, 255, 0.3);
+.rem-stat-pill:hover {
+    background: rgba(0, 0, 0, 0.04);
 }
-.rem-stat-card.overdue .rem-stat-icon {
-    background: linear-gradient(135deg, #FF3B30, #CC2D25);
-    box-shadow: 0 3px 10px rgba(255, 59, 48, 0.3);
-}
-.rem-stat-card.due-today .rem-stat-icon {
-    background: linear-gradient(135deg, #5AC8FA, #32ADE6);
-    box-shadow: 0 3px 10px rgba(90, 200, 250, 0.25);
-}
-.rem-stat-card.completed .rem-stat-icon {
-    background: linear-gradient(135deg, #34C759, #28A745);
-    box-shadow: 0 3px 10px rgba(52, 199, 89, 0.3);
+
+.rem-stat-pill.active {
+    background: rgba(0, 122, 255, 0.08);
+    color: var(--apple-blue);
 }
 
 .rem-stat-value {
-    font-size: 26px;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--text);
-    line-height: 1.1;
-    letter-spacing: -0.5px;
+    font-size: 13px;
 }
 
-.rem-stat-label {
-    font-size: 10px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    font-weight: 600;
-    margin-top: 2px;
+.rem-stat-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
 }
+
+.dot-total { background: var(--apple-blue); }
+.dot-overdue { background: #FF3B30; }
+.dot-today { background: #5AC8FA; }
+.dot-done { background: #34C759; }
 
 /* ===== Controls (Filters + Search) ===== */
 .rem-controls {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .rem-filter-bar {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding-bottom: 12px;
+    padding-bottom: 10px;
 }
 
 .rem-filter-row {
     display: flex;
-    gap: 6px;
+    gap: 5px;
     overflow-x: auto;
     flex: 1;
     min-width: 0;
@@ -145,36 +127,51 @@
 
 .rem-new-btn {
     flex-shrink: 0;
-    font-size: 13px;
     padding: 7px 14px;
+    border-radius: 100px;
+    border: 1px solid var(--apple-blue);
+    background: transparent;
+    color: var(--apple-blue);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.rem-new-btn:hover {
+    background: var(--apple-blue);
+    color: #fff;
+}
+
+.rem-new-btn:active {
+    transform: scale(0.96);
 }
 
 .rem-filter-btn {
-    padding: 8px 16px;
+    padding: 7px 14px;
     border: 1px solid var(--border);
     border-radius: 100px;
-    background: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    color: var(--text);
+    background: transparent;
+    color: var(--text-secondary);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: all 0.15s ease;
     font-family: inherit;
 }
 
 .rem-filter-btn:hover {
-    transform: translateY(-1px);
-    background: rgba(255, 255, 255, 0.75);
+    color: var(--text);
+    border-color: var(--text-secondary);
 }
 
 .rem-filter-btn.active {
     background: var(--apple-blue);
     color: #fff;
     border-color: var(--apple-blue);
-    box-shadow: 0 2px 10px rgba(0, 122, 255, 0.3);
     font-weight: 600;
 }
 
@@ -191,12 +188,12 @@
 .rem-search {
     flex: 1;
     min-width: 0;
-    padding: 11px 16px;
+    padding: 10px 14px;
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 10px;
     background: var(--bg-input);
     color: var(--text);
-    font-size: 14px;
+    font-size: 13px;
     font-family: inherit;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -213,14 +210,14 @@
 }
 
 .rem-category-filter {
-    padding: 11px 14px;
+    padding: 10px 14px;
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 10px;
     background: var(--bg-input);
     color: var(--text);
     font-size: 13px;
     font-family: inherit;
-    min-width: 150px;
+    min-width: 140px;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -234,65 +231,51 @@
 .rem-task-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
 }
 
-/* ===== Task Card — Glassmorphism ===== */
+/* ===== Task Card ===== */
 .rem-task-card {
-    background: rgba(255, 255, 255, 0.65);
-    backdrop-filter: blur(16px) saturate(1.8);
-    -webkit-backdrop-filter: blur(16px) saturate(1.8);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
     overflow: hidden;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.04),
-        0 4px 12px rgba(0, 0, 0, 0.03),
-        inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    animation: remCardIn 0.35s ease both;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    animation: remCardIn 0.25s ease both;
 }
 
 @keyframes remCardIn {
-    from { opacity: 0; transform: translateY(12px) scale(0.97); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .rem-task-card:hover {
-    transform: translateY(-2px);
-    box-shadow:
-        0 8px 24px rgba(0, 80, 160, 0.08),
-        0 2px 8px rgba(0, 0, 0, 0.04),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.rem-task-card:active {
-    transform: scale(0.995);
+    border-color: var(--text-secondary);
 }
 
 .rem-task-card.rem-status-overdue {
-    border-left: 4px solid #FF3B30;
+    border-left: 3px solid #FF3B30;
 }
 
 .rem-task-card.rem-status-due-today {
-    border-left: 4px solid #5AC8FA;
+    border-left: 3px solid #5AC8FA;
 }
 
 .rem-task-card.rem-status-due-soon {
-    border-left: 4px solid var(--apple-blue);
+    border-left: 3px solid var(--apple-blue);
 }
 
 .rem-task-card.rem-status-upcoming {
-    border-left: 4px solid var(--border);
+    border-left: 3px solid var(--border);
 }
 
 .rem-task-card.rem-status-completed {
-    border-left: 4px solid #34C759;
-    opacity: 0.6;
+    border-left: 3px solid #34C759;
+    opacity: 0.55;
 }
 
 .rem-task-card.rem-status-no-date {
-    border-left: 4px solid var(--text-secondary);
+    border-left: 3px solid var(--text-secondary);
 }
 
 /* Staggered entrance animation */
@@ -308,15 +291,15 @@
 .rem-task-row {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 16px;
+    gap: 10px;
+    padding: 12px 14px;
 }
 
 /* Check Button */
 .rem-check-btn {
-    width: 26px;
-    height: 26px;
-    min-width: 26px;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
     border-radius: 50%;
     border: 2px solid var(--border);
     background: transparent;
@@ -324,23 +307,21 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    margin-top: 2px;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    margin-top: 1px;
     color: transparent;
 }
 
 .rem-check-btn:hover {
     border-color: #34C759;
     color: #34C759;
-    transform: scale(1.1);
 }
 
 .rem-check-btn.checked {
-    background: linear-gradient(135deg, #34C759, #28A745);
+    background: #34C759;
     border-color: #34C759;
     color: #fff;
-    box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
 }
 
 /* Task Content */
@@ -350,13 +331,13 @@
 }
 
 .rem-task-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text);
-    margin: 0 0 6px;
+    margin: 0 0 4px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     letter-spacing: -0.1px;
 }
 
@@ -366,84 +347,88 @@
 }
 
 .rem-priority-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     display: inline-block;
     flex-shrink: 0;
 }
 
-.rem-priority-dot.high { background: #FF3B30; box-shadow: 0 0 6px rgba(255, 59, 48, 0.4); }
+.rem-priority-dot.high { background: #FF3B30; }
 .rem-priority-dot.normal { background: var(--apple-blue); }
 .rem-priority-dot.low { background: var(--text-secondary); }
 
 .rem-task-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
     margin-top: 0;
 }
 
+/* ===== Badges — Neutral palette ===== */
 .rem-badge {
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 3px 10px;
+    padding: 2px 8px;
     border-radius: 100px;
     font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
+    font-weight: 500;
+    letter-spacing: 0.1px;
 }
 
-.rem-badge-overdue {
-    background: rgba(255, 59, 48, 0.12);
-    color: #FF3B30;
-}
-
-.rem-badge-due-today {
-    background: rgba(90, 200, 250, 0.12);
-    color: #5AC8FA;
-}
-
-.rem-badge-due-soon {
-    background: rgba(0, 122, 255, 0.1);
-    color: var(--apple-blue);
-}
-
-.rem-badge-upcoming {
-    background: rgba(0, 122, 255, 0.06);
-    color: var(--apple-blue);
-}
-
-.rem-badge-completed {
-    background: rgba(52, 199, 89, 0.1);
-    color: #34C759;
-}
-
-.rem-badge-no-date {
+/* Category & frequency: all neutral gray */
+.rem-cat {
     background: rgba(0, 0, 0, 0.05);
     color: var(--text-secondary);
 }
 
-.rem-cat {
-    background: rgba(52, 199, 89, 0.1);
-    color: #34C759;
-}
-
 .rem-freq {
-    background: rgba(88, 86, 214, 0.1);
-    color: #5856D6;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-secondary);
 }
 
 .rem-freq-daily {
-    background: rgba(0, 122, 255, 0.1);
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-secondary);
+}
+
+/* Status badges keep subtle colors */
+.rem-badge-overdue {
+    background: rgba(255, 59, 48, 0.1);
+    color: #FF3B30;
+}
+
+.rem-badge-due-today {
+    background: rgba(90, 200, 250, 0.1);
+    color: #5AC8FA;
+}
+
+.rem-badge-due-soon,
+.rem-badge-upcoming {
+    background: rgba(0, 122, 255, 0.08);
     color: var(--apple-blue);
 }
 
-.rem-task-notes {
-    font-size: 13px;
+.rem-badge-completed {
+    background: rgba(52, 199, 89, 0.08);
+    color: #34C759;
+}
+
+.rem-badge-no-date {
+    background: rgba(0, 0, 0, 0.04);
     color: var(--text-secondary);
-    margin-top: 8px;
+}
+
+.rem-badge-snoozed {
+    background: rgba(142, 142, 147, 0.1);
+    color: #8E8E93;
+}
+
+.rem-task-notes {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 6px;
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
@@ -452,27 +437,28 @@
 /* Task Actions */
 .rem-task-actions {
     display: flex;
-    gap: 2px;
+    gap: 1px;
     flex-shrink: 0;
 }
 
 .rem-action-btn {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     border: none;
     background: transparent;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
-    transition: background 0.2s, transform 0.2s;
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s;
 }
 
 .rem-action-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    transform: scale(1.1);
+    color: var(--text);
 }
 
 .rem-action-btn:active {
@@ -482,19 +468,19 @@
 /* ===== Empty State ===== */
 .rem-empty {
     text-align: center;
-    padding: 60px 24px;
+    padding: 48px 24px;
     color: var(--text-secondary);
 }
 
 .rem-empty-icon {
-    font-size: 52px;
-    margin-bottom: 16px;
-    opacity: 0.6;
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.4;
 }
 
 .rem-empty p {
     margin: 0;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.5;
 }
 
@@ -503,29 +489,25 @@
     position: fixed;
     bottom: 28px;
     right: 28px;
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    background: rgba(0, 122, 255, 0.1);
-    color: var(--apple-blue);
-    font-size: 26px;
-    border: 1.5px solid rgba(0, 122, 255, 0.3);
-    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.12);
+    background: var(--apple-blue);
+    color: #fff;
+    font-size: 24px;
+    border: none;
+    box-shadow: 0 2px 12px rgba(0, 122, 255, 0.3);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.25s ease, background 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     z-index: 50;
-    opacity: 0.7;
 }
 
 .rem-fab:hover {
-    opacity: 1;
-    background: rgba(0, 122, 255, 0.15);
-    border-color: rgba(0, 122, 255, 0.5);
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 122, 255, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 122, 255, 0.4);
 }
 
 .rem-fab:active {
@@ -542,29 +524,24 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
-    backdrop-filter: blur(20px) saturate(1.5);
-    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .rem-modal {
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(40px) saturate(1.8);
-    -webkit-backdrop-filter: blur(40px) saturate(1.8);
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
     width: 100%;
     max-width: 440px;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.15),
-        0 8px 24px rgba(0, 0, 0, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    animation: remModalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    animation: remModalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes remModalIn {
-    from { opacity: 0; transform: scale(0.92) translateY(20px); }
+    from { opacity: 0; transform: scale(0.95) translateY(16px); }
     to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
@@ -577,30 +554,29 @@
 
 .rem-modal-header h3 {
     margin: 0;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--text);
-    letter-spacing: -0.3px;
+    letter-spacing: -0.2px;
 }
 
 .rem-modal-close {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border: none;
     background: rgba(0, 0, 0, 0.05);
-    font-size: 18px;
+    font-size: 16px;
     color: var(--text-secondary);
     cursor: pointer;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s, transform 0.2s;
+    transition: background 0.15s;
 }
 
 .rem-modal-close:hover {
     background: rgba(0, 0, 0, 0.1);
-    transform: scale(1.1);
 }
 
 .rem-modal-body {
@@ -608,26 +584,26 @@
 }
 
 .rem-field {
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .rem-field label {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
 }
 
 .rem-field input,
 .rem-field select,
 .rem-field textarea {
     width: 100%;
-    padding: 11px 14px;
+    padding: 10px 12px;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 10px;
     background: var(--bg-input);
     color: var(--text);
     font-size: 14px;
@@ -646,7 +622,7 @@
 
 .rem-field textarea {
     resize: vertical;
-    min-height: 70px;
+    min-height: 60px;
 }
 
 .rem-field-row {
@@ -656,7 +632,7 @@
 }
 
 .rem-field-row .rem-field {
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .rem-modal-footer {
@@ -668,48 +644,44 @@
 
 /* ===== Snoozed Task Card State ===== */
 .rem-task-card.rem-snoozed {
-    opacity: 0.55;
-    border-left: 4px solid #8E8E93;
+    opacity: 0.5;
+    border-left: 3px solid #8E8E93;
 }
 
 .rem-task-card.rem-snoozed:hover {
-    opacity: 0.8;
+    opacity: 0.75;
 }
 
 .rem-task-card.rem-status-snoozed {
-    border-left: 4px solid #8E8E93;
-}
-
-.rem-badge-snoozed {
-    background: rgba(142, 142, 147, 0.12);
-    color: #8E8E93;
+    border-left: 3px solid #8E8E93;
 }
 
 /* Snooze indicator inside task title */
 .rem-snooze-indicator {
-    font-size: 14px;
+    font-size: 13px;
     opacity: 0.7;
     flex-shrink: 0;
 }
 
 /* Snooze clock button in task actions */
 .rem-snooze-btn {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     border: none;
     background: transparent;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
-    transition: background 0.2s, transform 0.2s;
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s;
 }
 
 .rem-snooze-btn:hover {
-    background: rgba(255, 149, 0, 0.1);
-    transform: scale(1.1);
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text);
 }
 
 .rem-snooze-btn:active {
@@ -726,8 +698,8 @@
     align-items: flex-end;
     justify-content: center;
     padding: 20px;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     animation: remSnoozeOverlayIn 0.2s ease;
 }
 
@@ -737,42 +709,37 @@
 }
 
 .rem-snooze-menu {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(40px) saturate(1.8);
-    -webkit-backdrop-filter: blur(40px) saturate(1.8);
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
     width: 100%;
     max-width: 380px;
     overflow: hidden;
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.2),
-        0 8px 24px rgba(0, 0, 0, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    animation: remSnoozeMenuIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: remSnoozeMenuIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
     margin-bottom: env(safe-area-inset-bottom, 0);
 }
 
 @keyframes remSnoozeMenuIn {
-    from { opacity: 0; transform: translateY(40px) scale(0.95); }
+    from { opacity: 0; transform: translateY(30px) scale(0.97); }
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .rem-snooze-header {
-    padding: 18px 20px 10px;
+    padding: 16px 20px 10px;
     font-size: 14px;
     font-weight: 700;
     color: var(--text);
     text-align: center;
     letter-spacing: -0.2px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid var(--border);
 }
 
 .rem-snooze-option {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 14px 20px;
+    gap: 12px;
+    padding: 12px 20px;
     cursor: pointer;
     transition: background 0.15s ease;
     border: none;
@@ -787,7 +754,7 @@
 }
 
 .rem-snooze-option:active {
-    background: rgba(0, 122, 255, 0.12);
+    background: rgba(0, 122, 255, 0.1);
 }
 
 .rem-snooze-option + .rem-snooze-option {
@@ -795,14 +762,14 @@
 }
 
 .rem-snooze-icon {
-    font-size: 22px;
+    font-size: 20px;
     flex-shrink: 0;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
+    border-radius: 8px;
     background: rgba(0, 122, 255, 0.08);
 }
 
@@ -812,32 +779,32 @@
 
 .rem-snooze-text strong {
     display: block;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text);
-    margin-bottom: 2px;
+    margin-bottom: 1px;
 }
 
 .rem-snooze-text span {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
 }
 
 .rem-snooze-complete .rem-snooze-icon {
-    background: rgba(52, 199, 89, 0.12);
+    background: rgba(52, 199, 89, 0.1);
 }
 
 .rem-snooze-cancel {
     display: block;
     width: 100%;
-    padding: 15px;
+    padding: 14px;
     text-align: center;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--apple-blue);
     background: transparent;
     border: none;
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    border-top: 1px solid var(--border);
     cursor: pointer;
     font-family: inherit;
     transition: background 0.15s ease;
@@ -849,7 +816,7 @@
 
 /* ===== Dark Mode ===== */
 body.dark-mode .rem-dashboard-panel {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: none;
 }
 
 body.dark-mode .rem-progress-track {
@@ -860,115 +827,54 @@ body.dark-mode .rem-weekly-pct {
     color: #32D74B;
 }
 
-body.dark-mode .rem-stat-card {
+body.dark-mode .rem-stat-pill:hover {
     background: #2C2C2E;
-    border-color: #38383A;
 }
 
-body.dark-mode .rem-stat-card:hover {
-    background: #3A3A3C;
-}
-
-body.dark-mode .rem-stat-card.active {
-    box-shadow: 0 0 0 2px #0A84FF;
-    background: rgba(10, 132, 255, 0.1);
-}
-
-body.dark-mode .rem-task-card.rem-snoozed {
-    opacity: 0.5;
-}
-
-body.dark-mode .rem-badge-snoozed {
-    background: rgba(255, 159, 10, 0.15);
-    color: #FF9F0A;
-}
-
-body.dark-mode .rem-snooze-btn:hover {
-    background: rgba(255, 159, 10, 0.15);
-}
-
-body.dark-mode .rem-snooze-overlay {
-    background: rgba(0, 0, 0, 0.65);
-}
-
-body.dark-mode .rem-snooze-menu {
-    background: #1C1C1E;
-    border-color: #38383A;
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.5),
-        0 8px 24px rgba(0, 0, 0, 0.3);
-}
-
-body.dark-mode .rem-snooze-header {
-    border-bottom-color: #38383A;
-}
-
-body.dark-mode .rem-snooze-option:hover {
-    background: rgba(10, 132, 255, 0.1);
-}
-
-body.dark-mode .rem-snooze-option:active {
-    background: rgba(10, 132, 255, 0.15);
-}
-
-body.dark-mode .rem-snooze-option + .rem-snooze-option {
-    border-top-color: #38383A;
-}
-
-body.dark-mode .rem-snooze-icon {
-    background: rgba(10, 132, 255, 0.15);
-}
-
-body.dark-mode .rem-snooze-complete .rem-snooze-icon {
-    background: rgba(50, 215, 75, 0.15);
-}
-
-body.dark-mode .rem-snooze-cancel {
-    border-top-color: #38383A;
+body.dark-mode .rem-stat-pill.active {
+    background: rgba(10, 132, 255, 0.12);
     color: #0A84FF;
-}
-
-body.dark-mode .rem-snooze-cancel:hover {
-    background: rgba(10, 132, 255, 0.1);
-}
-
-body.dark-mode .rem-task-card.rem-status-overdue {
-    background: rgba(255, 59, 48, 0.06);
-}
-
-body.dark-mode .rem-task-card.rem-status-due-today {
-    background: rgba(255, 149, 0, 0.05);
 }
 
 body.dark-mode .rem-task-card {
     background: #1C1C1E;
     border-color: #38383A;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.4),
-        0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 body.dark-mode .rem-task-card:hover {
-    background: #2C2C2E;
+    background: #242426;
     border-color: #48484A;
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.35),
-        0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-mode .rem-task-card.rem-snoozed {
+    opacity: 0.45;
 }
 
 body.dark-mode .rem-filter-btn {
-    background: #1C1C1E;
+    background: transparent;
     border-color: #38383A;
+    color: #98989D;
 }
 
 body.dark-mode .rem-filter-btn:hover {
-    background: #2C2C2E;
+    color: #fff;
+    border-color: #48484A;
 }
 
 body.dark-mode .rem-filter-btn.active {
     background: #0A84FF;
     border-color: #0A84FF;
-    box-shadow: 0 2px 10px rgba(10, 132, 255, 0.3);
+    color: #fff;
+}
+
+body.dark-mode .rem-new-btn {
+    border-color: #0A84FF;
+    color: #0A84FF;
+}
+
+body.dark-mode .rem-new-btn:hover {
+    background: #0A84FF;
+    color: #fff;
 }
 
 body.dark-mode .rem-search,
@@ -983,16 +889,10 @@ body.dark-mode .rem-category-filter:focus {
     box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
 }
 
-body.dark-mode .rem-modal-overlay {
-    background: rgba(0, 0, 0, 0.6);
-}
-
 body.dark-mode .rem-modal {
     background: #1C1C1E;
     border-color: #38383A;
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.5),
-        0 8px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 body.dark-mode .rem-modal-close {
@@ -1020,26 +920,49 @@ body.dark-mode .rem-field textarea:focus {
 
 body.dark-mode .rem-action-btn:hover {
     background: #2C2C2E;
+    color: #fff;
 }
 
+body.dark-mode .rem-snooze-btn:hover {
+    background: #2C2C2E;
+    color: #fff;
+}
+
+/* Dark mode badges — neutral for cat/freq */
+body.dark-mode .rem-cat {
+    background: #2C2C2E;
+    color: #98989D;
+}
+
+body.dark-mode .rem-freq {
+    background: #2C2C2E;
+    color: #98989D;
+}
+
+body.dark-mode .rem-freq-daily {
+    background: #2C2C2E;
+    color: #98989D;
+}
+
+/* Dark mode status badges keep subtle colors */
 body.dark-mode .rem-badge-overdue {
-    background: rgba(255, 69, 58, 0.15);
+    background: rgba(255, 69, 58, 0.12);
     color: #FF453A;
 }
 
 body.dark-mode .rem-badge-due-today {
-    background: rgba(255, 159, 10, 0.15);
-    color: #FF9F0A;
+    background: rgba(90, 200, 250, 0.1);
+    color: #64D2FF;
 }
 
 body.dark-mode .rem-badge-due-soon,
 body.dark-mode .rem-badge-upcoming {
-    background: rgba(10, 132, 255, 0.15);
+    background: rgba(10, 132, 255, 0.12);
     color: #0A84FF;
 }
 
 body.dark-mode .rem-badge-completed {
-    background: rgba(50, 215, 75, 0.15);
+    background: rgba(50, 215, 75, 0.12);
     color: #32D74B;
 }
 
@@ -1048,19 +971,9 @@ body.dark-mode .rem-badge-no-date {
     color: #98989D;
 }
 
-body.dark-mode .rem-cat {
-    background: rgba(50, 215, 75, 0.15);
-    color: #32D74B;
-}
-
-body.dark-mode .rem-freq {
-    background: rgba(94, 92, 230, 0.15);
-    color: #BF5AF2;
-}
-
-body.dark-mode .rem-freq-daily {
-    background: rgba(255, 159, 10, 0.15);
-    color: #FF9F0A;
+body.dark-mode .rem-badge-snoozed {
+    background: rgba(142, 142, 147, 0.1);
+    color: #98989D;
 }
 
 body.dark-mode .rem-check-btn {
@@ -1073,13 +986,12 @@ body.dark-mode .rem-check-btn:hover {
 }
 
 body.dark-mode .rem-check-btn.checked {
-    background: linear-gradient(135deg, #32D74B, #28A745);
+    background: #32D74B;
     border-color: #32D74B;
 }
 
 body.dark-mode .rem-priority-dot.high {
     background: #FF453A;
-    box-shadow: 0 0 6px rgba(255, 69, 58, 0.4);
 }
 
 body.dark-mode .rem-priority-dot.normal {
@@ -1087,11 +999,64 @@ body.dark-mode .rem-priority-dot.normal {
 }
 
 body.dark-mode .rem-fab {
-    background: linear-gradient(135deg, #0A84FF, #0055CC);
-    box-shadow:
-        0 4px 16px rgba(10, 132, 255, 0.4),
-        0 8px 32px rgba(10, 132, 255, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    background: #0A84FF;
+    box-shadow: 0 4px 16px rgba(10, 132, 255, 0.35);
+}
+
+body.dark-mode .rem-fab:hover {
+    box-shadow: 0 6px 24px rgba(10, 132, 255, 0.45);
+}
+
+body.dark-mode .rem-modal-overlay {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+body.dark-mode .rem-snooze-overlay {
+    background: rgba(0, 0, 0, 0.65);
+}
+
+body.dark-mode .rem-snooze-menu {
+    background: #1C1C1E;
+    border-color: #38383A;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .rem-snooze-header {
+    border-bottom-color: #38383A;
+}
+
+body.dark-mode .rem-snooze-option:hover {
+    background: rgba(10, 132, 255, 0.08);
+}
+
+body.dark-mode .rem-snooze-option + .rem-snooze-option {
+    border-top-color: #38383A;
+}
+
+body.dark-mode .rem-snooze-icon {
+    background: rgba(10, 132, 255, 0.12);
+}
+
+body.dark-mode .rem-snooze-complete .rem-snooze-icon {
+    background: rgba(50, 215, 75, 0.12);
+}
+
+body.dark-mode .rem-snooze-cancel {
+    border-top-color: #38383A;
+    color: #0A84FF;
+}
+
+body.dark-mode .rem-snooze-cancel:hover {
+    background: rgba(10, 132, 255, 0.08);
+}
+
+body.dark-mode .dot-total { background: #0A84FF; }
+body.dark-mode .dot-overdue { background: #FF453A; }
+body.dark-mode .dot-today { background: #64D2FF; }
+body.dark-mode .dot-done { background: #32D74B; }
+
+body.dark-mode .rem-stats-divider {
+    background: #38383A;
 }
 
 /* ===== Desktop Enhancements ===== */
@@ -1099,44 +1064,36 @@ body.dark-mode .rem-fab {
     .rem-container {
         padding: 0 24px 80px;
     }
-    .rem-stats-grid {
-        gap: 14px;
-    }
-    .rem-stat-card {
-        padding: 20px 14px 18px;
-    }
-    .rem-stat-value {
-        font-size: 30px;
-    }
     .rem-field-row {
         grid-template-columns: 1fr 1fr 1fr;
         gap: 14px;
     }
     .rem-task-row {
-        padding: 16px 20px;
+        padding: 12px 18px;
     }
 }
 
 /* ===== Responsive ===== */
 @media (max-width: 480px) {
-    .rem-stats-grid {
-        grid-template-columns: repeat(2, 1fr);
+    .rem-stats-strip {
+        gap: 6px;
+    }
+
+    .rem-stat-pill {
+        padding: 3px 8px;
+        font-size: 11px;
     }
 
     .rem-field-row {
         grid-template-columns: 1fr;
     }
 
-    .rem-stat-value {
-        font-size: 22px;
-    }
-
     .rem-fab {
         bottom: 20px;
         right: 20px;
-        width: 50px;
-        height: 50px;
-        font-size: 24px;
+        width: 46px;
+        height: 46px;
+        font-size: 22px;
     }
 
     .rem-container {
@@ -1144,6 +1101,6 @@ body.dark-mode .rem-fab {
     }
 
     .rem-task-row {
-        padding: 14px 12px;
+        padding: 10px 12px;
     }
 }
