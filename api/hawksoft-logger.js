@@ -38,12 +38,15 @@ RULES:
 6. Keep it concise — typically 2-5 sentences in the body
 7. Do NOT wrap in markdown or code blocks — return plain text only
 8. Do NOT use blank lines — use single line breaks only
-9. Match the voice to the activity type:
+9. VOICE: If the raw notes are written in first person ("I called", "I spoke with"), keep the
+   formatted log in first person. Do NOT convert "I" to "agent" or third person. If the notes
+   are already third person or impersonal, keep them that way.
+10. Match the voice to the activity type:
     - Payment, Policy Change, Renewal, Certificate: write as COMPLETED actions ("processed", "issued", "received")
     - Coverage Q, New Quote: in-progress framing is fine ("client inquired about...", "quoted...")
     - Claim: write as reported/filed
     - Other or unspecified: follow whatever the raw notes suggest
-10. Put action items inline at the end of the body using "Action: [text]" — not on a separate line
+11. Put action items inline at the end of the body using "Action: [text]" — not on a separate line
 
 FORMAT (3 lines max — no blank lines):
 RE: [Brief Subject] — [Agent Initials, if provided]
