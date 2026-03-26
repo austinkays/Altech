@@ -2,8 +2,9 @@
  * AIProvider — Unified Multi-Provider AI Abstraction Layer
  * 
  * Supports: Google Gemini (default), OpenRouter (100+ models), OpenAI, Anthropic (via proxy)
- * Storage key: altech_ai_settings → { provider, model, apiKey }
- * 
+ * Storage key: altech_ai_settings → { provider, model, encryptedKey, iv }
+ * API keys are AES-GCM encrypted at rest via Web Crypto API. Never stored as plaintext.
+ *
  * Usage:
  *   const result = await AIProvider.ask(systemPrompt, userMessage, { temperature: 0.2 });
  *   // Returns: { text: '...', raw: {...} }
@@ -12,6 +13,51 @@ window.AIProvider = (() => {
     'use strict';
 
     const STORAGE_KEY = 'altech_ai_settings';
+    const SALT_KEY = 'altech_ai_salt';
+
+    // ── Crypto helpers (AES-GCM key encryption) ──────────────────
+
+    function _buf2b64(buf) {
+        return btoa(String.fromCharCode(...new Uint8Array(buf)));
+    }
+    function _b642buf(b64) {
+        return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    }
+    function _getSalt() {
+        let s = localStorage.getItem(SALT_KEY);
+        if (!s) {
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            s = _buf2b64(salt);
+            localStorage.setItem(SALT_KEY, s);
+        }
+        return _b642buf(s);
+    }
+    async function _deriveKey(salt) {
+        const km = await crypto.subtle.importKey(
+            'raw', new TextEncoder().encode('altech-insurance-app-v1'),
+            { name: 'PBKDF2' }, false, ['deriveKey']
+        );
+        return crypto.subtle.deriveKey(
+            { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
+            km, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+        );
+    }
+    async function _encryptKey(plaintext) {
+        if (!plaintext) return { encryptedKey: '', iv: '' };
+        const salt = _getSalt();
+        const key = await _deriveKey(salt);
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext));
+        return { encryptedKey: _buf2b64(ct), iv: _buf2b64(iv) };
+    }
+    async function _decryptKey(encryptedKey, iv) {
+        if (!encryptedKey || !iv) return '';
+        try {
+            const key = await _deriveKey(_getSalt());
+            const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: _b642buf(iv) }, key, _b642buf(encryptedKey));
+            return new TextDecoder().decode(pt);
+        } catch (_) { return ''; }
+    }
 
     // ── Provider Registry ────────────────────────────────────────
 
@@ -142,61 +188,71 @@ window.AIProvider = (() => {
     };
 
     // ── Settings Management ──────────────────────────────────────
+    // Stored format: { provider, model, encryptedKey, iv }
+    // API key is AES-GCM encrypted — never written as plaintext.
 
-    function getSettings() {
+    function _getRawSettings() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (raw) return JSON.parse(raw);
         } catch (_) {}
-        return { provider: 'google', model: 'gemini-2.5-flash', apiKey: '' };
+        return { provider: 'google', model: 'gemini-2.5-flash', encryptedKey: '', iv: '' };
     }
 
-    function saveSettings(settings) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    /** Returns { provider, model } only — use resolveApiKey() to get the decrypted key. */
+    function getSettings() {
+        const s = _getRawSettings();
+        return { provider: s.provider, model: s.model };
+    }
+
+    /** Save settings, encrypting the API key before storage. */
+    async function saveSettings(settings) {
+        const { provider, model, apiKey } = settings;
+        const { encryptedKey, iv } = await _encryptKey(apiKey || '');
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ provider, model, encryptedKey, iv }));
+        // Remove any legacy plaintext keys
+        localStorage.removeItem('gemini_api_key');
     }
 
     function getProvider() {
-        return getSettings().provider || 'google';
+        return _getRawSettings().provider || 'google';
     }
 
     function getModel() {
-        const s = getSettings();
+        const s = _getRawSettings();
         return s.model || PROVIDERS[s.provider || 'google'].defaultModel;
     }
 
-    function getApiKey() {
-        const s = getSettings();
-        // Custom provider key takes priority
-        if (s.apiKey) return s.apiKey;
-        // Fall back to legacy gemini key for Google provider
-        if ((s.provider || 'google') === 'google') {
-            return localStorage.getItem('gemini_api_key') || '';
-        }
-        return '';
-    }
-
     /**
-     * Async key resolution — tries local key first, then server-side Gemini key.
-     * This ensures features work with just the server GOOGLE_API_KEY deployed on Vercel
-     * even when the user hasn't configured a personal key in Settings.
+     * Async key resolution — decrypts stored key, migrates legacy plaintext keys,
+     * then falls back to server-side Gemini key.
      */
     let _serverKeyCache = null;
     async function resolveApiKey() {
-        // 1. Check local key (user-configured or legacy)
-        const localKey = getApiKey();
-        if (localKey) return localKey;
-        // 2. For Google provider, try server-side key
-        if ((getProvider()) === 'google') {
+        const s = _getRawSettings();
+        // 1. Decrypt stored encrypted key
+        if (s.encryptedKey && s.iv) {
+            const decrypted = await _decryptKey(s.encryptedKey, s.iv);
+            if (decrypted) return decrypted;
+        }
+        // 2. Migrate legacy plaintext key (one-time re-encrypt)
+        if (s.apiKey) {
+            console.warn('[AIProvider] Migrating plaintext key to encrypted storage...');
+            await saveSettings({ provider: s.provider, model: s.model, apiKey: s.apiKey });
+            return s.apiKey;
+        }
+        // 3. Legacy gemini_api_key fallback
+        const legacyKey = localStorage.getItem('gemini_api_key');
+        if (legacyKey && getProvider() === 'google') return legacyKey;
+        // 4. Server-side key for Google provider
+        if (getProvider() === 'google') {
             if (_serverKeyCache) return _serverKeyCache;
             try {
                 const fetchFn = (typeof Auth !== 'undefined' && Auth.apiFetch) ? Auth.apiFetch.bind(Auth) : fetch;
                 const res = await fetchFn('/api/config?type=keys');
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.geminiKey) {
-                        _serverKeyCache = data.geminiKey;
-                        return data.geminiKey;
-                    }
+                    if (data.geminiKey) { _serverKeyCache = data.geminiKey; return data.geminiKey; }
                 }
             } catch (_) {}
         }
@@ -204,7 +260,8 @@ window.AIProvider = (() => {
     }
 
     function isConfigured() {
-        return !!getApiKey();
+        const s = _getRawSettings();
+        return !!(s.encryptedKey || s.apiKey || localStorage.getItem('gemini_api_key'));
     }
 
     /**
@@ -652,10 +709,10 @@ window.AIProvider = (() => {
         PROVIDERS,
         TAG_LABELS,
         getSettings,
-        saveSettings,
+        saveSettings,  // now async — always await when saving a key
         getProvider,
         getModel,
-        getApiKey,
+        // getApiKey removed — use resolveApiKey() (async, handles decryption)
         isConfigured,
         isAvailable,
         resolveApiKey,

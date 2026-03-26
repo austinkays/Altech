@@ -41,7 +41,30 @@ async function handler(req, res) {
       return;
     }
 
-    const apiKey = (process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '').trim();
+    // MIME type allowlist — reject anything that isn't a supported document/image format
+    const ALLOWED_MIME_TYPES = new Set([
+      'application/pdf',
+      'image/jpeg', 'image/jpg', 'image/png',
+      'image/webp', 'image/heic', 'image/heif', 'image/tiff',
+    ]);
+    const MAX_TOTAL_BYTES = 50 * 1024 * 1024; // 50MB combined cap
+    let totalBytes = 0;
+    for (const file of files) {
+      if (!file.mimeType || !ALLOWED_MIME_TYPES.has(file.mimeType.toLowerCase())) {
+        res.status(400).json({
+          error: `Invalid file type: "${file.mimeType || 'unknown'}". Allowed: PDF, JPEG, PNG, WebP, HEIC, TIFF`
+        });
+        return;
+      }
+      if (file.data) totalBytes += Math.ceil((file.data.length * 3) / 4);
+    }
+    if (totalBytes > MAX_TOTAL_BYTES) {
+      res.status(400).json({ error: 'Total file payload exceeds 50MB limit.' });
+      return;
+    }
+
+    // Use GOOGLE_API_KEY only — never use NEXT_PUBLIC_ prefix for server-side secrets
+    const apiKey = (process.env.GOOGLE_API_KEY || '').trim();
     if (!apiKey) {
       res.status(500).json({ error: 'GOOGLE_API_KEY not configured' });
       return;

@@ -281,6 +281,21 @@ const server = createServer(async (req, res) => {
     // Security headers
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader('Content-Security-Policy', [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://js.stripe.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: blob: https:",
+        "connect-src 'self' https://generativelanguage.googleapis.com https://openrouter.ai https://api.openai.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebase.googleapis.com https://api.stripe.com",
+        "frame-src https://js.stripe.com https://hooks.stripe.com",
+        "worker-src 'none'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+    ].join('; '));
 
     if (req.method === 'OPTIONS') {
         res.writeHead(200);
@@ -656,7 +671,7 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, () => {
     const hasHawkSoft = !!(process.env.HAWKSOFT_CLIENT_ID && process.env.HAWKSOFT_CLIENT_SECRET && process.env.HAWKSOFT_AGENCY_ID);
-    const hasGemini = !!(process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY);
+    const hasGemini = !!process.env.GOOGLE_API_KEY;
 
     console.log('');
     console.log('  ┌─────────────────────────────────────────────────┐');
