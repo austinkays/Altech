@@ -42,7 +42,7 @@ Object.assign(App, {
         let y = mg;
 
         const addPage = () => { doc.addPage(); y = mg; };
-        const need = (h) => { if (y + h > pageH - 14) addPage(); };
+        const need = (h) => { if (y + h > pageH - 18) addPage(); };
 
         const v = (key) => {
             if (data[key] !== undefined && data[key] !== null && String(data[key]).trim() !== '')
@@ -103,10 +103,10 @@ Object.assign(App, {
                 doc.setFontSize(6.5); doc.setFont(undefined,'normal');
                 doc.setTextColor(...MID);
                 doc.setDrawColor(...RULE); doc.setLineWidth(0.3);
-                doc.line(mg, pageH-10, pageW-mg, pageH-10);
-                doc.text('Altech Insurance Tools', mg, pageH-6);
-                doc.text(`Page ${i} of ${total}`, pageW/2, pageH-6, {align:'center'});
-                doc.text(fmtDateTime(new Date()), pageW-mg, pageH-6, {align:'right'});
+                doc.line(mg, pageH-14, pageW-mg, pageH-14);
+                doc.text('Altech Insurance Tools', mg, pageH-9);
+                doc.text(`Page ${i} of ${total}`, pageW/2, pageH-9, {align:'center'});
+                doc.text(fmtDateTime(new Date()), pageW-mg, pageH-9, {align:'right'});
             }
         };
 
@@ -191,10 +191,10 @@ Object.assign(App, {
         // ════════════════════════════════════════════════════════════════
         y = mg;
 
-        // Thin accent bar at top
+        // Thin accent bar at top — inset from edge so it prints reliably
         doc.setFillColor(...ACCENT);
-        doc.rect(0, 0, pageW, 1.5, 'F');
-        y = 6;
+        doc.rect(0, mg-4, pageW, 1.5, 'F');
+        y = mg + 1;
 
         // Logo + agency name on left, doc ref on right
         const logoH = 10;
