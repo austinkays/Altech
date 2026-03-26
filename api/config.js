@@ -4,7 +4,7 @@
  * Routes via ?type= query parameter:
  *   GET  /api/config?type=firebase    → Firebase client config (no auth)
  *   GET  /api/config?type=keys        → Places + Gemini API keys (auth required)
- *   POST /api/config?type=phonetics   → Name pronunciation via Gemini (no auth, rate-limited by securityMiddleware)
+ *   POST /api/config?type=phonetics   → Name pronunciation via Gemini (auth required)
  *   POST /api/config?type=bugreport   → Create GitHub Issue from in-app bug report (auth required)
  * 
  * Environment variables:
@@ -73,8 +73,14 @@ async function handlePhonetics(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // Require authentication to prevent unauthenticated API quota consumption
+    const user = await verifyFirebaseToken(req);
+    if (!user) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+
     try {
-        const apiKey = (process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '').trim();
+        const apiKey = (process.env.GOOGLE_API_KEY || '').trim();
         if (!apiKey) {
             return res.status(500).json({ error: 'GOOGLE_API_KEY not configured' });
         }

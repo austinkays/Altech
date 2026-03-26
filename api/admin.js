@@ -12,96 +12,7 @@
  */
 
 import { securityMiddleware, verifyFirebaseToken } from '../lib/security.js';
-
-// ── Firebase Admin-Lite (REST API, no firebase-admin SDK) ──────────────
-
-const FIRESTORE_PROJECT = process.env.FIREBASE_PROJECT_ID || 'altech-app-5f3d0';
-const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT}/databases/(default)/documents`;
-
-/**
- * Get a Firestore document via REST API using the caller's ID token.
- */
-async function firestoreGet(path, idToken) {
-    const resp = await fetch(`${FIRESTORE_BASE}/${path}`, {
-        headers: { 'Authorization': `Bearer ${idToken}` },
-    });
-    if (!resp.ok) return null;
-    return resp.json();
-}
-
-/**
- * Set/merge a Firestore document via REST API (PATCH with updateMask).
- */
-async function firestoreSet(path, fields, idToken) {
-    // Build Firestore field objects
-    const firestoreFields = {};
-    for (const [key, value] of Object.entries(fields)) {
-        if (typeof value === 'boolean') {
-            firestoreFields[key] = { booleanValue: value };
-        } else if (typeof value === 'string') {
-            firestoreFields[key] = { stringValue: value };
-        } else if (typeof value === 'number') {
-            firestoreFields[key] = { integerValue: String(value) };
-        }
-    }
-
-    const maskFields = Object.keys(fields).map(f => `updateMask.fieldPaths=${f}`).join('&');
-    const resp = await fetch(`${FIRESTORE_BASE}/${path}?${maskFields}`, {
-        method: 'PATCH',
-        headers: {
-            'Authorization': `Bearer ${idToken}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ fields: firestoreFields }),
-    });
-    return resp.ok;
-}
-
-/**
- * List all documents in a Firestore collection via REST.
- */
-async function firestoreList(collectionPath, idToken) {
-    const docs = [];
-    let pageToken = null;
-    
-    do {
-        const url = new URL(`${FIRESTORE_BASE}/${collectionPath}`);
-        url.searchParams.set('pageSize', '100');
-        if (pageToken) url.searchParams.set('pageToken', pageToken);
-
-        const resp = await fetch(url.toString(), {
-            headers: { 'Authorization': `Bearer ${idToken}` },
-        });
-        
-        if (!resp.ok) break;
-        const data = await resp.json();
-        if (data.documents) docs.push(...data.documents);
-        pageToken = data.nextPageToken;
-    } while (pageToken);
-
-    return docs;
-}
-
-/**
- * Parse Firestore document fields into a plain JS object.
- */
-function parseFirestoreDoc(doc) {
-    if (!doc || !doc.fields) return null;
-    const result = {};
-    for (const [key, value] of Object.entries(doc.fields)) {
-        if ('stringValue' in value) result[key] = value.stringValue;
-        else if ('booleanValue' in value) result[key] = value.booleanValue;
-        else if ('integerValue' in value) result[key] = parseInt(value.integerValue, 10);
-        else if ('timestampValue' in value) result[key] = value.timestampValue;
-        else if ('nullValue' in value) result[key] = null;
-    }
-    // Extract UID from document name: .../users/{uid}
-    if (doc.name) {
-        const parts = doc.name.split('/');
-        result._uid = parts[parts.length - 1];
-    }
-    return result;
-}
+import { firestoreGet, firestoreSet, firestoreList, parseFirestoreDoc } from '../lib/firestore.js';
 
 // ── Verify Admin ────────────────────────────────────────────────────────
 
@@ -146,7 +57,7 @@ async function handleListUsers(admin, res, requestId) {
             .map(parseFirestoreDoc)
             .filter(Boolean)
             .map(u => ({
-                uid: u._uid,
+                uid: u.uid,
                 email: u.email || '',
                 displayName: u.displayName || '',
                 isAdmin: u.isAdmin === true,

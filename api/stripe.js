@@ -17,6 +17,7 @@
 
 import Stripe from 'stripe';
 import { securityMiddleware, requireAuth } from '../lib/security.js';
+import { firestoreSetAsAdmin } from '../lib/firestore.js';
 
 // ── Checkout Handler ────────────────────────────────────────────────────
 
@@ -89,81 +90,13 @@ async function handlePortal(req, res, stripe) {
 // ── Webhook Handler ─────────────────────────────────────────────────────
 
 async function updateFirestoreSubscription(uid, subData) {
-    const projectId = process.env.FIREBASE_PROJECT_ID || 'altech-app-5f3d0';
-
-    let authHeader = {};
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        try {
-            const sa = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString());
-            const token = await getServiceAccountToken(sa);
-            authHeader = { 'Authorization': `Bearer ${token}` };
-        } catch (e) {
-            console.error('[Webhook] Service account auth failed:', e.message);
-            return false;
-        }
-    }
-
-    const docPath = `users/${uid}/sync/subscription`;
-    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${docPath}`;
-
-    const fields = {};
-    for (const [key, value] of Object.entries(subData)) {
-        if (typeof value === 'string') {
-            fields[key] = { stringValue: value };
-        } else if (typeof value === 'boolean') {
-            fields[key] = { booleanValue: value };
-        } else if (typeof value === 'number') {
-            fields[key] = { integerValue: String(value) };
-        }
-    }
-
     try {
-        const resp = await fetch(url + '?updateMask.fieldPaths=' + Object.keys(subData).join('&updateMask.fieldPaths='), {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', ...authHeader },
-            body: JSON.stringify({ fields }),
-        });
-
-        if (!resp.ok) {
-            const errText = await resp.text();
-            console.error(`[Webhook] Firestore update failed for uid=${uid}:`, errText);
-            return false;
-        }
+        await firestoreSetAsAdmin(`users/${uid}/sync/subscription`, subData);
         return true;
     } catch (e) {
         console.error(`[Webhook] Firestore update error for uid=${uid}:`, e.message);
         return false;
     }
-}
-
-async function getServiceAccountToken(serviceAccount) {
-    const crypto = await import('crypto');
-    const now = Math.floor(Date.now() / 1000);
-
-    const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
-    const payload = Buffer.from(JSON.stringify({
-        iss: serviceAccount.client_email,
-        scope: 'https://www.googleapis.com/auth/datastore',
-        aud: 'https://oauth2.googleapis.com/token',
-        iat: now,
-        exp: now + 3600,
-    })).toString('base64url');
-
-    const signInput = `${header}.${payload}`;
-    const sign = crypto.createSign('RSA-SHA256');
-    sign.update(signInput);
-    const signature = sign.sign(serviceAccount.private_key, 'base64url');
-    const jwt = `${signInput}.${signature}`;
-
-    const tokenResp = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-    });
-
-    if (!tokenResp.ok) throw new Error('Token exchange failed');
-    const tokenData = await tokenResp.json();
-    return tokenData.access_token;
 }
 
 async function handleWebhook(req, res, stripe) {
