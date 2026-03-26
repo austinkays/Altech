@@ -45,14 +45,14 @@ Object.assign(App, {
 
         // ─── Greyscale palette (prints cleanly on B&W) ───
         const C = {
-            summaryBg: [30, 30, 30],      // Near-black summary card
-            groupBar:  [65, 65, 65],       // Dark group divider bar
-            sectionBg: [210, 210, 210],    // Light grey section header fill
-            accent:    [140, 140, 140],    // Left accent stripe on headers
-            stripe:    [247, 247, 247],    // Alternating row fill
+            summaryBg: [30, 30, 30],      // (unused — summary now uses light)
+            groupBar:  [65, 65, 65],       // (used for summary accent stripe only)
+            sectionBg: [242, 242, 242],    // Barely-there section header fill
+            accent:    [160, 160, 160],    // Left accent stripe on headers
+            stripe:    [252, 252, 252],    // Nearly invisible alternating row fill
             dark:      [20, 20, 20],       // Primary text
-            mid:       [120, 120, 120],    // Label text (55%-grey)
-            light:     [195, 195, 195],    // Borders / rules
+            mid:       [130, 130, 130],    // Label text (greyed)
+            light:     [210, 210, 210],    // Borders / rules
             white:     [255, 255, 255],
         };
 
@@ -108,32 +108,35 @@ Object.assign(App, {
 
         // Full-width dark group divider bar
         const groupBar = (title) => {
-            checkPage(12);
-            y += 2;
-            doc.setFillColor(...C.groupBar);
-            doc.rect(0, y, pageW, 6, 'F');
-            doc.setFontSize(6.5);
+            checkPage(10);
+            y += 4;
+            // Simple rule + bold label — no dark fill, toner-friendly
+            doc.setDrawColor(...C.light);
+            doc.setLineWidth(0.5);
+            doc.line(margin, y, pageW - margin, y);
+            doc.setFontSize(7.5);
             doc.setFont(undefined, 'bold');
-            doc.setTextColor(...C.white);
-            doc.text(title.toUpperCase(), margin, y + 4.3);
+            doc.setTextColor(...C.mid);
+            doc.text(title.toUpperCase(), margin, y + 5);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(...C.dark);
-            y += 9;
+            y += 8;
         };
 
         // Light-grey section header with left accent rule
         const sectionHeader = (title) => {
-            checkPage(12);
+            checkPage(10);
+            // Light fill, thin left rule, small bold text
             doc.setFillColor(...C.sectionBg);
-            doc.rect(margin, y, contentW, 5.5, 'F');
+            doc.rect(margin, y, contentW, 5, 'F');
             doc.setFillColor(...C.accent);
-            doc.rect(margin, y, 2.5, 5.5, 'F');
-            doc.setFontSize(7);
+            doc.rect(margin, y, 2, 5, 'F');
+            doc.setFontSize(6.5);
             doc.setFont(undefined, 'bold');
             doc.setTextColor(...C.dark);
-            doc.text(title.toUpperCase(), margin + 6, y + 4);
+            doc.text(title.toUpperCase(), margin + 5, y + 3.6);
             doc.setFont(undefined, 'normal');
-            y += 7.5;
+            y += 6.5;
         };
 
         // Key-value table: 2 or 3 columns, with multi-line value wrapping (up to 3 lines)
@@ -181,10 +184,7 @@ Object.assign(App, {
                 y += rowH;
             }
 
-            doc.setDrawColor(...C.light);
-            doc.setLineWidth(0.2);
-            doc.line(margin, y, margin + contentW, y);
-            y += 3;
+            y += 2;
         };
 
         // Driver/vehicle detail cards with grey header rows
@@ -226,10 +226,7 @@ Object.assign(App, {
                 }
                 y += rowH;
             });
-            doc.setDrawColor(...C.light);
-            doc.setLineWidth(0.2);
-            doc.line(margin, y, margin + contentW, y);
-            y += 3;
+            y += 2;
         };
 
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -245,9 +242,9 @@ Object.assign(App, {
         const nameParts = [prefix, data.firstName || '', data.lastName || '', suffix].filter(Boolean);
         const clientName = nameParts.join(' ') || 'Client';
 
-        // Top accent bar (greyscale)
-        doc.setFillColor(...C.groupBar);
-        doc.rect(0, 0, pageW, 2.5, 'F');
+        // Top accent bar
+        doc.setFillColor(...C.accent);
+        doc.rect(0, 0, pageW, 1.5, 'F');
         y = 10;
 
         // Logo + title header row
@@ -282,10 +279,15 @@ Object.assign(App, {
         doc.line(margin, y, pageW - margin, y);
         y += 5;
 
-        // Street View banner (compact — saves toner)
+        // Street View banner — lightened with white overlay to reduce toner use
         if (mapImages?.streetView?.dataUrl) {
-            const bannerH = 28;
+            const bannerH = 26;
             doc.addImage(mapImages.streetView.dataUrl, mapImages.streetView.format, margin, y, contentW, bannerH);
+            // White overlay at 55% opacity to wash out the photo — saves toner, keeps context
+            doc.setGState(new doc.GState({ opacity: 0.55 }));
+            doc.setFillColor(255, 255, 255);
+            doc.rect(margin, y, contentW, bannerH, 'F');
+            doc.setGState(new doc.GState({ opacity: 1 }));
             doc.setDrawColor(...C.light);
             doc.setLineWidth(0.3);
             doc.rect(margin, y, contentW, bannerH, 'S');
@@ -312,6 +314,10 @@ Object.assign(App, {
         if (mapImages?.satellite?.dataUrl) {
             const satX = pageW - margin - 22;
             doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, satX, y, 22, 17);
+            doc.setGState(new doc.GState({ opacity: 0.45 }));
+            doc.setFillColor(255, 255, 255);
+            doc.rect(satX, y, 22, 17, 'F');
+            doc.setGState(new doc.GState({ opacity: 1 }));
             doc.setDrawColor(...C.light);
             doc.setLineWidth(0.3);
             doc.rect(satX, y, 22, 17, 'S');
