@@ -708,13 +708,15 @@ window.Reminders = (() => {
         el('remStatDueToday', counts.dueToday);
         el('remStatCompleted', counts.completed);
 
-        // Weekly summary (counts only tasks active this week — different from all-time stat cards)
+        // Weekly summary + progress bar
+        const summary = getWeeklySummary();
+        const pct = summary.total > 0 ? Math.round((summary.done / summary.total) * 100) : 0;
         const summaryEl = document.getElementById('remWeeklySummary');
-        if (summaryEl) {
-            const summary = getWeeklySummary();
-            summaryEl.textContent = `${summary.done}/${summary.total} tasks done this week`;
-            summaryEl.title = `${summary.done} of ${summary.total} tasks active this week completed. Stat cards above show all-time totals (${counts.total} total, ${counts.completed} done).`;
-        }
+        if (summaryEl) summaryEl.textContent = `${summary.done} / ${summary.total} tasks completed this week`;
+        const fillEl = document.getElementById('remProgressFill');
+        if (fillEl) fillEl.style.width = pct + '%';
+        const pctEl = document.getElementById('remWeeklyPct');
+        if (pctEl) pctEl.textContent = summary.total > 0 ? pct + '%' : '';
     }
 
     function _renderTasks(filter = 'all') {
@@ -781,9 +783,8 @@ window.Reminders = (() => {
                     <div class="rem-task-content" ${canSnooze ? `onclick="Reminders.showSnoozeMenu('${t.id}')"` : ''} ${canSnooze ? 'style="cursor:pointer;"' : ''}>
                         <div class="rem-task-title ${isCompleted ? 'rem-done' : ''}">${priorityDot}${snoozeIcon}${_escapeHTML(t.title)}</div>
                         <div class="rem-task-meta">
-                            <span class="rem-badge rem-badge-${status}">${_escapeHTML(statusLabel)}</span>
                             <span class="rem-badge rem-cat">${_escapeHTML(t.category)}</span>
-                            <span class="rem-badge rem-freq${['daily','weekdays'].includes(t.frequency) ? ' rem-freq-daily' : ''}">${t.frequency === 'weekdays' ? 'Daily' : t.frequency === 'weekly' ? 'Due by Friday' : t.frequency}</span>
+                            <span class="rem-badge rem-freq${['daily','weekdays'].includes(t.frequency) ? ' rem-freq-daily' : ''}">${{ once: 'Once', daily: 'Daily', weekdays: 'Weekdays', weekly: 'Weekly', biweekly: 'Biweekly', monthly: 'Monthly' }[t.frequency] || t.frequency}</span>
                         </div>
                         ${t.notes ? `<div class="rem-task-notes">${_escapeHTML(t.notes)}</div>` : ''}
                     </div>
@@ -910,6 +911,9 @@ window.Reminders = (() => {
         _currentFilter = filter;
         document.querySelectorAll('.rem-filter-btn').forEach(b => {
             b.classList.toggle('active', b.dataset.filter === filter);
+        });
+        document.querySelectorAll('.rem-stat-card').forEach(c => {
+            c.classList.toggle('active', c.dataset.filter === filter);
         });
         render(filter);
     }
