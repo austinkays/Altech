@@ -1,4 +1,4 @@
-﻿// js/app-export.js — Export engines (PDF, CMSMTF, Text/CSV)
+// js/app-export.js — Export engines (PDF, CMSMTF, Text/CSV)
 // Extracted from index.html during Phase 2 monolith decomposition
 'use strict';
 
@@ -564,6 +564,7 @@ Object.assign(App, {
                         ['  Occupation', d.occupation || ''],
                         ['  License #', (d.dlNum || '').toUpperCase()],
                         ['  License State', (d.dlState || '').toUpperCase()],
+                        ...(d.sr22 && d.sr22 !== 'No' ? [['  SR-22 Required', d.sr22]] : []),
                     ];
                 }).flat();
                 detailTable(driverRows);
@@ -610,6 +611,9 @@ Object.assign(App, {
                 ['Collision Ded.', formatCurrency(v('autoDeductible'))],
                 ['Rental Reimburse.', v('rentalDeductible')],
                 ['Towing/Roadside', v('towingDeductible')],
+                ['Commute Distance', v('commuteDist') ? v('commuteDist') + ' miles' : ''],
+                ['Ride Sharing', v('rideSharing')],
+                ['Telematics', v('telematics')],
                 ['Student GPA', v('studentGPA')],
             ]);
         }
@@ -626,6 +630,7 @@ Object.assign(App, {
             const hCarrier = v('homePriorCarrier') || v('priorCarrier');
             pdfPriorRows.push(
                 ['Home Prior Carrier', hCarrier],
+                ['Home Prior Liability', v('homePriorLiability')],
                 ['Home Prior Term', v('homePriorPolicyTerm') || v('priorPolicyTerm')],
                 ['Home Yrs w/ Prior', v('homePriorYears') || v('priorYears')],
                 ['Home Prior Exp.', formatDate(v('homePriorExp') || v('priorExp'))]
@@ -634,6 +639,7 @@ Object.assign(App, {
         if (showAuto) {
             pdfPriorRows.push(
                 ['Auto Prior Carrier', v('priorCarrier')],
+                ['Auto Prior Liability', v('priorLiabilityLimits')],
                 ['Auto Prior Term', v('priorPolicyTerm')],
                 ['Auto Yrs w/ Prior', v('priorYears')],
                 ['Auto Prior Exp.', formatDate(v('priorExp'))]
@@ -649,11 +655,28 @@ Object.assign(App, {
         sectionHeader('Additional Information');
         kvTable([
             ['Additional Insureds', v('additionalInsureds')],
+            ['Multi-Policy Discount', v('multiPolicy')],
             ['Best Contact Time', v('contactTime')],
             ['Contact Method', v('contactMethod')],
             ['Referral Source', v('referralSource')],
             ['TCPA Consent', data.tcpaConsent ? 'Yes' : 'No'],
         ]);
+
+        const pdfNotesVal = v('pdfNotes');
+        if (pdfNotesVal) {
+            sectionHeader('Notes');
+            checkPage(20);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(...C.dark);
+            const noteLines = doc.splitTextToSize(pdfNotesVal, contentW - 4);
+            noteLines.forEach(line => {
+                checkPage(6);
+                doc.text(line, margin + 2, y + 4);
+                y += 5.5;
+            });
+            y += 4;
+        }
 
         drawFooter();
 
