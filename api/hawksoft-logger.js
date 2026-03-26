@@ -49,19 +49,20 @@ RULES:
 11. Put action items inline at the end of the body using "Action: [text]" — not on a separate line
 
 FORMAT (2 lines — no blank lines):
-RE: [Brief Subject] | [Agent Initials, if provided] | [Date]
-[Body: lead with the single most important outcome or fact. Then supporting detail. End with "Action: [follow-up or None.]"]
+RE: [One-sentence summary specific enough to understand without opening the entry]
+[Full body: detail, key numbers, first person if applicable. Action: [follow-up or None.]]
 
-NOTE: Do NOT include carrier name, line of business, or call direction (Inbound/Outbound) in
-the header — HawkSoft already displays those in separate columns next to the log entry.
-Keep the RE: line focused on WHAT happened, not the context HawkSoft already shows.
-
-IMPORTANT: HawkSoft shows the log summary by truncating the full text at ~120 characters.
-The body line (line 2) is what other agents will see in the list, so lead with the outcome.
+CRITICAL FORMATTING RULES:
+- Line 1 (RE:) is the ONLY line visible in HawkSoft's log list — agents will NOT see line 2
+  unless they open the entry. Make line 1 a complete, informative summary of what happened.
+- Do NOT put date, time, initials, carrier, channel, or line of business in line 1 — HawkSoft
+  already shows all of those in separate columns beside the log entry.
+- Line 1 should answer: "What happened on this call?" in one readable sentence.
+- Line 2 is the full detail for when the entry is opened.
 
 EXAMPLE OUTPUT:
-RE: Vehicle Added to Policy | AJK | Mar 26, 2026
-Added 2023 Toyota Camry (VIN 1HGBH41JXMN109186), effective 4/1/2026. Binder issued verbally; endorsement to follow from carrier. Action: Send endorsement to client upon receipt.`;
+RE: Called Progressive to backdate missed $586 refund; additional $780 coming, payments dropping to ~$265/mo
+I saw Progressive had refunded William's current policy for $586 but hadn't processed the previous term, so I called and got them to backdate the adjustment. An additional $780 refund is forthcoming which will cover the next 3 payments and reduce ongoing payments to ~$265 due to the retroactive 5-year accident-free discount. Action: Monitor for refund and confirm payment adjustments with client.`;
 
 // ── Channel Code Mapping (HawkSoft API v3.0) ──────────────────
 // Maps client-side callType strings to HawkSoft log field objects.
