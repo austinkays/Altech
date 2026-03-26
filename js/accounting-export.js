@@ -1,10 +1,9 @@
-// AccountingExport — Encrypted vault + Playwright export tools
+// AccountingExport — PIN-protected vault + Deposit Sheet
 // Storage: altech_acct_vault_v2 (encrypted), altech_acct_vault_meta (PIN hash+salt)
+// All sensitive data encrypted with AES-256-GCM via CryptoHelper, per-user via Firestore.
 
 const AccountingExport = {
     initialized: false,
-    currentFile: null,
-    pollTimer: null,
 
     // ── Vault State ──
     _VAULT_KEY: 'altech_acct_vault_v2',
@@ -12,30 +11,36 @@ const AccountingExport = {
     _OLD_VAULT_KEY: 'altech_acct_vault',
     _unlocked: false,
     _vaultData: null, // { accounts: [...] }
-    _autoLockTimer: null,
-    _AUTO_LOCK_MS: 15 * 60 * 1000, // 15 minutes
     _failedAttempts: 0,
     _lockoutUntil: 0,
-    _clipboardTimers: [],
-    _CLIPBOARD_CLEAR_MS: 30000,
     _editingIdx: -1,
+
+    // ── Deposit Sheet State ──
+    _dsRows: [],
+    _dsFilename: '',
+
+    // ── Deposit Sheet Constants ──
+    _KEEP_COLS: [
+        'item #', 'item date', 'cust id', 'name', 'line item', 'payee',
+        'invoiced', 'tendered', 'credit used', 'change',
+        'disbursement', 'non-fiduciary', 'memo', 'teller', 'pay method'
+    ],
+    _METHOD_LABELS: {
+        'check': 'Check', 'cash': 'Cash', 'credit card': 'Credit Card',
+        'ach': 'ACH', 'eft': 'EFT', 'money order': 'Money Order',
+        'agency sweep': 'Agency Sweep', 'online payment': 'Online Payment'
+    },
+    _MONEY_COLS: new Set([
+        'invoiced', 'tendered', 'credit used', 'change',
+        'disbursement', 'non-fiduciary'
+    ]),
 
     init() {
         if (this.initialized) return;
         this.initialized = true;
         this._migrateV1();
         this._resolveVaultScreen();
-        this.renderHistory();
-        this._wireAutoLock();
-    },
-
-    // ═══════════════════════════════════════════
-    //  TAB SWITCHING
-    // ═══════════════════════════════════════════
-
-    switchTab(tab) {
-        document.querySelectorAll('.acct-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-        document.querySelectorAll('.acct-tab-content').forEach(c => c.classList.toggle('active', c.dataset.tab === tab));
+        this._wireDepositEvents();
     },
 
     // ═══════════════════════════════════════════
@@ -91,7 +96,6 @@ const AccountingExport = {
         this._vaultData = await this._loadVault();
         this._showScreen('content');
         this._renderCards();
-        this._resetAutoLock();
         App.toast('PIN set successfully', 'success');
     },
 
@@ -131,7 +135,6 @@ const AccountingExport = {
         if (!this._vaultData) this._vaultData = { accounts: [] };
         this._showScreen('content');
         this._renderCards();
-        this._resetAutoLock();
     },
 
     _showLockout(totalSecs) {
@@ -160,8 +163,7 @@ const AccountingExport = {
         this._unlocked = false;
         this._vaultData = null;
         this._editingIdx = -1;
-        this._debouncedLock?.cancel();
-        this._clearAllClipboardTimers();
+        this._dsReset();
         this._showScreen('lock');
         const input = document.getElementById('acctPinEntry');
         if (input) input.value = '';
@@ -216,22 +218,18 @@ const AccountingExport = {
         if (target) target.style.display = '';
     },
 
-    // ── Auto-lock ──
+    // ═══════════════════════════════════════════
+    //  SECTION TOGGLE
+    // ═══════════════════════════════════════════
 
-    _wireAutoLock() {
-        const reset = () => this._resetAutoLock();
-        document.addEventListener('click', reset, { passive: true });
-        document.addEventListener('input', reset, { passive: true });
-        document.addEventListener('scroll', reset, { passive: true });
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden && this._unlocked) this.lockVault();
-        });
-    },
-
-    _resetAutoLock() {
-        if (!this._debouncedLock) this._debouncedLock = Utils.debounce(() => this.lockVault(), this._AUTO_LOCK_MS);
-        if (!this._unlocked) { this._debouncedLock.cancel(); return; }
-        this._debouncedLock();
+    toggleSection(section) {
+        const bodyId = section === 'info' ? 'acctInfoBody' : 'acctDepositBody';
+        const chevronId = section === 'info' ? 'acctInfoChevron' : 'acctDepositChevron';
+        const body = document.getElementById(bodyId);
+        const chevron = document.getElementById(chevronId);
+        if (!body) return;
+        const collapsed = body.classList.toggle('collapsed');
+        if (chevron) chevron.style.transform = collapsed ? 'rotate(-90deg)' : '';
     },
 
     // ═══════════════════════════════════════════
@@ -260,7 +258,6 @@ const AccountingExport = {
                 const data = await CryptoHelper.decrypt(raw);
                 if (data && typeof data === 'object') return data;
             }
-            // Fallback: try parse as plain JSON (shouldn't happen in production)
             const parsed = JSON.parse(raw);
             return parsed && typeof parsed === 'object' ? parsed : { accounts: [] };
         } catch (e) {
@@ -275,14 +272,12 @@ const AccountingExport = {
         try {
             const old = localStorage.getItem(this._OLD_VAULT_KEY);
             if (!old) return;
-            // Only migrate if v2 doesn't exist yet
             if (localStorage.getItem(this._VAULT_KEY)) {
                 localStorage.removeItem(this._OLD_VAULT_KEY);
                 return;
             }
             const data = JSON.parse(old);
             if (!data || typeof data !== 'object') return;
-            // Build a single account from the old 7 fields
             const fields = [];
             if (data.vaultHsUser) fields.push({ label: 'HawkSoft Username', value: data.vaultHsUser });
             if (data.vaultHsPass) fields.push({ label: 'HawkSoft Password', value: data.vaultHsPass });
@@ -292,7 +287,6 @@ const AccountingExport = {
             if (data.vaultAcctType) fields.push({ label: 'Account Type', value: data.vaultAcctType });
             if (data.vaultNotes) fields.push({ label: 'Notes', value: data.vaultNotes });
             if (fields.length) {
-                // Store migration data in memory — will be encrypted once PIN is set
                 this._pendingMigration = {
                     accounts: [{
                         id: 'acct-migrated',
@@ -387,7 +381,6 @@ const AccountingExport = {
         this._editingIdx = -1;
         this.toggleAddForm();
         this._renderCards();
-        this._resetAutoLock();
         App.toast(this._editingIdx >= 0 ? 'Account updated' : 'Account saved', 'success');
     },
 
@@ -415,6 +408,9 @@ const AccountingExport = {
                 </div>`
             ).join('');
         }
+        // Expand info section if collapsed
+        const body = document.getElementById('acctInfoBody');
+        if (body && body.classList.contains('collapsed')) this.toggleSection('info');
         if (form && !form.classList.contains('active')) form.classList.add('active');
         form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     },
@@ -442,6 +438,10 @@ const AccountingExport = {
             this._pendingMigration = null;
             this._saveVault(this._vaultData);
         }
+
+        // Update badge
+        const badge = document.getElementById('acctCountBadge');
+        if (badge) badge.textContent = this._vaultData.accounts.length;
 
         const accounts = this._vaultData.accounts;
         if (!accounts.length) {
@@ -486,7 +486,6 @@ const AccountingExport = {
         if (isMasked) {
             el.textContent = raw;
             el.setAttribute('data-masked', 'false');
-            // Auto-re-mask after 10 seconds
             setTimeout(() => {
                 if (el.getAttribute('data-masked') === 'false') {
                     el.textContent = '••••••••';
@@ -510,341 +509,678 @@ const AccountingExport = {
             setTimeout(() => {
                 btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
             }, 1200);
-            // Auto-clear clipboard after 30 seconds
-            const timer = setTimeout(() => {
-                navigator.clipboard.writeText('').catch(() => {});
-            }, this._CLIPBOARD_CLEAR_MS);
-            this._clipboardTimers.push(timer);
         }).catch(() => {
             App.toast('Copy failed — click the value to reveal and copy manually', 'error');
         });
     },
 
-    _clearAllClipboardTimers() {
-        this._clipboardTimers.forEach(t => clearTimeout(t));
-        this._clipboardTimers = [];
-    },
-
     // ═══════════════════════════════════════════
-    //  DEPOSIT CALCULATOR
+    //  DEPOSIT SHEET
     // ═══════════════════════════════════════════
 
-    depDenoms: [100, 50, 20, 10, 5, 1],
-    depChecks: [],
+    _wireDepositEvents() {
+        const dropZone  = document.getElementById('ds-drop-zone');
+        const fileInput = document.getElementById('ds-file-input');
+        const printBtn  = document.getElementById('ds-print-btn');
+        const clearBtn  = document.getElementById('ds-clear-btn');
 
-    calcDeposit() {
-        let cashTotal = 0;
-        this.depDenoms.forEach(d => {
-            const count = parseInt(document.getElementById('depC' + d)?.value) || 0;
-            const sub = count * d;
-            const subEl = document.getElementById('depS' + d);
-            if (subEl) subEl.textContent = '$' + sub.toFixed(2);
-            cashTotal += sub;
-        });
-        const coins = parseFloat(document.getElementById('depCoins')?.value) || 0;
-        cashTotal += coins;
-
-        let checkTotal = 0;
-        this.depChecks.forEach(c => { checkTotal += c.amount; });
-
-        const subCash = document.getElementById('depSubCash');
-        const subChecks = document.getElementById('depSubChecks');
-        const grand = document.getElementById('depGrandTotal');
-        if (subCash) subCash.querySelector('span:last-child').textContent = '$' + cashTotal.toFixed(2);
-        if (subChecks) subChecks.querySelector('span:last-child').textContent = '$' + checkTotal.toFixed(2);
-        if (grand) grand.textContent = '$' + (cashTotal + checkTotal).toFixed(2);
-    },
-
-    addCheck() {
-        this.depChecks.push({ id: Date.now(), amount: 0, memo: '' });
-        this.renderChecks();
-    },
-
-    removeCheck(id) {
-        this.depChecks = this.depChecks.filter(c => c.id !== id);
-        this.renderChecks();
-        this.calcDeposit();
-    },
-
-    updateCheck(id, field, value) {
-        const c = this.depChecks.find(c => c.id === id);
-        if (!c) return;
-        if (field === 'amount') c.amount = parseFloat(value) || 0;
-        else c.memo = value;
-        this.calcDeposit();
-    },
-
-    renderChecks() {
-        const container = document.getElementById('depChecksContainer');
-        if (!container) return;
-        if (!this.depChecks.length) {
-            container.innerHTML = '<p style="font-size:12px;color:var(--text-secondary);margin:4px 0;">No checks added.</p>';
-            return;
-        }
-        container.innerHTML = this.depChecks.map((c, i) =>
-            `<div class="dep-calc-check-row">
-                <input type="text" placeholder="Check #${i + 1} memo" value="${this.escHtml(c.memo)}" oninput="AccountingExport.updateCheck(${c.id},'memo',this.value)" style="flex:1.2;">
-                <input type="number" placeholder="0.00" step="0.01" min="0" value="${c.amount || ''}" oninput="AccountingExport.updateCheck(${c.id},'amount',this.value)" style="width:100px;text-align:right;">
-                <button type="button" class="dep-remove-check" onclick="AccountingExport.removeCheck(${c.id})" title="Remove">✕</button>
-            </div>`
-        ).join('');
-    },
-
-    clearCalc() {
-        this.depDenoms.forEach(d => {
-            const el = document.getElementById('depC' + d);
-            if (el) el.value = 0;
-        });
-        const coins = document.getElementById('depCoins');
-        if (coins) coins.value = 0;
-        this.depChecks = [];
-        this.renderChecks();
-        this.calcDeposit();
-    },
-
-    // ═══════════════════════════════════════════
-    //  HAWKSOFT EXPORT
-    // ═══════════════════════════════════════════
-
-    _isLocalServer() {
-        return location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    },
-
-    async launch() {
-        if (!this._isLocalServer()) {
-            App.toast('HawkSoft Export requires the local desktop app (node server.js)', 'error');
-            return;
-        }
-
-        const btn = document.getElementById('acctLaunchBtn');
-        const statusBox = document.getElementById('acctStatusBox');
-        const checkBtn = document.getElementById('acctCheckBtn');
-        const outputFile = (document.getElementById('acctOutputFile')?.value || 'hawksoft_receipts.csv').trim();
-
-        if (!outputFile) {
-            App.toast('Enter an output filename', 'error');
-            return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = '⏳ Launching...';
-        statusBox.textContent = '🔄 Starting export process...';
-        this.setStep(1, 'active');
-
-        try {
-            const res = await fetch('/local/hawksoft-export', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ output: outputFile })
+        if (dropZone) {
+            dropZone.addEventListener('click', () => fileInput && fileInput.click());
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('ds-drop-active');
             });
-            const data = await res.json();
-
-            if (!res.ok || data.error) {
-                throw new Error(data.error || 'Failed to launch export');
-            }
-
-            this.currentFile = data.outputFile;
-            statusBox.textContent = '✅ Browser launched! Check your taskbar for the Chromium window.\n\n' +
-                  '👉 Log in to HawkSoft, then press Enter in the terminal window.\n\n' +
-                  'The script will auto-filter receipts and download the CSV.';
-            this.setStep(1, 'done');
-            this.setStep(2, 'active');
-
-            btn.textContent = '✅ Launched';
-            checkBtn.style.display = '';
-
-            this.startPolling(data.outputFile);
-            this.addHistory(outputFile, 'running');
-            App.toast('Browser launched — check your taskbar', 'success');
-
-        } catch (err) {
-            statusBox.textContent = '❌ Error: ' + err.message;
-            this.setStep(1, '');
-            App.toast(err.message, 'error');
-            btn.disabled = false;
-            btn.textContent = '🚀 Launch Export';
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('ds-drop-active');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('ds-drop-active');
+                const files = e.dataTransfer && e.dataTransfer.files;
+                if (files && files[0]) this._dsHandleFile(files[0]);
+            });
         }
-    },
 
-    startPolling(file) {
-        if (this.pollTimer) clearInterval(this.pollTimer);
-        let checks = 0;
-        this.pollTimer = setInterval(async () => {
-            checks++;
-            try {
-                const res = await fetch(`/local/hawksoft-export/status?file=${encodeURIComponent(file)}`);
-                const data = await res.json();
-                if (data.exists && data.size > 0) {
-                    clearInterval(this.pollTimer);
-                    this.pollTimer = null;
-                    this.onComplete(file, data.size);
+        if (fileInput) {
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files && fileInput.files[0]) this._dsHandleFile(fileInput.files[0]);
+                fileInput.value = '';
+            });
+        }
+
+        if (printBtn) {
+            printBtn.addEventListener('click', () => window.print());
+        }
+
+        const pdfBtn = document.getElementById('ds-pdf-btn');
+        if (pdfBtn) {
+            pdfBtn.addEventListener('click', () => this._dsExportPDF());
+        }
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => this._dsReset());
+        }
+
+        // Bill counter inputs
+        document.addEventListener('input', (e) => {
+            if (e.target && e.target.classList.contains('ds-bill-input')) {
+                this._dsUpdateBillCounter();
+            }
+        });
+
+        // Checkbox handling — select all & individual row checks
+        document.addEventListener('change', (e) => {
+            if (e.target && e.target.classList.contains('ds-check-all')) {
+                const table = e.target.closest('.ds-table');
+                if (table) {
+                    table.querySelectorAll('.ds-row-check').forEach(cb => { cb.checked = e.target.checked; });
                 }
-            } catch (e) { /* ignore polling errors */ }
-            if (checks > 120) {
-                clearInterval(this.pollTimer);
-                this.pollTimer = null;
+                this._dsUpdateVerifiedCount();
             }
-        }, 5000);
-    },
-
-    async checkStatus() {
-        if (!this.currentFile) return;
-        try {
-            const res = await fetch(`/local/hawksoft-export/status?file=${encodeURIComponent(this.currentFile)}`);
-            const data = await res.json();
-            const statusBox = document.getElementById('acctStatusBox');
-            if (data.exists && data.size > 0) {
-                this.onComplete(this.currentFile, data.size);
-            } else {
-                statusBox.textContent += '\n🔍 File not ready yet — the script may still be waiting for your login.';
-                App.toast('Still in progress...');
+            if (e.target && e.target.classList.contains('ds-row-check')) {
+                const table = e.target.closest('.ds-table');
+                if (table) {
+                    const all = table.querySelectorAll('.ds-row-check');
+                    const checked = table.querySelectorAll('.ds-row-check:checked');
+                    const selectAll = table.querySelector('.ds-check-all');
+                    if (selectAll) selectAll.checked = all.length === checked.length;
+                }
+                this._dsUpdateVerifiedCount();
             }
-        } catch (e) {
-            App.toast('Could not check status', 'error');
-        }
+        });
     },
 
-    onComplete(file, size) {
-        const statusBox = document.getElementById('acctStatusBox');
-        const btn = document.getElementById('acctLaunchBtn');
-        const checkBtn = document.getElementById('acctCheckBtn');
-        const kb = (size / 1024).toFixed(1);
+    // ── File handling ──
 
-        this.setStep(2, 'done');
-        this.setStep(3, 'done');
-        this.setStep(4, 'done');
-
-        statusBox.textContent = `✅ Export complete!\n\n📄 File: ${file}\n📊 Size: ${kb} KB\n\nThe CSV has been saved to your Altech project folder.`;
-
-        btn.disabled = false;
-        btn.textContent = '🚀 Launch Export';
-        checkBtn.style.display = 'none';
-
-        this.updateHistory(file, 'success');
-        App.toast('Export complete — ' + file, 'success');
-    },
-
-    setStep(num, state) {
-        const el = document.getElementById('acctStep' + num);
-        if (!el) return;
-        el.classList.remove('active', 'done');
-        if (state) el.classList.add(state);
-    },
-
-    // ── History ──
-
-    getHistory() {
-        return Utils.tryParseLS('altech_acct_history', []);
-    },
-
-    saveHistory(history) {
-        try {
-            localStorage.setItem('altech_acct_history', JSON.stringify(history.slice(0, 50)));
-        } catch (e) { /* quota */ }
-    },
-
-    addHistory(file, status) {
-        const history = this.getHistory();
-        history.unshift({ file, status, ts: new Date().toISOString() });
-        this.saveHistory(history);
-        this.renderHistory();
-    },
-
-    updateHistory(file, status) {
-        const history = this.getHistory();
-        const entry = history.find(h => h.file === file && h.status === 'running');
-        if (entry) {
-            entry.status = status;
-            entry.completedAt = new Date().toISOString();
-        }
-        this.saveHistory(history);
-        this.renderHistory();
-    },
-
-    renderHistory() {
-        const el = document.getElementById('acctHistory');
-        if (!el) return;
-        const history = this.getHistory();
-        if (!history.length) {
-            el.innerHTML = '<p style="font-size:13px;color:var(--text-secondary);">No exports yet.</p>';
+    _dsHandleFile(file) {
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            this._dsShowError('Please upload a .csv file exported from HawkSoft.');
             return;
         }
-        el.innerHTML = history.slice(0, 20).map(h => {
-            const d = new Date(h.ts);
-            const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const badge = h.status === 'success' ? '<span class="acct-badge success">✓ Done</span>'
-                : h.status === 'running' ? '<span class="acct-badge running">⏳ Running</span>'
-                : '<span class="acct-badge error">✗ Error</span>';
-            return `<div class="acct-history-item">
-                <div>
-                    <div style="font-weight:600;">${this.escHtml(h.file)}</div>
-                    <div style="font-size:11px;color:var(--text-secondary);">${dateStr}</div>
-                </div>
-                ${badge}
-            </div>`;
-        }).join('');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                this._dsParseAndRender(e.target.result, file.name);
+            } catch (err) {
+                this._dsShowError('Could not parse CSV: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
     },
+
+    _dsParseCSV(text) {
+        const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+        const result = [];
+        for (const line of lines) {
+            if (!line.trim()) continue;
+            const row = [];
+            let inQuote = false;
+            let cell = '';
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') {
+                    if (inQuote && line[i + 1] === '"') { cell += '"'; i++; }
+                    else inQuote = !inQuote;
+                } else if (ch === ',' && !inQuote) {
+                    row.push(cell.trim());
+                    cell = '';
+                } else {
+                    cell += ch;
+                }
+            }
+            row.push(cell.trim());
+            result.push(row);
+        }
+        return result;
+    },
+
+    _dsParseAndRender(text, filename) {
+        this._dsHideError();
+        const raw = this._dsParseCSV(text);
+        if (!raw.length) { this._dsShowError('CSV appears to be empty.'); return; }
+
+        const headers = raw[0].map(h => h.toLowerCase().trim());
+        const itemTypeIdx = headers.indexOf('item type');
+        if (itemTypeIdx === -1) {
+            this._dsShowError('This doesn\'t look like a HawkSoft accounting export — "Item Type" column not found.');
+            return;
+        }
+
+        const colMap = {};
+        for (const col of this._KEEP_COLS) {
+            const idx = headers.indexOf(col);
+            if (idx !== -1) colMap[col] = idx;
+        }
+
+        const rows = [];
+        for (let i = 1; i < raw.length; i++) {
+            const row = raw[i];
+            if (!row.length || row.every(c => !c)) continue;
+            const itemType = itemTypeIdx !== -1 ? (row[itemTypeIdx] || '').toLowerCase().trim() : '';
+            if (itemType !== 'receipt') continue;
+
+            const obj = {};
+            for (const [col, idx] of Object.entries(colMap)) {
+                obj[col] = (row[idx] || '').trim();
+            }
+            rows.push(obj);
+        }
+
+        if (!rows.length) {
+            this._dsShowError('No Receipt rows found. Make sure this is a HawkSoft "To Be Exported Items" CSV.');
+            return;
+        }
+
+        this._dsRows = rows;
+        this._dsRenderAll(filename);
+    },
+
+    // ── Render ──
+
+    _dsRenderAll(filename) {
+        this._dsFilename = filename || '';
+        const dropZone  = document.getElementById('ds-drop-zone');
+        const printBtn  = document.getElementById('ds-print-btn');
+        const pdfBtn    = document.getElementById('ds-pdf-btn');
+        const clearBtn  = document.getElementById('ds-clear-btn');
+        const meta      = document.getElementById('ds-meta');
+        const output    = document.getElementById('ds-output');
+        const billBlock = document.getElementById('ds-bill-counter');
+
+        if (dropZone) dropZone.style.display = 'none';
+        if (printBtn) printBtn.style.display = 'inline-flex';
+        if (pdfBtn)   pdfBtn.style.display = 'inline-flex';
+        if (clearBtn) clearBtn.style.display = 'inline-flex';
+        if (meta)     meta.style.display = 'block';
+
+        // Group by pay method
+        const groups = {};
+        for (const row of this._dsRows) {
+            const method = (row['pay method'] || 'Other').trim();
+            if (!groups[method]) groups[method] = [];
+            groups[method].push(row);
+        }
+
+        const methodOrder = (m) => {
+            const l = m.toLowerCase();
+            if (l === 'check') return '0';
+            if (l === 'cash')  return '1';
+            return '2' + l;
+        };
+        const sortedMethods = Object.keys(groups).sort((a, b) =>
+            methodOrder(a).localeCompare(methodOrder(b))
+        );
+
+        // Totals
+        const totals = { invoiced: 0, tendered: 0, disbursement: 0, 'non-fiduciary': 0 };
+        for (const row of this._dsRows) {
+            for (const key of Object.keys(totals)) {
+                totals[key] += this._dsParseMoney(row[key]);
+            }
+        }
+
+        const tellers = [...new Set(this._dsRows.map(r => (r['teller'] || '').trim()).filter(Boolean))];
+        const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        meta.innerHTML = `
+            <div class="ds-meta-row">
+                <span class="ds-meta-title">Deposit Sheet</span>
+                <span class="ds-meta-date">${dateStr}</span>
+            </div>
+            <div class="ds-meta-row ds-meta-sub-row">
+                <span class="ds-meta-agency">Altech Insurance Agency</span>
+                <span class="ds-meta-count">${this._dsRows.length} receipt${this._dsRows.length !== 1 ? 's' : ''} · <span id="ds-verified-count" class="ds-verified-count">0/${this._dsRows.length} verified</span></span>
+            </div>
+            <div class="ds-meta-totals">
+                <div class="ds-meta-total-item">
+                    <span class="ds-meta-total-label">Invoiced</span>
+                    <span class="ds-meta-total-val">${this._dsFmt(totals.invoiced)}</span>
+                </div>
+                <div class="ds-meta-total-item">
+                    <span class="ds-meta-total-label">Tendered</span>
+                    <span class="ds-meta-total-val ds-meta-total-highlight">${this._dsFmt(totals.tendered)}</span>
+                </div>
+                <div class="ds-meta-total-item">
+                    <span class="ds-meta-total-label">Disbursement</span>
+                    <span class="ds-meta-total-val">${this._dsFmt(totals.disbursement)}</span>
+                </div>
+                <div class="ds-meta-total-item">
+                    <span class="ds-meta-total-label">Non-Fiduciary</span>
+                    <span class="ds-meta-total-val">${this._dsFmt(totals['non-fiduciary'])}</span>
+                </div>
+            </div>
+            ${tellers.length ? `<div class="ds-meta-tellers">
+                <span class="ds-meta-total-label">Tendered by</span>
+                <span class="ds-meta-teller-list">${tellers.map(t => this.escHtml(t)).join(' · ')}</span>
+            </div>` : ''}
+        `;
+
+        // Show bill counter if cash exists
+        const hasCash = sortedMethods.some(m => m.toLowerCase() === 'cash');
+        if (billBlock) billBlock.style.display = hasCash ? 'block' : 'none';
+
+        // Render tables
+        let html = '';
+        for (const method of sortedMethods) {
+            const rows = groups[method];
+            const label = this._METHOD_LABELS[method.toLowerCase()] || method;
+            const methodTotal = rows.reduce((s, r) => s + this._dsParseMoney(r['tendered']), 0);
+
+            html += `<div class="ds-group">`;
+            html += `<div class="ds-group-header">
+                <span class="ds-group-label">${this.escHtml(label)}</span>
+                <span class="ds-group-total">${this._dsFmt(methodTotal)}</span>
+            </div>`;
+            html += this._dsRenderTable(rows);
+            html += `</div>`;
+        }
+
+        html += `<div class="ds-receipt-tape">
+            <div class="ds-receipt-tape-label">Bank Deposit Receipt</div>
+            <div class="ds-receipt-tape-area">
+                <span class="ds-receipt-tape-hint no-print">Tape bank receipt here after printing</span>
+            </div>
+        </div>`;
+
+        output.innerHTML = html;
+    },
+
+    _dsRenderTable(rows) {
+        const rawCols = this._KEEP_COLS.filter(c => c !== 'pay method' && c !== 'teller' && rows.some(r => r[c]));
+        const visibleCols = rawCols.filter(c => {
+            if (this._MONEY_COLS.has(c)) return rows.some(r => this._dsParseMoney(r[c]) !== 0);
+            return true;
+        });
+
+        const mergeDate = visibleCols.includes('item #') && visibleCols.includes('item date');
+        const mergeId   = visibleCols.includes('name')   && visibleCols.includes('cust id');
+        const columns = visibleCols.filter(c => {
+            if (c === 'item date' && mergeDate) return false;
+            if (c === 'cust id'   && mergeId)   return false;
+            return true;
+        });
+
+        const colLabels = {
+            'item #': mergeDate ? 'Receipt' : 'Rcpt #', 'item date': 'Date',
+            'cust id': 'ID', 'name': 'Client', 'line item': 'Line Item',
+            'payee': 'Payee', 'invoiced': 'Invoiced', 'tendered': 'Tendered',
+            'credit used': 'Cr. Used', 'change': 'Change', 'disbursement': 'Disb.',
+            'non-fiduciary': 'Non-Fid.', 'memo': 'Memo', 'teller': 'Agent'
+        };
+
+        let html = `<table class="ds-table"><thead><tr>`;
+        html += `<th class="ds-check-col no-print"><input type="checkbox" class="ds-check-all" title="Select all"></th>`;
+        for (const col of columns) {
+            const cls = this._MONEY_COLS.has(col) ? ' class="ds-th-money"' : '';
+            html += `<th${cls}>${colLabels[col] || col}</th>`;
+        }
+        html += `</tr></thead><tbody>`;
+
+        for (const row of rows) {
+            html += `<tr>`;
+            html += `<td class="ds-check-col no-print"><input type="checkbox" class="ds-row-check"></td>`;
+            for (const col of columns) {
+                if (this._MONEY_COLS.has(col)) {
+                    const num = this._dsParseMoney(row[col]);
+                    const cls = num === 0 ? ' class="ds-td-money ds-money-zero"' : ' class="ds-td-money"';
+                    html += `<td${cls}>${num === 0 ? '\u2014' : this._dsFmt(num)}</td>`;
+                } else if (col === 'item #' && mergeDate) {
+                    const n = this.escHtml(row['item #'] || '');
+                    const d = this.escHtml(row['item date'] || '');
+                    html += `<td class="ds-td-receipt">${n}${d ? '<span class="ds-receipt-date">' + d + '</span>' : ''}</td>`;
+                } else if (col === 'name') {
+                    const nm = this.escHtml(row['name'] || '');
+                    const id = mergeId ? this.escHtml(row['cust id'] || '') : '';
+                    const teller = this.escHtml(row['teller'] || '');
+                    html += `<td class="ds-td-client">${nm}${id ? '<span class="ds-client-id">#' + id + '</span>' : ''}${teller ? '<span class="ds-client-teller">' + teller + '</span>' : ''}</td>`;
+                } else if (col === 'memo') {
+                    html += `<td class="ds-td-memo">${this.escHtml(row[col] || '')}</td>`;
+                } else {
+                    html += `<td>${this.escHtml(row[col] || '')}</td>`;
+                }
+            }
+            html += `</tr>`;
+        }
+
+        html += `</tbody><tfoot><tr class="ds-subtotal-row">`;
+        html += `<td class="ds-check-col no-print"></td>`;
+        for (const col of columns) {
+            if (this._MONEY_COLS.has(col)) {
+                const v = rows.reduce((s, r) => s + this._dsParseMoney(r[col]), 0);
+                html += `<td class="ds-td-money ds-subtotal-val">${v === 0 ? '\u2014' : this._dsFmt(v)}</td>`;
+            } else if (col === 'name') {
+                html += `<td class="ds-subtotal-label">Subtotal</td>`;
+            } else {
+                html += `<td></td>`;
+            }
+        }
+        html += `</tr></tfoot></table>`;
+        return html;
+    },
+
+    // ── Bill counter ──
+
+    _dsUpdateBillCounter() {
+        const inputs = document.querySelectorAll('input.ds-bill-input');
+        let grand = 0;
+        inputs.forEach(input => {
+            const denom = parseInt(input.dataset.denom, 10);
+            const count = parseInt(input.value, 10) || 0;
+            const total = denom * count;
+            grand += total;
+            const el = document.getElementById(`ds-bill-${denom}`);
+            if (el) el.textContent = count > 0 ? this._dsFmt(total) : '—';
+            const countEl = document.getElementById(`ds-bill-count-${denom}`);
+            if (countEl) countEl.textContent = count;
+        });
+        const grandEl = document.getElementById('ds-bill-counted');
+        if (grandEl) grandEl.textContent = this._dsFmt(grand);
+    },
+
+    _dsUpdateVerifiedCount() {
+        const total = document.querySelectorAll('.ds-row-check').length;
+        const checked = document.querySelectorAll('.ds-row-check:checked').length;
+        const el = document.getElementById('ds-verified-count');
+        if (el) {
+            el.textContent = checked + '/' + total + ' verified';
+            el.classList.toggle('ds-all-verified', checked === total && total > 0);
+        }
+    },
+
+    // ── Helpers ──
+
+    _dsParseMoney(str) {
+        if (!str) return 0;
+        const n = parseFloat(str.replace(/[$,]/g, ''));
+        return isNaN(n) ? 0 : n;
+    },
+
+    _dsFmt(n) {
+        return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    },
+
+    _dsShowError(msg) {
+        const el = document.getElementById('ds-error');
+        if (el) { el.textContent = msg; el.style.display = 'block'; }
+    },
+
+    _dsHideError() {
+        const el = document.getElementById('ds-error');
+        if (el) el.style.display = 'none';
+    },
+
+    _dsReset() {
+        this._dsRows = [];
+        this._dsFilename = '';
+        const dropZone  = document.getElementById('ds-drop-zone');
+        const printBtn  = document.getElementById('ds-print-btn');
+        const pdfBtn    = document.getElementById('ds-pdf-btn');
+        const clearBtn  = document.getElementById('ds-clear-btn');
+        const meta      = document.getElementById('ds-meta');
+        const output    = document.getElementById('ds-output');
+        const billBlock = document.getElementById('ds-bill-counter');
+
+        if (dropZone)  { dropZone.style.display = ''; }
+        if (printBtn)  printBtn.style.display = 'none';
+        if (pdfBtn)    pdfBtn.style.display = 'none';
+        if (clearBtn)  clearBtn.style.display = 'none';
+        if (meta)      { meta.style.display = 'none'; meta.innerHTML = ''; }
+        if (output)    output.innerHTML = '';
+        if (billBlock) billBlock.style.display = 'none';
+
+        document.querySelectorAll('input.ds-bill-input').forEach(i => { i.value = 0; });
+        this._dsUpdateBillCounter();
+        this._dsHideError();
+    },
+
+    // ── PDF Export ──
+
+    async _dsExportPDF() {
+        if (!this._dsRows.length) return;
+
+        if (typeof window.jspdf === 'undefined') {
+            try {
+                await new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'lib/jspdf.umd.min.js';
+                    s.onload = resolve;
+                    s.onerror = reject;
+                    document.head.appendChild(s);
+                });
+            } catch {
+                App.toast('Failed to load PDF library', 'error');
+                return;
+            }
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const mg = 10;
+        const cw = pageW - mg * 2;
+        let y = mg;
+
+        const INK   = [30, 30, 30];
+        const MID   = [80, 80, 80];
+        const LIGHT = [170, 170, 170];
+        const FILL  = [242, 242, 242];
+        const HFILL = [230, 230, 230];
+
+        const addPage = () => { doc.addPage(); y = mg; };
+        const need = (h) => { if (y + h > pageH - 14) { addPage(); return true; } return false; };
+
+        // Header
+        const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        doc.setFontSize(14); doc.setFont(undefined, 'bold'); doc.setTextColor(...INK);
+        doc.text('Deposit Sheet', mg, y + 5);
+        doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.setTextColor(...MID);
+        doc.text(dateStr, pageW - mg, y + 5, { align: 'right' });
+        y += 7;
+
+        doc.setFontSize(8);
+        doc.text('Altech Insurance Agency', mg, y + 3);
+        const tellers = [...new Set(this._dsRows.map(r => (r['teller'] || '').trim()).filter(Boolean))];
+        if (tellers.length) doc.text('Tendered by: ' + tellers.join(', '), mg + 50, y + 3);
+        doc.text(this._dsRows.length + ' receipt' + (this._dsRows.length !== 1 ? 's' : ''), pageW - mg, y + 3, { align: 'right' });
+        y += 6;
+
+        // Summary totals bar
+        const totals = { invoiced: 0, tendered: 0, disbursement: 0, 'non-fiduciary': 0 };
+        for (const row of this._dsRows) {
+            for (const key of Object.keys(totals)) totals[key] += this._dsParseMoney(row[key]);
+        }
+
+        doc.setFillColor(...FILL);
+        doc.rect(mg, y, cw, 7, 'F');
+        doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(...MID);
+        const summaryItems = [
+            ['Invoiced', this._dsFmt(totals.invoiced)], ['Tendered', this._dsFmt(totals.tendered)],
+            ['Disbursement', this._dsFmt(totals.disbursement)], ['Non-Fiduciary', this._dsFmt(totals['non-fiduciary'])]
+        ];
+        let sx = mg + 3;
+        for (const [label, val] of summaryItems) {
+            doc.setFont(undefined, 'normal'); doc.setTextColor(...MID);
+            doc.text(label + ':', sx, y + 4.5);
+            const lw = doc.getTextWidth(label + ': ');
+            doc.setFont(undefined, 'bold'); doc.setTextColor(...INK);
+            doc.text(val, sx + lw, y + 4.5);
+            sx += lw + doc.getTextWidth(val) + 12;
+        }
+        y += 10;
+
+        // Group by pay method
+        const groups = {};
+        for (const row of this._dsRows) {
+            const method = (row['pay method'] || 'Other').trim();
+            if (!groups[method]) groups[method] = [];
+            groups[method].push(row);
+        }
+        const methodOrder = (m) => { const l = m.toLowerCase(); if (l === 'check') return '0'; if (l === 'cash') return '1'; return '2' + l; };
+        const sortedMethods = Object.keys(groups).sort((a, b) => methodOrder(a).localeCompare(methodOrder(b)));
+
+        // Column definitions
+        const hasDisb = this._dsRows.some(r => this._dsParseMoney(r['disbursement']) !== 0);
+        const hasNonFid = this._dsRows.some(r => this._dsParseMoney(r['non-fiduciary']) !== 0);
+        const hasCrUsed = this._dsRows.some(r => this._dsParseMoney(r['credit used']) !== 0);
+        const hasChange = this._dsRows.some(r => this._dsParseMoney(r['change']) !== 0);
+        const hasMemo = this._dsRows.some(r => (r['memo'] || '').trim());
+
+        const cols = [];
+        cols.push({ key: 'item #', label: 'Rcpt', width: 14, align: 'left' });
+        cols.push({ key: 'item date', label: 'Date', width: 18, align: 'left' });
+        cols.push({ key: 'name', label: 'Client', width: 0, align: 'left' });
+        cols.push({ key: 'teller', label: 'Agent', width: 22, align: 'left' });
+        cols.push({ key: 'invoiced', label: 'Invoiced', width: 22, align: 'right', money: true });
+        cols.push({ key: 'tendered', label: 'Tendered', width: 22, align: 'right', money: true });
+        if (hasCrUsed) cols.push({ key: 'credit used', label: 'Cr. Used', width: 18, align: 'right', money: true });
+        if (hasChange) cols.push({ key: 'change', label: 'Change', width: 18, align: 'right', money: true });
+        if (hasDisb) cols.push({ key: 'disbursement', label: 'Disb.', width: 20, align: 'right', money: true });
+        if (hasNonFid) cols.push({ key: 'non-fiduciary', label: 'Non-Fid.', width: 20, align: 'right', money: true });
+        if (hasMemo) cols.push({ key: 'memo', label: 'Memo', width: 35, align: 'left' });
+
+        const fixedW = cols.reduce((s, c) => s + (c.key === 'name' ? 0 : c.width), 0);
+        const nameCol = cols.find(c => c.key === 'name');
+        if (nameCol) nameCol.width = Math.max(30, cw - fixedW);
+
+        const rowH = 5.5;
+        const headerH = 6;
+
+        const _drawTableHeader = () => {
+            doc.setFillColor(...HFILL);
+            doc.rect(mg, y, cw, headerH, 'F');
+            doc.setFontSize(6.5); doc.setFont(undefined, 'bold'); doc.setTextColor(...MID);
+            let cx = mg + 1.5;
+            for (const col of cols) {
+                if (col.align === 'right') doc.text(col.label, cx + col.width - 1.5, y + 4, { align: 'right' });
+                else doc.text(col.label, cx, y + 4);
+                cx += col.width;
+            }
+            y += headerH;
+        };
+
+        const _drawRow = (row, isAlt) => {
+            if (isAlt) { doc.setFillColor(248, 248, 248); doc.rect(mg, y, cw, rowH, 'F'); }
+            doc.setFontSize(7.5); doc.setFont(undefined, 'normal');
+            let cx = mg + 1.5;
+            for (const col of cols) {
+                if (col.money) {
+                    const v = this._dsParseMoney(row[col.key]);
+                    doc.setTextColor(v === 0 ? 170 : 30, v === 0 ? 170 : 30, v === 0 ? 170 : 30);
+                    doc.text(v === 0 ? '\u2014' : this._dsFmt(v), cx + col.width - 1.5, y + 3.8, { align: 'right' });
+                } else if (col.key === 'name') {
+                    doc.setTextColor(...INK);
+                    const nm = (row['name'] || '').trim();
+                    const id = (row['cust id'] || '').trim();
+                    doc.text((nm + (id ? '  #' + id : '')).substring(0, 45), cx, y + 3.8);
+                } else if (col.key === 'memo') {
+                    doc.setTextColor(...MID); doc.setFontSize(6.5);
+                    doc.text((row['memo'] || '').trim().substring(0, 50), cx, y + 3.8);
+                    doc.setFontSize(7.5);
+                } else {
+                    doc.setTextColor(...INK);
+                    doc.text(String(row[col.key] || '').trim().substring(0, 30), cx, y + 3.8);
+                }
+                cx += col.width;
+            }
+            y += rowH;
+        };
+
+        // Render groups
+        for (const method of sortedMethods) {
+            const gRows = groups[method];
+            const label = this._METHOD_LABELS[method.toLowerCase()] || method;
+            const methodTotal = gRows.reduce((s, r) => s + this._dsParseMoney(r['tendered']), 0);
+
+            need(headerH + rowH * 3 + 6);
+
+            doc.setFillColor(60, 60, 60); doc.rect(mg, y, cw, 5.5, 'F');
+            doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(255, 255, 255);
+            doc.text(label.toUpperCase(), mg + 2, y + 3.8);
+            doc.text(this._dsFmt(methodTotal), pageW - mg - 2, y + 3.8, { align: 'right' });
+            y += 6.5;
+
+            _drawTableHeader();
+
+            for (let i = 0; i < gRows.length; i++) {
+                if (need(rowH + 6)) {
+                    doc.setFillColor(60, 60, 60); doc.rect(mg, y, cw, 5.5, 'F');
+                    doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(255, 255, 255);
+                    doc.text(label.toUpperCase() + ' (cont.)', mg + 2, y + 3.8);
+                    y += 6.5;
+                    _drawTableHeader();
+                }
+                _drawRow(gRows[i], i % 2 === 1);
+            }
+
+            // Subtotal
+            doc.setDrawColor(...LIGHT); doc.line(mg, y, pageW - mg, y); y += 0.5;
+            doc.setFillColor(...FILL); doc.rect(mg, y, cw, rowH, 'F');
+            doc.setFontSize(7); doc.setFont(undefined, 'bold');
+            let cx = mg + 1.5;
+            for (const col of cols) {
+                if (col.money) {
+                    const v = gRows.reduce((s, r) => s + this._dsParseMoney(r[col.key]), 0);
+                    doc.setTextColor(...INK);
+                    doc.text(v === 0 ? '\u2014' : this._dsFmt(v), cx + col.width - 1.5, y + 3.8, { align: 'right' });
+                } else if (col.key === 'name') {
+                    doc.setTextColor(...MID); doc.setFontSize(6);
+                    doc.text('SUBTOTAL', cx, y + 3.8); doc.setFontSize(7);
+                }
+                cx += col.width;
+            }
+            y += rowH + 4;
+        }
+
+        // Bill counter
+        const billInputs = document.querySelectorAll('input.ds-bill-input');
+        let billTotal = 0;
+        const bills = [];
+        billInputs.forEach(input => {
+            const denom = parseInt(input.dataset.denom, 10);
+            const count = parseInt(input.value, 10) || 0;
+            if (count > 0) { bills.push({ denom, count, total: denom * count }); billTotal += denom * count; }
+        });
+
+        if (bills.length) {
+            need(20 + bills.length * 4);
+            doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(...MID);
+            doc.text('CASH COUNTER', mg, y + 3); y += 5;
+            doc.setFont(undefined, 'normal'); doc.setFontSize(7.5);
+            for (const b of bills) {
+                doc.setTextColor(...INK); doc.text('$' + b.denom, mg + 2, y + 3);
+                doc.setTextColor(...MID); doc.text('\u00d7 ' + b.count, mg + 16, y + 3);
+                doc.setTextColor(...INK); doc.text('= ' + this._dsFmt(b.total), mg + 30, y + 3);
+                y += 4;
+            }
+            doc.setFont(undefined, 'bold'); doc.setDrawColor(...LIGHT);
+            doc.line(mg, y, mg + 50, y); y += 1;
+            doc.text('Counted: ' + this._dsFmt(billTotal), mg + 2, y + 3.5); y += 8;
+        }
+
+        // Receipt tape area
+        need(140);
+        doc.setDrawColor(...LIGHT); doc.setLineWidth(0.3);
+        const tapeW = 127, tapeH = 102;
+        doc.rect(mg, y, tapeW, tapeH);
+        doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(...MID);
+        doc.text('BANK DEPOSIT RECEIPT', mg + 2, y + 4);
+        doc.setFontSize(6); doc.setFont(undefined, 'normal'); doc.setTextColor(...LIGHT);
+        doc.text('Tape receipt here', mg + tapeW / 2, y + tapeH / 2, { align: 'center' });
+
+        const fname = 'Deposit_Sheet_' + new Date().toISOString().slice(0, 10) + '.pdf';
+        doc.save(fname);
+        App.toast('\u2714 PDF downloaded');
+    },
+
+    // ═══════════════════════════════════════════
+    //  SHARED UTILITIES
+    // ═══════════════════════════════════════════
 
     escHtml(text) {
         if (!text) return '';
         const d = document.createElement('div');
         d.textContent = text;
         return d.innerHTML.replace(/"/g, '&quot;');
-    },
-
-    async generateReport() {
-        const btn = document.getElementById('acctReportBtn');
-        const status = document.getElementById('acctReportStatus');
-        const log = document.getElementById('acctReportLog');
-        const inputFile = (document.getElementById('acctReportInput')?.value || 'hawksoft_receipts.csv').trim();
-        const outputFile = (document.getElementById('acctReportOutput')?.value || 'Trust_Deposit_Report.xlsx').trim();
-
-        if (!inputFile || !outputFile) {
-            App.toast('Enter both input and output filenames', 'error');
-            return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = '⏳ Generating...';
-        status.textContent = '';
-        log.textContent = '🔄 Running Trust Accountant...';
-
-        if (!this._isLocalServer()) {
-            App.toast('Trust Report requires the local desktop app (node server.js)', 'error');
-            btn.disabled = false;
-            btn.textContent = '📊 Generate Report';
-            return;
-        }
-
-        try {
-            const res = await fetch('/local/trust-report', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ input: inputFile, output: outputFile })
-            });
-            const data = await res.json();
-
-            if (!res.ok || data.error) {
-                throw new Error(data.error || 'Report generation failed');
-            }
-
-            const kb = (data.size / 1024).toFixed(1);
-            log.textContent = `✅ Report generated!\n\n📄 File: ${data.output}\n📊 Size: ${kb} KB\n\n${data.log || ''}`;
-            status.textContent = '✅ Done';
-            status.style.color = '#34c759';
-            App.toast('Trust report generated — ' + data.output, 'success');
-
-            this.addHistory(data.output, 'success');
-
-        } catch (err) {
-            log.textContent = '❌ Error: ' + err.message;
-            status.textContent = '❌ Failed';
-            status.style.color = '#ff3b30';
-            App.toast(err.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = '📊 Generate Report';
-        }
     }
 };
 

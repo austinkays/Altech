@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Accounting: merged Deposit Sheet into PIN-protected Accounting area.** Single scroll view — collapsible Account Info (encrypted vault cards) at top, Deposit Sheet (CSV upload, receipt table, bill counter, print/PDF) below. Entire area gated by PIN. Removed Export Tools tab (HawkSoft automation, Trust Report, Deposit Calculator, Export History). Removed standalone Deposit Sheet sidebar entry. Removed 15-min auto-lock timer and visibility-change lock (manual Lock button instead). Deleted `plugins/deposit-sheet.html`, `js/deposit-sheet.js`, `css/deposit-sheet.css`. Removed `ACCT_HISTORY` storage key.
 - js/hawksoft-export.js: Added SSN input to driver form grid (data-field="ssn" → drv_sSSNum{n} in CMSMTF); added hs_ownerSSN input, ownerSSN data field, and gen_sSSN CMSMTF output for commercial principal owner SSN export
 
 ## 2026-03-29 — fix(sidebar): Remove blue hover bleed from [data-tooltip] on nav items

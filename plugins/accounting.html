@@ -1,321 +1,261 @@
 
-<header>
+<header class="no-print">
     <div class="header-top">
         <div class="logo tool-header-brand">
             <span>Accounting</span>
         </div>
-    </div>
-    <!-- Tab bar -->
-    <div class="acct-tab-bar">
-        <button class="acct-tab active" data-tab="vault" onclick="AccountingExport.switchTab('vault')">🔐 Account Info</button>
-        <button class="acct-tab" data-tab="export" onclick="AccountingExport.switchTab('export')">🛠 Export Tools</button>
     </div>
 </header>
 
 <div class="acct-container">
 
   <!-- ═══════════════════════════════════════════ -->
-  <!-- TAB: Account Info (PIN-protected vault)     -->
+  <!-- PIN Setup Screen (shown when no PIN exists) -->
   <!-- ═══════════════════════════════════════════ -->
-  <div class="acct-tab-content active" id="acctTabVault" data-tab="vault">
+  <div class="acct-pin-screen" id="acctPinSetup" style="display:none;">
+      <div class="acct-pin-card">
+          <div class="acct-pin-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--apple-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3>Set Up Your Vault PIN</h3>
+          <p class="acct-pin-hint">Choose a 4–6 digit PIN to protect your accounting area.</p>
+          <input type="password" id="acctPinNew" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Enter PIN" autocomplete="off">
+          <input type="password" id="acctPinConfirm" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Confirm PIN" autocomplete="off" onkeydown="if(event.key==='Enter')AccountingExport.setupPIN()">
+          <button class="btn btn-primary acct-pin-btn" onclick="AccountingExport.setupPIN()">Set PIN</button>
+      </div>
+  </div>
 
-    <!-- PIN Setup Screen (shown when no PIN exists) -->
-    <div class="acct-pin-screen" id="acctPinSetup" style="display:none;">
-        <div class="acct-pin-card">
-            <div class="acct-pin-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--apple-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </div>
-            <h3>Set Up Your Vault PIN</h3>
-            <p class="acct-pin-hint">Choose a 4–6 digit PIN to protect your account info.</p>
-            <input type="password" id="acctPinNew" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Enter PIN" autocomplete="off">
-            <input type="password" id="acctPinConfirm" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Confirm PIN" autocomplete="off" onkeydown="if(event.key==='Enter')AccountingExport.setupPIN()">
-            <button class="btn btn-primary acct-pin-btn" onclick="AccountingExport.setupPIN()">Set PIN</button>
-        </div>
+  <!-- PIN Unlock Screen (shown when vault is locked) -->
+  <div class="acct-pin-screen" id="acctPinLock" style="display:none;">
+      <div class="acct-pin-card">
+          <div class="acct-pin-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--apple-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/></svg>
+          </div>
+          <h3>Accounting Locked</h3>
+          <p class="acct-pin-hint">Enter your PIN to access accounts &amp; deposit sheets.</p>
+          <input type="password" id="acctPinEntry" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Enter PIN" autocomplete="off" onkeydown="if(event.key==='Enter')AccountingExport.unlockVault()">
+          <div class="acct-pin-lockout" id="acctPinLockout" style="display:none;"></div>
+          <button class="btn btn-primary acct-pin-btn" id="acctPinUnlockBtn" onclick="AccountingExport.unlockVault()">Unlock</button>
+          <button class="acct-pin-forgot" onclick="AccountingExport.forgotPIN()">Forgot PIN?</button>
+      </div>
+  </div>
+
+  <!-- PIN Recovery Screen (Firebase re-auth) -->
+  <div class="acct-pin-screen" id="acctPinRecovery" style="display:none;">
+      <div class="acct-pin-card">
+          <div class="acct-pin-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--apple-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          </div>
+          <h3>Reset Your PIN</h3>
+          <p class="acct-pin-hint">Enter your Altech login password to verify your identity.</p>
+          <input type="password" id="acctRecoveryPassword" class="acct-pin-input" placeholder="Altech password" autocomplete="current-password" onkeydown="if(event.key==='Enter')AccountingExport.verifyRecovery()">
+          <button class="btn btn-primary acct-pin-btn" onclick="AccountingExport.verifyRecovery()">Verify &amp; Reset PIN</button>
+          <button class="acct-pin-forgot" onclick="AccountingExport._showScreen('lock')">← Back</button>
+      </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- Unlocked Content (single scroll view)      -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="acctVaultContent" style="display:none;">
+
+    <!-- Global toolbar -->
+    <div class="acct-vault-toolbar no-print">
+        <button class="acct-toolbar-btn acct-toolbar-add" onclick="AccountingExport.toggleAddForm()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Account
+        </button>
+        <button class="acct-toolbar-btn acct-toolbar-lock" onclick="AccountingExport.lockVault()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Lock
+        </button>
     </div>
 
-    <!-- PIN Unlock Screen (shown when vault is locked) -->
-    <div class="acct-pin-screen" id="acctPinLock" style="display:none;">
-        <div class="acct-pin-card">
-            <div class="acct-pin-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--apple-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/></svg>
-            </div>
-            <h3>Vault Locked</h3>
-            <p class="acct-pin-hint">Enter your PIN to access account info.</p>
-            <input type="password" id="acctPinEntry" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Enter PIN" autocomplete="off" onkeydown="if(event.key==='Enter')AccountingExport.unlockVault()">
-            <div class="acct-pin-lockout" id="acctPinLockout" style="display:none;"></div>
-            <button class="btn btn-primary acct-pin-btn" id="acctPinUnlockBtn" onclick="AccountingExport.unlockVault()">Unlock</button>
-            <button class="acct-pin-forgot" onclick="AccountingExport.forgotPIN()">Forgot PIN?</button>
+    <!-- ── Section: Account Info (collapsible) ── -->
+    <div class="acct-section no-print" id="acctInfoSection">
+        <div class="acct-section-header" onclick="AccountingExport.toggleSection('info')">
+            <h3 class="acct-section-title">
+                <svg class="acct-section-chevron" id="acctInfoChevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                Account Info
+            </h3>
+            <span class="acct-section-badge" id="acctCountBadge">0</span>
         </div>
-    </div>
-
-    <!-- PIN Recovery Screen (Firebase re-auth) -->
-    <div class="acct-pin-screen" id="acctPinRecovery" style="display:none;">
-        <div class="acct-pin-card">
-            <div class="acct-pin-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--apple-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-            </div>
-            <h3>Reset Your PIN</h3>
-            <p class="acct-pin-hint">Enter your Altech login password to verify your identity.</p>
-            <input type="password" id="acctRecoveryPassword" class="acct-pin-input" placeholder="Altech password" autocomplete="current-password" onkeydown="if(event.key==='Enter')AccountingExport.verifyRecovery()">
-            <button class="btn btn-primary acct-pin-btn" onclick="AccountingExport.verifyRecovery()">Verify &amp; Reset PIN</button>
-            <button class="acct-pin-forgot" onclick="AccountingExport._showScreen('lock')">← Back</button>
-        </div>
-    </div>
-
-    <!-- Unlocked Vault Content -->
-    <div id="acctVaultContent" style="display:none;">
-        <div class="acct-vault-toolbar">
-            <button class="acct-toolbar-btn acct-toolbar-add" onclick="AccountingExport.toggleAddForm()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Add Account
-            </button>
-            <button class="acct-toolbar-btn acct-toolbar-lock" onclick="AccountingExport.lockVault()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Lock
-            </button>
-        </div>
-
-        <!-- Inline Add/Edit Form (hidden by default) -->
-        <div class="acct-add-form" id="acctAddForm">
-            <div class="acct-form-header">
-                <h4 id="acctAddFormTitle">Add New Account</h4>
-            </div>
-            <div class="acct-form-grid">
-                <div class="acct-form-field acct-form-name">
-                    <label>Account Name</label>
-                    <input type="text" id="acctAddName" placeholder="e.g. Business Checking">
+        <div class="acct-section-body" id="acctInfoBody">
+            <!-- Inline Add/Edit Form (hidden by default) -->
+            <div class="acct-add-form" id="acctAddForm">
+                <div class="acct-form-header">
+                    <h4 id="acctAddFormTitle">Add New Account</h4>
                 </div>
-                <div class="acct-form-field">
-                    <label>Type</label>
-                    <select id="acctAddType">
-                        <option value="checking">Checking</option>
-                        <option value="savings">Savings</option>
-                        <option value="credit">Credit Card</option>
-                        <option value="debit">Debit Card</option>
-                        <option value="other">Other</option>
-                    </select>
+                <div class="acct-form-grid">
+                    <div class="acct-form-field acct-form-name">
+                        <label>Account Name</label>
+                        <input type="text" id="acctAddName" placeholder="e.g. Business Checking">
+                    </div>
+                    <div class="acct-form-field">
+                        <label>Type</label>
+                        <select id="acctAddType">
+                            <option value="checking">Checking</option>
+                            <option value="savings">Savings</option>
+                            <option value="credit">Credit Card</option>
+                            <option value="debit">Debit Card</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="acct-form-field acct-form-color">
+                        <label>Color</label>
+                        <div class="acct-color-wrapper">
+                            <input type="color" id="acctAddColor" value="#0052cc">
+                        </div>
+                    </div>
                 </div>
-                <div class="acct-form-field acct-form-color">
-                    <label>Color</label>
-                    <div class="acct-color-wrapper">
-                        <input type="color" id="acctAddColor" value="#0052cc">
+                <div class="acct-fields-section">
+                    <div class="acct-fields-header">
+                        <span>Custom Fields</span>
+                        <button type="button" class="acct-add-row-btn" onclick="AccountingExport.addFieldRow()">+ Add Field</button>
+                    </div>
+                    <div id="acctAddFieldsList">
+                        <div class="acct-add-field-row">
+                            <input type="text" placeholder="Label (e.g. Account #)" data-role="label">
+                            <input type="text" placeholder="Value" data-role="value">
+                            <button class="acct-field-remove" onclick="this.parentElement.remove()" title="Remove">✕</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="acct-form-actions">
+                    <button class="acct-add-save-btn" onclick="AccountingExport.saveAccount()">Save Account</button>
+                    <button class="acct-add-cancel-btn" onclick="AccountingExport.toggleAddForm()">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Account Cards Grid -->
+            <div class="acct-cards-grid" id="acctCardsGrid">
+                <div class="acct-empty-state">
+                    <div class="acct-empty-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    </div>
+                    <p>No accounts yet</p>
+                    <span>Click "Add Account" to store your first card or bank info.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Section: Deposit Sheet ── -->
+    <div class="acct-section" id="acctDepositSection">
+        <div class="acct-section-header no-print" onclick="AccountingExport.toggleSection('deposit')">
+            <h3 class="acct-section-title">
+                <svg class="acct-section-chevron" id="acctDepositChevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                Deposit Sheet
+            </h3>
+            <div style="display: flex; gap: 6px; align-items: center;">
+                <button id="ds-pdf-btn" class="ds-header-btn" style="display:none" title="Download PDF" onclick="event.stopPropagation();">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    PDF
+                </button>
+                <button id="ds-print-btn" class="ds-header-btn ds-header-btn-outline" style="display:none" title="Print deposit sheet" onclick="event.stopPropagation();">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+                    </svg>
+                    Print
+                </button>
+                <button id="ds-clear-btn" class="ds-header-btn ds-header-btn-outline" style="display:none" title="Upload new CSV" onclick="event.stopPropagation();">
+                    Upload New
+                </button>
+            </div>
+        </div>
+        <div class="acct-section-body" id="acctDepositBody">
+            <div id="ds-error" class="ds-error" style="display:none"></div>
+
+            <!-- Drop zone -->
+            <div id="ds-drop-zone" class="ds-drop-zone">
+                <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="ds-drop-icon">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p class="ds-drop-label">Click or drag HawkSoft Export CSV here</p>
+                <p class="ds-drop-hint">Invoice rows are removed automatically — Receipts only</p>
+                <input type="file" id="ds-file-input" accept=".csv" hidden>
+            </div>
+
+            <!-- Meta bar -->
+            <div id="ds-meta" class="ds-meta" style="display:none"></div>
+
+            <!-- Bill counter (cash only, shown when cash rows exist) -->
+            <div id="ds-bill-counter" class="ds-bill-counter" style="display:none">
+                <div class="ds-bill-counter-title no-print">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    Cash Counter
+                </div>
+                <div class="ds-bill-grid">
+                    <div class="ds-bill-row">
+                        <span class="ds-bill-denom">$100</span>
+                        <span class="ds-bill-x no-print">×</span>
+                        <input type="number" class="ds-bill-input no-print" data-denom="100" min="0" value="0" placeholder="0">
+                        <span class="ds-bill-print-x ds-print-only">×</span>
+                        <span class="ds-bill-count ds-print-only" id="ds-bill-count-100">0</span>
+                        <span class="ds-bill-print-eq ds-print-only">=</span>
+                        <span class="ds-bill-total" id="ds-bill-100">—</span>
+                    </div>
+                    <div class="ds-bill-row">
+                        <span class="ds-bill-denom">$50</span>
+                        <span class="ds-bill-x no-print">×</span>
+                        <input type="number" class="ds-bill-input no-print" data-denom="50" min="0" value="0" placeholder="0">
+                        <span class="ds-bill-print-x ds-print-only">×</span>
+                        <span class="ds-bill-count ds-print-only" id="ds-bill-count-50">0</span>
+                        <span class="ds-bill-print-eq ds-print-only">=</span>
+                        <span class="ds-bill-total" id="ds-bill-50">—</span>
+                    </div>
+                    <div class="ds-bill-row">
+                        <span class="ds-bill-denom">$20</span>
+                        <span class="ds-bill-x no-print">×</span>
+                        <input type="number" class="ds-bill-input no-print" data-denom="20" min="0" value="0" placeholder="0">
+                        <span class="ds-bill-print-x ds-print-only">×</span>
+                        <span class="ds-bill-count ds-print-only" id="ds-bill-count-20">0</span>
+                        <span class="ds-bill-print-eq ds-print-only">=</span>
+                        <span class="ds-bill-total" id="ds-bill-20">—</span>
+                    </div>
+                    <div class="ds-bill-row">
+                        <span class="ds-bill-denom">$10</span>
+                        <span class="ds-bill-x no-print">×</span>
+                        <input type="number" class="ds-bill-input no-print" data-denom="10" min="0" value="0" placeholder="0">
+                        <span class="ds-bill-print-x ds-print-only">×</span>
+                        <span class="ds-bill-count ds-print-only" id="ds-bill-count-10">0</span>
+                        <span class="ds-bill-print-eq ds-print-only">=</span>
+                        <span class="ds-bill-total" id="ds-bill-10">—</span>
+                    </div>
+                    <div class="ds-bill-row">
+                        <span class="ds-bill-denom">$5</span>
+                        <span class="ds-bill-x no-print">×</span>
+                        <input type="number" class="ds-bill-input no-print" data-denom="5" min="0" value="0" placeholder="0">
+                        <span class="ds-bill-print-x ds-print-only">×</span>
+                        <span class="ds-bill-count ds-print-only" id="ds-bill-count-5">0</span>
+                        <span class="ds-bill-print-eq ds-print-only">=</span>
+                        <span class="ds-bill-total" id="ds-bill-5">—</span>
+                    </div>
+                    <div class="ds-bill-row">
+                        <span class="ds-bill-denom">$1</span>
+                        <span class="ds-bill-x no-print">×</span>
+                        <input type="number" class="ds-bill-input no-print" data-denom="1" min="0" value="0" placeholder="0">
+                        <span class="ds-bill-print-x ds-print-only">×</span>
+                        <span class="ds-bill-count ds-print-only" id="ds-bill-count-1">0</span>
+                        <span class="ds-bill-print-eq ds-print-only">=</span>
+                        <span class="ds-bill-total" id="ds-bill-1">—</span>
+                    </div>
+                    <div class="ds-bill-row ds-bill-row-total">
+                        <span class="ds-bill-denom">Counted</span>
+                        <span class="ds-bill-x no-print"></span>
+                        <span class="ds-bill-spacer no-print"></span>
+                        <span class="ds-bill-total ds-bill-grand" id="ds-bill-counted">$0.00</span>
                     </div>
                 </div>
             </div>
-            <div class="acct-fields-section">
-                <div class="acct-fields-header">
-                    <span>Custom Fields</span>
-                    <button type="button" class="acct-add-row-btn" onclick="AccountingExport.addFieldRow()">+ Add Field</button>
-                </div>
-                <div id="acctAddFieldsList">
-                    <div class="acct-add-field-row">
-                        <input type="text" placeholder="Label (e.g. Account #)" data-role="label">
-                        <input type="text" placeholder="Value" data-role="value">
-                        <button class="acct-field-remove" onclick="this.parentElement.remove()" title="Remove">✕</button>
-                    </div>
-                </div>
-            </div>
-            <div class="acct-form-actions">
-                <button class="acct-add-save-btn" onclick="AccountingExport.saveAccount()">Save Account</button>
-                <button class="acct-add-cancel-btn" onclick="AccountingExport.toggleAddForm()">Cancel</button>
-            </div>
-        </div>
 
-        <!-- Account Cards Grid -->
-        <div class="acct-cards-grid" id="acctCardsGrid">
-            <div class="acct-empty-state">
-                <div class="acct-empty-icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                </div>
-                <p>No accounts yet</p>
-                <span>Click "Add Account" to store your first card or bank info.</span>
-            </div>
+            <!-- Table output -->
+            <div id="ds-output" class="ds-output"></div>
         </div>
     </div>
-  </div><!-- /acctTabVault -->
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- TAB: Export Tools (existing content)        -->
-  <!-- ═══════════════════════════════════════════ -->
-  <div class="acct-tab-content" id="acctTabExport" data-tab="export">
-    <div class="acct-desktop-layout">
-      <!-- LEFT COLUMN: Primary workflows -->
-      <div class="acct-col-left">
-      <div class="card">
-          <h2>📥 Export Receipts</h2>
-          <p class="section-subtitle">Opens HawkSoft in a browser, lets you log in, then auto-filters and downloads receipt CSV.</p>
-
-          <div class="acct-steps">
-              <div class="acct-step" id="acctStep1">
-                  <div class="acct-step-num">1</div>
-                  <div class="acct-step-text">
-                      <div class="acct-step-title">Launch Browser</div>
-                      <div class="acct-step-desc">Opens Chromium to HawkSoft's "To Be Exported" page</div>
-                  </div>
-              </div>
-              <div class="acct-step" id="acctStep2">
-                  <div class="acct-step-num">2</div>
-                  <div class="acct-step-text">
-                      <div class="acct-step-title">Log In Manually</div>
-                      <div class="acct-step-desc">Enter your credentials &amp; 2FA, then press Enter in the terminal</div>
-                  </div>
-              </div>
-              <div class="acct-step" id="acctStep3">
-                  <div class="acct-step-num">3</div>
-                  <div class="acct-step-text">
-                      <div class="acct-step-title">Auto-Filter Receipts</div>
-                      <div class="acct-step-desc">Script checks Receipt rows, unchecks Invoices automatically</div>
-                  </div>
-              </div>
-              <div class="acct-step" id="acctStep4">
-                  <div class="acct-step-num">4</div>
-                  <div class="acct-step-text">
-                      <div class="acct-step-title">Download CSV</div>
-                      <div class="acct-step-desc">Clicks Export → Download and saves the file locally</div>
-                  </div>
-              </div>
-          </div>
-
-          <div class="acct-filename-row">
-              <div style="flex:1;">
-                  <label class="label">Output Filename</label>
-                  <input type="text" id="acctOutputFile" value="hawksoft_receipts.csv" placeholder="hawksoft_receipts.csv">
-              </div>
-          </div>
-
-          <div style="margin-top: 16px; display: flex; gap: 10px;">
-              <button class="btn btn-primary" id="acctLaunchBtn" onclick="AccountingExport.launch()">
-                  🚀 Launch Export
-              </button>
-              <button class="btn btn-secondary" id="acctCheckBtn" onclick="AccountingExport.checkStatus()" style="display:none;">
-                  🔄 Check Status
-              </button>
-          </div>
-
-          <div class="acct-status-box" id="acctStatusBox"></div>
-      </div>
-
-      <div class="card">
-          <h2>📊 Trust Deposit Report</h2>
-          <p class="section-subtitle">Generate a formatted Excel report from the exported CSV — landscape layout, Cash/Check split, color-coded totals.</p>
-
-          <div class="acct-filename-row">
-              <div style="flex:1;">
-                  <label class="label">Input CSV</label>
-                  <input type="text" id="acctReportInput" value="hawksoft_receipts.csv" placeholder="hawksoft_receipts.csv">
-              </div>
-              <div style="flex:1;">
-                  <label class="label">Output Excel</label>
-                  <input type="text" id="acctReportOutput" value="Trust_Deposit_Report.xlsx" placeholder="Trust_Deposit_Report.xlsx">
-              </div>
-          </div>
-
-          <div style="margin-top: 12px; display: flex; gap: 10px; align-items: center;">
-              <button class="btn btn-primary" id="acctReportBtn" onclick="AccountingExport.generateReport()">
-                  📊 Generate Report
-              </button>
-              <span id="acctReportStatus" style="font-size: 13px; color: var(--text-secondary);"></span>
-          </div>
-
-          <div class="acct-status-box" id="acctReportLog"></div>
-      </div>
-      </div><!-- /acct-col-left -->
-
-      <!-- RIGHT COLUMN: History + Calculator -->
-      <div class="acct-col-right">
-      <div class="card">
-          <h2>📋 Export History</h2>
-          <p class="section-subtitle">Recent accounting exports from this device</p>
-          <div class="acct-history" id="acctHistory">
-              <p style="font-size: 13px; color: var(--text-secondary);">No exports yet.</p>
-          </div>
-      </div>
-
-      <!-- Deposit Calculator -->
-      <div class="card">
-          <h2>🧮 Deposit Calculator</h2>
-          <p class="section-subtitle">Count your cash and checks to get a deposit total.</p>
-
-          <table class="dep-calc-table">
-              <thead>
-                  <tr><th>Denom.</th><th>Count</th><th>Subtotal</th></tr>
-              </thead>
-              <tbody>
-                  <tr>
-                      <td>$100</td>
-                      <td><input type="number" id="depC100" min="0" value="0" oninput="AccountingExport.calcDeposit()"></td>
-                      <td id="depS100">$0.00</td>
-                  </tr>
-                  <tr>
-                      <td>$50</td>
-                      <td><input type="number" id="depC50" min="0" value="0" oninput="AccountingExport.calcDeposit()"></td>
-                      <td id="depS50">$0.00</td>
-                  </tr>
-                  <tr>
-                      <td>$20</td>
-                      <td><input type="number" id="depC20" min="0" value="0" oninput="AccountingExport.calcDeposit()"></td>
-                      <td id="depS20">$0.00</td>
-                  </tr>
-                  <tr>
-                      <td>$10</td>
-                      <td><input type="number" id="depC10" min="0" value="0" oninput="AccountingExport.calcDeposit()"></td>
-                      <td id="depS10">$0.00</td>
-                  </tr>
-                  <tr>
-                      <td>$5</td>
-                      <td><input type="number" id="depC5" min="0" value="0" oninput="AccountingExport.calcDeposit()"></td>
-                      <td id="depS5">$0.00</td>
-                  </tr>
-                  <tr>
-                      <td>$1</td>
-                      <td><input type="number" id="depC1" min="0" value="0" oninput="AccountingExport.calcDeposit()"></td>
-                      <td id="depS1">$0.00</td>
-                  </tr>
-                  <tr class="dep-calc-separator"><td colspan="3"></td></tr>
-                  <tr>
-                      <td>Coins</td>
-                      <td colspan="2" style="text-align:right;">
-                          <input type="number" id="depCoins" min="0" step="0.01" value="0" style="width:100px;text-align:right;" oninput="AccountingExport.calcDeposit()" placeholder="0.00">
-                      </td>
-                  </tr>
-              </tbody>
-          </table>
-
-          <div style="margin-top: 14px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-                  <span style="font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Checks</span>
-                  <button type="button" class="btn btn-secondary" style="padding:4px 12px; font-size:12px;" onclick="AccountingExport.addCheck()">+ Add Check</button>
-              </div>
-              <div id="depChecksContainer"></div>
-          </div>
-
-          <div class="dep-calc-subtotal" id="depSubCash"><span>Cash Total</span><span>$0.00</span></div>
-          <div class="dep-calc-subtotal" id="depSubChecks"><span>Checks Total</span><span>$0.00</span></div>
-
-          <div class="dep-calc-total-row">
-              <span class="dep-calc-total-label">TOTAL DEPOSIT</span>
-              <span class="dep-calc-total-amount" id="depGrandTotal">$0.00</span>
-          </div>
-
-          <div style="margin-top: 10px; text-align: right;">
-              <button type="button" class="btn btn-secondary" style="font-size:12px; padding:6px 14px;" onclick="AccountingExport.clearCalc()">Clear All</button>
-          </div>
-      </div>
-      </div><!-- /acct-col-right -->
-    </div><!-- /acct-desktop-layout -->
-
-    <div class="card">
-        <h2>ℹ️ How It Works</h2>
-        <p class="section-subtitle" style="margin-bottom: 0;">
-            This tool uses <strong>Playwright</strong> (a browser automation library) to open HawkSoft's
-            trust accounting page. You log in manually to handle 2FA — the script then takes over,
-            selecting only <strong>Receipt</strong> rows and clicking Export → Download.
-            The CSV is saved to your Altech project folder.
-        </p>
-        <div class="hint" style="margin-top: 12px;">
-            ⚠️ <strong>Desktop only</strong> — requires the local server running and Python + Playwright installed.
-        </div>
-    </div>
-  </div><!-- /acctTabExport -->
+  </div><!-- /acctVaultContent -->
 
 </div><!-- /acct-container -->

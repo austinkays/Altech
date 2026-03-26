@@ -27,7 +27,6 @@ window.STORAGE_KEYS = Object.freeze({
     COI_DRAFT:              'altech_coi_draft',
     EMAIL_DRAFTS:           'altech_email_drafts',    // encrypted
     EMAIL_CUSTOM_PROMPT:    'altech_email_custom_prompt',
-    ACCT_HISTORY:           'altech_acct_history',
     SAVED_PROSPECTS:        'altech_saved_prospects',
     VIN_HISTORY:            'altech_vin_history',     // max 20 entries
     QNA:                    'altech_v6_qna',
