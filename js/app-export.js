@@ -108,32 +108,32 @@ Object.assign(App, {
 
         // Full-width dark group divider bar
         const groupBar = (title) => {
-            checkPage(14);
-            y += 3;
+            checkPage(12);
+            y += 2;
             doc.setFillColor(...C.groupBar);
-            doc.rect(0, y, pageW, 8, 'F');
+            doc.rect(0, y, pageW, 6, 'F');
             doc.setFontSize(6.5);
             doc.setFont(undefined, 'bold');
             doc.setTextColor(...C.white);
-            doc.text(title.toUpperCase(), margin, y + 5.5);
+            doc.text(title.toUpperCase(), margin, y + 4.3);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(...C.dark);
-            y += 11;
+            y += 9;
         };
 
         // Light-grey section header with left accent rule
         const sectionHeader = (title) => {
-            checkPage(16);
+            checkPage(12);
             doc.setFillColor(...C.sectionBg);
-            doc.rect(margin, y, contentW, 7.5, 'F');
+            doc.rect(margin, y, contentW, 5.5, 'F');
             doc.setFillColor(...C.accent);
-            doc.rect(margin, y, 2.5, 7.5, 'F');
-            doc.setFontSize(8);
+            doc.rect(margin, y, 2.5, 5.5, 'F');
+            doc.setFontSize(7);
             doc.setFont(undefined, 'bold');
             doc.setTextColor(...C.dark);
-            doc.text(title.toUpperCase(), margin + 6, y + 5.3);
+            doc.text(title.toUpperCase(), margin + 6, y + 4);
             doc.setFont(undefined, 'normal');
-            y += 10;
+            y += 7.5;
         };
 
         // Key-value table: 2 or 3 columns, with multi-line value wrapping (up to 3 lines)
@@ -141,8 +141,8 @@ Object.assign(App, {
             const filtered = fields.filter(([, val]) => val && String(val).trim());
             if (!filtered.length) return;
             const colW = contentW / cols;
-            const baseRowH = 6;
-            const lineH = 4;
+            const baseRowH = 4.5;
+            const lineH = 3.5;
             const maxLines = 3;
 
             for (let rowStart = 0; rowStart < filtered.length; rowStart += cols) {
@@ -165,16 +165,16 @@ Object.assign(App, {
 
                 rowItems.forEach(([label], colIdx) => {
                     const cellX = margin + colIdx * colW;
-                    doc.setFontSize(8);
+                    doc.setFontSize(7);
                     doc.setFont(undefined, 'bold');
                     doc.setTextColor(...C.mid);
-                    doc.text(label, cellX + 2, y + 3.5);
+                    doc.text(label, cellX + 2, y + 3);
 
-                    doc.setFontSize(9);
+                    doc.setFontSize(8);
                     doc.setFont(undefined, 'normal');
                     doc.setTextColor(...C.dark);
                     rowLines[colIdx].forEach((line, li) => {
-                        doc.text(line, cellX + colW * 0.45, y + 3.5 + li * lineH);
+                        doc.text(line, cellX + colW * 0.42, y + 3 + li * lineH);
                     });
                 });
 
@@ -184,15 +184,15 @@ Object.assign(App, {
             doc.setDrawColor(...C.light);
             doc.setLineWidth(0.2);
             doc.line(margin, y, margin + contentW, y);
-            y += 5;
+            y += 3;
         };
 
         // Driver/vehicle detail cards with grey header rows
         const detailTable = (fields) => {
             const filtered = fields.filter(([, val]) => val && String(val).trim());
             if (!filtered.length) return;
-            const rowH = 5.5;
-            const labelW = 50;
+            const rowH = 4.5;
+            const labelW = 46;
 
             filtered.forEach(([label, value], i) => {
                 checkPage(rowH + 2);
@@ -204,32 +204,32 @@ Object.assign(App, {
                     doc.rect(margin, y - 1, contentW, rowH + 2, 'F');
                     doc.setFillColor(...C.accent);
                     doc.rect(margin, y - 1, 2.5, rowH + 2, 'F');
-                    doc.setFontSize(9.5);
+                    doc.setFontSize(8.5);
                     doc.setFont(undefined, 'bold');
                     doc.setTextColor(...C.dark);
-                    doc.text(label, margin + 6, y + 3.5);
-                    doc.text(String(value), margin + labelW, y + 3.5);
+                    doc.text(label, margin + 6, y + 3);
+                    doc.text(String(value), margin + labelW, y + 3);
                     doc.setFont(undefined, 'normal');
                 } else {
                     if (i % 2 === 0) {
                         doc.setFillColor(...C.stripe);
                         doc.rect(margin, y - 1, contentW, rowH, 'F');
                     }
-                    doc.setFontSize(8);
+                    doc.setFontSize(7);
                     doc.setFont(undefined, 'bold');
                     doc.setTextColor(...C.mid);
-                    doc.text(label.trim(), margin + 12, y + 3.5);
-                    doc.setFontSize(9);
+                    doc.text(label.trim(), margin + 10, y + 3);
+                    doc.setFontSize(8);
                     doc.setFont(undefined, 'normal');
                     doc.setTextColor(...C.dark);
-                    doc.text(String(value), margin + labelW, y + 3.5);
+                    doc.text(String(value), margin + labelW, y + 3);
                 }
                 y += rowH;
             });
             doc.setDrawColor(...C.light);
             doc.setLineWidth(0.2);
             doc.line(margin, y, margin + contentW, y);
-            y += 5;
+            y += 3;
         };
 
         // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -282,9 +282,9 @@ Object.assign(App, {
         doc.line(margin, y, pageW - margin, y);
         y += 5;
 
-        // Street View banner
+        // Street View banner (compact — saves toner)
         if (mapImages?.streetView?.dataUrl) {
-            const bannerH = 46;
+            const bannerH = 28;
             doc.addImage(mapImages.streetView.dataUrl, mapImages.streetView.format, margin, y, contentW, bannerH);
             doc.setDrawColor(...C.light);
             doc.setLineWidth(0.3);
@@ -292,33 +292,33 @@ Object.assign(App, {
             y += bannerH + 2;
         }
 
-        // Client info strip (greyscale)
+        // Client info strip
         doc.setFillColor(...C.sectionBg);
-        doc.rect(margin, y, contentW, 13, 'F');
+        doc.rect(margin, y, contentW, 10, 'F');
         doc.setFillColor(...C.accent);
-        doc.rect(margin, y, 3, 13, 'F');
-        doc.setFontSize(12);
+        doc.rect(margin, y, 3, 10, 'F');
+        doc.setFontSize(11);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(...C.dark);
-        doc.text(clientName, margin + 6, y + 5.5);
-        doc.setFontSize(7.5);
+        doc.text(clientName, margin + 6, y + 4.5);
+        doc.setFontSize(7);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(...C.mid);
-        doc.text(address || '', margin + 6, y + 10.5);
+        doc.text(address || '', margin + 6, y + 8.5);
         doc.setTextColor(...C.dark);
-        y += 16;
+        y += 13;
 
         // Satellite thumbnail
         if (mapImages?.satellite?.dataUrl) {
-            const satX = pageW - margin - 30;
-            doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, satX, y, 30, 24);
+            const satX = pageW - margin - 22;
+            doc.addImage(mapImages.satellite.dataUrl, mapImages.satellite.format, satX, y, 22, 17);
             doc.setDrawColor(...C.light);
             doc.setLineWidth(0.3);
-            doc.rect(satX, y, 30, 24, 'S');
+            doc.rect(satX, y, 22, 17, 'S');
             doc.setFontSize(5.5);
             doc.setTextColor(...C.mid);
             const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || '')}`;
-            doc.textWithLink('View on Maps', satX + 15, y + 27, { url: mapUrl, align: 'center' });
+            doc.textWithLink('View on Maps', satX + 11, y + 20, { url: mapUrl, align: 'center' });
             doc.setTextColor(...C.dark);
         }
 
@@ -331,56 +331,53 @@ Object.assign(App, {
         const drivers = (data.drivers && data.drivers.length) ? data.drivers : (this.drivers || []);
         const vehicles = (data.vehicles && data.vehicles.length) ? data.vehicles : (this.vehicles || []);
 
-        // ── Summary card ──
+        // ── Summary card (light — printer friendly) ──
         {
-            const cardH = 34;
+            const cardH = 26;
             checkPage(cardH + 4);
-            y += 4;
-            doc.setFillColor(...C.summaryBg);
+            y += 3;
+            // Light border card instead of black fill
+            doc.setFillColor(...C.sectionBg);
             doc.rect(margin, y, contentW, cardH, 'F');
+            doc.setFillColor(...C.groupBar);
+            doc.rect(margin, y, 3, cardH, 'F');
+            doc.setDrawColor(...C.light);
+            doc.setLineWidth(0.4);
+            doc.rect(margin, y, contentW, cardH, 'S');
 
             const qTypeLabel = quoteType === 'home' ? 'HOME' : quoteType === 'auto' ? 'AUTO' : quoteType === 'both' ? 'HOME & AUTO' : 'QUOTE';
             doc.setFontSize(11);
             doc.setFont(undefined, 'bold');
-            doc.setTextColor(...C.white);
-            doc.text(`${clientName}  —  ${qTypeLabel}`, margin + 5, y + 9);
+            doc.setTextColor(...C.dark);
+            doc.text(`${clientName}  —  ${qTypeLabel}`, margin + 7, y + 8);
             doc.setFontSize(7);
             doc.setFont(undefined, 'normal');
-            doc.setTextColor(180, 180, 180);
-            doc.text(docRef, pageW - margin - 3, y + 9, { align: 'right' });
+            doc.setTextColor(...C.mid);
+            doc.text(docRef, pageW - margin - 3, y + 8, { align: 'right' });
 
             const dobStr = v('dob') ? `DOB: ${formatDate(v('dob'))}` : '';
             const addrShort = [v('addrCity'), v('addrState'), v('addrZip')].filter(Boolean).join(', ');
             const dobAddrLine = [dobStr, addrShort].filter(Boolean).join('  ·  ');
-            doc.setFontSize(8);
-            if (dobAddrLine) doc.text(dobAddrLine, margin + 5, y + 16);
-            doc.text(formatDateTime(new Date()), pageW - margin - 3, y + 16, { align: 'right' });
+            doc.setFontSize(7.5);
+            doc.setTextColor(...C.mid);
+            if (dobAddrLine) doc.text(dobAddrLine, margin + 7, y + 14);
+            doc.text(formatDateTime(new Date()), pageW - margin - 3, y + 14, { align: 'right' });
 
-            doc.setDrawColor(80, 80, 80);
+            doc.setDrawColor(...C.light);
             doc.setLineWidth(0.3);
-            doc.line(margin + 5, y + 19, pageW - margin - 5, y + 19);
+            doc.line(margin + 5, y + 17, pageW - margin - 5, y + 17);
 
             const statsItems = [];
             if (showHome && v('dwellingCoverage')) statsItems.push(`Dwelling ${formatCurrency(v('dwellingCoverage'))}`);
             if (showAuto && v('liabilityLimits')) statsItems.push(`Liability ${v('liabilityLimits')}`);
             if (showAuto && vehicles.length) statsItems.push(`${vehicles.length} Vehicle${vehicles.length > 1 ? 's' : ''}`);
             if (showAuto && drivers.length) statsItems.push(`${drivers.length} Driver${drivers.length > 1 ? 's' : ''}`);
-            doc.setFontSize(8.5);
+            doc.setFontSize(8);
             doc.setFont(undefined, 'bold');
-            doc.setTextColor(...C.white);
-            if (statsItems.length) doc.text(statsItems.join('  |  '), margin + 5, y + 26);
+            doc.setTextColor(...C.dark);
+            if (statsItems.length) doc.text(statsItems.join('  |  '), margin + 7, y + 22);
 
-            const policyItems = [];
-            if (v('effectiveDate')) policyItems.push(`Eff. ${formatDate(v('effectiveDate'))}`);
-            const priorCarrierSummary = v('homePriorCarrier') || v('priorCarrier');
-            if (priorCarrierSummary) policyItems.push(`Prior: ${priorCarrierSummary}`);
-            if (v('accidents')) policyItems.push(`Accidents: ${v('accidents')}`);
-            doc.setFontSize(7.5);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(180, 180, 180);
-            if (policyItems.length) doc.text(policyItems.join('  |  '), margin + 5, y + 32);
-
-            y += cardH + 5;
+            y += cardH + 3;
         }
 
         // ── Risk callout (conditional, home only) ──
