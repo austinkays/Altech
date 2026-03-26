@@ -52,6 +52,8 @@ Object.assign(App, {
             return '';
         };
 
+        const fmtPhone = (val) => App._fmtPhoneVal ? App._fmtPhoneVal(val) : val;
+
         const fmtDate = (val) => {
             if (!val) return '';
             const d = new Date(val);
@@ -263,7 +265,7 @@ Object.assign(App, {
 
         // Phone + Email inline
         const contactParts = [];
-        if (v('phone')) contactParts.push(v('phone'));
+        if (v('phone')) contactParts.push(fmtPhone(v('phone')));
         if (v('email')) contactParts.push(v('email'));
         doc.setFontSize(7.5); doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
         doc.text(contactParts.join('   |   '), cardX+5, y+19);
@@ -295,7 +297,7 @@ Object.assign(App, {
             ['Date of Birth',   fmtDate(v('dob'))],
             ['Gender',          v('gender')==='M'?'Male': v('gender')==='F'?'Female': v('gender')],
             ['Marital Status',  v('maritalStatus')],
-            ['Phone',           v('phone')],
+            ['Phone',           fmtPhone(v('phone'))],
             ['Email',           v('email')],
             ['Education',       v('education')],
             ['Occupation',      v('occupation')],
@@ -321,7 +323,7 @@ Object.assign(App, {
                 ['Gender',          v('coGender')==='M'?'Male': v('coGender')==='F'?'Female': v('coGender')],
                 ['Marital Status',  v('coMaritalStatus')],
                 ['Relationship',    v('coRelationship')],
-                ['Phone',           v('coPhone')],
+                ['Phone',           fmtPhone(v('coPhone'))],
                 ['Email',           v('coEmail')],
             ], 3);
         }

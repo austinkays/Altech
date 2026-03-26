@@ -764,6 +764,10 @@ Object.assign(App, {
 
     applyData(data) {
         this.data = data || {};
+        // Normalize stored phone numbers to (xxx) xxx-xxxx format
+        ['phone', 'coPhone'].forEach(k => {
+            if (this.data[k]) this.data[k] = this._fmtPhoneVal(this.data[k]);
+        });
         Object.keys(this.data).forEach(k => {
             const el = document.getElementById(k);
             if(el) {
@@ -1017,9 +1021,14 @@ Object.assign(App, {
         }
     },
 
+    _fmtPhoneVal(val) {
+        const x = (val || '').replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/);
+        if (!x) return val || '';
+        return !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
+    },
+
     fmtPhone(e) {
-        let x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/);
-        e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
+        e.target.value = App._fmtPhoneVal(e.target.value);
     },
 
     // ── Notes & Formatting ──

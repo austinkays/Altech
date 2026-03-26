@@ -686,6 +686,20 @@
     line-height: 1.4;
 }
 
+/* ── View in HawkSoft link (appears after client selection) ── */
+
+.cl-view-in-hawksoft {
+    margin-top: 6px;
+}
+
+.cl-view-hs-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
 /* ── HawkSoft Client Link in Confirm Section ── */
 
 .cl-client-link {

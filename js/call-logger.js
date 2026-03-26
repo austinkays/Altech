@@ -525,6 +525,8 @@ window.CallLogger = (() => {
             _selectedPolicy = null;
             const policySelect = document.getElementById('clPolicySelect');
             if (policySelect) policySelect.style.display = 'none';
+            const viewHsLink = document.getElementById('clViewInHawksoft');
+            if (viewHsLink) viewHsLink.style.display = 'none';
         }
 
         if (query.length < 2) {
@@ -583,6 +585,22 @@ window.CallLogger = (() => {
 
         // Close dropdown
         if (dropdown) dropdown.style.display = 'none';
+
+        // Show "View in HawkSoft" link
+        const hawksoftLinkEl = document.getElementById('clViewInHawksoft');
+        if (hawksoftLinkEl) {
+            const hsId = client.hawksoftId;
+            if (hsId) {
+                const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent);
+                const href = isMobile
+                    ? `https://agents.hawksoft.app/client/${encodeURIComponent(hsId)}`
+                    : `hs://${encodeURIComponent(hsId)}`;
+                hawksoftLinkEl.innerHTML = `<a href="${href}" class="cl-client-link cl-view-hs-link" target="_blank" rel="noopener">View in HawkSoft <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`;
+                hawksoftLinkEl.style.display = '';
+            } else {
+                hawksoftLinkEl.style.display = 'none';
+            }
+        }
 
         // If client has policies, show policy picker — keep input as client name
         if (client.policies.length > 0 && policySelect && policyList) {
@@ -1023,13 +1041,15 @@ window.CallLogger = (() => {
         if (policyEl) policyEl.value = '';
         if (notesEl) notesEl.value = '';
 
-        // Hide client dropdown + policy selector
+        // Hide client dropdown + policy selector + HawkSoft link
         const dropdown = document.getElementById('clClientDropdown');
         const policySelect = document.getElementById('clPolicySelect');
         const policyList = document.getElementById('clPolicyList');
+        const viewHsLink = document.getElementById('clViewInHawksoft');
         if (dropdown) { dropdown.style.display = 'none'; dropdown.innerHTML = ''; }
         if (policySelect) policySelect.style.display = 'none';
         if (policyList) policyList.innerHTML = '';
+        if (viewHsLink) viewHsLink.style.display = 'none';
 
         // Reset channel buttons to Inbound
         _applyChannelUI();
