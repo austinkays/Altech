@@ -536,15 +536,20 @@ window.CallLogger = (() => {
         }
 
         const clients = _getClients();
-        const matches = clients.filter(c => {
+        const matches = clients.reduce((acc, c) => {
+            const nameLower = c.name.toLowerCase();
             // Match against display name
-            if (c.name.toLowerCase().includes(query)) return true;
+            if (nameLower.includes(query)) { acc.push({ client: c, matchedAlias: null }); return acc; }
             // Match against client number (HawkSoft ID)
-            if (c.hawksoftId && c.hawksoftId.includes(query)) return true;
+            if (c.hawksoftId && c.hawksoftId.includes(query)) { acc.push({ client: c, matchedAlias: null }); return acc; }
             // Match against search aliases (company name, DBA, all people names)
-            if (c.searchAliases && c.searchAliases.some(a => a.includes(query))) return true;
-            return false;
-        });
+            if (c.searchAliases) {
+                const hit = c.searchAliases.find(a => a.includes(query));
+                if (hit && hit !== nameLower) { acc.push({ client: c, matchedAlias: hit }); return acc; }
+                if (hit) { acc.push({ client: c, matchedAlias: null }); return acc; }
+            }
+            return acc;
+        }, []);
 
         if (matches.length === 0) {
             dropdown.style.display = 'none';
@@ -554,20 +559,24 @@ window.CallLogger = (() => {
 
         // Render dropdown (max 8 results)
         const shown = matches.slice(0, 8);
-        dropdown.innerHTML = shown.map((c, i) => {
+        dropdown.innerHTML = shown.map(({ client: c, matchedAlias }, i) => {
             const policyCount = c.policies.length;
             const badge = policyCount > 0
                 ? `<span class="cl-client-badge">${policyCount} ${policyCount === 1 ? 'policy' : 'policies'}</span>`
                 : '<span class="cl-client-badge cl-client-badge-none">No policies</span>';
             const idLabel = c.hawksoftId ? `<span class="cl-client-number">#${_escapeHTML(c.hawksoftId)}</span>` : '';
-            return `<div class="cl-client-row" data-index="${i}">${_escapeHTML(c.name)} ${idLabel} ${badge}</div>`;
+            // If matched via alias, show the alias name first with account name as secondary context
+            const displayName = matchedAlias
+                ? `${_escapeHTML(matchedAlias.toUpperCase())} <span class="cl-client-aka">(${_escapeHTML(c.name)})</span>`
+                : _escapeHTML(c.name);
+            return `<div class="cl-client-row" data-index="${i}">${displayName} ${idLabel} ${badge}</div>`;
         }).join('');
 
         dropdown.style.display = '';
 
         // Wire click handlers on rows
         dropdown.querySelectorAll('.cl-client-row').forEach((row, idx) => {
-            row.addEventListener('click', () => _selectClient(shown[idx]));
+            row.addEventListener('click', () => _selectClient(shown[idx].client));
         });
     }
 

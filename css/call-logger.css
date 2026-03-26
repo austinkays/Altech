@@ -864,6 +864,12 @@
     flex-shrink: 0;
 }
 
+.cl-client-aka {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
 /* ── Policy Selector ── */
 
 .cl-policy-select {
