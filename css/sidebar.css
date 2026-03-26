@@ -179,7 +179,9 @@ body.dark-mode .sidebar-nav-item.active[data-tooltip]:hover {
     color: var(--text);
     font-weight: 600;
 }
-/* Active indicator bar */
+/* Active indicator bar — opacity and border MUST be set here to override
+   [data-tooltip]::before { opacity: 0; border: 6px solid transparent } from components.css,
+   otherwise the bar is invisible at rest and pops in on hover via [data-tooltip]:hover::before. */
 .sidebar-nav-item.active::before {
     content: '';
     display: block;
@@ -190,10 +192,16 @@ body.dark-mode .sidebar-nav-item.active[data-tooltip]:hover {
     width: 3px;
     height: 24px;
     border-radius: 0 3px 3px 0;
+    border: none;
+    opacity: 1;
     background: var(--accent-gradient);
 }
 body.dark-mode .sidebar-nav-item.active::before {
     background: var(--accent-gradient);
+}
+/* Prevent [data-tooltip]:hover::before (components.css) from changing bar opacity on hover */
+.sidebar-nav-item.active[data-tooltip]:hover::before {
+    opacity: 1;
 }
 
 /* Sidebar Icons */
