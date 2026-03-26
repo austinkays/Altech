@@ -143,6 +143,9 @@ Object.assign(App, {
             // Merge: use whichever has more data — current snapshot or best existing
             const mergedData = snapshotFieldCount >= bestCount ? snapshot : clients[bestIdx].data;
 
+            // Capture the best entry's ID before splicing mutates the array
+            const preservedId = clients[bestIdx].id;
+
             // Remove ALL matching entries (collapse duplicates)
             for (let k = matchingIndices.length - 1; k >= 0; k--) {
                 clients.splice(matchingIndices[k], 1);
@@ -151,7 +154,7 @@ Object.assign(App, {
             // Re-insert single merged entry at top — preserve the existing ID so step-0
             // delete buttons (which capture the ID at render time) never go stale.
             clients.unshift({
-                id: clients[bestIdx].id,
+                id: preservedId,
                 name,
                 summary: this.getClientSummary(mergedData),
                 savedAt: new Date().toISOString(),
