@@ -7,14 +7,14 @@ Object.assign(App, {
         const result = await this.buildPDF(this.data);
         this.downloadBlob(result.blob, result.filename);
         this.logExport('PDF', result.filename);
-        this.toast('âœ“ PDF downloaded successfully');
+        this.toast('\u2714 PDF downloaded successfully');
     },
 
     exportText() {
         const result = this.buildText(this.data);
         this.downloadFile(result.content, result.filename, result.mime);
         this.logExport('Text', result.filename);
-        this.toast('ðŸ“ Text summary downloaded');
+        this.toast('\u{1F4DD} Text summary downloaded');
     },
 
     async buildPDF(data) {
@@ -31,12 +31,12 @@ Object.assign(App, {
 
         // ── Toner-friendly palette (print-optimized) ─────────────────────
         const INK   = [30, 30, 30];      // near-black text
-        const MID   = [100, 100, 100];   // grey labels / secondary text
-        const LIGHT = [175, 175, 175];   // borders
-        const RULE  = [200, 200, 200];   // light dividers
-        const FILL  = [235, 235, 235];   // alt-row fill
+        const MID   = [80, 80, 80];      // grey labels / secondary text — must print solid
+        const LIGHT = [165, 165, 165];   // borders
+        const RULE  = [190, 190, 190];   // light dividers
+        const FILL  = [232, 232, 232];   // alt-row fill
         const WHITE = [255, 255, 255];
-        const ACCENT= [70, 70, 70];      // dark accent for header bar
+        const ACCENT= [60, 60, 60];      // dark accent for header bar
 
         // ── Utility helpers ──────────────────────────────────────────────
         let y = mg;
@@ -235,10 +235,10 @@ Object.assign(App, {
         // ════════════════════════════════════════════════════════════════
         //  ② PROPERTY PHOTO + CLIENT SUMMARY CARD (side by side)
         // ════════════════════════════════════════════════════════════════
-        const photoW = mapImages?.streetView?.dataUrl ? 72 : 0;
+        const photoW = mapImages?.streetView?.dataUrl ? 44 : 0;
         const cardX  = mg + (photoW > 0 ? photoW + 4 : 0);
         const cardW  = cw - (photoW > 0 ? photoW + 4 : 0);
-        const blockH = 24;
+        const blockH = 28;
 
         // Street view photo (left side, lightened)
         if (mapImages?.streetView?.dataUrl) {
@@ -733,7 +733,7 @@ Object.assign(App, {
         const result = this.buildCSV(this.data);
         this.downloadFile(result.content, result.filename, result.mime);
         this.logExport('CSV', result.filename);
-        this.toast('ðŸ“¥ CSV Generated!');
+        this.toast('\u{1F525} CSV Generated!');
     },
 
     buildCSV(data) {
@@ -763,7 +763,7 @@ Object.assign(App, {
         ].map(v => `"${v}"`).join(',');
         const content = `${headers.join(',')}\n${sample}`;
         this.downloadFile(content, 'Altech_Batch_Template.csv', 'text/csv');
-        this.toast('ðŸ“„ CSV template downloaded');
+        this.toast('\u{1F4C4} CSV template downloaded');
     },
 
     openBatchImport() {
@@ -778,7 +778,7 @@ Object.assign(App, {
         const text = await file.text();
         const parsed = this.parseCSV(text);
         if (!parsed || !parsed.rows.length) {
-            this.toast('âš ï¸ CSV has no rows.');
+            this.toast('\u26A0\uFE0F CSV has no rows.');
             return;
         }
 
@@ -810,11 +810,11 @@ Object.assign(App, {
         await this.renderQuoteList();
 
         if (created) {
-            this.toast(`âœ… Imported ${created} draft${created > 1 ? 's' : ''}`);
+            this.toast(`\u2705 Imported ${created} draft${created > 1 ? 's' : ''}`);
         }
         if (errors.length) {
             console.warn('Batch import warnings:', errors);
-            this.toast('âš ï¸ Some rows were skipped.');
+            this.toast('\u26A0\uFE0F Some rows were skipped.');
         }
     },
 
@@ -906,7 +906,7 @@ Object.assign(App, {
         const result = this.buildCMSMTF(this.data);
         this.downloadFile(result.content, result.filename, result.mime);
         this.logExport('CMSMTF', result.filename);
-        this.toast('ðŸ“¥ HawkSoft File Generated!');
+        this.toast('\u{1F525} HawkSoft File Generated!');
     },
 
     buildCMSMTF(data) {
