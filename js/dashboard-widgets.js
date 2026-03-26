@@ -610,7 +610,7 @@ window.DashboardWidgets = (() => {
         // Group tools by category
         const seen = [];
         const groups = {};
-        toolConfig.filter(t => !t.hidden).forEach(t => {
+        toolConfig.filter(t => !t.hidden && t.key !== 'quickref').forEach(t => {
             const cat = t.category || 'other';
             if (!groups[cat]) { groups[cat] = []; seen.push(cat); }
             groups[cat].push(t);
@@ -648,6 +648,11 @@ window.DashboardWidgets = (() => {
                         href="#home" onclick="event.preventDefault(); App.goHome()">
                         <span class="sidebar-nav-icon">${icon('layoutDashboard', 20)}</span>
                         <span class="sidebar-nav-item-label">Dashboard</span>
+                    </a>
+                    <a class="sidebar-nav-item" data-tool="quickref" data-tooltip="Quick Reference"
+                        href="#quickref" onclick="event.preventDefault(); App.navigateTo('quickref')">
+                        <span class="sidebar-nav-icon">${icon('bookOpen', 20)}</span>
+                        <span class="sidebar-nav-item-label">Quick Reference</span>
                     </a>
                 </div>
                 ${navHtml}

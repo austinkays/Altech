@@ -298,6 +298,46 @@
     }
 }
 
+/* ── Collapsible Sections ── */
+.qr-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.qr-section.collapsed .qr-section-header {
+    margin-bottom: 0;
+}
+.qr-section-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+.qr-section-toggle:hover {
+    background: var(--border);
+    color: var(--text);
+}
+.qr-chevron {
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+.qr-section.collapsed .qr-chevron {
+    transform: rotate(-90deg);
+}
+.qr-section-body {
+    overflow: hidden;
+}
+.qr-section.collapsed .qr-section-body {
+    display: none;
+}
+
 /* ─── Dark Mode ─────────────────────────────────────────────────────────────
    The teal palette (#0d9488) is intentional. Boost low-opacity backgrounds
    and increase focus-ring alpha so they read on the #000 background.

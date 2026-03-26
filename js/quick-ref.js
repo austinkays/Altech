@@ -28,7 +28,29 @@ const QuickRef = {
         this.renderCards();
         this.loadNumbers();
         this.renderNumbers();
+        this.loadSectionStates();
         console.log('[QuickRef] initialized');
+    },
+
+    // ─── Collapsible Sections ────────
+
+    toggleSection(id) {
+        const el = document.getElementById('qrs-' + id);
+        if (!el) return;
+        el.classList.toggle('collapsed');
+        const collapsed = Utils.tryParseLS('altech_quickref_sections', {});
+        collapsed[id] = el.classList.contains('collapsed');
+        localStorage.setItem('altech_quickref_sections', JSON.stringify(collapsed));
+    },
+
+    loadSectionStates() {
+        const collapsed = Utils.tryParseLS('altech_quickref_sections', {});
+        Object.entries(collapsed).forEach(([id, isCollapsed]) => {
+            if (isCollapsed) {
+                const el = document.getElementById('qrs-' + id);
+                if (el) el.classList.add('collapsed');
+            }
+        });
     },
 
     // ─── Phonetic Grid ──────────────
