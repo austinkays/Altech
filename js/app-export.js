@@ -307,6 +307,42 @@ Object.assign(App, {
             ['Residence Is',    v('residenceIs')],
         ], 3);
 
+        // Previous address — show only if present
+        const prevAddr = [v('previousAddrStreet'), v('previousAddrCity'), v('previousAddrState'), v('previousAddrZip')].filter(Boolean).join(', ');
+        if (prevAddr) {
+            need(6);
+            doc.setFontSize(6.5); doc.setFont(undefined,'bold'); doc.setTextColor(...MID);
+            doc.text('PREVIOUS ADDRESS', mg, y+3.5);
+            doc.setDrawColor(...RULE); doc.setLineWidth(0.25);
+            doc.line(mg+28, y+3, pageW-mg, y+3);
+            doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
+            y += 5;
+            kvRow([
+                ['Street',  v('previousAddrStreet')],
+                ['City',    v('previousAddrCity')],
+                ['State',   v('previousAddrState')],
+                ['ZIP',     v('previousAddrZip')],
+            ], 3);
+        }
+
+        // Primary home address — show if different from insured location
+        const priHomeAddr = [v('primaryHomeAddr'), v('primaryHomeCity'), v('primaryHomeState'), v('primaryHomeZip')].filter(Boolean).join(', ');
+        if (priHomeAddr) {
+            need(6);
+            doc.setFontSize(6.5); doc.setFont(undefined,'bold'); doc.setTextColor(...MID);
+            doc.text('PRIMARY HOME ADDRESS', mg, y+3.5);
+            doc.setDrawColor(...RULE); doc.setLineWidth(0.25);
+            doc.line(mg+32, y+3, pageW-mg, y+3);
+            doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
+            y += 5;
+            kvRow([
+                ['Street',  v('primaryHomeAddr')],
+                ['City',    v('primaryHomeCity')],
+                ['State',   v('primaryHomeState')],
+                ['ZIP',     v('primaryHomeZip')],
+            ], 3);
+        }
+
         // Co-applicant — compact, no separate subHeader
         if (data.hasCoApplicant === 'yes' && (data.coFirstName || data.coLastName)) {
             // Thin label row to separate
@@ -325,6 +361,9 @@ Object.assign(App, {
                 ['Relationship',    v('coRelationship')],
                 ['Phone',           fmtPhone(v('coPhone'))],
                 ['Email',           v('coEmail')],
+                ['Occupation',      v('coOccupation')],
+                ['Education',       v('coEducation')],
+                ['Industry',        v('coIndustry')],
             ], 3);
         }
 
@@ -362,6 +401,7 @@ Object.assign(App, {
                 ['Roof Type',        v('roofType')],
                 ['Roof Shape',       v('roofShape')],
                 ['Roof Updated',     v('roofYr')],
+                ['Roof Update Type', v('roofUpdate')],
                 ['Heating',          v('heatingType')],
                 ['Heat Updated',     v('heatYr')],
                 ['Cooling',          v('cooling')],
@@ -371,17 +411,12 @@ Object.assign(App, {
                 ['Water Source',     v('waterSource')],
             ], 3);
 
-            subHeader('Risk & Protection');
+            subHeader('Safety & Protection');
             kvRow([
                 ['Burglar Alarm',   v('burglarAlarm')],
                 ['Fire Alarm',      v('fireAlarm')],
                 ['Smoke Detector',  v('smokeDetector')],
                 ['Sprinklers',      v('sprinklers')],
-                ['Pool',            v('pool')||'No'],
-                ['Trampoline',      v('trampoline')||'No'],
-                ['Wood Stove',      v('woodStove')||'None'],
-                ['Dog on Premises', v('dogInfo')||'None'],
-                ['Business on Prop',v('businessOnProperty')||'No'],
                 ['Secondary Heat',  v('secondaryHeating')],
                 ['Fire Station',    v('fireStationDist') ? v('fireStationDist')+' mi' : ''],
                 ['Fire Hydrant',    v('fireHydrantFeet') ? v('fireHydrantFeet')+' ft' : ''],
@@ -389,22 +424,53 @@ Object.assign(App, {
                 ['Protection Class',v('protectionClass')],
             ], 3);
 
+            // Risk items — only show when they represent actual risks
+            const riskItems = [];
+            const poolVal = v('pool');
+            if (poolVal && poolVal.toLowerCase() !== 'no' && poolVal.toLowerCase() !== 'none') riskItems.push(['Swimming Pool', poolVal]);
+            const trampVal = v('trampoline');
+            if (trampVal && trampVal.toLowerCase() !== 'no') riskItems.push(['Trampoline', trampVal]);
+            const woodVal = v('woodStove');
+            if (woodVal && woodVal.toLowerCase() !== 'none' && woodVal.toLowerCase() !== 'no') riskItems.push(['Wood Stove', woodVal]);
+            const dogVal = v('dogInfo');
+            if (dogVal && dogVal.toLowerCase() !== 'none' && dogVal.toLowerCase() !== 'no') riskItems.push(['Dogs', dogVal]);
+            const bizVal = v('businessOnProperty');
+            if (bizVal && bizVal.toLowerCase() !== 'no') riskItems.push(['Business on Property', bizVal]);
+            if (riskItems.length) {
+                subHeader('Risk Items');
+                kvRow(riskItems, 3);
+            }
+
             subHeader('Home Coverage');
             kvRow([
-                ['Policy Type',     v('homePolicyType')],
-                ['Dwelling',        fmtMoney(v('dwellingCoverage'))],
-                ['Personal Liab.',  fmtMoney(v('personalLiability'))],
-                ['Med Payments',    fmtMoney(v('medicalPayments'))],
-                ['Deductible',      fmtMoney(v('homeDeductible'))],
-                ['Wind/Hail Ded.',  fmtMoney(v('windDeductible'))],
-                ['Mortgagee',       v('mortgagee')],
-                ['Incr. Repl. Cost',v('increasedReplacementCost')],
-                ['Ordinance/Law',   v('ordinanceOrLaw')],
-                ['Water Backup',    v('waterBackup')],
-                ['Equip. Breakdn',  v('equipmentBreakdown')],
-                ['Service Line',    v('serviceLine')],
-                ['Animal Liab.',    fmtMoney(v('animalLiability'))],
-                ['Earthquake',      v('earthquakeCoverage')],
+                ['Policy Type',       v('homePolicyType')],
+                ['Dwelling (Cov A)',  fmtMoney(v('dwellingCoverage'))],
+                ['Other Struct (B)',  fmtMoney(v('otherStructures'))],
+                ['Personal Prop (C)', fmtMoney(v('homePersonalProperty'))],
+                ['Loss of Use (D)',   fmtMoney(v('homeLossOfUse'))],
+                ['Personal Liab.',    fmtMoney(v('personalLiability'))],
+                ['Med Payments',      fmtMoney(v('medicalPayments'))],
+                ['Deductible (AOP)',  fmtMoney(v('homeDeductible'))],
+                ['Wind/Hail Ded.',    fmtMoney(v('windDeductible'))],
+                ['Mortgagee',         v('mortgagee')],
+            ], 3);
+
+            subHeader('Endorsements');
+            kvRow([
+                ['Incr. Repl. Cost',  v('increasedReplacementCost')],
+                ['Ordinance/Law',     v('ordinanceOrLaw')],
+                ['Water Backup',      v('waterBackup')],
+                ['Loss Assessment',   fmtMoney(v('lossAssessment'))],
+                ['Animal Liability',  fmtMoney(v('animalLiability'))],
+                ['Theft Deductible',  fmtMoney(v('theftDeductible'))],
+                ['Jewelry/Valuables', fmtMoney(v('jewelryLimit'))],
+                ['Credit Card Cov.',  fmtMoney(v('creditCardCoverage'))],
+                ['Mold Damage',       fmtMoney(v('moldDamage'))],
+                ['Equip. Breakdown',  v('equipmentBreakdown')],
+                ['Service Line',      v('serviceLine')],
+                ['Earthquake',        v('earthquakeCoverage')],
+                ['Earthquake Zone',   v('earthquakeZone')],
+                ['Earthquake Ded.',   fmtMoney(v('earthquakeDeductible'))],
             ], 3);
 
             // Risk flags callout
@@ -413,9 +479,9 @@ Object.assign(App, {
             if (!isNaN(roofAge) && roofAge>1900 && (curY-roofAge)>=20) flags.push(`[!] Roof age ${curY-roofAge} yrs (updated ${roofAge})`);
             const yrB = parseInt(v('yrBuilt'));
             if (!isNaN(yrB) && yrB>1800 && yrB<1970) flags.push(`[!] Year built: ${yrB}`);
-            if (v('pool') && v('pool').toLowerCase()!=='no') flags.push('[!] Pool on property');
-            if (v('trampoline') && v('trampoline').toLowerCase()!=='no') flags.push('[!] Trampoline');
-            if (v('woodStove') && v('woodStove').toLowerCase()!=='none') flags.push(`[!] Wood stove: ${v('woodStove')}`);
+            if (poolVal && poolVal.toLowerCase()!=='no' && poolVal.toLowerCase()!=='none') flags.push('[!] Pool on property');
+            if (trampVal && trampVal.toLowerCase()!=='no') flags.push('[!] Trampoline');
+            if (woodVal && woodVal.toLowerCase()!=='none' && woodVal.toLowerCase()!=='no') flags.push(`[!] Wood stove: ${woodVal}`);
             if (!isNaN(parseFloat(v('fireStationDist'))) && parseFloat(v('fireStationDist'))>5) flags.push(`[!] Fire station ${v('fireStationDist')} mi`);
             if (flags.length) {
                 subHeader('Risk Flags');
@@ -605,6 +671,7 @@ Object.assign(App, {
         sectionLabel('Additional Information');
         kvRow([
             ['Additional Insureds', v('additionalInsureds')],
+            ['Credit Check Auth',   data.creditCheckAuth ? 'Yes — Authorized' : 'No'],
             ['TCPA Consent',        data.tcpaConsent ? 'Yes — Consented' : 'No'],
             ['Contact Method',      v('contactMethod')],
             ['Best Contact Time',   v('contactTime')],
