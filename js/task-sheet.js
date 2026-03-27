@@ -554,7 +554,7 @@ window.TaskSheetModule = (() => {
         outEl.innerHTML = _buildTableHTML(rows);
     }
 
-    function _buildTableHTML(rows) {
+    function _buildTableHTML(rows, overflowMsg) {
         // Notes column is always rendered — CSV data fills it if present,
         // otherwise it stays blank for agents to write on during print.
         const hasCsvNotes = rows.some(r => r.notes && r.notes.trim());
@@ -609,7 +609,12 @@ window.TaskSheetModule = (() => {
             html += '</tr>';
         });
 
-        html += '</tbody></table>';
+        html += '</tbody>';
+        if (overflowMsg) {
+            html += '<tfoot><tr><td colspan="8" class="ts-overflow-cell">' +
+                _escapeHTML(overflowMsg) + '</td></tr></tfoot>';
+        }
+        html += '</table>';
         return html;
     }
 
@@ -670,14 +675,11 @@ window.TaskSheetModule = (() => {
                     '</div>' +
                 '</div>';
 
-            html += _buildTableHTML(agentRows);
-
-            if (hiddenCount > 0) {
-                html += '<div class="ts-overflow-notice">' +
-                    '+ ' + hiddenCount + ' more task' + (hiddenCount !== 1 ? 's' : '') +
-                    ' not shown \u2014 check HawkSoft for full list' +
-                '</div>';
-            }
+            const overflowMsg = hiddenCount > 0
+                ? '+ ' + hiddenCount + ' more task' + (hiddenCount !== 1 ? 's' : '') +
+                  ' not shown \u2014 check HawkSoft for full list'
+                : '';
+            html += _buildTableHTML(agentRows, overflowMsg);
 
             html += '</div>';
         });
