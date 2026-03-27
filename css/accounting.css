@@ -562,7 +562,7 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
    ═══════════════════════════════════════════════════════ */
 
 @media print {
-    @page { size: letter landscape; margin: 0.5in 0.4in; }
+    @page { size: landscape; margin: 0.5in 0.4in; }
 
     /* ── Hide app chrome + non-print elements ────────────── */
     .no-print,
