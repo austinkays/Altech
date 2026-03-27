@@ -289,7 +289,7 @@ const server = createServer(async (req, res) => {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: blob: https:",
-        "connect-src 'self' https://generativelanguage.googleapis.com https://openrouter.ai https://api.openai.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebase.googleapis.com https://api.stripe.com",
+        "connect-src 'self' https://generativelanguage.googleapis.com https://openrouter.ai https://api.openai.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebase.googleapis.com https://api.stripe.com https://api.open-meteo.com https://geocoding-api.open-meteo.com",
         "frame-src https://js.stripe.com https://hooks.stripe.com",
         "worker-src 'none'",
         "object-src 'none'",
