@@ -470,6 +470,11 @@ body.dark-mode .ds-bill-counter { background: #1C1C1E; border-color: #38383A; }
     border: 1px solid var(--border); background: var(--bg-input);
     color: var(--text); font-size: 12px; text-align: right;
     font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+}
+.ds-bill-input::-webkit-outer-spin-button,
+.ds-bill-input::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
 }
 .ds-bill-input:focus {
     outline: none; border-color: var(--apple-blue);
