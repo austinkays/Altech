@@ -148,11 +148,11 @@
                 Deposit Sheet
             </h3>
             <div style="display: flex; gap: 6px; align-items: center;">
-                <button id="ds-print-btn" class="ds-header-btn" style="display:none" title="Print deposit sheet" onclick="event.stopPropagation();">
+                <button id="ds-export-btn" class="ds-header-btn" style="display:none" title="Export deposit sheet as PDF" onclick="event.stopPropagation();">
                     <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                        <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                     </svg>
-                    Print
+                    Export
                 </button>
                 <button id="ds-clear-btn" class="ds-header-btn ds-header-btn-outline" style="display:none" title="Upload new CSV" onclick="event.stopPropagation();">
                     Upload New

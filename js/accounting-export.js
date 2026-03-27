@@ -521,7 +521,7 @@ const AccountingExport = {
     _wireDepositEvents() {
         const dropZone  = document.getElementById('ds-drop-zone');
         const fileInput = document.getElementById('ds-file-input');
-        const printBtn  = document.getElementById('ds-print-btn');
+        const exportBtn = document.getElementById('ds-export-btn');
         const clearBtn  = document.getElementById('ds-clear-btn');
 
         if (dropZone) {
@@ -548,8 +548,8 @@ const AccountingExport = {
             });
         }
 
-        if (printBtn) {
-            printBtn.addEventListener('click', () => window.print());
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => this._dsExportPDF());
         }
 
         if (clearBtn) {
@@ -675,16 +675,16 @@ const AccountingExport = {
     _dsRenderAll(filename) {
         this._dsFilename = filename || '';
         const dropZone  = document.getElementById('ds-drop-zone');
-        const printBtn  = document.getElementById('ds-print-btn');
+        const exportBtn = document.getElementById('ds-export-btn');
         const clearBtn  = document.getElementById('ds-clear-btn');
         const meta      = document.getElementById('ds-meta');
         const output    = document.getElementById('ds-output');
         const billBlock = document.getElementById('ds-bill-counter');
 
-        if (dropZone) dropZone.style.display = 'none';
-        if (printBtn) printBtn.style.display = 'inline-flex';
-        if (clearBtn) clearBtn.style.display = 'inline-flex';
-        if (meta)     meta.style.display = 'block';
+        if (dropZone)   dropZone.style.display = 'none';
+        if (exportBtn)  exportBtn.style.display = 'inline-flex';
+        if (clearBtn)   clearBtn.style.display = 'inline-flex';
+        if (meta)       meta.style.display = 'block';
 
         // Group by pay method
         const groups = {};
@@ -912,15 +912,15 @@ const AccountingExport = {
         this._dsRows = [];
         this._dsFilename = '';
         const dropZone  = document.getElementById('ds-drop-zone');
-        const printBtn  = document.getElementById('ds-print-btn');
+        const exportBtn = document.getElementById('ds-export-btn');
         const clearBtn  = document.getElementById('ds-clear-btn');
         const meta      = document.getElementById('ds-meta');
         const output    = document.getElementById('ds-output');
         const billBlock = document.getElementById('ds-bill-counter');
 
-        if (dropZone)  { dropZone.style.display = ''; }
-        if (printBtn)  printBtn.style.display = 'none';
-        if (clearBtn)  clearBtn.style.display = 'none';
+        if (dropZone)   { dropZone.style.display = ''; }
+        if (exportBtn)  exportBtn.style.display = 'none';
+        if (clearBtn)   clearBtn.style.display = 'none';
         if (meta)      { meta.style.display = 'none'; meta.innerHTML = ''; }
         if (output)    output.innerHTML = '';
         if (billBlock) billBlock.style.display = 'none';
@@ -928,6 +928,334 @@ const AccountingExport = {
         document.querySelectorAll('input.ds-bill-input').forEach(i => { i.value = 0; });
         this._dsUpdateBillCounter();
         this._dsHideError();
+    },
+
+    // ═══════════════════════════════════════════
+    //  PDF EXPORT
+    // ═══════════════════════════════════════════
+
+    async _dsExportPDF() {
+        if (!this._dsRows.length) return;
+
+        // Lazy-load jsPDF
+        if (typeof window.jspdf === 'undefined') {
+            try {
+                await new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'lib/jspdf.umd.min.js';
+                    s.onload = resolve;
+                    s.onerror = reject;
+                    document.head.appendChild(s);
+                });
+            } catch {
+                App.toast('Failed to load PDF library', 'error');
+                return;
+            }
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+        const pageW = doc.internal.pageSize.getWidth();   // 279.4
+        const pageH = doc.internal.pageSize.getHeight();  // 215.9
+        const mg = 10;
+        const cw = pageW - mg * 2;
+        let y = mg;
+
+        // Toner-friendly palette
+        const INK   = [20, 20, 20];
+        const MID   = [70, 70, 70];
+        const LIGHT = [150, 150, 150];
+        const RULE  = [180, 180, 180];
+        const FILL  = [240, 240, 240];
+        const HFILL = [225, 225, 225];
+        const GRP   = [50, 50, 50];
+
+        const addPage = () => { doc.addPage(); y = mg; };
+        const need = (h) => { if (y + h > pageH - 12) { addPage(); return true; } return false; };
+
+        // ── Header ──────────────────────────────────────────
+        const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...INK);
+        doc.text('Deposit Sheet', mg, y + 6);
+
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...MID);
+        doc.text(dateStr, pageW - mg, y + 6, { align: 'right' });
+        y += 9;
+
+        doc.setFontSize(9);
+        doc.setTextColor(...MID);
+        doc.text('Altech Insurance Agency', mg, y + 3.5);
+
+        // Teller names
+        const tellers = [...new Set(this._dsRows.map(r => (r['teller'] || '').trim()).filter(Boolean))];
+        if (tellers.length) {
+            doc.text('Tendered by: ' + tellers.join(', '), mg + 52, y + 3.5);
+        }
+
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...INK);
+        doc.text(this._dsRows.length + ' receipt' + (this._dsRows.length !== 1 ? 's' : ''), pageW - mg, y + 3.5, { align: 'right' });
+        y += 7;
+
+        // ── Totals bar ──────────────────────────────────────
+        const totals = { invoiced: 0, tendered: 0, disbursement: 0, 'non-fiduciary': 0 };
+        for (const row of this._dsRows) {
+            for (const key of Object.keys(totals)) totals[key] += this._dsParseMoney(row[key]);
+        }
+
+        doc.setDrawColor(...RULE);
+        doc.setLineWidth(0.3);
+        doc.line(mg, y, pageW - mg, y);
+        y += 1.5;
+
+        doc.setFillColor(...FILL);
+        doc.rect(mg, y, cw, 8, 'F');
+
+        const summaryItems = [
+            ['INVOICED', this._dsFmt(totals.invoiced)],
+            ['TENDERED', this._dsFmt(totals.tendered)],
+            ['DISBURSEMENT', this._dsFmt(totals.disbursement)],
+            ['NON-FIDUCIARY', this._dsFmt(totals['non-fiduciary'])]
+        ];
+        let sx = mg + 4;
+        for (const [label, val] of summaryItems) {
+            doc.setFontSize(6);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...LIGHT);
+            doc.text(label, sx, y + 3);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...INK);
+            doc.text(val, sx, y + 7);
+            sx += 60;
+        }
+        y += 11;
+
+        // ── Bill counter (only if counted) ──────────────────
+        const billInputs = document.querySelectorAll('input.ds-bill-input');
+        let billTotal = 0;
+        const bills = [];
+        billInputs.forEach(input => {
+            const denom = parseInt(input.dataset.denom, 10);
+            const count = parseInt(input.value, 10) || 0;
+            if (count > 0) {
+                bills.push({ denom, count, total: denom * count });
+                billTotal += denom * count;
+            }
+        });
+
+        if (bills.length) {
+            need(12 + bills.length * 4.5);
+            doc.setFontSize(7);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...MID);
+            doc.text('CASH COUNTER', mg, y + 3);
+            y += 5.5;
+
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(9);
+            for (const b of bills) {
+                doc.setTextColor(...INK);
+                doc.text('$' + b.denom, mg + 3, y + 3.5);
+                doc.setTextColor(...LIGHT);
+                doc.text('\u00d7  ' + b.count, mg + 18, y + 3.5);
+                doc.setTextColor(...INK);
+                doc.text('=  ' + this._dsFmt(b.total), mg + 32, y + 3.5);
+                y += 4.5;
+            }
+            doc.setDrawColor(...RULE);
+            doc.line(mg, y, mg + 55, y);
+            y += 1;
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(10);
+            doc.text('Counted:  ' + this._dsFmt(billTotal), mg + 3, y + 4);
+            y += 8;
+        }
+
+        // ── Column definitions ──────────────────────────────
+        const hasDisb = this._dsRows.some(r => this._dsParseMoney(r['disbursement']) !== 0);
+        const hasNonFid = this._dsRows.some(r => this._dsParseMoney(r['non-fiduciary']) !== 0);
+        const hasCrUsed = this._dsRows.some(r => this._dsParseMoney(r['credit used']) !== 0);
+        const hasChange = this._dsRows.some(r => this._dsParseMoney(r['change']) !== 0);
+        const hasMemo = this._dsRows.some(r => (r['memo'] || '').trim());
+
+        const cols = [];
+        cols.push({ key: 'item #',    label: 'RECEIPT',   width: 16, align: 'left' });
+        cols.push({ key: 'item date', label: 'DATE',      width: 18, align: 'left' });
+        cols.push({ key: 'name',      label: 'CLIENT',    width: 0,  align: 'left' });  // flex
+        cols.push({ key: 'teller',    label: 'AGENT',     width: 22, align: 'left' });
+        cols.push({ key: 'invoiced',  label: 'INVOICED',  width: 22, align: 'right', money: true });
+        cols.push({ key: 'tendered',  label: 'TENDERED',  width: 22, align: 'right', money: true });
+        if (hasCrUsed) cols.push({ key: 'credit used',  label: 'CR. USED', width: 18, align: 'right', money: true });
+        if (hasChange) cols.push({ key: 'change',       label: 'CHANGE',   width: 18, align: 'right', money: true });
+        if (hasDisb)   cols.push({ key: 'disbursement',  label: 'DISB.',    width: 22, align: 'right', money: true });
+        if (hasNonFid) cols.push({ key: 'non-fiduciary', label: 'NON-FID.', width: 22, align: 'right', money: true });
+        if (hasMemo)   cols.push({ key: 'memo',          label: 'MEMO',     width: 38, align: 'left' });
+
+        // Compute flex column width
+        const fixedW = cols.reduce((s, c) => s + (c.key === 'name' ? 0 : c.width), 0);
+        const nameCol = cols.find(c => c.key === 'name');
+        if (nameCol) nameCol.width = Math.max(30, cw - fixedW);
+
+        const rowH = 6;
+        const headerH = 6.5;
+
+        const _drawTableHeader = () => {
+            doc.setFillColor(...HFILL);
+            doc.rect(mg, y, cw, headerH, 'F');
+            doc.setFontSize(6.5);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...MID);
+            let cx = mg + 2;
+            for (const col of cols) {
+                if (col.align === 'right') {
+                    doc.text(col.label, cx + col.width - 2, y + 4.2, { align: 'right' });
+                } else {
+                    doc.text(col.label, cx, y + 4.2);
+                }
+                cx += col.width;
+            }
+            y += headerH;
+        };
+
+        const _drawRow = (row, isAlt) => {
+            if (isAlt) {
+                doc.setFillColor(248, 248, 248);
+                doc.rect(mg, y, cw, rowH, 'F');
+            }
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'normal');
+            let cx = mg + 2;
+            for (const col of cols) {
+                if (col.money) {
+                    const v = this._dsParseMoney(row[col.key]);
+                    doc.setTextColor(v === 0 ? 170 : 20, v === 0 ? 170 : 20, v === 0 ? 170 : 20);
+                    doc.text(v === 0 ? '\u2014' : this._dsFmt(v), cx + col.width - 2, y + 4, { align: 'right' });
+                } else if (col.key === 'name') {
+                    doc.setTextColor(...INK);
+                    const nm = (row['name'] || '').trim();
+                    const id = (row['cust id'] || '').trim();
+                    doc.text((nm + (id ? '  #' + id : '')).substring(0, 42), cx, y + 4);
+                } else if (col.key === 'memo') {
+                    doc.setTextColor(...MID);
+                    doc.setFontSize(7);
+                    doc.text((row['memo'] || '').trim().substring(0, 55), cx, y + 4);
+                    doc.setFontSize(8);
+                } else {
+                    doc.setTextColor(...INK);
+                    doc.text(String(row[col.key] || '').trim().substring(0, 28), cx, y + 4);
+                }
+                cx += col.width;
+            }
+            y += rowH;
+        };
+
+        // ── Group by pay method ─────────────────────────────
+        const groups = {};
+        for (const row of this._dsRows) {
+            const method = (row['pay method'] || 'Other').trim();
+            if (!groups[method]) groups[method] = [];
+            groups[method].push(row);
+        }
+        const methodOrder = (m) => {
+            const l = m.toLowerCase();
+            if (l === 'check') return '0';
+            if (l === 'cash')  return '1';
+            return '2' + l;
+        };
+        const sortedMethods = Object.keys(groups).sort((a, b) =>
+            methodOrder(a).localeCompare(methodOrder(b))
+        );
+
+        // ── Render groups ───────────────────────────────────
+        for (const method of sortedMethods) {
+            const gRows = groups[method];
+            const label = this._METHOD_LABELS[method.toLowerCase()] || method;
+            const methodTotal = gRows.reduce((s, r) => s + this._dsParseMoney(r['tendered']), 0);
+
+            need(headerH + rowH * 2 + 8);
+
+            // Group header bar
+            doc.setFillColor(...GRP);
+            doc.rect(mg, y, cw, 6, 'F');
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(255, 255, 255);
+            doc.text(label.toUpperCase(), mg + 3, y + 4);
+            doc.text(this._dsFmt(methodTotal), pageW - mg - 3, y + 4, { align: 'right' });
+            y += 7;
+
+            _drawTableHeader();
+
+            for (let i = 0; i < gRows.length; i++) {
+                if (need(rowH + 8)) {
+                    // Reprint group header on new page
+                    doc.setFillColor(...GRP);
+                    doc.rect(mg, y, cw, 6, 'F');
+                    doc.setFontSize(8);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(255, 255, 255);
+                    doc.text(label.toUpperCase() + ' (cont.)', mg + 3, y + 4);
+                    y += 7;
+                    _drawTableHeader();
+                }
+                _drawRow(gRows[i], i % 2 === 1);
+            }
+
+            // Subtotal row
+            doc.setDrawColor(...RULE);
+            doc.line(mg, y, pageW - mg, y);
+            y += 0.5;
+            doc.setFillColor(...FILL);
+            doc.rect(mg, y, cw, rowH, 'F');
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'bold');
+            let cx = mg + 2;
+            for (const col of cols) {
+                if (col.money) {
+                    const v = gRows.reduce((s, r) => s + this._dsParseMoney(r[col.key]), 0);
+                    doc.setTextColor(...INK);
+                    doc.text(v === 0 ? '\u2014' : this._dsFmt(v), cx + col.width - 2, y + 4, { align: 'right' });
+                } else if (col.key === 'name') {
+                    doc.setTextColor(...MID);
+                    doc.setFontSize(7);
+                    doc.text('SUBTOTAL', cx, y + 4);
+                    doc.setFontSize(8);
+                }
+                cx += col.width;
+            }
+            y += rowH + 4;
+        }
+
+        // ── Receipt tape area ───────────────────────────────
+        const tapeW = 130;  // ~5.1 inches
+        const tapeH = 65;   // ~2.5 inches
+        if (y + tapeH + 12 > pageH - 12) addPage();
+
+        y += 2;
+        doc.setFontSize(7);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...MID);
+        doc.text('BANK DEPOSIT RECEIPT', mg, y + 3);
+        y += 5;
+
+        doc.setDrawColor(...RULE);
+        doc.setLineWidth(0.4);
+        doc.rect(mg, y, tapeW, tapeH);
+        doc.setFontSize(7);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...LIGHT);
+        doc.text('Tape receipt here', mg + tapeW / 2, y + tapeH / 2, { align: 'center' });
+
+        // ── Save ────────────────────────────────────────────
+        const fname = 'Deposit_Sheet_' + new Date().toISOString().slice(0, 10) + '.pdf';
+        doc.save(fname);
+        App.toast('Deposit sheet exported', 'success');
     },
 
     // ═══════════════════════════════════════════
