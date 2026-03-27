@@ -1315,6 +1315,10 @@ ${ai.underwritingNotes || 'N/A'}`;
                     <div style="margin-top: 12px; padding: 10px 14px; background: rgba(255,149,0,0.06); border: 1px solid rgba(255,149,0,0.12); border-radius: 8px; font-size: 12px; color: var(--text-secondary);">
                         <strong>\u26A0\uFE0F Underwriting gap:</strong> Entity type, formation date, registered agent, and officers are unknown. Verify these manually before binding.
                     </div>
+                    <button onclick="ProspectInvestigator.pasteSOSData()"
+                        style="margin-top:12px;width:100%;padding:12px 16px;background:var(--bg-card);color:var(--text);border:1.5px dashed var(--border);border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                        \uD83D\uDCCB Paste SOS Data
+                    </button>
                 </div>`;
         }
 
@@ -1323,7 +1327,11 @@ ${ai.underwritingNotes || 'N/A'}`;
             <div style="padding: 12px 16px; background: rgba(255,149,0,0.06); border-left: 4px solid #FF9500; border-radius: 4px;">
                 <p style="color: var(--text-secondary); margin: 0;">\u26A0\uFE0F ${_esc(errorMsg)}</p>
             </div>
-            ${sosLink ? '<a href="' + sosLink.url + '" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:10px 18px;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--apple-blue);font-weight:600;font-size:13px;">\uD83D\uDD0D Search ' + _esc(sosLink.label) + '</a>' : ''}`;
+            ${sosLink ? '<a href="' + sosLink.url + '" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:10px 18px;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--apple-blue);font-weight:600;font-size:13px;">\uD83D\uDD0D Search ' + _esc(sosLink.label) + '</a>' : ''}
+            <button onclick="ProspectInvestigator.pasteSOSData()"
+                style="margin-top:12px;width:100%;padding:12px 16px;background:var(--bg-card);color:var(--text);border:1.5px dashed var(--border);border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                \uD83D\uDCCB Paste SOS Data
+            </button>`;
     }
 
     function _formatRiskClassification(data) {
@@ -1982,6 +1990,153 @@ ${ai.underwritingNotes || 'N/A'}`;
         _toast('Sending to Commercial Quoter...');
     }
 
+    // ── SOS Paste Integration ────────────────────────────────────
+
+    /** Parse WA CCFS / OR SOS pasted text into structured entity data */
+    function _parseSOSPaste(text) {
+        if (!text || text.length < 30) return null;
+
+        // Extract label: value pairs — CCFS uses "Label:\nVALUE" format
+        const extract = (label) => {
+            // Match "Label:\n VALUE" or "Label: VALUE" (case-insensitive)
+            const re = new RegExp(label + ':\\s*\\n?\\s*(.+?)\\s*(?=\\n[A-Z][a-z]|\\n[A-Z]{2,}|$)', 'i');
+            const m = text.match(re);
+            return m ? m[1].trim() : '';
+        };
+
+        // More robust extraction: find all "Label:\nVALUE" pairs
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        const fields = {};
+        for (let i = 0; i < lines.length - 1; i++) {
+            const labelMatch = lines[i].match(/^(.+?):\s*$/);
+            if (labelMatch && i + 1 < lines.length && !lines[i + 1].match(/^.+?:\s*$/)) {
+                fields[labelMatch[1].toLowerCase().trim()] = lines[i + 1].trim();
+            }
+            // Also handle "Label: Value" on the same line
+            const inlineMatch = lines[i].match(/^(.+?):\s+(.+)$/);
+            if (inlineMatch && !fields[inlineMatch[1].toLowerCase().trim()]) {
+                fields[inlineMatch[1].toLowerCase().trim()] = inlineMatch[2].trim();
+            }
+        }
+
+        const businessName = fields['business name'] || '';
+        const ubi = (fields['ubi number'] || '').replace(/\s+/g, '');
+        const entityType = fields['business type'] || '';
+        const status = fields['business status'] || '';
+        const formationDate = fields['formation/ registration date'] || fields['formation/registration date'] || fields['formation date'] || '';
+        const expiration = fields['expiration date'] || '';
+        const jurisdiction = fields['jurisdiction'] || '';
+        const natureOfBusiness = fields['nature of business'] || '';
+        const duration = fields['period of duration'] || '';
+
+        // Principal Office address
+        const principalAddr = fields['principal office street address'] || '';
+        const parsedAddr = _parseAddress(principalAddr.replace(/,?\s*UNITED STATES\s*$/i, ''));
+
+        // Registered Agent
+        const agentName = fields['registered agent name'] || '';
+        const agentAddr = fields['street address'] || '';
+
+        // Governors — parse the table format
+        const governors = [];
+        const govIdx = text.indexOf('GOVERNORS');
+        if (govIdx > -1) {
+            const govText = text.substring(govIdx);
+            // Match rows like "GOVERNOR  INDIVIDUAL  [entity]  FIRSTNAME  LASTNAME"
+            const govLines = govText.split('\n').slice(2); // skip header rows
+            for (const line of govLines) {
+                const parts = line.trim().split(/\s{2,}/);
+                if (parts.length >= 4 && /^(GOVERNOR|OFFICER|DIRECTOR|PRESIDENT|SECRETARY|TREASURER|MEMBER|MANAGER)/i.test(parts[0])) {
+                    const title = parts[0];
+                    // Last two parts are usually first/last name
+                    const firstName = parts[parts.length - 2] || '';
+                    const lastName = parts[parts.length - 1] || '';
+                    if (firstName && lastName) {
+                        governors.push({ title, name: firstName + ' ' + lastName });
+                    }
+                }
+            }
+        }
+
+        if (!businessName && !ubi && !entityType) return null;
+
+        return {
+            available: true,
+            entity: {
+                businessName,
+                ubi,
+                entityType,
+                status,
+                formationDate,
+                expirationDate: expiration,
+                jurisdiction,
+                businessActivity: natureOfBusiness,
+                duration,
+                registeredAgent: agentName ? { name: agentName, address: agentAddr.replace(/,?\s*UNITED STATES\s*$/i, '') } : null,
+                principalOffice: parsedAddr || null,
+                governors,
+                dataSource: 'Manual paste (SOS website)',
+            }
+        };
+    }
+
+    /** Show paste modal, parse SOS data, merge into currentData, re-render */
+    function pasteSOSData() {
+        if (!currentData) { _toast('Run a search first'); return; }
+
+        // Create modal
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+        overlay.innerHTML = `
+            <div style="background:var(--bg-card);border-radius:16px;padding:24px;max-width:540px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                <h3 style="margin:0 0 8px;font-size:18px;">Paste SOS Data</h3>
+                <p style="margin:0 0 16px;font-size:13px;color:var(--text-secondary);">
+                    Go to the SOS website, select all (Ctrl+A), copy (Ctrl+C), then paste below.
+                </p>
+                <textarea id="sosPasteInput" style="width:100%;height:200px;padding:12px;font-size:12px;font-family:monospace;border-radius:10px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text);resize:vertical;" placeholder="Paste the full page text from the Secretary of State website here..."></textarea>
+                <div style="display:flex;gap:10px;margin-top:16px;">
+                    <button id="sosPasteApply" style="flex:1;padding:12px;background:var(--apple-blue);color:#fff;border:none;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;">
+                        Apply SOS Data
+                    </button>
+                    <button onclick="this.closest('div[style*=fixed]').remove()" style="padding:12px 20px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:10px;font-weight:500;font-size:14px;cursor:pointer;">
+                        Cancel
+                    </button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        // Focus the textarea
+        setTimeout(() => document.getElementById('sosPasteInput')?.focus(), 100);
+
+        // Apply button handler
+        document.getElementById('sosPasteApply').onclick = () => {
+            const text = document.getElementById('sosPasteInput')?.value || '';
+            const parsed = _parseSOSPaste(text);
+            if (!parsed || !parsed.entity) {
+                _toast('Could not parse SOS data. Make sure you copied the full page.');
+                return;
+            }
+
+            // Merge into currentData
+            currentData.sos = parsed;
+            // Update the SOS section display
+            const sosEl = document.getElementById('sosBusinessInfo');
+            if (sosEl) sosEl.innerHTML = _formatSOSData(parsed);
+            // Update status pill
+            _setStatusPill('sosStatusPill',
+                (parsed.entity.entityType ? parsed.entity.entityType + ' \u00B7 ' : '') + (parsed.entity.status || 'Active'),
+                parsed.entity.status?.toUpperCase() === 'ACTIVE' ? 'green' : 'orange');
+            // Open the SOS accordion
+            const sosSection = document.getElementById('sosSection');
+            if (sosSection) sosSection.open = true;
+
+            overlay.remove();
+            _toast('\u2713 SOS data applied — ' + (parsed.entity.entityType || 'entity') + ' \u00B7 ' + (parsed.entity.status || ''));
+        };
+    }
+
     // ── Expose Public API ───────────────────────────────────────
 
     return {
@@ -1996,6 +2151,7 @@ ${ai.underwritingNotes || 'N/A'}`;
         saveProspect,
         loadProspect,
         deleteProspect,
+        pasteSOSData,
         get currentData() { return currentData; },
         get aiAnalysis() { return aiAnalysis; }
     };
