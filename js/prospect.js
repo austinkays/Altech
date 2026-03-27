@@ -862,13 +862,37 @@ ${ai.underwritingNotes || 'N/A'}`;
         const aiEl = document.getElementById('aiAnalysisContent');
         if (!aiEl || !currentData) return;
 
+        // Rotating status messages
+        const statusMsgs = [
+            'Searching the web for business intel...',
+            'Analyzing public records and filings...',
+            'Evaluating risk factors and compliance...',
+            'Building coverage recommendations...',
+            'Researching competitors and market position...',
+            'Compiling underwriting intelligence report...',
+            'Cross-referencing data sources...',
+            'Finalizing risk assessment...',
+        ];
+
         aiEl.innerHTML = `
             <div style="text-align: center; padding: 32px;">
-                <div class="ai-pulse" style="font-size: 36px; margin-bottom: 12px;">🧠</div>
+                <div class="ai-pulse" style="font-size: 36px; margin-bottom: 12px;">\uD83E\uDDE0</div>
                 <div style="font-weight: 600; margin-bottom: 4px;">Researching Business...</div>
-                <div style="font-size: 13px; color: var(--text-secondary);">AI is searching the web and analyzing public records to build your underwriting intelligence report</div>
-                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px; opacity: 0.6;">This typically takes 10–20 seconds</div>
+                <div id="aiStatusMsg" style="font-size: 13px; color: var(--text-secondary); transition: opacity 0.3s ease;">${statusMsgs[0]}</div>
             </div>`;
+
+        // Rotate status messages every 3.5s
+        let msgIdx = 0;
+        const statusEl = () => document.getElementById('aiStatusMsg');
+        const statusInterval = setInterval(() => {
+            msgIdx = (msgIdx + 1) % statusMsgs.length;
+            const el = statusEl();
+            if (!el) { clearInterval(statusInterval); return; }
+            el.style.opacity = '0';
+            setTimeout(() => {
+                if (statusEl()) { el.textContent = statusMsgs[msgIdx]; el.style.opacity = '1'; }
+            }, 300);
+        }, 3500);
 
         // Show the section
         const aiSection = document.getElementById('aiAnalysisSection');
@@ -894,6 +918,7 @@ ${ai.underwritingNotes || 'N/A'}`;
             const data = await res.json();
 
             if (!data.success || !data.analysis) {
+                clearInterval(statusInterval);
                 aiEl.innerHTML = `
                     <div style="padding: 16px; background: rgba(255,149,0,0.06); border-left: 4px solid #FF9500; border-radius: 4px;">
                         <p style="margin: 0; color: var(--text-secondary);">\u26A0\uFE0F AI analysis unavailable: ${_esc(data.error || 'Sign in to enable AI analysis')}</p>
@@ -901,10 +926,12 @@ ${ai.underwritingNotes || 'N/A'}`;
                 return;
             }
 
+            clearInterval(statusInterval);
             aiAnalysis = data.analysis;
             _renderAIAnalysis(data.analysis, data.groundedSearch);
 
         } catch (error) {
+            clearInterval(statusInterval);
             console.error('[Prospect] AI analysis error:', error);
             aiEl.innerHTML = `
                 <div style="padding: 16px; background: rgba(255,149,0,0.06); border-left: 4px solid #FF9500; border-radius: 4px;">
@@ -1085,20 +1112,8 @@ ${ai.underwritingNotes || 'N/A'}`;
                 </div>
                 ${p.googleMapsUrl ? `<a href="${_esc(p.googleMapsUrl)}" target="_blank" rel="noopener" style="margin-left:auto;font-size:12px;color:var(--apple-blue);text-decoration:none;">View on Maps \u2197</a>` : ''}
             </div>` : ''}
-            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                ${sources.map(s => `
-                    <span style="font-size: 11px; padding: 3px 10px; border-radius: 12px;
-                                 background: ${s.ok ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)'};
-                                 color: ${s.ok ? '#34C759' : '#FF3B30'}; font-weight: 600;">
-                        ${s.ok ? '\u2713' : '\u2717'} ${s.name}
-                    </span>
-                `).join('')}
-                <span style="font-size: 11px; padding: 3px 10px; border-radius: 12px; background: rgba(0,122,255,0.08); color: var(--apple-blue); font-weight: 600;">
-                    ${okCount}/${sources.length} sources
-                </span>
-                <span style="font-size: 11px; padding: 3px 10px; border-radius: 12px; background: rgba(168,85,247,0.1); color: #A855F7; font-weight: 600;">
-                    \uD83E\uDDE0 ${_aiLabel()}
-                </span>
+            <div id="prospectSourceBadges" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                ${_renderSourceBadges()}
             </div>
         `);
 
@@ -1171,6 +1186,33 @@ ${ai.underwritingNotes || 'N/A'}`;
         // Show results
         const resultsEl = document.getElementById('prospectResults');
         if (resultsEl) resultsEl.style.display = 'block';
+    }
+
+    /** Render source status badges — extracted so it can be refreshed after SOS paste */
+    function _renderSourceBadges() {
+        const data = currentData;
+        if (!data) return '';
+        const liOk = data.li && data.li.available !== false && !data.li.error;
+        const sosOk = data.sos && data.sos.available !== false && !data.sos.error && data.sos.entity;
+        const oshaOk = data.osha && data.osha.available !== false && !data.osha.error;
+        const samOk = data.sam && data.sam.available && data.sam.entities?.length > 0;
+        const placesOk = data.places && data.places.available && data.places.profile;
+        const sources = [
+            { name: 'L&I', ok: liOk }, { name: 'SOS', ok: sosOk },
+            { name: 'OSHA', ok: oshaOk }, { name: 'SAM.gov', ok: samOk },
+            { name: 'Google', ok: placesOk }
+        ];
+        const okCount = sources.filter(s => s.ok).length;
+        return sources.map(s =>
+            '<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:' +
+            (s.ok ? 'rgba(52,199,89,0.1)' : 'rgba(255,59,48,0.1)') + ';color:' +
+            (s.ok ? '#34C759' : '#FF3B30') + ';font-weight:600;">' +
+            (s.ok ? '\u2713' : '\u2717') + ' ' + s.name + '</span>'
+        ).join('') +
+        '<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:rgba(0,122,255,0.08);color:var(--apple-blue);font-weight:600;">' +
+            okCount + '/' + sources.length + ' sources</span>' +
+        '<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:rgba(168,85,247,0.1);color:#A855F7;font-weight:600;">' +
+            '\uD83E\uDDE0 ' + _aiLabel() + '</span>';
     }
 
     // ── Format Helpers ──────────────────────────────────────────
@@ -2229,6 +2271,9 @@ ${ai.underwritingNotes || 'N/A'}`;
             // Open the SOS accordion
             const sosSection = document.getElementById('sosSection');
             if (sosSection) sosSection.open = true;
+            // Refresh source badges in Business Overview
+            const badgesEl = document.getElementById('prospectSourceBadges');
+            if (badgesEl) badgesEl.innerHTML = _renderSourceBadges();
 
             overlay.remove();
             _toast('\u2713 SOS data applied — ' + (parsed.entity.entityType || 'entity') + ' \u00B7 ' + (parsed.entity.status || ''));
