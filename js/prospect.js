@@ -306,8 +306,9 @@ ${ai.underwritingNotes || 'N/A'}`;
             };
 
             // ── Sub-header (bold text + light underline) ──
+            // Reserves 40pt to avoid orphaning the header at page bottom
             const subHeader = (title) => {
-                need(18);
+                need(40);
                 y += 6;
                 doc.setFontSize(9); doc.setFont('helvetica', 'bold');
                 doc.setTextColor(...INK);
@@ -381,7 +382,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                     if (!trimmed) { y += 4; lastWasList = false; continue; }
                     const clean = trimmed.replace(/\*\*(.+?)\*\*/g, '$1');
                     const bulletMatch = clean.match(/^[-•*]\s+(.+)/);
-                    const numMatch = clean.match(/^(\d+)[.)]\s+(.+)/);
+                    const numMatch = clean.match(/^(\d+)[.)]\s*(.+)/);
 
                     if (bulletMatch) {
                         need(14);
@@ -478,7 +479,9 @@ ${ai.underwritingNotes || 'N/A'}`;
             const _c = d.li?.contractor || {};
             const _e = d.sos?.entity || {};
             const bestPhone = gp?.phone || _c.phone || '';
-            const bestWebsite = gp?.website || ai?.website || '';
+            // Strip AI editorial notes from URL (e.g. "(Note: This website is...")
+            const rawWebsite = gp?.website || ai?.website || '';
+            const bestWebsite = rawWebsite.replace(/\s*\(Note:.*$/i, '').trim();
             const bestAddress = gp?.address || (_c.address ? [_c.address.street, _c.address.city, _c.address.state, _c.address.zip].filter(Boolean).join(', ') : '') || (_e.principalOffice ? [_e.principalOffice.street, _e.principalOffice.city, _e.principalOffice.state, _e.principalOffice.zip].filter(Boolean).join(', ') : '');
 
             const overviewFields = [
