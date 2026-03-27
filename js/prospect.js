@@ -2071,26 +2071,39 @@ ${ai.underwritingNotes || 'N/A'}`;
     function _parseSOSPaste(text) {
         if (!text || text.length < 30) return null;
 
-        // Extract label: value pairs — CCFS uses "Label:\nVALUE" format
-        const extract = (label) => {
-            // Match "Label:\n VALUE" or "Label: VALUE" (case-insensitive)
-            const re = new RegExp(label + ':\\s*\\n?\\s*(.+?)\\s*(?=\\n[A-Z][a-z]|\\n[A-Z]{2,}|$)', 'i');
-            const m = text.match(re);
-            return m ? m[1].trim() : '';
-        };
+        // CCFS select-all copies as "Label:ValueLabel:Value" on same line
+        // or "Label:\nVALUE" across lines. Handle both formats.
 
-        // More robust extraction: find all "Label:\nVALUE" pairs
-        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        // Known CCFS field labels (ordered by specificity to avoid partial matches)
+        const LABELS = [
+            'Principal Office Street Address', 'Principal Office Mailing Address',
+            'Formation/ Registration Date', 'Formation/Registration Date',
+            'Registered Agent Name', 'Nature of Business', 'Period of Duration',
+            'Business Status', 'Business Name', 'Business Type',
+            'Expiration Date', 'Inactive Date', 'UBI Number',
+            'Street Address', 'Mailing Address', 'Jurisdiction',
+        ];
+
+        // Build regex that splits on any known label followed by colon
+        // This handles "Business Name:NW ENDEAVORSBusiness Type:WA PROFIT CORP"
         const fields = {};
-        for (let i = 0; i < lines.length - 1; i++) {
-            const labelMatch = lines[i].match(/^(.+?):\s*$/);
-            if (labelMatch && i + 1 < lines.length && !lines[i + 1].match(/^.+?:\s*$/)) {
-                fields[labelMatch[1].toLowerCase().trim()] = lines[i + 1].trim();
-            }
-            // Also handle "Label: Value" on the same line
-            const inlineMatch = lines[i].match(/^(.+?):\s+(.+)$/);
-            if (inlineMatch && !fields[inlineMatch[1].toLowerCase().trim()]) {
-                fields[inlineMatch[1].toLowerCase().trim()] = inlineMatch[2].trim();
+        const labelPattern = LABELS.map(l => l.replace(/[/]/g, '\\/')).join('|');
+        const splitter = new RegExp('(' + labelPattern + ')\\s*:', 'gi');
+
+        // Find all label positions
+        const matches = [];
+        let m;
+        while ((m = splitter.exec(text)) !== null) {
+            matches.push({ label: m[1].toLowerCase().trim(), idx: m.index, end: m.index + m[0].length });
+        }
+
+        // Extract value between each label and the next
+        for (let i = 0; i < matches.length; i++) {
+            const start = matches[i].end;
+            const end = i + 1 < matches.length ? matches[i + 1].idx : text.length;
+            const val = text.substring(start, end).replace(/\n/g, ' ').trim();
+            if (val && !fields[matches[i].label]) {
+                fields[matches[i].label] = val;
             }
         }
 
@@ -2098,7 +2111,7 @@ ${ai.underwritingNotes || 'N/A'}`;
         const ubi = (fields['ubi number'] || '').replace(/\s+/g, '');
         const entityType = fields['business type'] || '';
         const status = fields['business status'] || '';
-        const formationDate = fields['formation/ registration date'] || fields['formation/registration date'] || fields['formation date'] || '';
+        const formationDate = fields['formation/ registration date'] || fields['formation/registration date'] || '';
         const expiration = fields['expiration date'] || '';
         const jurisdiction = fields['jurisdiction'] || '';
         const natureOfBusiness = fields['nature of business'] || '';
@@ -2112,22 +2125,31 @@ ${ai.underwritingNotes || 'N/A'}`;
         const agentName = fields['registered agent name'] || '';
         const agentAddr = fields['street address'] || '';
 
-        // Governors — parse the table format
+        // Governors — parse tab-separated or multi-space table
         const governors = [];
-        const govIdx = text.indexOf('GOVERNORS');
-        if (govIdx > -1) {
-            const govText = text.substring(govIdx);
-            // Match rows like "GOVERNOR  INDIVIDUAL  [entity]  FIRSTNAME  LASTNAME"
-            const govLines = govText.split('\n').slice(2); // skip header rows
+        const govMatch = text.match(/Governors\s*\n?\s*Title[\t\s]+Governors\s*Type[\t\s]+Entity\s*Name[\t\s]+First\s*Name[\t\s]+Last\s*Name\s*\n([\s\S]*?)(?:\n\s*\n|$)/i);
+        if (govMatch) {
+            const govLines = govMatch[1].split('\n');
             for (const line of govLines) {
-                const parts = line.trim().split(/\s{2,}/);
+                const parts = line.trim().split(/\t+/);
+                // Tab-separated: GOVERNOR\tINDIVIDUAL\t\tRANDALL\tENGLISH
                 if (parts.length >= 4 && /^(GOVERNOR|OFFICER|DIRECTOR|PRESIDENT|SECRETARY|TREASURER|MEMBER|MANAGER)/i.test(parts[0])) {
                     const title = parts[0];
-                    // Last two parts are usually first/last name
                     const firstName = parts[parts.length - 2] || '';
                     const lastName = parts[parts.length - 1] || '';
                     if (firstName && lastName) {
                         governors.push({ title, name: firstName + ' ' + lastName });
+                    }
+                } else {
+                    // Multi-space separated fallback
+                    const spaceParts = line.trim().split(/\s{2,}/);
+                    if (spaceParts.length >= 3 && /^(GOVERNOR|OFFICER|DIRECTOR|PRESIDENT|SECRETARY|TREASURER|MEMBER|MANAGER)/i.test(spaceParts[0])) {
+                        const title = spaceParts[0];
+                        const firstName = spaceParts[spaceParts.length - 2] || '';
+                        const lastName = spaceParts[spaceParts.length - 1] || '';
+                        if (firstName && lastName) {
+                            governors.push({ title, name: firstName + ' ' + lastName });
+                        }
                     }
                 }
             }
