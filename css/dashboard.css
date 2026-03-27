@@ -84,8 +84,8 @@ body.dark-mode .dashboard-view::after {
 .bento-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    grid-auto-rows: minmax(90px, auto);
-    gap: 16px;
+    grid-auto-rows: minmax(80px, auto);
+    gap: 14px;
     position: relative;
     z-index: 1;
 }
@@ -178,10 +178,121 @@ body.dark-mode .widget-card:hover {
 }
 
 /* ═══════════════════════════════════════
-   Widget 1: Reminders (Hero — 6col × 2row)
+   Widget 0: Weather (4col × 1row)
+   ═══════════════════════════════════════ */
+.widget-weather {
+    grid-column: span 4;
+    grid-row: span 2;
+    cursor: default;
+}
+.weather-widget-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+}
+.weather-date-section {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.weather-date {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+}
+.weather-time {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.weather-location-line {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: auto;
+}
+.weather-loading {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    padding: 16px 0;
+}
+.weather-current {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.weather-icon-big {
+    font-size: 42px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.weather-temp-group {
+    flex: 1;
+    min-width: 0;
+}
+.weather-temp {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.1;
+}
+.weather-desc {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+.weather-detail {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+}
+.weather-forecast {
+    display: flex;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+}
+.forecast-day {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 4px;
+    border-radius: 10px;
+    background: var(--bg-input);
+    min-width: 0;
+}
+.forecast-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.forecast-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+.forecast-temps {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+}
+.forecast-lo {
+    font-weight: 500;
+    color: var(--text-tertiary);
+}
+.forecast-rain {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--apple-blue);
+}
+
+/* ═══════════════════════════════════════
+   Widget 1: Reminders (compact — 4col × 2row)
    ═══════════════════════════════════════ */
 .widget-reminders {
-    grid-column: span 5;
+    grid-column: span 4;
     grid-row: span 2;
     display: flex;
     flex-direction: column;
@@ -484,10 +595,10 @@ body.dark-mode .stat-pill-snoozed {
 }
 
 /* ═══════════════════════════════════════
-   Widget 2: Recent Clients (6col × 1row)
+   Widget 2: Recent Clients (7col × 1row)
    ═══════════════════════════════════════ */
 .widget-clients {
-    grid-column: span 6;
+    grid-column: span 7;
     grid-row: span 1;
 }
 .client-list {
@@ -548,10 +659,10 @@ body.dark-mode .stat-pill-snoozed {
 }
 
 /* ═══════════════════════════════════════
-   Widget 3: CGL Compliance (6col × 2row hero)
+   Widget 3: CGL Compliance (compact — 4col × 2row)
    ═══════════════════════════════════════ */
 .widget-compliance {
-    grid-column: span 7;
+    grid-column: span 4;
     grid-row: span 2;
     display: flex;
     flex-direction: column;
@@ -563,26 +674,26 @@ body.dark-mode .stat-pill-snoozed {
 /* Compliance Stat Pills */
 .compliance-stats {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     margin-bottom: 12px;
     flex-wrap: wrap;
 }
 .compliance-stat-pill {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
+    gap: 5px;
+    padding: 4px 10px;
     border-radius: 20px;
     background: var(--bg-input);
     border: 1px solid var(--border-subtle);
 }
 .compliance-stat-pill .stat-count {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--text-secondary);
 }
 .compliance-stat-pill .stat-label {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
     color: var(--text-tertiary);
     text-transform: uppercase;
@@ -705,12 +816,11 @@ body.dark-mode .compliance-indicator.status-warning { color: #FFB340; }
     display: flex;
     flex-direction: column;
     gap: 2px;
-    margin-top: 12px;
+    margin-top: 8px;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     scrollbar-width: thin;
-    max-height: calc(100dvh - var(--header-height) - 370px);
 }
 .compliance-policy-row {
     display: flex;
@@ -795,10 +905,10 @@ body.dark-mode .compliance-policy-exp.warning {
 }
 
 /* ═══════════════════════════════════════
-   Quick Actions Mini-Widget (3col × 1row)
+   Quick Actions Mini-Widget (5col × 1row)
    ═══════════════════════════════════════ */
 .widget-quick-actions {
-    grid-column: span 6;
+    grid-column: span 5;
     grid-row: span 1;
 }
 .quick-actions-grid {
@@ -922,10 +1032,11 @@ body.dark-mode .compliance-policy-exp.warning {
     animation: widgetFadeIn 0.5s var(--transition-smooth) both;
 }
 .bento-grid .widget-card:nth-child(1) { animation-delay: 0.05s; }
-.bento-grid .widget-card:nth-child(2) { animation-delay: 0.10s; }
-.bento-grid .widget-card:nth-child(3) { animation-delay: 0.15s; }
-.bento-grid .widget-card:nth-child(4) { animation-delay: 0.20s; }
-.bento-grid .widget-card:nth-child(5) { animation-delay: 0.25s; }
+.bento-grid .widget-card:nth-child(2) { animation-delay: 0.08s; }
+.bento-grid .widget-card:nth-child(3) { animation-delay: 0.11s; }
+.bento-grid .widget-card:nth-child(4) { animation-delay: 0.14s; }
+.bento-grid .widget-card:nth-child(5) { animation-delay: 0.17s; }
+.bento-grid .widget-card:nth-child(6) { animation-delay: 0.20s; }
 
 @keyframes widgetFadeIn {
     from {
@@ -944,12 +1055,14 @@ body.dark-mode .compliance-policy-exp.warning {
 
 /* 1024px–1279px — Narrower bento grid */
 @media (min-width: 1024px) and (max-width: 1279px) {
+    .widget-weather {
+        grid-column: span 4;
+    }
     .widget-reminders {
-        grid-column: span 6;
+        grid-column: span 4;
     }
     .widget-compliance {
-        grid-column: span 6;
-        grid-row: span 2;
+        grid-column: span 4;
     }
     .widget-clients {
         grid-column: span 6;
@@ -965,12 +1078,16 @@ body.dark-mode .compliance-policy-exp.warning {
         grid-template-columns: repeat(2, 1fr);
         grid-auto-rows: auto;
     }
-    .widget-reminders {
+    .widget-weather {
         grid-column: span 2;
         grid-row: span 1;
     }
+    .widget-reminders {
+        grid-column: span 1;
+        grid-row: span 1;
+    }
     .widget-compliance {
-        grid-column: span 2;
+        grid-column: span 1;
         grid-row: span 1;
     }
     .widget-clients {
@@ -996,6 +1113,7 @@ body.dark-mode .compliance-policy-exp.warning {
         grid-template-columns: 1fr;
         grid-auto-rows: auto;
     }
+    .widget-weather,
     .widget-reminders,
     .widget-clients,
     .widget-compliance,
@@ -1024,6 +1142,12 @@ body.dark-mode .compliance-policy-exp.warning {
     }
     .compliance-policy-list {
         max-height: 140px;
+    }
+    .weather-icon-big {
+        font-size: 32px;
+    }
+    .weather-temp {
+        font-size: 24px;
     }
 }
 /* ── Mobile Dark Mode Enhancements ── */

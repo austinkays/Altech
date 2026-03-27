@@ -1,7 +1,7 @@
 /**
  * Dashboard Widgets Module
  * Renders live data widgets for the desktop command center bento layout.
- * Widgets: Reminders, Recent Drafts, CGL Compliance, Quick Actions, Quick Launch.
+ * Widgets: Weather, Reminders, CGL Compliance, Recent Clients, Quick Actions, Quick Launch.
  *
  * @module DashboardWidgets
  */
@@ -15,6 +15,13 @@ window.DashboardWidgets = (() => {
     let _initialized = false;
     let _crumbTool = null;
     let _crumbTitle = null;
+
+    // Weather cache
+    let _weatherCache = null;
+    let _weatherLocation = { lat: 45.63, lon: -122.67, name: 'Vancouver, WA' }; // fallback
+    const WEATHER_CACHE_KEY = 'altech_weather_cache';
+    const WEATHER_LOCATION_KEY = 'altech_weather_location';
+    const WEATHER_CACHE_TTL = 30 * 60 * 1000; // 30 min
 
     // ── SVG Icon Library (Lucide-style, 24×24, stroke-based) ──
     const ICONS = {
@@ -154,6 +161,190 @@ window.DashboardWidgets = (() => {
         return due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
+    // ── Weather helpers ──
+
+    const WMO_CODES = {
+        0: { label: 'Clear Sky', icon: '☀️' },
+        1: { label: 'Mostly Clear', icon: '🌤️' },
+        2: { label: 'Partly Cloudy', icon: '⛅' },
+        3: { label: 'Overcast', icon: '☁️' },
+        45: { label: 'Foggy', icon: '🌫️' },
+        48: { label: 'Rime Fog', icon: '🌫️' },
+        51: { label: 'Light Drizzle', icon: '🌦️' },
+        53: { label: 'Drizzle', icon: '🌦️' },
+        55: { label: 'Heavy Drizzle', icon: '🌧️' },
+        61: { label: 'Light Rain', icon: '🌦️' },
+        63: { label: 'Rain', icon: '🌧️' },
+        65: { label: 'Heavy Rain', icon: '🌧️' },
+        66: { label: 'Freezing Rain', icon: '🧊' },
+        67: { label: 'Heavy Freezing Rain', icon: '🧊' },
+        71: { label: 'Light Snow', icon: '🌨️' },
+        73: { label: 'Snow', icon: '❄️' },
+        75: { label: 'Heavy Snow', icon: '❄️' },
+        77: { label: 'Snow Grains', icon: '❄️' },
+        80: { label: 'Light Showers', icon: '🌦️' },
+        81: { label: 'Showers', icon: '🌧️' },
+        82: { label: 'Heavy Showers', icon: '⛈️' },
+        85: { label: 'Snow Showers', icon: '🌨️' },
+        86: { label: 'Heavy Snow Showers', icon: '🌨️' },
+        95: { label: 'Thunderstorm', icon: '⛈️' },
+        96: { label: 'Thunderstorm + Hail', icon: '⛈️' },
+        99: { label: 'Severe Thunderstorm', icon: '⛈️' },
+    };
+
+    function _wmoInfo(code) {
+        return WMO_CODES[code] || { label: 'Unknown', icon: '🌡️' };
+    }
+
+    function _initLocation() {
+        // Restore saved location
+        try {
+            const saved = localStorage.getItem(WEATHER_LOCATION_KEY);
+            if (saved) _weatherLocation = JSON.parse(saved);
+        } catch (e) { /* use default */ }
+
+        // Try browser geolocation (non-blocking)
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = +pos.coords.latitude.toFixed(2);
+                    const lon = +pos.coords.longitude.toFixed(2);
+                    // Only update if location changed significantly
+                    if (Math.abs(lat - _weatherLocation.lat) > 0.05 || Math.abs(lon - _weatherLocation.lon) > 0.05) {
+                        _weatherLocation.lat = lat;
+                        _weatherLocation.lon = lon;
+                        // Reverse geocode via Open-Meteo geocoding (free, no key)
+                        fetch(`https://geocoding-api.open-meteo.com/v1/search?latitude=${lat}&longitude=${lon}&count=1&format=json`)
+                            .then(r => r.ok ? r.json() : null)
+                            .then(data => {
+                                if (data && data.results && data.results[0]) {
+                                    const r = data.results[0];
+                                    _weatherLocation.name = r.admin1 ? `${r.name}, ${r.admin1}` : r.name;
+                                }
+                                try { localStorage.setItem(WEATHER_LOCATION_KEY, JSON.stringify(_weatherLocation)); } catch (e) { /* ignore */ }
+                                // Invalidate weather cache and re-fetch
+                                _weatherCache = null;
+                                try { localStorage.removeItem(WEATHER_CACHE_KEY); } catch (e) { /* ignore */ }
+                                _fetchWeather().then(() => renderWeatherWidget());
+                            }).catch(() => {
+                                try { localStorage.setItem(WEATHER_LOCATION_KEY, JSON.stringify(_weatherLocation)); } catch (e) { /* ignore */ }
+                                _weatherCache = null;
+                                _fetchWeather().then(() => renderWeatherWidget());
+                            });
+                    }
+                },
+                () => { /* denied or unavailable — use saved/fallback */ },
+                { timeout: 5000, maximumAge: 600000 }
+            );
+        }
+    }
+
+    async function _fetchWeather() {
+        // Check cache first
+        try {
+            const raw = localStorage.getItem(WEATHER_CACHE_KEY);
+            if (raw) {
+                const cached = JSON.parse(raw);
+                if (Date.now() - cached.fetchedAt < WEATHER_CACHE_TTL) {
+                    _weatherCache = cached;
+                    return cached;
+                }
+            }
+        } catch (e) { /* proceed */ }
+
+        try {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${_weatherLocation.lat}&longitude=${_weatherLocation.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=3`;
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            const res = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeout);
+            if (!res.ok) throw new Error('Weather API ' + res.status);
+            const data = await res.json();
+            data.fetchedAt = Date.now();
+            _weatherCache = data;
+            try { localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(data)); } catch (e) { /* ignore */ }
+            return data;
+        } catch (e) {
+            console.log('[DashboardWidgets] Weather fetch failed:', e.message);
+            return _weatherCache; // return stale cache if available
+        }
+    }
+
+    // ── Render: Weather Widget ──
+
+    function renderWeatherWidget() {
+        const container = document.getElementById('widgetWeather');
+        if (!container) return;
+
+        const today = new Date();
+        const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        const timeStr = today.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+        if (!_weatherCache) {
+            container.innerHTML = `
+                <div class="weather-widget-inner">
+                    <div class="weather-date-section">
+                        <div class="weather-date">${dateStr}</div>
+                        <div class="weather-time">${timeStr}</div>
+                        <div class="weather-location">${_escapeHTML(_weatherLocation.name)}</div>
+                    </div>
+                    <div class="weather-loading">Loading weather...</div>
+                </div>`;
+            _fetchWeather().then(() => renderWeatherWidget());
+            return;
+        }
+
+        const w = _weatherCache;
+        const current = w.current || {};
+        const daily = w.daily || {};
+        const temp = Math.round(current.temperature_2m || 0);
+        const feelsLike = Math.round(current.apparent_temperature || 0);
+        const code = current.weather_code ?? 0;
+        const info = _wmoInfo(code);
+        const wind = Math.round(current.wind_speed_10m || 0);
+        const humidity = current.relative_humidity_2m || 0;
+
+        // 3-day forecast
+        let forecastHtml = '';
+        if (daily.time && daily.time.length > 1) {
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            forecastHtml = '<div class="weather-forecast">';
+            for (let i = 1; i < Math.min(daily.time.length, 3); i++) {
+                const d = new Date(daily.time[i] + 'T12:00:00');
+                const dayName = i === 1 ? 'Tomorrow' : dayNames[d.getDay()];
+                const hi = Math.round(daily.temperature_2m_max[i] || 0);
+                const lo = Math.round(daily.temperature_2m_min[i] || 0);
+                const fInfo = _wmoInfo(daily.weather_code[i]);
+                const precip = daily.precipitation_probability_max ? daily.precipitation_probability_max[i] : 0;
+                forecastHtml += `<div class="forecast-day">
+                    <span class="forecast-name">${dayName}</span>
+                    <span class="forecast-icon">${fInfo.icon}</span>
+                    <span class="forecast-temps">${hi}°<span class="forecast-lo">/${lo}°</span></span>
+                    ${precip > 20 ? `<span class="forecast-rain">${precip}%</span>` : ''}
+                </div>`;
+            }
+            forecastHtml += '</div>';
+        }
+
+        container.innerHTML = `
+            <div class="weather-widget-inner">
+                <div class="weather-date-section">
+                    <div class="weather-date">${dateStr}</div>
+                    <div class="weather-time">${timeStr}</div>
+                </div>
+                <div class="weather-current">
+                    <div class="weather-icon-big">${info.icon}</div>
+                    <div class="weather-temp-group">
+                        <div class="weather-temp">${temp}°F</div>
+                        <div class="weather-desc">${info.label}</div>
+                        <div class="weather-detail">Feels ${feelsLike}° · Wind ${wind} mph · ${humidity}% humidity</div>
+                    </div>
+                </div>
+                ${forecastHtml}
+                <div class="weather-location-line">${_escapeHTML(_weatherLocation.name)}</div>
+            </div>`;
+    }
+
     // ── Render: Reminders Widget ──
 
     function renderRemindersWidget() {
@@ -163,10 +354,10 @@ window.DashboardWidgets = (() => {
         const hasModule = typeof Reminders !== 'undefined' && Reminders.getCounts;
         const counts = hasModule ? Reminders.getCounts() : { total: 0, overdue: 0, dueToday: 0, dueSoon: 0, completed: 0, upcoming: 0, snoozed: 0 };
 
-        // Get upcoming tasks
+        // Get upcoming tasks — compact view, top 5 only
         let tasks = [];
         if (hasModule && Reminders.getUpcomingTasks) {
-            tasks = Reminders.getUpcomingTasks(20);
+            tasks = Reminders.getUpcomingTasks(5);
         }
 
         // Weekly summary
@@ -398,10 +589,12 @@ window.DashboardWidgets = (() => {
             </div>
         </div>`;
 
-        // Build policy list HTML when there are flagged policies
+        // Build policy list HTML — compact view, top 5 only
         let policyListHtml = '';
-        if (flaggedPolicies.length > 0) {
-            const rows = flaggedPolicies.map(p => {
+        const displayPolicies = flaggedPolicies.slice(0, 5);
+        const moreCount = flaggedPolicies.length - displayPolicies.length;
+        if (displayPolicies.length > 0) {
+            const rows = displayPolicies.map(p => {
                 const rawName = _escapeHTML(p.clientName || p.businessName || p.insuredName || p.namedInsured || 'Unknown Insured');
                 const hsId = p.hawksoftId || p.clientNumber;
                 let nameHtml;
@@ -428,7 +621,8 @@ window.DashboardWidgets = (() => {
                     <div class="compliance-policy-exp ${p.severity}">${_escapeHTML(daysText)}</div>
                 </div>`;
             }).join('');
-            policyListHtml = `<div class="compliance-policy-list">${rows}</div>`;
+            const moreHtml = moreCount > 0 ? `<div class="compliance-policy-more"><a href="#compliance" onclick="event.preventDefault(); App.navigateTo('compliance')">+${moreCount} more</a></div>` : '';
+            policyListHtml = `<div class="compliance-policy-list">${rows}</div>${moreHtml}`;
         } else if (totalPolicies === 0) {
             policyListHtml = `<div class="widget-empty">
                 <div class="widget-empty-icon">${icon('shieldCheck', 32)}</div>
@@ -943,6 +1137,7 @@ window.DashboardWidgets = (() => {
 
     function refreshAll() {
         try { renderGreeting(); } catch (e) { console.error('[DashboardWidgets] renderGreeting error:', e); }
+        try { renderWeatherWidget(); } catch (e) { console.error('[DashboardWidgets] renderWeatherWidget error:', e); }
         try { renderRemindersWidget(); } catch (e) { console.error('[DashboardWidgets] renderRemindersWidget error:', e); }
         try { renderClientsWidget(); } catch (e) { console.error('[DashboardWidgets] renderClientsWidget error:', e); }
         try { renderComplianceWidget(); } catch (e) { console.error('[DashboardWidgets] renderComplianceWidget error:', e); }
@@ -971,6 +1166,7 @@ window.DashboardWidgets = (() => {
         _stopAutoRefresh();
         _refreshInterval = setInterval(() => {
             if (document.getElementById('dashboardView')?.style.display !== 'none') {
+                renderWeatherWidget();
                 renderRemindersWidget();
                 renderClientsWidget();
                 renderComplianceWidget();
@@ -1018,6 +1214,9 @@ window.DashboardWidgets = (() => {
         if (_initialized) return;
         _initialized = true;
         console.log('[DashboardWidgets] init() started');
+
+        // Initialize weather location (geolocation + fallback)
+        _initLocation();
 
         // Restore sidebar collapsed preference
         try {
