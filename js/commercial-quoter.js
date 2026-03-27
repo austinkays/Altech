@@ -24,6 +24,7 @@ window.CommercialQuoter = (() => {
 
     async function init() {
         await _load();
+        _checkProspectTransfer();
         _renderStep0();
         _updateUI();
         _wireEvents();
@@ -499,8 +500,8 @@ window.CommercialQuoter = (() => {
         lines.push(ln('gen_sBusinessLicense', ''));
         lines.push(ln('gen_sClientSource', ''));
         lines.push(ln('gen_sClientNotes', ''));
-        lines.push(ln('gen_sNAICS', ''));
-        lines.push(ln('gen_sWebsite', ''));
+        lines.push(ln('gen_sNAICS', d._aiNAICS || ''));
+        lines.push(ln('gen_sWebsite', d._bizWebsite || ''));
         lines.push(ln('gen_sPhone', d.bizPhone));
         lines.push(ln('gen_sWorkPhone', ''));
         lines.push(ln('gen_sFax', ''));
@@ -756,7 +757,9 @@ window.CommercialQuoter = (() => {
         // Restore saved values into visible fields
         _populateFields();
         // Initialise Places autocomplete + map preview when on Business Info step
-        if (_step === 1) setTimeout(_initCQPlaces, 50);
+        if (_step === 1) { setTimeout(_initCQPlaces, 50); _renderIntelSidebar(); }
+        // Render AI coverage banner on step 2
+        if (_step === 2) _renderCoverageBanner();
         // Pre-fill location address from biz address on first visit to step 3
         if (_step === 3) _autofillLocation();
     }
@@ -837,7 +840,15 @@ window.CommercialQuoter = (() => {
             row('Policy Expiration','policyExpiration') +
             row('Reason for Quote','reasonForQuote') +
             row('Claims','insuranceClaims') +
-            '</div>';
+            '</div>' +
+            (_data._aiGLClass || _data._aiRiskNote
+                ? '<div class="cq-summary-section">' +
+                  '<div class="cq-summary-title">Prospect Intelligence</div>' +
+                  (_data._aiGLClass ? '<div class="cq-summary-row"><span class="cq-summary-label">GL Classification:</span> <span>' + Utils.escapeHTML(_data._aiGLClass) + '</span></div>' : '') +
+                  (_data._aiRiskNote ? '<div class="cq-summary-row"><span class="cq-summary-label">Risk Assessment:</span> <span>' + Utils.escapeHTML(String(_data._aiRiskNote).substring(0, 200)) + '</span></div>' : '') +
+                  (_data._bizWebsite ? '<div class="cq-summary-row"><span class="cq-summary-label">Website:</span> <span>' + Utils.escapeHTML(_data._bizWebsite) + '</span></div>' : '') +
+                  '</div>'
+                : '');
     }
 
     function _wireEvents() {
@@ -997,5 +1008,256 @@ window.CommercialQuoter = (() => {
         return 'cq_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
     }
 
-    return { init, save, load, getQuotes, saveQuote, loadQuote, newQuote, prev, next, goToStep, exportPDF, exportCMSMTF, render, openBizStreetView: _openBizStreetView, openBizMaps: _openBizMaps };
+    // ── Prospect Intel Integration ──────────────────────────────────────────────
+
+    /** Check for pending prospect data on init and apply it */
+    function _checkProspectTransfer() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEYS.PROSPECT_TO_QUOTER);
+            if (!raw) return;
+            const prospectData = JSON.parse(raw);
+            localStorage.removeItem(STORAGE_KEYS.PROSPECT_TO_QUOTER);
+            _applyProspectData(prospectData);
+            _step = 1; // Jump to business info step
+        } catch (e) {
+            console.warn('[CommercialQuoter] prospect transfer failed', e);
+        }
+    }
+
+    /** Map prospect investigation data to quoter fields — only fills empties */
+    function _applyProspectData(pd) {
+        if (!pd) return;
+        let count = 0;
+
+        const setIfEmpty = (key, val) => {
+            if (!val) return;
+            if (_data[key] && String(_data[key]).trim()) return; // don't overwrite
+            _data[key] = val;
+            count++;
+        };
+
+        setIfEmpty('bizName', pd.bizName);
+        setIfEmpty('bizPhone', pd.bizPhone);
+        setIfEmpty('bizStreet', pd.bizStreet);
+        setIfEmpty('bizCity', pd.bizCity);
+        setIfEmpty('bizState', pd.bizState);
+        setIfEmpty('bizZip', pd.bizZip);
+        setIfEmpty('dateStarted', pd.dateStarted);
+
+        // Store AI fields (always overwrite — they're intel, not user data)
+        if (pd._aiGLClass) _data._aiGLClass = pd._aiGLClass;
+        if (pd._aiRecommendedCovs) _data._aiRecommendedCovs = pd._aiRecommendedCovs;
+        if (pd._aiNAICS) _data._aiNAICS = pd._aiNAICS;
+        if (pd._aiRiskNote) _data._aiRiskNote = pd._aiRiskNote;
+        if (pd._aiRedFlags) _data._aiRedFlags = pd._aiRedFlags;
+        if (pd._aiExecutiveSummary) _data._aiExecutiveSummary = pd._aiExecutiveSummary;
+        if (pd.bizWebsite) _data._bizWebsite = pd.bizWebsite;
+        if (pd.ownerNames) _data._ownerNames = pd.ownerNames;
+        if (pd._sourceData) _data._sourceData = pd._sourceData;
+        if (pd._timestamp) _data._intelTimestamp = pd._timestamp;
+
+        _save();
+        if (count > 0 && typeof App !== 'undefined' && App.toast) {
+            App.toast('Intel auto-filled ' + count + ' field' + (count > 1 ? 's' : ''));
+        }
+    }
+
+    /** Run prospect investigation from within the quoter */
+    async function investigateBusiness() {
+        const bizName = document.getElementById('cq_bizName')?.value?.trim();
+        const bizState = document.getElementById('cq_bizState')?.value?.trim() || 'WA';
+
+        if (!bizName) {
+            if (typeof App !== 'undefined' && App.toast) App.toast('Enter a business name first');
+            return;
+        }
+
+        // Check if ProspectInvestigator is loaded
+        if (typeof ProspectInvestigator === 'undefined') {
+            if (typeof App !== 'undefined' && App.toast) App.toast('Prospect Intel not available', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('cq-investigate-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="cq-intel-spinner"></span> Investigating...';
+        }
+
+        try {
+            // Populate the prospect search fields and run a search
+            // We'll use the ProspectInvestigator's API to get data
+            // First check if there's already loaded data for this business
+            const existing = ProspectInvestigator.currentData;
+            if (existing && existing.displayName?.toLowerCase() === bizName.toLowerCase()) {
+                // Reuse already-loaded data
+                const quoterData = ProspectInvestigator.getQuoterData();
+                if (quoterData) {
+                    _applyProspectData(quoterData);
+                    _populateFields();
+                    _renderIntelSidebar();
+                    _renderCoverageBanner();
+                }
+            } else {
+                if (typeof App !== 'undefined' && App.toast) {
+                    App.toast('Open Prospect Intel to investigate "' + Utils.escapeHTML(bizName) + '" first, then use "Start Commercial Quote"');
+                }
+            }
+        } catch (e) {
+            console.error('[CommercialQuoter] investigate error', e);
+            if (typeof App !== 'undefined' && App.toast) App.toast('Investigation failed', 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '🔍 Investigate Business';
+            }
+        }
+    }
+
+    /** Render intel sidebar in step 1 with investigation data */
+    function _renderIntelSidebar() {
+        const container = document.getElementById('cq-intel-sidebar');
+        if (!container) return;
+
+        const src = _data._sourceData;
+        if (!src && !_data._aiExecutiveSummary) {
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'block';
+
+        const esc = (s) => Utils.escapeHTML(s || '');
+
+        // Source status pills
+        const sources = [];
+        if (src) {
+            const pill = (name, available, status) => {
+                const color = available ? (status === 'active' || status === 'Active' ? 'var(--success)' : 'orange') : 'var(--text-tertiary)';
+                return '<span class="cq-intel-pill" style="border-color:' + color + ';color:' + color + ';">' + esc(name) + '</span>';
+            };
+            sources.push(pill('L&I', src.li?.available !== false && src.li?.contractor, src.li?.contractor?.status));
+            sources.push(pill('SOS', src.sos?.available !== false && src.sos?.entity, src.sos?.entity?.status));
+            sources.push(pill('OSHA', src.osha?.available !== false, src.osha?.summary?.totalInspections > 0 ? 'found' : 'clear'));
+            sources.push(pill('SAM', src.sam?.available !== false && src.sam?.entities?.length > 0, 'found'));
+            sources.push(pill('Google', src.places?.available !== false && src.places?.profile, 'active'));
+        }
+
+        // Risk assessment
+        let riskHtml = '';
+        if (_data._aiRiskNote) {
+            riskHtml = '<div class="cq-intel-risk"><strong>Risk Assessment:</strong> ' + esc(_data._aiRiskNote).substring(0, 300) + '</div>';
+        }
+
+        // Red flags
+        let flagsHtml = '';
+        if (_data._aiRedFlags) {
+            flagsHtml = '<div class="cq-intel-flags"><strong>Red Flags:</strong> ' + esc(_data._aiRedFlags).substring(0, 300) + '</div>';
+        }
+
+        // GL class hint
+        let glHtml = '';
+        if (_data._aiGLClass) {
+            glHtml = '<div class="cq-intel-gl"><strong>GL Classification:</strong> ' + esc(_data._aiGLClass) + '</div>';
+        }
+
+        // Executive summary
+        let summaryHtml = '';
+        if (_data._aiExecutiveSummary) {
+            summaryHtml = '<div class="cq-intel-summary">' + esc(_data._aiExecutiveSummary).substring(0, 500) + '</div>';
+        }
+
+        // OSHA quick stats
+        let oshaHtml = '';
+        if (src?.osha?.summary) {
+            const o = src.osha.summary;
+            oshaHtml = '<div class="cq-intel-osha">' +
+                '<strong>OSHA:</strong> ' + (o.totalInspections || 0) + ' inspections, ' +
+                (o.seriousViolations || 0) + ' serious, $' + ((o.totalPenalties || 0).toLocaleString()) + ' penalties</div>';
+        }
+
+        container.innerHTML =
+            '<div class="cq-intel-header">' +
+                '<h3>🧠 Business Intelligence</h3>' +
+                ((_data._intelTimestamp) ? '<span class="hint">' + new Date(_data._intelTimestamp).toLocaleDateString() + '</span>' : '') +
+            '</div>' +
+            (sources.length ? '<div class="cq-intel-sources">' + sources.join('') + '</div>' : '') +
+            summaryHtml + glHtml + riskHtml + flagsHtml + oshaHtml;
+    }
+
+    /** Render AI coverage recommendations banner on step 2 */
+    function _renderCoverageBanner() {
+        const banner = document.getElementById('cq-ai-coverage-banner');
+        if (!banner) return;
+
+        if (!_data._aiRecommendedCovs) {
+            banner.style.display = 'none';
+            return;
+        }
+
+        const text = _data._aiRecommendedCovs;
+        // Map coverage keywords to checkbox IDs
+        const covMap = {
+            'general liability': 'cq_covGL', 'gl': 'cq_covGL', 'cgl': 'cq_covGL',
+            'bond': 'cq_covBond', 'surety': 'cq_covBond',
+            'professional liability': 'cq_covPL', 'e&o': 'cq_covPL', 'errors': 'cq_covPL',
+            'business auto': 'cq_covBA', 'auto': 'cq_covBA', 'commercial auto': 'cq_covBA',
+            'property': 'cq_covProp', 'building': 'cq_covProp',
+            'bpp': 'cq_covBPP', 'business personal property': 'cq_covBPP', 'contents': 'cq_covBPP',
+            'inland marine': 'cq_covIM', 'tools': 'cq_covIM', 'equipment': 'cq_covIM',
+            'cargo': 'cq_covCargo', 'motor truck cargo': 'cq_covCargo',
+        };
+
+        const textLower = text.toLowerCase();
+        const suggestions = [];
+        const seen = new Set();
+
+        Object.entries(covMap).forEach(function(entry) {
+            const keyword = entry[0];
+            const checkId = entry[1];
+            if (textLower.includes(keyword) && !seen.has(checkId)) {
+                seen.add(checkId);
+                const el = document.getElementById(checkId);
+                if (el && !el.checked) {
+                    const nameMap = { cq_covGL:'GL', cq_covBond:'Bond', cq_covPL:'E&O', cq_covBA:'Auto',
+                                      cq_covProp:'Property', cq_covBPP:'BPP', cq_covIM:'Inland Marine', cq_covCargo:'Cargo' };
+                    suggestions.push({ id: checkId, name: nameMap[checkId] || keyword });
+                }
+            }
+        });
+
+        if (!suggestions.length) {
+            banner.style.display = 'none';
+            return;
+        }
+
+        banner.style.display = 'block';
+        banner.innerHTML =
+            '<div class="cq-cov-banner-inner">' +
+                '<div class="cq-cov-banner-label">🧠 AI Recommended Coverages</div>' +
+                '<div class="cq-cov-banner-pills">' +
+                suggestions.map(function(s) {
+                    return '<button class="cq-cov-pill" onclick="CommercialQuoter.applyCoverageSuggestion(\'' + Utils.escapeAttr(s.id) + '\')">' +
+                        '+ ' + Utils.escapeHTML(s.name) + '</button>';
+                }).join('') +
+                '</div>' +
+            '</div>';
+    }
+
+    /** Enable a coverage toggle from AI suggestion */
+    function applyCoverageSuggestion(checkId) {
+        const el = document.getElementById(checkId);
+        if (!el) return;
+        el.checked = true;
+        _data[checkId.slice(3)] = true;
+        // Show the detail panel
+        const row = el.closest('.cq-coverage-row');
+        const detail = row && row.querySelector('.cq-coverage-detail');
+        if (detail) detail.classList.remove('hidden');
+        _save();
+        // Re-render banner (remove the applied suggestion)
+        _renderCoverageBanner();
+        if (typeof App !== 'undefined' && App.toast) App.toast('✓ ' + checkId.replace('cq_cov', '') + ' coverage enabled');
+    }
+
+    return { init, save, load, getQuotes, saveQuote, loadQuote, newQuote, prev, next, goToStep, exportPDF, exportCMSMTF, render, openBizStreetView: _openBizStreetView, openBizMaps: _openBizMaps, investigateBusiness: investigateBusiness, applyCoverageSuggestion: applyCoverageSuggestion };
 })();

@@ -531,6 +531,128 @@ body.dark-mode .cq-sub-detail-inner {
     border-color: #38383A;
 }
 
+/* ── Investigate Button ───────────────────────────────── */
+.cq-investigate-btn {
+    margin-top: 8px;
+    font-size: 13px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.cq-intel-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--apple-blue);
+    border-radius: 50%;
+    animation: cqSpin 0.6s linear infinite;
+}
+@keyframes cqSpin { to { transform: rotate(360deg); } }
+
+/* ── Intel Sidebar Card ──────────────────────────────── */
+.cq-intel-card {
+    border: 1.5px solid rgba(168, 85, 247, 0.25);
+    background: linear-gradient(135deg, var(--bg-card), rgba(168, 85, 247, 0.03));
+}
+.cq-intel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.cq-intel-header h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+}
+.cq-intel-sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+.cq-intel-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1.5px solid;
+    background: transparent;
+    white-space: nowrap;
+}
+.cq-intel-summary,
+.cq-intel-gl,
+.cq-intel-risk,
+.cq-intel-flags,
+.cq-intel-osha {
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+}
+.cq-intel-summary { margin-bottom: 14px; }
+.cq-intel-gl strong,
+.cq-intel-risk strong,
+.cq-intel-flags strong,
+.cq-intel-osha strong {
+    color: var(--text);
+    font-size: 12px;
+}
+.cq-intel-flags { color: var(--danger); }
+
+/* ── AI Coverage Banner ──────────────────────────────── */
+#cq-ai-coverage-banner {
+    margin-bottom: 0;
+}
+.cq-cov-banner-inner {
+    background: linear-gradient(135deg, var(--bg-card), rgba(168, 85, 247, 0.05));
+    border: 1.5px solid rgba(168, 85, 247, 0.25);
+    border-radius: 14px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+}
+.cq-cov-banner-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #A855F7;
+    margin-bottom: 10px;
+}
+.cq-cov-banner-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.cq-cov-pill {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid rgba(168, 85, 247, 0.3);
+    background: rgba(168, 85, 247, 0.08);
+    color: #A855F7;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease;
+}
+.cq-cov-pill:hover {
+    background: rgba(168, 85, 247, 0.15);
+    border-color: #A855F7;
+}
+
+/* ── Dark Mode — Intel ───────────────────────────────── */
+body.dark-mode .cq-intel-card {
+    background: linear-gradient(135deg, #1C1C1E, rgba(168, 85, 247, 0.05));
+}
+body.dark-mode .cq-cov-banner-inner {
+    background: linear-gradient(135deg, #1C1C1E, rgba(168, 85, 247, 0.06));
+}
+body.dark-mode .cq-cov-pill {
+    background: rgba(168, 85, 247, 0.12);
+}
+
 /* ── Responsive ───────────────────────────────────────── */
 @media (max-width: 600px) {
     .form-grid-2,

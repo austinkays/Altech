@@ -28,6 +28,7 @@ window.STORAGE_KEYS = Object.freeze({
     EMAIL_DRAFTS:           'altech_email_drafts',    // encrypted
     EMAIL_CUSTOM_PROMPT:    'altech_email_custom_prompt',
     SAVED_PROSPECTS:        'altech_saved_prospects',
+    PROSPECT_TO_QUOTER:     'altech_prospect_to_quoter', // temp transfer key (cleared after consumption)
     VIN_HISTORY:            'altech_vin_history',     // max 20 entries
     QNA:                    'altech_v6_qna',
     QUOTE_COMPARISONS:      'altech_v6_quote_comparisons', // max 20

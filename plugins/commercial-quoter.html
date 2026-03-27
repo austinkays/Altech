@@ -92,6 +92,7 @@
                 <div class="form-row">
                     <label class="form-label" for="cq_bizName">Business Legal Name <span class="cq-required">*</span></label>
                     <input id="cq_bizName" type="text" class="form-input" placeholder="ACME Contractors LLC" autocomplete="organization">
+                    <button id="cq-investigate-btn" class="btn-utility cq-investigate-btn" onclick="CommercialQuoter.investigateBusiness()" type="button">🔍 Investigate Business</button>
                 </div>
                 <div class="form-row">
                     <label class="form-label" for="cq_contactName">Primary Contact Name <span class="cq-required">*</span></label>
@@ -182,12 +183,17 @@
                     </div>
                     <div id="cq-biz-mapHint" class="hint">Enter an address to load previews.</div>
                 </div>
+                <!-- Intel sidebar — populated by JS when prospect data is available -->
+                <div id="cq-intel-sidebar" class="card cq-intel-card" style="display: none;"></div>
             </div>
             </div>
         </div>
 
         <!-- ═══ STEP 2: COVERAGE TYPES ═══════════════════════════════════ -->
         <div id="cq-step-2" class="cq-step hidden">
+            <!-- AI Coverage Recommendations Banner — hidden when no intel -->
+            <div id="cq-ai-coverage-banner" style="display: none;"></div>
+
             <div class="card">
                 <h2>Coverage Types</h2>
                 <p class="section-subtitle">Toggle each coverage line needed — details will expand when selected</p>

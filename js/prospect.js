@@ -13,7 +13,7 @@ const ProspectInvestigator = (() => {
     let currentData = null;
     let aiAnalysis = null;
     let _discoveredCandidates = [];
-    const STORAGE_KEY = 'altech_saved_prospects';
+    const STORAGE_KEY = STORAGE_KEYS.SAVED_PROSPECTS;
 
     // ── Public API ──────────────────────────────────────────────
 
@@ -1896,6 +1896,87 @@ ${ai.underwritingNotes || 'N/A'}`;
         }).join('');
     }
 
+    // ── Quoter Bridge ─────────────────────────────────────────────
+
+    /** Return structured data ready for CommercialQuoter consumption */
+    function getQuoterData() {
+        if (!currentData) return null;
+        const d = currentData;
+        const c = d.li?.contractor || {};
+        const e = d.sos?.entity || {};
+        const gp = d.places?.profile;
+        const ai = aiAnalysis;
+
+        // Best address: prefer Google Places (formatted), then L&I, then SOS
+        let addr = null;
+        if (gp?.address) {
+            addr = _parseAddress(gp.address);
+        } else if (c.address) {
+            addr = { street: c.address.street || '', city: c.address.city || '', state: c.address.state || d.state || '', zip: c.address.zip || '' };
+        } else if (e.principalOffice) {
+            const po = e.principalOffice;
+            addr = { street: po.street || '', city: po.city || '', state: po.state || d.state || '', zip: po.zip || '' };
+        }
+
+        return {
+            bizName: d.displayName || d.businessName || '',
+            bizPhone: gp?.phone || c.phone || '',
+            bizStreet: addr?.street || '',
+            bizCity: addr?.city || d.city || '',
+            bizState: addr?.state || d.state || '',
+            bizZip: addr?.zip || '',
+            bizWebsite: gp?.website || ai?.website || '',
+            dateStarted: e.formationDate || '',
+            ownerNames: _formatOwners(c.owners),
+            // AI-derived fields (prefixed with _ to distinguish)
+            _aiGLClass: ai?.glClassification || '',
+            _aiRecommendedCovs: ai?.recommendedCoverages || '',
+            _aiNAICS: ai?.naicsAnalysis || '',
+            _aiRiskNote: ai?.riskAssessment || '',
+            _aiRedFlags: ai?.redFlags || '',
+            _aiExecutiveSummary: ai?.executiveSummary || '',
+            // Source metadata for intel sidebar
+            _sourceData: {
+                li: d.li,
+                sos: d.sos,
+                osha: d.osha,
+                sam: d.sam,
+                places: d.places,
+            },
+            _timestamp: d.timestamp,
+        };
+    }
+
+    /** Parse a formatted address string like "123 Main St, Portland, OR 97201" */
+    function _parseAddress(addr) {
+        if (!addr) return null;
+        const parts = addr.split(',').map(s => s.trim());
+        if (parts.length < 2) return { street: addr, city: '', state: '', zip: '' };
+        const street = parts[0];
+        const city = parts.length >= 3 ? parts[1] : '';
+        // Last part usually "OR 97201" or "OR 97201, USA"
+        const lastPart = parts.length >= 3 ? parts[2] : parts[1];
+        const stateZip = lastPart.replace(/,?\s*USA?\s*$/i, '').trim();
+        const m = stateZip.match(/^([A-Z]{2})\s+(\d{5}(-\d{4})?)$/);
+        return {
+            street,
+            city,
+            state: m ? m[1] : (stateZip.length === 2 ? stateZip : ''),
+            zip: m ? m[2] : '',
+        };
+    }
+
+    /** Save data to transfer key and navigate to commercial quoter */
+    function sendToQuoter() {
+        const data = getQuoterData();
+        if (!data) { _toast('Run a search first'); return; }
+        localStorage.setItem(STORAGE_KEYS.PROSPECT_TO_QUOTER, JSON.stringify(data));
+        if (typeof App !== 'undefined' && App.navigateTo) {
+            App.navigateTo('commercial');
+        }
+        _toast('Sending to Commercial Quoter...');
+    }
+
     // ── Expose Public API ───────────────────────────────────────
 
     return {
@@ -1904,6 +1985,8 @@ ${ai.underwritingNotes || 'N/A'}`;
         selectBusiness,
         investigateManual,
         copyToQuote,
+        sendToQuoter,
+        getQuoterData,
         exportReport,
         saveProspect,
         loadProspect,
