@@ -191,20 +191,6 @@ body.dark-mode .widget-card:hover {
     gap: 10px;
     height: 100%;
 }
-.weather-date-section {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-.weather-date {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text);
-}
-.weather-time {
-    font-size: 12px;
-    color: var(--text-secondary);
-}
 .weather-location-line {
     font-size: 11px;
     color: var(--text-tertiary);
@@ -214,6 +200,34 @@ body.dark-mode .widget-card:hover {
     font-size: 13px;
     color: var(--text-tertiary);
     padding: 16px 0;
+}
+.weather-hilo {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-left: 4px;
+}
+.weather-sun-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.weather-sun-row svg {
+    width: 12px;
+    height: 12px;
+    stroke: var(--text-tertiary);
+    fill: none;
+    stroke-width: 1.75;
+    flex-shrink: 0;
+}
+.weather-precip-today {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--apple-blue);
+    margin-top: 3px;
 }
 .weather-current {
     display: flex;

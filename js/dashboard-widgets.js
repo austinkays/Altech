@@ -253,7 +253,7 @@ window.DashboardWidgets = (() => {
         } catch (e) { /* proceed */ }
 
         try {
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${_weatherLocation.lat}&longitude=${_weatherLocation.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=3`;
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${_weatherLocation.lat}&longitude=${_weatherLocation.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=3`;
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 8000);
             const res = await fetch(url, { signal: controller.signal });
@@ -272,22 +272,19 @@ window.DashboardWidgets = (() => {
 
     // ── Render: Weather Widget ──
 
+    function _formatSunTime(isoStr) {
+        if (!isoStr) return '';
+        const d = new Date(isoStr);
+        return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+
     function renderWeatherWidget() {
         const container = document.getElementById('widgetWeather');
         if (!container) return;
 
-        const today = new Date();
-        const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-        const timeStr = today.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
         if (!_weatherCache) {
             container.innerHTML = `
                 <div class="weather-widget-inner">
-                    <div class="weather-date-section">
-                        <div class="weather-date">${dateStr}</div>
-                        <div class="weather-time">${timeStr}</div>
-                        <div class="weather-location">${_escapeHTML(_weatherLocation.name)}</div>
-                    </div>
                     <div class="weather-loading">Loading weather...</div>
                 </div>`;
             _fetchWeather().then(() => renderWeatherWidget());
@@ -304,7 +301,27 @@ window.DashboardWidgets = (() => {
         const wind = Math.round(current.wind_speed_10m || 0);
         const humidity = current.relative_humidity_2m || 0;
 
-        // 3-day forecast
+        // Today's high/low
+        const todayHi = daily.temperature_2m_max ? Math.round(daily.temperature_2m_max[0]) : null;
+        const todayLo = daily.temperature_2m_min ? Math.round(daily.temperature_2m_min[0]) : null;
+        const hiLoHtml = (todayHi !== null && todayLo !== null)
+            ? `<span class="weather-hilo">H:${todayHi}° L:${todayLo}°</span>`
+            : '';
+
+        // Sunrise/sunset
+        const sunrise = daily.sunrise ? _formatSunTime(daily.sunrise[0]) : '';
+        const sunset = daily.sunset ? _formatSunTime(daily.sunset[0]) : '';
+        const sunHtml = (sunrise && sunset)
+            ? `<div class="weather-sun-row">${icon('star', 12)} ${sunrise} &nbsp; ${icon('moon', 12)} ${sunset}</div>`
+            : '';
+
+        // Today's precip chance
+        const todayPrecip = daily.precipitation_probability_max ? daily.precipitation_probability_max[0] : 0;
+        const precipHtml = todayPrecip > 10
+            ? `<span class="weather-precip-today">${todayPrecip}% chance of rain</span>`
+            : '';
+
+        // 2-day forecast (tomorrow + day after)
         let forecastHtml = '';
         if (daily.time && daily.time.length > 1) {
             const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -328,18 +345,16 @@ window.DashboardWidgets = (() => {
 
         container.innerHTML = `
             <div class="weather-widget-inner">
-                <div class="weather-date-section">
-                    <div class="weather-date">${dateStr}</div>
-                    <div class="weather-time">${timeStr}</div>
-                </div>
                 <div class="weather-current">
                     <div class="weather-icon-big">${info.icon}</div>
                     <div class="weather-temp-group">
-                        <div class="weather-temp">${temp}°F</div>
+                        <div class="weather-temp">${temp}°F ${hiLoHtml}</div>
                         <div class="weather-desc">${info.label}</div>
-                        <div class="weather-detail">Feels ${feelsLike}° · Wind ${wind} mph · ${humidity}% humidity</div>
+                        <div class="weather-detail">Feels ${feelsLike}° · Wind ${wind} mph · ${humidity}%</div>
+                        ${precipHtml}
                     </div>
                 </div>
+                ${sunHtml}
                 ${forecastHtml}
                 <div class="weather-location-line">${_escapeHTML(_weatherLocation.name)}</div>
             </div>`;
