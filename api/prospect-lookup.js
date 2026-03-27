@@ -1608,23 +1608,27 @@ Research "${businessName}" in ${state} THOROUGHLY. Find everything about this bu
 - Legal filings, lawsuits, judgments
 - Competitor landscape and market position in their area
 
-Produce a JSON response with these EXACT keys (all string values — be detailed and specific, never vague):
+Produce a JSON response with these EXACT keys (all string values unless noted — be detailed and specific, never vague):
 
 {
-  "executiveSummary": "3-4 sentence overview of this business as an insurance prospect. Include business type, years in operation, size indicators (employees, revenue range), reputation, and overall risk posture. Be specific and actionable.",
+  "executiveSummary": "2-3 sentence overview: (1) what the business does, (2) size/age indicators (employees, revenue, years), (3) overall risk posture. Do NOT repeat details covered in other fields. Be concise and actionable.",
+  "riskRating": "Just one word: LOW / MODERATE / ELEVATED / HIGH / CRITICAL",
+  "estimatedEmployees": "Number or range string, e.g. '6-8' or '25'",
+  "estimatedRevenue": "Annual revenue range string, e.g. '$600,000 - $1,280,000'",
+  "yearsInBusiness": "Number, e.g. 27. Compute from founding date if known.",
   "businessProfile": "Comprehensive profile: what the business does day-to-day, all services offered, specialties, entity structure, ownership details, management team if known, estimated employee count, estimated annual revenue range, years in business, growth trajectory. Paint a full picture.",
   "serviceArea": "Geographic coverage: cities, counties, or regions they serve. If a contractor, where they typically work. If multi-location, list all locations. Include any out-of-state work. Be specific to their market.",
   "website": "The business's primary website URL. If no website exists, say 'No website found'.",
-  "socialMedia": "All social media and online presences found: Facebook page URL, LinkedIn company URL, Instagram handle, Yelp page, BBB listing, Google Business Profile, Angi/HomeAdvisor, Nextdoor, any industry-specific directories. List each with the URL or handle.",
+  "socialMedia": "List ONE platform per line. Format each as 'Platform: URL or handle'. Include: Google Business, Facebook, LinkedIn, Instagram, Yelp, BBB, Angi/HomeAdvisor, Nextdoor, industry directories. If a platform is not found, say 'Platform: Not found'. Example:\\nGoogle Business: https://...\\nFacebook: https://...\\nLinkedIn: Not found",
   "buildingInfo": "Physical premises details: building type (office, warehouse, retail, mixed-use), estimated square footage, owned vs leased, any notable features (yard, shop, warehouse space), parking, signage. If they work from a commercial location vs home-based. Multiple locations if applicable.",
   "businessHistory": "Founding story and timeline: when established, by whom, major milestones, mergers/acquisitions, name changes, ownership transitions, notable projects, growth phases, any periods of difficulty. Include dates where possible.",
-  "keyPersonnel": "Owners, officers, principals, and key management with their titles/roles. Include any professional licenses, certifications, or notable qualifications. Cross-reference with SOS governors, L&I owners, and web presence.",
-  "riskAssessment": "Thorough risk analysis covering: license/compliance status, OSHA history, entity standing, financial stability indicators, operational risks, industry-specific hazards, litigation exposure, reputation risks. Rate overall risk as LOW / MODERATE / ELEVATED / HIGH / CRITICAL with clear justification.",
-  "redFlags": "List ALL specific concerns: expired/missing licenses, OSHA violations, inactive status, recent formation, negative reviews, lawsuits, high-risk operations, missing data that should exist, BBB complaints, legal actions, liens, judgments. If genuinely none, say 'No significant red flags identified.' Be thorough.",
-  "recommendedCoverages": "Specific commercial insurance recommendations with suggested limits. Include as applicable: GL ($X/$Y per-occurrence/aggregate), WC (by class code), Commercial Auto (fleet details), Umbrella/Excess, Professional Liability/E&O, Builders Risk, Inland Marine, Cyber Liability, EPLI, D&O, Commercial Property (building + BPP values), Business Income, Equipment Breakdown, Pollution Liability, Installation Floater. Tailor to the specific business type and size.",
+  "keyPersonnel": "List ONE person per line. Format: 'Name (Title/Role) — credentials/notes'. Include owners, officers, principals, key management. Cross-reference SOS governors, L&I owners, and web presence. Example:\\nNeil Worland (Owner) — Licensed Agent, Commercial Lines\\nJane Smith (Office Manager) — CIC certified 2015",
+  "riskAssessment": "Thorough risk analysis covering: license/compliance status, OSHA history, entity standing, financial stability indicators, operational risks, industry-specific hazards, litigation exposure, reputation risks. Justify your riskRating with clear evidence.",
+  "redFlags": "List ALL specific concerns as numbered items. Include: expired/missing licenses, OSHA violations, inactive status, recent formation, negative reviews, lawsuits, high-risk operations, missing data that should exist, BBB complaints, legal actions, liens, judgments. If genuinely none, say 'No significant red flags identified.'",
+  "recommendedCoverages": "List ONE coverage per line. Format: 'Coverage Name: $limit details (reason)'. Include as applicable: GL, WC (by class code), Commercial Auto, Umbrella/Excess, E&O, Builders Risk, Inland Marine, Cyber, EPLI, D&O, Commercial Property (building + BPP), Business Income, Equipment Breakdown, Pollution, Installation Floater. Example:\\nGeneral Liability (CGL): $1,000,000/$2,000,000 (premises liability, advertising injury)\\nWorkers Comp: Class 8810 - Clerical ($X per $100 payroll)\\nCyber Liability: $250,000-$500,000 (client data protection)",
   "glClassification": "The most likely ISO GL class code(s) with descriptions, e.g. '91302 - Janitorial Services' or '58122 - Restaurants'. If multiple operations, list each. Format: 'XXXXX - Description'.",
   "naicsAnalysis": "Primary and secondary NAICS codes with descriptions. Explain what they indicate about operations and insurance implications.",
-  "underwritingNotes": "Specific items the underwriter should verify: loss runs (how many years), safety programs, prior carrier info, subcontractor management (certificates, additional insured requirements), fleet size, payroll by class code, square footage, revenue breakdown, contractual obligations, employee count by location. Be actionable and thorough.",
+  "underwritingNotes": "Specific items the underwriter should verify as numbered action items: loss runs (how many years), safety programs, prior carrier info, subcontractor management (certificates, additional insured requirements), fleet size, payroll by class code, square footage, revenue breakdown, contractual obligations, employee count by location. Be actionable and thorough.",
   "competitiveIntel": "Business intelligence: estimated premium range for their risk profile, likely current coverage gaps, price sensitivity indicators, growth trajectory, best approach for the producer, key selling points, renewal timing estimates, what competitors might be offering, any leverage points."
 }`;
 
@@ -1632,7 +1636,7 @@ Produce a JSON response with these EXACT keys (all string values — be detailed
     // askWithSearch returns { text, grounded, groundingMetadata }
     const searchResult = await ai.askWithSearch(systemPrompt, userPrompt, {
       temperature: 0.3,
-      maxTokens: 8192
+      maxTokens: 12288
     });
 
     const rawText = searchResult?.text || (typeof searchResult === 'string' ? searchResult : '');

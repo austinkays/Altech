@@ -268,439 +268,441 @@ ${ai.underwritingNotes || 'N/A'}`;
             const ai = aiAnalysis;
             const pageW = doc.internal.pageSize.getWidth();
             const pageH = doc.internal.pageSize.getHeight();
-            const margin = 50;
-            const usable = pageW - margin * 2;
-            let y = margin;
+            const mg = 50;
+            const cw = pageW - mg * 2;
+            let y = mg;
 
-            // ── Helpers ──
-            function checkPage(needed) {
-                if (y + needed > pageH - 60) {
-                    doc.addPage();
-                    y = margin;
-                    return true;
-                }
-                return false;
-            }
+            // ── Toner-friendly palette (matches personal lines app-export.js) ──
+            const INK   = [30, 30, 30];
+            const MID   = [80, 80, 80];
+            const LIGHT = [165, 165, 165];
+            const RULE  = [190, 190, 190];
+            const FILL  = [232, 232, 232];
+            const ACCENT = [60, 60, 60];
 
-            function heading(text, size, color) {
-                checkPage(30);
-                doc.setFontSize(size || 14);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...(color || [0, 0, 0]));
-                doc.text(text, margin, y);
-                y += size ? size + 4 : 18;
-            }
+            // ── Utility helpers ──
+            const addPage = () => { doc.addPage(); y = mg; };
+            const need = (h) => { if (y + h > pageH - 50) addPage(); };
 
-            function hr() {
-                doc.setDrawColor(200, 200, 200);
-                doc.line(margin, y, pageW - margin, y);
+            const fmtDateTime = (dt) => {
+                const d2 = dt instanceof Date ? dt : new Date(dt);
+                if (isNaN(d2)) return '';
+                let h = d2.getHours(), m = String(d2.getMinutes()).padStart(2, '0');
+                const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+                return `${d2.getMonth()+1}/${d2.getDate()}/${d2.getFullYear()} ${h}:${m} ${ap}`;
+            };
+
+            // ── Section label (thin rule + ALL-CAPS, matching personal lines) ──
+            const sectionLabel = (title) => {
+                need(14);
+                y += 6;
+                doc.setDrawColor(...RULE); doc.setLineWidth(0.4);
+                doc.line(mg, y, pageW - mg, y);
+                doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...MID);
+                doc.text(title.toUpperCase(), mg, y + 5);
+                doc.setFont('helvetica', 'normal'); doc.setTextColor(...INK);
                 y += 10;
-            }
+            };
 
-            function body(text, opts = {}) {
+            // ── Sub-header (bold text + light underline) ──
+            const subHeader = (title) => {
+                need(12);
+                y += 3;
+                doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+                doc.setTextColor(...INK);
+                doc.text(title, mg, y + 4);
+                doc.setDrawColor(...LIGHT); doc.setLineWidth(0.3);
+                doc.line(mg, y + 6, pageW - mg, y + 6);
+                doc.setFont('helvetica', 'normal');
+                y += 10;
+            };
+
+            // ── 2-col key-value table with alternating fill ──
+            const baseRowH = 14;
+            const kvLineH = 10;
+
+            const kvRow = (fields, cols) => {
+                cols = cols || 2;
+                const filtered = fields.filter(f => f[1] && String(f[1]).trim() && String(f[1]).trim() !== 'N/A');
+                if (!filtered.length) return;
+                const rows = [];
+                for (let i = 0; i < filtered.length; i += cols) rows.push(filtered.slice(i, i + cols));
+                const colW = cw / cols;
+                const labelW = colW * 0.35;
+                const maxW = colW - labelW - 6;
+
+                rows.forEach((row, ri) => {
+                    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                    let maxLines = 1;
+                    const splitCache = row.map(f => {
+                        const lines = doc.splitTextToSize(String(f[1]), maxW);
+                        if (lines.length > maxLines) maxLines = lines.length;
+                        return lines;
+                    });
+                    const rowH = baseRowH + (maxLines - 1) * kvLineH;
+                    need(rowH + 1);
+                    if (ri % 2 === 1) {
+                        doc.setFillColor(...FILL);
+                        doc.rect(mg, y - 1, cw, rowH, 'F');
+                    }
+                    row.forEach((f, ci) => {
+                        const x = mg + ci * colW;
+                        doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MID);
+                        doc.text(String(f[0]), x + 2, y + 4);
+                        doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(...INK);
+                        const lines = splitCache[ci];
+                        lines.forEach((line, li) => { doc.text(line, x + labelW, y + 4 + li * kvLineH); });
+                    });
+                    y += rowH;
+                });
+                y += 2;
+            };
+
+            // ── Body text with bullet/number detection ──
+            const body = (text, opts) => {
                 if (!text) return;
-                const baseSize = opts.size || 10;
-                const baseBold = opts.bold || false;
-                const baseColor = opts.color || [60, 60, 60];
+                opts = opts || {};
+                const sz = opts.size || 9;
+                const bld = opts.bold || false;
+                const clr = opts.color || INK;
                 const indent = opts.indent || 0;
-                const lineH = baseSize + 3;
-
-                // Split into logical lines
+                const lineH = sz + 3;
                 const rawText = String(text);
                 let lines = rawText.split(/\n/);
-
-                // If single long line, try detecting inline bullet patterns
                 if (lines.length === 1 && rawText.length > 120) {
                     const split = rawText.split(/(?=\s*[-•]\s+(?=[A-Z*]))/);
                     if (split.length > 1) lines = split;
                 }
-
                 let lastWasList = false;
 
                 for (const rawLine of lines) {
                     const trimmed = rawLine.trim();
-                    if (!trimmed) { y += 5; lastWasList = false; continue; }
-
-                    // Strip markdown bold markers
+                    if (!trimmed) { y += 4; lastWasList = false; continue; }
                     const clean = trimmed.replace(/\*\*(.+?)\*\*/g, '$1');
-
-                    // Detect bullet: -, •, *
                     const bulletMatch = clean.match(/^[-•*]\s+(.+)/);
-                    // Detect numbered: 1. or 1)
                     const numMatch = clean.match(/^(\d+)[.)]\s+(.+)/);
 
                     if (bulletMatch) {
-                        const itemText = bulletMatch[1];
-                        checkPage(16);
-                        // Bullet marker
-                        doc.setFontSize(baseSize);
-                        doc.setFont('helvetica', 'normal');
-                        doc.setTextColor(...baseColor);
-                        doc.text('\u2022', margin + indent + 8, y);
-                        // Item text — check for Label: Value pattern
-                        const textIndent = indent + 20;
-                        const labelPat = itemText.match(/^([^:]{1,35}):\s*(.+)/);
+                        need(14);
+                        doc.setFontSize(sz); doc.setFont('helvetica', 'normal'); doc.setTextColor(...clr);
+                        doc.text('\u2022', mg + indent + 6, y);
+                        const textIndent = indent + 16;
+                        const labelPat = bulletMatch[1].match(/^([^:]{1,40}):\s*(.+)/);
                         if (labelPat) {
-                            doc.setFont('helvetica', 'bold');
-                            doc.setTextColor(40, 40, 40);
+                            doc.setFont('helvetica', 'bold'); doc.setTextColor(...INK);
                             const lbl = labelPat[1] + ': ';
-                            doc.text(lbl, margin + textIndent, y);
+                            doc.text(lbl, mg + textIndent, y);
                             const lblW = doc.getTextWidth(lbl);
-                            doc.setFont('helvetica', 'normal');
-                            doc.setTextColor(...baseColor);
-                            const rest = doc.splitTextToSize(labelPat[2], usable - textIndent - lblW);
+                            doc.setFont('helvetica', 'normal'); doc.setTextColor(...clr);
+                            const rest = doc.splitTextToSize(labelPat[2], cw - textIndent - lblW);
                             if (rest.length > 0) {
-                                doc.text(rest[0], margin + textIndent + lblW, y);
-                                y += lineH;
-                                for (let i = 1; i < rest.length; i++) {
-                                    checkPage(14);
-                                    doc.text(rest[i], margin + textIndent, y);
-                                    y += lineH;
-                                }
+                                doc.text(rest[0], mg + textIndent + lblW, y); y += lineH;
+                                for (let i = 1; i < rest.length; i++) { need(12); doc.text(rest[i], mg + textIndent, y); y += lineH; }
                             } else { y += lineH; }
                         } else {
-                            const wrapped = doc.splitTextToSize(itemText, usable - textIndent);
-                            for (let i = 0; i < wrapped.length; i++) {
-                                if (i > 0) checkPage(14);
-                                doc.text(wrapped[i], margin + textIndent, y);
-                                y += lineH;
-                            }
+                            const wrapped = doc.splitTextToSize(bulletMatch[1], cw - textIndent);
+                            for (let i = 0; i < wrapped.length; i++) { if (i > 0) need(12); doc.text(wrapped[i], mg + textIndent, y); y += lineH; }
                         }
                         lastWasList = true;
-
                     } else if (numMatch) {
-                        const num = numMatch[1];
-                        const itemText = numMatch[2];
-                        checkPage(16);
-                        doc.setFontSize(baseSize);
-                        doc.setFont('helvetica', 'bold');
-                        doc.setTextColor(40, 40, 40);
-                        doc.text(num + '.', margin + indent + 8, y);
-                        doc.setFont('helvetica', 'normal');
-                        doc.setTextColor(...baseColor);
-                        const textIndent = indent + 22;
-                        const wrapped = doc.splitTextToSize(clean.replace(/^\d+[.)]\s+/, '').replace(/\*\*(.+?)\*\*/g, '$1'), usable - textIndent);
-                        for (let i = 0; i < wrapped.length; i++) {
-                            if (i > 0) checkPage(14);
-                            doc.text(wrapped[i], margin + textIndent, y);
-                            y += lineH;
-                        }
+                        need(14);
+                        doc.setFontSize(sz); doc.setFont('helvetica', 'bold'); doc.setTextColor(...INK);
+                        doc.text(numMatch[1] + '.', mg + indent + 6, y);
+                        doc.setFont('helvetica', 'normal'); doc.setTextColor(...clr);
+                        const textIndent = indent + 18;
+                        const wrapped = doc.splitTextToSize(clean.replace(/^\d+[.)]\s+/, '').replace(/\*\*(.+?)\*\*/g, '$1'), cw - textIndent);
+                        for (let i = 0; i < wrapped.length; i++) { if (i > 0) need(12); doc.text(wrapped[i], mg + textIndent, y); y += lineH; }
                         lastWasList = true;
-
                     } else {
-                        if (lastWasList) y += 4;
-                        doc.setFontSize(baseSize);
-                        doc.setFont('helvetica', baseBold ? 'bold' : 'normal');
-                        doc.setTextColor(...baseColor);
-                        const wrapped = doc.splitTextToSize(clean, usable - indent);
-                        for (const wl of wrapped) {
-                            checkPage(14);
-                            doc.text(wl, margin + indent, y);
-                            y += lineH;
-                        }
+                        if (lastWasList) y += 3;
+                        doc.setFontSize(sz); doc.setFont('helvetica', bld ? 'bold' : 'normal'); doc.setTextColor(...clr);
+                        const wrapped = doc.splitTextToSize(clean, cw - indent);
+                        for (const wl of wrapped) { need(12); doc.text(wl, mg + indent, y); y += lineH; }
                         lastWasList = false;
                     }
                 }
-                y += 3;
-            }
+                y += 2;
+            };
 
-            function labelValue(label, value) {
-                if (!value || value === 'N/A') return;
-                checkPage(16);
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(80, 80, 80);
-                doc.text(label + ':', margin + 8, y);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(40, 40, 40);
-                doc.text(String(value), margin + 8 + doc.getTextWidth(label + ':  '), y);
-                y += 14;
-            }
+            // ════════════════════════════════════════════════════════════
+            //  ① DOCUMENT HEADER
+            // ════════════════════════════════════════════════════════════
 
-            /** AI section heading with colored left accent bar */
-            function aiHeading(text, color) {
-                checkPage(28);
-                y += 4;
-                const c = color || [0, 0, 0];
-                // Colored accent bar
-                doc.setFillColor(...c);
-                doc.rect(margin, y - 10, 3, 14, 'F');
-                // Heading text
-                doc.setFontSize(11);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...c);
-                doc.text(text, margin + 10, y);
-                y += 16;
-            }
+            // Top accent bar
+            doc.setFillColor(...ACCENT);
+            doc.rect(mg, mg - 6, cw, 2, 'F');
+            y = mg + 4;
 
-            /** Major section heading with full-width colored underline */
-            function majorHeading(text, color) {
-                checkPage(36);
-                y += 6;
-                const c = color || [0, 0, 0];
-                doc.setFontSize(14);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(...c);
-                doc.text(text, margin, y);
-                y += 4;
-                doc.setDrawColor(...c);
-                doc.setLineWidth(1.5);
-                doc.line(margin, y, margin + doc.getTextWidth(text), y);
-                doc.setLineWidth(0.5);
-                y += 10;
-            }
-
-            // ── Title ──
-            doc.setFontSize(20);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(0, 0, 0);
-            doc.text('Prospect Investigation Report', margin, y);
+            // Title + business name
+            doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.setTextColor(...INK);
+            doc.text('Prospect Investigation Report', mg, y);
             y += 14;
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(120, 120, 120);
-            doc.text(`${d.displayName || d.businessName} · ${d.state} · ${new Date(d.timestamp).toLocaleDateString()}`, margin, y);
+            doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MID);
+            doc.text((d.displayName || d.businessName) + ' \u00b7 ' + d.state + ' \u00b7 ' + new Date(d.timestamp).toLocaleDateString(), mg, y);
+            y += 6;
+
+            // Risk rating badge (text-only, toner-safe)
+            const riskRating = ai?.riskRating || '';
+            if (riskRating) {
+                doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...ACCENT);
+                doc.text('RISK: ' + riskRating.toUpperCase(), pageW - mg, y, { align: 'right' });
+            }
+            y += 6;
+
+            // ── Data Sources Status Row ──
+            const liOk = d.li && d.li.available !== false && !d.li.error && d.li.contractor;
+            const sosOk = d.sos && d.sos.available !== false && !d.sos.error && d.sos.entity;
+            const oshaOk = d.osha && d.osha.available !== false && !d.osha.error;
+            const samOk = d.sam && d.sam.available && d.sam.entities?.length > 0;
+            const placesOk = d.places && d.places.available && d.places.profile;
+            const srcCount = [liOk, sosOk, oshaOk, samOk, placesOk].filter(Boolean).length;
+
+            doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MID);
+            const srcLine = [
+                (liOk ? '\u2713' : '\u2717') + ' L&I',
+                (sosOk ? '\u2713' : '\u2717') + ' SOS',
+                (oshaOk ? '\u2713' : '\u2717') + ' OSHA',
+                (samOk ? '\u2713' : '\u2717') + ' SAM',
+                (placesOk ? '\u2713' : '\u2717') + ' Google',
+            ].join('    ') + '    (' + srcCount + '/5 sources)';
+            doc.text(srcLine, mg, y);
             y += 8;
-            hr();
 
-            // ── Business Overview ──
-            heading('Business Overview');
-            labelValue('UBI', d.ubi);
-            labelValue('Location', (d.city ? d.city + ', ' : '') + d.state);
-            labelValue('Report Date', new Date(d.timestamp).toLocaleDateString());
+            // ════════════════════════════════════════════════════════════
+            //  ② BUSINESS OVERVIEW (kvRow table)
+            // ════════════════════════════════════════════════════════════
+            sectionLabel('Business Overview');
 
-            // Consolidated contact info from best source
             const gp = d.places?.profile;
             const _c = d.li?.contractor || {};
             const _e = d.sos?.entity || {};
             const bestPhone = gp?.phone || _c.phone || '';
-            const bestWebsite = gp?.website || '';
+            const bestWebsite = gp?.website || ai?.website || '';
             const bestAddress = gp?.address || (_c.address ? [_c.address.street, _c.address.city, _c.address.state, _c.address.zip].filter(Boolean).join(', ') : '') || (_e.principalOffice ? [_e.principalOffice.street, _e.principalOffice.city, _e.principalOffice.state, _e.principalOffice.zip].filter(Boolean).join(', ') : '');
-            if (bestPhone) labelValue('Phone', bestPhone);
-            if (bestWebsite) labelValue('Website', bestWebsite);
-            if (bestAddress) labelValue('Address', bestAddress);
-            if (gp?.rating) labelValue('Google Rating', gp.rating + '/5 (' + (gp.totalReviews || 0) + ' reviews)');
-            if (gp?.businessStatus) labelValue('Business Status', gp.businessStatus.replace(/_/g, ' '));
-            if (gp?.types?.length) labelValue('Categories', gp.types.map(t => t.replace(/_/g, ' ')).join(', '));
-            y += 6;
 
-            // ── AI Analysis ──
-            if (ai) {
-                hr();
-                majorHeading('AI Underwriting Analysis', [168, 85, 247]);
+            const overviewFields = [
+                ['Location', (d.city ? d.city + ', ' : '') + d.state],
+                ['Phone', bestPhone],
+                ['UBI', d.ubi],
+                ['Website', bestWebsite],
+                ['Address', bestAddress],
+                ['Google Rating', gp?.rating ? gp.rating + '/5 (' + (gp.totalReviews || 0) + ' reviews)' : ''],
+                ['Categories', gp?.types?.length ? gp.types.map(t => t.replace(/_/g, ' ')).join(', ') : ''],
+                ['Status', gp?.businessStatus ? gp.businessStatus.replace(/_/g, ' ') : ''],
+                ['Report Date', new Date(d.timestamp).toLocaleDateString()],
+                ['Est. Employees', ai?.estimatedEmployees || ''],
+                ['Est. Revenue', ai?.estimatedRevenue || ''],
+                ['Years in Business', ai?.yearsInBusiness ? String(ai.yearsInBusiness) : ''],
+            ];
+            kvRow(overviewFields, 2);
 
-                // ── Executive Summary (highlighted box) ──
-                if (ai.executiveSummary) {
-                    checkPage(60);
-                    // Light background box
-                    const summaryText = String(ai.executiveSummary).replace(/\*\*(.+?)\*\*/g, '$1');
-                    const summaryLines = doc.splitTextToSize(summaryText, usable - 24);
-                    const boxH = summaryLines.length * 13 + 16;
-                    checkPage(boxH + 10);
-                    doc.setFillColor(245, 247, 255);
-                    doc.setDrawColor(0, 122, 255);
-                    doc.setLineWidth(0.5);
-                    doc.roundedRect(margin, y - 4, usable, boxH, 4, 4, 'FD');
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(0, 90, 200);
-                    doc.text('EXECUTIVE SUMMARY', margin + 10, y + 8);
-                    y += 20;
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(40, 40, 40);
-                    for (const sl of summaryLines) {
-                        doc.text(sl, margin + 10, y);
-                        y += 13;
-                    }
-                    y += 10;
+            // ════════════════════════════════════════════════════════════
+            //  ③ EXECUTIVE SUMMARY (boxed)
+            // ════════════════════════════════════════════════════════════
+            if (ai?.executiveSummary) {
+                const summaryText = String(ai.executiveSummary).replace(/\*\*(.+?)\*\*/g, '$1');
+                const summaryLines = doc.splitTextToSize(summaryText, cw - 24);
+                const boxH = summaryLines.length * 12 + 20;
+                need(boxH + 8);
+                doc.setFillColor(245, 245, 245);
+                doc.setDrawColor(...LIGHT);
+                doc.setLineWidth(0.5);
+                doc.roundedRect(mg, y, cw, boxH, 3, 3, 'FD');
+                // Accent bar left
+                doc.setFillColor(...ACCENT);
+                doc.rect(mg, y, 3, boxH, 'F');
+                doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(...MID);
+                doc.text('EXECUTIVE SUMMARY', mg + 10, y + 10);
+                y += 18;
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...INK);
+                for (const sl of summaryLines) { doc.text(sl, mg + 10, y); y += 12; }
+                y += 8;
+            }
+
+            // ════════════════════════════════════════════════════════════
+            //  ④ RISK & COVERAGE
+            // ════════════════════════════════════════════════════════════
+            if (ai && (ai.riskAssessment || ai.redFlags || ai.recommendedCoverages || ai.glClassification || ai.naicsAnalysis)) {
+                sectionLabel('Risk & Coverage');
+
+                if (ai.riskAssessment) { subHeader('Risk Assessment'); body(ai.riskAssessment); }
+                if (ai.redFlags) { subHeader('Red Flags & Concerns'); body(ai.redFlags); }
+
+                if (ai.glClassification) {
+                    subHeader('GL Classification');
+                    doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(...INK);
+                    const glClean = String(ai.glClassification).replace(/\*\*(.+?)\*\*/g, '$1');
+                    const glLines = doc.splitTextToSize(glClean, cw);
+                    for (const gl of glLines) { need(14); doc.text(gl, mg, y); y += 13; }
+                    y += 4;
                 }
 
-                // ── Risk & Coverage Group ──
-                if (ai.riskAssessment || ai.redFlags || ai.recommendedCoverages || ai.glClassification || ai.naicsAnalysis) {
-                    majorHeading('Risk & Coverage', [220, 80, 40]);
+                if (ai.naicsAnalysis) { subHeader('NAICS / Industry'); body(ai.naicsAnalysis); }
 
-                    if (ai.riskAssessment) {
-                        aiHeading('Risk Assessment', [220, 80, 40]);
-                        body(ai.riskAssessment);
-                        y += 4;
+                if (ai.recommendedCoverages) {
+                    subHeader('Recommended Coverages');
+                    // Try to parse structured "Coverage: Limit (reason)" lines into kvRow
+                    const covLines = String(ai.recommendedCoverages).split('\n').map(l => l.trim().replace(/^[-•*]\s+/, '')).filter(Boolean);
+                    const covPairs = [];
+                    for (const line of covLines) {
+                        const m = line.replace(/\*\*(.+?)\*\*/g, '$1').match(/^([^:]{2,50}):\s*(.+)/);
+                        if (m) covPairs.push([m[1].trim(), m[2].trim()]);
                     }
-
-                    if (ai.redFlags) {
-                        aiHeading('Red Flags & Concerns', [255, 59, 48]);
-                        body(ai.redFlags);
-                        y += 4;
-                    }
-
-                    if (ai.glClassification) {
-                        aiHeading('GL Classification', [80, 80, 80]);
-                        body(ai.glClassification, { bold: true });
-                        y += 4;
-                    }
-
-                    if (ai.naicsAnalysis) {
-                        aiHeading('NAICS / Industry', [80, 80, 80]);
-                        body(ai.naicsAnalysis);
-                        y += 4;
-                    }
-
-                    if (ai.recommendedCoverages) {
-                        aiHeading('Recommended Coverages', [52, 199, 89]);
+                    if (covPairs.length >= 3) {
+                        // Structured table
+                        kvRow(covPairs, 1);
+                    } else {
+                        // Fallback to bullet rendering
                         body(ai.recommendedCoverages);
-                        y += 4;
                     }
                 }
+            }
 
-                // ── Business Intelligence Group ──
-                if (ai.businessProfile || ai.businessHistory || ai.keyPersonnel || ai.serviceArea || ai.buildingInfo) {
-                    majorHeading('Business Intelligence', [0, 100, 200]);
+            // ════════════════════════════════════════════════════════════
+            //  ⑤ BUSINESS INTELLIGENCE
+            // ════════════════════════════════════════════════════════════
+            if (ai && (ai.businessProfile || ai.businessHistory || ai.keyPersonnel || ai.serviceArea || ai.buildingInfo)) {
+                sectionLabel('Business Intelligence');
 
-                    if (ai.businessProfile) {
-                        aiHeading('Business Profile', [0, 100, 200]);
-                        body(ai.businessProfile);
-                        y += 4;
+                if (ai.businessProfile) { subHeader('Business Profile'); body(ai.businessProfile); }
+                if (ai.businessHistory) { subHeader('Business History'); body(ai.businessHistory); }
+
+                if (ai.keyPersonnel) {
+                    subHeader('Key Personnel');
+                    // Try structured "Name (Title) — notes" format as kvRow
+                    const pLines = String(ai.keyPersonnel).split('\n').map(l => l.trim().replace(/^[-•*]\s+/, '')).filter(Boolean);
+                    const pPairs = [];
+                    for (const line of pLines) {
+                        const clean = line.replace(/\*\*(.+?)\*\*/g, '$1');
+                        const m = clean.match(/^([^(—\-]+)\s*[(\-—]+\s*(.+)/);
+                        if (m) pPairs.push([m[1].trim(), m[2].replace(/\)\s*[—\-]\s*/, ' \u2014 ').replace(/\)$/, '').trim()]);
                     }
-
-                    if (ai.businessHistory) {
-                        aiHeading('Business History', [0, 100, 200]);
-                        body(ai.businessHistory);
-                        y += 4;
-                    }
-
-                    if (ai.keyPersonnel) {
-                        aiHeading('Key Personnel', [52, 160, 80]);
+                    if (pPairs.length >= 2) {
+                        kvRow(pPairs, 1);
+                    } else {
                         body(ai.keyPersonnel);
-                        y += 4;
-                    }
-
-                    if (ai.serviceArea) {
-                        aiHeading('Service Area & Territory', [80, 80, 80]);
-                        body(ai.serviceArea);
-                        y += 4;
-                    }
-
-                    if (ai.buildingInfo) {
-                        aiHeading('Building & Premises', [200, 120, 0]);
-                        body(ai.buildingInfo);
-                        y += 4;
                     }
                 }
 
-                // ── Strategy & Notes Group ──
-                if (ai.underwritingNotes || ai.competitiveIntel || ai.website || ai.socialMedia) {
-                    majorHeading('Strategy & Notes', [88, 86, 214]);
+                if (ai.serviceArea) { subHeader('Service Area & Territory'); body(ai.serviceArea); }
+                if (ai.buildingInfo) { subHeader('Building & Premises'); body(ai.buildingInfo); }
+            }
 
-                    if (ai.underwritingNotes) {
-                        aiHeading('Underwriting Notes', [80, 80, 80]);
-                        body(ai.underwritingNotes);
-                        y += 4;
+            // ════════════════════════════════════════════════════════════
+            //  ⑥ STRATEGY & NOTES
+            // ════════════════════════════════════════════════════════════
+            if (ai && (ai.underwritingNotes || ai.competitiveIntel || ai.website || ai.socialMedia)) {
+                sectionLabel('Strategy & Notes');
+
+                if (ai.underwritingNotes) { subHeader('Underwriting Notes'); body(ai.underwritingNotes); }
+                if (ai.competitiveIntel) { subHeader('Competitive Intel & Strategy'); body(ai.competitiveIntel); }
+
+                if (ai.website || ai.socialMedia) {
+                    subHeader('Online Presence');
+                    // Parse structured "Platform: URL" lines into kvRow
+                    const onlineLines = [];
+                    if (ai.website && ai.website !== 'No website found') onlineLines.push(['Website', ai.website]);
+                    if (ai.socialMedia) {
+                        const smLines = String(ai.socialMedia).split('\n').map(l => l.trim()).filter(Boolean);
+                        for (const line of smLines) {
+                            const clean = line.replace(/^[-•*]\s+/, '').replace(/;$/, '').trim();
+                            const m = clean.match(/^([^:]{2,30}):\s*(.+)/);
+                            if (m) onlineLines.push([m[1].trim(), m[2].trim()]);
+                            else if (clean) onlineLines.push(['', clean]);
+                        }
                     }
-
-                    if (ai.competitiveIntel) {
-                        aiHeading('Competitive Intel & Strategy', [88, 86, 214]);
-                        body(ai.competitiveIntel);
-                        y += 4;
-                    }
-
-                    if (ai.website || ai.socialMedia) {
-                        aiHeading('Online Presence', [88, 86, 214]);
+                    if (onlineLines.length >= 2) {
+                        kvRow(onlineLines, 1);
+                    } else {
                         if (ai.website) body('Website: ' + ai.website);
                         if (ai.socialMedia) body(ai.socialMedia);
-                        y += 4;
                     }
                 }
             }
 
-            // ── Contractor License ──
+            // ════════════════════════════════════════════════════════════
+            //  ⑦ SOURCE RECORDS
+            // ════════════════════════════════════════════════════════════
+
+            // Contractor License
             const c = d.li?.contractor;
             if (c) {
-                hr();
-                heading('Contractor License');
-                labelValue('License #', c.licenseNumber);
-                labelValue('Status', c.status);
-                labelValue('License Type', c.licenseType);
-                labelValue('Classifications', (c.classifications || []).join(', '));
-                labelValue('Owners', _formatOwners(c.owners));
-                labelValue('Expiration', c.expirationDate);
-                labelValue('Registration', c.registrationDate);
-                labelValue('Bond', c.bondAmount);
-                labelValue('Bond Company', c.bondCompany);
-                labelValue('Insurance Co', c.insuranceCompany);
-                labelValue('Insurance Amt', c.insuranceAmount);
-                if (c.address) labelValue('Address', [c.address.street, c.address.city, c.address.state, c.address.zip].filter(Boolean).join(', '));
+                sectionLabel('Contractor License');
+                kvRow([
+                    ['License #', c.licenseNumber], ['Status', c.status],
+                    ['License Type', c.licenseType], ['Expiration', c.expirationDate],
+                    ['Classifications', (c.classifications || []).join(', ')], ['Registration', c.registrationDate],
+                    ['Owners', _formatOwners(c.owners)], ['Bond', c.bondAmount],
+                    ['Bond Company', c.bondCompany], ['Insurance Co', c.insuranceCompany],
+                    ['Insurance Amt', c.insuranceAmount],
+                    ['Address', c.address ? [c.address.street, c.address.city, c.address.state, c.address.zip].filter(Boolean).join(', ') : ''],
+                ], 2);
                 if (c.violations?.length) {
-                    y += 4;
-                    body('Violations: ' + c.violations.join('; '), { color: [200, 60, 40] });
+                    body('Violations: ' + c.violations.join('; '), { color: [180, 40, 30] });
                 }
-                y += 6;
             }
 
-            // ── Business Entity ──
+            // Business Entity
             const e = d.sos?.entity;
             if (e) {
-                hr();
-                heading('Business Entity Records');
-                labelValue('UBI/Entity #', e.ubi);
-                labelValue('Entity Type', e.entityType);
-                labelValue('Status', e.status);
-                labelValue('Formation', e.formationDate);
-                labelValue('Jurisdiction', e.jurisdiction);
-                labelValue('Business Activity', e.businessActivity);
-                if (e.registeredAgent?.name) labelValue('Registered Agent', e.registeredAgent.name);
+                sectionLabel('Business Entity Records');
                 const govs = e.governors || e.officers || [];
-                if (govs.length) labelValue('Officers', govs.map(g => `${g.name} (${g.title || 'Governor'})`).join(', '));
-                y += 6;
+                kvRow([
+                    ['UBI/Entity #', e.ubi], ['Entity Type', e.entityType],
+                    ['Status', e.status], ['Formation', e.formationDate],
+                    ['Jurisdiction', e.jurisdiction], ['Business Activity', e.businessActivity],
+                    ['Registered Agent', e.registeredAgent?.name || ''],
+                    ['Officers', govs.length ? govs.map(g => g.name + ' (' + (g.title || 'Governor') + ')').join(', ') : ''],
+                ], 2);
             }
 
-            // ── OSHA ──
+            // OSHA
+            sectionLabel('OSHA Inspection History');
             if (d.osha?.inspections?.length) {
-                hr();
-                heading('OSHA Inspection History');
                 const s = d.osha.summary || {};
-                labelValue('Total Inspections', s.totalInspections);
-                labelValue('Serious Violations', s.seriousViolations);
-                labelValue('Willful Violations', s.willfulViolations);
-                labelValue('Total Penalties', '$' + (s.totalPenalties || 0).toLocaleString());
-                y += 6;
+                kvRow([
+                    ['Total Inspections', String(s.totalInspections || 0)], ['Serious Violations', String(s.seriousViolations || 0)],
+                    ['Willful Violations', String(s.willfulViolations || 0)], ['Total Penalties', '$' + (s.totalPenalties || 0).toLocaleString()],
+                ], 2);
             } else {
-                hr();
-                heading('OSHA Inspection History');
-                body('No OSHA violations found in public records.', { color: [52, 199, 89] });
-                y += 6;
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MID);
+                doc.text('No OSHA violations found in public records.', mg, y + 2);
+                y += 14;
             }
 
-            // ── SAM.gov ──
+            // SAM.gov
             if (d.sam?.available && d.sam.entities?.length) {
-                hr();
-                heading('SAM.gov Federal Registration');
+                sectionLabel('SAM.gov Federal Registration');
                 const se = d.sam.entities[0];
-                labelValue('Legal Name', se.legalBusinessName);
-                labelValue('UEI', se.ueiSAM);
-                labelValue('CAGE Code', se.cageCode);
-                labelValue('Entity Type', se.entityType);
-                labelValue('Structure', se.entityStructure);
-                labelValue('Status', se.registrationStatus);
-                if (se.naicsCodes?.length) labelValue('NAICS', se.naicsCodes.map(n => n.code + (n.isPrimary ? ' (primary)' : '')).join(', '));
-                y += 6;
+                kvRow([
+                    ['Legal Name', se.legalBusinessName], ['UEI', se.ueiSAM],
+                    ['CAGE Code', se.cageCode], ['Entity Type', se.entityType],
+                    ['Structure', se.entityStructure], ['Status', se.registrationStatus],
+                    ['NAICS', se.naicsCodes?.length ? se.naicsCodes.map(n => n.code + (n.isPrimary ? ' (primary)' : '')).join(', ') : ''],
+                ], 2);
             }
 
-            // ── Footer on every page ──
+            // ════════════════════════════════════════════════════════════
+            //  FOOTER (every page — matches personal lines format)
+            // ════════════════════════════════════════════════════════════
             const totalPages = doc.internal.getNumberOfPages();
             for (let i = 1; i <= totalPages; i++) {
                 doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(160, 160, 160);
-                doc.text(`Altech · altech.agency · Confidential`, margin, pageH - 30);
-                doc.text(`Page ${i} of ${totalPages}`, pageW - margin - 60, pageH - 30);
+                doc.setDrawColor(...RULE); doc.setLineWidth(0.3);
+                doc.line(mg, pageH - 40, pageW - mg, pageH - 40);
+                doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MID);
+                doc.text('Altech Insurance Tools', mg, pageH - 32);
+                doc.text('Page ' + i + ' of ' + totalPages, pageW / 2, pageH - 32, { align: 'center' });
+                doc.text(fmtDateTime(new Date()), pageW - mg, pageH - 32, { align: 'right' });
             }
 
-            const filename = `Prospect_${(d.displayName || d.businessName).replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+            const filename = 'Prospect_' + (d.displayName || d.businessName).replace(/[^a-zA-Z0-9]/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
             doc.save(filename);
             _toast('PDF exported: ' + filename);
 
         } catch (err) {
             console.error('[Prospect] PDF export error:', err);
-            // Fallback to browser print
             window.print();
         }
     }
