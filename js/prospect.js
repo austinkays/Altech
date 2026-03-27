@@ -182,27 +182,56 @@ const ProspectInvestigator = (() => {
         _showSOSPastePrompt();
     }
 
-    /** Show inline SOS paste prompt with skip option */
+    /** Show inline SOS paste prompt with skip option — includes SOS link + search term */
     function _showSOSPastePrompt() {
         const aiEl = document.getElementById('aiAnalysisContent');
         const aiSection = document.getElementById('aiAnalysisSection');
         if (!aiEl || !aiSection) { _runAIAnalysis(); return; }
 
+        const state = currentData.state || 'WA';
+        const sosLinks = {
+            'WA': { url: 'https://ccfs.sos.wa.gov/#/BusinessSearch', label: 'WA Secretary of State' },
+            'OR': { url: 'https://sos.oregon.gov/business/pages/find.aspx', label: 'OR Secretary of State' },
+            'AZ': { url: 'https://ecorp.azcc.gov/BusinessSearch', label: 'AZ Corporation Commission' }
+        };
+        const sosLink = sosLinks[state] || sosLinks['WA'];
+        const searchUrl = currentData.sos?.searchUrl || sosLink.url;
+        const searchTerm = currentData.ubi || currentData.businessName || '';
+
         aiSection.style.display = 'block';
         aiEl.innerHTML = `
-            <div style="text-align:center;padding:24px 20px;">
-                <div style="font-size:36px;margin-bottom:12px;">\uD83D\uDD10</div>
-                <div style="font-weight:700;font-size:16px;margin-bottom:8px;">Secretary of State data is missing</div>
-                <p style="font-size:13px;color:var(--text-secondary);margin:0 0 20px;max-width:420px;margin-left:auto;margin-right:auto;">
-                    The SOS website blocked our lookup. Paste the data now for a more complete AI analysis, or skip to run with what we have.
-                </p>
-                <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <div style="padding:24px 20px;">
+                <div style="text-align:center;margin-bottom:20px;">
+                    <div style="font-size:36px;margin-bottom:12px;">\uD83D\uDD10</div>
+                    <div style="font-weight:700;font-size:16px;margin-bottom:6px;">Secretary of State data is missing</div>
+                    <p style="font-size:13px;color:var(--text-secondary);margin:0;max-width:440px;margin-left:auto;margin-right:auto;">
+                        The SOS website blocked our lookup. Grab the data for a more complete AI analysis, or skip to run with what we have.
+                    </p>
+                </div>
+
+                <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+                    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">\uD83D\uDCA1 Quick steps:</div>
+                    <div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">
+                        1. Click the link below to open ${_esc(sosLink.label)}<br>
+                        2. Search for <strong style="color:var(--text);">${_esc(searchTerm)}</strong>
+                        <button onclick="navigator.clipboard.writeText('${searchTerm.replace(/'/g, "\\'")}');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)" style="margin-left:6px;padding:2px 10px;font-size:11px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--apple-blue);cursor:pointer;font-weight:600;">Copy</button><br>
+                        3. Select All (Ctrl+A) on the results page, Copy (Ctrl+C)<br>
+                        4. Come back here and click <strong style="color:var(--text);">Paste SOS Data</strong>
+                    </div>
+                </div>
+
+                <a href="${_esc(searchUrl)}" target="_blank" rel="noopener noreferrer"
+                    style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px 16px;background:var(--apple-blue);color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;margin-bottom:12px;">
+                    Open ${_esc(sosLink.label)} \u2197
+                </a>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
                     <button onclick="ProspectInvestigator.pasteSOSData(true)"
-                        style="padding:12px 24px;background:var(--apple-blue);color:#fff;border:none;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+                        style="flex:1;padding:12px 24px;background:var(--bg-card);color:var(--text);border:1.5px dashed var(--border);border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
                         \uD83D\uDCCB Paste SOS Data
                     </button>
                     <button onclick="ProspectInvestigator._skipSOSAndRunAI()"
-                        style="padding:12px 24px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:10px;font-weight:500;font-size:14px;cursor:pointer;">
+                        style="padding:12px 24px;background:var(--bg-input);color:var(--text-secondary);border:1px solid var(--border);border-radius:10px;font-weight:500;font-size:13px;cursor:pointer;">
                         Skip \u2014 Run AI Without SOS
                     </button>
                 </div>
