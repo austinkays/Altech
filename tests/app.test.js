@@ -339,47 +339,48 @@ describe('Altech App Tests', () => {
       expect(result.filename).toMatch(/\.cmsmtf$/);
     });
 
-    test('buildCMSMTF content uses [TAG]value format', () => {
+    test('buildCMSMTF content uses HawkSoft fieldname = value format', () => {
       const result = App.buildCMSMTF(SAMPLE_DATA);
-      expect(result.content).toContain('[NAM]John Doe');
-      expect(result.content).toContain('[ADD]408 NW 116th St');
-      expect(result.content).toContain('[CTY]Vancouver');
-      expect(result.content).toContain('[STA]WA');
-      expect(result.content).toContain('[ZIP]98685');
+      expect(result.content).toContain('gen_sFirstName = John');
+      expect(result.content).toContain('gen_sLastName = Doe');
+      expect(result.content).toContain('gen_sAddress1 = 408 NW 116th St');
+      expect(result.content).toContain('gen_sCity = Vancouver');
+      expect(result.content).toContain('gen_sState = WA');
+      expect(result.content).toContain('gen_sZip = 98685');
     });
 
     test('buildCMSMTF includes property fields', () => {
       const result = App.buildCMSMTF(SAMPLE_DATA);
-      expect(result.content).toContain('[L1]2020');         // roofYr
-      expect(result.content).toContain('[L2]Composition');  // roofType
-      expect(result.content).toContain('[L3]Forced Air');   // heatingType
+      expect(result.content).toContain('gen_nYearBuilt = 2005');
+      expect(result.content).toContain('gen_sConstruction = Frame');
+      // Detailed property info captured in client notes
+      expect(result.content).toContain('Roof: Composition');
     });
 
     test('buildCMSMTF includes auto fields', () => {
       const result = App.buildCMSMTF(SAMPLE_DATA);
-      expect(result.content).toContain('[VIN]');
-      expect(result.content).toContain('[C2]GEICO');  // priorCarrier
-      expect(result.content).toContain('[C3]3');       // priorYears
+      expect(result.content).toContain('gen_sBi = 100/300/100');
+      // Prior carrier in FSC notes
+      expect(result.content).toContain('GEICO');
     });
 
-    test('buildCMSMTF strips phone formatting', () => {
+    test('buildCMSMTF includes phone', () => {
       const result = App.buildCMSMTF(SAMPLE_DATA);
-      expect(result.content).toContain('[PHN]3605551234');
+      expect(result.content).toContain('gen_sCellPhone = (360) 555-1234');
     });
 
     test('buildCMSMTF filters out empty fields', () => {
       const result = App.buildCMSMTF({ firstName: 'Test', lastName: 'User' });
-      expect(result.content).not.toContain('[CTY]');
-      expect(result.content).not.toContain('[ADD]');
+      expect(result.content).not.toContain('gen_sCity');
+      expect(result.content).not.toContain('gen_sAddress1');
     });
 
     test('buildCMSMTF handles empty data', () => {
       const result = App.buildCMSMTF({});
-      // Even with empty data, R1 and R10 produce values from template strings
       expect(result.filename).toBe('Lead_Export.cmsmtf');
-      // Should not contain personal info tags
-      expect(result.content).not.toContain('[NAM]');
-      expect(result.content).not.toContain('[EML]');
+      // Should not contain personal name fields
+      expect(result.content).not.toContain('gen_sFirstName');
+      expect(result.content).not.toContain('gen_sEmail');
     });
   });
 
@@ -922,14 +923,13 @@ describe('Altech App Tests', () => {
   describe('Edge Cases', () => {
     test('buildCMSMTF handles undefined fields gracefully', () => {
       const result = App.buildCMSMTF({ firstName: undefined, lastName: undefined });
-      // Should not contain [NAM] since name is empty after trim
-      expect(result.content).not.toContain('[NAM]');
+      expect(result.content).not.toContain('gen_sFirstName');
       expect(result.filename).toContain('Export');
     });
 
     test('buildCMSMTF does not have XSS or injection risk', () => {
       const result = App.buildCMSMTF({ firstName: '<script>alert(1)</script>', lastName: 'Test' });
-      expect(result.content).toContain('[NAM]');
+      expect(result.content).toContain('gen_sFirstName');
       expect(result.content).toContain('Test');
     });
 
@@ -1329,10 +1329,10 @@ describe('Altech App Tests', () => {
       expect(result.filename.length).toBeGreaterThan(0);
     });
 
-    test('buildCMSMTF output uses [TAG]value format', () => {
+    test('buildCMSMTF output uses HawkSoft fieldname = value format', () => {
       const result = App.buildCMSMTF(SAMPLE_DATA);
-      // CMSMTF format: [TAG]value
-      expect(result.content).toMatch(/\[\w+\]/);
+      // CMSMTF format: fieldname = value (HawkSoft tagged file format)
+      expect(result.content).toMatch(/gen_s\w+ = .+/);
     });
   });
 

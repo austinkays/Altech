@@ -1,109 +1,230 @@
 # HawkSoft Export Configuration Guide
 
-## ✅ CORRECTED - Validated Against HawkSoft's Official Field Variables
+## Validated Against HawkSoft's Official CMSMTF Sample Files
 
 This document explains how the Altech app exports lead data to HawkSoft using **verified, validated field mappings**.
 
-## Key Fix: HawkSoft System Variable Names AND Format
+## Key Format: Tagged File Format
 
-**CRITICAL:** HawkSoft requires:
-1. Specific **system variable names** (e.g., `gen_sFirstName`, not `FirstName`)
-2. **Correct format:** `variable = value` (with equals sign and spaces)
+**CRITICAL:** The `.cmsmtf` format uses HawkSoft's "Tagged file format" (similar to an INI file):
 
-- ✗ WRONG: `[FirstName]John` or `[gen_sFirstName]John`
-- ✓ CORRECT: `gen_sFirstName = John`
+```
+fieldname = value
+```
 
-All field names have been validated against HawkSoft's official HS6_Multico_Tagged_Field_Format templates and sample CMSMTF files.
+Each line is `variable_name = value` (space-equals-space). No brackets.
+
+- WRONG: `[FirstName]John` or `[gen_sFirstName]John`
+- CORRECT: `gen_sFirstName = John`
+
+Variable names are case-sensitive and must match HawkSoft's exact system variable names.
 
 ---
 
 ## Export Methods
 
-### 1. **CMSMTF Format** (Recommended) ✅ VALIDATED
+### 1. **CMSMTF Format** (Recommended)
 
-- **File Type:** `.cmsmtf` (Plain text with HawkSoft system variable tags)
+- **File Type:** `.cmsmtf` (Plain text with HawkSoft system variables)
 - **Use Case:** Direct import into HawkSoft for creating new prospects
-- **Validation:** All 30+ field variables are verified as valid in HawkSoft
-- **How to Use:** In HawkSoft, go to **Utilities → Import → HawkSoft Data Importer → File** and select your `.cmsmtf` file
+- **How to Import:** Double-click the `.cmsmtf` file (HawkSoft registers the extension) or go to **Utilities > Import > HawkSoft Data Importer > File**
 
-#### Format Structure
+#### Format Structure (from official sample files)
 ```
-gen_sFirstName = John
+gen_sCustType = Personal
 gen_sLastName = Doe
+gen_sFirstName = John
 gen_sAddress1 = 123 Main St
 gen_sCity = Las Vegas
 gen_sState = NV
 gen_sZip = 89101
 gen_sCellPhone = (702) 555-1234
 gen_sEmail = john@email.com
+gen_sClientSource = Website
+gen_sClientMiscData[0] = DOB: 01/15/1990
+gen_sClientMiscData[1] = Marital: Married
+gen_sCMSPolicyType = HOME
+gen_sApplicationType = Personal
+gen_sLOBCode = HOME
+gen_nClientStatus = PROSPECT
+gen_sGAddress = 123 Main St
+gen_sGCity = Las Vegas
+gen_sGState = NV
+gen_sGZip = 89101
+gen_sCounty = Clark
 gen_nYearBuilt = 2005
 gen_sConstruction = Wood Frame
-gen_sClientMiscData[0] = DOB: 1990-01-15
-gen_sClientMiscData[1] = Marital: Married
+gen_sProtectionClass = 3
+gen_sBurgAlarm = Central
+gen_sFireAlarm = Smoke Detector
+gen_lCovA = 350000
+gen_sLiability = 300000
 gen_sClientNotes = Complete notes with all details...
 ```
 
-#### Standard HawkSoft Fields (30 validated variables)
+#### Client Fields
 | Field | Variable | Purpose |
 |-------|----------|---------|
-| First Name | `gen_sFirstName` | Primary contact first name |
+| Customer Type | `gen_sCustType` | "Personal" for personal lines |
 | Last Name | `gen_sLastName` | Primary contact last name |
+| First Name | `gen_sFirstName` | Primary contact first name |
+| Middle Initial | `gen_cInitial` | Middle initial (single char) |
 | Address | `gen_sAddress1` | Street address |
 | City | `gen_sCity` | City |
 | State | `gen_sState` | State code (2-letter) |
 | Zip | `gen_sZip` | Zip code |
+| Phone | `gen_sPhone` | Home/main phone |
 | Cell Phone | `gen_sCellPhone` | Mobile phone number |
 | Email | `gen_sEmail` | Email address |
-| Client Source | `gen_sClientSource` | How client was sourced |
-| Application Type | `gen_sApplicationType` | Always "Personal" |
-| Policy Title | `gen_sPolicyTitle` | HOME, AUTO, or HOME & AUTO |
-| Lead Source | `gen_sLeadSource` | Lead/referral source |
-| **Property Fields** | | |
-| Physical Address | `gen_sGAddress` | Property street address |
-| Physical City | `gen_sGCity` | Property city |
-| Physical State | `gen_sGState` | Property state |
-| Physical Zip | `gen_sGZip` | Property zip |
-| Year Built | `gen_nYearBuilt` | Year property was built |
-| Construction Type | `gen_sConstruction` | Construction style (wood, brick, etc.) |
-| Burglar Alarm | `gen_sBurgAlarm` | Yes/No for burglar alarm |
-| Fire Alarm | `gen_sFireAlarm` | Yes/No for fire alarm |
-| Sprinklers | `gen_sSprinkler` | Yes/No for sprinkler system |
-| Protection Class | `gen_sProtectionClass` | Fire protection class (1-10) |
-| **Coverage & Risk** | | |
-| Dwelling (Cov A) | `gen_lCovA` | Dwelling coverage amount |
-| Liability | `gen_sLiability` | Liability limit amount |
-| Deductible | `gen_sDeduct` | Deductible amount |
-| **Additional Interests** | | |
-| AI Type (Mortgagee) | `gen_sLPType1` | "Mortgagee" for lender |
-| AI Name | `gen_sLpName1` | Mortgagee/lender name |
-| **Auto/Territory** | | |
-| Territory | `hpm_sTerritory` | Territory code (typically zip) |
-| **Client Notes** | | |
-| Client Notes | `gen_sClientNotes` | General notes about client |
-| FSC Notes | `gen_sFSCNotes` | Full system notes |
+| Work Email | `gen_sEmailWork` | Work email |
+| Client Source | `gen_sClientSource` | How client was sourced (referral source) |
+| Client Office | `gen_lClientOffice` | Office number (integer) |
 
-#### Custom Misc Fields (Used for unmapped data)
-HawkSoft allows unlimited `gen_sClientMiscData[x]` custom fields:
+#### Policy Fields
+| Field | Variable | Purpose |
+|-------|----------|---------|
+| Policy Type | `gen_sCMSPolicyType` | HOME or AUTO |
+| Application Type | `gen_sApplicationType` | "Personal" |
+| Policy Title | `gen_sPolicyTitle` | Display title |
+| LOB Code | `gen_sLOBCode` | HOME, AUTOP, CGL, etc. |
+| Policy Number | `gen_sPolicyNumber` | Policy number |
+| Policy Form | `gen_sForm` | HO3, DP1, Standard, etc. |
+| Effective Date | `gen_tEffectiveDate` | MM/DD/YYYY or "(today)" |
+| Expiration Date | `gen_tExpirationDate` | MM/DD/YYYY |
+| Term | `gen_nTerm` | Term in months (6, 12) |
+| Client Status | `gen_nClientStatus` | "PROSPECT" for new leads |
+| Status | `gen_sStatus` | "Active" |
+| Lead Source | `gen_sLeadSource` | Lead/referral source |
+| Producer | `gen_sProducer` | Producer code |
+| Program | `gen_sProgram` | Program name |
+
+#### Property / Garaging Fields
+| Field | Variable | Purpose |
+|-------|----------|---------|
+| Garaging Address | `gen_sGAddress` | Property/garaging street |
+| Garaging City | `gen_sGCity` | Property city |
+| Garaging State | `gen_sGState` | Property state |
+| Garaging Zip | `gen_sGZip` | Property zip |
+| County | `gen_sCounty` | County name |
+| Year Built | `gen_nYearBuilt` | Year property was built |
+| Construction | `gen_sConstruction` | Brick, Frame, etc. |
+| Protection Class | `gen_sProtectionClass` | Fire protection class (1-10) |
+| Burglar Alarm | `gen_sBurgAlarm` | Central, Local, None |
+| Fire Alarm | `gen_sFireAlarm` | Smoke Detector, Central, etc. |
+| Sprinkler | `gen_sSprinkler` | Full, Partial, None |
+| Deadbolt | `gen_bDeadBold` | Y/N (note: HawkSoft's typo, not "Deadbolt") |
+| Fire Extinguisher | `gen_bFireExtinguisher` | Y/N |
+
+#### Home Coverage Fields
+| Field | Variable | Purpose |
+|-------|----------|---------|
+| Dwelling (Cov A) | `gen_lCovA` | Dwelling coverage amount |
+| Other Structures (Cov B) | `gen_lCovB` | Other structures amount |
+| Personal Property (Cov C) | `gen_lCovC` | Personal property amount |
+| Loss of Use (Cov D) | `gen_lCovD` | Loss of use amount |
+| Liability | `gen_sLiability` | Liability limit |
+| Medical | `gen_sMedical` | Medical payments |
+| Deductible | `gen_sDecuct` | Deductible (note: HawkSoft's typo) |
+| Additional Residence | `gen_nAdditionalRes` | Increased replacement cost |
+| Earthquake | `gen_bEarthquake` | Y/N |
+| EQ Deductible | `gen_sEQDeduct` | Earthquake deductible |
+| Ordinance/Law | `gen_lOrdinanceOrLawIncr` | Ordinance/law increase |
+| Jewelry | `gen_lJewelry` | Scheduled jewelry limit |
+| Home Replacement | `gen_bHomeReplacement` | Y/N |
+
+#### Mortgagee / Lienholder Fields
+| Field | Variable | Purpose |
+|-------|----------|---------|
+| AI Type 1 | `gen_sLPType1` | "Mortgagee", "AD", etc. |
+| AI Name 1 | `gen_sLpName1` | Mortgagee/lender name |
+| AI Name Line 2 | `gen_sLPName1Line2` | Second line of name |
+| AI Address 1 | `gen_sLpAddress1` | Lender address |
+| AI City 1 | `gen_sLpCity1` | Lender city |
+| AI State 1 | `gen_sLpState1` | Lender state |
+| AI Zip 1 | `gen_sLpZip1` | Lender zip |
+| Loan Number 1 | `gen_sLpLoanNumber1` | Loan/account number |
+
+#### Auto Coverage Fields
+| Field | Variable | Purpose |
+|-------|----------|---------|
+| BI Limits | `gen_sBi` | Bodily injury (e.g., "25/50") |
+| PD Limit | `gen_sPd` | Property damage |
+| UM BI | `gen_sUmBi` | Uninsured motorist BI |
+| UIM BI | `gen_sUimBi` | Underinsured motorist BI |
+| UM PD | `gen_sUmPd` | Uninsured motorist PD |
+| UIM PD | `gen_sUimPd` | Underinsured motorist PD |
+| PIP | `gen_sPip` | Personal injury protection |
+| PIP Deductible | `gen_sPipDeduct` | PIP deductible |
+| Medical | `gen_sMedical` | Medical payments |
+| Policy Type | `gen_sTypeOfPolicy` | Regular, Broad, etc. |
+
+#### Vehicle Fields (indexed: `[0]`, `[1]`, etc.)
+| Field | Variable | Purpose |
+|-------|----------|---------|
+| Year | `veh_sYr[i]` | Vehicle year |
+| Make | `veh_sMake[i]` | Vehicle make |
+| Model | `veh_sModel[i]` | Vehicle model |
+| VIN | `veh_sVIN[i]` | Vehicle identification number |
+| Use | `veh_sUse[i]` | Pleasure, Commute, Business |
+| Mileage | `veh_lMileage[i]` | Annual mileage |
+| Commute Miles | `veh_nCommuteMileage[i]` | One-way commute distance |
+| Comp Ded. | `veh_sComp[i]` | Comprehensive deductible |
+| Coll Ded. | `veh_sColl[i]` | Collision deductible |
+| Towing | `veh_sTowing[i]` | Towing/roadside (Yes/No) |
+| Rental | `veh_sRentRemb[i]` | Rental reimbursement |
+| Vehicle Type | `veh_sVehicleType[i]` | Sedan, SUV, Truck, etc. |
+| Garaging Zip | `veh_sGaragingZip[i]` | Vehicle garaging zip |
+| Assigned Driver | `veh_nDriver[i]` | Driver number (1-based) |
+
+#### Driver Fields (indexed: `[0]`, `[1]`, etc.)
+| Field | Variable | Purpose |
+|-------|----------|---------|
+| First Name | `drv_sFirstName[i]` | Driver first name |
+| Last Name | `drv_sLastName[i]` | Driver last name |
+| Middle Initial | `drv_cInitial[i]` | Middle initial |
+| Birth Date | `drv_tBirthDate[i]` | MM/DD/YYYY |
+| License Number | `drv_sLicenseNum[i]` | Driver license number |
+| License State | `drv_sLicensingState[i]` | Licensing state (2-letter) |
+| Sex | `drv_sSex[i]` | Male / Female |
+| Marital Status | `drv_sMaritalStatus[i]` | Single, Married, etc. |
+| Occupation | `drv_sDriversOccupation[i]` | Driver's occupation |
+| Relationship | `drv_sRelationship[i]` | Insured, Spouse, Child, etc. |
+| Points | `drv_nPoints[i]` | Points on record |
+| Date Licensed | `drv_tDateLicensed[i]` | MM/DD/YYYY |
+| Good Student | `drv_bGoodStudent[i]` | Yes/No |
+| Driver Training | `drv_bDriverTraining[i]` | Yes/No |
+| Defensive Driver | `drv_bDefDrvr[i]` | Yes/No |
+| Excluded | `drv_bExcluded[i]` | Yes/No |
+| Principal Operator | `drv_bPrincipleOperator[i]` | Yes/No |
+| Filing (SR22) | `drv_bFiling[i]` | Y/N |
+
+#### Custom Misc Fields
+HawkSoft provides three banks of 10 custom fields each (30 total):
 ```
-[gen_sClientMiscData[1]]DOB: 1990-01-15
-[gen_sClientMiscData[2]]Marital Status: Married
-[gen_sClientMiscData[3]]Occupation: Software Engineer
-[gen_sClientMiscData[4]]Education: Bachelor's Degree
-[gen_sClientMiscData[5]]Prior Carrier: State Farm
-[gen_sClientMiscData[6]]Years w/ Prior: 5
-[gen_sClientMiscData[7]]Accidents (5yr): 0
-[gen_sClientMiscData[8]]Violations (3yr): 0
-[gen_sClientMiscData[9]]VIN: WBADT43452G928718
-[gen_sClientMiscData[10]]DL#: D1234567
-[gen_sClientMiscData[11]]DL State: NV
-[gen_sClientMiscData[12]]TCPA Consent: Yes
-[gen_sClientMiscData[13]]Contact Time: Evening
-[gen_sClientMiscData[14]]Pet Info: German Shepherd
-[gen_sClientMiscData[15]]Pool: Yes
-[gen_sClientMiscData[16]]Trampoline: No
-[gen_sClientMiscData[17]]Wood Stove: Yes
-[gen_sClientMiscData[18]]Business on Property: No
+gen_sClientMiscData[0] = DOB: 01/15/1990
+gen_sClientMiscData[1] = Marital Status: Married
+gen_sClientMiscData[2] = Occupation: Software Engineer
+...
+gen_sClientMiscData[9] = (10th field)
+gen_sClientMisc2Data[0] = (11th field)
+...
+gen_sClientMisc2Data[9] = (20th field)
+gen_sClientMisc3Data[0] = (21st field)
+...
+gen_sClientMisc3Data[9] = (30th field)
 ```
+
+#### Notes Fields
+| Field | Variable | Purpose |
+|-------|----------|---------|
+| Client Notes | `gen_sClientNotes` | General notes about client |
+| FSC Notes | `gen_sFSCNotes` | Prior insurance / detailed notes |
+
+#### Premium Fields (hpm_*)
+| Field | Variable | Purpose |
+|-------|----------|---------|
+| Territory | `hpm_sTerritory` | Territory code (typically zip) |
+| Earthquake Zone | `hpm_sEarthquakeZone` | EQ zone code |
 
 ---
 
@@ -112,12 +233,6 @@ HawkSoft allows unlimited `gen_sClientMiscData[x]` custom fields:
 - **File Type:** `.csv` (Comma-separated values)
 - **Use Case:** For multi-lead imports with field mapping in HawkSoft Data Importer
 - **Format:** Standard CSV with recognized column headers
-
-Example:
-```csv
-FirstName,LastName,Address,City,State,Zip,CellPhone,Email,DateOfBirth,MaritalStatus,Occupation,ApplicationType,LOB,PolicyTitle
-John,Doe,123 Main St,Las Vegas,NV,89101,702-555-1234,john@email.com,1990-01-15,Married,Software Engineer,Personal,HOME & AUTO,Home & Auto Insurance
-```
 
 ---
 
@@ -129,132 +244,95 @@ John,Doe,123 Main St,Las Vegas,NV,89101,702-555-1234,john@email.com,1990-01-15,M
 
 ---
 
-## Validation Summary
+## Field Mapping: Intake Form to HawkSoft
 
-| Component | Status | Details |
-|-----------|--------|---------|
-| **Standard Fields** | ✅ PASS | All 30 field variables validated |
-| **Field Mapping** | ✅ PASS | Form fields map to correct HawkSoft variables |
-| **Custom Fields** | ✅ PASS | Using `gen_sClientMiscData[x]` for extra data |
-| **Data Encoding** | ✅ PASS | UTF-8 charset for proper character support |
-| **Export Functions** | ✅ PASS | All three export types implemented correctly |
-| **Filename Format** | ✅ PASS | `Lead_[LastName].cmsmtf` naming convention |
+The `buildCMSMTF()` function in `js/app-export.js` maps intake form fields to HawkSoft variables:
+
+| Intake Field (`App.data.*`) | HawkSoft Variable | Notes |
+|-----|-----|-----|
+| `firstName` | `gen_sFirstName` | Direct |
+| `lastName` | `gen_sLastName` | Direct |
+| `addrStreet` | `gen_sAddress1` | Direct |
+| `addrCity` | `gen_sCity` | Direct |
+| `addrState` | `gen_sState` | Direct |
+| `addrZip` | `gen_sZip` | Direct |
+| `phone` | `gen_sCellPhone` / `gen_sPhone` | Both populated |
+| `email` | `gen_sEmail` | Direct |
+| `dob` | `gen_sClientMiscData[0]` | No direct HS field |
+| `gender` | `gen_sClientMiscData[1]` | No direct HS field |
+| `maritalStatus` | `gen_sClientMiscData[2]` | No direct HS field |
+| `education` | `gen_sClientMiscData[3]` | No direct HS field |
+| `industry` | `gen_sClientMiscData[4]` | No direct HS field |
+| `occupation` | `gen_sClientMiscData[5]` | No direct HS field |
+| `yrBuilt` | `gen_nYearBuilt` | Direct (home) |
+| `constructionStyle` | `gen_sConstruction` | Direct (home) |
+| `protectionClass` | `gen_sProtectionClass` | Direct (home) |
+| `burglarAlarm` | `gen_sBurgAlarm` | Direct (home) |
+| `fireAlarm` | `gen_sFireAlarm` | Direct (home) |
+| `sprinklers` | `gen_sSprinkler` | Direct (home) |
+| `dwellingCoverage` | `gen_lCovA` | Direct (home) |
+| `personalLiability` | `gen_sLiability` | Direct (home) |
+| `homeDeductible` | `gen_sDecuct` | Direct (home) |
+| `mortgagee` | `gen_sLpName1` | With `gen_sLPType1 = Mortgagee` |
+| `liabilityLimits` | `gen_sBi` | Direct (auto) |
+| `pdLimit` | `gen_sPd` | Direct (auto) |
+| `umLimits` | `gen_sUmBi` | Direct (auto) |
+| `uimLimits` | `gen_sUimBi` | Direct (auto) |
+| `App.vehicles[]` | `veh_s*[i]` | Per-vehicle indexed |
+| `App.drivers[]` | `drv_s*[i]` | Per-driver indexed |
+
+Fields without direct HawkSoft variables (DOB, gender, marital status, education, industry, occupation, co-applicant info, prior insurance details, contact preferences) are stored in `gen_sClientMiscData[x]` custom fields.
+
+All field data is also captured in `gen_sClientNotes` as a comprehensive fallback.
 
 ---
 
 ## Testing & Troubleshooting
 
-### ✓ To Test the Export:
+### To Test:
 1. Fill out the intake form completely
-2. Go to Step 4: Review & Export
-3. Click "📥 Download HawkSoft File (.cmsmtf)"
-4. **Verify the file opens in a text editor and contains:**
-   - `[gen_sFirstName]` tags with actual values
-   - `[gen_sAddress1]` tags
-   - `[gen_sCity]`, `[gen_sState]`, `[gen_sZip]` tags
-   - Other `gen_s*` prefixed tags
-   - **NOT** generic names like `[FirstName]` or `[Address]`
-5. In HawkSoft:
-   - Go to **Utilities → Import → HawkSoft Data Importer → File**
-   - Select the `.cmsmtf` file
-   - Review the field mapping preview - **all fields should be recognized**
-   - Click Import
+2. Go to Review & Export step
+3. Click the HawkSoft export button
+4. **Open the `.cmsmtf` file in a text editor and verify:**
+   - Format is `variable = value` (no brackets)
+   - Variables use `gen_s*`, `gen_l*`, `gen_n*`, `veh_s*`, `drv_s*` prefixes
+   - Dates are `MM/DD/YYYY` format
+   - Empty fields are omitted
+5. In HawkSoft: double-click the `.cmsmtf` file or use Data Importer
 
-### ✓ Expected Behavior:
-- File downloads as `Lead_[YourLastName].cmsmtf`
-- File opens in text editor showing `[gen_s...] tags
-- HawkSoft recognizes all fields (no "unrecognized" errors)
-- Data imports into correct fields in HawkSoft
+### Expected Behavior:
+- File downloads as `Lead_[LastName].cmsmtf`
+- HawkSoft Importer launches automatically when file is opened
+- All mapped fields populate into the correct HawkSoft fields
+- Custom data appears in Client Misc fields
+- Notes contain comprehensive details as fallback
 
-### ✗ Troubleshooting
+### Troubleshooting:
 
-**Problem:** Fields still not appearing in HawkSoft
-**Solution:** 
-- Open the `.cmsmtf` file in a text editor
-- Verify all tags start with `[gen_s`, `[gen_l`, `[gen_b`, `[gen_n`, `[hpm_s`, etc.
-- Look for any typos in variable names
-- All tags must match HawkSoft's exact variable names (case-sensitive)
+**Fields not appearing:** Verify variable names match exactly (case-sensitive). Compare against the sample files.
 
-**Problem:** "Unrecognized field" errors during import
-**Solution:**
-- Check the field variable name against the HS6_Multico reference files
-- Some fields may require custom setup in HawkSoft first
-- Use the misc fields (`gen_sClientMiscData[x]`) for custom data
+**"Unrecognized field" errors:** Check for typos in variable names. Use `gen_sClientMiscData[x]` for custom data.
 
-**Problem:** Special characters showing incorrectly
-**Solution:**
-- Ensure HawkSoft is configured for UTF-8 encoding
-- The app uses UTF-8 for all text, which HawkSoft should handle
+**Date issues:** HawkSoft expects `MM/DD/YYYY` format. The export converts ISO dates automatically.
 
-**Problem:** Blank or missing values in HawkSoft
-**Solution:**
-- The export only includes fields with data (empty fields are skipped)
-- If a field is important, ensure it's filled in the form before export
-- Check the Notes field in HawkSoft - all details are captured there
+**Missing vehicles/drivers:** Ensure drivers and vehicles are added in Step 4 of the intake form. The export reads from `App.drivers[]` and `App.vehicles[]` arrays.
 
 ---
 
 ## Reference Files
 
-These files are included in the `/Resources` folder and can be used to:
-- Add new custom fields to HawkSoft
-- Troubleshoot import errors  
-- Understand HawkSoft's field structure
-- Set up multi-vehicle/multi-driver scenarios
+Official HawkSoft template and sample files:
 
 - `HS6_Multico_Tagged_Field_Format_-_Home.xls` - Home insurance variables
 - `HS6_Multico_Tagged_Field_Format_-_Auto.xls` - Auto insurance variables
 - `HS6_Multico_Tagged_Field_Format_-_Commercial.xls` - Commercial variables
-- `DataImporterTemplate.pdf` - Complete guide
-- `Data Importer.pdf` - Quick reference
+- `Home.CMSMTF` - Sample home policy import file
+- `PersonalAuto 1.CMSMTF` - Sample auto policy import file
+- `CommercialCGL.CMSMTF` - Sample commercial policy import file
+- `Generic_Website Integration.pdf` - HawkSoft data import documentation
 
 ---
 
-## Implementation Details
-
-### How the Export Works:
-
-1. **User clicks "📥 Download HawkSoft File (.cmsmtf)"**
-2. **App collects form data:**
-   - Reads from `this.data` object (stored in browser localStorage)
-   - Gets quote type (HOME/AUTO/BOTH) to determine LOB
-   - Pulls comprehensive notes with all details
-3. **Maps to HawkSoft variables:**
-   - Standard fields → direct `gen_s*` mapping
-   - Optional fields → uses `gen_sClientMiscData[x]` custom fields
-   - All data → included in `gen_sClientNotes` as fallback
-4. **Creates `.cmsmtf` file:**
-   - Format: `[VariableName]Value` (one per line)
-   - UTF-8 encoding for character support
-   - Filename: `Lead_[LastName].cmsmtf`
-5. **Triggers download to user's device**
-6. **User imports in HawkSoft** → Fields are recognized and populated
-
----
-
-## Data Flow Diagram
-
-```
-Form Input → Browser Storage → Export Function
-                                    ↓
-                           Collect Data + Format
-                                    ↓
-                           Map to HawkSoft Variables
-                                    ↓
-                           Create [var]value pairs
-                                    ↓
-                           Generate .cmsmtf file
-                                    ↓
-                           User downloads file
-                                    ↓
-                           User imports to HawkSoft
-```
-
----
-
-**Last Updated:** February 2, 2026  
-**Status:** ✅ Validated & Ready for Production  
-**Validation Date:** Feb 2, 2026  
-**All 30+ HawkSoft field variables verified against official reference files**
-
-
+**Last Updated:** March 27, 2026
+**Status:** Rewritten to match official HawkSoft CMSMTF sample file format
+**Validated against:** Home.CMSMTF, PersonalAuto 1.CMSMTF, CommercialCGL.CMSMTF sample files
