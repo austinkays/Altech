@@ -109,9 +109,8 @@ const ProspectInvestigator = (() => {
             };
             currentData.displayName = _resolveDisplayName(currentData);
 
-            // Display results and run AI analysis
             _displayResults();
-            _runAIAnalysis();
+            _finishInvestigation();
 
         } catch (error) {
             console.error('[Prospect] Investigation error:', error);
@@ -157,7 +156,7 @@ const ProspectInvestigator = (() => {
             currentData.displayName = _resolveDisplayName(currentData);
 
             _displayResults();
-            _runAIAnalysis();
+            _finishInvestigation();
 
         } catch (error) {
             console.error('[Prospect] Manual investigation error:', error);
@@ -165,6 +164,53 @@ const ProspectInvestigator = (() => {
         } finally {
             _hideLoading();
         }
+    }
+
+    /**
+     * After source data loads: if SOS failed, prompt user to paste SOS data
+     * before running AI analysis. If SOS succeeded, run AI immediately.
+     */
+    function _finishInvestigation() {
+        const sosOk = currentData.sos && currentData.sos.available !== false && !currentData.sos.error && currentData.sos.entity;
+        if (sosOk) {
+            // SOS data is available — run AI immediately
+            _runAIAnalysis();
+            return;
+        }
+
+        // SOS failed — show paste prompt before AI
+        _showSOSPastePrompt();
+    }
+
+    /** Show inline SOS paste prompt with skip option */
+    function _showSOSPastePrompt() {
+        const aiEl = document.getElementById('aiAnalysisContent');
+        const aiSection = document.getElementById('aiAnalysisSection');
+        if (!aiEl || !aiSection) { _runAIAnalysis(); return; }
+
+        aiSection.style.display = 'block';
+        aiEl.innerHTML = `
+            <div style="text-align:center;padding:24px 20px;">
+                <div style="font-size:36px;margin-bottom:12px;">\uD83D\uDD10</div>
+                <div style="font-weight:700;font-size:16px;margin-bottom:8px;">Secretary of State data is missing</div>
+                <p style="font-size:13px;color:var(--text-secondary);margin:0 0 20px;max-width:420px;margin-left:auto;margin-right:auto;">
+                    The SOS website blocked our lookup. Paste the data now for a more complete AI analysis, or skip to run with what we have.
+                </p>
+                <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                    <button onclick="ProspectInvestigator.pasteSOSData(true)"
+                        style="padding:12px 24px;background:var(--apple-blue);color:#fff;border:none;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+                        \uD83D\uDCCB Paste SOS Data
+                    </button>
+                    <button onclick="ProspectInvestigator._skipSOSAndRunAI()"
+                        style="padding:12px 24px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:10px;font-weight:500;font-size:14px;cursor:pointer;">
+                        Skip \u2014 Run AI Without SOS
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    function _skipSOSAndRunAI() {
+        _runAIAnalysis();
     }
 
     /** Copy investigation data to clipboard */
@@ -2081,7 +2127,8 @@ ${ai.underwritingNotes || 'N/A'}`;
     }
 
     /** Show paste modal, parse SOS data, merge into currentData, re-render */
-    function pasteSOSData() {
+    /** @param {boolean} runAIAfter — if true, triggers AI analysis after successful paste */
+    function pasteSOSData(runAIAfter) {
         if (!currentData) { _toast('Run a search first'); return; }
 
         // Create modal
@@ -2093,15 +2140,15 @@ ${ai.underwritingNotes || 'N/A'}`;
             <div style="background:var(--bg-card);border-radius:16px;padding:24px;max-width:540px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
                 <h3 style="margin:0 0 8px;font-size:18px;">Paste SOS Data</h3>
                 <p style="margin:0 0 16px;font-size:13px;color:var(--text-secondary);">
-                    Go to the SOS website, select all (Ctrl+A), copy (Ctrl+C), then paste below.
+                    Go to the SOS website, select all (Ctrl+A), copy (Ctrl+C), then paste below.${runAIAfter ? ' AI analysis will run after applying.' : ''}
                 </p>
                 <textarea id="sosPasteInput" style="width:100%;height:200px;padding:12px;font-size:12px;font-family:monospace;border-radius:10px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text);resize:vertical;" placeholder="Paste the full page text from the Secretary of State website here..."></textarea>
                 <div style="display:flex;gap:10px;margin-top:16px;">
                     <button id="sosPasteApply" style="flex:1;padding:12px;background:var(--apple-blue);color:#fff;border:none;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;">
-                        Apply SOS Data
+                        Apply SOS Data${runAIAfter ? ' & Run AI' : ''}
                     </button>
-                    <button onclick="this.closest('div[style*=fixed]').remove()" style="padding:12px 20px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:10px;font-weight:500;font-size:14px;cursor:pointer;">
-                        Cancel
+                    <button onclick="this.closest('div[style*=fixed]').remove()${runAIAfter ? ';ProspectInvestigator._skipSOSAndRunAI()' : ''}" style="padding:12px 20px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:10px;font-weight:500;font-size:14px;cursor:pointer;">
+                        ${runAIAfter ? 'Skip \u2014 Run AI Without SOS' : 'Cancel'}
                     </button>
                 </div>
             </div>`;
@@ -2134,6 +2181,9 @@ ${ai.underwritingNotes || 'N/A'}`;
 
             overlay.remove();
             _toast('\u2713 SOS data applied — ' + (parsed.entity.entityType || 'entity') + ' \u00B7 ' + (parsed.entity.status || ''));
+
+            // Run AI analysis with the now-complete data
+            if (runAIAfter) _runAIAnalysis();
         };
     }
 
@@ -2152,6 +2202,7 @@ ${ai.underwritingNotes || 'N/A'}`;
         loadProspect,
         deleteProspect,
         pasteSOSData,
+        _skipSOSAndRunAI,
         get currentData() { return currentData; },
         get aiAnalysis() { return aiAnalysis; }
     };
