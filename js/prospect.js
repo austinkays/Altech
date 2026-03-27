@@ -307,13 +307,13 @@ ${ai.underwritingNotes || 'N/A'}`;
 
             // ── Sub-header (bold text + light underline) ──
             const subHeader = (title) => {
-                need(12);
-                y += 3;
+                need(18);
+                y += 6;
                 doc.setFontSize(9); doc.setFont('helvetica', 'bold');
                 doc.setTextColor(...INK);
-                doc.text(title, mg, y + 4);
+                doc.text(title, mg, y);
                 doc.setDrawColor(...LIGHT); doc.setLineWidth(0.3);
-                doc.line(mg, y + 6, pageW - mg, y + 6);
+                doc.line(mg, y + 3, pageW - mg, y + 3);
                 doc.setFont('helvetica', 'normal');
                 y += 10;
             };
@@ -460,11 +460,11 @@ ${ai.underwritingNotes || 'N/A'}`;
 
             doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MID);
             const srcLine = [
-                (liOk ? '\u2713' : '\u2717') + ' L&I',
-                (sosOk ? '\u2713' : '\u2717') + ' SOS',
-                (oshaOk ? '\u2713' : '\u2717') + ' OSHA',
-                (samOk ? '\u2713' : '\u2717') + ' SAM',
-                (placesOk ? '\u2713' : '\u2717') + ' Google',
+                (liOk ? '[Y]' : '[N]') + ' L&I',
+                (sosOk ? '[Y]' : '[N]') + ' SOS',
+                (oshaOk ? '[Y]' : '[N]') + ' OSHA',
+                (samOk ? '[Y]' : '[N]') + ' SAM',
+                (placesOk ? '[Y]' : '[N]') + ' Google',
             ].join('    ') + '    (' + srcCount + '/5 sources)';
             doc.text(srcLine, mg, y);
             y += 8;
@@ -650,7 +650,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                 const govs = e.governors || e.officers || [];
                 kvRow([
                     ['UBI/Entity #', e.ubi], ['Entity Type', e.entityType],
-                    ['Status', e.status], ['Formation', e.formationDate],
+                    ['Status', e.status], ['Formation', e.formationDate ? new Date(e.formationDate).toLocaleDateString() : ''],
                     ['Jurisdiction', e.jurisdiction], ['Business Activity', e.businessActivity],
                     ['Registered Agent', e.registeredAgent?.name || ''],
                     ['Officers', govs.length ? govs.map(g => g.name + ' (' + (g.title || 'Governor') + ')').join(', ') : ''],
