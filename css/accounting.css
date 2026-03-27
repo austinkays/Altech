@@ -2,7 +2,7 @@
    Accounting — PIN-protected vault + Deposit Sheet
    ═══════════════════════════════════════════════════════ */
 
-.acct-container { max-width: 1000px; margin: 0 auto; padding: 0 16px 80px; }
+.acct-container { max-width: 1400px; margin: 0 auto; padding: 0 16px 80px; }
 
 /* ══════ PIN Gate Screens ══════ */
 .acct-pin-screen {
@@ -522,13 +522,13 @@ body.dark-mode .ds-table thead { background: #2C2C2E; }
 .ds-th-money { text-align: right; }
 .ds-table td {
     padding: 5px 6px; border-bottom: 1px solid var(--border-subtle);
-    color: var(--text); vertical-align: top; white-space: nowrap;
+    color: var(--text); vertical-align: top;
 }
 .ds-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.015); }
 body.dark-mode .ds-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
 .ds-table tbody tr:hover { background: var(--bg-widget-hover); }
 
-.ds-td-money { text-align: right; font-variant-numeric: tabular-nums; }
+.ds-td-money { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ds-money-zero { color: var(--text-tertiary); }
 .ds-td-receipt { white-space: nowrap; }
 .ds-receipt-date { display: block; font-size: 10px; color: var(--text-tertiary); line-height: 1.2; }
@@ -725,7 +725,7 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
         letter-spacing: 0.05em; margin-bottom: 3pt;
     }
     .ds-receipt-tape-area {
-        width: 5in; height: 4in;
+        width: 5in; height: 2.5in;
         border: 1pt solid #999 !important; border-radius: 0;
     }
 }
