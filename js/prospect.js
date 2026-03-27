@@ -369,7 +369,7 @@ ${ai.underwritingNotes || 'N/A'}`;
 
             // ── Section label (thin rule + ALL-CAPS, matching personal lines) ──
             const sectionLabel = (title) => {
-                need(14);
+                need(50); // reserve enough for header + at least a few lines of content
                 y += 6;
                 doc.setDrawColor(...RULE); doc.setLineWidth(0.4);
                 doc.line(mg, y, pageW - mg, y);
@@ -2139,10 +2139,20 @@ ${ai.underwritingNotes || 'N/A'}`;
             matches.push({ label: m[1].toLowerCase().trim(), idx: m.index, end: m.index + m[0].length });
         }
 
-        // Extract value between each label and the next
+        // Also find section headers to use as stop boundaries
+        const sectionHeaders = /\n\s*(Registered Agent Information|Governors|Business Information|Filing History|Name History)\s*\n/gi;
+        const stopPositions = [];
+        let sh;
+        while ((sh = sectionHeaders.exec(text)) !== null) stopPositions.push(sh.index);
+
+        // Extract value between each label and the next label or section header
         for (let i = 0; i < matches.length; i++) {
             const start = matches[i].end;
-            const end = i + 1 < matches.length ? matches[i + 1].idx : text.length;
+            let end = i + 1 < matches.length ? matches[i + 1].idx : text.length;
+            // Also stop at section headers that fall between this label and the next
+            for (const sp of stopPositions) {
+                if (sp > start && sp < end) { end = sp; break; }
+            }
             const val = text.substring(start, end).replace(/\n/g, ' ').trim();
             if (val && !fields[matches[i].label]) {
                 fields[matches[i].label] = val;
