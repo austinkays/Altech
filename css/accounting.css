@@ -552,16 +552,7 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
 .ds-verified-count { font-size: 11px; font-weight: 500; color: var(--text-tertiary); transition: color 0.2s; }
 .ds-all-verified { color: var(--success); font-weight: 700; }
 
-/* ── Receipt tape area ─────────────────────────────────── */
-.ds-receipt-tape { margin-top: 20px; }
-.ds-receipt-tape-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 4px; }
-.ds-receipt-tape-area {
-    width: 320px; height: 256px;
-    border: 2px dashed var(--border); border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-}
-body.dark-mode .ds-receipt-tape-area { border-color: #38383A; }
-.ds-receipt-tape-hint { font-size: 12px; color: var(--text-tertiary); font-style: italic; }
+/* ── Receipt tape area (print-only — hidden on screen via ds-print-only) ── */
 
 /* ── Print-only elements (hidden on screen) ───────────── */
 .ds-print-only { display: none !important; }
@@ -571,126 +562,172 @@ body.dark-mode .ds-receipt-tape-area { border-color: #38383A; }
    ═══════════════════════════════════════════════════════ */
 
 @media print {
-    @page { size: letter landscape; margin: 0.4in 0.35in; }
+    @page { size: letter landscape; margin: 0.5in 0.4in; }
 
+    /* ── Hide app chrome + non-print elements ────────────── */
     .no-print,
     #appSidebar, .app-sidebar,
     #sidebarOverlay, .sidebar-overlay,
     #appHeader, .app-header,
     #breadcrumbBar, #mobileBottomNav, .mobile-bottom-nav,
-    .ds-drop-zone, .ds-header-btn,
-    .acct-vault-toolbar, .acct-section:first-of-type { display: none !important; }
+    .ds-drop-zone, .ds-header-btn, .ds-error,
+    .acct-vault-toolbar, .acct-section:first-of-type,
+    .acct-section-header { display: none !important; }
 
+    /* ── Show print-only elements ────────────────────────── */
     .ds-print-only { display: inline !important; }
+    .ds-receipt-tape.ds-print-only { display: block !important; }
 
+    /* ── Reset layout to full white ──────────────────────── */
     body, body.dark-mode {
-        background: #fff !important; color: #111 !important;
+        background: #fff !important; color: #222 !important;
         margin: 0 !important; padding: 0 !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
     }
-
     #app, .app-main, .app-content, .plugin-container,
-    .plugin-viewport, main, .acct-container {
-        background: #fff !important; color: #111 !important;
+    .plugin-viewport, main, .acct-container,
+    .acct-section, .acct-section-body {
+        background: #fff !important; color: #222 !important;
         max-width: none !important; width: 100% !important;
         padding: 0 !important; margin: 0 !important;
         margin-left: 0 !important; border: none !important;
         box-shadow: none !important; overflow: visible !important;
     }
+    .acct-section-body.collapsed { max-height: none !important; overflow: visible !important; }
 
-    /* Meta bar */
+    /* ── Header / Meta bar ───────────────────────────────── */
     .ds-meta {
-        display: block; background: none !important; border: none !important;
-        border-bottom: 0.75pt solid #ccc !important; border-radius: 0;
-        padding: 0 0 3px; margin-bottom: 3px; color: #111 !important;
+        display: block !important; background: none !important; border: none !important;
+        border-bottom: 1.5pt solid #222 !important; border-radius: 0;
+        padding: 0 0 6pt; margin-bottom: 8pt; color: #222 !important;
     }
-    .ds-meta-title   { font-size: 12pt; font-weight: 700; color: #0f2745 !important; }
-    .ds-meta-date    { font-size: 7pt;  color: #555 !important; }
-    .ds-meta-agency  { font-size: 6pt;  color: #555 !important; }
-    .ds-meta-count   { font-size: 6pt;  color: #444 !important; font-weight: 600; }
-    .ds-meta-totals {
-        display: flex; gap: 16pt; border-top: 0.5pt solid #ddd;
-        padding-top: 3pt; margin-top: 3pt;
+    .ds-meta-title {
+        font-size: 16pt; font-weight: 800; color: #111 !important;
+        letter-spacing: -0.02em;
     }
-    .ds-meta-total-label { font-size: 5.5pt; color: #444 !important; text-transform: uppercase; }
-    .ds-meta-total-val   { font-size: 8pt; font-weight: 700; color: #111 !important; }
-    .ds-meta-total-highlight { color: #111 !important; }
-    .ds-meta-tellers { border-top: 0.5pt solid #ddd; padding-top: 2pt; margin-top: 2pt; }
-    .ds-meta-teller-list { font-size: 7pt; color: #111 !important; }
+    .ds-meta-date { font-size: 9pt; color: #444 !important; font-weight: 500; }
+    .ds-meta-agency { font-size: 8pt; color: #444 !important; }
+    .ds-meta-count { font-size: 8pt; color: #333 !important; font-weight: 600; }
 
-    /* Bill counter */
+    .ds-meta-totals {
+        display: flex; gap: 24pt; border-top: 0.75pt solid #ccc;
+        padding-top: 5pt; margin-top: 5pt;
+    }
+    .ds-meta-total-label {
+        font-size: 6pt; color: #666 !important; text-transform: uppercase;
+        letter-spacing: 0.06em; font-weight: 700;
+    }
+    .ds-meta-total-val { font-size: 10pt; font-weight: 800; color: #111 !important; }
+    .ds-meta-total-highlight { color: #111 !important; }
+
+    .ds-meta-tellers {
+        border-top: 0.5pt solid #ddd; padding-top: 3pt; margin-top: 3pt;
+    }
+    .ds-meta-teller-list { font-size: 8pt; color: #222 !important; font-weight: 600; }
+    .ds-meta-total-label:has(+ .ds-meta-teller-list) { font-size: 6pt; }
+
+    /* ── Verified count in print ─────────────────────────── */
+    .ds-verified-count { font-size: 7pt; color: #444 !important; }
+    .ds-all-verified { color: #111 !important; }
+
+    /* ── Bill counter — only show if bills were counted ──── */
+    .ds-bill-counter-empty { display: none !important; }
+    .ds-bill-row-empty { display: none !important; }
     .ds-bill-counter {
         background: none !important; border: none !important;
-        border-bottom: 0.5pt solid #ccc !important; border-radius: 0;
-        padding: 1px 0 3px; margin-bottom: 3px;
+        border-bottom: 0.75pt solid #ccc !important; border-radius: 0;
+        padding: 2pt 0 5pt; margin-bottom: 6pt;
     }
-    .ds-bill-counter-title { font-size: 7pt; font-weight: 700; color: #0f2745 !important; margin-bottom: 1px; }
+    .ds-bill-counter-title {
+        font-size: 8pt; font-weight: 800; color: #111 !important;
+        margin-bottom: 2pt; letter-spacing: 0.04em;
+    }
     .ds-bill-grid { flex-direction: column; align-items: flex-start; gap: 0; }
-    .ds-bill-row { display: flex; align-items: baseline; gap: 4px; width: 100%; line-height: 1.4; }
-    .ds-bill-denom       { font-size: 7pt; color: #111 !important; font-weight: 600; min-width: 26px; }
-    .ds-bill-print-x     { font-size: 7pt; color: #555 !important; }
-    .ds-bill-count        { font-size: 7pt; color: #111 !important; font-weight: 700; min-width: 14px; text-align: right; }
-    .ds-bill-print-eq    { font-size: 7pt; color: #555 !important; }
-    .ds-bill-total       { font-size: 7pt; color: #111 !important; }
-    .ds-bill-grand       { font-size: 8pt; font-weight: 700; color: #111 !important; }
+    .ds-bill-row {
+        display: flex; align-items: baseline; gap: 4px;
+        width: auto; line-height: 1.6;
+    }
+    .ds-bill-denom { font-size: 8pt; color: #222 !important; font-weight: 700; min-width: 30px; }
+    .ds-bill-print-x { font-size: 8pt; color: #666 !important; }
+    .ds-bill-count { font-size: 8pt; color: #222 !important; font-weight: 700; min-width: 16px; text-align: right; }
+    .ds-bill-print-eq { font-size: 8pt; color: #666 !important; }
+    .ds-bill-total { font-size: 8pt; color: #222 !important; font-weight: 600; }
+    .ds-bill-grand { font-size: 10pt; font-weight: 800; color: #111 !important; }
     .ds-bill-row-total {
-        border-left: none; border-top: 0.5pt solid #bbb;
-        padding-left: 0; padding-top: 1px; margin-left: 0; margin-top: 1px;
+        border-left: none; border-top: 0.75pt solid #999;
+        padding-left: 0; padding-top: 2pt; margin-left: 0; margin-top: 2pt;
     }
 
-    /* Groups */
-    .ds-group { margin-bottom: 4pt; background: #fff !important; }
+    /* ── Pay method groups ────────────────────────────────── */
+    .ds-group { margin-bottom: 6pt; background: #fff !important; }
     .ds-group-header {
-        background: #f5f5f5 !important; border: none !important;
-        border-top: 0.5pt solid #bbb !important; border-bottom: 0.5pt solid #bbb !important;
-        border-radius: 0; padding: 2px 3px; margin-bottom: 1px;
+        background: #eee !important; border: none !important;
+        border-top: 1pt solid #999 !important; border-bottom: 1pt solid #999 !important;
+        border-radius: 0; padding: 3pt 5pt; margin-bottom: 1pt;
     }
-    .ds-group-label  { font-size: 7pt; color: #0f2745 !important; font-weight: 700; }
-    .ds-group-total  { font-size: 7pt; color: #111 !important; font-weight: 700; }
+    .ds-group-label {
+        font-size: 8pt; color: #111 !important; font-weight: 800;
+        letter-spacing: 0.06em;
+    }
+    .ds-group-total {
+        font-size: 9pt; color: #111 !important; font-weight: 800;
+    }
 
-    /* Table */
+    /* ── Table ────────────────────────────────────────────── */
     .ds-output { overflow: visible !important; }
     thead { display: table-header-group; }
     .ds-table {
-        width: 100%; font-size: 7pt; line-height: 1.2; border-collapse: collapse;
+        width: 100%; font-size: 8pt; line-height: 1.3; border-collapse: collapse;
         border-radius: 0; background: #fff !important; border: none !important;
         table-layout: auto;
     }
     .ds-table thead { background: #fff !important; }
     .ds-table th {
-        font-size: 6pt; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 0.04em; padding: 2px 3px; color: #444 !important;
-        border-bottom: 0.5pt solid #bbb !important; border-top: none;
+        font-size: 6.5pt; font-weight: 800; text-transform: uppercase;
+        letter-spacing: 0.05em; padding: 3pt 4pt; color: #333 !important;
+        border-bottom: 1pt solid #999 !important; border-top: none;
         background: #fff !important; white-space: nowrap;
     }
     .ds-table th, .ds-table td { word-wrap: break-word; overflow: visible; }
     .ds-table td {
-        padding: 2pt 3pt; font-size: 7.5pt; color: #111 !important;
-        border-bottom: 0.25pt solid #ddd !important; vertical-align: top;
+        padding: 3pt 4pt; font-size: 8pt; color: #222 !important;
+        border-bottom: 0.5pt solid #ddd !important; vertical-align: top;
         background: #fff !important;
     }
     .ds-td-client, .ds-td-memo { white-space: normal !important; word-break: break-word; }
-    .ds-receipt-date, .ds-client-id { font-size: 6pt; color: #777 !important; }
-    .ds-client-teller { font-size: 6pt; color: #0f2745 !important; font-weight: 600; }
-    .ds-td-money { padding: 2pt 3pt !important; font-size: 7pt; text-align: right; }
+    .ds-receipt-date { font-size: 6.5pt; color: #666 !important; }
+    .ds-client-id { font-size: 6.5pt; color: #666 !important; }
+    .ds-client-teller { font-size: 6.5pt; color: #0f2745 !important; font-weight: 700; }
+    .ds-td-money { padding: 3pt 4pt !important; font-size: 8pt; text-align: right; }
+    .ds-td-memo { font-size: 7pt; color: #444 !important; }
     .ds-table tbody tr,
     .ds-table tbody tr:nth-child(even),
     .ds-table tbody tr:hover { background: #fff !important; }
-    .ds-money-zero { color: #777 !important; }
+    .ds-money-zero { color: #999 !important; }
+
+    /* Subtotals */
     .ds-subtotal-row td {
-        background: #fff !important; border-top: 0.5pt solid #bbb !important;
-        border-bottom: 0.5pt solid #bbb !important;
-        font-size: 7pt; font-weight: 700; color: #111 !important; padding: 1px 3px;
+        background: #f5f5f5 !important;
+        border-top: 1pt solid #999 !important;
+        border-bottom: 1pt solid #999 !important;
+        font-size: 8pt; font-weight: 800; color: #111 !important;
+        padding: 3pt 4pt;
     }
-    .ds-subtotal-label { font-size: 6pt; color: #444 !important; text-transform: uppercase; }
+    .ds-subtotal-label { font-size: 7pt; color: #333 !important; text-transform: uppercase; font-weight: 800; }
     .ds-table tr { page-break-inside: avoid; }
 
-    /* Receipt tape */
-    .ds-receipt-tape { margin-top: 10pt; page-break-inside: avoid; }
-    .ds-receipt-tape-label { font-size: 7pt; color: #0f2745 !important; font-weight: 700; margin-bottom: 2px; }
-    .ds-receipt-tape-area { width: 5in; height: 4in; border: 0.75pt solid #bbb !important; border-radius: 0; }
-
-    /* Hide account info section in print */
-    .acct-section-body.collapsed { max-height: none !important; overflow: visible !important; }
+    /* ── Receipt tape (print-only) ───────────────────────── */
+    .ds-receipt-tape {
+        margin-top: 14pt; page-break-inside: avoid;
+    }
+    .ds-receipt-tape-label {
+        font-size: 8pt; color: #111 !important; font-weight: 800;
+        letter-spacing: 0.05em; margin-bottom: 3pt;
+    }
+    .ds-receipt-tape-area {
+        width: 5in; height: 4in;
+        border: 1pt solid #999 !important; border-radius: 0;
+    }
 }
 
 /* ── Responsive ────────────────────────────────────────── */
@@ -702,6 +739,5 @@ body.dark-mode .ds-receipt-tape-area { border-color: #38383A; }
         border-left: none; border-top: 1px solid var(--border);
         padding-left: 0; padding-top: 6px; margin-left: 0; margin-top: 4px;
     }
-    .ds-receipt-tape-area { width: 100%; height: 200px; }
     .acct-form-grid { grid-template-columns: 1fr; }
 }

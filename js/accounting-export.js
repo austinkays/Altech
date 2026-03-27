@@ -552,11 +552,6 @@ const AccountingExport = {
             printBtn.addEventListener('click', () => window.print());
         }
 
-        const pdfBtn = document.getElementById('ds-pdf-btn');
-        if (pdfBtn) {
-            pdfBtn.addEventListener('click', () => this._dsExportPDF());
-        }
-
         if (clearBtn) {
             clearBtn.addEventListener('click', () => this._dsReset());
         }
@@ -681,7 +676,6 @@ const AccountingExport = {
         this._dsFilename = filename || '';
         const dropZone  = document.getElementById('ds-drop-zone');
         const printBtn  = document.getElementById('ds-print-btn');
-        const pdfBtn    = document.getElementById('ds-pdf-btn');
         const clearBtn  = document.getElementById('ds-clear-btn');
         const meta      = document.getElementById('ds-meta');
         const output    = document.getElementById('ds-output');
@@ -689,7 +683,6 @@ const AccountingExport = {
 
         if (dropZone) dropZone.style.display = 'none';
         if (printBtn) printBtn.style.display = 'inline-flex';
-        if (pdfBtn)   pdfBtn.style.display = 'inline-flex';
         if (clearBtn) clearBtn.style.display = 'inline-flex';
         if (meta)     meta.style.display = 'block';
 
@@ -774,11 +767,10 @@ const AccountingExport = {
             html += `</div>`;
         }
 
-        html += `<div class="ds-receipt-tape">
+        // Receipt tape — print-only (hidden on screen)
+        html += `<div class="ds-receipt-tape ds-print-only">
             <div class="ds-receipt-tape-label">Bank Deposit Receipt</div>
-            <div class="ds-receipt-tape-area">
-                <span class="ds-receipt-tape-hint no-print">Tape bank receipt here after printing</span>
-            </div>
+            <div class="ds-receipt-tape-area"></div>
         </div>`;
 
         output.innerHTML = html;
@@ -862,18 +854,26 @@ const AccountingExport = {
     _dsUpdateBillCounter() {
         const inputs = document.querySelectorAll('input.ds-bill-input');
         let grand = 0;
+        let anyBills = false;
         inputs.forEach(input => {
             const denom = parseInt(input.dataset.denom, 10);
             const count = parseInt(input.value, 10) || 0;
             const total = denom * count;
             grand += total;
+            if (count > 0) anyBills = true;
             const el = document.getElementById(`ds-bill-${denom}`);
             if (el) el.textContent = count > 0 ? this._dsFmt(total) : '—';
             const countEl = document.getElementById(`ds-bill-count-${denom}`);
             if (countEl) countEl.textContent = count;
+            // Mark empty rows so print CSS can hide them
+            const row = input.closest('.ds-bill-row');
+            if (row) row.classList.toggle('ds-bill-row-empty', count === 0);
         });
         const grandEl = document.getElementById('ds-bill-counted');
         if (grandEl) grandEl.textContent = this._dsFmt(grand);
+        // Hide entire counter in print when nothing counted
+        const counter = document.getElementById('ds-bill-counter');
+        if (counter) counter.classList.toggle('ds-bill-counter-empty', !anyBills);
     },
 
     _dsUpdateVerifiedCount() {
@@ -913,7 +913,6 @@ const AccountingExport = {
         this._dsFilename = '';
         const dropZone  = document.getElementById('ds-drop-zone');
         const printBtn  = document.getElementById('ds-print-btn');
-        const pdfBtn    = document.getElementById('ds-pdf-btn');
         const clearBtn  = document.getElementById('ds-clear-btn');
         const meta      = document.getElementById('ds-meta');
         const output    = document.getElementById('ds-output');
@@ -921,7 +920,6 @@ const AccountingExport = {
 
         if (dropZone)  { dropZone.style.display = ''; }
         if (printBtn)  printBtn.style.display = 'none';
-        if (pdfBtn)    pdfBtn.style.display = 'none';
         if (clearBtn)  clearBtn.style.display = 'none';
         if (meta)      { meta.style.display = 'none'; meta.innerHTML = ''; }
         if (output)    output.innerHTML = '';
@@ -930,246 +928,6 @@ const AccountingExport = {
         document.querySelectorAll('input.ds-bill-input').forEach(i => { i.value = 0; });
         this._dsUpdateBillCounter();
         this._dsHideError();
-    },
-
-    // ── PDF Export ──
-
-    async _dsExportPDF() {
-        if (!this._dsRows.length) return;
-
-        if (typeof window.jspdf === 'undefined') {
-            try {
-                await new Promise((resolve, reject) => {
-                    const s = document.createElement('script');
-                    s.src = 'lib/jspdf.umd.min.js';
-                    s.onload = resolve;
-                    s.onerror = reject;
-                    document.head.appendChild(s);
-                });
-            } catch {
-                App.toast('Failed to load PDF library', 'error');
-                return;
-            }
-        }
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
-        const pageW = doc.internal.pageSize.getWidth();
-        const pageH = doc.internal.pageSize.getHeight();
-        const mg = 10;
-        const cw = pageW - mg * 2;
-        let y = mg;
-
-        const INK   = [30, 30, 30];
-        const MID   = [80, 80, 80];
-        const LIGHT = [170, 170, 170];
-        const FILL  = [242, 242, 242];
-        const HFILL = [230, 230, 230];
-
-        const addPage = () => { doc.addPage(); y = mg; };
-        const need = (h) => { if (y + h > pageH - 14) { addPage(); return true; } return false; };
-
-        // Header
-        const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-        doc.setFontSize(14); doc.setFont(undefined, 'bold'); doc.setTextColor(...INK);
-        doc.text('Deposit Sheet', mg, y + 5);
-        doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.setTextColor(...MID);
-        doc.text(dateStr, pageW - mg, y + 5, { align: 'right' });
-        y += 7;
-
-        doc.setFontSize(8);
-        doc.text('Altech Insurance Agency', mg, y + 3);
-        const tellers = [...new Set(this._dsRows.map(r => (r['teller'] || '').trim()).filter(Boolean))];
-        if (tellers.length) doc.text('Tendered by: ' + tellers.join(', '), mg + 50, y + 3);
-        doc.text(this._dsRows.length + ' receipt' + (this._dsRows.length !== 1 ? 's' : ''), pageW - mg, y + 3, { align: 'right' });
-        y += 6;
-
-        // Summary totals bar
-        const totals = { invoiced: 0, tendered: 0, disbursement: 0, 'non-fiduciary': 0 };
-        for (const row of this._dsRows) {
-            for (const key of Object.keys(totals)) totals[key] += this._dsParseMoney(row[key]);
-        }
-
-        doc.setFillColor(...FILL);
-        doc.rect(mg, y, cw, 7, 'F');
-        doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(...MID);
-        const summaryItems = [
-            ['Invoiced', this._dsFmt(totals.invoiced)], ['Tendered', this._dsFmt(totals.tendered)],
-            ['Disbursement', this._dsFmt(totals.disbursement)], ['Non-Fiduciary', this._dsFmt(totals['non-fiduciary'])]
-        ];
-        let sx = mg + 3;
-        for (const [label, val] of summaryItems) {
-            doc.setFont(undefined, 'normal'); doc.setTextColor(...MID);
-            doc.text(label + ':', sx, y + 4.5);
-            const lw = doc.getTextWidth(label + ': ');
-            doc.setFont(undefined, 'bold'); doc.setTextColor(...INK);
-            doc.text(val, sx + lw, y + 4.5);
-            sx += lw + doc.getTextWidth(val) + 12;
-        }
-        y += 10;
-
-        // Group by pay method
-        const groups = {};
-        for (const row of this._dsRows) {
-            const method = (row['pay method'] || 'Other').trim();
-            if (!groups[method]) groups[method] = [];
-            groups[method].push(row);
-        }
-        const methodOrder = (m) => { const l = m.toLowerCase(); if (l === 'check') return '0'; if (l === 'cash') return '1'; return '2' + l; };
-        const sortedMethods = Object.keys(groups).sort((a, b) => methodOrder(a).localeCompare(methodOrder(b)));
-
-        // Column definitions
-        const hasDisb = this._dsRows.some(r => this._dsParseMoney(r['disbursement']) !== 0);
-        const hasNonFid = this._dsRows.some(r => this._dsParseMoney(r['non-fiduciary']) !== 0);
-        const hasCrUsed = this._dsRows.some(r => this._dsParseMoney(r['credit used']) !== 0);
-        const hasChange = this._dsRows.some(r => this._dsParseMoney(r['change']) !== 0);
-        const hasMemo = this._dsRows.some(r => (r['memo'] || '').trim());
-
-        const cols = [];
-        cols.push({ key: 'item #', label: 'Rcpt', width: 14, align: 'left' });
-        cols.push({ key: 'item date', label: 'Date', width: 18, align: 'left' });
-        cols.push({ key: 'name', label: 'Client', width: 0, align: 'left' });
-        cols.push({ key: 'teller', label: 'Agent', width: 22, align: 'left' });
-        cols.push({ key: 'invoiced', label: 'Invoiced', width: 22, align: 'right', money: true });
-        cols.push({ key: 'tendered', label: 'Tendered', width: 22, align: 'right', money: true });
-        if (hasCrUsed) cols.push({ key: 'credit used', label: 'Cr. Used', width: 18, align: 'right', money: true });
-        if (hasChange) cols.push({ key: 'change', label: 'Change', width: 18, align: 'right', money: true });
-        if (hasDisb) cols.push({ key: 'disbursement', label: 'Disb.', width: 20, align: 'right', money: true });
-        if (hasNonFid) cols.push({ key: 'non-fiduciary', label: 'Non-Fid.', width: 20, align: 'right', money: true });
-        if (hasMemo) cols.push({ key: 'memo', label: 'Memo', width: 35, align: 'left' });
-
-        const fixedW = cols.reduce((s, c) => s + (c.key === 'name' ? 0 : c.width), 0);
-        const nameCol = cols.find(c => c.key === 'name');
-        if (nameCol) nameCol.width = Math.max(30, cw - fixedW);
-
-        const rowH = 5.5;
-        const headerH = 6;
-
-        const _drawTableHeader = () => {
-            doc.setFillColor(...HFILL);
-            doc.rect(mg, y, cw, headerH, 'F');
-            doc.setFontSize(6.5); doc.setFont(undefined, 'bold'); doc.setTextColor(...MID);
-            let cx = mg + 1.5;
-            for (const col of cols) {
-                if (col.align === 'right') doc.text(col.label, cx + col.width - 1.5, y + 4, { align: 'right' });
-                else doc.text(col.label, cx, y + 4);
-                cx += col.width;
-            }
-            y += headerH;
-        };
-
-        const _drawRow = (row, isAlt) => {
-            if (isAlt) { doc.setFillColor(248, 248, 248); doc.rect(mg, y, cw, rowH, 'F'); }
-            doc.setFontSize(7.5); doc.setFont(undefined, 'normal');
-            let cx = mg + 1.5;
-            for (const col of cols) {
-                if (col.money) {
-                    const v = this._dsParseMoney(row[col.key]);
-                    doc.setTextColor(v === 0 ? 170 : 30, v === 0 ? 170 : 30, v === 0 ? 170 : 30);
-                    doc.text(v === 0 ? '\u2014' : this._dsFmt(v), cx + col.width - 1.5, y + 3.8, { align: 'right' });
-                } else if (col.key === 'name') {
-                    doc.setTextColor(...INK);
-                    const nm = (row['name'] || '').trim();
-                    const id = (row['cust id'] || '').trim();
-                    doc.text((nm + (id ? '  #' + id : '')).substring(0, 45), cx, y + 3.8);
-                } else if (col.key === 'memo') {
-                    doc.setTextColor(...MID); doc.setFontSize(6.5);
-                    doc.text((row['memo'] || '').trim().substring(0, 50), cx, y + 3.8);
-                    doc.setFontSize(7.5);
-                } else {
-                    doc.setTextColor(...INK);
-                    doc.text(String(row[col.key] || '').trim().substring(0, 30), cx, y + 3.8);
-                }
-                cx += col.width;
-            }
-            y += rowH;
-        };
-
-        // Render groups
-        for (const method of sortedMethods) {
-            const gRows = groups[method];
-            const label = this._METHOD_LABELS[method.toLowerCase()] || method;
-            const methodTotal = gRows.reduce((s, r) => s + this._dsParseMoney(r['tendered']), 0);
-
-            need(headerH + rowH * 3 + 6);
-
-            doc.setFillColor(60, 60, 60); doc.rect(mg, y, cw, 5.5, 'F');
-            doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(255, 255, 255);
-            doc.text(label.toUpperCase(), mg + 2, y + 3.8);
-            doc.text(this._dsFmt(methodTotal), pageW - mg - 2, y + 3.8, { align: 'right' });
-            y += 6.5;
-
-            _drawTableHeader();
-
-            for (let i = 0; i < gRows.length; i++) {
-                if (need(rowH + 6)) {
-                    doc.setFillColor(60, 60, 60); doc.rect(mg, y, cw, 5.5, 'F');
-                    doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(255, 255, 255);
-                    doc.text(label.toUpperCase() + ' (cont.)', mg + 2, y + 3.8);
-                    y += 6.5;
-                    _drawTableHeader();
-                }
-                _drawRow(gRows[i], i % 2 === 1);
-            }
-
-            // Subtotal
-            doc.setDrawColor(...LIGHT); doc.line(mg, y, pageW - mg, y); y += 0.5;
-            doc.setFillColor(...FILL); doc.rect(mg, y, cw, rowH, 'F');
-            doc.setFontSize(7); doc.setFont(undefined, 'bold');
-            let cx = mg + 1.5;
-            for (const col of cols) {
-                if (col.money) {
-                    const v = gRows.reduce((s, r) => s + this._dsParseMoney(r[col.key]), 0);
-                    doc.setTextColor(...INK);
-                    doc.text(v === 0 ? '\u2014' : this._dsFmt(v), cx + col.width - 1.5, y + 3.8, { align: 'right' });
-                } else if (col.key === 'name') {
-                    doc.setTextColor(...MID); doc.setFontSize(6);
-                    doc.text('SUBTOTAL', cx, y + 3.8); doc.setFontSize(7);
-                }
-                cx += col.width;
-            }
-            y += rowH + 4;
-        }
-
-        // Bill counter
-        const billInputs = document.querySelectorAll('input.ds-bill-input');
-        let billTotal = 0;
-        const bills = [];
-        billInputs.forEach(input => {
-            const denom = parseInt(input.dataset.denom, 10);
-            const count = parseInt(input.value, 10) || 0;
-            if (count > 0) { bills.push({ denom, count, total: denom * count }); billTotal += denom * count; }
-        });
-
-        if (bills.length) {
-            need(20 + bills.length * 4);
-            doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(...MID);
-            doc.text('CASH COUNTER', mg, y + 3); y += 5;
-            doc.setFont(undefined, 'normal'); doc.setFontSize(7.5);
-            for (const b of bills) {
-                doc.setTextColor(...INK); doc.text('$' + b.denom, mg + 2, y + 3);
-                doc.setTextColor(...MID); doc.text('\u00d7 ' + b.count, mg + 16, y + 3);
-                doc.setTextColor(...INK); doc.text('= ' + this._dsFmt(b.total), mg + 30, y + 3);
-                y += 4;
-            }
-            doc.setFont(undefined, 'bold'); doc.setDrawColor(...LIGHT);
-            doc.line(mg, y, mg + 50, y); y += 1;
-            doc.text('Counted: ' + this._dsFmt(billTotal), mg + 2, y + 3.5); y += 8;
-        }
-
-        // Receipt tape area
-        need(140);
-        doc.setDrawColor(...LIGHT); doc.setLineWidth(0.3);
-        const tapeW = 127, tapeH = 102;
-        doc.rect(mg, y, tapeW, tapeH);
-        doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(...MID);
-        doc.text('BANK DEPOSIT RECEIPT', mg + 2, y + 4);
-        doc.setFontSize(6); doc.setFont(undefined, 'normal'); doc.setTextColor(...LIGHT);
-        doc.text('Tape receipt here', mg + tapeW / 2, y + tapeH / 2, { align: 'center' });
-
-        const fname = 'Deposit_Sheet_' + new Date().toISOString().slice(0, 10) + '.pdf';
-        doc.save(fname);
-        App.toast('\u2714 PDF downloaded');
     },
 
     // ═══════════════════════════════════════════
