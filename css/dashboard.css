@@ -191,10 +191,34 @@ body.dark-mode .widget-card:hover {
     gap: 10px;
     height: 100%;
 }
+.weather-bottom {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
 .weather-location-line {
     font-size: 11px;
     color: var(--text-tertiary);
-    margin-top: auto;
+}
+.daily-quote-section {
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border-radius: 10px;
+    border-left: 3px solid var(--apple-blue);
+}
+.daily-quote-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.45;
+    font-style: italic;
+}
+.daily-quote-author {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    margin-top: 6px;
 }
 .weather-loading {
     font-size: 13px;

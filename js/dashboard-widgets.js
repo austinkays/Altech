@@ -161,6 +161,78 @@ window.DashboardWidgets = (() => {
         return due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
+    // ── Daily Quotes (rotates by day of year) ──
+
+    const DAILY_QUOTES = [
+        { text: 'The best time to plant a tree was 20 years ago. The second best time is now.', author: 'Chinese Proverb' },
+        { text: 'Success is not final, failure is not fatal: it is the courage to continue that counts.', author: 'Winston Churchill' },
+        { text: 'The only way to do great work is to love what you do.', author: 'Steve Jobs' },
+        { text: 'It always seems impossible until it\'s done.', author: 'Nelson Mandela' },
+        { text: 'The harder you work for something, the greater you\'ll feel when you achieve it.', author: 'Anonymous' },
+        { text: 'Don\'t watch the clock; do what it does. Keep going.', author: 'Sam Levenson' },
+        { text: 'Everything you\'ve ever wanted is on the other side of fear.', author: 'George Addair' },
+        { text: 'Opportunities don\'t happen. You create them.', author: 'Chris Grosser' },
+        { text: 'The secret of getting ahead is getting started.', author: 'Mark Twain' },
+        { text: 'Quality is not an act, it is a habit.', author: 'Aristotle' },
+        { text: 'Your limitation — it\'s only your imagination.', author: 'Anonymous' },
+        { text: 'Push yourself, because no one else is going to do it for you.', author: 'Anonymous' },
+        { text: 'Great things never come from comfort zones.', author: 'Anonymous' },
+        { text: 'Dream it. Wish it. Do it.', author: 'Anonymous' },
+        { text: 'Stay foolish to stay sane.', author: 'Maxime Lagacé' },
+        { text: 'Be so good they can\'t ignore you.', author: 'Steve Martin' },
+        { text: 'What we think, we become.', author: 'Buddha' },
+        { text: 'Do what you can, with what you have, where you are.', author: 'Theodore Roosevelt' },
+        { text: 'A smooth sea never made a skilled sailor.', author: 'Franklin D. Roosevelt' },
+        { text: 'If you want to lift yourself up, lift up someone else.', author: 'Booker T. Washington' },
+        { text: 'The best revenge is massive success.', author: 'Frank Sinatra' },
+        { text: 'I find that the harder I work, the more luck I seem to have.', author: 'Thomas Jefferson' },
+        { text: 'Work hard in silence, let your success be your noise.', author: 'Frank Ocean' },
+        { text: 'In the middle of every difficulty lies opportunity.', author: 'Albert Einstein' },
+        { text: 'Don\'t be afraid to give up the good to go for the great.', author: 'John D. Rockefeller' },
+        { text: 'Hustle beats talent when talent doesn\'t hustle.', author: 'Ross Simmonds' },
+        { text: 'Act as if what you do makes a difference. It does.', author: 'William James' },
+        { text: 'What you do today can improve all your tomorrows.', author: 'Ralph Marston' },
+        { text: 'Don\'t let yesterday take up too much of today.', author: 'Will Rogers' },
+        { text: 'You don\'t have to be great to start, but you have to start to be great.', author: 'Zig Ziglar' },
+        { text: 'The way to get started is to quit talking and begin doing.', author: 'Walt Disney' },
+        { text: 'If you are working on something exciting, you don\'t have to be pushed.', author: 'Steve Jobs' },
+        { text: 'It\'s not whether you get knocked down, it\'s whether you get up.', author: 'Vince Lombardi' },
+        { text: 'People who are crazy enough to think they can change the world are the ones who do.', author: 'Rob Siltanen' },
+        { text: 'Knowing is not enough; we must apply. Wishing is not enough; we must do.', author: 'Johann Wolfgang von Goethe' },
+        { text: 'Whether you think you can or you think you can\'t, you\'re right.', author: 'Henry Ford' },
+        { text: 'Creativity is intelligence having fun.', author: 'Albert Einstein' },
+        { text: 'The man who has confidence in himself gains the confidence of others.', author: 'Hasidic Proverb' },
+        { text: 'The only impossible journey is the one you never begin.', author: 'Tony Robbins' },
+        { text: 'Life is 10% what happens to us and 90% how we react to it.', author: 'Charles R. Swindoll' },
+        { text: 'It is during our darkest moments that we must focus to see the light.', author: 'Aristotle' },
+        { text: 'Believe you can and you\'re halfway there.', author: 'Theodore Roosevelt' },
+        { text: 'Setting goals is the first step in turning the invisible into the visible.', author: 'Tony Robbins' },
+        { text: 'Your time is limited — don\'t waste it living someone else\'s life.', author: 'Steve Jobs' },
+        { text: 'The future belongs to those who believe in the beauty of their dreams.', author: 'Eleanor Roosevelt' },
+        { text: 'What lies behind us and what lies before us are tiny matters compared to what lies within us.', author: 'Ralph Waldo Emerson' },
+        { text: 'Strive not to be a success, but rather to be of value.', author: 'Albert Einstein' },
+        { text: 'You miss 100% of the shots you don\'t take.', author: 'Wayne Gretzky' },
+        { text: 'I have not failed. I\'ve just found 10,000 ways that won\'t work.', author: 'Thomas Edison' },
+        { text: 'The mind is everything. What you think you become.', author: 'Buddha' },
+        { text: 'An unexamined life is not worth living.', author: 'Socrates' },
+        { text: 'Eighty percent of success is showing up.', author: 'Woody Allen' },
+        { text: 'Fall seven times, stand up eight.', author: 'Japanese Proverb' },
+        { text: 'When something is important enough, you do it even if the odds are not in your favor.', author: 'Elon Musk' },
+        { text: 'Well done is better than well said.', author: 'Benjamin Franklin' },
+        { text: 'If you look at what you have in life, you\'ll always have more.', author: 'Oprah Winfrey' },
+        { text: 'The only person you are destined to become is the person you decide to be.', author: 'Ralph Waldo Emerson' },
+        { text: 'Go confidently in the direction of your dreams.', author: 'Henry David Thoreau' },
+        { text: 'When you reach the end of your rope, tie a knot in it and hang on.', author: 'Franklin D. Roosevelt' },
+        { text: 'There is only one way to avoid criticism: do nothing, say nothing, and be nothing.', author: 'Aristotle' },
+    ];
+
+    function _getDailyQuote() {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 0);
+        const dayOfYear = Math.floor((now - start) / 86400000);
+        return DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
+    }
+
     // ── Weather helpers ──
 
     const WMO_CODES = {
@@ -356,7 +428,13 @@ window.DashboardWidgets = (() => {
                 </div>
                 ${sunHtml}
                 ${forecastHtml}
-                <div class="weather-location-line">${_escapeHTML(_weatherLocation.name)}</div>
+                <div class="weather-bottom">
+                    <div class="weather-location-line">${_escapeHTML(_weatherLocation.name)}</div>
+                    <div class="daily-quote-section">
+                        <div class="daily-quote-text">"${_escapeHTML(_getDailyQuote().text)}"</div>
+                        <div class="daily-quote-author">— ${_escapeHTML(_getDailyQuote().author)}</div>
+                    </div>
+                </div>
             </div>`;
     }
 
@@ -1157,7 +1235,6 @@ window.DashboardWidgets = (() => {
         try { renderClientsWidget(); } catch (e) { console.error('[DashboardWidgets] renderClientsWidget error:', e); }
         try { renderComplianceWidget(); } catch (e) { console.error('[DashboardWidgets] renderComplianceWidget error:', e); }
         try { renderQuickActions(); } catch (e) { console.error('[DashboardWidgets] renderQuickActions error:', e); }
-        try { renderQuickLaunch(); } catch (e) { console.error('[DashboardWidgets] renderQuickLaunch error:', e); }
         try { updateBadges(); } catch (e) { console.error('[DashboardWidgets] updateBadges error:', e); }
         try { renderHeader(); } catch (e) { console.error('[DashboardWidgets] renderHeader error:', e); }
         try { _updateAdminButton(); } catch (e) { console.error('[DashboardWidgets] _updateAdminButton error:', e); }
