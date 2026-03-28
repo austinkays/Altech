@@ -951,10 +951,11 @@ Object.assign(App, {
             return `${mm}/${dd}/${yyyy}`;
         }
         function _genderHS(val) {
+            // drv_sSex accepts M or F per official template
             if (!val) return '';
             const v = _v(val).toUpperCase();
-            if (v === 'M') return 'Male';
-            if (v === 'F') return 'Female';
+            if (v === 'M' || v === 'MALE') return 'M';
+            if (v === 'F' || v === 'FEMALE') return 'F';
             return _v(val);
         }
 
@@ -1031,8 +1032,15 @@ Object.assign(App, {
         lines.push(_line('gen_tEffectiveDate', data.effectiveDate ? _dateHS(data.effectiveDate) : '(today)'));
         lines.push(_line('gen_sLeadSource', data.referralSource));
         lines.push(_line('gen_nTerm', data.policyTerm));
-        lines.push(_line('gen_nClientStatus', 'PROSPECT'));
-        lines.push(_line('gen_sStatus', 'Active'));
+        // gen_nClientStatus and gen_sStatus should be used exclusively (not both)
+        lines.push(_line('gen_nClientStatus', 'Prospect'));
+
+        // gen_sForm is required even if blank to distinguish Auto from Home
+        if (includeHome) {
+            lines.push(_line('gen_sForm', data.homePolicyType || 'HO3'));
+        } else if (includeAuto) {
+            lines.push(_line('gen_sForm', data.autoPolicyType || 'Standard'));
+        }
 
         // ── Garaging / Property Address ──
         const gAddr = data.primaryHomeAddr || data.addrStreet;
@@ -1053,7 +1061,7 @@ Object.assign(App, {
             lines.push(_line('gen_sBurgAlarm', data.burglarAlarm));
             lines.push(_line('gen_sFireAlarm', data.fireAlarm || data.smokeDetector));
             lines.push(_line('gen_sSprinkler', data.sprinklers));
-            lines.push(_line('gen_bDeadBold', data.deadbolt === 'Yes' ? 'Y' : ''));
+            lines.push(_line('gen_bDeadBolt', data.deadbolt === 'Yes' ? 'Y' : ''));
             lines.push(_line('gen_bFireExtinguisher', data.fireExtinguisher === 'Yes' ? 'Y' : ''));
 
             // Coverage A-D
@@ -1063,7 +1071,7 @@ Object.assign(App, {
             lines.push(_line('gen_lCovD', data.homeLossOfUse));
             lines.push(_line('gen_sLiability', data.personalLiability));
             lines.push(_line('gen_sMedical', data.medicalPayments));
-            lines.push(_line('gen_sDecuct', data.homeDeductible));
+            lines.push(_line('gen_sDeduct', data.homeDeductible));
 
             // Endorsements
             lines.push(_line('gen_bEarthquake', data.earthquakeCoverage === 'Yes' ? 'Y' : ''));
@@ -1071,6 +1079,11 @@ Object.assign(App, {
             lines.push(_line('gen_lOrdinanceOrLawIncr', data.ordinanceOrLaw));
             lines.push(_line('gen_lJewelry', data.jewelryLimit));
             lines.push(_line('gen_nAdditionalRes', data.increasedReplacementCost));
+
+            // Multi-policy credit (home + auto bundle)
+            if (includeAuto) {
+                lines.push(_line('gen_bMultiPolicy', 'Y'));
+            }
 
             // Mortgagee / Lienholder
             if (data.mortgagee) {
@@ -1094,7 +1107,6 @@ Object.assign(App, {
             lines.push(_line('gen_sUmPd', data.umpdLimit));
             lines.push(_line('gen_sMedical', data.medPayments));
             lines.push(_line('gen_sTypeOfPolicy', data.autoPolicyType));
-            lines.push(_line('gen_sForm', data.homePolicyType || 'Standard'));
 
             // ── Vehicles (veh_*[index]) ──
             vehicles.forEach((veh, i) => {

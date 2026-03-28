@@ -748,7 +748,7 @@ window.HawkSoftExport = (() => {
             lines.push(_line('gen_cContentsReplacement', h.contentsReplacement ? 'Y' : ''));
             lines.push(_line('gen_sLiability', h.liability));
             lines.push(_line('gen_sMedical', h.medical));
-            lines.push(_line('gen_sDecuct', h.deductible));
+            lines.push(_line('gen_sDeduct', h.deductible));
             lines.push(_line('gen_bEarthquake', h.earthquake ? 'Y' : ''));
             lines.push(_line('gen_sEQDeduct', h.eqDeduct));
             lines.push(_line('gen_bEQMasonryVeneer', h.eqMasonryVeneer ? 'Y' : ''));
