@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
-| **CSS** | 34 files in `css/` (~21,082 lines total) |
-| **JS** | 47 modules in `js/` (~40,530 lines total) |
-| **Plugins** | 22 HTML templates in `plugins/` (~6,808 lines total) |
+| **CSS** | 33 files in `css/` (~21,477 lines total) |
+| **JS** | 46 modules in `js/` (~42,101 lines total) |
+| **Plugins** | 21 HTML templates in `plugins/` (~6,712 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -72,9 +72,9 @@ npm run deploy:vercel   # Production deploy
 │   ├── animations.css          # All @keyframes — never define @keyframes in plugin CSS
 │   ├── landing.css             # Landing / bento grid / tool-row styles
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
-│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (747 lines)
-│   ├── dashboard.css           # Bento grid dashboard widgets (1,026 lines)
-│   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (1,202 lines)
+│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (787 lines)
+│   ├── dashboard.css           # Bento grid dashboard widgets (1,208 lines)
+│   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (934 lines)
 │   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + needs-state-update badge + snooze styles + fixed 6-col stat grid (1,293 lines)
 │   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
@@ -86,12 +86,12 @@ npm run deploy:vercel   # Production deploy
 │   ├── onboarding.css          # First-run wizard (411 lines)
 │   ├── admin.css               # Admin panel (300 lines)
 │   ├── bug-report.css          # Bug reporter (227 lines)
-│   ├── quickref.css            # Quick reference — teal accent + editable number rows (326 lines)
+│   ├── quickref.css            # Quick reference — teal accent + editable number rows (677 lines)
 │   ├── security-info.css       # Security modal (217 lines)
-│   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, polished form/toolbar, card grid, dark mode (468 lines)
+│   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, polished form/toolbar, card grid, dark mode (749 lines)
 │   ├── email.css               # Email composer — purple accent + custom prompt styles (256 lines)
 │   ├── endorsement-parser.css  # Endorsement parser — paste view, cards, dark utilitarian styling (455 lines)
-│   ├── task-sheet.css           # Task Sheet — HawkSoft CSV task viewer, priority badges, overdue rows, print layout (744 lines)
+│   ├── task-sheet.css           # Task Sheet — HawkSoft CSV task viewer, priority badges, overdue rows, print layout (981 lines)
 │   ├── returned-mail.css        # Returned Mail Tracker — deliverability badges, status badges, responsive form+table, print styles, full dark mode, Street View + satellite map images (799 lines)
 │   ├── paywall.css             # Paywall modal (131 lines)
 │   ├── blind-spot-brief.css    # Blind Spot Brief plugin (294 lines)
@@ -109,7 +109,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-property.js         # Property analysis, maps, assessor data (2,503 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
-│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,260 lines)
+│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,337 lines)
 │   ├── app-quotes.js           # Quote/draft management, client history auto-save (844 lines)
 │   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (280 lines)
 │   │
@@ -122,7 +122,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget (1,038 lines)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget (1,368 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
@@ -131,15 +131,15 @@ npm run deploy:vercel   # Production deploy
 │   ├── endorsement-parser.js   # AI-powered endorsement email parser, extracts structured data from carrier change requests (805 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,119 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI, lossless vehicle+driver rebuild, per-driver FSC incidents, Client Office field (1,770 lines)
-│   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,423 lines)
+│   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,112 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
-│   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,917 lines)
-│   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (387 lines)
+│   ├── prospect.js              # Commercial prospect investigation, risk scoring (2,318 lines)
+│   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (732 lines)
 │   ├── quote-compare.js         # Quote comparison + AI recommendation (1,098 lines)
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (972 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
-│   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator (856 lines)
-│   ├── call-logger.js          # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,185 lines)
+│   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator (1,277 lines)
+│   ├── call-logger.js          # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,233 lines)
 │   ├── task-sheet.js            # HawkSoft CSV task viewer — upload, parse, sort (overdue→priority→date), 9-col table, print-friendly layout (838 lines)
 │   ├── returned-mail.js         # Returned Mail Tracker — address validator (Google API), Street View + satellite imagery, log CRUD, HawkSoft copy output, CSV export (575 lines)
 │   ├── blind-spot-brief.js      # Blind Spot Brief — coverage gap analyzer (374 lines)
@@ -159,7 +159,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
 │   ├── prospect.html           # Commercial investigation UI (333 lines)
-│   ├── accounting.html         # Accounting vault + export — tabbed layout, PIN screens, polished form/toolbar, account cards (329 lines)
+│   ├── accounting.html         # Accounting vault + export — tabbed layout, PIN screens, polished form/toolbar, account cards (256 lines)
 │   ├── compliance.html         # CGL dashboard + print toolbar (223 lines)
 │   ├── vin-decoder.html        # VIN decoder (141 lines)
 │   ├── reminders.html          # Task manager (144 lines)
@@ -168,8 +168,8 @@ npm run deploy:vercel   # Production deploy
 │   ├── email.html              # Email composer + custom AI persona section (125 lines)
 │   ├── endorsement.html        # Endorsement parser — paste area, parsed cards display (54 lines)
 │   ├── qna.html                # Policy Q&A chat (95 lines)
-│   ├── quickref.html           # Quick reference — ID cards, speller, editable numbers, phonetic grid (78 lines)
-│   ├── call-logger.html        # HawkSoft Logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete + New Log button (135 lines)
+│   ├── quickref.html           # Quick reference — ID cards, speller, editable numbers, phonetic grid (140 lines)
+│   ├── call-logger.html        # HawkSoft Logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete + New Log button (160 lines)
 │   ├── task-sheet.html          # Task Sheet — drop zone, meta bar, table output, print/clear buttons (50 lines)
 │   ├── returned-mail.html       # Returned Mail Tracker — address validator, log form, table + actions (127 lines)
 │   ├── hawksoft.html           # HawkSoft export (21 lines — JS renders body)

@@ -132,14 +132,14 @@
                 Show Hidden <span class="cgl-hidden-count" id="cglHiddenCount">0</span>
             </button>
         </div>
-        <div id="cglCounterRow" style="font-size: 13px; color: var(--text-secondary); margin-top: 8px; display: none;">
+        <div id="cglCounterRow" style="font-size: 13px; color: var(--text-secondary); margin-top: 8px; display: none;" role="status" aria-live="polite">
             Showing <span id="cglFilteredCount">0</span> of <span id="cglTotalCount">0</span> policies
             &nbsp;·&nbsp; <span id="cglAnnotationSummary" style="color: var(--apple-gray);"></span>
         </div>
     </div>
 
     <!-- Loading State -->
-    <div id="cglLoading" class="cgl-loading">
+    <div id="cglLoading" class="cgl-loading" role="status" aria-live="polite">
         <div class="cgl-loading-graphic">
             <div class="cgl-spinner"></div>
             <span class="cgl-loading-icon">🛡️</span>
@@ -149,7 +149,7 @@
     </div>
 
     <!-- Error State -->
-    <div id="cglError" class="cgl-error" style="display: none;">
+    <div id="cglError" class="cgl-error" style="display: none;" role="alert" aria-live="assertive">
         <div class="cgl-error-title">Error Loading Data</div>
         <p id="cglErrorMessage"></p>
         <button class="cgl-button" onclick="ComplianceDashboard.refresh()" style="margin-top: 16px;">

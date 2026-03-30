@@ -38,6 +38,15 @@ window.STORAGE_KEYS = Object.freeze({
     HAWKSOFT_HISTORY:       'altech_hawksoft_history',
     EZLYNX_FORMDATA:        'altech_ezlynx_formdata',
     EZLYNX_INCIDENTS:       'altech_ezlynx_incidents',
+    EZLYNX_EXT_CONFIRMED:  'altech_ezlynx_ext_confirmed',
+    EXPORT_HISTORY:         'altech_export_history',
+    CALL_LOGGER:            'altech_call_logger',
+    RETURNED_MAIL:          'altech_returned_mail',
+    BSB_API_KEY:            'altech_bsb_apikey',
+    BSB_CACHE:              'altech_bsb_cache',
+    ACCT_VAULT_V1:          'altech_acct_vault',      // legacy migration key
+    ACCT_HISTORY:           'altech_acct_history',
+    QUICKREF_SECTIONS:      'altech_quickref_sections',
 
     // ── Settings & identity ──────────────────────────────────────────────────
     DARK_MODE:              'altech_dark_mode',       // cloud-synced via settings doc
@@ -47,6 +56,15 @@ window.STORAGE_KEYS = Object.freeze({
     ENCRYPTION_SALT:        'altech_encryption_salt', // PBKDF2 salt — never sync
     SYNC_META:              'altech_sync_meta',
     GEMINI_KEY:             'gemini_api_key',
+    AI_SETTINGS:            'altech_ai_settings',
+    AI_SALT:                'altech_ai_salt',
+    DEBUG:                  'altech_debug',
+
+    // ── UI state (local-only) ────────────────────────────────────────────────
+    SIDEBAR_COLLAPSED:      'altech_sidebar_collapsed',
+    WEATHER_CACHE:          'altech_weather_cache',
+    WEATHER_LOCATION:       'altech_weather_location',
+    DEVICE_ID:              'altech_device_id',
 
     // ── Firestore-only paths (not localStorage) ─────────────────────────────────
     // These are Firestore document paths written directly — NOT localStorage keys.

@@ -8,8 +8,8 @@
 window.CallLogger = (() => {
     'use strict';
 
-    const STORAGE_KEY = 'altech_call_logger';
-    const CGL_CACHE_KEY = 'altech_cgl_cache';
+    const STORAGE_KEY = STORAGE_KEYS.CALL_LOGGER;
+    const CGL_CACHE_KEY = STORAGE_KEYS.CGL_CACHE;
     let _selectedClient = null;  // { name, policies: [...] }
     let _selectedPolicy = null;  // { policyNumber, type, typeLabel, expirationDate, hawksoftId, hawksoftPolicyId }
 
@@ -71,7 +71,7 @@ window.CallLogger = (() => {
         try {
             // Read from AIProvider's storage key (altech_ai_settings)
             // Fields: { provider, model, apiKey }
-            const raw = localStorage.getItem('altech_ai_settings');
+            const raw = localStorage.getItem(STORAGE_KEYS.AI_SETTINGS);
             if (raw) {
                 const settings = JSON.parse(raw);
                 if (settings.apiKey && settings.apiKey.trim()) {
@@ -715,7 +715,7 @@ window.CallLogger = (() => {
             const res = await fetchFn('/api/hawksoft-logger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, activityType: _selectedActivityType || '', glossary: localStorage.getItem('altech_agency_glossary') || '', userApiKey, aiModel, formatOnly: true })
+                body: JSON.stringify({ policyId, clientNumber, hawksoftPolicyId, callType, rawNotes, agentInitials, activityType: _selectedActivityType || '', glossary: localStorage.getItem(STORAGE_KEYS.AGENCY_GLOSSARY) || '', userApiKey, aiModel, formatOnly: true })
             });
 
             if (!res.ok) {

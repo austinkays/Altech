@@ -19,6 +19,8 @@ const SOURCE_PATH = path.join(ROOT, 'js', 'call-logger.js');
 const source = fs.readFileSync(SOURCE_PATH, 'utf8');
 const UTILS_PATH = path.join(ROOT, 'js', 'utils.js');
 const utilsSource = fs.readFileSync(UTILS_PATH, 'utf8');
+const STORAGE_KEYS_PATH = path.join(ROOT, 'js', 'storage-keys.js');
+const storageKeysSource = fs.readFileSync(STORAGE_KEYS_PATH, 'utf8');
 
 // ────────────────────────────────────────────────────
 // Module Structure (source analysis)
@@ -38,7 +40,7 @@ describe('call-logger.js — Module Structure', () => {
   });
 
   test('defines STORAGE_KEY constant', () => {
-    expect(source).toContain("const STORAGE_KEY = 'altech_call_logger'");
+    expect(source).toContain("const STORAGE_KEY = STORAGE_KEYS.CALL_LOGGER");
   });
 
   test('returns init and render in public API', () => {
@@ -92,7 +94,7 @@ describe('Persistence', () => {
 
 describe('Settings Resolution', () => {
   test('reads from altech_ai_settings localStorage key', () => {
-    expect(source).toContain("localStorage.getItem('altech_ai_settings')");
+    expect(source).toContain("localStorage.getItem(STORAGE_KEYS.AI_SETTINGS)");
   });
 
   test('extracts apiKey from settings', () => {
@@ -185,7 +187,7 @@ describe('Submit Handler', () => {
   test('references correct DOM element IDs', () => {
     expect(source).toContain("getElementById('clPolicyId')");
     expect(source).toContain("getElementById('clChannelGroup')");
-    expect(source).toContain("getElementById('clActivityGroup')");
+    expect(source).toContain("getElementById('clActivitySelect')");
     expect(source).toContain("getElementById('clRawNotes')");
     expect(source).toContain("getElementById('clSubmitBtn')");
     expect(source).toContain("getElementById('clPreview')");
@@ -234,7 +236,7 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
             <button class="cl-channel-btn" data-channel="Email">Email</button>
             <button class="cl-channel-btn" data-channel="Text">Text</button>
           </div>
-          <div id="clActivityGroup" class="cl-activity-group"></div>
+          <select id="clActivitySelect" class="cl-input cl-activity-select"><option value="">-- Activity Type --</option></select>
           <input type="text" id="clAgentInitials" value="">
           <textarea id="clRawNotes"></textarea>
           <button id="clSubmitBtn"><span class="cl-btn-text">Format &amp; Preview</span></button>
@@ -257,6 +259,7 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
         // Mock CloudSync
         window.CloudSync = { schedulePush: function() { window._pushCalled = true; } };
       </script>
+      <script>${storageKeysSource}</script>
       <script>${utilsSource}</script>
       <script>${source}</script>
     </body></html>`;
@@ -424,11 +427,11 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
     expect(group._clWired).toBe(true);
   });
 
-  test('activity group wires event delegation', () => {
+  test('activity select wires event delegation', () => {
     const { window } = createMiniDOM();
     window.CallLogger.init();
-    const group = window.document.getElementById('clActivityGroup');
-    expect(group._clWired).toBe(true);
+    const sel = window.document.getElementById('clActivitySelect');
+    expect(sel._clWired).toBe(true);
   });
 
   test('resetForm clears form state and resets channel to Inbound', () => {
@@ -659,8 +662,8 @@ describe('Channel & Activity Type System', () => {
     expect(source).toContain('let _selectedActivityType = null');
   });
 
-  test('tracks _lastTemplate for activity templates', () => {
-    expect(source).toContain("let _lastTemplate = ''");
+  test('_applyActivityUI reads clActivitySelect value', () => {
+    expect(source).toContain("getElementById('clActivitySelect')");
   });
 
   test('defines _handleChannelSelect function', () => {
@@ -672,7 +675,7 @@ describe('Channel & Activity Type System', () => {
   });
 
   test('defines _handleActivitySelect function', () => {
-    expect(source).toContain('function _handleActivitySelect(activity, template)');
+    expect(source).toContain('function _handleActivitySelect(activity)');
   });
 
   test('defines _applyActivityUI function', () => {
@@ -689,9 +692,8 @@ describe('Channel & Activity Type System', () => {
     expect(source).toContain('_selectedActivityType = null');
   });
 
-  test('_handleActivitySelect inserts template into notes', () => {
-    expect(source).toContain("getElementById('clRawNotes')");
-    expect(source).toContain('_lastTemplate');
+  test('_handleActivitySelect calls _applyActivityUI', () => {
+    expect(source).toContain('_applyActivityUI()');
   });
 
   test('_handleFormat uses _selectedChannel instead of select element', () => {
@@ -734,9 +736,9 @@ describe('Channel & Activity Type System', () => {
     expect(source).toContain('channelGroup._clWired');
   });
 
-  test('wires activity group via event delegation', () => {
-    expect(source).toContain("getElementById('clActivityGroup')");
-    expect(source).toContain('activityGroup._clWired');
+  test('wires activity select via event delegation', () => {
+    expect(source).toContain("getElementById('clActivitySelect')");
+    expect(source).toContain('activitySelect._clWired');
   });
 
   test('exposes channel and activity helpers in return statement', () => {
@@ -798,11 +800,11 @@ describe('+ New Log Reset', () => {
 
 describe('Agency Glossary in Fetch', () => {
   test('sends glossary from localStorage in format request', () => {
-    expect(source).toContain("glossary: localStorage.getItem('altech_agency_glossary')");
+    expect(source).toContain("glossary: localStorage.getItem(STORAGE_KEYS.AGENCY_GLOSSARY)");
   });
 
   test('glossary defaults to empty string when missing', () => {
-    expect(source).toContain("localStorage.getItem('altech_agency_glossary') || ''");
+    expect(source).toContain("localStorage.getItem(STORAGE_KEYS.AGENCY_GLOSSARY) || ''");
   });
 });
 
@@ -812,7 +814,7 @@ describe('Agency Glossary in Fetch', () => {
 
 describe('Client & Policy Lookup — Source', () => {
   test('defines CGL_CACHE_KEY constant', () => {
-    expect(source).toContain("const CGL_CACHE_KEY = 'altech_cgl_cache'");
+    expect(source).toContain("const CGL_CACHE_KEY = STORAGE_KEYS.CGL_CACHE");
   });
 
   test('defines _getClients function', () => {
@@ -960,7 +962,7 @@ describe('Client & Policy Lookup — Behavioral', () => {
           <div id="clChannelGroup" class="cl-channel-group">
             <button class="cl-channel-btn cl-channel-selected" data-channel="Inbound">Inbound</button>
           </div>
-          <div id="clActivityGroup" class="cl-activity-group"></div>
+          <select id="clActivitySelect" class="cl-input cl-activity-select"><option value="">-- Activity Type --</option></select>
           <input type="text" id="clAgentInitials" value="">
           <textarea id="clRawNotes"></textarea>
           <button id="clSubmitBtn"><span class="cl-btn-text">Format &amp; Preview</span></button>
@@ -984,6 +986,7 @@ describe('Client & Policy Lookup — Behavioral', () => {
         window.Auth = { apiFetch: null };
         window.CloudSync = { schedulePush: function() {} };
       </script>
+      <script>${storageKeysSource}</script>
       <script>${utilsSource}</script>
       <script>${source}</script>
     </body></html>`;

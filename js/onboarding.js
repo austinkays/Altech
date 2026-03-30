@@ -12,8 +12,8 @@
 window.Onboarding = (() => {
     'use strict';
 
-    const STORAGE_KEY = 'altech_onboarded';
-    const NAME_KEY = 'altech_user_name';
+    const STORAGE_KEY = STORAGE_KEYS.ONBOARDED;
+    const NAME_KEY = STORAGE_KEYS.USER_NAME;
     const APP_URL = 'https://altech.agency';
     // Charset for invite codes (no I/O/1/0 to avoid confusion)
     const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -347,14 +347,14 @@ window.Onboarding = (() => {
         const agencyState = document.getElementById('onboardingAgencyState')?.value?.trim() || '';
         const licenseNum = document.getElementById('onboardingLicenseNum')?.value?.trim() || '';
         const profile = { agencyName, agencyState, licenseNum };
-        localStorage.setItem('altech_agency_profile', JSON.stringify(profile));
+        localStorage.setItem(STORAGE_KEYS.AGENCY_PROFILE, JSON.stringify(profile));
     }
 
     /**
      * Get saved agency profile
      */
     function getAgencyProfile() {
-        return Utils.tryParseLS('altech_agency_profile', {});
+        return Utils.tryParseLS(STORAGE_KEYS.AGENCY_PROFILE, {});
     }
 
     /**

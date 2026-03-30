@@ -708,11 +708,11 @@ describe('localStorage Key Stability', () => {
   });
 
   test('storage key is altech_v6 (not incremented)', () => {
-    expect(source).toMatch(/storageKey:\s*['"]altech_v6['"]/);
+    expect(source).toMatch(/storageKey:\s*STORAGE_KEYS\.FORM/);
   });
 
   test('quotes storage key is altech_v6_quotes', () => {
-    expect(source).toContain('altech_v6_quotes');
+    expect(source).toContain('STORAGE_KEYS.QUOTES');
   });
 });
 

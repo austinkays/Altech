@@ -12,7 +12,7 @@
 window.HawkSoftExport = (() => {
     'use strict';
 
-    const SETTINGS_KEY = 'altech_hawksoft_settings';
+    const SETTINGS_KEY = STORAGE_KEYS.HAWKSOFT_SETTINGS;
     let _settings = {};
     let _exportData = {};
     let _selectedTypes = { auto: false, home: false, commercial: false };
@@ -1058,10 +1058,10 @@ window.HawkSoftExport = (() => {
     // ── Export history ───────────────────────────────────────
     function _addToExportHistory(filename) {
         try {
-            const history = Utils.tryParseLS('altech_hawksoft_history', []);
+            const history = Utils.tryParseLS(STORAGE_KEYS.HAWKSOFT_HISTORY, []);
             history.unshift({ filename, date: new Date().toISOString() });
             if (history.length > 20) history.length = 20;
-            localStorage.setItem('altech_hawksoft_history', JSON.stringify(history));
+            localStorage.setItem(STORAGE_KEYS.HAWKSOFT_HISTORY, JSON.stringify(history));
         } catch (e) { /* ignore */ }
     }
 

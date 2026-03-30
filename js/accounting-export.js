@@ -2,13 +2,16 @@
 // Storage: altech_acct_vault_v2 (encrypted), altech_acct_vault_meta (PIN hash+salt)
 // All sensitive data encrypted with AES-256-GCM via CryptoHelper, per-user via Firestore.
 
+window.AccountingExport = (() => {
+'use strict';
+
 const AccountingExport = {
     initialized: false,
 
     // ── Vault State ──
-    _VAULT_KEY: 'altech_acct_vault_v2',
-    _META_KEY: 'altech_acct_vault_meta',
-    _OLD_VAULT_KEY: 'altech_acct_vault',
+    _VAULT_KEY: STORAGE_KEYS.ACCT_VAULT,
+    _META_KEY: STORAGE_KEYS.ACCT_VAULT_META,
+    _OLD_VAULT_KEY: STORAGE_KEYS.ACCT_VAULT_V1,
     _unlocked: false,
     _vaultData: null, // { accounts: [...] }
     _failedAttempts: 0,
@@ -1270,4 +1273,5 @@ const AccountingExport = {
     }
 };
 
-window.AccountingExport = AccountingExport;
+return AccountingExport;
+})();

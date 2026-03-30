@@ -17,6 +17,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `plugins/quickref.html`: Replaced 6 hardcoded emoji buttons with dynamic `#qrEmojiGrid` container + Add/Reset header buttons
 - `css/quickref.css`: Added emoji picker popover, button wrapper with hover edit/delete actions, inline label input, category headers, dark mode overrides
 
+### Fixed
+
+- **refactor(audit): Comprehensive 10-phase codebase audit** (March 29, 2026):
+  - **Phase 1A** — Removed dead validation code from `js/app-core.js` (validation hints now yellow-star only, no blocking)
+  - **Phase 2 — XSS hardening** — Wrapped 5 unsafe `innerHTML` assignments with `Utils.escapeHTML()` in `js/app-popups.js`
+  - **Phase 3 — Storage keys migration** — Added 16 new keys to `js/storage-keys.js`; migrated ~30 hardcoded `'altech_*'` strings across 15 plugin files and `js/cloud-sync.js` to use `STORAGE_KEYS.*`
+  - **Phase 4 — Custom escapeHtml cleanup** — Removed 4 custom `escapeHtml()` definitions from `js/compliance-dashboard.js`, `js/email-composer.js`, `js/policy-qa.js`, `js/quick-ref.js`; all call sites now use `Utils.escapeHTML()`
+  - **Phase 5 — CloudSync.schedulePush()** — Verified all synced data types already call `schedulePush()` after writes (no changes needed)
+  - **Phase 6 — IIFE pattern standardization** — Wrapped 8 bare `const` modules in proper IIFE pattern: `js/coi.js`, `js/ezlynx-tool.js`, `js/accounting-export.js`, `js/quote-compare.js`, `js/compliance-dashboard.js`, `js/email-composer.js`, `js/policy-qa.js`, `js/quick-ref.js`
+  - **Phase 7B — CSS `--warning` variable** — Added `--warning: #FF9500` (light) / `#FF9F0A` (dark) to `css/variables.css`; replaced 4 hardcoded `#FF9500` in `css/compliance.css` with `var(--warning)`
+  - **Phase 7F — Responsive breakpoints** — Added `@media (max-width: 480px)` and `(max-width: 380px)` breakpoints to `css/security-info.css`
+  - **Phase 8A — Accessibility aria-labels** — Added `aria-label` to 9 inputs missing accessible labels across `plugins/accounting.html` (5), `plugins/call-logger.html` (2), `plugins/email.html` (2)
+  - **Phase 8C — COI hardcoded color** — Replaced `background: #003366` with `var(--apple-blue)` in `plugins/coi.html`
+  - **Phase 8D — aria-live regions** — Added `role="status" aria-live="polite"` to dynamic status areas in `plugins/call-logger.html` (2) and `plugins/compliance.html` (2); added `role="alert" aria-live="assertive"` to `#cglError`
+  - **Phase 9C — Chat history cap** — Added `MAX_CHAT_HISTORY = 100` constant and trim logic in `_saveHistory()` in `js/intake-assist.js` to prevent unbounded memory growth
+  - **Phase 9D — AI request timeout** — Added `DEFAULT_TIMEOUT_MS = 45000` and `_withTimeout()` helper to `js/ai-provider.js`; both `ask()` and `chat()` now timeout after 45s (configurable via `opts.timeout`)
+  - **Phase 9E — Geocode fetch timeout** — Added `AbortController` with 8s timeout to geocode fetch in `js/app-property.js`
+  - **Phase 10B — Inline escaper removal** — Replaced inline `_escapeAttr` in `js/app-core.js` with `Utils.escapeAttr()` (prior session)
+
 ### Changed
 - **Accounting: merged Deposit Sheet into PIN-protected Accounting area.** Single scroll view — collapsible Account Info (encrypted vault cards) at top, Deposit Sheet (CSV upload, receipt table, bill counter, print/PDF) below. Entire area gated by PIN. Removed Export Tools tab (HawkSoft automation, Trust Report, Deposit Calculator, Export History). Removed standalone Deposit Sheet sidebar entry. Removed 15-min auto-lock timer and visibility-change lock (manual Lock button instead). Deleted `plugins/deposit-sheet.html`, `js/deposit-sheet.js`, `css/deposit-sheet.css`. Removed `ACCT_HISTORY` storage key.
 - js/hawksoft-export.js: Added SSN input to driver form grid (data-field="ssn" → drv_sSSNum{n} in CMSMTF); added hs_ownerSSN input, ownerSSN data field, and gen_sSSN CMSMTF output for commercial principal owner SSN export

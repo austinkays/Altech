@@ -19,8 +19,8 @@ window.DashboardWidgets = (() => {
     // Weather cache
     let _weatherCache = null;
     let _weatherLocation = { lat: 45.63, lon: -122.67, name: 'Vancouver, WA' }; // fallback
-    const WEATHER_CACHE_KEY = 'altech_weather_cache';
-    const WEATHER_LOCATION_KEY = 'altech_weather_location';
+    const WEATHER_CACHE_KEY = STORAGE_KEYS.WEATHER_CACHE;
+    const WEATHER_LOCATION_KEY = STORAGE_KEYS.WEATHER_LOCATION;
     const WEATHER_CACHE_TTL = 30 * 60 * 1000; // 30 min
 
     // ── SVG Icon Library (Lucide-style, 24×24, stroke-based) ──
@@ -542,7 +542,7 @@ window.DashboardWidgets = (() => {
         let clients = [];
         let totalClients = 0;
         try {
-            const raw = localStorage.getItem('altech_client_history');
+            const raw = localStorage.getItem(STORAGE_KEYS.CLIENT_HISTORY);
             if (raw) {
                 const allClients = JSON.parse(raw) || [];
                 totalClients = allClients.length;
@@ -599,14 +599,14 @@ window.DashboardWidgets = (() => {
         let warning = 0, critical = 0, totalPolicies = 0, okCount = 0;
         const flaggedPolicies = []; // collect policies needing attention
         try {
-            const raw = localStorage.getItem('altech_cgl_cache');
+            const raw = localStorage.getItem(STORAGE_KEYS.CGL_CACHE);
             if (raw) {
                 const cached = JSON.parse(raw);
                 const allPolicies = cached.policies || [];
                 let verified = {}, dismissed = {}, snoozed = {};
                 let notifyTypes = ['cgl', 'bond', 'pkg', 'bop', 'commercial'];
                 let hiddenTypes = [];
-                const stateRaw = localStorage.getItem('altech_cgl_state');
+                const stateRaw = localStorage.getItem(STORAGE_KEYS.CGL_STATE);
                 if (stateRaw) {
                     const st = JSON.parse(stateRaw);
                     verified = st.verifiedPolicies || {};
@@ -750,7 +750,7 @@ window.DashboardWidgets = (() => {
 
         // Check cache age — skip if fresh enough
         try {
-            const raw = localStorage.getItem('altech_cgl_cache');
+            const raw = localStorage.getItem(STORAGE_KEYS.CGL_CACHE);
             if (raw) {
                 const cached = JSON.parse(raw);
                 const age = Date.now() - (cached.cachedAt || 0);
@@ -777,7 +777,7 @@ window.DashboardWidgets = (() => {
                     cachedAt: Date.now(),
                     last_synced_time: new Date().toISOString()
                 };
-                try { localStorage.setItem('altech_cgl_cache', JSON.stringify(cacheObj)); } catch (e) {}
+                try { localStorage.setItem(STORAGE_KEYS.CGL_CACHE, JSON.stringify(cacheObj)); } catch (e) {}
                 // Update IDB if available (CglIDB is a module-level const in compliance-dashboard.js)
                 if (typeof CglIDB !== 'undefined' && CglIDB.set) {
                     CglIDB.set('hawksoft_policy_data', cacheObj).catch(() => {});
@@ -1051,7 +1051,7 @@ window.DashboardWidgets = (() => {
         document.body.classList.toggle('sidebar-collapsed');
         // Save preference
         try {
-            localStorage.setItem('altech_sidebar_collapsed', document.body.classList.contains('sidebar-collapsed') ? '1' : '');
+            localStorage.setItem(STORAGE_KEYS.SIDEBAR_COLLAPSED, document.body.classList.contains('sidebar-collapsed') ? '1' : '');
         } catch (e) { /* ignore */ }
     }
 
@@ -1124,14 +1124,14 @@ window.DashboardWidgets = (() => {
         if (cglBadge) {
             if (typeof Auth === 'undefined' || !Auth.isSignedIn) { cglBadge.textContent = ''; }
             else try {
-                const raw = localStorage.getItem('altech_cgl_cache');
+                const raw = localStorage.getItem(STORAGE_KEYS.CGL_CACHE);
                 if (!raw) { cglBadge.textContent = ''; return; }
                 const cached = JSON.parse(raw);
                 const allPolicies = cached.policies || [];
                 let verified = {}, dismissed = {}, snoozed = {};
                 let notifyTypes = ['cgl', 'bond', 'pkg', 'bop', 'commercial'];
                 let hiddenTypes = [];
-                const stateRaw = localStorage.getItem('altech_cgl_state');
+                const stateRaw = localStorage.getItem(STORAGE_KEYS.CGL_STATE);
                 if (stateRaw) {
                     const st = JSON.parse(stateRaw);
                     verified = st.verifiedPolicies || {};
@@ -1312,7 +1312,7 @@ window.DashboardWidgets = (() => {
 
         // Restore sidebar collapsed preference
         try {
-            const collapsed = localStorage.getItem('altech_sidebar_collapsed');
+            const collapsed = localStorage.getItem(STORAGE_KEYS.SIDEBAR_COLLAPSED);
             if (collapsed === '1') {
                 document.body.classList.add('sidebar-collapsed');
             }

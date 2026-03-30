@@ -6,7 +6,7 @@
 window.ReturnedMailTracker = (() => {
     'use strict';
 
-    const STORAGE_KEY = 'altech_returned_mail';
+    const STORAGE_KEY = STORAGE_KEYS.RETURNED_MAIL;
 
     const RETURN_REASONS = [
         'Moved — No Forwarding Address',

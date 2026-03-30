@@ -903,3 +903,31 @@
 }
 
 .cl-client-link:hover { opacity: 0.75; }
+
+.cl-client-link:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ── Dark mode overrides ── */
+
+body.dark-mode .cl-client-dropdown {
+    background: #1C1C1E;
+    border-color: #38383A;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .cl-policy-chip {
+    background: #2C2C2E;
+    border-color: #38383A;
+}
+
+body.dark-mode .cl-client-link {
+    color: var(--apple-blue);
+}
+
+body.dark-mode .cl-confirm-policy {
+    background: rgba(10, 132, 255, 0.15);
+    color: var(--apple-blue);
+}

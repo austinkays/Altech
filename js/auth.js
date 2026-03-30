@@ -320,7 +320,7 @@ const Auth = (() => {
                 const agencyEl = modal.querySelector('#authAccountAgency');
                 if (agencyEl) {
                     try {
-                        const profile = Utils.tryParseLS('altech_agency_profile', {});
+                        const profile = Utils.tryParseLS(STORAGE_KEYS.AGENCY_PROFILE, {});
                         agencyEl.value = profile.agencyName || '';
                     } catch (e) { /* ignore */ }
                 }

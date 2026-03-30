@@ -215,3 +215,21 @@ body.dark-mode .secinfo-close:hover {
 body.dark-mode .secinfo-section-icon {
     background: rgba(10, 132, 255, 0.15);
 }
+
+/* ═══════════════════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 480px) {
+    .secinfo-modal { max-height: 90vh; }
+    .secinfo-header { padding: 16px 18px 12px; }
+    .secinfo-body { padding: 16px 18px 20px; }
+    .secinfo-section { gap: 10px; }
+    .secinfo-section-icon { width: 30px; height: 30px; font-size: 16px; }
+}
+
+@media (max-width: 380px) {
+    .secinfo-header h3 { font-size: 16px; }
+    .secinfo-section-content h4 { font-size: 13px; }
+    .secinfo-section-content p { font-size: 12px; }
+}

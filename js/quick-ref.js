@@ -1,9 +1,12 @@
 // QuickRef - Extracted from index.html
 // Do not edit this section in index.html; edit this file instead.
 
-const QR_STORAGE_KEY = 'altech_quickref_cards';
-const QR_NUMBERS_KEY = 'altech_quickref_numbers';
-const QR_EMOJIS_KEY  = typeof STORAGE_KEYS !== 'undefined' ? STORAGE_KEYS.QUICKREF_EMOJIS : 'altech_quickref_emojis';
+window.QuickRef = (() => {
+'use strict';
+
+const QR_STORAGE_KEY = STORAGE_KEYS.QUICKREF_CARDS;
+const QR_NUMBERS_KEY = STORAGE_KEYS.QUICKREF_NUMBERS;
+const QR_EMOJIS_KEY  = STORAGE_KEYS.QUICKREF_EMOJIS;
 const QR_MAX_EMOJIS  = 12;
 
 const QR_DEFAULT_EMOJIS = [
@@ -117,13 +120,13 @@ const QuickRef = {
         const el = document.getElementById('qrs-' + id);
         if (!el) return;
         el.classList.toggle('collapsed');
-        const collapsed = Utils.tryParseLS('altech_quickref_sections', {});
+        const collapsed = Utils.tryParseLS(STORAGE_KEYS.QUICKREF_SECTIONS, {});
         collapsed[id] = el.classList.contains('collapsed');
-        localStorage.setItem('altech_quickref_sections', JSON.stringify(collapsed));
+        localStorage.setItem(STORAGE_KEYS.QUICKREF_SECTIONS, JSON.stringify(collapsed));
     },
 
     loadSectionStates() {
-        const collapsed = Utils.tryParseLS('altech_quickref_sections', {});
+        const collapsed = Utils.tryParseLS(STORAGE_KEYS.QUICKREF_SECTIONS, {});
         Object.entries(collapsed).forEach(([id, isCollapsed]) => {
             if (isCollapsed) {
                 const el = document.getElementById('qrs-' + id);
@@ -168,8 +171,8 @@ const QuickRef = {
         output.innerHTML = upper.split('').map(ch => {
             if (ch === ' ') return '<span class="qr-speller-item space"><span class="qr-spell-word">space</span></span>';
             const word = NATO[ch];
-            if (!word) return `<span class="qr-speller-item"><span class="qr-spell-letter">${this.escHtml(ch)}</span><span class="qr-spell-word">${this.escHtml(ch)}</span></span>`;
-            return `<span class="qr-speller-item"><span class="qr-spell-letter">${this.escHtml(ch)}</span><span class="qr-spell-word">${word}</span></span>`;
+            if (!word) return `<span class="qr-speller-item"><span class="qr-spell-letter">${Utils.escapeHTML(ch)}</span><span class="qr-spell-word">${Utils.escapeHTML(ch)}</span></span>`;
+            return `<span class="qr-speller-item"><span class="qr-spell-letter">${Utils.escapeHTML(ch)}</span><span class="qr-spell-word">${word}</span></span>`;
         }).join('');
     },
 
@@ -301,12 +304,12 @@ const QuickRef = {
                 </div>
                 <div class="qr-card-carrier">
                     <span class="qr-carrier-dot" style="background:${card.color || '#0d9488'}"></span>
-                    ${this.escHtml(card.carrier)}
+                    ${Utils.escapeHTML(card.carrier)}
                 </div>
                 ${card.fields.map(f => `
                     <div class="qr-card-field">
-                        <span>${this.escHtml(f.label)}</span>
-                        <span class="qr-card-value" onclick="QuickRef.copyVal(this)">${this.escHtml(f.value) || '—'}</span>
+                        <span>${Utils.escapeHTML(f.label)}</span>
+                        <span class="qr-card-value" onclick="QuickRef.copyVal(this)">${Utils.escapeHTML(f.value) || '—'}</span>
                     </div>
                 `).join('')}
             </div>
@@ -418,8 +421,8 @@ const QuickRef = {
         const list = document.getElementById('qrAddFieldsList');
         list.innerHTML = card.fields.map(f => `
             <div class="qr-add-field-row">
-                <input type="text" class="qr-add-input" placeholder="Label" data-role="label" value="${this.escAttr(f.label)}">
-                <input type="text" class="qr-add-input" placeholder="Value" data-role="value" value="${this.escAttr(f.value)}">
+                <input type="text" class="qr-add-input" placeholder="Label" data-role="label" value="${Utils.escapeAttr(f.label)}">
+                <input type="text" class="qr-add-input" placeholder="Value" data-role="value" value="${Utils.escapeAttr(f.value)}">
                 <button class="qr-card-btn delete" onclick="this.parentElement.remove()" title="Remove">✕</button>
             </div>
         `).join('');
@@ -467,8 +470,8 @@ const QuickRef = {
         }
         container.innerHTML = this.numbers.map((n, i) => `
             <div class="qr-number-row">
-                <span class="qr-number-label">${this.escHtml(n.label)}</span>
-                <span class="qr-card-value" onclick="QuickRef.copyVal(this)">${this.escHtml(n.value)}</span>
+                <span class="qr-number-label">${Utils.escapeHTML(n.label)}</span>
+                <span class="qr-card-value" onclick="QuickRef.copyVal(this)">${Utils.escapeHTML(n.value)}</span>
                 <span class="qr-number-actions">
                     <button class="qr-card-btn" onclick="QuickRef.editNumber(${i})" title="Edit">✏️</button>
                     <button class="qr-card-btn delete" onclick="QuickRef.deleteNumber(${i})" title="Delete">✕</button>
@@ -544,12 +547,12 @@ const QuickRef = {
         const container = document.getElementById('qrEmojiGrid');
         if (!container) return;
 
-        const esc = (s) => typeof Utils !== 'undefined' ? Utils.escapeHTML(s) : this.escHtml(s);
+        const esc = (s) => Utils.escapeHTML(s);
         const atLimit = this.emojis.length >= QR_MAX_EMOJIS;
 
         container.innerHTML = this.emojis.map((e, i) => `
             <div class="qr-emoji-btn-wrap">
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('${this.escAttr(e.emoji)}', this)">
+                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('${Utils.escapeAttr(e.emoji)}', this)">
                     <span class="qr-emoji-icon">${esc(e.emoji)}</span>
                     <span class="qr-emoji-label">${esc(e.label)}</span>
                 </button>
@@ -599,7 +602,7 @@ const QuickRef = {
             categories[opt.category].push(opt);
         });
 
-        const esc = (s) => typeof Utils !== 'undefined' ? Utils.escapeHTML(s) : this.escHtml(s);
+        const esc = (s) => Utils.escapeHTML(s);
         let html = '<div class="qr-emoji-picker-header"><span>Choose an emoji</span><button class="qr-emoji-picker-close" onclick="QuickRef.closeEmojiPicker()">✕</button></div>';
 
         for (const [cat, opts] of Object.entries(categories)) {
@@ -607,7 +610,7 @@ const QuickRef = {
             html += '<div class="qr-emoji-picker-grid">';
             opts.forEach(opt => {
                 const isSelected = selectedEmojis.has(opt.emoji);
-                html += `<button class="qr-emoji-picker-item${isSelected ? ' selected' : ''}" onclick="QuickRef.pickEmoji('${this.escAttr(opt.emoji)}', '${this.escAttr(opt.label)}')" title="${this.escAttr(opt.label)}"${isSelected ? ' disabled' : ''}>
+                html += `<button class="qr-emoji-picker-item${isSelected ? ' selected' : ''}" onclick="QuickRef.pickEmoji('${Utils.escapeAttr(opt.emoji)}', '${Utils.escapeAttr(opt.label)}')" title="${Utils.escapeAttr(opt.label)}"${isSelected ? ' disabled' : ''}>
                     <span class="qr-emoji-picker-icon">${esc(opt.emoji)}</span>
                     <span class="qr-emoji-picker-label">${esc(opt.label)}</span>
                     ${isSelected ? '<span class="qr-emoji-picker-check">✓</span>' : ''}
@@ -721,17 +724,8 @@ const QuickRef = {
 
     // ─── Helpers ────────────────────
 
-    escHtml(text) {
-        if (!text) return '';
-        const d = document.createElement('div');
-        d.textContent = text;
-        return d.innerHTML;
-    },
 
-    escAttr(text) {
-        if (!text) return '';
-        return String(text).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
 };
 
-window.QuickRef = QuickRef;
+return QuickRef;
+})();

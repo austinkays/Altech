@@ -17,7 +17,7 @@
 window.Reminders = (() => {
     'use strict';
 
-    const STORAGE_KEY = 'altech_reminders';
+    const STORAGE_KEY = STORAGE_KEYS.REMINDERS;
     const PST_TIMEZONE = 'America/Los_Angeles';
     const DEFAULT_CATEGORIES = ['Renewals', 'Follow-ups', 'Admin', 'Marketing', 'Compliance'];
 

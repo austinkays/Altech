@@ -109,7 +109,10 @@ Object.assign(App, {
             const apiKey = await this.ensureMapApiKey();
             if (apiKey) {
                 const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
-                const res = await fetch(geocodeUrl);
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 8000);
+                const res = await fetch(geocodeUrl, { signal: controller.signal });
+                clearTimeout(timer);
                 if (res.ok) {
                     const data = await res.json();
                     const loc = data?.results?.[0]?.geometry?.location;

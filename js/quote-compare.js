@@ -1,10 +1,13 @@
 // QuoteCompare - Extracted from index.html
 // Do not edit this section in index.html; edit this file instead.
 
+window.QuoteCompare = (() => {
+'use strict';
+
 const QuoteCompare = {
                 data: null,
                 chatHistory: [],
-                STORAGE_KEY: 'altech_v6_quote_comparisons',
+                STORAGE_KEY: STORAGE_KEYS.QUOTE_COMPARISONS,
 
                 SYSTEM_PROMPT: `You are a friendly, approachable insurance expert named "Altech Quote Advisor." You're helping a regular person (not an insurance professional) understand their homeowner's insurance quotes.
 
@@ -1094,4 +1097,5 @@ Write a concise, insightful recommendation (3-4 paragraphs) that goes BEYOND the
                 }
             };
 
-            window.QuoteCompare = QuoteCompare;
+            return QuoteCompare;
+})();

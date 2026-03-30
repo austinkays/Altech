@@ -19,8 +19,8 @@
           </div>
           <h3>Set Up Your Vault PIN</h3>
           <p class="acct-pin-hint">Choose a 4–6 digit PIN to protect your accounting area.</p>
-          <input type="password" id="acctPinNew" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Enter PIN" autocomplete="off">
-          <input type="password" id="acctPinConfirm" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Confirm PIN" autocomplete="off" onkeydown="if(event.key==='Enter')AccountingExport.setupPIN()">
+          <input type="password" id="acctPinNew" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Enter PIN" autocomplete="off" aria-label="New PIN">
+          <input type="password" id="acctPinConfirm" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Confirm PIN" autocomplete="off" aria-label="Confirm PIN" onkeydown="if(event.key==='Enter')AccountingExport.setupPIN()">
           <button class="btn btn-primary acct-pin-btn" onclick="AccountingExport.setupPIN()">Set PIN</button>
       </div>
   </div>
@@ -33,7 +33,7 @@
           </div>
           <h3>Accounting Locked</h3>
           <p class="acct-pin-hint">Enter your PIN to access accounts &amp; deposit sheets.</p>
-          <input type="password" id="acctPinEntry" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Enter PIN" autocomplete="off" onkeydown="if(event.key==='Enter')AccountingExport.unlockVault()">
+          <input type="password" id="acctPinEntry" class="acct-pin-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="Enter PIN" autocomplete="off" aria-label="Vault PIN" onkeydown="if(event.key==='Enter')AccountingExport.unlockVault()">
           <div class="acct-pin-lockout" id="acctPinLockout" style="display:none;"></div>
           <button class="btn btn-primary acct-pin-btn" id="acctPinUnlockBtn" onclick="AccountingExport.unlockVault()">Unlock</button>
           <button class="acct-pin-forgot" onclick="AccountingExport.forgotPIN()">Forgot PIN?</button>
@@ -48,7 +48,7 @@
           </div>
           <h3>Reset Your PIN</h3>
           <p class="acct-pin-hint">Enter your Altech login password to verify your identity.</p>
-          <input type="password" id="acctRecoveryPassword" class="acct-pin-input" placeholder="Altech password" autocomplete="current-password" onkeydown="if(event.key==='Enter')AccountingExport.verifyRecovery()">
+          <input type="password" id="acctRecoveryPassword" class="acct-pin-input" placeholder="Altech password" autocomplete="current-password" aria-label="Altech password for PIN recovery" onkeydown="if(event.key==='Enter')AccountingExport.verifyRecovery()">
           <button class="btn btn-primary acct-pin-btn" onclick="AccountingExport.verifyRecovery()">Verify &amp; Reset PIN</button>
           <button class="acct-pin-forgot" onclick="AccountingExport._showScreen('lock')">← Back</button>
       </div>
@@ -104,7 +104,7 @@
                     <div class="acct-form-field acct-form-color">
                         <label>Color</label>
                         <div class="acct-color-wrapper">
-                            <input type="color" id="acctAddColor" value="#0052cc">
+                            <input type="color" id="acctAddColor" value="#0052cc" aria-label="Account color">
                         </div>
                     </div>
                 </div>

@@ -4,9 +4,9 @@
 // ── Data Backup & Restore ────────────────────────────
 const DataBackup = {
     BACKUP_KEYS: [
-        'altech_v6', 'altech_v6_quotes', 'altech_v6_docintel',
-        'altech_dark_mode', 'altech_coi_draft', 'altech_email_drafts',
-        'altech_quickref_cards', 'altech_encryption_salt'
+        STORAGE_KEYS.FORM, STORAGE_KEYS.QUOTES, STORAGE_KEYS.DOC_INTEL,
+        STORAGE_KEYS.DARK_MODE, STORAGE_KEYS.COI_DRAFT, STORAGE_KEYS.EMAIL_DRAFTS,
+        STORAGE_KEYS.QUICKREF_CARDS, STORAGE_KEYS.ENCRYPTION_SALT
     ],
 
     exportAll() {

@@ -19,7 +19,7 @@ const CloudSync = (() => {
     // ── Constants ──
     const DEVICE_ID = _getOrCreateDeviceId();
     const SYNC_DEBOUNCE_MS = 3000; // Debounce cloud writes
-    const SYNC_META_KEY = 'altech_sync_meta'; // localStorage key for sync metadata
+    const SYNC_META_KEY = STORAGE_KEYS.SYNC_META; // localStorage key for sync metadata
 
     // Single source of truth for all synced Firestore documents (excludes quotes, which use a subcollection).
     // Each string is both the Firestore doc name under users/{uid}/sync/ AND the key in _getLocalData().
@@ -40,10 +40,10 @@ const CloudSync = (() => {
 
     // ── Device ID (unique per browser) ──
     function _getOrCreateDeviceId() {
-        let id = localStorage.getItem('altech_device_id');
+        let id = localStorage.getItem(STORAGE_KEYS.DEVICE_ID);
         if (!id) {
             id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
-            localStorage.setItem('altech_device_id', id);
+            localStorage.setItem(STORAGE_KEYS.DEVICE_ID, id);
         }
         return id;
     }
@@ -150,21 +150,21 @@ const CloudSync = (() => {
         };
 
         return {
-            currentForm: tryParse('altech_v6'),
-            quotes: tryParse('altech_v6_quotes'),
-            cglState: tryParse('altech_cgl_state'),
-            clientHistory: _trimClientHistoryForSync(tryParse('altech_client_history')),
-            quickRefCards: tryParse('altech_quickref_cards'),
-            quickRefNumbers: tryParse('altech_quickref_numbers'),
+            currentForm: tryParse(STORAGE_KEYS.FORM),
+            quotes: tryParse(STORAGE_KEYS.QUOTES),
+            cglState: tryParse(STORAGE_KEYS.CGL_STATE),
+            clientHistory: _trimClientHistoryForSync(tryParse(STORAGE_KEYS.CLIENT_HISTORY)),
+            quickRefCards: tryParse(STORAGE_KEYS.QUICKREF_CARDS),
+            quickRefNumbers: tryParse(STORAGE_KEYS.QUICKREF_NUMBERS),
             quickRefEmojis: tryParse(STORAGE_KEYS.QUICKREF_EMOJIS),
-            reminders: tryParse('altech_reminders'),
-            glossary: localStorage.getItem('altech_agency_glossary') || null,
-            vaultData: localStorage.getItem('altech_acct_vault_v2') || null,
-            vaultMeta: tryParse('altech_acct_vault_meta'),
+            reminders: tryParse(STORAGE_KEYS.REMINDERS),
+            glossary: localStorage.getItem(STORAGE_KEYS.AGENCY_GLOSSARY) || null,
+            vaultData: localStorage.getItem(STORAGE_KEYS.ACCT_VAULT) || null,
+            vaultMeta: tryParse(STORAGE_KEYS.ACCT_VAULT_META),
             commercialDraft: localStorage.getItem(STORAGE_KEYS.COMMERCIAL_DRAFT) || null,
             commercialQuotes: localStorage.getItem(STORAGE_KEYS.COMMERCIAL_QUOTES) || null,
             settings: {
-                darkMode: localStorage.getItem('altech_dark_mode') === 'true',
+                darkMode: localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true',
             }
         };
     }
@@ -458,13 +458,13 @@ const CloudSync = (() => {
                 const settingsResult = await _pullDoc('settings', null, 'settings');
                 if (settingsResult?.data) {
                     if (settingsResult.data.darkMode !== undefined) {
-                        localStorage.setItem('altech_dark_mode', settingsResult.data.darkMode);
+                        localStorage.setItem(STORAGE_KEYS.DARK_MODE, settingsResult.data.darkMode);
                         if (typeof App !== 'undefined' && App.loadDarkMode) App.loadDarkMode();
                     }
                 }
 
                 // Pull form data (conflict possible)
-                const formResult = await _pullDoc('currentForm', 'altech_v6', 'currentForm');
+                const formResult = await _pullDoc('currentForm', STORAGE_KEYS.FORM, 'currentForm');
                 if (formResult?.conflict) {
                     conflicts.push({
                         type: 'Current Form',
@@ -479,7 +479,7 @@ const CloudSync = (() => {
                 }
 
                 // Pull CGL state
-                const cglResult = await _pullDoc('cglState', 'altech_cgl_state', 'cglState');
+                const cglResult = await _pullDoc('cglState', STORAGE_KEYS.CGL_STATE, 'cglState');
                 if (cglResult?.conflict) {
                     conflicts.push({
                         type: 'CGL Compliance State',
@@ -495,17 +495,17 @@ const CloudSync = (() => {
                 }
 
                 // Pull client history
-                await _pullDoc('clientHistory', 'altech_client_history', 'clientHistory');
+                await _pullDoc('clientHistory', STORAGE_KEYS.CLIENT_HISTORY, 'clientHistory');
 
                 // Pull Quick Reference cards
-                const qrResult = await _pullDoc('quickRefCards', 'altech_quickref_cards', 'quickRefCards');
+                const qrResult = await _pullDoc('quickRefCards', STORAGE_KEYS.QUICKREF_CARDS, 'quickRefCards');
                 if (qrResult?.data && typeof QuickRef !== 'undefined') {
                     QuickRef.cards = qrResult.data;
                     if (QuickRef.renderCards) QuickRef.renderCards();
                 }
 
                 // Pull Quick Reference numbers
-                const qnResult = await _pullDoc('quickRefNumbers', 'altech_quickref_numbers', 'quickRefNumbers');
+                const qnResult = await _pullDoc('quickRefNumbers', STORAGE_KEYS.QUICKREF_NUMBERS, 'quickRefNumbers');
                 if (qnResult?.data && typeof QuickRef !== 'undefined') {
                     QuickRef.numbers = qnResult.data;
                     if (QuickRef.renderNumbers) QuickRef.renderNumbers();
@@ -519,7 +519,7 @@ const CloudSync = (() => {
                 }
 
                 // Pull Reminders
-                const remResult = await _pullDoc('reminders', 'altech_reminders', 'reminders');
+                const remResult = await _pullDoc('reminders', STORAGE_KEYS.REMINDERS, 'reminders');
                 if (remResult?.data && typeof Reminders !== 'undefined') {
                     Reminders.state = remResult.data;
                     if (Reminders.render) Reminders.render();
@@ -539,28 +539,28 @@ const CloudSync = (() => {
                 // Pull Agency Glossary
                 const glossaryResult = await _pullDoc('glossary', null, 'glossary');
                 if (glossaryResult?.data != null) {
-                    localStorage.setItem('altech_agency_glossary', typeof glossaryResult.data === 'string' ? glossaryResult.data : JSON.stringify(glossaryResult.data));
+                    localStorage.setItem(STORAGE_KEYS.AGENCY_GLOSSARY, typeof glossaryResult.data === 'string' ? glossaryResult.data : JSON.stringify(glossaryResult.data));
                     const glossaryEl = document.getElementById('agencyGlossaryText');
-                    if (glossaryEl) glossaryEl.value = localStorage.getItem('altech_agency_glossary') || '';
+                    if (glossaryEl) glossaryEl.value = localStorage.getItem(STORAGE_KEYS.AGENCY_GLOSSARY) || '';
                 }
 
                 // Pull Vault (encrypted string stored as-is)
                 const vaultDataResult = await _pullDoc('vaultData', null, 'vaultData');
                 if (vaultDataResult?.data != null) {
-                    localStorage.setItem('altech_acct_vault_v2', typeof vaultDataResult.data === 'string' ? vaultDataResult.data : JSON.stringify(vaultDataResult.data));
+                    localStorage.setItem(STORAGE_KEYS.ACCT_VAULT, typeof vaultDataResult.data === 'string' ? vaultDataResult.data : JSON.stringify(vaultDataResult.data));
                 }
                 const vaultMetaResult = await _pullDoc('vaultMeta', null, 'vaultMeta');
                 if (vaultMetaResult?.data != null) {
-                    _setLocalData('altech_acct_vault_meta', vaultMetaResult.data);
+                    _setLocalData(STORAGE_KEYS.ACCT_VAULT_META, vaultMetaResult.data);
                 }
 
                 // Pull quotes (merge strategy)
                 const remoteQuotes = await _pullQuotes();
                 if (remoteQuotes.length > 0) {
-                    let localQuotes = Utils.tryParseLS('altech_v6_quotes', []);
+                    let localQuotes = Utils.tryParseLS(STORAGE_KEYS.QUOTES, []);
 
                     const { merged, conflicts: quoteConflicts } = _mergeQuotes(localQuotes, remoteQuotes);
-                    _setLocalData('altech_v6_quotes', merged);
+                    _setLocalData(STORAGE_KEYS.QUOTES, merged);
                     _markSynced('quotes');
 
                     if (quoteConflicts.length) {
@@ -751,7 +751,7 @@ const CloudSync = (() => {
 
             if (conflict.type === 'Current Form') {
                 if (choice === 'remote') {
-                    _setLocalData('altech_v6', conflict.remote);
+                    _setLocalData(STORAGE_KEYS.FORM, conflict.remote);
                     if (typeof App !== 'undefined') {
                         App.data = conflict.remote;
                         if (App.load) App.load();
@@ -763,7 +763,7 @@ const CloudSync = (() => {
                 }
             } else if (conflict.type === 'CGL Compliance State') {
                 if (choice === 'remote') {
-                    _setLocalData('altech_cgl_state', conflict.remote);
+                    _setLocalData(STORAGE_KEYS.CGL_STATE, conflict.remote);
                     _markSynced('cglState');
                     // Refresh CGL UI
                     if (typeof ComplianceDashboard !== 'undefined' && ComplianceDashboard.init) {

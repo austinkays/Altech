@@ -751,7 +751,7 @@ describe('IntakeAssist JS', () => {
     });
 
     test('uses STORAGE_KEY constant', () => {
-        expect(jsContent).toContain("const STORAGE_KEY = 'altech_intake_assist'");
+        expect(jsContent).toContain("const STORAGE_KEY = STORAGE_KEYS.INTAKE_ASSIST");
     });
 
     test('has _buildSystemPrompt function (Phase 5)', () => {

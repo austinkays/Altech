@@ -1,6 +1,9 @@
 // EZLynxTool - Extracted from index.html
 // Do not edit this section in index.html; edit this file instead.
 
+window.EZLynxTool = (() => {
+'use strict';
+
 const EZLynxTool = {
     initialized: false,
 
@@ -16,7 +19,7 @@ const EZLynxTool = {
         this._detectExtension();
     },
 
-    formStorageKey: 'altech_ezlynx_formdata',
+    formStorageKey: STORAGE_KEYS.EZLYNX_FORMDATA,
 
     // ── Form Data Persistence ──
     saveFormData() {
@@ -920,7 +923,7 @@ const EZLynxTool = {
     // ═══════════════════════════════════════════════════════════
     // ── Incidents (Violations, Accidents, Claims) ──
     // ═══════════════════════════════════════════════════════════
-    incidentsKey: 'altech_ezlynx_incidents',
+    incidentsKey: STORAGE_KEYS.EZLYNX_INCIDENTS,
     incidents: [],
 
     _loadIncidents() {
@@ -1047,7 +1050,7 @@ const EZLynxTool = {
     _detectExtension() {
         const isConnected = document.documentElement.hasAttribute('data-altech-extension');
         // Also check if user previously confirmed installation
-        const userConfirmed = localStorage.getItem('altech_ezlynx_ext_confirmed') === 'true';
+        const userConfirmed = localStorage.getItem(STORAGE_KEYS.EZLYNX_EXT_CONFIRMED) === 'true';
         this._updateExtensionUI(isConnected || userConfirmed, isConnected);
     },
 
@@ -1080,7 +1083,7 @@ const EZLynxTool = {
         // Re-check live detection
         const liveDetected = document.documentElement.hasAttribute('data-altech-extension');
         if (liveDetected) {
-            localStorage.setItem('altech_ezlynx_ext_confirmed', 'true');
+            localStorage.setItem(STORAGE_KEYS.EZLYNX_EXT_CONFIRMED, 'true');
             this._updateExtensionUI(true, true);
             App.toast('✅ Extension connected! You\'re all set.');
         } else {
@@ -1124,4 +1127,5 @@ const EZLynxTool = {
     }
 };
 
-window.EZLynxTool = EZLynxTool;
+return EZLynxTool;
+})();

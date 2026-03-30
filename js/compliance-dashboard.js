@@ -1,10 +1,13 @@
 // ComplianceDashboard - Extracted from index.html
 // Do not edit this section in index.html; edit this file instead.
 
-// CGL Compliance Dashboard JavaScript
-const STORAGE_KEY = 'altech_cgl_state';
+window.ComplianceDashboard = (() => {
+'use strict';
 
-const CGL_CACHE_KEY = 'altech_cgl_cache';
+// CGL Compliance Dashboard JavaScript
+const STORAGE_KEY = STORAGE_KEYS.CGL_STATE;
+
+const CGL_CACHE_KEY = STORAGE_KEYS.CGL_CACHE;
 const CGL_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 const IDB_POLICY_KEY = 'hawksoft_policy_data';
 const IDB_ANNOTATIONS_KEY = 'user_annotations';
@@ -526,7 +529,7 @@ const ComplianceDashboard = {
 
         if (this.fileHandle) {
             const name = this.fileHandle.name || 'file';
-            statusEl.innerHTML = `<span class="linked">Linked: ${this.escapeHtml(name)}</span>`;
+            statusEl.innerHTML = `<span class="linked">Linked: ${Utils.escapeHTML(name)}</span>`;
         } else {
             statusEl.innerHTML = `<span class="field-mode">No file linked</span>`;
         }
@@ -1888,9 +1891,9 @@ const ComplianceDashboard = {
             const origIdx = data.log.length - 1 - revIdx;
             return `
             <div class="cgl-note-entry">
-                <span class="cgl-note-entry-text">${this.escapeHtml(entry.text)}</span>
+                <span class="cgl-note-entry-text">${Utils.escapeHTML(entry.text)}</span>
                 <span class="cgl-note-entry-time">${this.formatNoteTime(entry.at)}</span>
-                <button class="cgl-note-delete-btn" onclick="ComplianceDashboard.deleteNoteEntry('${this.escapeHtml(policyNumber)}',${origIdx})" title="Delete this note">&times;</button>
+                <button class="cgl-note-delete-btn" onclick="ComplianceDashboard.deleteNoteEntry('${Utils.escapeHTML(policyNumber)}',${origIdx})" title="Delete this note">&times;</button>
             </div>
         `;
         }).join('');
@@ -2330,7 +2333,7 @@ const ComplianceDashboard = {
             const noteData = this.getNoteData(policy.policyNumber);
             const hasNote = noteData && noteData.log && noteData.log.length > 0;
             const latestNote = hasNote ? noteData.log[noteData.log.length - 1].text : '';
-            const noteText = this.escapeHtml(latestNote);
+            const noteText = Utils.escapeHTML(latestNote);
             const renewedTo = noteData && noteData.renewedTo ? noteData.renewedTo : null;
             const isStateUpdated = !!(noteData && noteData.stateUpdated);
             const needsStateUpdate = !!(noteData && noteData.needsStateUpdate && !noteData.stateUpdated);
@@ -2361,7 +2364,7 @@ const ComplianceDashboard = {
 
             return `
                 <tr class="${rowClass}${printRowClass}">
-                    ${this._printMode ? `<td style="text-align:center;"><input type="checkbox" class="cgl-print-checkbox" data-pn="${this.escapeHtml(policy.policyNumber)}" ${isSelected ? 'checked' : ''} onchange="ComplianceDashboard.togglePrintSelect('${pn}')"></td>` : ''}
+                    ${this._printMode ? `<td style="text-align:center;"><input type="checkbox" class="cgl-print-checkbox" data-pn="${Utils.escapeHTML(policy.policyNumber)}" ${isSelected ? 'checked' : ''} onchange="ComplianceDashboard.togglePrintSelect('${pn}')"></td>` : ''}
                     <td>
                         <label class="cgl-toggle" title="${verifiedTitle}">
                             <input type="checkbox" ${isVerified ? 'checked' : ''} onchange="ComplianceDashboard.togglePolicyVerified('${pn}')">
@@ -2380,21 +2383,21 @@ const ComplianceDashboard = {
                     </td>
                     <td>
                         <div style="font-weight: 600;">${this.clientLink(policy)}</div>
-                        ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${this.escapeHtml(policy.email)}</div>` : ''}
+                        ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${Utils.escapeHTML(policy.email)}</div>` : ''}
                         ${isStateUpdated ? `<span class="cgl-state-badge" id="state-badge-${pn}">✅ State Updated</span>` : `<span class="cgl-state-badge" id="state-badge-${pn}" style="display:none"></span>`}
-                        ${hasNote && !isStateUpdated ? `<div class="cgl-note-preview" id="note-preview-${pn}">${renewedTo ? 'Renewed → ' + this.escapeHtml(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pn}" style="display:none"></div>`}
+                        ${hasNote && !isStateUpdated ? `<div class="cgl-note-preview" id="note-preview-${pn}">${renewedTo ? 'Renewed → ' + Utils.escapeHTML(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pn}" style="display:none"></div>`}
                     </td>
                     <td style="font-family: monospace; font-size: 13px;">
-                        <div>${this.escapeHtml(policy.policyNumber)}</div>
+                        <div>${Utils.escapeHTML(policy.policyNumber)}</div>
                         ${renewedTo
                             ? `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:inline-flex;align-items:center;gap:4px;margin-top:2px;">
-                                <span onclick="ComplianceDashboard.searchForPolicy('${this.escapeHtml(renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${this.escapeHtml(renewedTo)}</span>
+                                <span onclick="ComplianceDashboard.searchForPolicy('${Utils.escapeHTML(renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${Utils.escapeHTML(renewedTo)}</span>
                                 <span onclick="ComplianceDashboard.clearRenewed('${pn}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>
                                </span>`
                             : `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:none"></span>`}
                     </td>
                     <td>
-                        <div>${this.escapeHtml(policy.carrier)}</div>
+                        <div>${Utils.escapeHTML(policy.carrier)}</div>
                         ${policy.requiresManualVerification ? '<span class="cgl-manual-badge">Manual Verification</span>' : ''}
                     </td>
                     <td>
@@ -2503,7 +2506,7 @@ const ComplianceDashboard = {
     // Desktop: hs:// protocol → HawkSoft desktop app
     // Mobile:  Agent Portal web URL
     clientLink(policy) {
-        const name = this.escapeHtml(policy.clientName);
+        const name = Utils.escapeHTML(policy.clientName);
         const hsId = policy.hawksoftId || policy.clientNumber;
         if (!hsId) return `<span style="font-weight:600;">${name}</span>`;
 
@@ -2513,12 +2516,6 @@ const ComplianceDashboard = {
             : `hs://${encodeURIComponent(hsId)}`;
         const title = isMobile ? 'Open in HawkSoft Agent Portal' : 'Open in HawkSoft';
         return `<a href="${href}" class="cgl-client-link" title="${title}" target="_blank" rel="noopener">${name}</a>`;
-    },
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     },
 
     _typeLabel(type) {
@@ -2789,5 +2786,5 @@ const ComplianceDashboard = {
     }
 };
 
-// Register on window so navigateTo() can find it via window['ComplianceDashboard']
-window.ComplianceDashboard = ComplianceDashboard;
+return ComplianceDashboard;
+})();

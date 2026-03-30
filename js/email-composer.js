@@ -1,7 +1,10 @@
 // EmailComposer - Extracted from index.html
 // Do not edit this section in index.html; edit this file instead.
 
-const EMAIL_STORAGE_KEY = 'altech_email_drafts';
+window.EmailComposer = (() => {
+'use strict';
+
+const EMAIL_STORAGE_KEY = STORAGE_KEYS.EMAIL_DRAFTS;
 
             const EmailComposer = {
                 initialized: false,
@@ -53,12 +56,12 @@ const EMAIL_STORAGE_KEY = 'altech_email_drafts';
 
                 _getAgentName() {
                     if (typeof Auth !== 'undefined' && Auth.displayName) return Auth.displayName;
-                    return localStorage.getItem('altech_user_name') || 'your agent';
+                    return localStorage.getItem(STORAGE_KEYS.USER_NAME) || 'your agent';
                 },
 
                 _getAgencyName() {
                     try {
-                        const profile = Utils.tryParseLS('altech_agency_profile', {});
+                        const profile = Utils.tryParseLS(STORAGE_KEYS.AGENCY_PROFILE, {});
                         if (profile.agencyName) return profile.agencyName;
                     } catch (_) {}
                     return 'our agency';
@@ -89,7 +92,7 @@ ABOUT YOUR STYLE:
                     if (!textarea) return;
 
                     // Load saved custom prompt or show default
-                    const saved = localStorage.getItem('altech_email_custom_prompt');
+                    const saved = localStorage.getItem(STORAGE_KEYS.EMAIL_CUSTOM_PROMPT);
                     textarea.value = saved || this.buildDefaultPrompt();
                     this._updateCharCount();
 
@@ -109,14 +112,14 @@ ABOUT YOUR STYLE:
                         App.toast('⚠️ Prompt cannot be empty');
                         return;
                     }
-                    localStorage.setItem('altech_email_custom_prompt', val);
+                    localStorage.setItem(STORAGE_KEYS.EMAIL_CUSTOM_PROMPT, val);
                     App.toast('✅ AI prompt saved');
                 },
 
                 _resetCustomPrompt() {
                     const textarea = document.getElementById('emailCustomPrompt');
                     if (!textarea) return;
-                    localStorage.removeItem('altech_email_custom_prompt');
+                    localStorage.removeItem(STORAGE_KEYS.EMAIL_CUSTOM_PROMPT);
                     textarea.value = this.buildDefaultPrompt();
                     this._updateCharCount();
                     App.toast('🔄 Prompt reset to default');
@@ -170,7 +173,7 @@ ABOUT YOUR STYLE:
                     };
 
                     // Build persona from custom prompt (if saved) or dynamic default
-                    const customPrompt = localStorage.getItem('altech_email_custom_prompt');
+                    const customPrompt = localStorage.getItem(STORAGE_KEYS.EMAIL_CUSTOM_PROMPT);
                     const persona = customPrompt || this.buildDefaultPrompt();
 
                     const systemPrompt = `${persona}
@@ -418,9 +421,9 @@ TASK: Rewrite the following rough draft into a polished, professional email. Kee
                         return `
                             <div class="email-history-item" onclick="EmailComposer.loadDraft(${i})">
                                 <div>
-                                    <div style="font-weight:600;font-size:14px;">${this.escapeHtml(d.recipientName || 'Client')}${d.subject ? ' — ' + this.escapeHtml(d.subject) : ''}</div>
+                                    <div style="font-weight:600;font-size:14px;">${Utils.escapeHTML(d.recipientName || 'Client')}${d.subject ? ' — ' + Utils.escapeHTML(d.subject) : ''}</div>
                                     <div class="email-history-meta">${dateStr} · ${d.context || 'general'} · ${d.tone || 'professional-friendly'}</div>
-                                    <div class="email-history-meta" style="margin-top:2px;">${this.escapeHtml(preview)}</div>
+                                    <div class="email-history-meta" style="margin-top:2px;">${Utils.escapeHTML(preview)}</div>
                                 </div>
                                 <div style="display:flex;gap:4px;">
                                     <button onclick="event.stopPropagation();EmailComposer.deleteDraft(${i})" style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px 6px;border-radius:4px;color:#999;" onmouseover="this.style.color='#e53e3e'" onmouseout="this.style.color='#999'">✕</button>
@@ -486,12 +489,8 @@ TASK: Rewrite the following rough draft into a polished, professional email. Kee
                     if (bar) bar.style.width = pct + '%';
                 },
 
-                escapeHtml(text) {
-                    if (!text) return '';
-                    const div = document.createElement('div');
-                    div.textContent = text;
-                    return div.innerHTML;
-                }
+
             };
 
-            window.EmailComposer = EmailComposer;
+            return EmailComposer;
+})();

@@ -5,6 +5,7 @@
     --apple-gray: #6e6e73;
     --success: #34C759;
     --danger: #FF3B30;
+    --warning: #FF9500;
     --bg: #FAF7F4;
     --bg-card: rgba(255, 255, 255, 0.85);
     --bg-input: #F5F0EC;
@@ -35,6 +36,7 @@ body.dark-mode {
     --apple-gray: #98989D;
     --success: #32D74B;
     --danger: #FF453A;
+    --warning: #FF9F0A;
     --bg: #000000;
     --bg-card: #1C1C1E;
     --bg-input: #2C2C2E;

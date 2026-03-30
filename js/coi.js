@@ -1,6 +1,9 @@
 // COI - Extracted from index.html
 // Do not edit this section in index.html; edit this file instead.
 
+window.COI = (() => {
+'use strict';
+
 // COI Generator Object
 const COI = {
     // Default agency information (from Altech Insurance Agency)
@@ -686,7 +689,7 @@ const COI = {
     save() {
         try {
             const data = this.getData();
-            localStorage.setItem('altech_coi_draft', JSON.stringify(data));
+            localStorage.setItem(STORAGE_KEYS.COI_DRAFT, JSON.stringify(data));
             console.log('COI draft saved');
         } catch (e) {
             console.error('[COI.save] Storage error:', e);
@@ -695,7 +698,7 @@ const COI = {
 
     // Load from localStorage
     load() {
-        const saved = localStorage.getItem('altech_coi_draft');
+        const saved = localStorage.getItem(STORAGE_KEYS.COI_DRAFT);
         if (saved) {
             try {
                 const data = JSON.parse(saved);
@@ -785,4 +788,5 @@ const COI = {
     }
 };
 
-window.COI = COI;
+return COI;
+})();

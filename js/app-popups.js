@@ -110,7 +110,7 @@ Object.assign(App, {
                     <div class="modal-header">
                         <h2>🛡️ Property Analysis Complete</h2>
                         <p style="font-size: 13px; color: var(--text-secondary); margin: 8px 0 0 0;">
-                            ${address}
+                            ${Utils.escapeHTML(address || '')}
                         </p>
                     </div>
                     
@@ -168,7 +168,7 @@ Object.assign(App, {
                                     <div style="padding: 8px; background: #f8d7da; border-radius: 6px;">
                                         <p style="font-size: 11px; font-weight: 600; margin: 0 0 4px 0; color: #721c24;">⚠️ Visible Hazards</p>
                                         <ul style="margin: 0; padding: 0 0 0 16px; font-size: 12px; color: #721c24;">
-                                            ${hazards.visibleHazards.map(h => `<li>${String(h||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</li>`).join('')}
+                                            ${hazards.visibleHazards.map(h => `<li>${Utils.escapeHTML(h || '')}</li>`).join('')}
                                         </ul>
                                     </div>
                                 ` : ''}
@@ -188,13 +188,13 @@ Object.assign(App, {
                                 ${hazards.roofType ? `
                                     <div style="display: flex; justify-content: space-between;">
                                         <span style="font-size: 14px;">🏠 Roof Material:</span>
-                                        <span style="font-size: 14px; font-weight: 600;">${String(hazards.roofType).replace(/_/g, ' ')}</span>
+                                        <span style="font-size: 14px; font-weight: 600;">${Utils.escapeHTML(String(hazards.roofType).replace(/_/g, ' '))}</span>
                                     </div>
                                 ` : ''}
                                 ${hazards.roofShape ? `
                                     <div style="display: flex; justify-content: space-between;">
                                         <span style="font-size: 14px;">🏗️ Roof Shape:</span>
-                                        <span style="font-size: 14px; font-weight: 600;">${hazards.roofShape}</span>
+                                        <span style="font-size: 14px; font-weight: 600;">${Utils.escapeHTML(hazards.roofShape)}</span>
                                     </div>
                                 ` : ''}
                                 ${hazards.roofConditionScore ? `
@@ -212,7 +212,7 @@ Object.assign(App, {
                                 ${hazards.notes ? `
                                     <div style="margin-top: 8px; padding: 8px; background: var(--bg); border-radius: 6px;">
                                         <p style="font-size: 11px; font-weight: 600; margin: 0 0 4px 0; color: var(--text-secondary);">📝 Underwriter Notes</p>
-                                        <p style="font-size: 12px; margin: 0; color: var(--text);">${hazards.notes}</p>
+                                        <p style="font-size: 12px; margin: 0; color: var(--text);">${Utils.escapeHTML(hazards.notes)}</p>
                                     </div>
                                 ` : ''}
                                 ${!hazards.numStories && !hazards.roofType && !hazards.roofShape && !hazards.garageSpaces ? `

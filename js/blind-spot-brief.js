@@ -8,8 +8,8 @@
 window.BlindSpotBrief = (() => {
     'use strict';
 
-    const API_KEY_STORAGE = 'altech_bsb_apikey';
-    const CACHE_KEY = 'altech_bsb_cache';
+    const API_KEY_STORAGE = STORAGE_KEYS.BSB_API_KEY;
+    const CACHE_KEY = STORAGE_KEYS.BSB_CACHE;
     let _isLoading = false;
     let _progressTimer = null;
 

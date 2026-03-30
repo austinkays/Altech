@@ -616,13 +616,13 @@ Object.assign(App, {
         const badge = document.getElementById('cglBadge');
         if (!badge) return;
         try {
-            const raw = localStorage.getItem('altech_cgl_cache');
+            const raw = localStorage.getItem(STORAGE_KEYS.CGL_CACHE);
             if (!raw) { badge.textContent = ''; badge.dataset.count = '0'; badge.classList.remove('badge-critical', 'badge-warning'); return; }
             const cached = JSON.parse(raw);
             const policies = cached.policies || [];
             // Load state to check verified/dismissed
             let verified = {}, dismissed = {};
-            const stateRaw = localStorage.getItem('altech_cgl_state');
+            const stateRaw = localStorage.getItem(STORAGE_KEYS.CGL_STATE);
             if (stateRaw) {
                 const st = JSON.parse(stateRaw);
                 verified = st.verifiedPolicies || {};

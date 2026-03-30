@@ -10,50 +10,10 @@ const Validation = {
      * Validate required fields for a given step number.
      * Returns an array of { field, message } objects — empty = valid.
      */
-    validateStep(step) {
-        const errors = [];
-        return errors; // validation never blocks — yellow ✦ stars are informational only
-
-        const qType = document.querySelector('input[name="qType"]:checked')?.value || 'both';
-        const needsAuto = qType === 'auto' || qType === 'both';
-        const needsHome = qType === 'home' || qType === 'both';
-
-        // ── Auto prior insurance (required when auto is being quoted) ──
-        if (needsAuto) {
-            const autoRequired = [
-                { id: 'priorCarrier',        label: 'Prior Auto Carrier' },
-                { id: 'priorPolicyTerm',     label: 'Prior Auto Policy Term' },
-                { id: 'priorLiabilityLimits',label: 'Prior Liability Limits' },
-                { id: 'priorYears',          label: 'Years with Prior Carrier' },
-                { id: 'continuousCoverage',  label: 'Years with Continuous Coverage' },
-                { id: 'priorExp',            label: 'Prior Auto Policy Expiration' },
-            ];
-            autoRequired.forEach(({ id, label }) => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                const val = el.type === 'checkbox' ? el.checked : el.value;
-                if (!val) errors.push({ field: id, message: `${label} is required` });
-            });
-        }
-
-        // ── Home prior insurance (required when home is being quoted) ──
-        if (needsHome) {
-            const homeRequired = [
-                { id: 'homePriorCarrier',    label: 'Prior Home Carrier' },
-                { id: 'homePriorPolicyTerm', label: 'Prior Home Policy Term' },
-                { id: 'homePriorLiability',  label: 'Prior Liability Level' },
-                { id: 'homePriorYears',      label: 'Years with Prior Carrier (Home)' },
-                { id: 'homePriorExp',        label: 'Prior Home Policy Expiration' },
-            ];
-            homeRequired.forEach(({ id, label }) => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                const val = el.type === 'checkbox' ? el.checked : el.value;
-                if (!val) errors.push({ field: id, message: `${label} is required` });
-            });
-        }
-
-        return errors;
+    validateStep(/* step */) {
+        // Validation is informational only — yellow ✦ stars hint at missing fields
+        // but never block step progression. Returns empty array (no blocking errors).
+        return [];
     },
 
     /**
@@ -1529,7 +1489,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             qType: (document.querySelector('input[name="qType"]:checked') || {}).value || 'unknown'
         };
         // Save to localStorage
-        const key = 'altech_export_history';
+        const key = STORAGE_KEYS.EXPORT_HISTORY;
         let history = Utils.tryParseLS(key, []);
         history.unshift(entry);
         history = history.slice(0, 200);
@@ -1555,7 +1515,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             }
         } catch (e) {}
         if (entries.length === 0) {
-            entries = Utils.tryParseLS('altech_export_history', []);
+            entries = Utils.tryParseLS(STORAGE_KEYS.EXPORT_HISTORY, []);
         }
         if (entries.length === 0) {
             container.innerHTML = '<p style="color:var(--text-secondary);font-style:italic;">No exports yet. Export a file to see it here.</p>';
@@ -1575,7 +1535,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                         ${entries.slice(0, 50).map(e => {
                             const d = new Date(e.exportedAt);
                             const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-                            const esc = typeof this._escapeAttr === 'function' ? this._escapeAttr.bind(this) : (s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'));
+                            const esc = (s) => Utils.escapeAttr(s);
                             return `<tr style="border-bottom:1px solid color-mix(in srgb, var(--border) 50%, transparent);">
                                 <td style="padding:6px 8px;white-space:nowrap;">${typeLabels[e.type] || esc(e.type || '')}</td>
                                 <td style="padding:6px 8px;font-weight:500;">${esc(e.clientName || '')}</td>
@@ -2146,9 +2106,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
     saveAgencyName(name) {
         const trimmed = (name || '').trim();
         try {
-            const existing = Utils.tryParseLS('altech_agency_profile', {});
+            const existing = Utils.tryParseLS(STORAGE_KEYS.AGENCY_PROFILE, {});
             existing.agencyName = trimmed || 'Altech Insurance Agency';
-            localStorage.setItem('altech_agency_profile', JSON.stringify(existing));
+            localStorage.setItem(STORAGE_KEYS.AGENCY_PROFILE, JSON.stringify(existing));
             if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) CloudSync.schedulePush();
             this.toast('\u2705 Agency name saved');
         } catch (e) {

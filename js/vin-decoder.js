@@ -5,7 +5,7 @@
 window.VinDecoder = (() => {
     'use strict';
 
-    const STORAGE_KEY = 'altech_vin_history';
+    const STORAGE_KEY = STORAGE_KEYS.VIN_HISTORY;
     const MAX_HISTORY = 20;
 
     let _history = [];

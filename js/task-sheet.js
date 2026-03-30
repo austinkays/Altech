@@ -249,7 +249,7 @@ window.TaskSheetModule = (() => {
        AGENT FILTER — persistent exclusion list
        ═══════════════════════════════════════════════════ */
 
-    const PROFILE_KEY = 'altech_agency_profile';
+    const PROFILE_KEY = STORAGE_KEYS.AGENCY_PROFILE;
 
     function _loadExcluded() {
         const p = Utils.tryParseLS(PROFILE_KEY, {});
@@ -772,7 +772,7 @@ window.TaskSheetModule = (() => {
                 if (first) return first + (first.endsWith('s') ? '\u2019 Tasks' : '\u2019s Tasks');
             }
             // Onboarding name stored in localStorage
-            const userName = localStorage.getItem('altech_user_name');
+            const userName = localStorage.getItem(STORAGE_KEYS.USER_NAME);
             if (userName && userName.trim()) {
                 const first = userName.trim().split(' ')[0];
                 if (first) return first + (first.endsWith('s') ? '\u2019 Tasks' : '\u2019s Tasks');
@@ -784,7 +784,7 @@ window.TaskSheetModule = (() => {
     /** Agency name for the sub-line. */
     function _getAgencyName() {
         try {
-            const profile = localStorage.getItem('altech_agency_profile');
+            const profile = localStorage.getItem(STORAGE_KEYS.AGENCY_PROFILE);
             if (profile) {
                 const parsed = JSON.parse(profile);
                 if (parsed && parsed.agencyName) return parsed.agencyName;

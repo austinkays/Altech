@@ -34,7 +34,7 @@ const CryptoHelper = {
         // Use a stable random salt stored in localStorage — immune to
         // browser updates, daylight savings, or device changes that would
         // silently break decryption of all saved data.
-        const SALT_KEY = 'altech_encryption_salt';
+        const SALT_KEY = STORAGE_KEYS.ENCRYPTION_SALT;
         let salt = localStorage.getItem(SALT_KEY);
         if (!salt) {
             // Generate a random 256-bit salt on first use

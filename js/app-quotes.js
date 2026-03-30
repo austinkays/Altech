@@ -5,7 +5,7 @@
 Object.assign(App, {
 
     // === CLIENT HISTORY ===
-    clientHistoryKey: 'altech_client_history',
+    clientHistoryKey: STORAGE_KEYS.CLIENT_HISTORY,
 
     getClientHistory() {
         try {

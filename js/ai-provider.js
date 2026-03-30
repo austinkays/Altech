@@ -12,8 +12,8 @@
 window.AIProvider = (() => {
     'use strict';
 
-    const STORAGE_KEY = 'altech_ai_settings';
-    const SALT_KEY = 'altech_ai_salt';
+    const STORAGE_KEY = STORAGE_KEYS.AI_SETTINGS;
+    const SALT_KEY = STORAGE_KEYS.AI_SALT;
 
     // ── Crypto helpers (AES-GCM key encryption) ──────────────────
 
@@ -284,6 +284,19 @@ window.AIProvider = (() => {
      *   - schema: JSON schema for structured output (Google only)
      * @returns {Promise<{text: string, raw: Object}>}
      */
+
+    const DEFAULT_TIMEOUT_MS = 45000;
+
+    function _withTimeout(promise, ms) {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error('AI request timed out')), ms);
+            promise.then(
+                val => { clearTimeout(timer); resolve(val); },
+                err => { clearTimeout(timer); reject(err); }
+            );
+        });
+    }
+
     async function ask(systemPrompt, userMessage, opts = {}) {
         const provider = getProvider();
         const model = getModel();
@@ -295,19 +308,26 @@ window.AIProvider = (() => {
 
         const temperature = opts.temperature ?? 0.2;
         const maxTokens = opts.maxTokens ?? 4096;
+        const timeoutMs = opts.timeout ?? DEFAULT_TIMEOUT_MS;
 
+        let result;
         switch (provider) {
             case 'google':
-                return _callGoogle(apiKey, model, systemPrompt, userMessage, { temperature, maxTokens, ...opts });
+                result = _callGoogle(apiKey, model, systemPrompt, userMessage, { temperature, maxTokens, ...opts });
+                break;
             case 'openrouter':
-                return _callOpenRouter(apiKey, model, systemPrompt, userMessage, { temperature, maxTokens, ...opts });
+                result = _callOpenRouter(apiKey, model, systemPrompt, userMessage, { temperature, maxTokens, ...opts });
+                break;
             case 'openai':
-                return _callOpenAI(apiKey, model, systemPrompt, userMessage, { temperature, maxTokens, ...opts });
+                result = _callOpenAI(apiKey, model, systemPrompt, userMessage, { temperature, maxTokens, ...opts });
+                break;
             case 'anthropic':
-                return _callAnthropic(apiKey, model, systemPrompt, userMessage, { temperature, maxTokens, ...opts });
+                result = _callAnthropic(apiKey, model, systemPrompt, userMessage, { temperature, maxTokens, ...opts });
+                break;
             default:
                 throw new Error(`Unknown AI provider: ${provider}`);
         }
+        return _withTimeout(result, timeoutMs);
     }
 
     // ── Google Gemini ────────────────────────────────────────────
@@ -629,18 +649,24 @@ window.AIProvider = (() => {
 
         const temperature = opts.temperature ?? 0.5;
         const maxTokens = opts.maxTokens ?? 2048;
+        const timeoutMs = opts.timeout ?? DEFAULT_TIMEOUT_MS;
 
+        let result;
         switch (provider) {
             case 'google':
-                return _chatGoogle(apiKey, model, systemPrompt, messages, { temperature, maxTokens });
+                result = _chatGoogle(apiKey, model, systemPrompt, messages, { temperature, maxTokens });
+                break;
             case 'openrouter':
             case 'openai':
-                return _chatOpenAI(apiKey, model, systemPrompt, messages, { temperature, maxTokens }, provider);
+                result = _chatOpenAI(apiKey, model, systemPrompt, messages, { temperature, maxTokens }, provider);
+                break;
             case 'anthropic':
-                return _chatAnthropic(apiKey, model, systemPrompt, messages, { temperature, maxTokens });
+                result = _chatAnthropic(apiKey, model, systemPrompt, messages, { temperature, maxTokens });
+                break;
             default:
                 throw new Error(`Unknown AI provider: ${provider}`);
         }
+        return _withTimeout(result, timeoutMs);
     }
 
     async function _chatGoogle(apiKey, model, systemPrompt, messages, opts) {

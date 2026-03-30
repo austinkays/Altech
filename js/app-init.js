@@ -7,9 +7,9 @@ const App = {
     data: {},
     step: 0,
     flow: [],
-    storageKey: 'altech_v6',
-    quotesKey: 'altech_v6_quotes',
-    docIntelKey: 'altech_v6_docintel',
+    storageKey: STORAGE_KEYS.FORM,
+    quotesKey: STORAGE_KEYS.QUOTES,
+    docIntelKey: STORAGE_KEYS.DOC_INTEL,
     scanFiles: [],
     extractedData: null,
     encryptionEnabled: true, // Toggle encryption on/off
@@ -90,7 +90,7 @@ window.App = App;
 //   localStorage.setItem('altech_debug', 'true')  →  re-enables logs
 (function() {
     const isProd = location.hostname === 'altech.agency' || location.hostname.endsWith('.vercel.app');
-    const debugOverride = localStorage.getItem('altech_debug') === 'true';
+    const debugOverride = localStorage.getItem(STORAGE_KEYS.DEBUG) === 'true';
     if (isProd && !debugOverride) {
         // eslint-disable-next-line no-console
         console.log = () => {};

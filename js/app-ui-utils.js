@@ -13,7 +13,7 @@ Object.assign(App, {
     },
 
     loadDarkMode() {
-        const darkMode = localStorage.getItem('altech_dark_mode');
+        const darkMode = localStorage.getItem(STORAGE_KEYS.DARK_MODE);
         // Default to dark mode when no preference is stored
         const isDark = darkMode === null ? true : darkMode === 'true';
         if (isDark) {
@@ -25,7 +25,7 @@ Object.assign(App, {
     toggleDarkMode() {
         document.body.classList.toggle('dark-mode');
         const isDark = document.body.classList.contains('dark-mode');
-        localStorage.setItem('altech_dark_mode', isDark);
+        localStorage.setItem(STORAGE_KEYS.DARK_MODE, isDark);
         this.updateDarkModeIcons(isDark);
         // Sync dark mode preference to cloud
         if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {

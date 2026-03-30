@@ -18,7 +18,8 @@
 window.IntakeAssist = (() => {
     'use strict';
 
-    const STORAGE_KEY = 'altech_intake_assist';
+    const STORAGE_KEY = STORAGE_KEYS.INTAKE_ASSIST;
+    const MAX_CHAT_HISTORY = 100;
     let chatHistory = [];    // [{ role: 'user'|'assistant', content: string }]
     let extractedData = {};
 
@@ -814,6 +815,9 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
     function _saveHistory() {
         try {
+            if (chatHistory.length > MAX_CHAT_HISTORY) {
+                chatHistory = chatHistory.slice(-MAX_CHAT_HISTORY);
+            }
             localStorage.setItem(STORAGE_KEY, JSON.stringify({ history: chatHistory, data: extractedData }));
         } catch (_) {}
     }
