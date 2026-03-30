@@ -1,0 +1,265 @@
+<h2>Which layout direction feels right?</h2>
+<p class="subtitle">These are structural directions — not final designs. Pick the one that fits how agents actually use this tool.</p>
+
+<style>
+  .mock-shell {
+    background: #1C1C1E;
+    border-radius: 12px;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    color: #e5e5e7;
+    font-size: 12px;
+  }
+  .mock-topbar {
+    background: #2C2C2E;
+    padding: 10px 14px;
+    border-bottom: 1px solid #3a3a3c;
+    font-size: 11px;
+    font-weight: 700;
+    color: #98989f;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .mock-status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #30d158; display: inline-block; margin-right: 5px;
+  }
+  .mock-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #636366;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+  .mock-input-bar {
+    background: #2C2C2E;
+    border: 1px solid #3a3a3c;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #636366;
+    margin-bottom: 10px;
+  }
+  .mock-chips {
+    display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px;
+  }
+  .mock-chip {
+    background: #2C2C2E; border: 1px solid #3a3a3c;
+    border-radius: 6px; padding: 4px 9px; font-size: 11px; color: #98989f;
+  }
+  .mock-chip.active {
+    background: rgba(0,122,255,0.15); border-color: #007AFF; color: #007AFF;
+  }
+  .mock-pill {
+    background: #2C2C2E; border: 1px solid #3a3a3c;
+    border-radius: 20px; padding: 3px 9px; font-size: 10px; color: #98989f;
+  }
+  .mock-pill.active {
+    background: #007AFF; border-color: #007AFF; color: #fff;
+  }
+  .mock-textarea {
+    background: #2C2C2E; border: 1px solid #3a3a3c;
+    border-radius: 8px; padding: 8px 10px; font-size: 11px;
+    color: #636366; height: 42px; margin-bottom: 10px; width: 100%; box-sizing: border-box;
+  }
+  .mock-btn {
+    background: #007AFF; border-radius: 8px;
+    padding: 8px 14px; font-size: 12px; font-weight: 600; color: #fff;
+    text-align: center; width: 100%; box-sizing: border-box;
+  }
+  .mock-preview-block {
+    background: #2C2C2E; border: 1px solid #3a3a3c;
+    border-left: 3px solid #007AFF;
+    border-radius: 8px; padding: 10px; font-size: 11px;
+    color: #98989f; line-height: 1.5; font-family: monospace;
+  }
+  .mock-section {
+    padding: 12px 14px;
+    border-bottom: 1px solid #2C2C2E;
+  }
+  .mock-step-row {
+    display: flex; gap: 6px; align-items: center; padding: 8px 14px;
+    border-bottom: 1px solid #2C2C2E;
+  }
+  .mock-step-num {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(0,122,255,0.2); color: #007AFF;
+    font-size: 10px; font-weight: 700; display: flex;
+    align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .mock-step-num.done {
+    background: #30d158; color: #fff;
+  }
+  .mock-step-label { font-size: 11px; font-weight: 600; color: #98989f; }
+  .mock-step-val { font-size: 11px; color: #e5e5e7; margin-left: auto; }
+  .mock-divider { height: 1px; background: #2C2C2E; margin: 8px 0; }
+  .mock-right {
+    background: #2C2C2E; border-radius: 8px; padding: 12px;
+    border: 1px solid #3a3a3c;
+  }
+</style>
+
+<div class="cards">
+
+  <!-- Option A: Single column, top-to-bottom -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 0; background: #1C1C1E;">
+      <div class="mock-shell">
+        <div class="mock-topbar">
+          <span><span class="mock-status-dot"></span>342 clients loaded</span>
+          <span style="color:#007AFF; font-size:10px">+ New Log</span>
+        </div>
+        <div class="mock-section">
+          <div class="mock-label">Client</div>
+          <div class="mock-input-bar">🔍 Search by name or client #…</div>
+        </div>
+        <div class="mock-section">
+          <div class="mock-label">Channel</div>
+          <div class="mock-chips">
+            <div class="mock-chip active">📞 Inbound</div>
+            <div class="mock-chip">📤 Outbound</div>
+            <div class="mock-chip">🚶 Walk-In</div>
+            <div class="mock-chip">✉️ Email</div>
+            <div class="mock-chip">💬 Text</div>
+          </div>
+        </div>
+        <div class="mock-section">
+          <div class="mock-label">Activity</div>
+          <div class="mock-chips" style="margin-bottom:0">
+            <div class="mock-pill">Coverage Q</div>
+            <div class="mock-pill active">Claim</div>
+            <div class="mock-pill">Payment</div>
+            <div class="mock-pill">Policy Change</div>
+          </div>
+        </div>
+        <div class="mock-section">
+          <div class="mock-label">Notes</div>
+          <div class="mock-textarea">Client called re: roof damage after storm…</div>
+          <div class="mock-btn">Format & Preview →</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Single Column</h3>
+      <p>Clean top-to-bottom flow. Each section stacks naturally. Preview appears below on submit. Best for focused, distraction-free logging.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Two-column (form left, live summary right) -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 0; background: #1C1C1E;">
+      <div class="mock-shell">
+        <div class="mock-topbar">
+          <span><span class="mock-status-dot"></span>342 clients loaded</span>
+          <span style="color:#007AFF; font-size:10px">+ New Log</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;">
+          <div style="border-right: 1px solid #2C2C2E;">
+            <div class="mock-section">
+              <div class="mock-label">Client</div>
+              <div class="mock-input-bar" style="margin-bottom:0">🔍 Garcia, Maria</div>
+            </div>
+            <div class="mock-section">
+              <div class="mock-label">Channel</div>
+              <div class="mock-chips" style="margin-bottom:0">
+                <div class="mock-chip active">📞 Inbound</div>
+                <div class="mock-chip">📤 Out</div>
+              </div>
+            </div>
+            <div class="mock-section">
+              <div class="mock-label">Activity</div>
+              <div class="mock-chips" style="margin-bottom:0">
+                <div class="mock-pill active">Claim</div>
+                <div class="mock-pill">Payment</div>
+                <div class="mock-pill">Other</div>
+              </div>
+            </div>
+            <div class="mock-section">
+              <div class="mock-label">Notes</div>
+              <div class="mock-textarea">Roof damage claim…</div>
+              <div class="mock-btn">Format →</div>
+            </div>
+          </div>
+          <div style="padding: 12px;">
+            <div class="mock-label">Live Summary</div>
+            <div class="mock-step-row" style="padding: 5px 0; border:none">
+              <span class="mock-step-num done">✓</span>
+              <span class="mock-step-label">Garcia, Maria</span>
+            </div>
+            <div class="mock-step-row" style="padding: 5px 0; border:none">
+              <span class="mock-step-num done">✓</span>
+              <span class="mock-step-label">Inbound · AJK</span>
+            </div>
+            <div class="mock-step-row" style="padding: 5px 0; border:none">
+              <span class="mock-step-num done">✓</span>
+              <span class="mock-step-label">Claim</span>
+            </div>
+            <div class="mock-divider"></div>
+            <div class="mock-label" style="margin-top:8px">Formatted Log</div>
+            <div class="mock-preview-block">Inbound — Claim<br>Garcia, Maria<br>AHO-2938 (HO)<br>—<br>Claim reported<br>— Claim #: pending</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Two Column w/ Live Summary</h3>
+      <p>Form on the left, live log preview on the right — always visible. No separate "preview" step; you see the output build as you type. More powerful but busier.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Step-by-step wizard -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 0; background: #1C1C1E;">
+      <div class="mock-shell">
+        <div class="mock-topbar">
+          <span>Step 2 of 4 — Channel</span>
+          <span style="color:#636366; font-size:10px">Garcia, Maria ✓</span>
+        </div>
+        <!-- Progress bar -->
+        <div style="height: 3px; background: #2C2C2E;">
+          <div style="height:100%; width:50%; background: #007AFF; border-radius: 2px;"></div>
+        </div>
+        <div class="mock-section" style="padding-top: 18px;">
+          <div style="font-size:16px; font-weight:700; color:#e5e5e7; margin-bottom:14px;">How did they reach you?</div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="background:rgba(0,122,255,0.12); border:1px solid #007AFF; border-radius:10px; padding:12px 14px; display:flex; align-items:center; gap:10px;">
+              <span style="font-size:18px;">📞</span>
+              <div>
+                <div style="font-size:13px; font-weight:600; color:#007AFF;">Inbound Call</div>
+                <div style="font-size:11px; color:#636366;">Client called you</div>
+              </div>
+              <span style="margin-left:auto; color:#007AFF;">✓</span>
+            </div>
+            <div style="background:#2C2C2E; border:1px solid #3a3a3c; border-radius:10px; padding:12px 14px; display:flex; align-items:center; gap:10px;">
+              <span style="font-size:18px;">📤</span>
+              <div>
+                <div style="font-size:13px; font-weight:600; color:#e5e5e7;">Outbound Call</div>
+                <div style="font-size:11px; color:#636366;">You called them</div>
+              </div>
+            </div>
+            <div style="background:#2C2C2E; border:1px solid #3a3a3c; border-radius:10px; padding:12px 14px; display:flex; align-items:center; gap:10px;">
+              <span style="font-size:18px;">🚶</span>
+              <div>
+                <div style="font-size:13px; font-weight:600; color:#e5e5e7;">Walk-In</div>
+                <div style="font-size:11px; color:#636366;">In-person visit</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="padding: 0 14px 12px; display:flex; gap:8px;">
+          <div style="flex:1; text-align:center; padding:8px; border:1px solid #3a3a3c; border-radius:8px; color:#98989f; font-size:11px">← Back</div>
+          <div style="flex:2; text-align:center; padding:8px; background:#007AFF; border-radius:8px; color:#fff; font-size:11px; font-weight:600">Next: Activity →</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Step-by-Step Wizard</h3>
+      <p>One decision per screen. Guided, hard to skip anything. Great for new users but slower for experienced agents who want to log fast. Not ideal if speed matters.</p>
+    </div>
+  </div>
+
+</div>

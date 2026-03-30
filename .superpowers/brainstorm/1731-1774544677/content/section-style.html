@@ -1,0 +1,221 @@
+<h2>How should the sections feel?</h2>
+<p class="subtitle">All dark-mode-native. Left = form, right = live log preview. Which visual treatment fits best?</p>
+
+<style>
+  .preview-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .mock-app {
+    background: #1C1C1E;
+    border-radius: 12px;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px;
+    color: #e5e5e7;
+  }
+  .mock-bar {
+    background: #2C2C2E;
+    padding: 8px 12px;
+    border-bottom: 1px solid #3a3a3c;
+    font-size: 10px;
+    font-weight: 700;
+    color: #636366;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .mock-dot { width: 6px; height: 6px; border-radius: 50%; background: #30d158; display: inline-block; margin-right: 4px; }
+  .mock-blue { color: #007AFF; }
+
+  /* Style A: Bordered cards per section */
+  .style-a .form-col { padding: 10px; display: flex; flex-direction: column; gap: 8px; border-right: 1px solid #2C2C2E; }
+  .style-a .s-card { background: #2C2C2E; border: 1px solid #3a3a3c; border-radius: 10px; padding: 10px; }
+  .style-a .s-label { font-size: 10px; font-weight: 700; color: #636366; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 7px; }
+  .style-a .s-input { background: #1C1C1E; border: 1px solid #48484a; border-radius: 6px; padding: 6px 8px; font-size: 11px; color: #636366; width: 100%; box-sizing: border-box; }
+  .style-a .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .style-a .chip { background: #1C1C1E; border: 1px solid #48484a; border-radius: 6px; padding: 3px 8px; font-size: 10px; color: #98989f; }
+  .style-a .chip.on { background: rgba(0,122,255,0.2); border-color: #007AFF; color: #007AFF; }
+  .style-a .pill { background: #1C1C1E; border: 1px solid #48484a; border-radius: 20px; padding: 3px 8px; font-size: 10px; color: #98989f; }
+  .style-a .pill.on { background: #007AFF; border-color: #007AFF; color: #fff; }
+  .style-a .preview-col { padding: 10px; }
+  .style-a .p-label { font-size: 10px; font-weight: 700; color: #636366; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; }
+  .style-a .p-block { background: #2C2C2E; border: 1px solid #3a3a3c; border-left: 3px solid #007AFF; border-radius: 8px; padding: 8px; font-family: monospace; font-size: 10px; color: #98989f; line-height: 1.6; }
+  .style-a .p-confirm { margin-top: 8px; background: rgba(48,209,88,0.1); border: 1px solid rgba(48,209,88,0.3); border-radius: 8px; padding: 8px; text-align: center; font-size: 11px; font-weight: 600; color: #30d158; }
+
+  /* Style B: Flat sections with dividers */
+  .style-b .form-col { border-right: 1px solid #2C2C2E; }
+  .style-b .s-section { padding: 10px 12px; border-bottom: 1px solid #2C2C2E; }
+  .style-b .s-label { font-size: 10px; font-weight: 700; color: #48484a; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 7px; }
+  .style-b .s-input { background: #2C2C2E; border: none; border-bottom: 1px solid #48484a; border-radius: 0; padding: 5px 0; font-size: 11px; color: #636366; width: 100%; box-sizing: border-box; }
+  .style-b .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .style-b .chip { border-bottom: 2px solid transparent; padding: 3px 8px; font-size: 10px; color: #636366; }
+  .style-b .chip.on { border-bottom-color: #007AFF; color: #007AFF; font-weight: 700; }
+  .style-b .pill { background: transparent; border: 1px solid #3a3a3c; border-radius: 20px; padding: 3px 8px; font-size: 10px; color: #636366; }
+  .style-b .pill.on { border-color: #007AFF; color: #007AFF; font-weight: 700; }
+  .style-b .preview-col { padding: 10px 12px; }
+  .style-b .p-label { font-size: 10px; font-weight: 700; color: #48484a; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; }
+  .style-b .p-block { background: transparent; border-left: 2px solid #007AFF; padding-left: 8px; font-family: monospace; font-size: 10px; color: #98989f; line-height: 1.6; }
+  .style-b .p-confirm { margin-top: 8px; border-top: 1px solid #2C2C2E; padding-top: 8px; font-size: 11px; font-weight: 600; color: #30d158; }
+
+  /* Style C: Single unified card, sections separated by subtle headings */
+  .style-c .inner { margin: 8px; background: #2C2C2E; border: 1px solid #3a3a3c; border-radius: 10px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; }
+  .style-c .form-col { }
+  .style-c .s-section { padding: 9px 10px; border-bottom: 1px solid #1C1C1E; }
+  .style-c .s-label { font-size: 9px; font-weight: 700; color: #48484a; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .style-c .s-input { background: #1C1C1E; border: 1px solid #48484a; border-radius: 5px; padding: 5px 7px; font-size: 10px; color: #636366; width: 100%; box-sizing: border-box; }
+  .style-c .chips { display: flex; flex-wrap: wrap; gap: 3px; }
+  .style-c .chip { background: #1C1C1E; border: 1px solid #48484a; border-radius: 5px; padding: 2px 6px; font-size: 9px; color: #98989f; }
+  .style-c .chip.on { background: rgba(0,122,255,0.2); border-color: #007AFF; color: #007AFF; }
+  .style-c .pill { background: #1C1C1E; border: 1px solid #48484a; border-radius: 20px; padding: 2px 6px; font-size: 9px; color: #98989f; }
+  .style-c .pill.on { background: #007AFF; border-color: #007AFF; color: #fff; }
+  .style-c .preview-col { border-left: 1px solid #1C1C1E; padding: 10px; }
+  .style-c .p-label { font-size: 9px; font-weight: 700; color: #48484a; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .style-c .p-block { background: #1C1C1E; border-radius: 6px; border-left: 2px solid #007AFF; padding: 7px; font-family: monospace; font-size: 9px; color: #98989f; line-height: 1.6; }
+  .style-c .p-confirm { margin-top: 6px; background: rgba(48,209,88,0.1); border: 1px solid rgba(48,209,88,0.25); border-radius: 6px; padding: 6px; text-align: center; font-size: 10px; font-weight: 600; color: #30d158; }
+</style>
+
+<div class="cards" style="grid-template-columns: 1fr 1fr 1fr;">
+
+  <!-- A: Bordered cards -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0; background:#1C1C1E;">
+      <div class="mock-app style-a">
+        <div class="mock-bar"><span><span class="mock-dot"></span>342 clients</span><span class="mock-blue">+ New</span></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr;">
+          <div class="form-col">
+            <div class="s-card">
+              <div class="s-label">Client</div>
+              <div class="s-input">🔍 Garcia, Maria</div>
+            </div>
+            <div class="s-card">
+              <div class="s-label">Channel</div>
+              <div class="chips">
+                <div class="chip on">📞 Inbound</div>
+                <div class="chip">📤 Out</div>
+                <div class="chip">🚶 Walk-In</div>
+              </div>
+            </div>
+            <div class="s-card">
+              <div class="s-label">Activity</div>
+              <div class="chips">
+                <div class="pill">Claim</div>
+                <div class="pill on">Payment</div>
+                <div class="pill">Policy Chg</div>
+              </div>
+            </div>
+            <div class="s-card">
+              <div class="s-label">Notes</div>
+              <div class="s-input" style="height:32px; color:#e5e5e7">Client called re…</div>
+            </div>
+          </div>
+          <div class="preview-col">
+            <div class="p-label">Log Preview</div>
+            <div class="p-block">Inbound — Payment<br>Garcia, Maria · AJK<br>AHO-2938 (HO)<br>—<br>Payment received<br>— Amount: $1,247<br>— Type: renewal</div>
+            <div class="p-confirm">✓ Push to HawkSoft</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Sectioned Cards</h3>
+      <p>Each section is its own raised card. Clear visual grouping, easy to scan. Most structured feel.</p>
+    </div>
+  </div>
+
+  <!-- B: Flat dividers -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0; background:#1C1C1E;">
+      <div class="mock-app style-b">
+        <div class="mock-bar"><span><span class="mock-dot"></span>342 clients</span><span class="mock-blue">+ New</span></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr;">
+          <div class="form-col">
+            <div class="s-section">
+              <div class="s-label">Client</div>
+              <div class="s-input">Garcia, Maria</div>
+            </div>
+            <div class="s-section">
+              <div class="s-label">Channel</div>
+              <div class="chips">
+                <div class="chip on">Inbound</div>
+                <div class="chip">Outbound</div>
+                <div class="chip">Walk-In</div>
+              </div>
+            </div>
+            <div class="s-section">
+              <div class="s-label">Activity</div>
+              <div class="chips" style="margin-top:2px">
+                <div class="pill">Claim</div>
+                <div class="pill on">Payment</div>
+                <div class="pill">Cert</div>
+              </div>
+            </div>
+            <div class="s-section">
+              <div class="s-label">Notes</div>
+              <div class="s-input" style="height:28px; color:#e5e5e7">Client called re…</div>
+            </div>
+          </div>
+          <div class="preview-col">
+            <div class="p-label">Log Preview</div>
+            <div class="p-block">Inbound — Payment<br>Garcia, Maria · AJK<br>AHO-2938 (HO)<br>—<br>Payment received<br>— Amount: $1,247<br>— Type: renewal</div>
+            <div class="p-confirm">✓ Push to HawkSoft</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Flat + Dividers</h3>
+      <p>No card borders — just whitespace and lines. Minimal and airy. Feels more editorial, less "formsy."</p>
+    </div>
+  </div>
+
+  <!-- C: One unified card -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:0; background:#1C1C1E;">
+      <div class="mock-app style-c">
+        <div class="mock-bar"><span><span class="mock-dot"></span>342 clients</span><span class="mock-blue">+ New</span></div>
+        <div class="inner">
+          <div class="form-col">
+            <div class="s-section">
+              <div class="s-label">Client</div>
+              <div class="s-input">Garcia, Maria</div>
+            </div>
+            <div class="s-section">
+              <div class="s-label">Channel</div>
+              <div class="chips">
+                <div class="chip on">📞 Inbound</div>
+                <div class="chip">📤 Out</div>
+                <div class="chip">🚶</div>
+              </div>
+            </div>
+            <div class="s-section">
+              <div class="s-label">Activity</div>
+              <div class="chips">
+                <div class="pill on">Payment</div>
+                <div class="pill">Claim</div>
+                <div class="pill">Other</div>
+              </div>
+            </div>
+            <div class="s-section">
+              <div class="s-label">Notes</div>
+              <div class="s-input" style="height:28px; color:#e5e5e7">Client called re…</div>
+            </div>
+          </div>
+          <div class="preview-col">
+            <div class="p-label">Log Preview</div>
+            <div class="p-block">Inbound — Payment<br>Garcia, Maria · AJK<br>AHO-2938<br>—<br>Payment received<br>— $1,247 renewal</div>
+            <div class="p-confirm">✓ Push to HawkSoft</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — One Unified Card</h3>
+      <p>Form and preview live inside a single container. Cohesive, compact. Feels like a native app panel.</p>
+    </div>
+  </div>
+
+</div>

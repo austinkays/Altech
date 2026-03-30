@@ -1,0 +1,209 @@
+<h2>After selecting a client — what do you see?</h2>
+<p class="subtitle">All three replace the search bar once a client is chosen. The search bar comes back via "Change client."</p>
+
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+  .wrap {
+    background: #2C2C2E;
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 12px;
+    color: #e5e5e7;
+    margin-bottom: 4px;
+  }
+  .top-bar {
+    background: #1C1C1E;
+    padding: 7px 10px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #48484a;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    border-bottom: 1px solid #3a3a3c;
+  }
+  .section-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #48484a;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    margin-bottom: 6px;
+  }
+
+  /* Option A: Client "identity pill" — compact inline */
+  .client-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #1C1C1E;
+    border: 1px solid #3a3a3c;
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .client-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(0,122,255,0.2);
+    color: #007AFF;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .client-info { flex: 1; min-width: 0; }
+  .client-name { font-size: 13px; font-weight: 600; color: #e5e5e7; }
+  .client-meta { font-size: 10px; color: #636366; margin-top: 1px; }
+  .hs-link {
+    font-size: 10px; font-weight: 600; color: #007AFF;
+    display: flex; align-items: center; gap: 3px;
+    white-space: nowrap;
+  }
+  .change-link { font-size: 10px; color: #48484a; cursor: pointer; }
+
+  /* Option B: Header banner */
+  .client-banner {
+    background: linear-gradient(135deg, rgba(0,122,255,0.12), rgba(0,122,255,0.06));
+    border: 1px solid rgba(0,122,255,0.2);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .banner-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .banner-name { font-size: 15px; font-weight: 700; color: #e5e5e7; line-height: 1.2; }
+  .banner-number { font-size: 10px; color: #636366; margin-top: 2px; }
+  .banner-policies { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+  .policy-chip {
+    background: #1C1C1E; border: 1px solid #3a3a3c; border-radius: 6px;
+    padding: 3px 8px; font-size: 10px; color: #98989f;
+  }
+  .policy-chip.selected {
+    background: rgba(0,122,255,0.15); border-color: #007AFF; color: #007AFF; font-weight: 600;
+  }
+  .banner-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+
+  /* Option C: Sidebar-style identity block */
+  .client-block {
+    background: #1C1C1E;
+    border-radius: 8px;
+    padding: 0;
+    overflow: hidden;
+  }
+  .block-head {
+    background: rgba(0,122,255,0.1);
+    border-bottom: 1px solid rgba(0,122,255,0.15);
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .block-avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(0,122,255,0.25);
+    color: #007AFF;
+    font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .block-name { font-size: 13px; font-weight: 700; color: #e5e5e7; }
+  .block-num { font-size: 10px; color: #636366; }
+  .block-body { padding: 8px 10px; }
+  .block-row { display: flex; gap: 5px; flex-wrap: wrap; }
+  .block-policy {
+    background: #2C2C2E; border: 1px solid #3a3a3c; border-radius: 6px;
+    padding: 4px 8px; font-size: 10px; color: #98989f;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .block-policy.sel { background: rgba(0,122,255,0.15); border-color: #007AFF; color: #007AFF; }
+  .block-foot {
+    border-top: 1px solid #2C2C2E;
+    padding: 6px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+</style>
+
+<div class="cards">
+
+  <!-- Option A: Compact pill -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 12px; background: #1C1C1E;">
+      <div class="section-label">Client</div>
+      <div class="client-pill">
+        <div class="client-avatar">MG</div>
+        <div class="client-info">
+          <div class="client-name">Garcia, Maria</div>
+          <div class="client-meta">#48291 · AHO-2938 (HO) · APA-1047 (Auto)</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+          <div class="hs-link">↗ HawkSoft</div>
+          <div class="change-link">change</div>
+        </div>
+      </div>
+      <!-- Policy selector below pill -->
+      <div style="margin-top: 6px; display:flex; gap:4px; flex-wrap:wrap;">
+        <div class="policy-chip selected">AHO-2938 — Home</div>
+        <div class="policy-chip">APA-1047 — Auto</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Compact Pill</h3>
+      <p>Avatar initials, full name, client #, and policies in one tight row. HawkSoft link and "change" tucked to the right. Policy selector appears just below.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Banner -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 12px; background: #1C1C1E;">
+      <div class="section-label">Client</div>
+      <div class="client-banner">
+        <div class="banner-row">
+          <div>
+            <div class="banner-name">Garcia, Maria</div>
+            <div class="banner-number">Client #48291</div>
+          </div>
+          <div class="banner-actions">
+            <div class="hs-link">↗ Open in HawkSoft</div>
+            <div class="change-link" style="font-size:10px; color:#48484a">← change</div>
+          </div>
+        </div>
+        <div class="banner-policies">
+          <div class="policy-chip selected">✓ AHO-2938 — Homeowners</div>
+          <div class="policy-chip">APA-1047 — Auto</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Accent Banner</h3>
+      <p>Tinted blue background signals "client locked in." Name is prominent, policies are inline as tappable chips. HawkSoft link is clearly visible.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Identity block -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 12px; background: #1C1C1E;">
+      <div class="section-label">Client</div>
+      <div class="client-block">
+        <div class="block-head">
+          <div class="block-avatar">MG</div>
+          <div>
+            <div class="block-name">Garcia, Maria</div>
+            <div class="block-num">#48291</div>
+          </div>
+        </div>
+        <div class="block-body">
+          <div class="block-row">
+            <div class="block-policy sel">✓ AHO-2938 — Home</div>
+            <div class="block-policy">APA-1047 — Auto</div>
+          </div>
+        </div>
+        <div class="block-foot">
+          <div class="hs-link" style="font-size:10px;">↗ Open in HawkSoft</div>
+          <div class="change-link" style="font-size:10px;">change client</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Identity Block</h3>
+      <p>Structured card with a clear header zone, policies in the body, and actions in the footer. Most organized — feels like a native contact card.</p>
+    </div>
+  </div>
+
+</div>

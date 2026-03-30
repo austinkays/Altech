@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Call Logger — Full Redesign Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #111113;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    color: #e5e5e7;
+    min-height: 100vh;
+    padding: 32px 24px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .page-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #e5e5e7;
+    margin-bottom: 6px;
+  }
+  .page-header p {
+    font-size: 13px;
+    color: #636366;
+  }
+  .tag {
+    display: inline-block;
+    background: rgba(0,122,255,0.15);
+    color: #007AFF;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    letter-spacing: 0.3px;
+  }
+
+  .logger-wrap {
+    width: 100%;
+    max-width: 960px;
+  }
+
+  /* ── Top bar ── */
+  .cl-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0 14px 0;
+    gap: 12px;
+  }
+  .cl-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .cl-status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #30d158;
+    flex-shrink: 0;
+  }
+  .cl-status-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: #636366;
+  }
+  .cl-status-text strong { color: #98989f; font-weight: 600; }
+  .cl-topbar-right { display: flex; gap: 8px; align-items: center; }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px;
+    font-size: 12px; font-weight: 600;
+    color: #636366;
+    background: #2C2C2E;
+    border: 1px solid #3a3a3c;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .btn-ghost:hover { color: #e5e5e7; border-color: #48484a; }
+  .btn-new {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 14px;
+    font-size: 12px; font-weight: 600;
+    color: #007AFF;
+    background: rgba(0,122,255,0.1);
+    border: 1px solid rgba(0,122,255,0.2);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  /* ── Main Card ── */
+  .cl-card {
+    background: #1C1C1E;
+    border: 1px solid #2C2C2E;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  /* ── Initials bar ── */
+  .cl-initials-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 20px;
+    background: #161618;
+    border-bottom: 1px solid #2C2C2E;
+  }
+  .cl-initials-bar-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #48484a;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+  }
+  .cl-initials-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cl-initials-label-sm { font-size: 11px; color: #48484a; }
+  .cl-initials-field {
+    background: #2C2C2E;
+    border: 1px solid #3a3a3c;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #007AFF;
+    width: 56px;
+    text-align: center;
+    letter-spacing: 2px;
+    font-family: 'SF Mono', monospace;
+  }
+
+  /* ── Two-col grid ── */
+  .cl-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cl-form-col {
+    border-right: 1px solid #2C2C2E;
+  }
+
+  /* ── Sections ── */
+  .cl-section {
+    padding: 16px 20px;
+    border-bottom: 1px solid #2C2C2E;
+  }
+  .cl-section:last-child { border-bottom: none; }
+  .cl-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #48484a;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+
+  /* ── Search ── */
+  .cl-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #2C2C2E;
+    border: 1px solid #3a3a3c;
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 14px;
+    color: #636366;
+  }
+  .cl-search-icon { color: #48484a; flex-shrink: 0; }
+
+  /* ── Client banner (selected state — B) ── */
+  .cl-client-banner {
+    background: linear-gradient(135deg, rgba(0,122,255,0.1), rgba(0,122,255,0.05));
+    border: 1px solid rgba(0,122,255,0.18);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .cl-banner-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .cl-banner-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #e5e5e7;
+    line-height: 1.2;
+  }
+  .cl-banner-meta {
+    font-size: 11px;
+    color: #636366;
+    margin-top: 3px;
+  }
+  .cl-banner-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .cl-hs-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 600; color: #007AFF;
+    text-decoration: none;
+  }
+  .cl-change-link {
+    font-size: 11px; color: #48484a; cursor: pointer;
+  }
+  .cl-change-link:hover { color: #98989f; }
+  .cl-policy-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+  .cl-policy-chip {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid #3a3a3c;
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #98989f;
+    cursor: pointer;
+  }
+  .cl-policy-chip.sel {
+    background: rgba(0,122,255,0.15);
+    border-color: rgba(0,122,255,0.4);
+    color: #007AFF;
+    font-weight: 600;
+  }
+  .cl-policy-chip.sel::before { content: '✓ '; }
+
+  /* ── Channel buttons ── */
+  .cl-channel-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .cl-ch-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 13px;
+    font-size: 12px; font-weight: 600;
+    color: #636366;
+    background: #2C2C2E;
+    border: 1px solid #3a3a3c;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .cl-ch-btn.sel {
+    color: #007AFF;
+    background: rgba(0,122,255,0.12);
+    border-color: rgba(0,122,255,0.35);
+  }
+  .cl-ch-btn svg { opacity: 0.6; }
+  .cl-ch-btn.sel svg { opacity: 1; }
+
+  /* ── Activity pills ── */
+  .cl-activity-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .cl-act-btn {
+    padding: 5px 12px;
+    font-size: 12px; font-weight: 600;
+    color: #636366;
+    background: #2C2C2E;
+    border: 1px solid #3a3a3c;
+    border-radius: 20px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .cl-act-btn.sel {
+    color: #fff;
+    background: #007AFF;
+    border-color: #007AFF;
+  }
+
+  /* ── Textarea ── */
+  .cl-textarea {
+    width: 100%;
+    min-height: 100px;
+    background: #2C2C2E;
+    border: 1px solid #3a3a3c;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    color: #e5e5e7;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    line-height: 1.6;
+    resize: vertical;
+  }
+  .cl-textarea::placeholder { color: #48484a; font-family: inherit; }
+
+  /* ── Submit button ── */
+  .cl-submit {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px; font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #007AFF, #5856D6);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    margin-top: 14px;
+  }
+
+  /* ── Right column: Live preview ── */
+  .cl-preview-col {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .cl-preview-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #48484a;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 2px;
+  }
+
+  /* Summary rows */
+  .cl-summary-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .cl-summary-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .cl-sum-check {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: rgba(48,209,88,0.15);
+    border: 1px solid rgba(48,209,88,0.3);
+    color: #30d158;
+    font-size: 9px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .cl-sum-pending {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #2C2C2E;
+    border: 1px solid #3a3a3c;
+    flex-shrink: 0;
+  }
+  .cl-sum-label { color: #636366; }
+  .cl-sum-val { color: #e5e5e7; font-weight: 500; }
+
+  /* Log preview block */
+  .cl-log-block {
+    background: #161618;
+    border: 1px solid #2C2C2E;
+    border-left: 3px solid #007AFF;
+    border-radius: 10px;
+    overflow: hidden;
+    flex: 1;
+  }
+  .cl-log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 12px;
+    border-bottom: 1px solid #2C2C2E;
+  }
+  .cl-log-header-label { font-size: 10px; font-weight: 700; color: #48484a; text-transform: uppercase; letter-spacing: 0.7px; }
+  .cl-copy-btn {
+    font-size: 10px; font-weight: 600; color: #007AFF;
+    background: rgba(0,122,255,0.08);
+    border: 1px solid rgba(0,122,255,0.15);
+    border-radius: 5px;
+    padding: 3px 8px;
+    cursor: pointer;
+  }
+  .cl-log-text {
+    padding: 12px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #98989f;
+    white-space: pre-wrap;
+  }
+  .cl-log-text .log-head { color: #e5e5e7; font-weight: 600; }
+  .cl-log-text .log-line { color: #98989f; }
+  .cl-log-text .log-dim { color: #48484a; }
+
+  /* Confirm section */
+  .cl-confirm {
+    background: rgba(48,209,88,0.06);
+    border: 1px solid rgba(48,209,88,0.2);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .cl-confirm-title { font-size: 13px; font-weight: 700; color: #e5e5e7; margin-bottom: 4px; }
+  .cl-confirm-sub { font-size: 11px; color: #636366; margin-bottom: 12px; line-height: 1.4; }
+  .cl-confirm-btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 13px; font-weight: 700;
+    color: #fff;
+    background: #30d158;
+    border: none; border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    margin-bottom: 6px;
+  }
+  .cl-edit-btn {
+    width: 100%;
+    padding: 8px;
+    font-size: 12px; font-weight: 600;
+    color: #636366;
+    background: transparent;
+    border: 1px solid #3a3a3c; border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+  }
+
+  /* Annotation labels */
+  .annotation {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="tag">Redesign Mockup — Full Fidelity</div>
+  <h1>HawkSoft Call Logger</h1>
+  <p>Two states shown: client searching (left indicator) and client selected (main view)</p>
+</div>
+
+<div class="logger-wrap">
+
+  <!-- Top bar -->
+  <div class="cl-topbar">
+    <div class="cl-topbar-left">
+      <div class="cl-status-dot"></div>
+      <span class="cl-status-text"><strong>342 clients</strong> loaded · Last sync 2m ago</span>
+    </div>
+    <div class="cl-topbar-right">
+      <div class="btn-ghost">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </div>
+      <div class="btn-new">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Log
+      </div>
+    </div>
+  </div>
+
+  <!-- Main card -->
+  <div class="cl-card">
+
+    <!-- Initials bar — persistent, always visible -->
+    <div class="cl-initials-bar">
+      <span class="cl-initials-bar-label">Agent Initials</span>
+      <div class="cl-initials-input-wrap">
+        <span class="cl-initials-label-sm">Logging as</span>
+        <div class="cl-initials-field">AJK</div>
+      </div>
+    </div>
+
+    <!-- Two-column grid -->
+    <div class="cl-grid">
+
+      <!-- LEFT: Form -->
+      <div class="cl-form-col">
+
+        <!-- Client -->
+        <div class="cl-section">
+          <div class="cl-section-label">Client</div>
+          <!-- SELECTED STATE — accent banner -->
+          <div class="cl-client-banner">
+            <div class="cl-banner-row">
+              <div>
+                <div class="cl-banner-name">Garcia, Maria</div>
+                <div class="cl-banner-meta">Client #48291 · matched "garcia"</div>
+              </div>
+              <div class="cl-banner-actions">
+                <a class="cl-hs-link" href="#">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  Open in HawkSoft
+                </a>
+                <span class="cl-change-link">← change client</span>
+              </div>
+            </div>
+            <div class="cl-policy-chips">
+              <div class="cl-policy-chip sel">AHO-2938 — Homeowners</div>
+              <div class="cl-policy-chip">APA-1047 — Auto</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Channel -->
+        <div class="cl-section">
+          <div class="cl-section-label">Channel</div>
+          <div class="cl-channel-group">
+            <button class="cl-ch-btn sel">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.19 11.9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.11 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/><polyline points="15 3 15 8 20 8"/></svg>
+              Inbound
+            </button>
+            <button class="cl-ch-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.19 11.9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.11 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/><polyline points="9 21 9 16 4 16"/></svg>
+              Outbound
+            </button>
+            <button class="cl-ch-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>
+              Walk-In
+            </button>
+            <button class="cl-ch-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Email
+            </button>
+            <button class="cl-ch-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Text
+            </button>
+          </div>
+        </div>
+
+        <!-- Activity -->
+        <div class="cl-section">
+          <div class="cl-section-label">Activity</div>
+          <div class="cl-activity-group">
+            <button class="cl-act-btn">Coverage Q</button>
+            <button class="cl-act-btn sel">Claim</button>
+            <button class="cl-act-btn">Payment</button>
+            <button class="cl-act-btn">Policy Change</button>
+            <button class="cl-act-btn">New Quote</button>
+            <button class="cl-act-btn">Renewal</button>
+            <button class="cl-act-btn">Certificate</button>
+            <button class="cl-act-btn">Other</button>
+          </div>
+        </div>
+
+        <!-- Notes + Submit -->
+        <div class="cl-section">
+          <div class="cl-section-label">Notes</div>
+          <textarea class="cl-textarea" placeholder="Type fast — we'll clean it up…">client called about hail damage to roof from storm 3/22. wants to file a claim. gave her claim dept number and told her to document damage with photos first.</textarea>
+          <button class="cl-submit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Format with AI
+          </button>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Live preview -->
+      <div class="cl-preview-col">
+
+        <!-- Progress summary -->
+        <div>
+          <div class="cl-preview-label">Log Summary</div>
+          <div class="cl-summary-rows">
+            <div class="cl-summary-row">
+              <div class="cl-sum-check">✓</div>
+              <span class="cl-sum-label">Client</span>
+              <span class="cl-sum-val">Garcia, Maria · AHO-2938</span>
+            </div>
+            <div class="cl-summary-row">
+              <div class="cl-sum-check">✓</div>
+              <span class="cl-sum-label">Channel</span>
+              <span class="cl-sum-val">Inbound · AJK</span>
+            </div>
+            <div class="cl-summary-row">
+              <div class="cl-sum-check">✓</div>
+              <span class="cl-sum-label">Activity</span>
+              <span class="cl-sum-val">Claim</span>
+            </div>
+            <div class="cl-summary-row">
+              <div class="cl-sum-check">✓</div>
+              <span class="cl-sum-label">Notes</span>
+              <span class="cl-sum-val">Draft ready</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formatted log -->
+        <div class="cl-log-block" style="flex: 1;">
+          <div class="cl-log-header">
+            <span class="cl-log-header-label">Formatted Log</span>
+            <button class="cl-copy-btn">Copy</button>
+          </div>
+          <div class="cl-log-text"><span class="log-head">Inbound — Claim · AJK
+Garcia, Maria · AHO-2938 (HO)</span>
+<span class="log-dim">────────────────</span>
+<span class="log-line">Claim reported
+— Date of loss: 03/22/2026
+— Cause: Hail damage to roof
+— Description: Client initiated
+  after storm. Advised to document
+  with photos before filing.
+— Next step: Client to call claim
+  dept directly.
+— Claim #: Pending</span></div>
+        </div>
+
+        <!-- Confirm -->
+        <div class="cl-confirm">
+          <div class="cl-confirm-title">Ready to push</div>
+          <div class="cl-confirm-sub">Review the log above, then confirm to send to HawkSoft.</div>
+          <button class="cl-confirm-btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Confirm &amp; Push to HawkSoft
+          </button>
+          <div class="cl-edit-btn">← Edit log</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <p style="text-align:center; font-size:12px; color:#48484a; margin-top:20px;">
+    This is a static mockup — interactions are not wired. Let me know what you'd change!
+  </p>
+
+</div>
+
+</body>
+</html>
