@@ -26,7 +26,7 @@ const CloudSync = (() => {
     // Add new sync types here; push & delete automatically pick them up.
     const SYNC_DOCS = [
         'settings', 'currentForm', 'cglState', 'clientHistory',
-        'quickRefCards', 'quickRefNumbers', 'reminders', 'glossary',
+        'quickRefCards', 'quickRefNumbers', 'quickRefEmojis', 'reminders', 'glossary',
         'vaultData', 'vaultMeta',
         'commercialDraft', 'commercialQuotes',
     ];
@@ -156,6 +156,7 @@ const CloudSync = (() => {
             clientHistory: _trimClientHistoryForSync(tryParse('altech_client_history')),
             quickRefCards: tryParse('altech_quickref_cards'),
             quickRefNumbers: tryParse('altech_quickref_numbers'),
+            quickRefEmojis: tryParse(STORAGE_KEYS.QUICKREF_EMOJIS),
             reminders: tryParse('altech_reminders'),
             glossary: localStorage.getItem('altech_agency_glossary') || null,
             vaultData: localStorage.getItem('altech_acct_vault_v2') || null,
@@ -508,6 +509,13 @@ const CloudSync = (() => {
                 if (qnResult?.data && typeof QuickRef !== 'undefined') {
                     QuickRef.numbers = qnResult.data;
                     if (QuickRef.renderNumbers) QuickRef.renderNumbers();
+                }
+
+                // Pull Quick Reference emojis
+                const qeResult = await _pullDoc('quickRefEmojis', STORAGE_KEYS.QUICKREF_EMOJIS, 'quickRefEmojis');
+                if (qeResult?.data && typeof QuickRef !== 'undefined') {
+                    QuickRef.emojis = qeResult.data;
+                    if (QuickRef.renderEmojis) QuickRef.renderEmojis();
                 }
 
                 // Pull Reminders

@@ -37,38 +37,17 @@
         <div class="qr-section-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex: 1;">
                 <h2 style="margin:0;">😊 Quick Emojis</h2>
-                <button class="qr-section-toggle" onclick="QuickRef.toggleSection('emojis')" title="Collapse section">
-                    <span class="qr-chevron">▾</span>
-                </button>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <button class="qr-btn qr-btn-secondary" id="qrEmojiAddBtn" onclick="QuickRef.openEmojiPicker()" style="padding: 6px 12px; font-size: 12px;">+ Add Emoji</button>
+                    <button class="qr-btn qr-btn-secondary" onclick="QuickRef.resetEmojisToDefault()" style="padding: 6px 12px; font-size: 12px;" title="Reset to defaults">↩️</button>
+                    <button class="qr-section-toggle" onclick="QuickRef.toggleSection('emojis')" title="Collapse section">
+                        <span class="qr-chevron">▾</span>
+                    </button>
+                </div>
             </div>
         </div>
         <div class="qr-section-body">
-            <div class="qr-emoji-grid">
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\u2705', this)">
-                    <span class="qr-emoji-icon">&#x2705;</span>
-                    <span class="qr-emoji-label">Done</span>
-                </button>
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\uD83D\uDCC1', this)">
-                    <span class="qr-emoji-icon">&#x1F4C1;</span>
-                    <span class="qr-emoji-label">Logged</span>
-                </button>
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\u26A0\uFE0F', this)">
-                    <span class="qr-emoji-icon">&#x26A0;&#xFE0F;</span>
-                    <span class="qr-emoji-label">Pending</span>
-                </button>
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\uD83D\uDD04', this)">
-                    <span class="qr-emoji-icon">&#x1F504;</span>
-                    <span class="qr-emoji-label">Follow-up</span>
-                </button>
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\u2709\uFE0F', this)">
-                    <span class="qr-emoji-icon">&#x2709;&#xFE0F;</span>
-                    <span class="qr-emoji-label">Emailed</span>
-                </button>
-                <button class="qr-emoji-btn" onclick="QuickRef.copyEmoji('\uD83D\uDCDE', this)">
-                    <span class="qr-emoji-icon">&#x1F4DE;</span>
-                    <span class="qr-emoji-label">Called</span>
-                </button>
-            </div>
+            <div class="qr-emoji-grid" id="qrEmojiGrid"></div>
         </div>
     </div>
 

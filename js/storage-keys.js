@@ -16,6 +16,7 @@ window.STORAGE_KEYS = Object.freeze({
     CGL_STATE:              'altech_cgl_state',
     QUICKREF_CARDS:         'altech_quickref_cards',
     QUICKREF_NUMBERS:       'altech_quickref_numbers',
+    QUICKREF_EMOJIS:        'altech_quickref_emojis',
     REMINDERS:              'altech_reminders',
     CLIENT_HISTORY:         'altech_client_history',
     AGENCY_GLOSSARY:        'altech_agency_glossary', // max 500 chars
