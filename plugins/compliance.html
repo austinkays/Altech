@@ -285,10 +285,19 @@
             </section>
 
             <section class="cgl-info-section">
-                <h4>Row Actions</h4>
+                <h4>⚖️ Updated Toggle vs Dismiss vs State Updated</h4>
+                <p>These three actions look similar but behave differently:</p>
                 <table class="cgl-info-table">
-                    <tr><td><strong>Toggle (checkbox)</strong></td><td>Mark as verified/done — hides from active list</td></tr>
-                    <tr><td><strong>Dismiss</strong></td><td>Hide the policy. It resurfaces automatically if the policy renews.</td></tr>
+                    <tr><td><strong>Updated (toggle)</strong></td><td>The checkbox in the UPDATED column. Marks the policy as verified/done and hides it from the active list. <strong>Does NOT save a renewal baseline</strong> — use this for policies you've reviewed but that haven't renewed (e.g., expired and not renewing).</td></tr>
+                    <tr><td><strong>Dismiss (button)</strong></td><td>Hides the policy from the active list. It <strong>resurfaces automatically</strong> if HawkSoft detects a renewal (expiration changes &gt;30 days). Use this when you've reviewed a policy and want it out of the way — it will come back when it matters again.</td></tr>
+                    <tr><td><strong>🏛️ State Updated</strong></td><td>The button inside the notes panel. Confirms you updated your state website with the renewal info. <strong>Auto-dismisses AND saves the current expiration as the baseline</strong> for next year's renewal detection. <em>This is the recommended action after a policy renews.</em></td></tr>
+                </table>
+                <p><strong>Rule of thumb:</strong> After a renewal → use <strong>🏛️ State Updated</strong>. For everything else → use <strong>Dismiss</strong> or the <strong>Updated toggle</strong>.</p>
+            </section>
+
+            <section class="cgl-info-section">
+                <h4>Other Row Actions</h4>
+                <table class="cgl-info-table">
                     <tr><td><strong>🛏️ Snooze</strong></td><td>Hide until tomorrow. Use "Show Hidden" to see snoozed policies.</td></tr>
                     <tr><td><strong>Show Hidden</strong></td><td>Toggles visibility of all dismissed, verified, and snoozed policies (shown dimmed with strikethrough)</td></tr>
                 </table>

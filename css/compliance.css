@@ -1335,12 +1335,12 @@ body.dark-mode .cgl-print-selected > td { background: rgba(10,132,255,0.06) !imp
     inset: 0;
     z-index: 10000;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
-    padding: 24px;
+    padding: 48px 24px 24px;
 }
 
 .cgl-info-modal {

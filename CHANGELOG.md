@@ -10,10 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **CGL Dashboard: Info Modal.** ℹ️ Info button in toolbar opens a full-guide modal explaining the renewal detection cycle, status badges, note system, quick actions, deduplication, and print/backup features. Escape key + backdrop click to close.
+- **CGL Dashboard: Info Modal.** ℹ️ Info button in toolbar opens a full-guide modal explaining the renewal detection cycle, status badges, note system, quick actions, deduplication, and print/backup features. Escape key + backdrop click to close. Modal opens near top of viewport (not centered). Includes dedicated "Actions Compared" section clarifying Updated toggle vs Dismiss vs 🏛️ State Updated behavior.
 - **CGL Dashboard: At-a-Glance Note Icons.** Inline emoji icon strip (📞📧📱✅🏛️🔄💬) appears in each policy row, showing at a glance what actions were taken without opening notes.
-- `plugins/compliance.html`: Added ℹ️ Info toolbar button + `#cglInfoOverlay` modal with 7 guide sections
-- `css/compliance.css`: Added `.cgl-info-overlay`, `.cgl-info-modal`, `.cgl-info-header`, `.cgl-info-body`, `.cgl-info-section`, `.cgl-info-table`, `.cgl-info-close` styles with dark mode + mobile responsive
+- `plugins/compliance.html`: Added ℹ️ Info toolbar button + `#cglInfoOverlay` modal with 8 guide sections (incl. "Actions Compared")
+- `css/compliance.css`: Added `.cgl-info-overlay` (top-aligned), `.cgl-info-modal`, `.cgl-info-header`, `.cgl-info-body`, `.cgl-info-section`, `.cgl-info-table`, `.cgl-info-close` styles with dark mode + mobile responsive
 - `css/compliance.css`: Added `.cgl-note-icons` class for inline emoji icon strip
 - `js/compliance-dashboard.js`: Added `showInfo()` / `closeInfo()` methods with Escape key listener
 - `js/compliance-dashboard.js`: Added `noteIcons` computation using `_noteIcon()` + Set dedup per policy row
