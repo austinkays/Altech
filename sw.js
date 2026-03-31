@@ -11,7 +11,6 @@ const CACHE_VERSION = 'altech-v11';
 const APP_SHELL = [
     '/',
     '/index.html',
-    '/css/main.css',
     '/css/sidebar.css',
     '/css/dashboard.css',
     '/css/accounting.css',
@@ -117,22 +116,27 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Never cache API calls or Firebase — always go to network
-    if (url.pathname.startsWith('/api/') ||
-        url.hostname === 'googleapis.com' || url.hostname.endsWith('.googleapis.com') ||
-        url.hostname === 'firebaseio.com' || url.hostname.endsWith('.firebaseio.com') ||
-        url.hostname === 'gstatic.com' || url.hostname.endsWith('.gstatic.com') ||
-        url.hostname === 'open-meteo.com' || url.hostname.endsWith('.open-meteo.com')) {
-        return; // Let the browser handle it normally
+    // Never intercept cross-origin requests — let the browser handle them
+    // directly. SW fetch() runs against connect-src CSP, not script-src, so
+    // intercepting CDN or external API requests causes CSP violations.
+    if (url.origin !== self.location.origin) {
+        return;
+    }
+
+    // Never cache same-origin API calls — always go to network
+    if (url.pathname.startsWith('/api/')) {
+        return;
     }
 
     // For navigation requests, network-first with cached fallback
     if (event.request.mode === 'navigate') {
         event.respondWith(
             fetch(event.request).then((response) => {
-                // Update cache with fresh index.html
-                const clone = response.clone();
-                caches.open(CACHE_VERSION).then((cache) => cache.put('/index.html', clone));
+                // Update cache with fresh index.html (GET only)
+                if (event.request.method === 'GET') {
+                    const clone = response.clone();
+                    caches.open(CACHE_VERSION).then((cache) => cache.put('/index.html', clone));
+                }
                 return response;
             }).catch(() => {
                 return caches.match('/index.html');
@@ -145,8 +149,8 @@ self.addEventListener('fetch', (event) => {
     // Serve fresh from network when online, fall back to cache when offline
     event.respondWith(
         fetch(event.request).then((response) => {
-            if (response.ok) {
-                // Update the cache with the fresh response
+            if (response.ok && event.request.method === 'GET') {
+                // Update the cache with the fresh response (GET only)
                 const clone = response.clone();
                 caches.open(CACHE_VERSION).then((cache) => {
                     cache.put(event.request, clone);
@@ -161,6 +165,8 @@ self.addEventListener('fetch', (event) => {
                 if (event.request.headers.get('accept')?.includes('text/html')) {
                     return caches.match('/index.html');
                 }
+                // Return empty 204 to avoid TypeError: Failed to convert value to 'Response'
+                return new Response('', { status: 204 });
             });
         })
     );
