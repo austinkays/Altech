@@ -135,7 +135,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,112 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (2,318 lines)
-│   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (732 lines)
+│   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (758 lines)
 │   ├── quote-compare.js         # Quote comparison + AI recommendation (1,098 lines)
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (972 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (785 lines)

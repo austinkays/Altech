@@ -98,6 +98,7 @@ const QuickRef = {
     cards: [],
     numbers: [],
     emojis: [],
+    emojiEditMode: false,
     sortMode: 'default', // 'default' | 'alpha'
 
     init() {
@@ -549,6 +550,9 @@ const QuickRef = {
 
         const esc = (s) => Utils.escapeHTML(s);
         const atLimit = this.emojis.length >= QR_MAX_EMOJIS;
+        const isEditMode = !!this.emojiEditMode;
+
+        container.classList.toggle('is-edit-mode', isEditMode);
 
         container.innerHTML = this.emojis.map((e, i) => `
             <div class="qr-emoji-btn-wrap">
@@ -556,21 +560,43 @@ const QuickRef = {
                     <span class="qr-emoji-icon">${esc(e.emoji)}</span>
                     <span class="qr-emoji-label">${esc(e.label)}</span>
                 </button>
-                <span class="qr-emoji-actions">
+                <span class="qr-emoji-actions"${isEditMode ? '' : ' hidden'}>
                     <button class="qr-emoji-action-btn" onclick="QuickRef.editEmojiLabel(${i})" title="Edit label">✏️</button>
                     <button class="qr-emoji-action-btn delete" onclick="QuickRef.deleteEmoji(${i})" title="Remove">✕</button>
                 </span>
             </div>
-        `).join('') + (!atLimit ? `
+        `).join('') + (isEditMode && !atLimit ? `
             <button class="qr-emoji-btn qr-emoji-add-btn" onclick="QuickRef.openEmojiPicker()" title="Add emoji">
                 <span class="qr-emoji-icon">＋</span>
                 <span class="qr-emoji-label">Add</span>
             </button>
         ` : '');
 
-        // Update the header add button visibility
-        const headerBtn = document.getElementById('qrEmojiAddBtn');
-        if (headerBtn) headerBtn.style.display = atLimit ? 'none' : '';
+        this.syncEmojiHeaderControls(atLimit);
+    },
+
+    syncEmojiHeaderControls(atLimit) {
+        const editBtn = document.getElementById('qrEmojiEditToggleBtn');
+        const addBtn = document.getElementById('qrEmojiAddBtn');
+        const resetBtn = document.getElementById('qrEmojiResetBtn');
+        const manageWrap = document.getElementById('qrEmojiManageBtns');
+        const isEditMode = !!this.emojiEditMode;
+
+        if (editBtn) {
+            editBtn.textContent = isEditMode ? 'Done Editing' : 'Edit';
+            editBtn.classList.toggle('qr-btn-primary', isEditMode);
+            editBtn.classList.toggle('qr-btn-secondary', !isEditMode);
+        }
+
+        if (manageWrap) manageWrap.hidden = !isEditMode;
+        if (addBtn) addBtn.hidden = !isEditMode || atLimit;
+        if (resetBtn) resetBtn.hidden = !isEditMode;
+    },
+
+    toggleEmojiEditMode() {
+        this.emojiEditMode = !this.emojiEditMode;
+        if (!this.emojiEditMode) this.closeEmojiPicker();
+        this.renderEmojis();
     },
 
     openEmojiPicker() {

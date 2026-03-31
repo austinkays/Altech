@@ -321,8 +321,8 @@
 /* ── Quick Emojis ── */
 .qr-emoji-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 12px;
 }
 .qr-emoji-btn {
     display: flex;
@@ -337,7 +337,8 @@
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s, transform 0.1s, box-shadow 0.15s;
     font-family: inherit;
-    min-height: 76px;
+    min-height: 92px;
+    height: 92px;
     user-select: none;
 }
 .qr-emoji-icon {
@@ -351,6 +352,9 @@
     font-weight: 600;
     color: var(--text-secondary);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
     letter-spacing: 0.2px;
 }
 .qr-emoji-btn:hover {
@@ -381,7 +385,7 @@
     transition: opacity 0.15s;
     z-index: 2;
 }
-.qr-emoji-btn-wrap:hover .qr-emoji-actions { opacity: 1; }
+.qr-emoji-grid.is-edit-mode .qr-emoji-btn-wrap:hover .qr-emoji-actions { opacity: 1; }
 .qr-emoji-action-btn {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -397,6 +401,10 @@
     color: var(--text-secondary);
     transition: background 0.15s, color 0.15s;
     line-height: 1;
+}
+
+.qr-emoji-actions[hidden] {
+    display: none;
 }
 .qr-emoji-action-btn:hover {
     background: var(--bg-input);

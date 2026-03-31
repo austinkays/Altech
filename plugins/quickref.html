@@ -38,8 +38,11 @@
             <div style="display: flex; justify-content: space-between; align-items: center; flex: 1;">
                 <h2 style="margin:0;">😊 Quick Emojis</h2>
                 <div style="display:flex;gap:6px;align-items:center;">
-                    <button class="qr-btn qr-btn-secondary" id="qrEmojiAddBtn" onclick="QuickRef.openEmojiPicker()" style="padding: 6px 12px; font-size: 12px;">+ Add Emoji</button>
-                    <button class="qr-btn qr-btn-secondary" onclick="QuickRef.resetEmojisToDefault()" style="padding: 6px 12px; font-size: 12px;" title="Reset to defaults">↩️</button>
+                    <button class="qr-btn qr-btn-secondary" id="qrEmojiEditToggleBtn" onclick="QuickRef.toggleEmojiEditMode()" style="padding: 6px 12px; font-size: 12px;">Edit</button>
+                    <div id="qrEmojiManageBtns" style="display:flex;gap:6px;align-items:center;" hidden>
+                        <button class="qr-btn qr-btn-secondary" id="qrEmojiAddBtn" onclick="QuickRef.openEmojiPicker()" style="padding: 6px 12px; font-size: 12px;">+ Add Emoji</button>
+                        <button class="qr-btn qr-btn-secondary" id="qrEmojiResetBtn" onclick="QuickRef.resetEmojisToDefault()" style="padding: 6px 12px; font-size: 12px;" title="Reset to defaults">↩️</button>
+                    </div>
                     <button class="qr-section-toggle" onclick="QuickRef.toggleSection('emojis')" title="Collapse section">
                         <span class="qr-chevron">▾</span>
                     </button>
