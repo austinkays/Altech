@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **feat(compliance): two-step CGL/bond workflow — State Updated + HawkSoft Updated** (July 2, 2025):
+  - `js/compliance-dashboard.js` — `markStateUpdated()` no longer auto-dismisses; policy stays visible with ✅ badge until user clicks Updated/Dismiss
+  - `js/compliance-dashboard.js` — added `markHawksoftUpdated()` for bonds (sets hawksoftUpdated, hawksoftUpdatedForExp, clears needsStateUpdate)
+  - `js/compliance-dashboard.js` — `togglePolicyVerified()` soft-warns if CGL missing State Updated or bond missing HawkSoft Updated (confirm dialog, overridable)
+  - `js/compliance-dashboard.js` — `checkForRenewals()` clears hawksoftUpdated/hawksoftUpdatedForExp on renewal detection alongside existing fields
+  - `js/compliance-dashboard.js` — `_needsStateUpdate()` now checks both stateUpdated and hawksoftUpdated
+  - `js/compliance-dashboard.js` — `_refreshNoteUI()` shows correct badge text (HawkSoft Updated vs State Updated) based on policy type
+  - `js/compliance-dashboard.js` — row render: added isHawksoftUpdated, isAnyUpdateDone, pType variables; badge shows type-specific text; notes panel shows conditional button per policy type
+  - `plugins/compliance.html` — help modal rewritten: two-step workflow docs, HawkSoft Updated button docs, updated comparison table, corrected renewal cycle steps
+  - `tests/plugin-integration.test.js` — added 7 source-pattern tests for two-step workflow (markStateUpdated no auto-dismiss, markHawksoftUpdated exists, _needsStateUpdate checks both, togglePolicyVerified soft warning, checkForRenewals clears hawksoft fields, notes panel bond button, isAnyUpdateDone usage)
+
 - **fix(hawksoft-logger): move agent initials to front of RE: line** (March 31, 2026):
   - `api/hawksoft-logger.js` — initials now prepended (`RE: AJK — Summary…`) instead of appended (`RE: Summary… — AJK`) so they survive HawkSoft's truncated log list view
   - `api/hawksoft-logger.js` — updated SYSTEM_PROMPT FORMAT template to show `[Agent Initials — ]` placement; added strip-regex for AI-inserted initials at start of line

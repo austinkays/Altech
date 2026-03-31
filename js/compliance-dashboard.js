@@ -1573,15 +1573,15 @@ const ComplianceDashboard = {
                     const storedExp = new Date(verified.expirationDate).getTime();
                     const currentExp = new Date(policy.expirationDate).getTime();
                     if (currentExp - storedExp > 30 * 24 * 60 * 60 * 1000) {
-                        // Skip if user already acknowledged this exact expiration
-                        if (existingNote?.stateUpdated && existingNote?.stateUpdatedForExp === policy.expirationDate) return;
+                        // Skip if user already acknowledged this exact expiration (state or hawksoft)
+                        if (existingNote?.stateUpdatedForExp === policy.expirationDate || existingNote?.hawksoftUpdatedForExp === policy.expirationDate) return;
                         console.log(`[CGL] Renewal detected: ${pn} — exp moved from ${verified.expirationDate} to ${policy.expirationDate}. Clearing verified marker.`);
                         if (!alreadyFlagged) {
                             this.addQuickNote(pn, `Auto-cleared: policy renewed (exp changed from ${new Date(verified.expirationDate).toLocaleDateString()} to ${new Date(policy.expirationDate).toLocaleDateString()})`);
                         }
                         delete this.verifiedPolicies[pn];
                         const nd = this.getNoteData(pn) || { log: [] };
-                        nd.stateUpdated = null; nd.renewedTo = null; nd.needsStateUpdate = true;
+                        nd.stateUpdated = null; nd.hawksoftUpdated = null; nd.hawksoftUpdatedForExp = null; nd.renewedTo = null; nd.needsStateUpdate = true;
                         this.policyNotes[pn] = nd;
                         cleared++;
                     }
@@ -1589,15 +1589,15 @@ const ComplianceDashboard = {
                     const verifiedAt = new Date(verified.updatedAt).getTime();
                     const currentExp = new Date(policy.expirationDate).getTime();
                     if (currentExp - verifiedAt > 180 * 24 * 60 * 60 * 1000) {
-                        // Skip if user already acknowledged this exact expiration
-                        if (existingNote?.stateUpdated && existingNote?.stateUpdatedForExp === policy.expirationDate) return;
+                        // Skip if user already acknowledged this exact expiration (state or hawksoft)
+                        if (existingNote?.stateUpdatedForExp === policy.expirationDate || existingNote?.hawksoftUpdatedForExp === policy.expirationDate) return;
                         console.log(`[CGL] Likely renewal (legacy marker): ${pn} — verified ${verified.updatedAt}, exp ${policy.expirationDate}. Clearing.`);
                         if (!alreadyFlagged) {
                             this.addQuickNote(pn, `Auto-cleared: likely renewal (verified ${new Date(verified.updatedAt).toLocaleDateString()}, now expires ${new Date(policy.expirationDate).toLocaleDateString()})`);
                         }
                         delete this.verifiedPolicies[pn];
                         const nd = this.getNoteData(pn) || { log: [] };
-                        nd.stateUpdated = null; nd.renewedTo = null; nd.needsStateUpdate = true;
+                        nd.stateUpdated = null; nd.hawksoftUpdated = null; nd.hawksoftUpdatedForExp = null; nd.renewedTo = null; nd.needsStateUpdate = true;
                         this.policyNotes[pn] = nd;
                         cleared++;
                     }
@@ -1611,15 +1611,15 @@ const ComplianceDashboard = {
                     const storedExp = new Date(dismissed.expirationDate).getTime();
                     const currentExp = new Date(policy.expirationDate).getTime();
                     if (currentExp - storedExp > 30 * 24 * 60 * 60 * 1000) {
-                        // Skip if user already acknowledged this exact expiration
-                        if (existingNote?.stateUpdated && existingNote?.stateUpdatedForExp === policy.expirationDate) return;
+                        // Skip if user already acknowledged this exact expiration (state or hawksoft)
+                        if (existingNote?.stateUpdatedForExp === policy.expirationDate || existingNote?.hawksoftUpdatedForExp === policy.expirationDate) return;
                         console.log(`[CGL] Renewal detected (dismissed): ${pn} — exp moved from ${dismissed.expirationDate} to ${policy.expirationDate}. Clearing dismissed marker.`);
                         if (!alreadyFlagged) {
                             this.addQuickNote(pn, `Auto-cleared: policy renewed (exp changed from ${new Date(dismissed.expirationDate).toLocaleDateString()} to ${new Date(policy.expirationDate).toLocaleDateString()})`);
                         }
                         delete this.dismissedPolicies[pn];
                         const nd = this.getNoteData(pn) || { log: [] };
-                        nd.stateUpdated = null; nd.renewedTo = null; nd.needsStateUpdate = true;
+                        nd.stateUpdated = null; nd.hawksoftUpdated = null; nd.hawksoftUpdatedForExp = null; nd.renewedTo = null; nd.needsStateUpdate = true;
                         this.policyNotes[pn] = nd;
                         cleared++;
                     }
@@ -1627,15 +1627,15 @@ const ComplianceDashboard = {
                     const dismissedAt = new Date(dismissed.dismissedAt).getTime();
                     const currentExp = new Date(policy.expirationDate).getTime();
                     if (currentExp - dismissedAt > 180 * 24 * 60 * 60 * 1000) {
-                        // Skip if user already acknowledged this exact expiration
-                        if (existingNote?.stateUpdated && existingNote?.stateUpdatedForExp === policy.expirationDate) return;
+                        // Skip if user already acknowledged this exact expiration (state or hawksoft)
+                        if (existingNote?.stateUpdatedForExp === policy.expirationDate || existingNote?.hawksoftUpdatedForExp === policy.expirationDate) return;
                         console.log(`[CGL] Likely renewal (dismissed legacy): ${pn} — dismissed ${dismissed.dismissedAt}, exp ${policy.expirationDate}. Clearing.`);
                         if (!alreadyFlagged) {
                             this.addQuickNote(pn, `Auto-cleared: policy renewed (exp changed from ${new Date(dismissed.dismissedAt).toLocaleDateString()} to ${new Date(policy.expirationDate).toLocaleDateString()})`);
                         }
                         delete this.dismissedPolicies[pn];
                         const nd = this.getNoteData(pn) || { log: [] };
-                        nd.stateUpdated = null; nd.renewedTo = null; nd.needsStateUpdate = true;
+                        nd.stateUpdated = null; nd.hawksoftUpdated = null; nd.hawksoftUpdatedForExp = null; nd.renewedTo = null; nd.needsStateUpdate = true;
                         this.policyNotes[pn] = nd;
                         cleared++;
                     }
@@ -1688,8 +1688,17 @@ const ComplianceDashboard = {
         if (this.verifiedPolicies[policyNumber]) {
             delete this.verifiedPolicies[policyNumber];
         } else {
-            // Store the current expiration date so we can detect renewals later
+            // Soft warning: CGL without state update
             const policy = this.policies.find(p => p.policyNumber === policyNumber);
+            const pType = (policy && policy.policyType) || 'cgl';
+            const noteData = this.getNoteData(policyNumber);
+            if (pType === 'cgl' && !(noteData && noteData.stateUpdated)) {
+                if (!confirm('This CGL hasn\'t been updated with the state yet. Mark as done anyway?')) return;
+            }
+            if (pType === 'bond' && !(noteData && noteData.hawksoftUpdated)) {
+                if (!confirm('This bond hasn\'t been updated in HawkSoft yet. Mark as done anyway?')) return;
+            }
+            // Store the current expiration date so we can detect renewals later
             this.verifiedPolicies[policyNumber] = {
                 updatedAt: new Date().toISOString(),
                 updatedBy: 'user',
@@ -1810,7 +1819,9 @@ const ComplianceDashboard = {
 
     _needsStateUpdate(policyNumber) {
         const nd = this.getNoteData(policyNumber);
-        return !!(nd && nd.needsStateUpdate && !nd.stateUpdated);
+        if (!nd || !nd.needsStateUpdate) return false;
+        // Cleared by either state or hawksoft acknowledgment
+        return !nd.stateUpdated && !nd.hawksoftUpdated;
     },
 
     sortPolicies(policies) {
@@ -2065,17 +2076,23 @@ const ComplianceDashboard = {
         if (policy?.expirationDate) data.stateUpdatedForExp = policy.expirationDate;
         data.log.push({ text: 'State website updated', at: new Date().toISOString() });
         this.policyNotes[policyNumber] = data;
-        // Auto-dismiss with new expiration as baseline for next year's renewal detection
-        if (policy?.expirationDate) {
-            this.dismissedPolicies[policyNumber] = {
-                dismissedAt: new Date().toISOString(),
-                expirationDate: policy.expirationDate,
-                reason: 'state-updated'
-            };
-        }
+        // Policy stays visible — user must Updated-toggle or Dismiss to hide
         this.saveState();
         this._refreshNoteUI(policyNumber);
-        this.filterPolicies();
+    },
+
+    markHawksoftUpdated(policyNumber) {
+        let data = this.getNoteData(policyNumber);
+        if (!data) data = { log: [], renewedTo: null };
+        data.hawksoftUpdated = new Date().toISOString();
+        data.needsStateUpdate = false;
+        const policy = this.policies?.find(p => p.policyNumber === policyNumber);
+        if (policy?.expirationDate) data.hawksoftUpdatedForExp = policy.expirationDate;
+        data.log.push({ text: 'HawkSoft updated', at: new Date().toISOString() });
+        this.policyNotes[policyNumber] = data;
+        // Policy stays visible — user must Updated-toggle or Dismiss to hide
+        this.saveState();
+        this._refreshNoteUI(policyNumber);
     },
 
     saveNote(policyNumber) {
@@ -2097,6 +2114,12 @@ const ComplianceDashboard = {
         const hasNote = data && data.log && data.log.length > 0;
         const latestText = hasNote ? data.log[data.log.length - 1].text : '';
         const isStateUpdated = !!(data && data.stateUpdated);
+        const isHawksoftUpdated = !!(data && data.hawksoftUpdated);
+        const isAnyUpdateDone = isStateUpdated || isHawksoftUpdated;
+
+        // Determine policy type for badge text
+        const policy = (this.policies || []).find(p => p.policyNumber === policyNumber);
+        const isBond = policy && /bond/i.test(policy.policyType || '');
 
         // Update note icon
         const btn = document.querySelector(`[data-note-for="${policyNumber}"]`);
@@ -2104,16 +2127,16 @@ const ComplianceDashboard = {
             btn.classList.toggle('has-note', hasNote);
             btn.title = hasNote ? 'Note: ' + latestText : 'Add note';
         }
-        // Update state badge
+        // Update state/hawksoft badge
         const stateBadge = document.getElementById('state-badge-' + policyNumber);
         if (stateBadge) {
-            stateBadge.style.display = isStateUpdated ? 'inline-block' : 'none';
-            if (isStateUpdated) stateBadge.textContent = '✅ State Updated';
+            stateBadge.style.display = isAnyUpdateDone ? 'inline-block' : 'none';
+            if (isAnyUpdateDone) stateBadge.textContent = isHawksoftUpdated ? '✅ HawkSoft Updated' : '✅ State Updated';
         }
-        // Update note preview (hide if state updated since badge is more important)
+        // Update note preview (hide if updated since badge is more important)
         const preview = document.getElementById('note-preview-' + policyNumber);
         if (preview) {
-            if (isStateUpdated) {
+            if (isAnyUpdateDone) {
                 preview.style.display = 'none';
             } else {
                 let previewText = latestText;
@@ -2126,7 +2149,7 @@ const ComplianceDashboard = {
         const row = document.querySelector(`[data-note-for="${policyNumber}"]`);
         if (row) {
             const tr = row.closest('tr');
-            if (tr) tr.classList.toggle('cgl-state-updated-row', isStateUpdated);
+            if (tr) tr.classList.toggle('cgl-state-updated-row', isAnyUpdateDone);
         }
         // Update note log in expanded row
         const noteRow = document.getElementById('note-row-' + policyNumber);
@@ -2363,9 +2386,12 @@ const ComplianceDashboard = {
             const noteIcons = hasNote ? [...new Set(noteData.log.map(e => this._noteIcon(e.text)).filter(Boolean))].join(' ') : '';
             const renewedTo = noteData && noteData.renewedTo ? noteData.renewedTo : null;
             const isStateUpdated = !!(noteData && noteData.stateUpdated);
-            const needsStateUpdate = !!(noteData && noteData.needsStateUpdate && !noteData.stateUpdated);
+            const isHawksoftUpdated = !!(noteData && noteData.hawksoftUpdated);
+            const isAnyUpdateDone = isStateUpdated || isHawksoftUpdated;
+            const needsStateUpdate = !!(noteData && noteData.needsStateUpdate && !isStateUpdated && !isHawksoftUpdated);
+            const pType = (policy.policyType || 'cgl');
 
-            const rowClass = isHidden ? 'hidden-row' : (needsStateUpdate ? 'cgl-needs-state-row' : (isStateUpdated ? 'cgl-state-updated-row' : ''));
+            const rowClass = isHidden ? 'hidden-row' : (needsStateUpdate ? 'cgl-needs-state-row' : (isAnyUpdateDone ? 'cgl-state-updated-row' : ''));
             const pn = policy.policyNumber.replace(/'/g, "\\\\'");
 
             const verifiedTitle = isVerified
@@ -2411,9 +2437,9 @@ const ComplianceDashboard = {
                     <td>
                         <div style="font-weight: 600;">${this.clientLink(policy)}</div>
                         ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${Utils.escapeHTML(policy.email)}</div>` : ''}
-                        ${isStateUpdated ? `<span class="cgl-state-badge" id="state-badge-${pn}">✅ State Updated</span>` : `<span class="cgl-state-badge" id="state-badge-${pn}" style="display:none"></span>`}
-                        ${hasNote && !isStateUpdated ? `<div class="cgl-note-preview" id="note-preview-${pn}">${renewedTo ? 'Renewed → ' + Utils.escapeHTML(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pn}" style="display:none"></div>`}
-                        ${noteIcons && !isStateUpdated ? `<div class="cgl-note-icons">${noteIcons}</div>` : ''}
+                        ${isAnyUpdateDone ? `<span class="cgl-state-badge" id="state-badge-${pn}">✅ ${isHawksoftUpdated ? 'HawkSoft Updated' : 'State Updated'}</span>` : `<span class="cgl-state-badge" id="state-badge-${pn}" style="display:none"></span>`}
+                        ${hasNote && !isAnyUpdateDone ? `<div class="cgl-note-preview" id="note-preview-${pn}">${renewedTo ? 'Renewed → ' + Utils.escapeHTML(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pn}" style="display:none"></div>`}
+                        ${noteIcons && !isAnyUpdateDone ? `<div class="cgl-note-icons">${noteIcons}</div>` : ''}
                     </td>
                     <td style="font-family: monospace; font-size: 13px;">
                         <div>${Utils.escapeHTML(policy.policyNumber)}</div>
@@ -2453,7 +2479,9 @@ const ComplianceDashboard = {
                             </div>
                             <div class="cgl-quick-notes-row cgl-state-actions">
                                 <button class="cgl-quick-note-btn renew" onclick="ComplianceDashboard.markRenewed('${pn}')">🔄 Renewed (New Policy #)</button>
-                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.markStateUpdated('${pn}')" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857;">🏛️ State Updated</button>
+                                ${(policy.policyType || 'cgl') === 'bond'
+                                    ? `<button class="cgl-quick-note-btn" onclick="ComplianceDashboard.markHawksoftUpdated('${pn}')" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857;">📋 HawkSoft Updated</button>`
+                                    : `<button class="cgl-quick-note-btn" onclick="ComplianceDashboard.markStateUpdated('${pn}')" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857;">🏛️ State Updated</button>`}
                                 <button class="cgl-quick-note-btn cgl-snooze-quick" onclick="ComplianceDashboard.snoozePolicy('${pn}')">🛏️ Sleep Until Tomorrow</button>
                             </div>
                         </div>

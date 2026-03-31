@@ -262,8 +262,8 @@
                     <li><strong>You dismiss or verify it</strong> — policy is hidden from the active list</li>
                     <li><strong>Carrier renews the policy</strong> — HawkSoft data updates with a new expiration date</li>
                     <li><strong>Dashboard detects the renewal</strong> — expiration changed &gt;30 days from the stored baseline. The <span class="cgl-status-badge needs-state-update" style="font-size:11px">⚠️ Renewed</span> badge appears automatically</li>
-                    <li><strong>You update the state website</strong> — then click <strong>🏛️ State Updated</strong></li>
-                    <li><strong>Policy auto-dismisses</strong> — new expiration is saved as the baseline for next year</li>
+                    <li><strong>You update externally</strong> — update the state website (CGLs) or HawkSoft (bonds), then click <strong>🏛️ State Updated</strong> or <strong>📋 HawkSoft Updated</strong></li>
+                    <li><strong>You Updated/Dismiss</strong> — once the external update is done, click Updated or Dismiss to hide the policy. The current expiration is saved as the baseline for next year</li>
                     <li><strong>Cycle repeats</strong> — when the new term renews, it resurfaces again</li>
                 </ol>
                 <p><strong>⚠️ Important:</strong> No policy ever gets its expiration updated silently. Every renewal is flagged with the "⚠️ Renewed" badge so you never miss one.</p>
@@ -278,21 +278,28 @@
                     <tr><td>📱 Left Voicemail</td><td>Log a voicemail attempt</td></tr>
                     <tr><td>✅ Renewal Confirmed</td><td>The insured confirmed their policy renewed</td></tr>
                     <tr><td>🔄 Renewed (New Policy #)</td><td>Enter the new policy number — links old and new</td></tr>
-                    <tr><td>🏛️ State Updated</td><td>Mark that you updated the state website — auto-dismisses the policy</td></tr>
+                    <tr><td>🏛️ State Updated</td><td>Mark that you updated the state website for this CGL (policy stays visible until you Updated/Dismiss)</td></tr>
+                    <tr><td>📋 HawkSoft Updated</td><td>Mark that you updated HawkSoft for this bond (policy stays visible until you Updated/Dismiss)</td></tr>
                     <tr><td>🛏️ Sleep</td><td>Temporarily hide the policy until tomorrow</td></tr>
                 </table>
                 <p>The emoji icons (📞📧🔄 etc.) appear in each row so you can see at a glance what actions were taken without opening the notes.</p>
             </section>
 
             <section class="cgl-info-section">
-                <h4>⚖️ Updated Toggle vs Dismiss vs State Updated</h4>
-                <p>These three actions look similar but behave differently:</p>
+                <h4>⚖️ Two-Step Workflow: Mark External Update → Then Updated/Dismiss</h4>
+                <p>Policies require a <strong>two-step</strong> process to hide them for the year:</p>
                 <table class="cgl-info-table">
-                    <tr><td><strong>Updated (toggle)</strong></td><td>The checkbox in the UPDATED column. Marks the policy as verified/done and hides it from the active list. <strong>Does NOT save a renewal baseline</strong> — use this for policies you've reviewed but that haven't renewed (e.g., expired and not renewing).</td></tr>
-                    <tr><td><strong>Dismiss (button)</strong></td><td>Hides the policy from the active list. It <strong>resurfaces automatically</strong> if HawkSoft detects a renewal (expiration changes &gt;30 days). Use this when you've reviewed a policy and want it out of the way — it will come back when it matters again.</td></tr>
-                    <tr><td><strong>🏛️ State Updated</strong></td><td>The button inside the notes panel. Confirms you updated your state website with the renewal info. <strong>Auto-dismisses AND saves the current expiration as the baseline</strong> for next year's renewal detection. <em>This is the recommended action after a policy renews.</em></td></tr>
+                    <tr><td><strong>Step 1: Mark the external update</strong></td><td>Click <strong>🏛️ State Updated</strong> (for CGLs — state website) or <strong>📋 HawkSoft Updated</strong> (for bonds — HawkSoft). This adds a green badge to the row but does NOT hide the policy.</td></tr>
+                    <tr><td><strong>Step 2: Updated or Dismiss</strong></td><td>Once you've confirmed the external update, click <strong>Updated</strong> (toggle) or <strong>Dismiss</strong> to hide the policy until next year's renewal.</td></tr>
                 </table>
-                <p><strong>Rule of thumb:</strong> After a renewal → use <strong>🏛️ State Updated</strong>. For everything else → use <strong>Dismiss</strong> or the <strong>Updated toggle</strong>.</p>
+                <p>A <strong>soft warning</strong> appears if you try to Updated a CGL without marking State Updated (or a bond without HawkSoft Updated) — you can override it if needed.</p>
+                <table class="cgl-info-table">
+                    <tr><td><strong>Updated (toggle)</strong></td><td>Hides the policy from the active list. Saves the current expiration as the baseline for next year's renewal detection. <em>Best for policies that have been externally updated.</em></td></tr>
+                    <tr><td><strong>Dismiss</strong></td><td>Hides the policy. It <strong>resurfaces automatically</strong> if HawkSoft detects a renewal (expiration changes &gt;30 days). Use when you've reviewed a policy and want it out of the way.</td></tr>
+                    <tr><td><strong>🏛️ State Updated</strong></td><td>Marks that you updated the state website (CGL only). Shows a ✅ badge. Does NOT hide — you still need to Updated/Dismiss.</td></tr>
+                    <tr><td><strong>📋 HawkSoft Updated</strong></td><td>Marks that you updated HawkSoft (bonds only). Shows a ✅ badge. Does NOT hide — you still need to Updated/Dismiss.</td></tr>
+                </table>
+                <p><strong>Rule of thumb:</strong> After a CGL renews → <strong>🏛️ State Updated</strong> then <strong>Updated</strong>. After a bond renews → <strong>📋 HawkSoft Updated</strong> then <strong>Updated</strong>. For non-renewals → just <strong>Dismiss</strong>.</p>
             </section>
 
             <section class="cgl-info-section">

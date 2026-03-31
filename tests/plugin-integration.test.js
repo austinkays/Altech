@@ -1183,3 +1183,73 @@ describe('About You Grid Layout', () => {
     expect(mainGrid).not.toBe(coGrid);
   });
 });
+
+// ── CGL Dashboard: Two-Step Workflow (State Updated / HawkSoft Updated) ──────
+
+describe('CGL Dashboard two-step workflow source patterns', () => {
+  let cglSource;
+
+  beforeAll(() => {
+    cglSource = fs.readFileSync(path.join(ROOT, 'js/compliance-dashboard.js'), 'utf8');
+  });
+
+  test('markStateUpdated does NOT auto-dismiss (no dismissedPolicies creation)', () => {
+    // Extract markStateUpdated function body
+    const match = cglSource.match(/markStateUpdated\s*\([^)]*\)\s*\{([\s\S]*?)\n    \}/);
+    expect(match).toBeTruthy();
+    const body = match[1];
+    // Should NOT contain dismissedPolicies assignment
+    expect(body).not.toMatch(/dismissedPolicies\s*\[/);
+    expect(body).not.toMatch(/filterPolicies/);
+    // Should still set stateUpdated
+    expect(body).toMatch(/stateUpdated\s*=/);
+  });
+
+  test('markHawksoftUpdated function exists and sets hawksoftUpdated', () => {
+    expect(cglSource).toMatch(/markHawksoftUpdated\s*\(/);
+    const match = cglSource.match(/markHawksoftUpdated\s*\([^)]*\)\s*\{([\s\S]*?)\n    \}/);
+    expect(match).toBeTruthy();
+    const body = match[1];
+    expect(body).toMatch(/hawksoftUpdated\s*=/);
+    expect(body).toMatch(/hawksoftUpdatedForExp/);
+  });
+
+  test('_needsStateUpdate checks both stateUpdated and hawksoftUpdated', () => {
+    const match = cglSource.match(/_needsStateUpdate\s*\([^)]*\)\s*\{([\s\S]*?)\n    \}/);
+    expect(match).toBeTruthy();
+    const body = match[1];
+    expect(body).toMatch(/hawksoftUpdated/);
+    expect(body).toMatch(/stateUpdated/);
+  });
+
+  test('togglePolicyVerified has soft warning for missing state/hawksoft update', () => {
+    const match = cglSource.match(/togglePolicyVerified\s*\([^)]*\)\s*\{([\s\S]*?)\n    \}/);
+    expect(match).toBeTruthy();
+    const body = match[1];
+    // Should contain a confirm() call for the soft warning
+    expect(body).toMatch(/confirm\s*\(/);
+    // Should reference both stateUpdated and hawksoftUpdated
+    expect(body).toMatch(/stateUpdated/);
+    expect(body).toMatch(/hawksoftUpdated/);
+  });
+
+  test('checkForRenewals clears hawksoftUpdated fields on renewal', () => {
+    const match = cglSource.match(/checkForRenewals\s*\([^)]*\)\s*\{([\s\S]*?)\n    \}/);
+    expect(match).toBeTruthy();
+    const body = match[1];
+    expect(body).toMatch(/hawksoftUpdated\s*=\s*null/);
+    expect(body).toMatch(/hawksoftUpdatedForExp\s*=\s*null/);
+  });
+
+  test('notes panel renders HawkSoft Updated button for bonds', () => {
+    expect(cglSource).toMatch(/HawkSoft Updated/);
+    expect(cglSource).toMatch(/markHawksoftUpdated/);
+    // Bond detection pattern
+    expect(cglSource).toMatch(/bond/i);
+  });
+
+  test('row render uses isAnyUpdateDone for badge visibility', () => {
+    expect(cglSource).toMatch(/isAnyUpdateDone\s*=\s*isStateUpdated\s*\|\|\s*isHawksoftUpdated/);
+    expect(cglSource).toMatch(/isAnyUpdateDone\s*\?/);
+  });
+});
