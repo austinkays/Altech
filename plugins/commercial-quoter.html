@@ -656,13 +656,6 @@
             </div>
         </div>
 
-        <!-- ═══ STEP FOOTER ═══════════════════════════════════════════════ -->
-        <footer class="cq-step-footer">
-            <button id="cq-btn-prev" class="btn btn-step-back hidden" onclick="CommercialQuoter.prev()">← Previous Step</button>
-            <span class="footer-step-count cq-step-counter" id="cq-step-counter">1 / 7</span>
-            <button id="cq-btn-next" class="btn btn-primary" onclick="CommercialQuoter.next()">Next</button>
-        </footer>
-
     <!-- Coverage limit datalists -->
     <datalist id="cq-gl-occ-list">
         <option value="$300,000">
@@ -696,3 +689,8 @@
     </datalist>
 
     </main>
+    <footer class="cq-step-footer">
+        <button id="cq-btn-prev" class="btn btn-step-back" onclick="CommercialQuoter.prev()">← Previous Step</button>
+        <span class="footer-step-count cq-step-counter" id="cq-step-counter">1 / 7</span>
+        <button id="cq-btn-next" class="btn btn-primary" onclick="CommercialQuoter.next()">Next</button>
+    </footer>

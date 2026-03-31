@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Commercial Lines footer structural and layout bugs fixed** (March 31, 2026):
+  - `plugins/commercial-quoter.html` — Moved `<footer class="cq-step-footer">` to be a sibling AFTER `</main>` (was incorrectly nested inside `<main id="cq-app">`). Removed `hidden` class from Back button (visibility now controlled via `disabled` attribute so the button stays in the flex layout on step 0, preventing the step counter and Next button from collapsing leftward).
+  - `js/commercial-quoter.js` — Changed `prevBtn.classList.toggle('hidden', _step === 0)` → `prevBtn.disabled = (_step === 0)`. The `disabled` attribute keeps the button in layout (opacity 0.4) rather than removing it from the DOM, matching personal-lines behavior.
+  - `css/commercial-quoter.css` — Added `#commercialQuoterTool footer .btn { max-width: none }` to override the global `layout.css` `footer .btn { max-width: 200px }` rule that was bleeding into the commercial footer at ≥ 960 px. Added `@media (min-width: 960px)` block to give the commercial footer matching desktop polish (`border-radius: 16px 16px 0 0`, wider padding).
+
 - **Commercial Lines back/next buttons now match Personal Lines** (March 31, 2026):
   - `plugins/commercial-quoter.html` — Changed `<div class="cq-step-footer">` → `<footer class="cq-step-footer">` so the commercial wizard footer gets the same fixed-position glassmorphism treatment as the personal-lines wizard. Updated back button from `btn cq-nav-btn` (outlined with SVG icon, "Back") to `btn btn-step-back` (ghost text, "← Previous Step"). Updated next button from `btn btn-primary cq-nav-btn` ("Continue" + SVG) to `btn btn-primary` ("Next"). Added `footer-step-count` class to the step counter span.
   - `css/commercial-quoter.css` — Removed `.cq-nav-btn` block (no longer needed). Updated `.cq-step-footer` padding to use `env(safe-area-inset-bottom)` for mobile notch safety. Removed `.cq-nav-btn { padding: 9px 16px; }` from responsive rule.

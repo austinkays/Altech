@@ -797,7 +797,7 @@ window.CommercialQuoter = (() => {
         const prevBtn     = document.getElementById('cq-btn-prev');
         const nextBtn     = document.getElementById('cq-btn-next');
         const exportGroup = document.getElementById('cq-export-group');
-        if (prevBtn)     prevBtn.classList.toggle('hidden', _step === 0);
+        if (prevBtn)     prevBtn.disabled = (_step === 0);
         if (nextBtn)     nextBtn.classList.toggle('hidden', _step === 6);
         if (exportGroup) exportGroup.classList.toggle('hidden', _step !== 6);
 
