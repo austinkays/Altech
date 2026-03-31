@@ -21,7 +21,7 @@ npx jest --no-coverage    # faster
 | Global | File | Exposes |
 |--------|------|---------|
 | `CryptoHelper` | `js/crypto-helper.js` | AES-256-GCM encrypt/decrypt |
-| `window.STORAGE_KEYS` | `js/storage-keys.js` | Frozen map of all 37 `altech_*` localStorage keys |
+| `window.STORAGE_KEYS` | `js/storage-keys.js` | Frozen map of all 53 localStorage keys |
 | `window.Utils` | `js/utils.js` | `escapeHTML`, `escapeAttr`, `tryParseLS`, `debounce` |
 | `window.FIELDS` / `window.FIELD_BY_ID` | `js/fields.js` | ~175 intake form field definitions with id/label/type/section |
 

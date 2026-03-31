@@ -102,10 +102,10 @@ npm run deploy:vercel   # Production deploy
 ├── js/                         # 47 modules (~40,530 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
-│   ├── app-init.js             # State init, toolConfig[], workflows (92 lines)
+│   ├── app-init.js             # State init, toolConfig[], workflows, stepTitles (6 entries: step-0,1,3,4,5,6 — step-2 removed as dead code)
 │   ├── app-ui-utils.js         # App.toast(), App.toggleDarkMode(), App.loadDarkMode(), App.formatDateDisplay(), App.copyToClipboard()
 │   ├── app-navigation.js       # App.updateUI(), App.navigateTo(), step progression, hash routing
-│   ├── app-core.js             # save/load, form field persistence, schema migration, encryption — persistence-only (updateUI/navigateTo → app-navigation.js; toast/dark-mode → app-ui-utils.js)
+│   ├── app-core.js             # save/load, form field persistence, schema migration, encryption, clearExportHistory() — persistence-only (updateUI/navigateTo → app-navigation.js; toast/dark-mode → app-ui-utils.js)
 │   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (1,979 lines)
 │   ├── app-property.js         # Property analysis, maps, assessor data (2,503 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
@@ -116,7 +116,7 @@ npm run deploy:vercel   # Production deploy
 │   │
 │   │  ★ Infrastructure
 │   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
-│   ├── storage-keys.js         # window.STORAGE_KEYS — frozen map of all 37 altech_* localStorage key strings (single source of truth — never hardcode keys)
+│   ├── storage-keys.js         # window.STORAGE_KEYS — frozen map of all 53 localStorage key strings (single source of truth — never hardcode keys)
 │   ├── utils.js                # window.Utils: escapeHTML, escapeAttr, tryParseLS, debounce — never define these inline in plugins
 │   ├── fields.js               # window.FIELDS / window.FIELD_BY_ID — ~175 intake form field definitions with id/label/type/section
 │   ├── firebase-config.js      # Firebase app init (fetches config from /api/config)
@@ -144,7 +144,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── task-sheet.js            # HawkSoft CSV task viewer — upload, parse, sort (overdue→priority→date), 9-col table, print-friendly layout (838 lines)
 │   ├── returned-mail.js         # Returned Mail Tracker — address validator (Google API), Street View + satellite imagery, log CRUD, HawkSoft copy output, CSV export (575 lines)
 │   ├── blind-spot-brief.js      # Blind Spot Brief — coverage gap analyzer (374 lines)
-│   ├── commercial-quoter.js     # Commercial Lines — 7-step intake wizard, 73 fields, PDF + CMSMTF export (1,314 lines)
+│   ├── commercial-quoter.js     # Commercial Lines — 7-step intake wizard, 73 fields, PDF + CMSMTF export; bizName required-field validation; Places retry capped at 10; map image onerror handlers; filename sanitization (1,314 lines)
 │   ├── dec-import.js            # Dec Page Importer — PDF/image → form-fill pipeline (734 lines)
 │   ├── deposit-sheet.js         # Deposit Sheet — trust deposit calculator + CSV export (499 lines)
 │   │
