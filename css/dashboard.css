@@ -719,12 +719,17 @@ body.dark-mode .stat-pill-snoozed {
 }
 .compliance-stat-pill {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: 20px;
+    justify-content: center;
+    gap: 1px;
+    padding: 5px 6px;
+    border-radius: 10px;
     background: var(--bg-input);
     border: 1px solid var(--border-subtle);
+    flex: 1;
+    min-width: 0;
+    text-align: center;
 }
 .compliance-stat-pill .stat-count {
     font-size: 16px;
