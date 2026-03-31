@@ -543,10 +543,11 @@ body.dark-mode #breadcrumbBar {
         gap: 16px;
         align-items: start;
     }
-    /* Hint banner and policy details card both span full width */
+    /* Hint banner, hidden input, policy-details card, and additional-info card all span full width */
     #step-5 > .hint,
     #step-5 > input[type="hidden"],
-    #step-5 > .card:first-of-type {
+    #step-5 > #policyDetailsCard,
+    #step-5 > .card:last-child {
         grid-column: 1 / -1;
     }
 

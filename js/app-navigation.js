@@ -198,14 +198,6 @@ Object.assign(App, {
                 if (missing.length > 0) {
                     this.toast('💡 Tip: First and last name are needed for exports — you can fill them in any time.', 'info');
                 }
-            } else if (stepNumber === 3) {
-                const missing = ['addrStreet', 'addrCity', 'addrState', 'addrZip'].filter(id => {
-                    const el = document.getElementById(id);
-                    return el && !el.value.trim();
-                });
-                if (missing.length > 0) {
-                    this.toast('💡 Tip: Property address is used in exports and carrier lookups — fill it in when ready.', 'info');
-                }
             }
             
             if (this.step < this.flow.length - 1) {
