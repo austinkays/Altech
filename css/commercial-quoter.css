@@ -436,17 +436,21 @@
 }
 
 /* ── Recent Quote Items (rendered by JS) ──────────────── */
+.cq-quote-count {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin: 0 0 8px;
+}
 .cq-recent-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 10px 14px;
+    padding: 12px 14px;
     background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: 10px;
     margin-bottom: 8px;
-    cursor: pointer;
     transition: border-color 0.18s ease, background 0.18s ease;
 }
 .cq-recent-item:hover {
@@ -455,16 +459,62 @@
 }
 .cq-recent-info {
     flex: 1;
+    min-width: 0;
 }
 .cq-recent-info strong {
     display: block;
     font-size: 14px;
     color: var(--text);
     font-weight: 600;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.cq-recent-info span {
-    font-size: 12px;
+.cq-cov-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+.cq-cov-pill {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.cq-recent-date {
+    font-size: 11px;
     color: var(--text-tertiary);
+}
+.cq-recent-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.cq-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    padding: 0;
+}
+.cq-delete-btn:hover {
+    background: rgba(255, 59, 48, 0.1);
+    color: var(--danger);
 }
 
 /* ── Step Footer ──────────────────────────────────────── */
@@ -522,6 +572,13 @@ body.dark-mode .cq-recent-item {
 body.dark-mode .cq-recent-item:hover {
     background: #1C1C1E;
     border-color: var(--apple-blue);
+}
+body.dark-mode .cq-cov-pill {
+    background: #1C1C1E;
+    border-color: #38383A;
+}
+body.dark-mode .cq-delete-btn:hover {
+    background: rgba(255, 69, 58, 0.15);
 }
 body.dark-mode .cq-coverage-detail {
     background: #2C2C2E;

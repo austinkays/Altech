@@ -95,7 +95,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── returned-mail.css        # Returned Mail Tracker — deliverability badges, status badges, responsive form+table, print styles, full dark mode, Street View + satellite map images (799 lines)
 │   ├── paywall.css             # Paywall modal (131 lines)
 │   ├── blind-spot-brief.css    # Blind Spot Brief plugin (294 lines)
-│   ├── commercial-quoter.css   # Commercial Lines quoter — 7-step wizard, dark mode, responsive (685 lines)
+│   ├── commercial-quoter.css   # Commercial Lines quoter — 7-step wizard, dark mode, responsive (743 lines)
 │   ├── dec-import.css          # Dec Page Importer plugin (354 lines)
 │   └── deposit-sheet.css       # Deposit Sheet plugin (662 lines)
 │
@@ -144,7 +144,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── task-sheet.js            # HawkSoft CSV task viewer — upload, parse, sort (overdue→priority→date), 9-col table, print-friendly layout (838 lines)
 │   ├── returned-mail.js         # Returned Mail Tracker — address validator (Google API), Street View + satellite imagery, log CRUD, HawkSoft copy output, CSV export (575 lines)
 │   ├── blind-spot-brief.js      # Blind Spot Brief — coverage gap analyzer (374 lines)
-│   ├── commercial-quoter.js     # Commercial Lines — 7-step intake wizard, 73 fields, PDF + CMSMTF export (1,274 lines)
+│   ├── commercial-quoter.js     # Commercial Lines — 7-step intake wizard, 73 fields, PDF + CMSMTF export (1,314 lines)
 │   ├── dec-import.js            # Dec Page Importer — PDF/image → form-fill pipeline (734 lines)
 │   ├── deposit-sheet.js         # Deposit Sheet — trust deposit calculator + CSV export (499 lines)
 │   │

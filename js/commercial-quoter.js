@@ -17,6 +17,7 @@ window.CommercialQuoter = (() => {
     let _data   = {};
     let _step   = 0;
     let _quotes = [];
+    let _currentQuoteId = null;
     let _cqPlacesInit   = false;
     let _debouncedCQMap = null;
 
@@ -50,23 +51,34 @@ window.CommercialQuoter = (() => {
                            covProp:'Property', covBPP:'BPP', covIM:'Inland Marine', covCargo:'Cargo' };
         const selectedCovs = covList.filter(k => _data[k]).map(k => covNames[k]);
 
-        const quote = {
-            id: _genId(),
-            bizName: _data.bizName || 'Unnamed Business',
-            coverages: selectedCovs,
-            timestamp: new Date().toISOString(),
-            data: Object.assign({}, _data),
-        };
-        _quotes.push(quote);
+        const existing = _currentQuoteId ? _quotes.find(x => x.id === _currentQuoteId) : null;
+        if (existing) {
+            existing.bizName = _data.bizName || 'Unnamed Business';
+            existing.coverages = selectedCovs;
+            existing.timestamp = new Date().toISOString();
+            existing.data = Object.assign({}, _data);
+        } else {
+            const id = _genId();
+            _quotes.push({
+                id: id,
+                bizName: _data.bizName || 'Unnamed Business',
+                coverages: selectedCovs,
+                timestamp: new Date().toISOString(),
+                data: Object.assign({}, _data),
+            });
+            _currentQuoteId = id;
+        }
         await _saveQuotesArray();
         await _save();
-        if (typeof App !== 'undefined' && App.toast) App.toast('✓ Saved to Commercial History');
+        if (_step === 0) _renderStep0();
+        if (typeof App !== 'undefined' && App.toast) App.toast(existing ? '✓ Quote updated' : '✓ Saved to Commercial History');
     }
 
     async function loadQuote(id) {
         const q = _quotes.find(x => x.id === id);
         if (!q) return;
         _data = Object.assign({}, q.data);
+        _currentQuoteId = id;
         await _save();
         _step = 1;
         _updateUI();
@@ -74,8 +86,19 @@ window.CommercialQuoter = (() => {
 
     function newQuote() {
         _data = {};
+        _currentQuoteId = null;
         _step = 1;
         _updateUI();
+    }
+
+    async function deleteQuote(id) {
+        const idx = _quotes.findIndex(x => x.id === id);
+        if (idx === -1) return;
+        _quotes.splice(idx, 1);
+        if (_currentQuoteId === id) _currentQuoteId = null;
+        await _saveQuotesArray();
+        if (_step === 0) _renderStep0();
+        if (typeof App !== 'undefined' && App.toast) App.toast('Quote deleted');
     }
 
     function prev() {
@@ -782,17 +805,33 @@ window.CommercialQuoter = (() => {
             list.innerHTML = '<p class="hint">No saved commercial quotes yet.</p>';
             return;
         }
+        const total = _quotes.length;
         const recent = _quotes.slice(-5).reverse();
-        list.innerHTML = recent.map(function(q) {
-            return '<div class="cq-recent-item card">' +
+        let html = '';
+        if (total > 5) {
+            html += '<p class="cq-quote-count">' + total + ' saved quotes (showing latest 5)</p>';
+        }
+        html += recent.map(function(q) {
+            var pills = (q.coverages || []).map(function(c) {
+                return '<span class="cq-cov-pill">' + Utils.escapeHTML(c) + '</span>';
+            }).join('');
+            var dateStr = q.timestamp ? new Date(q.timestamp).toLocaleDateString() : '';
+            var eid = Utils.escapeAttr(q.id);
+            return '<div class="cq-recent-item">' +
                 '<div class="cq-recent-info">' +
                 '<strong>' + Utils.escapeHTML(q.bizName || 'Unnamed Business') + '</strong>' +
-                '<span class="hint">' + Utils.escapeHTML((q.coverages || []).join(', ')) + '</span>' +
-                '<span class="hint">' + (q.timestamp ? new Date(q.timestamp).toLocaleDateString() : '') + '</span>' +
+                '<div class="cq-cov-pills">' + pills + '</div>' +
+                '<span class="cq-recent-date">' + dateStr + '</span>' +
                 '</div>' +
-                '<button class="btn btn-sm" onclick="CommercialQuoter.loadQuote(\'' + Utils.escapeAttr(q.id) + '\')">Load</button>' +
+                '<div class="cq-recent-actions">' +
+                '<button class="btn btn-sm" onclick="CommercialQuoter.loadQuote(\'' + eid + '\')">Load</button>' +
+                '<button class="cq-delete-btn" onclick="CommercialQuoter.deleteQuote(\'' + eid + '\')" title="Delete quote">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' +
+                '</button>' +
+                '</div>' +
                 '</div>';
         }).join('');
+        list.innerHTML = html;
     }
 
     function _renderSummary() {
@@ -1270,5 +1309,5 @@ window.CommercialQuoter = (() => {
         if (typeof App !== 'undefined' && App.toast) App.toast('✓ ' + checkId.replace('cq_cov', '') + ' coverage enabled');
     }
 
-    return { init, save, load, getQuotes, saveQuote, loadQuote, newQuote, prev, next, goToStep, exportPDF, exportCMSMTF, render, openBizStreetView: _openBizStreetView, openBizMaps: _openBizMaps, investigateBusiness: investigateBusiness, applyCoverageSuggestion: applyCoverageSuggestion };
+    return { init, save, load, getQuotes, saveQuote, loadQuote, deleteQuote, newQuote, prev, next, goToStep, exportPDF, exportCMSMTF, render, openBizStreetView: _openBizStreetView, openBizMaps: _openBizMaps, investigateBusiness: investigateBusiness, applyCoverageSuggestion: applyCoverageSuggestion };
 })();
