@@ -657,17 +657,11 @@
         </div>
 
         <!-- ═══ STEP FOOTER ═══════════════════════════════════════════════ -->
-        <div class="cq-step-footer">
-            <button id="cq-btn-prev" class="btn cq-nav-btn hidden" onclick="CommercialQuoter.prev()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                Back
-            </button>
-            <span class="cq-step-counter" id="cq-step-counter">1 / 7</span>
-            <button id="cq-btn-next" class="btn btn-primary cq-nav-btn" onclick="CommercialQuoter.next()">
-                Continue
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-        </div>
+        <footer class="cq-step-footer">
+            <button id="cq-btn-prev" class="btn btn-step-back hidden" onclick="CommercialQuoter.prev()">← Previous Step</button>
+            <span class="footer-step-count cq-step-counter" id="cq-step-counter">1 / 7</span>
+            <button id="cq-btn-next" class="btn btn-primary" onclick="CommercialQuoter.next()">Next</button>
+        </footer>
 
     <!-- Coverage limit datalists -->
     <datalist id="cq-gl-occ-list">

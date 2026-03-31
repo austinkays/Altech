@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Commercial Lines back/next buttons now match Personal Lines** (March 31, 2026):
+  - `plugins/commercial-quoter.html` — Changed `<div class="cq-step-footer">` → `<footer class="cq-step-footer">` so the commercial wizard footer gets the same fixed-position glassmorphism treatment as the personal-lines wizard. Updated back button from `btn cq-nav-btn` (outlined with SVG icon, "Back") to `btn btn-step-back` (ghost text, "← Previous Step"). Updated next button from `btn btn-primary cq-nav-btn` ("Continue" + SVG) to `btn btn-primary` ("Next"). Added `footer-step-count` class to the step counter span.
+  - `css/commercial-quoter.css` — Removed `.cq-nav-btn` block (no longer needed). Updated `.cq-step-footer` padding to use `env(safe-area-inset-bottom)` for mobile notch safety. Removed `.cq-nav-btn { padding: 9px 16px; }` from responsive rule.
+
 - **Weather widget infinite loop & service worker TypeError** (March 31, 2026):
   - `js/dashboard-widgets.js` — Added `_weatherFetchPending` flag (with `.finally()` reset) to `renderWeatherWidget()` to prevent re-entrant fetches when `_fetchWeather()` fails and `_weatherCache` remains `null`, which previously caused an unbounded Promise recursion loop.
   - `sw.js` — Added `open-meteo.com` to the service worker fetch bypass list so weather API requests are not intercepted by the SW (they were being re-fetched inside the SW context, blocked by CSP, the `.catch()` returned `undefined`, and `event.respondWith(undefined)` threw `TypeError: Failed to convert value to 'Response'`). Also tightened all hostname checks from `includes()` to `=== / endsWith()` to fix a CodeQL `js/incomplete-url-substring-sanitization` vulnerability.

@@ -530,18 +530,9 @@ body.dark-mode {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px 24px;
+    padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
     gap: 12px;
 }
-.cq-nav-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    padding: 10px 22px;
-    border-radius: 10px;
-}
-.cq-nav-btn.hidden { visibility: hidden; pointer-events: none; }
 .cq-step-counter {
     font-size: 12px;
     color: var(--text-tertiary);
@@ -742,7 +733,6 @@ body.dark-mode .cq-cov-pill {
     .cq-welcome-icon { font-size: 36px; }
 
     .cq-step-footer { padding: 12px 16px 20px; }
-    .cq-nav-btn { padding: 9px 16px; }
 }
 
 @media (max-width: 380px) {
