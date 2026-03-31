@@ -1884,14 +1884,29 @@ const ComplianceDashboard = {
         return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     },
 
+    _noteIcon(text) {
+        if (!text) return '💬';
+        const t = text.toLowerCase();
+        if (t === 'notified insured') return '📞';
+        if (t === 'emailed insured') return '📧';
+        if (t === 'left voicemail') return '📱';
+        if (t === 'renewal term confirmed') return '✅';
+        if (t === 'state website updated') return '🏛️';
+        if (t.startsWith('auto-cleared')) return '🔄';
+        if (t.startsWith('renewed')) return '🔄';
+        if (text.startsWith('🛏️')) return '';
+        return '💬';
+    },
+
     renderNoteLog(policyNumber) {
         const data = this.getNoteData(policyNumber);
         if (!data || !data.log || data.log.length === 0) return '';
         return data.log.slice().reverse().map((entry, revIdx) => {
             const origIdx = data.log.length - 1 - revIdx;
+            const icon = this._noteIcon(entry.text);
             return `
             <div class="cgl-note-entry">
-                <span class="cgl-note-entry-text">${Utils.escapeHTML(entry.text)}</span>
+                <span class="cgl-note-entry-text">${icon ? icon + ' ' : ''}${Utils.escapeHTML(entry.text)}</span>
                 <span class="cgl-note-entry-time">${this.formatNoteTime(entry.at)}</span>
                 <button class="cgl-note-delete-btn" onclick="ComplianceDashboard.deleteNoteEntry('${Utils.escapeHTML(policyNumber)}',${origIdx})" title="Delete this note">&times;</button>
             </div>
@@ -2332,8 +2347,11 @@ const ComplianceDashboard = {
 
             const noteData = this.getNoteData(policy.policyNumber);
             const hasNote = noteData && noteData.log && noteData.log.length > 0;
+            const noteCount = hasNote ? noteData.log.length : 0;
             const latestNote = hasNote ? noteData.log[noteData.log.length - 1].text : '';
-            const noteText = Utils.escapeHTML(latestNote);
+            const noteIcon = this._noteIcon(latestNote);
+            const notePrefix = noteCount > 1 ? noteCount + ' notes · ' : '';
+            const noteText = Utils.escapeHTML(notePrefix + (noteIcon ? noteIcon + ' ' : '') + latestNote);
             const renewedTo = noteData && noteData.renewedTo ? noteData.renewedTo : null;
             const isStateUpdated = !!(noteData && noteData.stateUpdated);
             const needsStateUpdate = !!(noteData && noteData.needsStateUpdate && !noteData.stateUpdated);
@@ -2409,7 +2427,7 @@ const ComplianceDashboard = {
                     </td>
                     <td>
                         <div style="display:flex;align-items:center;gap:4px;">
-                            <button class="cgl-note-btn ${hasNote ? 'has-note' : ''}" data-note-for="${pn}" onclick="ComplianceDashboard.toggleNote('${pn}')" title="${hasNote ? 'Note: ' + noteText : 'Add note'}">📝</button>
+                            <button class="cgl-note-btn ${hasNote ? 'has-note' : ''}" data-note-for="${pn}" onclick="ComplianceDashboard.toggleNote('${pn}')" title="${hasNote ? 'Note: ' + noteText : 'Add note'}">📝${noteCount > 0 ? `<span class="cgl-note-count">${noteCount}</span>` : ''}</button>
                             ${actionHtml}
                         </div>
                     </td>
@@ -2417,13 +2435,17 @@ const ComplianceDashboard = {
                 <tr class="cgl-note-row" id="note-row-${pn}" style="display:none;">
                     <td colspan="${colSpan}">
                         <div class="cgl-quick-notes">
-                            <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Notified insured')">📞 Notified Insured</button>
-                            <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Emailed insured')">📧 Emailed Insured</button>
-                            <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Left voicemail')">📱 Left Voicemail</button>
-                            <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Renewal term confirmed')">✅ Renewal Confirmed</button>
-                            <button class="cgl-quick-note-btn renew" onclick="ComplianceDashboard.markRenewed('${pn}')">🔄 Renewed (New Policy #)</button>
-                            <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.markStateUpdated('${pn}')" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857;">🏛️ State Updated</button>
-                            <button class="cgl-quick-note-btn cgl-snooze-quick" onclick="ComplianceDashboard.snoozePolicy('${pn}')">🛏️ Sleep Until Tomorrow</button>
+                            <div class="cgl-quick-notes-row">
+                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Notified insured')">📞 Notified Insured</button>
+                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Emailed insured')">📧 Emailed Insured</button>
+                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Left voicemail')">📱 Left Voicemail</button>
+                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Renewal term confirmed')">✅ Renewal Confirmed</button>
+                            </div>
+                            <div class="cgl-quick-notes-row cgl-state-actions">
+                                <button class="cgl-quick-note-btn renew" onclick="ComplianceDashboard.markRenewed('${pn}')">🔄 Renewed (New Policy #)</button>
+                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.markStateUpdated('${pn}')" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857;">🏛️ State Updated</button>
+                                <button class="cgl-quick-note-btn cgl-snooze-quick" onclick="ComplianceDashboard.snoozePolicy('${pn}')">🛏️ Sleep Until Tomorrow</button>
+                            </div>
                         </div>
                         <textarea class="cgl-note-input" rows="1" placeholder="Add a note…" onblur="ComplianceDashboard.saveNote('${pn}')" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur();}"></textarea>
                         <div class="cgl-note-log">${this.renderNoteLog(pn)}</div>

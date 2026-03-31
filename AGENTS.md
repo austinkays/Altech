@@ -75,7 +75,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (787 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,208 lines)
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (934 lines)
-│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + needs-state-update badge + snooze styles + fixed 6-col stat grid (1,293 lines)
+│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + needs-state-update badge + snooze styles + fixed 6-col stat grid (1,320 lines)
 │   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
 │   ├── intake-assist.css       # AI intake professional UI — enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
@@ -144,7 +144,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── task-sheet.js            # HawkSoft CSV task viewer — upload, parse, sort (overdue→priority→date), 9-col table, print-friendly layout (838 lines)
 │   ├── returned-mail.js         # Returned Mail Tracker — address validator (Google API), Street View + satellite imagery, log CRUD, HawkSoft copy output, CSV export (575 lines)
 │   ├── blind-spot-brief.js      # Blind Spot Brief — coverage gap analyzer (374 lines)
-│   ├── commercial-quoter.js     # Commercial Lines — 7-step intake wizard, 73 fields, PDF + CMSMTF export; bizName required-field validation; Places retry capped at 10; map image onerror handlers; filename sanitization (1,314 lines)
+│   ├── commercial-quoter.js     # Commercial Lines — 7-step intake wizard, 73 fields, PDF + CMSMTF export; bizName required-field validation; Places retry capped at 10; map image onerror handlers; filename sanitization (1,335 lines)
 │   ├── dec-import.js            # Dec Page Importer — PDF/image → form-fill pipeline (734 lines)
 │   ├── deposit-sheet.js         # Deposit Sheet — trust deposit calculator + CSV export (499 lines)
 │   │
@@ -176,7 +176,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── returned-mail.html       # Returned Mail Tracker — address validator, log form, table + actions (127 lines)
 │   ├── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
 │   ├── blind-spot-brief.html    # Blind Spot Brief UI (32 lines)
-│   ├── commercial-quoter.html   # Commercial Lines wizard — 7 steps, 73 fields (671 lines)
+│   ├── commercial-quoter.html   # Commercial Lines wizard — 7 steps, 73 fields (696 lines)
 │   ├── dec-import.html          # Dec Page Importer UI (131 lines)
 │   └── deposit-sheet.html       # Deposit Sheet UI (108 lines)
 │

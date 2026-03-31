@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `plugins/quickref.html`: Replaced 6 hardcoded emoji buttons with dynamic `#qrEmojiGrid` container + Add/Reset header buttons
 - `css/quickref.css`: Added emoji picker popover, button wrapper with hover edit/delete actions, inline label input, category headers, dark mode overrides
 
+### Changed
+
+- **CGL Compliance dashboard: improved notes & renewed badge UX** (March 31, 2026):
+  - `css/compliance.css` — Changed "Renewed" badge from orange to blue (light + dark mode); widened note preview to 400px with 2-line clamp; restructured action buttons into two rows (contact + state actions); added note count badge on 📝 button
+  - `js/compliance-dashboard.js` — Added `_noteIcon()` helper mapping note types to emoji icons (📞📧📱✅🏛️🔄💬); updated `renderNoteLog()` with icon prefixes; added note count + icon in compact preview text; split quick-note buttons into contact row and state-actions row; added count badge overlay on notes toggle button
+
 ### Fixed
 
 - **CGL Compliance dashboard widget card height** (March 31, 2026): Stat pills (Critical/Warning/Current/Total) were wrapping to a second row, causing the card to appear "1–2 lines short" vs its bento grid cell. Fixed by switching `.compliance-stat-pill` to `flex-direction: column` (count stacked above label) + `flex: 1; min-width: 0` so all 4 pills fit on one row with full labels. (`css/dashboard.css`)
