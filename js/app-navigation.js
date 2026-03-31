@@ -481,8 +481,8 @@ Object.assign(App, {
                         this.data = {};
                         this.drivers = [];
                         this.vehicles = [];
-                        localStorage.removeItem('altech_drivers');
-                        localStorage.removeItem('altech_vehicles');
+                        localStorage.removeItem(STORAGE_KEYS.DRIVERS);
+                        localStorage.removeItem(STORAGE_KEYS.VEHICLES);
                     } else if (choice === 'save-fresh') {
                         // Save current as draft, then clear
                         await this._saveCurrentAsDraft();
@@ -490,8 +490,8 @@ Object.assign(App, {
                         this.data = {};
                         this.drivers = [];
                         this.vehicles = [];
-                        localStorage.removeItem('altech_drivers');
-                        localStorage.removeItem('altech_vehicles');
+                        localStorage.removeItem(STORAGE_KEYS.DRIVERS);
+                        localStorage.removeItem(STORAGE_KEYS.VEHICLES);
                     }
                     // 'continue' — just proceed with existing data
                     await this.init();

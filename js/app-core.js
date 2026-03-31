@@ -560,8 +560,8 @@ Object.assign(App, {
                 this.vehicles = [];
                 delete this.data.drivers;
                 delete this.data.vehicles;
-                const driverList = document.getElementById('driverCardList');
-                const vehicleList = document.getElementById('vehicleCardList');
+                const driverList = document.getElementById('driversList');
+                const vehicleList = document.getElementById('vehiclesList');
                 if (driverList) driverList.innerHTML = '';
                 if (vehicleList) vehicleList.innerHTML = '';
             }
@@ -1547,9 +1547,16 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                 </table>
             </div>
             <div style="margin-top:8px;text-align:right;">
-                <button class="btn btn-tertiary" onclick="if(confirm('Clear export history?')){localStorage.removeItem('altech_export_history');fetch('/local/export-history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})}).catch(()=>{});App.loadExportHistory();}">Clear History</button>
+                <button class="btn btn-tertiary" onclick="App.clearExportHistory()">Clear History</button>
             </div>
         `;
+    },
+
+    clearExportHistory() {
+        if (!confirm('Clear export history?')) return;
+        localStorage.removeItem(STORAGE_KEYS.EXPORT_HISTORY);
+        fetch('/local/export-history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).catch(() => {});
+        this.loadExportHistory();
     },
 
 

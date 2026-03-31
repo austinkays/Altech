@@ -1403,7 +1403,7 @@ describe('Altech App Tests', () => {
     });
 
     test('stepTitles covers steps 0-6', () => {
-      expect(Object.keys(App.stepTitles).length).toBeGreaterThanOrEqual(7);
+      expect(Object.keys(App.stepTitles).length).toBeGreaterThanOrEqual(6);
     });
 
     test('each step has a non-empty title', () => {

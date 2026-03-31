@@ -72,7 +72,6 @@ const App = {
     stepTitles: {
         'step-0': 'Policy Scan',
         'step-1': 'Personal Information',
-        'step-2': 'Coverage Type',
         'step-3': 'Property Details',
         'step-4': 'Vehicle & Driver Info',
         'step-5': 'Risk Factors & Additional Info',

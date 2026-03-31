@@ -113,6 +113,13 @@ window.CommercialQuoter = (() => {
     function next() {
         if (_step < 6) {
             _collectFields();
+            // Require business name before leaving step 0
+            if (_step === 0 && !(_data.bizName || '').trim()) {
+                if (typeof App !== 'undefined' && App.toast) App.toast('Please enter a Business Name before continuing.', 'error');
+                const el = document.getElementById('cq_bizName');
+                if (el) { el.focus(); el.classList.add('input-error'); setTimeout(() => el.classList.remove('input-error'), 2000); }
+                return;
+            }
             _save();
             _step++;
             _updateUI();
@@ -136,6 +143,11 @@ window.CommercialQuoter = (() => {
     }
 
     async function exportPDF() {
+        _collectFields();
+        if (!(_data.bizName || '').trim()) {
+            if (typeof App !== 'undefined' && App.toast) App.toast('Please enter a Business Name before exporting.', 'error');
+            return;
+        }
         if (!window.jspdf || !window.jspdf.jsPDF) {
             if (typeof App !== 'undefined' && App.toast) App.toast('PDF library not loaded — reload and try again', 'error');
             return;
@@ -459,12 +471,17 @@ window.CommercialQuoter = (() => {
         // ── Footer ────────────────────────────────────────────────────────
         drawFooter();
 
-        const safeName = (_data.bizName || 'Commercial').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
+        const safeName = (_data.bizName || 'Commercial').replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'Commercial';
         doc.save(safeName + '_Commercial_Quote.pdf');
         if (typeof App !== 'undefined' && App.toast) App.toast('✓ PDF downloaded');
     }
 
     function exportCMSMTF() {
+        _collectFields();
+        if (!(_data.bizName || '').trim()) {
+            if (typeof App !== 'undefined' && App.toast) App.toast('Please enter a Business Name before exporting.', 'error');
+            return;
+        }
         const d = _data;
         const lines = [];
         const ln = (key, val) => key + ' = ' + (val || '').toString().replace(/[\r\n]+/g, ' ');
@@ -585,7 +602,7 @@ window.CommercialQuoter = (() => {
         const blob    = new Blob([content], { type: 'text/plain' });
         const url     = URL.createObjectURL(blob);
         const a       = document.createElement('a');
-        const safeName = (d.bizName || 'Commercial').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
+        const safeName = (d.bizName || 'Commercial').replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'Commercial';
         a.href     = url;
         a.download = safeName + '_Commercial_HawkSoft.CMSMTF';
         document.body.appendChild(a);
@@ -973,6 +990,8 @@ window.CommercialQuoter = (() => {
         const enc = encodeURIComponent(address);
         streetImg.src = 'https://maps.googleapis.com/maps/api/streetview?size=640x360&location=' + enc + '&fov=80&pitch=0&key=' + apiKey;
         satImg.src    = 'https://maps.googleapis.com/maps/api/staticmap?center=' + enc + '&zoom=19&size=640x360&maptype=satellite&key=' + apiKey;
+        streetImg.onerror = () => { streetImg.removeAttribute('src'); if (hint) hint.textContent = 'Street view unavailable for this address.'; };
+        satImg.onerror    = () => { satImg.removeAttribute('src'); };
         streetImg.style.cursor = 'pointer';
         satImg.style.cursor    = 'pointer';
         streetImg.onclick = _openBizStreetView;
@@ -985,14 +1004,16 @@ window.CommercialQuoter = (() => {
         _debouncedCQMap();
     }
 
+    let _cqPlacesRetry = 0;
     function _initCQPlaces() {
         if (_cqPlacesInit) return;
         const streetInput = document.getElementById('cq_bizStreet');
         if (!streetInput) return;
         if (!window.google?.maps?.places) {
-            setTimeout(_initCQPlaces, 600);
+            if (_cqPlacesRetry++ < 10) setTimeout(_initCQPlaces, 600);
             return;
         }
+        _cqPlacesRetry = 0;
         _cqPlacesInit = true;
 
         let sessionToken = new google.maps.places.AutocompleteSessionToken();

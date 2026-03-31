@@ -27,6 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `js/commercial-quoter.js` — Added `_currentQuoteId` tracking; `saveQuote()` now upserts (updates existing quote if loaded/previously saved, creates new otherwise); `loadQuote()` sets active quote ID; `newQuote()` clears it. Added `deleteQuote(id)` function exposed on public API. Improved `_renderStep0()` with coverage pill badges, delete buttons, quote count indicator, and better card structure.
   - `css/commercial-quoter.css` — Replaced flat quote card styles with coverage pill badges (`.cq-cov-pill`), delete button (`.cq-delete-btn`), actions group (`.cq-recent-actions`), quote count hint, truncated business name. Added dark mode overrides for new elements.
 
+- **fix(quoting): 11 bugs fixed across Personal Lines + Commercial Lines quoting tools** (April 2026):
+  - `js/app-core.js`: Fixed `handleType()` using wrong DOM IDs (`driverCardList`→`driversList`, `vehicleCardList`→`vehiclesList`); extracted inline onclick into proper `App.clearExportHistory()` using `STORAGE_KEYS.EXPORT_HISTORY`
+  - `js/storage-keys.js`: Added `DRIVERS: 'altech_drivers'` and `VEHICLES: 'altech_vehicles'`
+  - `js/app-navigation.js`: Replaced 4 hardcoded `'altech_drivers'`/`'altech_vehicles'` strings with `STORAGE_KEYS.*` references
+  - `js/app-init.js`: Removed dead `'step-2': 'Coverage Type'` from `stepTitles`
+  - `plugins/commercial-quoter.html`: Added 5 missing `<datalist>` elements (GL Occ, GL Agg, PL Limit, BA BI, BA PD)
+  - `js/commercial-quoter.js`: `bizName` validation guard in `next()`/`exportPDF()`/`exportCMSMTF()`; Places retry cap at 10; `onerror` handlers on map images; improved filename sanitization
+  - `css/commercial-quoter.css`: Defined `--cq-purple` CSS variable with dark mode override; replaced all hardcoded `#A855F7`
+  - `tests/app.test.js`: Updated stepTitles count assertion `>= 7` → `>= 6`
+
 - **fix(prospect): increase PDF export vertical spacing** (March 31, 2026):
   - `js/prospect.js` — increased section label gaps (6→14pt before, 10→16pt after), sub-header gaps (6→10pt before, 10→14pt after), row heights (baseRowH 14→16, kvLineH 10→12), body text gaps, and document header spacing to match personal lines PDF density
 

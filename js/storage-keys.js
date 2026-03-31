@@ -44,6 +44,8 @@ window.STORAGE_KEYS = Object.freeze({
     RETURNED_MAIL:          'altech_returned_mail',
     BSB_API_KEY:            'altech_bsb_apikey',
     BSB_CACHE:              'altech_bsb_cache',
+    DRIVERS:                'altech_drivers',         // legacy driver array storage
+    VEHICLES:               'altech_vehicles',        // legacy vehicle array storage
     ACCT_VAULT_V1:          'altech_acct_vault',      // legacy migration key
     ACCT_HISTORY:           'altech_acct_history',
     QUICKREF_SECTIONS:      'altech_quickref_sections',

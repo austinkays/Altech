@@ -4,6 +4,14 @@
    Dark mode: body.dark-mode .selector pattern
    ========================================================= */
 
+/* ── Local design token — commercial purple accent ─────── */
+:root {
+    --cq-purple: var(--cq-purple);
+}
+body.dark-mode {
+    --cq-purple: #C084FC;
+}
+
 /* ── Step Progress Header ─────────────────────────────── */
 /* .step-title and .progress-track/.progress-fill are
    defined in layout.css / components.css and reused here */
@@ -675,7 +683,7 @@ body.dark-mode .cq-sub-detail-inner {
 .cq-cov-banner-label {
     font-size: 13px;
     font-weight: 600;
-    color: #A855F7;
+    color: var(--cq-purple);
     margin-bottom: 10px;
 }
 .cq-cov-banner-pills {
@@ -690,13 +698,13 @@ body.dark-mode .cq-sub-detail-inner {
     border-radius: 20px;
     border: 1.5px solid rgba(168, 85, 247, 0.3);
     background: rgba(168, 85, 247, 0.08);
-    color: #A855F7;
+    color: var(--cq-purple);
     cursor: pointer;
     transition: background 0.18s ease, border-color 0.18s ease;
 }
 .cq-cov-pill:hover {
     background: rgba(168, 85, 247, 0.15);
-    border-color: #A855F7;
+    border-color: var(--cq-purple);
 }
 
 /* ── Dark Mode — Intel ───────────────────────────────── */
