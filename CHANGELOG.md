@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **CGL Dashboard: Info Modal.** ℹ️ Info button in toolbar opens a full-guide modal explaining the renewal detection cycle, status badges, note system, quick actions, deduplication, and print/backup features. Escape key + backdrop click to close.
+- **CGL Dashboard: At-a-Glance Note Icons.** Inline emoji icon strip (📞📧📱✅🏛️🔄💬) appears in each policy row, showing at a glance what actions were taken without opening notes.
+- `plugins/compliance.html`: Added ℹ️ Info toolbar button + `#cglInfoOverlay` modal with 7 guide sections
+- `css/compliance.css`: Added `.cgl-info-overlay`, `.cgl-info-modal`, `.cgl-info-header`, `.cgl-info-body`, `.cgl-info-section`, `.cgl-info-table`, `.cgl-info-close` styles with dark mode + mobile responsive
+- `css/compliance.css`: Added `.cgl-note-icons` class for inline emoji icon strip
+- `js/compliance-dashboard.js`: Added `showInfo()` / `closeInfo()` methods with Escape key listener
+- `js/compliance-dashboard.js`: Added `noteIcons` computation using `_noteIcon()` + Set dedup per policy row
+
+### Fixed
+- **CGL Dashboard: Note Count Badge Squished.** Enlarged `.cgl-note-count` badge — min-width 14→16px, height 14→16px, font-size 9→10px, border-radius 7→8px, padding 0 3px→0 4px
+- **CGL Dashboard: Renewal Safety Gap.** `markStateUpdated()` now auto-dismisses the policy by creating a `dismissedPolicies` entry with the current expiration date. This ensures next year's renewal detection has a baseline — previously, after "State Updated", no baseline existed and the policy could not be detected as renewed the following year.
+
+### Added
 - **Quick Reference: Editable Quick Emojis.** Users can now customize which emojis appear in the Quick Emoji grid (up to 12). Features: curated insurance-workflow picker (~54 emojis across 7 categories: Status, Communication, Documentation, Property & Auto, Finance, Time, People), inline label editing, add/remove individual emojis, reset-to-defaults button. Cloud-synced across devices.
 - `js/storage-keys.js`: Added `QUICKREF_EMOJIS` key
 - `js/cloud-sync.js`: Added `quickRefEmojis` to SYNC_DOCS + _getLocalData + pullFromCloud

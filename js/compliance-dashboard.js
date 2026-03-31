@@ -2065,6 +2065,14 @@ const ComplianceDashboard = {
         if (policy?.expirationDate) data.stateUpdatedForExp = policy.expirationDate;
         data.log.push({ text: 'State website updated', at: new Date().toISOString() });
         this.policyNotes[policyNumber] = data;
+        // Auto-dismiss with new expiration as baseline for next year's renewal detection
+        if (policy?.expirationDate) {
+            this.dismissedPolicies[policyNumber] = {
+                dismissedAt: new Date().toISOString(),
+                expirationDate: policy.expirationDate,
+                reason: 'state-updated'
+            };
+        }
         this.saveState();
         this._refreshNoteUI(policyNumber);
         this.filterPolicies();
@@ -2352,6 +2360,7 @@ const ComplianceDashboard = {
             const noteIcon = this._noteIcon(latestNote);
             const notePrefix = noteCount > 1 ? noteCount + ' notes · ' : '';
             const noteText = Utils.escapeHTML(notePrefix + (noteIcon ? noteIcon + ' ' : '') + latestNote);
+            const noteIcons = hasNote ? [...new Set(noteData.log.map(e => this._noteIcon(e.text)).filter(Boolean))].join(' ') : '';
             const renewedTo = noteData && noteData.renewedTo ? noteData.renewedTo : null;
             const isStateUpdated = !!(noteData && noteData.stateUpdated);
             const needsStateUpdate = !!(noteData && noteData.needsStateUpdate && !noteData.stateUpdated);
@@ -2404,6 +2413,7 @@ const ComplianceDashboard = {
                         ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${Utils.escapeHTML(policy.email)}</div>` : ''}
                         ${isStateUpdated ? `<span class="cgl-state-badge" id="state-badge-${pn}">✅ State Updated</span>` : `<span class="cgl-state-badge" id="state-badge-${pn}" style="display:none"></span>`}
                         ${hasNote && !isStateUpdated ? `<div class="cgl-note-preview" id="note-preview-${pn}">${renewedTo ? 'Renewed → ' + Utils.escapeHTML(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pn}" style="display:none"></div>`}
+                        ${noteIcons && !isStateUpdated ? `<div class="cgl-note-icons">${noteIcons}</div>` : ''}
                     </td>
                     <td style="font-family: monospace; font-size: 13px;">
                         <div>${Utils.escapeHTML(policy.policyNumber)}</div>
@@ -2804,6 +2814,22 @@ const ComplianceDashboard = {
 
         if (typeof App !== 'undefined' && App.toast) {
             App.toast(`PDF exported: ${printPolicies.length} policies`, 'success');
+        }
+    },
+
+    // ── Info modal ──
+    showInfo() {
+        const overlay = document.getElementById('cglInfoOverlay');
+        if (overlay) overlay.style.display = 'flex';
+        this._infoEscHandler = (e) => { if (e.key === 'Escape') this.closeInfo(); };
+        document.addEventListener('keydown', this._infoEscHandler);
+    },
+    closeInfo() {
+        const overlay = document.getElementById('cglInfoOverlay');
+        if (overlay) overlay.style.display = 'none';
+        if (this._infoEscHandler) {
+            document.removeEventListener('keydown', this._infoEscHandler);
+            this._infoEscHandler = null;
         }
     }
 };
