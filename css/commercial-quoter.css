@@ -533,15 +533,13 @@ body.dark-mode {
     padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
     gap: 12px;
 }
-/* Undo layout.css `footer .btn { max-width: 200px }` bleed at desktop widths */
-#commercialQuoterTool footer .btn {
-    max-width: none;
-}
 /* Desktop polish — match personal lines footer feel */
 @media (min-width: 960px) {
     #commercialQuoterTool footer {
         border-radius: 16px 16px 0 0;
         padding: 12px 32px calc(12px + env(safe-area-inset-bottom));
+        justify-content: space-between;
+        align-items: center;
     }
 }
 .cq-step-counter {
