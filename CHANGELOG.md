@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **fix(prospect): increase PDF export vertical spacing** (March 31, 2026):
+  - `js/prospect.js` — increased section label gaps (6→14pt before, 10→16pt after), sub-header gaps (6→10pt before, 10→14pt after), row heights (baseRowH 14→16, kvLineH 10→12), body text gaps, and document header spacing to match personal lines PDF density
+
 - **docs: add commercial quoter to AGENTS.md, CLAUDE.md, copilot-instructions.md** (March 30, 2026):
   - Added `commercial-quoter.css`, `commercial-quoter.js`, `commercial-quoter.html` entries to AGENTS.md file structure
   - Added `altech_commercial_v1` and `altech_commercial_quotes` to AGENTS.md localStorage table

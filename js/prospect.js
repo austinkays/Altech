@@ -370,33 +370,33 @@ ${ai.underwritingNotes || 'N/A'}`;
             // ── Section label (thin rule + ALL-CAPS, matching personal lines) ──
             const sectionLabel = (title) => {
                 need(50); // reserve enough for header + at least a few lines of content
-                y += 6;
+                y += 14;
                 doc.setDrawColor(...RULE); doc.setLineWidth(0.4);
                 doc.line(mg, y, pageW - mg, y);
                 doc.setFontSize(7); doc.setFont('helvetica', 'bold');
                 doc.setTextColor(...MID);
                 doc.text(title.toUpperCase(), mg, y + 5);
                 doc.setFont('helvetica', 'normal'); doc.setTextColor(...INK);
-                y += 10;
+                y += 16;
             };
 
             // ── Sub-header (bold text + light underline) ──
             // Reserves 40pt to avoid orphaning the header at page bottom
             const subHeader = (title) => {
                 need(40);
-                y += 6;
+                y += 10;
                 doc.setFontSize(9); doc.setFont('helvetica', 'bold');
                 doc.setTextColor(...INK);
                 doc.text(title, mg, y);
                 doc.setDrawColor(...LIGHT); doc.setLineWidth(0.3);
                 doc.line(mg, y + 3, pageW - mg, y + 3);
                 doc.setFont('helvetica', 'normal');
-                y += 10;
+                y += 14;
             };
 
             // ── 2-col key-value table with alternating fill ──
-            const baseRowH = 14;
-            const kvLineH = 10;
+            const baseRowH = 16;
+            const kvLineH = 12;
 
             const kvRow = (fields, cols) => {
                 cols = cols || 2;
@@ -432,7 +432,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                     });
                     y += rowH;
                 });
-                y += 2;
+                y += 4;
             };
 
             // ── Body text with bullet/number detection ──
@@ -454,7 +454,7 @@ ${ai.underwritingNotes || 'N/A'}`;
 
                 for (const rawLine of lines) {
                     const trimmed = rawLine.trim();
-                    if (!trimmed) { y += 4; lastWasList = false; continue; }
+                    if (!trimmed) { y += 6; lastWasList = false; continue; }
                     const clean = trimmed.replace(/\*\*(.+?)\*\*/g, '$1');
                     const bulletMatch = clean.match(/^[-•*]\s+(.+)/);
                     const numMatch = clean.match(/^(\d+)[.)]\s*(.+)/);
@@ -491,14 +491,14 @@ ${ai.underwritingNotes || 'N/A'}`;
                         for (let i = 0; i < wrapped.length; i++) { if (i > 0) need(12); doc.text(wrapped[i], mg + textIndent, y); y += lineH; }
                         lastWasList = true;
                     } else {
-                        if (lastWasList) y += 3;
+                        if (lastWasList) y += 5;
                         doc.setFontSize(sz); doc.setFont('helvetica', bld ? 'bold' : 'normal'); doc.setTextColor(...clr);
                         const wrapped = doc.splitTextToSize(clean, cw - indent);
                         for (const wl of wrapped) { need(12); doc.text(wl, mg + indent, y); y += lineH; }
                         lastWasList = false;
                     }
                 }
-                y += 2;
+                y += 4;
             };
 
             // ════════════════════════════════════════════════════════════
@@ -513,10 +513,10 @@ ${ai.underwritingNotes || 'N/A'}`;
             // Title + business name
             doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.setTextColor(...INK);
             doc.text('Prospect Investigation Report', mg, y);
-            y += 14;
+            y += 18;
             doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MID);
             doc.text((d.displayName || d.businessName) + ' \u00b7 ' + d.state + ' \u00b7 ' + new Date(d.timestamp).toLocaleDateString(), mg, y);
-            y += 6;
+            y += 10;
 
             // Risk rating badge (text-only, toner-safe)
             const riskRating = ai?.riskRating || '';
@@ -524,7 +524,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                 doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(...ACCENT);
                 doc.text('RISK: ' + riskRating.toUpperCase(), pageW - mg, y, { align: 'right' });
             }
-            y += 6;
+            y += 8;
 
             // ── Data Sources Status Row ──
             const liOk = d.li && d.li.available !== false && !d.li.error && d.li.contractor;
@@ -543,7 +543,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                 (placesOk ? '[Y]' : '[N]') + ' Google',
             ].join('    ') + '    (' + srcCount + '/5 sources)';
             doc.text(srcLine, mg, y);
-            y += 8;
+            y += 12;
 
             // ════════════════════════════════════════════════════════════
             //  ② BUSINESS OVERVIEW (kvRow table)
@@ -595,7 +595,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                 y += 18;
                 doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...INK);
                 for (const sl of summaryLines) { doc.text(sl, mg + 10, y); y += 12; }
-                y += 8;
+                y += 12;
             }
 
             // ════════════════════════════════════════════════════════════
@@ -613,7 +613,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                     const glClean = String(ai.glClassification).replace(/\*\*(.+?)\*\*/g, '$1');
                     const glLines = doc.splitTextToSize(glClean, cw);
                     for (const gl of glLines) { need(14); doc.text(gl, mg, y); y += 13; }
-                    y += 4;
+                    y += 6;
                 }
 
                 if (ai.naicsAnalysis) { subHeader('NAICS / Industry'); body(ai.naicsAnalysis); }
@@ -746,7 +746,7 @@ ${ai.underwritingNotes || 'N/A'}`;
             } else {
                 doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...MID);
                 doc.text('No OSHA violations found in public records.', mg, y + 2);
-                y += 14;
+                y += 16;
             }
 
             // SAM.gov

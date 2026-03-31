@@ -1,4 +1,4 @@
-# 🏠 Altech — AI Insurance Agency Toolkit
+The # 🏠 Altech — AI Insurance Agency Toolkit
 
 **Mobile-first insurance agency platform** — personal lines intake, AI document scanning, Firebase auth & cloud sync, CGL compliance tracking, COI generation, prospect research, and multi-format exports to HawkSoft + EZLynx.
 
