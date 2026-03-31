@@ -119,9 +119,10 @@ self.addEventListener('fetch', (event) => {
 
     // Never cache API calls or Firebase — always go to network
     if (url.pathname.startsWith('/api/') ||
-        url.hostname.includes('googleapis.com') ||
-        url.hostname.includes('firebaseio.com') ||
-        url.hostname.includes('gstatic.com')) {
+        url.hostname === 'googleapis.com' || url.hostname.endsWith('.googleapis.com') ||
+        url.hostname === 'firebaseio.com' || url.hostname.endsWith('.firebaseio.com') ||
+        url.hostname === 'gstatic.com' || url.hostname.endsWith('.gstatic.com') ||
+        url.hostname === 'open-meteo.com' || url.hostname.endsWith('.open-meteo.com')) {
         return; // Let the browser handle it normally
     }
 

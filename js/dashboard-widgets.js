@@ -18,6 +18,7 @@ window.DashboardWidgets = (() => {
 
     // Weather cache
     let _weatherCache = null;
+    let _weatherFetchPending = false;
     let _weatherLocation = { lat: 45.63, lon: -122.67, name: 'Vancouver, WA' }; // fallback
     const WEATHER_CACHE_KEY = STORAGE_KEYS.WEATHER_CACHE;
     const WEATHER_LOCATION_KEY = STORAGE_KEYS.WEATHER_LOCATION;
@@ -355,11 +356,15 @@ window.DashboardWidgets = (() => {
         if (!container) return;
 
         if (!_weatherCache) {
+            if (_weatherFetchPending) return;
             container.innerHTML = `
                 <div class="weather-widget-inner">
                     <div class="weather-loading">Loading weather...</div>
                 </div>`;
-            _fetchWeather().then(() => renderWeatherWidget());
+            _weatherFetchPending = true;
+            _fetchWeather().then(() => renderWeatherWidget()).finally(() => {
+                _weatherFetchPending = false;
+            });
             return;
         }
 

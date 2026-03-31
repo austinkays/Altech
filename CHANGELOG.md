@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Weather widget infinite loop & service worker TypeError** (March 31, 2026):
+  - `js/dashboard-widgets.js` — Added `_weatherFetchPending` flag (with `.finally()` reset) to `renderWeatherWidget()` to prevent re-entrant fetches when `_fetchWeather()` fails and `_weatherCache` remains `null`, which previously caused an unbounded Promise recursion loop.
+  - `sw.js` — Added `open-meteo.com` to the service worker fetch bypass list so weather API requests are not intercepted by the SW (they were being re-fetched inside the SW context, blocked by CSP, the `.catch()` returned `undefined`, and `event.respondWith(undefined)` threw `TypeError: Failed to convert value to 'Response'`). Also tightened all hostname checks from `includes()` to `=== / endsWith()` to fix a CodeQL `js/incomplete-url-substring-sanitization` vulnerability.
+
 - **fix(commercial-quoter): fix duplicate spam in Recent Commercial Quotes** (March 31, 2026):
   - `js/commercial-quoter.js` — Added `_currentQuoteId` tracking; `saveQuote()` now upserts (updates existing quote if loaded/previously saved, creates new otherwise); `loadQuote()` sets active quote ID; `newQuote()` clears it. Added `deleteQuote(id)` function exposed on public API. Improved `_renderStep0()` with coverage pill badges, delete buttons, quote count indicator, and better card structure.
   - `css/commercial-quoter.css` — Replaced flat quote card styles with coverage pill badges (`.cq-cov-pill`), delete button (`.cq-delete-btn`), actions group (`.cq-recent-actions`), quote count hint, truncated business name. Added dark mode overrides for new elements.
