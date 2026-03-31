@@ -337,6 +337,7 @@
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s, transform 0.1s, box-shadow 0.15s;
     font-family: inherit;
+    width: 100%;
     min-height: 92px;
     height: 92px;
     user-select: none;
@@ -374,6 +375,7 @@
 /* ── Emoji button wrapper (with edit/delete actions) ── */
 .qr-emoji-btn-wrap {
     position: relative;
+    width: 100%;
 }
 .qr-emoji-actions {
     position: absolute;
