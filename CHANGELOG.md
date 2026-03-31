@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **fix(hawksoft-logger): move agent initials to front of RE: line** (March 31, 2026):
+  - `api/hawksoft-logger.js` — initials now prepended (`RE: AJK — Summary…`) instead of appended (`RE: Summary… — AJK`) so they survive HawkSoft's truncated log list view
+  - `api/hawksoft-logger.js` — updated SYSTEM_PROMPT FORMAT template to show `[Agent Initials — ]` placement; added strip-regex for AI-inserted initials at start of line
+  - `api/hawksoft-logger.js` — added instruction telling AI not to include initials (post-processing handles it)
+  - `css/call-logger.css` — enhanced `.cl-section-label` with blue left accent bar (`border-left: 3px solid var(--apple-blue)`), bumped font-size 10→11px, margin-bottom 10→12px
+  - `tests/hawksoft-logger.test.js` — updated test expectations for new initials placement comment and stale FORMAT/Action Items assertions
+
 ### Added
 - **CGL Dashboard: Info Modal.** ℹ️ Info button in toolbar opens a full-guide modal explaining the renewal detection cycle, status badges, note system, quick actions, deduplication, and print/backup features. Escape key + backdrop click to close. Modal opens near top of viewport (not centered). Includes dedicated "Actions Compared" section clarifying Updated toggle vs Dismiss vs 🏛️ State Updated behavior.
 - **CGL Dashboard: At-a-Glance Note Icons.** Inline emoji icon strip (📞📧📱✅🏛️🔄💬) appears in each policy row, showing at a glance what actions were taken without opening notes.

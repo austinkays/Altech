@@ -74,9 +74,9 @@ describe('SYSTEM_PROMPT', () => {
   });
 
   test('specifies output FORMAT template', () => {
-    expect(prompt).toContain('FORMAT:');
+    expect(prompt).toContain('FORMAT (2 lines');
     expect(prompt).toContain('RE:');
-    expect(prompt).toContain('Action Items:');
+    expect(prompt).toContain('Action:');
   });
 
   test('requires insurance terminology', () => {
@@ -328,9 +328,9 @@ describe('HawkSoft Push', () => {
     expect(source).toContain('DEFAULT_CHANNEL');
   });
 
-  test('post-processes AI output to ensure initials on RE: line', () => {
-    // Post-processing regex should move initials to the RE: line
-    expect(source).toContain('Post-processing: ensure initials are on RE: line');
+  test('post-processes AI output to ensure initials at start of RE: line', () => {
+    // Post-processing regex should prepend initials to the RE: line
+    expect(source).toContain('Post-processing: ensure initials are at START of RE: line');
     expect(source).toContain('cleanInitials');
     // Should check if RE: line already includes initials
     expect(source).toContain("lines[0].includes(cleanInitials)");

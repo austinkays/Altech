@@ -49,14 +49,15 @@ RULES:
 11. Put action items inline at the end of the body using "Action: [text]" — not on a separate line
 
 FORMAT (2 lines — no blank lines):
-RE: [One-sentence summary specific enough to understand without opening the entry]
+RE: [Agent Initials — ][One-sentence summary specific enough to understand without opening the entry]
 [Full body: detail, key numbers, first person if applicable. Action: [follow-up or None.]]
 
 CRITICAL FORMATTING RULES:
 - Line 1 (RE:) is the ONLY line visible in HawkSoft's log list — agents will NOT see line 2
   unless they open the entry. Make line 1 a complete, informative summary of what happened.
-- Do NOT put date, time, initials, carrier, channel, or line of business in line 1 — HawkSoft
+- Do NOT put date, time, carrier, channel, or line of business in line 1 — HawkSoft
   already shows all of those in separate columns beside the log entry.
+- Do NOT include agent initials in the RE: line — they are added automatically by post-processing.
 - Line 1 should answer: "What happened on this call?" in one readable sentence.
 - Line 2 is the full detail for when the entry is opened.
 
@@ -243,16 +244,20 @@ ${cleanNotes}`;
       throw new Error('AI returned empty response');
     }
 
-    // ── Post-processing: ensure initials are on RE: line (deterministic) ──
+    // ── Post-processing: ensure initials are at START of RE: line (deterministic) ──
+    // Agent Initials are prepended so they survive HawkSoft's truncated log list view
     if (cleanInitials) {
       formattedLog = formattedLog.trim();
+      // Strip any AI-inserted initials at end of lines (— AJK)
       formattedLog = formattedLog.replace(new RegExp(`\\s*[—–-]\\s*${cleanInitials}\\s*$`, 'gm'), (match, offset) => {
         const lineStart = formattedLog.lastIndexOf('\n', offset - 1);
         return lineStart <= 0 ? match : '';
       });
+      // Strip any AI-inserted initials at start of RE: line (RE: AJK — ...)
+      formattedLog = formattedLog.replace(new RegExp(`^(RE:\\s*)${cleanInitials}\\s*[—–-]\\s*`, 'i'), '$1');
       const lines = formattedLog.split('\n');
       if (lines[0] && lines[0].startsWith('RE:') && !lines[0].includes(cleanInitials)) {
-        lines[0] = lines[0].trimEnd() + ` — ${cleanInitials}`;
+        lines[0] = lines[0].replace(/^RE:\s*/, `RE: ${cleanInitials} — `);
       }
       formattedLog = lines.join('\n');
     }
