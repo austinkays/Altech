@@ -320,9 +320,14 @@
 
 /* ── Quick Emojis ── */
 .qr-emoji-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 12px;
+}
+.qr-emoji-btn-wrap {
+    flex: 1 1 80px;
+    min-width: 0;
+    position: relative;
 }
 .qr-emoji-btn {
     display: flex;
@@ -339,6 +344,8 @@
     font-family: inherit;
     min-height: 92px;
     height: 92px;
+    width: 100%;
+    box-sizing: border-box;
     user-select: none;
 }
 .qr-emoji-icon {
@@ -418,6 +425,8 @@
 
 /* ── Add emoji button (in grid) ── */
 .qr-emoji-add-btn {
+    flex: 1 1 80px;
+    min-width: 0;
     border-style: dashed;
     border-color: var(--border);
     background: transparent;
