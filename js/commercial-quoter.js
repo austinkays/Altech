@@ -399,6 +399,7 @@ window.CommercialQuoter = (() => {
             ['Own / Lease Building', _data.ownLeaseBuild],
             ['Building Value',       _fmtDollar(_data.buildingValue)],
             ['Location Address(es)', _data.locAddress],
+            ['Business Operations',  _data.workDescription],
         ]);
 
         // ── Owner & Background ────────────────────────────────────────────
@@ -462,7 +463,7 @@ window.CommercialQuoter = (() => {
             covBond: 'Type: ' + (d.bondType||'') + ' / Amount: ' + (d.bondAmount||''),
             covPL:   'Limit: ' + (d.plLimit||'') + ' / Ded: ' + (d.plDeductible||'') + ' / Retro: ' + (d.plRetro||''),
             covBA:   'Vehicles: ' + (d.baNumVehicles||'') + ' / Types: ' + (d.baVehicleTypes||'') + ' / BI: ' + (d.baBILimits||'') + ' / PD: ' + (d.baPDLimit||''),
-            covProp: 'Bldg: ' + (d.propBuildingValue||'') + ' / Contents: ' + (d.propContentsValue||'') + ' / Ded: ' + (d.propDeductible||'') + ' / Const: ' + (d.propConstruction||''),
+            covProp: 'Bldg: ' + (d.propBuildingValue||'') + ' / Contents: ' + (d.propContentsValue||'') + ' / Ded: ' + (d.propDeductible||'') + ' / Const: ' + (d.propConstruction||'') + ' / Yr Built: ' + (d.propYearBuilt||'') + ' / Sprinklers: ' + (d.propSprinklers||''),
             covBPP:  'Value: ' + (d.bppValue||'') + ' / Ded: ' + (d.bppDeductible||''),
             covIM:   'Desc: ' + (d.imDescription||'') + ' / Value: ' + (d.imValue||''),
             covCargo:'Vehicles: ' + (d.cargoNumVehicles||'') + ' / Radius: ' + (d.cargoRadius||'') + ' / Max Load: ' + (d.cargoValue||''),
@@ -470,16 +471,26 @@ window.CommercialQuoter = (() => {
 
         let fsc = 'Commercial Lines Intake — ' + (d.bizName || '');
         fsc += '\nEffective: ' + (d.effectiveDate || '') + ' | Receipts: ' + (d.annualReceiptsEst || '');
+        fsc += '\nPrior Yr Receipts: ' + (d.annualReceiptsPrior || '') + ' | Date Started: ' + (d.dateStarted || '');
+        fsc += '\nYrs in Industry: ' + (d.yrsIndustry || '') + ' | Yrs Mgmt Exp: ' + (d.yrsMgtExp || '');
         fsc += '\n\nCoverages:';
         covList.forEach(k => {
             if (d[k]) fsc += '\n  ' + covNames[k] + ': ' + covDetails[k];
         });
-        fsc += '\n\nLocations: ' + (d.numLocations||'') + ' | States: ' + (d.statesOperate||'') + ' | Building: ' + (d.ownLeaseBuild||'');
+        fsc += '\n\nLocations: ' + (d.numLocations||'') + ' | States: ' + (d.statesOperate||'') + ' | Countries: ' + (d.countriesOperate||'') + ' | Building: ' + (d.ownLeaseBuild||'');
+        if (d.locAddress) fsc += '\nAddress(es): ' + d.locAddress;
+        if (d.buildingValue) fsc += '\nBuilding Value: ' + d.buildingValue;
+        if (d.workDescription) fsc += '\nOperations: ' + d.workDescription;
         fsc += '\nFT Employees: ' + (d.ftEmployees||'') + ' | PT Employees: ' + (d.ptEmployees||'') + ' | Payroll: ' + (d.payroll||'');
         if (d.hasSubcontractors === 'Y') {
             fsc += '\nSubcontractors: Yes | Costs: ' + (d.subcontractingCosts||'') + ' | Certs: ' + (d.obtainCerts||'');
         }
-        if (d.insuranceClaims) fsc += '\n\nClaims: ' + d.insuranceClaims;
+        fsc += '\nOwners: ' + (d.numOwners||'') + ' | Names: ' + (d.ownerNames||'');
+        if (d.ownerDOB) fsc += '\nOwner DOB: ' + d.ownerDOB;
+        if (d.ownerSSN) fsc += '\nOwner SSN: ***-**-' + String(d.ownerSSN).replace(/\D/g, '').slice(-4);
+        if (d.ownerHomeAddress) fsc += '\nOwner Home: ' + d.ownerHomeAddress;
+        if (d.reasonForQuote) fsc += '\n\nReason for Quote: ' + d.reasonForQuote;
+        if (d.insuranceClaims) fsc += '\nClaims: ' + d.insuranceClaims;
         if (d.convicted === 'Y' || d.bankruptcy === 'Y' || d.lawsuits === 'Y') {
             fsc += '\nBackground: Convicted=' + (d.convicted||'N') + ' Bankruptcy=' + (d.bankruptcy||'N') + ' Lawsuits=' + (d.lawsuits||'N');
         }

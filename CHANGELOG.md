@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **fix(commercial-quoter): full export audit — add 16 missing fields to PDF + HawkSoft** (March 30, 2026):
+  - `js/commercial-quoter.js` — `exportPDF()`: added `workDescription` ("Business Operations") to Locations & Property section
+  - `js/commercial-quoter.js` — `exportCMSMTF()`: enriched `gen_sFSCNotes` with 15 previously-missing fields: `dateStarted`, `yrsIndustry`, `yrsMgtExp`, `annualReceiptsPrior`, `locAddress`, `countriesOperate`, `buildingValue`, `workDescription`, `numOwners`, `ownerNames`, `ownerDOB`, `ownerSSN` (masked), `ownerHomeAddress`, `reasonForQuote`; added `propYearBuilt` + `propSprinklers` to covProp detail string
+
 - **refactor(audit): Comprehensive 10-phase codebase audit** (March 29, 2026):
   - **Phase 1A** — Removed dead validation code from `js/app-core.js` (validation hints now yellow-star only, no blocking)
   - **Phase 2 — XSS hardening** — Wrapped 5 unsafe `innerHTML` assignments with `Utils.escapeHTML()` in `js/app-popups.js`
