@@ -95,6 +95,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── returned-mail.css        # Returned Mail Tracker — deliverability badges, status badges, responsive form+table, print styles, full dark mode, Street View + satellite map images (799 lines)
 │   ├── paywall.css             # Paywall modal (131 lines)
 │   ├── blind-spot-brief.css    # Blind Spot Brief plugin (294 lines)
+│   ├── commercial-quoter.css   # Commercial Lines quoter — 7-step wizard, dark mode, responsive (685 lines)
 │   ├── dec-import.css          # Dec Page Importer plugin (354 lines)
 │   └── deposit-sheet.css       # Deposit Sheet plugin (662 lines)
 │
@@ -143,6 +144,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── task-sheet.js            # HawkSoft CSV task viewer — upload, parse, sort (overdue→priority→date), 9-col table, print-friendly layout (838 lines)
 │   ├── returned-mail.js         # Returned Mail Tracker — address validator (Google API), Street View + satellite imagery, log CRUD, HawkSoft copy output, CSV export (575 lines)
 │   ├── blind-spot-brief.js      # Blind Spot Brief — coverage gap analyzer (374 lines)
+│   ├── commercial-quoter.js     # Commercial Lines — 7-step intake wizard, 73 fields, PDF + CMSMTF export (1,274 lines)
 │   ├── dec-import.js            # Dec Page Importer — PDF/image → form-fill pipeline (734 lines)
 │   ├── deposit-sheet.js         # Deposit Sheet — trust deposit calculator + CSV export (499 lines)
 │   │
@@ -174,6 +176,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── returned-mail.html       # Returned Mail Tracker — address validator, log form, table + actions (127 lines)
 │   ├── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
 │   ├── blind-spot-brief.html    # Blind Spot Brief UI (32 lines)
+│   ├── commercial-quoter.html   # Commercial Lines wizard — 7 steps, 73 fields (671 lines)
 │   ├── dec-import.html          # Dec Page Importer UI (131 lines)
 │   └── deposit-sheet.html       # Deposit Sheet UI (108 lines)
 │
@@ -429,9 +432,9 @@ Standalone Modules (order-independent):
   16. dashboard-widgets.js   ← window.DashboardWidgets
 
 Plugin Modules (order-independent among themselves):
-  17–36. coi, prospect, quick-ref, accounting-export, compliance-dashboard,
+  17–37. coi, prospect, quick-ref, accounting-export, compliance-dashboard,
          ezlynx-tool, quote-compare, intake-assist, email-composer, policy-qa,
-         reminders, hawksoft-export, vin-decoder, data-backup
+         reminders, hawksoft-export, vin-decoder, commercial-quoter, data-backup
 
 Support Modules (load after plugins):
   37. bug-report.js
@@ -716,6 +719,8 @@ Client-side AES-256-GCM encryption for sensitive localStorage data. Per-device k
 | `altech_acct_history` | Accounting export history | ❌ | ❌ | AccountingExport |
 | `altech_saved_prospects` | Saved prospect reports | ❌ | ❌ | ProspectInvestigator |
 | `altech_vin_history` | VIN decode history (max 20) | ❌ | ❌ | VinDecoder |
+| `altech_commercial_v1` | Commercial lines form draft | ✅ | ✅ | CommercialQuoter |
+| `altech_commercial_quotes` | Commercial saved quotes | ✅ | ✅ | CommercialQuoter |
 | `altech_v6_qna` | Q&A chat state | ❌ | ❌ | PolicyQA |
 | `altech_v6_quote_comparisons` | Quote comparisons (max 20) | ❌ | ❌ | QuoteCompare |
 | `altech_intake_assist` | Intake chat state | ❌ | ❌ | IntakeAssist |

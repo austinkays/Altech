@@ -32,7 +32,7 @@ Tools are registered in `toolConfig` array in `js/app-init.js`. Each entry has: 
 
 **Categories:** `quoting` | `export` | `docs` | `ops`
 
-**Current plugins (22):** quoting (Personal Lines), intake (AI Intake), qna (Policy Q&A), quotecompare, ezlynx, hawksoft, coi (hidden), compliance (CGL), reminders, prospect, email, accounting, quickref, vindecoder, calllogger (HawkSoft Logger), tasksheet (Task Sheet), endorsement (Endorsement Parser), returnedmail (Returned Mail Tracker), blindspot (Blind Spot Brief), decimport (Dec Page Importer), depositsheet (Deposit Sheet), broadform (Broadform Eligibility).
+**Current plugins (23):** quoting (Personal Lines), intake (AI Intake), qna (Policy Q&A), quotecompare, ezlynx, hawksoft, coi (hidden), compliance (CGL), reminders, prospect, email, accounting, quickref, vindecoder, calllogger (HawkSoft Logger), tasksheet (Task Sheet), endorsement (Endorsement Parser), returnedmail (Returned Mail Tracker), blindspot (Blind Spot Brief), decimport (Dec Page Importer), depositsheet (Deposit Sheet), broadform (Broadform Eligibility), commercial (Commercial Lines).
 
 **Adding a new plugin requires 5 files/edits:**
 1. `js/your-plugin.js` — IIFE module on `window.YourModule` (see `js/reminders.js` for pattern)

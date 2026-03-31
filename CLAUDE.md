@@ -84,11 +84,11 @@ CDN libraries (firebase-compat, jszip, jspdf, pdf.js, pdf-lib)
 15. ai-provider.js         → window.AIProvider
 16. dashboard-widgets.js   → window.DashboardWidgets
 
-17–36. Plugin IIFEs (coi, prospect, quick-ref, accounting-export,
+17–37. Plugin IIFEs (coi, prospect, quick-ref, accounting-export,
        compliance-dashboard, ezlynx-tool, quote-compare, intake-assist,
        email-composer, policy-qa, reminders, hawksoft-export, vin-decoder,
        call-logger, endorsement-parser, task-sheet, returned-mail,
-       deposit-sheet, dec-import, blind-spot-brief)
+       deposit-sheet, dec-import, blind-spot-brief, commercial-quoter)
 
 37. data-backup.js, bug-report.js
 38. firebase-config.js     ← must precede auth.js

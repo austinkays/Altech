@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **docs: add commercial quoter to AGENTS.md, CLAUDE.md, copilot-instructions.md** (March 30, 2026):
+  - Added `commercial-quoter.css`, `commercial-quoter.js`, `commercial-quoter.html` entries to AGENTS.md file structure
+  - Added `altech_commercial_v1` and `altech_commercial_quotes` to AGENTS.md localStorage table
+  - Added `commercial-quoter` to plugin load order in AGENTS.md and CLAUDE.md
+  - Updated copilot-instructions.md plugin list: 22 → 23 plugins, added `commercial (Commercial Lines)`
+
 - **fix(commercial-quoter): full export audit — add 16 missing fields to PDF + HawkSoft** (March 30, 2026):
   - `js/commercial-quoter.js` — `exportPDF()`: added `workDescription` ("Business Operations") to Locations & Property section
   - `js/commercial-quoter.js` — `exportCMSMTF()`: enriched `gen_sFSCNotes` with 15 previously-missing fields: `dateStarted`, `yrsIndustry`, `yrsMgtExp`, `annualReceiptsPrior`, `locAddress`, `countriesOperate`, `buildingValue`, `workDescription`, `numOwners`, `ownerNames`, `ownerDOB`, `ownerSSN` (masked), `ownerHomeAddress`, `reasonForQuote`; added `propYearBuilt` + `propSprinklers` to covProp detail string
