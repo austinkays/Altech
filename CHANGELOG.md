@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CGL Compliance dashboard widget card height** (March 31, 2026): Stat pills (Critical/Warning/Current/Total) were wrapping to a second row, causing the card to appear "1–2 lines short" vs its bento grid cell. Fixed by switching `.compliance-stat-pill` to `flex-direction: column` (count stacked above label) + `flex: 1; min-width: 0` so all 4 pills fit on one row with full labels. (`css/dashboard.css`)
+
 - **Commercial Lines footer structural and layout bugs fixed** (March 31, 2026):
   - `plugins/commercial-quoter.html` — Moved `<footer class="cq-step-footer">` to be a sibling AFTER `</main>` (was incorrectly nested inside `<main id="cq-app">`). Removed `hidden` class from Back button (visibility now controlled via `disabled` attribute so the button stays in the flex layout on step 0, preventing the step counter and Next button from collapsing leftward).
   - `js/commercial-quoter.js` — Changed `prevBtn.classList.toggle('hidden', _step === 0)` → `prevBtn.disabled = (_step === 0)`. The `disabled` attribute keeps the button in layout (opacity 0.4) rather than removing it from the DOM, matching personal-lines behavior.
