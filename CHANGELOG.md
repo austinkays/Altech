@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **fix(compliance): replace all broken/non-Windows-safe emojis in CGL dashboard** (April 1, 2026):
+  - `plugins/compliance.html` — replaced 2 broken U+FFFD stat icons with Windows-safe alternatives (Total Policies: 🔵, Manual Check: 🔍); fixed loading spinner icon to 🔵; fixed "State Updated" references in info modal and quick-actions table (🏠); fixed "HawkSoft Updated" reference in quick-actions table (🔰)
+  - `js/compliance-dashboard.js` — fixed `_noteIcon()` return for 'state website updated' (was broken U+FFFD, now 🏠); replaced all 🦅 eagle (non-Windows-safe) with 🔰; replaced all 🏛️ classical building (non-Windows-safe) with 🏠
+
 - **fix(compliance): revert emojis + add note icon tooltips** (March 31, 2026):
   - `plugins/compliance.html` — reverted 4 emoji substitutions back to originals (🔵→🛡️, 🔍→👁️, 🏠→🏛️, 🔰→🦅); kept 💤 for snooze
   - `js/compliance-dashboard.js` — reverted 🏠→🏛️ in _noteIcon() and State Updated button, 🔰→🦅 in HawkSoft Updated button; added _noteLabel() and _noteIconHtml() methods for hover tooltips on note log emoji icons; renderNoteLog() now wraps icons in `<span class="cgl-note-icon" title="...">` for tooltip display
