@@ -532,6 +532,13 @@ window.Reminders = (() => {
                     <strong>Snooze until tonight</strong>
                     <small>Suppresses until 11:59 PM today</small>
                 </span>
+            </button>
+            <button class="rem-snooze-option rem-snooze-complete" onclick="Reminders.toggle('${id}'); Reminders.closeSnoozeMenu();">
+                <span class="rem-snooze-icon">✅</span>
+                <span class="rem-snooze-text">
+                    <strong>I did it!</strong>
+                    <small>Mark as complete</small>
+                </span>
             </button>`;
 
         if (isDaily) {
@@ -554,14 +561,7 @@ window.Reminders = (() => {
             </button>`;
         }
 
-        menuHtml += `<button class="rem-snooze-option rem-snooze-complete" onclick="Reminders.toggle('${id}'); Reminders.closeSnoozeMenu();">
-                <span class="rem-snooze-icon">✅</span>
-                <span class="rem-snooze-text">
-                    <strong>I did it!</strong>
-                    <small>Mark as complete</small>
-                </span>
-            </button>
-            <button class="rem-snooze-cancel" onclick="Reminders.closeSnoozeMenu()">Cancel</button>
+        menuHtml += `<button class="rem-snooze-cancel" onclick="Reminders.closeSnoozeMenu()">Cancel</button>
         </div>`;
 
         // Show the overlay
