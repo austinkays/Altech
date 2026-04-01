@@ -127,7 +127,7 @@ npm run deploy:vercel   # Production deploy
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
-│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep, emoji note icons (Windows-safe: 🏠🔰💤), note-count badge, two-step workflow (State Updated / HawkSoft Updated), CSS-class-based button colors (no inline styles) (2,867 lines)
+│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep, emoji note icons (Windows-safe: 🏠🔰💤), note-count badge, two-step workflow (State Updated / HawkSoft Updated), CSS-class-based button colors (no inline styles), note icon tooltips via _noteIconHtml() (2,867 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
 │   ├── endorsement-parser.js   # AI-powered endorsement email parser, extracts structured data from carrier change requests (805 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,119 lines)

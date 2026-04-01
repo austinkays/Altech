@@ -1902,11 +1902,31 @@ const ComplianceDashboard = {
         if (t === 'emailed insured') return '📧';
         if (t === 'left voicemail') return '📱';
         if (t === 'renewal term confirmed') return '✅';
-        if (t === 'state website updated') return '🏠';
+        if (t === 'state website updated') return '�️';
         if (t.startsWith('auto-cleared')) return '🔄';
         if (t.startsWith('renewed')) return '🔄';
         if (text.startsWith('💤')) return '';
         return '💬';
+    },
+
+    _noteLabel(text) {
+        if (!text) return 'Note';
+        const t = text.toLowerCase();
+        if (t === 'notified insured') return 'Notified Insured';
+        if (t === 'emailed insured') return 'Emailed Insured';
+        if (t === 'left voicemail') return 'Left Voicemail';
+        if (t === 'renewal term confirmed') return 'Renewal Confirmed';
+        if (t === 'state website updated') return 'State Updated';
+        if (t.startsWith('auto-cleared')) return 'Auto-Cleared';
+        if (t.startsWith('renewed')) return 'Renewed';
+        return 'Note';
+    },
+
+    _noteIconHtml(text) {
+        const icon = this._noteIcon(text);
+        if (!icon) return '';
+        const label = this._noteLabel(text);
+        return `<span class="cgl-note-icon" title="${Utils.escapeAttr(label)}">${icon}</span> `;
     },
 
     renderNoteLog(policyNumber) {
@@ -1914,10 +1934,10 @@ const ComplianceDashboard = {
         if (!data || !data.log || data.log.length === 0) return '';
         return data.log.slice().reverse().map((entry, revIdx) => {
             const origIdx = data.log.length - 1 - revIdx;
-            const icon = this._noteIcon(entry.text);
+            const iconHtml = this._noteIconHtml(entry.text);
             return `
             <div class="cgl-note-entry">
-                <span class="cgl-note-entry-text">${icon ? icon + ' ' : ''}${Utils.escapeHTML(entry.text)}</span>
+                <span class="cgl-note-entry-text">${iconHtml}${Utils.escapeHTML(entry.text)}</span>
                 <span class="cgl-note-entry-time">${this.formatNoteTime(entry.at)}</span>
                 <button class="cgl-note-delete-btn" onclick="ComplianceDashboard.deleteNoteEntry('${Utils.escapeHTML(policyNumber)}',${origIdx})" title="Delete this note">&times;</button>
             </div>
@@ -2480,8 +2500,8 @@ const ComplianceDashboard = {
                             <div class="cgl-quick-notes-row cgl-state-actions">
                                 <button class="cgl-quick-note-btn renew" onclick="ComplianceDashboard.markRenewed('${pn}')">🔄 Renewed (New Policy #)</button>
                                 ${(policy.policyType || 'cgl') === 'bond'
-                                    ? `<button class="cgl-quick-note-btn hs-done" onclick="ComplianceDashboard.markHawksoftUpdated('${pn}')">🔰 HawkSoft Updated</button>`
-                                    : `<button class="cgl-quick-note-btn state-done" onclick="ComplianceDashboard.markStateUpdated('${pn}')">🏠 State Updated</button>`}
+                                    ? `<button class="cgl-quick-note-btn hs-done" onclick="ComplianceDashboard.markHawksoftUpdated('${pn}')">🦅 HawkSoft Updated</button>`
+                                    : `<button class="cgl-quick-note-btn state-done" onclick="ComplianceDashboard.markStateUpdated('${pn}')">🏛️ State Updated</button>`}
                                 <button class="cgl-quick-note-btn cgl-snooze-quick" onclick="ComplianceDashboard.snoozePolicy('${pn}')">💤 Sleep Until Tomorrow</button>
                             </div>
                         </div>

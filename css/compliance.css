@@ -861,6 +861,7 @@
 }
 .cgl-note-entry:last-child { border-bottom: none; }
 .cgl-note-entry-text { flex: 1; }
+.cgl-note-icon { cursor: help; }
 .cgl-note-entry-time {
     font-size: 10px;
     color: #94a3b8;

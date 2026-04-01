@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **fix(compliance): revert emojis + add note icon tooltips** (March 31, 2026):
+  - `plugins/compliance.html` — reverted 4 emoji substitutions back to originals (🔵→🛡️, 🔍→👁️, 🏠→🏛️, 🔰→🦅); kept 💤 for snooze
+  - `js/compliance-dashboard.js` — reverted 🏠→🏛️ in _noteIcon() and State Updated button, 🔰→🦅 in HawkSoft Updated button; added _noteLabel() and _noteIconHtml() methods for hover tooltips on note log emoji icons; renderNoteLog() now wraps icons in `<span class="cgl-note-icon" title="...">` for tooltip display
+  - `css/compliance.css` — added `.cgl-note-icon { cursor: help }` rule for tooltip hover cursor
+
 - **fix(compliance): remove progress bar, fix broken emojis, redesign button colors** (March 31, 2026):
   - `plugins/compliance.html` — removed decorative progress bar (leftover blank line), replaced 5 broken emojis with Windows-safe alternatives (🛡️→🔵, 👁️→🔍, 🏛️→🏠, 🦅→🔰, 🛏️→💤)
   - `js/compliance-dashboard.js` — replaced 3 emoji types across ~8 occurrences (🏛️→🏠, 🦅→🔰, 🛏️→💤), removed inline button styles in favor of CSS classes (.confirm, .state-done, .hs-done)
