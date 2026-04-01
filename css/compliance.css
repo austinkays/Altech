@@ -311,13 +311,13 @@
     white-space: nowrap;
 }
 .cgl-quick-note-btn.cgl-snooze-quick {
-    background: #fef3c7;
-    border-color: #fde68a;
-    color: #92400e;
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: #4338ca;
 }
 .cgl-quick-note-btn.cgl-snooze-quick:hover {
-    background: #fde68a;
-    border-color: #f59e0b;
+    background: #e0e7ff;
+    border-color: #a5b4fc;
 }
 .cgl-restore-btn {
     background: none;
@@ -820,6 +820,30 @@
 .cgl-quick-note-btn.renew:hover {
     background: #dbeafe;
 }
+.cgl-quick-note-btn.confirm {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #047857;
+}
+.cgl-quick-note-btn.confirm:hover {
+    background: #d1fae5;
+}
+.cgl-quick-note-btn.state-done {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #047857;
+}
+.cgl-quick-note-btn.state-done:hover {
+    background: #d1fae5;
+}
+.cgl-quick-note-btn.hs-done {
+    background: #f5f3ff;
+    border-color: #c4b5fd;
+    color: #6d28d9;
+}
+.cgl-quick-note-btn.hs-done:hover {
+    background: #ede9fe;
+}
 .cgl-note-log {
     margin-top: 6px;
     max-height: 140px;
@@ -1227,8 +1251,8 @@ body.dark-mode .cgl-dismiss-btn:hover { background: rgba(255,59,48,0.15); color:
 body.dark-mode .cgl-snooze-btn { border-color: rgba(251,191,36,0.3); color: #fbbf24; }
 body.dark-mode .cgl-snooze-btn:hover { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.5); }
 body.dark-mode .cgl-snoozed-badge { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.25); color: #fbbf24; }
-body.dark-mode .cgl-quick-note-btn.cgl-snooze-quick { background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.25); color: #fbbf24; }
-body.dark-mode .cgl-quick-note-btn.cgl-snooze-quick:hover { background: rgba(251,191,36,0.2); border-color: rgba(251,191,36,0.4); }
+body.dark-mode .cgl-quick-note-btn.cgl-snooze-quick { background: rgba(88,86,214,0.10); border-color: rgba(88,86,214,0.2); color: #818cf8; }
+body.dark-mode .cgl-quick-note-btn.cgl-snooze-quick:hover { background: rgba(88,86,214,0.18); border-color: rgba(88,86,214,0.35); }
 body.dark-mode .cgl-restore-btn { border-color: var(--border); }
 body.dark-mode .cgl-restore-btn:hover { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.3); }
 body.dark-mode .cgl-show-more-btn { background: rgba(56,189,248,0.08); border-color: rgba(56,189,248,0.25); }
@@ -1255,6 +1279,12 @@ body.dark-mode .cgl-quick-note-btn { background: var(--bg-input); border-color: 
 body.dark-mode .cgl-quick-note-btn:hover { background: var(--border); color: var(--text); }
 body.dark-mode .cgl-quick-note-btn.renew { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.25); color: #93c5fd; }
 body.dark-mode .cgl-quick-note-btn.renew:hover { background: rgba(37,99,235,0.2); }
+body.dark-mode .cgl-quick-note-btn.confirm { background: rgba(52,199,89,0.12); border-color: rgba(52,199,89,0.25); color: #6ee7b7; }
+body.dark-mode .cgl-quick-note-btn.confirm:hover { background: rgba(52,199,89,0.2); }
+body.dark-mode .cgl-quick-note-btn.state-done { background: rgba(52,199,89,0.12); border-color: rgba(52,199,89,0.25); color: #6ee7b7; }
+body.dark-mode .cgl-quick-note-btn.state-done:hover { background: rgba(52,199,89,0.2); }
+body.dark-mode .cgl-quick-note-btn.hs-done { background: rgba(88,86,214,0.12); border-color: rgba(88,86,214,0.25); color: #a78bfa; }
+body.dark-mode .cgl-quick-note-btn.hs-done:hover { background: rgba(88,86,214,0.2); }
 body.dark-mode .cgl-note-entry { border-bottom-color: var(--border); }
 body.dark-mode .cgl-renewed-badge { background: rgba(52,199,89,0.15); color: #6ee7b7; border-color: rgba(52,199,89,0.3); }
 body.dark-mode .cgl-auto-renewed-badge { background: rgba(59,130,246,0.15); color: #93c5fd; border-color: rgba(59,130,246,0.3); }

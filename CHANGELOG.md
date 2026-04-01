@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(compliance): remove progress bar, fix broken emojis, redesign button colors** (March 31, 2026):
+  - `plugins/compliance.html` — removed decorative progress bar (leftover blank line), replaced 5 broken emojis with Windows-safe alternatives (🛡️→🔵, 👁️→🔍, 🏛️→🏠, 🦅→🔰, 🛏️→💤)
+  - `js/compliance-dashboard.js` — replaced 3 emoji types across ~8 occurrences (🏛️→🏠, 🦅→🔰, 🛏️→💤), removed inline button styles in favor of CSS classes (.confirm, .state-done, .hs-done)
+  - `css/compliance.css` — added 3 new button variant classes (.confirm green, .state-done green, .hs-done purple) with hover + dark mode; restyled .cgl-snooze-quick from yellow to indigo
+  - `AGENTS.md` — updated compliance.css, compliance-dashboard.js, compliance.html descriptions
+
 ### Changed
 - **fix(compliance): redesign help modal + hawk emoji** (March 31, 2026):
   - `plugins/compliance.html` — simplified help modal: cut 3 redundant sections (Deduplication, Print & Backup, Other Row Actions), consolidated Two-Step Workflow into callout+table, converted Renewal Cycle to visual step cards, fixed Status Badges (removed stale "auto-dismissed" text, added HawkSoft Updated badge)

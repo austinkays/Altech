@@ -1734,7 +1734,7 @@ const ComplianceDashboard = {
             count
         };
         const label = tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        this.addQuickNote(policyNumber, `🛏️ Snoozed until ${label} (snooze #${count})`);
+        this.addQuickNote(policyNumber, `💤 Snoozed until ${label} (snooze #${count})`);
         this.saveState();
         this.trackChange();
         this.filterPolicies();
@@ -1902,10 +1902,10 @@ const ComplianceDashboard = {
         if (t === 'emailed insured') return '📧';
         if (t === 'left voicemail') return '📱';
         if (t === 'renewal term confirmed') return '✅';
-        if (t === 'state website updated') return '🏛️';
+        if (t === 'state website updated') return '🏠';
         if (t.startsWith('auto-cleared')) return '🔄';
         if (t.startsWith('renewed')) return '🔄';
-        if (text.startsWith('🛏️')) return '';
+        if (text.startsWith('💤')) return '';
         return '💬';
     },
 
@@ -2403,13 +2403,13 @@ const ComplianceDashboard = {
             if (isHidden && this.showHidden) {
                 if (isSnoozed) {
                     const until = new Date(this.snoozedPolicies[policy.policyNumber].snoozedUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    actionHtml = `<span class="cgl-snoozed-badge">🛏️ Until ${until}</span><button class="cgl-restore-btn" onclick="ComplianceDashboard.unsnoozePolicy('${pn}')">Wake</button>`;
+                    actionHtml = `<span class="cgl-snoozed-badge">💤 Until ${until}</span><button class="cgl-restore-btn" onclick="ComplianceDashboard.unsnoozePolicy('${pn}')">Wake</button>`;
                 } else {
                     const fn = isDismissed ? 'undismissPolicy' : 'unverifyPolicy';
                     actionHtml = `<button class="cgl-restore-btn" onclick="ComplianceDashboard.${fn}('${pn}')">Restore</button>`;
                 }
             } else if (!isHidden) {
-                actionHtml = `<button class="cgl-snooze-btn" onclick="ComplianceDashboard.snoozePolicy('${pn}')" title="Hide until tomorrow">🛏️</button><button class="cgl-dismiss-btn" onclick="ComplianceDashboard.dismissPolicy('${pn}')">Dismiss</button>`;
+                actionHtml = `<button class="cgl-snooze-btn" onclick="ComplianceDashboard.snoozePolicy('${pn}')" title="Hide until tomorrow">💤</button><button class="cgl-dismiss-btn" onclick="ComplianceDashboard.dismissPolicy('${pn}')">Dismiss</button>`;
             }
 
             const isSelected = this._printMode && this._selectedForPrint.has(policy.policyNumber);
@@ -2475,14 +2475,14 @@ const ComplianceDashboard = {
                                 <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Notified insured')">📞 Notified Insured</button>
                                 <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Emailed insured')">📧 Emailed Insured</button>
                                 <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Left voicemail')">📱 Left Voicemail</button>
-                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Renewal term confirmed')">✅ Renewal Confirmed</button>
+                                <button class="cgl-quick-note-btn confirm" onclick="ComplianceDashboard.addQuickNote('${pn}','Renewal term confirmed')">✅ Renewal Confirmed</button>
                             </div>
                             <div class="cgl-quick-notes-row cgl-state-actions">
                                 <button class="cgl-quick-note-btn renew" onclick="ComplianceDashboard.markRenewed('${pn}')">🔄 Renewed (New Policy #)</button>
                                 ${(policy.policyType || 'cgl') === 'bond'
-                                    ? `<button class="cgl-quick-note-btn" onclick="ComplianceDashboard.markHawksoftUpdated('${pn}')" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857;">🦅 HawkSoft Updated</button>`
-                                    : `<button class="cgl-quick-note-btn" onclick="ComplianceDashboard.markStateUpdated('${pn}')" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857;">🏛️ State Updated</button>`}
-                                <button class="cgl-quick-note-btn cgl-snooze-quick" onclick="ComplianceDashboard.snoozePolicy('${pn}')">🛏️ Sleep Until Tomorrow</button>
+                                    ? `<button class="cgl-quick-note-btn hs-done" onclick="ComplianceDashboard.markHawksoftUpdated('${pn}')">🔰 HawkSoft Updated</button>`
+                                    : `<button class="cgl-quick-note-btn state-done" onclick="ComplianceDashboard.markStateUpdated('${pn}')">🏠 State Updated</button>`}
+                                <button class="cgl-quick-note-btn cgl-snooze-quick" onclick="ComplianceDashboard.snoozePolicy('${pn}')">💤 Sleep Until Tomorrow</button>
                             </div>
                         </div>
                         <textarea class="cgl-note-input" rows="1" placeholder="Add a note…" onblur="ComplianceDashboard.saveNote('${pn}')" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur();}"></textarea>
