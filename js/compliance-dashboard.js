@@ -1902,7 +1902,7 @@ const ComplianceDashboard = {
         if (t === 'emailed insured') return '📧';
         if (t === 'left voicemail') return '📱';
         if (t === 'renewal term confirmed') return '✅';
-        if (t === 'state website updated') return '�️';
+        if (t === 'state website updated') return '🏠';
         if (t.startsWith('auto-cleared')) return '🔄';
         if (t.startsWith('renewed')) return '🔄';
         if (text.startsWith('💤')) return '';
@@ -2500,8 +2500,8 @@ const ComplianceDashboard = {
                             <div class="cgl-quick-notes-row cgl-state-actions">
                                 <button class="cgl-quick-note-btn renew" onclick="ComplianceDashboard.markRenewed('${pn}')">🔄 Renewed (New Policy #)</button>
                                 ${(policy.policyType || 'cgl') === 'bond'
-                                    ? `<button class="cgl-quick-note-btn hs-done" onclick="ComplianceDashboard.markHawksoftUpdated('${pn}')">🦅 HawkSoft Updated</button>`
-                                    : `<button class="cgl-quick-note-btn state-done" onclick="ComplianceDashboard.markStateUpdated('${pn}')">🏛️ State Updated</button>`}
+                                    ? `<button class="cgl-quick-note-btn hs-done" onclick="ComplianceDashboard.markHawksoftUpdated('${pn}')">🔰 HawkSoft Updated</button>`
+                                    : `<button class="cgl-quick-note-btn state-done" onclick="ComplianceDashboard.markStateUpdated('${pn}')">🏠 State Updated</button>`}
                                 <button class="cgl-quick-note-btn cgl-snooze-quick" onclick="ComplianceDashboard.snoozePolicy('${pn}')">💤 Sleep Until Tomorrow</button>
                             </div>
                         </div>
