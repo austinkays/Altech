@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **fix(reminders): position snooze menu near mouse cursor** (April 1, 2026):
+  - `js/reminders.js` — `showSnoozeMenu()` now accepts the click event and positions the popup at the cursor, clamped within viewport bounds
+  - `css/reminders.css` — changed overlay from `align-items: flex-end` to `align-items: center` as fallback centering
+
 - **fix(compliance): repair corrupted emoji bytes** (April 1, 2026):
   - 6 emoji characters had been corrupted to U+FFFD (replacement character) during prior edits
   - `plugins/compliance.html` — restored 🛡️ (Total Policies), 👁️ (Manual Check), 🛡️ (loading), 🏛️ (State Updated ×2)

@@ -512,11 +512,13 @@ window.Reminders = (() => {
     }
 
     /** Show the snooze/defer action sheet for a task */
-    function showSnoozeMenu(id) {
+    function showSnoozeMenu(id, evt) {
         const task = _state.tasks.find(t => t.id === id);
         if (!task) return;
         const status = _getStatus(task);
         if (status === 'completed') return;
+        const clickX = evt ? evt.clientX : null;
+        const clickY = evt ? evt.clientY : null;
 
         // Build action sheet options based on task type
         const isDaily = ['daily', 'weekdays', 'once'].includes(task.frequency);
@@ -575,6 +577,26 @@ window.Reminders = (() => {
         }
         overlay.innerHTML = menuHtml;
         overlay.style.display = 'flex';
+
+        // Position menu near the click if coordinates available
+        if (clickX !== null && clickY !== null) {
+            const menu = overlay.querySelector('.rem-snooze-menu');
+            if (menu) {
+                menu.style.position = 'fixed';
+                // Measure menu size after render
+                requestAnimationFrame(() => {
+                    const rect = menu.getBoundingClientRect();
+                    const pad = 12;
+                    let left = clickX - rect.width / 2;
+                    let top = clickY - rect.height / 2;
+                    // Clamp within viewport
+                    left = Math.max(pad, Math.min(left, window.innerWidth - rect.width - pad));
+                    top = Math.max(pad, Math.min(top, window.innerHeight - rect.height - pad));
+                    menu.style.left = left + 'px';
+                    menu.style.top = top + 'px';
+                });
+            }
+        }
     }
 
     function closeSnoozeMenu() {
@@ -780,7 +802,7 @@ window.Reminders = (() => {
                     <button class="rem-check-btn ${isCompleted ? 'checked' : ''}" onclick="Reminders.toggle('${t.id}')" aria-label="Toggle complete">
                         ${isCompleted ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
                     </button>
-                    <div class="rem-task-content" ${canSnooze ? `onclick="Reminders.showSnoozeMenu('${t.id}')"` : ''} ${canSnooze ? 'style="cursor:pointer;"' : ''}>
+                    <div class="rem-task-content" ${canSnooze ? `onclick="Reminders.showSnoozeMenu('${t.id}', event)"` : ''} ${canSnooze ? 'style="cursor:pointer;"' : ''}>
                         <div class="rem-task-title ${isCompleted ? 'rem-done' : ''}">${priorityDot}${snoozeIcon}${_escapeHTML(t.title)}</div>
                         <div class="rem-task-meta">
                             <span class="rem-badge rem-cat">${_escapeHTML(t.category)}</span>
@@ -789,7 +811,7 @@ window.Reminders = (() => {
                         ${t.notes ? `<div class="rem-task-notes">${_escapeHTML(t.notes)}</div>` : ''}
                     </div>
                     <div class="rem-task-actions">
-                        ${canSnooze ? `<button class="rem-action-btn rem-snooze-btn" onclick="Reminders.showSnoozeMenu('${t.id}')" title="Snooze/Defer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>` : ''}
+                        ${canSnooze ? `<button class="rem-action-btn rem-snooze-btn" onclick="Reminders.showSnoozeMenu('${t.id}', event)" title="Snooze/Defer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>` : ''}
                         <button class="rem-action-btn" onclick="Reminders.showEdit('${t.id}')" title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                         <button class="rem-action-btn" onclick="Reminders.remove('${t.id}')" title="Delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                     </div>
