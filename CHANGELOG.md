@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **fix(compliance): repair corrupted emoji bytes** (April 1, 2026):
+  - 6 emoji characters had been corrupted to U+FFFD (replacement character) during prior edits
+  - `plugins/compliance.html` — restored 🛡️ (Total Policies), 👁️ (Manual Check), 🛡️ (loading), 🏛️ (State Updated ×2)
+  - `js/compliance-dashboard.js` — restored 🏛️ in `_noteIcon()` State Updated return
+  - Root cause: variation selector U+FE0F combined with multi-byte emoji caused encoding corruption during PowerShell file writes
+
 - **revert(compliance): restore emojis — revert ASCII text replacement** (April 1, 2026):
   - Reverted commit `6599026` which had replaced all emojis with ASCII text
   - All original emojis restored in `js/compliance-dashboard.js` and `plugins/compliance.html`

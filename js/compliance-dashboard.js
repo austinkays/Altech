@@ -1902,7 +1902,7 @@ const ComplianceDashboard = {
         if (t === 'emailed insured') return '📧';
         if (t === 'left voicemail') return '📱';
         if (t === 'renewal term confirmed') return '✅';
-        if (t === 'state website updated') return '�️';
+        if (t === 'state website updated') return '🏛️';
         if (t.startsWith('auto-cleared')) return '🔄';
         if (t.startsWith('renewed')) return '🔄';
         if (text.startsWith('💤')) return '';
