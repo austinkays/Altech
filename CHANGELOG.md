@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **revert(compliance): restore emojis — revert ASCII text replacement** (April 1, 2026):
+  - Reverted commit `6599026` which had replaced all emojis with ASCII text
+  - All original emojis restored in `js/compliance-dashboard.js` and `plugins/compliance.html`
+  - Tests: 27 suites, 1694 tests passing
+
 - **fix(compliance): revert emojis + add note icon tooltips** (March 31, 2026):
   - `plugins/compliance.html` — reverted 4 emoji substitutions back to originals (🔵→🛡️, 🔍→👁️, 🏠→🏛️, 🔰→🦅); kept 💤 for snooze
   - `js/compliance-dashboard.js` — reverted 🏠→🏛️ in _noteIcon() and State Updated button, 🔰→🦅 in HawkSoft Updated button; added _noteLabel() and _noteIconHtml() methods for hover tooltips on note log emoji icons; renderNoteLog() now wraps icons in `<span class="cgl-note-icon" title="...">` for tooltip display
