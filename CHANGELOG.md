@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **fix(compliance): redesign help modal + hawk emoji** (March 31, 2026):
+  - `plugins/compliance.html` — simplified help modal: cut 3 redundant sections (Deduplication, Print & Backup, Other Row Actions), consolidated Two-Step Workflow into callout+table, converted Renewal Cycle to visual step cards, fixed Status Badges (removed stale "auto-dismissed" text, added HawkSoft Updated badge)
+  - `css/compliance.css` — added `.cgl-info-callout` (accent-bordered tip box), `.cgl-info-steps`/`.cgl-info-step` (numbered circle step cards), section h4 left-border accent, dark mode + mobile for new classes
+  - `js/compliance-dashboard.js` — changed 📋 clipboard emoji to 🦅 eagle for HawkSoft Updated button
+  - `plugins/compliance.html` — changed all 📋 → 🦅 for HawkSoft Updated references (5 occurrences)
+
+### Changed
 - **feat(compliance): two-step CGL/bond workflow — State Updated + HawkSoft Updated** (July 2, 2025):
   - `js/compliance-dashboard.js` — `markStateUpdated()` no longer auto-dismisses; policy stays visible with ✅ badge until user clicks Updated/Dismiss
   - `js/compliance-dashboard.js` — added `markHawksoftUpdated()` for bonds (sets hawksoftUpdated, hawksoftUpdatedForExp, clears needsStateUpdate)

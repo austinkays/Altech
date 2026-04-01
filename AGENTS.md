@@ -64,7 +64,7 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 34 stylesheets (~21,082 lines)
+├── css/                        # 34 stylesheets (~21,155 lines)
 │   ├── variables.css           # :root CSS custom properties + body.dark-mode overrides (all theme tokens)
 │   ├── base.css                # Reset, body, typography, scrollbars
 │   ├── components.css          # Cards, inputs, buttons, modals, toasts (shared components)
@@ -75,7 +75,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (787 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,208 lines)
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (934 lines)
-│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + blue needs-state-update badge + snooze styles + fixed 6-col stat grid + two-row action buttons + note-count badge (1,482 lines)
+│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + blue needs-state-update badge + snooze styles + fixed 6-col stat grid + two-row action buttons + note-count badge (1,555 lines)
 │   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
 │   ├── reminders.css           # Task reminders (1,120 lines)
 │   ├── intake-assist.css       # AI intake professional UI — enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
@@ -156,13 +156,13 @@ npm run deploy:vercel   # Production deploy
 │   ├── data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
 │   └── hawksoft-integration.js  # HawkSoft REST API client (261 lines)
 │
-├── plugins/                    # 22 HTML templates (~6,808 lines, loaded dynamically)
+├── plugins/                    # 22 HTML templates (~6,778 lines, loaded dynamically)
 │   ├── quoting.html            # ★ Main intake wizard — 7 steps, Employment & Education inline in About You card, 2,091 lines
 │   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
 │   ├── prospect.html           # Commercial investigation UI (333 lines)
 │   ├── accounting.html         # Accounting vault + export — tabbed layout, PIN screens, polished form/toolbar, account cards (256 lines)
-│   ├── compliance.html         # CGL dashboard + print toolbar + two-step workflow help (329 lines)
+│   ├── compliance.html         # CGL dashboard + print toolbar + two-step workflow help (299 lines)
 │   ├── vin-decoder.html        # VIN decoder (141 lines)
 │   ├── reminders.html          # Task manager (144 lines)
 │   ├── intake-assist.html      # AI chat two-pane (152 lines)

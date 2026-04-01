@@ -1456,9 +1456,78 @@ body.dark-mode .cgl-print-selected > td { background: rgba(10,132,255,0.06) !imp
     border-bottom: none;
 }
 
+/* ── Callout box ── */
+.cgl-info-callout {
+    border-left: 3px solid var(--apple-blue);
+    background: var(--bg-input);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.cgl-info-callout strong {
+    color: var(--text);
+}
+
+/* ── Step cards ── */
+.cgl-info-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.cgl-info-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.cgl-info-step-num {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--apple-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+}
+
+.cgl-info-step strong {
+    color: var(--text);
+}
+
+/* ── Section heading accent ── */
+.cgl-info-section h4 {
+    padding-left: 10px;
+    border-left: 3px solid var(--apple-blue);
+}
+
 /* ── Dark mode ── */
 body.dark-mode .cgl-info-modal {
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+
+body.dark-mode .cgl-info-callout {
+    background: #2C2C2E;
+}
+
+body.dark-mode .cgl-info-step {
+    background: #2C2C2E;
 }
 
 /* ── Mobile ── */
@@ -1478,5 +1547,9 @@ body.dark-mode .cgl-info-modal {
     }
     .cgl-info-table td:first-child {
         width: auto;
+    }
+    .cgl-info-step {
+        gap: 10px;
+        padding: 8px 10px;
     }
 }

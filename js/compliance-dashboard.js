@@ -2480,7 +2480,7 @@ const ComplianceDashboard = {
                             <div class="cgl-quick-notes-row cgl-state-actions">
                                 <button class="cgl-quick-note-btn renew" onclick="ComplianceDashboard.markRenewed('${pn}')">🔄 Renewed (New Policy #)</button>
                                 ${(policy.policyType || 'cgl') === 'bond'
-                                    ? `<button class="cgl-quick-note-btn" onclick="ComplianceDashboard.markHawksoftUpdated('${pn}')" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857;">📋 HawkSoft Updated</button>`
+                                    ? `<button class="cgl-quick-note-btn" onclick="ComplianceDashboard.markHawksoftUpdated('${pn}')" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857;">🦅 HawkSoft Updated</button>`
                                     : `<button class="cgl-quick-note-btn" onclick="ComplianceDashboard.markStateUpdated('${pn}')" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857;">🏛️ State Updated</button>`}
                                 <button class="cgl-quick-note-btn cgl-snooze-quick" onclick="ComplianceDashboard.snoozePolicy('${pn}')">🛏️ Sleep Until Tomorrow</button>
                             </div>
