@@ -1,4 +1,4 @@
-﻿
+
 <header>
     <div class="header-top">
         <div class="logo tool-header-brand">
@@ -6,19 +6,19 @@
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
             <button class="btn-utility" onclick="ComplianceDashboard.togglePrintMode()" id="cglPrintBtn" style="font-size: 14px; padding: 8px 16px;" title="Select policies to print as PDF">
-                Print
+                🖨 Print
             </button>
             <button class="btn-utility" onclick="ComplianceDashboard.downloadFullBackup()" style="font-size: 14px; padding: 8px 16px;" title="Download full annotations backup (JSON)">
-                Backup
+                💾 Backup
             </button>
             <button class="btn-utility" onclick="ComplianceDashboard.toggleOptions()" id="cglOptionsBtn" style="font-size: 14px; padding: 8px 16px;" title="Notification & display options">
-                Options
+                ⚙ Options
             </button>
             <button class="btn-utility" onclick="ComplianceDashboard.refresh()" style="font-size: 14px; padding: 8px 16px;">
-                Refresh
+                🔄 Refresh
             </button>
             <button class="btn-utility" onclick="ComplianceDashboard.showInfo()" style="font-size: 14px; padding: 8px 16px;" title="How CGL tracking works">
-                Info
+                ℹ️ Info
             </button>
         </div>
     </div>
@@ -39,32 +39,32 @@
     <!-- Statistics Cards -->
     <div class="cgl-stats-grid" id="cglStats">
         <div class="cgl-stat-card">
-            <span class="cgl-stat-icon">#</span>
+            <span class="cgl-stat-icon">�️</span>
             <div class="cgl-stat-value" id="statTotal">0</div>
             <div class="cgl-stat-label">Total Policies</div>
         </div>
         <div class="cgl-stat-card critical">
-            <span class="cgl-stat-icon">!!</span>
+            <span class="cgl-stat-icon">🔴</span>
             <div class="cgl-stat-value" id="statCritical">0</div>
             <div class="cgl-stat-label">Critical (&lt;5d)</div>
         </div>
         <div class="cgl-stat-card warning">
-            <span class="cgl-stat-icon">!</span>
+            <span class="cgl-stat-icon">🟡</span>
             <div class="cgl-stat-value" id="statExpiring">0</div>
             <div class="cgl-stat-label">Expiring Soon</div>
         </div>
         <div class="cgl-stat-card expired">
-            <span class="cgl-stat-icon">X</span>
+            <span class="cgl-stat-icon">⏰</span>
             <div class="cgl-stat-value" id="statExpired">0</div>
             <div class="cgl-stat-label">Expired</div>
         </div>
         <div class="cgl-stat-card manual">
-            <span class="cgl-stat-icon">?</span>
+            <span class="cgl-stat-icon">�️</span>
             <div class="cgl-stat-value" id="statManual">0</div>
             <div class="cgl-stat-label">Manual Check</div>
         </div>
         <div class="cgl-stat-card updated">
-            <span class="cgl-stat-icon">OK</span>
+            <span class="cgl-stat-icon">✅</span>
             <div class="cgl-stat-value" id="statUpdated">0</div>
             <div class="cgl-stat-label">Updated</div>
         </div>
@@ -90,13 +90,13 @@
 
     <!-- Options Panel (collapsed by default) -->
     <div id="cglOptionsPanel" class="cgl-options-panel" style="display:none;">
-        <div style="font-weight:600; margin-bottom:10px;">Notification Types</div>
+        <div style="font-weight:600; margin-bottom:10px;">🔔 Notification Types</div>
         <div style="font-size:13px; color:var(--text-secondary); margin-bottom:10px;">
             These policy types will show the pulsing alert badge, count toward Critical/Expired stats, and update the sidebar badge.
         </div>
         <div id="cglNotifyTypeToggles" class="cgl-notify-type-grid"></div>
         <div style="font-size:12px; color:var(--text-secondary); border-top:1px solid var(--border); padding-top:10px; margin-top:4px;">
-            Tip: Notification types are independent of the type toggle buttons above. A type can be hidden from the table but still notify, or shown in the table but kept silent.
+            💡 Tip: Notification types are independent of the type toggle buttons above. A type can be hidden from the table but still notify, or shown in the table but kept silent.
         </div>
     </div>
 
@@ -144,7 +144,7 @@
     <div id="cglLoading" class="cgl-loading" role="status" aria-live="polite">
         <div class="cgl-loading-graphic">
             <div class="cgl-spinner"></div>
-            <span class="cgl-loading-icon">?</span>
+            <span class="cgl-loading-icon">�️</span>
         </div>
         <p class="cgl-loading-text">Loading compliance data…</p>
         <p class="cgl-loading-sub">Connecting to HawkSoft</p>
@@ -200,7 +200,7 @@
             </div>
             <div class="cgl-legend-item">
                 <div class="cgl-legend-dot" style="background: #cc6600; color: #cc6600;"></div>
-                <span class="cgl-legend-label">! Manual</span>
+                <span class="cgl-legend-label">⚠️ Manual</span>
                 <span class="cgl-legend-desc">Hiscox, IES, HCC, BTIS</span>
             </div>
             <div class="cgl-legend-item">
@@ -220,7 +220,7 @@
     <div style="text-align: center; margin-top: 16px; padding-bottom: 24px; display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; align-items: center;">
         <label style="background: none; border: 1px solid #e2e8f0; border-radius: 6px; color: #3b82f6; font-size: 12px; cursor: pointer; padding: 6px 12px; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px;"
             onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='none'">
-            Restore Backup
+            📂 Restore Backup
             <input type="file" accept=".json" onchange="ComplianceDashboard.restoreFullBackup(this)" style="display: none;">
         </label>
         <button onclick="ComplianceDashboard.clearAll()" style="background: none; border: none; color: #94a3b8; font-size: 12px; cursor: pointer; padding: 6px 12px; transition: color 0.15s;"
@@ -247,28 +247,28 @@
                 <table class="cgl-info-table">
                     <tr><td><span class="cgl-status-badge expires-soon">X days</span></td><td>Days until expiration (≤90 days shown)</td></tr>
                     <tr><td><span class="cgl-status-badge expired">Expired</span></td><td>Policy is past its expiration date</td></tr>
-                    <tr><td><span class="cgl-status-badge needs-state-update">! Renewed</span></td><td>HawkSoft shows a new expiration 30+ days out — likely renewed. Requires external update.</td></tr>
-                    <tr><td><span class="cgl-state-badge" style="display:inline-block">* State Updated</span></td><td>You confirmed the state website was updated (CGL). Still need to click Updated/Dismiss to hide.</td></tr>
-                    <tr><td><span class="cgl-state-badge" style="display:inline-block">* HawkSoft Updated</span></td><td>You confirmed HawkSoft was updated (Bond). Still need to click Updated/Dismiss to hide.</td></tr>
+                    <tr><td><span class="cgl-status-badge needs-state-update">⚠️ Renewed</span></td><td>HawkSoft shows a new expiration 30+ days out — likely renewed. Requires external update.</td></tr>
+                    <tr><td><span class="cgl-state-badge" style="display:inline-block">✅ State Updated</span></td><td>You confirmed the state website was updated (CGL). Still need to click Updated/Dismiss to hide.</td></tr>
+                    <tr><td><span class="cgl-state-badge" style="display:inline-block">✅ HawkSoft Updated</span></td><td>You confirmed HawkSoft was updated (Bond). Still need to click Updated/Dismiss to hide.</td></tr>
                 </table>
             </section>
 
             <section class="cgl-info-section">
-                <h4>Renewal Cycle</h4>
+                <h4>🔄 Renewal Cycle</h4>
                 <p>This repeats every year for each policy:</p>
                 <div class="cgl-info-steps">
                     <div class="cgl-info-step"><span class="cgl-info-step-num">1</span><span><strong>Policy approaches expiration</strong> — appears in the dashboard with a countdown badge</span></div>
                     <div class="cgl-info-step"><span class="cgl-info-step-num">2</span><span><strong>Carrier renews</strong> — HawkSoft data updates with a new expiration date</span></div>
-                    <div class="cgl-info-step"><span class="cgl-info-step-num">3</span><span><strong>Dashboard flags it</strong> — the <span class="cgl-status-badge needs-state-update" style="font-size:11px">! Renewed</span> badge appears</span></div>
+                    <div class="cgl-info-step"><span class="cgl-info-step-num">3</span><span><strong>Dashboard flags it</strong> — the <span class="cgl-status-badge needs-state-update" style="font-size:11px">⚠️ Renewed</span> badge appears</span></div>
                     <div class="cgl-info-step"><span class="cgl-info-step-num">4</span><span><strong>You update externally</strong> — update the state website (CGLs) or HawkSoft (bonds), then mark it done</span></div>
                     <div class="cgl-info-step"><span class="cgl-info-step-num">5</span><span><strong>Updated/Dismiss</strong> — hide the policy until next year's renewal</span></div>
                 </div>
-                <div class="cgl-info-callout">Every renewal is flagged — no expiration change is ever silently skipped.</div>
+                <div class="cgl-info-callout">⚠️ Every renewal is flagged — no expiration change is ever silently skipped.</div>
             </section>
 
             <section class="cgl-info-section">
-                <h4>Two-Step Workflow</h4>
-                <div class="cgl-info-callout"><strong>Step 1:</strong> Click <strong>State Updated</strong> (CGLs) or <strong>HawkSoft Updated</strong> (bonds) to mark the external update. This adds a * badge but does NOT hide the policy.<br><strong>Step 2:</strong> Click <strong>Updated</strong> or <strong>Dismiss</strong> to hide it until next year.</div>
+                <h4>⚖️ Two-Step Workflow</h4>
+                <div class="cgl-info-callout"><strong>Step 1:</strong> Click <strong>�️ State Updated</strong> (CGLs) or <strong>🦅 HawkSoft Updated</strong> (bonds) to mark the external update. This adds a ✅ badge but does NOT hide the policy.<br><strong>Step 2:</strong> Click <strong>Updated</strong> or <strong>Dismiss</strong> to hide it until next year.</div>
                 <table class="cgl-info-table">
                     <tr><td><strong>Updated</strong></td><td>Hides the policy. Saves expiration as the baseline for next renewal detection.</td></tr>
                     <tr><td><strong>Dismiss</strong></td><td>Hides the policy. It resurfaces if HawkSoft detects a renewal (&gt;30 day expiration change).</td></tr>
@@ -277,19 +277,19 @@
             </section>
 
             <section class="cgl-info-section">
-                <h4>Quick Actions</h4>
-                <p>Click + on any policy to expand notes. Quick-add buttons:</p>
+                <h4>📝 Quick Actions</h4>
+                <p>Click 📝 on any policy to expand notes. Quick-add buttons:</p>
                 <table class="cgl-info-table">
-                    <tr><td>Notified Insured</td><td>Log a phone call about the expiration</td></tr>
-                    <tr><td>Emailed Insured</td><td>Log an email sent</td></tr>
-                    <tr><td>Left Voicemail</td><td>Log a voicemail attempt</td></tr>
-                    <tr><td>Renewal Confirmed</td><td>Insured confirmed renewal</td></tr>
-                    <tr><td>Renewed (New Policy #)</td><td>Enter new policy number — links old and new</td></tr>
-                    <tr><td>State Updated</td><td>Mark state website updated (CGLs)</td></tr>
-                    <tr><td>HawkSoft Updated</td><td>Mark HawkSoft updated (bonds)</td></tr>
-                    <tr><td>Sleep</td><td>Hide until tomorrow</td></tr>
+                    <tr><td>📞 Notified Insured</td><td>Log a phone call about the expiration</td></tr>
+                    <tr><td>📧 Emailed Insured</td><td>Log an email sent</td></tr>
+                    <tr><td>📱 Left Voicemail</td><td>Log a voicemail attempt</td></tr>
+                    <tr><td>✅ Renewal Confirmed</td><td>Insured confirmed renewal</td></tr>
+                    <tr><td>🔄 Renewed (New Policy #)</td><td>Enter new policy number — links old and new</td></tr>
+                    <tr><td>�️ State Updated</td><td>Mark state website updated (CGLs)</td></tr>
+                    <tr><td>🦅 HawkSoft Updated</td><td>Mark HawkSoft updated (bonds)</td></tr>
+                    <tr><td>💤 Sleep</td><td>Hide until tomorrow</td></tr>
                 </table>
-                <p>Action labels appear in each row so you can see actions taken at a glance.</p>
+                <p>Emoji icons appear in each row so you can see actions taken at a glance.</p>
             </section>
 
         </div>
