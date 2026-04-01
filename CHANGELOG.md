@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **fix(compliance): replace all emojis with ASCII text for Windows compatibility** (March 28, 2026):
+  - `js/compliance-dashboard.js` — replaced ~30 user-facing emoji instances with ASCII equivalents (📝→+, 💤→Zz/[Zzz], ⚠️→!, ✅→*, 🏛️→[State], 🦅→[HawkSoft], 📞→[Call], 📧→[Email], 📱→[VM], 🔄→[Renew], ⚡→--, ⏳→removed, 🖨→removed); preserved backward compat for stored `💤` prefix in snooze notes; kept console.log emojis (devtools-only)
+  - `plugins/compliance.html` — stripped all emoji prefixes from toolbar buttons, stat card icons (→ #, !!, !, X, ?, OK), loading indicator, options panel, legend, footer, and info modal; updated "Emoji icons" text to "Action labels"
+  - Files modified: `js/compliance-dashboard.js`, `plugins/compliance.html`
+  - Tests: 27 suites, 1694 tests passing
+
 - **fix(compliance): revert emojis + add note icon tooltips** (March 31, 2026):
   - `plugins/compliance.html` — reverted 4 emoji substitutions back to originals (🔵→🛡️, 🔍→👁️, 🏠→🏛️, 🔰→🦅); kept 💤 for snooze
   - `js/compliance-dashboard.js` — reverted 🏠→🏛️ in _noteIcon() and State Updated button, 🔰→🦅 in HawkSoft Updated button; added _noteLabel() and _noteIconHtml() methods for hover tooltips on note log emoji icons; renderNoteLog() now wraps icons in `<span class="cgl-note-icon" title="...">` for tooltip display

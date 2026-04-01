@@ -1,4 +1,4 @@
-// ComplianceDashboard - Extracted from index.html
+﻿// ComplianceDashboard - Extracted from index.html
 // Do not edit this section in index.html; edit this file instead.
 
 window.ComplianceDashboard = (() => {
@@ -1148,7 +1148,7 @@ const ComplianceDashboard = {
                 console.log('[CGL] Background refresh skipped — HawkSoft unreachable');
                 const lastFetch = document.getElementById('cglLastFetch');
                 if (lastFetch) {
-                    lastFetch.innerHTML = lastFetch.innerHTML.replace(/<span class="cgl-bg-refresh-tag"[^>]*>.*?<\/span>/, '<span style="color:#c00;font-size:12px;">⚠️ refresh failed</span>');
+                    lastFetch.innerHTML = lastFetch.innerHTML.replace(/<span class="cgl-bg-refresh-tag"[^>]*>.*?<\/span>/, '<span style="color:#c00;font-size:12px;">! refresh failed</span>');
                     setTimeout(() => {
                         lastFetch.innerHTML = lastFetch.innerHTML.replace(/<span style="color:#c00[^>]*>.*?<\/span>/, '');
                     }, 5000);
@@ -1433,7 +1433,7 @@ const ComplianceDashboard = {
         tableContainer.style.display = 'block';
 
         if (lastFetch) {
-            lastFetch.innerHTML = '<span style="color: #f59e0b; font-weight: 600;">⚡ No Data</span> — Click <strong>Refresh</strong> to fetch from HawkSoft, or use CSV Import / Open File to load data.';
+            lastFetch.innerHTML = '<span style="color: #f59e0b; font-weight: 600;">-- No Data</span> — Click <strong>Refresh</strong> to fetch from HawkSoft, or use CSV Import / Open File to load data.';
         }
 
         this.policies = [];
@@ -1453,7 +1453,7 @@ const ComplianceDashboard = {
         const origLabel = refreshBtn ? refreshBtn.innerHTML : '';
         if (refreshBtn) {
             refreshBtn.disabled = true;
-            refreshBtn.innerHTML = '⏳ Syncing...';
+            refreshBtn.innerHTML = 'Syncing...';
         }
 
         const bar = document.getElementById('cglRefreshBar');
@@ -1734,7 +1734,7 @@ const ComplianceDashboard = {
             count
         };
         const label = tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        this.addQuickNote(policyNumber, `💤 Snoozed until ${label} (snooze #${count})`);
+        this.addQuickNote(policyNumber, `[Zzz] Snoozed until ${label} (snooze #${count})`);
         this.saveState();
         this.trackChange();
         this.filterPolicies();
@@ -1896,17 +1896,17 @@ const ComplianceDashboard = {
     },
 
     _noteIcon(text) {
-        if (!text) return '💬';
+        if (!text) return '*';
         const t = text.toLowerCase();
-        if (t === 'notified insured') return '📞';
-        if (t === 'emailed insured') return '📧';
-        if (t === 'left voicemail') return '📱';
-        if (t === 'renewal term confirmed') return '✅';
-        if (t === 'state website updated') return '�️';
-        if (t.startsWith('auto-cleared')) return '🔄';
-        if (t.startsWith('renewed')) return '🔄';
-        if (text.startsWith('💤')) return '';
-        return '💬';
+        if (t === 'notified insured') return '[Call]';
+        if (t === 'emailed insured') return '[Email]';
+        if (t === 'left voicemail') return '[VM]';
+        if (t === 'renewal term confirmed') return '[OK]';
+        if (t === 'state website updated') return '[State]';
+        if (t.startsWith('auto-cleared')) return '[Renew]';
+        if (t.startsWith('renewed')) return '[Renew]';
+        if (text.startsWith('[Zzz]') || text.startsWith('💤')) return '';
+        return '*';
     },
 
     _noteLabel(text) {
@@ -2151,7 +2151,7 @@ const ComplianceDashboard = {
         const stateBadge = document.getElementById('state-badge-' + policyNumber);
         if (stateBadge) {
             stateBadge.style.display = isAnyUpdateDone ? 'inline-block' : 'none';
-            if (isAnyUpdateDone) stateBadge.textContent = isHawksoftUpdated ? '✅ HawkSoft Updated' : '✅ State Updated';
+            if (isAnyUpdateDone) stateBadge.textContent = isHawksoftUpdated ? '* HawkSoft Updated' : '* State Updated';
         }
         // Update note preview (hide if updated since badge is more important)
         const preview = document.getElementById('note-preview-' + policyNumber);
@@ -2423,13 +2423,13 @@ const ComplianceDashboard = {
             if (isHidden && this.showHidden) {
                 if (isSnoozed) {
                     const until = new Date(this.snoozedPolicies[policy.policyNumber].snoozedUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    actionHtml = `<span class="cgl-snoozed-badge">💤 Until ${until}</span><button class="cgl-restore-btn" onclick="ComplianceDashboard.unsnoozePolicy('${pn}')">Wake</button>`;
+                    actionHtml = `<span class="cgl-snoozed-badge">Snoozed Until ${until}</span><button class="cgl-restore-btn" onclick="ComplianceDashboard.unsnoozePolicy('${pn}')">Wake</button>`;
                 } else {
                     const fn = isDismissed ? 'undismissPolicy' : 'unverifyPolicy';
                     actionHtml = `<button class="cgl-restore-btn" onclick="ComplianceDashboard.${fn}('${pn}')">Restore</button>`;
                 }
             } else if (!isHidden) {
-                actionHtml = `<button class="cgl-snooze-btn" onclick="ComplianceDashboard.snoozePolicy('${pn}')" title="Hide until tomorrow">💤</button><button class="cgl-dismiss-btn" onclick="ComplianceDashboard.dismissPolicy('${pn}')">Dismiss</button>`;
+                actionHtml = `<button class="cgl-snooze-btn" onclick="ComplianceDashboard.snoozePolicy('${pn}')" title="Hide until tomorrow">Zz</button><button class="cgl-dismiss-btn" onclick="ComplianceDashboard.dismissPolicy('${pn}')">Dismiss</button>`;
             }
 
             const isSelected = this._printMode && this._selectedForPrint.has(policy.policyNumber);
@@ -2446,7 +2446,7 @@ const ComplianceDashboard = {
                     </td>
                     <td>
                         ${needsStateUpdate
-                            ? `<span class="cgl-status-badge needs-state-update">⚠️ Renewed</span>`
+                            ? `<span class="cgl-status-badge needs-state-update">! Renewed</span>`
                             : `<span class="cgl-status-badge ${policy.status}${policy.daysUntilExpiration <= 14 && !isHidden && this.notifyTypes.includes(policy.policyType || 'cgl') ? ' notifying' : ''}">
                             ${statusLabel}
                         </span>`}
@@ -2457,7 +2457,7 @@ const ComplianceDashboard = {
                     <td>
                         <div style="font-weight: 600;">${this.clientLink(policy)}</div>
                         ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${Utils.escapeHTML(policy.email)}</div>` : ''}
-                        ${isAnyUpdateDone ? `<span class="cgl-state-badge" id="state-badge-${pn}">✅ ${isHawksoftUpdated ? 'HawkSoft Updated' : 'State Updated'}</span>` : `<span class="cgl-state-badge" id="state-badge-${pn}" style="display:none"></span>`}
+                        ${isAnyUpdateDone ? `<span class="cgl-state-badge" id="state-badge-${pn}">* ${isHawksoftUpdated ? 'HawkSoft Updated' : 'State Updated'}</span>` : `<span class="cgl-state-badge" id="state-badge-${pn}" style="display:none"></span>`}
                         ${hasNote && !isAnyUpdateDone ? `<div class="cgl-note-preview" id="note-preview-${pn}">${renewedTo ? 'Renewed → ' + Utils.escapeHTML(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pn}" style="display:none"></div>`}
                         ${noteIcons && !isAnyUpdateDone ? `<div class="cgl-note-icons">${noteIcons}</div>` : ''}
                     </td>
@@ -2478,12 +2478,12 @@ const ComplianceDashboard = {
                         <div style="font-weight: 600;">Exp: ${expDate}</div>
                         ${incDate ? `<div style="font-size: 12px; color: var(--text-secondary);">Inception: ${incDate}</div>` : ''}
                         <div style="font-size: 12px; color: var(--text-secondary);">Effective: ${effDate}</div>
-                        ${policy._renewedFrom ? `<div class="cgl-auto-renewed-badge" title="Renewed from exp ${new Date(policy._renewedFrom).toLocaleDateString()}">🔄 Renewed</div>` : ''}
-                        ${policy._renewalDetected ? `<div class="cgl-auto-renewed-badge" title="Supersedes expired policy ${policy._supersedes || ''}">🔄 Renewal confirmed</div>` : ''}
+                        ${policy._renewedFrom ? `<div class="cgl-auto-renewed-badge" title="Renewed from exp ${new Date(policy._renewedFrom).toLocaleDateString()}">Renewed</div>` : ''}
+                        ${policy._renewalDetected ? `<div class="cgl-auto-renewed-badge" title="Supersedes expired policy ${policy._supersedes || ''}">Renewal confirmed</div>` : ''}
                     </td>
                     <td>
                         <div style="display:flex;align-items:center;gap:4px;">
-                            <button class="cgl-note-btn ${hasNote ? 'has-note' : ''}" data-note-for="${pn}" onclick="ComplianceDashboard.toggleNote('${pn}')" title="${hasNote ? 'Note: ' + noteText : 'Add note'}">📝${noteCount > 0 ? `<span class="cgl-note-count">${noteCount}</span>` : ''}</button>
+                            <button class="cgl-note-btn ${hasNote ? 'has-note' : ''}" data-note-for="${pn}" onclick="ComplianceDashboard.toggleNote('${pn}')" title="${hasNote ? 'Note: ' + noteText : 'Add note'}">+${noteCount > 0 ? `<span class="cgl-note-count">${noteCount}</span>` : ''}</button>
                             ${actionHtml}
                         </div>
                     </td>
@@ -2492,17 +2492,17 @@ const ComplianceDashboard = {
                     <td colspan="${colSpan}">
                         <div class="cgl-quick-notes">
                             <div class="cgl-quick-notes-row">
-                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Notified insured')">📞 Notified Insured</button>
-                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Emailed insured')">📧 Emailed Insured</button>
-                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Left voicemail')">📱 Left Voicemail</button>
-                                <button class="cgl-quick-note-btn confirm" onclick="ComplianceDashboard.addQuickNote('${pn}','Renewal term confirmed')">✅ Renewal Confirmed</button>
+                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Notified insured')">Notified Insured</button>
+                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Emailed insured')">Emailed Insured</button>
+                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Left voicemail')">Left Voicemail</button>
+                                <button class="cgl-quick-note-btn confirm" onclick="ComplianceDashboard.addQuickNote('${pn}','Renewal term confirmed')">Renewal Confirmed</button>
                             </div>
                             <div class="cgl-quick-notes-row cgl-state-actions">
-                                <button class="cgl-quick-note-btn renew" onclick="ComplianceDashboard.markRenewed('${pn}')">🔄 Renewed (New Policy #)</button>
+                                <button class="cgl-quick-note-btn renew" onclick="ComplianceDashboard.markRenewed('${pn}')">Renewed (New Policy #)</button>
                                 ${(policy.policyType || 'cgl') === 'bond'
-                                    ? `<button class="cgl-quick-note-btn hs-done" onclick="ComplianceDashboard.markHawksoftUpdated('${pn}')">🦅 HawkSoft Updated</button>`
-                                    : `<button class="cgl-quick-note-btn state-done" onclick="ComplianceDashboard.markStateUpdated('${pn}')">🏛️ State Updated</button>`}
-                                <button class="cgl-quick-note-btn cgl-snooze-quick" onclick="ComplianceDashboard.snoozePolicy('${pn}')">💤 Sleep Until Tomorrow</button>
+                                    ? `<button class="cgl-quick-note-btn hs-done" onclick="ComplianceDashboard.markHawksoftUpdated('${pn}')">HawkSoft Updated</button>`
+                                    : `<button class="cgl-quick-note-btn state-done" onclick="ComplianceDashboard.markStateUpdated('${pn}')">State Updated</button>`}
+                                <button class="cgl-quick-note-btn cgl-snooze-quick" onclick="ComplianceDashboard.snoozePolicy('${pn}')">Sleep Until Tomorrow</button>
                             </div>
                         </div>
                         <textarea class="cgl-note-input" rows="1" placeholder="Add a note…" onblur="ComplianceDashboard.saveNote('${pn}')" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur();}"></textarea>
@@ -2618,7 +2618,7 @@ const ComplianceDashboard = {
         const toolbar = document.getElementById('cglPrintToolbar');
         const btn = document.getElementById('cglPrintBtn');
         if (toolbar) toolbar.style.display = this._printMode ? 'flex' : 'none';
-        if (btn) btn.textContent = this._printMode ? '✕ Cancel Print' : '🖨 Print';
+        if (btn) btn.textContent = this._printMode ? 'Cancel Print' : 'Print';
         this.updatePrintCount();
         this.filterPolicies();
     },
