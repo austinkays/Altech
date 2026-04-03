@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(quote-compare): include extraction prompt in AIProvider multimodal parts** (April 3, 2026):
+  - `js/quote-compare.js` — prepend prompt text as a `{ text: prompt }` part in the `parts` array passed to `AIProvider.ask()`, matching the pattern used in `app-scan.js`. Previously the extraction instructions were only passed as `userMessage` which `_callGoogle()` drops when `opts.parts` is provided, causing PDF analysis to fail (model received PDF data but no extraction instructions).
+
 ### Added
 - **feat(clients): search + view-all for client history** (April 3, 2026):
   - `js/app-quotes.js` — `renderStep0ClientHistory()` now shows search bar (when >5 clients), "View All / Show Less" toggle, total count; `renderClientHistory()` (step 6) now has always-visible search bar + scrollable list with count label

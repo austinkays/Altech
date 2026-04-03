@@ -99,7 +99,7 @@ You have access to the full quote data. Reference specific numbers, carriers, an
                     if (progress) progress.style.width = '30%';
 
                     try {
-                        // Convert files to base64
+                        // Convert files to base64 (prompt text prepended so AIProvider sends it to the model)
                         const parts = [];
                         for (const file of files) {
                             const base64 = await this.fileToBase64(file);
@@ -293,11 +293,14 @@ RULES:
 - The referenceNumber field should capture: CCF# values, Quote Numbers, Policy Numbers, and Reference Numbers — include whatever identifier is present`;
 
                     // Try AIProvider first (supports all providers with multimodal)
+                    // Prepend the extraction prompt as a text part so _callGoogle includes it
+                    // in contents (opts.parts replaces userMessage, so the prompt must be in the array)
+                    const partsWithPrompt = [{ text: prompt }, ...parts];
                     if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured()) {
                         try {
                             console.log('[QuoteCompare] Trying AIProvider for extraction...');
                             const aiResult = await AIProvider.ask(systemPrompt, prompt, {
-                                temperature: 0.1, maxTokens: 8192, responseFormat: 'json', parts
+                                temperature: 0.1, maxTokens: 8192, responseFormat: 'json', parts: partsWithPrompt
                             });
                             if (aiResult.text) {
                                 const parsed = (typeof AIProvider !== 'undefined' && AIProvider.extractJSON)
