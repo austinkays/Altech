@@ -15,9 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **feat(reminders): completion celebration animation** (April 3, 2026):
-  - `css/animations.css` — added 4 @keyframes: `celebratePop`, `celebrateInner`, `celebrateOuter`, `celebrateFlash`
-  - `css/reminders.css` — added `.celebrate-container`, `.celebrate-particle`, `.celebrate-particle.outer`, `.celebrate-flash`, `.toast.celebrate` styles
-  - `js/reminders.js` — added `_celebrate()` function with 4-color cycling (blue, purple, green, teal), 8 inner sparkle particles + 6 outer star particles + center flash bloom; `toggle()` now triggers celebration on completion
+  - `css/animations.css` — added 5 @keyframes: `celebratePop`, `celebrateInner`, `celebrateOuter`, `celebrateFlash`, `celebrateMenuBurst`
+  - `css/reminders.css` — added `.celebrate-container`, `.celebrate-particle`, `.celebrate-particle.outer`, `.celebrate-flash`, `.toast.celebrate`, `.rem-snooze-menu-burst` styles
+  - `js/reminders.js` — added `_celebrate()` function with 4-color cycling (blue, purple, green, teal), 8 inner sparkle particles + 6 outer star particles + center flash bloom; `toggle()` triggers celebration on completion; `_celebrateFromMenu()` explodes the snooze popup when "I did it!" is pressed — menu scales up + brightens then fades, particles burst from menu center
 
 - **feat(clients): search + view-all for client history** (April 3, 2026):
   - `js/app-quotes.js` — `renderStep0ClientHistory()` now shows search bar (when >5 clients), "View All / Show Less" toggle, total count; `renderClientHistory()` (step 6) now has always-visible search bar + scrollable list with count label

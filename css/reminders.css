@@ -1160,3 +1160,9 @@ body.dark-mode .rem-stats-divider {
     animation: celebrateFlash 0.8s ease-out both;
     will-change: transform, opacity;
 }
+
+/* Snooze menu burst-out on "I did it!" */
+.rem-snooze-menu-burst {
+    animation: celebrateMenuBurst 0.3s ease-out both !important;
+    pointer-events: none;
+}

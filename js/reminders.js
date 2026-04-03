@@ -463,7 +463,7 @@ window.Reminders = (() => {
     const SPARKLE_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4Z" fill="currentColor"/></svg>';
     const STAR_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8L8 14l-6-4.8h7.6z" fill="currentColor"/></svg>';
 
-    function _celebrate(title) {
+    function _celebrate(title, origin) {
         // Show toast with celebration class
         const toast = document.getElementById('toast');
         if (typeof App !== 'undefined' && App.toast) {
@@ -476,9 +476,13 @@ window.Reminders = (() => {
         // Pick color from cycle
         const color = CELEBRATE_COLORS[_celebrationIdx++ % CELEBRATE_COLORS.length];
 
-        // Create particle container
+        // Create particle container — position at origin or default to toast
         const container = document.createElement('div');
         container.className = 'celebrate-container';
+        if (origin) {
+            container.style.top = origin.y + 'px';
+            container.style.left = origin.x + 'px';
+        }
 
         // Inner ring: 8 sparkle particles, 45° apart
         for (let i = 0; i < 8; i++) {
@@ -515,6 +519,36 @@ window.Reminders = (() => {
             container.remove();
             toast.classList.remove('celebrate');
         }, 1800);
+    }
+
+    /** "I did it!" from snooze menu — explode menu, then celebrate */
+    function _celebrateFromMenu(id) {
+        const task = _state.tasks.find(t => t.id === id);
+        if (!task) { toggle(id); closeSnoozeMenu(); return; }
+
+        // Grab menu center before it disappears
+        const overlay = document.getElementById('remSnoozeOverlay');
+        const menu = overlay && overlay.querySelector('.rem-snooze-menu');
+        let origin = null;
+        if (menu) {
+            const rect = menu.getBoundingClientRect();
+            origin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+            // Animate menu out with burst
+            menu.classList.add('rem-snooze-menu-burst');
+        }
+
+        // Small delay so the menu burst is visible before overlay closes
+        setTimeout(() => {
+            // Complete the task
+            const status = _getStatus(task);
+            if (status !== 'completed') {
+                completeTask(id);
+                _celebrate(task.title, origin);
+            }
+            closeSnoozeMenu();
+            if (menu) menu.classList.remove('rem-snooze-menu-burst');
+            render();
+        }, 250);
     }
 
     // ── Snooze / Defer Actions ──
@@ -600,7 +634,7 @@ window.Reminders = (() => {
                     <small>Suppresses until 11:59 PM today</small>
                 </span>
             </button>
-            <button class="rem-snooze-option rem-snooze-complete" onclick="Reminders.toggle('${id}'); Reminders.closeSnoozeMenu();">
+            <button class="rem-snooze-option rem-snooze-complete" onclick="Reminders._celebrateFromMenu('${id}');">
                 <span class="rem-snooze-icon">✅</span>
                 <span class="rem-snooze-text">
                     <strong>I did it!</strong>
@@ -1051,6 +1085,7 @@ window.Reminders = (() => {
         skipThisWeek,
         showSnoozeMenu,
         closeSnoozeMenu,
+        _celebrateFromMenu,
 
         // For cloud sync
         get state() { return _state; },
