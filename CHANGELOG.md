@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `js/quote-compare.js` — prepend prompt text as a `{ text: prompt }` part in the `parts` array passed to `AIProvider.ask()`, matching the pattern used in `app-scan.js`. Previously the extraction instructions were only passed as `userMessage` which `_callGoogle()` drops when `opts.parts` is provided, causing PDF analysis to fail (model received PDF data but no extraction instructions).
 
 ### Added
+- **feat(reminders): completion celebration animation** (April 3, 2026):
+  - `css/animations.css` — added 4 @keyframes: `celebratePop`, `celebrateInner`, `celebrateOuter`, `celebrateFlash`
+  - `css/reminders.css` — added `.celebrate-container`, `.celebrate-particle`, `.celebrate-particle.outer`, `.celebrate-flash`, `.toast.celebrate` styles
+  - `js/reminders.js` — added `_celebrate()` function with 4-color cycling (blue, purple, green, teal), 8 inner sparkle particles + 6 outer star particles + center flash bloom; `toggle()` now triggers celebration on completion
+
 - **feat(clients): search + view-all for client history** (April 3, 2026):
   - `js/app-quotes.js` — `renderStep0ClientHistory()` now shows search bar (when >5 clients), "View All / Show Less" toggle, total count; `renderClientHistory()` (step 6) now has always-visible search bar + scrollable list with count label
   - `js/dashboard-widgets.js` — `renderClientsWidget()` now shows search bar (when >5 clients), "View All / Show Less" toggle; added `_onClientSearch()` and `_toggleClientViewAll()` to public API

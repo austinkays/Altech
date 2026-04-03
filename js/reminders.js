@@ -450,6 +450,73 @@ window.Reminders = (() => {
         _save();
     }
 
+    // ── Completion Celebration ──
+
+    const CELEBRATE_COLORS = [
+        '#007AFF',  // apple-blue
+        '#5E5CE6',  // purple
+        '#34C759',  // success green
+        '#32ADE6',  // teal
+    ];
+    let _celebrationIdx = 0;
+
+    const SPARKLE_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4Z" fill="currentColor"/></svg>';
+    const STAR_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8L8 14l-6-4.8h7.6z" fill="currentColor"/></svg>';
+
+    function _celebrate(title) {
+        // Show toast with celebration class
+        const toast = document.getElementById('toast');
+        if (typeof App !== 'undefined' && App.toast) {
+            const safeTitle = title.length > 30 ? title.slice(0, 30) + '…' : title;
+            App.toast('\u2713 ' + safeTitle + ' \u2014 done!', 3500);
+        }
+        if (!toast) return;
+        toast.classList.add('celebrate');
+
+        // Pick color from cycle
+        const color = CELEBRATE_COLORS[_celebrationIdx++ % CELEBRATE_COLORS.length];
+
+        // Create particle container
+        const container = document.createElement('div');
+        container.className = 'celebrate-container';
+
+        // Inner ring: 8 sparkle particles, 45° apart
+        for (let i = 0; i < 8; i++) {
+            const p = document.createElement('div');
+            p.className = 'celebrate-particle';
+            p.style.setProperty('--angle', (i * 45) + 'deg');
+            p.style.animationDelay = (i * 30) + 'ms';
+            p.style.color = color;
+            p.innerHTML = SPARKLE_SVG;
+            container.appendChild(p);
+        }
+
+        // Outer ring: 6 star particles, 60° apart, offset 30°
+        for (let i = 0; i < 6; i++) {
+            const p = document.createElement('div');
+            p.className = 'celebrate-particle outer';
+            p.style.setProperty('--angle', (i * 60 + 30) + 'deg');
+            p.style.animationDelay = (80 + i * 50) + 'ms';
+            p.style.color = color;
+            p.innerHTML = STAR_SVG;
+            container.appendChild(p);
+        }
+
+        // Center flash
+        const flash = document.createElement('div');
+        flash.className = 'celebrate-flash';
+        flash.style.background = 'radial-gradient(circle, ' + color + '40 0%, ' + color + '15 50%, transparent 70%)';
+        container.appendChild(flash);
+
+        document.body.appendChild(container);
+
+        // Cleanup after animations finish
+        setTimeout(() => {
+            container.remove();
+            toast.classList.remove('celebrate');
+        }, 1800);
+    }
+
     // ── Snooze / Defer Actions ──
 
     /** Snooze until 11:59 PM PST tonight */
@@ -919,6 +986,7 @@ window.Reminders = (() => {
             uncompleteTask(id);
         } else {
             completeTask(id);
+            _celebrate(task.title);
         }
         render();
     }

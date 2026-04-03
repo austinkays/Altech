@@ -1104,3 +1104,59 @@ body.dark-mode .rem-stats-divider {
         padding: 10px 12px;
     }
 }
+
+/* ══════════════════════════════════════════════════ */
+/* ===  COMPLETION CELEBRATION                    === */
+/* ══════════════════════════════════════════════════ */
+
+/* Toast bounce on celebration */
+.toast.celebrate {
+    animation: celebratePop 0.5s var(--transition-spring) both;
+}
+
+/* Fixed overlay container at toast position */
+.celebrate-container {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    width: 0;
+    height: 0;
+    z-index: 10001;
+    pointer-events: none;
+}
+
+/* Base particle (inner ring — sparkles) */
+.celebrate-particle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 14px;
+    height: 14px;
+    transform-origin: center;
+    animation: celebrateInner 0.9s ease-out both;
+    will-change: transform, opacity;
+}
+.celebrate-particle svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Outer ring — stars (larger, slower, further) */
+.celebrate-particle.outer {
+    width: 12px;
+    height: 12px;
+    animation: celebrateOuter 1.2s ease-out both;
+}
+
+/* Center flash bloom */
+.celebrate-flash {
+    position: absolute;
+    top: -30px;
+    left: -30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    animation: celebrateFlash 0.8s ease-out both;
+    will-change: transform, opacity;
+}
