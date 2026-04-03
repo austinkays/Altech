@@ -309,22 +309,25 @@ describe('§3 splitColumnarFields()', () => {
         expect(slices[1]).toHaveLength(6);
     });
 
-    test('2-column slice[0] contains elements 0,1,2,3,4,5 (first half)', () => {
+    test('2-column slice[0] contains even-indexed elements (stride split for row-first DOM)', () => {
         const slices = ctx.splitColumnarFields(mockEls, 2);
-        expect(slices[0].map(e => e.__idx)).toEqual([0, 1, 2, 3, 4, 5]);
+        expect(slices[0].map(e => e.__idx)).toEqual([0, 2, 4, 6, 8, 10]);
     });
 
-    test('2-column slice[1] contains elements 6,7,8,9,10,11 (second half)', () => {
+    test('2-column slice[1] contains odd-indexed elements (stride split for row-first DOM)', () => {
         const slices = ctx.splitColumnarFields(mockEls, 2);
-        expect(slices[1].map(e => e.__idx)).toEqual([6, 7, 8, 9, 10, 11]);
+        expect(slices[1].map(e => e.__idx)).toEqual([1, 3, 5, 7, 9, 11]);
     });
 
-    test('3 columns splits 12 elements into three slices of 4', () => {
+    test('3 columns splits 12 elements into three stride-based slices of 4', () => {
         const slices = ctx.splitColumnarFields(mockEls, 3);
         expect(slices).toHaveLength(3);
         expect(slices[0]).toHaveLength(4);
         expect(slices[1]).toHaveLength(4);
         expect(slices[2]).toHaveLength(4);
+        expect(slices[0].map(e => e.__idx)).toEqual([0, 3, 6, 9]);
+        expect(slices[1].map(e => e.__idx)).toEqual([1, 4, 7, 10]);
+        expect(slices[2].map(e => e.__idx)).toEqual([2, 5, 8, 11]);
     });
 
     test('empty array returns correct number of empty slices', () => {

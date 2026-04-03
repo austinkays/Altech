@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **fix(ezlynx-extension): repair driver/vehicle compact page fill in Chrome extension** (April 3, 2026):
+  - `chrome-extension/content.js` — `splitColumnarFields()` changed from block-based split to stride-based (interleaved) split to match EZLynx's row-first DOM ordering (D1.F0 → D2.F0 → D1.F1 → D2.F1…). Block split mixed both drivers' fields causing wrong data in wrong fields.
+  - `chrome-extension/content.js` — Added `normalizeDriver()` / `normalizeVehicle()` helpers in `fillPageSequential()` to remap sub-object keys (`LicenseStatus` → `DLStatus`, `Year` → `VehicleYear`, `Make` → `VehicleMake`, `Model` → `VehicleModel`, `Use` → `VehicleUse`, `Ownership` → `OwnershipType`, `SR22` → `SR22Required`, `FR44` → `FR44Required`) so they match FIELD_LABEL_MAP expectations when merged into fillData.
+  - `chrome-extension/content.js` — Added 18 missing entries to `FIELD_LABEL_MAP`: `Relationship`, `Sub-Model`, `Current Odometer`, `Daytime Running Lights`, `Performance`, `Was the car new?`, `Car Pool`, `Telematics`, `Transportation Network Company`, `Defensive Driver Course Date`, `License Sus/Rev (Last 5 years)`, `FR-44 Required`, `Student > 100 miles away`, `Mature Driver`, `Driver Telematics/…/Right Track Discount`, `Extended Non Owned Coverage for Driver`, `Driver Training Date(MM/DD/YYYY)`.
+  - `tests/ezlynx-extension-fill.test.js` — Updated `splitColumnarFields` test expectations to match stride-based split (even-indexed → slice[0], odd-indexed → slice[1]).
+
 - **fix(quote-compare): include extraction prompt in AIProvider multimodal parts** (April 3, 2026):
   - `js/quote-compare.js` — prepend prompt text as a `{ text: prompt }` part in the `parts` array passed to `AIProvider.ask()`, matching the pattern used in `app-scan.js`. Previously the extraction instructions were only passed as `userMessage` which `_callGoogle()` drops when `opts.parts` is provided, causing PDF analysis to fail (model received PDF data but no extraction instructions).
 

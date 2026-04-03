@@ -4996,12 +4996,13 @@ function splitColumnarFields(elements, columnCount) {
     // EZLynx drivers/vehicles compact pages render multiple entities in
     // side-by-side columns.  DOM order on a 2-driver page is row-first:
     //   Driver1.Field0 → Driver2.Field0 → Driver1.Field1 → Driver2.Field1 …
-    // Divide into columnCount equal slices so each slice represents one entity.
+    // Use stride-based (interleaved) splitting: element i goes to column i%N.
     if (columnCount <= 1) return [elements];
-    const sliceSize = Math.ceil(elements.length / columnCount);
-    return Array.from({ length: columnCount }, (_, i) =>
-        elements.slice(i * sliceSize, (i + 1) * sliceSize)
-    );
+    const slices = Array.from({ length: columnCount }, () => []);
+    for (let i = 0; i < elements.length; i++) {
+        slices[i % columnCount].push(elements[i]);
+    }
+    return slices;
 }
 
 
@@ -5025,6 +5026,7 @@ const FIELD_LABEL_MAP = {
     'Gender':                   'Gender',
     'DOB':                      'DOB',
     'Marital Status':           'MaritalStatus',
+    'Relationship':             'Relationship',
     'SSN':                      'SSN',
     'DL#':                      'LicenseNumber',
     'DL Status':                'DLStatus',
@@ -5049,23 +5051,39 @@ const FIELD_LABEL_MAP = {
     'Year':                     'VehicleYear',
     'Make':                     'VehicleMake',
     'Model':                    'VehicleModel',
+    'Sub-Model':                'SubModel',
     'Annual Miles':             'AnnualMiles',
+    'Current Odometer':         'CurrentOdometer',
     'Vehicle Use':              'VehicleUse',
     'Ownership Type':           'OwnershipType',
     'Purchase Date':            'PurchaseDate',
     'Passive Restraints':       'PassiveRestraints',
     'Anti-Lock Brakes':         'AntiLockBrakes',
+    'Daytime Running Lights':   'DaytimeRunningLights',
     'Anti-Theft':               'AntiTheft',
     'Cost New Value':           'CostNew',
+    'Performance':              'Performance',
+    'Was the car new?':         'NewVehicle',
+    'Car Pool':                 'CarPool',
+    'Telematics':               'Telematics',
+    'Transportation Network Company': 'TNC',
     // ── Auto driver ──
     'Occupation Industry':      'Industry',
     'Occupation Title':         'Occupation',
     'Age Licensed':             'AgeLicensed',
     'Rated Driver':             'RatedDriver',
+    'Defensive Driver Course Date': 'DefensiveDriverDate',
+    'License Sus/Rev (Last 5 years)': 'LicenseSusRev',
     'SR-22 Required':           'SR22Required',
+    'FR-44 Required':           'FR44Required',
     'Good Student':             'GoodStudent',
+    'Student > 100 miles away': 'StudentAway',
     'Good Driver':              'GoodDriver',
     'Driver Education':         'DriverEducation',
+    'Mature Driver':            'MatureDriver',
+    'Driver Telematics/Smartride/Right Track Discount': 'DriverTelematics',
+    'Extended Non Owned Coverage for Driver': 'ExtendedNonOwned',
+    'Driver Training Date(MM/DD/YYYY)': 'DriverTrainingDate',
     // ── Home policy-info (non-duplicate fields only) ──
     'Prior Carrier':            'HomePriorCarrier',
     'Expiration Date (current policy)': 'PriorExpiration',
@@ -5209,6 +5227,27 @@ async function fillPageSequential(clientData) {
     const isColumnar = routeKey.includes('drivers-compact') || routeKey.includes('vehicles-compact');
     let primaryElements = domElements;
 
+    // Normalize sub-object keys to match FIELD_LABEL_MAP expectations.
+    // Altech sends Vehicles[].Year but FIELD_LABEL_MAP resolves 'Year' → 'VehicleYear'.
+    function normalizeVehicle(v) {
+        return {
+            ...v,
+            VehicleYear:  v.VehicleYear  || v.Year  || '',
+            VehicleMake:  v.VehicleMake  || v.Make  || '',
+            VehicleModel: v.VehicleModel || v.Model || '',
+            VehicleUse:   v.VehicleUse   || v.Use   || '',
+            OwnershipType: v.OwnershipType || v.Ownership || '',
+        };
+    }
+    function normalizeDriver(d) {
+        return {
+            ...d,
+            DLStatus:     d.DLStatus     || d.LicenseStatus || '',
+            SR22Required: d.SR22Required || d.SR22 || '',
+            FR44Required: d.FR44Required || d.FR44 || '',
+        };
+    }
+
     if (isColumnar && fieldsInOrder.length > 0) {
         const firstLabel = fieldsInOrder[0].toLowerCase();
         const labelHits = domElements.filter(el => {
@@ -5223,17 +5262,17 @@ async function fillPageSequential(clientData) {
         // Merge first-column array element into fillData so vehicle/driver
         // fields (VIN, Make, etc.) that only exist on the sub-object are reachable.
         if (routeKey.includes('drivers') && clientData.Drivers?.[0]) {
-            fillData = { ...fillData, ...clientData.Drivers[0] };
+            fillData = { ...fillData, ...normalizeDriver(clientData.Drivers[0]) };
         } else if (routeKey.includes('vehicles') && clientData.Vehicles?.[0]) {
-            fillData = { ...fillData, ...clientData.Vehicles[0] };
+            fillData = { ...fillData, ...normalizeVehicle(clientData.Vehicles[0]) };
         }
 
         // Fill second column with driver[1] / vehicle[1] data if present.
         if (slices[1] && slices[1].length) {
             const secondSrc = routeKey.includes('drivers') && clientData.Drivers?.[1]
-                ? { ...clientData, ...clientData.Drivers[1] }
+                ? { ...clientData, ...normalizeDriver(clientData.Drivers[1]) }
                 : routeKey.includes('vehicles') && clientData.Vehicles?.[1]
-                ? { ...clientData, ...clientData.Vehicles[1] }
+                ? { ...clientData, ...normalizeVehicle(clientData.Vehicles[1]) }
                 : null;
             if (secondSrc) {
                 const pairs2 = buildPositionalPairs(fieldsInOrder, slices[1]);
