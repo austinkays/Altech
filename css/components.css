@@ -275,6 +275,87 @@ body.dark-mode .non-owners-notice {
     color: var(--danger);
 }
 
+/* ─── Client History Search & Expanded View ─── */
+.ch-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.ch-search-input {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.ch-search-input::placeholder {
+    color: var(--text-tertiary);
+}
+.ch-search-input:focus {
+    border-color: var(--apple-blue);
+}
+.ch-view-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--apple-blue);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+.ch-view-all-btn:hover {
+    background: var(--apple-blue);
+    color: #fff;
+    border-color: var(--apple-blue);
+}
+.ch-count-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    padding: 4px 0;
+}
+.ch-list-expanded {
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+.ch-list-expanded::-webkit-scrollbar {
+    width: 4px;
+}
+.ch-list-expanded::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+.ch-no-results {
+    text-align: center;
+    padding: 16px 0;
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+body.dark-mode .ch-search-input {
+    background: var(--bg-input);
+    border-color: var(--border);
+    color: var(--text);
+}
+body.dark-mode .ch-view-all-btn {
+    background: var(--bg-input);
+    border-color: var(--border);
+}
+body.dark-mode .ch-view-all-btn:hover {
+    background: var(--apple-blue);
+    color: #fff;
+}
+
 /* ─── Segmented Control ─── */
 .seg-group {
     display: inline-flex;

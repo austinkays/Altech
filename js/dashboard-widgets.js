@@ -13,6 +13,8 @@ window.DashboardWidgets = (() => {
     let _complianceBgFetching = false;
     const COMPLIANCE_BG_FETCH_INTERVAL = 60 * 60 * 1000; // 1 hour
     let _initialized = false;
+    let _clientWidgetShowAll = false;
+    let _clientWidgetSearch = '';
     let _crumbTool = null;
     let _crumbTitle = null;
 
@@ -544,19 +546,27 @@ window.DashboardWidgets = (() => {
         const container = document.getElementById('widgetDrafts');
         if (!container) return;
 
-        let clients = [];
-        let totalClients = 0;
+        let allClients = [];
         try {
             const raw = localStorage.getItem(STORAGE_KEYS.CLIENT_HISTORY);
-            if (raw) {
-                const allClients = JSON.parse(raw) || [];
-                totalClients = allClients.length;
-                clients = allClients.slice(0, 5); // already sorted newest-first
-            }
+            if (raw) allClients = JSON.parse(raw) || [];
         } catch (e) { /* ignore */ }
 
+        const totalClients = allClients.length;
+        const searchTerm = (_clientWidgetSearch || '').toLowerCase();
+        let filtered = allClients;
+        if (searchTerm) {
+            filtered = allClients.filter(c => {
+                const name = (c.name || '').toLowerCase();
+                const addr = [c.data && c.data.addrCity, c.data && c.data.addrState].filter(Boolean).join(', ').toLowerCase();
+                const summary = (c.summary || '').toLowerCase();
+                return name.includes(searchTerm) || addr.includes(searchTerm) || summary.includes(searchTerm);
+            });
+        }
+        const displayed = (_clientWidgetShowAll || searchTerm) ? filtered : filtered.slice(0, 5);
+
         let listHtml;
-        if (clients.length === 0) {
+        if (totalClients === 0) {
             listHtml = `
                 <div class="widget-empty">
                     <div class="widget-empty-icon">${icon('user', 32)}</div>
@@ -564,19 +574,39 @@ window.DashboardWidgets = (() => {
                     <div class="widget-empty-sub">Complete a quote to see clients here</div>
                 </div>`;
         } else {
-            listHtml = `<div class="client-list">${clients.map(c => {
-                const timeText = _relativeTime(c.savedAt);
-                const qType = (c.data && c.data.qType || '').toLowerCase();
-                const typeIcon = qType === 'home' ? icon('home', 14) : qType === 'auto' ? icon('car', 14) : qType === 'both' ? icon('home', 14) + icon('car', 14) : icon('user', 14);
-                return `<div class="client-row" onclick="App.loadClientFromHistory('${c.id}'); App.navigateTo('quoting');">
-                    <div class="client-type-icon">${typeIcon}</div>
-                    <div class="client-info">
-                        <div class="client-name">${_escapeHTML(c.name || 'Unnamed Client')}</div>
-                        <div class="client-summary">${_escapeHTML(c.summary || '')}</div>
-                    </div>
-                    <div class="client-time">${_escapeHTML(timeText)}</div>
-                </div>`;
-            }).join('')}</div>`;
+            // Search bar (show when >5 clients or actively searching)
+            let searchHtml = '';
+            if (totalClients > 5 || searchTerm) {
+                searchHtml = `<input type="text" class="client-search-input" placeholder="Search clients…" value="${Utils.escapeAttr(searchTerm)}" oninput="DashboardWidgets._onClientSearch(this.value)">`;
+            }
+
+            if (displayed.length === 0) {
+                listHtml = searchHtml + `<div class="widget-empty"><div class="widget-empty-text">No clients match your search</div></div>`;
+            } else {
+                const listClass = (_clientWidgetShowAll || searchTerm) ? 'client-list client-list-expanded' : 'client-list';
+                listHtml = searchHtml + `<div class="${listClass}">${displayed.map(c => {
+                    const timeText = _relativeTime(c.savedAt);
+                    const qType = (c.data && c.data.qType || '').toLowerCase();
+                    const typeIcon = qType === 'home' ? icon('home', 14) : qType === 'auto' ? icon('car', 14) : qType === 'both' ? icon('home', 14) + icon('car', 14) : icon('user', 14);
+                    return `<div class="client-row" onclick="App.loadClientFromHistory('${c.id}'); App.navigateTo('quoting');">
+                        <div class="client-type-icon">${typeIcon}</div>
+                        <div class="client-info">
+                            <div class="client-name">${_escapeHTML(c.name || 'Unnamed Client')}</div>
+                            <div class="client-summary">${_escapeHTML(c.summary || '')}</div>
+                        </div>
+                        <div class="client-time">${_escapeHTML(timeText)}</div>
+                    </div>`;
+                }).join('')}</div>`;
+
+                // View All / Collapse toggle (only when >5 and not searching)
+                if (totalClients > 5 && !searchTerm) {
+                    if (_clientWidgetShowAll) {
+                        listHtml += `<div style="text-align:center;margin-top:6px;"><button class="ch-view-all-btn" onclick="event.stopPropagation();DashboardWidgets._toggleClientViewAll();">Show Less ▲</button></div>`;
+                    } else {
+                        listHtml += `<div style="text-align:center;margin-top:6px;"><button class="ch-view-all-btn" onclick="event.stopPropagation();DashboardWidgets._toggleClientViewAll();">View All ${totalClients} Clients ▼</button></div>`;
+                    }
+                }
+            }
         }
 
         const countLabel = totalClients > 0 ? `<span class="client-count-badge">${totalClients}</span>` : '';
@@ -584,9 +614,25 @@ window.DashboardWidgets = (() => {
         container.innerHTML = `
             <div class="widget-header">
                 <div class="widget-title">${icon('user', 16)} Recent Clients ${countLabel}</div>
-                <button class="widget-action" onclick="App.navigateTo('quoting')">All Clients →</button>
+                <button class="widget-action" onclick="App.navigateTo('quoting')">Open Quoting →</button>
             </div>
             ${listHtml}`;
+
+        // Restore cursor after re-render
+        if (searchTerm) {
+            const input = container.querySelector('.client-search-input');
+            if (input) { input.focus(); input.selectionStart = input.selectionEnd = input.value.length; }
+        }
+    }
+
+    function _onClientSearch(value) {
+        _clientWidgetSearch = value;
+        renderClientsWidget();
+    }
+
+    function _toggleClientViewAll() {
+        _clientWidgetShowAll = !_clientWidgetShowAll;
+        renderClientsWidget();
     }
 
     // ── Render: CGL Compliance Widget ──
@@ -1368,5 +1414,7 @@ window.DashboardWidgets = (() => {
         toolIcon,
         ICONS,
         TOOL_ICONS,
+        _onClientSearch,
+        _toggleClientViewAll,
     };
 })();

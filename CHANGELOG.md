@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(clients): search + view-all for client history** (April 3, 2026):
+  - `js/app-quotes.js` — `renderStep0ClientHistory()` now shows search bar (when >5 clients), "View All / Show Less" toggle, total count; `renderClientHistory()` (step 6) now has always-visible search bar + scrollable list with count label
+  - `js/dashboard-widgets.js` — `renderClientsWidget()` now shows search bar (when >5 clients), "View All / Show Less" toggle; added `_onClientSearch()` and `_toggleClientViewAll()` to public API
+  - `css/components.css` — added `.ch-search-bar`, `.ch-search-input`, `.ch-view-all-btn`, `.ch-count-label`, `.ch-list-expanded`, `.ch-no-results` + dark mode overrides
+  - `css/dashboard.css` — added `.client-search-input`, `.client-list-expanded` for dashboard widget search + scrollable list
+
 ### Fixed
 - **fix(reminders): position snooze menu near mouse cursor** (April 1, 2026):
   - `js/reminders.js` — `showSnoozeMenu()` now accepts the click event and positions the popup at the cursor, clamped within viewport bounds

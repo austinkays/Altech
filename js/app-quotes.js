@@ -241,16 +241,45 @@ Object.assign(App, {
         this.toast('✅ Client saved — ready for new intake');
     },
 
+    _step0ShowAll: false,
+
     renderStep0ClientHistory() {
         const container = document.getElementById('step0ClientHistoryList');
         if (!container) return;
-        const clients = this.getClientHistory().slice(0, 5);
-        if (!clients.length) {
+        const allClients = this.getClientHistory();
+        if (!allClients.length) {
             container.innerHTML = '<div class="hint" style="text-align:center;padding:12px 0;">No previous clients yet</div>';
             return;
         }
-        container.innerHTML = '<div style="font-weight:600;font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Recent Clients</div>' +
-            clients.map(c => {
+        const showAll = this._step0ShowAll;
+        const searchTerm = (this._step0Search || '').toLowerCase();
+        let filtered = allClients;
+        if (searchTerm) {
+            filtered = allClients.filter(c => {
+                const name = (c.name || '').toLowerCase();
+                const addr = [c.data.addrCity, c.data.addrState].filter(Boolean).join(', ').toLowerCase();
+                const summary = (c.summary || '').toLowerCase();
+                return name.includes(searchTerm) || addr.includes(searchTerm) || summary.includes(searchTerm);
+            });
+        }
+        const displayed = (showAll || searchTerm) ? filtered : filtered.slice(0, 5);
+        const totalCount = allClients.length;
+
+        let html = '<div style="font-weight:600;font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Recent Clients <span class="ch-count-label">(' + totalCount + ' saved)</span></div>';
+
+        // Search bar (show when >5 clients or when actively searching)
+        if (totalCount > 5 || searchTerm) {
+            html += `<div class="ch-search-bar">
+                <input type="text" class="ch-search-input" placeholder="Search clients by name, city, or type…" value="${Utils.escapeAttr(this._step0Search || '')}" oninput="App._step0Search=this.value;App.renderStep0ClientHistory();">
+            </div>`;
+        }
+
+        if (!displayed.length) {
+            html += '<div class="ch-no-results">No clients match your search</div>';
+        } else {
+            const listClass = (showAll || searchTerm) ? 'ch-list-expanded' : '';
+            html += `<div class="${listClass}">`;
+            html += displayed.map(c => {
                 const date = new Date(c.savedAt).toLocaleDateString();
                 const addr = [c.data.addrCity, c.data.addrState].filter(Boolean).join(', ');
                 return `<div class="ch-row">
@@ -264,30 +293,81 @@ Object.assign(App, {
                     </div>
                 </div>`;
             }).join('');
+            html += '</div>';
+        }
+
+        // View All / Collapse toggle (only when >5 and not searching)
+        if (totalCount > 5 && !searchTerm) {
+            if (showAll) {
+                html += `<div style="text-align:center;margin-top:8px;"><button class="ch-view-all-btn" onclick="App._step0ShowAll=false;App.renderStep0ClientHistory();">Show Less ▲</button></div>`;
+            } else {
+                html += `<div style="text-align:center;margin-top:8px;"><button class="ch-view-all-btn" onclick="App._step0ShowAll=true;App.renderStep0ClientHistory();">View All ${totalCount} Clients ▼</button></div>`;
+            }
+        }
+
+        container.innerHTML = html;
+        // Restore cursor position in search input
+        if (searchTerm) {
+            const input = container.querySelector('.ch-search-input');
+            if (input) { input.focus(); input.selectionStart = input.selectionEnd = input.value.length; }
+        }
     },
+
+    _step6Search: '',
 
     renderClientHistory() {
         const container = document.getElementById('clientHistoryList');
         if (!container) return;
-        const clients = this.getClientHistory();
-        if (!clients.length) {
+        const allClients = this.getClientHistory();
+        if (!allClients.length) {
             container.innerHTML = '<div class="hint" style="text-align:center;padding:24px 0;">No saved clients yet.<br>Clients are saved automatically when you complete the form.</div>';
             return;
         }
-        container.innerHTML = clients.map(c => {
-            const date = new Date(c.savedAt).toLocaleDateString();
-            const addr = [c.data.addrCity, c.data.addrState].filter(Boolean).join(', ');
-            return `<div class="ch-row">
-                <div class="ch-info">
-                    <span class="ch-name">${this.escapeHTML(c.name)}</span>
-                    <span class="ch-meta">${this.escapeHTML(c.summary)}${addr ? ' • ' + this.escapeHTML(addr) : ''} • ${date}</span>
-                </div>
-                <div class="ch-actions">
-                    <button class="btn btn-primary btn-sm" onclick="App.loadClientFromHistory('${c.id}')">Restore</button>
-                    <button class="btn btn-tertiary btn-sm" onclick="App.deleteClientFromHistory('${c.id}')">✕</button>
-                </div>
-            </div>`;
-        }).join('');
+        const searchTerm = (this._step6Search || '').toLowerCase();
+        let filtered = allClients;
+        if (searchTerm) {
+            filtered = allClients.filter(c => {
+                const name = (c.name || '').toLowerCase();
+                const addr = [c.data.addrCity, c.data.addrState].filter(Boolean).join(', ').toLowerCase();
+                const summary = (c.summary || '').toLowerCase();
+                return name.includes(searchTerm) || addr.includes(searchTerm) || summary.includes(searchTerm);
+            });
+        }
+
+        let html = '';
+        // Search bar
+        html += `<div class="ch-search-bar">
+            <input type="text" class="ch-search-input" placeholder="Search clients by name, city, or type…" value="${Utils.escapeAttr(this._step6Search || '')}" oninput="App._step6Search=this.value;App.renderClientHistory();">
+            <span class="ch-count-label">${allClients.length} saved</span>
+        </div>`;
+
+        if (!filtered.length) {
+            html += '<div class="ch-no-results">No clients match your search</div>';
+        } else {
+            html += '<div class="ch-list-expanded">';
+            html += filtered.map(c => {
+                const date = new Date(c.savedAt).toLocaleDateString();
+                const addr = [c.data.addrCity, c.data.addrState].filter(Boolean).join(', ');
+                return `<div class="ch-row">
+                    <div class="ch-info">
+                        <span class="ch-name">${this.escapeHTML(c.name)}</span>
+                        <span class="ch-meta">${this.escapeHTML(c.summary)}${addr ? ' • ' + this.escapeHTML(addr) : ''} • ${date}</span>
+                    </div>
+                    <div class="ch-actions">
+                        <button class="btn btn-primary btn-sm" onclick="App.loadClientFromHistory('${c.id}')">Restore</button>
+                        <button class="btn btn-tertiary btn-sm" onclick="App.deleteClientFromHistory('${c.id}')">✕</button>
+                    </div>
+                </div>`;
+            }).join('');
+            html += '</div>';
+        }
+
+        container.innerHTML = html;
+        // Restore cursor position in search input
+        if (searchTerm) {
+            const input = container.querySelector('.ch-search-input');
+            if (input) { input.focus(); input.selectionStart = input.selectionEnd = input.value.length; }
+        }
     },
 
     escapeHTML(str) { return Utils.escapeHTML(str); },

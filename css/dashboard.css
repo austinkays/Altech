@@ -696,6 +696,37 @@ body.dark-mode .stat-pill-snoozed {
     white-space: nowrap;
     flex-shrink: 0;
 }
+.client-search-input {
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    margin-bottom: 4px;
+    box-sizing: border-box;
+}
+.client-search-input::placeholder {
+    color: var(--text-tertiary);
+}
+.client-search-input:focus {
+    border-color: var(--apple-blue);
+}
+.client-list-expanded {
+    max-height: 320px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+.client-list-expanded::-webkit-scrollbar {
+    width: 4px;
+}
+.client-list-expanded::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
 
 /* ═══════════════════════════════════════
    Widget 3: CGL Compliance (compact — 4col × 2row)

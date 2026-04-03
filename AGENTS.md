@@ -73,7 +73,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── landing.css             # Landing / bento grid / tool-row styles
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (787 lines)
-│   ├── dashboard.css           # Bento grid dashboard widgets (1,208 lines)
+│   ├── dashboard.css           # Bento grid dashboard widgets (1,244 lines)
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (934 lines)
 │   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + blue needs-state-update badge + snooze styles + fixed 6-col stat grid + two-row action buttons + note-count badge + button variant classes (.confirm, .state-done, .hs-done) (1,585 lines)
 │   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
@@ -111,7 +111,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
 │   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,337 lines)
-│   ├── app-quotes.js           # Quote/draft management, client history auto-save (844 lines)
+│   ├── app-quotes.js           # Quote/draft management, client history auto-save, search + view-all (846 lines)
 │   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (280 lines)
 │   │
 │   │  ★ Infrastructure
@@ -123,7 +123,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget (1,368 lines)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget, client search (1,421 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
