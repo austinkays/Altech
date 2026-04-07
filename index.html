@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/admin.css">
     <link rel="stylesheet" href="css/theme-professional.css">
+    <link rel="stylesheet" href="css/aurora-theme.css">
     <link rel="stylesheet" href="css/reminders.css">
     <link rel="stylesheet" href="css/hawksoft.css">
     <link rel="stylesheet" href="css/vin-decoder.css">
@@ -574,6 +575,25 @@
                             <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="App.saveAgencyName(document.getElementById('authAccountAgency').value)" style="white-space:nowrap">Update</button>
                         </div>
                     </div>
+
+                    <!-- 🎨 Theme -->
+                    <details class="settings-section">
+                        <summary class="settings-section-header">
+                            <span class="settings-section-icon">🎨</span>
+                            <span class="settings-section-title">Theme</span>
+                            <span class="settings-section-chevron">›</span>
+                        </summary>
+                        <div class="settings-section-body">
+                            <div class="auth-field">
+                                <label for="themeSelect">Appearance</label>
+                                <select id="themeSelect" onchange="App.setTheme(this.value)" class="settings-select">
+                                    <option value="default">Default</option>
+                                    <option value="aurora">Aurora (Northern Lights)</option>
+                                </select>
+                            </div>
+                            <p style="margin:0.5rem 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">Aurora is an animated dark theme with northern-lights effects and frosted-glass cards.</p>
+                        </div>
+                    </details>
 
                     <!-- ☁️ Sync -->
                     <details class="settings-section">

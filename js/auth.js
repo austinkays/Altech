@@ -330,6 +330,10 @@ const Auth = (() => {
 
                 // Load AI settings into the form
                 if (typeof App !== 'undefined' && App.loadAISettings) App.loadAISettings();
+
+                // Set theme dropdown to current value
+                const themeEl = modal.querySelector('#themeSelect');
+                if (themeEl) themeEl.value = localStorage.getItem(STORAGE_KEYS.THEME) || 'default';
             } else {
                 _showView('login');
             }

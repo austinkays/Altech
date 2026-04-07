@@ -27,9 +27,53 @@ Object.assign(App, {
         const isDark = document.body.classList.contains('dark-mode');
         localStorage.setItem(STORAGE_KEYS.DARK_MODE, isDark);
         this.updateDarkModeIcons(isDark);
+        // Aurora is dark-only — deactivate if switching to light
+        if (!isDark && document.body.classList.contains('theme-aurora')) {
+            this.setTheme('default');
+        }
         // Sync dark mode preference to cloud
         if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
             CloudSync.schedulePush();
+        }
+    },
+
+    // ── Theme system ──
+    // Valid themes: 'default', 'aurora'
+    _VALID_THEMES: ['default', 'aurora'],
+
+    setTheme(themeId) {
+        if (!this._VALID_THEMES.includes(themeId)) themeId = 'default';
+
+        // Remove all theme-* classes from body
+        document.body.classList.forEach(cls => {
+            if (cls.startsWith('theme-')) document.body.classList.remove(cls);
+        });
+
+        if (themeId === 'aurora') {
+            // Aurora is a dark theme — ensure dark mode is on
+            if (!document.body.classList.contains('dark-mode')) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem(STORAGE_KEYS.DARK_MODE, 'true');
+                this.updateDarkModeIcons(true);
+            }
+            document.body.classList.add('theme-aurora');
+        }
+
+        localStorage.setItem(STORAGE_KEYS.THEME, themeId);
+
+        // Update theme selector UI if present
+        const sel = document.getElementById('themeSelect');
+        if (sel) sel.value = themeId;
+
+        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
+            CloudSync.schedulePush();
+        }
+    },
+
+    loadTheme() {
+        const themeId = localStorage.getItem(STORAGE_KEYS.THEME) || 'default';
+        if (themeId !== 'default') {
+            this.setTheme(themeId);
         }
     },
 

@@ -52,6 +52,7 @@ window.STORAGE_KEYS = Object.freeze({
 
     // ── Settings & identity ──────────────────────────────────────────────────
     DARK_MODE:              'altech_dark_mode',       // cloud-synced via settings doc
+    THEME:                  'altech_theme',           // cloud-synced via settings doc ('default'|'aurora')
     ONBOARDED:              'altech_onboarded',
     USER_NAME:              'altech_user_name',
     AGENCY_PROFILE:         'altech_agency_profile',

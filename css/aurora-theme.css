@@ -1,0 +1,118 @@
+/* ═══════════════════════════════════════════════════════
+   Aurora Theme — Northern Lights
+   Activated by body.theme-aurora (forces dark mode)
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Override design-system variables for Aurora palette ── */
+body.theme-aurora {
+    --bg: #141a26;
+    --bg-card: rgba(30, 38, 52, 0.72);
+    --bg-input: #2a3342;
+    --text: #e8eef8;
+    --text-secondary: #b0c0d8;
+    --text-tertiary: #8e9eb8;
+    --border: #3a4456;
+    --border-subtle: #2a3342;
+    --shadow: rgba(0, 0, 0, 0.4);
+    --apple-blue: #84dcb4;
+    --apple-blue-hover: #66bc94;
+    --apple-gray: #8e9eb8;
+    --success: #70cce8;
+    --danger: #ec8898;
+    --warning: #b4a2ec;
+
+    --bg-sidebar: rgba(20, 26, 38, 0.92);
+    --bg-widget-hover: #2a3342;
+    --sidebar-active: rgba(132, 220, 180, 0.18);
+    --accent-gradient: linear-gradient(135deg, #84dcb4, #70cce8, #b4a2ec);
+    --accent-gradient-text: linear-gradient(135deg, #84dcb4, #70cce8, #b4a2ec);
+}
+
+/* ── Aurora: Northern-lights curtains ── */
+body.theme-aurora::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    will-change: transform, opacity;
+    background-image:
+        radial-gradient(ellipse 90% 28% at 20% 22%, rgba(132, 220, 180, 0.28), transparent 65%),
+        radial-gradient(ellipse 80% 24% at 75% 30%, rgba(112, 204, 232, 0.24), transparent 65%),
+        radial-gradient(ellipse 70% 22% at 45% 48%, rgba(180, 162, 236, 0.20), transparent 65%),
+        radial-gradient(ellipse 120% 18% at 50% 70%, rgba(132, 220, 180, 0.14), transparent 70%);
+    filter: blur(36px);
+    animation: aurora-shimmer 22s ease-in-out infinite alternate;
+}
+
+/* ── Aurora: Twinkling star field ── */
+body.theme-aurora::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+        radial-gradient(circle 2px at  8% 12%, rgba(255, 255, 255, 0.85), transparent 70%),
+        radial-gradient(circle 2px at 22% 38%, rgba(112, 204, 232, 0.80), transparent 70%),
+        radial-gradient(circle 2px at 38%  8%, rgba(255, 255, 255, 0.80), transparent 70%),
+        radial-gradient(circle 3px at 55% 22%, rgba(132, 220, 180, 0.70), transparent 70%),
+        radial-gradient(circle 2px at 68% 52%, rgba(255, 255, 255, 0.85), transparent 70%),
+        radial-gradient(circle 2px at 82% 18%, rgba(112, 204, 232, 0.75), transparent 70%),
+        radial-gradient(circle 3px at 92% 62%, rgba(255, 255, 255, 0.70), transparent 70%),
+        radial-gradient(circle 2px at 14% 72%, rgba(180, 162, 236, 0.80), transparent 70%),
+        radial-gradient(circle 2px at 45% 88%, rgba(255, 255, 255, 0.75), transparent 70%),
+        radial-gradient(circle 2px at 72% 80%, rgba(132, 220, 180, 0.70), transparent 70%),
+        radial-gradient(circle 2px at  4% 48%, rgba(255, 255, 255, 0.80), transparent 70%),
+        radial-gradient(circle 2px at 18% 94%, rgba(112, 204, 232, 0.75), transparent 70%),
+        radial-gradient(circle 3px at 30% 58%, rgba(255, 255, 255, 0.85), transparent 70%),
+        radial-gradient(circle 2px at 42% 30%, rgba(180, 162, 236, 0.70), transparent 70%),
+        radial-gradient(circle 2px at 52% 68%, rgba(112, 204, 232, 0.80), transparent 70%),
+        radial-gradient(circle 2px at 62%  4%, rgba(255, 255, 255, 0.75), transparent 70%),
+        radial-gradient(circle 3px at 74% 34%, rgba(132, 220, 180, 0.80), transparent 70%),
+        radial-gradient(circle 2px at 86% 84%, rgba(255, 255, 255, 0.85), transparent 70%),
+        radial-gradient(circle 2px at 96% 32%, rgba(112, 204, 232, 0.75), transparent 70%),
+        radial-gradient(circle 2px at 28% 20%, rgba(255, 255, 255, 0.80), transparent 70%),
+        radial-gradient(circle 2px at 58% 94%, rgba(180, 162, 236, 0.75), transparent 70%),
+        radial-gradient(circle 2px at 78%  6%, rgba(255, 255, 255, 0.85), transparent 70%);
+    animation: aurora-stars 6s ease-in-out infinite;
+}
+
+/* ── Glassmorphism: frosted-glass cards over animated background ── */
+body.theme-aurora .card,
+body.theme-aurora .plugin-container,
+body.theme-aurora .settings-section-body,
+body.theme-aurora .auth-modal-content,
+body.theme-aurora .step-card {
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+
+/* ── Sidebar glass effect ── */
+body.theme-aurora .sidebar {
+    backdrop-filter: blur(18px) saturate(1.3);
+    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+}
+
+/* ── Heading text glow ── */
+body.theme-aurora h1,
+body.theme-aurora h2,
+body.theme-aurora .landing-brand-name {
+    text-shadow:
+        0 0 12px rgba(132, 220, 180, 0.35),
+        0 0 24px rgba(112, 204, 232, 0.22);
+}
+
+/* ── Ensure content sits above effect layers ── */
+body.theme-aurora > *:not(script):not(link):not(style) {
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Reduced motion: disable all Aurora animations ── */
+@media (prefers-reduced-motion: reduce) {
+    body.theme-aurora::before,
+    body.theme-aurora::after {
+        animation: none !important;
+    }
+}

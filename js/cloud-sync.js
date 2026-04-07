@@ -165,6 +165,7 @@ const CloudSync = (() => {
             commercialQuotes: localStorage.getItem(STORAGE_KEYS.COMMERCIAL_QUOTES) || null,
             settings: {
                 darkMode: localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true',
+                theme: localStorage.getItem(STORAGE_KEYS.THEME) || 'default',
             }
         };
     }
@@ -460,6 +461,10 @@ const CloudSync = (() => {
                     if (settingsResult.data.darkMode !== undefined) {
                         localStorage.setItem(STORAGE_KEYS.DARK_MODE, settingsResult.data.darkMode);
                         if (typeof App !== 'undefined' && App.loadDarkMode) App.loadDarkMode();
+                    }
+                    if (settingsResult.data.theme) {
+                        localStorage.setItem(STORAGE_KEYS.THEME, settingsResult.data.theme);
+                        if (typeof App !== 'undefined' && App.loadTheme) App.loadTheme();
                     }
                 }
 

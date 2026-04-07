@@ -93,6 +93,8 @@ window.onload = async () => {
 
     // Apply dark mode preference FIRST — before any tool rendering
     try { App.loadDarkMode(); } catch (e) { console.error('[Boot] loadDarkMode error:', e); }
+    // Apply theme (e.g. Aurora) after dark mode
+    try { App.loadTheme(); } catch (e) { console.error('[Boot] loadTheme error:', e); }
 
     // Initialize cloud sync (non-blocking), then load Places API (needs Auth for key fetch)
     try {
