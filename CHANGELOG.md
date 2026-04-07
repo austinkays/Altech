@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **feat(theme): add Aurora theme option to user settings** (April 7, 2026):
-  - `css/aurora-theme.css` — new file: Aurora northern-lights theme with CSS variable overrides (`--bg: #141a26`, mint/cyan/violet accent palette), animated curtains (`body::before`), twinkling stars (`body::after`), glassmorphism cards, heading text glow, `prefers-reduced-motion` fallback
+  - `css/aurora-theme.css` — new file: Aurora northern-lights theme with CSS variable overrides (`--bg: #141a26`, mint/cyan/violet accent palette), animated curtains (`html::before`), twinkling stars (`html::after`), glassmorphism cards, heading text glow, `prefers-reduced-motion` fallback
   - `css/animations.css` — added `@keyframes aurora-shimmer` (22s curtain drift) and `@keyframes aurora-stars` (6s twinkle)
   - `js/app-ui-utils.js` — added `setTheme(themeId)`, `loadTheme()`, `_VALID_THEMES` array; `toggleDarkMode()` now deactivates Aurora when switching to light mode
   - `js/storage-keys.js` — added `THEME: 'altech_theme'`
@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `index.html` — added `<link>` for `aurora-theme.css`, added Theme `<details>` section with `<select>` in settings modal
 
 ### Fixed
+- **fix(theme): aurora background effects invisible + bottom nav always visible** (April 7, 2026):
+  - `css/aurora-theme.css` — moved curtain/star layers from `body::before`/`body::after` to `html:has(body.theme-aurora)::before`/`::after` since `body` is `display:flex` (pseudo-elements become flex items, not positioned layers); removed overly broad `body > *` z-index rule
+  - `css/sidebar.css` — removed duplicate `display: flex` that overrode `display: none` in `.mobile-bottom-nav` base rule, causing bottom nav to always show on desktop
+
 - **fix(ezlynx-extension): repair driver/vehicle compact page fill in Chrome extension** (April 3, 2026):
   - `chrome-extension/content.js` — `splitColumnarFields()` changed from block-based split to stride-based (interleaved) split to match EZLynx's row-first DOM ordering (D1.F0 → D2.F0 → D1.F1 → D2.F1…). Block split mixed both drivers' fields causing wrong data in wrong fields.
   - `chrome-extension/content.js` — Added `normalizeDriver()` / `normalizeVehicle()` helpers in `fillPageSequential()` to remap sub-object keys (`LicenseStatus` → `DLStatus`, `Year` → `VehicleYear`, `Make` → `VehicleMake`, `Model` → `VehicleModel`, `Use` → `VehicleUse`, `Ownership` → `OwnershipType`, `SR22` → `SR22Required`, `FR44` → `FR44Required`) so they match FIELD_LABEL_MAP expectations when merged into fillData.

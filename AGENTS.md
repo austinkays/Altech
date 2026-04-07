@@ -16,8 +16,8 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
-| **CSS** | 33 files in `css/` (~21,786 lines total) |
-| **JS** | 46 modules in `js/` (~42,325 lines total) |
+| **CSS** | 34 files in `css/` (~22,223 lines total) |
+| **JS** | 46 modules in `js/` (~42,657 lines total) |
 | **Plugins** | 21 HTML templates in `plugins/` (~6,712 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
@@ -64,7 +64,7 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 34 stylesheets (~21,155 lines)
+├── css/                        # 34 stylesheets (~22,223 lines)
 │   ├── variables.css           # :root CSS custom properties + body.dark-mode overrides (all theme tokens)
 │   ├── base.css                # Reset, body, typography, scrollbars
 │   ├── components.css          # Cards, inputs, buttons, modals, toasts (shared components)
@@ -77,7 +77,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (934 lines)
 │   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + blue needs-state-update badge + snooze styles + fixed 6-col stat grid + two-row action buttons + note-count badge + button variant classes (.confirm, .state-done, .hs-done) (1,585 lines)
 │   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
-│   ├── reminders.css           # Task reminders (1,120 lines)
+│   ├── reminders.css           # Task reminders (1,169 lines)
 │   ├── intake-assist.css       # AI intake professional UI — enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
 │   ├── ezlynx.css              # EZLynx export — standalone dark palette (590 lines)
 │   ├── vin-decoder.css         # VIN decoder (646 lines)
@@ -97,7 +97,8 @@ npm run deploy:vercel   # Production deploy
 │   ├── blind-spot-brief.css    # Blind Spot Brief plugin (294 lines)
 │   ├── commercial-quoter.css   # Commercial Lines quoter — 7-step wizard, dark mode, responsive (743 lines)
 │   ├── dec-import.css          # Dec Page Importer plugin (354 lines)
-│   └── deposit-sheet.css       # Deposit Sheet plugin (662 lines)
+│   ├── deposit-sheet.css       # Deposit Sheet plugin (662 lines)
+│   └── aurora-theme.css        # Aurora northern-lights theme — variable overrides, html::before/::after animated layers, glassmorphism (118 lines)
 │
 ├── js/                         # 47 modules (~40,530 lines)
 │   │
@@ -111,7 +112,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
 │   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,337 lines)
-│   ├── app-quotes.js           # Quote/draft management, client history auto-save, search + view-all (846 lines)
+│   ├── app-quotes.js           # Quote/draft management, client history auto-save, search + view-all (927 lines)
 │   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (280 lines)
 │   │
 │   │  ★ Infrastructure
@@ -137,7 +138,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (2,318 lines)
 │   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (758 lines)
 │   ├── quote-compare.js         # Quote comparison + AI recommendation (1,098 lines)
-│   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (972 lines)
+│   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (1,101 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
 │   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator (1,277 lines)
 │   ├── call-logger.js          # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,233 lines)

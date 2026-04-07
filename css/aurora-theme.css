@@ -28,8 +28,10 @@ body.theme-aurora {
     --accent-gradient-text: linear-gradient(135deg, #84dcb4, #70cce8, #b4a2ec);
 }
 
-/* ── Aurora: Northern-lights curtains ── */
-body.theme-aurora::before {
+/* ── Aurora: Northern-lights curtains ──
+     Uses html pseudo-elements because body is display:flex (base.css),
+     which turns body::before/::after into flex items instead of layers. ── */
+html:has(body.theme-aurora)::before {
     content: '';
     position: fixed;
     inset: 0;
@@ -46,7 +48,7 @@ body.theme-aurora::before {
 }
 
 /* ── Aurora: Twinkling star field ── */
-body.theme-aurora::after {
+html:has(body.theme-aurora)::after {
     content: '';
     position: fixed;
     inset: 0;
@@ -103,16 +105,10 @@ body.theme-aurora .landing-brand-name {
         0 0 24px rgba(112, 204, 232, 0.22);
 }
 
-/* ── Ensure content sits above effect layers ── */
-body.theme-aurora > *:not(script):not(link):not(style) {
-    position: relative;
-    z-index: 1;
-}
-
 /* ── Reduced motion: disable all Aurora animations ── */
 @media (prefers-reduced-motion: reduce) {
-    body.theme-aurora::before,
-    body.theme-aurora::after {
+    html:has(body.theme-aurora)::before,
+    html:has(body.theme-aurora)::after {
         animation: none !important;
     }
 }
