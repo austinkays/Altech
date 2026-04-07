@@ -26,6 +26,14 @@ body.theme-aurora {
     --sidebar-active: rgba(132, 220, 180, 0.18);
     --accent-gradient: linear-gradient(135deg, #84dcb4, #70cce8, #b4a2ec);
     --accent-gradient-text: linear-gradient(135deg, #84dcb4, #70cce8, #b4a2ec);
+
+    /* Make body transparent so html pseudo-element effects show through */
+    background: transparent !important;
+}
+
+/* Base color on html so pseudo-element layers render in front of it */
+html:has(body.theme-aurora) {
+    background: #141a26;
 }
 
 /* ── Aurora: Northern-lights curtains ──
