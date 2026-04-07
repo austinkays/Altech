@@ -5,14 +5,14 @@
 
 /* ── Override design-system variables for Aurora palette ── */
 body.theme-aurora {
-    --bg: #141a26;
-    --bg-card: rgba(30, 38, 52, 0.72);
-    --bg-input: #2a3342;
+    --bg: #0f1923;
+    --bg-card: rgba(18, 30, 46, 0.55);
+    --bg-input: rgba(30, 46, 62, 0.65);
     --text: #e8eef8;
     --text-secondary: #b0c0d8;
     --text-tertiary: #8e9eb8;
-    --border: #3a4456;
-    --border-subtle: #2a3342;
+    --border: rgba(132, 220, 180, 0.15);
+    --border-subtle: rgba(112, 204, 232, 0.08);
     --shadow: rgba(0, 0, 0, 0.4);
     --apple-blue: #84dcb4;
     --apple-blue-hover: #66bc94;
@@ -21,8 +21,8 @@ body.theme-aurora {
     --danger: #ec8898;
     --warning: #b4a2ec;
 
-    --bg-sidebar: rgba(20, 26, 38, 0.92);
-    --bg-widget-hover: #2a3342;
+    --bg-sidebar: rgba(12, 20, 32, 0.78);
+    --bg-widget-hover: rgba(30, 46, 62, 0.60);
     --sidebar-active: rgba(132, 220, 180, 0.18);
     --accent-gradient: linear-gradient(135deg, #84dcb4, #70cce8, #b4a2ec);
     --accent-gradient-text: linear-gradient(135deg, #84dcb4, #70cce8, #b4a2ec);
@@ -33,7 +33,7 @@ body.theme-aurora {
 
 /* Base color on html so pseudo-element layers render in front of it */
 html:has(body.theme-aurora) {
-    background: #141a26;
+    background: #0a1018;
 }
 
 /* ── Aurora: Northern-lights curtains ──
@@ -47,11 +47,12 @@ html:has(body.theme-aurora)::before {
     z-index: 0;
     will-change: transform, opacity;
     background-image:
-        radial-gradient(ellipse 90% 28% at 20% 22%, rgba(132, 220, 180, 0.28), transparent 65%),
-        radial-gradient(ellipse 80% 24% at 75% 30%, rgba(112, 204, 232, 0.24), transparent 65%),
-        radial-gradient(ellipse 70% 22% at 45% 48%, rgba(180, 162, 236, 0.20), transparent 65%),
-        radial-gradient(ellipse 120% 18% at 50% 70%, rgba(132, 220, 180, 0.14), transparent 70%);
-    filter: blur(36px);
+        radial-gradient(ellipse 100% 40% at 15% 18%, rgba(132, 220, 180, 0.45), transparent 60%),
+        radial-gradient(ellipse 90% 35% at 78% 25%, rgba(112, 204, 232, 0.38), transparent 60%),
+        radial-gradient(ellipse 80% 30% at 42% 45%, rgba(180, 162, 236, 0.32), transparent 60%),
+        radial-gradient(ellipse 130% 25% at 55% 72%, rgba(132, 220, 180, 0.22), transparent 65%),
+        radial-gradient(ellipse 70% 20% at 88% 60%, rgba(112, 204, 232, 0.25), transparent 60%);
+    filter: blur(24px);
     animation: aurora-shimmer 22s ease-in-out infinite alternate;
 }
 
@@ -63,28 +64,28 @@ html:has(body.theme-aurora)::after {
     pointer-events: none;
     z-index: 0;
     background-image:
-        radial-gradient(circle 2px at  8% 12%, rgba(255, 255, 255, 0.85), transparent 70%),
-        radial-gradient(circle 2px at 22% 38%, rgba(112, 204, 232, 0.80), transparent 70%),
-        radial-gradient(circle 2px at 38%  8%, rgba(255, 255, 255, 0.80), transparent 70%),
-        radial-gradient(circle 3px at 55% 22%, rgba(132, 220, 180, 0.70), transparent 70%),
-        radial-gradient(circle 2px at 68% 52%, rgba(255, 255, 255, 0.85), transparent 70%),
-        radial-gradient(circle 2px at 82% 18%, rgba(112, 204, 232, 0.75), transparent 70%),
-        radial-gradient(circle 3px at 92% 62%, rgba(255, 255, 255, 0.70), transparent 70%),
-        radial-gradient(circle 2px at 14% 72%, rgba(180, 162, 236, 0.80), transparent 70%),
-        radial-gradient(circle 2px at 45% 88%, rgba(255, 255, 255, 0.75), transparent 70%),
-        radial-gradient(circle 2px at 72% 80%, rgba(132, 220, 180, 0.70), transparent 70%),
-        radial-gradient(circle 2px at  4% 48%, rgba(255, 255, 255, 0.80), transparent 70%),
-        radial-gradient(circle 2px at 18% 94%, rgba(112, 204, 232, 0.75), transparent 70%),
-        radial-gradient(circle 3px at 30% 58%, rgba(255, 255, 255, 0.85), transparent 70%),
-        radial-gradient(circle 2px at 42% 30%, rgba(180, 162, 236, 0.70), transparent 70%),
-        radial-gradient(circle 2px at 52% 68%, rgba(112, 204, 232, 0.80), transparent 70%),
-        radial-gradient(circle 2px at 62%  4%, rgba(255, 255, 255, 0.75), transparent 70%),
-        radial-gradient(circle 3px at 74% 34%, rgba(132, 220, 180, 0.80), transparent 70%),
-        radial-gradient(circle 2px at 86% 84%, rgba(255, 255, 255, 0.85), transparent 70%),
-        radial-gradient(circle 2px at 96% 32%, rgba(112, 204, 232, 0.75), transparent 70%),
-        radial-gradient(circle 2px at 28% 20%, rgba(255, 255, 255, 0.80), transparent 70%),
-        radial-gradient(circle 2px at 58% 94%, rgba(180, 162, 236, 0.75), transparent 70%),
-        radial-gradient(circle 2px at 78%  6%, rgba(255, 255, 255, 0.85), transparent 70%);
+        radial-gradient(circle 2px at  8% 12%, rgba(255, 255, 255, 0.95), transparent 60%),
+        radial-gradient(circle 2px at 22% 38%, rgba(112, 204, 232, 0.90), transparent 60%),
+        radial-gradient(circle 2px at 38%  8%, rgba(255, 255, 255, 0.90), transparent 60%),
+        radial-gradient(circle 3px at 55% 22%, rgba(132, 220, 180, 0.85), transparent 60%),
+        radial-gradient(circle 2px at 68% 52%, rgba(255, 255, 255, 0.95), transparent 60%),
+        radial-gradient(circle 2px at 82% 18%, rgba(112, 204, 232, 0.85), transparent 60%),
+        radial-gradient(circle 3px at 92% 62%, rgba(255, 255, 255, 0.85), transparent 60%),
+        radial-gradient(circle 2px at 14% 72%, rgba(180, 162, 236, 0.90), transparent 60%),
+        radial-gradient(circle 2px at 45% 88%, rgba(255, 255, 255, 0.85), transparent 60%),
+        radial-gradient(circle 2px at 72% 80%, rgba(132, 220, 180, 0.85), transparent 60%),
+        radial-gradient(circle 2px at  4% 48%, rgba(255, 255, 255, 0.90), transparent 60%),
+        radial-gradient(circle 2px at 18% 94%, rgba(112, 204, 232, 0.85), transparent 60%),
+        radial-gradient(circle 3px at 30% 58%, rgba(255, 255, 255, 0.95), transparent 60%),
+        radial-gradient(circle 2px at 42% 30%, rgba(180, 162, 236, 0.85), transparent 60%),
+        radial-gradient(circle 2px at 52% 68%, rgba(112, 204, 232, 0.90), transparent 60%),
+        radial-gradient(circle 2px at 62%  4%, rgba(255, 255, 255, 0.85), transparent 60%),
+        radial-gradient(circle 3px at 74% 34%, rgba(132, 220, 180, 0.90), transparent 60%),
+        radial-gradient(circle 2px at 86% 84%, rgba(255, 255, 255, 0.95), transparent 60%),
+        radial-gradient(circle 2px at 96% 32%, rgba(112, 204, 232, 0.85), transparent 60%),
+        radial-gradient(circle 2px at 28% 20%, rgba(255, 255, 255, 0.90), transparent 60%),
+        radial-gradient(circle 2px at 58% 94%, rgba(180, 162, 236, 0.85), transparent 60%),
+        radial-gradient(circle 2px at 78%  6%, rgba(255, 255, 255, 0.95), transparent 60%);
     animation: aurora-stars 6s ease-in-out infinite;
 }
 
@@ -94,14 +95,29 @@ body.theme-aurora .plugin-container,
 body.theme-aurora .settings-section-body,
 body.theme-aurora .auth-modal-content,
 body.theme-aurora .step-card {
-    backdrop-filter: blur(14px) saturate(1.2);
-    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+}
+
+/* ── Dashboard bento widgets: more translucent for aurora bleed-through ── */
+body.theme-aurora .bento-widget {
+    background: rgba(18, 30, 46, 0.50) !important;
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border: 1px solid rgba(132, 220, 180, 0.10);
 }
 
 /* ── Sidebar glass effect ── */
 body.theme-aurora .sidebar {
-    backdrop-filter: blur(18px) saturate(1.3);
-    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    backdrop-filter: blur(20px) saturate(1.3);
+    -webkit-backdrop-filter: blur(20px) saturate(1.3);
+}
+
+/* ── Header glass effect ── */
+body.theme-aurora header {
+    background: rgba(12, 20, 32, 0.50) !important;
+    backdrop-filter: blur(20px) saturate(1.3);
+    -webkit-backdrop-filter: blur(20px) saturate(1.3);
 }
 
 /* ── Heading text glow ── */
@@ -109,8 +125,8 @@ body.theme-aurora h1,
 body.theme-aurora h2,
 body.theme-aurora .landing-brand-name {
     text-shadow:
-        0 0 12px rgba(132, 220, 180, 0.35),
-        0 0 24px rgba(112, 204, 232, 0.22);
+        0 0 14px rgba(132, 220, 180, 0.45),
+        0 0 28px rgba(112, 204, 232, 0.28);
 }
 
 /* ── Reduced motion: disable all Aurora animations ── */

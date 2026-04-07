@@ -98,7 +98,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── commercial-quoter.css   # Commercial Lines quoter — 7-step wizard, dark mode, responsive (743 lines)
 │   ├── dec-import.css          # Dec Page Importer plugin (354 lines)
 │   ├── deposit-sheet.css       # Deposit Sheet plugin (662 lines)
-│   └── aurora-theme.css        # Aurora northern-lights theme — variable overrides, html::before/::after animated layers, glassmorphism (118 lines)
+│   └── aurora-theme.css        # Aurora northern-lights theme — variable overrides, html::before/::after animated layers, glassmorphism (138 lines)
 │
 ├── js/                         # 47 modules (~40,530 lines)
 │   │

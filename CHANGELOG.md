@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `index.html` — added `<link>` for `aurora-theme.css`, added Theme `<details>` section with `<select>` in settings modal
 
 ### Fixed
+- **fix(theme): boost aurora effect visibility and reduce surface opacity** (April 7, 2026):
+  - `css/aurora-theme.css` — curtain gradients boosted (opacity 0.14–0.28 → 0.22–0.45, blur 36→24px, added 5th gradient band, larger ellipses), stars brightened (opacity 0.85–0.95, tighter 60% spread), card/sidebar/header backgrounds made more translucent for glassmorphism (--bg-card 0.72→0.55, --bg-sidebar 0.92→0.78, --bg-input solid→0.65), new .bento-widget + header overrides with backdrop-filter, heading glow boosted, deeper base bg (#0a1018)
+
 - **fix(theme): aurora background effects invisible + bottom nav always visible** (April 7, 2026):
   - `css/aurora-theme.css` — moved curtain/star layers from `body::before`/`body::after` to `html:has(body.theme-aurora)::before`/`::after` since `body` is `display:flex` (pseudo-elements become flex items, not positioned layers); removed overly broad `body > *` z-index rule
   - `css/sidebar.css` — removed duplicate `display: flex` that overrode `display: none` in `.mobile-bottom-nav` base rule, causing bottom nav to always show on desktop
