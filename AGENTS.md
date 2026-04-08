@@ -16,7 +16,7 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
-| **CSS** | 34 files in `css/` (~22,223 lines total) |
+| **CSS** | 34 files in `css/` (~22,595 lines total) |
 | **JS** | 46 modules in `js/` (~42,657 lines total) |
 | **Plugins** | 21 HTML templates in `plugins/` (~6,712 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
@@ -64,7 +64,7 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 34 stylesheets (~22,223 lines)
+├── css/                        # 34 stylesheets (~22,595 lines)
 │   ├── variables.css           # :root CSS custom properties + body.dark-mode overrides (all theme tokens)
 │   ├── base.css                # Reset, body, typography, scrollbars
 │   ├── components.css          # Cards, inputs, buttons, modals, toasts (shared components)

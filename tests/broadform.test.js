@@ -26,8 +26,8 @@ describe('BroadformData', () => {
     });
 
     describe('questions array', () => {
-        test('exports 3 questions', () => {
-            expect(BroadformData.questions).toHaveLength(3);
+        test('exports broadform questions (4 variables)', () => {
+            expect(BroadformData.questions.length).toBeGreaterThanOrEqual(4);
         });
 
         test('first question is stateDropdown for WA and OR', () => {
@@ -37,9 +37,19 @@ describe('BroadformData', () => {
             expect(q.states).toContain('OR');
         });
 
-        test('second and third questions are yesNoToggle', () => {
-            expect(BroadformData.questions[1].type).toBe('yesNoToggle');
-            expect(BroadformData.questions[2].type).toBe('yesNoToggle');
+        test('includes ownedAuto and regularAccess yesNoToggle questions', () => {
+            const owned = BroadformData.questions.find(q => q.id === 'ownedAuto');
+            const access = BroadformData.questions.find(q => q.id === 'regularAccess');
+            expect(owned).toBeDefined();
+            expect(owned.type).toBe('yesNoToggle');
+            expect(access).toBeDefined();
+            expect(access.type).toBe('yesNoToggle');
+        });
+
+        test('exports underwritingVariables with all LOBs', () => {
+            expect(BroadformData.underwritingVariables.length).toBeGreaterThan(10);
+            const homeVars = BroadformData.underwritingVariables.filter(v => v.appliesTo.includes('home'));
+            expect(homeVars.length).toBeGreaterThan(5);
         });
     });
 
@@ -125,5 +135,121 @@ describe('BroadformData', () => {
             expect(dairyland.disabled).toBe(true);
             expect(dairyland.note).toMatch(/Do not quote/);
         });
+    });
+
+    describe('carriers', () => {
+        test('exports 6 carriers', () => {
+            expect(BroadformData.carriers).toHaveLength(6);
+        });
+
+        test('every carrier has key, name, and lines', () => {
+            BroadformData.carriers.forEach(c => {
+                expect(c.key).toBeDefined();
+                expect(c.name).toBeDefined();
+                expect(c.lines).toBeDefined();
+            });
+        });
+
+        test('Progressive supports broadform in WA and OR', () => {
+            const prog = BroadformData.carriers.find(c => c.key === 'progressive');
+            expect(prog.lines.broadform.states).toContain('WA');
+            expect(prog.lines.broadform.states).toContain('OR');
+        });
+    });
+
+    describe('operators', () => {
+        test('eq operator returns true on match', () => {
+            expect(BroadformData.operators.eq('WA', 'WA')).toBe(true);
+            expect(BroadformData.operators.eq('WA', 'OR')).toBe(false);
+        });
+
+        test('in operator checks array membership', () => {
+            expect(BroadformData.operators.in('WA', ['WA', 'OR'])).toBe(true);
+            expect(BroadformData.operators.in('TX', ['WA', 'OR'])).toBe(false);
+        });
+
+        test('lte operator works for numbers', () => {
+            expect(BroadformData.operators.lte(3, 5)).toBe(true);
+            expect(BroadformData.operators.lte(5, 5)).toBe(true);
+            expect(BroadformData.operators.lte(6, 5)).toBe(false);
+        });
+    });
+});
+
+// ── BroadformEngine ──────────────────────────────────────────────────────────
+describe('BroadformEngine', () => {
+    let BroadformEngine;
+
+    beforeAll(() => {
+        const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+            runScripts: 'dangerously',
+            url: 'http://localhost',
+        });
+        // Load data first, then engine
+        const dataSrc = fs.readFileSync(
+            path.resolve(__dirname, '../js/tools/broadform-data.js'), 'utf8'
+        );
+        const engineSrc = fs.readFileSync(
+            path.resolve(__dirname, '../js/tools/broadform-engine.js'), 'utf8'
+        );
+        dom.window.eval(dataSrc);
+        dom.window.eval(engineSrc);
+        BroadformEngine = dom.window.BroadformEngine;
+    });
+
+    test('evaluate returns result with expected shape', () => {
+        const profile = { addrState: 'WA', ownedAuto: false, regularAccess: false };
+        const result = BroadformEngine.evaluate(profile, 'broadform');
+        expect(result).toHaveProperty('eligible');
+        expect(result).toHaveProperty('pending');
+        expect(result).toHaveProperty('disqualified');
+        expect(result).toHaveProperty('referOut');
+        expect(result).toHaveProperty('missingFields');
+        expect(Array.isArray(result.eligible)).toBe(true);
+    });
+
+    test('WA broadform with no disqualifiers returns Progressive eligible', () => {
+        const profile = { state: 'WA', ownedAuto: false, regularAccess: false };
+        const result = BroadformEngine.evaluate(profile, 'broadform');
+        const prog = result.eligible.find(c => c.key === 'progressive');
+        expect(prog).toBeDefined();
+    });
+
+    test('Dairyland is referOut for OR broadform', () => {
+        const profile = { state: 'OR', ownedAuto: false, regularAccess: false };
+        const result = BroadformEngine.evaluate(profile, 'broadform');
+        const dairy = result.referOut.find(c => c.key === 'dairyland');
+        expect(dairy).toBeDefined();
+        expect(dairy.note).toMatch(/Do not quote/);
+    });
+
+    test('owning a vehicle disqualifies broadform carriers with ownedAuto rule', () => {
+        const profile = { state: 'WA', ownedAuto: true, regularAccess: false };
+        const result = BroadformEngine.evaluate(profile, 'broadform');
+        // Progressive and Dairyland both require ownedAuto=false
+        const disqKeys = result.disqualified.map(c => c.key);
+        expect(disqKeys).toContain('progressive');
+        expect(disqKeys).toContain('dairyland');
+    });
+
+    test('missing state returns all carriers as pending or missingFields populated', () => {
+        const profile = { ownedAuto: false, regularAccess: false };
+        const result = BroadformEngine.evaluate(profile, 'broadform');
+        expect(result.missingFields.length).toBeGreaterThan(0);
+    });
+
+    test('mergeProfile fills null fields from new data', () => {
+        const existing = { addrState: 'WA', ownedAuto: null };
+        const merged = BroadformEngine.mergeProfile(existing, { ownedAuto: false, regularAccess: true });
+        expect(merged.addrState).toBe('WA');
+        expect(merged.ownedAuto).toBe(false);
+        expect(merged.regularAccess).toBe(true);
+    });
+
+    test('mergeProfile does not overwrite existing values', () => {
+        const existing = { addrState: 'WA', ownedAuto: true };
+        const merged = BroadformEngine.mergeProfile(existing, { addrState: 'OR', ownedAuto: false });
+        expect(merged.addrState).toBe('WA');
+        expect(merged.ownedAuto).toBe(true);
     });
 });

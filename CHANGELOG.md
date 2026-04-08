@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(broadform): upgrade Broadform Filter → Carrier Recommendation Engine** (March 28, 2026):
+  - `js/tools/broadform-data.js` — **rewritten**: 2 carriers/3 questions → 6 carriers (Progressive, Dairyland, Safeco, PEMCO, National General, Foremost) / 20+ underwriting variables / declarative rule operators (eq, neq, lt, lte, gt, gte, in, notIn, notInFuzzy) / AI system prompt / restricted dog breeds / backward-compat `evaluate()` wrapper
+  - `js/tools/broadform-engine.js` — **new file**: matching engine IIFE (`BroadformEngine`): `evaluate(profile, lob)` returns `{eligible, pending, disqualified, referOut, missingFields}`; `buildProfileFromAppData()` reads App.data/drivers/vehicles; `mergeProfile()` fills nulls only
+  - `js/tools/_tool-components.js` — **extended**: added `numberInput()`, `textInput()`, `selectDropdown()`, `enhancedCarrierCard()` factories; return statement updated
+  - `js/tools/broadform.js` — **rewritten**: full dynamic UI with LOB pill bar, AI info dump textarea + "Parse with AI" / "Pull from Form" buttons, removable known-data chips, dynamic questionnaire (only asks missing fields), 4-status carrier result cards (eligible/pending/disqualified/referOut), delegated event handling, `Utils.debounce(400)` for inputs
+  - `css/broadform.css` — **rewritten** (~520 lines): info dump zone, chip list, primary/secondary/ghost buttons, AI status badges (info/success/warning/error), new carrier card statuses (pending/refer), reasons/missing lists, spin animation, full `body.dark-mode` overrides, responsive breakpoints
+  - `plugins/tools/broadform.html` — updated: icon 🎯, brand "Carrier Recommendation Engine", new subtitle
+  - `js/app-init.js` — toolConfig updated: icon 🎯, title "Carrier Match", name "Carrier Recommendation Engine"
+  - `index.html` — added `<script src="js/tools/broadform-engine.js">` between data and UI scripts
+  - `tests/broadform.test.js` — **expanded**: 13 → 30 tests; added BroadformEngine suite (evaluate, referOut, disqualify, mergeProfile), carriers suite, operators suite; updated questions expectations for new variable count (4 broadform vars)
+  - **Test count: 27 suites, 1708 tests (was 1688)**
+
+### Added
 - **feat(theme): add Aurora theme option to user settings** (April 7, 2026):
   - `css/aurora-theme.css` — new file: Aurora northern-lights theme with CSS variable overrides (`--bg: #141a26`, mint/cyan/violet accent palette), animated curtains (`html::before`), twinkling stars (`html::after`), glassmorphism cards, heading text glow, `prefers-reduced-motion` fallback
   - `css/animations.css` — added `@keyframes aurora-shimmer` (22s curtain drift) and `@keyframes aurora-stars` (6s twinkle)

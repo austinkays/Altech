@@ -1,7 +1,7 @@
-/* ===== BROADFORM / NON-OWNER ELIGIBILITY FILTER STYLES =====
+/* ===== CARRIER RECOMMENDATION ENGINE STYLES =====
  * Namespace:
- *   bf-  — plugin-scoped styles (Broadform container, layout, titles)
- *   tc-  — ToolComponents shared styles (questions, toggles, cards)
+ *   bf-  — plugin-scoped styles (Broadform container, layout, titles, info dump, chips)
+ *   tc-  — ToolComponents shared styles (questions, toggles, cards, badges)
  *
  * All colors use CSS design system variables from css/variables.css.
  * dark mode: body.dark-mode .class (solid colors for any non-variable values)
@@ -11,9 +11,18 @@
 /* ── Plugin Container ──────────────────────────────────────── */
 
 .bf-container {
-    max-width: 660px;
+    max-width: 720px;
     margin: 0 auto;
     padding: 0 16px 48px;
+}
+
+/* ── LOB Pill Bar ──────────────────────────────────────────── */
+
+.bf-lob-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
 }
 
 /* ── Section / Results Labels ──────────────────────────────── */
@@ -32,6 +41,205 @@
     margin-top: 32px;
 }
 
+/* ── AI Info Dump Area ─────────────────────────────────────── */
+
+.bf-info-dump {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.bf-info-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0 0 12px;
+    line-height: 1.5;
+}
+
+.bf-info-textarea {
+    width: 100%;
+    min-height: 80px;
+    max-height: 200px;
+    background: var(--bg-input);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    padding: 12px 14px;
+    resize: vertical;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+}
+
+.bf-info-textarea:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+.bf-info-textarea::placeholder {
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+
+.bf-info-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+
+.bf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.bf-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.bf-btn-icon {
+    font-size: 15px;
+    line-height: 1;
+}
+
+.bf-btn-primary {
+    background: var(--apple-blue);
+    color: #fff;
+}
+
+.bf-btn-primary:hover:not(:disabled) {
+    background: var(--apple-blue-hover);
+}
+
+.bf-btn-secondary {
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+}
+
+.bf-btn-secondary:hover:not(:disabled) {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+}
+
+.bf-btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border);
+    padding: 9px 20px;
+}
+
+.bf-btn-ghost:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+/* ── AI Status Messages ────────────────────────────────────── */
+
+.bf-ai-status {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.bf-ai-status-info {
+    background: rgba(0, 122, 255, 0.08);
+    color: var(--apple-blue);
+}
+
+.bf-ai-status-success {
+    background: rgba(52, 199, 89, 0.10);
+    color: var(--success);
+}
+
+.bf-ai-status-warning {
+    background: rgba(255, 159, 10, 0.10);
+    color: #FF9F0A;
+}
+
+.bf-ai-status-error {
+    background: rgba(255, 59, 48, 0.08);
+    color: var(--danger);
+}
+
+/* ── Known Data Chips ──────────────────────────────────────── */
+
+.bf-known-data {
+    margin-bottom: 24px;
+}
+
+.bf-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.bf-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 10px 5px 12px;
+    font-size: 12px;
+    line-height: 1.3;
+    transition: border-color 0.15s ease;
+}
+
+.bf-chip:hover {
+    border-color: var(--apple-blue);
+}
+
+.bf-chip-label {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.bf-chip-value {
+    color: var(--text);
+    font-weight: 700;
+}
+
+.bf-chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 50%;
+    line-height: 1;
+    padding: 0;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.bf-chip-remove:hover {
+    color: var(--danger);
+    background: rgba(255, 59, 48, 0.10);
+}
+
 /* ── Question Stack ────────────────────────────────────────── */
 
 .bf-questions {
@@ -40,7 +248,7 @@
     gap: 14px;
 }
 
-/* Shared question card wrapper (used by both stateDropdown and yesNoToggle) */
+/* Shared question card wrapper (used by all ToolComponents question types) */
 .tc-question {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -76,6 +284,29 @@
 }
 
 .tc-state-select:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+/* ── Number / Text Inputs ──────────────────────────────────── */
+
+.tc-number-input,
+.tc-text-input {
+    background: var(--bg-input);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 9px 12px;
+    width: 100%;
+    max-width: 250px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+}
+
+.tc-number-input:focus,
+.tc-text-input:focus {
     outline: none;
     border-color: var(--apple-blue);
     box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
@@ -117,7 +348,15 @@
 /* ── Results Area ──────────────────────────────────────────── */
 
 .bf-results {
-    min-height: 0; /* Collapses cleanly when empty */
+    min-height: 0;
+}
+
+/* ── Footer Actions ────────────────────────────────────────── */
+
+.bf-footer-actions {
+    margin-top: 24px;
+    display: flex;
+    gap: 10px;
 }
 
 /* ── Hard Stop Alert ───────────────────────────────────────── */
@@ -172,11 +411,23 @@
     box-shadow: 0 0 0 1px var(--success), 0 4px 16px rgba(52, 199, 89, 0.10);
 }
 
-/* Disabled — greyed out, non-interactive */
+/* Disabled / Disqualified — greyed out */
 .tc-carrier-card.tc-carrier-disabled {
     opacity: 0.5;
     border-color: var(--border);
     box-shadow: none;
+}
+
+/* Pending — blue border glow */
+.tc-carrier-card.tc-carrier-pending {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 1px var(--apple-blue), 0 4px 16px rgba(0, 122, 255, 0.08);
+}
+
+/* Refer Out — amber border glow */
+.tc-carrier-card.tc-carrier-refer {
+    border-color: #FF9F0A;
+    box-shadow: 0 0 0 1px #FF9F0A, 0 4px 16px rgba(255, 159, 10, 0.10);
 }
 
 .tc-carrier-name {
@@ -207,6 +458,37 @@
     color: var(--text-secondary);
 }
 
+.tc-badge-pending {
+    background: rgba(0, 122, 255, 0.10);
+    color: var(--apple-blue);
+}
+
+.tc-badge-refer {
+    background: rgba(255, 159, 10, 0.12);
+    color: #FF9F0A;
+}
+
+/* ── Carrier Reasons / Missing Fields ──────────────────────── */
+
+.tc-carrier-reasons {
+    margin: 0;
+    padding: 0 0 0 18px;
+    font-size: 12px;
+    color: var(--danger);
+    line-height: 1.5;
+}
+
+.tc-carrier-reasons li {
+    margin-bottom: 2px;
+}
+
+.tc-carrier-missing {
+    font-size: 12px;
+    color: var(--apple-blue);
+    font-weight: 600;
+    line-height: 1.4;
+}
+
 /* ── Carrier Notes ─────────────────────────────────────────── */
 
 .tc-carrier-note {
@@ -215,26 +497,77 @@
     line-height: 1.4;
 }
 
-/* Warning note (e.g. OR Dairyland) */
 .tc-carrier-note-warning {
     font-size: 13px;
     font-weight: 700;
     color: var(--danger);
 }
 
+/* ── Spinner (for AI parsing) ──────────────────────────────── */
+/* Uses rotate keyframes from css/animations.css */
+.bf-spin {
+    display: inline-block;
+    animation: rotate 1s linear infinite;
+}
+
 /* ── Dark Mode Overrides ───────────────────────────────────── */
-/* Only needed for hardcoded rgba values that don't auto-switch */
+
+body.dark-mode .bf-info-textarea:focus {
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+}
+
+body.dark-mode .tc-number-input:focus,
+body.dark-mode .tc-text-input:focus,
+body.dark-mode .tc-state-select:focus {
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+}
 
 body.dark-mode .tc-hard-stop {
-    background: rgba(255, 69, 58, 0.12); /* slightly more visible on OLED black */
+    background: rgba(255, 69, 58, 0.12);
 }
 
 body.dark-mode .tc-carrier-card.tc-carrier-ready {
     box-shadow: 0 0 0 1px var(--success), 0 4px 16px rgba(50, 215, 75, 0.08);
 }
 
+body.dark-mode .tc-carrier-card.tc-carrier-pending {
+    box-shadow: 0 0 0 1px var(--apple-blue), 0 4px 16px rgba(10, 132, 255, 0.10);
+}
+
+body.dark-mode .tc-carrier-card.tc-carrier-refer {
+    box-shadow: 0 0 0 1px #FF9F0A, 0 4px 16px rgba(255, 159, 10, 0.08);
+}
+
 body.dark-mode .tc-badge-ready {
     background: rgba(50, 215, 75, 0.18);
+}
+
+body.dark-mode .tc-badge-pending {
+    background: rgba(10, 132, 255, 0.15);
+}
+
+body.dark-mode .tc-badge-refer {
+    background: rgba(255, 159, 10, 0.15);
+}
+
+body.dark-mode .bf-ai-status-info {
+    background: rgba(10, 132, 255, 0.12);
+}
+
+body.dark-mode .bf-ai-status-success {
+    background: rgba(50, 215, 75, 0.12);
+}
+
+body.dark-mode .bf-ai-status-error {
+    background: rgba(255, 69, 58, 0.12);
+}
+
+body.dark-mode .bf-ai-status-warning {
+    background: rgba(255, 159, 10, 0.12);
+}
+
+body.dark-mode .bf-chip-remove:hover {
+    background: rgba(255, 69, 58, 0.15);
 }
 
 /* ── Responsive — Mobile ───────────────────────────────────── */
@@ -244,19 +577,34 @@ body.dark-mode .tc-badge-ready {
         padding: 0 8px 32px;
     }
 
+    .bf-info-dump {
+        padding: 14px;
+    }
+
     .tc-question {
         padding: 14px;
     }
 
     .tc-toggle-btn {
-        max-width: none; /* Full-width on small screens */
+        max-width: none;
     }
 
     .bf-carrier-grid {
         flex-direction: column;
     }
 
-    .tc-state-select {
+    .tc-state-select,
+    .tc-number-input,
+    .tc-text-input {
         max-width: 100%;
+    }
+
+    .bf-info-actions {
+        flex-direction: column;
+    }
+
+    .bf-btn {
+        width: 100%;
+        justify-content: center;
     }
 }

@@ -66,7 +66,7 @@ const App = {
         // │  Categories: 'quoting' | 'docs' | 'ops' | 'ref'        │
         // └────────────────────────────────────────────────────────────┘
         // ── Agent Tools (eligibility filters, calculators) ──
-        { key: 'broadform', icon: '🚫', color: 'icon-amber', title: 'Broadform Filter', name: 'Broadform / Non-Owner Eligibility', containerId: 'broadformTool', initModule: 'Broadform', htmlFile: 'plugins/tools/broadform.html', category: 'tools' },
+        { key: 'broadform', icon: '🎯', color: 'icon-amber', title: 'Carrier Match', name: 'Carrier Recommendation Engine', containerId: 'broadformTool', initModule: 'Broadform', htmlFile: 'plugins/tools/broadform.html', category: 'tools' },
     ],
 
     stepTitles: {
