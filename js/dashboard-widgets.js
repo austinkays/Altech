@@ -1073,27 +1073,46 @@ window.DashboardWidgets = (() => {
         if (!nav) return;
 
         nav.innerHTML = `<div class="mobile-bottom-nav-inner">
-            <button class="mobile-nav-item active" onclick="App.goHome()">
-                ${icon('home', 22)}
+            <button class="mobile-nav-item active" data-tool="home" onclick="App.goHome()">
+                ${icon('home', 24)}
                 <span>Home</span>
             </button>
-            <button class="mobile-nav-item" onclick="App.navigateTo('quoting')">
-                ${icon('home', 22)}
+            <button class="mobile-nav-item" data-tool="quoting" onclick="App.navigateTo('quoting')">
+                ${icon('user', 24)}
                 <span>Quoting</span>
             </button>
-            <button class="mobile-nav-item" onclick="App.navigateTo('reminders')">
-                ${icon('bell', 22)}
-                <span>Reminders</span>
+            <button class="mobile-nav-item" data-tool="reminders" onclick="App.navigateTo('reminders')">
+                ${icon('bell', 24)}
+                <span>Tasks</span>
             </button>
-            <button class="mobile-nav-item" onclick="App.navigateTo('prospect')">
-                ${icon('search', 22)}
+            <button class="mobile-nav-item" data-tool="prospect" onclick="App.navigateTo('prospect')">
+                ${icon('telescope', 24)}
                 <span>Search</span>
             </button>
-            <button class="mobile-nav-item" onclick="DashboardWidgets.toggleMobileSidebar()">
-                ${icon('menu', 22)}
+            <button class="mobile-nav-item" data-tool="more" onclick="DashboardWidgets.toggleMobileSidebar()">
+                ${icon('menu', 24)}
                 <span>More</span>
             </button>
         </div>`;
+    }
+
+    function _updateMobileNavActive(toolKey) {
+        const items = document.querySelectorAll('.mobile-nav-item[data-tool]');
+        if (!items.length) return;
+        const pinnedKeys = ['home', 'quoting', 'reminders', 'prospect'];
+        const isHome = !toolKey || toolKey === 'home' || toolKey === 'dashboard';
+        const isPinned = pinnedKeys.includes(toolKey);
+        items.forEach(item => {
+            const key = item.dataset.tool;
+            if (key === 'more') {
+                // Highlight "More" when the active tool is NOT one of the pinned ones
+                item.classList.toggle('active', !isHome && !isPinned);
+            } else if (key === 'home') {
+                item.classList.toggle('active', isHome);
+            } else {
+                item.classList.toggle('active', key === toolKey);
+            }
+        });
     }
 
     // ── Sidebar State Management ──
@@ -1127,6 +1146,7 @@ window.DashboardWidgets = (() => {
         items.forEach(item => {
             item.classList.toggle('active', item.dataset.tool === toolKey);
         });
+        _updateMobileNavActive(toolKey);
     }
 
     // ── Update breadcrumb ──
@@ -1137,6 +1157,7 @@ window.DashboardWidgets = (() => {
         const bc = document.getElementById('dashBreadcrumb');
         if (!bc) return;
         const menuBtn = `<button class="mobile-menu-btn" onclick="DashboardWidgets.toggleMobileSidebar()" aria-label="Menu">${icon('menu', 20)}</button>`;
+        const backBtn = `<button class="header-back-btn" onclick="App.goHome()" aria-label="Back to Dashboard">${icon('chevronLeft', 20)}</button>`;
 
         if (!toolName || toolName === 'home') {
             bc.innerHTML = `${menuBtn}<span class="breadcrumb-current">Dashboard</span>`;
@@ -1148,7 +1169,7 @@ window.DashboardWidgets = (() => {
                 const insuredName = [first, last].filter(Boolean).join(' ');
                 if (insuredName) crumbLabel += ` \u2014 ${_escapeHTML(insuredName)}`;
             }
-            bc.innerHTML = `${menuBtn}<a href="#home" onclick="event.preventDefault(); App.goHome()">Dashboard</a>
+            bc.innerHTML = `${backBtn}${menuBtn}<a href="#home" onclick="event.preventDefault(); App.goHome()">Dashboard</a>
                 <span class="breadcrumb-separator">›</span>
                 <span class="breadcrumb-current">${crumbLabel}</span>`;
         }

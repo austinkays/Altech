@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(mobile-nav): fix broken 'More' sidebar, active state, and mobile UX polish** (April 8, 2026):
+  - `css/sidebar.css` — Fixed critical bug where `.app-sidebar { display: none }` at <768px prevented "More" button from opening sidebar; added `.mobile-open` override with `display: flex`, `position: fixed`, GPU-accelerated `transform` slide-in, touch-friendly nav item sizes (48px min-height, 15px font), safe-area bottom padding, dark mode support
+  - `css/sidebar.css` — Replaced sidebar overlay `display: none/block` toggle with smooth `opacity` + `pointer-events` CSS transition (fade in/out)
+  - `css/sidebar.css` — Enlarged bottom nav bar from 56px to 64px height; increased touch targets to min 44×44px per Apple HIG; bumped icons to 24px and labels to 11px; added `:active` press feedback (`scale(0.92)`)
+  - `css/sidebar.css` — Added `.header-back-btn` styles for iOS-style blue back chevron (44×44px touch target, press feedback)
+  - `js/dashboard-widgets.js` — Fixed bottom nav active state: added `data-tool` attributes to all 5 buttons, created `_updateMobileNavActive(toolKey)` that highlights the correct tab (including "More" for non-pinned tools), called from `setActiveSidebarItem()`
+  - `js/dashboard-widgets.js` — Fixed Quoting button icon from `icon('home')` to `icon('user')` matching `TOOL_ICONS.quoting`; changed Reminders label to "Tasks" for brevity
+  - `js/dashboard-widgets.js` — Added iOS-style back arrow (`chevronLeft`) in header breadcrumb when inside any tool; blue color, 44×44px touch target, calls `App.goHome()`
+
 ### Added
 - **feat(deposit-sheet): add coin/change counter to deposit sheet** (April 8, 2026):
   - `plugins/accounting.html` — added coin counter rows (25¢, 10¢, 5¢, 1¢) with input fields, print counts, and totals below the bill counter
