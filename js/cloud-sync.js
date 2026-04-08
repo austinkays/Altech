@@ -140,8 +140,62 @@ const CloudSync = (() => {
         });
     }
 
-    // ── Read local data ──
-    function _getLocalData() {
+    // ── Crypto helpers for cross-device sync ──
+    // Encrypted localStorage data (AES-256-GCM via CryptoHelper) uses a per-device key,
+    // so raw encrypted blobs can't be decrypted on other devices. We decrypt before pushing
+    // to Firestore (plaintext JSON, protected by Firebase Auth + owner-only rules + HTTPS +
+    // Google at-rest encryption) and re-encrypt after pulling.
+
+    /**
+     * Decrypt a raw localStorage value for cloud push.
+     * Returns the plaintext JS object, or null on failure.
+     */
+    async function _decryptForSync(raw) {
+        if (!raw) return null;
+        try {
+            if (typeof CryptoHelper !== 'undefined' && CryptoHelper.decrypt) {
+                const result = await CryptoHelper.decrypt(raw);
+                if (result != null) return result;
+            }
+            // Fallback: try parsing as plain JSON (unencrypted or test env)
+            return typeof raw === 'string' ? JSON.parse(raw) : raw;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Encrypt a plaintext JS object for localStorage storage.
+     * Returns the encrypted string, or JSON.stringify fallback.
+     */
+    async function _encryptForStorage(data) {
+        if (data == null) return null;
+        try {
+            if (typeof CryptoHelper !== 'undefined' && CryptoHelper.encrypt) {
+                return await CryptoHelper.encrypt(data);
+            }
+        } catch (e) {
+            console.warn('[CloudSync] Encrypt for storage failed, using JSON fallback:', e);
+        }
+        return JSON.stringify(data);
+    }
+
+    /**
+     * Detect if a value from Firestore is in the old opaque encrypted format
+     * (a base64 string that CryptoHelper produced) vs. plaintext JSON.
+     * Old format: a long base64 string; plaintext: an object/array.
+     */
+    function _isOldEncryptedFormat(val) {
+        if (typeof val === 'string') {
+            // CryptoHelper.encrypt produces a base64 string; plaintext data is always an object/array
+            // A base64 string won't start with { or [ and will be >50 chars
+            return val.length > 50 && !/^\s*[\[{]/.test(val);
+        }
+        return false;
+    }
+
+    // ── Read local data (async — decrypts encrypted fields) ──
+    async function _getLocalData() {
         const tryParse = (key) => {
             try {
                 const raw = localStorage.getItem(key);
@@ -149,9 +203,19 @@ const CloudSync = (() => {
             } catch { return null; }
         };
 
+        // Decrypt encrypted fields so Firestore gets plaintext JSON
+        const [currentForm, quotes, vaultData, commercialDraft, commercialQuotes] =
+            await Promise.all([
+                _decryptForSync(localStorage.getItem(STORAGE_KEYS.FORM)),
+                _decryptForSync(localStorage.getItem(STORAGE_KEYS.QUOTES)),
+                _decryptForSync(localStorage.getItem(STORAGE_KEYS.ACCT_VAULT)),
+                _decryptForSync(localStorage.getItem(STORAGE_KEYS.COMMERCIAL_DRAFT)),
+                _decryptForSync(localStorage.getItem(STORAGE_KEYS.COMMERCIAL_QUOTES)),
+            ]);
+
         return {
-            currentForm: tryParse(STORAGE_KEYS.FORM),
-            quotes: tryParse(STORAGE_KEYS.QUOTES),
+            currentForm,
+            quotes,
             cglState: tryParse(STORAGE_KEYS.CGL_STATE),
             clientHistory: _trimClientHistoryForSync(tryParse(STORAGE_KEYS.CLIENT_HISTORY)),
             quickRefCards: tryParse(STORAGE_KEYS.QUICKREF_CARDS),
@@ -159,10 +223,10 @@ const CloudSync = (() => {
             quickRefEmojis: tryParse(STORAGE_KEYS.QUICKREF_EMOJIS),
             reminders: tryParse(STORAGE_KEYS.REMINDERS),
             glossary: localStorage.getItem(STORAGE_KEYS.AGENCY_GLOSSARY) || null,
-            vaultData: localStorage.getItem(STORAGE_KEYS.ACCT_VAULT) || null,
+            vaultData,
             vaultMeta: tryParse(STORAGE_KEYS.ACCT_VAULT_META),
-            commercialDraft: localStorage.getItem(STORAGE_KEYS.COMMERCIAL_DRAFT) || null,
-            commercialQuotes: localStorage.getItem(STORAGE_KEYS.COMMERCIAL_QUOTES) || null,
+            commercialDraft,
+            commercialQuotes,
             settings: {
                 darkMode: localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true',
                 theme: localStorage.getItem(STORAGE_KEYS.THEME) || 'default',
@@ -396,7 +460,7 @@ const CloudSync = (() => {
             _syncing = true;
 
             try {
-                const local = _getLocalData();
+                const local = await _getLocalData();
 
                 if (options.settingsOnly) {
                     await _pushDoc('settings', local.settings, 'settings');
@@ -468,19 +532,46 @@ const CloudSync = (() => {
                     }
                 }
 
-                // Pull form data (conflict possible)
-                const formResult = await _pullDoc('currentForm', STORAGE_KEYS.FORM, 'currentForm');
-                if (formResult?.conflict) {
-                    conflicts.push({
-                        type: 'Current Form',
-                        remote: formResult.data,
-                        local: formResult.localData,
-                        remoteTime: formResult.remoteTime,
-                        localTime: _getSyncMeta()['lastSync_currentForm'] || 0
-                    });
-                } else if (formResult?.data && typeof App !== 'undefined') {
-                    App.data = formResult.data;
-                    if (App.load) await App.load();
+                // Pull form data (conflict possible — decrypt on pull for cross-device support)
+                const formResult = await _pullDoc('currentForm', null, 'currentForm');
+                if (formResult?.data != null) {
+                    // Handle old encrypted format (base64 from pre-cross-device sync)
+                    let formData = formResult.data;
+                    if (_isOldEncryptedFormat(formData)) {
+                        const decrypted = await _decryptForSync(formData);
+                        formData = decrypted || formData; // keep raw if decrypt fails (different device)
+                    }
+
+                    // Conflict detection: decrypt local for comparison
+                    const localDecrypted = await _decryptForSync(localStorage.getItem(STORAGE_KEYS.FORM));
+                    if (typeof formData === 'object' && localDecrypted &&
+                        JSON.stringify(localDecrypted) !== JSON.stringify(formData) &&
+                        formResult.data !== undefined) {
+                        // Check if this is from a different device with newer data
+                        const meta = _getSyncMeta();
+                        const lastSync = meta['lastSync_currentForm'] || 0;
+                        const remoteTime = formResult.remoteTime || 0;
+                        if (remoteTime > lastSync) {
+                            conflicts.push({
+                                type: 'Current Form',
+                                remote: formData,
+                                local: localDecrypted,
+                                remoteTime: remoteTime,
+                                localTime: lastSync
+                            });
+                        }
+                    }
+
+                    if (typeof formData === 'object' && !formResult.conflict) {
+                        // Encrypt plaintext and store locally
+                        const encrypted = await _encryptForStorage(formData);
+                        if (encrypted) localStorage.setItem(STORAGE_KEYS.FORM, encrypted);
+                        _markSynced('currentForm');
+                        if (typeof App !== 'undefined') {
+                            App.data = formData;
+                            if (App.load) await App.load();
+                        }
+                    }
                 }
 
                 // Pull CGL state
@@ -530,15 +621,36 @@ const CloudSync = (() => {
                     if (Reminders.render) Reminders.render();
                 }
 
-                // Pull Commercial Quoter draft + saved quotes
-                const commDraftResult = await _pullDoc('commercialDraft', STORAGE_KEYS.COMMERCIAL_DRAFT, 'commercialDraft');
+                // Pull Commercial Quoter draft + saved quotes (encrypted locally)
+                const commDraftResult = await _pullDoc('commercialDraft', null, 'commercialDraft');
                 if (commDraftResult?.data != null) {
-                    localStorage.setItem(STORAGE_KEYS.COMMERCIAL_DRAFT, typeof commDraftResult.data === 'string' ? commDraftResult.data : JSON.stringify(commDraftResult.data));
+                    let draftData = commDraftResult.data;
+                    if (_isOldEncryptedFormat(draftData)) {
+                        draftData = await _decryptForSync(draftData) || draftData;
+                    }
+                    if (typeof draftData === 'object') {
+                        const encrypted = await _encryptForStorage(draftData);
+                        if (encrypted) localStorage.setItem(STORAGE_KEYS.COMMERCIAL_DRAFT, encrypted);
+                    } else {
+                        // Old format that couldn't be decrypted — store as-is (same device may still decrypt)
+                        localStorage.setItem(STORAGE_KEYS.COMMERCIAL_DRAFT, typeof draftData === 'string' ? draftData : JSON.stringify(draftData));
+                    }
+                    _markSynced('commercialDraft');
                     if (typeof CommercialQuoter !== 'undefined' && CommercialQuoter.render) CommercialQuoter.render();
                 }
-                const commQuotesResult = await _pullDoc('commercialQuotes', STORAGE_KEYS.COMMERCIAL_QUOTES, 'commercialQuotes');
+                const commQuotesResult = await _pullDoc('commercialQuotes', null, 'commercialQuotes');
                 if (commQuotesResult?.data != null) {
-                    localStorage.setItem(STORAGE_KEYS.COMMERCIAL_QUOTES, typeof commQuotesResult.data === 'string' ? commQuotesResult.data : JSON.stringify(commQuotesResult.data));
+                    let quotesData = commQuotesResult.data;
+                    if (_isOldEncryptedFormat(quotesData)) {
+                        quotesData = await _decryptForSync(quotesData) || quotesData;
+                    }
+                    if (typeof quotesData === 'object' || Array.isArray(quotesData)) {
+                        const encrypted = await _encryptForStorage(quotesData);
+                        if (encrypted) localStorage.setItem(STORAGE_KEYS.COMMERCIAL_QUOTES, encrypted);
+                    } else {
+                        localStorage.setItem(STORAGE_KEYS.COMMERCIAL_QUOTES, typeof quotesData === 'string' ? quotesData : JSON.stringify(quotesData));
+                    }
+                    _markSynced('commercialQuotes');
                 }
 
                 // Pull Agency Glossary
@@ -549,23 +661,38 @@ const CloudSync = (() => {
                     if (glossaryEl) glossaryEl.value = localStorage.getItem(STORAGE_KEYS.AGENCY_GLOSSARY) || '';
                 }
 
-                // Pull Vault (encrypted string stored as-is)
+                // Pull Vault (encrypt on pull for local storage, plaintext in Firestore)
                 const vaultDataResult = await _pullDoc('vaultData', null, 'vaultData');
                 if (vaultDataResult?.data != null) {
-                    localStorage.setItem(STORAGE_KEYS.ACCT_VAULT, typeof vaultDataResult.data === 'string' ? vaultDataResult.data : JSON.stringify(vaultDataResult.data));
+                    let vaultPlaintext = vaultDataResult.data;
+                    if (_isOldEncryptedFormat(vaultPlaintext)) {
+                        vaultPlaintext = await _decryptForSync(vaultPlaintext) || vaultPlaintext;
+                    }
+                    if (typeof vaultPlaintext === 'object') {
+                        const encrypted = await _encryptForStorage(vaultPlaintext);
+                        if (encrypted) localStorage.setItem(STORAGE_KEYS.ACCT_VAULT, encrypted);
+                    } else {
+                        // Old format that couldn't be decrypted — store as-is
+                        localStorage.setItem(STORAGE_KEYS.ACCT_VAULT, typeof vaultPlaintext === 'string' ? vaultPlaintext : JSON.stringify(vaultPlaintext));
+                    }
+                    _markSynced('vaultData');
                 }
                 const vaultMetaResult = await _pullDoc('vaultMeta', null, 'vaultMeta');
                 if (vaultMetaResult?.data != null) {
                     _setLocalData(STORAGE_KEYS.ACCT_VAULT_META, vaultMetaResult.data);
                 }
 
-                // Pull quotes (merge strategy)
+                // Pull quotes (merge strategy — quotes stored encrypted locally)
                 const remoteQuotes = await _pullQuotes();
                 if (remoteQuotes.length > 0) {
-                    let localQuotes = Utils.tryParseLS(STORAGE_KEYS.QUOTES, []);
+                    // Decrypt local quotes for merge comparison
+                    const localDecryptedQuotes = await _decryptForSync(localStorage.getItem(STORAGE_KEYS.QUOTES));
+                    let localQuotes = Array.isArray(localDecryptedQuotes) ? localDecryptedQuotes : [];
 
                     const { merged, conflicts: quoteConflicts } = _mergeQuotes(localQuotes, remoteQuotes);
-                    _setLocalData(STORAGE_KEYS.QUOTES, merged);
+                    // Encrypt merged quotes back to localStorage
+                    const encryptedQuotes = await _encryptForStorage(merged);
+                    if (encryptedQuotes) localStorage.setItem(STORAGE_KEYS.QUOTES, encryptedQuotes);
                     _markSynced('quotes');
 
                     if (quoteConflicts.length) {
@@ -747,7 +874,7 @@ const CloudSync = (() => {
         /**
          * Resolve a single conflict
          */
-        _resolveConflict(index, choice) {
+        async _resolveConflict(index, choice) {
             const dialog = document.getElementById('conflictDialog');
             if (!dialog || !dialog._conflicts) return;
 
@@ -756,14 +883,16 @@ const CloudSync = (() => {
 
             if (conflict.type === 'Current Form') {
                 if (choice === 'remote') {
-                    _setLocalData(STORAGE_KEYS.FORM, conflict.remote);
+                    // Encrypt remote plaintext before storing locally
+                    const encrypted = await _encryptForStorage(conflict.remote);
+                    if (encrypted) localStorage.setItem(STORAGE_KEYS.FORM, encrypted);
                     if (typeof App !== 'undefined') {
                         App.data = conflict.remote;
                         if (App.load) App.load();
                     }
                     _markSynced('currentForm');
                 } else {
-                    // Push local to cloud
+                    // Push local (already plaintext from conflict detection) to cloud
                     _pushDoc('currentForm', conflict.local, 'currentForm');
                 }
             } else if (conflict.type === 'CGL Compliance State') {

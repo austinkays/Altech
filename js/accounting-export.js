@@ -494,7 +494,7 @@ const AccountingExport = {
                     el.textContent = '••••••••';
                     el.setAttribute('data-masked', 'true');
                 }
-            }, 30000);
+            }, 60000);
         } else {
             el.textContent = '••••••••';
             el.setAttribute('data-masked', 'true');

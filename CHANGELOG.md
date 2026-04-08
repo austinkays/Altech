@@ -29,9 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fix(deposit-sheet): fit PDF export on one page** (April 8, 2026):
   - `js/accounting-export.js` — removed the "Bank Deposit Receipt" tape area from both PDF export and screen render; entire deposit sheet now fits on a single landscape page
 
+### Fixed
+- **fix(cloud-sync): decrypt before push / encrypt after pull for cross-device sync** (April 8, 2026):
+  - `js/cloud-sync.js` — added `_decryptForSync()`, `_encryptForStorage()`, `_isOldEncryptedFormat()` helpers; rewrote `_getLocalData()` as async to decrypt 5 encrypted fields (currentForm, quotes, vaultData, commercialDraft, commercialQuotes) before push so Firestore stores plaintext JSON
+  - `js/cloud-sync.js` — rewrote pull path for currentForm, commercialDraft, commercialQuotes, vaultData: detect old encrypted format, encrypt plaintext from Firestore before localStorage write, backwards-compatible with pre-fix encrypted blobs
+  - `js/cloud-sync.js` — rewrote pull path for quotes: decrypt local quotes for merge comparison, encrypt merged result before localStorage write
+  - `js/cloud-sync.js` — made `_resolveConflict()` async; encrypts remote data before localStorage write on conflict resolution
+
 ### Changed
-- **chore(accounting): extend account info reveal timer to 30 seconds** (April 8, 2026):
-  - `js/accounting-export.js` — changed `toggleFieldValue()` auto-mask timeout from 10s to 30s
+- **chore(accounting): extend account info reveal timer to 60 seconds** (April 8, 2026):
+  - `js/accounting-export.js` — changed `toggleFieldValue()` auto-mask timeout from 30s to 60s
 - **feat(broadform): AI-powered rule editor panel** (March 28, 2026):
   - `js/tools/broadform-data.js` — added runtime override support: `_defaultCarriers` deep clone, `applyOverrides(obj)` patches carrier rules at runtime, `resetOverrides()` restores defaults, `getCarrierSummary()` returns structured carrier/LOB/rule array for AI context, auto-loads saved overrides from localStorage on init
   - `js/tools/broadform.js` — added collapsible rule editor (`<details>`) with: textarea for natural language rule changes, "Apply with AI" button (sends current rules + user instructions to AIProvider, parses JSON overrides, merges with existing), "View Current Rules" toggle (JSON preview), "Reset to Defaults" button, "Modified" badge when overrides exist; wired all 3 buttons into `_wireEvents()`

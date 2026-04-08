@@ -72,7 +72,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── animations.css          # All @keyframes — never define @keyframes in plugin CSS
 │   ├── landing.css             # Landing / bento grid / tool-row styles
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
-│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (787 lines)
+│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (866 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,244 lines)
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (934 lines)
 │   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + blue needs-state-update badge + snooze styles + fixed 6-col stat grid + two-row action buttons + note-count badge + button variant classes (.confirm, .state-done, .hs-done) (1,585 lines)
@@ -124,7 +124,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget, client search (1,421 lines)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget, client search (1,442 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
