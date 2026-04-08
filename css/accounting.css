@@ -490,6 +490,30 @@ body.dark-mode .ds-bill-input { background: #2C2C2E; border-color: #48484A; colo
 }
 .ds-bill-grand { font-size: 14px; font-weight: 700; color: var(--text); }
 
+/* ── Coin counter rows ── */
+.ds-coin-separator {
+    width: 100%; height: 0; border-top: 1px dashed var(--border);
+    margin: 2px 0;
+}
+.ds-coin-row { display: flex; align-items: center; gap: 5px; }
+.ds-coin-row-empty { }  /* print hide handled in @media print */
+.ds-coin-input {
+    width: 60px; padding: 3px 6px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg-input);
+    color: var(--text); font-size: 12px; text-align: right;
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+}
+.ds-coin-input::-webkit-outer-spin-button,
+.ds-coin-input::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+}
+.ds-coin-input:focus {
+    outline: none; border-color: var(--apple-blue);
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.15);
+}
+body.dark-mode .ds-coin-input { background: #2C2C2E; border-color: #48484A; color: #fff; }
+
 /* ── Pay method group ──────────────────────────────────── */
 .ds-group { margin-bottom: 14px; }
 .ds-group-header {
@@ -638,6 +662,8 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     /* ── Bill counter — only show if bills were counted ──── */
     .ds-bill-counter-empty { display: none !important; }
     .ds-bill-row-empty { display: none !important; }
+    .ds-coin-row-empty { display: none !important; }
+    .ds-coin-separator { border-top: 0.5pt dashed #bbb; margin: 1pt 0; }
     .ds-bill-counter {
         background: none !important; border: none !important;
         border-bottom: 0.75pt solid #ccc !important; border-radius: 0;
@@ -661,6 +687,10 @@ body.dark-mode .ds-subtotal-row td { background: #2C2C2E !important; }
     .ds-bill-row-total {
         border-left: none; border-top: 0.75pt solid #999;
         padding-left: 0; padding-top: 2pt; margin-left: 0; margin-top: 2pt;
+    }
+    .ds-coin-row {
+        display: flex; align-items: baseline; gap: 4px;
+        width: auto; line-height: 1.6;
     }
 
     /* ── Pay method groups ────────────────────────────────── */

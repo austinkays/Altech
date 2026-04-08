@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(deposit-sheet): add coin/change counter to deposit sheet** (April 8, 2026):
+  - `plugins/accounting.html` — added coin counter rows (25¢, 10¢, 5¢, 1¢) with input fields, print counts, and totals below the bill counter
+  - `js/accounting-export.js` — updated `_dsUpdateBillCounter()` to sum bills + coins into one grand total; added coin counter to PDF export; updated `_dsReset()` to clear coin inputs; updated input event listener for `.ds-coin-input`
+  - `css/accounting.css` — added `.ds-coin-separator`, `.ds-coin-row`, `.ds-coin-input` styles with dark mode and print support
+
+### Fixed
+- **fix(deposit-sheet): fit PDF export on one page** (April 8, 2026):
+  - `js/accounting-export.js` — removed the "Bank Deposit Receipt" tape area from both PDF export and screen render; entire deposit sheet now fits on a single landscape page
+
+### Changed
+- **chore(accounting): extend account info reveal timer to 30 seconds** (April 8, 2026):
+  - `js/accounting-export.js` — changed `toggleFieldValue()` auto-mask timeout from 10s to 30s
 - **feat(broadform): AI-powered rule editor panel** (March 28, 2026):
   - `js/tools/broadform-data.js` — added runtime override support: `_defaultCarriers` deep clone, `applyOverrides(obj)` patches carrier rules at runtime, `resetOverrides()` restores defaults, `getCarrierSummary()` returns structured carrier/LOB/rule array for AI context, auto-loads saved overrides from localStorage on init
   - `js/tools/broadform.js` — added collapsible rule editor (`<details>`) with: textarea for natural language rule changes, "Apply with AI" button (sends current rules + user instructions to AIProvider, parses JSON overrides, merges with existing), "View Current Rules" toggle (JSON preview), "Reset to Defaults" button, "Modified" badge when overrides exist; wired all 3 buttons into `_wireEvents()`

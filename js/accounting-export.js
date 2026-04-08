@@ -494,7 +494,7 @@ const AccountingExport = {
                     el.textContent = '••••••••';
                     el.setAttribute('data-masked', 'true');
                 }
-            }, 10000);
+            }, 30000);
         } else {
             el.textContent = '••••••••';
             el.setAttribute('data-masked', 'true');
@@ -559,9 +559,9 @@ const AccountingExport = {
             clearBtn.addEventListener('click', () => this._dsReset());
         }
 
-        // Bill counter inputs
+        // Bill + coin counter inputs
         document.addEventListener('input', (e) => {
-            if (e.target && e.target.classList.contains('ds-bill-input')) {
+            if (e.target && (e.target.classList.contains('ds-bill-input') || e.target.classList.contains('ds-coin-input'))) {
                 this._dsUpdateBillCounter();
             }
         });
@@ -770,11 +770,7 @@ const AccountingExport = {
             html += `</div>`;
         }
 
-        // Receipt tape — print-only (hidden on screen)
-        html += `<div class="ds-receipt-tape ds-print-only">
-            <div class="ds-receipt-tape-label">Bank Deposit Receipt</div>
-            <div class="ds-receipt-tape-area"></div>
-        </div>`;
+        // Receipt tape removed — deposit sheet is single-page now
 
         output.innerHTML = html;
     },
@@ -852,17 +848,17 @@ const AccountingExport = {
         return html;
     },
 
-    // ── Bill counter ──
+    // ── Bill & coin counter ──
 
     _dsUpdateBillCounter() {
         const inputs = document.querySelectorAll('input.ds-bill-input');
-        let grand = 0;
+        let billGrand = 0;
         let anyBills = false;
         inputs.forEach(input => {
             const denom = parseInt(input.dataset.denom, 10);
             const count = parseInt(input.value, 10) || 0;
             const total = denom * count;
-            grand += total;
+            billGrand += total;
             if (count > 0) anyBills = true;
             const el = document.getElementById(`ds-bill-${denom}`);
             if (el) el.textContent = count > 0 ? this._dsFmt(total) : '—';
@@ -872,11 +868,31 @@ const AccountingExport = {
             const row = input.closest('.ds-bill-row');
             if (row) row.classList.toggle('ds-bill-row-empty', count === 0);
         });
+
+        // Coin counter
+        const coinInputs = document.querySelectorAll('input.ds-coin-input');
+        let coinGrand = 0;
+        let anyCoins = false;
+        coinInputs.forEach(input => {
+            const cents = parseInt(input.dataset.cents, 10);
+            const count = parseInt(input.value, 10) || 0;
+            const total = (cents * count) / 100;
+            coinGrand += total;
+            if (count > 0) anyCoins = true;
+            const el = document.getElementById(`ds-coin-${cents}`);
+            if (el) el.textContent = count > 0 ? this._dsFmt(total) : '—';
+            const countEl = document.getElementById(`ds-coin-count-${cents}`);
+            if (countEl) countEl.textContent = count;
+            const row = input.closest('.ds-coin-row');
+            if (row) row.classList.toggle('ds-coin-row-empty', count === 0);
+        });
+
+        const grand = billGrand + coinGrand;
         const grandEl = document.getElementById('ds-bill-counted');
         if (grandEl) grandEl.textContent = this._dsFmt(grand);
         // Hide entire counter in print when nothing counted
         const counter = document.getElementById('ds-bill-counter');
-        if (counter) counter.classList.toggle('ds-bill-counter-empty', !anyBills);
+        if (counter) counter.classList.toggle('ds-bill-counter-empty', !anyBills && !anyCoins);
     },
 
     _dsUpdateVerifiedCount() {
@@ -929,6 +945,7 @@ const AccountingExport = {
         if (billBlock) billBlock.style.display = 'none';
 
         document.querySelectorAll('input.ds-bill-input').forEach(i => { i.value = 0; });
+        document.querySelectorAll('input.ds-coin-input').forEach(i => { i.value = 0; });
         this._dsUpdateBillCounter();
         this._dsHideError();
     },
@@ -1039,7 +1056,7 @@ const AccountingExport = {
         }
         y += 11;
 
-        // ── Bill counter (only if counted) ──────────────────
+        // ── Cash & change counters (only if counted) ────────
         const billInputs = document.querySelectorAll('input.ds-bill-input');
         let billTotal = 0;
         const bills = [];
@@ -1052,8 +1069,23 @@ const AccountingExport = {
             }
         });
 
-        if (bills.length) {
-            need(12 + bills.length * 4.5);
+        const coinInputs = document.querySelectorAll('input.ds-coin-input');
+        let coinTotal = 0;
+        const coins = [];
+        coinInputs.forEach(input => {
+            const cents = parseInt(input.dataset.cents, 10);
+            const count = parseInt(input.value, 10) || 0;
+            if (count > 0) {
+                const total = (cents * count) / 100;
+                coins.push({ cents, count, total });
+                coinTotal += total;
+            }
+        });
+
+        const hasBillsOrCoins = bills.length || coins.length;
+        if (hasBillsOrCoins) {
+            const totalRows = bills.length + coins.length;
+            need(12 + totalRows * 4.5);
             doc.setFontSize(7);
             doc.setFont(undefined, 'bold');
             doc.setTextColor(...MID);
@@ -1071,12 +1103,26 @@ const AccountingExport = {
                 doc.text('=  ' + this._dsFmt(b.total), mg + 32, y + 3.5);
                 y += 4.5;
             }
+            if (coins.length) {
+                // Visual separator between bills and coins
+                if (bills.length) { y += 1; }
+                for (const c of coins) {
+                    const label = c.cents === 25 ? '25¢' : c.cents === 10 ? '10¢' : c.cents === 5 ? '5¢' : '1¢';
+                    doc.setTextColor(...INK);
+                    doc.text(label, mg + 3, y + 3.5);
+                    doc.setTextColor(...LIGHT);
+                    doc.text('\u00d7  ' + c.count, mg + 18, y + 3.5);
+                    doc.setTextColor(...INK);
+                    doc.text('=  ' + this._dsFmt(c.total), mg + 32, y + 3.5);
+                    y += 4.5;
+                }
+            }
             doc.setDrawColor(...RULE);
             doc.line(mg, y, mg + 55, y);
             y += 1;
             doc.setFont(undefined, 'bold');
             doc.setFontSize(10);
-            doc.text('Counted:  ' + this._dsFmt(billTotal), mg + 3, y + 4);
+            doc.text('Counted:  ' + this._dsFmt(billTotal + coinTotal), mg + 3, y + 4);
             y += 8;
         }
 
@@ -1235,25 +1281,7 @@ const AccountingExport = {
             y += rowH + 4;
         }
 
-        // ── Receipt tape area ───────────────────────────────
-        const tapeW = 130;  // ~5.1 inches
-        const tapeH = 65;   // ~2.5 inches
-        if (y + tapeH + 12 > pageH - 12) addPage();
-
-        y += 2;
-        doc.setFontSize(7);
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(...MID);
-        doc.text('BANK DEPOSIT RECEIPT', mg, y + 3);
-        y += 5;
-
-        doc.setDrawColor(...RULE);
-        doc.setLineWidth(0.4);
-        doc.rect(mg, y, tapeW, tapeH);
-        doc.setFontSize(7);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(...LIGHT);
-        doc.text('Tape receipt here', mg + tapeW / 2, y + tapeH / 2, { align: 'center' });
+        // Receipt tape area removed — fits on one page without it
 
         // ── Save ────────────────────────────────────────────
         const fname = 'Deposit_Sheet_' + new Date().toISOString().slice(0, 10) + '.pdf';
