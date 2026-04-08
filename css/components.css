@@ -1868,6 +1868,7 @@ body.dark-mode .coi-legal { background: rgba(255,255,255,0.04); }
     box-shadow: 0 6px 24px rgba(0,0,0,0.15);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
     margin-top: 4px;
+    background: var(--bg) !important;
 }
 .pac-item {
     padding: 8px 12px;
@@ -1880,7 +1881,7 @@ body.dark-mode .coi-legal { background: rgba(255,255,255,0.04); }
 .pac-item:hover, .pac-item-selected { background: var(--bg-input); }
 .pac-icon { display: none; }
 .pac-item-query { color: var(--text); font-weight: 500; }
-body.dark-mode .pac-container { background: var(--bg-card); border-color: var(--border); }
+body.dark-mode .pac-container { background: #1C1C1E !important; border-color: var(--border); }
 body.dark-mode .pac-item { border-color: var(--border); color: #FFFFFF; }
 body.dark-mode .pac-item:hover,
 body.dark-mode .pac-item-selected { background: #2C2C2E; }
