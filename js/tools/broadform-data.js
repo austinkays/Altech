@@ -331,9 +331,71 @@ window.BroadformData = (() => {
         },
     ];
 
+    // ── Deep clone for defaults snapshot ─────────────────────────────────
+    const _defaultCarriers = JSON.parse(JSON.stringify(carriers));
+
     // Index carriers by key
     const carrierByKey = {};
     carriers.forEach(c => { carrierByKey[c.key] = c; });
+
+    // ── Runtime override support ─────────────────────────────────────────
+    // Overrides are a JSON object keyed by carrier key, containing partial
+    // line-of-business patches. Applied on top of defaults.
+    //
+    // Shape: { "safeco": { "home": { "rules": [...], "states": [...] } } }
+    //
+    function applyOverrides(overrides) {
+        if (!overrides || typeof overrides !== 'object') return;
+        // Reset to defaults first
+        carriers.length = 0;
+        _defaultCarriers.forEach(c => carriers.push(JSON.parse(JSON.stringify(c))));
+        carrierByKey && Object.keys(carrierByKey).forEach(k => delete carrierByKey[k]);
+        carriers.forEach(c => { carrierByKey[c.key] = c; });
+
+        for (const [key, linePatch] of Object.entries(overrides)) {
+            const carrier = carrierByKey[key];
+            if (!carrier) continue;
+            for (const [lob, patch] of Object.entries(linePatch)) {
+                if (!carrier.lines[lob]) {
+                    carrier.lines[lob] = patch;
+                } else {
+                    Object.assign(carrier.lines[lob], patch);
+                }
+            }
+        }
+    }
+
+    function resetOverrides() {
+        carriers.length = 0;
+        _defaultCarriers.forEach(c => carriers.push(JSON.parse(JSON.stringify(c))));
+        Object.keys(carrierByKey).forEach(k => delete carrierByKey[k]);
+        carriers.forEach(c => { carrierByKey[c.key] = c; });
+    }
+
+    function getCarrierSummary() {
+        return carriers.map(c => ({
+            key: c.key,
+            name: c.name,
+            lines: Object.fromEntries(
+                Object.entries(c.lines).map(([lob, ld]) => [lob, {
+                    states: ld.states,
+                    rules: (ld.rules || []).map(r => `${r.field} ${r.op} ${JSON.stringify(r.value)} → ${r.reason}`),
+                    note: ld.note || null,
+                    referOut: ld.referOut || null,
+                }])
+            ),
+        }));
+    }
+
+    // Load saved overrides from localStorage on init
+    (function _loadSavedOverrides() {
+        try {
+            const sk = window.STORAGE_KEYS;
+            if (!sk) return;
+            const raw = localStorage.getItem(sk.CARRIER_OVERRIDES);
+            if (raw) applyOverrides(JSON.parse(raw));
+        } catch (e) { /* ignore corrupt data */ }
+    })();
 
     // ── AI System Prompt for Info Dump Parsing ───────────────────────────────
     const aiSystemPrompt = `You are an insurance underwriting data extractor. Given raw client notes, extract ONLY the fields you can confidently identify. Return strict JSON with no commentary.
@@ -429,5 +491,8 @@ Example output: {"state":"WA","roofAge":${new Date().getFullYear() - 2019},"dogB
         questions,
         disqualifierMessages,
         rules: { evaluate },
+        applyOverrides,
+        resetOverrides,
+        getCarrierSummary,
     };
 })();

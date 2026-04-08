@@ -608,3 +608,87 @@ body.dark-mode .bf-chip-remove:hover {
         justify-content: center;
     }
 }
+
+/* ── Rule Editor ──────────────────────────────────────────────────────── */
+
+.bf-rule-editor {
+    margin-top: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-card);
+    overflow: hidden;
+}
+
+.bf-rule-editor-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    list-style: none;
+    user-select: none;
+    transition: color 0.2s var(--transition-smooth);
+}
+
+.bf-rule-editor-toggle::-webkit-details-marker { display: none; }
+.bf-rule-editor-toggle::marker { display: none; content: ''; }
+
+.bf-rule-editor-toggle:hover { color: var(--text); }
+
+.bf-rule-editor[open] .bf-rule-editor-toggle {
+    border-bottom: 1px solid var(--border);
+}
+
+.bf-rule-editor-icon { font-size: 16px; }
+
+.bf-rule-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--apple-blue);
+    border-radius: 10px;
+    margin-left: auto;
+}
+
+.bf-rule-editor-body {
+    padding: 16px;
+}
+
+.bf-rule-editor-hint {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin: 0 0 10px;
+    line-height: 1.5;
+}
+
+.bf-rule-preview {
+    margin-top: 12px;
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+body.dark-mode .bf-rule-editor {
+    border-color: var(--border);
+    background: var(--bg-card);
+}
+
+body.dark-mode .bf-rule-preview {
+    background: var(--bg-input);
+    border-color: var(--border);
+    color: var(--text-secondary);
+}

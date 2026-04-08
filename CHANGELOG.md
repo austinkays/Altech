@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(broadform): AI-powered rule editor panel** (March 28, 2026):
+  - `js/tools/broadform-data.js` — added runtime override support: `_defaultCarriers` deep clone, `applyOverrides(obj)` patches carrier rules at runtime, `resetOverrides()` restores defaults, `getCarrierSummary()` returns structured carrier/LOB/rule array for AI context, auto-loads saved overrides from localStorage on init
+  - `js/tools/broadform.js` — added collapsible rule editor (`<details>`) with: textarea for natural language rule changes, "Apply with AI" button (sends current rules + user instructions to AIProvider, parses JSON overrides, merges with existing), "View Current Rules" toggle (JSON preview), "Reset to Defaults" button, "Modified" badge when overrides exist; wired all 3 buttons into `_wireEvents()`
+  - `js/storage-keys.js` — added `CARRIER_OVERRIDES: 'altech_carrier_overrides'`
+  - `css/broadform.css` — added rule editor styles: `.bf-rule-editor`, `.bf-rule-editor-toggle`, `.bf-rule-editor-body`, `.bf-rule-badge`, `.bf-rule-preview`, `body.dark-mode` overrides
+  - `tests/broadform.test.js` — 5 new tests: getCarrierSummary shape, applyOverrides patches rules/states/notes, resetOverrides restores defaults; injected STORAGE_KEYS into test JSDOM helper (30→35 tests, 27 suites, 1713 total)
+
 - **feat(broadform): upgrade Broadform Filter → Carrier Recommendation Engine** (March 28, 2026):
   - `js/tools/broadform-data.js` — **rewritten**: 2 carriers/3 questions → 6 carriers (Progressive, Dairyland, Safeco, PEMCO, National General, Foremost) / 20+ underwriting variables / declarative rule operators (eq, neq, lt, lte, gt, gte, in, notIn, notInFuzzy) / AI system prompt / restricted dog breeds / backward-compat `evaluate()` wrapper
   - `js/tools/broadform-engine.js` — **new file**: matching engine IIFE (`BroadformEngine`): `evaluate(profile, lob)` returns `{eligible, pending, disqualified, referOut, missingFields}`; `buildProfileFromAppData()` reads App.data/drivers/vehicles; `mergeProfile()` fills nulls only

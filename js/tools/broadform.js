@@ -108,6 +108,30 @@ window.Broadform = (() => {
             <div class="bf-footer-actions">
                 <button id="bfResetBtn" class="bf-btn bf-btn-ghost">Reset All</button>
             </div>
+
+            <details class="bf-rule-editor" id="bfRuleEditor">
+                <summary class="bf-rule-editor-toggle">
+                    <span class="bf-rule-editor-icon">⚙️</span> Edit Carrier Rules
+                    ${_hasOverrides() ? '<span class="bf-rule-badge">Modified</span>' : ''}
+                </summary>
+                <div class="bf-rule-editor-body">
+                    <p class="bf-rule-editor-hint">Describe rule changes in plain English and AI will update the carrier knowledge base. Changes are saved locally.</p>
+                    <textarea class="bf-info-textarea" id="bfRuleInput" placeholder="e.g. 'Safeco now accepts wood shake roofs in WA' or 'Change Progressive max roof age to 25 years' or 'Add USAA as a new carrier for home in WA with max roof age 20'" rows="3"></textarea>
+                    <div class="bf-info-actions">
+                        <button class="bf-btn bf-btn-primary" id="bfApplyRules">
+                            <span class="bf-btn-icon">✨</span> Apply with AI
+                        </button>
+                        <button class="bf-btn bf-btn-secondary" id="bfViewRules" title="View current carrier rules">
+                            <span class="bf-btn-icon">📖</span> View Current Rules
+                        </button>
+                        <button class="bf-btn bf-btn-ghost" id="bfResetRules" title="Reset all rules to defaults"${_hasOverrides() ? '' : ' disabled'}>
+                            Reset to Defaults
+                        </button>
+                    </div>
+                    <div id="bfRuleStatus" class="bf-ai-status" style="display:none;"></div>
+                    <pre id="bfRulePreview" class="bf-rule-preview" style="display:none;"></pre>
+                </div>
+            </details>
         `;
 
         _wireEvents(container);
@@ -356,6 +380,20 @@ window.Broadform = (() => {
                 return;
             }
 
+            // Rule editor buttons
+            if (e.target.closest('#bfApplyRules')) {
+                _applyRulesWithAI();
+                return;
+            }
+            if (e.target.closest('#bfViewRules')) {
+                _viewRules();
+                return;
+            }
+            if (e.target.closest('#bfResetRules')) {
+                _resetRules();
+                return;
+            }
+
             // Yes / No toggle buttons
             const btn = e.target.closest('.tc-toggle-btn[data-id]');
             if (!btn) return;
@@ -470,6 +508,162 @@ window.Broadform = (() => {
         el.textContent = msg;
         if (type === 'success' || type === 'info') {
             setTimeout(() => { if (el) el.style.display = 'none'; }, 4000);
+        }
+    }
+
+    // ── Rule Editor Helpers ──────────────────────────────────────────────────
+
+    function _hasOverrides() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEYS.CARRIER_OVERRIDES);
+            if (!raw) return false;
+            const obj = JSON.parse(raw);
+            return obj && typeof obj === 'object' && Object.keys(obj).length > 0;
+        } catch { return false; }
+    }
+
+    function _viewRules() {
+        const data = DATA();
+        if (!data) return;
+        const preview = document.getElementById('bfRulePreview');
+        if (!preview) return;
+        const summary = data.getCarrierSummary();
+        preview.textContent = JSON.stringify(summary, null, 2);
+        preview.style.display = preview.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function _resetRules() {
+        const data = DATA();
+        if (!data) return;
+        data.resetOverrides();
+        localStorage.removeItem(STORAGE_KEYS.CARRIER_OVERRIDES);
+        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) CloudSync.schedulePush();
+        _buildUI();
+        const statusEl = document.getElementById('bfRuleStatus');
+        if (statusEl) _showAIStatus(statusEl, 'success', 'Rules reset to defaults.');
+    }
+
+    async function _applyRulesWithAI() {
+        const textarea = document.getElementById('bfRuleInput');
+        const statusEl = document.getElementById('bfRuleStatus');
+        const applyBtn = document.getElementById('bfApplyRules');
+        if (!textarea || !statusEl) return;
+
+        const instructions = textarea.value.trim();
+        if (!instructions) {
+            _showAIStatus(statusEl, 'warning', 'Describe a rule change first.');
+            return;
+        }
+
+        const AIProvider = window.AIProvider;
+        if (!AIProvider) {
+            _showAIStatus(statusEl, 'error', 'AI provider not available.');
+            return;
+        }
+
+        const data = DATA();
+        if (!data) return;
+
+        if (applyBtn) {
+            applyBtn.disabled = true;
+            applyBtn.innerHTML = '<span class="bf-btn-icon bf-spin">⏳</span> Applying…';
+        }
+        _showAIStatus(statusEl, 'info', 'AI is interpreting your rule changes…');
+
+        try {
+            const currentRules = JSON.stringify(data.getCarrierSummary(), null, 2);
+            const systemPrompt = `You are a carrier underwriting rules editor. You will receive the current carrier knowledge base and the user's requested changes. Return ONLY a valid JSON object representing the overrides to apply.
+
+The overrides object shape is:
+{
+  "<carrierKey>": {
+    "<lob>": {
+      "states": ["WA","OR"],        // optional: replace supported states
+      "rules": [                    // optional: replace/add rules array
+        { "field": "<fieldName>", "op": "<operator>", "value": <val>, "reason": "..." }
+      ],
+      "note": "...",                // optional: update carrier note
+      "referOutNote": "..."         // optional: update refer-out note
+    }
+  }
+}
+
+Operators: eq, neq, lt, lte, gt, gte, in, notIn, notInFuzzy
+Fields: state, roofAge, yearBuilt, roofType, heatingType, constructionType, foundationType, dwellingType, creditTier, claimCount, pool, trampoline, dogBreed, sqFt, homeAge, protectionClass, priorInsurance, priorLapse
+
+Carrier keys: progressive, dairyland, safeco, pemco, nationalGeneral, foremost
+LOBs: auto, home, umbrella
+
+Important rules:
+- Only include carriers/LOBs that the user wants to change
+- For rule changes, include ALL rules for that carrier+LOB (not just the changed ones)
+- If adding a new carrier, use a camelCase key and include all fields
+- Return ONLY the JSON — no markdown, no explanation`;
+
+            const userMessage = `Current carrier rules:\n${currentRules}\n\nRequested changes:\n${instructions}`;
+
+            const response = await AIProvider.ask(systemPrompt, userMessage, {
+                temperature: 0.1,
+                maxTokens: 4096,
+                responseFormat: 'json',
+            });
+
+            if (!response) throw new Error('Empty AI response');
+
+            const jsonStr = response.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+            const overrides = JSON.parse(jsonStr);
+
+            if (!overrides || typeof overrides !== 'object' || Object.keys(overrides).length === 0) {
+                throw new Error('AI returned empty overrides');
+            }
+
+            // Merge with existing overrides
+            let existing = {};
+            try {
+                const raw = localStorage.getItem(STORAGE_KEYS.CARRIER_OVERRIDES);
+                if (raw) existing = JSON.parse(raw);
+            } catch { /* ignore */ }
+
+            for (const [carrier, lobs] of Object.entries(overrides)) {
+                if (!existing[carrier]) existing[carrier] = {};
+                for (const [lob, changes] of Object.entries(lobs)) {
+                    existing[carrier][lob] = changes;
+                }
+            }
+
+            localStorage.setItem(STORAGE_KEYS.CARRIER_OVERRIDES, JSON.stringify(existing));
+            data.applyOverrides(existing);
+            if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) CloudSync.schedulePush();
+
+            const carrierCount = Object.keys(overrides).length;
+            _showAIStatus(statusEl, 'success', `Updated rules for ${carrierCount} carrier${carrierCount !== 1 ? 's' : ''}.`);
+            textarea.value = '';
+
+            // Show updated rules and refresh results
+            const preview = document.getElementById('bfRulePreview');
+            if (preview) {
+                preview.textContent = JSON.stringify(data.getCarrierSummary(), null, 2);
+                preview.style.display = 'block';
+            }
+            _refreshResults();
+
+            // Update badge + reset button state
+            const editor = document.getElementById('bfRuleEditor');
+            if (editor) {
+                const toggle = editor.querySelector('.bf-rule-editor-toggle');
+                if (toggle && !toggle.querySelector('.bf-rule-badge')) {
+                    toggle.insertAdjacentHTML('beforeend', ' <span class="bf-rule-badge">Modified</span>');
+                }
+                const resetBtn = document.getElementById('bfResetRules');
+                if (resetBtn) resetBtn.disabled = false;
+            }
+        } catch (err) {
+            _showAIStatus(statusEl, 'error', 'Could not apply changes. Try rewording your request.');
+        } finally {
+            if (applyBtn) {
+                applyBtn.disabled = false;
+                applyBtn.innerHTML = '<span class="bf-btn-icon">✨</span> Apply with AI';
+            }
         }
     }
 

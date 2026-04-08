@@ -10,6 +10,8 @@ function loadBroadformData() {
         runScripts: 'dangerously',
         url: 'http://localhost',
     });
+    // Provide STORAGE_KEYS so _loadSavedOverrides() doesn't throw
+    dom.window.STORAGE_KEYS = { CARRIER_OVERRIDES: 'altech_carrier_overrides' };
     const src = fs.readFileSync(
         path.resolve(__dirname, '../js/tools/broadform-data.js'),
         'utf8'
@@ -251,5 +253,87 @@ describe('BroadformEngine', () => {
         const merged = BroadformEngine.mergeProfile(existing, { addrState: 'OR', ownedAuto: false });
         expect(merged.addrState).toBe('WA');
         expect(merged.ownedAuto).toBe(true);
+    });
+});
+
+describe('BroadformData runtime overrides', () => {
+    let BroadformData;
+
+    beforeEach(() => {
+        // Fresh load each test so overrides don't leak
+        BroadformData = loadBroadformData();
+    });
+
+    test('getCarrierSummary returns a non-empty array describing carriers', () => {
+        const summary = BroadformData.getCarrierSummary();
+        expect(Array.isArray(summary)).toBe(true);
+        expect(summary.length).toBeGreaterThanOrEqual(6);
+        const prog = summary.find(s => s.key === 'progressive');
+        expect(prog).toBeDefined();
+        expect(prog.name).toBe('Progressive');
+        expect(prog.lines).toBeDefined();
+    });
+
+    test('applyOverrides patches a carrier rule and resetOverrides restores it', () => {
+        const original = BroadformData.carriers.find(c => c.key === 'safeco');
+        const origHomeRulesCount = original.lines.home.rules.length;
+
+        BroadformData.applyOverrides({
+            safeco: {
+                home: {
+                    rules: [
+                        { field: 'roofAge', op: 'lte', value: 99, reason: 'Test rule' }
+                    ]
+                }
+            }
+        });
+
+        const patched = BroadformData.carriers.find(c => c.key === 'safeco');
+        expect(patched.lines.home.rules.length).toBe(1);
+        expect(patched.lines.home.rules[0].value).toBe(99);
+
+        BroadformData.resetOverrides();
+        const restored = BroadformData.carriers.find(c => c.key === 'safeco');
+        expect(restored.lines.home.rules.length).toBe(origHomeRulesCount);
+    });
+
+    test('applyOverrides patches states list', () => {
+        BroadformData.applyOverrides({
+            pemco: {
+                home: {
+                    states: ['WA', 'OR', 'CA']
+                }
+            }
+        });
+
+        const pemco = BroadformData.carriers.find(c => c.key === 'pemco');
+        expect(pemco.lines.home.states).toEqual(['WA', 'OR', 'CA']);
+    });
+
+    test('applyOverrides patches note field', () => {
+        BroadformData.applyOverrides({
+            progressive: {
+                broadform: {
+                    note: 'Updated test note'
+                }
+            }
+        });
+
+        const prog = BroadformData.carriers.find(c => c.key === 'progressive');
+        expect(prog.lines.broadform.note).toBe('Updated test note');
+    });
+
+    test('resetOverrides restores all carriers to defaults', () => {
+        BroadformData.applyOverrides({
+            progressive: { broadform: { note: 'changed' } },
+            safeco: { home: { states: ['XX'] } }
+        });
+        BroadformData.resetOverrides();
+
+        const prog = BroadformData.carriers.find(c => c.key === 'progressive');
+        expect(prog.lines.broadform.note).not.toBe('changed');
+
+        const safeco = BroadformData.carriers.find(c => c.key === 'safeco');
+        expect(safeco.lines.home.states).not.toEqual(['XX']);
     });
 });
