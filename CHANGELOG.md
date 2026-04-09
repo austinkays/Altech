@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(import): add configurable EZLynx XML auto-import path** (April 9, 2026):
+  - `js/storage-keys.js` — Added `EZLYNX_XML_PATH` key
+  - `index.html` — Added "EZLynx XML Path" settings section (between Agency Glossary and Security) with text input, save button, and ontoggle loader
+  - `server.js` — Added `/local/ezlynx-xml` POST endpoint that reads an XML file from a user-configured local path (localhost-only, .xml extension enforced)
+  - `js/app-scan.js` — `importEZLynxXML()` now tries the configured path via local server first, falls back to file picker; extracted `_openEZLynxFilePicker()` helper
+
 ### Changed
 - **feat(property): replace Zillow with Redfin in quote workflow + enhance extension scraper** (July 9, 2025):
   - `js/app-property.js` — Renamed `openZillow()` → `openRedfin()`, changed Google search URL from `site:zillow.com` to `site:redfin.com`, updated error toast text

@@ -637,6 +637,40 @@ const server = createServer(async (req, res) => {
         return;
     }
 
+    // Read EZLynx XML from a configured local file path
+    if (pathname === '/local/ezlynx-xml' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const { filePath } = JSON.parse(body);
+                if (!filePath || typeof filePath !== 'string') {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'filePath required' }));
+                    return;
+                }
+                // Safety: only allow .xml files
+                if (!filePath.toLowerCase().endsWith('.xml')) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Only .xml files allowed' }));
+                    return;
+                }
+                if (!existsSync(filePath)) {
+                    res.writeHead(404, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'File not found: ' + filePath }));
+                    return;
+                }
+                const xml = readFileSync(filePath, 'utf8');
+                res.writeHead(200, { 'Content-Type': 'application/xml' });
+                res.end(xml);
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: e.message }));
+            }
+        });
+        return;
+    }
+
     // API routes: /api/* → run serverless handler
     // Serve non-.js, non-sensitive files under /api/ as static
     if (pathname.startsWith('/api/') && !pathname.endsWith('.js')) {

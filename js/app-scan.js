@@ -1979,6 +1979,38 @@ This is trusted, complete agency data — extract every field you can find.
     // ── EZLynx XML Import ──────────────────────────────────────────────────
 
     importEZLynxXML() {
+        // Try auto-load from configured path via local dev server
+        const savedPath = localStorage.getItem(STORAGE_KEYS.EZLYNX_XML_PATH);
+        if (savedPath) {
+            fetch('/local/ezlynx-xml', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filePath: savedPath })
+            })
+            .then(resp => {
+                if (!resp.ok) throw new Error('not available');
+                return resp.text();
+            })
+            .then(xmlText => {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                const parseError = xmlDoc.querySelector('parsererror');
+                if (parseError) {
+                    this.toast('Invalid XML at configured path', 'error');
+                    return;
+                }
+                this._applyEZLynxData(xmlDoc);
+            })
+            .catch(() => {
+                // Local server not running or file not found — fall back to picker
+                this._openEZLynxFilePicker();
+            });
+            return;
+        }
+        this._openEZLynxFilePicker();
+    },
+
+    _openEZLynxFilePicker() {
         const input = document.getElementById('ezlynxXmlInput');
         if (!input) return;
         input.value = '';

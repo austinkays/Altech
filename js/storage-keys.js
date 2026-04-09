@@ -40,6 +40,7 @@ window.STORAGE_KEYS = Object.freeze({
     EZLYNX_FORMDATA:        'altech_ezlynx_formdata',
     EZLYNX_INCIDENTS:       'altech_ezlynx_incidents',
     EZLYNX_EXT_CONFIRMED:  'altech_ezlynx_ext_confirmed',
+    EZLYNX_XML_PATH:        'altech_ezlynx_xml_path',
     EXPORT_HISTORY:         'altech_export_history',
     CALL_LOGGER:            'altech_call_logger',
     RETURNED_MAIL:          'altech_returned_mail',
