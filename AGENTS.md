@@ -108,7 +108,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-navigation.js       # App.updateUI(), App.navigateTo(), step progression, hash routing
 │   ├── app-core.js             # save/load, form field persistence, schema migration, encryption, clearExportHistory() — persistence-only (updateUI/navigateTo → app-navigation.js; toast/dark-mode → app-ui-utils.js)
 │   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (2,283 lines)
-│   ├── app-property.js         # Property analysis, maps, assessor data (2,503 lines)
+│   ├── app-property.js         # Property analysis, maps, assessor data, Redfin integration (2,503 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
 │   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,337 lines)
@@ -210,7 +210,7 @@ npm run deploy:vercel   # Production deploy
 │   │                           #   fillPageSequential() — primary fill entry point
 │   ├── background.js
 │   ├── altech-bridge.js
-│   ├── property-scraper.js
+│   ├── property-scraper.js     # Redfin property scraper — extracts 18+ fields (heating, cooling, roof, foundation, pool, etc.)
 │   └── defaultSchema.js
 │
 ├── tests/                      # Jest test suites
