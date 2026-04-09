@@ -171,11 +171,11 @@ Object.assign(App, {
 
     // ── Block 2: Property research + parcel/unified popups (originally ~L5766-7023) ──
 
-    openZillow() {
+    openRedfin() {
         const a = `${this.data.addrStreet || ''} ${this.data.addrCity || ''} ${this.data.addrState || ''} ${this.data.addrZip || ''}`.trim();
         if (!a) { this.toast('Please enter an address first.', 'error'); return; }
-        // Google search for Zillow listing — clicking through from Google bypasses Zillow's CAPTCHA
-        window.open(`https://www.google.com/search?q=${encodeURIComponent(a + ' zillow')}`, '_blank');
+        // Google search for Redfin listing — clicking through from Google lands directly on the property page
+        window.open(`https://www.google.com/search?q=${encodeURIComponent(a + ' redfin')}`, '_blank');
     },
 
     // ── Import Property Data from Chrome Extension ──
@@ -470,8 +470,8 @@ Object.assign(App, {
         
         // Open research tools in new tabs/windows
         const addr = `${address} ${city} ${state} ${zip}`.trim();
-        const zillowUrl = `https://www.google.com/search?q=site:zillow.com+${encodeURIComponent(addr)}&btnI`;
-        window.open(zillowUrl, 'zillow');
+        const redfinUrl = `https://www.google.com/search?q=site:redfin.com+${encodeURIComponent(addr)}&btnI`;
+        window.open(redfinUrl, 'redfin');
         
         // Also trigger GIS if available
         setTimeout(() => this.openGIS(), 500);
@@ -600,7 +600,7 @@ Object.assign(App, {
         } catch (error) {
             console.error('Smart auto-fill error:', error);
             btn.innerHTML = '❌ Failed';
-            this.toast('Failed to retrieve property data. Try manually entering details or using Zillow lookup.', 'error');
+            this.toast('Failed to retrieve property data. Try manually entering details or using Redfin lookup.', 'error');
 
             setTimeout(() => {
                 btn.innerHTML = originalText;

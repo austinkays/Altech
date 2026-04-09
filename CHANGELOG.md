@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **feat(property): replace Zillow with Redfin in quote workflow + enhance extension scraper** (July 9, 2025):
+  - `js/app-property.js` — Renamed `openZillow()` → `openRedfin()`, changed Google search URL from `site:zillow.com` to `site:redfin.com`, updated error toast text
+  - `plugins/quoting.html` — Updated Step 3 button text/onclick/title from Zillow to Redfin, updated Import tooltip
+  - `chrome-extension/popup.js` — Updated error message from "Try a Zillow listing" to "Try a Redfin listing"
+  - `chrome-extension/property-scraper.js` — Rewrote `scrapeRedfin()` from 7 fields to 18+ fields: heating, cooling, roof, foundation, basement, exterior/siding, construction style, pool, fireplace, sewer, water source, flooring, parcel number, building area, wood stove, garage type, address
+
 ### Added
 - **feat(import): add EZLynx XML import to Step 0 quoting wizard** (July 9, 2025):
   - `plugins/quoting.html` — Added "📥 Import EZLynx XML" button and hidden file input to Step 0 Smart Scan section

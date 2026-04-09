@@ -462,20 +462,20 @@
   function scrapeRedfin() {
     const data = {};
 
-    // Redfin header area
-    const bedMatch  = pageText.match(/(\d+)\s*(?:Bed|BR)/i);
-    const bathMatch = pageText.match(/(\d+)\s*(?:Bath|BA)/i);
-    const sqftMatch = pageText.match(/([\d,]+)\s*(?:Sq\.\s*Ft|sqft)/i);
+    // ── Header summary: "X Beds  X Baths  X,XXX Sq. Ft." ──
+    const bedMatch  = pageText.match(/(\d+)\s*(?:Bed|BR|Bedroom)s?\b/i);
+    const bathMatch = pageText.match(/(\d+)\s*(?:Bath|BA|Bathroom)s?\b/i);
+    const sqftMatch = pageText.match(/([\d,]+)\s*(?:Sq\.?\s*Ft\.?|sqft)\b/i);
     if (bedMatch)  data.bedrooms  = bedMatch[1];
     if (bathMatch) data.fullBaths = bathMatch[1];
     if (sqftMatch) data.sqFt      = sqftMatch[1].replace(/,/g, '');
 
-    // Year Built
-    const yrMatch = pageText.match(/(?:year\s*built|built)[:\s]*(\d{4})/i);
+    // ── Year Built ──
+    const yrMatch = pageText.match(/(?:year\s*built|built\s*in?)[:\s]*(\d{4})/i);
     if (yrMatch) data.yrBuilt = yrMatch[1];
 
-    // Lot Size
-    const lotMatch = pageText.match(/lot\s*size[:\s]*([\d,.]+)\s*(acres?|sq\s*ft)/i);
+    // ── Lot Size ──
+    const lotMatch = pageText.match(/lot\s*size[:\s]*([\d,.]+)\s*(acres?|sq\.?\s*ft\.?|sqft)/i);
     if (lotMatch) {
       if (/sq/i.test(lotMatch[2])) {
         data.lotSize = (parseFloat(lotMatch[1].replace(/,/g, '')) / 43560).toFixed(2);
@@ -484,15 +484,109 @@
       }
     }
 
-    // Stories
+    // ── Stories ──
     const storyMatch = pageText.match(/(\d+)\s*(?:Stor(?:ies|y)|Levels?)\b/i);
     if (storyMatch) data.numStories = storyMatch[1];
 
-    // Garage
+    // ── Garage spaces ──
     const garageMatch = pageText.match(/(\d+)\s*(?:car\s*)?garage/i);
     if (garageMatch) data.garageSpaces = garageMatch[1];
 
-    // Address from title
+    // ── Garage type ──
+    const garageTypeMatch = pageText.match(/(attached|detached|built[- ]?in|carport)\s*garage/i);
+    if (garageTypeMatch) data.garageType = capitalize(garageTypeMatch[1]);
+
+    // ── Heating ──
+    const heatMatch = pageText.match(/heat(?:ing)?(?:\s*(?:type|features?|source|system|fuel))?[:\s]+([^\n,]{3,60})/i);
+    if (heatMatch && !/history|cost|bill|saving|neighborhood/i.test(heatMatch[1])) {
+      data.heatingType = heatMatch[1].trim();
+    }
+
+    // ── Cooling ──
+    const coolMatch = pageText.match(/cool(?:ing)?(?:\s*(?:type|features?|system))?[:\s]+([^\n,]{3,60})/i);
+    if (coolMatch && !/cost|bill|saving|neighborhood/i.test(coolMatch[1])) {
+      data.cooling = coolMatch[1].trim();
+    }
+
+    // ── Roof ──
+    const roofMatch = pageText.match(/roof(?:\s*(?:type|material|cover(?:ing)?))?[:\s]+([^\n,]{3,60})/i);
+    if (roofMatch) data.roofType = roofMatch[1].trim();
+
+    // ── Foundation ──
+    const foundMatch = pageText.match(/foundation(?:\s*(?:details?|type))?[:\s]+([^\n,]{3,60})/i);
+    if (foundMatch) data.foundation = foundMatch[1].trim();
+
+    // ── Basement ── (Redfin-specific: "Crawl Space", "Finished", "Daylight", etc.)
+    const basementMatch = pageText.match(/basement[:\s]+([^\n,]{3,60})/i);
+    if (basementMatch && !/no\s*basement|none/i.test(basementMatch[1])) {
+      // Append to foundation if already set, otherwise use as foundation
+      if (data.foundation) {
+        data.foundation += ', Basement: ' + basementMatch[1].trim();
+      } else {
+        data.foundation = basementMatch[1].trim();
+      }
+    }
+
+    // ── Exterior / Siding ──
+    const extMatch = pageText.match(/(?:exterior\s*(?:description|material|features?)|siding)(?:\s*(?:type|material))?[:\s]+([^\n,]{3,60})/i);
+    if (extMatch) data.exteriorWalls = extMatch[1].trim();
+
+    // ── Construction style / Property sub type ──
+    const constMatch = pageText.match(/(?:construction|building)\s*(?:type|style|material)[:\s]+([^\n,]{3,60})/i);
+    if (constMatch) data.constructionStyle = constMatch[1].trim();
+    if (!data.constructionStyle) {
+      const subTypeMatch = pageText.match(/property\s*sub\s*type[:\s]+([^\n,]{3,60})/i);
+      if (subTypeMatch) data.constructionStyle = subTypeMatch[1].trim();
+    }
+
+    // ── Pool ──
+    if (/\bpool\b/i.test(pageText) && !/no\s*pool|pool\s*(?:none|n\/a)/i.test(pageText)) {
+      data.pool = 'Yes';
+    }
+
+    // ── Fireplace ──
+    const fpTotalMatch = pageText.match(/fireplaces?\s*(?:total|number|count)?[:\s]*(\d+)/i);
+    if (fpTotalMatch) {
+      data.numFireplaces = fpTotalMatch[1];
+    } else {
+      const fpMatch = pageText.match(/(\d+)\s*fireplaces?/i);
+      if (fpMatch) {
+        data.numFireplaces = fpMatch[1];
+      } else if (/\bfireplace\b/i.test(pageText) && !/no\s*fireplace/i.test(pageText)) {
+        data.numFireplaces = '1';
+      }
+    }
+
+    // ── Sewer ──
+    if (/public\s*sewer|municipal\s*sewer|city\s*sewer|sanitary\s*sewer/i.test(pageText)) data.sewer = 'Public';
+    else if (/\bseptic\b/i.test(pageText)) data.sewer = 'Septic';
+
+    // ── Water Source ──
+    if (/public\s*water|municipal\s*water|city\s*water/i.test(pageText)) data.waterSource = 'Public';
+    else if (/\bwell\s*water\b|\bprivate\s*well\b/i.test(pageText)) data.waterSource = 'Well';
+
+    // ── Flooring ──
+    const floorMatch = pageText.match(/floor(?:ing)?(?:\s*(?:type|material))?[:\s]+([^\n]{3,60})/i);
+    if (floorMatch && !/plan|layout|square|area/i.test(floorMatch[1])) {
+      data.flooring = floorMatch[1].trim();
+    }
+
+    // ── Parcel Number ──
+    const parcelMatch = pageText.match(/parcel\s*(?:number|id|#|no\.?)[:\s]*([\w\d-]+)/i);
+    if (parcelMatch) data.parcelId = parcelMatch[1].trim();
+
+    // ── Building Area (alternate sqft source) ──
+    if (!data.sqFt) {
+      const buildAreaMatch = pageText.match(/(?:building|main\s*level)\s*area\s*(?:total)?[:\s]*([\d,]+)/i);
+      if (buildAreaMatch) data.sqFt = buildAreaMatch[1].replace(/,/g, '');
+    }
+
+    // ── Wood Stove ──
+    if (/\bwood\s*(?:stove|burning)\b/i.test(pageText)) {
+      data.woodStove = 'Yes';
+    }
+
+    // ── Address from title ──
     const title = document.title || '';
     const addrMatch = title.match(/^(.+?)\s*[\|–—-]\s*(?:Redfin)/i);
     if (addrMatch) data.address = addrMatch[1].trim();

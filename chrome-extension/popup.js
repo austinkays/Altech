@@ -445,7 +445,7 @@ async function scrapePropertyData() {
         }
 
         if (!response.fieldCount || response.fieldCount === 0) {
-            setStatus('No property data found on this page. Try a Zillow listing or county GIS site.', 'error');
+            setStatus('No property data found on this page. Try a Redfin listing or county GIS site.', 'error');
             return;
         }
 

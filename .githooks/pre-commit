@@ -23,6 +23,6 @@ if echo "$STAGED" | grep -q "^chrome-extension/"; then
         exit 0
     fi
 
-    git add altech-ezlynx-extension.zip
+    git add -f altech-ezlynx-extension.zip
     echo "[Altech] altech-ezlynx-extension.zip updated and staged."
 fi
