@@ -1975,4 +1975,276 @@ This is trusted, complete agency data — extract every field you can find.
         if (skippedCount > 0) toastMsg += ` (${skippedCount} protected)`;
         this.toast(toastMsg);
     },
+
+    // ── EZLynx XML Import ──────────────────────────────────────────────────
+
+    importEZLynxXML() {
+        const input = document.getElementById('ezlynxXmlInput');
+        if (!input) return;
+        input.value = '';
+        input.click();
+    },
+
+    _handleEZLynxXMLFile(file) {
+        if (!file || !file.name.toLowerCase().endsWith('.xml')) {
+            this.toast('Please select an XML file', 'error');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(e.target.result, 'text/xml');
+                const parseError = xmlDoc.querySelector('parsererror');
+                if (parseError) {
+                    this.toast('Invalid XML file', 'error');
+                    return;
+                }
+                this._applyEZLynxData(xmlDoc);
+            } catch (err) {
+                console.error('[EZLynx Import] Parse error:', err);
+                this.toast('Failed to parse XML: ' + err.message, 'error');
+            }
+        };
+        reader.readAsText(file);
+    },
+
+    _ezTag(parent, tagName) {
+        if (!parent) return '';
+        // Try namespace-aware first, then local name fallback
+        const els = parent.getElementsByTagNameNS('*', tagName);
+        if (els.length) return (els[0].textContent || '').trim();
+        const local = parent.getElementsByTagName(tagName);
+        if (local.length) return (local[0].textContent || '').trim();
+        return '';
+    },
+
+    _ezAll(parent, tagName) {
+        if (!parent) return [];
+        const els = parent.getElementsByTagNameNS('*', tagName);
+        if (els.length) return Array.from(els);
+        return Array.from(parent.getElementsByTagName(tagName));
+    },
+
+    _applyEZLynxData(xmlDoc) {
+        let fieldCount = 0;
+        const set = (id, val) => {
+            if (!val) return;
+            this.data[id] = val;
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+            fieldCount++;
+        };
+
+        // ── Applicants ────────────────────────────────
+        const applicants = this._ezAll(xmlDoc, 'Applicant');
+        let primary = null;
+        let coApp = null;
+        for (const app of applicants) {
+            const type = this._ezTag(app, 'ApplicantType');
+            if (type === 'Applicant') primary = app;
+            else if (type === 'CoApplicant') coApp = app;
+        }
+
+        // Map gender: Female→F, Male→M
+        const mapGender = (g) => {
+            if (!g) return '';
+            const lc = g.toLowerCase();
+            if (lc === 'female') return 'F';
+            if (lc === 'male') return 'M';
+            return g;
+        };
+
+        // Primary applicant
+        if (primary) {
+            const info = this._ezAll(primary, 'PersonalInfo')[0];
+            const name = info ? this._ezAll(info, 'Name')[0] : null;
+            if (name) {
+                set('firstName', this._ezTag(name, 'FirstName'));
+                set('lastName', this._ezTag(name, 'LastName'));
+            }
+            if (info) {
+                set('dob', this._ezTag(info, 'DOB'));
+                set('gender', mapGender(this._ezTag(info, 'Gender')));
+                set('maritalStatus', this._ezTag(info, 'MaritalStatus'));
+            }
+            const addr = this._ezAll(primary, 'Address')[0];
+            if (addr) {
+                set('email', this._ezTag(addr, 'Email'));
+                const phones = this._ezAll(addr, 'Phone');
+                if (phones.length) set('phone', this._ezTag(phones[0], 'PhoneNumber'));
+            }
+        }
+
+        // Co-applicant
+        if (coApp) {
+            const info = this._ezAll(coApp, 'PersonalInfo')[0];
+            const name = info ? this._ezAll(info, 'Name')[0] : null;
+            if (name) {
+                set('coFirstName', this._ezTag(name, 'FirstName'));
+                set('coLastName', this._ezTag(name, 'LastName'));
+            }
+            if (info) {
+                set('coDob', this._ezTag(info, 'DOB'));
+                set('coGender', mapGender(this._ezTag(info, 'Gender')));
+                set('coMaritalStatus', this._ezTag(info, 'MaritalStatus'));
+                const rel = this._ezTag(info, 'Relation');
+                if (rel === 'Spouse') set('coRelationship', 'Spouse');
+                else if (rel) set('coRelationship', rel);
+            }
+            const addr = this._ezAll(coApp, 'Address')[0];
+            if (addr) {
+                set('coEmail', this._ezTag(addr, 'Email'));
+                const phones = this._ezAll(addr, 'Phone');
+                if (phones.length) set('coPhone', this._ezTag(phones[0], 'PhoneNumber'));
+            }
+        }
+
+        // ── Address (from GarageLocation — physical address for rating) ──
+        const garage = this._ezAll(xmlDoc, 'GarageLocation')[0];
+        if (garage) {
+            const gAddr = this._ezAll(garage, 'Address')[0] || garage;
+            const addr1 = this._ezAll(gAddr, 'Addr1')[0];
+            if (addr1) {
+                const num = this._ezTag(addr1, 'StreetNumber');
+                const name = this._ezTag(addr1, 'StreetName');
+                const street = [num, name].filter(Boolean).join(' ');
+                if (street) set('addrStreet', street);
+            }
+            set('addrCity', this._ezTag(gAddr, 'City'));
+            set('addrState', this._ezTag(gAddr, 'StateCode'));
+            set('addrZip', this._ezTag(gAddr, 'Zip5'));
+            set('county', this._ezTag(gAddr, 'County'));
+        }
+
+        // ── Prior Policy ──────────────────────────────
+        const prior = this._ezAll(xmlDoc, 'PriorPolicyInfo')[0];
+        if (prior) {
+            set('priorCarrier', this._ezTag(prior, 'PriorCarrier'));
+            set('priorPolicyTerm', this._ezTag(prior, 'PriorPolicyTerm'));
+            const yrs = this._ezAll(prior, 'YearsWithPriorCarrier')[0];
+            if (yrs) set('priorYears', this._ezTag(yrs, 'Years'));
+        }
+
+        // ── Coverages ─────────────────────────────────
+        const gen = this._ezAll(xmlDoc, 'GeneralCoverage')[0];
+        if (gen) {
+            set('liabilityLimits', this._ezTag(gen, 'BI'));
+            set('pdLimit', this._ezTag(gen, 'PD'));
+            set('medPayments', this._ezTag(gen, 'MP'));
+            set('umLimits', this._ezTag(gen, 'UM'));
+            set('uimLimits', this._ezTag(gen, 'UIM'));
+        }
+        // Per-vehicle coverages — use first vehicle's values for global fields
+        const vehCovs = this._ezAll(xmlDoc, 'VehicleCoverage');
+        if (vehCovs.length) {
+            const vc = vehCovs[0];
+            set('compDeductible', this._ezTag(vc, 'OtherCollisionDeductible'));
+            set('autoDeductible', this._ezTag(vc, 'CollisionDeductible'));
+            set('towingDeductible', this._ezTag(vc, 'TowingDeductible'));
+            set('rentalDeductible', this._ezTag(vc, 'RentalDeductible'));
+        }
+        // State-specific (WA)
+        const waCov = this._ezAll(xmlDoc, 'WA-Coverages')[0];
+        if (waCov) {
+            set('umpdLimit', this._ezTag(waCov, 'WA-UMPD'));
+        }
+
+        // ── Drivers ───────────────────────────────────
+        const xmlDrivers = this._ezAll(xmlDoc, 'Driver');
+        const driverIdMap = {}; // XML id → internal id
+        const newDrivers = [];
+        xmlDrivers.forEach((d, i) => {
+            const xmlId = d.getAttribute('id');
+            const id = `driver_${Date.now() + i}`;
+            if (xmlId) driverIdMap[xmlId] = id;
+
+            const nameEl = this._ezAll(d, 'Name')[0];
+            const rel = this._ezTag(d, 'Relation');
+            newDrivers.push({
+                id,
+                firstName: nameEl ? this._ezTag(nameEl, 'FirstName') : '',
+                lastName: nameEl ? this._ezTag(nameEl, 'LastName') : '',
+                dob: this._ezTag(d, 'DOB'),
+                dlNum: this._ezTag(d, 'DLNumber'),
+                dlState: this._ezTag(d, 'DLState') || 'WA',
+                relationship: rel === 'Insured' ? 'Self' : (rel || 'Other'),
+                isCoApplicant: rel === 'Spouse',
+                isPrimaryApplicant: i === 0,
+                accidents: '',
+                violations: '',
+                studentGPA: '',
+                gender: mapGender(this._ezTag(d, 'Gender')),
+                maritalStatus: this._ezTag(d, 'MaritalStatus'),
+            });
+        });
+
+        // ── Vehicles ──────────────────────────────────
+        const xmlVehicles = this._ezAll(xmlDoc, 'Vehicle');
+        const xmlVehicleUses = this._ezAll(xmlDoc, 'VehicleUse');
+        const xmlAssignments = this._ezAll(xmlDoc, 'VehicleAssignment');
+        const newVehicles = [];
+        xmlVehicles.forEach((v, i) => {
+            const xmlId = v.getAttribute('id');
+            const id = `vehicle_${Date.now() + i}`;
+
+            // Find matching VehicleUse
+            let use = 'Pleasure';
+            for (const vu of xmlVehicleUses) {
+                if (vu.getAttribute('id') === xmlId) {
+                    use = this._ezTag(vu, 'Useage') || this._ezTag(vu, 'Usage') || 'Pleasure';
+                    break;
+                }
+            }
+
+            // Find assigned driver
+            let primaryDriver = '';
+            for (const va of xmlAssignments) {
+                if (va.getAttribute('id') === xmlId) {
+                    const da = this._ezAll(va, 'DriverAssignment')[0];
+                    if (da) {
+                        const driverXmlId = da.getAttribute('id');
+                        primaryDriver = driverIdMap[driverXmlId] || '';
+                    }
+                    break;
+                }
+            }
+
+            newVehicles.push({
+                id,
+                vin: this._ezTag(v, 'Vin'),
+                year: this._ezTag(v, 'Year'),
+                make: this._ezTag(v, 'Make'),
+                model: this._ezTag(v, 'Model'),
+                use,
+                miles: '12000',
+                primaryDriver,
+            });
+        });
+
+        // ── Apply drivers & vehicles ──────────────────
+        if (newDrivers.length) {
+            this.drivers = newDrivers;
+        }
+        if (newVehicles.length) {
+            this.vehicles = newVehicles;
+        }
+
+        // ── Set qType to auto ────────────────────────
+        const autoRadio = document.querySelector('input[name="qType"][value="auto"]');
+        if (autoRadio) {
+            autoRadio.checked = true;
+            this.handleType();
+        }
+
+        // ── Persist ───────────────────────────────────
+        this.save();
+        if (newDrivers.length || newVehicles.length) {
+            this.saveDriversVehicles();
+            if (typeof this.renderDrivers === 'function') this.renderDrivers();
+            if (typeof this.renderVehicles === 'function') this.renderVehicles();
+        }
+
+        this.toast(`✅ Imported ${fieldCount} fields + ${newDrivers.length} driver(s) + ${newVehicles.length} vehicle(s) from EZLynx XML`);
+    },
 });

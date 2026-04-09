@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(import): add EZLynx XML import to Step 0 quoting wizard** (July 9, 2025):
+  - `plugins/quoting.html` — Added "📥 Import EZLynx XML" button and hidden file input to Step 0 Smart Scan section
+  - `js/app-scan.js` — Added 5 new methods (`importEZLynxXML`, `_handleEZLynxXMLFile`, `_ezTag`, `_ezAll`, `_applyEZLynxData`) for namespace-aware XML parsing; maps applicant, co-applicant, address, prior policy, coverages, drivers, and vehicles from EZLynx XML into App.data/drivers/vehicles
+  - `js/app-core.js` — Wired `ezlynxXmlInput` change event listener in init()
+  - `tests/ezlynx-import.test.js` — New test suite (59 tests) covering full XML import, minimal XML, edge cases, and helper functions
+  - Total tests: 28 suites, 1772 tests (was 27 suites, 1688 tests)
+
 ### Fixed
 - **fix(mobile-nav): fix broken 'More' sidebar, active state, and mobile UX polish** (April 8, 2026):
   - `css/sidebar.css` — Fixed critical bug where `.app-sidebar { display: none }` at <768px prevented "More" button from opening sidebar; added `.mobile-open` override with `display: flex`, `position: fixed`, GPU-accelerated `transform` slide-in, touch-friendly nav item sizes (48px min-height, 15px font), safe-area bottom padding, dark mode support

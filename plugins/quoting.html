@@ -76,7 +76,9 @@
                 <div class="scan-actions">
                     <button class="btn btn-primary" onclick="App.openScanPicker()">📸 Upload Policy Document</button>
                     <button class="btn btn-primary" onclick="App.openInitialDriverLicensePicker()">🪪 Upload Driver License</button>
+                    <button class="btn btn-primary" onclick="App.importEZLynxXML()">📥 Import EZLynx XML</button>
                     <input id="policyScanInput" type="file" accept="image/*,application/pdf" capture="environment" multiple class="hidden" />
+                    <input id="ezlynxXmlInput" type="file" accept=".xml,text/xml" class="hidden" />
                     <input id="initialDlScanInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="App.handleInitialDriverLicenseFile(this.files[0])" />
                     <input id="docIntelInput" type="file" accept="image/*,application/pdf" multiple class="hidden" />
                 </div>

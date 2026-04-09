@@ -168,6 +168,13 @@ Object.assign(App, {
         if (docIntelInput) {
             docIntelInput.addEventListener('change', (e) => this.handleDocIntelFiles(e));
         }
+
+        const ezlynxXmlInput = document.getElementById('ezlynxXmlInput');
+        if (ezlynxXmlInput) {
+            ezlynxXmlInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) this._handleEZLynxXMLFile(e.target.files[0]);
+            });
+        }
         
         // Auto-save listeners — use event delegation (one listener, not 200+)
         document.body.addEventListener('input', (e) => {
