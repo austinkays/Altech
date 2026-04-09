@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `index.html` — Added "EZLynx XML Path" settings section (between Agency Glossary and Security) with text input, save button, and ontoggle loader
   - `server.js` — Added `/local/ezlynx-xml` POST endpoint that reads an XML file from a user-configured local path (localhost-only, .xml extension enforced)
   - `js/app-scan.js` — `importEZLynxXML()` now tries the configured path via local server first, falls back to file picker; extracted `_openEZLynxFilePicker()` helper
+- **feat(import): persistent EZLynx XML file handle for production** (April 9, 2026):
+  - `js/app-scan.js` — Rewrote `importEZLynxXML()` with 3-tier approach: (1) stored `FileSystemFileHandle` via IndexedDB (works on production without dev server), (2) local server path fallback, (3) `showOpenFilePicker()` that stores the handle for next time. Added `_parseAndApplyXML()`, `_getHandleDB()`, `_storeFileHandle()`, `_tryStoredFileHandle()` helpers. Firefox falls back to hidden `<input type="file">`.
+  - `index.html` — Updated settings hint text to clarify local dev vs. production auto-load behavior
 
 ### Changed
 - **feat(property): replace Zillow with Redfin in quote workflow + enhance extension scraper** (July 9, 2025):

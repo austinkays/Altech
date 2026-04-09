@@ -694,7 +694,7 @@
                             <div class="auth-field">
                                 <label for="ezlynxXmlPathInput">Default XML file path</label>
                                 <input type="text" id="ezlynxXmlPathInput" placeholder="C:\Users\You\Documents\HawkSoft\Transfer\AJK.xml" style="font-family:monospace;font-size:12px">
-                                <p style="margin:6px 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">When set, the EZLynx import button will auto-load from this file path (local dev server only). Leave blank to always use the file picker.</p>
+                                <p style="margin:6px 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">For local dev server (npm run dev) only. On production, the import button remembers your last-picked file automatically — no path needed.</p>
                             </div>
                             <button class="btn-auth btn-auth-small btn-auth-primary" onclick="(function(){ var p=document.getElementById('ezlynxXmlPathInput'); if(p){ localStorage.setItem(STORAGE_KEYS.EZLYNX_XML_PATH, p.value.trim()); if(typeof App!=='undefined'&&App.toast) App.toast('EZLynx XML path saved','success'); } })()" style="margin-top:0">Save Path</button>
                         </div>

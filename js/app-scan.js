@@ -1979,38 +1979,105 @@ This is trusted, complete agency data — extract every field you can find.
     // ── EZLynx XML Import ──────────────────────────────────────────────────
 
     importEZLynxXML() {
-        // Try auto-load from configured path via local dev server
-        const savedPath = localStorage.getItem(STORAGE_KEYS.EZLYNX_XML_PATH);
-        if (savedPath) {
-            fetch('/local/ezlynx-xml', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filePath: savedPath })
-            })
-            .then(resp => {
-                if (!resp.ok) throw new Error('not available');
-                return resp.text();
-            })
+        // 1. Try stored file handle (File System Access API — works on production)
+        this._tryStoredFileHandle()
             .then(xmlText => {
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-                const parseError = xmlDoc.querySelector('parsererror');
-                if (parseError) {
-                    this.toast('Invalid XML at configured path', 'error');
+                if (xmlText) {
+                    this._parseAndApplyXML(xmlText);
                     return;
                 }
-                this._applyEZLynxData(xmlDoc);
+                // 2. Try local dev server path
+                const savedPath = localStorage.getItem(STORAGE_KEYS.EZLYNX_XML_PATH);
+                if (savedPath) {
+                    return fetch('/local/ezlynx-xml', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ filePath: savedPath })
+                    }).then(resp => {
+                        if (!resp.ok) throw new Error('local server unavailable');
+                        return resp.text();
+                    }).then(text => this._parseAndApplyXML(text));
+                }
+                throw new Error('no stored handle or path');
             })
             .catch(() => {
-                // Local server not running or file not found — fall back to picker
+                // 3. Fall back to file picker (and store handle for next time)
                 this._openEZLynxFilePicker();
             });
+    },
+
+    _parseAndApplyXML(xmlText) {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+        if (xmlDoc.querySelector('parsererror')) {
+            this.toast('Invalid XML file', 'error');
             return;
         }
-        this._openEZLynxFilePicker();
+        this._applyEZLynxData(xmlDoc);
+    },
+
+    // ── File System Access API: persistent file handle via IndexedDB ───────
+
+    _getHandleDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open('altech_file_handles', 1);
+            req.onupgradeneeded = () => req.result.createObjectStore('handles');
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    },
+
+    async _storeFileHandle(handle) {
+        try {
+            const db = await this._getHandleDB();
+            const tx = db.transaction('handles', 'readwrite');
+            tx.objectStore('handles').put(handle, 'ezlynx_xml');
+            await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+            db.close();
+        } catch (e) { console.warn('[EZLynx] Could not store handle:', e); }
+    },
+
+    async _tryStoredFileHandle() {
+        try {
+            const db = await this._getHandleDB();
+            const tx = db.transaction('handles', 'readonly');
+            const handle = await new Promise((res, rej) => {
+                const req = tx.objectStore('handles').get('ezlynx_xml');
+                req.onsuccess = () => res(req.result);
+                req.onerror = rej;
+            });
+            db.close();
+            if (!handle) return null;
+            // Re-request permission if needed (browser may prompt once per session)
+            if ((await handle.queryPermission({ mode: 'read' })) !== 'granted') {
+                if ((await handle.requestPermission({ mode: 'read' })) !== 'granted') return null;
+            }
+            const file = await handle.getFile();
+            return await file.text();
+        } catch (e) {
+            console.warn('[EZLynx] Stored handle unavailable:', e.message);
+            return null;
+        }
     },
 
     _openEZLynxFilePicker() {
+        // Prefer showOpenFilePicker (stores handle for future auto-load)
+        if (typeof showOpenFilePicker === 'function') {
+            showOpenFilePicker({
+                types: [{ description: 'XML files', accept: { 'text/xml': ['.xml'] } }],
+                multiple: false
+            }).then(async ([handle]) => {
+                await this._storeFileHandle(handle);
+                const file = await handle.getFile();
+                const text = await file.text();
+                this._parseAndApplyXML(text);
+                this.toast('File remembered — next import will load automatically', 'success');
+            }).catch(err => {
+                if (err.name !== 'AbortError') console.warn('[EZLynx] Picker error:', err);
+            });
+            return;
+        }
+        // Fallback for browsers without File System Access API
         const input = document.getElementById('ezlynxXmlInput');
         if (!input) return;
         input.value = '';
