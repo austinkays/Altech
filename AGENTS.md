@@ -111,7 +111,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-property.js         # Property analysis, maps, assessor data, Redfin integration, listing URL lookup (2,621 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
-│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema, AI coverage gap analysis (1,565 lines)
+│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema, AI coverage gap analysis (1,618 lines)
 │   ├── app-quotes.js           # Quote/draft management, client history auto-save, search + view-all (927 lines)
 │   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (280 lines)
 │   │
