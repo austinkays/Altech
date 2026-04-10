@@ -15,6 +15,7 @@ import { readFileSync } from 'fs';
 import { securityMiddleware } from '../lib/security.js';
 import { createRouter, extractJSON } from './_ai-router.js';
 import { ragHandler } from './_rag-interpreter.js';
+import { runRedfinDetail, runZillowSearch } from './_apify-client.js';
 
 // Helper: resolve Google API key from environment variables only
 // Used for Gemini AI calls (generative language API)
@@ -1214,6 +1215,319 @@ async function fetchRentcastData(address, city, state, zip) {
   return { data: mapped, fieldsFound };
 }
 
+// ===========================================================================
+// Apify Scraper Integration — Redfin Detail + Zillow Search
+// Called as fallback when Rentcast returns incomplete data
+// ===========================================================================
+
+// Critical fields that trigger Apify fallback when ≥3 are missing
+const APIFY_CRITICAL_FIELDS = [
+  'yearBuilt', 'totalSqft', 'bedrooms', 'fullBaths',
+  'roofType', 'heatingType', 'cooling', 'foundation',
+];
+
+/**
+ * Count how many critical fields are missing from a data object.
+ */
+function countMissingCritical(data) {
+  return APIFY_CRITICAL_FIELDS.filter(f => data[f] == null || data[f] === '').length;
+}
+
+/**
+ * Map Redfin Detail actor output → Altech form fields.
+ * Redfin returns structured property facts; we normalize field names
+ * and run them through the same fuzzy maps used by other sources.
+ */
+function mapRedfinDetailToAltech(item) {
+  if (!item || typeof item !== 'object') return null;
+
+  // Redfin Detail returns fields at various nesting levels.
+  // Flatten common locations: item.propertyDetails, item.basicInfo, top-level
+  const details = item.propertyDetails || item.property_details || {};
+  const basic = item.basicInfo || item.basic_info || {};
+  const src = item;
+
+  // Helper: try multiple field paths, return first truthy
+  const pick = (...paths) => {
+    for (const p of paths) {
+      const val = src[p] ?? details[p] ?? basic[p];
+      if (val != null && val !== '' && val !== 'N/A' && val !== 'Unknown') return val;
+    }
+    return null;
+  };
+
+  const raw = {};
+  const sourceLabel = 'Redfin (Apify scrape)';
+
+  // Map to the same field names mapZillowToAltech expects
+  const yr = parseNum(pick('yearBuilt', 'year_built', 'yearbuilt', 'Year Built'));
+  if (yr && yr > 1800 && yr <= new Date().getFullYear()) raw.yearBuilt = yr;
+
+  const sqft = parseNum(pick('squareFootage', 'sqFt', 'sqft', 'livingArea', 'living_area', 'Total Sq. Ft.'));
+  if (sqft && sqft > 0) raw.livingArea = sqft;
+
+  const beds = parseNum(pick('beds', 'bedrooms', 'Beds'));
+  if (beds && beds > 0) raw.bedrooms = beds;
+
+  const baths = parseNum(pick('baths', 'bathrooms', 'Baths'));
+  if (baths && baths > 0) raw.bathrooms = baths;
+
+  const halfBaths = parseNum(pick('halfBaths', 'half_baths', 'halfBathrooms'));
+  if (halfBaths != null && halfBaths >= 0) raw.halfBathrooms = halfBaths;
+
+  const stories = parseNum(pick('stories', 'levels', 'Stories'));
+  if (stories && stories > 0 && stories <= 10) raw.stories = stories;
+
+  const heating = pick('heating', 'heatingType', 'Heating', 'heatingFeatures');
+  if (heating) raw.heating = Array.isArray(heating) ? heating.join(', ') : String(heating);
+
+  const cooling = pick('cooling', 'coolingType', 'Cooling', 'coolingFeatures', 'AC Type');
+  if (cooling) raw.cooling = Array.isArray(cooling) ? cooling.join(', ') : String(cooling);
+
+  const roof = pick('roof', 'roofType', 'Roof', 'roofMaterial');
+  if (roof) raw.roof = Array.isArray(roof) ? roof.join(', ') : String(roof);
+
+  const foundation = pick('foundation', 'foundationType', 'Foundation');
+  if (foundation) raw.foundation = Array.isArray(foundation) ? foundation.join(', ') : String(foundation);
+
+  const construction = pick('construction', 'constructionType', 'buildingStyle', 'constructionMaterials', 'Construction');
+  if (construction) raw.constructionMaterials = Array.isArray(construction) ? construction.join(', ') : String(construction);
+
+  const exterior = pick('exterior', 'exteriorType', 'siding', 'Exterior', 'exteriorFeatures');
+  if (exterior) raw.exteriorFeatures = Array.isArray(exterior) ? exterior.join(', ') : String(exterior);
+
+  const garageSpaces = parseNum(pick('garageSpaces', 'garage_spaces', 'Garage Spaces'));
+  if (garageSpaces != null && garageSpaces > 0 && garageSpaces <= 10) raw.garageSpaces = garageSpaces;
+
+  const garageType = pick('garageType', 'garage_type', 'Garage Type');
+  if (garageType) raw.garageType = garageType;
+
+  const pool = pick('pool', 'Pool');
+  if (pool != null) raw.pool = /yes|in.?ground|above/i.test(String(pool)) ? 'Yes' : /no|none/i.test(String(pool)) ? 'No' : String(pool);
+
+  const fireplace = pick('fireplaces', 'fireplace', 'Fireplaces');
+  if (fireplace != null) {
+    const fpNum = parseNum(fireplace);
+    if (fpNum && fpNum > 0) raw.fireplaces = fpNum;
+    else if (/yes|true/i.test(String(fireplace))) raw.fireplaces = 1;
+  }
+
+  const lotSize = pick('lotSize', 'lot_size', 'Lot Size', 'lotSizeAcres', 'lotSizeSqFt');
+  if (lotSize != null) {
+    const lotNum = parseFloat(String(lotSize).replace(/[^0-9.]/g, ''));
+    if (!isNaN(lotNum) && lotNum > 0) {
+      raw.lotSizeAcres = lotNum > 100 ? Math.round((lotNum / 43560) * 100) / 100 : lotNum;
+    }
+  }
+
+  const dwelling = pick('propertyType', 'homeType', 'Property Type', 'property_type');
+  if (dwelling) raw.dwellingType = String(dwelling);
+
+  const sewer = pick('sewer', 'Sewer');
+  if (sewer) raw.sewer = String(sewer);
+
+  const water = pick('water', 'waterSource', 'Water Source');
+  if (water) raw.waterSource = String(water);
+
+  const flooring = pick('flooring', 'Flooring');
+  if (flooring) raw.flooring = Array.isArray(flooring) ? flooring.join(', ') : String(flooring);
+
+  const county = pick('county', 'County');
+  if (county) raw.county = String(county);
+
+  const yearRenovated = parseNum(pick('yearRenovated', 'yearRemodeled', 'Year Renovated'));
+  if (yearRenovated && yearRenovated > 1900 && yearRenovated <= new Date().getFullYear()) raw.yearRenovated = yearRenovated;
+
+  // Run through the same mapper used by Gemini/Rentcast for consistent output
+  const result = mapZillowToAltech(raw);
+
+  // Tag all sources as Redfin
+  for (const key of result.fieldsFound) {
+    result.sources[key] = sourceLabel;
+  }
+
+  return result;
+}
+
+/**
+ * Map Zillow Search actor output → Altech form fields.
+ * With simple=false, Zillow returns extensive internal data.
+ */
+function mapZillowSearchToAltech(item) {
+  if (!item || typeof item !== 'object') return null;
+
+  const src = item;
+  const raw = {};
+  const sourceLabel = 'Zillow (Apify scrape)';
+
+  const pick = (...paths) => {
+    for (const p of paths) {
+      const val = src[p];
+      if (val != null && val !== '' && val !== 'N/A') return val;
+    }
+    return null;
+  };
+
+  const yr = parseNum(pick('yearBuilt', 'year_built'));
+  if (yr && yr > 1800 && yr <= new Date().getFullYear()) raw.yearBuilt = yr;
+
+  const sqft = parseNum(pick('livingArea', 'sqft', 'area'));
+  if (sqft && sqft > 0) raw.livingArea = sqft;
+
+  const beds = parseNum(pick('bedrooms', 'beds'));
+  if (beds && beds > 0) raw.bedrooms = beds;
+
+  const baths = parseNum(pick('bathrooms', 'baths'));
+  if (baths && baths > 0) raw.bathrooms = baths;
+
+  const stories = parseNum(pick('stories', 'levels'));
+  if (stories && stories > 0 && stories <= 10) raw.stories = stories;
+
+  const lotSize = pick('lotSize', 'lotAreaValue');
+  if (lotSize != null) {
+    const lotNum = parseFloat(String(lotSize).replace(/[^0-9.]/g, ''));
+    if (!isNaN(lotNum) && lotNum > 0) {
+      raw.lotSizeAcres = lotNum > 100 ? Math.round((lotNum / 43560) * 100) / 100 : lotNum;
+    }
+  }
+
+  const dwelling = pick('homeType', 'propertyType');
+  if (dwelling) raw.dwellingType = String(dwelling);
+
+  const county = pick('county');
+  if (county) raw.county = String(county);
+
+  // Zillow description text — parse for building systems (heating, cooling, roof, etc.)
+  const desc = pick('description', 'homeDescription') || '';
+  if (typeof desc === 'string' && desc.length > 20) {
+    if (!raw.heating) {
+      const heatingMatch = desc.match(/(?:heating|heat(?:ed)?\s+(?:by|with|type))[:\s]*([^.,;]+)/i);
+      if (heatingMatch) raw.heating = heatingMatch[1].trim();
+    }
+    if (!raw.cooling) {
+      const coolingMatch = desc.match(/(?:cooling|a\/c|air\s*conditioning)[:\s]*([^.,;]+)/i);
+      if (coolingMatch) raw.cooling = coolingMatch[1].trim();
+    }
+    if (!raw.roof) {
+      const roofMatch = desc.match(/(?:new\s+)?roof[:\s]*([^.,;]+)/i);
+      if (roofMatch) raw.roof = roofMatch[1].trim();
+    }
+    if (!raw.foundation) {
+      const foundMatch = desc.match(/(?:foundation)[:\s]*([^.,;]+)/i);
+      if (foundMatch) raw.foundation = foundMatch[1].trim();
+    }
+    // Check for renovation year in description
+    const renovMatch = desc.match(/(?:renovated|remodeled|updated)\s+(?:in\s+)?(\d{4})/i);
+    if (renovMatch) {
+      const renovYr = parseInt(renovMatch[1], 10);
+      if (renovYr > 1900 && renovYr <= new Date().getFullYear()) raw.yearRenovated = renovYr;
+    }
+  }
+
+  // Also check Zillow's structured facts if available
+  const facts = src.resoFacts || src.facts || {};
+  if (typeof facts === 'object') {
+    if (!raw.heating && facts.heating) raw.heating = Array.isArray(facts.heating) ? facts.heating.join(', ') : String(facts.heating);
+    if (!raw.cooling && facts.cooling) raw.cooling = Array.isArray(facts.cooling) ? facts.cooling.join(', ') : String(facts.cooling);
+    if (!raw.roof && facts.roofType) raw.roof = String(facts.roofType);
+    if (!raw.foundation && facts.foundationDetails) raw.foundation = Array.isArray(facts.foundationDetails) ? facts.foundationDetails.join(', ') : String(facts.foundationDetails);
+    if (!raw.constructionMaterials && facts.constructionMaterials) raw.constructionMaterials = Array.isArray(facts.constructionMaterials) ? facts.constructionMaterials.join(', ') : String(facts.constructionMaterials);
+    if (!raw.exteriorFeatures && facts.exteriorFeatures) raw.exteriorFeatures = Array.isArray(facts.exteriorFeatures) ? facts.exteriorFeatures.join(', ') : String(facts.exteriorFeatures);
+    if (facts.garageSpaces) raw.garageSpaces = parseNum(facts.garageSpaces);
+    if (facts.fireplaces) raw.fireplaces = parseNum(facts.fireplaces);
+    if (facts.flooring) raw.flooring = Array.isArray(facts.flooring) ? facts.flooring.join(', ') : String(facts.flooring);
+    if (facts.sewer) raw.sewer = Array.isArray(facts.sewer) ? facts.sewer.join(', ') : String(facts.sewer);
+    if (facts.waterSource) raw.waterSource = Array.isArray(facts.waterSource) ? facts.waterSource.join(', ') : String(facts.waterSource);
+  }
+
+  const result = mapZillowToAltech(raw);
+
+  for (const key of result.fieldsFound) {
+    result.sources[key] = sourceLabel;
+  }
+
+  return result;
+}
+
+/**
+ * Fetch Apify Redfin Detail for a single address.
+ * Returns { data, fieldsFound, sources } or null.
+ */
+async function fetchApifyRedfin(fullAddress) {
+  try {
+    const items = await runRedfinDetail({ addresses: [fullAddress] });
+    if (!items || items.length === 0) return null;
+    return mapRedfinDetailToAltech(items[0]);
+  } catch (err) {
+    console.warn('[Apify] Redfin error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Fetch Apify Zillow Search for a single address.
+ * Fuzzy-matches results by street number + name.
+ * Returns { data, fieldsFound, sources } or null.
+ */
+async function fetchApifyZillow(fullAddress) {
+  try {
+    const items = await runZillowSearch({ search: fullAddress, maxItems: 3, simple: false });
+    if (!items || items.length === 0) return null;
+
+    // Fuzzy match: normalize and compare street address
+    const normalizeAddr = (a) => String(a || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+    const queryNorm = normalizeAddr(fullAddress.split(',')[0]); // street part only
+
+    const match = items.find(it => {
+      const itemAddr = normalizeAddr(
+        it.streetAddress || it.address?.streetAddress || it.addressStreet || ''
+      );
+      // Check if the street numbers and first word of street name match
+      return itemAddr && queryNorm && (
+        itemAddr.includes(queryNorm) || queryNorm.includes(itemAddr) ||
+        itemAddr.split(' ').slice(0, 2).join(' ') === queryNorm.split(' ').slice(0, 2).join(' ')
+      );
+    }) || items[0]; // fallback to first result
+
+    return mapZillowSearchToAltech(match);
+  } catch (err) {
+    console.warn('[Apify] Zillow error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Merge Apify result data into existing data, preserving upstream values.
+ * Upstream (e.g. Rentcast) wins on conflicts.
+ */
+function mergeApifyResult(existing, apifyResult) {
+  if (!apifyResult) return existing;
+  const merged = { ...existing };
+  const newFields = [];
+
+  for (const [key, val] of Object.entries(apifyResult.data)) {
+    if (merged.data[key] == null || merged.data[key] === '') {
+      merged.data[key] = val;
+      if (!merged.fieldsFound.includes(key)) {
+        merged.fieldsFound.push(key);
+        newFields.push(key);
+      }
+      if (apifyResult.sources[key]) {
+        merged.sources[key] = apifyResult.sources[key];
+      }
+    }
+  }
+
+  if (newFields.length > 0) {
+    console.log(`[Apify] Merged ${newFields.length} new fields: ${newFields.join(', ')}`);
+  }
+  return merged;
+}
+
+// ===========================================================================
+// SECTION 3: Address-Based Property Lookup (?mode=zillow)
+// ===========================================================================
+
 async function handleZillow(req, res) {
   const { address, city, state, zip, aiSettings } = req.body;
 
@@ -1227,76 +1541,135 @@ async function handleZillow(req, res) {
   console.log(`[Zillow] ===== Extracting: ${address}, ${city}, ${state} ${zip || ''} =====`);
   const startTime = Date.now();
   const diag = {};
+  const fullAddress = `${address}, ${city}, ${state}${zip ? ' ' + zip : ''}`;
 
   // Force Gemini for property search — search grounding is Google-exclusive
   const ai = createRouter({ provider: 'google' });
 
-  // --- Try Rentcast first ---
+  // Accumulator: collects data from all tiers, upstream wins on conflicts
+  let accumulated = { data: {}, fieldsFound: [], sources: {} };
+
+  // --- Tier 1: Rentcast (fastest, most reliable) ---
   try {
     const rentcast = await fetchRentcastData(address, city, state, zip || '');
     if (rentcast) {
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
-      console.log(`[Zillow] Rentcast hit — ${rentcast.fieldsFound.length} fields (${elapsed}s)`);
-      const rentcastSources = {};
       const sourceLabel = 'Rentcast (assessor/MLS records)';
+      const rentcastSources = {};
       for (const key of Object.keys(rentcast.data)) {
-        if (key !== 'notes' && rentcast.data[key] !== null && rentcast.data[key] !== undefined) {
+        if (key !== 'notes' && rentcast.data[key] != null) {
           rentcastSources[key] = sourceLabel;
         }
       }
-      return res.status(200).json({
-        success: true,
-        source: 'Rentcast',
-        data: rentcast.data,
-        fieldsFound: rentcast.fieldsFound,
-        sources: rentcastSources,
-        diagnostics: {},
-        elapsedSeconds: parseFloat(elapsed),
-      });
+      accumulated = { data: { ...rentcast.data }, fieldsFound: [...rentcast.fieldsFound], sources: rentcastSources };
+      diag.rentcast = 'hit';
+      console.log(`[Zillow] Rentcast hit — ${rentcast.fieldsFound.length} fields`);
+    } else {
+      diag.rentcast = 'miss';
+      console.log('[Zillow] Rentcast miss');
     }
-    console.log('[Zillow] Rentcast miss — falling back to Gemini');
   } catch (rentErr) {
-    console.warn('[Zillow] Rentcast error, falling back to Gemini:', rentErr.message);
+    diag.rentcast = 'error';
+    console.warn('[Zillow] Rentcast error:', rentErr.message);
   }
 
-  try {
-    const result = await fetchViaGeminiSearch(address, city, state, zip || '', diag, ai);
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
-
-    if (!result || !result.raw) {
-      console.log(`[Zillow] Gemini search failed (${elapsed}s)`);
-      console.log(`[Zillow] Diagnostics:`, JSON.stringify(diag));
-      return res.status(200).json({
-        success: false,
-        error: 'Could not extract property details via Gemini search',
-        zillowUrl: `https://www.zillow.com/homes/${buildSlug(address, city, state, zip || '')}_rb/`,
-        diagnostics: diag,
-        elapsedSeconds: parseFloat(elapsed),
-      });
+  // --- Tier 2: Apify Redfin Detail (if ≥3 critical fields still missing) ---
+  const missingAfterRentcast = countMissingCritical(accumulated.data);
+  if (missingAfterRentcast >= 3) {
+    console.log(`[Zillow] ${missingAfterRentcast} critical fields missing — trying Apify Redfin Detail`);
+    try {
+      const redfinResult = await fetchApifyRedfin(fullAddress);
+      if (redfinResult && redfinResult.fieldsFound.length > 0) {
+        accumulated = mergeApifyResult(accumulated, redfinResult);
+        diag.apifyRedfin = `hit (${redfinResult.fieldsFound.length} fields)`;
+        console.log(`[Zillow] Apify Redfin — ${redfinResult.fieldsFound.length} fields`);
+      } else {
+        diag.apifyRedfin = 'miss';
+        console.log('[Zillow] Apify Redfin — no results');
+      }
+    } catch (err) {
+      diag.apifyRedfin = 'error';
+      console.warn('[Zillow] Apify Redfin error:', err.message);
     }
+  } else {
+    diag.apifyRedfin = 'skipped';
+  }
 
-    const { data, fieldsFound, sources } = mapZillowToAltech(result.raw);
+  // --- Tier 3: Apify Zillow Search (if still ≥3 critical fields missing) ---
+  const missingAfterRedfin = countMissingCritical(accumulated.data);
+  if (missingAfterRedfin >= 3) {
+    console.log(`[Zillow] ${missingAfterRedfin} critical fields still missing — trying Apify Zillow`);
+    try {
+      const zillowResult = await fetchApifyZillow(fullAddress);
+      if (zillowResult && zillowResult.fieldsFound.length > 0) {
+        accumulated = mergeApifyResult(accumulated, zillowResult);
+        diag.apifyZillow = `hit (${zillowResult.fieldsFound.length} fields)`;
+        console.log(`[Zillow] Apify Zillow — ${zillowResult.fieldsFound.length} fields`);
+      } else {
+        diag.apifyZillow = 'miss';
+        console.log('[Zillow] Apify Zillow — no results');
+      }
+    } catch (err) {
+      diag.apifyZillow = 'error';
+      console.warn('[Zillow] Apify Zillow error:', err.message);
+    }
+  } else {
+    diag.apifyZillow = 'skipped';
+  }
 
-    console.log(`[Zillow] Success: ${fieldsFound.length} fields via ${result.source} (${elapsed}s)`);
+  // --- Tier 4: Gemini Search Grounding (if still ≥3 critical fields missing) ---
+  const missingAfterApify = countMissingCritical(accumulated.data);
+  if (missingAfterApify >= 3) {
+    console.log(`[Zillow] ${missingAfterApify} critical fields still missing — trying Gemini`);
+    try {
+      const result = await fetchViaGeminiSearch(address, city, state, zip || '', diag, ai);
+      if (result && result.raw) {
+        const geminiMapped = mapZillowToAltech(result.raw);
+        // Tag Gemini sources
+        for (const key of geminiMapped.fieldsFound) {
+          if (!geminiMapped.sources[key]) geminiMapped.sources[key] = result.source || 'Gemini Search';
+        }
+        accumulated = mergeApifyResult(accumulated, geminiMapped);
+        diag.gemini = `hit (${geminiMapped.fieldsFound.length} fields)`;
+      } else {
+        diag.gemini = 'miss';
+      }
+    } catch (err) {
+      diag.gemini = 'error';
+      console.warn('[Zillow] Gemini error:', err.message);
+    }
+  } else {
+    diag.gemini = 'skipped';
+  }
 
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
+  // --- Return accumulated result ---
+  if (accumulated.fieldsFound.length === 0) {
+    console.log(`[Zillow] No data from any source (${elapsed}s)`);
     return res.status(200).json({
-      success: true,
-      source: result.source,
-      zillowUrl: result.zillowUrl,
-      data,
-      fieldsFound,
-      sources,
+      success: false,
+      error: 'Could not extract property details from any source',
+      zillowUrl: `https://www.zillow.com/homes/${buildSlug(address, city, state, zip || '')}_rb/`,
       diagnostics: diag,
       elapsedSeconds: parseFloat(elapsed),
     });
-  } catch (error) {
-    console.error('[Zillow] Error:', error);
-    return res.status(200).json({
-      success: false,
-      error: error.message || 'Unknown error',
-      diagnostics: diag,
-    });
   }
+
+  // Determine primary source label for the response
+  const sourceLabels = [...new Set(Object.values(accumulated.sources))];
+  const primarySource = sourceLabels.length === 1 ? sourceLabels[0] : sourceLabels.join(' + ');
+
+  console.log(`[Zillow] Success: ${accumulated.fieldsFound.length} fields from ${primarySource} (${elapsed}s)`);
+
+  return res.status(200).json({
+    success: true,
+    source: primarySource,
+    data: accumulated.data,
+    fieldsFound: accumulated.fieldsFound,
+    sources: accumulated.sources,
+    diagnostics: diag,
+    elapsedSeconds: parseFloat(elapsed),
+  });
 }
 
 // ===========================================================================
@@ -1511,7 +1884,59 @@ async function handleListingSearch(req, res) {
   const startTime = Date.now();
   const diag = { inputType: isUrl ? 'url' : 'address' };
 
-  // Always use Gemini for search grounding — other providers lack this capability
+  // --- Apify scraper routing for recognized listing domains ---
+  let apifyResult = null;
+  if (isUrl) {
+    const urlLower = trimmedQuery.toLowerCase();
+    try {
+      if (urlLower.includes('redfin.com')) {
+        diag.apifyActor = 'redfin-detail';
+        console.log('[ListingSearch] Detected Redfin URL — trying Apify Redfin Detail');
+        const items = await runRedfinDetail({ detailUrls: [{ url: trimmedQuery }] });
+        if (items && items.length > 0) {
+          apifyResult = mapRedfinDetailToAltech(items[0]);
+          diag.apifyFields = apifyResult?.fieldsFound?.length || 0;
+          console.log(`[ListingSearch] Apify Redfin returned ${diag.apifyFields} fields`);
+        }
+      } else if (urlLower.includes('zillow.com')) {
+        diag.apifyActor = 'zillow-search';
+        console.log('[ListingSearch] Detected Zillow URL — trying Apify Zillow Search');
+        const items = await runZillowSearch({ startUrls: [trimmedQuery], maxItems: 1, simple: false });
+        if (items && items.length > 0) {
+          apifyResult = mapZillowSearchToAltech(items[0]);
+          diag.apifyFields = apifyResult?.fieldsFound?.length || 0;
+          console.log(`[ListingSearch] Apify Zillow returned ${diag.apifyFields} fields`);
+        }
+      }
+    } catch (apifyErr) {
+      console.warn('[ListingSearch] Apify error (non-fatal):', apifyErr.message);
+      diag.apifyError = apifyErr.message;
+    }
+
+    // If Apify got sufficient data (< 3 critical fields missing), return directly
+    if (apifyResult && countMissingCritical(apifyResult.data) < 3) {
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+      console.log(`[ListingSearch] Apify sufficient — returning ${apifyResult.fieldsFound.length} fields (${elapsed}s)`);
+      return res.status(200).json({
+        success: true,
+        source: diag.apifyActor === 'redfin-detail' ? 'apify-redfin' : 'apify-zillow',
+        data: apifyResult.data,
+        fieldsFound: apifyResult.fieldsFound,
+        sources: apifyResult.sources,
+        addressFields: {},
+        diagnostics: diag,
+        elapsedSeconds: parseFloat(elapsed),
+      });
+    }
+
+    if (apifyResult) {
+      console.log(`[ListingSearch] Apify incomplete (${countMissingCritical(apifyResult.data)} critical fields missing) — supplementing with Gemini`);
+      diag.apifyPartial = true;
+    }
+  }
+
+  // Gemini search grounding — primary path for non-listing URLs and plain addresses,
+  // gap-filler for incomplete Apify results
   const ai = createRouter({ provider: 'google' });
 
   const systemPrompt = `You are a property data extraction specialist for insurance underwriting. Your job is to search for and extract every available property detail from real estate listings and public records. Return ONLY valid JSON — no markdown, no code fences, no explanation.`;
@@ -1630,6 +2055,17 @@ IMPORTANT:
       if (!mappedSources[k]) mappedSources[k] = v;
     }
 
+    // If Apify provided partial data, merge: Apify wins (structured scrape > AI inference)
+    if (apifyResult) {
+      for (const [key, val] of Object.entries(apifyResult.data)) {
+        if (val != null && val !== '') {
+          data[key] = val;
+          if (!mappedFields.includes(key)) mappedFields.push(key);
+          if (apifyResult.sources[key]) mappedSources[key] = apifyResult.sources[key];
+        }
+      }
+    }
+
     // Add address fields if extracted (useful when searching by URL)
     const addressFields = {};
     if (raw.address?.value) addressFields.address = raw.address.value;
@@ -1647,9 +2083,13 @@ IMPORTANT:
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`[ListingSearch] Success: ${mappedFields.length} mapped fields (${elapsed}s)`);
 
+    const sourceLabel = apifyResult
+      ? `${diag.apifyActor === 'redfin-detail' ? 'apify-redfin' : 'apify-zillow'} + gemini`
+      : 'gemini-listing-search';
+
     return res.status(200).json({
       success: true,
-      source: 'gemini-listing-search',
+      source: sourceLabel,
       data,
       fieldsFound: mappedFields,
       sources: mappedSources,

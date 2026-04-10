@@ -195,7 +195,7 @@ Object.assign(App, {
             statusEl.textContent = `Searching ${label}…`;
             statusEl.style.display = '';
         }
-        this.toast(`🔍 Searching ${label} via AI…`, 'info');
+        this.toast(`🔍 Searching ${label}…`, 'info');
 
         try {
             const resp = await fetch('/api/property-intelligence?mode=listing-search', {
@@ -602,7 +602,7 @@ Object.assign(App, {
             const fireData = fireStationResult.status === 'fulfilled' ? fireStationResult.value : null;
 
             // Increment counter and update display on confirmed Rentcast hit
-            if (zillowData?.source === 'Rentcast') {
+            if (zillowData?.source?.includes('Rentcast')) {
                 await this._incrementRentcastCounter();
                 const { count: _newCount, periodDay: _newPeriodDay } = await this._getRentcastCounter();
                 this._updateRentcastDisplay(_newCount, _newPeriodDay);
@@ -1110,9 +1110,22 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             const zd = zillowData.data;
             // Collect field-level source attributions from the API response
             const zSrc = zillowData.sources || {};
-            // Detect whether data came from Rentcast or Gemini AI fallback
-            const zdSourceName = zillowData.source === 'Rentcast' ? 'Rentcast' : 'AI Search';
-            sources.push(zdSourceName);
+            // Detect data sources — may be composite (e.g. 'Rentcast + Redfin (Apify scrape)')
+            const srcStr = zillowData.source || '';
+            const srcParts = srcStr.split(' + ').map(s => s.trim()).filter(Boolean);
+            for (const part of srcParts) {
+                if (part === 'Rentcast') sources.push('Rentcast');
+                else if (part.includes('Redfin')) sources.push('Redfin Scrape');
+                else if (part.includes('Zillow')) sources.push('Zillow Scrape');
+                else if (part.includes('Gemini') || part === 'AI Search') sources.push('AI Search');
+                else sources.push(part);
+            }
+            // Deduplicate
+            const seen = new Set();
+            for (let i = sources.length - 1; i >= 0; i--) {
+                if (seen.has(sources[i])) sources.splice(i, 1);
+                else seen.add(sources[i]);
+            }
             // Only fill gaps — don't overwrite ArcGIS data
             if ((!merged.heatingType || merged.heatingType === 'Unknown') && zd.heatingType) { merged.heatingType = zd.heatingType; if (zSrc.heatingType) fieldSources.heatingType = zSrc.heatingType; }
             if ((!merged.cooling || merged.cooling === 'Unknown') && zd.cooling) { merged.cooling = zd.cooling; if (zSrc.cooling) fieldSources.cooling = zSrc.cooling; }
@@ -1156,7 +1169,7 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         }
 
         // Determine the property listings source name for this data set
-        const zdSourceName = (zillowData && zillowData.source === 'Rentcast') ? 'Rentcast' : 'AI Search';
+        const zdSourceName = (zillowData && zillowData.source?.includes('Rentcast')) ? 'Rentcast' : 'AI Search';
 
         // Build modal
         const modal = document.createElement('div');
@@ -1191,14 +1204,18 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             'Rentcast': '#0d7a4e',
             'AI Search': '#6f42c1',
             'Fire Protection': '#dc3545',
-            'FEMA Flood': '#1a6496'
+            'FEMA Flood': '#1a6496',
+            'Redfin Scrape': '#c73333',
+            'Zillow Scrape': '#006aff'
         };
         const badgeIcons = {
             'County Records': '🏛',
             'Rentcast': '📊',
             'AI Search': '🏠',
             'Fire Protection': '🚒',
-            'FEMA Flood': '🌊'
+            'FEMA Flood': '🌊',
+            'Redfin Scrape': '🔍',
+            'Zillow Scrape': '🔍'
         };
         sources.forEach(src => {
             const badge = document.createElement('span');
@@ -1222,7 +1239,13 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         // ── Tab bar ──────────────────────────────────────────────────────────
         const tabDefs = [{ id: 'summary', label: '✦ Summary' }];
         if (arcgisData && arcgisData.data) tabDefs.push({ id: 'county', label: '🏛 County' });
-        if (zillowData && zillowData.data) tabDefs.push({ id: 'listings', label: zdSourceName === 'Rentcast' ? '📊 Rentcast' : '🏠 AI Search' });
+        if (zillowData && zillowData.data) {
+            const zSrc2 = zillowData.source || '';
+            const tabIcon = zdSourceName === 'Rentcast' ? '📊 Rentcast'
+                : zSrc2.includes('Apify') || zSrc2.includes('apify') ? '🔍 Listing Data'
+                : '🏠 AI Search';
+            tabDefs.push({ id: 'listings', label: tabIcon });
+        }
         if (fireData) tabDefs.push({ id: 'fire', label: '🚒 Fire / PC' });
 
         const tabBar = document.createElement('div');
@@ -1416,9 +1439,12 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         if (panels.listings) {
             const desc = document.createElement('p');
             desc.style.cssText = 'font-size: 12px; color: #666; margin: 0 0 10px 0;';
+            const zSrcStr = (zillowData && zillowData.source) || '';
             desc.textContent = zdSourceName === 'Rentcast'
                 ? 'MLS / assessor records from Rentcast API. Fields with ✓ chips indicate individual field attribution.'
-                : 'Property characteristics extracted by Gemini AI from public listing data.';
+                : zSrcStr.includes('Apify') || zSrcStr.includes('apify')
+                    ? 'Property data scraped from real estate listing pages via structured extraction.'
+                    : 'Property characteristics extracted by Gemini AI from public listing data.';
             panels.listings.appendChild(desc);
             const zSrc = (zillowData && zillowData.sources) || {};
             const { el: zGrid } = buildGrid(rawToFields(zillowData && zillowData.data, zSrc));

@@ -19,7 +19,7 @@
 | **CSS** | 34 files in `css/` (~22,595 lines total) |
 | **JS** | 46 modules in `js/` (~43,510 lines total) |
 | **Plugins** | 21 HTML templates in `plugins/` (~6,712 lines total) |
-| **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
+| **APIs** | 12 serverless functions + 3 helpers in `api/` (~8,592 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
 | **Encryption** | AES-256-GCM via Web Crypto API (`CryptoHelper`) |
@@ -181,12 +181,13 @@ npm run deploy:vercel   # Production deploy
 │   ├── dec-import.html          # Dec Page Importer UI (131 lines)
 │   └── deposit-sheet.html       # Deposit Sheet UI (108 lines)
 │
-├── api/                        # 12 serverless functions + 2 helpers (~6,210 lines) ⚠️ Hobby plan MAX = 12 functions
+├── api/                        # 12 serverless functions + 3 helpers (~6,500 lines) ⚠️ Hobby plan MAX = 12 functions
 │   ├── _ai-router.js           # ★ Shared: multi-provider AI router (NOT an endpoint)
+│   ├── _apify-client.js        # ★ Shared: Apify web scraper client — Redfin Detail + Zillow Search actors (NOT an endpoint)
 │   ├── config.js               # Firebase config, API keys, phonetics, bug reports
 │   ├── policy-scan.js          # OCR document extraction via Gemini (260 lines)
 │   ├── vision-processor.js     # Image/PDF analysis, DL scanning, aerial analysis (880 lines)
-│   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations, address validation, Street View/satellite URL generation, improved multi-unit detection, listing search pipeline (1,962 lines)
+│   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations, address validation, Street View/satellite URL generation, improved multi-unit detection, listing search pipeline, Apify Redfin/Zillow fallback (2,402 lines)
 │   ├── prospect-lookup.js      # Multi-source business investigation (1,788 lines)
 │   ├── compliance.js           # HawkSoft API CGL policy fetcher + Redis cache + allClientsList + hawksoftPolicyId (478 lines)
 │   ├── historical-analyzer.js  # AI property value/insurance trend analysis
@@ -614,7 +615,7 @@ The active indicator bar on `.sidebar-nav-item.active` is drawn via `::before`. 
 1. **Consolidate into an existing function** using query-parameter routing (e.g., `?mode=newFeature` or `?type=newFeature`)
 2. **Convert an existing function to a helper** by prefixing with `_` (e.g., `_helper.js`) and importing it from another function
 
-**Files prefixed with `_` in `api/` are Vercel helpers** — they are NOT counted as serverless functions and NOT deployed as endpoints. Currently: `_ai-router.js` (shared AI router) and `_rag-interpreter.js` (routed via `property-intelligence.js?mode=rag-interpret`).
+**Files prefixed with `_` in `api/` are Vercel helpers** — they are NOT counted as serverless functions and NOT deployed as endpoints. Currently: `_ai-router.js` (shared AI router), `_apify-client.js` (Redfin/Zillow scraper client), and `_rag-interpreter.js` (routed via `property-intelligence.js?mode=rag-interpret`).
 
 **Before adding any new file to `api/`:** Count non-`_` files: `ls api/ | grep -v '^_' | wc -l` — must be ≤ 12.
 
@@ -957,5 +958,6 @@ KEY RULES:
 | `GITHUB_REPO_NAME` | ⚠️ | Bug report target repo |
 | `SOCRATA_APP_TOKEN` | ⚠️ | WA L&I / OR CCB lookups |
 | `SAM_GOV_API_KEY` | ⚠️ | SAM.gov federal lookups |
+| `APIFY_API_KEY` | ⚠️ | Apify web scraping (Redfin/Zillow fallback for property data) |
 
 ---

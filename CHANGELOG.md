@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(property): Apify web scraper integration for Redfin + Zillow fallback** (June 6, 2026):
+  - `api/_apify-client.js` — NEW: Shared Apify HTTP client helper (Vercel `_` prefix = not counted as serverless fn); exposes `runActorSync()`, `runRedfinDetail()`, `runZillowSearch()`; 60s timeout with AbortController; token-safe logging
+  - `api/property-intelligence.js` — Added 4-tier waterfall in `handleZillow()`: Rentcast → Apify Redfin Detail → Apify Zillow Search → Gemini; each tier fires only when ≥3 of 8 critical fields are still missing; composite source labels track which tiers contributed
+  - `api/property-intelligence.js` — Added `mapRedfinDetailToAltech()` (~80 lines): flexible field path resolution via `pick()` helper, runs through `mapZillowToAltech()` for consistent normalization
+  - `api/property-intelligence.js` — Added `mapZillowSearchToAltech()` (~90 lines): checks `resoFacts` structured data + regex-parses description text for heating/cooling/roof/foundation
+  - `api/property-intelligence.js` — Added `fetchApifyRedfin()`, `fetchApifyZillow()` (fuzzy address matching), `mergeApifyResult()` (upstream-wins conflict resolution), `countMissingCritical()`
+  - `api/property-intelligence.js` — Modified `handleListingSearch()`: detects Redfin/Zillow URLs and routes to Apify scrapers first; if Apify gets <3 missing critical fields returns directly, otherwise falls through to Gemini for gap-filling with Apify data merged (Apify wins on conflicts)
+  - `js/app-property.js` — Updated source badge system: added 'Redfin Scrape' (red) and 'Zillow Scrape' (blue) badges; composite source strings split into individual badges; tab labels and descriptions updated for Apify sources
+  - `js/app-property.js` — Updated Rentcast counter to use `.includes('Rentcast')` for composite source detection
+  - `.env.example` — Documented `APIFY_API_KEY` env var in Optional API Keys section
 - **feat(property): AI listing search via Gemini Search Grounding** (April 10, 2026):
   - `api/property-intelligence.js` — Added `handleListingSearch()` function (~180 lines) + `LISTING_FIELD_MAP` constant for `?mode=listing-search`; forces Gemini for search grounding (Google-exclusive); extracts 25+ property fields from any Redfin/Zillow URL or address; normalizes through `mapZillowToAltech()`; returns address fields separately for URL lookups
   - `js/app-property.js` — Added `lookupListingUrl(query)` method: detects URL vs address, calls listing-search API, fills address fields from URL lookups (only empty fields), applies property data via `applyZillowSelects()`, shows status feedback
