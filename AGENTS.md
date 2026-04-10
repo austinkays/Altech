@@ -108,7 +108,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-navigation.js       # App.updateUI(), App.navigateTo(), step progression, hash routing
 │   ├── app-core.js             # save/load, form field persistence, schema migration, encryption, clearExportHistory() — persistence-only (updateUI/navigateTo → app-navigation.js; toast/dark-mode → app-ui-utils.js)
 │   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (2,350 lines)
-│   ├── app-property.js         # Property analysis, maps, assessor data, Redfin integration (2,573 lines)
+│   ├── app-property.js         # Property analysis, maps, assessor data, Redfin integration, listing URL lookup (2,594 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
 │   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema, AI coverage gap analysis (1,565 lines)
@@ -186,7 +186,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── config.js               # Firebase config, API keys, phonetics, bug reports
 │   ├── policy-scan.js          # OCR document extraction via Gemini (260 lines)
 │   ├── vision-processor.js     # Image/PDF analysis, DL scanning, aerial analysis (880 lines)
-│   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations, address validation, Street View/satellite URL generation, improved multi-unit detection (1,460 lines)
+│   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations, address validation, Street View/satellite URL generation, improved multi-unit detection, listing search pipeline (1,962 lines)
 │   ├── prospect-lookup.js      # Multi-source business investigation (1,788 lines)
 │   ├── compliance.js           # HawkSoft API CGL policy fetcher + Redis cache + allClientsList + hawksoftPolicyId (478 lines)
 │   ├── historical-analyzer.js  # AI property value/insurance trend analysis
@@ -654,6 +654,40 @@ The HawkSoft Logger pushes log notes to HawkSoft via `api/hawksoft-logger.js`. S
 
 **Data pipeline for `hawksoftPolicyId`:**
 `api/compliance.js` (extracts `policy.id` from HawkSoft API) → cached in `allPolicies[]` → `js/call-logger.js` (threads through `_selectedPolicy` → format request → `_pendingLog` → confirm request) → `api/hawksoft-logger.js` (includes as `policyId` in HawkSoft body when present).
+
+### 5.14 Listing Search Pipeline (`?mode=listing-search`)
+
+Accepts a Redfin/Zillow URL → Gemini Search Grounding extracts property data → maps to Altech form fields.
+
+| Step | Where | What |
+|------|-------|------|
+| 1 | `js/app-property.js` → `lookupListingUrl()` | Client sends URL via `Auth.apiFetch('/api/property-intelligence?mode=listing-search')` |
+| 2 | `api/property-intelligence.js` → `handleListingSearch()` | Calls `askWithSearch()` (Gemini + `google_search` tool) with a structured JSON prompt |
+| 3 | `api/_ai-router.js` → `extractJSON()` | Extracts JSON from Gemini's markdown-wrapped response (3-stage: regex → relaxed → AI) |
+| 4 | `api/property-intelligence.js` → `mapZillowToAltech()` | Maps Gemini field names → Altech form field IDs (see LISTING_FIELD_MAP) |
+| 5 | `js/app-property.js` → `applyZillowSelects()` | Fills `<select>` dropdowns and text inputs with mapped values |
+
+**Key behaviors in `mapZillowToAltech()`:**
+- **Bath splitting:** `bathrooms: 3.5` → `fullBaths: 3`, `halfBaths: 1` (floor + modulo check)
+- **Lot size:** `lotSizeAcres` field; values > 100 assumed sqft, auto-converted to acres (÷ 43560)
+- **Dwelling type:** DWELLING_MAP normalizes AI text → form select values (`"single family"` → `"One Family"`)
+- **County:** Strips trailing " County" suffix (e.g., `"Clark County"` → `"Clark"`)
+
+**`applyZillowSelects()` handles three field types:**
+1. **selectFields** — string-matched dropdowns (`heatingType`, `coolingType`, `dwellingType`, etc.)
+2. **numericSelects** — numeric dropdowns with fallback matching (`numStories`, `fullBaths`, `halfBaths`) — tries exact string, then `Math.floor`, then `Math.round`
+3. **textFields** — plain text inputs (`yrBuilt`, `bedrooms`, `sqFt`, `lotSize`, `county`, `yearRenovated`, etc.)
+
+### 5.15 AI Coverage Gap Analysis (`js/app-export.js`)
+
+Step 6 (Review & Export) includes a "Coverage Gap Analysis" card that sends current form data to Gemini for personalized insurance recommendations.
+
+| Function | What |
+|----------|------|
+| `runCoverageGapAnalysis()` | Builds prompt from `App.data` + `App.drivers` + `App.vehicles`, calls `/api/property-intelligence?mode=coverage-gap` |
+| `_renderCoverageGapResults()` | Renders AI markdown response into styled HTML cards in `#coverageGapResults` |
+
+The analysis uses the existing `property-intelligence.js` endpoint with `?mode=coverage-gap` routing.
 
 ---
 

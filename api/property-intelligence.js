@@ -821,7 +821,29 @@ function mapZillowToAltech(raw) {
 
   const bathsPick = raw.bathrooms || raw.fullBathrooms || raw.bathroomsFull;
   const baths = parseNum(extractVal(bathsPick));
-  if (baths && baths > 0) { mapped.fullBaths = baths; fieldsFound.push('fullBaths'); sources.fullBaths = extractSrc(bathsPick); }
+  if (baths && baths > 0) {
+    // Split fractional baths: 3.5 → fullBaths=3, halfBaths=1
+    const fullBaths = Math.floor(baths);
+    const hasHalf = (baths % 1) >= 0.25;
+    mapped.fullBaths = fullBaths;
+    fieldsFound.push('fullBaths');
+    sources.fullBaths = extractSrc(bathsPick);
+    if (hasHalf) {
+      mapped.halfBaths = Math.round((baths - fullBaths) / 0.5);
+      if (mapped.halfBaths < 1) mapped.halfBaths = 1;
+      fieldsFound.push('halfBaths');
+      sources.halfBaths = extractSrc(bathsPick);
+    }
+  }
+
+  // Explicit half bathrooms field (from AI that returns it separately)
+  const halfBathPick = raw.halfBathrooms || raw.halfBaths;
+  const halfB = parseNum(extractVal(halfBathPick));
+  if (halfB != null && halfB >= 0 && !mapped.halfBaths) {
+    mapped.halfBaths = halfB;
+    fieldsFound.push('halfBaths');
+    sources.halfBaths = extractSrc(halfBathPick);
+  }
 
   const yrPick = raw.yearBuilt || raw.year_built;
   const yr = parseNum(extractVal(yrPick));
@@ -938,6 +960,60 @@ function mapZillowToAltech(raw) {
     mapped.basementFinishPct = bsmtPct;
     fieldsFound.push('basementFinishPct');
     sources.basementFinishPct = extractSrc(bsmtPick);
+  }
+
+  // Dwelling type (One Family, Two Family, Condo, Townhome, Row House)
+  const dwellingPick = raw.dwellingType || raw.propertyType || raw.homeType || '';
+  const dwellingRaw = extractVal(dwellingPick);
+  const dwellingStr = String(dwellingRaw ?? '').toLowerCase();
+  const DWELLING_MAP = {
+    'single family': 'One Family', 'single-family': 'One Family', 'one family': 'One Family',
+    'single family residential': 'One Family', 'detached': 'One Family', 'house': 'One Family',
+    'duplex': 'Two Family', 'two family': 'Two Family',
+    'triplex': 'Three Family', 'three family': 'Three Family',
+    'fourplex': 'Four Family', 'four family': 'Four Family', 'quadplex': 'Four Family',
+    'condo': 'Condo', 'condominium': 'Condo',
+    'townhome': 'Townhome', 'townhouse': 'Townhome',
+    'row house': 'Row House', 'rowhouse': 'Row House',
+  };
+  const dwellingVal = Object.entries(DWELLING_MAP).find(([k]) => dwellingStr.includes(k))?.[1];
+  if (dwellingVal) {
+    mapped.dwellingType = dwellingVal;
+    fieldsFound.push('dwellingType');
+    sources.dwellingType = extractSrc(dwellingPick);
+  }
+
+  // Year renovated / remodeled
+  const renovPick = raw.yearRenovated || raw.yearRemodeled || '';
+  const renovYr = parseNum(extractVal(renovPick));
+  if (renovYr && renovYr > 1900 && renovYr <= new Date().getFullYear()) {
+    mapped.yearRenovated = String(renovYr);
+    fieldsFound.push('yearRenovated');
+    sources.yearRenovated = extractSrc(renovPick);
+  }
+
+  // Lot size in acres
+  const lotPick = raw.lotSizeAcres || raw.lotSize || '';
+  const lotRaw = extractVal(lotPick);
+  let lotAcres = parseNum(lotRaw);
+  if (lotAcres != null && lotAcres > 100) {
+    // Probably sqft, convert to acres
+    lotAcres = Math.round((lotAcres / 43560) * 100) / 100;
+  }
+  if (lotAcres != null && lotAcres > 0 && lotAcres < 10000) {
+    mapped.lotSize = lotAcres;
+    fieldsFound.push('lotSize');
+    sources.lotSize = extractSrc(lotPick);
+  }
+
+  // County
+  const countyPick = raw.county || '';
+  const countyRaw = extractVal(countyPick);
+  if (countyRaw && typeof countyRaw === 'string' && countyRaw.length > 1) {
+    // Strip trailing " County" if present
+    mapped.county = countyRaw.replace(/\s+county$/i, '').trim();
+    fieldsFound.push('county');
+    sources.county = extractSrc(countyPick);
   }
 
   return { data: mapped, fieldsFound, sources };
@@ -1477,6 +1553,11 @@ Return ONLY valid JSON with this exact structure. Each field (except notes) must
   "waterSource": {"value": "Public or Well", "source": "source name"} or null,
   "pool": {"value": "Yes or No", "source": "source name"} or null,
   "woodStove": {"value": "Yes or No", "source": "source name"} or null,
+  "dwellingType": {"value": "One Family or Two Family or Three Family or Four Family or Condo or Townhome or Row House", "source": "source name"} or null,
+  "halfBathrooms": {"value": number_of_half_baths, "source": "source name"} or null,
+  "yearRenovated": {"value": year_number, "source": "source name"} or null,
+  "county": {"value": "county name without the word County", "source": "source name"} or null,
+  "lotSizeAcres": {"value": lot_size_in_acres_as_decimal, "source": "source name"} or null,
   "hoa": {"value": monthly_dollar_amount_number, "source": "source name"} or null,
   "assessedValue": {"value": dollar_amount_number, "source": "source name"} or null,
   "lastSoldPrice": {"value": dollar_amount_number, "source": "source name"} or null,
@@ -1484,7 +1565,13 @@ Return ONLY valid JSON with this exact structure. Each field (except notes) must
   "notes": "summary of data sources and confidence level"
 }
 
-IMPORTANT: Look in the listing description text for renovation info like "New roof 2024" → set roofYearUpdated. Check "Facts & Features" sections thoroughly. Use null for any field you cannot find. Only include data for THIS SPECIFIC property. Return null for ANY field you cannot find explicitly stated in the source data. Never infer, estimate, or use typical values.`;
+IMPORTANT:
+- For bathrooms: if the listing says "3.5 baths", set bathrooms=3 (full baths count) and halfBathrooms=1 (the .5 = one half bath). Always split full/half.
+- For lotSizeAcres: return the lot size in ACRES as a decimal (e.g. 0.27). Convert from sqft if needed (sqft ÷ 43560).
+- For dwellingType: "Single Family" or "Single Family Residential" → "One Family". "Duplex" → "Two Family". "Triplex" → "Three Family". "Fourplex" → "Four Family".
+- Look in the listing description text for renovation info like "New roof 2024" → set roofYearUpdated. Check for "Remodeled", "Renovated", "Updated" → set yearRenovated.
+- Check "Facts & Features" and "Public Facts" sections thoroughly.
+- Use null for any field you cannot find. Only include data for THIS SPECIFIC property. Return null for ANY field you cannot find explicitly stated in the source data. Never infer, estimate, or use typical values.`;
 
   try {
     const searchResult = await ai.askWithSearch(systemPrompt, userPrompt + jsonSchema, {
@@ -1555,7 +1642,7 @@ IMPORTANT: Look in the listing description text for renovation info like "New ro
     if (raw.lastSoldPrice?.value) { data.lastSoldPrice = raw.lastSoldPrice.value; mappedSources.lastSoldPrice = raw.lastSoldPrice.source || 'AI Search'; }
     if (raw.lastSoldDate?.value) { data.lastSoldDate = raw.lastSoldDate.value; mappedSources.lastSoldDate = raw.lastSoldDate.source || 'AI Search'; }
     if (raw.hoa?.value) { data.hoaFee = raw.hoa.value; mappedSources.hoaFee = raw.hoa.source || 'AI Search'; }
-    if (raw.lotSize?.value) { data.lotSize = raw.lotSize.value; mappedSources.lotSize = raw.lotSize.source || 'AI Search'; }
+    // lotSize is now handled by mapZillowToAltech via lotSizeAcres (with sqft→acres conversion) — do NOT override here
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`[ListingSearch] Success: ${mappedFields.length} mapped fields (${elapsed}s)`);
@@ -1596,6 +1683,7 @@ const LISTING_FIELD_MAP = {
   garageSpaces: 'garageSpaces',
   bedrooms: 'bedrooms',
   bathrooms: 'bathrooms',
+  halfBathrooms: 'halfBathrooms',
   yearBuilt: 'yearBuilt',
   stories: 'stories',
   livingArea: 'livingArea',
@@ -1605,6 +1693,9 @@ const LISTING_FIELD_MAP = {
   waterSource: 'waterSource',
   pool: 'pool',
   woodStove: 'woodStove',
+  dwellingType: 'dwellingType',
+  yearRenovated: 'yearRenovated',
+  lotSizeAcres: 'lotSizeAcres',
 };
 
 // ===========================================================================

@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `api/property-intelligence.js` — Changed `handleZillow()` to force `createRouter({ provider: 'google' })` instead of user's global AI provider setting; Gemini search grounding is Google-exclusive
 
 ### Fixed
+- **fix(property): listing search missing 6 form fields** (April 10, 2026):
+  - `api/property-intelligence.js` — Enhanced AI prompt to request `dwellingType`, `halfBathrooms`, `yearRenovated`, `county`, `lotSizeAcres` with explicit instructions for bath splitting (3.5 → 3 full + 1 half), acres conversion, dwelling type mapping; expanded `LISTING_FIELD_MAP` with 4 new entries; rewrote `mapZillowToAltech()` bath logic to split fractional baths into fullBaths/halfBaths; added dwelling type normalization via DWELLING_MAP, yearRenovated, lotSizeAcres with sqft→acres auto-conversion, county with "County" suffix stripping; removed post-mapper lotSize override that could overwrite converted acres
+  - `js/app-property.js` — Rewrote `applyZillowSelects()`: added `dwellingType` to selectFields; created `numericSelects` section for `numStories`/`fullBaths`/`halfBaths` with 3-stage string matching (exact→floor→round); added `lotSize`, `county`, `yearRenovated` to textFields
 - **fix(css): correct invalid CSS variable in quoting.html** (April 10, 2026):
   - `plugins/quoting.html` — Changed `var(--card-bg)` to `var(--bg-card)` on `gisUploadStatus` div
 - **fix(ai-router): improve extractJSON robustness** (April 10, 2026):

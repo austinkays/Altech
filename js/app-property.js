@@ -1513,7 +1513,7 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
 
     // Apply Zillow select-field values (dropdown fields that need option matching)
     applyZillowSelects(zd) {
-        const selectFields = ['heatingType', 'cooling', 'roofType', 'foundation', 'constructionStyle', 'exteriorWalls', 'garageType', 'sewer', 'waterSource', 'flooring', 'pool', 'woodStove'];
+        const selectFields = ['heatingType', 'cooling', 'roofType', 'foundation', 'constructionStyle', 'exteriorWalls', 'garageType', 'sewer', 'waterSource', 'flooring', 'pool', 'woodStove', 'dwellingType'];
         for (const fid of selectFields) {
             if (!zd[fid]) continue;
             const el = document.getElementById(fid);
@@ -1527,16 +1527,38 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
                 this.markAutoFilled(el, 'zillow');
             }
         }
+        // Numeric select fields — need to match option values as strings
+        const numericSelects = {
+            numStories: zd.stories,
+            fullBaths: zd.fullBaths,
+            halfBaths: zd.halfBaths,
+        };
+        for (const [fid, val] of Object.entries(numericSelects)) {
+            if (val == null) continue;
+            const el = document.getElementById(fid);
+            if (!el) continue;
+            if (el.value && el.value.trim() && el.value !== '0') continue;
+            // Try exact string match, then integer string
+            const candidates = [String(val), String(Math.floor(val)), String(Math.round(val))];
+            const opts = Array.from(el.options).map(o => o.value);
+            const match = candidates.find(c => opts.includes(c));
+            if (match) {
+                el.value = match;
+                this.data[fid] = match;
+                this.markAutoFilled(el, 'zillow');
+            }
+        }
         // Text/number fields from Zillow
         const textFields = {
             yrBuilt: zd.yrBuilt,
             bedrooms: zd.bedrooms,
-            fullBaths: zd.fullBaths,
             garageSpaces: zd.garageSpaces,
-            numStories: zd.stories,
             sqFt: zd.totalSqft,
             numFireplaces: zd.numFireplaces,
-            roofYr: zd.roofYr
+            roofYr: zd.roofYr,
+            lotSize: zd.lotSize,
+            county: zd.county,
+            yearRenovated: zd.yearRenovated,
         };
         for (const [fid, val] of Object.entries(textFields)) {
             if (val == null) continue;
