@@ -104,6 +104,20 @@ Object.assign(App, {
                     for (const filePath of paths) {
                         const fileName = filePath.split('\\').pop().split('/').pop();
                         console.log('[Step0 Drop] Processing:', fileName);
+
+                        // Route XML files to the EZLynx import pipeline
+                        if (fileName.toLowerCase().endsWith('.xml')) {
+                            try {
+                                const bytes = await window.__TAURI__.fs.readFile(filePath);
+                                const xmlText = new TextDecoder().decode(bytes);
+                                this._parseAndApplyXML(xmlText);
+                            } catch (err) {
+                                console.error('[Step0 Drop] XML read error:', err);
+                                if (status) status.textContent = `⚠️ ${err.message || err}`;
+                            }
+                            continue;
+                        }
+
                         try {
                             const text = await window.__TAURI__.core.invoke('process_policy_file', { filePath });
                             if (text && !text.startsWith('Error:') && !text.startsWith('Execution failed:')) {
@@ -142,12 +156,14 @@ Object.assign(App, {
                     e.preventDefault();
                     scanDrop.classList.remove('drag-over');
                     if (e.dataTransfer?.files?.length) {
-                        // Feed dropped files into the existing scan pipeline
-                        const scanInput = document.getElementById('policyScanInput');
-                        if (scanInput) {
-                            // DataTransfer can't be assigned to input; trigger handleScanFiles directly
-                            this.handleScanFiles({ target: { files: e.dataTransfer.files } });
+                        const file = e.dataTransfer.files[0];
+                        // Route XML files to the EZLynx import pipeline
+                        if (file.name.toLowerCase().endsWith('.xml')) {
+                            this._handleEZLynxXMLFile(file);
+                            return;
                         }
+                        // Feed other files into the existing scan pipeline
+                        this.handleScanFiles({ target: { files: e.dataTransfer.files } });
                     }
                 });
                 scanDrop.addEventListener('click', () => this.openScanPicker());

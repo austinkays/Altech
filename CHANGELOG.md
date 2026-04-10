@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(quoting): drag-and-drop XML import on Personal Lines page** (April 10, 2026):
+  - `js/app-core.js` — Browser drop handler on `scanDropZone` now detects `.xml` files and routes to `_handleEZLynxXMLFile()` instead of OCR scan pipeline
+  - `js/app-core.js` — Tauri native drop handler detects `.xml` files and reads via `fs.readFile()` → `_parseAndApplyXML()`
+  - `plugins/quoting.html` — Updated drop zone hint text to mention XML files
+
 - **feat(property): Apify web scraper integration for Redfin + Zillow fallback** (June 6, 2026):
   - `api/_apify-client.js` — NEW: Shared Apify HTTP client helper (Vercel `_` prefix = not counted as serverless fn); exposes `runActorSync()`, `runRedfinDetail()`, `runZillowSearch()`; 60s timeout with AbortController; token-safe logging
   - `api/property-intelligence.js` — Added 4-tier waterfall in `handleZillow()`: Rentcast → Apify Redfin Detail → Apify Zillow Search → Gemini; each tier fires only when ≥3 of 8 critical fields are still missing; composite source labels track which tiers contributed
