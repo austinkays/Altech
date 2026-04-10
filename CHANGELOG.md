@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **refactor(quoting): clean up property search tools area** (April 10, 2026):
+  - `plugins/quoting.html` — Consolidated Smart Scan button, listing URL search, and utility buttons (Redfin, Assessor, Import) into a single `.property-search-tools` wrapper with clear visual hierarchy: Smart Scan hero button at top, "or search by listing" divider with inline input, and collapsible "Research Tools" accordion for secondary actions. Removed all inline styles in favor of CSS classes.
+  - `css/components.css` — Added new component styles: `.property-search-tools` wrapper, `.listing-search-divider` with decorative lines, `.listing-search-input` and `.btn-listing-search` for the URL search row, `.research-tools-accordion` collapsible with `.btn-research-tool` buttons. Includes dark mode overrides for focus rings and button backgrounds.
+
 - **style(quoting): redesign wizard footer as floating island nav** (April 10, 2026):
   - `css/layout.css` — Footer changed from full-width fixed bar to a floating island with rounded corners, max-width constraint (720px base / 800px desktop), 12px bottom offset, glassmorphism backdrop blur, and subtle border. Dark mode uses `rgba(44, 44, 46, 0.88)` solid background. Desktop sidebar offsets updated to account for island margins. Main content bottom padding bumped to 110px for clearance.
 
