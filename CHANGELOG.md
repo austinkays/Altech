@@ -10,6 +10,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(property): AI listing search via Gemini Search Grounding** (April 10, 2026):
+  - `api/property-intelligence.js` — Added `handleListingSearch()` function (~180 lines) + `LISTING_FIELD_MAP` constant for `?mode=listing-search`; forces Gemini for search grounding (Google-exclusive); extracts 25+ property fields from any Redfin/Zillow URL or address; normalizes through `mapZillowToAltech()`; returns address fields separately for URL lookups
+  - `js/app-property.js` — Added `lookupListingUrl(query)` method: detects URL vs address, calls listing-search API, fills address fields from URL lookups (only empty fields), applies property data via `applyZillowSelects()`, shows status feedback
+  - `plugins/quoting.html` — Added listing URL input row + Lookup button after utility-buttons in Step 3; added `listingSearchStatus` feedback div
+- **feat(export): AI Coverage Gap Analysis on review step** (April 10, 2026):
+  - `js/app-export.js` — Added `runCoverageGapAnalysis()` (~180 lines): collects all form data (property, vehicles, drivers, coverage limits, liability exposures), sends to Anthropic via proxy (preferred) with Gemini/AIProvider fallback, renders severity-colored gap cards (high/medium/low) with recommendations
+  - `js/app-export.js` — Added `_renderCoverageGapResults()`: renders gap cards with severity colors (red/orange/blue), plus strengths section
+  - `plugins/quoting.html` — Added AI Coverage Gap Analysis card to step-6 between Quick Edit and Hero Export sections
+
+### Changed
+- **refactor(property): force Gemini for all property search** (April 10, 2026):
+  - `api/property-intelligence.js` — Changed `handleZillow()` to force `createRouter({ provider: 'google' })` instead of user's global AI provider setting; Gemini search grounding is Google-exclusive
+
+### Fixed
+- **fix(css): correct invalid CSS variable in quoting.html** (April 10, 2026):
+  - `plugins/quoting.html` — Changed `var(--card-bg)` to `var(--bg-card)` on `gisUploadStatus` div
+- **fix(ai-router): improve extractJSON robustness** (April 10, 2026):
+  - `api/_ai-router.js` — Added 2 new fallback stages to `extractJSON()`: stage 5 strips single-line `//` comments, stage 6 fixes single-quote → double-quote JSON
+
+### Added
 - **feat(import): add configurable EZLynx XML auto-import path** (April 9, 2026):
   - `js/storage-keys.js` — Added `EZLYNX_XML_PATH` key
   - `index.html` — Added "EZLynx XML Path" settings section (between Agency Glossary and Security) with text input, save button, and ontoggle loader

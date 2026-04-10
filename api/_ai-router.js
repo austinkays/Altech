@@ -76,6 +76,14 @@ export function extractJSON(text) {
     const cleaned = candidate.replace(/,\s*([}\]])/g, '$1');
     try { return JSON.parse(cleaned); } catch (_) {}
 
+    // 5. Strip single-line comments (// ...) and fix unquoted keys
+    const noComments = cleaned.replace(/\/\/[^\n]*/g, '');
+    try { return JSON.parse(noComments); } catch (_) {}
+
+    // 6. Try fixing common LLM artifacts: single quotes → double quotes, trailing text
+    const singleToDouble = noComments.replace(/'/g, '"');
+    try { return JSON.parse(singleToDouble); } catch (_) {}
+
     return null;
 }
 

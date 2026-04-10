@@ -475,6 +475,13 @@
                     <button class="btn-utility" onclick="App.openPropertyRecords()" title="Copies address to clipboard & opens county assessor site" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px;">🏛️ Assessor</button>
                     <button class="btn-utility" onclick="App.importPropertyFromExtension()" title="Import property data scraped by the Chrome Extension from Redfin/GIS" style="flex: 0 1 auto; font-size: 12px; padding: 7px 14px; background: linear-gradient(135deg, #ff9500, #e68600); color: white;">📥 Import</button>
                 </div>
+
+                <!-- Listing URL Search -->
+                <div class="listing-search-row qtype-home-only" style="margin-top: 10px; display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="listingUrlInput" placeholder="Paste Redfin/Zillow URL or type an address…" style="flex: 1; font-size: 13px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text);">
+                    <button class="btn-utility" onclick="App.lookupListingUrl(document.getElementById('listingUrlInput').value)" title="Search listing details via AI" style="flex: 0 0 auto; font-size: 12px; padding: 8px 14px; background: var(--apple-blue); color: white; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap;">🏠 Lookup</button>
+                </div>
+                <div id="listingSearchStatus" class="qtype-home-only" style="display: none; margin-top: 6px; font-size: 12px; color: var(--text-secondary); text-align: center;"></div>
                 <div class="qtype-auto-show" style="display:none; margin-top:12px;">
                     <label class="checkbox-row">
                         <input type="checkbox" id="garagingSameAsMailing">
@@ -484,7 +491,7 @@
 
                 <!-- Hidden file input kept for backward compatibility -->
                 <input type="file" id="gisUploadInput" accept="image/*,.pdf" multiple style="display:none" onchange="App.handleGISUpload(event)">
-                <div id="gisUploadStatus" class="hidden" style="margin-top: 8px; padding: 10px; border-radius: 8px; background: var(--card-bg); font-size: 13px; text-align: center;"></div>
+                <div id="gisUploadStatus" class="hidden" style="margin-top: 8px; padding: 10px; border-radius: 8px; background: var(--bg-card); font-size: 13px; text-align: center;"></div>
                 <div id="gisUploadResults" style="margin-top: 8px;"></div>
             </div>
 
@@ -2218,6 +2225,16 @@
                     <button class="btn-edit-jump" onclick="App.jumpToStep('step-4')" type="button" id="editJumpVehicles">🚗 Vehicles &amp; Drivers</button>
                     <button class="btn-edit-jump" onclick="App.jumpToStep('step-5')" type="button">📋 Prior Insurance</button>
                 </div>
+            </div>
+
+            <!-- AI Coverage Gap Analysis -->
+            <div class="card export-card" id="coverageGapCard">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                    <h3 style="margin:0; font-size:15px;">🔍 AI Coverage Analysis</h3>
+                </div>
+                <p class="section-subtitle" style="margin-bottom:12px;">AI reviews your client data for coverage gaps, underinsurance, and recommendations</p>
+                <button class="btn btn-primary" onclick="App.runCoverageGapAnalysis()" id="coverageGapBtn" style="width:100%;">🧠 Analyze Coverage Gaps</button>
+                <div id="coverageGapResults" style="margin-top:12px; display:none;"></div>
             </div>
 
             <!-- Hero Export Card -->

@@ -17,7 +17,7 @@
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
 | **CSS** | 34 files in `css/` (~22,595 lines total) |
-| **JS** | 46 modules in `js/` (~43,115 lines total) |
+| **JS** | 46 modules in `js/` (~43,510 lines total) |
 | **Plugins** | 21 HTML templates in `plugins/` (~6,712 lines total) |
 | **APIs** | 12 serverless functions + 2 helpers in `api/` (~6,307 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
@@ -107,11 +107,11 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-ui-utils.js         # App.toast(), App.toggleDarkMode(), App.loadDarkMode(), App.formatDateDisplay(), App.copyToClipboard()
 │   ├── app-navigation.js       # App.updateUI(), App.navigateTo(), step progression, hash routing
 │   ├── app-core.js             # save/load, form field persistence, schema migration, encryption, clearExportHistory() — persistence-only (updateUI/navigateTo → app-navigation.js; toast/dark-mode → app-ui-utils.js)
-│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (2,283 lines)
-│   ├── app-property.js         # Property analysis, maps, assessor data, Redfin integration (2,503 lines)
+│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (2,350 lines)
+│   ├── app-property.js         # Property analysis, maps, assessor data, Redfin integration (2,573 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
-│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema (1,337 lines)
+│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema, AI coverage gap analysis (1,565 lines)
 │   ├── app-quotes.js           # Quote/draft management, client history auto-save, search + view-all (927 lines)
 │   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (280 lines)
 │   │

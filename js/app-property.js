@@ -178,6 +178,73 @@ Object.assign(App, {
         window.open(`https://www.google.com/search?q=${encodeURIComponent(a + ' redfin')}`, '_blank');
     },
 
+    // ── Listing Search — Gemini Search Grounding for URL or Address ──
+    // Accepts a Redfin/Zillow/Realtor URL or plain address, uses AI to extract property details.
+    async lookupListingUrl(query) {
+        if (!query || typeof query !== 'string' || !query.trim()) {
+            this.toast('Paste a listing URL or type an address.', 'error');
+            return;
+        }
+        const trimmed = query.trim();
+        const isUrl = /^https?:\/\//i.test(trimmed);
+        const label = isUrl ? 'listing' : 'address';
+
+        // Show loading state
+        const statusEl = document.getElementById('listingSearchStatus');
+        if (statusEl) {
+            statusEl.textContent = `Searching ${label}…`;
+            statusEl.style.display = '';
+        }
+        this.toast(`🔍 Searching ${label} via AI…`, 'info');
+
+        try {
+            const resp = await fetch('/api/property-intelligence?mode=listing-search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: trimmed }),
+            });
+            const result = await resp.json();
+
+            if (!result.success) {
+                this.toast(`⚠️ ${result.error || 'No property data found.'}`, 'error');
+                if (statusEl) statusEl.style.display = 'none';
+                return;
+            }
+
+            const data = result.data || {};
+            const addressFields = result.addressFields || {};
+            const count = result.fieldsFound?.length || Object.keys(data).length;
+
+            // If URL search returned address fields we don't have yet, fill them
+            if (isUrl && addressFields.address) {
+                const addrMap = { addrStreet: addressFields.address, addrCity: addressFields.city, addrState: addressFields.state, addrZip: addressFields.zip };
+                for (const [fid, val] of Object.entries(addrMap)) {
+                    if (!val) continue;
+                    const el = document.getElementById(fid);
+                    if (!el || (el.value && el.value.trim())) continue;
+                    el.value = val;
+                    this.data[fid] = val;
+                    this.markAutoFilled?.(el, 'listing');
+                }
+            }
+
+            // Apply extracted property data using existing Zillow-style applier
+            this.applyZillowSelects(data);
+
+            this.toast(`✅ Found ${count} property details from ${label}!`, 'success');
+            if (statusEl) {
+                statusEl.textContent = `✓ ${count} fields from ${result.source || 'AI Search'}`;
+                setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
+            }
+
+            this.save();
+        } catch (err) {
+            console.error('[lookupListingUrl]', err);
+            this.toast('❌ Listing search failed. Try again.', 'error');
+            if (statusEl) statusEl.style.display = 'none';
+        }
+    },
+
     // ── Import Property Data from Chrome Extension ──
     // Tries the extension bridge first (REQUEST_PROPERTY_DATA → PROPERTY_DATA_RESPONSE),
     // then falls back to reading clipboard JSON from "📋 Copy for Altech".
