@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(compliance): stop renewed/handled policies from resurrecting after cloud sync** (April 10, 2026):
+  - `js/compliance-dashboard.js` — `checkForRenewals()` now detects stale verified/dismissed markers resurrected by cloud sync and silently removes them without resetting user's note data (hawksoftUpdated, stateUpdated, needsStateUpdate). Added date-normalized guard (`_userAckedExp`) that handles format mismatches between stored and fresh expiration dates. Added `userAlreadyHandled` flag — if user already clicked "HawkSoft Updated" or "State Updated", stale markers are cleaned up without re-triggering the "⚠ Renewed" workflow.
+  - `js/cloud-sync.js` — After pulling CGL state from Firestore, now re-runs `checkForRenewals()` + `filterPolicies()` to immediately clean up any stale markers brought in by cloud data, instead of waiting for next page load.
+
 ### Added
 - **feat(quoting): drag-and-drop XML import on Personal Lines page** (April 10, 2026):
   - `js/app-core.js` — Browser drop handler on `scanDropZone` now detects `.xml` files and routes to `_handleEZLynxXMLFile()` instead of OCR scan pipeline

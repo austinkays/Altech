@@ -108,7 +108,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-navigation.js       # App.updateUI(), App.navigateTo(), step progression, hash routing
 │   ├── app-core.js             # save/load, form field persistence, schema migration, encryption, clearExportHistory() — persistence-only (updateUI/navigateTo → app-navigation.js; toast/dark-mode → app-ui-utils.js)
 │   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (2,350 lines)
-│   ├── app-property.js         # Property analysis, maps, assessor data, Redfin integration, listing URL lookup (2,594 lines)
+│   ├── app-property.js         # Property analysis, maps, assessor data, Redfin integration, listing URL lookup (2,621 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
 │   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema, AI coverage gap analysis (1,565 lines)
@@ -128,7 +128,7 @@ npm run deploy:vercel   # Production deploy
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
-│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep, emoji note icons (Windows-safe: 🏠🔰💤), note-count badge, two-step workflow (State Updated / HawkSoft Updated), CSS-class-based button colors (no inline styles), note icon tooltips via _noteIconHtml() (2,867 lines)
+│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep, emoji note icons (Windows-safe: 🏠🔰💤), note-count badge, two-step workflow (State Updated / HawkSoft Updated), CSS-class-based button colors (no inline styles), note icon tooltips via _noteIconHtml() (2,930 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
 │   ├── endorsement-parser.js   # AI-powered endorsement email parser, extracts structured data from carrier change requests (805 lines)
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,119 lines)

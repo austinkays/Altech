@@ -1557,14 +1557,32 @@ const ComplianceDashboard = {
     // Auto-clear verified/dismissed markers when a policy renews (expiration date changes).
     // Sets needsStateUpdate flag so renewed policies stay prominent until user clicks "State Updated".
     // Idempotent: if needsStateUpdate is already set, clears the marker but skips adding duplicate notes.
+    // If user already acknowledged this renewal (hawksoftUpdated/stateUpdated set), stale markers
+    // are silently removed without resetting note data — prevents cloud-sync resurrection loops.
     checkForRenewals() {
         if (!this.policies || this.policies.length === 0) return;
         let cleared = 0;
+
+        // Date-normalized guard: returns true if the user already acknowledged this expiration
+        const _userAckedExp = (noteData, policyExp) => {
+            if (!policyExp) return false;
+            const ackExp = noteData?.stateUpdatedForExp || noteData?.hawksoftUpdatedForExp;
+            if (!ackExp) return false;
+            // Try strict equality first (fast path)
+            if (ackExp === policyExp) return true;
+            // Fallback: compare as dates (handles format mismatches like ISO vs locale)
+            const a = new Date(ackExp).getTime();
+            const b = new Date(policyExp).getTime();
+            return !isNaN(a) && !isNaN(b) && Math.abs(a - b) < 86400000; // within 1 day
+        };
 
         this.policies.forEach(policy => {
             const pn = policy.policyNumber;
             const existingNote = this.getNoteData(pn);
             const alreadyFlagged = !!(existingNote && existingNote.needsStateUpdate && !existingNote.stateUpdated);
+            // If user already handled this renewal (clicked State Updated or HawkSoft Updated),
+            // stale markers resurrected by cloud sync should be silently cleaned up
+            const userAlreadyHandled = !!(existingNote && (existingNote.hawksoftUpdated || existingNote.stateUpdated));
 
             // Check verified markers
             const verified = this.verifiedPolicies[pn];
@@ -1574,7 +1592,14 @@ const ComplianceDashboard = {
                     const currentExp = new Date(policy.expirationDate).getTime();
                     if (currentExp - storedExp > 30 * 24 * 60 * 60 * 1000) {
                         // Skip if user already acknowledged this exact expiration (state or hawksoft)
-                        if (existingNote?.stateUpdatedForExp === policy.expirationDate || existingNote?.hawksoftUpdatedForExp === policy.expirationDate) return;
+                        if (_userAckedExp(existingNote, policy.expirationDate)) return;
+                        // If user already handled but ack was for a different exp, silently remove stale marker
+                        if (userAlreadyHandled) {
+                            console.log(`[CGL] Stale verified marker for ${pn} — removing silently (user already handled renewal)`);
+                            delete this.verifiedPolicies[pn];
+                            cleared++;
+                            return;
+                        }
                         console.log(`[CGL] Renewal detected: ${pn} — exp moved from ${verified.expirationDate} to ${policy.expirationDate}. Clearing verified marker.`);
                         if (!alreadyFlagged) {
                             this.addQuickNote(pn, `Auto-cleared: policy renewed (exp changed from ${new Date(verified.expirationDate).toLocaleDateString()} to ${new Date(policy.expirationDate).toLocaleDateString()})`);
@@ -1590,7 +1615,13 @@ const ComplianceDashboard = {
                     const currentExp = new Date(policy.expirationDate).getTime();
                     if (currentExp - verifiedAt > 180 * 24 * 60 * 60 * 1000) {
                         // Skip if user already acknowledged this exact expiration (state or hawksoft)
-                        if (existingNote?.stateUpdatedForExp === policy.expirationDate || existingNote?.hawksoftUpdatedForExp === policy.expirationDate) return;
+                        if (_userAckedExp(existingNote, policy.expirationDate)) return;
+                        if (userAlreadyHandled) {
+                            console.log(`[CGL] Stale legacy verified marker for ${pn} — removing silently (user already handled renewal)`);
+                            delete this.verifiedPolicies[pn];
+                            cleared++;
+                            return;
+                        }
                         console.log(`[CGL] Likely renewal (legacy marker): ${pn} — verified ${verified.updatedAt}, exp ${policy.expirationDate}. Clearing.`);
                         if (!alreadyFlagged) {
                             this.addQuickNote(pn, `Auto-cleared: likely renewal (verified ${new Date(verified.updatedAt).toLocaleDateString()}, now expires ${new Date(policy.expirationDate).toLocaleDateString()})`);
@@ -1612,7 +1643,13 @@ const ComplianceDashboard = {
                     const currentExp = new Date(policy.expirationDate).getTime();
                     if (currentExp - storedExp > 30 * 24 * 60 * 60 * 1000) {
                         // Skip if user already acknowledged this exact expiration (state or hawksoft)
-                        if (existingNote?.stateUpdatedForExp === policy.expirationDate || existingNote?.hawksoftUpdatedForExp === policy.expirationDate) return;
+                        if (_userAckedExp(existingNote, policy.expirationDate)) return;
+                        if (userAlreadyHandled) {
+                            console.log(`[CGL] Stale dismissed marker for ${pn} — removing silently (user already handled renewal)`);
+                            delete this.dismissedPolicies[pn];
+                            cleared++;
+                            return;
+                        }
                         console.log(`[CGL] Renewal detected (dismissed): ${pn} — exp moved from ${dismissed.expirationDate} to ${policy.expirationDate}. Clearing dismissed marker.`);
                         if (!alreadyFlagged) {
                             this.addQuickNote(pn, `Auto-cleared: policy renewed (exp changed from ${new Date(dismissed.expirationDate).toLocaleDateString()} to ${new Date(policy.expirationDate).toLocaleDateString()})`);
@@ -1628,7 +1665,13 @@ const ComplianceDashboard = {
                     const currentExp = new Date(policy.expirationDate).getTime();
                     if (currentExp - dismissedAt > 180 * 24 * 60 * 60 * 1000) {
                         // Skip if user already acknowledged this exact expiration (state or hawksoft)
-                        if (existingNote?.stateUpdatedForExp === policy.expirationDate || existingNote?.hawksoftUpdatedForExp === policy.expirationDate) return;
+                        if (_userAckedExp(existingNote, policy.expirationDate)) return;
+                        if (userAlreadyHandled) {
+                            console.log(`[CGL] Stale legacy dismissed marker for ${pn} — removing silently (user already handled renewal)`);
+                            delete this.dismissedPolicies[pn];
+                            cleared++;
+                            return;
+                        }
                         console.log(`[CGL] Likely renewal (dismissed legacy): ${pn} — dismissed ${dismissed.dismissedAt}, exp ${policy.expirationDate}. Clearing.`);
                         if (!alreadyFlagged) {
                             this.addQuickNote(pn, `Auto-cleared: policy renewed (exp changed from ${new Date(dismissed.dismissedAt).toLocaleDateString()} to ${new Date(policy.expirationDate).toLocaleDateString()})`);

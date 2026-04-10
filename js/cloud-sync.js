@@ -586,8 +586,13 @@ const CloudSync = (() => {
                     });
                 }
                 // Reload CGL in-memory state after cloud pull
+                // Re-run renewal check to clean up stale markers resurrected by cloud data
                 if (cglResult?.data && typeof ComplianceDashboard !== 'undefined' && ComplianceDashboard.loadState) {
                     ComplianceDashboard.loadState();
+                    if (ComplianceDashboard.policies?.length > 0 && ComplianceDashboard.checkForRenewals) {
+                        ComplianceDashboard.checkForRenewals();
+                        if (ComplianceDashboard.filterPolicies) ComplianceDashboard.filterPolicies();
+                    }
                 }
 
                 // Pull client history
