@@ -334,29 +334,35 @@ main {
     z-index: 1;
 }
 
-/* === FOOTER (layout shell) === */
+/* === FOOTER (layout shell) — floating island nav === */
 footer {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(20px);
-    border-top: 1px solid var(--border);
-    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    position: fixed; bottom: 12px; left: 16px; right: 16px;
+    background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 10px 20px calc(10px + env(safe-area-inset-bottom));
     display: flex; gap: 10px; z-index: 1000;
-    box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0, 0, 0, 0.06);
+    justify-content: space-between;
+    align-items: center;
+    max-width: 720px;
+    margin: 0 auto;
 }
 body.dark-mode footer {
-    background: rgba(28, 28, 30, 0.95);
-    border-top-color: rgba(255, 255, 255, 0.10);
+    background: rgba(44, 44, 46, 0.88);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* === DESKTOP: APP SHELL FOOTER OFFSET === */
 @media (min-width: 768px) {
     .app-shell footer {
-        left: var(--sidebar-width, 240px);
+        left: calc(var(--sidebar-width, 240px) + 16px);
     }
 }
 @media (min-width: 768px) and (max-width: 1279px) {
     .app-shell footer {
-        left: var(--sidebar-collapsed-width, 64px);
+        left: calc(var(--sidebar-collapsed-width, 64px) + 16px);
     }
 }
 
@@ -464,7 +470,7 @@ body.dark-mode #breadcrumbBar {
     #quotingTool main {
         max-width: none;
         margin: 0 auto;
-        padding: 24px 32px calc(100px + env(safe-area-inset-bottom));
+        padding: 24px 32px calc(110px + env(safe-area-inset-bottom));
     }
     #quotingTool header {
         max-width: none;
@@ -477,7 +483,7 @@ body.dark-mode #breadcrumbBar {
 }
 @media (min-width: 1280px) {
     #quotingTool main {
-        padding: 28px 40px calc(100px + env(safe-area-inset-bottom));
+        padding: 28px 40px calc(110px + env(safe-area-inset-bottom));
     }
     #quotingTool .card {
         padding: 28px 32px;
@@ -596,11 +602,11 @@ body.dark-mode #breadcrumbBar {
 /* ─── Desktop Footer: Centered, constrained width ─── */
 @media (min-width: 960px) {
     #quotingTool footer {
-        max-width: none;
+        max-width: 800px;
         margin: 0 auto;
-        right: 0;
-        border-radius: 16px 16px 0 0;
-        padding: 12px 32px calc(12px + env(safe-area-inset-bottom));
+        right: 16px;
+        border-radius: 16px;
+        padding: 14px 32px calc(14px + env(safe-area-inset-bottom));
         justify-content: space-between;
         align-items: center;
     }

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **style(quoting): redesign wizard footer as floating island nav** (April 10, 2026):
+  - `css/layout.css` — Footer changed from full-width fixed bar to a floating island with rounded corners, max-width constraint (720px base / 800px desktop), 12px bottom offset, glassmorphism backdrop blur, and subtle border. Dark mode uses `rgba(44, 44, 46, 0.88)` solid background. Desktop sidebar offsets updated to account for island margins. Main content bottom padding bumped to 110px for clearance.
+
 ### Fixed
 - **fix(compliance): stop renewed/handled policies from resurrecting after cloud sync** (April 10, 2026):
   - `js/compliance-dashboard.js` — `checkForRenewals()` now detects stale verified/dismissed markers resurrected by cloud sync and silently removes them without resetting user's note data (hawksoftUpdated, stateUpdated, needsStateUpdate). Added date-normalized guard (`_userAckedExp`) that handles format mismatches between stored and fresh expiration dates. Added `userAlreadyHandled` flag — if user already clicked "HawkSoft Updated" or "State Updated", stale markers are cleaned up without re-triggering the "⚠ Renewed" workflow.
