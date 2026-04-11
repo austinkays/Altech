@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `js/cloud-sync.js` — After pulling CGL state from Firestore, now re-runs `checkForRenewals()` + `filterPolicies()` to immediately clean up any stale markers brought in by cloud data, instead of waiting for next page load.
 
 ### Added
+- **docs(guide): add Code Maintenance Guide for solo maintainer** (April 11, 2026):
+  - `docs/guides/CODE_MAINTENANCE_GUIDE.md` — NEW. Recurring-audit playbook tying existing tooling (`npm run audit-docs`, `npm test`, `CLAUDE.md`, `AGENTS.md`, `docs/technical/SECURITY_AND_DATA_SUMMARY.md`) into a weekly / monthly / quarterly cadence. Covers 4 audits adapted to Altech specifics: modularization review (`App.*` slice bleed, plugin IIFE discipline, CSS split-file rules, `Utils.*` duplication, `STORAGE_KEYS` hardcoding), file formatting audit (long-line detection, script load order drift, CRLF/LF mismatches, `[data-tooltip]` bleed regressions, `/* no var */` preservation), extensive testing (Jest + three-workflow manual QA + JSDOM gap list + cloud-sync round-trip), and four-round whitehat security audit (secrets, Firebase auth boundary, XSS, 12-function `api/` surface). Every section includes a paste-ready Claude Code prompt.
 - **feat(quoting): drag-and-drop XML import on Personal Lines page** (April 10, 2026):
   - `js/app-core.js` — Browser drop handler on `scanDropZone` now detects `.xml` files and routes to `_handleEZLynxXMLFile()` instead of OCR scan pipeline
   - `js/app-core.js` — Tauri native drop handler detects `.xml` files and reads via `fs.readFile()` → `_parseAndApplyXML()`
