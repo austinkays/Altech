@@ -31,6 +31,20 @@
         <div class="counts" id="reportCounts"></div>
     </section>
 
+    <!-- Admin-only Recon Tools section (hidden by default, shown if isAdmin) -->
+    <section class="card" id="reconSection" hidden>
+        <div class="label">Recon Tools <span class="admin-badge">admin</span></div>
+        <div class="recon-grid">
+            <button class="recon-btn" data-feature="page-inventory">📋 Page Inventory</button>
+            <button class="recon-btn" data-feature="registry-audit">🔍 Registry Audit</button>
+            <button class="recon-btn" data-feature="dry-run">🧪 Dry Run</button>
+            <button class="recon-btn" data-feature="issue-capture">📸 Issue Capture</button>
+            <button class="recon-btn" data-feature="cascade-test">⛓ Cascade Test</button>
+            <button class="recon-btn" data-feature="diff-registry">↔ Diff Registry</button>
+        </div>
+        <div class="recon-status" id="reconStatus"></div>
+    </section>
+
     <footer class="ftr">
         <span>V2 — atom orchestrator · execCommand fill</span>
     </footer>

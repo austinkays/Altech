@@ -59,6 +59,15 @@
         "src/content/spa/nav-detector.js",
         "src/content/ui/fill-report-panel.js",
         "src/content/ui/toolbar.js",
+        "src/content/recon/pii-redactor.js",
+        "src/content/recon/output.js",
+        "src/content/recon/page-inventory.js",
+        "src/content/recon/registry-audit.js",
+        "src/content/recon/dry-run.js",
+        "src/content/recon/issue-capture.js",
+        "src/content/recon/cascade-test.js",
+        "src/content/recon/diff-registry.js",
+        "src/content/recon/index.js",
         "src/content/content.js"
       ]
     },

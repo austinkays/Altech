@@ -19,6 +19,8 @@
         fillHint: $('fillHint'),
         reportCard: $('reportCard'),
         reportCounts: $('reportCounts'),
+        reconSection: $('reconSection'),
+        reconStatus: $('reconStatus'),
     };
 
     let state = {
@@ -103,14 +105,44 @@
         state.tabUrl = tab?.url || null;
         state.routeKey = detectRoute(state.tabUrl);
 
-        const stored = await chrome.storage.local.get(['clientData', 'lastFillReport']);
+        const stored = await chrome.storage.local.get(['clientData', 'lastFillReport', 'isAdmin']);
         state.clientData = stored.clientData || null;
 
         renderClient();
         renderRoute();
         renderButton();
         renderReport(stored.lastFillReport);
+
+        // Show admin Recon Tools section if isAdmin
+        if (stored.isAdmin && els.reconSection) {
+            els.reconSection.hidden = false;
+        }
     }
+
+    // Wire recon feature buttons
+    document.querySelectorAll('.recon-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const feature = btn.dataset.feature;
+            if (!feature) return;
+            document.querySelectorAll('.recon-btn').forEach((b) => { b.disabled = true; });
+            if (els.reconStatus) els.reconStatus.textContent = `Running ${feature}…`;
+            try {
+                const res = await chrome.runtime.sendMessage({
+                    type: 'ALTECH_V2_RECON_REQUEST',
+                    feature,
+                });
+                if (res && res.ok) {
+                    if (els.reconStatus) els.reconStatus.textContent = `✅ ${feature} complete — copied to clipboard`;
+                } else {
+                    if (els.reconStatus) els.reconStatus.textContent = `❌ ${feature}: ${res && res.error || 'failed'}`;
+                }
+            } catch (e) {
+                if (els.reconStatus) els.reconStatus.textContent = `❌ Error: ${e.message}`;
+            } finally {
+                document.querySelectorAll('.recon-btn').forEach((b) => { b.disabled = false; });
+            }
+        });
+    });
 
     els.fillBtn.addEventListener('click', async () => {
         if (els.fillBtn.disabled) return;

@@ -6,6 +6,10 @@
  *   - Running: progress indicator
  *   - Report : summary + per-atom drill-down
  *
+ * Admin-only: the 🔍 Recon button is shown only when isAdmin is set in
+ * chrome.storage.local. Clicking it toggles the inline Recon panel with
+ * the 6 feature buttons.
+ *
  * Built in shadow DOM to isolate styles from EZLynx's Material theme.
  */
 (function (global) {
@@ -23,8 +27,8 @@
     border: 1px solid #3a3a3c;
     border-radius: 10px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-    width: 280px;
-    max-height: 70vh;
+    width: 300px;
+    max-height: 80vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -37,6 +41,7 @@
     border-bottom: 1px solid #3a3a3c;
     cursor: move;
 }
+.hdr-left { display: flex; align-items: center; gap: 6px; }
 .brand { font-weight: 600; }
 .v2tag {
     background: #0a84ff;
@@ -46,6 +51,13 @@
     font-size: 10px;
     margin-left: 4px;
 }
+.recon-btn {
+    background: none; border: 1px solid #3a3a3c; border-radius: 6px;
+    color: #f5f5f7; font-size: 14px; cursor: pointer;
+    padding: 2px 6px; line-height: 1.4;
+    display: none; /* shown only for admin */
+}
+.recon-btn:hover { background: #2c2c2e; }
 .body { padding: 10px 12px; overflow: auto; }
 .route { color: #9a9aa1; font-size: 11px; margin-bottom: 8px; }
 .btn {
@@ -69,7 +81,38 @@
 .av2-issue { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .av2-dur { color: #9a9aa1; font-size: 10px; margin-top: 6px; }
 .progress { font-size: 11px; color: #9a9aa1; margin-top: 6px; }
+/* Recon panel */
+.recon-panel { display: none; margin-top: 10px; border-top: 1px solid #3a3a3c; padding-top: 10px; }
+.recon-panel.open { display: block; }
+.recon-label { font-size: 10px; color: #9a9aa1; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.recon-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 4px; margin-bottom: 8px;
+}
+.rbtn {
+    padding: 6px 8px; background: #2c2c2e; border: 1px solid #3a3a3c;
+    border-radius: 6px; color: #f5f5f7; font-size: 11px;
+    cursor: pointer; text-align: left; line-height: 1.3;
+}
+.rbtn:hover { background: #3a3a3c; }
+.rbtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.recon-status { font-size: 11px; color: #9a9aa1; margin-top: 4px; min-height: 16px; }
+.recon-output {
+    margin-top: 8px; background: #111; border: 1px solid #3a3a3c;
+    border-radius: 6px; padding: 8px; font-size: 10px; color: #30d158;
+    font-family: monospace; max-height: 200px; overflow: auto;
+    white-space: pre-wrap; word-break: break-all; display: none;
+}
 `;
+
+    const FEATURES = [
+        { key: 'page-inventory',  label: '📋 Page Inventory' },
+        { key: 'registry-audit',  label: '🔍 Registry Audit' },
+        { key: 'dry-run',         label: '🧪 Dry Run' },
+        { key: 'issue-capture',   label: '📸 Issue Capture' },
+        { key: 'cascade-test',    label: '⛓ Cascade Test' },
+        { key: 'diff-registry',   label: '↔ Diff Registry' },
+    ];
 
     function mount(options) {
         const opts = options || {};
@@ -85,22 +128,92 @@
         style.textContent = CSS;
         shadow.appendChild(style);
 
+        const reconButtons = FEATURES.map((f) =>
+            `<button class="rbtn" data-feature="${f.key}">${f.label}</button>`
+        ).join('');
+
         const root = document.createElement('div');
         root.className = 'root';
         root.innerHTML = `
             <div class="hdr">
-                <span class="brand">Altech <span class="v2tag">V2</span></span>
-                <span class="route" id="route">—</span>
+                <span class="hdr-left">
+                    <span class="brand">Altech <span class="v2tag">V2</span></span>
+                </span>
+                <span style="display:flex;align-items:center;gap:6px;">
+                    <span class="route" id="route">—</span>
+                    <button class="recon-btn" id="reconBtn" title="Recon Tools (admin)">🔍</button>
+                </span>
             </div>
             <div class="body">
                 <button class="btn" id="fillBtn">Fill this page</button>
                 <div class="progress" id="progress"></div>
                 <div id="reportHost"></div>
+                <div class="recon-panel" id="reconPanel">
+                    <div class="recon-label">Recon Tools</div>
+                    <div class="recon-grid">${reconButtons}</div>
+                    <div class="recon-status" id="reconStatus"></div>
+                    <pre class="recon-output" id="reconOutput"></pre>
+                </div>
             </div>
         `;
         shadow.appendChild(root);
 
         const $ = (id) => shadow.getElementById(id);
+
+        // Admin gate — show recon button only if isAdmin
+        try {
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.get(['isAdmin'], (data) => {
+                    if (data && data.isAdmin) {
+                        $('reconBtn').style.display = 'block';
+                    }
+                });
+            }
+        } catch (_) { /* non-critical */ }
+
+        // Recon panel toggle
+        $('reconBtn').addEventListener('click', () => {
+            const panel = $('reconPanel');
+            const isOpen = panel.classList.contains('open');
+            panel.classList.toggle('open', !isOpen);
+        });
+
+        // Recon feature buttons
+        shadow.querySelectorAll('.rbtn').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const feature = btn.dataset.feature;
+                const status = $('reconStatus');
+                const output = $('reconOutput');
+                shadow.querySelectorAll('.rbtn').forEach((b) => { b.disabled = true; });
+                status.textContent = `Running ${feature}…`;
+                output.style.display = 'none';
+                try {
+                    if (typeof chrome !== 'undefined' && chrome.runtime) {
+                        const resp = await new Promise((res) => {
+                            chrome.runtime.sendMessage(
+                                { type: 'ALTECH_V2_RECON_REQUEST', feature },
+                                (r) => res(r)
+                            );
+                        });
+                        if (resp && resp.ok) {
+                            status.textContent = `✅ ${feature} complete — copied to clipboard`;
+                            // Show a brief summary in the output box if available
+                            if (resp.summary) {
+                                output.textContent = JSON.stringify(resp.summary, null, 2);
+                                output.style.display = 'block';
+                            }
+                        } else {
+                            status.textContent = `❌ ${feature} failed: ${resp && resp.error || 'unknown'}`;
+                        }
+                    }
+                } catch (e) {
+                    status.textContent = `❌ Error: ${e.message}`;
+                } finally {
+                    shadow.querySelectorAll('.rbtn').forEach((b) => { b.disabled = false; });
+                }
+            });
+        });
+
         const ui = {
             setRoute(routeKey) { $('route').textContent = routeKey || '—'; },
             setState(state) {
@@ -119,14 +232,20 @@
                 $('progress').textContent = `Filling ${i} / ${total} — ${atomKey || ''}`;
             },
             showReport(report) {
-                const host = $('reportHost');
-                host.innerHTML = '';
+                const reportHost = $('reportHost');
+                reportHost.innerHTML = '';
                 const renderFn = (typeof module !== 'undefined' && module.exports)
                     ? require('./fill-report-panel').renderReport
                     : (global.AltechV2 && global.AltechV2.ui && global.AltechV2.ui.renderReport);
-                if (renderFn) host.appendChild(renderFn(report));
+                if (renderFn) reportHost.appendChild(renderFn(report));
             },
             onFillClick(handler) { $('fillBtn').addEventListener('click', handler); },
+            toggleReconPanel() {
+                const panel = $('reconPanel');
+                panel.classList.toggle('open');
+                // Ensure recon btn is visible when invoked by keyboard shortcut
+                $('reconBtn').style.display = 'block';
+            },
             unmount() { try { host.remove(); } catch (_) {} },
         };
         if (typeof opts.onMounted === 'function') opts.onMounted(ui);
