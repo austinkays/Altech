@@ -1,0 +1,75 @@
+{
+  "manifest_version": 3,
+  "name": "Altech EZLynx Filler (V2)",
+  "version": "0.8.0",
+  "description": "V2 rewrite — Angular-aware fill strategy via execCommand('insertText'). Atom-based orchestrator with container scoping for multi-entity pages. Replaces v0.7.2.",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*.ezlynx.com/*"
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Altech EZLynx Filler (V2)"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.ezlynx.com/*"],
+      "run_at": "document_idle",
+      "css": ["src/content/ui/toolbar.css"],
+      "js": [
+        "src/content/transforms/abbreviations.js",
+        "src/content/transforms/currency-strip.js",
+        "src/content/transforms/phone-format.js",
+        "src/content/waits/poll-predicate.js",
+        "src/content/waits/wait-element.js",
+        "src/content/waits/wait-enabled.js",
+        "src/content/waits/wait-options-loaded.js",
+        "src/content/waits/wait-decode-complete.js",
+        "src/content/waits/wait-child-atoms-ready.js",
+        "src/content/locator/dice-similarity.js",
+        "src/content/locator/scope-resolvers.js",
+        "src/content/locator/find-by-id.js",
+        "src/content/locator/find-scoped.js",
+        "src/content/verifier/error-text.js",
+        "src/content/verifier/ng-valid.js",
+        "src/content/verifier/value-matches.js",
+        "src/content/primitives/text.js",
+        "src/content/primitives/date.js",
+        "src/content/primitives/number.js",
+        "src/content/primitives/currency.js",
+        "src/content/primitives/mat-select.js",
+        "src/content/primitives/mat-toggle.js",
+        "src/content/primitives/mat-radio.js",
+        "src/content/routes/route-definitions.js",
+        "src/content/routes/router.js",
+        "src/content/registries/index.js",
+        "src/content/orchestrator/fill-trace.js",
+        "src/content/orchestrator/dependency-graph.js",
+        "src/content/orchestrator/atom-executor.js",
+        "src/content/orchestrator/index.js",
+        "src/content/spa/nav-detector.js",
+        "src/content/ui/fill-report-panel.js",
+        "src/content/ui/toolbar.js",
+        "src/content/content.js"
+      ]
+    },
+    {
+      "matches": [
+        "https://altech-app.vercel.app/*",
+        "https://altech.agency/*",
+        "https://www.altech.agency/*",
+        "http://localhost/*"
+      ],
+      "run_at": "document_idle",
+      "js": ["src/altech-bridge/bridge.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  }
+}

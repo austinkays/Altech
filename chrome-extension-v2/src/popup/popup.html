@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Altech EZLynx Filler (V2)</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <header class="hdr">
+        <span class="brand">Altech <span class="v2">V2</span></span>
+        <span class="ver" id="ver">v0.8.0</span>
+    </header>
+
+    <section class="card" id="clientCard">
+        <div class="label">Loaded client</div>
+        <div class="name" id="clientName">No client loaded</div>
+        <div class="meta" id="clientMeta">Open the Altech app and click “Send to Extension”</div>
+    </section>
+
+    <section class="card" id="routeCard">
+        <div class="label">Current route</div>
+        <div class="route" id="routeName">—</div>
+        <div class="meta" id="routeMeta">Open an EZLynx page to detect the route</div>
+    </section>
+
+    <button class="primary" id="fillBtn" disabled>Fill this page</button>
+    <div class="hint" id="fillHint">Waiting for client + EZLynx tab…</div>
+
+    <section class="card report" id="reportCard" hidden>
+        <div class="label">Last fill report</div>
+        <div class="counts" id="reportCounts"></div>
+    </section>
+
+    <footer class="ftr">
+        <span>V2 — atom orchestrator · execCommand fill</span>
+    </footer>
+
+    <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+/**
+ * Altech EZLynx V2 toolbar styles.
+ * Loaded as a content_scripts CSS file so they apply inside the shadow host
+ * fallback. The real toolbar uses a shadow DOM (see toolbar.js), so these
+ * rules only affect the mounting host element itself.
+ */
+#altech-v2-toolbar-host {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 2147483647;
+    pointer-events: auto;
+}
