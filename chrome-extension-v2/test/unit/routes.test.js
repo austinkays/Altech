@@ -3,7 +3,7 @@
  */
 const { detectRoute, getRouteDefinition } = require('../../src/content/routes/router');
 const { ROUTE_DEFINITIONS } = require('../../src/content/routes/route-definitions');
-const { getRegistry, REGISTRIES } = require('../../src/content/registries');
+const { getRegistry } = require('../../src/content/registries');
 
 describe('detectRoute', () => {
     test('matches applicant /details', () => {
@@ -34,18 +34,26 @@ describe('detectRoute', () => {
 });
 
 describe('route/registry integrity', () => {
-    test('every route definition has a registry entry (even if empty)', () => {
-        for (const def of ROUTE_DEFINITIONS) {
-            expect(Object.prototype.hasOwnProperty.call(REGISTRIES, def.key)).toBe(true);
-        }
-    });
-
-    test('getRegistry returns an empty array for all foundation routes', () => {
+    test('every route definition key returns an array from getRegistry', () => {
         for (const def of ROUTE_DEFINITIONS) {
             const atoms = getRegistry(def.key);
             expect(Array.isArray(atoms)).toBe(true);
-            expect(atoms.length).toBe(0); // foundation milestone — no atoms yet
         }
+    });
+
+    test('Phase-2/3 routes return empty arrays (pending)', () => {
+        const pendingRoutes = [
+            'drivers-compact', 'vehicles-compact', 'incidents', 'auto-coverage',
+            'home-policy-info', 'home-dwelling-info', 'home-coverage',
+        ];
+        for (const key of pendingRoutes) {
+            expect(getRegistry(key)).toEqual([]);
+        }
+    });
+
+    test('applicant-details returns atoms (Phase 1 live)', () => {
+        const atoms = getRegistry('applicant-details');
+        expect(atoms.length).toBeGreaterThan(0);
     });
 
     test('getRegistry returns [] for unknown route keys', () => {

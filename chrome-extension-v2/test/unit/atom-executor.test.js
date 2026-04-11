@@ -186,8 +186,10 @@ describe('executeAtom — valueTransform', () => {
 });
 
 describe('orchestrator.run', () => {
+    // 'applicant-details' now has 45 real atoms — use a Phase-2 route that
+    // still has an empty registry so the NO_REGISTRY path is exercised.
     test('empty registry route produces a NO_REGISTRY trace entry', async () => {
-        const report = await run('applicant-details', {});
+        const report = await run('drivers-compact', {});
         const noReg = report.entries.find((e) => e.state === 'NO_REGISTRY');
         expect(noReg).toBeTruthy();
         expect(report.counts.DONE).toBe(0);

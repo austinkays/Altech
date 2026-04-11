@@ -21,6 +21,7 @@
                 topoSort: require('./dependency-graph').topoSort,
                 createFillTrace: require('./fill-trace').createFillTrace,
                 executeAtom: require('./atom-executor').executeAtom,
+                discoverCoApplicantEntityId: require('../special-cases/entity-id-discovery').discoverCoApplicantEntityId,
             };
         }
         return {
@@ -29,6 +30,7 @@
             topoSort: global.AltechV2.orchestrator.topoSort,
             createFillTrace: global.AltechV2.orchestrator.createFillTrace,
             executeAtom: global.AltechV2.orchestrator.executeAtom,
+            discoverCoApplicantEntityId: global.AltechV2.specialCases && global.AltechV2.specialCases.discoverCoApplicantEntityId,
         };
     };
 
@@ -42,7 +44,7 @@
         const deps = getDeps();
         const trace = deps.createFillTrace({ routeKey, startedAt: new Date().toISOString() });
 
-        const rawAtoms = deps.getRegistry(routeKey);
+        const rawAtoms = deps.getRegistry(routeKey, clientData);
         if (!rawAtoms || rawAtoms.length === 0) {
             trace.log('*', 'NO_REGISTRY', {
                 routeKey,
@@ -58,6 +60,22 @@
         } catch (e) {
             trace.log('*', 'REGISTRY_ERROR', { error: e.message, detail: e.detail });
             return trace.toReport();
+        }
+
+        // ── Pre-run: co-applicant entity discovery ──────────────────────────
+        // If any atom needs coApplicant scope AND clientData.CoApplicant exists,
+        // run entity discovery before the main loop so {entityId} can be resolved.
+        const needsEntityDiscovery = sorted.some((a) => a.scope === 'coApplicant');
+        let coApplicantEntityId = null;
+        if (needsEntityDiscovery && clientData && clientData.CoApplicant) {
+            trace.log('*', 'ENTITY_DISCOVERY_START', { scope: 'coApplicant' });
+            try {
+                coApplicantEntityId = await deps.discoverCoApplicantEntityId();
+                trace.log('*', 'ENTITY_DISCOVERY_DONE', { entityId: coApplicantEntityId });
+            } catch (e) {
+                // Non-fatal — co-applicant atoms will reach FAILED at LOCATE.
+                trace.log('*', 'ENTITY_DISCOVERY_FAILED', { error: e && e.message });
+            }
         }
 
         // Track terminal state per atom key so later atoms can detect
@@ -81,7 +99,10 @@
                 continue;
             }
 
-            const ctx = { index: atom._index, entityId: atom._entityId };
+            const ctx = {
+                index: atom._index,
+                entityId: atom.scope === 'coApplicant' ? coApplicantEntityId : atom._entityId,
+            };
             try {
                 const result = await deps.executeAtom(atom, { clientData, ctx, trace });
                 terminalState.set(atom.key, result.state);

@@ -32,6 +32,7 @@
                 waitElement: require('../waits/wait-element').waitElement,
                 waitEnabled: require('../waits/wait-enabled').waitEnabled,
                 expand: require('../transforms/abbreviations').expand,
+                dismissPacContainer: require('../special-cases/google-places').dismissPacContainer,
             };
         }
         return {
@@ -49,6 +50,7 @@
             waitElement: global.AltechV2.waits.waitElement,
             waitEnabled: global.AltechV2.waits.waitEnabled,
             expand: global.AltechV2.transforms.abbreviations.expand,
+            dismissPacContainer: global.AltechV2.specialCases && global.AltechV2.specialCases.dismissPacContainer,
         };
     };
 
@@ -81,13 +83,22 @@
 
     async function runPostFill(actions, ctx, trace) {
         if (!Array.isArray(actions) || actions.length === 0) return;
-        // Post-fill actions are out-of-scope for the foundation milestone —
-        // they're defined in special-cases/ and require registry knowledge
-        // (VIN decoder, Google Places dismiss, dynamic reveal). The executor
-        // still walks the array so registries can declare them; unsupported
-        // actions are logged as noops and ignored.
+        const deps = getDeps();
         for (const action of actions) {
-            trace.log(ctx.atom.key, 'POST_FILL', { action: action.action, supported: false });
+            switch (action.action) {
+                case 'dismissPacContainer':
+                    if (typeof deps.dismissPacContainer === 'function') {
+                        deps.dismissPacContainer();
+                        trace.log(ctx.atom.key, 'POST_FILL', { action: action.action, supported: true });
+                    } else {
+                        trace.log(ctx.atom.key, 'POST_FILL', { action: action.action, supported: false });
+                    }
+                    break;
+                default:
+                    // Phase 2+ actions (clickVinLookup, waitForDecodeComplete,
+                    // waitForChildAtomsReady) are not yet wired — log as noop.
+                    trace.log(ctx.atom.key, 'POST_FILL', { action: action.action, supported: false });
+            }
         }
     }
 
