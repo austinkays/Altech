@@ -31,6 +31,7 @@
                 getErrorText: require('../verifier/error-text').getErrorText,
                 waitElement: require('../waits/wait-element').waitElement,
                 waitEnabled: require('../waits/wait-enabled').waitEnabled,
+                waitDecodeComplete: require('../waits/wait-decode-complete').waitDecodeComplete,
                 expand: require('../transforms/abbreviations').expand,
                 dismissPacContainer: require('../special-cases/google-places').dismissPacContainer,
             };
@@ -49,6 +50,7 @@
             getErrorText: global.AltechV2.verifier.errorText.getErrorText,
             waitElement: global.AltechV2.waits.waitElement,
             waitEnabled: global.AltechV2.waits.waitEnabled,
+            waitDecodeComplete: global.AltechV2.waits && global.AltechV2.waits.waitDecodeComplete,
             expand: global.AltechV2.transforms.abbreviations.expand,
             dismissPacContainer: global.AltechV2.specialCases && global.AltechV2.specialCases.dismissPacContainer,
         };
@@ -94,9 +96,59 @@
                         trace.log(ctx.atom.key, 'POST_FILL', { action: action.action, supported: false });
                     }
                     break;
+
+                case 'clickVinLookup': {
+                    // Phase 2 VIN decoder short-circuit (§7.1). Click
+                    // #vin-lookup-btn-{index} — by the time we're here the
+                    // VIN field is filled and the button exists. If the
+                    // button isn't found, log supported:false so the
+                    // downstream waitForDecodeComplete still runs (and
+                    // will just time out harmlessly).
+                    const vehicleIndex = ctx && ctx.ctx && ctx.ctx.index != null
+                        ? ctx.ctx.index : 0;
+                    const btn = document.getElementById('vin-lookup-btn-' + vehicleIndex);
+                    if (btn) {
+                        try { btn.click(); } catch (_) { /* ignore */ }
+                        trace.log(ctx.atom.key, 'POST_FILL',
+                            { action: action.action, supported: true, index: vehicleIndex });
+                    } else {
+                        trace.log(ctx.atom.key, 'POST_FILL',
+                            { action: action.action, supported: false, index: vehicleIndex, reason: 'button-not-found' });
+                    }
+                    break;
+                }
+
+                case 'waitForDecodeComplete': {
+                    // Phase 2 VIN decoder short-circuit. Poll
+                    // #selected-year-{index} until it has text OR 10 s
+                    // timeout. Whatever the outcome, dependent atoms
+                    // (year/make/model/...) run next — they carry
+                    // skipIfAlreadyFilled so a successful decode makes
+                    // them SKIPped, and a failed decode makes them fill
+                    // from clientData.
+                    if (typeof deps.waitDecodeComplete !== 'function') {
+                        trace.log(ctx.atom.key, 'POST_FILL',
+                            { action: action.action, supported: false, reason: 'not-loaded' });
+                        break;
+                    }
+                    const vehicleIndex = ctx && ctx.ctx && ctx.ctx.index != null
+                        ? ctx.ctx.index : 0;
+                    let decoded = null;
+                    try {
+                        decoded = await deps.waitDecodeComplete(vehicleIndex);
+                    } catch (_) { /* treat as timeout */ }
+                    trace.log(ctx.atom.key, 'POST_FILL', {
+                        action: action.action,
+                        supported: true,
+                        index: vehicleIndex,
+                        decoded: decoded != null,
+                    });
+                    break;
+                }
+
                 default:
-                    // Phase 2+ actions (clickVinLookup, waitForDecodeComplete,
-                    // waitForChildAtomsReady) are not yet wired — log as noop.
+                    // Phase 3+ actions (waitForChildAtomsReady) are not
+                    // yet wired — log as noop.
                     trace.log(ctx.atom.key, 'POST_FILL', { action: action.action, supported: false });
             }
         }
@@ -147,8 +199,13 @@
             return { state: 'SKIPPED', reason: 'disabled' };
         }
 
-        // Read source value
-        const rawValue = readSource(clientData, atom.source);
+        // Read source value. Multi-entity atoms (drivers/vehicles/incidents)
+        // carry their per-entity payload directly on `atom._entity` so the
+        // `source` path is relative to a single entity slice rather than
+        // the full clientData root. Applicant / co-applicant atoms have no
+        // `_entity` and continue to read from the root — backwards compat.
+        const sourceRoot = (atom._entity != null) ? atom._entity : clientData;
+        const rawValue = readSource(sourceRoot, atom.source);
         if (rawValue == null || rawValue === '') {
             trace.finalize(atom.key, 'SKIPPED', { reason: 'empty-source' });
             return { state: 'SKIPPED', reason: 'empty-source' };

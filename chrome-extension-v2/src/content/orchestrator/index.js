@@ -22,6 +22,7 @@
                 createFillTrace: require('./fill-trace').createFillTrace,
                 executeAtom: require('./atom-executor').executeAtom,
                 discoverCoApplicantEntityId: require('../special-cases/entity-id-discovery').discoverCoApplicantEntityId,
+                ensureEntities: require('../special-cases/add-entity').ensureEntities,
             };
         }
         return {
@@ -31,6 +32,7 @@
             createFillTrace: global.AltechV2.orchestrator.createFillTrace,
             executeAtom: global.AltechV2.orchestrator.executeAtom,
             discoverCoApplicantEntityId: global.AltechV2.specialCases && global.AltechV2.specialCases.discoverCoApplicantEntityId,
+            ensureEntities: global.AltechV2.specialCases && global.AltechV2.specialCases.ensureEntities,
         };
     };
 
@@ -75,6 +77,26 @@
             } catch (e) {
                 // Non-fatal — co-applicant atoms will reach FAILED at LOCATE.
                 trace.log('*', 'ENTITY_DISCOVERY_FAILED', { error: e && e.message });
+            }
+        }
+
+        // ── Pre-run: multi-entity container provisioning (Phase 2) ──────────
+        // For drivers-compact / vehicles-compact / incidents routes, click
+        // the "Add Driver" / "Add Vehicle" / "Add Accident" etc. buttons
+        // until there are enough wrappers / sub-type slots to cover every
+        // entry in clientData. Idempotent — no-ops if already provisioned.
+        // ensureEntities never throws; downstream atoms will FAIL at LOCATE
+        // cleanly on any failures, which are also recorded in the trace.
+        if (deps.ensureEntities && (
+            routeKey === 'drivers-compact' ||
+            routeKey === 'vehicles-compact' ||
+            routeKey === 'incidents'
+        )) {
+            try {
+                const addResult = await deps.ensureEntities(routeKey, clientData, trace);
+                trace.log('*', 'ENSURE_ENTITIES_DONE', addResult);
+            } catch (e) {
+                trace.log('*', 'ENSURE_ENTITIES_FAILED', { error: e && e.message });
             }
         }
 

@@ -196,6 +196,106 @@ describe('orchestrator.run', () => {
     });
 });
 
+describe('executeAtom — postFill clickVinLookup + waitForDecodeComplete (Phase 2)', () => {
+    test('invokes the VIN lookup button and polls for #selected-year-{N}', async () => {
+        // VIN input field
+        const vinInput = makeNgInput('VIN-0', ['ng-pristine', 'ng-invalid']);
+        // VIN lookup button — clicking it simulates Angular's VIN decoder
+        // populating the year trigger after a short delay.
+        const btn = document.createElement('button');
+        btn.id = 'vin-lookup-btn-0';
+        let clicked = 0;
+        btn.addEventListener('click', () => {
+            clicked++;
+            setTimeout(() => {
+                const year = document.createElement('span');
+                year.id = 'selected-year-0';
+                year.textContent = '2020';
+                document.body.appendChild(year);
+            }, 30);
+        });
+        document.body.appendChild(btn);
+
+        const trace = createFillTrace();
+        const atom = {
+            key: 'v0_vin',
+            idTemplate: 'VIN-0',
+            type: 'text',
+            source: 'VIN',
+            _index: 0,
+            _entity: { VIN: '1HGCM82633A004352' },
+            postFill: [
+                { action: 'clickVinLookup' },
+                { action: 'waitForDecodeComplete' },
+            ],
+        };
+
+        const result = await executeAtom(atom, { clientData: {}, ctx: { index: 0 }, trace });
+        expect(result.state).toBe('DONE');
+        expect(clicked).toBe(1);
+
+        // Trace must include supported:true entries for both postFill actions.
+        const clickEntry = trace.toReport().entries.find((e) =>
+            e.state === 'POST_FILL' && e.detail && e.detail.action === 'clickVinLookup'
+        );
+        expect(clickEntry).toBeTruthy();
+        expect(clickEntry.detail.supported).toBe(true);
+
+        const waitEntry = trace.toReport().entries.find((e) =>
+            e.state === 'POST_FILL' && e.detail && e.detail.action === 'waitForDecodeComplete'
+        );
+        expect(waitEntry).toBeTruthy();
+        expect(waitEntry.detail.supported).toBe(true);
+        expect(waitEntry.detail.decoded).toBe(true);
+
+        // The vin input value reflects the _entity slice (not root clientData).
+        expect(document.getElementById('VIN-0').value).toBe('1HGCM82633A004352');
+    }, 15000);
+
+    test('clickVinLookup logs supported:false when the button is missing', async () => {
+        makeNgInput('VIN-0', ['ng-pristine', 'ng-invalid']);
+        const trace = createFillTrace();
+        const atom = {
+            key: 'v0_vin',
+            idTemplate: 'VIN-0',
+            type: 'text',
+            source: 'VIN',
+            _index: 0,
+            _entity: { VIN: 'XYZ' },
+            postFill: [{ action: 'clickVinLookup' }],
+            maxRetries: 0,
+        };
+        const result = await executeAtom(atom, { clientData: {}, ctx: { index: 0 }, trace });
+        expect(result.state).toBe('DONE');
+        const clickEntry = trace.toReport().entries.find((e) =>
+            e.state === 'POST_FILL' && e.detail && e.detail.action === 'clickVinLookup'
+        );
+        expect(clickEntry.detail.supported).toBe(false);
+        expect(clickEntry.detail.reason).toBe('button-not-found');
+    });
+});
+
+describe('executeAtom — atom._entity per-entity source slicing (Phase 2)', () => {
+    test('reads source from atom._entity instead of clientData root', async () => {
+        makeNgInput('driver-1-first-name', ['ng-pristine', 'ng-invalid']);
+        const trace = createFillTrace();
+        const atom = {
+            key: 'd1_firstName',
+            idTemplate: 'driver-1-first-name',
+            type: 'text',
+            source: 'FirstName',
+            _index: 1,
+            _entity: { FirstName: 'Bob' },
+            scope: 'driver',
+        };
+        // clientData deliberately has no FirstName at the root — the atom
+        // must read from _entity.
+        const result = await executeAtom(atom, { clientData: {}, ctx: { index: 1 }, trace });
+        expect(result.state).toBe('DONE');
+        expect(document.getElementById('driver-1-first-name').value).toBe('Bob');
+    });
+});
+
 describe('findBlockedBy', () => {
     test('returns null when all preconditions are DONE', () => {
         const atom = { key: 'c', preconditions: [{ atom: 'a', state: 'DONE' }] };
