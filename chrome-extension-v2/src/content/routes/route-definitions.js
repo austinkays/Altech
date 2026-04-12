@@ -11,7 +11,7 @@
 
     /** @type {Array<{key: string, pattern: RegExp, cascadeTestable?: boolean}>} */
     const ROUTE_DEFINITIONS = [
-        { key: 'applicant-details',   pattern: /\/details(?:[?#/]|$)/ },
+        { key: 'applicant-details',   pattern: /\/account\/create\/personal(?:[?#/]|$)|\/details(?:[?#/]|$)/ },
         { key: 'drivers-compact',     pattern: /\/rating\/auto\/[^/]+\/drivers-compact/ },
         { key: 'vehicles-compact',    pattern: /\/rating\/auto\/[^/]+\/vehicles-compact/ },
         { key: 'incidents',           pattern: /\/rating\/auto\/[^/]+\/incidents/ },
