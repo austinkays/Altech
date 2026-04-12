@@ -15,6 +15,7 @@
         { key: 'drivers-compact',     pattern: /\/rating\/auto\/[^/]+\/drivers-compact/ },
         { key: 'vehicles-compact',    pattern: /\/rating\/auto\/[^/]+\/vehicles-compact/ },
         { key: 'incidents',           pattern: /\/rating\/auto\/[^/]+\/incidents/ },
+        { key: 'auto-policy-info',    pattern: /\/rating\/auto\/[^/]+\/policy-info/ },
         { key: 'auto-coverage',       pattern: /\/rating\/auto\/[^/]+\/coverage/ },
         { key: 'home-policy-info',    pattern: /\/rating\/home\/[^/]+\/policy-info/,  cascadeTestable: true },
         { key: 'home-dwelling-info',  pattern: /\/rating\/home\/[^/]+\/dwelling-info/, cascadeTestable: true },

@@ -41,12 +41,17 @@ describe('route/registry integrity', () => {
         }
     });
 
-    test('auto-coverage route is still pending (Phase 4)', () => {
-        // auto-coverage is the only route without a live registry as of
-        // Phase 3 — drivers/vehicles/incidents (Phase 2) and the three
-        // home routes (Phase 3) all return populated atom lists when
-        // given matching clientData.
-        expect(getRegistry('auto-coverage')).toEqual([]);
+    test('auto-policy-info route matches', () => {
+        expect(detectRoute('https://app.ezlynx.com/rating/auto/1/policy-info'))
+            .toBe('auto-policy-info');
+    });
+
+    test('auto-policy-info returns populated atom array (flat, _needsRecon)', () => {
+        expect(getRegistry('auto-policy-info').length).toBeGreaterThan(0);
+    });
+
+    test('auto-coverage returns populated atom array (flat, _needsRecon)', () => {
+        expect(getRegistry('auto-coverage').length).toBeGreaterThan(0);
     });
 
     test('Phase-2 multi-entity routes return [] when clientData has no entities', () => {

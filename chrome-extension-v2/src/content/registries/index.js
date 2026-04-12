@@ -18,11 +18,13 @@
  * building the base atom list, the loader appends matching carrier atoms
  * from `carrier-extensions.js` based on active carriers and clientData.
  *
+ * Auto policy-info and auto coverage are flat registries tagged
+ * `_needsRecon: true` — IDs are best-guess from EZLynx naming
+ * conventions and need validation via Registry Audit on a live page.
+ *
  * All expansion happens before topo-sort so the orchestrator sees a flat
  * atom list with globally-unique keys. See `./_expand.js` for the
  * key-rewriting helper.
- *
- * Remaining routes return [] until their phase is built.
  */
 (function (global) {
     'use strict';
@@ -85,6 +87,20 @@
             return require('../special-cases/carrier-detection');
         }
         return (global.AltechV2.specialCases && global.AltechV2.specialCases.carrierDetection) || {};
+    };
+
+    // ── Auto policy-info + auto coverage (flat, single-entity, _needsRecon)
+    const getAutoPolicyInfoAtoms = () => {
+        if (typeof module !== 'undefined' && module.exports) {
+            return require('./auto-policy-info').autoPolicyInfoAtoms;
+        }
+        return (global.AltechV2.registries && global.AltechV2.registries.autoPolicyInfoAtoms) || [];
+    };
+    const getAutoCoverageAtoms = () => {
+        if (typeof module !== 'undefined' && module.exports) {
+            return require('./auto-coverage').autoCoverageAtoms;
+        }
+        return (global.AltechV2.registries && global.AltechV2.registries.autoCoverageAtoms) || [];
     };
 
     // ── Phase 3 — home rating (flat registries, no multi-entity expansion)
@@ -190,8 +206,11 @@
                 return out;
             }
 
+            case 'auto-policy-info':
+                return getAutoPolicyInfoAtoms().slice();
+
             case 'auto-coverage':
-                return [];
+                return getAutoCoverageAtoms().slice();
 
             // ── Phase 3 — home rating (flat registries) ────────────────────
             // Phase 5: carrier-specific atoms appended after base atoms.

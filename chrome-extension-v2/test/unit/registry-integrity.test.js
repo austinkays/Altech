@@ -10,8 +10,10 @@
  */
 'use strict';
 
-const { applicantAtoms }     = require('../../src/content/registries/applicant');
-const { coApplicantAtoms }   = require('../../src/content/registries/co-applicant');
+const { applicantAtoms }        = require('../../src/content/registries/applicant');
+const { coApplicantAtoms }      = require('../../src/content/registries/co-applicant');
+const { autoPolicyInfoAtoms }   = require('../../src/content/registries/auto-policy-info');
+const { autoCoverageAtoms }     = require('../../src/content/registries/auto-coverage');
 
 const VALID_TYPES = new Set([
     'text', 'date', 'number', 'currency',
@@ -94,6 +96,8 @@ function checkRegistry(name, atoms) {
 
 checkRegistry('applicant', applicantAtoms);
 checkRegistry('co-applicant', coApplicantAtoms);
+checkRegistry('auto-policy-info', autoPolicyInfoAtoms);
+checkRegistry('auto-coverage', autoCoverageAtoms);
 
 describe('Registry integrity — co-applicant specific', () => {
     it('all co-applicant atoms have {entityId} in idTemplate', () => {
