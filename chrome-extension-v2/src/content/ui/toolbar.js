@@ -341,6 +341,26 @@
             },
             unmount() { try { host.remove(); } catch (_) {} },
         };
+        // ── Drag support ──────────────────────────────────────────
+        const hdr = shadow.querySelector('.hdr');
+        let dragging = false, dx = 0, dy = 0;
+        hdr.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.recon-btn')) return; // don't drag on recon btn click
+            dragging = true;
+            const rect = host.getBoundingClientRect();
+            dx = e.clientX - rect.left;
+            dy = e.clientY - rect.top;
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            host.style.left = (e.clientX - dx) + 'px';
+            host.style.top = (e.clientY - dy) + 'px';
+            host.style.right = 'auto';
+            host.style.bottom = 'auto';
+        });
+        document.addEventListener('mouseup', () => { dragging = false; });
+
         if (typeof opts.onMounted === 'function') opts.onMounted(ui);
         return ui;
     }
