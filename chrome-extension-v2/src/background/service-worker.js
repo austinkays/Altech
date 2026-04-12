@@ -12,7 +12,7 @@
  *   4. Handle { type: 'ALTECH_RECON_ISSUE' } → write to Firestore via bridge message
  */
 
-importScripts('storage.js');
+importScripts('src/background/storage.js');
 
 const { getKeys, setKeys } = self.AltechV2Storage;
 
