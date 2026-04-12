@@ -14,6 +14,10 @@
  * by its `Type` field, with a per-type local index counter so legacy
  * ids like `Amount-{N}` don't collide across sub-types.
  *
+ * Phase 5 adds carrier-specific atom extensions for home routes. After
+ * building the base atom list, the loader appends matching carrier atoms
+ * from `carrier-extensions.js` based on active carriers and clientData.
+ *
  * All expansion happens before topo-sort so the orchestrator sees a flat
  * atom list with globally-unique keys. See `./_expand.js` for the
  * key-rewriting helper.
@@ -67,6 +71,20 @@
             return require('./_expand').expandEntityAtoms;
         }
         return (global.AltechV2.registries && global.AltechV2.registries.expandEntityAtoms);
+    };
+
+    // ── Phase 5 — carrier-specific extensions
+    const getCarrierExtensions = () => {
+        if (typeof module !== 'undefined' && module.exports) {
+            return require('./carrier-extensions');
+        }
+        return (global.AltechV2.registries) || {};
+    };
+    const getCarrierDetection = () => {
+        if (typeof module !== 'undefined' && module.exports) {
+            return require('../special-cases/carrier-detection');
+        }
+        return (global.AltechV2.specialCases && global.AltechV2.specialCases.carrierDetection) || {};
     };
 
     // ── Phase 3 — home rating (flat registries, no multi-entity expansion)
@@ -176,17 +194,26 @@
                 return [];
 
             // ── Phase 3 — home rating (flat registries) ────────────────────
+            // Phase 5: carrier-specific atoms appended after base atoms.
             case 'home-policy-info': {
                 const build = getHomePolicyInfoBuilder();
                 if (typeof build !== 'function') return [];
-                return build(clientData);
+                const atoms = build(clientData);
+                atoms.push(..._appendCarrierAtoms('home-policy-info', clientData));
+                return atoms;
             }
 
-            case 'home-dwelling-info':
-                return getHomeDwellingInfoAtoms().slice();
+            case 'home-dwelling-info': {
+                const atoms = getHomeDwellingInfoAtoms().slice();
+                atoms.push(..._appendCarrierAtoms('home-dwelling-info', clientData));
+                return atoms;
+            }
 
-            case 'home-coverage':
-                return getHomeCoverageAtoms().slice();
+            case 'home-coverage': {
+                const atoms = getHomeCoverageAtoms().slice();
+                atoms.push(..._appendCarrierAtoms('home-coverage', clientData));
+                return atoms;
+            }
 
             default:
                 return [];
@@ -207,6 +234,24 @@
         if (routeKey === 'vehicles-compact') return Array.isArray(clientData.Vehicles)  ? clientData.Vehicles.length  : 0;
         if (routeKey === 'incidents')        return Array.isArray(clientData.Incidents) ? clientData.Incidents.length : 0;
         return 0;
+    }
+
+    /**
+     * Detect active carriers and return matching carrier-specific atoms
+     * for the given route. Internal helper used by the home route cases.
+     *
+     * @param {string} routeKey
+     * @param {object} [clientData]
+     * @returns {Array}
+     */
+    function _appendCarrierAtoms(routeKey, clientData) {
+        const ext = getCarrierExtensions();
+        if (typeof ext.getCarrierAtoms !== 'function') return [];
+        const det = getCarrierDetection();
+        const activeCarriers = (typeof det.detectActiveCarriers === 'function')
+            ? det.detectActiveCarriers()
+            : new Set(['common']);
+        return ext.getCarrierAtoms(routeKey, clientData, activeCarriers);
     }
 
     const api = { getRegistry, getEntityCount, normalizeIncidentType };

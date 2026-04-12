@@ -6,11 +6,16 @@
  * that match no atom — these are "Unknown" additions EZLynx made without
  * a corresponding registry entry.
  *
+ * Phase 5 adds carrier-specific atom awareness. Carrier extension atoms
+ * (tagged with `_carrierExtension: true`) that belong to a carrier not
+ * in the active set are reported as CARRIER_SKIPPED rather than MISSING.
+ *
  * Status codes:
  *   RESOLVED           — element exists, not disabled, not LexisNexis-locked
  *   CONDITIONALLY_SKIPPED — element exists but is disabled (expected — e.g., DL status)
  *   LEXIS_NEXIS_LOCKED — element exists and disabled, LexisNexis text in 3 ancestors
  *   MISSING            — atom's id does not resolve to any element
+ *   CARRIER_SKIPPED    — carrier-specific atom whose owning carrier isn't selected
  *   UNKNOWN            — page field has id that matches no atom in registry
  */
 (function (global) {
@@ -22,12 +27,18 @@
                 getRegistry: require('../registries').getRegistry,
                 findScoped: require('../locator/find-scoped').findScoped,
                 findById: require('../locator/find-by-id').findById,
+                getAllCarrierAtoms: require('../registries/carrier-extensions').getAllCarrierAtoms,
+                detectActiveCarriers: require('../special-cases/carrier-detection').detectActiveCarriers,
             };
         }
         return {
             getRegistry: global.AltechV2.registries.getRegistry,
             findScoped: global.AltechV2.locator.findScoped,
             findById: global.AltechV2.locator.findById,
+            getAllCarrierAtoms: global.AltechV2.registries && global.AltechV2.registries.getAllCarrierAtoms,
+            detectActiveCarriers: global.AltechV2.specialCases
+                && global.AltechV2.specialCases.carrierDetection
+                && global.AltechV2.specialCases.carrierDetection.detectActiveCarriers,
         };
     };
 
@@ -104,17 +115,53 @@
     /**
      * @param {string} routeKey
      * @param {object} [clientData]
-     * @returns {object}  { route, timestamp, atoms: [], unknown: [] }
+     * @returns {object}  { route, timestamp, atomCount, counts, atoms, unknown, activeCarriers }
      */
     function runRegistryAudit(routeKey, clientData) {
         const deps = getDeps();
         const atoms = deps.getRegistry(routeKey, clientData || {});
 
+        // Phase 5: detect active carriers for carrier-specific classification.
+        let activeCarriers = new Set(['common']);
+        if (typeof deps.detectActiveCarriers === 'function') {
+            try { activeCarriers = deps.detectActiveCarriers(); }
+            catch (_) { /* fall back to common-only */ }
+        }
+
         // Per-atom audit
         const auditedAtoms = atoms.map((atom) => auditAtom(atom, deps));
 
-        // Build set of all atom ids for unknown-field detection
-        const registryIds = new Set(atoms.map((a) => a.idTemplate).filter(Boolean));
+        // Phase 5: audit carrier-specific atoms that were NOT included
+        // in the main registry (because their carrier isn't active or
+        // clientData doesn't have their source key). These get reported
+        // as CARRIER_SKIPPED so they don't show up as MISSING.
+        if (typeof deps.getAllCarrierAtoms === 'function') {
+            const allCarrierAtoms = deps.getAllCarrierAtoms(routeKey);
+            const loadedKeys = new Set(atoms.map((a) => a.key));
+            for (const cAtom of allCarrierAtoms) {
+                if (loadedKeys.has(cAtom.key)) continue; // already audited above
+                const carrierMatch = Array.isArray(cAtom.carriers)
+                    && cAtom.carriers.some((c) => activeCarriers.has(c));
+                auditedAtoms.push({
+                    key: cAtom.key,
+                    label: cAtom.label || cAtom.key,
+                    idTemplate: cAtom.idTemplate,
+                    status: 'CARRIER_SKIPPED',
+                    elementId: null,
+                    classes: [],
+                    disabled: null,
+                    carrierRequired: cAtom.carriers,
+                    reason: carrierMatch ? 'no-client-data' : 'carrier-not-active',
+                });
+            }
+        }
+
+        // Build set of all atom ids for unknown-field detection —
+        // includes both core and carrier-skipped atoms so their ids
+        // don't appear in the unknown list.
+        const registryIds = new Set(
+            auditedAtoms.map((a) => a.idTemplate).filter(Boolean)
+        );
 
         // Unknown fields: page has them, registry doesn't
         const pageIds = collectPageFieldIds();
@@ -124,7 +171,8 @@
         }
 
         const counts = {
-            RESOLVED: 0, CONDITIONALLY_SKIPPED: 0, LEXIS_NEXIS_LOCKED: 0, MISSING: 0,
+            RESOLVED: 0, CONDITIONALLY_SKIPPED: 0, LEXIS_NEXIS_LOCKED: 0,
+            MISSING: 0, CARRIER_SKIPPED: 0,
         };
         for (const a of auditedAtoms) {
             if (counts[a.status] !== undefined) counts[a.status]++;
@@ -137,6 +185,7 @@
             counts,
             atoms: auditedAtoms,
             unknown: unknownIds,
+            activeCarriers: Array.from(activeCarriers),
         };
     }
 
