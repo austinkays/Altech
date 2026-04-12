@@ -106,11 +106,11 @@
         { key: 'postalCodeSuffix', source: 'ZipSuffix',   label: 'Postal Code Suffix',
           idTemplate: 'contact-address-0-postalCodeSuffix', type: 'text' },
         { key: 'yearsAtAddress',  source: 'YearsAtAddress', label: 'Years at Address',
-          idTemplate: 'contact-address-0-yearsAtAddress',  type: 'text' },
+          idTemplate: 'contact-address-0-yearsAtAddress',  type: 'mat-select' },
         { key: 'monthsAtAddress', source: 'MonthsAtAddress', label: 'Months at Address',
-          idTemplate: 'contact-address-0-monthsAtAddress', type: 'text' },
+          idTemplate: 'contact-address-0-monthsAtAddress', type: 'mat-select' },
         { key: 'country',         source: 'Country',      label: 'Country',
-          idTemplate: 'contact-address-0-country',         type: 'mat-select' },
+          idTemplate: 'contact-address-0-country',         type: 'text' },
     ];
 
     // ─────────────────────────────────────────────────────────────────────────

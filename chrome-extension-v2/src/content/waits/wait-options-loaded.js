@@ -20,7 +20,8 @@
         const pollPredicate = getPoll();
         const res = await pollPredicate(
             () => {
-                const nodes = document.querySelectorAll('.cdk-overlay-container .mat-mdc-option');
+                // Angular Material uses .mat-mdc-option (MDC) or .mat-option (legacy)
+                const nodes = document.querySelectorAll('.cdk-overlay-container .mat-mdc-option, .cdk-overlay-container .mat-option');
                 return nodes && nodes.length > 0 ? nodes : null;
             },
             { timeoutMs: (opts && opts.timeoutMs) || 5000 }

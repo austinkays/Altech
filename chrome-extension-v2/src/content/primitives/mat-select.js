@@ -72,7 +72,8 @@
         // Find the clickable trigger. If the host is the <mat-select>, click
         // it; otherwise look for a descendant trigger.
         const trigger = triggerEl.querySelector('.mat-mdc-select-trigger') || triggerEl;
-        trigger.click();
+        // Use a full MouseEvent so Angular CDK's overlay handler recognizes it
+        trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
 
         const opts_ = opts || {};
         const options = await waitOptionsLoaded({ timeoutMs: opts_.timeoutMs });
@@ -85,7 +86,7 @@
         if (idx < 0) {
             // Close the overlay by clicking the trigger again so the next atom
             // doesn't run with this overlay still open.
-            try { trigger.click(); } catch (_) { /* ok */ }
+            try { trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window })); } catch (_) { /* ok */ }
             return { ok: false, reason: 'no-match', attempted: value, available: optionTexts };
         }
 
@@ -93,7 +94,7 @@
 
         // Wait for overlay to close as a signal Angular committed the change.
         await pollPredicate(
-            () => document.querySelector('.cdk-overlay-container .mat-mdc-option') == null,
+            () => document.querySelector('.cdk-overlay-container .mat-mdc-option, .cdk-overlay-container .mat-option') == null,
             { timeoutMs: 2000 }
         );
         return { ok: true, pickedText: optionTexts[idx] };
