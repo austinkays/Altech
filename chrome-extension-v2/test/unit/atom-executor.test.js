@@ -275,6 +275,93 @@ describe('executeAtom — postFill clickVinLookup + waitForDecodeComplete (Phase
     });
 });
 
+describe('executeAtom — postFill waitForChildAtomsReady (Phase 3)', () => {
+    test('logs supported:true with ready:true when all children already exist', async () => {
+        // Parent toggle is a text input (executes through the generic
+        // fill pipeline); we only care that the postFill action runs.
+        makeNgInput('swimmingPoolOnPremises', ['ng-pristine', 'ng-invalid']);
+        // Plant the child ids that the postFill action expects.
+        const c1 = document.createElement('input'); c1.id = 'poolType';     document.body.appendChild(c1);
+        const c2 = document.createElement('input'); c2.id = 'poolFenced';   document.body.appendChild(c2);
+
+        const trace = createFillTrace();
+        const atom = {
+            key: 'swimmingPoolOnPremises',
+            idTemplate: 'swimmingPoolOnPremises',
+            type: 'text',
+            source: 'SwimmingPool',
+            postFill: [{ action: 'waitForChildAtomsReady', children: ['poolType', 'poolFenced'] }],
+        };
+        const result = await executeAtom(atom, {
+            clientData: { SwimmingPool: 'yes' },
+            ctx: {},
+            trace,
+        });
+        expect(result.state).toBe('DONE');
+        const entry = trace.toReport().entries.find((e) =>
+            e.state === 'POST_FILL' && e.detail && e.detail.action === 'waitForChildAtomsReady'
+        );
+        expect(entry).toBeTruthy();
+        expect(entry.detail.supported).toBe(true);
+        expect(entry.detail.ready).toBe(true);
+        expect(entry.detail.childCount).toBe(2);
+    }, 10000);
+
+    test('logs ready:false when child ids never appear within timeoutMs', async () => {
+        makeNgInput('dogInfo', ['ng-pristine', 'ng-invalid']);
+
+        const trace = createFillTrace();
+        const atom = {
+            key: 'dogInfo',
+            idTemplate: 'dogInfo',
+            type: 'text',
+            source: 'DogsOnPremises',
+            postFill: [{
+                action: 'waitForChildAtomsReady',
+                children: ['id_that_never_exists'],
+                timeoutMs: 80,
+            }],
+        };
+        const result = await executeAtom(atom, {
+            clientData: { DogsOnPremises: 'yes' },
+            ctx: {},
+            trace,
+        });
+        expect(result.state).toBe('DONE');
+        const entry = trace.toReport().entries.find((e) =>
+            e.state === 'POST_FILL' && e.detail && e.detail.action === 'waitForChildAtomsReady'
+        );
+        expect(entry).toBeTruthy();
+        expect(entry.detail.supported).toBe(true);
+        expect(entry.detail.ready).toBe(false);
+    });
+
+    test('empty children array is a no-op that still logs supported:true, ready:true', async () => {
+        makeNgInput('firstMortgagee', ['ng-pristine', 'ng-invalid']);
+        const trace = createFillTrace();
+        const atom = {
+            key: 'firstMortgagee',
+            idTemplate: 'firstMortgagee',
+            type: 'text',
+            source: 'Mortgagee',
+            postFill: [{ action: 'waitForChildAtomsReady', children: [] }],
+        };
+        const result = await executeAtom(atom, {
+            clientData: { Mortgagee: 'Wells Fargo' },
+            ctx: {},
+            trace,
+        });
+        expect(result.state).toBe('DONE');
+        const entry = trace.toReport().entries.find((e) =>
+            e.state === 'POST_FILL' && e.detail && e.detail.action === 'waitForChildAtomsReady'
+        );
+        expect(entry).toBeTruthy();
+        expect(entry.detail.supported).toBe(true);
+        expect(entry.detail.ready).toBe(true);
+        expect(entry.detail.childCount).toBe(0);
+    });
+});
+
 describe('executeAtom — atom._entity per-entity source slicing (Phase 2)', () => {
     test('reads source from atom._entity instead of clientData root', async () => {
         makeNgInput('driver-1-first-name', ['ng-pristine', 'ng-invalid']);

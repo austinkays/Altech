@@ -69,6 +69,26 @@
         return (global.AltechV2.registries && global.AltechV2.registries.expandEntityAtoms);
     };
 
+    // ── Phase 3 — home rating (flat registries, no multi-entity expansion)
+    const getHomePolicyInfoBuilder = () => {
+        if (typeof module !== 'undefined' && module.exports) {
+            return require('./home-policy-info').buildHomePolicyInfoAtoms;
+        }
+        return (global.AltechV2.registries && global.AltechV2.registries.buildHomePolicyInfoAtoms);
+    };
+    const getHomeDwellingInfoAtoms = () => {
+        if (typeof module !== 'undefined' && module.exports) {
+            return require('./home-dwelling-info').homeDwellingInfoAtoms;
+        }
+        return (global.AltechV2.registries && global.AltechV2.registries.homeDwellingInfoAtoms) || [];
+    };
+    const getHomeCoverageAtoms = () => {
+        if (typeof module !== 'undefined' && module.exports) {
+            return require('./home-coverage').homeCoverageAtoms;
+        }
+        return (global.AltechV2.registries && global.AltechV2.registries.homeCoverageAtoms) || [];
+    };
+
     // Normalize the incident Type field to one of the three sub-type keys.
     // Duplicated from special-cases/add-entity.js.normalizeIncidentType to
     // avoid a cross-directory require dependency (special-cases also loads
@@ -155,11 +175,18 @@
             case 'auto-coverage':
                 return [];
 
-            // Phase 3 — pending
-            case 'home-policy-info':
+            // ── Phase 3 — home rating (flat registries) ────────────────────
+            case 'home-policy-info': {
+                const build = getHomePolicyInfoBuilder();
+                if (typeof build !== 'function') return [];
+                return build(clientData);
+            }
+
             case 'home-dwelling-info':
+                return getHomeDwellingInfoAtoms().slice();
+
             case 'home-coverage':
-                return [];
+                return getHomeCoverageAtoms().slice();
 
             default:
                 return [];

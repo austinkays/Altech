@@ -107,9 +107,14 @@ describe('Applicant registry', () => {
             expect(getRegistry('some-unknown-route')).toEqual([]);
         });
 
-        it('returns [] for phase-2 routes (pending)', () => {
+        it('returns [] for drivers-compact with no Drivers array', () => {
             expect(getRegistry('drivers-compact')).toEqual([]);
-            expect(getRegistry('home-dwelling-info')).toEqual([]);
+        });
+
+        it('returns the home-dwelling-info atom list (Phase 3)', () => {
+            // Phase 3 flat registry — returns atoms regardless of clientData
+            // since dwelling-info has no multi-entity expansion.
+            expect(getRegistry('home-dwelling-info').length).toBeGreaterThan(0);
         });
     });
 });

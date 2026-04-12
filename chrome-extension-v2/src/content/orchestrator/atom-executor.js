@@ -32,6 +32,7 @@
                 waitElement: require('../waits/wait-element').waitElement,
                 waitEnabled: require('../waits/wait-enabled').waitEnabled,
                 waitDecodeComplete: require('../waits/wait-decode-complete').waitDecodeComplete,
+                waitChildAtomsReady: require('../waits/wait-child-atoms-ready').waitChildAtomsReady,
                 expand: require('../transforms/abbreviations').expand,
                 dismissPacContainer: require('../special-cases/google-places').dismissPacContainer,
             };
@@ -51,6 +52,7 @@
             waitElement: global.AltechV2.waits.waitElement,
             waitEnabled: global.AltechV2.waits.waitEnabled,
             waitDecodeComplete: global.AltechV2.waits && global.AltechV2.waits.waitDecodeComplete,
+            waitChildAtomsReady: global.AltechV2.waits && global.AltechV2.waits.waitChildAtomsReady,
             expand: global.AltechV2.transforms.abbreviations.expand,
             dismissPacContainer: global.AltechV2.specialCases && global.AltechV2.specialCases.dismissPacContainer,
         };
@@ -146,9 +148,45 @@
                     break;
                 }
 
+                case 'waitForChildAtomsReady': {
+                    // Phase 3 dynamic reveal (§7.5). After a Pool / Dog /
+                    // Trampoline / Business / Mortgagee toggle goes ON,
+                    // EZLynx renders child fields asynchronously. Poll
+                    // until every listed child id exists in the DOM, up
+                    // to a short timeout. Returns false on timeout —
+                    // dependent child atoms will still attempt to run
+                    // and FAIL cleanly at LOCATE, which is the correct
+                    // audit outcome if the reveal never happened.
+                    //
+                    // `action.children` is an array of id strings read
+                    // directly off the atom spec; the primitive polling
+                    // helper accepts an empty array as a no-op (returns
+                    // true immediately), which is how we get a
+                    // supported:true audit entry for toggles whose
+                    // reveal children aren't part of the core registry
+                    // yet (see home-coverage mortgagee atoms).
+                    if (typeof deps.waitChildAtomsReady !== 'function') {
+                        trace.log(ctx.atom.key, 'POST_FILL',
+                            { action: action.action, supported: false, reason: 'not-loaded' });
+                        break;
+                    }
+                    const children = Array.isArray(action.children) ? action.children : [];
+                    const timeoutMs = typeof action.timeoutMs === 'number' ? action.timeoutMs : 3000;
+                    let ready = false;
+                    try {
+                        ready = await deps.waitChildAtomsReady(children, { timeoutMs });
+                    } catch (_) { /* treat as not-ready */ }
+                    trace.log(ctx.atom.key, 'POST_FILL', {
+                        action: action.action,
+                        supported: true,
+                        childCount: children.length,
+                        ready,
+                    });
+                    break;
+                }
+
                 default:
-                    // Phase 3+ actions (waitForChildAtomsReady) are not
-                    // yet wired — log as noop.
+                    // Unknown postFill action — log as unsupported for audit.
                     trace.log(ctx.atom.key, 'POST_FILL', { action: action.action, supported: false });
             }
         }

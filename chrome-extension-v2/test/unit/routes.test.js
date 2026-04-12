@@ -41,14 +41,26 @@ describe('route/registry integrity', () => {
         }
     });
 
-    test('Phase-2/3 routes return empty arrays (pending)', () => {
-        const pendingRoutes = [
-            'drivers-compact', 'vehicles-compact', 'incidents', 'auto-coverage',
-            'home-policy-info', 'home-dwelling-info', 'home-coverage',
-        ];
-        for (const key of pendingRoutes) {
-            expect(getRegistry(key)).toEqual([]);
-        }
+    test('auto-coverage route is still pending (Phase 4)', () => {
+        // auto-coverage is the only route without a live registry as of
+        // Phase 3 — drivers/vehicles/incidents (Phase 2) and the three
+        // home routes (Phase 3) all return populated atom lists when
+        // given matching clientData.
+        expect(getRegistry('auto-coverage')).toEqual([]);
+    });
+
+    test('Phase-2 multi-entity routes return [] when clientData has no entities', () => {
+        // Without a Drivers / Vehicles / Incidents array, multi-entity
+        // routes have nothing to expand.
+        expect(getRegistry('drivers-compact')).toEqual([]);
+        expect(getRegistry('vehicles-compact')).toEqual([]);
+        expect(getRegistry('incidents')).toEqual([]);
+    });
+
+    test('Phase-3 home routes return populated atom arrays (flat registries)', () => {
+        expect(getRegistry('home-policy-info').length).toBeGreaterThan(0);
+        expect(getRegistry('home-dwelling-info').length).toBeGreaterThan(0);
+        expect(getRegistry('home-coverage').length).toBeGreaterThan(0);
     });
 
     test('applicant-details returns atoms (Phase 1 live)', () => {
