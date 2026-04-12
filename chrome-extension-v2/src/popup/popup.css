@@ -1,8 +1,10 @@
 :root {
     --bg: #1c1c1e;
     --bg-card: #2c2c2e;
+    --bg-subtle: #242426;
     --text: #f5f5f7;
     --text-2: #9a9aa1;
+    --text-3: #6a6a70;
     --accent: #0a84ff;
     --border: #3a3a3c;
     --ok: #30d158;
@@ -15,19 +17,21 @@
 html, body {
     margin: 0;
     padding: 0;
-    width: 340px;
+    width: 360px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: var(--bg);
     color: var(--text);
     font-size: 13px;
 }
 
+/* ── Header ───────────────────────────────────────────── */
 .hdr {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 14px 10px;
     border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(10,132,255,0.06) 0%, transparent 100%);
 }
 .brand { font-weight: 600; font-size: 15px; }
 .v2 {
@@ -41,6 +45,7 @@ html, body {
 }
 .ver { color: var(--text-2); font-size: 11px; }
 
+/* ── Cards ────────────────────────────────────────────── */
 .card {
     margin: 10px 14px 0;
     padding: 10px 12px;
@@ -59,16 +64,31 @@ html, body {
     font-weight: 600;
     margin-top: 2px;
 }
+.card .addr {
+    color: var(--text);
+    font-size: 12px;
+    margin-top: 2px;
+    opacity: 0.85;
+}
+.card .addr:empty { display: none; }
 .card .meta {
     color: var(--text-2);
     font-size: 11px;
     margin-top: 4px;
 }
 
+.client-card {
+    background: linear-gradient(180deg, rgba(48,209,88,0.06) 0%, var(--bg-card) 100%);
+}
+
+/* ── Action buttons ───────────────────────────────────── */
+.actions {
+    padding: 0 14px;
+    margin-top: 14px;
+}
 .primary {
     display: block;
-    width: calc(100% - 28px);
-    margin: 14px 14px 4px;
+    width: 100%;
     padding: 10px 12px;
     background: var(--accent);
     color: #fff;
@@ -77,25 +97,49 @@ html, body {
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+    transition: background 120ms ease, transform 80ms ease;
 }
+.primary:hover:not(:disabled) { background: #2194ff; }
+.primary:active:not(:disabled) { transform: translateY(1px); }
 .primary:disabled {
     background: #3a3a3c;
     color: var(--text-2);
     cursor: not-allowed;
 }
 
+.secondary-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 6px;
+}
+.secondary {
+    padding: 7px 8px;
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 120ms ease;
+}
+.secondary:hover:not(:disabled) { background: var(--border); }
+.secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+
 .hint {
     color: var(--text-2);
     font-size: 11px;
-    padding: 0 14px 4px;
+    padding: 6px 14px 4px;
     text-align: center;
 }
 
+/* ── Report ──────────────────────────────────────────── */
 .report .counts {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     margin-top: 6px;
     font-size: 12px;
+    flex-wrap: wrap;
 }
 .counts .pill {
     padding: 2px 8px;
@@ -107,14 +151,29 @@ html, body {
 .counts .fail { color: var(--err); }
 .counts .blk { color: var(--block); }
 
+.lexis-strip {
+    margin-top: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(255,159,10,0.14);
+    border: 1px solid rgba(255,159,10,0.4);
+    font-size: 11px;
+    color: #ffb84d;
+    line-height: 1.35;
+}
+.lexis-strip strong { color: #ffce6a; }
+
+/* ── Footer ──────────────────────────────────────────── */
 .ftr {
     padding: 10px 14px 12px;
     color: var(--text-2);
     font-size: 10px;
     text-align: center;
+    border-top: 1px solid var(--border);
+    margin-top: 10px;
 }
 
-/* Admin Recon Tools section */
+/* ── Recon section ───────────────────────────────────── */
 .admin-badge {
     display: inline-block;
     background: #ff9f0a;
@@ -127,11 +186,30 @@ html, body {
     vertical-align: middle;
     margin-left: 4px;
 }
+.recon-card { padding: 0; }
+.recon-summary {
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    list-style: none;
+}
+.recon-summary::-webkit-details-marker { display: none; }
+.recon-summary .chev {
+    color: var(--text-2);
+    transition: transform 120ms ease;
+    font-size: 11px;
+}
+.recon-card[open] .recon-summary .chev { transform: rotate(90deg); }
+.recon-card[open] {
+    padding-bottom: 10px;
+}
 .recon-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 4px;
-    margin-top: 8px;
+    margin: 0 12px 4px;
 }
 .recon-btn {
     padding: 6px 8px;
@@ -147,7 +225,7 @@ html, body {
 .recon-btn:hover { background: var(--border); }
 .recon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .recon-status {
-    margin-top: 6px;
+    margin: 6px 12px 0;
     font-size: 11px;
     color: var(--text-2);
     min-height: 16px;

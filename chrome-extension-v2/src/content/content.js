@@ -12,8 +12,16 @@
  *   3. Wire the Fill button to the orchestrator.
  *   4. Listen for ALTECH_V2_FILL messages from the popup.
  *   5. Persist the last fill report back to background storage.
- *   6. Handle Ctrl+Shift+A keyboard shortcut → open Recon panel (admin only).
- *   7. Handle ALTECH_V2_RECON messages from popup / toolbar button relay.
+ *   6. Handle ALTECH_V2_RECON messages from popup / toolbar button relay.
+ *   7. Handle ALTECH_V2_RECON_OPEN messages (Phase 4 — popup "Open Recon
+ *      Tool" button) → toggle the on-page toolbar recon panel.
+ *
+ * Note on keyboard shortcut: Ctrl+Shift+A is wired via chrome.commands in
+ * manifest.json + a background/service-worker.js listener that dispatches
+ * ALTECH_V2_FILL to the active tab. Using chrome.commands instead of a
+ * document keydown handler means the shortcut works even when focus is
+ * inside an Angular mat-input (the Material CDK can swallow plain page
+ * keydown events, but chrome.commands fires at the browser level).
  */
 (function () {
     'use strict';
@@ -44,14 +52,6 @@
                     resolve((r && r.clientData) || null);
                 });
             } catch (_) { resolve(null); }
-        });
-    }
-
-    function loadAdminFlag() {
-        return new Promise((resolve) => {
-            try {
-                chrome.storage.local.get(['isAdmin'], (r) => resolve(!!(r && r.isAdmin)));
-            } catch (_) { resolve(false); }
         });
     }
 
@@ -115,16 +115,6 @@
         });
         // Pre-load client data so we don't stall on first click.
         loadClientData().then((cd) => { state.clientData = cd; });
-
-        // Ctrl+Shift+A → toggle Recon panel (admin only)
-        document.addEventListener('keydown', async (e) => {
-            if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-                const isAdmin = await loadAdminFlag();
-                if (isAdmin && state.ui && typeof state.ui.toggleReconPanel === 'function') {
-                    state.ui.toggleReconPanel();
-                }
-            }
-        });
     }
 
     // Listen for messages from popup / background relay.
@@ -143,6 +133,19 @@
         if (msg.type === 'ALTECH_V2_RECON') {
             runRecon(msg.feature).then(sendResponse);
             return true; // async sendResponse
+        }
+
+        if (msg.type === 'ALTECH_V2_RECON_OPEN') {
+            // Phase 4 — popup "Open Recon Tool" button. Toggles the shadow
+            // toolbar recon panel. Only meaningful for admin users; the UI
+            // gate lives inside toolbar.toggleReconPanel().
+            if (state.ui && typeof state.ui.toggleReconPanel === 'function') {
+                state.ui.toggleReconPanel();
+                sendResponse({ ok: true });
+            } else {
+                sendResponse({ ok: false, error: 'Toolbar not mounted' });
+            }
+            return false;
         }
 
         return false;

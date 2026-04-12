@@ -11,29 +11,45 @@
         <span class="ver" id="ver">v0.8.0</span>
     </header>
 
-    <section class="card" id="clientCard">
+    <!-- Client card — loaded applicant name + address -->
+    <section class="card client-card" id="clientCard">
         <div class="label">Loaded client</div>
         <div class="name" id="clientName">No client loaded</div>
+        <div class="addr" id="clientAddr"></div>
         <div class="meta" id="clientMeta">Open the Altech app and click “Send to Extension”</div>
     </section>
 
+    <!-- Route card — current EZLynx tab route -->
     <section class="card" id="routeCard">
         <div class="label">Current route</div>
         <div class="route" id="routeName">—</div>
         <div class="meta" id="routeMeta">Open an EZLynx page to detect the route</div>
     </section>
 
-    <button class="primary" id="fillBtn" disabled>Fill this page</button>
+    <!-- Primary action: Fill Page -->
+    <div class="actions">
+        <button class="primary" id="fillBtn" disabled>Fill this page</button>
+        <div class="secondary-row">
+            <button class="secondary" id="reconToolBtn" disabled>🔍 Open Recon Tool</button>
+            <button class="secondary" id="exportBtn" disabled>⇩ Export JSON</button>
+        </div>
+    </div>
     <div class="hint" id="fillHint">Waiting for client + EZLynx tab…</div>
 
+    <!-- Last fill report summary -->
     <section class="card report" id="reportCard" hidden>
         <div class="label">Last fill report</div>
         <div class="counts" id="reportCounts"></div>
+        <div class="lexis-strip" id="lexisStrip" hidden></div>
     </section>
 
-    <!-- Admin-only Recon Tools section (hidden by default, shown if isAdmin) -->
-    <section class="card" id="reconSection" hidden>
-        <div class="label">Recon Tools <span class="admin-badge">admin</span></div>
+    <!-- Admin-only Recon Tools section — collapsible,
+         visible when altech_admin_recon OR isAdmin is set. -->
+    <details class="card recon-card" id="reconSection" hidden>
+        <summary class="recon-summary">
+            <span class="label">Recon Tools <span class="admin-badge">admin</span></span>
+            <span class="chev">▸</span>
+        </summary>
         <div class="recon-grid">
             <button class="recon-btn" data-feature="page-inventory">📋 Page Inventory</button>
             <button class="recon-btn" data-feature="registry-audit">🔍 Registry Audit</button>
@@ -43,10 +59,10 @@
             <button class="recon-btn" data-feature="diff-registry">↔ Diff Registry</button>
         </div>
         <div class="recon-status" id="reconStatus"></div>
-    </section>
+    </details>
 
     <footer class="ftr">
-        <span>V2 — atom orchestrator · execCommand fill</span>
+        <span>V2 — atom orchestrator · Ctrl+Shift+A to fill</span>
     </footer>
 
     <script src="popup.js"></script>

@@ -45,6 +45,34 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     console.log('[AltechV2] Extension', details.reason, '— storage initialized');
 });
 
+// ── Keyboard shortcut: chrome.commands "fill-page" ──────────────
+// Registered in manifest.json as Ctrl+Shift+A (Cmd+Shift+A on Mac).
+// Works even when focus is inside an Angular mat-input, because
+// chrome.commands fires at the browser level — not the page level —
+// so it bypasses the Material CDK's event-capturing listeners that
+// can swallow plain keydown handlers installed by the content script.
+if (chrome.commands && typeof chrome.commands.onCommand !== 'undefined') {
+    chrome.commands.onCommand.addListener(async (command) => {
+        if (command !== 'fill-page') return;
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (!tab || !tab.id) return;
+            const url = tab.url || '';
+            if (!/ezlynx\.com/.test(url)) return;
+            // Pull the stored client data so the content script can fill
+            // immediately without a second round trip to storage.
+            const { clientData } = await getKeys(['clientData']);
+            await chrome.tabs.sendMessage(tab.id, {
+                type: 'ALTECH_V2_FILL',
+                clientData: clientData || null,
+                trigger: 'keyboard-shortcut',
+            });
+        } catch (e) {
+            console.warn('[AltechV2] fill-page command failed:', e && e.message);
+        }
+    });
+}
+
 // ── Message relay ────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg || typeof msg !== 'object') return false;
@@ -88,6 +116,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         (async () => {
             await setKeys({ lastFillReport: msg.report || null });
             sendResponse({ ok: true });
+        })();
+        return true;
+    }
+
+    if (msg.type === 'ALTECH_V2_RECON_OPEN') {
+        // Popup → active tab: open the on-page shadow-toolbar recon panel.
+        (async () => {
+            try {
+                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (!tab || !tab.id) {
+                    sendResponse({ ok: false, error: 'No active tab' });
+                    return;
+                }
+                const url = tab.url || '';
+                if (!/ezlynx\.com/.test(url)) {
+                    sendResponse({ ok: false, error: 'Active tab is not an EZLynx page' });
+                    return;
+                }
+                await chrome.tabs.sendMessage(tab.id, { type: 'ALTECH_V2_RECON_OPEN' });
+                sendResponse({ ok: true });
+            } catch (e) {
+                sendResponse({ ok: false, error: String((e && e.message) || e) });
+            }
         })();
         return true;
     }

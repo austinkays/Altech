@@ -64,6 +64,14 @@
             return trace.toReport();
         }
 
+        // Phase 4 — capture atom metadata for the fill-report renderer.
+        // Registers label / scope / _index / idTemplate for every atom in
+        // the topo-sorted run list so the per-atom drill-down can show
+        // human-readable labels grouped by section.
+        if (typeof trace.registerAtoms === 'function') {
+            trace.registerAtoms(sorted);
+        }
+
         // ── Pre-run: co-applicant entity discovery ──────────────────────────
         // If any atom needs coApplicant scope AND clientData.CoApplicant exists,
         // run entity discovery before the main loop so {entityId} can be resolved.

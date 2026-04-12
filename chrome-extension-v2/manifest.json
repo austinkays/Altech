@@ -92,5 +92,14 @@
   ],
   "background": {
     "service_worker": "src/background/service-worker.js"
+  },
+  "commands": {
+    "fill-page": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A",
+        "mac": "Command+Shift+A"
+      },
+      "description": "Fill the current EZLynx page"
+    }
   }
 }

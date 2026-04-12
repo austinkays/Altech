@@ -71,15 +71,108 @@
 .av2-route { display: flex; gap: 6px; margin-bottom: 6px; font-size: 11px; color: #9a9aa1; }
 .av2-note { padding: 6px 8px; background: #2c2c2e; border-radius: 6px; font-size: 11px; color: #ff9f0a; margin: 6px 0; }
 .av2-empty { color: #9a9aa1; font-size: 11px; }
-.av2-counts { display: flex; gap: 6px; margin: 8px 0; }
+.av2-counts { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
 .av2-pill { padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,0.07); font-size: 11px; }
 .av2-done { color: #30d158; }
 .av2-skip { color: #ff9f0a; }
 .av2-fail { color: #ff453a; }
 .av2-blk  { color: #bf5af2; }
-.av2-issues { list-style: none; padding: 0; margin: 6px 0 0; font-size: 11px; max-height: 180px; overflow: auto; }
-.av2-issue { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .av2-dur { color: #9a9aa1; font-size: 10px; margin-top: 6px; }
+
+/* ── LexisNexis banner (§7.3) ───────────────────────────── */
+.av2-lexis-banner {
+    margin: 6px 0 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(255,159,10,0.18) 0%, rgba(255,159,10,0.08) 100%);
+    border: 1px solid rgba(255,159,10,0.45);
+}
+.av2-lexis-head { display: flex; align-items: center; gap: 6px; }
+.av2-lexis-icon { font-size: 13px; }
+.av2-lexis-title { font-weight: 600; color: #ffb84d; font-size: 12px; }
+.av2-lexis-body {
+    margin-top: 4px; font-size: 11px; color: #f5f5f7; line-height: 1.35;
+    word-break: break-word;
+}
+.av2-lexis-hint { margin-top: 4px; font-size: 10px; color: #9a9aa1; font-style: italic; }
+
+/* ── Grouped per-atom drill-down ────────────────────────── */
+.av2-groups { margin-top: 6px; max-height: 280px; overflow: auto; }
+.av2-group {
+    border: 1px solid #3a3a3c;
+    border-radius: 6px;
+    background: #242426;
+    margin-bottom: 6px;
+    overflow: hidden;
+}
+.av2-group[open] { background: #1e1e20; }
+.av2-group-summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+}
+.av2-group-summary::-webkit-details-marker { display: none; }
+.av2-group-summary::before {
+    content: '▸';
+    display: inline-block;
+    font-size: 9px;
+    color: #9a9aa1;
+    margin-right: 4px;
+    transition: transform 120ms ease;
+}
+.av2-group[open] .av2-group-summary::before { transform: rotate(90deg); }
+.av2-group-title { font-weight: 600; color: #f5f5f7; flex: 1; }
+.av2-group-counts { display: flex; gap: 4px; }
+.av2-mini {
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+}
+
+.av2-atom-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-top: 1px solid #3a3a3c;
+}
+.av2-atom {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 11px;
+}
+.av2-atom:last-child { border-bottom: none; }
+.av2-atom.av2-failed  { background: rgba(255,69,58,0.08);  border-left: 2px solid #ff453a; }
+.av2-atom.av2-blocked { background: rgba(191,90,242,0.06); border-left: 2px solid #bf5af2; }
+.av2-atom.av2-skipped { background: rgba(255,159,10,0.06); border-left: 2px solid #ff9f0a; }
+.av2-atom.av2-done    { background: rgba(48,209,88,0.04);  border-left: 2px solid rgba(48,209,88,0.6); }
+.av2-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+.av2-state-done { background: rgba(48,209,88,0.15); }
+.av2-state-skip { background: rgba(255,159,10,0.15); }
+.av2-state-fail { background: rgba(255,69,58,0.18); }
+.av2-state-blk  { background: rgba(191,90,242,0.15); }
+.av2-atom-body { flex: 1; min-width: 0; }
+.av2-atom-head { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.av2-atom-label { font-weight: 600; color: #f5f5f7; }
+.av2-atom-key { color: #6a6a70; font-size: 10px; font-family: ui-monospace, Menlo, monospace; }
+.av2-atom-meta { color: #9a9aa1; font-size: 10px; margin-top: 2px; }
+.av2-atom-extra { color: #9a9aa1; font-size: 10px; margin-top: 2px; font-style: italic; word-break: break-word; }
 .progress { font-size: 11px; color: #9a9aa1; margin-top: 6px; }
 /* Recon panel */
 .recon-panel { display: none; margin-top: 10px; border-top: 1px solid #3a3a3c; padding-top: 10px; }
