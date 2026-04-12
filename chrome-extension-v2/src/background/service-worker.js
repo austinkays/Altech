@@ -12,9 +12,17 @@
  *   4. Handle { type: 'ALTECH_RECON_ISSUE' } → write to Firestore via bridge message
  */
 
-importScripts('src/background/storage.js');
-
-const { getKeys, setKeys } = self.AltechV2Storage;
+// ── Storage helpers (inlined to avoid importScripts path issues in MV3) ──
+async function getKeys(keys) {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(keys, (result) => resolve(result || {}));
+    });
+}
+async function setKeys(obj) {
+    return new Promise((resolve) => {
+        chrome.storage.local.set(obj, () => resolve());
+    });
+}
 
 // ── Install / update ─────────────────────────────────────────────
 chrome.runtime.onInstalled.addListener(async (details) => {
