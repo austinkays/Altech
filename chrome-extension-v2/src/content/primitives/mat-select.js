@@ -22,6 +22,7 @@
                 pollPredicate: require('../waits/poll-predicate').pollPredicate,
                 bestMatch: require('../locator/dice-similarity').bestMatch,
                 expand: require('../transforms/abbreviations').expand,
+                dismissOverlay: require('../special-cases/dismiss-overlay').dismissOverlay,
             };
         }
         return {
@@ -29,6 +30,7 @@
             pollPredicate: global.AltechV2.waits.pollPredicate,
             bestMatch: global.AltechV2.locator.dice.bestMatch,
             expand: global.AltechV2.transforms.abbreviations.expand,
+            dismissOverlay: global.AltechV2.specialCases && global.AltechV2.specialCases.dismissOverlay,
         };
     };
 
@@ -67,7 +69,14 @@
      */
     async function fillMatSelect(triggerEl, value, opts) {
         if (!triggerEl) return { ok: false, reason: 'missing-element' };
-        const { waitOptionsLoaded, pollPredicate } = getDeps();
+        const { waitOptionsLoaded, pollPredicate, dismissOverlay } = getDeps();
+
+        // Defensive: dismiss any stuck overlay from a previous fill before
+        // opening this dropdown. Mirrors v1's dismissOverlay() call that
+        // prevented cascade failures across sequential dropdown fills.
+        if (typeof dismissOverlay === 'function') {
+            await dismissOverlay();
+        }
 
         // Find the clickable trigger. If the host is the <mat-select>, click
         // it; otherwise look for a descendant trigger.
@@ -78,15 +87,16 @@
         const opts_ = opts || {};
         const options = await waitOptionsLoaded({ timeoutMs: opts_.timeoutMs });
         if (!options || options.length === 0) {
+            // Close the overlay so the next atom doesn't run with it stuck open
+            if (typeof dismissOverlay === 'function') await dismissOverlay();
             return { ok: false, reason: 'no-options' };
         }
 
         const optionTexts = Array.from(options).map((o) => (o.textContent || '').trim());
         const idx = pickOption(value, optionTexts, opts_);
         if (idx < 0) {
-            // Close the overlay by clicking the trigger again so the next atom
-            // doesn't run with this overlay still open.
-            try { trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window })); } catch (_) { /* ok */ }
+            // Close the overlay so the next atom doesn't cascade-fail
+            if (typeof dismissOverlay === 'function') await dismissOverlay();
             return { ok: false, reason: 'no-match', attempted: value, available: optionTexts };
         }
 

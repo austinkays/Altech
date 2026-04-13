@@ -47,6 +47,7 @@
         "src/content/primitives/mat-radio.js",
         "src/content/routes/route-definitions.js",
         "src/content/routes/router.js",
+        "src/content/special-cases/dismiss-overlay.js",
         "src/content/special-cases/google-places.js",
         "src/content/special-cases/entity-id-discovery.js",
         "src/content/special-cases/add-entity.js",
