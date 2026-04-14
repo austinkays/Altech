@@ -231,6 +231,12 @@ body.dark-mode .dark-mode-toggle {
     50%      { opacity: 0.4;  }
 }
 
+/* === PWA UPDATE BANNER === */
+@keyframes pwaSlideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
+
 /* === REDUCED MOTION === */
 @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }

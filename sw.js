@@ -7,19 +7,35 @@
  * Bumping CACHE_VERSION still works as a nuclear option to purge stale caches.
  */
 
-const CACHE_VERSION = 'altech-v11';
+const CACHE_VERSION = 'altech-v12';
 const APP_SHELL = [
     '/',
     '/index.html',
+    '/manifest.json',
+    '/icons/icon-192.png',
+    '/icons/icon-512.png',
+    // CSS
+    '/css/variables.css',
+    '/css/base.css',
+    '/css/layout.css',
+    '/css/components.css',
+    '/css/landing.css',
+    '/css/animations.css',
     '/css/sidebar.css',
     '/css/dashboard.css',
     '/css/accounting.css',
     '/css/admin.css',
     '/css/auth.css',
+    '/css/aurora-theme.css',
+    '/css/blind-spot-brief.css',
+    '/css/broadform.css',
     '/css/bug-report.css',
     '/css/call-logger.css',
+    '/css/commercial-quoter.css',
     '/css/compliance.css',
+    '/css/dec-import.css',
     '/css/email.css',
+    '/css/endorsement-parser.css',
     '/css/ezlynx.css',
     '/css/hawksoft.css',
     '/css/intake-assist.css',
@@ -28,29 +44,45 @@ const APP_SHELL = [
     '/css/quickref.css',
     '/css/quote-compare.css',
     '/css/reminders.css',
+    '/css/returned-mail.css',
     '/css/security-info.css',
+    '/css/task-sheet.css',
     '/css/theme-professional.css',
     '/css/vin-decoder.css',
+    // JS — infrastructure (must load before App)
+    '/js/crypto-helper.js',
+    '/js/storage-keys.js',
+    '/js/utils.js',
+    '/js/fields.js',
+    // JS — App core (order-dependent)
     '/js/app-init.js',
-    '/js/app-boot.js',
+    '/js/app-ui-utils.js',
+    '/js/app-navigation.js',
     '/js/app-core.js',
     '/js/app-scan.js',
-    '/js/app-export.js',
     '/js/app-property.js',
-    '/js/app-popups.js',
     '/js/app-vehicles.js',
+    '/js/app-popups.js',
+    '/js/app-export.js',
     '/js/app-quotes.js',
+    // JS — standalone modules
     '/js/ai-provider.js',
+    '/js/dashboard-widgets.js',
+    // JS — plugins
     '/js/admin-panel.js',
+    '/js/accounting-export.js',
     '/js/auth.js',
+    '/js/blind-spot-brief.js',
     '/js/bug-report.js',
     '/js/call-logger.js',
     '/js/cloud-sync.js',
     '/js/coi.js',
+    '/js/commercial-quoter.js',
     '/js/compliance-dashboard.js',
-    '/js/crypto-helper.js',
     '/js/data-backup.js',
+    '/js/dec-import.js',
     '/js/email-composer.js',
+    '/js/endorsement-parser.js',
     '/js/ezlynx-tool.js',
     '/js/firebase-config.js',
     '/js/hawksoft-export.js',
@@ -61,11 +93,13 @@ const APP_SHELL = [
     '/js/policy-qa.js',
     '/js/prospect.js',
     '/js/quick-ref.js',
+    '/js/quoting-info-panels.js',
     '/js/quote-compare.js',
     '/js/reminders.js',
-    '/js/accounting-export.js',
+    '/js/returned-mail.js',
+    '/js/task-sheet.js',
     '/js/vin-decoder.js',
-    '/js/dashboard-widgets.js',
+    '/js/app-boot.js',
 ];
 
 // Plugin HTML files — cached on access
@@ -85,16 +119,34 @@ const PLUGIN_FILES = [
     '/plugins/quotecompare.html',
     '/plugins/reminders.html',
     '/plugins/vin-decoder.html',
+    '/plugins/blind-spot-brief.html',
+    '/plugins/commercial-quoter.html',
+    '/plugins/dec-import.html',
+    '/plugins/endorsement.html',
+    '/plugins/returned-mail.html',
+    '/plugins/task-sheet.html',
 ];
 
 // ── Install: pre-cache app shell ──
+// NOTE: We intentionally do NOT call self.skipWaiting() here.
+// The new SW waits until the user clicks "Update Now" in the update banner,
+// which sends a SKIP_WAITING message (see listener below). This prevents
+// serving a mix of old HTML + new JS during a deploy.
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_VERSION).then((cache) => {
             console.log('[SW] Pre-caching app shell');
             return cache.addAll(APP_SHELL);
-        }).then(() => self.skipWaiting())
+        })
     );
+});
+
+// ── Message handler: controlled activation from update banner ──
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        console.log('[SW] User accepted update — activating new version');
+        self.skipWaiting();
+    }
 });
 
 // ── Activate: clean old caches ──

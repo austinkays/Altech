@@ -20,6 +20,9 @@ Object.assign(App, {
             document.body.classList.add('dark-mode');
         }
         this.updateDarkModeIcons(isDark);
+        // Sync theme-color meta with dark mode state
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = isDark ? '#000000' : '#007AFF';
     },
 
     toggleDarkMode() {
@@ -27,6 +30,9 @@ Object.assign(App, {
         const isDark = document.body.classList.contains('dark-mode');
         localStorage.setItem(STORAGE_KEYS.DARK_MODE, isDark);
         this.updateDarkModeIcons(isDark);
+        // Sync theme-color meta with dark mode state
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = isDark ? '#000000' : '#007AFF';
         // Aurora is dark-only — deactivate if switching to light
         if (!isDark && document.body.classList.contains('theme-aurora')) {
             this.setTheme('default');

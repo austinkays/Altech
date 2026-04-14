@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(pwa): installable PWA with update banner** (June 14, 2026):
+  - `manifest.json` — Web App Manifest: `display: standalone`, `theme_color: #007AFF`, 3 icon sizes (192, 512, maskable-512)
+  - `icons/` — PWA icons generated from Tauri branded logo (`icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `icon-32.png` favicon)
+  - `index.html` — Added `<link rel="manifest">`, `<meta name="theme-color">`, `<meta name="description">`, `<link rel="icon">` favicon, update banner HTML div
+  - `css/components.css` — `.pwa-update-banner` glassmorphic top bar (z-index 10001, dark mode, mobile responsive) + `.pwa-install-btn` sidebar install button styles
+  - `css/animations.css` — `@keyframes pwaSlideDown` for banner entrance
+  - `js/app-boot.js` — Full SW update lifecycle: `updatefound` → `statechange` → show banner → user clicks "Update Now" → `SKIP_WAITING` message → `controllerchange` → reload. `beforeinstallprompt` capture + `_triggerPwaInstall()`. 30-min periodic `reg.update()`.
+  - `js/app-ui-utils.js` — `loadDarkMode()` and `toggleDarkMode()` sync `<meta name="theme-color">` (#007AFF light / #000000 dark)
+  - `sw.js` — Removed auto `skipWaiting()` from install handler, added `SKIP_WAITING` message listener for user-controlled updates. Bumped `CACHE_VERSION` to `altech-v12`. Rebuilt `APP_SHELL` with ~25 previously missing JS/CSS files. Added 6 missing plugin HTML files to `PLUGIN_FILES`.
+  - `vercel.json` — Added `Cache-Control: no-cache` + `Service-Worker-Allowed` headers for `sw.js`, `Content-Type: application/manifest+json` for `manifest.json`
+  - `tests/boot-loading.test.js` — Added `addEventListener` and `matchMedia` mocks to `navigator.serviceWorker` fixture for JSDOM compatibility
+
+### Added
 - **feat(extension-v2): auto policy-info + auto coverage registries, manifest fix** (April 12, 2026):
   - `chrome-extension-v2/src/content/registries/auto-policy-info.js` — New flat registry (12 atoms) for the EZLynx auto policy-info page (`/rating/auto/{id}/policy-info`). Covers policy type, term, effective date, prior carrier (with residenceIs cascade precondition), prior liability limits, years with continuous coverage, and credit check toggle. All atoms tagged `_needsRecon: true` — IDs are best-guess from EZLynx naming conventions and need live validation via Registry Audit.
   - `chrome-extension-v2/src/content/registries/auto-coverage.js` — New flat registry (10 atoms) for the EZLynx auto coverage page (`/rating/auto/{id}/coverage`). All mat-select type: bodily injury, property damage, medical payments, UM/UIM BI/PD, comprehensive/collision deductibles (with `currencyStrip.stripInt()` transform per §7.7), towing, rental. All atoms tagged `_needsRecon: true`.

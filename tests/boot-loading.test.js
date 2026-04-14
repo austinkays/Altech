@@ -50,7 +50,8 @@ function createBootDom(url = 'http://localhost:8000') {
   };
   w.Onboarding = { init: jest.fn() };
   w.Reminders = { init: jest.fn(), checkAlerts: jest.fn() };
-  w.navigator.serviceWorker = { register: jest.fn().mockResolvedValue({ scope: '/' }) };
+  w.navigator.serviceWorker = { register: jest.fn().mockResolvedValue({ scope: '/', addEventListener: jest.fn() }), addEventListener: jest.fn() };
+  w.matchMedia = jest.fn().mockReturnValue({ matches: false, addEventListener: jest.fn() });
 
   const source = fs.readFileSync(path.join(ROOT, 'js/app-boot.js'), 'utf8');
   w.eval(source);

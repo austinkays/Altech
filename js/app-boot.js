@@ -70,14 +70,97 @@ window.addEventListener('error', (e) => {
     console.error('[Global Error]', e.message, e.filename, e.lineno);
 });
 
-// ── ServiceWorker Registration (offline app shell) ──
-if ('serviceWorker' in navigator) {
+// ── ServiceWorker Registration + PWA Update & Install ──
+(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    let _waitingSW = null;
+
+    // Show the update banner when a new SW is waiting
+    function showUpdateBanner() {
+        const banner = document.getElementById('updateBanner');
+        if (banner) banner.style.display = '';
+    }
+
+    // Called by the "Update Now" button (onclick in HTML)
+    window._applySwUpdate = function () {
+        const banner = document.getElementById('updateBanner');
+        if (banner) banner.style.display = 'none';
+        if (_waitingSW) {
+            _waitingSW.postMessage({ type: 'SKIP_WAITING' });
+        }
+    };
+
+    // When the new SW takes control, reload to get the fresh assets
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+    });
+
     navigator.serviceWorker.register('/sw.js').then((reg) => {
         console.log('[SW] Registered, scope:', reg.scope);
+
+        // If a SW is already waiting (e.g. user returned to the tab)
+        if (reg.waiting) {
+            _waitingSW = reg.waiting;
+            showUpdateBanner();
+        }
+
+        // Detect new SW installs
+        reg.addEventListener('updatefound', () => {
+            const newSW = reg.installing;
+            if (!newSW) return;
+            newSW.addEventListener('statechange', () => {
+                // installed = new SW finished install, waiting to activate
+                if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                    _waitingSW = newSW;
+                    showUpdateBanner();
+                }
+            });
+        });
+
+        // Check for updates every 30 minutes
+        setInterval(() => { reg.update(); }, 30 * 60 * 1000);
     }).catch((err) => {
         console.warn('[SW] Registration failed:', err.message);
     });
-}
+
+    // ── beforeinstallprompt: capture deferred install prompt ──
+    let _deferredInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        _deferredInstallPrompt = e;
+        // Show install button in sidebar if it exists
+        const installBtn = document.getElementById('pwaInstallBtn');
+        if (installBtn) installBtn.style.display = '';
+    });
+
+    // Expose install trigger for the sidebar button
+    window._triggerPwaInstall = function () {
+        if (!_deferredInstallPrompt) return;
+        _deferredInstallPrompt.prompt();
+        _deferredInstallPrompt.userChoice.then((result) => {
+            console.log('[PWA] Install prompt result:', result.outcome);
+            _deferredInstallPrompt = null;
+            const installBtn = document.getElementById('pwaInstallBtn');
+            if (installBtn) installBtn.style.display = 'none';
+        });
+    };
+
+    // If already in standalone mode, hide install button
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        const installBtn = document.getElementById('pwaInstallBtn');
+        if (installBtn) installBtn.style.display = 'none';
+    }
+
+    // Hide install button after app is installed
+    window.addEventListener('appinstalled', () => {
+        console.log('[PWA] App installed');
+        _deferredInstallPrompt = null;
+        const installBtn = document.getElementById('pwaInstallBtn');
+        if (installBtn) installBtn.style.display = 'none';
+    });
+})();
 
 // ── beforeunload: Save client history before page close/refresh ──
 window.addEventListener('beforeunload', () => {
