@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **fix(deposit-sheet): shorten receipt numbers & narrow Agent column** (April 14, 2026):
+  - `js/accounting-export.js` — Added `_shortenRct()` helper that strips leading zeros from HawkSoft receipt numbers (e.g., `RCT000045170` → `RCT45170`). Applied to both HTML table and PDF export rendering. Narrowed AGENT column from 22mm → 14mm in PDF, giving the flex CLIENT column 8mm more space.
+
+### Fixed
 - **fix(extension-v2): fix applicant-details low fill rate (31% → ~65%)** (June 14, 2026):
   - `chrome-extension-v2/src/content/special-cases/entity-id-discovery.js` — Click the `additional-contact-is-co-applicant-0` mat-slide-toggle before searching for "Add contact" button; wait up to 2 s for co-app section to render. Unblocks all 16 co-applicant atoms.
   - `chrome-extension-v2/src/content/registries/applicant.js` — Added `relationship` atom (mat-select, `contact-relationships-0`) to PERSONAL group. Atom count 32 → 33.

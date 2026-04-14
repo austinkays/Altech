@@ -38,6 +38,13 @@ const AccountingExport = {
         'disbursement', 'non-fiduciary'
     ]),
 
+    /** Shorten receipt numbers: RCT000045170 → RCT45170 */
+    _shortenRct(val) {
+        const s = String(val || '').trim();
+        const m = s.match(/^(RCT)0*(\d+)$/i);
+        return m ? m[1] + m[2] : s;
+    },
+
     init() {
         if (this.initialized) return;
         this.initialized = true;
@@ -815,7 +822,7 @@ const AccountingExport = {
                     const cls = num === 0 ? ' class="ds-td-money ds-money-zero"' : ' class="ds-td-money"';
                     html += `<td${cls}>${num === 0 ? '\u2014' : this._dsFmt(num)}</td>`;
                 } else if (col === 'item #' && mergeDate) {
-                    const n = this.escHtml(row['item #'] || '');
+                    const n = this.escHtml(this._shortenRct(row['item #']));
                     const d = this.escHtml(row['item date'] || '');
                     html += `<td class="ds-td-receipt">${n}${d ? '<span class="ds-receipt-date">' + d + '</span>' : ''}</td>`;
                 } else if (col === 'name') {
@@ -825,6 +832,8 @@ const AccountingExport = {
                     html += `<td class="ds-td-client">${nm}${id ? '<span class="ds-client-id">#' + id + '</span>' : ''}${teller ? '<span class="ds-client-teller">' + teller + '</span>' : ''}</td>`;
                 } else if (col === 'memo') {
                     html += `<td class="ds-td-memo">${this.escHtml(row[col] || '')}</td>`;
+                } else if (col === 'item #') {
+                    html += `<td>${this.escHtml(this._shortenRct(row[col]))}</td>`;
                 } else {
                     html += `<td>${this.escHtml(row[col] || '')}</td>`;
                 }
@@ -1137,7 +1146,7 @@ const AccountingExport = {
         cols.push({ key: 'item #',    label: 'RECEIPT',   width: 16, align: 'left' });
         cols.push({ key: 'item date', label: 'DATE',      width: 18, align: 'left' });
         cols.push({ key: 'name',      label: 'CLIENT',    width: 0,  align: 'left' });  // flex
-        cols.push({ key: 'teller',    label: 'AGENT',     width: 22, align: 'left' });
+        cols.push({ key: 'teller',    label: 'AGENT',     width: 14, align: 'left' });
         cols.push({ key: 'invoiced',  label: 'INVOICED',  width: 22, align: 'right', money: true });
         cols.push({ key: 'tendered',  label: 'TENDERED',  width: 22, align: 'right', money: true });
         if (hasCrUsed) cols.push({ key: 'credit used',  label: 'CR. USED', width: 18, align: 'right', money: true });
@@ -1197,7 +1206,9 @@ const AccountingExport = {
                     doc.setFontSize(8);
                 } else {
                     doc.setTextColor(...INK);
-                    doc.text(String(row[col.key] || '').trim().substring(0, 28), cx, y + 4);
+                    let cellVal = String(row[col.key] || '').trim();
+                    if (col.key === 'item #') cellVal = this._shortenRct(cellVal);
+                    doc.text(cellVal.substring(0, 28), cx, y + 4);
                 }
                 cx += col.width;
             }
