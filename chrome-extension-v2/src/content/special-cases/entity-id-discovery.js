@@ -31,6 +31,32 @@
     async function discoverCoApplicantEntityId() {
         const pollPredicate = getPollPredicate();
 
+        // 0. Activate the co-applicant toggle if it exists and is OFF.
+        //    The mat-slide-toggle with id 'additional-contact-is-co-applicant-0'
+        //    gates the entire co-applicant section — the "Add contact" button
+        //    only appears after the toggle is ON.
+        const toggle = document.getElementById('additional-contact-is-co-applicant-0');
+        if (toggle) {
+            const wrapper = toggle.closest('mat-slide-toggle');
+            const isChecked = wrapper
+                ? wrapper.classList.contains('mat-mdc-slide-toggle-checked')
+                : toggle.checked;
+            if (!isChecked) {
+                // Click the label/wrapper (Angular needs the gesture on the component).
+                const clickTarget = wrapper || toggle;
+                try { clickTarget.click(); } catch (_) { /* best-effort */ }
+
+                // Wait up to 2 s for the "Add contact" section to render.
+                await pollPredicate(
+                    () => {
+                        const btns = Array.from(document.querySelectorAll('button'));
+                        return btns.some((b) => /add\s+contact/i.test(b.textContent || ''));
+                    },
+                    { timeoutMs: 2000, intervalMs: 100 }
+                );
+            }
+        }
+
         // 1. Snapshot existing contact-first-name-* id suffixes.
         const existing = new Set(
             Array.from(document.querySelectorAll('[id^="contact-first-name-"]'))

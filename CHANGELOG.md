@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(extension-v2): fix applicant-details low fill rate (31% → ~65%)** (June 14, 2026):
+  - `chrome-extension-v2/src/content/special-cases/entity-id-discovery.js` — Click the `additional-contact-is-co-applicant-0` mat-slide-toggle before searching for "Add contact" button; wait up to 2 s for co-app section to render. Unblocks all 16 co-applicant atoms.
+  - `chrome-extension-v2/src/content/registries/applicant.js` — Added `relationship` atom (mat-select, `contact-relationships-0`) to PERSONAL group. Atom count 32 → 33.
+  - `js/ezlynx-tool.js` — Added App.data fallbacks for Occupation and Education in `getFormData()` pass-through section, so values flow even when EZ form fields are empty.
+
 ### Added
 - **feat(pwa): installable PWA with update banner** (June 14, 2026):
   - `manifest.json` — Web App Manifest: `display: standalone`, `theme_color: #007AFF`, 3 icon sizes (192, 512, maskable-512)

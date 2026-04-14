@@ -160,6 +160,8 @@ const EZLynxTool = {
         // Personal extras
         if (appData.prefix) data.Prefix = appData.prefix;
         if (appData.suffix) data.Suffix = appData.suffix;
+        if (!data.Occupation && appData.occupation) data.Occupation = appData.occupation;
+        if (!data.Education && appData.education) data.Education = appData.education;
 
         // Auto policy extras
         if (appData.autoPolicyType) data.AutoPolicyType = appData.autoPolicyType;

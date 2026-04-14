@@ -54,6 +54,8 @@
           skipIfLexisNexisLocked: true },
         { key: 'nickname',       source: 'Nickname',      label: 'Nickname',
           idTemplate: 'contact-nickname-0',                type: 'text' },
+        { key: 'relationship',   source: 'Relationship',  label: 'Relationship',
+          idTemplate: 'contact-relationships-0',           type: 'mat-select' },
         { key: 'dlNumber',       source: 'LicenseNumber', label: "Driver's License Number",
           idTemplate: 'contact-drivers-license-number-0',  type: 'text',
           skipIfLexisNexisLocked: true },
