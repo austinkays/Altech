@@ -655,6 +655,10 @@ async function dismissOverlay() {
         backdrop.click();
         await wait(150);
     }
+    // Dispatch Escape to the CDK overlay container first — Angular's OverlayKeyboardDispatcher
+    // registers its listener there, not on document. Then also fire on document as fallback.
+    const cdkHost = document.querySelector('.cdk-overlay-container');
+    if (cdkHost) cdkHost.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await wait(150);
 }
@@ -1191,6 +1195,7 @@ async function fillCustomDropdown(labelPatterns, value, fieldKey) {
                 if (el.textContent.trim() === bestOpt) {
                     el.click();
                     await wait(FILL_DELAY);
+                    await dismissOverlay(); // close CDK panel before next field
                     // Surface element signature and chosen option for the caller
                     const elSig = ddEl.id || ddEl.getAttribute('formcontrolname') || fieldKey;
                     _fillMeta = { ..._fillMeta, elSig, option: bestOpt };
@@ -1437,6 +1442,8 @@ async function fillMatSelectById(selector, value, fieldKey) {
         for (const el of optEls) {
             if (el.textContent.trim() === pick) {
                 el.click();
+                await wait(FILL_DELAY); // settle before dismissing
+                await dismissOverlay(); // close CDK panel before next field
                 console.log(`[Altech Filler] fillMatSelectById: ${fieldKey} → "${pick}"`);
                 return true;
             }
@@ -1576,6 +1583,7 @@ async function fillScopedDropdown(container, labelPatterns, value, fieldKey) {
             if (el.textContent.trim() === bestOpt) {
                 el.click();
                 await wait(FILL_DELAY);
+                await dismissOverlay(); // close CDK panel before next field
                 return true;
             }
         }
