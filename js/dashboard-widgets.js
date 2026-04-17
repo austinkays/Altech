@@ -942,7 +942,7 @@ window.DashboardWidgets = (() => {
             export: 'Export',
             docs: 'Documents',
             ops: 'Operations',
-            tools: 'Agent Tools',
+            tools: 'In Development',
         };
 
         // Group tools by category

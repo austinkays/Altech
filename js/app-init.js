@@ -37,7 +37,6 @@ const App = {
         // ── Quoting ──
         { key: 'quoting',      icon: '✏️', color: 'icon-blue',    title: 'Personal Lines',  name: 'Personal Intake',       containerId: 'quotingTool',      htmlFile: 'plugins/quoting.html', category: 'quoting' },
         { key: 'commercial',   icon: '🏢', color: 'icon-amber',   title: 'Commercial Lines', name: 'Commercial Intake',     containerId: 'commercialQuoterTool', initModule: 'CommercialQuoter', htmlFile: 'plugins/commercial-quoter.html', category: 'quoting' },
-        { key: 'intake',       icon: '✨', color: 'icon-violet',  title: 'Quote Bot',       name: 'Quote Bot',             containerId: 'intakeTool',       initModule: 'IntakeAssist',      htmlFile: 'plugins/intake-assist.html', category: 'quoting' },
         { key: 'quotecompare', icon: '⚖️', color: 'icon-emerald', title: 'Quote Compare',   name: 'Quote Compare',          containerId: 'quoteCompareTool', initModule: 'QuoteCompare',      htmlFile: 'plugins/quotecompare.html', category: 'quoting' },
         { key: 'qna',          icon: '💬', color: 'icon-rose',    title: 'Policy Q&A',      name: 'Policy Q&A',            containerId: 'qnaTool',          initModule: 'PolicyQA',          htmlFile: 'plugins/qna.html',         category: 'quoting', hidden: true },
         // ── Export ──
@@ -57,16 +56,17 @@ const App = {
         { key: 'prospect',     icon: '🔭', color: 'icon-amber',   title: 'Prospect Intel',  name: 'Prospect Investigator',  containerId: 'prospectTool',     initModule: 'ProspectInvestigator', htmlFile: 'plugins/prospect.html', category: 'ops' },
         { key: 'accounting',   icon: '🧾', color: 'icon-amber',   title: 'Accounting',      name: 'Accounting',             containerId: 'accountingTool',   initModule: 'AccountingExport',  htmlFile: 'plugins/accounting.html',  category: 'ops' },
         { key: 'vindecoder',   icon: '🚗', color: 'icon-emerald', title: 'VIN Decoder',     name: 'VIN Decoder',            containerId: 'vinDecoderTool',   initModule: 'VinDecoder',        htmlFile: 'plugins/vin-decoder.html', category: 'ops' },
-        { key: 'returnedmail', icon: '↩️', color: 'icon-red',    title: 'Returned Mail',   name: 'Returned Mail Tracker',  containerId: 'returnedMailTool', initModule: 'ReturnedMailTracker', htmlFile: 'plugins/returned-mail.html', category: 'ops' },
         { key: 'blindspot',    icon: '🔒', color: 'icon-red',     title: 'Blind Spot Brief', name: 'Blind Spot Brief',      containerId: 'blindSpotTool',    initModule: 'BlindSpotBrief',     htmlFile: 'plugins/blind-spot-brief.html', category: 'admin', hidden: true },
         // ┌────────────────────────────────────────────────────────────┐
         // │  ADD NEW TOOLS HERE                                        │
         // │  Copy a line above and set: key, icon, color, title,    │
         // │  name, containerId, initModule, category                │
-        // │  Categories: 'quoting' | 'docs' | 'ops' | 'ref'        │
+        // │  Categories: 'quoting' | 'docs' | 'ops' | 'tools'       │
         // └────────────────────────────────────────────────────────────┘
-        // ── Agent Tools (eligibility filters, calculators) ──
-        { key: 'broadform', icon: '🎯', color: 'icon-amber', title: 'Carrier Match', name: 'Carrier Recommendation Engine', containerId: 'broadformTool', initModule: 'Broadform', htmlFile: 'plugins/tools/broadform.html', category: 'tools' },
+        // ── In Development (WIP — not yet production-ready) ──
+        { key: 'broadform',    icon: '🎯', color: 'icon-amber',   title: 'Carrier Match',   name: 'Carrier Recommendation Engine', containerId: 'broadformTool',    initModule: 'Broadform',         htmlFile: 'plugins/tools/broadform.html', category: 'tools' },
+        { key: 'intake',       icon: '✨', color: 'icon-violet',  title: 'Quote Bot',       name: 'Quote Bot',             containerId: 'intakeTool',       initModule: 'IntakeAssist',      htmlFile: 'plugins/intake-assist.html', category: 'tools' },
+        { key: 'returnedmail', icon: '↩️', color: 'icon-red',    title: 'Returned Mail',   name: 'Returned Mail Tracker',  containerId: 'returnedMailTool', initModule: 'ReturnedMailTracker', htmlFile: 'plugins/returned-mail.html', category: 'tools' },
     ],
 
     stepTitles: {

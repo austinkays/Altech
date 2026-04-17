@@ -563,7 +563,8 @@ Object.assign(App, {
             quoting: 'Quoting',
             export: 'Export',
             docs: 'Compliance',
-            ops: 'Tools'
+            ops: 'Tools',
+            tools: 'In Development'
         };
 
         const renderCard = (t) => {
