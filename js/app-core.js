@@ -175,11 +175,6 @@ Object.assign(App, {
             scanInput.addEventListener('change', (e) => this.handleScanFiles(e));
         }
 
-        const initialDlInput = document.getElementById('initialDlScanInput');
-        if (initialDlInput) {
-            initialDlInput.addEventListener('change', (e) => this.handleInitialDriverLicenseFile(e.target.files[0]));
-        }
-
         const docIntelInput = document.getElementById('docIntelInput');
         if (docIntelInput) {
             docIntelInput.addEventListener('change', (e) => this.handleDocIntelFiles(e));

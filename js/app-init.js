@@ -18,7 +18,6 @@ const App = {
     selectedQuoteIds: new Set(),
     docIntelFiles: [],
     docIntelResults: null,
-    initialDlScan: null,
     mapApiKey: null,
     mapPreviewCache: {},
     mapPreviewTimer: null,

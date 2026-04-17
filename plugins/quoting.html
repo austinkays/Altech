@@ -64,7 +64,7 @@
             <!-- Smart Scan -->
             <div class="card">
                 <h2>🚀 Smart Scan</h2>
-                <p class="section-subtitle">Upload a policy document or driver license to auto-fill the form</p>
+                <p class="section-subtitle">Upload a policy document to auto-fill the form</p>
 
                 <!-- Desktop drag-and-drop zone for policy documents -->
                 <div id="scanDropZone" class="scan-drop-zone" style="display:none;">
@@ -75,11 +75,9 @@
 
                 <div class="scan-actions">
                     <button class="btn btn-primary" onclick="App.openScanPicker()">📸 Upload Policy Document</button>
-                    <button class="btn btn-primary" onclick="App.openInitialDriverLicensePicker()">🪪 Upload Driver License</button>
                     <button class="btn btn-primary" onclick="App.importEZLynxXML()">📥 Import EZLynx XML</button>
                     <input id="policyScanInput" type="file" accept="image/*,application/pdf" capture="environment" multiple class="hidden" />
                     <input id="ezlynxXmlInput" type="file" accept=".xml,text/xml" class="hidden" />
-                    <input id="initialDlScanInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="App.handleInitialDriverLicenseFile(this.files[0])" />
                     <input id="docIntelInput" type="file" accept="image/*,application/pdf" multiple class="hidden" />
                 </div>
                 <div style="text-align:center; margin-top:8px;">
@@ -87,15 +85,12 @@
                 </div>
 
                 <div id="scanPreview" class="scan-preview"></div>
-                <div id="initialDlPreview" class="scan-preview"></div>
                 <div id="docIntelPreview" class="scan-preview"></div>
-                
+
                 <div id="scanStatus" class="hint hidden"></div>
-                <div id="initialDlStatus" class="hint hidden"></div>
                 <div id="docIntelStatus" class="hint hidden"></div>
-                
+
                 <div id="scanResults"></div>
-                <div id="initialDlResults"></div>
                 <div id="docIntelResults"></div>
                 
                 <div id="scanCoverage" class="hint" style="margin-top:12px; display:none;">Scan coverage: 0/0 fields applied</div>

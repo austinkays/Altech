@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **remove(privacy): driver's license image scanner** (April 17, 2026):
+  - Rationale: DL images contain client NPI (name, DOB, DL#, address, photo). Sending them to a third-party vision API (Gemini) without a signed data-processing agreement fails the FTC Safeguards Rule (2023 revision) vendor-oversight requirement, and is the kind of "unapproved software" exposure that most E&O carriers explicitly exclude. Agents can still type the DL # and state manually — that was always the primary flow.
+  - `plugins/quoting.html` — removed the "🪪 Upload Driver License" button, `#initialDlScanInput` file input, and the DL preview/status/results containers from the Smart Scan card on Step 0. Subtitle updated to "Upload a policy document to auto-fill the form".
+  - `js/app-scan.js` — removed `openInitialDriverLicensePicker`, `handleInitialDriverLicenseFile`, `renderInitialDriverLicenseResults`, `applyInitialDriverLicense`, `clearInitialDriverLicenseScan`.
+  - `js/app-vehicles.js` — removed per-driver "📸 Scan Driver's License" button from each driver card, plus `openDriverLicensePicker`, `handleDriverLicenseFile`, `processDriverLicenseImage`, and the now-orphaned `convertImageToJPEG`. Manual License # / State inputs are unchanged.
+  - `js/app-core.js` — dropped the `#initialDlScanInput` change listener.
+  - `js/app-init.js` — dropped the `initialDlScan` state field.
+  - `api/vision-processor.js` — removed the `processDriverLicense` handler (~217 lines) and the `case 'scanDriverLicense'` in the router. The endpoint still serves `processImage`, `processPDF`, `analyzeAerial`, `consolidate`, and `documentIntel`.
+  - Dormant `driver.dlScanPreview` / `dlScanConfidence` fields in any previously-saved driver objects are simply ignored on re-render; no migration needed.
+  - Tests: 28 suites / 1772 tests pass.
+  - Docs in `docs/ARCHITECTURE.md`, `docs/JS_MODULE_AUDIT.md`, and `docs/HEIC_FIX_IMPLEMENTATION.md` still reference the removed flow — flagged for cleanup in the broader security hardening pass.
+
 ### Added
 - **feat(reminders): daily reminder sweep cron** (April 17, 2026):
   - `api/reminders-sweep.js` (new) — Vercel Cron handler (`0 13 * * *` = 06:00 PT). Iterates `users/` via service-account Firestore REST, reads each user's `sync/reminders`, filters tasks with `dueDate <= today` and no today-completion / active snooze, writes a digest to `sync/dailyDigest` with `{date, dueCount, tasks, generatedAt}`. Auth via `Authorization: Bearer ${CRON_SECRET}` (Vercel sets this automatically on scheduled invocations).
