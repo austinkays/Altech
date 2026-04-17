@@ -445,22 +445,26 @@ Object.assign(App, {
                 ['Protection Class',v('protectionClass')],
             ], 3);
 
-            // Risk items — only show when they represent actual risks
-            const riskItems = [];
-            const poolVal = v('pool');
-            if (poolVal && poolVal.toLowerCase() !== 'no' && poolVal.toLowerCase() !== 'none') riskItems.push(['Swimming Pool', poolVal]);
+            // Risk items — always show all risks so the agent's "None" answer is documented.
+            // Empty/"No"/legacy blanks default to "None" for a consistent printed record.
+            const _riskDisplay = (val) => {
+                if (!val) return 'None';
+                const lc = String(val).trim().toLowerCase();
+                return (lc === '' || lc === 'no' || lc === 'none') ? 'None' : val;
+            };
+            const poolVal  = v('pool');
             const trampVal = v('trampoline');
-            if (trampVal && trampVal.toLowerCase() !== 'no' && trampVal.toLowerCase() !== 'none') riskItems.push(['Trampoline', trampVal]);
-            const woodVal = v('woodStove');
-            if (woodVal && woodVal.toLowerCase() !== 'none' && woodVal.toLowerCase() !== 'no') riskItems.push(['Wood Stove', woodVal]);
-            const dogVal = v('dogInfo');
-            if (dogVal && dogVal.toLowerCase() !== 'none' && dogVal.toLowerCase() !== 'no') riskItems.push(['Dogs', dogVal]);
-            const bizVal = v('businessOnProperty');
-            if (bizVal && bizVal.toLowerCase() !== 'no') riskItems.push(['Business on Property', bizVal]);
-            if (riskItems.length) {
-                subHeader('Risk Items');
-                kvRow(riskItems, 3);
-            }
+            const woodVal  = v('woodStove');
+            const dogVal   = v('dogInfo');
+            const bizVal   = v('businessOnProperty');
+            subHeader('Risk Items');
+            kvRow([
+                ['Swimming Pool',        _riskDisplay(poolVal)],
+                ['Trampoline',           _riskDisplay(trampVal)],
+                ['Wood Stove',           _riskDisplay(woodVal)],
+                ['Dogs',                 _riskDisplay(dogVal)],
+                ['Business on Property', _riskDisplay(bizVal)],
+            ], 3);
 
             subHeader('Home Coverage');
             kvRow([
@@ -551,7 +555,13 @@ Object.assign(App, {
                             ['Lic. State',  (d.dlState||'').toUpperCase()],
                             ['Age Licensed',d.ageLicensed||''],
                             ['Good Driver', d.goodDriver||''],
+                            ['Accidents',   d.accidents||''],
+                            ['Violations',  d.violations||''],
+                            ['Student GPA', d.studentGPA||''],
                             ...(d.sr22 && d.sr22!=='No' ? [['SR-22', d.sr22]] : []),
+                            ...(d.fr44 && d.fr44!=='No' ? [['FR-44', d.fr44]] : []),
+                            ...(d.licenseSusRev && d.licenseSusRev!=='No' ? [['Sus/Rev', d.licenseSusRev]] : []),
+                            ...(d.matureDriver && d.matureDriver!=='No' ? [['Mature Driver', d.matureDriver]] : []),
                             ...(d.driverEducation && d.driverEducation!=='No' ? [['Driver Ed.', d.driverEducation]] : []),
                         ].filter(([,val])=>val);
 
@@ -571,9 +581,20 @@ Object.assign(App, {
                         return ry - cy + 1.5;
                     };
 
-                    // Estimate card height: header (5.5) + rows * 4 + padding
-                    const leftFields = [left.dob,left.gender,left.maritalStatus,left.education,left.occupation,left.dlNum,left.dlState].filter(Boolean).length;
-                    const estH = 5.5 + Math.max(leftFields, 4) * 4 + 4;
+                    // Estimate card height: header (5.5) + rows * 4 + padding.
+                    // Count all fields the card can render so page-break math stays correct.
+                    const _countDrv = (d) => [
+                        d.dob, d.gender, d.maritalStatus, d.education, d.occupation,
+                        d.dlNum, d.dlState, d.ageLicensed, d.goodDriver,
+                        d.accidents, d.violations, d.studentGPA,
+                        d.sr22 && d.sr22!=='No' ? d.sr22 : '',
+                        d.fr44 && d.fr44!=='No' ? d.fr44 : '',
+                        d.licenseSusRev && d.licenseSusRev!=='No' ? d.licenseSusRev : '',
+                        d.matureDriver && d.matureDriver!=='No' ? d.matureDriver : '',
+                        d.driverEducation && d.driverEducation!=='No' ? d.driverEducation : '',
+                    ].filter(Boolean).length;
+                    const rowCount = Math.max(_countDrv(left), right ? _countDrv(right) : 0, 4);
+                    const estH = 5.5 + rowCount * 4 + 4;
                     need(estH);
 
                     const startY = y;
@@ -661,12 +682,6 @@ Object.assign(App, {
                 ['Collision Ded.',  fmtMoney(v('autoDeductible'))],
                 ['Rental',          v('rentalDeductible') ? '$' + v('rentalDeductible').replace('/', '/day — $') + ' max' : ''],
                 ['Towing',          fmtMoney(v('towingDeductible'))],
-                ['Commute Dist.',   v('commuteDist') ? v('commuteDist')+' mi' : ''],
-                ['Ride Sharing',    v('rideSharing')],
-                ['Telematics',      v('telematics')],
-                ['Student GPA',     v('studentGPA')],
-                ['Accidents',       v('accidents')],
-                ['Violations',      v('violations')],
             ], 3);
         }
 

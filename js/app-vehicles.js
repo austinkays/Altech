@@ -812,13 +812,17 @@ Object.assign(App, {
     async saveDriversVehicles() {
         this.data.drivers = this.drivers;
         this.data.vehicles = this.vehicles;
-        
+
         // Encrypt and save
         if (this.encryptionEnabled) {
             const encrypted = await CryptoHelper.encrypt(this.data);
             safeSave(this.storageKey, encrypted);
         } else {
             safeSave(this.storageKey, JSON.stringify(this.data));
+        }
+        // Queue cloud sync so driver/vehicle edits propagate across devices
+        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
+            try { CloudSync.schedulePush(); } catch (e) { /* ok */ }
         }
     },
 

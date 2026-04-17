@@ -392,6 +392,10 @@ Object.assign(App, {
         } else {
             safeSave(this.quotesKey, JSON.stringify(quotes));
         }
+        // Queue cloud sync so saved drafts propagate across devices
+        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
+            try { CloudSync.schedulePush(); } catch (e) { /* ok */ }
+        }
     },
 
     getQuoteTitle(data) {
@@ -467,13 +471,17 @@ Object.assign(App, {
         const quote = quotes.find(q => q.id === id);
         if (!quote) return;
         this.applyData(quote.data);
-        
+
         // Save loaded data with encryption
         if (this.encryptionEnabled) {
             const encrypted = await CryptoHelper.encrypt(this.data);
             safeSave(this.storageKey, encrypted);
         } else {
             safeSave(this.storageKey, JSON.stringify(this.data));
+        }
+        // Queue cloud sync so the loaded form propagates across devices
+        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
+            try { CloudSync.schedulePush(); } catch (e) { /* ok */ }
         }
         this.toast('✅ Draft loaded');
     },

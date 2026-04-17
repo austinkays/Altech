@@ -319,12 +319,21 @@ Object.assign(App, {
             hidden.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
-        // Secondary heating progressive disclosure
+        // Secondary heating progressive disclosure.
+        // When the user unchecks, clear the hidden select + persisted value so the PDF
+        // doesn't print a stale "Secondary Heat: Wood" after the toggle is turned off.
         const secHeatCheck = document.getElementById('hasSecondaryHeating');
         const secHeatWrap = document.getElementById('secondaryHeatingWrapper');
         if (secHeatCheck && secHeatWrap) {
             secHeatCheck.addEventListener('change', () => {
-                secHeatWrap.classList.toggle('disclosure-hidden', !secHeatCheck.checked);
+                const on = secHeatCheck.checked;
+                secHeatWrap.classList.toggle('disclosure-hidden', !on);
+                if (!on) {
+                    const sel = document.getElementById('secondaryHeating');
+                    if (sel) sel.value = '';
+                    this.data.secondaryHeating = '';
+                    this.save({});
+                }
             });
         }
 
@@ -1068,6 +1077,18 @@ Object.assign(App, {
         const show = cb.checked;
         section.classList.toggle('visible', show);
         this.data.hasCoApplicant = show ? 'yes' : '';
+
+        // When unchecking, clear every co-applicant field so stale values don't
+        // leak into exports (EzLynx/HawkSoft don't gate on hasCoApplicant).
+        if (!show && window.FIELDS) {
+            window.FIELDS
+                .filter(f => f.section === 'coapplicant')
+                .forEach(f => {
+                    const el = document.getElementById(f.id);
+                    if (el) { el.value = ''; if (el.type === 'checkbox') el.checked = false; }
+                    this.data[f.id] = '';
+                });
+        }
         this.save({});
 
         // Sync co-applicant as Driver 2 for auto/both quotes

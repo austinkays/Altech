@@ -1888,8 +1888,8 @@ This is trusted, complete agency data — extract every field you can find.
                     if (!this.drivers) this.drivers = [];
                     // Avoid duplicating by name
                     const isDupe = this.drivers.some(d =>
-                        d.firstName.toLowerCase() === nameMatch[1].toLowerCase() &&
-                        d.lastName.toLowerCase() === nameMatch[2].toLowerCase()
+                        (d.firstName || '').toLowerCase() === nameMatch[1].toLowerCase() &&
+                        (d.lastName || '').toLowerCase() === nameMatch[2].toLowerCase()
                     );
                     if (!isDupe) {
                         this.drivers.push({
