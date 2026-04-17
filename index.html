@@ -484,6 +484,9 @@
                     <h3>Welcome Back</h3>
                     <p class="auth-subtitle">Sign in to sync your data across devices</p>
                 </div>
+                <div class="auth-privacy-notice" style="background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.35);border-radius:8px;padding:0.65rem 0.8rem;margin-bottom:1rem;font-size:12px;line-height:1.45;color:var(--text-secondary)">
+                    <strong style="color:var(--text)">⚠️ Handles client data.</strong> Sign in only on your own trusted computer. If you are using a shared machine, turn off cloud sync in <strong>Account → Sync</strong> after signing in.
+                </div>
                 <form class="auth-form" onsubmit="Auth.handleLoginSubmit(event)">
                     <div class="auth-field">
                         <label for="authLoginEmail">Email</label>
@@ -624,6 +627,13 @@
                                 </div>
                                 <button class="btn-auth btn-auth-small btn-auth-primary" style="margin-top:0;width:auto;padding:0.4rem 1rem" onclick="CloudSync.fullSync()">Sync Now</button>
                             </div>
+                            <label class="auth-field" style="display:flex;align-items:flex-start;gap:0.6rem;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);cursor:pointer">
+                                <input type="checkbox" id="authSyncDisabled" onchange="CloudSync.setDisabled(this.checked)" style="margin-top:3px;flex-shrink:0">
+                                <span style="font-size:13px;line-height:1.45">
+                                    <strong>Keep data on this device only</strong>
+                                    <span style="display:block;color:var(--text-secondary);font-size:11px;margin-top:2px">Recommended on shared or public computers. Client data stays encrypted in this browser and is never uploaded. Cross-device sync will stop working until you re-enable this.</span>
+                                </span>
+                            </label>
                         </div>
                     </details>
 

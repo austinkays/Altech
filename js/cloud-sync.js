@@ -76,6 +76,12 @@ const CloudSync = (() => {
         const tsEl = document.getElementById('authSyncTimestamp');
         if (!statusEl) return;
 
+        if (localStorage.getItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED) === 'true') {
+            statusEl.textContent = 'Disabled — local-only';
+            if (tsEl) tsEl.textContent = '';
+            return;
+        }
+
         if (_syncing) {
             statusEl.textContent = 'Syncing…';
             return;
@@ -442,6 +448,28 @@ const CloudSync = (() => {
         get deviceId() { return DEVICE_ID; },
         get isAvailable() { return FirebaseConfig.isReady && Auth.isSignedIn; },
 
+        // User opt-out — when true, schedulePush/pushToCloud/pullFromCloud/fullSync are no-ops.
+        // Intentionally does NOT gate deleteCloudData: a user disabling sync should still be able
+        // to scrub existing cloud residue.
+        get disabledByUser() { return localStorage.getItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED) === 'true'; },
+
+        refreshUI() { _refreshSyncUI(); },
+
+        setDisabled(disabled) {
+            if (disabled) {
+                localStorage.setItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED, 'true');
+                if (_debouncedPush && typeof _debouncedPush.cancel === 'function') _debouncedPush.cancel();
+                _notify('☁️ Cloud sync disabled — data stays on this device', 'info');
+            } else {
+                // Re-enable is user-initiated; do NOT auto-fullSync — that would pull-then-push
+                // and could overwrite local edits made while sync was off. User clicks
+                // "Sync Now" when ready to reconcile.
+                localStorage.removeItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED);
+                _notify('☁️ Cloud sync re-enabled — click Sync Now when ready', 'success');
+            }
+            _refreshSyncUI();
+        },
+
         /**
          * Register a sync event listener
          * @param {Function} fn - Called with { message, type }
@@ -456,6 +484,7 @@ const CloudSync = (() => {
          */
         async pushToCloud(options = {}) {
             if (!this.isAvailable) return;
+            if (this.disabledByUser) return;
             if (_syncing) return;
             _syncing = true;
 
@@ -512,6 +541,7 @@ const CloudSync = (() => {
          */
         async pullFromCloud() {
             if (!this.isAvailable) return;
+            if (this.disabledByUser) return;
             if (_syncing) return;
             _syncing = true;
             _isPulling = true; // Prevent push triggers during pull
@@ -739,6 +769,7 @@ const CloudSync = (() => {
          */
         schedulePush() {
             if (!this.isAvailable || _isPulling) return;
+            if (this.disabledByUser) return;
             if (!_debouncedPush) _debouncedPush = Utils.debounce(() => this.pushToCloud(), SYNC_DEBOUNCE_MS);
             _debouncedPush();
         },
@@ -749,6 +780,10 @@ const CloudSync = (() => {
         async fullSync() {
             if (!this.isAvailable) {
                 _notify('Sign in to sync across devices', 'info');
+                return;
+            }
+            if (this.disabledByUser) {
+                _notify('Cloud sync is disabled — re-enable it in Account → Sync', 'info');
                 return;
             }
             await this.pullFromCloud();

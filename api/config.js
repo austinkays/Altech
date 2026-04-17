@@ -206,7 +206,7 @@ async function handleBugReport(req, res) {
         `### Environment`,
         `| Field | Value |`,
         `|-------|-------|`,
-        `| **Reporter** | ${user.email || 'unknown'} |`,
+        `| **Reporter UID** | ${user.uid || 'unknown'} |`,
         `| **Page** | ${safePage} |`,
         `| **App Version** | ${safeVersion} |`,
         `| **User Agent** | ${safeUA} |`,
@@ -236,7 +236,7 @@ async function handleBugReport(req, res) {
         }
 
         const issue = await ghRes.json();
-        console.log(`[BugReport] Created issue #${issue.number} by ${user.email} [${req.requestId}]`);
+        console.log(`[BugReport] Created issue #${issue.number} by uid=${user.uid} [${req.requestId}]`);
         return res.status(201).json({ success: true, issueNumber: issue.number, issueUrl: issue.html_url, requestId: req.requestId });
     } catch (err) {
         console.error(`[BugReport] Error:`, err.message, `[${req.requestId}]`);

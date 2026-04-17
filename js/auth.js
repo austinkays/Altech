@@ -334,6 +334,11 @@ const Auth = (() => {
                 // Set theme dropdown to current value
                 const themeEl = modal.querySelector('#themeSelect');
                 if (themeEl) themeEl.value = localStorage.getItem(STORAGE_KEYS.THEME) || 'default';
+
+                // Reflect cloud-sync opt-out state
+                const syncDisabledEl = modal.querySelector('#authSyncDisabled');
+                if (syncDisabledEl) syncDisabledEl.checked = localStorage.getItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED) === 'true';
+                if (typeof CloudSync !== 'undefined' && CloudSync.refreshUI) CloudSync.refreshUI();
             } else {
                 _showView('login');
             }

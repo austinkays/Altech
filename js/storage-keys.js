@@ -61,6 +61,7 @@ window.STORAGE_KEYS = Object.freeze({
     AGENCY_PROFILE:         'altech_agency_profile',
     ENCRYPTION_SALT:        'altech_encryption_salt', // PBKDF2 salt — never sync
     SYNC_META:              'altech_sync_meta',
+    CLOUD_SYNC_DISABLED:    'altech_cloud_sync_disabled', // user opt-out flag — local-only, never sync (would be circular)
     GEMINI_KEY:             'gemini_api_key',
     AI_SETTINGS:            'altech_ai_settings',
     AI_SALT:                'altech_ai_salt',

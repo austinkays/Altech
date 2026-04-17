@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(privacy): cloud-sync opt-out toggle + sign-in data-handling notice** (April 17, 2026):
+  - Path A fallback while full end-to-end encryption (Path B on Supabase) is being built. Lets any user run the app as a local-only, encrypted-browser-storage tool when on a shared/untrusted machine.
+  - `js/storage-keys.js` — new `CLOUD_SYNC_DISABLED` key (local-only; never synced — syncing an "I don't want to sync" flag to the cloud would be circular).
+  - `js/cloud-sync.js` — new public `CloudSync.disabledByUser` getter, `setDisabled(bool)` setter, `refreshUI()` passthrough. Short-circuits `schedulePush`, `pushToCloud`, `pullFromCloud`, and `fullSync` when disabled. Intentionally does NOT gate `deleteCloudData` — a user opting out should still be able to scrub existing cloud residue. Re-enable is user-initiated (no auto full-sync) to avoid pull-then-push overwriting local edits made while disabled.
+  - `_refreshSyncUI` — shows "Disabled — local-only" when opt-out is active.
+  - `index.html` — (1) Added a "Keep data on this device only" checkbox in the existing Account → Sync section with explanatory microcopy. (2) Added a privacy notice banner at the top of the sign-in view: "⚠️ Handles client data. Sign in only on your own trusted computer…"
+  - `js/auth.js` — `showModal()` populates the checkbox state from localStorage and calls `CloudSync.refreshUI()` so the status text is accurate on open.
+
+### Changed
+- **privacy(bug-report): strip user email from public GitHub Issues** (April 17, 2026):
+  - `api/config.js` — Bug reports previously included `user.email` in the public GitHub issue body and in the server log. Replaced both with `user.uid` (opaque Firebase UID, ~28 chars). Still useful for correlating reports from the same user without exposing a reachable identifier to anyone scraping public issues.
+
 ### Removed
 - **remove(privacy): driver's license image scanner** (April 17, 2026):
   - Rationale: DL images contain client NPI (name, DOB, DL#, address, photo). Sending them to a third-party vision API (Gemini) without a signed data-processing agreement fails the FTC Safeguards Rule (2023 revision) vendor-oversight requirement, and is the kind of "unapproved software" exposure that most E&O carriers explicitly exclude. Agents can still type the DL # and state manually — that was always the primary flow.
