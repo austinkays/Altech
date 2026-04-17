@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** March 28, 2026
+> **Last updated:** April 17, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -17,9 +17,9 @@
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
 | **CSS** | 34 files in `css/` (~22,946 lines total) |
-| **JS** | 46 modules in `js/` (~43,510 lines total) |
+| **JS** | 47 modules in `js/` (~43,926 lines total) |
 | **Plugins** | 21 HTML templates in `plugins/` (~6,712 lines total) |
-| **APIs** | 12 serverless functions + 3 helpers in `api/` (~8,592 lines total) |
+| **APIs** | 13 serverless functions + 3 helpers in `api/` (~8,592 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
 | **Encryption** | AES-256-GCM via Web Crypto API (`CryptoHelper`) |
@@ -100,7 +100,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── deposit-sheet.css       # Deposit Sheet plugin (662 lines)
 │   └── aurora-theme.css        # Aurora northern-lights theme — variable overrides, html::before/::after animated layers, glassmorphism (138 lines)
 │
-├── js/                         # 47 modules (~40,530 lines)
+├── js/                         # 47 modules (~40,588 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows, stepTitles (6 entries: step-0,1,3,4,5,6 — step-2 removed as dead code)
@@ -113,13 +113,14 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
 │   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema, AI coverage gap analysis (1,618 lines)
 │   ├── app-quotes.js           # Quote/draft management, client history auto-save, search + view-all (927 lines)
-│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (280 lines)
+│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (365 lines)
 │   │
 │   │  ★ Infrastructure
 │   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
 │   ├── storage-keys.js         # window.STORAGE_KEYS — frozen map of all 53 localStorage key strings (single source of truth — never hardcode keys)
 │   ├── utils.js                # window.Utils: escapeHTML, escapeAttr, tryParseLS, debounce — never define these inline in plugins
 │   ├── fields.js               # window.FIELDS / window.FIELD_BY_ID — ~175 intake form field definitions with id/label/type/section
+│   ├── pdf-lib-loader.js       # window.PDFLibs.ensure('jspdf'|'jszip'|'pdfjs'|'pdflib'|[...]) — lazy-loads ~600 KB of PDF CDN libs on demand (58 lines)
 │   ├── firebase-config.js      # Firebase app init (fetches config from /api/config)
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
@@ -134,11 +135,11 @@ npm run deploy:vercel   # Production deploy
 │   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,119 lines)
 │   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI, lossless vehicle+driver rebuild, per-driver FSC incidents, Client Office field (1,770 lines)
 │   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,112 lines)
-│   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,037 lines)
+│   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,005 lines)
 │   ├── prospect.js              # Commercial prospect investigation, risk scoring (2,318 lines)
 │   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (758 lines)
 │   ├── quote-compare.js         # Quote comparison + AI recommendation (1,098 lines)
-│   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary (1,101 lines)
+│   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary, daily digest toast from /api/reminders-sweep cron (1,138 lines)
 │   ├── vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
 │   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator + coin counter (1,305 lines)
 │   ├── call-logger.js          # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,233 lines)

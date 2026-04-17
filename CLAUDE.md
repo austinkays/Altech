@@ -8,7 +8,7 @@ Vanilla HTML/CSS/JS SPA. No build step, no framework. Vercel deploy (push `main`
 
 ```bash
 npm run dev               # port 3000
-npm test                  # 27 suites, 1688 tests
+npm test                  # 28 suites, 1772 tests
 npx jest --no-coverage    # faster
 ```
 
@@ -63,41 +63,44 @@ Plugins are lazy-loaded: `App.navigateTo(key)` fetches `htmlFile`, injects into 
 ## Script Load Order
 
 ```
-CDN libraries (firebase-compat, jszip, jspdf, pdf.js, pdf-lib)
+CDN libraries (firebase-compat only — jszip/jspdf/pdf.js/pdf-lib are lazy-loaded on demand)
   ↓ synchronous <script> tags:
 1.  crypto-helper.js       → CryptoHelper
 2.  storage-keys.js        → window.STORAGE_KEYS   ← before App
 3.  utils.js               → window.Utils           ← before App
 4.  fields.js              → window.FIELDS, window.FIELD_BY_ID
+5.  pdf-lib-loader.js      → window.PDFLibs.ensure(...) — on-demand PDF CDN loader
 
-5.  app-init.js            → window.App (state only)
-6.  app-ui-utils.js        → App += toast, dark mode, clipboard
-7.  app-navigation.js      → App += updateUI, navigateTo
-8.  app-core.js            → App += save, load
-9.  app-scan.js            → App += processScan
-10. app-property.js        → App += smartAutoFill
-11. app-vehicles.js        → App += renderDrivers/Vehicles
-12. app-popups.js          → App += processImage
-13. app-export.js          → App += exportPDF, exportCMSMTF
-14. app-quotes.js          → App += saveAsQuote
+6.  app-init.js            → window.App (state only)
+7.  app-ui-utils.js        → App += toast, dark mode, clipboard
+8.  app-navigation.js      → App += updateUI, navigateTo
+9.  app-core.js            → App += save, load
+10. app-scan.js            → App += processScan
+11. app-property.js        → App += smartAutoFill
+12. app-vehicles.js        → App += renderDrivers/Vehicles
+13. app-popups.js          → App += processImage
+14. app-export.js          → App += exportPDF, exportCMSMTF
+15. app-quotes.js          → App += saveAsQuote
 
-15. ai-provider.js         → window.AIProvider
-16. dashboard-widgets.js   → window.DashboardWidgets
+16. ai-provider.js         → window.AIProvider
+17. dashboard-widgets.js   → window.DashboardWidgets
 
-17–37. Plugin IIFEs (coi, prospect, quick-ref, accounting-export,
+18–38. Plugin IIFEs (coi, prospect, quick-ref, accounting-export,
        compliance-dashboard, ezlynx-tool, quote-compare, intake-assist,
        email-composer, policy-qa, reminders, hawksoft-export, vin-decoder,
        call-logger, endorsement-parser, task-sheet, returned-mail,
        deposit-sheet, dec-import, blind-spot-brief, commercial-quoter)
 
-37. data-backup.js, bug-report.js
-38. firebase-config.js     ← must precede auth.js
-39. auth.js                ← must precede cloud-sync.js
-40. admin-panel.js
-41. cloud-sync.js          → CloudSync
-42. paywall.js, onboarding.js
-43. app-boot.js            ← ★ MUST BE LAST — runs App.boot()
+39. data-backup.js, bug-report.js
+40. firebase-config.js     ← must precede auth.js
+41. auth.js                ← must precede cloud-sync.js
+42. admin-panel.js
+43. cloud-sync.js          → CloudSync
+44. paywall.js, onboarding.js
+45. app-boot.js            ← ★ MUST BE LAST — runs App.boot()
 ```
+
+**PDF libs are lazy-loaded.** Before using `jsPDF`, `JSZip`, `pdfjsLib`, or `PDFLib`, call `await window.PDFLibs.ensure('jspdf' | 'jszip' | 'pdfjs' | 'pdflib' | [...])`. The loader is idempotent and caches in-flight promises.
 
 ---
 
@@ -279,13 +282,19 @@ If `.Contains()` also fails, check indentation and whitespace exactly — copy t
 
 ---
 
-## Vercel API Limit
+## Vercel API Limits
 
-Hobby plan max: **12 serverless functions**. Current count: **12 (at the limit)**.
+Project is on **Vercel Pro** (as of April 2026). Practical limits:
+- **Function count**: up to ~1000 (was 12 on Hobby — no longer a constraint).
+- **`maxDuration`**: 300s default, configurable up to 800s with Fluid Compute.
+- **Crons**: unlimited daily invocations (was 2/day on Hobby).
 
-Before adding any file to `api/`: count non-`_` files — must stay ≤ 12.
+Current count: **13 serverless functions + 3 `_` helpers** (reminders-sweep.js added April 2026).
 
-To add new API behavior: use `?mode=` or `?type=` routing inside an existing function, or prefix the file with `_` (helper, not counted).
+When adding new `api/` behavior:
+- Prefer a new file for new logical endpoints — clearer logs, per-endpoint `maxDuration`, independent error budgets.
+- `?mode=` / `?action=` routing in existing files (`stripe.js`, `config.js`, `property-intelligence.js`) is *historical* from Hobby days. Don't add new modes just to avoid a new file — a new file is fine now. Existing mode routes can stay until there's a reason to split.
+- `_`-prefixed files remain helpers (not routed, not counted).
 
 ---
 
