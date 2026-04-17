@@ -413,59 +413,27 @@ const QNA_STORAGE_KEY = STORAGE_KEYS.QNA;
                 },
 
                 async extractPdfText(file) {
-                    // Use pdf.js if available, otherwise fall back to FileReader text extraction
-                    if (window.pdfjsLib) {
-                        try {
-                            const arrayBuf = await file.arrayBuffer();
-                            const pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
-                            let text = '';
-                            for (let i = 1; i <= pdf.numPages; i++) {
-                                const page = await pdf.getPage(i);
-                                const content = await page.getTextContent();
-                                text += content.items.map(item => item.str).join(' ') + '\n\n';
-                            }
-                            return text.trim() || null;
-                        } catch (e) {
-                            console.warn('[PolicyQA] pdf.js extraction failed:', e);
-                        }
-                    }
-                    // Fallback: pdf.js not loaded — attempt dynamic load, otherwise fail gracefully
-                    console.warn('[PolicyQA] pdf.js not available — attempting dynamic load');
                     try {
-                        await this.loadPdfJs();
-                        if (window.pdfjsLib) {
-                            const arrayBuf = await file.arrayBuffer();
-                            const pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
-                            let text = '';
-                            for (let i = 1; i <= pdf.numPages; i++) {
-                                const page = await pdf.getPage(i);
-                                const content = await page.getTextContent();
-                                text += content.items.map(item => item.str).join(' ') + '\n\n';
-                            }
-                            return text.trim() || null;
-                        }
-                    } catch (e2) {
-                        console.warn('[PolicyQA] Dynamic pdf.js load failed:', e2);
+                        await window.PDFLibs.ensure('pdfjs');
+                    } catch (e) {
+                        console.warn('[PolicyQA] pdf.js load failed:', e);
+                        this.addSystemMessage('⚠️ PDF text extraction library failed to load. Try refreshing the page or check your internet connection.');
+                        return null;
                     }
-                    // Cannot extract text from PDF without pdf.js — return null instead of raw binary
-                    this.addSystemMessage('⚠️ PDF text extraction library failed to load. Try refreshing the page or check your internet connection.');
-                    return null;
-                },
-
-                async loadPdfJs() {
-                    if (window.pdfjsLib) return;
-                    return new Promise((resolve, reject) => {
-                        const script = document.createElement('script');
-                        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-                        script.onload = () => {
-                            if (window.pdfjsLib) {
-                                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-                            }
-                            resolve();
-                        };
-                        script.onerror = reject;
-                        document.head.appendChild(script);
-                    });
+                    try {
+                        const arrayBuf = await file.arrayBuffer();
+                        const pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
+                        let text = '';
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const content = await page.getTextContent();
+                            text += content.items.map(item => item.str).join(' ') + '\n\n';
+                        }
+                        return text.trim() || null;
+                    } catch (e) {
+                        console.warn('[PolicyQA] pdf.js extraction failed:', e);
+                        return null;
+                    }
                 },
 
                 async extractImageText(file) {

@@ -841,13 +841,15 @@ Object.assign(App, {
     },
 
     async exportSelectedZip() {
-        if (!window.JSZip) {
-            this.toast('⚠️ ZIP export unavailable.');
-            return;
-        }
         const ids = this.getSelectedQuoteIds();
         if (!ids.length) {
             this.toast('⚠️ Select drafts to export.');
+            return;
+        }
+        try {
+            await window.PDFLibs.ensure('jszip');
+        } catch (e) {
+            this.toast('⚠️ ZIP library failed to load — check your internet connection.');
             return;
         }
         const quotes = (await this.getQuotes()).filter(q => ids.includes(q.id));

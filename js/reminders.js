@@ -1042,6 +1042,42 @@ window.Reminders = (() => {
         render(filter);
     }
 
+    // ── Daily digest (from server-side cron `/api/reminders-sweep`) ──
+    //
+    // The cron writes `users/{uid}/sync/dailyDigest` at 06:00 PT each day.
+    // On first load per day we read it and show a toast — gives the user
+    // a reason to open the app even before they navigate to Reminders.
+    async function _checkDailyDigest() {
+        try {
+            if (typeof FirebaseConfig === 'undefined' || !FirebaseConfig.db) return;
+            if (typeof Auth === 'undefined' || !Auth.uid) return;
+
+            const todayStr = _toDateStr(_todayDate());
+            const shownKey = STORAGE_KEYS.REMINDERS_DIGEST_SHOWN;
+            if (localStorage.getItem(shownKey) === todayStr) return;
+
+            const snap = await FirebaseConfig.db
+                .collection('users').doc(Auth.uid)
+                .collection('sync').doc('dailyDigest')
+                .get();
+            if (!snap.exists) return;
+
+            const digest = snap.data();
+            if (!digest || digest.date !== todayStr) return;
+            const dueCount = Number(digest.dueCount || 0);
+            if (dueCount <= 0) return;
+
+            // Announce once, then suppress until tomorrow
+            localStorage.setItem(shownKey, todayStr);
+            const msg = dueCount === 1
+                ? '📅 1 reminder due today'
+                : `📅 ${dueCount} reminders due today`;
+            if (typeof App !== 'undefined' && App.toast) App.toast(msg);
+        } catch (e) {
+            console.warn('[Reminders] dailyDigest check failed:', e);
+        }
+    }
+
     // ── Init ──
 
     function init() {
@@ -1050,6 +1086,7 @@ window.Reminders = (() => {
         render();
         _updateBadge();
         checkAlerts();
+        _checkDailyDigest();
 
         const searchInput = document.getElementById('remSearchInput');
         if (searchInput) {

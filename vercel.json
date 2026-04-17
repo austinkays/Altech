@@ -1,27 +1,36 @@
 {
   "functions": {
     "api/compliance.js": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
     "api/stripe.js": {
       "maxDuration": 30
     },
     "api/property-intelligence.js": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
     "api/prospect-lookup.js": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
     "api/vision-processor.js": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
     "api/historical-analyzer.js": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
     "api/hawksoft-logger.js": {
       "maxDuration": 30
+    },
+    "api/reminders-sweep.js": {
+      "maxDuration": 300
     }
   },
+  "crons": [
+    {
+      "path": "/api/reminders-sweep",
+      "schedule": "0 13 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!api/.*).*)",

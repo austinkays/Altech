@@ -777,12 +777,8 @@
         </div>
     </div>
 
-    <!-- CDN Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="lib/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
+    <!-- PDF libraries (~600 KB) are lazy-loaded on demand via PDFLibs.ensure() -->
+    <script src="js/pdf-lib-loader.js"></script>
     <script src="js/crypto-helper.js"></script>
     <script src="js/storage-keys.js"></script>
     <script src="js/utils.js"></script>

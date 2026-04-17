@@ -8,7 +8,13 @@ Object.assign(App, {
         if (input) input.click();
     },
 
-    exportDemoPolicyDoc() {
+    async exportDemoPolicyDoc() {
+        try {
+            await window.PDFLibs.ensure('jspdf');
+        } catch (e) {
+            this.toast('⚠️ PDF library failed to load.');
+            return;
+        }
         const jsPDF = window.jspdf && window.jspdf.jsPDF;
         if (!jsPDF) {
             this.toast('⚠️ PDF library not available.');
@@ -960,6 +966,7 @@ This is trusted, complete agency data — extract every field you can find.
 
     // Extract all text from a PDF file client-side using PDF.js
     async _extractPdfText(file) {
+        await window.PDFLibs.ensure('pdfjs');
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const pages = [];

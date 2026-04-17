@@ -19,6 +19,7 @@ window.STORAGE_KEYS = Object.freeze({
     QUICKREF_NUMBERS:       'altech_quickref_numbers',
     QUICKREF_EMOJIS:        'altech_quickref_emojis',
     REMINDERS:              'altech_reminders',
+    REMINDERS_DIGEST_SHOWN: 'altech_reminders_digest_shown', // YYYY-MM-DD — last date the daily digest toast was shown (local-only, per-device)
     CLIENT_HISTORY:         'altech_client_history',
     AGENCY_GLOSSARY:        'altech_agency_glossary', // max 500 chars
     ACCT_VAULT:             'altech_acct_vault_v2',   // encrypted AES-256-GCM

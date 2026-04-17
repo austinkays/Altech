@@ -148,8 +148,10 @@ window.CommercialQuoter = (() => {
             if (typeof App !== 'undefined' && App.toast) App.toast('Please enter a Business Name before exporting.', 'error');
             return;
         }
-        if (!window.jspdf || !window.jspdf.jsPDF) {
-            if (typeof App !== 'undefined' && App.toast) App.toast('PDF library not loaded — reload and try again', 'error');
+        try {
+            await window.PDFLibs.ensure('jspdf');
+        } catch (e) {
+            if (typeof App !== 'undefined' && App.toast) App.toast('PDF library failed to load — check your internet connection', 'error');
             return;
         }
         const { jsPDF } = window.jspdf;

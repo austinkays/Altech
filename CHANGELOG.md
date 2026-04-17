@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(reminders): daily reminder sweep cron** (April 17, 2026):
+  - `api/reminders-sweep.js` (new) — Vercel Cron handler (`0 13 * * *` = 06:00 PT). Iterates `users/` via service-account Firestore REST, reads each user's `sync/reminders`, filters tasks with `dueDate <= today` and no today-completion / active snooze, writes a digest to `sync/dailyDigest` with `{date, dueCount, tasks, generatedAt}`. Auth via `Authorization: Bearer ${CRON_SECRET}` (Vercel sets this automatically on scheduled invocations).
+  - `vercel.json` — added `"crons"` array with the sweep entry, and `api/reminders-sweep.js` at 300s `maxDuration`. Requires new env var `CRON_SECRET` in Vercel project settings.
+  - `lib/firestore.js` — added `firestoreGetAsAdmin()`, `firestoreListAsAdmin()`, and service-account token caching (1 h, valid for the lifetime of a cron invocation). Upgraded `parseFirestoreDoc()` + new `parseFirestoreValue()` to handle nested maps, arrays, and timestamps — previously primitive-only, which couldn't read CloudSync's `{data: {tasks: [...]}}` shape. Widened `toFirestoreFields()` / `toFirestoreValue()` to serialize arrays and nested objects too (needed to write the digest's `tasks` array).
+  - `js/reminders.js` — added `_checkDailyDigest()`, called from `init()`. Reads `sync/dailyDigest` once per device per day (gated by `STORAGE_KEYS.REMINDERS_DIGEST_SHOWN`), shows a one-line toast ("📅 N reminders due today"). Silent if no digest exists yet or the date doesn't match today — so the client behaves identically pre-cron-rollout.
+  - `js/storage-keys.js` — new key `REMINDERS_DIGEST_SHOWN` (local-only, per-device; suppresses duplicate toasts on same-day reloads).
+
+### Changed
+- **perf(vercel-pro): raise `maxDuration` ceilings & lazy-load PDF libs** (April 17, 2026):
+  - `vercel.json` — Raised `maxDuration` from 60s → 300s on AI-heavy routes (`compliance.js`, `property-intelligence.js`, `prospect-lookup.js`, `vision-processor.js`, `historical-analyzer.js`). Now that the project is on Vercel Pro, the 60s tightrope on Gemini / HawkSoft batch calls is gone. `stripe.js` and `hawksoft-logger.js` kept at 30s — a timeout there is a bug, not a feature.
+  - `js/pdf-lib-loader.js` (new) — Central `PDFLibs.ensure('jspdf' | 'jszip' | 'pdfjs' | 'pdflib' | [...])` lazy-loader. Idempotent, caches in-flight promises, sets `pdfjsLib.GlobalWorkerOptions.workerSrc` on load.
+  - `index.html` — Removed four sync CDN `<script>` tags for `jszip`, `jspdf`, `pdf.js`, `pdf-lib` (~600 KB). Replaced with single `js/pdf-lib-loader.js` tag. App shell now loads without waiting on any PDF lib.
+  - `js/app-export.js`, `js/app-quotes.js`, `js/app-scan.js` (×2), `js/commercial-quoter.js`, `js/policy-qa.js` — Updated the five callers that relied on sync-loaded libs to `await window.PDFLibs.ensure(...)` before first use. Ad-hoc lazy-loaders in `coi.js`, `prospect.js`, `quote-compare.js`, `compliance-dashboard.js`, `accounting-export.js` still work independently (DRY migration deferred).
+  - `exportDemoPolicyDoc()` in `app-scan.js` became `async`; all callers are `onclick=` / fire-and-forget, so no consumer change needed.
+  - Tests: 28 suites / 1772 tests pass.
+
 ### Fixed
 - **fix(deposit-sheet): shorten receipt numbers & narrow Agent column** (April 14, 2026):
   - `js/accounting-export.js` — Added `_shortenRct()` helper that strips leading zeros from HawkSoft receipt numbers (e.g., `RCT000045170` → `RCT45170`). Applied to both HTML table and PDF export rendering. Narrowed AGENT column from 22mm → 14mm in PDF, giving the flex CLIENT column 8mm more space.
