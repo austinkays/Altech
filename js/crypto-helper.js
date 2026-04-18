@@ -6,34 +6,55 @@
 //                          Key is device-bound. No user secret required.
 //                          Stays active until a user has completed the v2 migration.
 //
-//   v2 (E2E, opt-in):      PBKDF2(userPassphrase, PASSPHRASE_SALT, 600k iter)
-//                          Key lives ONLY in memory; cleared on sign-out / lock.
-//                          Server never sees the passphrase, only the salt.
-//                          Enabled when STORAGE_KEYS.E2E_CRYPTO_V2 === '1' AND a
-//                          passphrase has been unlocked this session.
+//   v2 (E2E, opt-in):      Master-key + wrapping model.
+//                          MK = random 256-bit AES key, generated once per user.
+//                          MK encrypts all data blobs.
+//                          MK is wrapped twice on the server:
+//                            passphrase_wrapped_mk = AES-GCM(MK) under PBKDF2(passphrase, passphrase_salt, passphrase_iterations)
+//                            recovery_wrapped_mk   = AES-GCM(MK) under PBKDF2(recovery_key, recovery_salt, recovery_iterations)
+//                          Changing a passphrase only re-wraps MK — data blobs stay put.
+//                          Server never sees MK, passphrase, or recovery key.
 //
 // encrypt() and decrypt() pick the right path automatically. Callers never need
 // to know which one is active — they just call CryptoHelper.encrypt(obj).
 //
-// Payload shape stays identical across both versions:
-//   base64( iv(12 bytes) || AES-256-GCM(plaintext) )
-// This means v1-encrypted data can still be read after v2 is enabled (during the
-// migration window) by calling decryptWithV1() explicitly.
+// Payload shape (both v1 and v2 encrypted data, and also wrapped MK blobs):
+//   base64( iv(12 bytes) || AES-256-GCM(payload) )
+//
+// Recovery key format: 32 random bytes hex-encoded as 64 chars, displayed in
+// 4 groups of 16 separated by hyphens. ~67 chars total.
+//   Example: `A3F5E72D9C018B44-1E76FCA0D835219B-7502CC6E3F8A91BD-4DE28B1F95C063AA`
 
 'use strict';
 
 const CryptoHelper = (() => {
-    // In-memory key cache. Cleared on clearV2Key() or sign-out.
+    // In-memory cached master key (v2). CryptoKey, not raw bytes.
     let _v2Key = null;
 
     // Caches for legacy path — avoid re-deriving on every encrypt/decrypt call.
     let _v1Key = null;
     let _v1Fingerprint = null;
 
-    // Safe-access helper: STORAGE_KEYS is a global, but during a fresh page load
-    // the order-of-script-tags check could race. Treat it defensively.
     function _key(name) {
         return (typeof STORAGE_KEYS !== 'undefined' && STORAGE_KEYS[name]) || null;
+    }
+
+    // ─── Byte helpers ─────────────────────────────────────────────────────────
+    function _bytesToBase64(bytes) {
+        return btoa(String.fromCharCode(...bytes));
+    }
+    function _base64ToBytes(b64) {
+        return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    }
+    function _bytesToHex(bytes) {
+        return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    function _hexToBytes(hex) {
+        const clean = hex.replace(/[^0-9a-fA-F]/g, '');
+        if (clean.length % 2 !== 0) throw new Error('Invalid hex length');
+        const out = new Uint8Array(clean.length / 2);
+        for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
+        return out;
     }
 
     // ─── v1: device-bound key (legacy, default) ───────────────────────────────
@@ -43,12 +64,12 @@ const CryptoHelper = (() => {
         if (!salt) {
             const arr = new Uint8Array(32);
             crypto.getRandomValues(arr);
-            salt = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+            salt = _bytesToHex(arr);
             if (SALT_KEY) localStorage.setItem(SALT_KEY, salt);
         }
         const msg = new TextEncoder().encode([salt, 'ALTECH_FIELD_PRO_v2'].join('||'));
         const hash = await crypto.subtle.digest('SHA-256', msg);
-        return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+        return _bytesToHex(new Uint8Array(hash));
     }
 
     async function _getV1Key() {
@@ -74,22 +95,32 @@ const CryptoHelper = (() => {
         return _v1Key;
     }
 
-    // ─── v2: passphrase-derived key ───────────────────────────────────────────
-    //
-    // Salt is stored on the server (Supabase user_crypto_meta.passphrase_salt)
-    // and mirrored locally so the app can unlock even while offline. On first
-    // unlock after Phase 4 migration, the salt is pulled from Supabase and
-    // cached here.
-    async function _deriveV2Key(passphrase, saltBytes, iterations) {
-        if (!passphrase || typeof passphrase !== 'string') {
-            throw new Error('Passphrase required');
+    // ─── v2 primitives ────────────────────────────────────────────────────────
+
+    // Import MK raw bytes as an AES-GCM CryptoKey for encrypt/decrypt usage.
+    async function _importMK(mkBytes) {
+        return await crypto.subtle.importKey(
+            'raw',
+            mkBytes,
+            { name: 'AES-GCM', length: 256 },
+            false,
+            ['encrypt', 'decrypt']
+        );
+    }
+
+    // Derive a key-encryption-key (KEK) from a secret (passphrase or recovery
+    // key). Returns a CryptoKey usable for wrap/unwrap (encrypt/decrypt).
+    async function _deriveKEK(secret, saltB64, iterations) {
+        if (!secret || typeof secret !== 'string') {
+            throw new Error('Secret required');
         }
-        if (!(saltBytes instanceof Uint8Array) || saltBytes.length < 16) {
-            throw new Error('Salt must be at least 16 bytes');
-        }
+        if (!saltB64) throw new Error('Salt required');
+        const saltBytes = _base64ToBytes(saltB64);
+        if (saltBytes.length < 16) throw new Error('Salt must be at least 16 bytes');
+
         const keyMaterial = await crypto.subtle.importKey(
             'raw',
-            new TextEncoder().encode(passphrase.normalize('NFKC')),
+            new TextEncoder().encode(secret.normalize('NFKC')),
             { name: 'PBKDF2' },
             false,
             ['deriveKey']
@@ -103,17 +134,50 @@ const CryptoHelper = (() => {
             },
             keyMaterial,
             { name: 'AES-GCM', length: 256 },
-            false,
+            true, // extractable — so we can use it for encrypt/decrypt of MK bytes
             ['encrypt', 'decrypt']
         );
     }
 
-    function _saltToBase64(saltBytes) {
-        return btoa(String.fromCharCode(...saltBytes));
+    // Encrypt MK bytes under a KEK, return base64( iv || ciphertext ).
+    async function _wrapMK(mkBytes, kek) {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, kek, mkBytes);
+        const combined = new Uint8Array(iv.length + ct.byteLength);
+        combined.set(iv, 0);
+        combined.set(new Uint8Array(ct), iv.length);
+        return _bytesToBase64(combined);
     }
 
-    function _saltFromBase64(saltB64) {
-        return Uint8Array.from(atob(saltB64), c => c.charCodeAt(0));
+    // Decrypt a wrapped MK back to raw bytes using a KEK. Throws on AEAD failure.
+    async function _unwrapMK(wrappedB64, kek) {
+        const combined = _base64ToBytes(wrappedB64);
+        if (combined.length < 28) throw new Error('Wrapped MK too short');
+        const iv = combined.slice(0, 12);
+        const ct = combined.slice(12);
+        const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, kek, ct);
+        return new Uint8Array(pt);
+    }
+
+    // Generate a fresh 32-byte salt, return base64.
+    function _newSaltB64() {
+        const arr = new Uint8Array(32);
+        crypto.getRandomValues(arr);
+        return _bytesToBase64(arr);
+    }
+
+    // Recovery key: 32 random bytes, hex-encoded, grouped 16 chars per block.
+    function _formatRecoveryKey(bytes) {
+        const hex = _bytesToHex(bytes).toUpperCase();
+        return [hex.slice(0, 16), hex.slice(16, 32), hex.slice(32, 48), hex.slice(48, 64)].join('-');
+    }
+
+    function _parseRecoveryKey(display) {
+        const clean = (display || '').replace(/[^0-9a-fA-F]/g, '');
+        if (clean.length !== 64) {
+            throw new Error('Recovery key must decode to 32 bytes (64 hex chars)');
+        }
+        return _hexToBytes(clean);
     }
 
     // ─── Path selector ────────────────────────────────────────────────────────
@@ -124,14 +188,9 @@ const CryptoHelper = (() => {
     async function _getActiveKey(mode /* 'encrypt' | 'decrypt' */) {
         if (_isV2Enabled()) {
             if (_v2Key) return _v2Key;
-            // v2 enabled but locked. Encrypting with the legacy key would write
-            // data the user can't read back after unlocking. Refuse.
             if (mode === 'encrypt') {
                 throw new Error('CRYPTO_LOCKED: Passphrase required — unlock before writing');
             }
-            // For decrypt, we still fall through to v1 (legacy data predating
-            // the migration may remain readable) so loads of old data don't
-            // hard-fail. Caller can handle null returns.
             return await _getV1Key();
         }
         return await _getV1Key();
@@ -139,7 +198,6 @@ const CryptoHelper = (() => {
 
     // ─── Public API ───────────────────────────────────────────────────────────
     return {
-        // Unchanged — still returns a base64 string, still IV-prefixed GCM.
         async encrypt(data) {
             try {
                 const key = await _getActiveKey('encrypt');
@@ -149,7 +207,7 @@ const CryptoHelper = (() => {
                 const combined = new Uint8Array(iv.length + ct.byteLength);
                 combined.set(iv, 0);
                 combined.set(new Uint8Array(ct), iv.length);
-                return btoa(String.fromCharCode(...combined));
+                return _bytesToBase64(combined);
             } catch (e) {
                 if (e && typeof e.message === 'string' && e.message.startsWith('CRYPTO_LOCKED')) {
                     throw e;
@@ -162,26 +220,25 @@ const CryptoHelper = (() => {
         async decrypt(encryptedData) {
             try {
                 const key = await _getActiveKey('decrypt');
-                const combined = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
+                const combined = _base64ToBytes(encryptedData);
                 const iv = combined.slice(0, 12);
                 const ct = combined.slice(12);
                 const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
                 return JSON.parse(new TextDecoder().decode(pt));
             } catch (firstErr) {
-                // If v2 is enabled + unlocked and we failed, try v1 — this is
-                // the hot path during migration where old records are still
+                // If v2 is unlocked, also try v1 as fallback — this is the hot
+                // path during migration where some records may still be
                 // encrypted under the device key.
                 if (_isV2Enabled() && _v2Key) {
                     try {
                         const legacyKey = await _getV1Key();
-                        const combined = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
+                        const combined = _base64ToBytes(encryptedData);
                         const iv = combined.slice(0, 12);
                         const ct = combined.slice(12);
                         const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, legacyKey, ct);
                         return JSON.parse(new TextDecoder().decode(pt));
                     } catch (e) { /* fall through */ }
                 }
-                // Last-resort: legacy unencrypted JSON string — pre-AES days.
                 try { return JSON.parse(encryptedData); } catch (e) {
                     console.error('Decryption failed:', firstErr);
                     return null;
@@ -190,15 +247,13 @@ const CryptoHelper = (() => {
         },
 
         generateUUID() {
-            if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-                return crypto.randomUUID();
-            }
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
             if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
                 const arr = new Uint8Array(16);
                 crypto.getRandomValues(arr);
                 arr[6] = (arr[6] & 0x0f) | 0x40;
                 arr[8] = (arr[8] & 0x3f) | 0x80;
-                const hex = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+                const hex = _bytesToHex(arr);
                 return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
             }
             return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
@@ -206,82 +261,62 @@ const CryptoHelper = (() => {
 
         // ─── v2 API (Phase 1+) ────────────────────────────────────────────────
 
-        /**
-         * Is the passphrase-derived key available in memory this session?
-         */
-        isV2Unlocked() { return _isV2Enabled() && _v2Key !== null; },
-
-        /**
-         * Is v2 turned on for this user (independent of whether it's unlocked)?
-         */
         isV2Enabled() { return _isV2Enabled(); },
-
-        /**
-         * Turn the v2 flag on. Does NOT derive a key — call setPassphrase() for that.
-         */
+        isV2Unlocked() { return _isV2Enabled() && _v2Key !== null; },
         enableV2() { localStorage.setItem(_key('E2E_CRYPTO_V2'), '1'); },
-
-        /**
-         * Turn the v2 flag off. Also clears any cached key.
-         */
         disableV2() {
             localStorage.removeItem(_key('E2E_CRYPTO_V2'));
             _v2Key = null;
         },
+        lock() { _v2Key = null; },
 
         /**
-         * Derive a fresh v2 salt (32 random bytes), store it locally, return base64.
-         * The server copy lives at user_crypto_meta.passphrase_salt — caller is
-         * responsible for persisting it.
+         * Onboarding: generate a fresh MK, wrap it under the passphrase,
+         * cache the MK in memory, and return the pieces the server needs.
+         *
+         * @param {string} passphrase
+         * @param {number} [iterations=600000]
+         * @returns {Promise<{ passphraseSaltB64, passphraseWrappedMKB64, passphraseIterations }>}
          */
-        createPassphraseSalt() {
-            const arr = new Uint8Array(32);
-            crypto.getRandomValues(arr);
-            const b64 = _saltToBase64(arr);
-            localStorage.setItem(_key('PASSPHRASE_SALT'), b64);
-            return b64;
+        async createVault(passphrase, iterations = 600000) {
+            if (!passphrase || typeof passphrase !== 'string' || passphrase.length < 8) {
+                throw new Error('Passphrase must be at least 8 characters');
+            }
+            const mkBytes = new Uint8Array(32);
+            crypto.getRandomValues(mkBytes);
+
+            const passphraseSaltB64 = _newSaltB64();
+            const kek = await _deriveKEK(passphrase, passphraseSaltB64, iterations);
+            const passphraseWrappedMKB64 = await _wrapMK(mkBytes, kek);
+
+            _v2Key = await _importMK(mkBytes);
+            // Zero out the plaintext MK we just used (best-effort — JS has no guarantee).
+            mkBytes.fill(0);
+
+            return {
+                passphraseSaltB64,
+                passphraseWrappedMKB64,
+                passphraseIterations: iterations,
+            };
         },
 
         /**
-         * Cache a server-provided salt locally (used after Phase 4 migration
-         * when a user signs in on a new device).
+         * Sign-in: unwrap MK using passphrase and cache it in memory.
+         *
+         * @param {{ passphraseSaltB64: string, passphraseWrappedMKB64: string, passphraseIterations?: number }} serverMeta
+         * @param {string} passphrase
+         * @returns {Promise<boolean>} true on successful unlock
          */
-        setLocalSalt(saltB64) {
-            localStorage.setItem(_key('PASSPHRASE_SALT'), saltB64);
-        },
-
-        getLocalSalt() {
-            return localStorage.getItem(_key('PASSPHRASE_SALT'));
-        },
-
-        /**
-         * Derive + cache the v2 key from a passphrase + the local salt.
-         * Returns true on success, false if no salt is available.
-         * Throws on derivation failure.
-         */
-        async setPassphrase(passphrase, iterations = 600000) {
-            const saltB64 = this.getLocalSalt();
-            if (!saltB64) return false;
-            _v2Key = await _deriveV2Key(passphrase, _saltFromBase64(saltB64), iterations);
-            return true;
-        },
-
-        /**
-         * Verify that a passphrase unlocks the existing vault by trying to
-         * decrypt a known ciphertext (the "proof blob" stored at
-         * user_crypto_meta). Caller supplies the probe.
-         * Returns true on success, false on AEAD failure.
-         */
-        async verifyPassphrase(passphrase, proofCiphertext, iterations = 600000) {
-            const saltB64 = this.getLocalSalt();
-            if (!saltB64) return false;
+        async unlockVault(serverMeta, passphrase) {
+            if (!serverMeta || !serverMeta.passphraseSaltB64 || !serverMeta.passphraseWrappedMKB64) {
+                return false;
+            }
             try {
-                const testKey = await _deriveV2Key(passphrase, _saltFromBase64(saltB64), iterations);
-                const combined = Uint8Array.from(atob(proofCiphertext), c => c.charCodeAt(0));
-                const iv = combined.slice(0, 12);
-                const ct = combined.slice(12);
-                await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, testKey, ct);
-                _v2Key = testKey; // Unlock on successful verification.
+                const iter = serverMeta.passphraseIterations || 600000;
+                const kek = await _deriveKEK(passphrase, serverMeta.passphraseSaltB64, iter);
+                const mkBytes = await _unwrapMK(serverMeta.passphraseWrappedMKB64, kek);
+                _v2Key = await _importMK(mkBytes);
+                mkBytes.fill(0);
                 return true;
             } catch (e) {
                 return false;
@@ -289,22 +324,151 @@ const CryptoHelper = (() => {
         },
 
         /**
-         * Lock the vault — clears the cached v2 key so subsequent encrypt()
-         * calls will throw CRYPTO_LOCKED until setPassphrase() / verifyPassphrase()
-         * is called again. Safe to call anytime.
+         * Change the passphrase: re-wrap the current MK under a new KEK and
+         * return the updated server blobs. Requires the vault to be unlocked.
+         *
+         * Note: we can only re-wrap if we have the MK bytes. Since _v2Key is
+         * a non-extractable CryptoKey (imported with extractable=false), we
+         * have to keep the raw bytes to do this. Today we DON'T keep them —
+         * so this entry point requires the caller to unlock with the current
+         * passphrase and then hand us the raw MK. Alternative: make the MK
+         * import extractable. Simpler path: re-unlock during the change flow.
+         *
+         * For now, this method exposes a safer form: the caller provides the
+         * current passphrase + server meta, we unlock, then re-wrap.
+         *
+         * @param {{ passphraseSaltB64, passphraseWrappedMKB64, passphraseIterations? }} currentServerMeta
+         * @param {string} currentPassphrase
+         * @param {string} newPassphrase
+         * @param {number} [iterations=600000]
+         * @returns {Promise<{ passphraseSaltB64, passphraseWrappedMKB64, passphraseIterations } | null>}
          */
-        lock() { _v2Key = null; },
+        async changePassphrase(currentServerMeta, currentPassphrase, newPassphrase, iterations = 600000) {
+            if (!newPassphrase || newPassphrase.length < 8) {
+                throw new Error('New passphrase must be at least 8 characters');
+            }
+            // Re-derive the current KEK, unwrap MK, then wrap under a fresh salt + new KEK.
+            const iter = currentServerMeta.passphraseIterations || 600000;
+            const currentKek = await _deriveKEK(currentPassphrase, currentServerMeta.passphraseSaltB64, iter);
+            let mkBytes;
+            try {
+                mkBytes = await _unwrapMK(currentServerMeta.passphraseWrappedMKB64, currentKek);
+            } catch (e) {
+                return null; // Current passphrase was wrong.
+            }
+
+            const passphraseSaltB64 = _newSaltB64();
+            const newKek = await _deriveKEK(newPassphrase, passphraseSaltB64, iterations);
+            const passphraseWrappedMKB64 = await _wrapMK(mkBytes, newKek);
+
+            // Update in-memory MK too.
+            _v2Key = await _importMK(mkBytes);
+            mkBytes.fill(0);
+
+            return {
+                passphraseSaltB64,
+                passphraseWrappedMKB64,
+                passphraseIterations: iterations,
+            };
+        },
+
+        /**
+         * Generate a fresh recovery key. Returns the display string (for the
+         * user to save) and the byte array (for wrapping the MK).
+         *
+         * @returns {{ display: string, bytes: Uint8Array }}
+         */
+        generateRecoveryKey() {
+            const bytes = new Uint8Array(32);
+            crypto.getRandomValues(bytes);
+            return { display: _formatRecoveryKey(bytes), bytes };
+        },
+
+        /**
+         * Accept a user-pasted recovery key and return the raw bytes.
+         * Throws if the string doesn't decode to 32 bytes.
+         */
+        parseRecoveryKey(display) { return _parseRecoveryKey(display); },
+
+        /**
+         * Format 32 raw bytes into the grouped display form.
+         */
+        formatRecoveryKey(bytes) { return _formatRecoveryKey(bytes); },
+
+        /**
+         * Attach a recovery key to the vault: derive recovery KEK from the
+         * recovery key bytes, wrap the currently-unlocked MK, return the
+         * pieces for server upload. Requires unlocked vault.
+         *
+         * Called once during onboarding. Caller is responsible for presenting
+         * the display form to the user and confirming they saved it BEFORE
+         * uploading the wrapping to the server.
+         */
+        async wrapWithRecoveryKey(recoveryBytes, currentServerMeta, currentPassphrase, iterations = 600000) {
+            if (!(recoveryBytes instanceof Uint8Array) || recoveryBytes.length !== 32) {
+                throw new Error('Recovery key must be 32 bytes');
+            }
+            // Re-unlock MK so we have the raw bytes to wrap.
+            const iter = currentServerMeta.passphraseIterations || 600000;
+            const currentKek = await _deriveKEK(currentPassphrase, currentServerMeta.passphraseSaltB64, iter);
+            let mkBytes;
+            try {
+                mkBytes = await _unwrapMK(currentServerMeta.passphraseWrappedMKB64, currentKek);
+            } catch (e) {
+                return null;
+            }
+
+            const recoverySaltB64 = _newSaltB64();
+            // Convert bytes to the hex string format so _deriveKEK (which takes
+            // a string) can consume it. Recovery key is high-entropy, so PBKDF2
+            // iterations serve mostly as defense against exotic offline attacks.
+            const recoverySecret = _bytesToHex(recoveryBytes);
+            const recoveryKek = await _deriveKEK(recoverySecret, recoverySaltB64, iterations);
+            const recoveryWrappedMKB64 = await _wrapMK(mkBytes, recoveryKek);
+            mkBytes.fill(0);
+
+            return {
+                recoverySaltB64,
+                recoveryWrappedMKB64,
+                recoveryIterations: iterations,
+            };
+        },
+
+        /**
+         * Unlock the vault using a recovery key (not a passphrase). Takes the
+         * recovery-side server blobs and the user-pasted display string.
+         *
+         * @returns {Promise<boolean>} true on successful unlock
+         */
+        async unlockVaultWithRecoveryKey(serverMeta, recoveryKeyDisplay) {
+            if (!serverMeta || !serverMeta.recoverySaltB64 || !serverMeta.recoveryWrappedMKB64) {
+                return false;
+            }
+            let recoveryBytes;
+            try {
+                recoveryBytes = _parseRecoveryKey(recoveryKeyDisplay);
+            } catch (e) {
+                return false;
+            }
+            try {
+                const iter = serverMeta.recoveryIterations || 600000;
+                const recoverySecret = _bytesToHex(recoveryBytes);
+                const kek = await _deriveKEK(recoverySecret, serverMeta.recoverySaltB64, iter);
+                const mkBytes = await _unwrapMK(serverMeta.recoveryWrappedMKB64, kek);
+                _v2Key = await _importMK(mkBytes);
+                mkBytes.fill(0);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        },
 
         // ─── Migration helpers (Phase 4) ──────────────────────────────────────
 
-        /**
-         * Decrypt with the legacy v1 key regardless of v2 state. Used by the
-         * migration flow to re-encrypt old blobs under the new passphrase key.
-         */
         async decryptWithV1(encryptedData) {
             try {
                 const key = await _getV1Key();
-                const combined = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
+                const combined = _base64ToBytes(encryptedData);
                 const iv = combined.slice(0, 12);
                 const ct = combined.slice(12);
                 const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
@@ -314,11 +478,6 @@ const CryptoHelper = (() => {
             }
         },
 
-        /**
-         * Encrypt with the v2 key specifically, regardless of flag state.
-         * Used during the re-encryption loop so a half-migrated account can't
-         * produce a mix of v1 and v2 blobs.
-         */
         async encryptWithV2(data) {
             if (!_v2Key) throw new Error('CRYPTO_LOCKED: No v2 key in memory');
             const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -327,14 +486,18 @@ const CryptoHelper = (() => {
             const combined = new Uint8Array(iv.length + ct.byteLength);
             combined.set(iv, 0);
             combined.set(new Uint8Array(ct), iv.length);
-            return btoa(String.fromCharCode(...combined));
+            return _bytesToBase64(combined);
         },
 
-        // ─── Internals exposed for tests only ─────────────────────────────────
+        // ─── Internals for tests only ─────────────────────────────────────────
         _internals: {
             get v2Key() { return _v2Key; },
             get v1Fingerprint() { return _v1Fingerprint; },
             reset() { _v2Key = null; _v1Key = null; _v1Fingerprint = null; },
+            // Encoding helpers — exposed so tests can exercise them without
+            // re-implementing.
+            formatRecoveryKey: _formatRecoveryKey,
+            parseRecoveryKey: _parseRecoveryKey,
         },
     };
 })();

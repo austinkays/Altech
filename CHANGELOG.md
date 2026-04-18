@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(security): Path B Phase 1b — master-key + recovery key (dormant behind flag)** (April 17, 2026):
+  - Refactors the v2 crypto path from "passphrase derives the data key directly" to a proper **master-key / wrapping** model. Changing a passphrase now re-wraps the master key (cheap, ~1 op) instead of re-encrypting every data blob. Enables recovery keys that work independently of the passphrase.
+  - `db/migrations/0002_wrapped_master_keys.sql` (new) — adds `passphrase_wrapped_mk`, `recovery_salt`, `recovery_iterations`, `recovery_wrapped_mk` columns to `user_crypto_meta`. Check constraint enforces that recovery_salt and recovery_wrapped_mk exist as a pair.
+  - `js/crypto-helper.js` — v2 API refactored:
+    - Removed `setPassphrase`, `verifyPassphrase` (had no external callers yet).
+    - New: `createVault(passphrase, iter)` — generates MK, wraps under passphrase KEK, returns server blobs, unlocks immediately.
+    - New: `unlockVault(serverMeta, passphrase)` — unwraps MK, caches. Returns true/false.
+    - New: `changePassphrase(currentServerMeta, currentPass, newPass, iter)` — re-wraps MK under new KEK. Data untouched.
+    - New: `generateRecoveryKey()` — returns `{ display, bytes }`. 32 random bytes, hex-formatted as 4 groups of 16 (example: `A3F5E72D9C018B44-…-4DE28B1F95C063AA`, 67 chars).
+    - New: `parseRecoveryKey(str)` / `formatRecoveryKey(bytes)` — tolerant of whitespace + case.
+    - New: `wrapWithRecoveryKey(bytes, currentServerMeta, currentPass, iter)` — attaches a recovery key by re-unlocking then wrapping MK under the recovery KEK.
+    - New: `unlockVaultWithRecoveryKey(serverMeta, recoveryKeyDisplay)` — recovery path; returns true on success.
+    - `encrypt`/`decrypt`/`generateUUID` unchanged (public API stable).
+  - End-to-end verification in the preview (20/20 assertions): v1 legacy round-trip still works; createVault → encrypt/decrypt → lock → wrong-pass rejected → right-pass unlocks → data still reads → changePassphrase → old pass rejected → new pass unlocks → **data blobs still decrypt (proving MK stayed put)** → recovery key generated (67 chars, 3 hyphens) → parse round-trip tolerant of case+whitespace → wrapWithRecoveryKey produces new server blob → lock → unlockVaultWithRecoveryKey works → wrong recovery key rejected → malformed key rejected gracefully → cleanup.
+  - PBKDF2 benchmark: 50k iter → 19 ms. Production 600k iter projects to ~230 ms per unlock. Acceptable for once-per-session.
+  - Tests: 28 suites / 1772 tests pass.
+
 - **feat(security): Path B Phase 1a — passphrase-derived crypto (dormant behind flag)** (April 17, 2026):
   - Adds a second key-derivation path to `js/crypto-helper.js` that runs alongside the existing device-bound v1 path. v2 is OFF by default and every caller keeps working unchanged — this commit ships zero behavior change.
   - `js/storage-keys.js` — new `E2E_CRYPTO_V2` flag key and `PASSPHRASE_SALT` key. Both local-only.

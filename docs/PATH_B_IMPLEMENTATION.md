@@ -89,16 +89,16 @@ Each phase is independently shippable and gated behind a feature flag. No phase 
 
 ### Phase 1 — Passphrase-derived crypto (3–5 days)
 
-- [ ] Rewrite `js/crypto-helper.js`:
-  - Swap device-fingerprint derivation for user-passphrase + per-user salt.
-  - Bump PBKDF2 from 100,000 → 600,000 iterations (OWASP 2023).
-  - Add `CryptoHelper.setPassphrase(passphrase, salt)`, `CryptoHelper.hasKey()`, `CryptoHelper.clearKey()`.
-- [ ] Build passphrase onboarding UI:
-  - Modal: set passphrase → confirm → generate recovery key → require "I saved this" checkbox → download .txt → store encrypted-local.
-  - Recovery key format: 24-word BIP39 mnemonic.
-- [ ] Passphrase unlock modal on every session start (replaces silent device-key unlock).
-- [ ] Passphrase change flow: decrypt-all with old → re-encrypt-all with new → atomic commit.
-- [ ] **Gate**: feature flag `E2E_CRYPTO_V2` in localStorage. Default off. When on, passphrase is required; when off, legacy device-fingerprint key is used.
+**Status:** Library work done. UI (Stage 1c) remaining. No user-facing change yet.
+
+- [x] **Stage 1a** — `js/crypto-helper.js` now supports a v2 passphrase path parallel to the legacy v1 device-bound path. PBKDF2 bumped 100k → 600k (OWASP 2023). Feature flag `E2E_CRYPTO_V2` controls activation; default off. Added in-memory key caching for both paths (free perf win). `encrypt()` throws `CRYPTO_LOCKED` when v2 is enabled but locked, preventing silent writes under the wrong key.
+- [x] **Stage 1b** — Refactored v2 to **master-key + wrapping** model. Changing a passphrase now re-wraps MK (cheap) rather than re-encrypting every blob. New API: `createVault`, `unlockVault`, `changePassphrase`, `generateRecoveryKey`, `parseRecoveryKey`, `formatRecoveryKey`, `wrapWithRecoveryKey`, `unlockVaultWithRecoveryKey`. Recovery key: 32 random bytes hex-formatted as 4 groups of 16, case/whitespace-tolerant on parse. `db/migrations/0002_wrapped_master_keys.sql` adds the wrapping columns. **Revised from plan:** BIP39 24-word mnemonic replaced with hex format (~67 chars) — smaller wordlist-free bundle, still typeable, still saveable in a password manager.
+- [ ] **Stage 1c** — UI flows:
+  - Passphrase onboarding modal: set → confirm → generate recovery key → require "I saved this" checkbox → download .txt → upload wrapped blobs.
+  - Passphrase unlock modal on every session start (replaces silent device-key unlock).
+  - Change-passphrase flow in Account → Security.
+  - Recovery flow: "I forgot my passphrase" → paste recovery key → reset passphrase.
+- [ ] **Gate (still in place)**: `E2E_CRYPTO_V2`. Default off. Stage 1c will also add a `VAULT_SERVER_META` local-storage key to cache the server's crypto-meta blob for offline unlock support (optional).
 
 ### Phase 2 — Supabase schema + RLS (2–3 days)
 
