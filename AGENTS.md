@@ -17,7 +17,7 @@
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
 | **CSS** | 34 files in `css/` (~22,946 lines total) |
-| **JS** | 47 modules in `js/` (~42,284 lines total) |
+| **JS** | 49 modules in `js/` (~42,706 lines total) |
 | **Plugins** | 18 HTML templates in `plugins/` (~6,335 lines total) |
 | **APIs** | 13 serverless functions + 3 helpers in `api/` (~8,592 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 28 suites, 1772 tests |
+| **Tests** | Jest + JSDOM, 29 suites, 1770 tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 28 suites, 1772 tests
+npm test              # All 29 suites, 1770 tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
@@ -100,7 +100,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── deposit-sheet.css       # Deposit Sheet plugin (662 lines)
 │   └── aurora-theme.css        # Aurora northern-lights theme — variable overrides, html::before/::after animated layers, glassmorphism (138 lines)
 │
-├── js/                         # 47 modules (~40,588 lines)
+├── js/                         # 49 modules (~42,706 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows, stepTitles (6 entries: step-0,1,3,4,5,6 — step-2 removed as dead code)
@@ -884,7 +884,7 @@ KEY RULES:
 5. After localStorage writes on synced data, call CloudSync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
 7. App is built via Object.assign(App, {...}) across 11 files (incl. app-ui-utils.js, app-navigation.js) — app-boot.js loads LAST
-8. Test with: npm test (1772 tests, 28 suites, all must pass)
+8. Test with: npm test (1770 tests, 29 suites, all must pass)
 9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, add an entry to CHANGELOG.md with what changed (files, test counts, date). Run: npm run audit-docs
@@ -917,7 +917,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` → 28 suites, 1772 tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 29 suites, 1770 tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements

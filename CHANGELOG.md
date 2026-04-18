@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(security): Path B Phase 2 Supabase sync client** (April 18, 2026):
+  - `js/supabase-sync.js` — `window.SupabaseSync`, ciphertext-only mirror of the slice of `cloud-sync.js` that the `SYNC_BACKEND=supabase` flag activates. Never decrypts, never inspects payload structure; every blob is pushed and pulled as an opaque string. Public API: `pushBlob(docKey, ciphertext, updatedAt?)` / `pullBlob(docKey)` / `deleteBlob(docKey)` against `user_blobs`; `pushQuote(id?, ciphertext)` / `pullQuote(id)` / `listQuotes()` / `deleteQuote(id)` against `user_quotes`; `schedulePush()` (3-second debounce sweep of a frozen `DOC_LOCAL_KEYS` map that mirrors `cloud-sync.js`'s `_getLocalData()`). Every method is a no-op when the flag is not `'supabase'` — Firebase remains the default backend until the Phase 4 migration.
+  - `js/sync-facade.js` — `window.Sync`, tiny router shim that forwards `schedulePush` / `pushToCloud` / `pullFromCloud` / `fullSync` / `refreshUI` / `deleteCloudData` to either `CloudSync` (default) or `SupabaseSync` based on `STORAGE_KEYS.SYNC_BACKEND`. Supabase-only methods (`pushBlob`, `pullBlob`, `pushQuote`, etc.) resolve to safe defaults when the Firebase backend is active. Ready for Phase 4 to migrate call sites off `CloudSync.xxx`; existing call sites continue to work unchanged.
+  - `js/storage-keys.js` — adds `SYNC_BACKEND` (feature flag, default `'firebase'`) and `SYNC_META_SUPABASE` (reserved for per-doc lastPushedAt tracking).
+  - `js/cloud-sync.js` — exposes `CloudSync.SYNC_DOCS` (frozen copy) so both backends sweep the same doc set. No other changes; Firebase path is identical.
+  - `index.html` — adds the `@supabase/supabase-js@2.45.4` UMD tag after the Firebase CDN scripts, then `supabase-config.js` → `supabase-sync.js` → `sync-facade.js` after `cloud-sync.js` per the load-order matrix in `AGENTS.md §8.4`. `js/supabase-config.js` (dormant since Phase 0) now boots whenever `SYNC_BACKEND=supabase` is set.
+  - `tests/supabase-sync.test.js` — 14 tests against an in-memory mock of `supabase.client` that enforces RLS by filtering every operation on the authenticated user id. Covers: round-trip ciphertext is byte-identical, cross-user pull returns `null` (not error), every method is a no-op under the default flag, quote CRUD upsert/list/delete, and `schedulePush()` sweep correctly pushes every seeded `DOC_LOCAL_KEYS` entry.
+  - Tests: 29 suites / 1770 tests pass.
+  - **Not yet wired:** no existing call site is migrated to `window.Sync`. The facade is ready; Phase 4 will migrate `App.save` / `App.load` / `saveAsQuote` / `Auth.pullFromCloud` once the Supabase migration modal flips the flag.
+
 - **feat(security): Path B Phase 2 scaffolding** (April 18, 2026):
   - `db/migrations/0003_agency_sharing.sql` — future-proofs the Supabase schema for multi-user agency sharing before production rows exist:
     - Adds `public_key`, `wrapped_private_key`, `keypair_algorithm`, `keypair_created_at` columns to `user_crypto_meta` so each user can hold a long-term wrapping keypair (private half encrypted under their master key).

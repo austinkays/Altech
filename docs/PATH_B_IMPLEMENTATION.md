@@ -107,14 +107,18 @@ Each phase is independently shippable and gated behind a feature flag. No phase 
 
 ### Phase 2 — Supabase schema + RLS (2–3 days)
 
-**Status:** Scaffolding extended April 18, 2026 to include the Phase 2.5 agency-sharing layer up-front so no second migration is needed after users exist.
+**Status:** Client shipped April 18, 2026. Phase 2 is code-complete behind the `SYNC_BACKEND=supabase` flag; no production user is on the Supabase path yet (that's Phase 4's job). DPAs are the one remaining manual item before flipping anyone over.
 
 - [x] `db/migrations/0003_agency_sharing.sql` ships alongside 0001 + 0002: adds wrapping keypair columns to `user_crypto_meta` and the `agencies` / `agency_members` / `agency_key_wraps` / `agency_blobs` tables with full RLS. No application code ships against these tables yet.
 - [x] `api/config.js` exposes `?type=supabase-public` (URL + anon key) so `js/supabase-config.js` can come online as soon as the Vercel env vars are set. Defense-in-depth refuses to serve a value whose JWT payload claims `role: service_role`.
-- [ ] **YOU:** Apply `0001` → `0002` → `0003` in the Supabase SQL editor, in order. Run the verification queries at the bottom of each file as both anon and an authenticated test user to confirm RLS rejects cross-user reads.
-- [ ] Write `js/supabase-sync.js` — the Supabase equivalent of `js/cloud-sync.js`, except it ONLY handles opaque encrypted blobs. No `_decryptForSync`.
-- [ ] Add `SupabaseSync.pushBlob(docKey, ciphertext, updatedAt)`, `pullBlob(docKey)`, `listQuotes()`, `deleteBlob(docKey)`.
-- [ ] **Gate**: feature flag `SYNC_BACKEND=supabase` in localStorage. Default `firebase`. When `supabase`, new sync path; when `firebase`, legacy path.
+- [x] **YOU:** Apply `0001` → `0002` → `0003` in the Supabase SQL editor — confirmed done April 18, 2026.
+- [x] `js/supabase-sync.js` — the Supabase equivalent of `js/cloud-sync.js`, ciphertext-only. No `_decryptForSync`, never inspects payloads, treats every blob as an opaque string. Exposes `pushBlob`, `pullBlob`, `deleteBlob`, `pushQuote`, `pullQuote`, `listQuotes`, `deleteQuote`, `schedulePush` (3-second debounced sweep of `DOC_LOCAL_KEYS`), plus `init()` → `window.Supabase.init()`.
+- [x] `js/sync-facade.js` — `window.Sync` router shim gating on `STORAGE_KEYS.SYNC_BACKEND`. Existing `CloudSync.xxx` call sites continue to work untouched; Phase 4 migrates the three named entry points (`App.save`, `App.load`, `saveAsQuote`) plus `Auth.pullFromCloud` over to `window.Sync.xxx`.
+- [x] `js/cloud-sync.js` — exposes `SYNC_DOCS` via public API. No other changes to the Firebase path.
+- [x] `index.html` — `@supabase/supabase-js@2.45.4` UMD tag added; `supabase-config.js` / `supabase-sync.js` / `sync-facade.js` wired into the JS load order after `cloud-sync.js`.
+- [x] `tests/supabase-sync.test.js` — 14 tests against an in-memory mock `supabase.client` that enforces RLS by filtering every op on the authenticated uid. Covers ciphertext round-trip identity, cross-user deny-by-default, flag no-op semantics, quote CRUD, and `schedulePush` sweep.
+- [x] **Gate**: feature flag `SYNC_BACKEND=supabase` in localStorage. Default `firebase`. When `supabase`, new sync path; when `firebase`, legacy path untouched.
+- [ ] **YOU:** Sign Supabase DPA (Dashboard → Settings → Legal) and Vercel DPA (Dashboard → Settings → General → Data Processing Addendum) before any production user is migrated.
 
 ### Phase 2.5 — Shared-agency data layer (planned)
 
