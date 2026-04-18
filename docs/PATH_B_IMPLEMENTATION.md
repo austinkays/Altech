@@ -93,12 +93,17 @@ Each phase is independently shippable and gated behind a feature flag. No phase 
 
 - [x] **Stage 1a** — `js/crypto-helper.js` now supports a v2 passphrase path parallel to the legacy v1 device-bound path. PBKDF2 bumped 100k → 600k (OWASP 2023). Feature flag `E2E_CRYPTO_V2` controls activation; default off. Added in-memory key caching for both paths (free perf win). `encrypt()` throws `CRYPTO_LOCKED` when v2 is enabled but locked, preventing silent writes under the wrong key.
 - [x] **Stage 1b** — Refactored v2 to **master-key + wrapping** model. Changing a passphrase now re-wraps MK (cheap) rather than re-encrypting every blob. New API: `createVault`, `unlockVault`, `changePassphrase`, `generateRecoveryKey`, `parseRecoveryKey`, `formatRecoveryKey`, `wrapWithRecoveryKey`, `unlockVaultWithRecoveryKey`. Recovery key: 32 random bytes hex-formatted as 4 groups of 16, case/whitespace-tolerant on parse. `db/migrations/0002_wrapped_master_keys.sql` adds the wrapping columns. **Revised from plan:** BIP39 24-word mnemonic replaced with hex format (~67 chars) — smaller wordlist-free bundle, still typeable, still saveable in a password manager.
-- [ ] **Stage 1c** — UI flows:
-  - Passphrase onboarding modal: set → confirm → generate recovery key → require "I saved this" checkbox → download .txt → upload wrapped blobs.
-  - Passphrase unlock modal on every session start (replaces silent device-key unlock).
-  - Change-passphrase flow in Account → Security.
-  - Recovery flow: "I forgot my passphrase" → paste recovery key → reset passphrase.
-- [ ] **Gate (still in place)**: `E2E_CRYPTO_V2`. Default off. Stage 1c will also add a `VAULT_SERVER_META` local-storage key to cache the server's crypto-meta blob for offline unlock support (optional).
+- [x] **Stage 1c** — UI flows shipped:
+  - Two-step onboarding modal (passphrase → recovery key + Download .txt + "I saved this")
+  - Unlock modal with "Forgot passphrase? → recovery" link
+  - Change passphrase modal
+  - Two-step recovery modal (paste key → set new passphrase, uses `rewrapWithPassphrase`)
+  - Auto-open unlock on page load when v2 is enabled and vault is locked
+  - Account → Sync "End-to-end encryption" row, state-aware
+  - `VaultMeta` persistence abstraction: localStorage stub now, Supabase-backed in Phase 2 (same async shape, zero caller changes)
+- [x] **Gate (still in place)**: `E2E_CRYPTO_V2` flag. Default off. `VAULT_LOCAL_META` caches the server blob locally.
+
+**Phase 1 complete.** The entire client-side crypto + UI story is shippable behind the feature flag. Nothing is user-visible until someone enables it in Account → Sync.
 
 ### Phase 2 — Supabase schema + RLS (2–3 days)
 

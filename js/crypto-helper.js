@@ -98,14 +98,21 @@ const CryptoHelper = (() => {
     // ─── v2 primitives ────────────────────────────────────────────────────────
 
     // Import MK raw bytes as an AES-GCM CryptoKey for encrypt/decrypt usage.
+    // Imported with extractable=true so we can re-wrap under new KEKs during
+    // passphrase changes / recovery-key attachments without forcing the user
+    // to re-enter their passphrase.
     async function _importMK(mkBytes) {
         return await crypto.subtle.importKey(
             'raw',
             mkBytes,
             { name: 'AES-GCM', length: 256 },
-            false,
+            true,
             ['encrypt', 'decrypt']
         );
+    }
+
+    async function _exportMK(cryptoKey) {
+        return new Uint8Array(await crypto.subtle.exportKey('raw', cryptoKey));
     }
 
     // Derive a key-encryption-key (KEK) from a secret (passphrase or recovery
@@ -326,16 +333,8 @@ const CryptoHelper = (() => {
         /**
          * Change the passphrase: re-wrap the current MK under a new KEK and
          * return the updated server blobs. Requires the vault to be unlocked.
-         *
-         * Note: we can only re-wrap if we have the MK bytes. Since _v2Key is
-         * a non-extractable CryptoKey (imported with extractable=false), we
-         * have to keep the raw bytes to do this. Today we DON'T keep them —
-         * so this entry point requires the caller to unlock with the current
-         * passphrase and then hand us the raw MK. Alternative: make the MK
-         * import extractable. Simpler path: re-unlock during the change flow.
-         *
-         * For now, this method exposes a safer form: the caller provides the
-         * current passphrase + server meta, we unlock, then re-wrap.
+         * Verifies the current passphrase before rotating so we can't silently
+         * overwrite a vault the caller doesn't actually own.
          *
          * @param {{ passphraseSaltB64, passphraseWrappedMKB64, passphraseIterations? }} currentServerMeta
          * @param {string} currentPassphrase
@@ -347,24 +346,37 @@ const CryptoHelper = (() => {
             if (!newPassphrase || newPassphrase.length < 8) {
                 throw new Error('New passphrase must be at least 8 characters');
             }
-            // Re-derive the current KEK, unwrap MK, then wrap under a fresh salt + new KEK.
             const iter = currentServerMeta.passphraseIterations || 600000;
             const currentKek = await _deriveKEK(currentPassphrase, currentServerMeta.passphraseSaltB64, iter);
-            let mkBytes;
             try {
-                mkBytes = await _unwrapMK(currentServerMeta.passphraseWrappedMKB64, currentKek);
+                await _unwrapMK(currentServerMeta.passphraseWrappedMKB64, currentKek);
             } catch (e) {
                 return null; // Current passphrase was wrong.
             }
+            // Caller was legit. Re-wrap whatever MK is currently in memory.
+            return await this.rewrapWithPassphrase(newPassphrase, iterations);
+        },
 
+        /**
+         * Wrap the currently-unlocked MK under a new passphrase KEK. Used by
+         * both the "change passphrase" flow (after verifying the old one) and
+         * the "reset after recovery" flow (where MK was unlocked via the
+         * recovery key, not a passphrase).
+         *
+         * @param {string} newPassphrase
+         * @param {number} [iterations=600000]
+         * @returns {Promise<{ passphraseSaltB64, passphraseWrappedMKB64, passphraseIterations }>}
+         */
+        async rewrapWithPassphrase(newPassphrase, iterations = 600000) {
+            if (!_v2Key) throw new Error('CRYPTO_LOCKED: No v2 key in memory');
+            if (!newPassphrase || newPassphrase.length < 8) {
+                throw new Error('New passphrase must be at least 8 characters');
+            }
+            const mkBytes = await _exportMK(_v2Key);
             const passphraseSaltB64 = _newSaltB64();
             const newKek = await _deriveKEK(newPassphrase, passphraseSaltB64, iterations);
             const passphraseWrappedMKB64 = await _wrapMK(mkBytes, newKek);
-
-            // Update in-memory MK too.
-            _v2Key = await _importMK(mkBytes);
             mkBytes.fill(0);
-
             return {
                 passphraseSaltB64,
                 passphraseWrappedMKB64,
@@ -396,32 +408,24 @@ const CryptoHelper = (() => {
         formatRecoveryKey(bytes) { return _formatRecoveryKey(bytes); },
 
         /**
-         * Attach a recovery key to the vault: derive recovery KEK from the
-         * recovery key bytes, wrap the currently-unlocked MK, return the
-         * pieces for server upload. Requires unlocked vault.
+         * Attach a recovery key to an already-unlocked vault. Derives a
+         * recovery KEK from the recovery key bytes, wraps the in-memory MK,
+         * and returns the pieces for server upload. Throws if the vault is
+         * not unlocked.
          *
-         * Called once during onboarding. Caller is responsible for presenting
-         * the display form to the user and confirming they saved it BEFORE
-         * uploading the wrapping to the server.
+         * Typically called right after `createVault()` during onboarding, so
+         * the MK from that call is still in memory.
          */
-        async wrapWithRecoveryKey(recoveryBytes, currentServerMeta, currentPassphrase, iterations = 600000) {
+        async wrapWithRecoveryKey(recoveryBytes, iterations = 600000) {
+            if (!_v2Key) throw new Error('CRYPTO_LOCKED: No v2 key in memory');
             if (!(recoveryBytes instanceof Uint8Array) || recoveryBytes.length !== 32) {
                 throw new Error('Recovery key must be 32 bytes');
             }
-            // Re-unlock MK so we have the raw bytes to wrap.
-            const iter = currentServerMeta.passphraseIterations || 600000;
-            const currentKek = await _deriveKEK(currentPassphrase, currentServerMeta.passphraseSaltB64, iter);
-            let mkBytes;
-            try {
-                mkBytes = await _unwrapMK(currentServerMeta.passphraseWrappedMKB64, currentKek);
-            } catch (e) {
-                return null;
-            }
-
+            const mkBytes = await _exportMK(_v2Key);
             const recoverySaltB64 = _newSaltB64();
-            // Convert bytes to the hex string format so _deriveKEK (which takes
-            // a string) can consume it. Recovery key is high-entropy, so PBKDF2
-            // iterations serve mostly as defense against exotic offline attacks.
+            // Recovery key is already 256-bit random, so PBKDF2 iterations here
+            // only defend against exotic offline attacks. Kept at 600k for
+            // consistency with the passphrase path.
             const recoverySecret = _bytesToHex(recoveryBytes);
             const recoveryKek = await _deriveKEK(recoverySecret, recoverySaltB64, iterations);
             const recoveryWrappedMKB64 = await _wrapMK(mkBytes, recoveryKek);

@@ -1,0 +1,130 @@
+/* css/vault.css — Vault / End-to-end encryption modals (Phase 1c).
+   Reuses .auth-modal-overlay and .auth-modal containers from components.css
+   for sizing, backdrop, and animation. Only vault-specific tweaks live here. */
+
+.vault-error {
+    display: none;
+    background: rgba(255, 69, 58, 0.12);
+    border: 1px solid rgba(255, 69, 58, 0.35);
+    color: #FF453A;
+    font-size: 12px;
+    border-radius: 8px;
+    padding: 0.55rem 0.7rem;
+    margin: 0.5rem 0;
+    line-height: 1.4;
+}
+
+.vault-warning {
+    background: rgba(245, 200, 66, 0.1);
+    border: 1px solid rgba(245, 200, 66, 0.35);
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 8px;
+    padding: 0.65rem 0.8rem;
+    margin-bottom: 0.85rem;
+}
+.vault-warning strong { color: var(--text); }
+
+.vault-recovery-box {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    margin: 0.9rem 0;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.8;
+    word-break: break-all;
+    user-select: all;
+    text-align: center;
+    color: var(--text);
+}
+
+.vault-saved-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    margin: 0.85rem 0;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text);
+}
+.vault-saved-checkbox input { margin-top: 3px; flex-shrink: 0; }
+.vault-saved-checkbox span small {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 11px;
+    margin-top: 2px;
+    font-weight: 400;
+}
+
+.vault-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+.vault-actions .btn-auth { flex: 1; }
+
+.vault-link {
+    background: none;
+    border: none;
+    color: var(--apple-blue);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0.3rem 0;
+    margin-top: 0.4rem;
+}
+.vault-link:hover { text-decoration: underline; }
+
+/* Settings row inside Account → Sync */
+#vaultSettingsRow {
+    border-top: 1px solid var(--border);
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+}
+#vaultSettingsRow .vault-status {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    display: block;
+    margin-top: 3px;
+}
+#vaultSettingsRow .vault-row-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+#vaultSettingsRow .vault-row-head strong {
+    font-size: 13px;
+    color: var(--text);
+}
+#vaultSettingsRow .vault-sub-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+#vaultSettingsRow .vault-sub-actions button {
+    flex: 1;
+    padding: 0.4rem 0.75rem;
+    font-size: 12px;
+}
+
+/* Recovery key textarea inside the recover modal */
+#vaultRecoverKey {
+    width: 100%;
+    min-height: 90px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    padding: 0.7rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
+    resize: vertical;
+}

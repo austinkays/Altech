@@ -10,6 +10,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(security): Path B Phase 1c — vault UI flows (dormant behind flag)** (April 17, 2026):
+  - Four end-to-end encryption modals, all opt-in behind `E2E_CRYPTO_V2`. Zero user-facing change until a user flips the flag.
+  - **Onboarding** — two-step modal: (1) set passphrase + confirm, (2) auto-generated recovery key shown in monospace + Download .txt + Copy + "I saved this" checkbox. Saves wrapped MK + recovery wrap to `VaultMeta` persistence.
+  - **Unlock** — passphrase prompt; wrong pass shows error; "Forgot passphrase? Use recovery key →" link flips to recovery flow.
+  - **Change passphrase** — requires current passphrase, re-wraps MK under new KEK. Data blobs untouched.
+  - **Recovery** — two-step: (1) paste recovery key → unlock, (2) set new passphrase. Uses `rewrapWithPassphrase()` so we don't need the old passphrase to complete the reset.
+  - **Auto-prompt on load** — `app-boot.js` calls `VaultUI.maybePromptUnlockOnLoad()`. When v2 is enabled, vault exists, and MK isn't in memory, the unlock modal fires before the user can touch encrypted data.
+  - **Settings row** — new "End-to-end encryption" section in Account → Sync. State-aware: shows Enable / Unlock / Lock depending on current state, with Change / Recovery / Turn Off secondary buttons when on.
+  - Files:
+    - `js/vault-meta.js` (new, ~85 lines) — persistence abstraction (localStorage stub; Phase 2 will swap in Supabase).
+    - `js/vault-ui.js` (new, ~340 lines) — modal controllers.
+    - `css/vault.css` (new, ~100 lines) — reuses `.auth-modal-*` for sizing, adds vault-specific styles (recovery box, checkbox row, settings row).
+    - `index.html` — 4 new `.auth-modal-overlay` blocks; script + stylesheet tags; E2E row inside the existing Account → Sync section.
+    - `js/crypto-helper.js` — refined: MK now imported with `extractable=true` so rotations can re-wrap without re-entering the old passphrase; `changePassphrase` verifies then delegates to `rewrapWithPassphrase`; `wrapWithRecoveryKey` now requires an unlocked vault and uses in-memory MK directly.
+    - `js/auth.js` — `Auth.showModal()` calls `VaultUI.refreshSettingsRow()` when the account view opens.
+    - `js/app-boot.js` — adds `VaultUI.maybePromptUnlockOnLoad()` to the onload sequence.
+    - `js/storage-keys.js` — adds `VAULT_LOCAL_META` key.
+  - Verified end-to-end in the preview (26/26 assertions): modules load → onboarding step 1 → step 2 with recovery key visible → step 2 submit writes to VaultMeta + flips flag → v2 encrypt/decrypt round-trip → lock → unlock modal wrong-pass shows error → right-pass unlocks → old ciphertext still decrypts → change modal → old pass rejected / new pass works post-change → original data still decrypts (proving MK preserved) → recovery flow: paste key → unlock → new passphrase → lock → new post-recovery pass works → clean teardown.
+  - Tests: 28 suites / 1772 tests pass.
+
 - **feat(security): Path B Phase 1b — master-key + recovery key (dormant behind flag)** (April 17, 2026):
   - Refactors the v2 crypto path from "passphrase derives the data key directly" to a proper **master-key / wrapping** model. Changing a passphrase now re-wraps the master key (cheap, ~1 op) instead of re-encrypting every data blob. Enables recovery keys that work independently of the passphrase.
   - `db/migrations/0002_wrapped_master_keys.sql` (new) — adds `passphrase_wrapped_mk`, `recovery_salt`, `recovery_iterations`, `recovery_wrapped_mk` columns to `user_crypto_meta`. Check constraint enforces that recovery_salt and recovery_wrapped_mk exist as a pair.

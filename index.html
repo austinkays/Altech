@@ -26,6 +26,7 @@
     <link rel="stylesheet" href="css/quote-compare.css">
     <link rel="stylesheet" href="css/intake-assist.css">
     <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/vault.css">
     <link rel="stylesheet" href="css/admin.css">
     <link rel="stylesheet" href="css/theme-professional.css">
     <link rel="stylesheet" href="css/aurora-theme.css">
@@ -634,6 +635,22 @@
                                     <span style="display:block;color:var(--text-secondary);font-size:11px;margin-top:2px">Recommended on shared or public computers. Client data stays encrypted in this browser and is never uploaded. Cross-device sync will stop working until you re-enable this.</span>
                                 </span>
                             </label>
+
+                            <!-- End-to-end encryption (Phase 1c) -->
+                            <div id="vaultSettingsRow">
+                                <div class="vault-row-head">
+                                    <div>
+                                        <strong>🔒 End-to-end encryption <span style="background:var(--apple-blue);color:#fff;font-size:10px;padding:1px 6px;border-radius:6px;margin-left:4px;letter-spacing:0.03em">BETA</span></strong>
+                                        <span class="vault-status">Off — client data is encrypted with a device-bound key</span>
+                                    </div>
+                                    <button class="btn-auth btn-auth-small btn-auth-primary vault-primary-btn" style="margin-top:0;width:auto;padding:0.4rem 1rem;white-space:nowrap">Enable</button>
+                                </div>
+                                <div class="vault-sub-actions" data-e2e-on style="display:none">
+                                    <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="VaultUI.openChange()">Change passphrase</button>
+                                    <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="VaultUI.openRecovery()">Use recovery key</button>
+                                    <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="VaultUI.disableE2E()" style="color:#FF453A">Turn off</button>
+                                </div>
+                            </div>
                         </div>
                     </details>
 
@@ -787,6 +804,159 @@
         </div>
     </div>
 
+    <!-- ══ Vault / E2E Encryption Modals (Phase 1c) ══ -->
+
+    <!-- Onboarding -->
+    <div id="vaultOnboardModal" class="auth-modal-overlay" style="display:none">
+        <div class="auth-modal">
+            <button class="auth-close" onclick="VaultUI.cancelOnboarding()">&times;</button>
+
+            <div data-step="1">
+                <div class="auth-modal-header">
+                    <h3>🔒 Enable End-to-End Encryption</h3>
+                    <p class="auth-subtitle">Your client data will be encrypted before leaving this browser.</p>
+                </div>
+                <div class="vault-warning">
+                    <strong>You're in control of the keys.</strong> We can never read your data — not even to help you recover it. If you forget your passphrase AND lose the recovery key, the data is gone. Save both in a password manager.
+                </div>
+                <form class="auth-form" onsubmit="VaultUI.handleOnboardStep1Submit(event)">
+                    <div class="auth-field">
+                        <label for="vaultOnboardPass1">Passphrase (8+ characters)</label>
+                        <input type="password" id="vaultOnboardPass1" autocomplete="new-password" required minlength="8">
+                    </div>
+                    <div class="auth-field">
+                        <label for="vaultOnboardPass2">Confirm passphrase</label>
+                        <input type="password" id="vaultOnboardPass2" autocomplete="new-password" required minlength="8">
+                    </div>
+                    <div class="vault-error"></div>
+                    <div class="vault-actions">
+                        <button type="button" class="btn-auth btn-auth-secondary" onclick="VaultUI.cancelOnboarding()">Cancel</button>
+                        <button type="submit" class="btn-auth btn-auth-primary">Continue</button>
+                    </div>
+                </form>
+            </div>
+
+            <div data-step="2" style="display:none">
+                <div class="auth-modal-header">
+                    <h3>🔑 Save Your Recovery Key</h3>
+                    <p class="auth-subtitle">This is the ONLY way to recover data if you forget your passphrase.</p>
+                </div>
+                <div class="vault-recovery-box" id="vaultOnboardRecoveryKey">—</div>
+                <div class="vault-actions" style="margin-bottom:0.25rem">
+                    <button type="button" class="btn-auth btn-auth-secondary" onclick="VaultUI.downloadRecoveryKey()">📥 Download .txt</button>
+                    <button type="button" class="btn-auth btn-auth-secondary" onclick="navigator.clipboard.writeText(document.getElementById('vaultOnboardRecoveryKey').textContent); if(typeof App!=='undefined'&&App.toast)App.toast('Copied to clipboard', 1200);">📋 Copy</button>
+                </div>
+                <form class="auth-form" onsubmit="VaultUI.handleOnboardStep2Submit(event)">
+                    <label class="vault-saved-checkbox">
+                        <input type="checkbox" id="vaultOnboardSavedCheckbox">
+                        <span>
+                            I've saved my recovery key somewhere safe.
+                            <small>We won't remind you again. Without it and the passphrase, your data cannot be recovered.</small>
+                        </span>
+                    </label>
+                    <div class="vault-error"></div>
+                    <div class="vault-actions">
+                        <button type="button" class="btn-auth btn-auth-secondary" onclick="VaultUI.cancelOnboarding()">Cancel</button>
+                        <button type="submit" class="btn-auth btn-auth-primary">Finish Setup</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unlock -->
+    <div id="vaultUnlockModal" class="auth-modal-overlay" style="display:none">
+        <div class="auth-modal">
+            <div class="auth-modal-header">
+                <h3>🔒 Unlock Your Vault</h3>
+                <p class="auth-subtitle">Enter your passphrase to access encrypted data.</p>
+            </div>
+            <form class="auth-form" onsubmit="VaultUI.handleUnlockSubmit(event)">
+                <div class="auth-field">
+                    <label for="vaultUnlockPass">Passphrase</label>
+                    <input type="password" id="vaultUnlockPass" autocomplete="current-password" required>
+                </div>
+                <div class="vault-error"></div>
+                <button type="submit" class="btn-auth btn-auth-primary">Unlock</button>
+                <button type="button" class="vault-link" onclick="VaultUI.openRecovery()">Forgot passphrase? Use recovery key →</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Change passphrase -->
+    <div id="vaultChangeModal" class="auth-modal-overlay" style="display:none">
+        <div class="auth-modal">
+            <button class="auth-close" onclick="document.getElementById('vaultChangeModal').style.display='none'">&times;</button>
+            <div class="auth-modal-header">
+                <h3>🔒 Change Passphrase</h3>
+                <p class="auth-subtitle">Your data stays put — only the wrapping changes.</p>
+            </div>
+            <form class="auth-form" onsubmit="VaultUI.handleChangeSubmit(event)">
+                <div class="auth-field">
+                    <label for="vaultChangeCurrent">Current passphrase</label>
+                    <input type="password" id="vaultChangeCurrent" autocomplete="current-password" required>
+                </div>
+                <div class="auth-field">
+                    <label for="vaultChangeNew1">New passphrase (8+ characters)</label>
+                    <input type="password" id="vaultChangeNew1" autocomplete="new-password" required minlength="8">
+                </div>
+                <div class="auth-field">
+                    <label for="vaultChangeNew2">Confirm new passphrase</label>
+                    <input type="password" id="vaultChangeNew2" autocomplete="new-password" required minlength="8">
+                </div>
+                <div class="vault-error"></div>
+                <div class="vault-actions">
+                    <button type="button" class="btn-auth btn-auth-secondary" onclick="document.getElementById('vaultChangeModal').style.display='none'">Cancel</button>
+                    <button type="submit" class="btn-auth btn-auth-primary">Change</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recovery -->
+    <div id="vaultRecoverModal" class="auth-modal-overlay" style="display:none">
+        <div class="auth-modal">
+            <button class="auth-close" onclick="document.getElementById('vaultRecoverModal').style.display='none'">&times;</button>
+
+            <div data-step="1">
+                <div class="auth-modal-header">
+                    <h3>🔑 Recover with Recovery Key</h3>
+                    <p class="auth-subtitle">Paste the 64-character key you saved during setup.</p>
+                </div>
+                <form class="auth-form" onsubmit="VaultUI.handleRecoverStep1Submit(event)">
+                    <div class="auth-field">
+                        <label for="vaultRecoverKey">Recovery key</label>
+                        <textarea id="vaultRecoverKey" placeholder="XXXXXXXXXXXXXXXX-XXXXXXXXXXXXXXXX-XXXXXXXXXXXXXXXX-XXXXXXXXXXXXXXXX" required></textarea>
+                    </div>
+                    <div class="vault-error"></div>
+                    <div class="vault-actions">
+                        <button type="button" class="btn-auth btn-auth-secondary" onclick="document.getElementById('vaultRecoverModal').style.display='none'">Cancel</button>
+                        <button type="submit" class="btn-auth btn-auth-primary">Verify</button>
+                    </div>
+                </form>
+            </div>
+
+            <div data-step="2" style="display:none">
+                <div class="auth-modal-header">
+                    <h3>🔒 Set a New Passphrase</h3>
+                    <p class="auth-subtitle">Your vault is unlocked — choose a new passphrase to lock it again.</p>
+                </div>
+                <form class="auth-form" onsubmit="VaultUI.handleRecoverStep2Submit(event)">
+                    <div class="auth-field">
+                        <label for="vaultRecoverNewPass1">New passphrase (8+ characters)</label>
+                        <input type="password" id="vaultRecoverNewPass1" autocomplete="new-password" required minlength="8">
+                    </div>
+                    <div class="auth-field">
+                        <label for="vaultRecoverNewPass2">Confirm new passphrase</label>
+                        <input type="password" id="vaultRecoverNewPass2" autocomplete="new-password" required minlength="8">
+                    </div>
+                    <div class="vault-error"></div>
+                    <button type="submit" class="btn-auth btn-auth-primary">Save & Unlock</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- PDF libraries (~600 KB) are lazy-loaded on demand via PDFLibs.ensure() -->
     <script src="js/pdf-lib-loader.js"></script>
     <script src="js/crypto-helper.js"></script>
@@ -848,6 +1018,8 @@
 <script src="js/auth.js"></script>
 <script src="js/admin-panel.js"></script>
 <script src="js/cloud-sync.js"></script>
+<script src="js/vault-meta.js"></script>
+<script src="js/vault-ui.js"></script>
 <script src="js/paywall.js"></script>
 <script src="js/onboarding.js"></script>
 

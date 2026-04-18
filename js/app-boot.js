@@ -205,6 +205,15 @@ window.onload = async () => {
         if (typeof Onboarding !== 'undefined') Onboarding.init();
     } catch (e) { console.error('[Boot] Onboarding.init error:', e); }
 
+    // If E2E v2 is enabled and the vault is locked, prompt for the passphrase
+    // before the user can interact with encrypted data. Runs non-blocking — the
+    // modal renders on top of whatever the app has already drawn.
+    try {
+        if (typeof VaultUI !== 'undefined' && VaultUI.maybePromptUnlockOnLoad) {
+            VaultUI.maybePromptUnlockOnLoad();
+        }
+    } catch (e) { console.error('[Boot] Vault unlock prompt error:', e); }
+
     // Show reminder badges + check for alerts
     try {
         if (typeof Reminders !== 'undefined') {

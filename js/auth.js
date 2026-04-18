@@ -339,6 +339,9 @@ const Auth = (() => {
                 const syncDisabledEl = modal.querySelector('#authSyncDisabled');
                 if (syncDisabledEl) syncDisabledEl.checked = localStorage.getItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED) === 'true';
                 if (typeof CloudSync !== 'undefined' && CloudSync.refreshUI) CloudSync.refreshUI();
+
+                // Render E2E encryption row based on current state
+                if (typeof VaultUI !== 'undefined' && VaultUI.refreshSettingsRow) VaultUI.refreshSettingsRow();
             } else {
                 _showView('login');
             }
