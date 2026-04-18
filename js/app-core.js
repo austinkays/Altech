@@ -620,7 +620,7 @@ Object.assign(App, {
 
     async save(e) {
         if (e && e.target) {
-            const k = e.target.id || e.target.name;
+            const k = (window.FieldMap && window.FieldMap.storageKeyForElement(e.target)) || e.target.id || e.target.name;
             // hasCoApplicant uses 'yes'/'' string convention — toggleCoApplicant() is the sole authority
             if (e.target.type === 'checkbox' && k === 'hasCoApplicant') return;
             this.data[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -749,7 +749,8 @@ Object.assign(App, {
             if (this.data[k]) this.data[k] = this._fmtPhoneVal(this.data[k]);
         });
         Object.keys(this.data).forEach(k => {
-            const el = document.getElementById(k);
+            const domId = (window.FieldMap && window.FieldMap.domIdForStorageKey(k)) || k;
+            const el = document.getElementById(domId);
             if(el) {
                 if(el.type === 'checkbox') {
                     el.checked = this.data[k];

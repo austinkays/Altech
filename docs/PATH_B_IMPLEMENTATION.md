@@ -107,11 +107,24 @@ Each phase is independently shippable and gated behind a feature flag. No phase 
 
 ### Phase 2 — Supabase schema + RLS (2–3 days)
 
-- [ ] Apply schema (below) to Supabase.
-- [ ] RLS policies for every table. Rule of thumb: `auth.uid() = user_id` on read/write.
+**Status:** Scaffolding extended April 18, 2026 to include the Phase 2.5 agency-sharing layer up-front so no second migration is needed after users exist.
+
+- [x] `db/migrations/0003_agency_sharing.sql` ships alongside 0001 + 0002: adds wrapping keypair columns to `user_crypto_meta` and the `agencies` / `agency_members` / `agency_key_wraps` / `agency_blobs` tables with full RLS. No application code ships against these tables yet.
+- [x] `api/config.js` exposes `?type=supabase-public` (URL + anon key) so `js/supabase-config.js` can come online as soon as the Vercel env vars are set. Defense-in-depth refuses to serve a value whose JWT payload claims `role: service_role`.
+- [ ] **YOU:** Apply `0001` → `0002` → `0003` in the Supabase SQL editor, in order. Run the verification queries at the bottom of each file as both anon and an authenticated test user to confirm RLS rejects cross-user reads.
 - [ ] Write `js/supabase-sync.js` — the Supabase equivalent of `js/cloud-sync.js`, except it ONLY handles opaque encrypted blobs. No `_decryptForSync`.
 - [ ] Add `SupabaseSync.pushBlob(docKey, ciphertext, updatedAt)`, `pullBlob(docKey)`, `listQuotes()`, `deleteBlob(docKey)`.
 - [ ] **Gate**: feature flag `SYNC_BACKEND=supabase` in localStorage. Default `firebase`. When `supabase`, new sync path; when `firebase`, legacy path.
+
+### Phase 2.5 — Shared-agency data layer (planned)
+
+The Phase 0 plan punted shared-agency data to "v2". Phase 2 now ships the schema for it, so Phase 2.5 is application-layer only:
+
+- [ ] On vault unlock, generate an RSA-OAEP-4096 keypair if `user_crypto_meta.public_key` is null. Store the private half encrypted under the master key (`wrapped_private_key`). This is a one-time per-user cost.
+- [ ] Add `AgencySync` module: mirrors `SupabaseSync` but wraps/unwraps `AGENCY_KEY` via the user's keypair and writes to `agency_blobs` instead of `user_blobs`.
+- [ ] Split `SYNC_DOCS` in `cloud-sync.js` into `PRIVATE_DOCS` (currentForm, quotes, clientHistory, reminders, vaultData, commercialDraft, settings) and `SHARED_DOCS` (cglState, quickRefCards, quickRefNumbers, quickRefEmojis, glossary, commercialQuotes). The shared set writes through `AgencySync`.
+- [ ] Owner-only admin-panel flows: create agency, invite member (by email; wraps AGENCY_KEY under their public key), revoke member (delete their wrap row + rotate the agency key).
+- [ ] Key rotation job: bump `agencies.key_version`, re-encrypt all `agency_blobs` under the new key, write new `agency_key_wraps` for all active members, delete old wraps.
 
 ### Phase 3 — Supabase Auth (2 days)
 

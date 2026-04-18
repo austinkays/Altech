@@ -1,13 +1,18 @@
 // fields.js — single source of truth for all App.data intake form fields.
 // Add or rename fields here only. Do not hardcode labels in app-export.js or hawksoft-export.js.
 //
-// Each entry: { id, label, type, section }
-//   id      — matches the HTML <input id> in plugins/quoting.html AND the App.data key
-//   label   — canonical display label used in PDF and HawkSoft FSC exports
-//   type    — 'text' | 'select' | 'date' | 'number' | 'tel' | 'email' | 'textarea' | 'checkbox' | 'logic'
-//   section — logical grouping (applicant | coapplicant | address | property | roof | systems |
-//             hazards | home-coverage | home-endorsements | auto-coverage | prior-insurance | notes)
-//   ezlynxRequired — optional boolean; when true, a ✦ indicator is shown next to the label in the Personal Lines form
+// Each entry: { id, label, type, section, storageKey? }
+//   id         — matches the HTML <input id> in plugins/quoting.html
+//   storageKey — the key used in App.data + synced cloud docs. Defaults to id.
+//                Specify explicitly when you need to rename an input's id without
+//                breaking existing saved data (or vice versa). Never change a
+//                storageKey on an existing field — add a migration in app-core.js
+//                _migrateSchema() instead.
+//   label      — canonical display label used in PDF and HawkSoft FSC exports
+//   type       — 'text' | 'select' | 'date' | 'number' | 'tel' | 'email' | 'textarea' | 'checkbox' | 'logic'
+//   section    — logical grouping (applicant | coapplicant | address | property | roof | systems |
+//                hazards | home-coverage | home-endorsements | auto-coverage | prior-insurance | notes)
+//   ezlynxRequired — optional; when true, a ✦ indicator is shown next to the label in the Personal Lines form
 //
 // Special export notes are documented as comments — no runtime magic, no extra properties.
 // Ghost fields (not present in plugins/quoting.html — set only by AI scan) are marked inForm: false.
@@ -187,5 +192,34 @@ window.FIELDS = [
 
 ];
 
-// Lookup map: FIELD_BY_ID['fieldId'] → { id, label, type, section }
+// Normalize: every field has an explicit storageKey (defaults to id). Allows
+// callers to look up "where does this DOM element's value live in App.data?"
+// and the reverse, without every call site re-implementing the default.
+window.FIELDS.forEach(f => {
+    if (!f.storageKey) f.storageKey = f.id;
+});
+
+// Lookup map: FIELD_BY_ID['fieldId'] → { id, storageKey, label, type, section }
 window.FIELD_BY_ID = Object.fromEntries(window.FIELDS.map(f => [f.id, f]));
+
+// Lookup map: FIELD_BY_STORAGE_KEY['key'] → same field object.
+// Identical to FIELD_BY_ID today because storageKey defaults to id; distinct
+// tomorrow when a field's DOM id is renamed while its storage key stays put.
+window.FIELD_BY_STORAGE_KEY = Object.fromEntries(window.FIELDS.map(f => [f.storageKey, f]));
+
+// Helpers for save/load paths in app-core.js. Keep the defaulting logic here
+// so consumers never have to write `field.storageKey || field.id` again.
+window.FieldMap = {
+    /** Given a DOM element or its id, return the App.data storage key. */
+    storageKeyForElement(elOrId) {
+        const id = typeof elOrId === 'string' ? elOrId : (elOrId && (elOrId.id || elOrId.name));
+        if (!id) return null;
+        const field = window.FIELD_BY_ID[id];
+        return field ? field.storageKey : id;
+    },
+    /** Given a storage key (from App.data), return the DOM id to populate. */
+    domIdForStorageKey(key) {
+        const field = window.FIELD_BY_STORAGE_KEY[key];
+        return field ? field.id : key;
+    },
+};

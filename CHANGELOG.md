@@ -9,7 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(security): Path B Phase 2 scaffolding** (April 18, 2026):
+  - `db/migrations/0003_agency_sharing.sql` — future-proofs the Supabase schema for multi-user agency sharing before production rows exist:
+    - Adds `public_key`, `wrapped_private_key`, `keypair_algorithm`, `keypair_created_at` columns to `user_crypto_meta` so each user can hold a long-term wrapping keypair (private half encrypted under their master key).
+    - New tables: `agencies` (owner + `key_version` for rotation), `agency_members` (role-based, soft-delete via `revoked_at`), `agency_key_wraps` (per-member wrapped AGENCY_KEY, one row per key version), `agency_blobs` (shared ciphertext, mirrors `user_blobs` shape).
+    - `is_agency_member()` / `is_agency_admin()` SECURITY DEFINER helpers to keep RLS policies out of recursion.
+    - Full RLS: blobs visible to members, writable by members, deletable by admins only; members see other members of their agencies; key wraps readable only by their owner; no client-side INSERT on `agencies` (must go through server-side function in Phase 2.5).
+    - Extends `audit_log.event_type` with `keypair_generated`, `agency_created`, `agency_member_invited|joined|revoked`, `agency_key_rotated`, `agency_role_changed`.
+    - No application code ships against these tables yet — pure schema foresight so no second migration is needed after users exist.
+  - `api/config.js` — new `GET /api/config?type=supabase-public` branch returns `{ url, anonKey }` from `SUPABASE_URL` / `SUPABASE_ANON_KEY` env vars with a 5-minute cache and a defense-in-depth check that rejects any value whose JWT payload claims `role: service_role`. Unlocks `js/supabase-config.js` (shipped Phase 0) to actually come online once the Vercel env vars are set.
+
 ### Changed
+- **refactor(fields): decouple DOM ids from App.data storage keys** (April 18, 2026):
+  - Adds optional `storageKey` to every entry in `js/fields.js`; defaults to `id`. Fields renamed in the DOM can now pin their `storageKey` to the original value instead of requiring a `_migrateSchema()` pass.
+  - New `window.FIELD_BY_STORAGE_KEY` map and `window.FieldMap` helpers (`storageKeyForElement(el)`, `domIdForStorageKey(key)`) so no call site has to write `field.storageKey || field.id` itself.
+  - `App.save()` and `App.applyData()` route through `FieldMap` instead of using `e.target.id` / `document.getElementById(k)` directly. Behavior is identical today (every field has `storageKey === id`); the machinery is in place for the first legitimate rename.
+  - Tests: all 28 suites / 1756 tests pass.
+
 - **chore(ux): pre-review cleanup pass** (April 18, 2026):
   - **Removed three hidden plugins entirely** — Policy Q&A (`qna`), COI Generator (`coi`), Blind Spot Brief (`blindspot`). All source, HTML, plugin containers, service worker cache entries, `storage-keys.js` entries, `dashboard-widgets.js` icon mappings, admin-button code, `data-backup.js` keyboard shortcuts, dead CSS (`css/components.css`, `css/layout.css`, `css/animations.css`), and test coverage in `plugin-integration.test.js` / `app.test.js` / `layout-regressions.test.js` deleted.
   - **De-AI'd user-facing copy** to functional, professional names. Code, file names (`ai-provider.js`, `_ai-router.js`), function names (`AIProvider`), element IDs, API env vars, and acronyms (NAIC, NAICS, AIC, etc.) untouched:
