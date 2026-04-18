@@ -1,15 +1,17 @@
 /**
  * Config & Utilities — Unified Endpoint
- * 
+ *
  * Routes via ?type= query parameter:
- *   GET  /api/config?type=firebase    → Firebase client config (no auth)
- *   GET  /api/config?type=keys        → Places + Gemini API keys (auth required)
- *   POST /api/config?type=phonetics   → Name pronunciation via Gemini (auth required)
- *   POST /api/config?type=bugreport   → Create GitHub Issue from in-app bug report (auth required)
- * 
+ *   GET  /api/config?type=firebase         → Firebase client config (no auth)
+ *   GET  /api/config?type=supabase-public  → Supabase URL + anon key (no auth; RLS enforces access)
+ *   GET  /api/config?type=keys             → Places + Gemini API keys (auth required)
+ *   POST /api/config?type=phonetics        → Name pronunciation via Gemini (auth required)
+ *   POST /api/config?type=bugreport        → Create GitHub Issue from in-app bug report (auth required)
+ *
  * Environment variables:
  *   FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_PROJECT_ID,
  *   FIREBASE_STORAGE_BUCKET, FIREBASE_MESSAGING_SENDER_ID, FIREBASE_APP_ID
+ *   SUPABASE_URL, SUPABASE_ANON_KEY
  *   PLACES_API_KEY, GOOGLE_API_KEY
  *   GITHUB_ISSUES_TOKEN — GitHub PAT with Issues write scope
  */
@@ -41,6 +43,52 @@ function handleFirebaseConfig(req, res) {
 
     res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
     return res.status(200).json(config);
+}
+
+// ── Supabase Public Config ──────────────────────────────────────────────
+//
+// Returns SUPABASE_URL + SUPABASE_ANON_KEY. Both are safe to ship to the
+// browser — the anon key is a JWT with `role: anon` claims, and every table
+// is protected by Row Level Security. Never return SUPABASE_SERVICE_ROLE_KEY
+// from here; that key bypasses RLS and must only be used in server-side
+// code with explicit server-only env var access.
+
+function handleSupabasePublicConfig(req, res) {
+    if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const url = (process.env.SUPABASE_URL || '').trim();
+    const anonKey = (process.env.SUPABASE_ANON_KEY || '').trim();
+
+    if (!url || !anonKey) {
+        return res.status(404).json({
+            error: 'Supabase config not set in environment variables',
+            hint: 'Set SUPABASE_URL and SUPABASE_ANON_KEY in Vercel Dashboard',
+        });
+    }
+
+    // Defense-in-depth: the service-role key is similarly named and it would
+    // be catastrophic to return it by accident. Explicitly reject any value
+    // whose JWT payload claims `role: service_role`.
+    if (_looksLikeServiceRoleKey(anonKey)) {
+        console.error('[Supabase] SUPABASE_ANON_KEY env var appears to contain a service_role JWT. Refusing to serve.');
+        return res.status(500).json({ error: 'Supabase anon key misconfigured' });
+    }
+
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
+    return res.status(200).json({ url, anonKey });
+}
+
+function _looksLikeServiceRoleKey(jwt) {
+    try {
+        const payload = jwt.split('.')[1];
+        if (!payload) return false;
+        const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+        return decoded.role === 'service_role';
+    } catch {
+        return false;
+    }
 }
 
 // ── API Keys (Places + Gemini) ──────────────────────────────────────────
@@ -250,6 +298,8 @@ async function router(req, res) {
     switch (type) {
         case 'firebase':
             return handleFirebaseConfig(req, res);
+        case 'supabase-public':
+            return handleSupabasePublicConfig(req, res);
         case 'keys':
             return handleKeys(req, res);
         case 'phonetics':
@@ -257,7 +307,7 @@ async function router(req, res) {
         case 'bugreport':
             return handleBugReport(req, res);
         default:
-            return res.status(400).json({ error: 'Missing or invalid type parameter. Use ?type=firebase|keys|phonetics|bugreport' });
+            return res.status(400).json({ error: 'Missing or invalid type parameter. Use ?type=firebase|supabase-public|keys|phonetics|bugreport' });
     }
 }
 
