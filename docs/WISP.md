@@ -136,17 +136,19 @@ Full risk register maintained separately. High-priority risks as of April 17, 20
 
 ## 8. Vendor Oversight
 
-Every third party with potential access to NPI must have a signed Data Processing Agreement (DPA) or equivalent contractual protection.
+Every third party with potential access to NPI must be covered by a Data Processing Agreement (DPA) or equivalent contractual protection. For cloud infrastructure vendors, the DPA is typically incorporated by reference into the Terms of Service — "accepted by using the service." A locally-archived copy of the published DPA is retained in the agency's legal folder as evidence.
 
-| Vendor | Role | DPA status | Notes |
+| Vendor | Role | DPA status | Evidence on file |
 |---|---|---|---|
-| Supabase (Supabase Inc.) | Primary datastore + auth (Phase 1+) | **To sign (Phase 0 deliverable)** | US-hosted project. SOC 2 Type II. |
-| Vercel | Application hosting | **To confirm / sign** | Standard DPA available via dashboard. |
-| Google Cloud (Firebase) | Legacy datastore until Phase 4 | To confirm (Google Cloud DPA) | Will be decommissioned per §7. |
-| Google AI (Gemini consumer API) | Property/owner name lookups | **Limited NPI exposure.** Migrating to Vertex AI or removing. | Owner name + property address sent for enrichment; no client intake NPI. |
+| Supabase (Supabase Inc.) | Primary datastore + auth (Phase 1+) | Accepted via ToS; public DPA archived | `vendors/supabase-dpa-2026-04-17.pdf` (downloaded from https://supabase.com/legal/dpa) |
+| Vercel | Application hosting | Accepted via ToS; public DPA archived | `vendors/vercel-dpa-2026-04-17.pdf` (downloaded from https://vercel.com/legal/dpa) |
+| Google Cloud (Firebase) | Legacy datastore until Phase 4 | Google Cloud DPA (auto-signed for Google Cloud customers) | `vendors/google-cloud-dpa.pdf` |
+| Google AI (Gemini consumer API) | Property/owner name lookups | **Limited NPI exposure.** Migrating to Vertex AI or removing. | Owner name + property address sent for enrichment; no client intake NPI. Phase 2+ decision. |
 | GitHub | Source code hosting | N/A (no production data) | — |
-| Anthropic (Claude API) | Optional agent features | **To confirm** | Only user-controlled text inputs; not client intake data. |
-| OpenAI / OpenRouter | Optional agent features | **To confirm** | Same as above. |
+| Anthropic (Claude API) | Optional agent features | Accepted via ToS | Only user-controlled text inputs; not client intake data. |
+| OpenAI / OpenRouter | Optional agent features | Accepted via ToS | Same as above. |
+
+**Upgrading a wet-signed DPA:** Required only if a future carrier, state DOI auditor, or enterprise client demands one in writing. Supabase Pro and Vercel paid plans both offer dashboard-surfaced signed DPAs on request.
 
 Reviewed annually or on any change of critical vendor.
 
