@@ -13,6 +13,21 @@ const Auth = (() => {
     let _listeners = [];
     let _modalEl = null;
 
+    // ── Path B Phase 3 backend routing ──
+    // When SYNC_BACKEND=supabase, the login modal's submit handlers delegate
+    // to window.SupabaseAuth instead of FirebaseConfig.auth. The Firebase
+    // Auth module stays loaded and initialized — users on SYNC_BACKEND=firebase
+    // (the default) see zero change. The migration flow in Phase 4 is what
+    // flips an individual user from one backend to the other.
+    function _useSupabase() {
+        try {
+            return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) === 'supabase'
+                && typeof window.SupabaseAuth !== 'undefined';
+        } catch {
+            return false;
+        }
+    }
+
     // Promise that resolves once Firebase auth state is first known (signed in or out)
     let _authReadyResolve;
     const _authReady = new Promise(resolve => { _authReadyResolve = resolve; });
@@ -221,6 +236,19 @@ const Auth = (() => {
         }
     }
 
+    // ── Friendly error messages for Supabase AuthApiError ──
+    function _supabaseErrorMessage(err) {
+        if (!err) return 'Something went wrong. Please try again.';
+        const msg = String(err.message || '').toLowerCase();
+        if (msg.includes('invalid login credentials')) return 'Invalid email or password. Please try again.';
+        if (msg.includes('email not confirmed')) return 'Please confirm your email address before signing in.';
+        if (msg.includes('user already registered')) return 'An account with this email already exists. Try signing in.';
+        if (msg.includes('password should be at least')) return 'Password is too short.';
+        if (msg.includes('rate limit') || msg.includes('too many')) return 'Too many attempts. Please try again in a few minutes.';
+        if (msg.includes('network')) return 'Network error. Check your connection and try again.';
+        return err.message || 'Something went wrong. Please try again.';
+    }
+
     // ── Friendly error messages ──
     function _friendlyError(code) {
         const map = {
@@ -377,6 +405,27 @@ const Auth = (() => {
          * Sign up with email + password
          */
         async signup(email, password, displayName) {
+            if (_useSupabase()) {
+                _setLoading('signup', true);
+                _clearErrors();
+                try {
+                    await SupabaseAuth.signUp(email, password, { metadata: { display_name: displayName || '' } });
+                    // New accounts with cloud sync enabled must enroll TOTP before
+                    // sync will push anything. Open the TOTP view in-place instead
+                    // of closing the modal.
+                    if (SupabaseAuth.mfaRequired()) {
+                        if (typeof AuthMFAUI !== 'undefined') AuthMFAUI.openEnroll({ hard: true });
+                        else this.closeModal();
+                    } else {
+                        this.closeModal();
+                    }
+                } catch (e) {
+                    _showError('signup', _supabaseErrorMessage(e));
+                } finally {
+                    _setLoading('signup', false);
+                }
+                return;
+            }
             if (!FirebaseConfig.isReady) return;
             _setLoading('signup', true);
             _clearErrors();
@@ -409,6 +458,27 @@ const Auth = (() => {
          * Sign in with email + password
          */
         async login(email, password) {
+            if (_useSupabase()) {
+                _setLoading('login', true);
+                _clearErrors();
+                try {
+                    await SupabaseAuth.signIn(email, password);
+                    // After sign-in, the onAuthStateChange callback populates the
+                    // user + MFA state. Block the modal close on users who still
+                    // need to enroll TOTP, so they can't ignore the prompt.
+                    const level = SupabaseAuth.mfaEnforcementLevel();
+                    if (level && typeof AuthMFAUI !== 'undefined') {
+                        AuthMFAUI.openEnroll({ hard: level === 'hard' });
+                    } else {
+                        this.closeModal();
+                    }
+                } catch (e) {
+                    _showError('login', _supabaseErrorMessage(e));
+                } finally {
+                    _setLoading('login', false);
+                }
+                return;
+            }
             if (!FirebaseConfig.isReady) return;
             _setLoading('login', true);
             _clearErrors();
@@ -427,6 +497,24 @@ const Auth = (() => {
          * Send password reset email
          */
         async resetPassword(email) {
+            if (_useSupabase()) {
+                _setLoading('reset', true);
+                _clearErrors();
+                try {
+                    await SupabaseAuth.sendPasswordReset(email);
+                    const view = _getModal()?.querySelector('[data-auth-view="reset"]');
+                    const successEl = view?.querySelector('.auth-success');
+                    if (successEl) {
+                        successEl.textContent = `Reset link sent to ${email}. Check your inbox.`;
+                        successEl.style.display = 'block';
+                    }
+                } catch (e) {
+                    _showError('reset', _supabaseErrorMessage(e));
+                } finally {
+                    _setLoading('reset', false);
+                }
+                return;
+            }
             if (!FirebaseConfig.isReady) return;
             _setLoading('reset', true);
             _clearErrors();
@@ -472,6 +560,15 @@ const Auth = (() => {
          * Sign out
          */
         async logout() {
+            if (_useSupabase()) {
+                try {
+                    await SupabaseAuth.logout();
+                    this.closeModal();
+                } catch (e) {
+                    console.error('[Auth] Supabase logout failed:', e);
+                }
+                return;
+            }
             if (!FirebaseConfig.isReady) return;
             try {
                 await FirebaseConfig.auth.signOut();

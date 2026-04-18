@@ -16,9 +16,41 @@ window.AdminPanel = (() => {
     let _overlay = null;
     let _users = [];
 
-    // ── API Helpers ──────────────────────────────────────────────────
+    // ── Backend routing (Phase 3) ────────────────────────────────────
+    //
+    // When SYNC_BACKEND=supabase, /api/admin-supabase.js is used; it verifies
+    // the Supabase access token, checks app_metadata.is_admin for the caller,
+    // and mutates target users via the SERVICE_ROLE_KEY (server-side only).
+    // When SYNC_BACKEND=firebase (the default), the legacy /api/admin flow
+    // stays in place. The two endpoints share an `action` query parameter
+    // and JSON body shape, so only the base URL and the token source differ.
+
+    function _isSupabase() {
+        try { return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) === 'supabase'; }
+        catch { return false; }
+    }
 
     async function _apiFetch(action, options = {}) {
+        if (_isSupabase()) {
+            if (typeof SupabaseAuth === 'undefined' || !SupabaseAuth.isSignedIn) {
+                throw new Error('Not signed in');
+            }
+            const token = await SupabaseAuth.getAccessToken();
+            if (!token) throw new Error('No auth token');
+            const url = `/api/admin-supabase?action=${action}`;
+            const resp = await fetch(url, {
+                ...options,
+                headers: {
+                    ...(options.headers || {}),
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.error || `API error ${resp.status}`);
+            return data;
+        }
+
         if (!Auth.isSignedIn) throw new Error('Not signed in');
         const token = await Auth.getIdToken();
         if (!token) throw new Error('No auth token');
@@ -66,7 +98,10 @@ window.AdminPanel = (() => {
     }
 
     function _renderUserCard(user) {
-        const isYou = Auth.uid === user.uid;
+        const selfUid = _isSupabase()
+            ? (typeof SupabaseAuth !== 'undefined' ? SupabaseAuth.uid : null)
+            : Auth.uid;
+        const isYou = selfUid === user.uid;
         const initial = (user.displayName || user.email || '?')[0].toUpperCase();
         const name = user.displayName || user.email?.split('@')[0] || 'Unknown';
 
@@ -209,7 +244,10 @@ window.AdminPanel = (() => {
     // ── Public API ───────────────────────────────────────────────────
 
     async function open() {
-        if (!Auth.isAdmin) {
+        const isAdmin = _isSupabase()
+            ? (typeof SupabaseAuth !== 'undefined' && SupabaseAuth.isAdmin)
+            : Auth.isAdmin;
+        if (!isAdmin) {
             console.warn('[AdminPanel] Not an admin');
             return;
         }

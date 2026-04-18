@@ -428,11 +428,15 @@ describe('Gemini API Key Discovery (correctness)', () => {
     expect(source).toContain('geminiKey');
   });
 
-  test('serverless function count stays within Vercel Hobby limit (max 13)', () => {
+  test('serverless function count stays within Vercel Pro budget', () => {
+    // Project moved to Vercel Pro in April 2026 (ceiling ~1000). The previous
+    // Hobby limit of 12–13 no longer applies. Keep an assertion here as a
+    // tripwire for accidental function explosions; 50 is generous headroom
+    // over the current 14-function footprint.
     const apiDir = path.join(ROOT, 'api');
     const jsFiles = fs.readdirSync(apiDir)
       .filter(f => f.endsWith('.js') && !f.startsWith('_'));
-    expect(jsFiles.length).toBeLessThanOrEqual(13);
+    expect(jsFiles.length).toBeLessThanOrEqual(50);
   });
 });
 

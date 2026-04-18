@@ -132,10 +132,17 @@ The Phase 0 plan punted shared-agency data to "v2". Phase 2 now ships the schema
 
 ### Phase 3 — Supabase Auth (2 days)
 
-- [ ] Build Supabase Auth signup/login/reset modal (parallel to existing Firebase one, not replacing yet).
-- [ ] Enable MFA (TOTP) as REQUIRED for users with cloud sync enabled. Soft-enforce on first login after Phase 3 ships.
-- [ ] Admin panel adaptation: read `is_admin`/`is_blocked` from Supabase user metadata instead of Firebase custom claims.
-- [ ] **Gate**: same `SYNC_BACKEND` flag controls which auth modal appears.
+**Status:** Shipped April 18, 2026. Code-complete behind the `SYNC_BACKEND=supabase` flag. No production user is on the Supabase auth path yet — Phase 4's migration flow is what flips the flag. DPAs are still outstanding (deferred for the weekend; tracked in the Phase 0 checklist).
+
+- [x] Build Supabase Auth signup/login/reset modal (parallel to existing Firebase one, not replacing yet). — `js/auth.js` delegates `login` / `signup` / `resetPassword` / `logout` through `SupabaseAuth` when the flag is on; the existing `#authModal` UI is reused with friendlier Supabase error messages.
+- [x] Enable MFA (TOTP) as REQUIRED for users with cloud sync enabled. Soft-enforce on first login after Phase 3 ships. — `js/supabase-auth.js` exposes `enrollTOTP` / `verifyTOTP` / `mfaRequired` / `mfaEnforcementLevel`; `js/auth-mfa-ui.js` drives the new `#mfaEnrollOverlay` modal (QR + 6-digit verify) with a "Set up later" dismiss in soft mode. Hard-enforce flips on after 3 dismissals OR 14 days since first prompt, tracked in `user_metadata.mfa_dismiss_count` / `mfa_first_prompt_at`. `CLOUD_SYNC_DISABLED=true` users are exempt (local-only).
+- [x] MFA gate on sync writes: `js/sync-facade.js` blocks `schedulePush` / `pushToCloud` / `fullSync` / `pushBlob` / `pushQuote` / `deleteBlob` / `deleteQuote` with `{ ok: false, skipped: 'mfa-required' }` until a TOTP factor is verified. Reads (`pullBlob`, `pullQuote`, `listQuotes`, `pullFromCloud`) are NOT gated so Phase 4 migration can still run.
+- [x] `window.AuthFacade` — companion to `window.Sync` on `js/sync-facade.js`. Routes `signIn` / `signUp` / `sendPasswordReset` / `logout` / `apiFetch` / `onAuthStateChange` / `uid` / `email` / `isSignedIn` / `isAdmin` / `isBlocked` based on `SYNC_BACKEND`, so new call sites can be provider-agnostic without re-resolving the flag.
+- [x] Admin panel adaptation: read `is_admin`/`is_blocked` from Supabase `app_metadata` (service-role-managed, not client-writable) instead of Firebase custom claims. — `js/admin-panel.js` routes `/api/admin-supabase?action=…` when `SYNC_BACKEND=supabase`; legacy `/api/admin` path untouched for Firebase mode.
+- [x] `api/admin-supabase.js` — service-role backed endpoint (mirrors `api/admin.js`): verifies caller JWT via the anon-keyed client, reads `app_metadata.is_admin` for authorization, then uses the service role key **server-side only** to `auth.admin.listUsers` / `auth.admin.updateUserById`. Whitelisted patch surface (`is_admin`, `is_blocked` only); blocks self-block/self-demote. `SUPABASE_SERVICE_ROLE_KEY` is never exposed to the browser.
+- [x] Tests: `tests/supabase-auth.test.js` (18 tests — signUp/signIn/logout round-trips, session persistence via listener fires, `apiFetch` bearer injection, `mfaRequired` gate across the soft→hard timeline, opt-out exemption, `isAdmin` / `isBlocked` from `app_metadata`, cross-user `pullBlob` still returns null post-login) and `tests/mfa-enforcement.test.js` (9 tests — facade-level MFA gate across every write method, reads remain ungated, verified-factor path flows through, opt-out exemption, Firebase-backend gate is inert).
+- [x] **Gate**: same `SYNC_BACKEND` flag controls which auth modal appears. Firebase remains the default for every user until Phase 4 flips them over.
+- Tests: 31 suites / 1797 tests pass.
 
 ### Phase 4 — Migration flow (3–5 days)
 
