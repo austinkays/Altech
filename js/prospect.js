@@ -205,7 +205,7 @@ const ProspectInvestigator = (() => {
                     <div style="font-size:36px;margin-bottom:12px;">\uD83D\uDD10</div>
                     <div style="font-weight:700;font-size:16px;margin-bottom:6px;">Secretary of State data is missing</div>
                     <p style="font-size:13px;color:var(--text-secondary);margin:0;max-width:440px;margin-left:auto;margin-right:auto;">
-                        The SOS website blocked our lookup. Grab the data for a more complete AI analysis, or skip to run with what we have.
+                        The SOS website blocked our lookup. Grab the data for a more complete analysis, or skip to run with what we have.
                     </p>
                 </div>
 
@@ -921,7 +921,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                 clearInterval(statusInterval);
                 aiEl.innerHTML = `
                     <div style="padding: 16px; background: rgba(255,149,0,0.06); border-left: 4px solid #FF9500; border-radius: 4px;">
-                        <p style="margin: 0; color: var(--text-secondary);">\u26A0\uFE0F AI analysis unavailable: ${_esc(data.error || 'Sign in to enable AI analysis')}</p>
+                        <p style="margin: 0; color: var(--text-secondary);">\u26A0\uFE0F Analysis unavailable: ${_esc(data.error || 'Sign in to enable analysis')}</p>
                     </div>`;
                 return;
             }
@@ -935,32 +935,17 @@ ${ai.underwritingNotes || 'N/A'}`;
             console.error('[Prospect] AI analysis error:', error);
             aiEl.innerHTML = `
                 <div style="padding: 16px; background: rgba(255,149,0,0.06); border-left: 4px solid #FF9500; border-radius: 4px;">
-                    <p style="margin: 0; color: var(--text-secondary);">\u26A0\uFE0F AI analysis unavailable \u2014 check your connection and try again</p>
+                    <p style="margin: 0; color: var(--text-secondary);">\u26A0\uFE0F Analysis unavailable \u2014 check your connection and try again</p>
                 </div>`;
         }
-    }
-
-    /** Return a human-friendly label for the user's active AI provider + model */
-    function _aiLabel() {
-        const s = window.AIProvider?.getSettings();
-        const p = s?.provider || 'google';
-        const m = s?.model || '';
-        if (p === 'anthropic' || m.startsWith('anthropic/')) return 'Claude';
-        if (p === 'openai'    || m.startsWith('openai/'))    return 'ChatGPT';
-        if (p === 'google'    || m.startsWith('google/'))    return 'Gemini AI';
-        // OpenRouter with non-standard model prefix
-        const name = window.AIProvider?.PROVIDERS?.[p]?.name;
-        if (name) return name;
-        return 'AI';
     }
 
     function _renderAIAnalysis(a, grounded) {
         const el = document.getElementById('aiAnalysisContent');
         if (!el) return;
 
-        // Update the subtitle to reflect the active provider
         const sub = document.getElementById('aiAnalysisSub');
-        if (sub) sub.textContent = `${_aiLabel()}-powered risk intelligence with web research`;
+        if (sub) sub.textContent = 'Risk intelligence with web research';
 
         function _formatAIText(text) {
             if (!text) return '';
@@ -1049,7 +1034,7 @@ ${ai.underwritingNotes || 'N/A'}`;
             </details>` : ''}
 
             <div style="text-align:right;font-size:11px;color:var(--text-secondary);opacity:0.6;margin-top:8px;">
-                Powered by ${_aiLabel()}${grounded ? ' + Google Search' : ''} \u00B7 ${new Date().toLocaleTimeString()}
+                ${grounded ? 'Grounded with web search \u00B7 ' : ''}${new Date().toLocaleTimeString()}
             </div>
         `;
     }
@@ -1212,7 +1197,7 @@ ${ai.underwritingNotes || 'N/A'}`;
         '<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:rgba(0,122,255,0.08);color:var(--apple-blue);font-weight:600;">' +
             okCount + '/' + sources.length + ' sources</span>' +
         '<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:rgba(168,85,247,0.1);color:#A855F7;font-weight:600;">' +
-            '\uD83E\uDDE0 ' + _aiLabel() + '</span>';
+            '\uD83D\uDCCA Analysis</span>';
     }
 
     // ── Format Helpers ──────────────────────────────────────────
@@ -2243,12 +2228,12 @@ ${ai.underwritingNotes || 'N/A'}`;
             <div style="background:var(--bg-card);border-radius:16px;padding:24px;max-width:540px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
                 <h3 style="margin:0 0 8px;font-size:18px;">Paste SOS Data</h3>
                 <p style="margin:0 0 16px;font-size:13px;color:var(--text-secondary);">
-                    Go to the SOS website, select all (Ctrl+A), copy (Ctrl+C), then paste below.${runAIAfter ? ' AI analysis will run after applying.' : ''}
+                    Go to the SOS website, select all (Ctrl+A), copy (Ctrl+C), then paste below.${runAIAfter ? ' Analysis will run after applying.' : ''}
                 </p>
                 <textarea id="sosPasteInput" style="width:100%;height:200px;padding:12px;font-size:12px;font-family:monospace;border-radius:10px;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text);resize:vertical;" placeholder="Paste the full page text from the Secretary of State website here..."></textarea>
                 <div style="display:flex;gap:10px;margin-top:16px;">
                     <button id="sosPasteApply" style="flex:1;padding:12px;background:var(--apple-blue);color:#fff;border:none;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;">
-                        Apply SOS Data${runAIAfter ? ' & Run AI' : ''}
+                        Apply SOS Data${runAIAfter ? ' & Analyze' : ''}
                     </button>
                     <button onclick="this.closest('div[style*=fixed]').remove()${runAIAfter ? ';ProspectInvestigator._skipSOSAndRunAI()' : ''}" style="padding:12px 20px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:10px;font-weight:500;font-size:14px;cursor:pointer;">
                         ${runAIAfter ? 'Skip \u2014 Run AI Without SOS' : 'Cancel'}

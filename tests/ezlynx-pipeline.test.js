@@ -223,14 +223,14 @@ describe('EZLynx Pipeline — §1 getFormData() key mapping via loadDemo', () =>
         EZLynxTool.loadDemo();
         const r = EZLynxTool.getFormData();
 
-        expect(r.FirstName).toBe('Sarah');
-        expect(r.LastName).toBe('Mitchell');
+        expect(r.FirstName).toBe('Sample');
+        expect(r.LastName).toBe('Client');
         expect(r.DOB).toBe('07/22/1985');
         expect(r.Gender).toBe('Female');
         expect(r.MaritalStatus).toBe('Married');
-        expect(r.Email).toBe('sarah.mitchell@example.com');
-        expect(r.Phone).toBe('3605551234');
-        expect(r.Address).toBe('123 Main St');
+        expect(r.Email).toBe('demo@example.com');
+        expect(r.Phone).toBe('5555551234');
+        expect(r.Address).toBe('123 Sample St');
         expect(r.City).toBe('Vancouver');
         expect(r.State).toBe('WA');
         expect(r.Zip).toBe('98686');
@@ -239,7 +239,7 @@ describe('EZLynx Pipeline — §1 getFormData() key mapping via loadDemo', () =>
         expect(r.Education).toBe('Bachelors');
         expect(r.Industry).toBe('Insurance');
         expect(r.Occupation).toBe('Agent/Broker');
-        expect(r.LicenseNumber).toBe('MITSM456XY');
+        expect(r.LicenseNumber).toBe('SMPL456XY');
     });
 
     test('auto policy fields from demo', () => {

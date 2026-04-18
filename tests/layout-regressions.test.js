@@ -24,11 +24,6 @@ describe('Layout Regression Guardrails', () => {
     expect(layoutCss).not.toContain('#quotingTool.active { animation: pluginFadeInNoTransform 0.4s var(--transition-smooth) both; min-height: 100vh; }');
   });
 
-  test('policy Q&A chat uses responsive height clamp + inner scroll shrink guard', () => {
-    expect(componentsCss).toContain('height: clamp(320px, 56dvh, 520px);');
-    expect(componentsCss).toContain('.qna-messages { flex: 1; min-height: 0; overflow-y: auto;');
-  });
-
   test('app-main has min-width guard and explicit background', () => {
     expect(sidebarCss).toContain('.app-main {');
     expect(sidebarCss).toContain('min-width: 0;');

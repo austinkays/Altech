@@ -32,40 +32,33 @@ const App = {
 
     // Config-driven tool registry — single source of truth for landing page,
     // navigation, breadcrumbs, and init logic. Add/remove/reorder tools here.
+    // Categories: 'intake' | 'export' | 'compliance' | 'workflow' | 'beta'
+    // Flag `beta: true` surfaces a "BETA" pill in the sidebar.
     toolConfig: [
-        // ── Quoting ──
-        { key: 'quoting',      icon: '✏️', color: 'icon-blue',    title: 'Personal Lines',  name: 'Personal Intake',       containerId: 'quotingTool',      htmlFile: 'plugins/quoting.html', category: 'quoting' },
-        { key: 'commercial',   icon: '🏢', color: 'icon-amber',   title: 'Commercial Lines', name: 'Commercial Intake',     containerId: 'commercialQuoterTool', initModule: 'CommercialQuoter', htmlFile: 'plugins/commercial-quoter.html', category: 'quoting' },
-        { key: 'quotecompare', icon: '⚖️', color: 'icon-emerald', title: 'Quote Compare',   name: 'Quote Compare',          containerId: 'quoteCompareTool', initModule: 'QuoteCompare',      htmlFile: 'plugins/quotecompare.html', category: 'quoting' },
-        { key: 'qna',          icon: '💬', color: 'icon-rose',    title: 'Policy Q&A',      name: 'Policy Q&A',            containerId: 'qnaTool',          initModule: 'PolicyQA',          htmlFile: 'plugins/qna.html',         category: 'quoting', hidden: true },
+        // ── Intake & Quoting ──
+        { key: 'quoting',      icon: '✏️', color: 'icon-blue',    title: 'Personal Intake',   name: 'Personal Intake',    containerId: 'quotingTool',           htmlFile: 'plugins/quoting.html',           category: 'intake' },
+        { key: 'commercial',   icon: '🏢', color: 'icon-amber',   title: 'Commercial Intake', name: 'Commercial Intake',  containerId: 'commercialQuoterTool',  initModule: 'CommercialQuoter',     htmlFile: 'plugins/commercial-quoter.html', category: 'intake' },
+        { key: 'quotecompare', icon: '⚖️', color: 'icon-emerald', title: 'Quote Compare',     name: 'Quote Compare',      containerId: 'quoteCompareTool',      initModule: 'QuoteCompare',         htmlFile: 'plugins/quotecompare.html',      category: 'intake' },
         // ── Export ──
-        { key: 'ezlynx',       icon: '⚡', color: 'icon-indigo',  title: 'EZLynx Export',   name: 'EZLynx Export',          containerId: 'ezlynxTool',       initModule: 'EZLynxTool',        htmlFile: 'plugins/ezlynx.html',     category: 'export' },
-        { key: 'hawksoft',     icon: '📤', color: 'icon-blue',    title: 'HawkSoft Export', name: 'HawkSoft Export',        containerId: 'hawksoftTool',     initModule: 'HawkSoftExport',    htmlFile: 'plugins/hawksoft.html',    category: 'export' },
-        { key: 'decimport',    icon: '📥', color: 'icon-blue',    title: 'PDF to HawkSoft', name: 'PDF to HawkSoft',        containerId: 'decImportTool',    initModule: 'DecImport',          htmlFile: 'plugins/dec-import.html',   category: 'export' },
-        { key: 'tasksheet',    icon: '✅', color: 'icon-green',   title: 'Task Sheet',      name: 'Task Sheet',             containerId: 'taskSheetTool',    initModule: 'TaskSheetModule',   htmlFile: 'plugins/task-sheet.html',  category: 'export' },
+        { key: 'ezlynx',       icon: '⚡', color: 'icon-indigo',  title: 'EZLynx Export',     name: 'EZLynx Export',      containerId: 'ezlynxTool',            initModule: 'EZLynxTool',           htmlFile: 'plugins/ezlynx.html',            category: 'export' },
+        { key: 'hawksoft',     icon: '📤', color: 'icon-blue',    title: 'HawkSoft Export',   name: 'HawkSoft Export',    containerId: 'hawksoftTool',          initModule: 'HawkSoftExport',       htmlFile: 'plugins/hawksoft.html',          category: 'export' },
+        { key: 'decimport',    icon: '📥', color: 'icon-blue',    title: 'PDF to HawkSoft',   name: 'PDF to HawkSoft',    containerId: 'decImportTool',         initModule: 'DecImport',            htmlFile: 'plugins/dec-import.html',        category: 'export' },
+        { key: 'tasksheet',    icon: '✅', color: 'icon-green',   title: 'Task Sheet',        name: 'Task Sheet',         containerId: 'taskSheetTool',         initModule: 'TaskSheetModule',      htmlFile: 'plugins/task-sheet.html',        category: 'export' },
         // ── Compliance ──
-        { key: 'coi',          icon: '📋', color: 'icon-teal',    title: 'COI Generator',   name: 'COI Generator',          containerId: 'coiTool',          initModule: 'COI',               htmlFile: 'plugins/coi.html',         category: 'docs', hidden: true },
-        { key: 'compliance',   icon: '🛡️', color: 'icon-indigo',  title: 'CGL & Bonds',     name: 'CGL Compliance',         containerId: 'complianceTool',   initModule: 'ComplianceDashboard', badge: 'cglBadge', htmlFile: 'plugins/compliance.html', category: 'docs' },
-        { key: 'reminders',    icon: '⏰', color: 'icon-orange',  title: 'Reminders',       name: 'Task Reminders',         containerId: 'remindersTool',    initModule: 'Reminders',           badge: 'remindersBadge', htmlFile: 'plugins/reminders.html', category: 'docs' },
-        { key: 'calllogger',   icon: '📋', color: 'icon-blue',    title: 'HawkSoft Logger', name: 'HawkSoft Logger',        containerId: 'callLoggerTool',   initModule: 'CallLogger',        htmlFile: 'plugins/call-logger.html', category: 'docs' },
-        // ── Tools ──
-        { key: 'quickref',     icon: '📖', color: 'icon-teal',    title: 'Quick Reference', name: 'Quick Reference',        containerId: 'quickrefTool',     initModule: 'QuickRef',          htmlFile: 'plugins/quickref.html',    category: 'ops' },
-        { key: 'endorsement',  icon: '📝', color: 'icon-blue',    title: 'Endorsement Parser', name: 'Endorsement Parser',  containerId: 'endorsementTool',  initModule: 'EndorsementParser', htmlFile: 'plugins/endorsement.html', category: 'ops' },
-        { key: 'email',        icon: '✉️', color: 'icon-violet',  title: 'Email Composer',  name: 'Email Composer',         containerId: 'emailTool',        initModule: 'EmailComposer',     htmlFile: 'plugins/email.html',       category: 'ops' },
-        { key: 'prospect',     icon: '🔭', color: 'icon-amber',   title: 'Prospect Intel',  name: 'Prospect Investigator',  containerId: 'prospectTool',     initModule: 'ProspectInvestigator', htmlFile: 'plugins/prospect.html', category: 'ops' },
-        { key: 'accounting',   icon: '🧾', color: 'icon-amber',   title: 'Accounting',      name: 'Accounting',             containerId: 'accountingTool',   initModule: 'AccountingExport',  htmlFile: 'plugins/accounting.html',  category: 'ops' },
-        { key: 'vindecoder',   icon: '🚗', color: 'icon-emerald', title: 'VIN Decoder',     name: 'VIN Decoder',            containerId: 'vinDecoderTool',   initModule: 'VinDecoder',        htmlFile: 'plugins/vin-decoder.html', category: 'ops' },
-        { key: 'blindspot',    icon: '🔒', color: 'icon-red',     title: 'Blind Spot Brief', name: 'Blind Spot Brief',      containerId: 'blindSpotTool',    initModule: 'BlindSpotBrief',     htmlFile: 'plugins/blind-spot-brief.html', category: 'admin', hidden: true },
-        // ┌────────────────────────────────────────────────────────────┐
-        // │  ADD NEW TOOLS HERE                                        │
-        // │  Copy a line above and set: key, icon, color, title,    │
-        // │  name, containerId, initModule, category                │
-        // │  Categories: 'quoting' | 'docs' | 'ops' | 'tools'       │
-        // └────────────────────────────────────────────────────────────┘
-        // ── In Development (WIP — not yet production-ready) ──
-        { key: 'broadform',    icon: '🎯', color: 'icon-amber',   title: 'Carrier Match',   name: 'Carrier Recommendation Engine', containerId: 'broadformTool',    initModule: 'Broadform',         htmlFile: 'plugins/tools/broadform.html', category: 'tools' },
-        { key: 'intake',       icon: '✨', color: 'icon-violet',  title: 'Quote Bot',       name: 'Quote Bot',             containerId: 'intakeTool',       initModule: 'IntakeAssist',      htmlFile: 'plugins/intake-assist.html', category: 'tools' },
-        { key: 'returnedmail', icon: '↩️', color: 'icon-red',    title: 'Returned Mail',   name: 'Returned Mail Tracker',  containerId: 'returnedMailTool', initModule: 'ReturnedMailTracker', htmlFile: 'plugins/returned-mail.html', category: 'tools' },
+        { key: 'compliance',   icon: '🛡️', color: 'icon-indigo',  title: 'CGL Compliance',    name: 'CGL Compliance',     containerId: 'complianceTool',        initModule: 'ComplianceDashboard',  badge: 'cglBadge',       htmlFile: 'plugins/compliance.html',  category: 'compliance' },
+        { key: 'reminders',    icon: '⏰', color: 'icon-orange',  title: 'Reminders',         name: 'Reminders',          containerId: 'remindersTool',         initModule: 'Reminders',            badge: 'remindersBadge', htmlFile: 'plugins/reminders.html',   category: 'compliance' },
+        { key: 'calllogger',   icon: '📞', color: 'icon-blue',    title: 'HawkSoft Logger',   name: 'HawkSoft Logger',    containerId: 'callLoggerTool',        initModule: 'CallLogger',           htmlFile: 'plugins/call-logger.html',       category: 'compliance' },
+        { key: 'returnedmail', icon: '↩️', color: 'icon-red',     title: 'Returned Mail',     name: 'Returned Mail',      containerId: 'returnedMailTool',      initModule: 'ReturnedMailTracker',  htmlFile: 'plugins/returned-mail.html',     category: 'compliance' },
+        // ── Workflow Tools ──
+        { key: 'quickref',     icon: '📖', color: 'icon-teal',    title: 'Quick Reference',   name: 'Quick Reference',    containerId: 'quickrefTool',          initModule: 'QuickRef',             htmlFile: 'plugins/quickref.html',          category: 'workflow' },
+        { key: 'endorsement',  icon: '📝', color: 'icon-blue',    title: 'Endorsement Parser',name: 'Endorsement Parser', containerId: 'endorsementTool',       initModule: 'EndorsementParser',    htmlFile: 'plugins/endorsement.html',       category: 'workflow' },
+        { key: 'email',        icon: '✉️', color: 'icon-violet',  title: 'Email Composer',    name: 'Email Composer',     containerId: 'emailTool',             initModule: 'EmailComposer',        htmlFile: 'plugins/email.html',             category: 'workflow' },
+        { key: 'prospect',     icon: '🔭', color: 'icon-amber',   title: 'Prospect Intel',    name: 'Prospect Intel',     containerId: 'prospectTool',          initModule: 'ProspectInvestigator', htmlFile: 'plugins/prospect.html',          category: 'workflow' },
+        { key: 'accounting',   icon: '🧾', color: 'icon-amber',   title: 'Accounting',        name: 'Accounting',         containerId: 'accountingTool',        initModule: 'AccountingExport',     htmlFile: 'plugins/accounting.html',        category: 'workflow' },
+        { key: 'vindecoder',   icon: '🚗', color: 'icon-emerald', title: 'VIN Decoder',       name: 'VIN Decoder',        containerId: 'vinDecoderTool',        initModule: 'VinDecoder',           htmlFile: 'plugins/vin-decoder.html',       category: 'workflow' },
+        // ── In Development (Beta) ──
+        { key: 'broadform',    icon: '🎯', color: 'icon-amber',   title: 'Carrier Match',     name: 'Carrier Match',      containerId: 'broadformTool',         initModule: 'Broadform',            htmlFile: 'plugins/tools/broadform.html',   category: 'beta', beta: true },
+        { key: 'intake',       icon: '✨', color: 'icon-violet',  title: 'Quote Bot',         name: 'Quote Bot',          containerId: 'intakeTool',            initModule: 'IntakeAssist',         htmlFile: 'plugins/intake-assist.html',     category: 'beta', beta: true },
     ],
 
     stepTitles: {
@@ -95,5 +88,10 @@ window.App = App;
         // eslint-disable-next-line no-console
         console.info = () => {};
         // console.warn and console.error are intentionally preserved
+    }
+    if (debugOverride && typeof document !== 'undefined') {
+        const apply = () => document.body && document.body.classList.add('debug-mode');
+        if (document.body) apply();
+        else document.addEventListener('DOMContentLoaded', apply, { once: true });
     }
 })();

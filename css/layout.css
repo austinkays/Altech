@@ -779,31 +779,6 @@ body.dark-mode #breadcrumbBar {
     }
 }
 
-/* ─── Desktop: Policy Q&A wider chat area ─── */
-@media (min-width: 960px) {
-    .qna-container {
-        max-width: 1400px;
-        padding: 24px 32px 100px;
-    }
-    .qna-desktop-layout {
-        display: grid;
-        grid-template-columns: 380px 1fr;
-        gap: 24px;
-        align-items: start;
-    }
-    .qna-col-right {
-        position: sticky;
-        top: 24px;
-    }
-    .qna-chat-card {
-        display: flex;
-        flex-direction: column;
-    }
-    .qna-chat {
-        min-height: 500px;
-    }
-}
-
 /* ─── Desktop: Generic plugin main content constraint ─── */
 @media (min-width: 960px) {
     .plugin-container > main:not(.ia-main) {

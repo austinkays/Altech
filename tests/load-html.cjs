@@ -28,10 +28,8 @@ function loadHTML(indexPath) {
             // Map container IDs to plugin HTML file names
             const pluginMap = {
                 quotingTool: 'quoting',
-                coiTool: 'coi',
                 prospectTool: 'prospect',
                 complianceTool: 'compliance',
-                qnaTool: 'qna',
                 emailTool: 'email',
                 quickrefTool: 'quickref',
                 accountingTool: 'accounting',

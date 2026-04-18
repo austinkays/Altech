@@ -22,12 +22,12 @@ Object.assign(App, {
         }
 
         const demo = {
-            firstName: 'Jordan',
-            lastName: 'Reed',
+            firstName: 'Sample',
+            lastName: 'Client',
             dob: '1988-05-12',
-            phone: '(360) 555-0199',
-            email: 'jordan.reed@example.com',
-            addrStreet: '412 Evergreen Terrace',
+            phone: '(555) 555-0199',
+            email: 'demo@example.com',
+            addrStreet: '123 Sample St',
             addrCity: 'Vancouver',
             addrState: 'WA',
             addrZip: '98686',
@@ -137,7 +137,7 @@ Object.assign(App, {
 
         const status = document.getElementById('gisUploadStatus');
         const resultsDiv = document.getElementById('gisUploadResults');
-        if (status) { status.classList.remove('hidden'); status.textContent = '⏳ Analyzing GIS document with AI...'; }
+        if (status) { status.classList.remove('hidden'); status.textContent = '⏳ Analyzing GIS document…'; }
         if (resultsDiv) resultsDiv.innerHTML = '';
 
         try {
@@ -723,7 +723,7 @@ This is trusted, complete agency data — extract every field you can find.
             if (!raw) {
                 const apiKey = await this._getGeminiKey();
                 if (!apiKey) {
-                    if (status) status.textContent = '⚠️ No API key configured. Open account settings to add an AI key.';
+                    if (status) status.textContent = '⚠️ Open Settings to configure Smart features.';
                     return;
                 }
                 const schema = this._getScanSchema();
@@ -756,7 +756,7 @@ This is trusted, complete agency data — extract every field you can find.
             console.log('[ProcessScanFromText] Extraction successful');
         } catch (err) {
             console.error('[ProcessScanFromText] Error:', err);
-            if (status) status.textContent = '⚠️ AI extraction failed: ' + err.message;
+            if (status) status.textContent = '⚠️ Extraction failed: ' + err.message;
         }
     },
 

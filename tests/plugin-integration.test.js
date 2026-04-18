@@ -167,9 +167,7 @@ describe('Plugin Registry & Tool Config', () => {
   // Expected tool keys that MUST exist
   const expectedTools = [
     { key: 'quoting', containerId: 'quotingTool' },
-    { key: 'qna', containerId: 'qnaTool', initModule: 'PolicyQA' },
     { key: 'quotecompare', containerId: 'quoteCompareTool', initModule: 'QuoteCompare' },
-    { key: 'coi', containerId: 'coiTool', initModule: 'COI' },
     { key: 'compliance', containerId: 'complianceTool', initModule: 'ComplianceDashboard' },
     { key: 'prospect', containerId: 'prospectTool', initModule: 'ProspectInvestigator' },
     { key: 'email', containerId: 'emailTool', initModule: 'EmailComposer' },
@@ -236,8 +234,6 @@ describe('Window Module Exports (window.X = X pattern)', () => {
   });
 
   const requiredModules = [
-    'COI',
-    'PolicyQA',
     'QuoteCompare',
     'ComplianceDashboard',
     'ProspectInvestigator',
@@ -270,7 +266,6 @@ describe('Plugin init() calls do not throw', () => {
 
   // These plugins should init safely even without network
   const safeInitPlugins = [
-    'COI',
     'EmailComposer',
     'QuickRef',
     'AccountingExport',
@@ -307,15 +302,15 @@ describe('navigateTo() Router', () => {
     const landing = window.document.getElementById('landingPage');
     if (landing) {
       landing.style.display = 'block';
-      await App.navigateTo('coi');
+      await App.navigateTo('quickref');
       expect(landing.style.display).toBe('none');
     }
   }, 30000);
 
   test('navigateTo shows target container', async () => {
-    const tool = window.document.getElementById('coiTool');
+    const tool = window.document.getElementById('quickrefTool');
     if (tool) {
-      await App.navigateTo('coi');
+      await App.navigateTo('quickref');
       expect(tool.style.display).toBe('block');
     }
   }, 30000);
@@ -370,10 +365,8 @@ describe('API Endpoint Files Exist', () => {
 
 describe('JS Module Files', () => {
   const requiredModules = [
-    { file: 'coi.js', windowExport: 'COI' },
     { file: 'prospect.js', windowExport: 'ProspectInvestigator' },
     { file: 'compliance-dashboard.js', windowExport: 'ComplianceDashboard' },
-    { file: 'policy-qa.js', windowExport: 'PolicyQA' },
     { file: 'email-composer.js', windowExport: 'EmailComposer' },
     { file: 'quick-ref.js', windowExport: 'QuickRef' },
     { file: 'accounting-export.js', windowExport: 'AccountingExport' },
@@ -413,18 +406,6 @@ describe('Gemini API Key Discovery (correctness)', () => {
     expect(getKeyBlock).not.toBeNull();
     expect(getKeyBlock[0]).toContain('/api/config?type=keys');
     expect(getKeyBlock[0]).toContain('geminiKey');
-  });
-
-  test('PolicyQA resolveGeminiKey fetches /api/config?type=keys first', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'js/policy-qa.js'), 'utf8');
-    const configKeysIndex = source.indexOf('/api/config?type=keys');
-    const configJsonIndex = source.indexOf('api/config.json');
-    expect(configKeysIndex).toBeGreaterThan(-1);
-    expect(source).toContain('geminiKey');
-    // config?type=keys should come BEFORE config.json fallback
-    if (configJsonIndex > -1) {
-      expect(configKeysIndex).toBeLessThan(configJsonIndex);
-    }
   });
 
   test('EmailComposer resolveGeminiKey fetches /api/config?type=keys', () => {
@@ -524,7 +505,6 @@ describe('Graceful Degradation for /local/ endpoints', () => {
     { file: 'compliance-dashboard.js', endpoints: ['/local/cgl-state', '/local/cgl-cache'] },
     { file: 'email-composer.js', endpoints: ['/local/email-drafts'] },
     { file: 'quick-ref.js', endpoints: ['/local/quickref-cards'] },
-    { file: 'policy-qa.js', endpoints: ['/local/scan-history'] },
   ];
 
   test.each(modulesWithLocalEndpoints)('js/$file wraps /local/ calls in try-catch', ({ file, endpoints }) => {
@@ -615,7 +595,7 @@ describe('Script Load Order', () => {
 
   test('all JS module scripts are loaded after main script block', () => {
     const appEndPos = source.indexOf('js/app-init.js');
-    const modules = ['coi.js', 'prospect.js', 'compliance-dashboard.js', 'policy-qa.js',
+    const modules = ['prospect.js', 'compliance-dashboard.js',
                      'email-composer.js', 'quick-ref.js', 'accounting-export.js',
                      'ezlynx-tool.js', 'quote-compare.js', 'data-backup.js'];
 
@@ -628,7 +608,7 @@ describe('Script Load Order', () => {
   });
 
   test('data-backup.js is loaded last (needs all other modules)', () => {
-    const modules = ['coi.js', 'prospect.js', 'compliance-dashboard.js', 'policy-qa.js',
+    const modules = ['prospect.js', 'compliance-dashboard.js',
                      'email-composer.js', 'quick-ref.js', 'accounting-export.js',
                      'ezlynx-tool.js', 'quote-compare.js'];
     const backupPos = source.indexOf('src="js/data-backup.js"');

@@ -97,10 +97,10 @@ window.Paywall = (() => {
                 <div class="paywall-icon">🔒</div>
                 <h2 class="paywall-title">${tier.label} is a Pro Feature</h2>
                 <p class="paywall-subtitle">
-                    Upgrade to Altech Pro to unlock AI-powered scanning, multi-format exports, cloud sync, and more.
+                    Upgrade to Altech Pro to unlock smart scanning, multi-format exports, cloud sync, and more.
                 </p>
                 <ul class="paywall-features">
-                    <li><span class="check">✓</span> AI policy scanning & data extraction</li>
+                    <li><span class="check">✓</span> Smart policy scanning & data extraction</li>
                     <li><span class="check">✓</span> HawkSoft, EZLynx & PDF exports</li>
                     <li><span class="check">✓</span> Cloud sync across all devices</li>
                     <li><span class="check">✓</span> Prospect intelligence & GIS research</li>

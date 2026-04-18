@@ -1588,7 +1588,7 @@ Focus on:
             console.error('[CoverageGap]', err);
             this.toast(`❌ ${err.message || 'Coverage analysis failed'}`, 'error');
         } finally {
-            if (btn) { btn.disabled = false; btn.textContent = '🧠 Analyze Coverage Gaps'; }
+            if (btn) { btn.disabled = false; btn.textContent = 'Analyze Coverage Gaps'; }
         }
     },
 

@@ -233,7 +233,7 @@ Object.assign(App, {
 
             this.toast(`✅ Found ${count} property details from ${label}!`, 'success');
             if (statusEl) {
-                statusEl.textContent = `✓ ${count} fields from ${result.source || 'AI Search'}`;
+                statusEl.textContent = `✓ ${count} fields from ${result.source || 'Web Search'}`;
                 setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
             }
 
@@ -619,7 +619,7 @@ Object.assign(App, {
 
             // If no property details (only fire data), try direct Gemini property search
             if (!arcgisData && !zillowData) {
-                btn.innerHTML = '🔄 Searching property records via AI...';
+                btn.innerHTML = '🔄 Searching property records…';
                 try {
                     const geminiProperty = await this.fetchPropertyViaGemini(address, city, state, zip);
                     if (geminiProperty) {
@@ -1117,7 +1117,7 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
                 if (part === 'Rentcast') sources.push('Rentcast');
                 else if (part.includes('Redfin')) sources.push('Redfin Scrape');
                 else if (part.includes('Zillow')) sources.push('Zillow Scrape');
-                else if (part.includes('Gemini') || part === 'AI Search') sources.push('AI Search');
+                else if (part.includes('Gemini') || part === 'AI Search' || part === 'Web Search') sources.push('Web Search');
                 else sources.push(part);
             }
             // Deduplicate
@@ -1202,7 +1202,7 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         const badgeColors = {
             'County Records': '#0066cc',
             'Rentcast': '#0d7a4e',
-            'AI Search': '#6f42c1',
+            'Web Search': '#6f42c1',
             'Fire Protection': '#dc3545',
             'FEMA Flood': '#1a6496',
             'Redfin Scrape': '#c73333',
@@ -1211,7 +1211,7 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         const badgeIcons = {
             'County Records': '🏛',
             'Rentcast': '📊',
-            'AI Search': '🏠',
+            'Web Search': '🏠',
             'Fire Protection': '🚒',
             'FEMA Flood': '🌊',
             'Redfin Scrape': '🔍',
@@ -2558,7 +2558,7 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
             proceedBtn.onclick = () => { overlay.remove(); resolve('proceed'); };
 
             const skipBtn = document.createElement('button');
-            skipBtn.textContent = 'Use AI only';
+            skipBtn.textContent = 'Use Web Search only';
             skipBtn.style.cssText = [
                 'flex:1', 'padding:10px', 'background:var(--bg-input)', 'color:var(--text)',
                 'border:1px solid var(--border)', 'border-radius:8px', 'font-weight:600',

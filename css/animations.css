@@ -47,9 +47,6 @@
     50% { box-shadow: 0 4px 24px rgba(0,122,255,0.45), 0 0 56px rgba(0,122,255,0.18); }
 }
 
-/* Policy Q&A typing indicator */
-@keyframes qnaBounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-
 /* Landing page ambient orbs */
 @keyframes orbFloat1 {
     0%, 100% { transform: translate(0, 0) scale(1); }

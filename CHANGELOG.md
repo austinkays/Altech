@@ -9,7 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Changed
+- **chore(ux): pre-review cleanup pass** (April 18, 2026):
+  - **Removed three hidden plugins entirely** — Policy Q&A (`qna`), COI Generator (`coi`), Blind Spot Brief (`blindspot`). All source, HTML, plugin containers, service worker cache entries, `storage-keys.js` entries, `dashboard-widgets.js` icon mappings, admin-button code, `data-backup.js` keyboard shortcuts, dead CSS (`css/components.css`, `css/layout.css`, `css/animations.css`), and test coverage in `plugin-integration.test.js` / `app.test.js` / `layout-regressions.test.js` deleted.
+  - **De-AI'd user-facing copy** to functional, professional names. Code, file names (`ai-provider.js`, `_ai-router.js`), function names (`AIProvider`), element IDs, API env vars, and acronyms (NAIC, NAICS, AIC, etc.) untouched:
+    - Intake Assist: header "AI Intake" → "Quote Bot"; drop-overlay copy rewritten; 🤖 → ✨.
+    - Quoting: "AI Coverage Analysis" → "Coverage Gap Analysis"; "🧠 Analyze Coverage Gaps" → "Analyze Coverage Gaps"; "Search listing details via AI" tooltip → "Fetch listing details".
+    - Prospect Intel: "AI-Powered Commercial Intelligence" → "Commercial Intelligence"; "AI Underwriting Analysis" → "Underwriting Analysis"; dynamic `${_aiLabel()}-powered…` subtitle collapsed to "Risk intelligence with web research"; removed the `🧠 Gemini AI` provider chip in favor of a neutral `📊 Analysis` chip; "AI analysis unavailable" → "Analysis unavailable"; SOS paste modal copy.
+    - Commercial Quoter: "🧠 AI Recommended Coverages" → "Recommended Coverages".
+    - Email Composer: "Customize AI Persona" → "Customize Tone & Style"; placeholder rewritten; "AI prompt saved"/"AI generation failed" toasts.
+    - Call Logger: "Format with AI" → "Format Notes".
+    - Property lookup: "AI Search" data source → "Web Search"; "Use AI only" → "Use Web Search only"; "Searching property records via AI…" → "Searching property records…".
+    - Paywall, scan errors, endorsement-parser error messages, onboarding "Email Composer AI persona" hint, intake assistant welcome.
+  - **Settings "🤖 AI Model" → "✨ Smart Features"** with the provider/model picker, cost estimates, and model-info card moved behind an "Advanced" disclosure so the default view just shows an API-key row.
+  - **Removed hardcoded demo emails** (`sarah.mitchell@example.com`, `david.mitchell@example.com`, `jordan.reed@example.com`) from `js/app-core.js`, `js/app-scan.js`, `js/ezlynx-tool.js`. Sample data now reads "Sample Client" / "demo@example.com" so it's unmistakably fake.
+  - **🧪 Load demo data button** is now gated behind `localStorage.altech_debug = 'true'`. Added a `body.debug-mode` class toggle in `js/app-init.js`; `.debug-only` CSS utility + `#demoClientRow` override in `css/components.css`.
+  - **Navigation information-architecture refresh** in `js/app-init.js` + `js/dashboard-widgets.js`:
+    - Categories renamed for clarity: `quoting` → `intake`, `docs` → `compliance`, `ops` → `workflow`, `tools` → `beta`.
+    - Sidebar labels: "Intake & Quoting", "Export", "Compliance", "Workflow Tools", "In Development".
+    - `returnedmail` promoted from `tools` → `compliance` (it's usable, not WIP).
+    - Reconciled `title` vs `name` inconsistencies so each tool has one label: "Personal Intake", "Commercial Intake", "Prospect Intel", "CGL Compliance", "Reminders", "Carrier Match", "Returned Mail".
+    - HawkSoft Logger icon changed from `📋` (duplicate of the now-removed COI icon) to `📞`.
+  - **BETA pill** — new `beta: true` flag on `toolConfig` entries renders a sidebar pill (`.sidebar-beta-pill`) and dims the parent group. Currently applied to Quote Bot and Carrier Match. CSS in `css/sidebar.css`.
+  - **Admin sidebar button removed** — the lock-icon shortcut only routed to the now-deleted Blind Spot Brief tool. `_updateAdminButton()` deleted from `js/dashboard-widgets.js`.
+  - Tests: 28 suites / 1756 tests pass (was 1772 — drop reflects removed Q&A / COI / Blind-Spot test coverage).
+
 - **feat(security): Path B Phase 1c — vault UI flows (dormant behind flag)** (April 17, 2026):
   - Four end-to-end encryption modals, all opt-in behind `E2E_CRYPTO_V2`. Zero user-facing change until a user flips the flag.
   - **Onboarding** — two-step modal: (1) set passphrase + confirm, (2) auto-generated recovery key shown in monospace + Download .txt + Copy + "I saved this" checkbox. Saves wrapped MK + recovery wrap to `VaultMeta` persistence.

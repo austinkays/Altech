@@ -113,7 +113,7 @@ ABOUT YOUR STYLE:
                         return;
                     }
                     localStorage.setItem(STORAGE_KEYS.EMAIL_CUSTOM_PROMPT, val);
-                    App.toast('✅ AI prompt saved');
+                    App.toast('✅ Prompt saved');
                 },
 
                 _resetCustomPrompt() {
@@ -253,7 +253,7 @@ TASK: Rewrite the following rough draft into a polished, professional email. Kee
                     } catch (err) {
                         console.error('[EmailComposer] Error:', err);
                         if (outputText) { outputText.textContent = '❌ Failed to generate: ' + err.message; outputText.classList.remove('generating'); }
-                        App.toast('❌ AI generation failed');
+                        App.toast('❌ Generation failed');
                     } finally {
                         this._generating = false;
                         if (btn) { btn.disabled = false; btn.textContent = '✨ Polish Email'; }

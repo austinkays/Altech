@@ -243,7 +243,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             const aiAvailable = typeof AIProvider !== 'undefined' && (AIProvider.isConfigured() || await AIProvider.isAvailable());
             if (!aiAvailable) {
                 _hideTyping();
-                _appendMsg('ai', '⚠️ No AI provider configured. Open **Settings → AI Model** and add your API key to use this feature.');
+                _appendMsg('ai', '⚠️ Smart features are not configured. Open **Settings → Smart Features** and add your API key.');
                 _updateSuggestionChips();
                 return;
             }
@@ -285,7 +285,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             _updateSuggestionChips();
         } catch (err) {
             _hideTyping();
-            _appendMsg('ai', '⚠️ ' + (err.message || 'Could not reach AI. Please check your settings.'));
+            _appendMsg('ai', '⚠️ ' + (err.message || 'Could not reach service. Please check your settings.'));
             _updateSuggestionChips();
         }
     }
@@ -586,7 +586,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         msgs.innerHTML = '';
 
         if (chatHistory.length === 0) {
-            _appendMsg('ai', "Hi! 👋 I'm your AI intake assistant. Tell me about your client — start with their name and what type of insurance they need (home, auto, or both)!");
+            _appendMsg('ai', "Hi! 👋 I'm your intake assistant. Tell me about your client — start with their name and what type of insurance they need (home, auto, or both)!");
         } else {
             for (const m of chatHistory) {
                 // Skip system enrichment notes (VIN decode, etc.) — AI-only context
@@ -1818,7 +1818,7 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
             (ratePct != null ? '<div class="ia-appreciation-badge ' + rateClass + '">+' + ratePct + '% / yr ' + rateArrow + '</div>' : '') +
             (sparklineSvg ? '<div class="ia-sparkline-wrap">' + sparklineSvg + '</div>' : '') +
             (trendNote ? '<div class="ia-market-trend-note">' + trendNote + '</div>' : '') +
-            '<div class="ia-market-disclaimer">AI estimate — verify with appraisal</div>';
+            '<div class="ia-market-disclaimer">Estimated — verify with appraisal</div>';
     }
 
     function _buildSVGSparkline(values, width, height) {

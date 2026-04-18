@@ -232,7 +232,7 @@ describe('IntakeAssist Module', () => {
             const msgs = doc.getElementById('iaChatMessages');
             expect(msgs).toBeTruthy();
             if (msgs) {
-                expect(msgs.innerHTML).toContain('AI intake assistant');
+                expect(msgs.innerHTML).toContain('intake assistant');
             }
         });
 
