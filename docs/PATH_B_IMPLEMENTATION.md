@@ -15,9 +15,15 @@ Migrate the app from **Firebase Auth + Firestore (plaintext-at-rest NPI)** to **
 
 ---
 
-## Decisions needed from you before I start writing code
+## Decisions — locked as of April 17, 2026
 
-These are mostly one-way doors. Cheap to decide up front, expensive to change mid-migration.
+- **D1 — Supabase project**: **new dedicated Altech project** ✓
+- **D2 — Auth system**: **Supabase Auth** with a one-time Firebase → Supabase migration flow ✓
+- **D3 — Passphrase UX**: **separate passphrase** with mandatory recovery-key export ✓ (assumed; user signal was "clean it up" — simplest correct path)
+- **D4 — Data migration**: **one-shot cutover** on a Saturday ✓ (assumed; trivial with 5 users)
+- **D5 — User count**: **5 users** ✓
+
+_Kept below for audit trail and in case we revisit._
 
 ### D1 — Supabase project: reuse Salve's, or new dedicated project?
 
@@ -69,14 +75,17 @@ Each phase is independently shippable and gated behind a feature flag. No phase 
 
 ### Phase 0 — Foundation (1–2 days)
 
-- [ ] Create new Supabase project in the `altech` Supabase organization. Region: `us-west-1` (Oregon, closest to WA).
-- [ ] Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` to Vercel project settings.
-- [ ] Install `@supabase/supabase-js` via CDN (stick to vanilla, no bundler). Add to `index.html` before `firebase-config.js`.
-- [ ] Create `js/supabase-config.js` exposing `window.Supabase.client` — mirrors `FirebaseConfig.isReady` pattern.
-- [ ] Create `db/migrations/0001_initial_schema.sql` (see schema below).
-- [ ] Write `docs/WISP.md` (one-page Written Information Security Program) and `docs/incident-response.md`.
-- [ ] Sign Supabase DPA and Vercel DPA. Move Gemini calls to Vertex AI or drop them.
-- [ ] **Gate**: new Supabase client exists but does nothing. App behavior unchanged.
+**Status:** Scaffolding shipped April 17, 2026. Two manual steps remain before Phase 1 can start (create project, sign DPAs).
+
+- [x] Create `db/migrations/0001_initial_schema.sql` (see schema below).
+- [x] Create `js/supabase-config.js` — dormant stub, no-op until env vars are set. No `<script>` tag in `index.html` yet; added in Phase 2.
+- [x] Write `docs/WISP.md` and `docs/incident-response.md`.
+- [ ] **YOU:** Create new Supabase project named `altech` in the same org as Salve. Region: `us-west-1` (Oregon, closest to WA).
+- [ ] **YOU:** Apply `db/migrations/0001_initial_schema.sql` via the Supabase SQL editor.
+- [ ] **YOU:** Add `SUPABASE_URL` and `SUPABASE_ANON_KEY` to Vercel project settings (Production + Preview). Add `SUPABASE_SERVICE_ROLE_KEY` to Production only — never Preview.
+- [ ] **YOU:** Sign Supabase DPA (Dashboard → Settings → Legal) and Vercel DPA (Dashboard → Settings → General → Data Processing Addendum).
+- [ ] **YOU (before Phase 2 ships):** Decide on Vertex AI migration for Gemini calls, OR accept that property/owner enrichment continues under Google's consumer AI terms.
+- [ ] **Gate**: new Supabase client exists but does nothing. App behavior unchanged until Phase 2.
 
 ### Phase 1 — Passphrase-derived crypto (3–5 days)
 

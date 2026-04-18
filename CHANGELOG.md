@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(security): Path B Phase 0 — Supabase scaffolding + WISP + IR plan** (April 17, 2026):
+  - Decisions locked: new dedicated Altech Supabase project, Supabase Auth (one-shot migration from Firebase), separate passphrase with mandatory recovery-key export, one-shot Saturday cutover, 5 users total.
+  - `db/migrations/0001_initial_schema.sql` (new) — full schema for Path B: `user_blobs` (E2E-encrypted key-value), `user_quotes` (indexed quote list), `user_crypto_meta` (PBKDF2 salt + recovery-key hash), `audit_log` (append-only). RLS policies on every table. `updated_at` triggers. Size constraints on ciphertext.
+  - `js/supabase-config.js` (new) — dormant client bootstrap. Exposes `window.Supabase.{ isReady, client, init() }`. No `<script>` tag in `index.html` yet — added in Phase 2 when the new sync path is ready. Safe to deploy; has no effect on current app behavior.
+  - `docs/WISP.md` (new) — written information security program naming Austin Kays as the Qualified Individual. Covers all 12 FTC Safeguards Rule (2023) requirements with an appendix mapping each requirement to the controlling section. This is the document the boss will actually read.
+  - `docs/incident-response.md` (new) — six-phase runbook: detect, contain, assess, notify, remediate, post-mortem. WA OIC 72-hour notification contact; WA AG and E&O carrier notification criteria. Annual tabletop exercise cadence.
+  - `docs/PATH_B_IMPLEMENTATION.md` — Phase 0 tasks marked complete (code side) with remaining manual steps (create Supabase project, apply migration, set env vars, sign DPAs) called out as YOU-prefixed action items.
+  - Tests: 28 suites / 1772 tests pass (no test changes needed — all new files).
+
 - **feat(privacy): cloud-sync opt-out toggle + sign-in data-handling notice** (April 17, 2026):
   - Path A fallback while full end-to-end encryption (Path B on Supabase) is being built. Lets any user run the app as a local-only, encrypted-browser-storage tool when on a shared/untrusted machine.
   - `js/storage-keys.js` — new `CLOUD_SYNC_DISABLED` key (local-only; never synced — syncing an "I don't want to sync" flag to the cloud would be circular).
