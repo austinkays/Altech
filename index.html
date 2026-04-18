@@ -57,6 +57,10 @@
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+    <!-- Supabase JS (UMD, Path B Phase 2). Exposes window.supabase.createClient.
+         Dormant until SYNC_BACKEND=supabase is set in localStorage. -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -1007,6 +1011,10 @@
 <script src="js/auth.js"></script>
 <script src="js/admin-panel.js"></script>
 <script src="js/cloud-sync.js"></script>
+<!-- Path B Phase 2: Supabase sync client (dormant until SYNC_BACKEND=supabase) -->
+<script src="js/supabase-config.js"></script>
+<script src="js/supabase-sync.js"></script>
+<script src="js/sync-facade.js"></script>
 <script src="js/vault-meta.js"></script>
 <script src="js/vault-ui.js"></script>
 <script src="js/paywall.js"></script>

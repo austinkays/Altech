@@ -444,6 +444,10 @@ const CloudSync = (() => {
 
     // ── Public API ──
     return {
+        // Exposed for SupabaseSync (Path B Phase 2) so both backends sweep
+        // the same doc set. Frozen to prevent accidental mutation.
+        SYNC_DOCS: Object.freeze(SYNC_DOCS.slice()),
+
         get isSyncing() { return _syncing; },
         get deviceId() { return DEVICE_ID; },
         get isAvailable() { return FirebaseConfig.isReady && Auth.isSignedIn; },

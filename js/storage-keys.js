@@ -62,6 +62,8 @@ window.STORAGE_KEYS = Object.freeze({
     E2E_CRYPTO_V2:          'altech_e2e_crypto_v2',   // feature flag: '1' = passphrase-derived key, anything else = legacy device-bound key
     VAULT_LOCAL_META:       'altech_vault_meta_local', // v2 vault metadata cache (passphrase salt + wrapped MK). Stub until Phase 2 swaps in Supabase.
     SYNC_META:              'altech_sync_meta',
+    SYNC_BACKEND:           'altech_sync_backend',    // Path B Phase 2 feature flag: 'firebase' (default) | 'supabase'. Flipped by Phase 4 migration.
+    SYNC_META_SUPABASE:     'altech_sync_meta_supabase', // last-pushed-at per doc_key, Supabase backend only
     CLOUD_SYNC_DISABLED:    'altech_cloud_sync_disabled', // user opt-out flag — local-only, never sync (would be circular)
     GEMINI_KEY:             'gemini_api_key',
     AI_SETTINGS:            'altech_ai_settings',
