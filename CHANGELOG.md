@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(security): Path B Phase 1a — passphrase-derived crypto (dormant behind flag)** (April 17, 2026):
+  - Adds a second key-derivation path to `js/crypto-helper.js` that runs alongside the existing device-bound v1 path. v2 is OFF by default and every caller keeps working unchanged — this commit ships zero behavior change.
+  - `js/storage-keys.js` — new `E2E_CRYPTO_V2` flag key and `PASSPHRASE_SALT` key. Both local-only.
+  - `js/crypto-helper.js` rewritten as an IIFE returning a fuller API surface:
+    - Public (unchanged): `encrypt`, `decrypt`, `generateUUID`.
+    - New: `enableV2` / `disableV2`, `isV2Enabled` / `isV2Unlocked`, `createPassphraseSalt` / `setLocalSalt` / `getLocalSalt`, `setPassphrase`, `verifyPassphrase`, `lock`, `decryptWithV1`, `encryptWithV2`, and `_internals` (tests only).
+  - v2 path uses PBKDF2-600k SHA-256 (OWASP 2023 recommendation, up from 100k on v1). Key caches in memory; cleared on `lock()` or `disableV2()`.
+  - **Safety guarantee:** when v2 is enabled but locked, `encrypt()` throws `CRYPTO_LOCKED` instead of silently writing data the user can't read back after unlock. `decrypt()` still falls through to v1 so legacy records remain readable during the migration window.
+  - Added v1 key caching (same derivation as before, but no longer re-running PBKDF2-100k on every save). Free perf win even without enabling v2.
+  - Verified end-to-end in the preview: legacy round-trip works; v2 enable → salt → encrypt-locked throws → setPassphrase → encrypt-unlocked round-trip works → lock → encrypt throws again → verifyPassphrase(wrong) = false → verifyPassphrase(right) = true → clean teardown.
+  - Tests: 28 suites / 1772 tests pass (no test-side changes; public API preserved).
+
 - **feat(security): Path B Phase 0 — Supabase scaffolding + WISP + IR plan** (April 17, 2026):
   - Decisions locked: new dedicated Altech Supabase project, Supabase Auth (one-shot migration from Firebase), separate passphrase with mandatory recovery-key export, one-shot Saturday cutover, 5 users total.
   - `db/migrations/0001_initial_schema.sql` (new) — full schema for Path B: `user_blobs` (E2E-encrypted key-value), `user_quotes` (indexed quote list), `user_crypto_meta` (PBKDF2 salt + recovery-key hash), `audit_log` (append-only). RLS policies on every table. `updated_at` triggers. Size constraints on ciphertext.

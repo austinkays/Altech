@@ -59,7 +59,9 @@ window.STORAGE_KEYS = Object.freeze({
     ONBOARDED:              'altech_onboarded',
     USER_NAME:              'altech_user_name',
     AGENCY_PROFILE:         'altech_agency_profile',
-    ENCRYPTION_SALT:        'altech_encryption_salt', // PBKDF2 salt — never sync
+    ENCRYPTION_SALT:        'altech_encryption_salt', // PBKDF2 salt (legacy v1 device-bound key) — never sync
+    PASSPHRASE_SALT:        'altech_passphrase_salt', // PBKDF2 salt for v2 passphrase-derived key (per-device copy of the Supabase-stored salt) — never sync
+    E2E_CRYPTO_V2:          'altech_e2e_crypto_v2',   // feature flag: '1' = passphrase-derived key, anything else = legacy device-bound key
     SYNC_META:              'altech_sync_meta',
     CLOUD_SYNC_DISABLED:    'altech_cloud_sync_disabled', // user opt-out flag — local-only, never sync (would be circular)
     GEMINI_KEY:             'gemini_api_key',
