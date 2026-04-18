@@ -375,15 +375,15 @@ const EZLynxTool = {
 
     loadDemo() {
         // Personal
-        this.setField('ezFirstName', 'Sarah');
-        this.setField('ezLastName', 'Mitchell');
+        this.setField('ezFirstName', 'Sample');
+        this.setField('ezLastName', 'Client');
         this.setField('ezMiddleName', '');
         this.setField('ezDOB', '07/22/1985');
         this.setField('ezGender', 'Female');
         this.setField('ezMaritalStatus', 'Married');
-        this.setField('ezEmail', 'sarah.mitchell@example.com');
-        this.setField('ezPhone', '3605551234');
-        this.setField('ezAddress', '123 Main St');
+        this.setField('ezEmail', 'demo@example.com');
+        this.setField('ezPhone', '5555551234');
+        this.setField('ezAddress', '123 Sample St');
         this.setField('ezCity', 'Vancouver');
         this.setField('ezState', 'WA');
         this.setField('ezZip', '98686');
@@ -395,7 +395,7 @@ const EZLynxTool = {
         const demoIndustrySel = document.getElementById('ezIndustry');
         if (demoIndustrySel) demoIndustrySel.dispatchEvent(new Event('change'));
         this.setField('ezOccupation', 'Agent/Broker');
-        this.setField('ezLicenseNumber', 'MITSM456XY');
+        this.setField('ezLicenseNumber', 'SMPL456XY');
         // Auto Policy
         this.setField('ezPolicyTerm', '12 Month');
         this.setField('ezEffectiveDate', '03/01/2026');

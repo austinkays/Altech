@@ -85,11 +85,9 @@ window.DashboardWidgets = (() => {
         quoting:      'user',
         commercial:   'briefcaseBusiness',
         intake:       'bot',
-        qna:          'messageCircle',
         quotecompare: 'scale',
         ezlynx:       'zap',
         hawksoft:     'upload',
-        coi:          'fileText',
         compliance:   'shieldCheck',
         reminders:    'bellRing',
         prospect:     'telescope',
@@ -868,10 +866,6 @@ window.DashboardWidgets = (() => {
                     ${icon('search', 22)}
                     <span class="quick-action-label">Prospect</span>
                 </button>
-                <button class="quick-action-btn" onclick="App.navigateTo('qna')">
-                    ${icon('messageCircle', 22)}
-                    <span class="quick-action-label">Policy Q&A</span>
-                </button>
                 <button class="quick-action-btn" onclick="App.navigateTo('ezlynx')">
                     ${icon('zap', 22)}
                     <span class="quick-action-label">EZLynx</span>
@@ -895,7 +889,7 @@ window.DashboardWidgets = (() => {
 
         // Tools that are NOT already shown as widgets or quick actions
         const widgetKeys = new Set(['reminders', 'compliance']);
-        const quickActionKeys = new Set(['quoting', 'intake', 'prospect', 'qna', 'ezlynx', 'hawksoft', 'calllogger']);
+        const quickActionKeys = new Set(['quoting', 'intake', 'prospect', 'ezlynx', 'hawksoft', 'calllogger']);
         const toolConfig = (typeof App !== 'undefined' && App.toolConfig) ? App.toolConfig : [];
 
         const launchTools = toolConfig.filter(t => !t.hidden && !widgetKeys.has(t.key) && !quickActionKeys.has(t.key));
@@ -938,14 +932,14 @@ window.DashboardWidgets = (() => {
 
         const toolConfig = (typeof App !== 'undefined' && App.toolConfig) ? App.toolConfig : [];
         const categoryLabels = {
-            quoting: 'Quoting',
+            intake: 'Intake & Quoting',
             export: 'Export',
-            docs: 'Documents',
-            ops: 'Operations',
-            tools: 'In Development',
+            compliance: 'Compliance',
+            workflow: 'Workflow Tools',
+            beta: 'In Development',
         };
 
-        // Group tools by category
+        // Group tools by category (quickref is rendered separately below Dashboard)
         const seen = [];
         const groups = {};
         toolConfig.filter(t => !t.hidden && t.key !== 'quickref').forEach(t => {
@@ -959,14 +953,16 @@ window.DashboardWidgets = (() => {
             const items = groups[cat].map(t => {
                 const iconName = toolIcon(t.key);
                 const badgeHtml = t.badge ? `<span class="sidebar-badge" id="sidebar-${t.badge}"></span>` : '';
-                return `<a class="sidebar-nav-item" data-tool="${t.key}" data-tooltip="${_escapeHTML(t.title)}"
+                const betaHtml = t.beta ? `<span class="sidebar-beta-pill">BETA</span>` : '';
+                return `<a class="sidebar-nav-item${t.beta ? ' sidebar-nav-item-beta' : ''}" data-tool="${t.key}" data-tooltip="${_escapeHTML(t.title)}"
                     href="#${t.key}" onclick="event.preventDefault(); App.navigateTo('${t.key}')">
                     <span class="sidebar-nav-icon">${icon(iconName, 20)}</span>
                     <span class="sidebar-nav-item-label">${_escapeHTML(t.title)}</span>
+                    ${betaHtml}
                     ${badgeHtml}
                 </a>`;
             }).join('');
-            return `<div class="sidebar-nav-group">
+            return `<div class="sidebar-nav-group${cat === 'beta' ? ' sidebar-nav-group-beta' : ''}">
                 <div class="sidebar-nav-label">${_escapeHTML(label)}</div>
                 ${items}
             </div>`;
@@ -1281,25 +1277,6 @@ window.DashboardWidgets = (() => {
 
     // ── Refresh All Widgets ──
 
-    function _updateAdminButton() {
-        const actions = document.querySelector('.sidebar-footer-actions');
-        if (!actions) return;
-        const existing = actions.querySelector('.sidebar-admin-btn');
-        const isAdmin = typeof Auth !== 'undefined' && Auth.isAdmin;
-        if (isAdmin && !existing) {
-            const btn = document.createElement('button');
-            btn.className = 'sidebar-footer-btn sidebar-admin-btn';
-            btn.onclick = () => App.navigateTo('blindspot');
-            btn.title = 'Admin Tools';
-            btn.setAttribute('aria-label', 'Admin tools');
-            btn.innerHTML = icon('lock', 18);
-            const userBtn = actions.querySelector('[title="Account"]');
-            actions.insertBefore(btn, userBtn);
-        } else if (!isAdmin && existing) {
-            existing.remove();
-        }
-    }
-
     function refreshAll() {
         try { renderGreeting(); } catch (e) { console.error('[DashboardWidgets] renderGreeting error:', e); }
         try { renderWeatherWidget(); } catch (e) { console.error('[DashboardWidgets] renderWeatherWidget error:', e); }
@@ -1309,7 +1286,6 @@ window.DashboardWidgets = (() => {
         try { renderQuickActions(); } catch (e) { console.error('[DashboardWidgets] renderQuickActions error:', e); }
         try { updateBadges(); } catch (e) { console.error('[DashboardWidgets] updateBadges error:', e); }
         try { renderHeader(); } catch (e) { console.error('[DashboardWidgets] renderHeader error:', e); }
-        try { _updateAdminButton(); } catch (e) { console.error('[DashboardWidgets] _updateAdminButton error:', e); }
     }
 
     // ── Show/Hide Dashboard ──

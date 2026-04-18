@@ -80,7 +80,7 @@
                     <input id="ezlynxXmlInput" type="file" accept=".xml,text/xml" class="hidden" />
                     <input id="docIntelInput" type="file" accept="image/*,application/pdf" multiple class="hidden" />
                 </div>
-                <div style="text-align:center; margin-top:8px;">
+                <div id="demoClientRow" class="debug-only" style="text-align:center; margin-top:8px;">
                     <button class="demo-client-link" onclick="App.loadDemoClient()">🧪 Load demo data</button>
                 </div>
 
@@ -466,7 +466,7 @@
                     <div class="listing-search-divider"><span>or search by listing</span></div>
                     <div class="listing-search-row">
                         <input type="text" id="listingUrlInput" class="listing-search-input" placeholder="Paste a Redfin/Zillow URL or type an address…">
-                        <button class="btn-listing-search" onclick="App.lookupListingUrl(document.getElementById('listingUrlInput').value)" title="Search listing details via AI">Search</button>
+                        <button class="btn-listing-search" onclick="App.lookupListingUrl(document.getElementById('listingUrlInput').value)" title="Fetch listing details">Search</button>
                     </div>
                     <div id="listingSearchStatus" class="listing-search-status" style="display:none"></div>
 
@@ -2224,13 +2224,13 @@
                 </div>
             </div>
 
-            <!-- AI Coverage Gap Analysis -->
+            <!-- Coverage Gap Analysis -->
             <div class="card export-card" id="coverageGapCard">
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                    <h3 style="margin:0; font-size:15px;">🔍 AI Coverage Analysis</h3>
+                    <h3 style="margin:0; font-size:15px;">🔍 Coverage Gap Analysis</h3>
                 </div>
-                <p class="section-subtitle" style="margin-bottom:12px;">AI reviews your client data for coverage gaps, underinsurance, and recommendations</p>
-                <button class="btn btn-primary" onclick="App.runCoverageGapAnalysis()" id="coverageGapBtn" style="width:100%;">🧠 Analyze Coverage Gaps</button>
+                <p class="section-subtitle" style="margin-bottom:12px;">Reviews your client data for coverage gaps, underinsurance, and recommendations.</p>
+                <button class="btn btn-primary" onclick="App.runCoverageGapAnalysis()" id="coverageGapBtn" style="width:100%;">Analyze Coverage Gaps</button>
                 <div id="coverageGapResults" style="margin-top:12px; display:none;"></div>
             </div>
 

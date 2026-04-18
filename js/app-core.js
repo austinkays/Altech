@@ -54,7 +54,7 @@ Object.assign(App, {
         try { await this.renderQuoteList(); } catch(e) { console.error('[App.init] renderQuoteList() failed:', e); }
         try { this.renderClientHistory(); } catch(e) { console.error('[App.init] renderClientHistory() failed:', e); }
 
-        // Resolve Gemini API key for local scanning (shared across App + PolicyQA)
+        // Resolve Gemini API key for local scanning
         if (!this._geminiApiKey) {
             const savedKey = localStorage.getItem('gemini_api_key');
             if (savedKey) {
@@ -88,12 +88,9 @@ Object.assign(App, {
             // Tauri native drag-drop listener for Step 0 policy scan
             if (window.__TAURI__?.event?.listen) {
                 window.__TAURI__.event.listen('tauri://drag-drop', async (event) => {
-                    // Only handle if Step 0 is active (PolicyQA has its own handler)
+                    // Only handle if Step 0 is active
                     const step0 = document.getElementById('step-0');
                     if (!step0 || step0.style.display === 'none' || step0.classList.contains('hidden')) return;
-                    // Skip if PolicyQA tool is active
-                    const qnaTool = document.getElementById('qnaTool');
-                    if (qnaTool && qnaTool.style.display !== 'none') return;
 
                     const paths = event.payload?.paths;
                     if (!paths?.length) return;
@@ -392,10 +389,6 @@ Object.assign(App, {
         if (this._geminiApiKey) return this._geminiApiKey;
         const saved = localStorage.getItem('gemini_api_key');
         if (saved) { this._geminiApiKey = saved; return saved; }
-        if (typeof PolicyQA !== 'undefined' && PolicyQA._geminiApiKey) {
-            this._geminiApiKey = PolicyQA._geminiApiKey;
-            return this._geminiApiKey;
-        }
         try {
             const res = await (typeof Auth !== 'undefined' ? Auth.apiFetch('/api/config?type=keys') : fetch('/api/config?type=keys'));
             if (res.ok) {
@@ -1611,23 +1604,23 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         const demo = {
             // ── Step 1: Client Information ──
             prefix: 'MRS',
-            firstName: 'Sarah',
-            middleName: 'Ann',
-            lastName: 'Mitchell',
+            firstName: 'Sample',
+            middleName: 'A',
+            lastName: 'Client',
             suffix: '',
             dob: '1985-07-22',
             gender: 'F',
             maritalStatus: 'Married',
-            email: 'sarah.mitchell@example.com',
-            phone: '3605559876',
+            email: 'demo@example.com',
+            phone: '5555559876',
             // Co-Applicant
             hasCoApplicant: 'yes',
-            coFirstName: 'David',
-            coLastName: 'Mitchell',
+            coFirstName: 'Sample',
+            coLastName: 'Spouse',
             coDob: '1983-03-15',
             coGender: 'M',
-            coEmail: 'david.mitchell@example.com',
-            coPhone: '3605559877',
+            coEmail: 'demo.spouse@example.com',
+            coPhone: '5555559877',
             coRelationship: 'Spouse',
             coEducation: 'Bachelors',
             coOccupation: 'Software Engineer',
@@ -1728,7 +1721,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             moldDamage: '50000',
             equipmentBreakdown: 'Yes',
             serviceLine: 'Yes',
-            additionalInsureds: 'Margaret Mitchell (mother-in-law)\n2847 Evergreen Terrace, Vancouver WA 98686',
+            additionalInsureds: 'Sample Relative (mother-in-law)\n123 Sample St, Vancouver WA 98686',
             earthquakeCoverage: 'No',
             earthquakeZone: '',
             earthquakeDeductible: '',
@@ -1793,12 +1786,12 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         this.drivers = [
             {
                 id: 'driver_demo_1',
-                firstName: 'Sarah',
-                lastName: 'Mitchell',
+                firstName: 'Sample',
+                lastName: 'Client',
                 dob: '1985-07-22',
                 gender: 'F',
                 maritalStatus: 'Married',
-                dlNum: 'MITCSA385RG',
+                dlNum: 'SMPLCL385RG',
                 dlState: 'WA',
                 dlStatus: 'Valid',
                 relationship: 'Self',
@@ -1815,12 +1808,12 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
             },
             {
                 id: 'driver_demo_2',
-                firstName: 'David',
-                lastName: 'Mitchell',
+                firstName: 'Sample',
+                lastName: 'Spouse',
                 dob: '1983-03-15',
                 gender: 'M',
                 maritalStatus: 'Married',
-                dlNum: 'MITCDA383QK',
+                dlNum: 'SMPLSP383QK',
                 dlState: 'WA',
                 dlStatus: 'Valid',
                 relationship: 'Spouse',
@@ -1893,7 +1886,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         this.step = 0;
         this.next();
 
-        this.toast('🧪 Demo client loaded — Sarah & David Mitchell');
+        this.toast('🧪 Demo client loaded');
     },
 
     // ═══════════════════════════════════════════════════════════
@@ -2171,7 +2164,7 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         AIProvider.saveSettings({ provider, model, apiKey });
         // Reset cached key so _getGeminiKey re-resolves
         this._geminiApiKey = null;
-        this.toast('\u2705 AI settings saved — ' + (AIProvider.PROVIDERS[provider]?.name || provider));
+        this.toast('\u2705 Settings saved — ' + (AIProvider.PROVIDERS[provider]?.name || provider));
     },
 
     /** Toggle visibility of the API key field */

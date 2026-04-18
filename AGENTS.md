@@ -17,8 +17,8 @@
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
 | **CSS** | 34 files in `css/` (~22,946 lines total) |
-| **JS** | 47 modules in `js/` (~43,926 lines total) |
-| **Plugins** | 21 HTML templates in `plugins/` (~6,712 lines total) |
+| **JS** | 47 modules in `js/` (~42,284 lines total) |
+| **Plugins** | 18 HTML templates in `plugins/` (~6,335 lines total) |
 | **APIs** | 13 serverless functions + 3 helpers in `api/` (~8,592 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -107,9 +107,9 @@ npm run deploy:vercel   # Production deploy
 │   ├── app-ui-utils.js         # App.toast(), App.toggleDarkMode(), App.loadDarkMode(), App.formatDateDisplay(), App.copyToClipboard()
 │   ├── app-navigation.js       # App.updateUI(), App.navigateTo(), step progression, hash routing
 │   ├── app-core.js             # save/load, form field persistence, schema migration, encryption, clearExportHistory() — persistence-only (updateUI/navigateTo → app-navigation.js; toast/dark-mode → app-ui-utils.js)
-│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (2,350 lines)
+│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (2,153 lines)
 │   ├── app-property.js         # Property analysis, maps, assessor data, Redfin integration, listing URL lookup (2,621 lines)
-│   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (875 lines)
+│   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (645 lines)
 │   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
 │   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema, AI coverage gap analysis (1,618 lines)
 │   ├── app-quotes.js           # Quote/draft management, client history auto-save, search + view-all (927 lines)
@@ -125,7 +125,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget, client search (1,442 lines)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget, client search (1,418 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)

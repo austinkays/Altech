@@ -277,10 +277,8 @@ Object.assign(App, {
     getActiveToolKey() {
         const toolMap = {
             quoting: 'quotingTool',
-            coi: 'coiTool',
             prospect: 'prospectTool',
             compliance: 'complianceTool',
-            qna: 'qnaTool',
             email: 'emailTool',
             quickref: 'quickrefTool',
             accounting: 'accountingTool',
@@ -381,7 +379,7 @@ Object.assign(App, {
 
     async navigateTo(toolName, options = {}) {
         // ── Route aliases for common/short hash names ──
-        const routeAliases = { vin: 'vindecoder', compare: 'quotecompare', scan: 'quoting', policyqa: 'qna', cgl: 'compliance' };
+        const routeAliases = { vin: 'vindecoder', compare: 'quotecompare', scan: 'quoting', cgl: 'compliance' };
         if (routeAliases[toolName]) toolName = routeAliases[toolName];
 
         // Look up tool from config array (single source of truth)

@@ -44,7 +44,6 @@
     <link rel="stylesheet" href="css/task-sheet.css">
 
     <link rel="stylesheet" href="css/dec-import.css">
-    <link rel="stylesheet" href="css/blind-spot-brief.css">
     <link rel="stylesheet" href="css/returned-mail.css">
     <link rel="stylesheet" href="css/broadform.css">
     <link rel="stylesheet" href="css/commercial-quoter.css">
@@ -160,7 +159,7 @@
                 <div class="onboarding-input-group">
                     <label for="onboardingAgencyName">Agency name</label>
                     <input type="text" id="onboardingAgencyName" placeholder="e.g. Pacific Shield Insurance" autocomplete="organization" maxlength="80">
-                    <span style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px; display: block;">Used in the Email Composer AI persona &amp; sign-off</span>
+                    <span style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px; display: block;">Used in the Email Composer tone &amp; sign-off</span>
                 </div>
                 <div class="onboarding-input-group">
                     <label for="onboardingAgencyState">State</label>
@@ -352,11 +351,6 @@
         <!-- Plugin HTML loaded dynamically from plugins/ -->
     </div>
 
-    <!-- COI GENERATOR TOOL CONTAINER -->
-    <div id="coiTool" class="plugin-container">
-        <!-- Plugin HTML loaded dynamically from plugins/ -->
-    </div>
-
     <!-- PROSPECT INVESTIGATOR TOOL CONTAINER -->
     <div id="prospectTool" class="plugin-container">
         <!-- Plugin HTML loaded dynamically from plugins/ -->
@@ -367,12 +361,7 @@
         <!-- Plugin HTML loaded dynamically from plugins/ -->
     </div>
 
-    <!-- POLICY Q&A ASSISTANT TOOL CONTAINER -->
-    <div id="qnaTool" class="plugin-container">
-        <!-- Plugin HTML loaded dynamically from plugins/ -->
-    </div>
-
-    <!-- AI INTAKE ASSISTANT TOOL CONTAINER -->
+    <!-- QUOTE BOT TOOL CONTAINER -->
     <div id="intakeTool" class="plugin-container">
         <!-- Plugin HTML loaded dynamically from plugins/ -->
     </div>
@@ -440,11 +429,6 @@
 
     <!-- DEC PAGE IMPORTER TOOL CONTAINER -->
     <div id="decImportTool" class="plugin-container">
-        <!-- Plugin HTML loaded dynamically from plugins/ -->
-    </div>
-
-    <!-- BLIND SPOT BRIEF TOOL CONTAINER (admin only) -->
-    <div id="blindSpotTool" class="plugin-container">
         <!-- Plugin HTML loaded dynamically from plugins/ -->
     </div>
 
@@ -654,43 +638,18 @@
                         </div>
                     </details>
 
-                    <!-- 🤖 AI Model -->
+                    <!-- ✨ Smart Features -->
                     <details class="settings-section">
                         <summary class="settings-section-header">
-                            <span class="settings-section-icon">🤖</span>
-                            <span class="settings-section-title">AI Model</span>
+                            <span class="settings-section-icon">✨</span>
+                            <span class="settings-section-title">Smart Features</span>
                             <span id="aiSettingsBadge" class="settings-section-badge"></span>
                             <span class="settings-section-chevron">›</span>
                         </summary>
                         <div class="settings-section-body" id="aiSettingsSection">
-                            <div class="auth-field">
-                                <label for="aiProviderSelect">Provider</label>
-                                <select id="aiProviderSelect" onchange="App.onAIProviderChange()" class="settings-select">
-                                    <option value="google">Google Gemini (default)</option>
-                                    <option value="openrouter">OpenRouter (100+ models)</option>
-                                    <option value="openai">OpenAI</option>
-                                    <option value="anthropic">Anthropic (Claude)</option>
-                                </select>
-                            </div>
-                            <div class="auth-field">
-                                <label for="aiModelSelect">Model</label>
-                                <select id="aiModelSelect" onchange="App.onAIModelChange()" class="settings-select">
-                                </select>
-                            </div>
-                            <div id="aiModelInfo" class="ai-model-info-card" style="display:none">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                                    <strong id="aiModelInfoName" style="font-size:13px;color:var(--text)"></strong>
-                                    <span id="aiModelInfoCost" style="font-weight:600;color:var(--apple-blue);font-size:12px"></span>
-                                </div>
-                                <div id="aiModelInfoContext" style="color:var(--text-secondary);font-size:11px;margin-bottom:5px"></div>
-                                <div id="aiModelInfoTags" style="display:flex;flex-wrap:wrap;gap:4px"></div>
-                                <button id="aiCostToggle" onclick="App.toggleCostEstimates()" style="display:block;margin-top:6px;background:none;border:none;color:var(--apple-blue);font-size:11px;cursor:pointer;padding:0;font-weight:500">▼ Show cost per tool</button>
-                            </div>
-                            <div id="aiCostEstimates" class="ai-cost-card" style="display:none">
-                                <div style="font-weight:600;font-size:12px;color:var(--text);margin-bottom:6px">💰 Estimated Cost Per Tool</div>
-                                <table id="aiCostTable" style="width:100%;border-collapse:collapse"></table>
-                                <p style="margin:6px 0 0;font-size:10px;color:var(--text-secondary);line-height:1.4">Estimates assume typical usage. Actual costs vary with document length, image count, and response complexity.</p>
-                            </div>
+                            <p style="margin:0 0 0.75rem;font-size:12px;color:var(--text-secondary);line-height:1.5">
+                                Smart features power scanning, extraction, and analysis across the app. A default is provided — add your own key to unlock premium models.
+                            </p>
                             <div class="auth-field">
                                 <label for="aiApiKeyInput">API Key <a id="aiKeyLink" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="font-weight:400;font-size:11px;color:var(--apple-blue)">(get key)</a></label>
                                 <div style="display:flex;gap:0.5rem;align-items:stretch">
@@ -703,7 +662,40 @@
                                 <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="App.testAIConnection()" id="aiTestBtn" style="flex:1;margin-top:0">Test Connection</button>
                             </div>
                             <div id="aiTestResult" style="display:none;margin-top:0.5rem;padding:8px 12px;border-radius:8px;font-size:12px"></div>
-                            <p id="aiProviderHint" style="margin:0.5rem 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">Gemini 2.5 Flash is used by default. Add your own key for any provider to use premium models.</p>
+
+                            <details class="settings-subsection" style="margin-top:0.75rem">
+                                <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--text-secondary);padding:0.25rem 0">Advanced</summary>
+                                <div style="padding-top:0.5rem">
+                                    <div class="auth-field">
+                                        <label for="aiProviderSelect">Provider</label>
+                                        <select id="aiProviderSelect" onchange="App.onAIProviderChange()" class="settings-select">
+                                            <option value="google">Google Gemini (default)</option>
+                                            <option value="openrouter">OpenRouter (100+ models)</option>
+                                            <option value="openai">OpenAI</option>
+                                            <option value="anthropic">Anthropic (Claude)</option>
+                                        </select>
+                                    </div>
+                                    <div class="auth-field">
+                                        <label for="aiModelSelect">Model</label>
+                                        <select id="aiModelSelect" onchange="App.onAIModelChange()" class="settings-select">
+                                        </select>
+                                    </div>
+                                    <div id="aiModelInfo" class="ai-model-info-card" style="display:none">
+                                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                                            <strong id="aiModelInfoName" style="font-size:13px;color:var(--text)"></strong>
+                                            <span id="aiModelInfoCost" style="font-weight:600;color:var(--apple-blue);font-size:12px"></span>
+                                        </div>
+                                        <div id="aiModelInfoContext" style="color:var(--text-secondary);font-size:11px;margin-bottom:5px"></div>
+                                        <div id="aiModelInfoTags" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+                                        <button id="aiCostToggle" onclick="App.toggleCostEstimates()" style="display:block;margin-top:6px;background:none;border:none;color:var(--apple-blue);font-size:11px;cursor:pointer;padding:0;font-weight:500">▼ Show cost per tool</button>
+                                    </div>
+                                    <div id="aiCostEstimates" class="ai-cost-card" style="display:none">
+                                        <div style="font-weight:600;font-size:12px;color:var(--text);margin-bottom:6px">💰 Estimated Cost Per Tool</div>
+                                        <table id="aiCostTable" style="width:100%;border-collapse:collapse"></table>
+                                        <p style="margin:6px 0 0;font-size:10px;color:var(--text-secondary);line-height:1.4">Estimates assume typical usage. Actual costs vary with document length, image count, and response complexity.</p>
+                                    </div>
+                                </div>
+                            </details>
                         </div>
                     </details>
 
@@ -718,7 +710,7 @@
                             <div class="auth-field">
                                 <label for="agencyGlossaryText">Custom shorthand &amp; abbreviations</label>
                                 <textarea id="agencyGlossaryText" class="glossary-textarea" rows="5" maxlength="500" placeholder="MoE = Mutual of Enumclaw&#10;NWPP = Northwest Personal Property&#10;BOP = Business Owner's Policy"></textarea>
-                                <p class="glossary-hint">One term per line. The HawkSoft Logger AI will use these to interpret your shorthand notes. Max 500 characters.</p>
+                                <p class="glossary-hint">One term per line. The HawkSoft Logger will use these to interpret your shorthand notes. Max 500 characters.</p>
                             </div>
                             <button class="btn-auth btn-auth-small btn-auth-primary" onclick="(function(){ var t=document.getElementById('agencyGlossaryText'); if(t){ localStorage.setItem('altech_agency_glossary',t.value); if(typeof CloudSync!=='undefined'&&CloudSync.schedulePush) CloudSync.schedulePush(); if(typeof App!=='undefined'&&App.toast) App.toast('Glossary saved','success'); } })()" style="margin-top:0">Save Glossary</button>
                         </div>
@@ -985,7 +977,6 @@
     <script src="js/dashboard-widgets.js"></script>
 
     <!-- Plugin scripts (loaded after DOM) -->
-    <script src="js/coi.js"></script>
     <script src="js/prospect.js"></script>
     <script src="js/quick-ref.js"></script>
     <script src="js/accounting-export.js"></script>
@@ -994,7 +985,6 @@
     <script src="js/quote-compare.js"></script>
     <script src="js/intake-assist.js"></script>
     <script src="js/email-composer.js"></script>
-    <script src="js/policy-qa.js"></script>
     <script src="js/reminders.js"></script>
     <script src="js/hawksoft-export.js"></script>
     <script src="js/vin-decoder.js"></script>
@@ -1004,7 +994,6 @@
     <script src="js/returned-mail.js"></script>
 
     <script src="js/dec-import.js"></script>
-    <script src="js/blind-spot-brief.js"></script>
     <!-- Agent Tools Foundation -->
     <script src="js/tools/_tool-components.js"></script>
     <script src="js/tools/broadform-data.js"></script>

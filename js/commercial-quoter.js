@@ -1306,7 +1306,7 @@ window.CommercialQuoter = (() => {
         banner.style.display = 'block';
         banner.innerHTML =
             '<div class="cq-cov-banner-inner">' +
-                '<div class="cq-cov-banner-label">🧠 AI Recommended Coverages</div>' +
+                '<div class="cq-cov-banner-label">Recommended Coverages</div>' +
                 '<div class="cq-cov-banner-pills">' +
                 suggestions.map(function(s) {
                     return '<button class="cq-cov-pill" onclick="CommercialQuoter.applyCoverageSuggestion(\'' + Utils.escapeAttr(s.id) + '\')">' +

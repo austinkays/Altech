@@ -285,6 +285,25 @@ body.sidebar-collapsed .sidebar-badge:empty {
     display: none;
 }
 
+/* BETA pill in sidebar */
+.sidebar-beta-pill {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255, 149, 0, 0.15);
+    color: #FF9500;
+    border: 1px solid rgba(255, 149, 0, 0.3);
+    flex-shrink: 0;
+    line-height: 1;
+}
+body.sidebar-collapsed .sidebar-beta-pill {
+    display: none;
+}
+.sidebar-nav-group-beta { opacity: 0.85; }
+.sidebar-nav-group-beta .sidebar-nav-label { color: #FF9500; }
+
 /* ── Sidebar Tooltip (collapsed mode) ── */
 .sidebar-nav-item[data-tooltip]::after {
     content: attr(data-tooltip);

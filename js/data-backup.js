@@ -5,7 +5,7 @@
 const DataBackup = {
     BACKUP_KEYS: [
         STORAGE_KEYS.FORM, STORAGE_KEYS.QUOTES, STORAGE_KEYS.DOC_INTEL,
-        STORAGE_KEYS.DARK_MODE, STORAGE_KEYS.COI_DRAFT, STORAGE_KEYS.EMAIL_DRAFTS,
+        STORAGE_KEYS.DARK_MODE, STORAGE_KEYS.EMAIL_DRAFTS,
         STORAGE_KEYS.QUICKREF_CARDS, STORAGE_KEYS.ENCRYPTION_SALT
     ],
 
@@ -15,7 +15,7 @@ const DataBackup = {
             const val = localStorage.getItem(key);
             if (val !== null) backup.data[key] = val;
         });
-        // Also grab any CGL / QNA / export-history keys
+        // Also grab any CGL / export-history keys
         for (let i = 0; i < localStorage.length; i++) {
             const k = localStorage.key(i);
             if (k && (k.startsWith('altech_') || k.startsWith('cgl_'))) {
@@ -94,15 +94,6 @@ document.addEventListener('keydown', (e) => {
         }
     }
 
-    // Ctrl+Enter — Send Q&A message (when in Q&A tool)
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        const qnaInput = document.getElementById('qnaInput');
-        if (qnaInput && (document.activeElement === qnaInput || !isInput)) {
-            e.preventDefault();
-            if (typeof PolicyQA !== 'undefined') PolicyQA.sendMessage();
-        }
-    }
-
     // Arrow Left/Right — Step navigation (only when not in an input)
     if (!isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
         if (e.key === 'ArrowLeft') {
@@ -118,14 +109,5 @@ document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         App.toast('✓ Auto-saved');
-    }
-
-    // Escape — Close Q&A tool, return to form
-    if (e.key === 'Escape') {
-        const qnaTool = document.getElementById('qnaTool');
-        if (qnaTool && qnaTool.style.display !== 'none') {
-            e.preventDefault();
-            if (typeof App !== 'undefined') App.showTool('quoting');
-        }
     }
 });

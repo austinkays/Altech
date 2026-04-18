@@ -1392,7 +1392,7 @@ describe('Altech App Tests', () => {
 
   describe('Tool Configuration', () => {
     test('toolNames has entries for all major tools', () => {
-      const expectedTools = ['quoting', 'qna', 'coi', 'prospect', 'compliance'];
+      const expectedTools = ['quoting', 'prospect', 'compliance', 'quotecompare'];
       expectedTools.forEach(tool => {
         const hasKey = App.toolConfig.some(t =>
           t.key.toLowerCase().includes(tool) || t.name?.toLowerCase().includes(tool)

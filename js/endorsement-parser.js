@@ -129,7 +129,7 @@ const EndorsementParser = {
         // Only require Gemini key if AIProvider is not available
         if (!this._hasAIProvider && !this._geminiApiKey) {
             console.warn('[EndorsementParser] No AI provider configured');
-            this._showToast('AI provider required. Configure AIProvider or set a Gemini API key in Settings.', 'error');
+            this._showToast('Smart features not configured. Open Settings → Smart Features to add a key.', 'error');
             if (parseBtn) {
                 parseBtn.disabled = false;
                 parseBtn.textContent = '🔍 Parse Request';
