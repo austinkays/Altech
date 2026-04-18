@@ -1,0 +1,380 @@
+/**
+ * js/supabase-auth.js — Path B Phase 3 Supabase Auth client.
+ *
+ * Mirrors the slice of js/auth.js that downstream code depends on, but
+ * talks to Supabase Auth (email + password + TOTP MFA) instead of Firebase.
+ * Dormant until localStorage[STORAGE_KEYS.SYNC_BACKEND] === 'supabase'; in
+ * that mode it drives the login modal and enforces mandatory TOTP enrollment
+ * for any account that has cloud sync enabled.
+ *
+ * The Firebase path stays the default and fully functional. Phase 4 is what
+ * flips the SYNC_BACKEND flag and migrates real users — this module only
+ * ships the auth primitives + MFA gate.
+ *
+ * Public surface (parallel to window.Auth):
+ *   SupabaseAuth.init()                 — wires up the onAuthStateChange listener
+ *   SupabaseAuth.signIn(email, pw)      — email + password sign-in
+ *   SupabaseAuth.signUp(email, pw, opts)— email + password signup (no email verify bypass)
+ *   SupabaseAuth.sendPasswordReset(email)
+ *   SupabaseAuth.logout()
+ *   SupabaseAuth.uid / email / isSignedIn / isAdmin / isBlocked
+ *   SupabaseAuth.apiFetch(url, opts)    — injects the access token as a Bearer
+ *   SupabaseAuth.addAuthListener(fn)    — symmetric to Auth.onAuthChange
+ *   SupabaseAuth.enrollTOTP()           — returns { factorId, qrCode, secret }
+ *   SupabaseAuth.verifyTOTP(code)       — completes enrollment or challenge
+ *   SupabaseAuth.mfaRequired            — true when cloud sync is on and no verified factor
+ *   SupabaseAuth.recordMfaDismiss()     — bumps user_metadata.mfa_dismiss_count
+ *
+ * Admin / block flags live on user_metadata (is_admin, is_blocked). Writing
+ * them is done server-side only via api/admin-supabase.js using the
+ * service-role key; this module only reads them.
+ */
+
+'use strict';
+
+window.SupabaseAuth = (() => {
+    const MFA_HARD_ENFORCE_DISMISSES = 3;
+    const MFA_HARD_ENFORCE_DAYS = 14;
+
+    let _session = null;
+    let _user = null;
+    let _factors = null;         // Cached listFactors() result; refreshed after auth events.
+    let _authSubscription = null;
+    let _listeners = [];
+    let _inited = false;
+
+    let _authReadyResolve;
+    const _authReady = new Promise(resolve => { _authReadyResolve = resolve; });
+    setTimeout(() => { if (_authReadyResolve) { _authReadyResolve(null); _authReadyResolve = null; } }, 5000);
+
+    function _enabled() {
+        try { return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) === 'supabase'; }
+        catch { return false; }
+    }
+
+    function _client() {
+        const sb = window.Supabase;
+        return (sb && sb.isReady && sb.client) ? sb.client : null;
+    }
+
+    function _cloudSyncEnabled() {
+        // Match CloudSync.disabledByUser: opt-out flag exempts the user from MFA.
+        try { return localStorage.getItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED) !== 'true'; }
+        catch { return true; }
+    }
+
+    function _meta() {
+        return (_user && _user.user_metadata) || {};
+    }
+
+    function _appMeta() {
+        return (_user && _user.app_metadata) || {};
+    }
+
+    function _hasVerifiedTotp() {
+        if (!_factors) return false;
+        const all = (_factors.totp || []).concat(_factors.all || []);
+        return all.some(f => f && f.factor_type === 'totp' && f.status === 'verified');
+    }
+
+    async function _refreshFactors() {
+        const client = _client();
+        if (!client || !client.auth || !client.auth.mfa || typeof client.auth.mfa.listFactors !== 'function') {
+            _factors = null;
+            return;
+        }
+        try {
+            const { data, error } = await client.auth.mfa.listFactors();
+            if (error) {
+                console.warn('[SupabaseAuth] listFactors failed:', error.message || error);
+                _factors = null;
+            } else {
+                _factors = data || null;
+            }
+        } catch (e) {
+            console.warn('[SupabaseAuth] listFactors threw:', e && e.message);
+            _factors = null;
+        }
+    }
+
+    function _onAuthChange(event, session) {
+        _session = session || null;
+        _user = _session ? _session.user : null;
+
+        if (_authReadyResolve) { _authReadyResolve(_user); _authReadyResolve = null; }
+
+        // Factor list depends on the signed-in user; refresh lazily.
+        _refreshFactors().then(() => {
+            // Block immediately if the server-side admin flipped is_blocked.
+            if (_user && _meta().is_blocked === true) {
+                console.warn('[SupabaseAuth] User is blocked — signing out');
+                logout().catch(() => {});
+                if (typeof App !== 'undefined' && App.toast) {
+                    App.toast('Your account has been blocked. Contact your administrator.', { type: 'error', duration: 6000 });
+                }
+                return;
+            }
+            _listeners.forEach(fn => {
+                try { fn(_user, event); } catch (e) { console.error('[SupabaseAuth] Listener error:', e); }
+            });
+        });
+    }
+
+    async function init() {
+        if (_inited) return true;
+        if (!_enabled()) return false;
+
+        if (!window.Supabase || typeof window.Supabase.init !== 'function') {
+            console.warn('[SupabaseAuth] window.Supabase missing — staying dormant');
+            return false;
+        }
+        const ready = await window.Supabase.init();
+        if (!ready) return false;
+
+        const client = _client();
+        if (!client || !client.auth) return false;
+
+        // Hydrate from the persisted session before firing listeners.
+        try {
+            const { data } = await client.auth.getSession();
+            _session = (data && data.session) || null;
+            _user = _session ? _session.user : null;
+            if (_authReadyResolve) { _authReadyResolve(_user); _authReadyResolve = null; }
+            if (_user) await _refreshFactors();
+        } catch (e) {
+            console.warn('[SupabaseAuth] getSession failed:', e && e.message);
+        }
+
+        const { data: sub } = client.auth.onAuthStateChange((event, session) => _onAuthChange(event, session));
+        _authSubscription = sub && sub.subscription ? sub.subscription : null;
+        _inited = true;
+        return true;
+    }
+
+    async function signIn(email, password) {
+        const client = _client();
+        if (!client) throw new Error('Supabase not initialized');
+        const { data, error } = await client.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        // Session is delivered via onAuthStateChange, but return it for convenience.
+        return data;
+    }
+
+    async function signUp(email, password, opts = {}) {
+        const client = _client();
+        if (!client) throw new Error('Supabase not initialized');
+        const payload = {
+            email,
+            password,
+            options: {
+                // Phase 3 does not wire email verification links to a custom URL;
+                // Supabase default redirect is fine for the parallel login modal.
+                data: opts.metadata || {},
+            },
+        };
+        const { data, error } = await client.auth.signUp(payload);
+        if (error) throw error;
+        return data;
+    }
+
+    async function sendPasswordReset(email) {
+        const client = _client();
+        if (!client) throw new Error('Supabase not initialized');
+        const { error } = await client.auth.resetPasswordForEmail(email);
+        if (error) throw error;
+        return true;
+    }
+
+    async function logout() {
+        const client = _client();
+        if (!client) return;
+        try { await client.auth.signOut(); } catch (e) {
+            console.warn('[SupabaseAuth] signOut failed:', e && e.message);
+        }
+        _session = null;
+        _user = null;
+        _factors = null;
+    }
+
+    async function getAccessToken() {
+        const client = _client();
+        if (!client) return null;
+        try {
+            const { data } = await client.auth.getSession();
+            return (data && data.session && data.session.access_token) || null;
+        } catch { return null; }
+    }
+
+    async function apiFetch(url, options = {}) {
+        const token = await getAccessToken();
+        if (token) {
+            options = {
+                ...options,
+                headers: { ...(options.headers || {}), 'Authorization': `Bearer ${token}` },
+            };
+        }
+        return fetch(url, options);
+    }
+
+    // ── MFA ─────────────────────────────────────────────────────────────
+
+    async function enrollTOTP() {
+        const client = _client();
+        if (!client) throw new Error('Supabase not initialized');
+        const { data, error } = await client.auth.mfa.enroll({ factorType: 'totp' });
+        if (error) throw error;
+        // data.totp.qr_code is an SVG data URL; data.totp.secret is the Base32 secret.
+        return {
+            factorId: data.id,
+            qrCode: data.totp && data.totp.qr_code,
+            secret: data.totp && data.totp.secret,
+            uri: data.totp && data.totp.uri,
+        };
+    }
+
+    async function verifyTOTP(factorId, code) {
+        const client = _client();
+        if (!client) throw new Error('Supabase not initialized');
+        // A fresh enrollment requires a challenge → verify sequence; an
+        // already-enrolled factor used for step-up auth does too. Same shape.
+        const challenge = await client.auth.mfa.challenge({ factorId });
+        if (challenge.error) throw challenge.error;
+        const { data, error } = await client.auth.mfa.verify({
+            factorId,
+            challengeId: challenge.data.id,
+            code,
+        });
+        if (error) throw error;
+        // Factor is now 'verified' server-side; refresh the cache so mfaRequired
+        // flips false without another round-trip.
+        await _refreshFactors();
+        return data;
+    }
+
+    async function unenrollTOTP(factorId) {
+        const client = _client();
+        if (!client) throw new Error('Supabase not initialized');
+        const { error } = await client.auth.mfa.unenroll({ factorId });
+        if (error) throw error;
+        await _refreshFactors();
+        return true;
+    }
+
+    /**
+     * Returns whether the user must enroll a TOTP factor before cloud sync is
+     * allowed to run. Opt-out users (local-only) are exempt.
+     */
+    function mfaRequired() {
+        if (!_user) return false;
+        if (!_cloudSyncEnabled()) return false;
+        return !_hasVerifiedTotp();
+    }
+
+    /**
+     * Returns `"soft" | "hard" | null`. `null` means no enrollment needed.
+     * `soft` means show the modal but allow "Set up later"; `hard` means the
+     * modal cannot be dismissed. Hard triggers after MFA_HARD_ENFORCE_DISMISSES
+     * dismissals OR MFA_HARD_ENFORCE_DAYS since first prompt — whichever hits
+     * first. Timestamps live in user_metadata so they survive across devices.
+     */
+    function mfaEnforcementLevel() {
+        if (!mfaRequired()) return null;
+        const m = _meta();
+        const dismisses = Number(m.mfa_dismiss_count || 0);
+        const firstSeen = m.mfa_first_prompt_at ? Date.parse(m.mfa_first_prompt_at) : 0;
+        const now = Date.now();
+        const daysSince = firstSeen ? (now - firstSeen) / (24 * 60 * 60 * 1000) : 0;
+        if (dismisses >= MFA_HARD_ENFORCE_DISMISSES) return 'hard';
+        if (firstSeen && daysSince >= MFA_HARD_ENFORCE_DAYS) return 'hard';
+        return 'soft';
+    }
+
+    /**
+     * Record that the user dismissed the TOTP enrollment modal. Bumps the
+     * dismiss counter and stamps the first-seen timestamp on the first call.
+     * Stored in user_metadata via updateUser — the user can always rewrite
+     * their own metadata under default Supabase policies.
+     */
+    async function recordMfaDismiss() {
+        const client = _client();
+        if (!client || !_user) return false;
+        const m = _meta();
+        const patch = {
+            mfa_dismiss_count: Number(m.mfa_dismiss_count || 0) + 1,
+        };
+        if (!m.mfa_first_prompt_at) patch.mfa_first_prompt_at = new Date().toISOString();
+        try {
+            const { data, error } = await client.auth.updateUser({ data: patch });
+            if (error) { console.warn('[SupabaseAuth] recordMfaDismiss failed:', error.message); return false; }
+            if (data && data.user) _user = data.user;
+            return true;
+        } catch (e) {
+            console.warn('[SupabaseAuth] recordMfaDismiss threw:', e && e.message);
+            return false;
+        }
+    }
+
+    // ── Listener plumbing ──────────────────────────────────────────────
+
+    function addAuthListener(fn) {
+        if (typeof fn !== 'function') return;
+        if (_listeners.includes(fn)) return;
+        _listeners.push(fn);
+        // Fire immediately with current state for symmetry with Auth.onAuthChange.
+        try { fn(_user, 'INITIAL'); } catch (e) { console.error('[SupabaseAuth] Listener error:', e); }
+    }
+
+    function removeAuthListener(fn) {
+        _listeners = _listeners.filter(f => f !== fn);
+    }
+
+    return {
+        get enabled() { return _enabled(); },
+        get user() { return _user; },
+        get session() { return _session; },
+        get uid() { return _user ? _user.id : null; },
+        get email() { return _user ? _user.email || null : null; },
+        get isSignedIn() { return !!_user; },
+        get isAdmin() {
+            // app_metadata is server-managed (service-role only); user_metadata
+            // is self-editable. Admin flag is intentionally stored on
+            // app_metadata — user_metadata mirror is a read-only legacy surface.
+            const app = _appMeta();
+            if (app && app.is_admin === true) return true;
+            // Backwards-compat: older seeded accounts may have the flag on
+            // user_metadata. The admin-supabase.js endpoint migrates these on
+            // the next write.
+            return _meta().is_admin === true;
+        },
+        get isBlocked() {
+            const app = _appMeta();
+            if (app && app.is_blocked === true) return true;
+            return _meta().is_blocked === true;
+        },
+
+        ready() { return _authReady; },
+        getAccessToken,
+
+        init,
+        signIn,
+        signUp,
+        sendPasswordReset,
+        logout,
+        apiFetch,
+
+        enrollTOTP,
+        verifyTOTP,
+        unenrollTOTP,
+        mfaRequired,
+        mfaEnforcementLevel,
+        recordMfaDismiss,
+
+        addAuthListener,
+        removeAuthListener,
+
+        // Exposed for tests: lets the harness force-refresh factors after
+        // mutating a mock client, without having to wait for an auth event.
+        _refreshFactors,
+        _onAuthChange,
+    };
+})();

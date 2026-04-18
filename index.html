@@ -800,6 +800,39 @@
         </div>
     </div>
 
+    <!-- ══ Supabase TOTP Enrollment Modal (Phase 3) ══
+         Dormant unless SYNC_BACKEND=supabase. Shown post-signup and on first
+         login for any cloud-sync-enabled user who hasn't enrolled a TOTP
+         factor yet. Soft-enforced for 14 days / 3 dismisses, then hard. -->
+    <div id="mfaEnrollOverlay" class="auth-modal-overlay" style="display:none">
+        <div class="auth-modal">
+            <button id="mfaEnrollClose" class="auth-close" onclick="AuthMFAUI.dismissEnroll()">&times;</button>
+            <div class="auth-modal-header">
+                <h3>🔐 Enable Two-Factor Authentication</h3>
+                <p class="auth-subtitle">Required for accounts with cloud sync. Authenticator apps like 1Password, Authy, or Google Authenticator work.</p>
+            </div>
+            <div class="auth-privacy-notice" style="background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.35);border-radius:8px;padding:0.65rem 0.8rem;margin-bottom:1rem;font-size:12px;line-height:1.45;color:var(--text-secondary)">
+                <strong style="color:var(--text)">Local-only users are exempt.</strong> If you've turned off cloud sync in Account → Sync, you don't need 2FA — your data never leaves this device.
+            </div>
+            <div id="mfaEnrollBody" style="display:flex;flex-direction:column;gap:0.8rem">
+                <div id="mfaEnrollQR" style="text-align:center"></div>
+                <div class="auth-field">
+                    <label for="mfaEnrollSecret">Manual entry code</label>
+                    <input type="text" id="mfaEnrollSecret" readonly style="font-family:monospace;font-size:12px;letter-spacing:1px">
+                </div>
+                <form class="auth-form" onsubmit="AuthMFAUI.handleVerifySubmit(event)">
+                    <div class="auth-field">
+                        <label for="mfaEnrollCode">6-digit code from your authenticator</label>
+                        <input type="text" id="mfaEnrollCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\d{6}" required style="letter-spacing:4px;text-align:center;font-size:1.1rem">
+                    </div>
+                    <div class="auth-error" style="display:none"></div>
+                    <button type="submit" class="btn-auth btn-auth-primary">Verify &amp; Enable</button>
+                </form>
+                <button id="mfaEnrollDismiss" type="button" class="auth-link" onclick="AuthMFAUI.dismissEnroll()" style="display:none">Set up later</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ══ Vault / E2E Encryption Modals (Phase 1c) ══ -->
 
     <!-- Onboarding -->
@@ -1014,6 +1047,10 @@
 <!-- Path B Phase 2: Supabase sync client (dormant until SYNC_BACKEND=supabase) -->
 <script src="js/supabase-config.js"></script>
 <script src="js/supabase-sync.js"></script>
+<!-- Path B Phase 3: Supabase auth + mandatory MFA (dormant until SYNC_BACKEND=supabase).
+     supabase-auth.js must load before sync-facade.js so AuthFacade can resolve it. -->
+<script src="js/supabase-auth.js"></script>
+<script src="js/auth-mfa-ui.js"></script>
 <script src="js/sync-facade.js"></script>
 <script src="js/vault-meta.js"></script>
 <script src="js/vault-ui.js"></script>

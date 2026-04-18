@@ -197,6 +197,15 @@ window.onload = async () => {
         }
     } catch (e) { console.error('[Boot] Firebase/Places init error:', e); }
 
+    // Supabase Auth — only boots when SYNC_BACKEND=supabase. Runs in parallel
+    // with Firebase Auth so neither blocks the other; the login modal picks
+    // whichever backend the flag selects at submit time.
+    try {
+        if (typeof SupabaseAuth !== 'undefined') {
+            SupabaseAuth.init().catch(e => console.warn('[Boot] SupabaseAuth init skipped:', e && e.message));
+        }
+    } catch (e) { console.error('[Boot] SupabaseAuth init error:', e); }
+
     // Build landing page tool grid from toolConfig (must run once before goHome)
     try { App.renderLandingTools(); } catch (e) { console.error('[Boot] renderLandingTools error:', e); }
 
