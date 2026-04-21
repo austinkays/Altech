@@ -1182,6 +1182,45 @@ describe('Altech App Tests', () => {
       expect(legacy.data._clientId).toBe('legacy-id-1');
     });
 
+    test('_parkCiphertextForRecovery stores the blob with the originalKey and reason', () => {
+      if (typeof App._parkCiphertextForRecovery !== 'function') return;
+      const key = window.STORAGE_KEYS?.DECRYPTION_RECOVERY || 'altech_decryption_recovery';
+      window.localStorage.removeItem(key);
+      App._parkCiphertextForRecovery('altech_v6', 'ciphertext-blob-xyz', 'decrypt-returned-null');
+      const raw = window.localStorage.getItem(key);
+      expect(raw).toBeTruthy();
+      const bucket = JSON.parse(raw);
+      expect(bucket.length).toBe(1);
+      expect(bucket[0].originalKey).toBe('altech_v6');
+      expect(bucket[0].ciphertext).toBe('ciphertext-blob-xyz');
+      expect(bucket[0].reason).toBe('decrypt-returned-null');
+      expect(bucket[0].failedAt).toBeTruthy();
+    });
+
+    test('_parkCiphertextForRecovery deduplicates identical blobs', () => {
+      if (typeof App._parkCiphertextForRecovery !== 'function') return;
+      const key = window.STORAGE_KEYS?.DECRYPTION_RECOVERY || 'altech_decryption_recovery';
+      window.localStorage.removeItem(key);
+      App._parkCiphertextForRecovery('altech_v6', 'same-blob', 'a');
+      App._parkCiphertextForRecovery('altech_v6', 'same-blob', 'b');
+      App._parkCiphertextForRecovery('altech_v6', 'same-blob', 'c');
+      const bucket = JSON.parse(window.localStorage.getItem(key));
+      expect(bucket.length).toBe(1);
+    });
+
+    test('_parkCiphertextForRecovery caps at RECOVERY_CAP (FIFO)', () => {
+      if (typeof App._parkCiphertextForRecovery !== 'function') return;
+      const key = window.STORAGE_KEYS?.DECRYPTION_RECOVERY || 'altech_decryption_recovery';
+      window.localStorage.removeItem(key);
+      for (let i = 0; i < 25; i++) {
+        App._parkCiphertextForRecovery('altech_v6_quotes', `blob-${i}`, 'test');
+      }
+      const bucket = JSON.parse(window.localStorage.getItem(key));
+      expect(bucket.length).toBe(App.RECOVERY_CAP || 20);
+      // Newest at index 0
+      expect(bucket[0].ciphertext).toBe('blob-24');
+    });
+
     test('_addHistorySnapshot creates entry and caps at HISTORY_CAP', () => {
       if (typeof App._addHistorySnapshot !== 'function') return;
       const rec = { id: 'test', data: { firstName: 'A' } };

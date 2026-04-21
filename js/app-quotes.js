@@ -366,7 +366,15 @@ Object.assign(App, {
         let quotes;
         if (this.encryptionEnabled) {
             const decrypted = await CryptoHelper.decrypt(encrypted);
-            quotes = decrypted || [];
+            if (!decrypted) {
+                // Park the unreadable ciphertext for later recovery rather than
+                // letting the next saveQuotes() overwrite it silently.
+                if (typeof this._parkCiphertextForRecovery === 'function') {
+                    this._parkCiphertextForRecovery(this.quotesKey, encrypted, 'decrypt-returned-null');
+                }
+                return [];
+            }
+            quotes = decrypted;
         } else {
             try { quotes = JSON.parse(encrypted); }
             catch (e) { console.warn('[getQuotes] Corrupt JSON:', e); return []; }

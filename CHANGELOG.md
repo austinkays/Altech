@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(security): decryption-recovery bucket (Phase 5, session 3b)** (April 21, 2026):
+  - When `CryptoHelper.decrypt` returns null (key mismatch / corrupted ciphertext / device-bound-key drift), the app now **parks the ciphertext** in a new `altech_decryption_recovery` bucket instead of silently proceeding with an empty data object — which would let the next save overwrite the un-decryptable blob permanently. Ciphertext preserved = the user's path back if they ever recover the key.
+  - Applies to both encrypted storage keys: `altech_v6` (the live form, in `App.load`) and `altech_v6_quotes` (drafts library, in `getQuotes`). Client history isn't encrypted so it's not affected.
+  - `App._parkCiphertextForRecovery(originalKey, ciphertext, reason)` — appends to the bucket with `{originalKey, ciphertext, failedAt, reason}`. `RECOVERY_CAP = 20` with FIFO eviction; identical blobs dedupe so a blob failing on every reload doesn't fill the bucket with duplicates.
+  - `App.getRecoveryBlobs()` — read the bucket (for debug inspection / future recovery UI). Call from console.
+  - `App.clearRecoveryBlobs()` — irreversible purge, confirm-gated. For when the user has recovered what they wanted or accepted the loss.
+  - New storage key: `STORAGE_KEYS.DECRYPTION_RECOVERY = 'altech_decryption_recovery'`. **Local-only — never cloud-synced.** Syncing recovery blobs back to the cloud would defeat the purpose (the point is that we *couldn't* decrypt; shipping the ciphertext anywhere else doesn't help and risks leaking it).
+  - The `App.load` toast message is updated from "⚠️ Could not decrypt saved data. It may need to be re-entered." to "⚠️ Could not decrypt saved data. Ciphertext preserved in recovery bucket." — so the user knows their data isn't gone.
+  - Tests: 31 suites / 1806 tests pass. Three new tests cover: blob is stored with correct metadata, identical blobs dedupe, `RECOVERY_CAP` FIFO eviction (push 25 → length = 20, newest wins).
+
 - **feat(intake): per-client undo/history (Phase 5, session 3a)** (April 21, 2026):
   - Each quote record now keeps a rolling 5-snapshot history (`record.history: [{snapshotAt, data}]`). Snapshots are captured in `_saveActiveRecordNow` *before* overwriting the record, so "restore" means "undo the save I just did."
   - `HISTORY_CAP = 5`, `HISTORY_DEDUP_MS = 60_000` — snapshots within 60s of the previous one (or identical to it) are skipped so rapid typing doesn't fill history with near-duplicates. Roughly one snapshot per minute of active editing; 5 snapshots cover ~5 minutes of checkpoints.

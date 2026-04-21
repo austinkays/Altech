@@ -571,6 +571,64 @@ Object.assign(App, {
         this.toast('↩️ Restored to ' + new Date(snapshot.snapshotAt).toLocaleTimeString());
     },
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // Decryption recovery bucket — when CryptoHelper.decrypt returns null, we
+    // park the original ciphertext here rather than letting the next save
+    // silently overwrite it. If the user recovers a key/passphrase later,
+    // these blobs are their path back.
+    //
+    // Capped at 20 entries (FIFO eviction) to prevent quota bloat. Local-only;
+    // never synced to cloud.
+    // ═══════════════════════════════════════════════════════════════════════
+    RECOVERY_CAP: 20,
+
+    _parkCiphertextForRecovery(originalKey, ciphertext, reason) {
+        if (!ciphertext) return;
+        try {
+            const raw = localStorage.getItem(STORAGE_KEYS.DECRYPTION_RECOVERY);
+            const bucket = raw ? JSON.parse(raw) : [];
+            // Don't park an identical ciphertext twice — same blob failing on
+            // every reload would otherwise fill the bucket with duplicates.
+            if (bucket.some(e => e && e.ciphertext === ciphertext && e.originalKey === originalKey)) {
+                return;
+            }
+            bucket.unshift({
+                originalKey,
+                ciphertext,
+                failedAt: new Date().toISOString(),
+                reason: reason || 'unspecified',
+            });
+            if (bucket.length > this.RECOVERY_CAP) bucket.length = this.RECOVERY_CAP;
+            localStorage.setItem(STORAGE_KEYS.DECRYPTION_RECOVERY, JSON.stringify(bucket));
+            console.warn(`[Recovery] Parked ciphertext from ${originalKey} (reason: ${reason}). Bucket now has ${bucket.length} entr${bucket.length === 1 ? 'y' : 'ies'}.`);
+        } catch (e) {
+            console.error('[Recovery] Failed to park ciphertext:', e);
+        }
+    },
+
+    // Returns the recovery bucket contents. Primarily for debug inspection
+    // and future recovery UI — call from console: App.getRecoveryBlobs().
+    getRecoveryBlobs() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEYS.DECRYPTION_RECOVERY);
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            console.error('[Recovery] Failed to read bucket:', e);
+            return [];
+        }
+    },
+
+    // Clear the entire bucket. For use when the user has confirmed all parked
+    // blobs are no longer needed (e.g., they've recovered what they wanted or
+    // accepted the loss). Defensive — requires explicit confirm.
+    clearRecoveryBlobs() {
+        if (!confirm('Permanently delete all parked recovery blobs? This cannot be undone.')) return 0;
+        const count = this.getRecoveryBlobs().length;
+        localStorage.removeItem(STORAGE_KEYS.DECRYPTION_RECOVERY);
+        this.toast(`🗑 Cleared ${count} recovery blob${count === 1 ? '' : 's'}`);
+        return count;
+    },
+
     // History modal — opens from the badge's ⏮ button. Shows up to 5 snapshots
     // with relative timestamps; click Restore to revert the form to that state.
     async _showHistoryModal() {
@@ -731,7 +789,7 @@ Object.assign(App, {
     async load() {
         const s = localStorage.getItem(this.storageKey);
         if (!s) return;
-        
+
         // Try decrypting first
         if (this.encryptionEnabled) {
             try {
@@ -740,10 +798,12 @@ Object.assign(App, {
                     this.applyData(this._migrateSchema(decrypted));
                 } else {
                     console.warn('[App.load] Decryption returned null — stored data may be corrupt or key changed');
-                    this.toast('⚠️ Could not decrypt saved data. It may need to be re-entered.');
+                    this._parkCiphertextForRecovery(this.storageKey, s, 'decrypt-returned-null');
+                    this.toast('⚠️ Could not decrypt saved data. Ciphertext preserved in recovery bucket.');
                 }
             } catch (e) {
                 console.error('[App.load] Error during load/apply:', e);
+                this._parkCiphertextForRecovery(this.storageKey, s, 'decrypt-threw:' + (e?.message || 'unknown'));
             }
         } else {
             try {

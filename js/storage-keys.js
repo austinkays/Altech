@@ -76,6 +76,13 @@ window.STORAGE_KEYS = Object.freeze({
     WEATHER_LOCATION:       'altech_weather_location',
     DEVICE_ID:              'altech_device_id',
 
+    // ── Decryption recovery ──────────────────────────────────────────────────
+    // When CryptoHelper.decrypt returns null (key mismatch, corrupted
+    // ciphertext, etc.), App parks the original ciphertext here instead of
+    // silently dropping it. Never cloud-synced — local-only safety net. If the
+    // user recovers a key/passphrase later, these blobs are their path back.
+    DECRYPTION_RECOVERY:    'altech_decryption_recovery',
+
     // ── Firestore-only paths (not localStorage) ─────────────────────────────────
     // These are Firestore document paths written directly — NOT localStorage keys.
     // RENTCAST_USAGE:      users/{uid}/rentcast_usage/{YYYY-MM}
