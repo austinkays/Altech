@@ -509,6 +509,10 @@ Object.assign(App, {
             const quotes = await this.getQuotes();
             const idx = quotes.findIndex(q => q.id === this.activeClientId);
             if (idx < 0) return;
+            // Snapshot the PRE-update state into history — "undo the changes I just made"
+            // means restoring whatever the record looked like before this save. 60s dedup
+            // keeps the list from filling with near-identical snapshots during rapid typing.
+            this._addHistorySnapshot(quotes[idx]);
             quotes[idx].data = JSON.parse(JSON.stringify(this.data));
             quotes[idx].updatedAt = new Date().toISOString();
             if (typeof this.getQuoteTitle === 'function') {
@@ -518,6 +522,113 @@ Object.assign(App, {
             this._dirty = false;
             if (typeof this._updateActiveClientBadge === 'function') this._updateActiveClientBadge();
         } catch(e) { console.warn('[ActiveRecord] save-back error:', e); }
+    },
+
+    // History cap: 5 snapshots per record. Enough to roll back a bad AI-fill or
+    // accidental nuke, not enough to bloat the encrypted quote blob.
+    HISTORY_CAP: 5,
+    HISTORY_DEDUP_MS: 60_000,  // Ignore snapshot attempts within 1 min of the last one
+
+    _addHistorySnapshot(record, { force = false } = {}) {
+        if (!record || !record.data) return;
+        if (!record.history) record.history = [];
+        const latest = record.history[0];
+        if (latest && !force) {
+            const ageMs = Date.now() - new Date(latest.snapshotAt).getTime();
+            if (ageMs < this.HISTORY_DEDUP_MS) return;
+            if (JSON.stringify(latest.data) === JSON.stringify(record.data)) return;
+        }
+        record.history.unshift({
+            snapshotAt: new Date().toISOString(),
+            data: JSON.parse(JSON.stringify(record.data)),
+        });
+        if (record.history.length > this.HISTORY_CAP) {
+            record.history.length = this.HISTORY_CAP;
+        }
+    },
+
+    // Restore a snapshot. Pushes the current state as a fresh snapshot first
+    // (force=true, bypass dedup) so the undo is itself undoable.
+    async _restoreSnapshot(snapshotIndex) {
+        if (!this.activeClientId) return;
+        const quotes = await this.getQuotes();
+        const idx = quotes.findIndex(q => q.id === this.activeClientId);
+        if (idx < 0) return;
+        const record = quotes[idx];
+        if (!record.history || !record.history[snapshotIndex]) return;
+        const snapshot = record.history[snapshotIndex];
+        // Save current state into history BEFORE restoring, so the restore is reversible
+        const currentAsRecord = { ...record, data: JSON.parse(JSON.stringify(this.data)) };
+        this._addHistorySnapshot(currentAsRecord, { force: true });
+        record.history = currentAsRecord.history;
+        // Overwrite record.data with snapshot and persist
+        record.data = JSON.parse(JSON.stringify(snapshot.data));
+        record.data._clientId = this.activeClientId;
+        record.updatedAt = new Date().toISOString();
+        await this.saveQuotes(quotes);
+        // Re-apply the restored data to the live form
+        await this._switchToClient(record);
+        this.toast('↩️ Restored to ' + new Date(snapshot.snapshotAt).toLocaleTimeString());
+    },
+
+    // History modal — opens from the badge's ⏮ button. Shows up to 5 snapshots
+    // with relative timestamps; click Restore to revert the form to that state.
+    async _showHistoryModal() {
+        if (!this.activeClientId) {
+            this.toast('⚠️ No active client — nothing to restore');
+            return;
+        }
+        const quotes = await this.getQuotes();
+        const record = quotes.find(q => q.id === this.activeClientId);
+        const history = (record && record.history) || [];
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay active';
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        let bodyHtml;
+        if (!history.length) {
+            bodyHtml = '<p style="color:var(--text-secondary);">No history yet — snapshots are captured automatically as you work. Make more edits and save to build up history.</p>';
+        } else {
+            bodyHtml = '<div class="history-list">' + history.map((h, i) => {
+                const when = new Date(h.snapshotAt).toLocaleString();
+                const filled = Object.keys(h.data || {}).filter(k => {
+                    const v = h.data[k];
+                    return v !== null && v !== undefined && v !== '' && !String(k).startsWith('_');
+                }).length;
+                return `<div class="history-row">
+                    <div class="history-info">
+                        <div class="history-when">${when}</div>
+                        <div class="history-meta">${filled} fields captured</div>
+                    </div>
+                    <button class="modal-btn modal-btn-primary" data-history-idx="${i}">Restore</button>
+                </div>`;
+            }).join('') + '</div>';
+        }
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="modal-icon">⏮</span>
+                    <h2 class="modal-title">Recent snapshots</h2>
+                </div>
+                <div class="modal-body">
+                    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px;">
+                        Automatic snapshots capture the form state roughly once a minute as you work. Restoring is itself undoable — your current state is saved before the restore.
+                    </p>
+                    ${bodyHtml}
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn modal-btn-secondary" id="history-close">Close</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+        modal.querySelector('#history-close').onclick = () => modal.remove();
+        modal.querySelectorAll('[data-history-idx]').forEach(btn => {
+            btn.onclick = async () => {
+                const idx = parseInt(btn.dataset.historyIdx, 10);
+                if (!confirm('Restore the form to this snapshot? Your current state will be saved as an undo point first.')) return;
+                modal.remove();
+                await this._restoreSnapshot(idx);
+            };
+        });
     },
 
     // Badge rendering — shows "Editing: [Client Name] · [status]" below the header.

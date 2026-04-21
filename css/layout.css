@@ -193,6 +193,55 @@ body.dark-mode .btn-save-client:hover {
 }
 .active-client-badge .acb-status-clean { color: var(--success); }
 .active-client-badge .acb-status-dirty { color: #FF9500; /* no var */ }
+.active-client-badge .acb-history-btn {
+    margin-left: auto;
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.active-client-badge .acb-history-btn:hover {
+    background: var(--bg-card);
+    color: var(--apple-blue);
+    border-color: var(--apple-blue);
+}
+
+/* History modal — list of snapshot rows */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+.history-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+.history-row .history-info {
+    flex: 1;
+    min-width: 0;
+}
+.history-row .history-when {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 13px;
+}
+.history-row .history-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
 
 /* Dark Mode Toggle */
 .dark-mode-toggle {

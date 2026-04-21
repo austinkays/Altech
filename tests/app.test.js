@@ -1182,6 +1182,28 @@ describe('Altech App Tests', () => {
       expect(legacy.data._clientId).toBe('legacy-id-1');
     });
 
+    test('_addHistorySnapshot creates entry and caps at HISTORY_CAP', () => {
+      if (typeof App._addHistorySnapshot !== 'function') return;
+      const rec = { id: 'test', data: { firstName: 'A' } };
+      // Force bypass the 60s dedup, push 8 snapshots, assert cap of 5
+      for (let i = 0; i < 8; i++) {
+        rec.data = { firstName: 'F' + i };
+        App._addHistorySnapshot(rec, { force: true });
+      }
+      expect(rec.history.length).toBe(5);
+      // Most recent snapshot is at index 0 (unshift order)
+      expect(rec.history[0].data.firstName).toBe('F7');
+    });
+
+    test('_addHistorySnapshot dedupe prevents rapid duplicate snapshots', () => {
+      if (typeof App._addHistorySnapshot !== 'function') return;
+      const rec = { id: 'test', data: { firstName: 'Same' } };
+      App._addHistorySnapshot(rec, { force: true });
+      // Call again immediately — without force, the 60s dedup blocks the second push
+      App._addHistorySnapshot(rec);
+      expect(rec.history.length).toBe(1);
+    });
+
     test('switching from A to B back to A preserves each client s edits independently', async () => {
       if (typeof App.loadQuote !== 'function') return;
       await App.saveQuotes([

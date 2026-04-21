@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(intake): per-client undo/history (Phase 5, session 3a)** (April 21, 2026):
+  - Each quote record now keeps a rolling 5-snapshot history (`record.history: [{snapshotAt, data}]`). Snapshots are captured in `_saveActiveRecordNow` *before* overwriting the record, so "restore" means "undo the save I just did."
+  - `HISTORY_CAP = 5`, `HISTORY_DEDUP_MS = 60_000` — snapshots within 60s of the previous one (or identical to it) are skipped so rapid typing doesn't fill history with near-duplicates. Roughly one snapshot per minute of active editing; 5 snapshots cover ~5 minutes of checkpoints.
+  - New methods: `App._addHistorySnapshot(record, {force?})` (pure; force=true bypasses dedup for restore-is-undoable), `App._restoreSnapshot(index)` (pushes current as undo point, overwrites record, routes through `_switchToClient` to re-apply).
+  - UI: new "⏮ History" button on the active-client badge opens a modal with the 5 entries (timestamp + fields-captured count). "Restore" button on each row with a confirm before overwriting.
+  - CSS: `.acb-history-btn` + `.history-list` / `.history-row` classes in `css/layout.css`.
+  - Tests: 31 suites / 1803 tests pass. Two new tests cover the history cap (push 8 snapshots → length stays at 5, most recent wins) and the 60s dedup guard (rapid duplicate push → length stays 1).
+
 - **feat(intake): active client badge + dirty-state confirmation (Phase 5, session 2)** (April 21, 2026):
   - **Active Client Badge** — persistent "Editing: [Client Name] · saved / unsaved changes" strip below the header in the personal quoting form. Hidden when no active record (blank form state). Status flips in real time on input / save. Visual cue so the agent always knows which record their keystrokes are landing on — kills the Phase-5-session-1 residual-risk of "I thought this was a blank form but I was actually editing Alice's record."
   - **Dirty-state confirmation modal** — when `activeClientId` is set and `_dirty` is true, clicking Load on a different record (or Restore from Client History) pops a modal: "Unsaved changes to [Client] — Keep & Switch / Discard & Switch / Cancel." Keep-and-switch is the default (just saves to the record first, as session 1 already did); Discard-and-switch reverts the active record to its last-saved state before switching. Cancel does nothing. Clean records (no dirty edits) switch silently with no modal.
