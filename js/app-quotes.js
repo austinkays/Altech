@@ -43,6 +43,72 @@ Object.assign(App, {
             : `cid_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
     },
 
+    // Session 1 already guarantees prior record is saved before switch, so the
+    // default outcome ("Keep & Switch") is always safe. The modal exists for
+    // the rare "I typed into what I thought was a blank form, but it was
+    // actually Client A — don't save my accidental edits" case.
+    async _confirmSwitch(record /* null for blank form, else {id,data,...} */) {
+        if (!this._dirty || !this.activeClientId) {
+            await this._switchToClient(record);
+            return;
+        }
+        const first = (this.data.firstName || '').trim();
+        const last = (this.data.lastName || '').trim();
+        const curName = [first, last].filter(Boolean).join(' ') || 'the current client';
+        const choice = await this._promptDirtySwitch(curName);
+        if (choice === 'cancel') return;
+        if (choice === 'discard') {
+            // Wipe the pending edits in memory so _saveActiveRecordNow inside
+            // _switchToClient has nothing to flush to the active record.
+            // Reload the record's last-saved data from its source so the
+            // active record is restored to its pre-edit state.
+            try {
+                const quotes = await this.getQuotes();
+                const src = quotes.find(q => q.id === this.activeClientId);
+                if (src) {
+                    this.data = JSON.parse(JSON.stringify(src.data));
+                    this.data._clientId = this.activeClientId;
+                }
+            } catch(e) { console.warn('[DirtySwitch] restore-source error:', e); }
+            this._dirty = false;
+        }
+        await this._switchToClient(record);
+    },
+
+    _promptDirtySwitch(currentName) {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay active';
+            modal.onclick = (e) => {
+                if (e.target === modal) { modal.remove(); resolve('cancel'); }
+            };
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <span class="modal-icon">✏️</span>
+                        <h2 class="modal-title">Unsaved changes to ${this.escapeHTML(currentName)}</h2>
+                    </div>
+                    <div class="modal-body">
+                        <p>You've made changes that aren't yet written back to this client's saved record.</p>
+                        <p style="margin-top:8px;color:var(--text-secondary);font-size:13px;">
+                            <strong>Keep &amp; Switch</strong> saves your changes, then loads the other client.<br>
+                            <strong>Discard &amp; Switch</strong> reverts this client to their last-saved state and then switches — your recent edits are lost.
+                        </p>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="modal-btn modal-btn-secondary" id="ds-cancel">Cancel</button>
+                        <button class="modal-btn modal-btn-secondary" id="ds-discard">Discard &amp; Switch</button>
+                        <button class="modal-btn modal-btn-primary" id="ds-keep">Keep &amp; Switch</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            const close = (choice) => { modal.remove(); resolve(choice); };
+            modal.querySelector('#ds-cancel').onclick = () => close('cancel');
+            modal.querySelector('#ds-discard').onclick = () => close('discard');
+            modal.querySelector('#ds-keep').onclick = () => close('keep');
+        });
+    },
+
     saveClient() {
         const snapshot = JSON.parse(JSON.stringify(this.data || {}));
         const firstName = (snapshot.firstName || '').trim();
@@ -80,7 +146,8 @@ Object.assign(App, {
         const clients = this.getClientHistory();
         const client = clients.find(c => c.id === id);
         if (!client) return;
-        await this._switchToClient(client);
+        await this._confirmSwitch(client);
+        if (this.activeClientId !== client.id) return;  // user canceled
         // Persist loaded data to altech_v6 so page reload restores the right client
         if (this.encryptionEnabled) {
             CryptoHelper.encrypt(this.data).then(encrypted => safeSave(this.storageKey, encrypted));
@@ -418,7 +485,8 @@ Object.assign(App, {
         const quotes = await this.getQuotes();
         const quote = quotes.find(q => q.id === id);
         if (!quote) return;
-        await this._switchToClient(quote);
+        await this._confirmSwitch(quote);
+        if (this.activeClientId !== quote.id) return;  // user canceled from the modal
 
         // Save loaded data with encryption so page reload restores this client
         if (this.encryptionEnabled) {

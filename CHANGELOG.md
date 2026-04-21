@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(intake): active client badge + dirty-state confirmation (Phase 5, session 2)** (April 21, 2026):
+  - **Active Client Badge** — persistent "Editing: [Client Name] · saved / unsaved changes" strip below the header in the personal quoting form. Hidden when no active record (blank form state). Status flips in real time on input / save. Visual cue so the agent always knows which record their keystrokes are landing on — kills the Phase-5-session-1 residual-risk of "I thought this was a blank form but I was actually editing Alice's record."
+  - **Dirty-state confirmation modal** — when `activeClientId` is set and `_dirty` is true, clicking Load on a different record (or Restore from Client History) pops a modal: "Unsaved changes to [Client] — Keep & Switch / Discard & Switch / Cancel." Keep-and-switch is the default (just saves to the record first, as session 1 already did); Discard-and-switch reverts the active record to its last-saved state before switching. Cancel does nothing. Clean records (no dirty edits) switch silently with no modal.
+  - **beforeunload warning** — if the form is dirty and an active client is loaded, the browser's native "Leave site?" prompt fires on tab close / refresh / navigation. Keeps existing `_saveClientHistoryNow` flush on unload (best-effort).
+  - New state: `App._dirty` — set true in `save(e)` on user input, cleared in `_saveActiveRecordNow` after write, cleared in `_switchToClient` after the new record is loaded.
+  - New method: `App._updateActiveClientBadge()` — wired into `save()`, `_saveActiveRecordNow`, `_switchToClient`, and `applyData` so the badge always reflects current state with zero latency.
+  - New method: `App._confirmSwitch(record)` — wraps `_switchToClient` with the dirty-state modal; all load paths (`loadQuote`, `loadClientFromHistory`) now route through it. Cancel / Discard / Keep decisions all observable via `App.activeClientId` post-call.
+  - CSS: `.active-client-badge` + `.acb-*` classes in `css/layout.css`. Left-bordered in `--apple-blue`; clean status in `--success` green, dirty status in `#FF9500` orange (flagged `/* no var */` for the eventual design-token pass).
+  - Tests: 31 suites / 1801 tests pass (baseline preserved; no new regression tests — session 2 is UX polish on top of session 1's already-regression-tested identity layer, JSDOM can't meaningfully test modals).
+
 ### Fixed
 - **fix(client-isolation): active client identity + clean DOM on load + save-back-to-record (Phase 5, session 1)** (April 21, 2026):
   - Three real data-loss bugs gone in one pass:

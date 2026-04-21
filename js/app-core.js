@@ -449,6 +449,10 @@ Object.assign(App, {
     // ═══════════════════════════════════════════════════════════════════════
     activeClientId: null,
     _switchPromise: null,
+    // _dirty: true whenever the user has typed something since the last flush
+    // to the active record. Drives the switch-confirmation modal and the
+    // beforeunload warning. Cleared by _saveActiveRecordNow and _switchToClient.
+    _dirty: false,
 
     async _switchToClient(record /* null | {id, data, ...} */) {
         // Serialize rapid switch clicks — wait for any in-flight switch to finish
@@ -487,6 +491,9 @@ Object.assign(App, {
                 this.handleType();
                 if (typeof this.updateUI === 'function') this.updateUI();
             }
+            // Freshly-loaded or freshly-cleared form is clean by definition
+            this._dirty = false;
+            if (typeof this._updateActiveClientBadge === 'function') this._updateActiveClientBadge();
         })();
         try { await this._switchPromise; } finally { this._switchPromise = null; }
     },
@@ -508,7 +515,33 @@ Object.assign(App, {
                 quotes[idx].title = this.getQuoteTitle(this.data);
             }
             await this.saveQuotes(quotes);
+            this._dirty = false;
+            if (typeof this._updateActiveClientBadge === 'function') this._updateActiveClientBadge();
         } catch(e) { console.warn('[ActiveRecord] save-back error:', e); }
+    },
+
+    // Badge rendering — shows "Editing: [Client Name] · [status]" below the header.
+    // Hidden when no active record (blank form / fresh start).
+    _updateActiveClientBadge() {
+        const badge = document.getElementById('activeClientBadge');
+        if (!badge) return;
+        if (!this.activeClientId) {
+            badge.style.display = 'none';
+            return;
+        }
+        const first = (this.data.firstName || '').trim();
+        const last = (this.data.lastName || '').trim();
+        const name = [first, last].filter(Boolean).join(' ') || 'Untitled Client';
+        const status = this._dirty ? 'unsaved changes' : 'saved';
+        const statusClass = this._dirty ? 'acb-status-dirty' : 'acb-status-clean';
+        const nameEl = document.getElementById('acbName');
+        const statusEl = document.getElementById('acbStatus');
+        if (nameEl) nameEl.textContent = name;
+        if (statusEl) {
+            statusEl.textContent = status;
+            statusEl.className = 'acb-status ' + statusClass;
+        }
+        badge.style.display = '';
     },
 
     // Debounced client history auto-save (3s debounce, separate from form save)
@@ -536,6 +569,9 @@ Object.assign(App, {
             // hasCoApplicant uses 'yes'/'' string convention — toggleCoApplicant() is the sole authority
             if (e.target.type === 'checkbox' && k === 'hasCoApplicant') return;
             this.data[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+            // User input = form is dirty until next flush to the active record
+            this._dirty = true;
+            if (typeof this._updateActiveClientBadge === 'function') this._updateActiveClientBadge();
 
             if (k === 'firstName' || k === 'lastName') {
                 this.data.firstNamePhonetic = '';
@@ -708,6 +744,8 @@ Object.assign(App, {
         this.loadDriversVehicles();
         // Re-inject "Other" specify fields for dropdowns that were saved with "Other" selected
         this._restoreOtherFields();
+        // Refresh the active-client badge to reflect the loaded record
+        if (typeof this._updateActiveClientBadge === 'function') this._updateActiveClientBadge();
         // Debounced save to capture full form state (including DOM defaults)
         // after loading client data from Firestore or local history
         clearTimeout(this.saveTimeout);

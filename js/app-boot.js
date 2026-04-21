@@ -163,10 +163,19 @@ window.addEventListener('error', (e) => {
 })();
 
 // ── beforeunload: Save client history before page close/refresh ──
-window.addEventListener('beforeunload', () => {
+// Also trigger the native browser warning if the form has unsaved edits, so
+// closing the tab mid-intake doesn't silently drop work. Modern browsers
+// ignore the custom message and show their own generic prompt, but setting
+// event.returnValue (and returning a non-empty string) is what triggers it.
+window.addEventListener('beforeunload', (event) => {
     try {
         if (typeof App !== 'undefined' && App._saveClientHistoryNow) {
             App._saveClientHistoryNow();
+        }
+        if (typeof App !== 'undefined' && App._dirty && App.activeClientId) {
+            event.preventDefault();
+            event.returnValue = 'You have unsaved changes. Leave anyway?';
+            return event.returnValue;
         }
     } catch (e) { /* best-effort — can't block unload */ }
 });

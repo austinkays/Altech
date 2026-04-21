@@ -153,6 +153,47 @@ body.dark-mode .btn-save-client:hover {
     box-shadow: 0 2px 8px rgba(10, 132, 255, 0.2);
 }
 
+/* ── Active Client Badge (Phase 5, Session 2) ──────────────────────────────
+   Persistent identity cue so the agent always knows which record is being
+   edited. Hidden when no active record (blank form state). */
+.active-client-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    margin: 0 0 10px 0;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--apple-blue);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.active-client-badge .acb-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.active-client-badge .acb-name {
+    font-weight: 600;
+    color: var(--text);
+}
+.active-client-badge .acb-separator {
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+.active-client-badge .acb-status {
+    font-size: 12px;
+    font-weight: 500;
+}
+.active-client-badge .acb-status-clean { color: var(--success); }
+.active-client-badge .acb-status-dirty { color: #FF9500; /* no var */ }
+
 /* Dark Mode Toggle */
 .dark-mode-toggle {
     background: rgba(0, 60, 140, 0.06);
