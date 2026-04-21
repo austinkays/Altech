@@ -97,10 +97,15 @@ window.FIELDS = [
     { id: 'heatingType',  label: 'Heating Type',       type: 'select', section: 'systems', ezlynxRequired: true },
     { id: 'heatYr',       label: 'Heating Updated',    type: 'number', section: 'systems', ezlynxRequired: true },
     { id: 'cooling',      label: 'Cooling',            type: 'select', section: 'systems' },
-    { id: 'plumbYr',      label: 'Plumbing Updated',   type: 'number', section: 'systems', ezlynxRequired: true },
-    { id: 'elecYr',       label: 'Electrical Updated', type: 'number', section: 'systems', ezlynxRequired: true },
-    { id: 'sewer',        label: 'Sewer',              type: 'select', section: 'systems' }, // PDF only — not in HawkSoft FSC
-    { id: 'waterSource',  label: 'Water Source',       type: 'select', section: 'systems' }, // PDF only — not in HawkSoft FSC
+    { id: 'plumbYr',              label: 'Plumbing Updated',     type: 'number', section: 'systems', ezlynxRequired: true },
+    { id: 'plumbingMaterial',     label: 'Plumbing Material',    type: 'select', section: 'systems' }, // PDF only — not in EZLynx universal rater; carrier-decline signal
+    { id: 'elecYr',               label: 'Electrical Updated',   type: 'number', section: 'systems', ezlynxRequired: true },
+    { id: 'electricalPanel',      label: 'Electrical Panel',     type: 'select', section: 'systems' }, // PDF only — Federal Pacific/Zinsco/Pushmatic/Fuse Box are decline flags
+    { id: 'electricalAmps',       label: 'Electrical Amperage',  type: 'select', section: 'systems' }, // PDF only — 60A often declines
+    { id: 'waterHeaterAge',       label: 'Water Heater Age (yrs)', type: 'number', section: 'systems' }, // PDF only — 10+ yrs = leak/insurance risk
+    { id: 'waterHeaterLocation',  label: 'Water Heater Location', type: 'select', section: 'systems' }, // PDF only — attic location is a carrier concern
+    { id: 'sewer',                label: 'Sewer',                type: 'select', section: 'systems' }, // PDF only — not in HawkSoft FSC
+    { id: 'waterSource',          label: 'Water Source',         type: 'select', section: 'systems' }, // PDF only — not in HawkSoft FSC
 
     // ── Hazards / Safety ───────────────────────────────────────────────────
     { id: 'burglarAlarm',       label: 'Burglar Alarm',        type: 'select',   section: 'hazards' },

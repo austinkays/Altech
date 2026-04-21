@@ -9,7 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(intake): plumbing material + electrical panel + water heater fields** (April 21, 2026):
+  - Five new PDF-only fields in the Systems & Utilities section of the personal quoting form, filling gaps that matter for carrier risk decisions but aren't exposed by EZLynx's universal rater:
+    - `plumbingMaterial` — Copper / PEX / CPVC / PVC / Galvanized Steel / Polybutylene / Cast Iron / Mixed / Unknown. Polybutylene is a carrier-decline flag; galvanized signals leak risk.
+    - `electricalPanel` — Standard Breaker / Federal Pacific (FPE) / Zinsco / Pushmatic / Fuse Box / Other. FPE, Zinsco, and fuse boxes are common carrier declines, labeled accordingly in the dropdown.
+    - `electricalAmps` — 60 / 100 / 150 / 200 / 400 / Unknown. 60A often flags.
+    - `waterHeaterAge` — numeric input (years). 10+ yrs = leak risk.
+    - `waterHeaterLocation` — Basement / Garage / Closet / Attic / Crawl Space / Utility Room / Other. Attic placement is a carrier concern, labeled.
+  - All five added to `js/fields.js` (section `'systems'`, no `ezlynxRequired` flag since they're not in the universal rater), to the Systems & Utilities accordion in `plugins/quoting.html`, and to the Building Systems row of `js/app-export-pdf.js` so they print on the PDF summary.
+  - Not wired to EZLynx XML fill (`js/ezlynx-tool.js`) or HawkSoft FSC export — the universal rater doesn't expose these fields, so they're reference data the agent uses when filling the carrier-specific portion of the quote.
+  - Tests: 31 suites / 1797 tests pass (baseline preserved).
+
 ### Changed
+- **refactor: monolith decomposition (Phase 4 — app-export)** (April 21, 2026):
+  - `js/app-export.js` 1337 → 127 lines. The three remaining big concerns extracted into Object.assign siblings:
+    - `js/app-export-pdf.js` 749 — `exportPDF()` + `buildPDF(data)` (the ~735-line toner-friendly PDF builder: header/footer, section labels, 2-col kvRow, driver/vehicle cards, street-view + satellite photos, risk flags).
+    - `js/app-export-csv.js` 178 — `exportCSV`, `buildCSV`, `getCSVHeaders`, `downloadCSVTemplate`, `openBatchImport`, `handleBatchImport`, `parseCSV`, `mapCsvRowToData`.
+    - `js/app-export-coverage-gap.js` 284 — `runCoverageGapAnalysis` (AI coverage-gap prompt builder, Anthropic-preferred with Gemini fallback) + `_renderCoverageGapResults`.
+  - Residual `app-export.js`: `exportText`, `buildText`, `_getScanSystemPrompt`, `_getScanSchema`. The two scan helpers are called only by `app-scan.js`; left in place this pass to keep the scope tight — flagged as future move.
+  - Removed dead `_escapeAttr(str)` method (old compat bridge; all real call sites use `Utils.escapeAttr()` directly since the March 2026 sweep).
+  - `index.html`: registered the three new shards between `app-export.js` and `app-export-cmsmtf.js`. `app-boot.js` still loads last.
+  - `sw.js`: added the three new shards to `APP_SHELL`, bumped `CACHE_VERSION` `altech-v13` → `altech-v14` so clients re-prime the precache.
+  - Tests: 31 suites / 1797 tests pass (baseline preserved).
+
 - **refactor: monolith decomposition (Phase 3)** (April 21, 2026):
   - `api/property-intelligence.js` 2402 → 77 lines (thin router). Extracted into 11 focused helpers: `_property-arcgis.js` (parcel + flood), `_property-flood.js`, `_property-mapping.js` (HEATING/COOLING/ROOF/FOUNDATION/CONSTRUCTION/EXTERIOR maps + mapZillowToAltech), `_property-rentcast.js`, `_property-apify.js`, `_property-zillow.js` (tiered Rentcast → Apify → Gemini), `_property-satellite.js`, `_property-firestation.js`, `_property-listing.js`, `_property-address-validate.js`, `_property-shared.js`.
   - `api/prospect-lookup.js` 1792 → 68 lines (thin router). Extracted into 7 per-source helpers: `_prospect-li.js` (WA L&I), `_prospect-or-ccb.js` (Oregon CCB), `_prospect-sos.js` (WA/OR/AZ SOS + WA DOR fallback + legacy HTML parsers), `_prospect-osha.js`, `_prospect-sam.js`, `_prospect-places.js` (Google Places + state/city extractors), `_prospect-ai-analysis.js` (AI dossier + buildDataContext).
