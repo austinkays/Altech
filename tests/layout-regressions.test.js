@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { readComponentsCss, readIntakeAssistCss } = require('./helpers/css-loader.js');
 
 const ROOT = path.resolve(__dirname, '..');
 
@@ -10,9 +11,9 @@ function read(relPath) {
 describe('Layout Regression Guardrails', () => {
   const baseCss = read('css/base.css');
   const layoutCss = read('css/layout.css');
-  const componentsCss = read('css/components.css');
+  const componentsCss = readComponentsCss();
   const sidebarCss = read('css/sidebar.css');
-  const intakeCss = read('css/intake-assist.css');
+  const intakeCss = readIntakeAssistCss();
   const quoteCompareCss = read('css/quote-compare.css');
 
   test('global body prevents horizontal overflow bleed', () => {

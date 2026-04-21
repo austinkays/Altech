@@ -1,0 +1,93 @@
+/* === TOAST NOTIFICATIONS === */
+.toast {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-20px) scale(0.9);
+    background: rgba(30, 30, 35, 0.85); color: white; padding: 14px 28px; border-radius: 16px;
+    font-weight: 600; opacity: 0; pointer-events: none;
+    transition: opacity 0.35s var(--transition-smooth), transform 0.4s var(--transition-spring);
+    z-index: 10000; font-size: 14px; max-width: 90vw; text-align: center;
+    backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
+    letter-spacing: 0.1px;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); pointer-events: auto; }
+.toast.toast-error { background: rgba(255, 59, 48, 0.88); border-color: rgba(255, 100, 100, 0.15); box-shadow: 0 8px 32px rgba(255, 59, 48, 0.25); }
+.toast.toast-success { background: rgba(52, 199, 89, 0.88); color: #fff; border-color: rgba(100, 255, 140, 0.15); box-shadow: 0 8px 32px rgba(52, 199, 89, 0.25); }
+body.dark-mode .toast { background: rgba(50, 50, 55, 0.8); border-color: rgba(255, 255, 255, 0.06); }
+
+/* Pronunciation controls */
+.pronunciation-row { display: none; }
+.pronunciation-btn {
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.pronunciation-btn:hover { border-color: var(--apple-blue); color: var(--apple-blue); }
+.pronunciation-btn.has-value { color: var(--apple-blue); border-color: var(--apple-blue); background: rgba(0,122,255,0.06); }
+.pronunciation-popup {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 4px 16px var(--shadow);
+    z-index: 50;
+    min-width: 220px;
+    display: none;
+}
+.pronunciation-popup.active { display: block; }
+.pronunciation-popup input {
+    font-size: 13px !important;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+}
+.pronunciation-popup .popup-actions {
+    display: flex; gap: 6px;
+}
+.pronunciation-popup .popup-actions button {
+    flex: 1; padding: 5px 8px; border-radius: 6px; border: none;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.popup-btn-gen { background: var(--apple-blue); color: #fff; }
+.popup-btn-gen:hover { background: #0062cc; }
+.popup-btn-close { background: var(--border); color: var(--text); }
+.intake-name-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+.intake-name-header .label { margin-bottom: 0; }
+
+/* Input with inline action button */
+.input-with-action {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.input-with-action > input {
+    flex: 1;
+    padding-right: 36px;
+}
+.input-action-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+}
+.input-with-action .pronunciation-popup {
+    top: calc(100% + 4px);
+    right: 0;
+    left: auto;
+}
+

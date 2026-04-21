@@ -220,14 +220,19 @@ describe('askWithSearch — return contract', () => {
   });
 
   test('callers must destructure .text from askWithSearch result', () => {
-    // Verify prospect-lookup.js correctly destructures
-    const prospectSource = fs.readFileSync(path.join(__dirname, '../api/prospect-lookup.js'), 'utf8');
-    expect(prospectSource).toMatch(/searchResult\?\.text/);
-    expect(prospectSource).not.toMatch(/const rawText = await ai\.askWithSearch/);
-
-    // Verify property-intelligence.js correctly destructures
-    const propertySource = fs.readFileSync(path.join(__dirname, '../api/property-intelligence.js'), 'utf8');
-    expect(propertySource).toMatch(/searchResult\?\.text/);
-    expect(propertySource).not.toMatch(/const text = await ai\.askWithSearch/);
+    // Property & prospect were split into helper files — check every helper that calls askWithSearch
+    const callers = [
+      'api/_prospect-ai-analysis.js',
+      'api/_property-zillow.js',
+      'api/_property-listing.js',
+    ];
+    for (const rel of callers) {
+      const source = fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
+      if (source.includes('askWithSearch')) {
+        expect(source).toMatch(/searchResult\?\.text/);
+        // Callers should NOT assign the raw promise to a text/rawText variable
+        expect(source).not.toMatch(/const (rawText|text) = await ai\.askWithSearch/);
+      }
+    }
   });
 });

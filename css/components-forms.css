@@ -1,0 +1,131 @@
+/* === FORM ENHANCEMENTS === */
+.collapsible-section {
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+.collapsible-section.hidden {
+    display: none;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+.field-hint {
+    font-size: 12px;
+    color: #ff9500;
+    margin-top: 4px;
+    padding: 6px 8px;
+    background: rgba(255, 149, 0, 0.08);
+    border-radius: 6px;
+    border-left: 3px solid #ff9500;
+    display: none;
+}
+.field-hint.show { display: block; }
+.field-error {
+    color: #ff3b30;
+    font-size: 12px;
+    margin-top: 4px;
+}
+.btn-same-as-above {
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--bg-input);
+    color: var(--apple-blue);
+    border: 1.5px dashed var(--apple-blue);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+    width: 100%;
+    text-align: center;
+}
+.btn-same-as-above:hover {
+    background: rgba(0, 122, 255, 0.08);
+}
+.btn-same-as-above:active {
+    transform: scale(0.98);
+}
+
+/* === RADIO CARDS === */
+.radio-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.radio-card input { display: none; }
+.radio-card-content {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: var(--bg-card); padding: 20px 8px; border-radius: 12px; border: 2px solid var(--border);
+    cursor: pointer; transition: all 0.2s;
+    font-size: 14px; font-weight: 600; color: var(--text);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.radio-card input:checked + .radio-card-content {
+    border-color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.08);
+    color: var(--apple-blue);
+}
+.radio-card-content:active { transform: scale(0.97); }
+
+/* === CONSENT / CHECKBOX === */
+.consent-row { margin-top: 16px; }
+.checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+}
+.checkbox-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 2px 0 0;
+    flex: 0 0 auto;
+    accent-color: var(--apple-blue);
+}
+.checkbox-row span {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+.checkbox-row.is-prominent span {
+    font-size: 14px;
+    color: var(--text);
+}
+
+/* === FORM VALIDATION === */
+.validation-error {
+    display: block;
+    color: var(--danger, #ff3b30);
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: 500;
+}
+.required-star {
+    color: var(--danger, #ff3b30);
+    margin-left: 2px;
+    font-weight: 600;
+}
+
+/* === GOOGLE PLACES AUTOCOMPLETE === */
+.pac-container {
+    z-index: 10001 !important;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    margin-top: 4px;
+    background: var(--bg) !important;
+}
+.pac-item {
+    padding: 8px 12px;
+    font-size: 14px;
+    border-top: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+}
+.pac-item:first-child { border-top: none; }
+.pac-item:hover, .pac-item-selected { background: var(--bg-input); }
+.pac-icon { display: none; }
+.pac-item-query { color: var(--text); font-weight: 500; }
+body.dark-mode .pac-container { background: #1C1C1E !important; border-color: var(--border); }
+body.dark-mode .pac-item { border-color: var(--border); color: #FFFFFF; }
+body.dark-mode .pac-item:hover,
+body.dark-mode .pac-item-selected { background: #2C2C2E; }
+body.dark-mode .pac-item-query { color: #FFFFFF; }
+body.dark-mode .pac-matched { color: var(--apple-blue); }
+

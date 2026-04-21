@@ -67,7 +67,17 @@ npm run deploy:vercel   # Production deploy
 ├── css/                        # 34 stylesheets (~22,946 lines)
 │   ├── variables.css           # :root CSS custom properties + body.dark-mode overrides (all theme tokens)
 │   ├── base.css                # Reset, body, typography, scrollbars
-│   ├── components.css          # Cards, inputs, buttons, modals, toasts (shared components)
+│   ├── components-cards.css    # Cards, quote cards, driver/vehicle, export cards, map previews (split from components.css, 2026-04)
+│   ├── components-inputs.css   # Form input styles (split)
+│   ├── components-quote-library.css # Quote library search (split)
+│   ├── components-buttons.css  # Buttons + utility buttons + producer toggle (split)
+│   ├── components-forms.css    # Form enhancements, radio cards, validation, consent, Places autocomplete (split)
+│   ├── components-modals.css   # Data preview modal + dark-mode modal overrides (split)
+│   ├── components-toasts.css   # Toast notifications (split)
+│   ├── components-loading.css  # Standardized loading + skeleton placeholders (split)
+│   ├── components-misc.css     # Co-applicant, scan drop zone, debug UI, demo link, dark-mode badges (split)
+│   ├── components-acord.css    # ACORD 25 form styles + print + [data-tooltip] hover popovers (split)
+│   ├── components-pwa.css      # PWA update banner + install button (split)
 │   ├── layout.css              # Header, sidebar, plugin container, media queries
 │   ├── animations.css          # All @keyframes — never define @keyframes in plugin CSS
 │   ├── landing.css             # Landing / bento grid / tool-row styles
@@ -75,10 +85,15 @@ npm run deploy:vercel   # Production deploy
 │   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (866 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,244 lines)
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (934 lines)
-│   ├── compliance.css          # CGL compliance dashboard + print-to-PDF toolbar + renewal dedup badge + blue needs-state-update badge + snooze styles + fixed 6-col stat grid + two-row action buttons + note-count badge + button variant classes (.confirm, .state-done, .hs-done) (1,585 lines)
+│   ├── compliance-main.css     # CGL dashboard core — table, badges, save indicator, fetch progress, notes panel (split from compliance.css, 2026-04)
+│   ├── compliance-print-dark.css # Print mode + CGL dark mode overrides + badges (split)
+│   ├── compliance-responsive.css # Desktop enhancements, mobile stat-card stacking, callouts, step cards (split)
 │   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
 │   ├── reminders.css           # Task reminders (1,169 lines)
-│   ├── intake-assist.css       # AI intake professional UI — enhanced cards, gradient bubbles, dark mode elevation, wide-screen scaling (1,525 lines)
+│   ├── intake-assist-chat.css  # Split layout, mobile tab bar, chat pane, message bubbles, suggestion chips, input row
+│   ├── intake-assist-sidebar.css # Sidebar header, collapsible data sections, map + vehicle cards
+│   ├── intake-assist-features.css # Responsive, legacy compat, document upload, copy, inline edit, hazard badges, market/trends cards
+│   ├── intake-assist-polish.css # Focus visible, reduced motion, drag-drop overlay, desktop scaling, scrollbar, dark-mode polish
 │   ├── ezlynx.css              # EZLynx export — standalone dark palette (590 lines)
 │   ├── vin-decoder.css         # VIN decoder (646 lines)
 │   ├── hawksoft.css            # HawkSoft export (555 lines)
@@ -182,14 +197,32 @@ npm run deploy:vercel   # Production deploy
 │   ├── dec-import.html          # Dec Page Importer UI (131 lines)
 │   └── deposit-sheet.html       # Deposit Sheet UI (108 lines)
 │
-├── api/                        # 12 serverless functions + 3 helpers (~6,500 lines) ⚠️ Hobby plan MAX = 12 functions
+├── api/                        # ~14 serverless endpoints + many `_`-prefixed helpers (~8,500 lines). Project is on Vercel Pro (April 2026) — ceiling is ~1000 functions, no longer a constraint.
 │   ├── _ai-router.js           # ★ Shared: multi-provider AI router (NOT an endpoint)
 │   ├── _apify-client.js        # ★ Shared: Apify web scraper client — Redfin Detail + Zillow Search actors (NOT an endpoint)
 │   ├── config.js               # Firebase config, API keys, phonetics, bug reports
 │   ├── policy-scan.js          # OCR document extraction via Gemini (260 lines)
 │   ├── vision-processor.js     # Image/PDF analysis, DL scanning, aerial analysis (880 lines)
-│   ├── property-intelligence.js # ArcGIS parcels, satellite AI, fire stations, address validation, Street View/satellite URL generation, improved multi-unit detection, listing search pipeline, Apify Redfin/Zillow fallback (2,402 lines)
-│   ├── prospect-lookup.js      # Multi-source business investigation (1,788 lines)
+│   ├── property-intelligence.js # Thin router (~77 lines) — dispatches ?mode=arcgis|satellite|zillow|listing-search|rentcast|firestation|rag-interpret|validate-address to _property-*.js helpers
+│   ├── _property-arcgis.js     # County ArcGIS parcel queries + Clark fact sheet + FEMA flood (helper)
+│   ├── _property-flood.js      # FEMA NFHL flood zone lookup (5s timeout)
+│   ├── _property-mapping.js    # Fuzzy enum maps + mapZillowToAltech shared normalizer
+│   ├── _property-rentcast.js   # Rentcast /v1/properties lookup
+│   ├── _property-apify.js      # Apify Redfin Detail + Zillow Search mappers
+│   ├── _property-zillow.js     # Tiered cascade (Rentcast → Apify → Gemini) for ?mode=zillow
+│   ├── _property-satellite.js  # Google Static Maps + Street View + AI vision (?mode=satellite)
+│   ├── _property-firestation.js # Google Places fire station + protection class (?mode=firestation)
+│   ├── _property-listing.js    # URL/address → Apify + Gemini search grounding (?mode=listing-search)
+│   ├── _property-address-validate.js # Google Address Validation + geocoding fallback
+│   ├── _property-shared.js     # getGoogleApiKey + getMapsApiKey env readers
+│   ├── prospect-lookup.js      # Thin router (~68 lines) — dispatches ?type=li|sos|or-ccb|osha|sam|places|ai-analysis to _prospect-*.js helpers
+│   ├── _prospect-li.js         # WA L&I Contractor Registry + principal names (Socrata m8qx-ubtq + 4xk5-x9j6)
+│   ├── _prospect-or-ccb.js     # Oregon CCB active licenses (Socrata g77e-6bhs)
+│   ├── _prospect-sos.js        # SOS lookups — WA CCFS + DOR fallback, OR Socrata, AZ manual-search deep link
+│   ├── _prospect-osha.js       # DOL OSHA inspection + violation API
+│   ├── _prospect-sam.js        # SAM.gov Entity Management API v3
+│   ├── _prospect-places.js     # Google Places text/discover/details + state/city extraction
+│   ├── _prospect-ai-analysis.js # Commercial underwriting AI dossier + buildDataContext
 │   ├── compliance.js           # HawkSoft API CGL policy fetcher + Redis cache + allClientsList + hawksoftPolicyId (478 lines)
 │   ├── historical-analyzer.js  # AI property value/insurance trend analysis
 │   ├── _rag-interpreter.js     # County assessor data → insurance fields (helper, routed via property-intelligence)

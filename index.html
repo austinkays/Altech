@@ -15,16 +15,34 @@
     <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/layout.css">
-    <link rel="stylesheet" href="css/components.css">
+    <!-- components.css was split into focused files for easier editing — order preserves cascade -->
+    <link rel="stylesheet" href="css/components-cards.css">
+    <link rel="stylesheet" href="css/components-inputs.css">
+    <link rel="stylesheet" href="css/components-quote-library.css">
+    <link rel="stylesheet" href="css/components-buttons.css">
+    <link rel="stylesheet" href="css/components-forms.css">
+    <link rel="stylesheet" href="css/components-modals.css">
+    <link rel="stylesheet" href="css/components-toasts.css">
+    <link rel="stylesheet" href="css/components-loading.css">
+    <link rel="stylesheet" href="css/components-misc.css">
+    <link rel="stylesheet" href="css/components-acord.css">
+    <link rel="stylesheet" href="css/components-pwa.css">
     <link rel="stylesheet" href="css/landing.css">
     <link rel="stylesheet" href="css/animations.css">
-    <link rel="stylesheet" href="css/compliance.css">
+    <!-- compliance.css split for editability — order preserves cascade -->
+    <link rel="stylesheet" href="css/compliance-main.css">
+    <link rel="stylesheet" href="css/compliance-print-dark.css">
+    <link rel="stylesheet" href="css/compliance-responsive.css">
     <link rel="stylesheet" href="css/email.css">
     <link rel="stylesheet" href="css/quickref.css">
     <link rel="stylesheet" href="css/accounting.css">
     <link rel="stylesheet" href="css/ezlynx.css">
     <link rel="stylesheet" href="css/quote-compare.css">
-    <link rel="stylesheet" href="css/intake-assist.css">
+    <!-- intake-assist.css split for editability — order preserves cascade -->
+    <link rel="stylesheet" href="css/intake-assist-chat.css">
+    <link rel="stylesheet" href="css/intake-assist-sidebar.css">
+    <link rel="stylesheet" href="css/intake-assist-features.css">
+    <link rel="stylesheet" href="css/intake-assist-polish.css">
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/vault.css">
     <link rel="stylesheet" href="css/admin.css">
@@ -999,12 +1017,24 @@
     <!-- App modules (core first, then features) -->
     <script src="js/app-ui-utils.js"></script>
     <script src="js/app-navigation.js"></script>
+    <script src="js/app-validation.js"></script>
     <script src="js/app-core.js"></script>
+    <script src="js/app-places.js"></script>
+    <script src="js/app-carriers.js"></script>
+    <script src="js/app-applicant.js"></script>
+    <script src="js/app-ai-settings.js"></script>
     <script src="js/app-scan.js"></script>
+    <script src="js/app-scan-doc-intel.js"></script>
     <script src="js/app-property.js"></script>
+    <script src="js/app-property-maps.js"></script>
+    <script src="js/app-property-parcel.js"></script>
+    <script src="js/app-property-unified.js"></script>
+    <script src="js/app-property-rentcast.js"></script>
     <script src="js/app-vehicles.js"></script>
     <script src="js/app-popups.js"></script>
+    <script src="js/app-popups-history.js"></script>
     <script src="js/app-export.js"></script>
+    <script src="js/app-export-cmsmtf.js"></script>
     <script src="js/app-quotes.js"></script>
 
     <!-- AI Provider (must load before plugins that use it) -->
@@ -1014,15 +1044,19 @@
     <script src="js/dashboard-widgets.js"></script>
 
     <!-- Plugin scripts (loaded after DOM) -->
+    <script src="js/prospect-formatters.js"></script>
     <script src="js/prospect.js"></script>
     <script src="js/quick-ref.js"></script>
     <script src="js/accounting-export.js"></script>
+    <script src="js/compliance-idb.js"></script>
     <script src="js/compliance-dashboard.js"></script>
     <script src="js/ezlynx-tool.js"></script>
     <script src="js/quote-compare.js"></script>
+    <script src="js/intake-assist-prompts.js"></script>
     <script src="js/intake-assist.js"></script>
     <script src="js/email-composer.js"></script>
     <script src="js/reminders.js"></script>
+    <script src="js/hawksoft-renderers.js"></script>
     <script src="js/hawksoft-export.js"></script>
     <script src="js/vin-decoder.js"></script>
     <script src="js/call-logger.js"></script>

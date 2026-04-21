@@ -1,0 +1,43 @@
+/* === QUOTE LIBRARY SEARCH === */
+.quote-search-container { margin-bottom: 16px; }
+.quote-search-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
+    background: var(--bg-input);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.quote-search-input:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+/* Quick Start draft rows (compact) */
+.qs-draft-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border);
+}
+.qs-draft-row:last-child { border-bottom: none; }
+.qs-draft-row:hover { background: rgba(0, 122, 255, 0.06); }
+.qs-draft-row:active { background: rgba(0, 122, 255, 0.12); }
+.qs-draft-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.qs-draft-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qs-draft-meta { font-size: 11px; color: var(--text-secondary); }
+.qs-draft-delete {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-secondary); font-size: 14px; padding: 4px 8px;
+    border-radius: 4px; opacity: 0.4; transition: all 0.15s; flex-shrink: 0;
+}
+.qs-draft-delete:hover { opacity: 1; color: #ff3b30; background: rgba(255, 59, 48, 0.08); }
+

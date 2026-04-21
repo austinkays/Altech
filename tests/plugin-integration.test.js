@@ -22,6 +22,7 @@
 const { JSDOM } = require('jsdom');
 const fs = require('fs');
 const path = require('path');
+const { readComponentsCss } = require('./helpers/css-loader.js');
 const { loadHTML } = require('./load-html.cjs');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -401,7 +402,8 @@ describe('JS Module Files', () => {
 
 describe('Gemini API Key Discovery (correctness)', () => {
   test('App._getGeminiKey fetches /api/config?type=keys and reads geminiKey', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'js', 'app-core.js'), 'utf8');
+    // _getGeminiKey was moved to app-places.js during the Phase 3 refactor (2026-04).
+    const source = fs.readFileSync(path.join(ROOT, 'js', 'app-places.js'), 'utf8');
     const getKeyBlock = source.match(/_getGeminiKey\(\)\s*\{[\s\S]*?\n\s{4}\},/);
     expect(getKeyBlock).not.toBeNull();
     expect(getKeyBlock[0]).toContain('/api/config?type=keys');
@@ -452,7 +454,7 @@ describe('API Env Var Trimming', () => {
     { file: '_ai-router.js', envVars: ['GOOGLE_API_KEY'] },
     { file: 'policy-scan.js', envVars: ['GOOGLE_API_KEY'] },
     { file: 'config.js', envVars: ['GOOGLE_API_KEY'] },
-    { file: 'property-intelligence.js', envVars: ['GOOGLE_API_KEY'] },
+    { file: '_property-shared.js', envVars: ['GOOGLE_API_KEY'] },
   ];
 
   // Files that delegate env var handling to _ai-router.js (which does the trim)
@@ -630,18 +632,21 @@ describe('Script Load Order', () => {
 // ────────────────────────────────────────────────────
 
 describe('Export Engines Present', () => {
-  let source;
+  let exportSource;
+  let cmsmtfSource;
 
   beforeAll(() => {
-    source = fs.readFileSync(path.join(ROOT, 'js', 'app-export.js'), 'utf8');
+    exportSource = fs.readFileSync(path.join(ROOT, 'js', 'app-export.js'), 'utf8');
+    cmsmtfSource = fs.readFileSync(path.join(ROOT, 'js', 'app-export-cmsmtf.js'), 'utf8');
   });
 
   test('exportCMSMTF function exists', () => {
-    expect(source).toContain('exportCMSMTF');
+    // Moved to app-export-cmsmtf.js during Phase 3 refactor
+    expect(cmsmtfSource).toContain('exportCMSMTF');
   });
 
   test('exportPDF function exists', () => {
-    expect(source).toContain('exportPDF');
+    expect(exportSource).toContain('exportPDF');
   });
 });
 
@@ -708,7 +713,7 @@ describe('12-Column Grid Layout', () => {
   let source;
 
   beforeAll(() => {
-    source = fs.readFileSync(path.join(ROOT, 'css', 'components.css'), 'utf8');
+    source = readComponentsCss();
   });
 
   test('grid-12 CSS class is defined with 12-column template', () => {
@@ -824,7 +829,7 @@ describe('Progressive Disclosure: Secondary Heating', () => {
   });
 
   test('disclosure-hidden CSS class uses display:none', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'css', 'components.css'), 'utf8');
+    const source = readComponentsCss();
     expect(source).toMatch(/\.disclosure-hidden\s*\{[^}]*display:\s*none/);
   });
 
@@ -885,7 +890,7 @@ describe('iOS Toggle Switches', () => {
   });
 
   test('toggle-switch CSS is defined', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'css', 'components.css'), 'utf8');
+    const source = readComponentsCss();
     expect(source).toMatch(/\.toggle-switch\s*\{/);
     expect(source).toMatch(/\.toggle-slider\s*\{/);
     expect(source).toMatch(/\.toggle-slider::before\s*\{/);
@@ -908,13 +913,13 @@ describe('Home Coverage Grid', () => {
   });
 
   test('grid-2-full CSS class is defined with correct columns and gap', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'css', 'components.css'), 'utf8');
+    const source = readComponentsCss();
     expect(source).toMatch(/\.grid-2-full\s*\{[^}]*grid-template-columns:\s*1fr\s+1fr/);
     expect(source).toMatch(/\.grid-2-full\s*\{[^}]*gap:\s*16px/);
   });
 
   test('full-span CSS class spans both columns', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'css', 'components.css'), 'utf8');
+    const source = readComponentsCss();
     expect(source).toMatch(/\.full-span\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/);
   });
 
@@ -1028,12 +1033,12 @@ describe('Home Endorsements Layout', () => {
 
   // Group 2: All 3 toggles in toggle-grid-3
   test('toggle-grid-3 CSS class is defined', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'css', 'components.css'), 'utf8');
+    const source = readComponentsCss();
     expect(source).toMatch(/\.toggle-grid-3\s*\{[^}]*grid-template-columns:\s*1fr\s+1fr\s+1fr/);
   });
 
   test('toggle-card CSS class is defined with flex layout', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'css', 'components.css'), 'utf8');
+    const source = readComponentsCss();
     expect(source).toMatch(/\.toggle-card\s*\{[^}]*display:\s*flex/);
   });
 
@@ -1106,7 +1111,7 @@ describe('Home Endorsements Layout', () => {
   });
 
   test('toggle-grid-3 has responsive fallback for mobile', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'css', 'components.css'), 'utf8');
+    const source = readComponentsCss();
     expect(source).toMatch(/@media[^{]*max-width[^{]*\{[^}]*\.toggle-grid-3\s*\{[^}]*grid-template-columns:\s*1fr/s);
   });
 });

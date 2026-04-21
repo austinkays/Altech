@@ -64,7 +64,7 @@
 | `css/variables.css` | `:root` CSS vars + `body.dark-mode` overrides | Color changes, new theme tokens |
 | `css/base.css` | Reset, body, typography, scrollbars | Global typography / body styles |
 | `css/layout.css` | Header, sidebar, plugin container, media queries | Layout shifts, sidebar changes |
-| `css/components.css` | Cards, inputs, buttons, modals, toasts, forms | Shared component styles |
+| `css/components-*.css` | Cards, inputs, buttons, modals, toasts, forms, loading, acord, pwa, misc (split from components.css in 2026-04) | Shared component styles — edit the shard by family |
 | `css/landing.css` | Dashboard bento grid, tool-row 3D tilt | Home page / dashboard only |
 | `css/animations.css` | All `@keyframes` + global animation assignments | Any new animation |
 | `css/sidebar.css` | Desktop/tablet/mobile sidebar layouts, logo | Sidebar navigation UI |
@@ -185,7 +185,7 @@ priorCarrier, priorYears, priorLapse
 | `js/crypto-helper.js` | 🔴 | Encryption for all user data — any bug → data loss or plaintext leak |
 | `js/app-boot.js` | 🟡 | Boot sequence — if it fails, entire app doesn't load |
 | `js/auth.js` | 🟡 | Authentication + `apiFetch()` used by most plugins |
-| `css/main.css` | ⚠️ | ⚠️ NOT loaded by index.html — `@import` aggregator only. Never edit directly. Real files: `variables.css`, `base.css`, `layout.css`, `components.css` |
+| `css/main.css` | ⚠️ | ⚠️ NOT loaded by index.html — `@import` aggregator only. Never edit directly. Real files: `variables.css`, `base.css`, `layout.css`, and the `components-*.css` shards |
 | `plugins/quoting.html` | 🟡 | 2,019 lines, all form field IDs — renaming breaks persistence |
 | `js/compliance-dashboard.js` | 🟡 | 2,513 lines, 6-layer persistence, complex merge logic, needsStateUpdate flag, snooze/sleep system |
 

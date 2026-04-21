@@ -1,0 +1,527 @@
+/* ── AI Intake Assistant — Split Layout Redesign ──────────── */
+
+/* ═══ Layout ═══ */
+
+/* Make the plugin container a flex column so .ia-main fills remaining space */
+#intakeTool.plugin-container.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.ia-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+}
+
+/* Lock the parent chain so the viewport doesn't scroll when intake is active.
+   The height must propagate unbroken from .app-main → .app-content → #pluginViewport → #intakeTool.
+   .app-content is normally a block element, so #pluginViewport has no definite height
+   and #intakeTool's height:100% resolves to auto (content height → clipped).
+   Fix: make .app-content a flex column so #pluginViewport stretches to fill it.
+
+   These rules are NOT media-query-gated — the height chain must hold at every width.
+   Only viewport-specific tweaks (hiding mobile nav, padding resets) are inside MQs. */
+
+/* ── Height chain fix (all viewports) ── */
+.app-shell:has(#intakeTool.active) .app-main {
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    padding: 0 !important; /* strip mobile-nav padding clearance */
+    overflow: hidden;
+    background: var(--bg);
+}
+.app-shell:has(#intakeTool.active) .app-content {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--bg);
+}
+#pluginViewport.plugin-viewport.active {
+    display: flex !important; /* sidebar.css loads after us and keeps winning */
+    flex-direction: column;
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* At 768–1023px the sidebar is off-screen (position:fixed, left:-260px) but
+   body.sidebar-collapsed .app-shell still sets a 64px ghost column via higher
+   specificity. Override that so the main content fills the full width. */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .app-shell:has(#intakeTool.active) {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ── Mobile tweaks (<768px) ── */
+@media (max-width: 767px) {
+    .app-shell:has(#intakeTool.active) .app-content {
+        /* Remove the normal bottom-nav padding — we handle it inside the chat input row */
+        padding-bottom: 0;
+    }
+
+    /* Hide the mobile bottom nav when AI Intake is active —
+       the tab bar + input row replace its function */
+    .app-shell:has(#intakeTool.active) ~ .mobile-bottom-nav {
+        display: none;
+    }
+}
+
+.ia-layout {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+@media (min-width: 768px) {
+    .ia-layout {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        grid-template-rows: minmax(0, 1fr);
+        gap: 0;
+    }
+}
+
+@media (min-width: 1024px) {
+    .ia-layout {
+        grid-template-columns: 1fr 420px;
+    }
+}
+
+/* ═══ Mobile Tab Bar ═══ */
+
+.ia-tab-bar {
+    display: flex;
+    gap: 4px;
+    padding: 6px 10px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+}
+
+@media (min-width: 768px) {
+    .ia-tab-bar { display: none !important; }
+}
+
+.ia-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 12px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.ia-tab.ia-tab-active {
+    background: var(--bg-card);
+    color: var(--apple-blue);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+body.dark-mode .ia-tab.ia-tab-active {
+    background: #1C1C1E;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.ia-tab:hover:not(.ia-tab-active) {
+    color: var(--text);
+    background: rgba(0, 0, 0, 0.02);
+}
+body.dark-mode .ia-tab:hover:not(.ia-tab-active) {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.ia-tab-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: var(--apple-blue);
+    color: #fff;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* Mobile: show/hide panes based on active tab */
+@media (max-width: 767px) {
+    .ia-layout[data-active-tab="data"] .ia-chat-pane { display: none; }
+    .ia-layout[data-active-tab="data"] .ia-sidebar-pane {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+    }
+    .ia-layout[data-active-tab="chat"] .ia-chat-pane {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+    }
+    .ia-layout[data-active-tab="chat"] .ia-sidebar-pane { display: none; }
+    .ia-layout:not([data-active-tab]) .ia-sidebar-pane { display: none; }
+    .ia-layout:not([data-active-tab]) .ia-chat-pane {
+        flex: 1;
+        min-height: 0;
+    }
+}
+
+/* ═══ Chat Pane ═══ */
+
+.ia-chat-pane {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 10px;
+}
+
+@media (min-width: 768px) {
+    .ia-chat-pane {
+        border-right: 1px solid var(--border);
+        padding: 12px;
+    }
+}
+
+.ia-chat-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.ia-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.02);
+}
+body.dark-mode .ia-card {
+    border-color: #2C2C2E;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.ia-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: linear-gradient(180deg, rgba(0, 122, 255, 0.03) 0%, transparent 100%);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+body.dark-mode .ia-card-header {
+    background: linear-gradient(180deg, rgba(10, 132, 255, 0.06) 0%, transparent 100%);
+}
+
+.ia-card-icon { font-size: 18px; }
+
+.ia-card-title {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex: 1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.ia-clear-btn {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s, background 0.2s, transform 0.15s;
+}
+.ia-clear-btn:hover {
+    color: var(--danger, #FF3B30);
+    background: rgba(255, 59, 48, 0.08);
+    transform: scale(1.05);
+}
+.ia-clear-btn:active {
+    transform: scale(0.95);
+}
+
+/* Messages */
+.ia-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 18px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+.ia-msg {
+    max-width: 82%;
+    padding: 11px 15px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    animation: iaMsgIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes iaMsgIn {
+    from { opacity: 0; transform: translateY(6px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ia-msg-ai {
+    align-self: flex-start;
+    background: var(--bg-input);
+    color: var(--text);
+    border-bottom-left-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+body.dark-mode .ia-msg-ai {
+    background: #1C1C1E;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.ia-msg-user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, #007AFF 0%, #0066D6 100%);
+    color: #fff;
+    border-bottom-right-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 122, 255, 0.2);
+}
+body.dark-mode .ia-msg-user {
+    background: linear-gradient(135deg, #0A84FF 0%, #0066D6 100%);
+    box-shadow: 0 2px 8px rgba(10, 132, 255, 0.25);
+}
+
+.ia-msg-ai strong { color: var(--apple-blue); }
+.ia-msg-ai code {
+    background: rgba(0,0,0,0.06);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 500;
+}
+body.dark-mode .ia-msg-ai code {
+    background: rgba(255,255,255,0.08);
+}
+
+/* Hide any remaining code blocks in chat (JSON data) */
+.ia-msg .ia-code { display: none; }
+
+/* Typing dots */
+.ia-typing {
+    display: flex !important;
+    gap: 5px;
+    align-items: center;
+    padding: 14px 18px;
+}
+
+.ia-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+    animation: iaBounce 1.3s infinite;
+}
+.ia-dot:nth-child(2) { animation-delay: 0.18s; }
+.ia-dot:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes iaBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-7px); opacity: 1; }
+}
+
+/* Suggestion chips */
+.ia-chip-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 18px 14px;
+    flex-shrink: 0;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ia-chip-row.ia-chips-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.ia-chip {
+    padding: 9px 18px;
+    border-radius: 22px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s var(--transition-smooth, ease);
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.ia-chip:hover {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.12);
+}
+.ia-chip:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 122, 255, 0.08);
+}
+body.dark-mode .ia-chip {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+body.dark-mode .ia-chip:hover {
+    box-shadow: 0 4px 14px rgba(10, 132, 255, 0.18);
+}
+
+/* Start / quick-start chips — prominent hero pills */
+.ia-chip-start {
+    background: rgba(0, 122, 255, 0.08);
+    border-color: rgba(0, 122, 255, 0.25);
+    color: var(--apple-blue);
+    font-size: 14px;
+    padding: 10px 22px;
+}
+.ia-chip-start:hover {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.25);
+}
+body.dark-mode .ia-chip-start {
+    background: rgba(10, 132, 255, 0.12);
+    border-color: rgba(10, 132, 255, 0.3);
+}
+body.dark-mode .ia-chip-start:hover {
+    background: #0A84FF;
+    border-color: #0A84FF;
+    color: #fff;
+}
+
+.ia-chip-suggestion {
+    border-color: rgba(0, 122, 255, 0.3);
+    color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.05);
+}
+.ia-chip-suggestion:hover {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+    color: #fff;
+}
+body.dark-mode .ia-chip-suggestion {
+    background: rgba(10, 132, 255, 0.08);
+    border-color: rgba(10, 132, 255, 0.3);
+}
+
+.ia-chip-done {
+    border-color: rgba(52, 199, 89, 0.35);
+    color: var(--success);
+    background: rgba(52, 199, 89, 0.06);
+}
+.ia-chip-done:hover {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(52, 199, 89, 0.2);
+}
+body.dark-mode .ia-chip-done {
+    background: rgba(50, 215, 75, 0.08);
+    border-color: rgba(50, 215, 75, 0.3);
+}
+
+/* Input row */
+.ia-input-row {
+    display: flex;
+    gap: 8px;
+    padding: 12px 18px 14px;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.01) 100%);
+    align-items: flex-end;
+    flex-shrink: 0;
+}
+body.dark-mode .ia-input-row {
+    background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.01) 100%);
+}
+
+.ia-input {
+    flex: 1;
+    padding: 10px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 22px;
+    background: var(--bg-input);
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    overflow: hidden;
+    min-height: 20px;
+    max-height: 120px;
+    line-height: 1.5;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.ia-input:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1), 0 2px 8px rgba(0, 122, 255, 0.06);
+}
+body.dark-mode .ia-input:focus {
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15), 0 2px 8px rgba(10, 132, 255, 0.08);
+}
+.ia-input::placeholder { color: var(--text-tertiary); }
+.ia-input:disabled { opacity: 0.5; }
+
+.ia-send-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #007AFF 0%, #0066D6 100%);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+}
+body.dark-mode .ia-send-btn {
+    background: linear-gradient(135deg, #0A84FF 0%, #0066D6 100%);
+    box-shadow: 0 2px 10px rgba(10, 132, 255, 0.3);
+}
+.ia-send-btn:hover {
+    transform: scale(1.08);
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+}
+.ia-send-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 4px rgba(0, 122, 255, 0.2);
+}
+.ia-send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+

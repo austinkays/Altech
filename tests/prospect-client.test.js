@@ -347,7 +347,7 @@ describe('prospect-lookup.js — _extractStateFromAddress', () => {
   let extractState;
 
   beforeAll(() => {
-    const source = fs.readFileSync(path.join(ROOT, 'api/prospect-lookup.js'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'api/_prospect-places.js'), 'utf8');
     const fnMatch = source.match(/function _extractStateFromAddress\(address\)\s*\{[\s\S]*?^\}/m);
     if (fnMatch) {
       const evalFn = new Function(`
@@ -389,7 +389,7 @@ describe('prospect-lookup.js — _extractCityFromAddress', () => {
   let extractCity;
 
   beforeAll(() => {
-    const source = fs.readFileSync(path.join(ROOT, 'api/prospect-lookup.js'), 'utf8');
+    const source = fs.readFileSync(path.join(ROOT, 'api/_prospect-places.js'), 'utf8');
     const fnMatch = source.match(/function _extractCityFromAddress\(address\)\s*\{[\s\S]*?^\}/m);
     if (fnMatch) {
       const evalFn = new Function(`

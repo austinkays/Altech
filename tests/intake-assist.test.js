@@ -600,7 +600,8 @@ describe('IntakeAssist CSS', () => {
     let cssContent;
 
     beforeAll(() => {
-        cssContent = fs.readFileSync(path.join(ROOT, 'css/intake-assist.css'), 'utf8');
+        const { readIntakeAssistCss } = require('./helpers/css-loader.js');
+        cssContent = readIntakeAssistCss();
     });
 
     test('uses ia- prefix for classes', () => {
@@ -741,9 +742,13 @@ describe('IntakeAssist HTML', () => {
 
 describe('IntakeAssist JS', () => {
     let jsContent;
+    let promptsContent;
 
     beforeAll(() => {
         jsContent = fs.readFileSync(path.join(ROOT, 'js/intake-assist.js'), 'utf8');
+        // BASE_SYSTEM_PROMPT + _buildSystemPrompt were moved to intake-assist-prompts.js
+        // during the Phase 3 refactor (2026-04).
+        promptsContent = fs.readFileSync(path.join(ROOT, 'js/intake-assist-prompts.js'), 'utf8');
     });
 
     test('module uses IIFE pattern', () => {
@@ -755,23 +760,25 @@ describe('IntakeAssist JS', () => {
     });
 
     test('has _buildSystemPrompt function (Phase 5)', () => {
+        // Shim in intake-assist.js delegates to IntakeAssistPrompts.build
         expect(jsContent).toContain('function _buildSystemPrompt');
+        expect(promptsContent).toContain('function build(extractedData, riskFlags)');
     });
 
     test('system prompt contains address auto-detect instruction', () => {
-        expect(jsContent).toContain('ADDRESS AUTO-DETECT');
+        expect(promptsContent).toContain('ADDRESS AUTO-DETECT');
     });
 
     test('system prompt contains carrier recognition', () => {
-        expect(jsContent).toContain('CARRIER RECOGNITION');
+        expect(promptsContent).toContain('CARRIER RECOGNITION');
     });
 
     test('system prompt contains risk-aware follow-up', () => {
-        expect(jsContent).toContain('RISK-AWARE FOLLOW-UP');
+        expect(promptsContent).toContain('RISK-AWARE FOLLOW-UP');
     });
 
     test('system prompt contains completion recap', () => {
-        expect(jsContent).toContain('COMPLETION RECAP');
+        expect(promptsContent).toContain('COMPLETION RECAP');
     });
 
     test('has _fetchMarketIntel function (Phase 1)', () => {

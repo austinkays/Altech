@@ -35,11 +35,14 @@ npx jest --no-coverage    # faster
 | `app-ui-utils.js` | `App.toast()`, `App.toggleDarkMode()`, `App.loadDarkMode()`, `App.formatDateDisplay()`, `App.copyToClipboard()` |
 | `app-navigation.js` | `App.updateUI()`, `App.navigateTo()`, step progression, hash routing |
 | `app-core.js` | `App.save()`, `App.load()`, form field persistence, schema migration, encryption |
-| `app-scan.js` | `App.processScan()`, OCR, Gemini AI |
+| `app-scan.js` | `App.processScan()`, OCR, Gemini AI (image-scan pipeline only) |
+| `app-scan-doc-intel.js` | Document intelligence: `analyzeDocuments`, `renderDocIntelResults`, `applyDocIntelToForm`, `saveDocIntelResults`, `loadDocIntelResults` |
 | `app-property.js` | `App.smartAutoFill()`, Maps, assessor data |
 | `app-vehicles.js` | `App.renderDrivers()`, `App.renderVehicles()`, DL scan |
-| `app-popups.js` | `App.processImage()`, hazard detection |
-| `app-export.js` | `App.exportPDF()`, `App.exportCMSMTF()` |
+| `app-popups.js` | `App.processImage()`, hazard detection, vision results, data preview modal |
+| `app-popups-history.js` | Property history / insurance trends / market comparison / timeline popups |
+| `app-export.js` | `App.exportPDF()`, text/CSV export, coverage-gap analysis |
+| `app-export-cmsmtf.js` | `App.exportCMSMTF()`, `buildCMSMTF()` — HawkSoft tagged-file export |
 | `app-quotes.js` | `App.saveAsQuote()`, `App.loadQuote()` |
 | `app-boot.js` | `App.boot()` — SW, hash router, keyboard shortcuts — **must load last** |
 
@@ -76,6 +79,7 @@ CDN libraries (firebase-compat only — jszip/jspdf/pdf.js/pdf-lib are lazy-load
 8.  app-navigation.js      → App += updateUI, navigateTo
 9.  app-core.js            → App += save, load
 10. app-scan.js            → App += processScan
+    app-scan-doc-intel.js  → App += analyzeDocuments, renderDocIntelResults (sibling, same IIFE scope)
 11. app-property.js        → App += smartAutoFill
 12. app-vehicles.js        → App += renderDrivers/Vehicles
 13. app-popups.js          → App += processImage
@@ -169,12 +173,22 @@ const SYNC_DOCS = [
 ### Load Order in `index.html`
 
 ```html
-<link href="css/variables.css">   <!-- :root vars + body.dark-mode overrides ONLY -->
-<link href="css/base.css">        <!-- reset, body, typography -->
-<link href="css/layout.css">      <!-- shell, sidebar, header, plugin container -->
-<link href="css/components.css">  <!-- buttons, inputs, cards, modals, toasts -->
-<link href="css/landing.css">     <!-- bento grid, tool-row -->
-<link href="css/animations.css">  <!-- all @keyframes -->
+<link href="css/variables.css">              <!-- :root vars + body.dark-mode overrides ONLY -->
+<link href="css/base.css">                    <!-- reset, body, typography -->
+<link href="css/layout.css">                  <!-- shell, sidebar, header, plugin container -->
+<link href="css/components-cards.css">        <!-- cards, quote cards, driver/vehicle, export, maps -->
+<link href="css/components-inputs.css">       <!-- input types, field styles -->
+<link href="css/components-quote-library.css"><!-- quote library search -->
+<link href="css/components-buttons.css">      <!-- primary + utility buttons, producer toggle -->
+<link href="css/components-forms.css">        <!-- form enhancements, radio cards, validation, consent, Places autocomplete -->
+<link href="css/components-modals.css">       <!-- data preview modal, JS-generated modal dark mode -->
+<link href="css/components-toasts.css">       <!-- toast notifications -->
+<link href="css/components-loading.css">      <!-- standardized loading states, skeleton placeholders -->
+<link href="css/components-misc.css">         <!-- co-applicant, scan drop zone, debug UI, demo link, dark-mode badges -->
+<link href="css/components-acord.css">        <!-- ACORD 25 form styles + print -->
+<link href="css/components-pwa.css">          <!-- PWA update banner + install button -->
+<link href="css/landing.css">                 <!-- bento grid, tool-row -->
+<link href="css/animations.css">              <!-- all @keyframes -->
 <!-- plugin CSS files follow -->
 ```
 
@@ -185,9 +199,11 @@ const SYNC_DOCS = [
 | `variables.css` | CSS custom properties, `body.dark-mode` variable overrides — **only** |
 | `base.css` | Global reset, body, typography |
 | `layout.css` | App shell, sidebar dimensions, plugin container |
-| `components.css` | Shared UI components (cards, buttons, modals, toasts) |
+| `components-*.css` | Shared UI components — each file holds one component family (cards, inputs, buttons, modals, toasts, forms, loading, acord, pwa, misc, quote-library). `components.css` no longer exists. |
 | `animations.css` | All `@keyframes` — never define them in plugin CSS |
-| `[plugin].css` | Styles scoped to one plugin — standalone, do not touch in global refactors |
+| `compliance-main.css` / `compliance-print-dark.css` / `compliance-responsive.css` | Compliance plugin styles split by concern (main table/dashboard, print + dark mode, desktop/mobile responsive) |
+| `intake-assist-chat.css` / `intake-assist-sidebar.css` / `intake-assist-features.css` / `intake-assist-polish.css` | Intake assistant styles split by pane (chat, sidebar, feature cards, polish/responsive/dark) |
+| `[plugin].css` | Other plugin-scoped styles — standalone, do not touch in global refactors |
 
 ### Critical Rules
 
@@ -197,11 +213,11 @@ const SYNC_DOCS = [
 - **Valid variables:** `--bg-card`, `--text`, `--apple-blue`, `--text-secondary`, `--bg-input`, `--border`
 - **Invalid (don't exist):** `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - **Prefer solid colors** (`#1C1C1E`) over low-opacity rgba for dark mode backgrounds
-- **`/* no var */` comments** mark hardcoded colors still needing a design token — leave them intact, do not remove. Currently in `css/compliance.css` (3× `#FF9500` warning/saving states) and `css/components.css` (1× low-opacity rgba background). Search `/* no var */` to find all instances.
+- **`/* no var */` comments** mark hardcoded colors still needing a design token — leave them intact, do not remove. Currently in the split compliance files (3× `#FF9500` warning/saving states) and the split components files (1× low-opacity rgba background). Search `/* no var */` to find all instances.
 
 ### `[data-tooltip]` Bleed — Full Property Matrix (CRITICAL)
 
-`css/components.css` bleeds **six** properties onto any element carrying a `data-tooltip` attribute. Sidebar nav items all carry it for collapsed-mode tooltips. Any new element that gets `data-tooltip` must explicitly reset every property it doesn't want:
+The `[data-tooltip]` hover-popover rule set (currently in `css/components-acord.css` — grep `[data-tooltip]` across the `components-*.css` shards to confirm) bleeds **six** properties onto any element carrying a `data-tooltip` attribute. Sidebar nav items all carry it for collapsed-mode tooltips. Any new element that gets `data-tooltip` must explicitly reset every property it doesn't want:
 
 | Property | Bleeds via | Value | If `::before` is NOT a tooltip arrow |
 |----------|-----------|-------|---------------------------------------|
@@ -238,7 +254,7 @@ npx jest tests/app.test.js        # single suite
 
 - **JSDOM limitations:** no `crypto.subtle`, no `ImageBitmap`, no `showOpenFilePicker`, no `IntersectionObserver`
 - **Utils injection:** test helper functions that create mini DOMs must inject `js/utils.js` source before any plugin that calls `Utils.*`
-- **CSS tests:** read `css/base.css` / `css/layout.css` / `css/components.css` — **never** `css/main.css` (deleted)
+- **CSS tests:** read `css/base.css` / `css/layout.css`, or use `tests/helpers/css-loader.js` (`readComponentsCss()`, `readComplianceCss()`, `readIntakeAssistCss()`) to aggregate the split shards — **never** `css/main.css` (deleted) and **never** the old `css/components.css` / `css/compliance.css` / `css/intake-assist.css` (split in 2026-04)
 
 ---
 

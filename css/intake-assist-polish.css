@@ -1,0 +1,265 @@
+
+/* ═══ Focus Visible States (all new interactive elements) ═══ */
+
+.ia-chip:focus-visible,
+.ia-send-btn:focus-visible,
+.ia-clear-btn:focus-visible,
+.ia-export-btn:focus-visible,
+.ia-populate-btn-sm:focus-visible,
+.ia-map-expand-btn:focus-visible,
+.ia-section-header:focus-visible,
+.ia-tab:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+
+
+/* ═══ Reduced Motion ═══ */
+
+@media (prefers-reduced-motion: reduce) {
+    .ia-msg,
+    .ia-section,
+    .ia-chip-row,
+    .ia-hazard-badge,
+    .ia-appreciation-badge {
+        animation: none !important;
+        transition: none !important;
+    }
+    .ia-dot { animation: none !important; }
+    .ia-section-chevron { transition: none !important; }
+}
+
+/* ═══ Drag-and-Drop Overlay ═══ */
+
+.ia-chat-card {
+    position: relative;
+}
+
+.ia-drop-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    background: rgba(0, 122, 255, 0.04);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 2px dashed var(--apple-blue);
+    border-radius: 16px;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    animation: iaDropFadeIn 0.2s ease;
+}
+
+.ia-chat-card.ia-drag-over .ia-drop-overlay {
+    display: flex;
+}
+
+@keyframes iaDropFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.ia-drop-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    padding: 32px;
+}
+
+.ia-drop-icon {
+    color: var(--apple-blue);
+    opacity: 0.7;
+    animation: iaDropBounce 1.5s ease infinite;
+}
+
+@keyframes iaDropBounce {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+}
+
+.ia-drop-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--apple-blue);
+}
+
+.ia-drop-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    max-width: 220px;
+}
+
+body.dark-mode .ia-drop-overlay {
+    background: rgba(10, 132, 255, 0.10);
+    border-color: #0A84FF;
+}
+
+/* Processing state message in chat */
+.ia-msg-doc-processing {
+    border-left: 3px solid var(--apple-blue);
+    background: rgba(0, 122, 255, 0.04);
+}
+body.dark-mode .ia-msg-doc-processing {
+    background: rgba(10, 132, 255, 0.08);
+}
+
+.ia-doc-field-count {
+    display: inline-block;
+    background: var(--apple-blue);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 4px;
+}
+
+/* ═══ Desktop Wide-Screen Enhancements ═══ */
+
+@media (min-width: 1280px) {
+    .ia-layout {
+        grid-template-columns: 1fr 460px;
+    }
+    .ia-chat-pane {
+        padding: 16px 20px;
+    }
+    .ia-sidebar-pane {
+        padding: 16px;
+    }
+    .ia-messages {
+        padding: 18px 22px;
+    }
+    .ia-input-row {
+        padding: 14px 22px 16px;
+    }
+    .ia-chip-row {
+        padding: 10px 22px 14px;
+    }
+}
+
+@media (min-width: 1440px) {
+    .ia-layout {
+        grid-template-columns: 1fr 500px;
+    }
+}
+
+/* ═══ Enhanced Scrollbar (WebKit) ═══ */
+
+.ia-messages::-webkit-scrollbar,
+.ia-sidebar-pane::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ia-messages::-webkit-scrollbar-track,
+.ia-sidebar-pane::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ia-messages::-webkit-scrollbar-thumb,
+.ia-sidebar-pane::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+.ia-messages::-webkit-scrollbar-thumb:hover,
+.ia-sidebar-pane::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+body.dark-mode .ia-messages::-webkit-scrollbar-thumb,
+body.dark-mode .ia-sidebar-pane::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+}
+body.dark-mode .ia-messages::-webkit-scrollbar-thumb:hover,
+body.dark-mode .ia-sidebar-pane::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* ═══ Dark Mode Polish — Surface Elevation Hierarchy ═══ */
+
+body.dark-mode .ia-tab-bar {
+    background: #111111;
+    border-bottom-color: #2C2C2E;
+}
+
+body.dark-mode .ia-chat-pane {
+    border-right-color: #2C2C2E;
+}
+
+body.dark-mode .ia-card.ia-chat-card {
+    background: #111111;
+}
+
+body.dark-mode .ia-input-row {
+    border-top-color: #2C2C2E;
+}
+
+body.dark-mode .ia-section-body {
+    border-top-color: #2C2C2E;
+}
+
+body.dark-mode .ia-sidebar-card-header {
+    border-bottom-color: #2C2C2E;
+}
+
+body.dark-mode .ia-map-grid {
+    background: #2C2C2E;
+}
+
+body.dark-mode .ia-export-btn {
+    border-color: #38383A;
+    background: #1C1C1E;
+}
+body.dark-mode .ia-export-btn:hover {
+    border-color: #0A84FF;
+    color: #0A84FF;
+}
+
+body.dark-mode .ia-copy-btn {
+    border-color: #38383A;
+    background: #1C1C1E;
+}
+
+body.dark-mode .ia-populate-btn-sm {
+    background: #32D74B;
+}
+
+body.dark-mode .ia-input {
+    border-color: #38383A;
+    background: #1C1C1E;
+}
+
+body.dark-mode .ia-input-icon-btn {
+    border-color: #38383A;
+    background: #1C1C1E;
+}
+
+body.dark-mode .ia-drop-overlay {
+    background: rgba(10, 132, 255, 0.08);
+    border-color: rgba(10, 132, 255, 0.4);
+}
+
+/* Section badge dark mode polish */
+body.dark-mode .ia-section-badge {
+    background: #2C2C2E;
+}
+body.dark-mode .ia-section-done .ia-section-badge {
+    background: rgba(50, 215, 75, 0.12);
+    color: #32D74B;
+}
+body.dark-mode .ia-section-partial .ia-section-badge {
+    background: rgba(10, 132, 255, 0.12);
+    color: #0A84FF;
+}
+
+/* Mobile dark mode full-bleed chat */
+@media (max-width: 767px) {
+    body.dark-mode .ia-card.ia-chat-card {
+        background: #000000;
+    }
+    body.dark-mode .ia-sidebar-pane {
+        background: #000000;
+    }
+}

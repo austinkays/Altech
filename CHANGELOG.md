@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **refactor: monolith decomposition (Phase 3)** (April 21, 2026):
+  - `api/property-intelligence.js` 2402 → 77 lines (thin router). Extracted into 11 focused helpers: `_property-arcgis.js` (parcel + flood), `_property-flood.js`, `_property-mapping.js` (HEATING/COOLING/ROOF/FOUNDATION/CONSTRUCTION/EXTERIOR maps + mapZillowToAltech), `_property-rentcast.js`, `_property-apify.js`, `_property-zillow.js` (tiered Rentcast → Apify → Gemini), `_property-satellite.js`, `_property-firestation.js`, `_property-listing.js`, `_property-address-validate.js`, `_property-shared.js`.
+  - `api/prospect-lookup.js` 1792 → 68 lines (thin router). Extracted into 7 per-source helpers: `_prospect-li.js` (WA L&I), `_prospect-or-ccb.js` (Oregon CCB), `_prospect-sos.js` (WA/OR/AZ SOS + WA DOR fallback + legacy HTML parsers), `_prospect-osha.js`, `_prospect-sam.js`, `_prospect-places.js` (Google Places + state/city extractors), `_prospect-ai-analysis.js` (AI dossier + buildDataContext).
+  - `css/components.css` 2608 → 11 focused files: `components-cards.css`, `components-inputs.css`, `components-quote-library.css`, `components-buttons.css`, `components-forms.css`, `components-modals.css`, `components-toasts.css`, `components-loading.css`, `components-misc.css`, `components-acord.css`, `components-pwa.css`. Load order preserved in `index.html`.
+  - `css/compliance.css` 1585 → 3 files: `compliance-main.css`, `compliance-print-dark.css`, `compliance-responsive.css`.
+  - `css/intake-assist.css` 1534 → 4 files: `intake-assist-chat.css`, `intake-assist-sidebar.css`, `intake-assist-features.css`, `intake-assist-polish.css`.
+  - `js/app-popups.js` 1452 → 861 + `app-popups-history.js` 597 (property history / market / insurance trends / timeline popups).
+  - `js/app-export.js` 1634 → 1337 + `app-export-cmsmtf.js` 303 (HawkSoft CMSMTF tagged-file export).
+  - `js/app-scan.js` 2152 → 1927 + `app-scan-doc-intel.js` 231 (document intelligence analyze/render/apply/persist).
+  - `js/compliance-dashboard.js` 2929 → 2831 + `compliance-idb.js` 106 (IndexedDB wrapper moved to `window.CglIDB`).
+  - `tests/helpers/css-loader.js` — new shared helper with `readComponentsCss()`, `readComplianceCss()`, `readIntakeAssistCss()` that aggregate the split shards for tests that grep CSS by logical group.
+  - `tests/api-property.test.js`, `tests/api-prospect.test.js`, `tests/prospect-client.test.js`, `tests/ai-router.test.js`, `tests/plugin-integration.test.js`, `tests/layout-regressions.test.js`, `tests/intake-assist.test.js` — updated to read from the new file layout.
+  - `@ast-grep/cli` added as a devDependency for future syntactically-aware splits.
+  - Tests: 31 suites / 1797 tests pass (baseline preserved).
+  - **Unchanged (future work):** `js/intake-assist.js` (3111), `js/app-property.js` (2620), `js/prospect.js` (2302), `js/app-core.js` (2209), `js/hawksoft-export.js` (1784), `js/dashboard-widgets.js` (1417) — these are IIFE-heavy or Object.assign closures where helper extraction requires call-site surgery; deferred so the editor-navigability win from the files above lands cleanly.
+
 ### Added
 - **feat(security): Path B Phase 3 Supabase Auth + mandatory TOTP MFA** (April 18, 2026):
   - `js/supabase-auth.js` — `window.SupabaseAuth`, mirror of the slice of `js/auth.js` that downstream code depends on, but talking to Supabase Auth (email + password + TOTP MFA). Dormant unless `SYNC_BACKEND=supabase`. Public surface: `init()`, `signIn`, `signUp`, `sendPasswordReset`, `logout`, `uid` / `email` / `isSignedIn` / `isAdmin` / `isBlocked` getters, `apiFetch` (injects `Authorization: Bearer <access_token>`), `addAuthListener` / `removeAuthListener`, `enrollTOTP` / `verifyTOTP` / `unenrollTOTP`, `mfaRequired` / `mfaEnforcementLevel` / `recordMfaDismiss`. Admin + block flags read from `app_metadata` (service-role-managed), not `user_metadata` (client-writable via `auth.updateUser`). Verified-TOTP cache refreshes on every `onAuthStateChange`.

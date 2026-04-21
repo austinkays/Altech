@@ -15,16 +15,24 @@
 const fs = require('fs');
 const path = require('path');
 
-// ── Load pure functions from ESM source ──
+// ── Load pure functions from ESM helper sources ──
+// property-intelligence.js was refactored into focused _property-*.js helpers.
+// We concatenate the relevant helpers and strip ESM keywords so the body runs in `new Function()`.
+const HELPER_FILES = [
+  'api/_property-mapping.js',       // fuzzyMapLookup, parseNum, HEATING_MAP, etc.
+  'api/_property-arcgis.js',        // COUNTY_ARCGIS_CONFIG (also pulls its imports, which we strip)
+  'api/_property-firestation.js',   // haversineDistance, estimateProtectionClass, isRespondingStation, classifyStationReliability, NON_RESPONDING_KEYWORDS
+];
+
 function loadPropertyFunctions() {
-  const source = fs.readFileSync(path.join(__dirname, '../api/property-intelligence.js'), 'utf8');
-  const preamble = source.split(/^export\s+default\s+/m)[0];
-  const cleaned = preamble
-    .replace(/^import\s+.*$/gm, '')
+  const combined = HELPER_FILES
+    .map(rel => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8'))
+    .join('\n\n')
+    .replace(/^import\s+[\s\S]*?from\s+['"][^'"]+['"];?$/gm, '')
     .replace(/^export\s+/gm, '');
 
   const extractFn = new Function(`
-    ${cleaned}
+    ${combined}
     return {
       fuzzyMapLookup, parseNum,
       haversineDistance, estimateProtectionClass,
@@ -49,12 +57,27 @@ beforeAll(() => {
 
 describe('property-intelligence.js — Module Syntax', () => {
   test('module source parses without errors', () => {
-    const source = fs.readFileSync(path.join(__dirname, '../api/property-intelligence.js'), 'utf8');
-    const cjsSafe = source
-      .replace(/^import\s+.*$/gm, '')
-      .replace(/^export\s+default\s+/m, 'const __handler = ')
-      .replace(/^export\s+/gm, '');
-    expect(() => new Function(cjsSafe)).not.toThrow();
+    // Parse both the router and each helper — all must be syntactically valid.
+    const files = [
+      'api/property-intelligence.js',
+      ...HELPER_FILES,
+      'api/_property-flood.js',
+      'api/_property-rentcast.js',
+      'api/_property-apify.js',
+      'api/_property-satellite.js',
+      'api/_property-zillow.js',
+      'api/_property-listing.js',
+      'api/_property-address-validate.js',
+      'api/_property-shared.js',
+    ];
+    for (const rel of files) {
+      const source = fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
+      const cjsSafe = source
+        .replace(/^import\s+[\s\S]*?from\s+['"][^'"]+['"];?$/gm, '')
+        .replace(/^export\s+default\s+/m, 'const __handler = ')
+        .replace(/^export\s+/gm, '');
+      expect(() => new Function(cjsSafe)).not.toThrow();
+    }
   });
 
   test('all utility functions loaded successfully', () => {

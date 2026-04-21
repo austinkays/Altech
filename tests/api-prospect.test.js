@@ -13,36 +13,24 @@
 const fs = require('fs');
 const path = require('path');
 
-// ── Load functions from CJS source ──
-// prospect-lookup.js is CJS (module.exports) — extract module-scoped helper functions
+// ── Load functions from ESM helper sources ──
+// prospect-lookup.js was refactored into focused _prospect-*.js helpers.
+// We concatenate the relevant helpers and strip ESM keywords so we can
+// evaluate the body in `new Function()`.
+const PROSPECT_HELPERS = [
+  'api/_prospect-osha.js',  // calculateSummary, parseInspections, parseViolations
+  'api/_prospect-sos.js',   // parseWASOSHTML (legacy)
+];
+
 function loadProspectFunctions() {
-  const source = fs.readFileSync(path.join(__dirname, '../api/prospect-lookup.js'), 'utf8');
-
-  // The helpers (calculateSummary, parseInspections, parseViolations, parseWASOSHTML)
-  // are defined at module scope AFTER the handler function.
-  // We extract everything after the handler and before a hypothetical export.
-  // Since it's CJS, the handler is: module.exports = async function handler(...) { ... }
-  // Helper functions follow after the handler's closing '}'.
-
-  // Strategy: eval the whole file in a sandbox, providing stub module/require
-  const mockModule = { exports: {} };
-  const mockRequire = () => ({});
-
-  // We need to wrap in an async IIFE because the handler is async
-  // But actually, we just need the pure functions at the bottom, not the handler.
-  // Let's extract just the helper functions by finding them after the handler.
-
-  // Find 'function calculateSummary' and extract from there to end of file
-  const calcIdx = source.indexOf('function calculateSummary');
-  const parseWAIdx = source.indexOf('function parseWASOSHTML');
-
-  const helperCode = [
-    source.substring(parseWAIdx, source.indexOf('function parseORSOSHTML')),
-    source.substring(calcIdx)
-  ].join('\n');
+  const combined = PROSPECT_HELPERS
+    .map(rel => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8'))
+    .join('\n\n')
+    .replace(/^import\s+[\s\S]*?from\s+['"][^'"]+['"];?$/gm, '')
+    .replace(/^export\s+/gm, '');
 
   const extractFn = new Function(`
-    ${helperCode}
+    ${combined}
     return {
       calculateSummary, parseInspections, parseViolations, parseWASOSHTML
     };
@@ -69,10 +57,16 @@ describe('prospect-lookup.js — Module Syntax', () => {
   });
 
   test('no duplicate function declarations in helpers', () => {
-    const source = fs.readFileSync(path.join(__dirname, '../api/prospect-lookup.js'), 'utf8');
-    const helpers = ['calculateSummary', 'parseInspections', 'parseViolations', 'parseWASOSHTML'];
-    for (const name of helpers) {
-      const matches = source.match(new RegExp(`^function ${name}\\b`, 'gm'));
+    // Each helper function should be defined exactly once across all helper files
+    const helperMap = {
+      calculateSummary: 'api/_prospect-osha.js',
+      parseInspections: 'api/_prospect-osha.js',
+      parseViolations: 'api/_prospect-osha.js',
+      parseWASOSHTML: 'api/_prospect-sos.js',
+    };
+    for (const [name, file] of Object.entries(helperMap)) {
+      const source = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+      const matches = source.match(new RegExp(`^(?:export\\s+)?function ${name}\\b`, 'gm'));
       expect(matches).not.toBeNull();
       expect(matches.length).toBe(1);
     }

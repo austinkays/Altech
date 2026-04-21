@@ -7,20 +7,45 @@
  * Bumping CACHE_VERSION still works as a nuclear option to purge stale caches.
  */
 
-const CACHE_VERSION = 'altech-v12';
+// Bumped to v13 during Phase 3 monolith decomposition (2026-04):
+// components.css / compliance.css / intake-assist.css were split into shards,
+// and several app-*.js + plugin helpers were extracted. Old precache paths
+// would 404 and break the atomic cache.addAll() install.
+const CACHE_VERSION = 'altech-v13';
 const APP_SHELL = [
     '/',
     '/index.html',
     '/manifest.json',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
-    // CSS
+    // CSS — core
     '/css/variables.css',
     '/css/base.css',
     '/css/layout.css',
-    '/css/components.css',
     '/css/landing.css',
     '/css/animations.css',
+    // CSS — components (split from components.css in 2026-04)
+    '/css/components-cards.css',
+    '/css/components-inputs.css',
+    '/css/components-quote-library.css',
+    '/css/components-buttons.css',
+    '/css/components-forms.css',
+    '/css/components-modals.css',
+    '/css/components-toasts.css',
+    '/css/components-loading.css',
+    '/css/components-misc.css',
+    '/css/components-acord.css',
+    '/css/components-pwa.css',
+    // CSS — compliance (split from compliance.css in 2026-04)
+    '/css/compliance-main.css',
+    '/css/compliance-print-dark.css',
+    '/css/compliance-responsive.css',
+    // CSS — intake-assist (split from intake-assist.css in 2026-04)
+    '/css/intake-assist-chat.css',
+    '/css/intake-assist-sidebar.css',
+    '/css/intake-assist-features.css',
+    '/css/intake-assist-polish.css',
+    // CSS — other plugin stylesheets
     '/css/sidebar.css',
     '/css/dashboard.css',
     '/css/accounting.css',
@@ -31,13 +56,11 @@ const APP_SHELL = [
     '/css/bug-report.css',
     '/css/call-logger.css',
     '/css/commercial-quoter.css',
-    '/css/compliance.css',
     '/css/dec-import.css',
     '/css/email.css',
     '/css/endorsement-parser.css',
     '/css/ezlynx.css',
     '/css/hawksoft.css',
-    '/css/intake-assist.css',
     '/css/onboarding.css',
     '/css/paywall.css',
     '/css/quickref.css',
@@ -53,20 +76,38 @@ const APP_SHELL = [
     '/js/storage-keys.js',
     '/js/utils.js',
     '/js/fields.js',
-    // JS — App core (order-dependent)
+    '/js/pdf-lib-loader.js',
+    // JS — App core (order-dependent, see index.html)
     '/js/app-init.js',
     '/js/app-ui-utils.js',
     '/js/app-navigation.js',
+    '/js/app-validation.js',
     '/js/app-core.js',
+    '/js/app-places.js',
+    '/js/app-carriers.js',
+    '/js/app-applicant.js',
+    '/js/app-ai-settings.js',
     '/js/app-scan.js',
+    '/js/app-scan-doc-intel.js',
     '/js/app-property.js',
+    '/js/app-property-maps.js',
+    '/js/app-property-parcel.js',
+    '/js/app-property-unified.js',
+    '/js/app-property-rentcast.js',
     '/js/app-vehicles.js',
     '/js/app-popups.js',
+    '/js/app-popups-history.js',
     '/js/app-export.js',
+    '/js/app-export-cmsmtf.js',
     '/js/app-quotes.js',
     // JS — standalone modules
     '/js/ai-provider.js',
     '/js/dashboard-widgets.js',
+    // JS — plugin helpers (must load before their plugin)
+    '/js/prospect-formatters.js',
+    '/js/compliance-idb.js',
+    '/js/intake-assist-prompts.js',
+    '/js/hawksoft-renderers.js',
     // JS — plugins
     '/js/admin-panel.js',
     '/js/accounting-export.js',
@@ -83,7 +124,6 @@ const APP_SHELL = [
     '/js/ezlynx-tool.js',
     '/js/firebase-config.js',
     '/js/hawksoft-export.js',
-    '/js/hawksoft-integration.js',
     '/js/intake-assist.js',
     '/js/onboarding.js',
     '/js/paywall.js',

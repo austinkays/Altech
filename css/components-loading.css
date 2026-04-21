@@ -1,0 +1,42 @@
+/* === STANDARDIZED LOADING STATE === */
+[data-loading] {
+    position: relative;
+    min-height: 200px;
+}
+[data-loading]::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 36px; height: 36px;
+    margin: -18px 0 0 -18px;
+    border: 3px solid var(--border);
+    border-top-color: var(--apple-blue);
+    border-radius: 50%;
+    animation: altech-spin 0.7s linear infinite;
+    z-index: 10;
+}
+
+/* Plugin init error banner */
+.plugin-init-error {
+    background: rgba(255, 59, 48, 0.08);
+    border-bottom: 1px solid var(--danger);
+    border-radius: 12px 12px 0 0;
+}
+body.dark-mode .plugin-init-error {
+    background: rgba(255, 69, 58, 0.12);
+}
+
+/* === SKELETON LOADING PLACEHOLDERS === */
+.skeleton-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+    padding: 16px 0;
+}
+.skeleton-card {
+    height: 110px;
+    border-radius: 16px;
+    background: var(--bg-input);
+    animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+

@@ -1,0 +1,63 @@
+/* === CO-APPLICANT === */
+.co-applicant-toggle { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.co-applicant-section { display: none; margin-top: 16px; padding: 16px; background: var(--bg-input); border-radius: 12px; border: 1px solid var(--border); }
+.co-applicant-section.visible { display: block; }
+.co-applicant-section h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+
+/* === SCAN DROP ZONE === */
+.scan-drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--bg-input);
+    margin-bottom: 16px;
+}
+.scan-drop-zone:hover, .scan-drop-zone.drag-over {
+    border-color: var(--apple-blue);
+    background: rgba(0, 122, 255, 0.06);
+    transform: scale(1.01);
+}
+.scan-drop-zone .drop-icon { font-size: 36px; margin-bottom: 8px; }
+.scan-drop-zone .drop-label { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.scan-drop-zone .drop-hint { font-size: 12px; color: var(--text-secondary); }
+
+/* === DEBUG-ONLY UI (revealed by body.debug-mode) === */
+.debug-only { display: none !important; }
+body.debug-mode .debug-only { display: initial !important; }
+body.debug-mode #demoClientRow { display: block !important; }
+
+/* === DEMO CLIENT LINK === */
+.demo-client-link {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-bottom: 1px dotted var(--text-tertiary);
+    transition: color 0.15s, border-color 0.15s;
+}
+.demo-client-link:hover {
+    color: var(--text);
+    border-bottom-color: var(--text);
+}
+
+/* === DARK MODE: BADGES & STATUS INDICATORS === */
+body.dark-mode .badge-home { color: #6ee7b7; }
+body.dark-mode .badge-auto { color: #93c5fd; }
+body.dark-mode .badge-both { color: #c4b5fd; }
+body.dark-mode .confidence-low { color: #fdba74; }
+body.dark-mode .confidence-high { color: #6ee7b7; }
+body.dark-mode .file-status.indexed { color: #6ee7b7; }
+body.dark-mode .file-status.processing { color: #93c5fd; }
+
+/* Keyboard focus ring */
+.tool-row:focus-visible, .tool-card:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+    border-radius: 14px;
+}
+
