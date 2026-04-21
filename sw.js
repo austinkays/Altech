@@ -11,7 +11,7 @@
 // components.css / compliance.css / intake-assist.css were split into shards,
 // and several app-*.js + plugin helpers were extracted. Old precache paths
 // would 404 and break the atomic cache.addAll() install.
-const CACHE_VERSION = 'altech-v13';
+const CACHE_VERSION = 'altech-v14';
 const APP_SHELL = [
     '/',
     '/index.html',
@@ -98,6 +98,9 @@ const APP_SHELL = [
     '/js/app-popups.js',
     '/js/app-popups-history.js',
     '/js/app-export.js',
+    '/js/app-export-pdf.js',
+    '/js/app-export-csv.js',
+    '/js/app-export-coverage-gap.js',
     '/js/app-export-cmsmtf.js',
     '/js/app-quotes.js',
     // JS — standalone modules
