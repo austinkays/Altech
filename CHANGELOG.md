@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(client-isolation): active client identity + clean DOM on load + save-back-to-record (Phase 5, session 1)** (April 21, 2026):
+  - Three real data-loss bugs gone in one pass:
+    1. **DOM carryover**: `App.applyData()` only iterated over keys in the incoming record, so loading Client B left Client A's residual input values in the DOM. Next keystroke write them back into Client B. Root fix: every load now routes through new `App._switchToClient(record)` which does a full DOM reset *before* calling `applyData`. No more contamination.
+    2. **Lost edits on switch**: `loadQuote(B)` replaced `App.data` with B's content and wrote `altech_v6`, orphaning A's pending edits. Now `_switchToClient` calls `_saveActiveRecordNow()` first, flushing the live form back to A's quote record before B takes over. Pending debounced save waits out before DOM reset.
+    3. **Name-keyed pick-one "merge"**: `autoSaveClient()` had a 50-line block that matched entries by full-name (case-insensitive), then kept whichever had more filled fields and discarded the other. Two different John Smiths silently collapsed. Entering partial data for an existing client silently kept the old fuller record and threw away the new edits. Completely rewritten to key by `_clientId` — 15 lines, no name matching, no pick-one.
+  - New state: `App.activeClientId` — wrapper id of the record being edited. Single source of truth. Set by `applyData` from `data._clientId`; cleared on `startFresh` / `startNewClient`. `_switchPromise` serializes rapid load clicks so two switches can't interleave.
+  - New schema v3 migration stamps `_clientId` onto existing `altech_v6` blobs with a `crypto.randomUUID()`. `getQuotes()` and `getClientHistory()` also stamp legacy entries (`data._clientId = wrapper.id`) on read, in-memory, so identity-based lookups work on pre-Phase-5 records. Nothing destructive; existing ids preserved.
+  - Save-back-to-record wired into `_saveClientHistoryNow` — fires on navigation, beforeunload, and explicit save. Every "important moment" propagates live edits to the record the user loaded from, so edits never strand in `altech_v6` alone.
+  - Existing IDs generated via `${Date.now()}_${random.slice(2,8)}` still work; new IDs use `crypto.randomUUID()`.
+  - `saveQuote()` now updates in place when `activeClientId` matches an existing quote. No duplicate-address warning for updates. Save button during an edit never forks identity.
+  - `duplicateQuote()` strips `_clientId` from the copied data and routes through `_switchToClient({id: null, data})` so the next save creates a new record rather than overwriting the source.
+  - Cleanup #10 — deleted the 50-line name-keyed dedup block from `autoSaveClient` and the orphaned `_countFilledFields` helper.
+  - Cleanup #11 — deleted `_showIntakeSessionDialog` (always returned `'continue'`) and `_saveCurrentAsDraft`, plus the 25-line dead `if/else` branch in `app-navigation.js:464-487` that dispatched on the dialog's unreachable return values. `navigateTo('quoting')` is now 3 lines.
+  - Cleanup #12 — `startNewDraft()` no longer calls `location.reload()`. Uses `_switchToClient(null)` + targeted localStorage clear. In-place, no full page rebuild.
+  - `startFresh()` and `startNewClient()` also route through `_switchToClient(null)`, gaining the prior-record-flush guarantee they didn't have before.
+  - Tests: **31 suites / 1801 tests pass** (was 1797 — four new regression tests cover: `loadQuote` sets `activeClientId`, `loadQuote` stamps `_clientId` into data, `getQuotes` stamps legacy records on read, A→B→A round-trip preserves each client's edits independently with no cross-contamination).
+
 ### Changed
 - **feat(pdf): uniform PDF template — every field renders regardless of data** (April 21, 2026):
   - Rewrote `kvRow` in `js/app-export-pdf.js` to stop filtering empty cells. Every field in a kvRow block now prints on the PDF, with blanks rendered as an em-dash (`—`) in MID grey + normal weight so they recede visually. Real values stay INK + bold so they stand out.

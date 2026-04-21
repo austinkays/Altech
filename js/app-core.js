@@ -434,6 +434,83 @@ Object.assign(App, {
         this.save({ target: document.querySelector('input[name="qType"]:checked') });
     },
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // Client identity + session isolation
+    //
+    // activeClientId is the wrapper id of the record currently being edited. It
+    // is the single source of truth for "which client is this form for?" — set
+    // by applyData from data._clientId, cleared on startFresh / startNewClient.
+    // When set, every nav / beforeunload / manual save propagates the live form
+    // back to the matching record in altech_v6_quotes (see _saveActiveRecordNow
+    // wired into _saveClientHistoryNow below).
+    //
+    // _switchPromise serializes rapid load clicks so a pending save for Client
+    // A cannot be interleaved with a DOM clear for Client B.
+    // ═══════════════════════════════════════════════════════════════════════
+    activeClientId: null,
+    _switchPromise: null,
+
+    async _switchToClient(record /* null | {id, data, ...} */) {
+        // Serialize rapid switch clicks — wait for any in-flight switch to finish
+        if (this._switchPromise) {
+            try { await this._switchPromise; } catch(_) {}
+        }
+        this._switchPromise = (async () => {
+            // Let any debounced save finish before we clear
+            if (this.saveTimeout) {
+                await new Promise(r => setTimeout(r, 520));
+            }
+            // Flush active record back to its quote entry before switching away
+            try { await this._saveActiveRecordNow(); } catch(e) { console.warn('[Switch] flush prior record:', e); }
+
+            // Full DOM reset — this is the "no carryover" guarantee. Without it,
+            // loadQuote(B) leaves Client A's residual input values visible and
+            // any subsequent save() re-captures them into Client B's data.
+            document.querySelectorAll('#mainContainer input, #mainContainer select, #mainContainer textarea').forEach(el => {
+                if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+                else el.value = '';
+            });
+            this.data = {};
+            this.drivers = [];
+            this.vehicles = [];
+            this.activeClientId = null;
+
+            if (record && record.data) {
+                // Stamp wrapper id into data so identity travels with the blob.
+                // applyData will read _clientId and set activeClientId.
+                const dataWithId = record.id
+                    ? { ...record.data, _clientId: record.id }
+                    : { ...record.data };
+                this.applyData(dataWithId);
+            } else {
+                // Blank form — refresh UI hooks without applying data
+                this.handleType();
+                if (typeof this.updateUI === 'function') this.updateUI();
+            }
+        })();
+        try { await this._switchPromise; } finally { this._switchPromise = null; }
+    },
+
+    // Flush the live form back to its matching quote record. Called from
+    // _saveClientHistoryNow so nav / beforeunload / explicit save all propagate
+    // the current edits to the record the user loaded from — never silently
+    // stranding edits in altech_v6 alone.
+    async _saveActiveRecordNow() {
+        if (!this.activeClientId) return;
+        if (typeof this.getQuotes !== 'function' || typeof this.saveQuotes !== 'function') return;
+        try {
+            const quotes = await this.getQuotes();
+            const idx = quotes.findIndex(q => q.id === this.activeClientId);
+            if (idx < 0) return;
+            quotes[idx].data = JSON.parse(JSON.stringify(this.data));
+            quotes[idx].updatedAt = new Date().toISOString();
+            if (typeof this.getQuoteTitle === 'function') {
+                quotes[idx].title = this.getQuoteTitle(this.data);
+            }
+            await this.saveQuotes(quotes);
+        } catch(e) { console.warn('[ActiveRecord] save-back error:', e); }
+    },
+
     // Debounced client history auto-save (3s debounce, separate from form save)
     _clientHistorySaveTimeout: null,
     _scheduleClientHistorySave() {
@@ -443,10 +520,14 @@ Object.assign(App, {
         }, 3000);
     },
 
-    // Immediate client history save (no debounce) — for navigation, beforeunload, manual save
+    // Immediate client history save (no debounce) — for navigation, beforeunload, manual save.
+    // Also flushes the active record back to its quote entry so edits never strand.
     _saveClientHistoryNow() {
         if (this._clientHistorySaveTimeout) clearTimeout(this._clientHistorySaveTimeout);
         try { this.autoSaveClient(); } catch(e) { console.warn('[AutoSave] Client history save error:', e); }
+        if (this.activeClientId) {
+            this._saveActiveRecordNow().catch(e => console.warn('[ActiveRecord] async flush error:', e));
+        }
     },
 
     async save(e) {
@@ -533,7 +614,7 @@ Object.assign(App, {
      * when adding a new migration, increment CURRENT_SCHEMA_VERSION
      * and add an entry to the migrations array below.
      */
-    CURRENT_SCHEMA_VERSION: 2,
+    CURRENT_SCHEMA_VERSION: 3,
 
     _migrateSchema(data) {
         if (!data || typeof data !== 'object') return data || {};
@@ -561,6 +642,19 @@ Object.assign(App, {
                 d._schemaVersion = 2;
                 return d;
             },
+            // v2 → v3: Stamp _clientId for identity tracking. Existing altech_v6
+            // data gets a fresh UUID; records loaded through quotes/history will
+            // have their wrapper id stamped in the getQuotes/getClientHistory
+            // pre-return loops so identity stays consistent across sources.
+            (d) => {
+                if (!d._clientId) {
+                    d._clientId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                        ? crypto.randomUUID()
+                        : `cid_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+                }
+                d._schemaVersion = 3;
+                return d;
+            },
         ];
 
         let migrated = { ...data };
@@ -575,6 +669,11 @@ Object.assign(App, {
 
     applyData(data) {
         this.data = data || {};
+        // Identity sync — _clientId in the data is the single source of truth for
+        // which record we're editing. Boot, _switchToClient, loadDemoClient all
+        // funnel through here, so activeClientId is always consistent with the
+        // data on screen.
+        this.activeClientId = this.data._clientId || null;
         // Normalize stored phone numbers to (xxx) xxx-xxxx format
         ['phone', 'coPhone'].forEach(k => {
             if (this.data[k]) this.data[k] = this._fmtPhoneVal(this.data[k]);

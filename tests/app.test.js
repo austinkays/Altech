@@ -1144,6 +1144,67 @@ describe('Altech App Tests', () => {
       expect(drafts.length).toBe(1);
       expect(drafts[0].data.firstName).toBe('Second');
     });
+
+    // ── Client Isolation (Phase 5) ──────────────────────────────────────────
+    // Regression tests for the client-isolation bugs: cross-contamination when
+    // switching records, silent overwrites due to name-keyed dedup, lost edits
+    // when loadQuote fires without saving the prior active record.
+
+    test('loadQuote sets activeClientId to the loaded quote id', async () => {
+      if (typeof App.loadQuote !== 'function') return;
+      await App.saveQuotes([
+        { id: 'cid-phase5-a', title: 'T', data: { firstName: 'A', _clientId: 'cid-phase5-a' }, updatedAt: new Date().toISOString() }
+      ]);
+      App.activeClientId = null;
+      await App.loadQuote('cid-phase5-a');
+      expect(App.activeClientId).toBe('cid-phase5-a');
+    });
+
+    test('loadQuote stamps _clientId into App.data so identity travels with the blob', async () => {
+      if (typeof App.loadQuote !== 'function') return;
+      await App.saveQuotes([
+        { id: 'cid-identity-1', title: 'T', data: { firstName: 'Stamp' }, updatedAt: new Date().toISOString() }
+      ]);
+      await App.loadQuote('cid-identity-1');
+      expect(App.data._clientId).toBe('cid-identity-1');
+    });
+
+    test('getQuotes stamps _clientId on legacy records that lack it', async () => {
+      if (typeof App.getQuotes !== 'function' || typeof App.saveQuotes !== 'function') return;
+      // Write a quote without _clientId in its data — simulates a pre-Phase-5 record
+      await App.saveQuotes([
+        { id: 'legacy-id-1', title: 'Legacy', data: { firstName: 'Legacy' }, updatedAt: new Date().toISOString() }
+      ]);
+      // Force re-read from storage so getQuotes's stamping loop fires on the loaded array
+      const quotes = await App.getQuotes();
+      const legacy = quotes.find(q => q.id === 'legacy-id-1');
+      expect(legacy).toBeDefined();
+      expect(legacy.data._clientId).toBe('legacy-id-1');
+    });
+
+    test('switching from A to B back to A preserves each client s edits independently', async () => {
+      if (typeof App.loadQuote !== 'function') return;
+      await App.saveQuotes([
+        { id: 'cid-iso-A', title: 'A', data: { firstName: 'Alice', lastName: 'A', _clientId: 'cid-iso-A' }, updatedAt: new Date().toISOString() },
+        { id: 'cid-iso-B', title: 'B', data: { firstName: 'Bob', lastName: 'B', _clientId: 'cid-iso-B' }, updatedAt: new Date().toISOString() }
+      ]);
+
+      // Load A
+      await App.loadQuote('cid-iso-A');
+      expect(App.data.firstName).toBe('Alice');
+      expect(App.activeClientId).toBe('cid-iso-A');
+
+      // Load B — must not leave Alice's firstName in App.data
+      await App.loadQuote('cid-iso-B');
+      expect(App.data.firstName).toBe('Bob');
+      expect(App.activeClientId).toBe('cid-iso-B');
+      expect(App.data.lastName).toBe('B'); // regression: lastName from A ('A') must not leak
+
+      // Load A again — activeClientId flips back
+      await App.loadQuote('cid-iso-A');
+      expect(App.activeClientId).toBe('cid-iso-A');
+      expect(App.data.firstName).toBe('Alice');
+    });
   });
 
   // ════════════════════════════════════════

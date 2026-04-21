@@ -463,27 +463,6 @@ Object.assign(App, {
             // Quoting tool uses App.init(); all others use their module's init()
             if (entry.key === 'quoting') {
                 if (!this.initialized) {
-                    // Check for existing form data before init
-                    const choice = await this._showIntakeSessionDialog();
-                    if (choice === 'fresh') {
-                        // Clear form data, then init blank
-                        localStorage.removeItem(this.storageKey);
-                        this.data = {};
-                        this.drivers = [];
-                        this.vehicles = [];
-                        localStorage.removeItem(STORAGE_KEYS.DRIVERS);
-                        localStorage.removeItem(STORAGE_KEYS.VEHICLES);
-                    } else if (choice === 'save-fresh') {
-                        // Save current as draft, then clear
-                        await this._saveCurrentAsDraft();
-                        localStorage.removeItem(this.storageKey);
-                        this.data = {};
-                        this.drivers = [];
-                        this.vehicles = [];
-                        localStorage.removeItem(STORAGE_KEYS.DRIVERS);
-                        localStorage.removeItem(STORAGE_KEYS.VEHICLES);
-                    }
-                    // 'continue' — just proceed with existing data
                     await this.init();
                 }
             } else if (entry.initModule) {

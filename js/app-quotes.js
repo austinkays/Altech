@@ -10,33 +10,12 @@ Object.assign(App, {
     getClientHistory() {
         try {
             const raw = Utils.tryParseLS(this.clientHistoryKey, []);
-            // Deduplicate on load: collapse same-name entries, keep the one with most data
-            const seen = new Map();
-            const deduped = [];
+            // Stamp _clientId on legacy entries so identity tracking works on records
+            // saved before Phase 5. In-memory only; persists on next save.
             for (const c of raw) {
-                const key = (c.name || '').toLowerCase();
-                if (!key) { deduped.push(c); continue; }
-                if (seen.has(key)) {
-                    // Keep whichever has more filled fields
-                    const prev = seen.get(key);
-                    const prevCount = this._countFilledFields(prev.data);
-                    const curCount = this._countFilledFields(c.data);
-                    if (curCount > prevCount) {
-                        // Replace the earlier entry in deduped
-                        const idx = deduped.indexOf(prev);
-                        if (idx >= 0) deduped[idx] = c;
-                        seen.set(key, c);
-                    }
-                } else {
-                    seen.set(key, c);
-                    deduped.push(c);
-                }
+                if (c && c.data && !c.data._clientId) c.data._clientId = c.id;
             }
-            // Persist cleanup if duplicates were removed
-            if (deduped.length < raw.length) {
-                safeSave(this.clientHistoryKey, JSON.stringify(deduped));
-            }
-            return deduped;
+            return raw;
         } catch (e) {
             console.warn('[ClientHistory] Corrupt JSON:', e);
             return [];
@@ -58,6 +37,12 @@ Object.assign(App, {
         return parts.join(', ') || 'Quote';
     },
 
+    _newClientId() {
+        return (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : `cid_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    },
+
     saveClient() {
         const snapshot = JSON.parse(JSON.stringify(this.data || {}));
         const firstName = (snapshot.firstName || '').trim();
@@ -67,28 +52,36 @@ Object.assign(App, {
             return;
         }
         const clients = this.getClientHistory();
-        const id = `ch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        // Reuse active id when editing an existing record so manual save-to-history
+        // updates the same entry rather than creating a duplicate.
+        const id = this.activeClientId || this._newClientId();
+        snapshot._clientId = id;
         const name = [firstName, lastName].filter(Boolean).join(' ');
-        clients.unshift({
+        const existingIdx = clients.findIndex(c => c.id === id);
+        const entry = {
             id,
             name,
             summary: this.getClientSummary(snapshot),
             savedAt: new Date().toISOString(),
             data: snapshot
-        });
-        // Cap at 50 entries
+        };
+        if (existingIdx >= 0) {
+            clients.splice(existingIdx, 1);
+        }
+        clients.unshift(entry);
         if (clients.length > 50) clients.length = 50;
+        this.activeClientId = id;
         this.saveClientHistory(clients);
         this.renderClientHistory();
         this.toast(`✅ ${name} saved to Client History`);
     },
 
-    loadClientFromHistory(id) {
+    async loadClientFromHistory(id) {
         const clients = this.getClientHistory();
         const client = clients.find(c => c.id === id);
         if (!client) return;
-        this.applyData(client.data);
-        // Persist loaded data
+        await this._switchToClient(client);
+        // Persist loaded data to altech_v6 so page reload restores the right client
         if (this.encryptionEnabled) {
             CryptoHelper.encrypt(this.data).then(encrypted => safeSave(this.storageKey, encrypted));
         } else {
@@ -97,86 +90,43 @@ Object.assign(App, {
         this.toast(`✅ Restored ${client.name}`);
     },
 
-    // Count non-empty values in a data object (for dedup: keep entry with most info)
-    _countFilledFields(data) {
-        if (!data || typeof data !== 'object') return 0;
-        let count = 0;
-        for (const key in data) {
-            const v = data[key];
-            if (v === null || v === undefined || v === '') continue;
-            if (Array.isArray(v)) { if (v.length > 0) count++; }
-            else if (typeof v === 'object') { if (Object.keys(v).length > 0) count++; }
-            else count++;
-        }
-        return count;
-    },
-
+    // Cleanup #10 (Phase 5): keyed by _clientId, not name. Two different John
+    // Smiths now get two separate records. If the form has no active id yet,
+    // generate one on first save-with-name and stamp it — activeClientId becomes
+    // the session-stable identity from that point forward.
     autoSaveClient() {
-        const snapshot = JSON.parse(JSON.stringify(this.data || {}));
-        const firstName = (snapshot.firstName || '').trim();
-        const lastName = (snapshot.lastName || '').trim();
-        if (!firstName && !lastName) return; // No name = nothing to save
+        const firstName = (this.data.firstName || '').trim();
+        const lastName = (this.data.lastName || '').trim();
+        if (!firstName && !lastName) return; // No name = nothing to save yet
 
-        const clients = this.getClientHistory();
+        // Assign a stable id on first meaningful save
+        if (!this.activeClientId) {
+            this.activeClientId = this._newClientId();
+        }
+        this.data._clientId = this.activeClientId;
+
+        const snapshot = JSON.parse(JSON.stringify(this.data));
         const name = [firstName, lastName].filter(Boolean).join(' ');
-        const nameLower = name.toLowerCase();
-        const snapshotFieldCount = this._countFilledFields(snapshot);
+        const clients = this.getClientHistory();
 
-        // Dedup: find ALL existing entries with the same name (case-insensitive)
-        const matchingIndices = [];
-        for (let i = 0; i < clients.length; i++) {
-            if ((clients[i].name || '').toLowerCase() === nameLower) {
-                matchingIndices.push(i);
-            }
+        const entry = {
+            id: this.activeClientId,
+            name,
+            summary: this.getClientSummary(snapshot),
+            savedAt: new Date().toISOString(),
+            data: snapshot
+        };
+
+        const idx = clients.findIndex(c => c.id === this.activeClientId);
+        if (idx >= 0) {
+            clients.splice(idx, 1);  // pull existing entry …
         }
+        clients.unshift(entry);       // … and re-insert at top with fresh timestamp
 
-        if (matchingIndices.length > 0) {
-            // Among all existing matches, find the one with the most filled fields
-            let bestIdx = matchingIndices[0];
-            let bestCount = this._countFilledFields(clients[bestIdx].data);
-            for (let j = 1; j < matchingIndices.length; j++) {
-                const idx = matchingIndices[j];
-                const cnt = this._countFilledFields(clients[idx].data);
-                if (cnt > bestCount) { bestCount = cnt; bestIdx = idx; }
-            }
-
-            // Merge: use whichever has more data — current snapshot or best existing
-            const mergedData = snapshotFieldCount >= bestCount ? snapshot : clients[bestIdx].data;
-
-            // Capture the best entry's ID before splicing mutates the array
-            const preservedId = clients[bestIdx].id;
-
-            // Remove ALL matching entries (collapse duplicates)
-            for (let k = matchingIndices.length - 1; k >= 0; k--) {
-                clients.splice(matchingIndices[k], 1);
-            }
-
-            // Re-insert single merged entry at top — preserve the existing ID so step-0
-            // delete buttons (which capture the ID at render time) never go stale.
-            clients.unshift({
-                id: preservedId,
-                name,
-                summary: this.getClientSummary(mergedData),
-                savedAt: new Date().toISOString(),
-                data: mergedData
-            });
-        } else {
-            // New client — add to top
-            const id = `ch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-            clients.unshift({
-                id,
-                name,
-                summary: this.getClientSummary(snapshot),
-                savedAt: new Date().toISOString(),
-                data: snapshot
-            });
-        }
-
-        // Cap at 50 entries
         if (clients.length > 50) clients.length = 50;
         this.saveClientHistory(clients);
         this.renderClientHistory();
-        this.renderStep0ClientHistory(); // Keep step-0 delete buttons in sync with current IDs
+        this.renderStep0ClientHistory();
         // Schedule cloud sync
         if (typeof CloudSync !== 'undefined') {
             try { CloudSync.schedulePush(); } catch(e) { /* ok */ }
@@ -196,46 +146,16 @@ Object.assign(App, {
         }
     },
 
-    startFresh() {
-        // Save current session to client history before wiping (if has data)
-        try { this._saveClientHistoryNow(); } catch(e) { /* ok */ }
-
-        this.data = {};
-        this.drivers = [];
-        this.vehicles = [];
-        // Clear all form inputs
-        document.querySelectorAll('#mainContainer input, #mainContainer select, #mainContainer textarea').forEach(el => {
-            if (el.type === 'checkbox' || el.type === 'radio') {
-                el.checked = false;
-            } else {
-                el.value = '';
-            }
-        });
-        // Save empty state
+    async startFresh() {
+        await this._switchToClient(null);  // persists prior, clears DOM, nulls activeClientId
         safeSave(this.storageKey, JSON.stringify(this.data));
-        this.handleType();
         this.next();
         this.toast('✨ Fresh form ready');
     },
 
-    startNewClient() {
-        // Save current client to history, then reset to step 0 for a fresh intake
-        try { this._saveClientHistoryNow(); } catch(e) { /* ok */ }
-
-        this.data = {};
-        this.drivers = [];
-        this.vehicles = [];
-        // Clear all form inputs
-        document.querySelectorAll('#mainContainer input, #mainContainer select, #mainContainer textarea').forEach(el => {
-            if (el.type === 'checkbox' || el.type === 'radio') {
-                el.checked = false;
-            } else {
-                el.value = '';
-            }
-        });
-        // Save empty state and reset to step 0
+    async startNewClient() {
+        await this._switchToClient(null);
         safeSave(this.storageKey, JSON.stringify(this.data));
-        this.handleType();
         this.step = 0;
         this.updateUI();
         this.toast('✅ Client saved — ready for new intake');
@@ -375,14 +295,23 @@ Object.assign(App, {
     async getQuotes() {
         const encrypted = localStorage.getItem(this.quotesKey);
         if (!encrypted) return [];
-        
+
+        let quotes;
         if (this.encryptionEnabled) {
             const decrypted = await CryptoHelper.decrypt(encrypted);
-            return decrypted || [];
+            quotes = decrypted || [];
         } else {
-            try { return JSON.parse(encrypted); }
+            try { quotes = JSON.parse(encrypted); }
             catch (e) { console.warn('[getQuotes] Corrupt JSON:', e); return []; }
         }
+        // Stamp _clientId on legacy entries so identity-based lookups work on records
+        // saved before Phase 5. In-memory only; persists on next saveQuotes().
+        if (Array.isArray(quotes)) {
+            for (const q of quotes) {
+                if (q && q.data && !q.data._clientId) q.data._clientId = q.id;
+            }
+        }
+        return quotes;
     },
 
     async saveQuotes(quotes) {
@@ -437,30 +366,49 @@ Object.assign(App, {
     async saveQuote() {
         const snapshot = JSON.parse(JSON.stringify(this.data || {}));
         const quotes = await this.getQuotes();
-        
-        // Check for duplicates based on address
+
+        // If we're editing an existing record, update in place — no duplicate warning,
+        // no new entry. Save-button during an edit should never fork identity.
+        if (this.activeClientId) {
+            const idx = quotes.findIndex(q => q.id === this.activeClientId);
+            if (idx >= 0) {
+                snapshot._clientId = this.activeClientId;
+                quotes[idx].data = snapshot;
+                quotes[idx].title = this.getQuoteTitle(snapshot);
+                quotes[idx].updatedAt = new Date().toISOString();
+                await this.saveQuotes(quotes);
+                await this.renderQuoteList();
+                this.toast('✅ Draft updated');
+                return;
+            }
+            // activeClientId set but no matching quote — fall through to create fresh
+        }
+
+        // New record path: check for address duplicates and create a new entry.
         const address = `${snapshot.addrStreet || ''} ${snapshot.addrCity || ''} ${snapshot.addrState || ''}`.trim().toLowerCase();
         const duplicates = quotes.filter(q => {
             const qAddr = `${q.data.addrStreet || ''} ${q.data.addrCity || ''} ${q.data.addrState || ''}`.trim().toLowerCase();
             return qAddr && address && qAddr === address;
         });
-        
-        // Show duplicate warning modal if found
+
         if (duplicates.length > 0) {
             const confirmed = await this.showDuplicateWarning(duplicates);
-            if (!confirmed) return; // User canceled
+            if (!confirmed) return;
         }
-        
-        const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+
+        const id = this._newClientId();
+        snapshot._clientId = id;
         const title = this.getQuoteTitle(snapshot);
-        quotes.unshift({ 
-            id, 
-            title, 
-            data: snapshot, 
+        quotes.unshift({
+            id,
+            title,
+            data: snapshot,
             updatedAt: new Date().toISOString(),
             starred: false,
             isDuplicate: duplicates.length > 0
         });
+        this.activeClientId = id;  // future edits go back to this record
+        this.data._clientId = id;  // keep App.data in sync with the new identity
         await this.saveQuotes(quotes);
         await this.renderQuoteList();
         this.toast('✅ Draft saved to library');
@@ -470,9 +418,9 @@ Object.assign(App, {
         const quotes = await this.getQuotes();
         const quote = quotes.find(q => q.id === id);
         if (!quote) return;
-        this.applyData(quote.data);
+        await this._switchToClient(quote);
 
-        // Save loaded data with encryption
+        // Save loaded data with encryption so page reload restores this client
         if (this.encryptionEnabled) {
             const encrypted = await CryptoHelper.encrypt(this.data);
             safeSave(this.storageKey, encrypted);
@@ -507,40 +455,13 @@ Object.assign(App, {
         await this.renderQuoteList();
     },
 
-    startNewDraft() {
+    // Cleanup #12 (Phase 5): replaced location.reload() with in-place switch.
+    // Prior edits auto-persist to their record before we wipe the form.
+    async startNewDraft() {
         if (!confirm('Start a new draft? Current form will be cleared.')) return;
+        await this._switchToClient(null);
         localStorage.removeItem(this.storageKey);
-        location.reload();
-    },
-
-    /**
-     * Shows a session dialog when opening the intake tool with existing data.
-     * Returns: 'continue' | 'fresh' | 'save-fresh'
-     * Disabled: always continues with existing data silently.
-     * User can start fresh from the "New Client" button on step 0.
-     */
-    _showIntakeSessionDialog() {
-        return Promise.resolve('continue');
-    },
-
-    /** Save current form data as a named draft (used by session dialog) */
-    async _saveCurrentAsDraft() {
-        const raw = localStorage.getItem(this.storageKey);
-        if (!raw) return;
-        let snapshot;
-        try { snapshot = JSON.parse(raw); } catch { return; }
-        const quotes = await this.getQuotes();
-        const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-        const title = this.getQuoteTitle(snapshot);
-        quotes.unshift({
-            id,
-            title,
-            data: snapshot,
-            updatedAt: new Date().toISOString(),
-            starred: false
-        });
-        await this.saveQuotes(quotes);
-        this.toast('💾 Previous intake saved as draft');
+        this.toast('✨ New draft started');
     },
 
     clearAllDrafts() {
@@ -768,26 +689,29 @@ Object.assign(App, {
         const quotes = await this.getQuotes();
         const quote = quotes.find(q => q.id === quoteId);
         if (!quote) return;
-        
+
         // Check for duplicate addresses
         const copiedAddr = `${quote.data.addrStreet || ''} ${quote.data.addrCity || ''}`.trim();
-        const hasDuplicate = quotes.some(q => q.id !== quoteId && 
-            `${q.data.addrStreet || ''} ${q.data.addrCity || ''}`.trim() === copiedAddr && 
+        const hasDuplicate = quotes.some(q => q.id !== quoteId &&
+            `${q.data.addrStreet || ''} ${q.data.addrCity || ''}`.trim() === copiedAddr &&
             copiedAddr);
-        
+
         if (hasDuplicate && !confirm('⚠️ A quote with this address already exists. Continue copying?')) {
             return;
         }
-        
-        // Copy property data, clear personal info
+
+        // Copy property data, clear personal info AND the original's identity.
+        // Route through _switchToClient with a null-id record so the next save
+        // creates a new entry rather than overwriting the source quote.
         const newData = JSON.parse(JSON.stringify(quote.data));
         newData.firstName = '';
         newData.lastName = '';
         newData.email = '';
         newData.phone = '';
         newData.dob = '';
-        
-        this.data = newData;
+        delete newData._clientId;  // critical: strip source identity so copy is a fresh record
+
+        await this._switchToClient({ id: null, data: newData });
         this.save();
         this.updateUI();
         this.renderQuoteList();
