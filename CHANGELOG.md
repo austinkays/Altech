@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **feat(pdf): uniform PDF template — every field renders regardless of data** (April 21, 2026):
+  - Rewrote `kvRow` in `js/app-export-pdf.js` to stop filtering empty cells. Every field in a kvRow block now prints on the PDF, with blanks rendered as an em-dash (`—`) in MID grey + normal weight so they recede visually. Real values stay INK + bold so they stand out.
+  - The PDF template is now uniform across the three workflows (home-only / auto-only / both) — same sections, same field order, same row count within each subsection. An agent can scan a sparse PDF and see exactly which fields weren't captured without hunting for gaps.
+  - Section-level conditionals preserved: co-applicant still only renders when `hasCoApplicant === 'yes'`, previous-address row still only renders when `prevAddr` is set, `showHome` / `showAuto` branches still skip entire insurance sections when the client isn't buying that line. Those are "does this apply to this client" decisions, not "did we capture the data" decisions.
+  - Risk Items block's `_riskDisplay` helper preserved — hazards still canonicalize to `'None'` rather than `—`, because an unanswered pool/trampoline/wood-stove question is a different semantic from an unanswered plumbing material.
+  - Driver/vehicle cards untouched — per-entity cards are already uniform per-card and the filtered-by-driver behavior is what you want when one driver has SR-22 and another doesn't.
+  - Tests: 31 suites / 1797 tests pass (baseline preserved).
+
 ### Added
 - **feat(intake): plumbing material + electrical panel + water heater fields** (April 21, 2026):
   - Five new PDF-only fields in the Systems & Utilities section of the personal quoting form, filling gaps that matter for carrier risk decisions but aren't exposed by EZLynx's universal rater:

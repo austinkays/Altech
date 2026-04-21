@@ -137,15 +137,17 @@ Object.assign(App, {
         };
 
         // ─── 2-col key-value table (label left, value right, side by side) ─
-        // fields: array of [label, value] — empties auto-skipped
+        // fields: array of [label, value] — every field renders; blanks print as an em-dash
+        // in MID grey so the PDF template is uniform across clients (home/auto/both) and
+        // missing data reads as "didn't capture" at a glance rather than "field absent".
         // cols: how many label-value pairs per row (1, 2, or 3)
         const baseRowH = 5.2;
         const lineH    = 3.8;   // extra height per wrapped line
+        const DASH     = '—';  // em dash — placeholder for missing values
 
         const kvRow = (fields, cols = 2) => {
             const rows = [];
-            const filtered = fields.filter(([,val]) => val && String(val).trim());
-            for (let i = 0; i < filtered.length; i += cols) rows.push(filtered.slice(i, i+cols));
+            for (let i = 0; i < fields.length; i += cols) rows.push(fields.slice(i, i+cols));
             const colW = cw / cols;
             const labelW = colW * 0.38;
             const maxW = colW - labelW - 4;
@@ -155,9 +157,11 @@ Object.assign(App, {
                 doc.setFontSize(8); doc.setFont(undefined,'bold');
                 let maxLines = 1;
                 const splitCache = row.map(([, value]) => {
-                    const lines = doc.splitTextToSize(String(value), maxW);
+                    const isBlank = value == null || String(value).trim() === '';
+                    const str = isBlank ? DASH : String(value);
+                    const lines = doc.splitTextToSize(str, maxW);
                     if (lines.length > maxLines) maxLines = lines.length;
-                    return lines;
+                    return { lines, isBlank };
                 });
                 const rowH = baseRowH + (maxLines - 1) * lineH;
 
@@ -170,8 +174,15 @@ Object.assign(App, {
                     const x = mg + ci * colW;
                     doc.setFontSize(6); doc.setFont(undefined,'normal'); doc.setTextColor(...MID);
                     doc.text(String(label), x+1, y+3);
-                    doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
-                    const lines = splitCache[ci];
+                    doc.setFontSize(8);
+                    const { lines, isBlank } = splitCache[ci];
+                    // Blanks render in MID grey + normal weight so they recede visually;
+                    // real values stay INK + bold so they stand out on the printed page.
+                    if (isBlank) {
+                        doc.setFont(undefined,'normal'); doc.setTextColor(...MID);
+                    } else {
+                        doc.setFont(undefined,'bold'); doc.setTextColor(...INK);
+                    }
                     lines.forEach((line, li) => {
                         doc.text(line, x + labelW, y + 3 + li * lineH);
                     });
