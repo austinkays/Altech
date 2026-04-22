@@ -462,19 +462,25 @@ body.dark-mode footer {
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* === DESKTOP: APP SHELL FOOTER OFFSET === */
+/* === DESKTOP: APP SHELL FOOTER OFFSET ===
+   Uses !important because other rules in this file (and potentially any
+   cached stylesheet) were clamping the footer with max-width: 720/800px and
+   margin: 0 auto, keeping it a floating pill. These resets forcibly span
+   the footer from the sidebar edge to the right gutter on every viewport. */
 @media (min-width: 768px) {
+    body.app-shell footer,
     .app-shell footer {
-        left: calc(var(--sidebar-width, 240px) + 16px);
-        right: 16px;
-        max-width: none;
-        margin: 0;
-        width: auto;
+        left: calc(var(--sidebar-width, 240px) + 16px) !important;
+        right: 16px !important;
+        max-width: none !important;
+        margin: 0 !important;
+        width: auto !important;
     }
 }
 @media (min-width: 768px) and (max-width: 1279px) {
+    body.app-shell footer,
     .app-shell footer {
-        left: calc(var(--sidebar-collapsed-width, 64px) + 16px);
+        left: calc(var(--sidebar-collapsed-width, 64px) + 16px) !important;
     }
 }
 
