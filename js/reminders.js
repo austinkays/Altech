@@ -295,21 +295,23 @@ window.Reminders = (() => {
             const lcPST = new Date(lcPSTStr);
             lcPST.setHours(0, 0, 0, 0);
 
+            // One-time tasks stay completed forever once checked off.
+            // Recurring tasks: completion only counts for the current cycle.
+            if (task.frequency === 'once') return 'completed';
+
             if (lcPST >= today) return 'completed';
-            // For recurring: completed if done since current cycle started
-            if (task.frequency !== 'once') {
-                let cycleStart;
-                if (task.frequency === 'daily' || task.frequency === 'weekdays') {
-                    cycleStart = today;
-                } else if (task.frequency === 'weekly') {
-                    cycleStart = _getMostRecentMonday();
-                } else {
-                    const cycleDays = task.frequency === 'biweekly' ? 14 : 30;
-                    cycleStart = new Date(due);
-                    cycleStart.setDate(cycleStart.getDate() - cycleDays);
-                }
-                if (lcPST >= cycleStart) return 'completed';
+
+            let cycleStart;
+            if (task.frequency === 'daily' || task.frequency === 'weekdays') {
+                cycleStart = today;
+            } else if (task.frequency === 'weekly') {
+                cycleStart = _getMostRecentMonday();
+            } else {
+                const cycleDays = task.frequency === 'biweekly' ? 14 : 30;
+                cycleStart = new Date(due);
+                cycleStart.setDate(cycleStart.getDate() - cycleDays);
             }
+            if (lcPST >= cycleStart) return 'completed';
         }
 
         // Check snooze state — if snoozed, show snoozed status instead of overdue

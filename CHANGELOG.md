@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(reminders): one-time tasks no longer revert to overdue after completion** (April 22, 2026):
+  - `_getStatus()` in `js/reminders.js` only treated a task as "completed" if the last completion was on or after today's PST date. For `frequency: 'once'` tasks, that meant the badge flipped back to **Overdue** the day after you checked it off — they looked like daily-repeating tasks from the user's perspective.
+  - Once tasks now stay `'completed'` forever as long as `task.completions` has any entry. `uncompleteTask()` still works (pops the completion; if empty, status falls back through the normal overdue/due-today logic).
+  - Recurring task cycle logic (daily/weekdays/weekly/biweekly/monthly) is unchanged — completion still only counts for the current cycle.
+  - Cleaned up the now-dead `if (task.frequency !== 'once')` guard around the cycle check since once tasks return early one line above.
+
 ### Changed
 - **fix(quoter): always show System Updates card** (April 22, 2026):
   - Removed the `yrBuilt < 2000` gate that hid the heating/plumbing/electrical/roofing update selects in `plugins/quoting.html`. Carriers ask about these on newer homes too, and a silent miss on a post-2000 home meant blank values flowed through to the quote.
