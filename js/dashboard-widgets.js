@@ -962,7 +962,19 @@ window.DashboardWidgets = (() => {
                     ${badgeHtml}
                 </a>`;
             }).join('');
-            return `<div class="sidebar-nav-group${cat === 'beta' ? ' sidebar-nav-group-beta' : ''}">
+            // The beta ("In Development") group uses <details> so it's
+            // collapsed by default — keeps the sidebar tight when the user
+            // isn't actively working with beta tools.
+            if (cat === 'beta') {
+                return `<details class="sidebar-nav-group sidebar-nav-group-beta sidebar-nav-group-collapsible">
+                    <summary class="sidebar-nav-label sidebar-nav-label-toggle">
+                        <span>${_escapeHTML(label)}</span>
+                        ${icon('chevronLeft', 14)}
+                    </summary>
+                    ${items}
+                </details>`;
+            }
+            return `<div class="sidebar-nav-group">
                 <div class="sidebar-nav-label">${_escapeHTML(label)}</div>
                 ${items}
             </div>`;

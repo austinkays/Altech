@@ -304,6 +304,49 @@ body.sidebar-collapsed .sidebar-beta-pill {
 .sidebar-nav-group-beta { opacity: 0.85; }
 .sidebar-nav-group-beta .sidebar-nav-label { color: #FF9500; }
 
+/* Collapsible "In Development" group — <details> wrapper.
+   Starts collapsed; click the summary to expand. */
+.sidebar-nav-group-collapsible {
+    margin-bottom: 16px;
+}
+.sidebar-nav-group-collapsible > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    margin-bottom: 6px;
+}
+.sidebar-nav-group-collapsible > summary::-webkit-details-marker {
+    display: none;
+}
+.sidebar-nav-label-toggle {
+    margin-bottom: 0 !important;
+}
+.sidebar-nav-label-toggle svg {
+    transform: rotate(-90deg);
+    transition: transform 0.2s var(--transition-smooth);
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    opacity: 0.6;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+.sidebar-nav-group-collapsible[open] .sidebar-nav-label-toggle svg {
+    transform: rotate(-90deg) rotate(-180deg);
+}
+/* When the sidebar is icon-only, hide the summary (no text to read) and
+   force the beta items visible regardless of the <details> open state —
+   agents need icon-level access even when the section is "collapsed". */
+body.sidebar-collapsed .sidebar-nav-group-collapsible > summary {
+    display: none;
+}
+body.sidebar-collapsed .sidebar-nav-group-collapsible > .sidebar-nav-item {
+    display: flex !important;
+}
+
 /* ── Sidebar Tooltip (collapsed mode) ── */
 .sidebar-nav-item[data-tooltip]::after {
     content: attr(data-tooltip);
@@ -335,23 +378,23 @@ body:not(.sidebar-collapsed) .sidebar-nav-item[data-tooltip]::after {
 /* ── Sidebar Footer ── */
 .sidebar-footer {
     border-top: 1px solid var(--border-subtle);
-    padding: 12px;
+    padding: 6px 8px 8px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0;
 }
 .sidebar-collapse-toggle {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 10px;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 8px;
     cursor: pointer;
     color: var(--text-secondary);
     background: none;
     border: none;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     width: 100%;
     transition: background 0.2s ease, color 0.2s ease;
@@ -366,8 +409,8 @@ body.dark-mode .sidebar-collapse-toggle:hover {
     background: rgba(255, 255, 255, 0.06);
 }
 .sidebar-collapse-toggle svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
     stroke: currentColor;
     fill: none;
@@ -395,20 +438,21 @@ body.sidebar-collapsed .sidebar-collapse-toggle {
 .sidebar-footer-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    gap: 6px;
+    padding: 2px 10px 4px;
 }
 body.sidebar-collapsed .sidebar-footer-actions {
     flex-direction: column;
-    padding: 6px;
+    padding: 4px;
+    gap: 4px;
 }
 .sidebar-footer-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
     border: none;
     background: none;
     color: var(--text-secondary);
