@@ -1810,6 +1810,20 @@
 
                 <div class="grid-2">
                     <div><label class="label">Prior Home Policy Expiration </label><input type="date" id="homePriorExp"></div>
+                    <div>
+                        <div class="label-with-hint">
+                            <label class="label">Prior Policy Status </label>
+                            <span data-tooltip="Non-renewal or carrier-initiated cancellation is an underwriting flag. Flag carriers may decline or surcharge.">ⓘ</span>
+                        </div>
+                        <select id="homePriorPolicyStatus">
+                            <option value="">Select...</option>
+                            <option value="Active / Renewed">Active / Renewed</option>
+                            <option value="Non-Renewed by Carrier">Non-Renewed by Carrier</option>
+                            <option value="Cancelled by Carrier">Cancelled by Carrier</option>
+                            <option value="Cancelled - Non-Payment">Cancelled — Non-Payment</option>
+                            <option value="Cancelled by Insured">Cancelled by Insured</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="consent-row">
@@ -1917,6 +1931,23 @@
                         </select>
                     </div>
                     <div><label class="label">Prior Auto Policy Expiration </label><input type="date" id="priorExp"></div>
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <div class="label-with-hint">
+                            <label class="label">Prior Policy Status </label>
+                            <span data-tooltip="Non-renewal or carrier-initiated cancellation is an underwriting flag. Flag carriers may decline or surcharge.">ⓘ</span>
+                        </div>
+                        <select id="priorPolicyStatus">
+                            <option value="">Select...</option>
+                            <option value="Active / Renewed">Active / Renewed</option>
+                            <option value="Non-Renewed by Carrier">Non-Renewed by Carrier</option>
+                            <option value="Cancelled by Carrier">Cancelled by Carrier</option>
+                            <option value="Cancelled - Non-Payment">Cancelled — Non-Payment</option>
+                            <option value="Cancelled by Insured">Cancelled by Insured</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 

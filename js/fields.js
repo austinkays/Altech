@@ -180,12 +180,14 @@ window.FIELDS = [
     { id: 'priorYears',           label: 'Prior Auto Years',    type: 'number', section: 'prior-insurance', ezlynxRequired: true },
     { id: 'priorExp',             label: 'Prior Auto Exp.',     type: 'date',   section: 'prior-insurance', ezlynxRequired: true },
     { id: 'priorLiabilityLimits', label: 'Prior Auto Limits',   type: 'text',   section: 'prior-insurance', ezlynxRequired: true },
+    { id: 'priorPolicyStatus',    label: 'Prior Auto Policy Status', type: 'select', section: 'prior-insurance' }, // PDF only — underwriting risk flag (non-renewal/cancellation)
     { id: 'continuousCoverage',   label: 'Continuous Coverage', type: 'select', section: 'prior-insurance', ezlynxRequired: true },
     { id: 'homePriorCarrier',     label: 'Home Prior Carrier',  type: 'text',   section: 'prior-insurance', ezlynxRequired: true },
     { id: 'homePriorYears',       label: 'Home Prior Years',    type: 'number', section: 'prior-insurance', ezlynxRequired: true },
     { id: 'homePriorPolicyTerm',  label: 'Home Prior Term',     type: 'select', section: 'prior-insurance' }, // PDF only — not in HawkSoft FSC
     { id: 'homePriorExp',         label: 'Home Prior Exp.',     type: 'date',   section: 'prior-insurance', ezlynxRequired: true }, // PDF only — not in HawkSoft FSC
     { id: 'homePriorLiability',   label: 'Home Prior Liability',type: 'text',   section: 'prior-insurance' }, // PDF only — not in HawkSoft FSC
+    { id: 'homePriorPolicyStatus', label: 'Home Prior Policy Status', type: 'select', section: 'prior-insurance' }, // PDF only — underwriting risk flag (non-renewal/cancellation)
     { id: 'creditCheckAuth',      label: 'Credit Check Authorization', type: 'checkbox', section: 'prior-insurance', ezlynxRequired: true }, // note: uses checkbox-row in quoting.html — DOM pass cannot auto-stamp
 
     // ── Notes / Contact ────────────────────────────────────────────────────

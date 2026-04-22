@@ -717,6 +717,7 @@ Object.assign(App, {
             priorRows.push(['Home Term',       v('homePriorPolicyTerm') || v('priorPolicyTerm')]);
             priorRows.push(['Home Yrs',        v('homePriorYears') || v('priorYears')]);
             priorRows.push(['Home Exp.',       fmtDate(v('homePriorExp') || v('priorExp'))]);
+            priorRows.push(['Home Status',     v('homePriorPolicyStatus')]);
         }
         if (showAuto) {
             priorRows.push(['Auto Carrier',    v('priorCarrier')]);
@@ -724,6 +725,7 @@ Object.assign(App, {
             priorRows.push(['Auto Term',       v('priorPolicyTerm')]);
             priorRows.push(['Auto Yrs',        v('priorYears')]);
             priorRows.push(['Auto Exp.',       fmtDate(v('priorExp'))]);
+            priorRows.push(['Auto Status',     v('priorPolicyStatus')]);
         }
         if (priorRows.length) {
             subHeader('Prior Insurance');

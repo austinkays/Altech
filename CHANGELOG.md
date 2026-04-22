@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(quoter): prior-carrier policy status as underwriting risk flag** (April 22, 2026):
+  - New `priorPolicyStatus` and `homePriorPolicyStatus` selects added to Auto Insurance History and Home Insurance History cards in `plugins/quoting.html`. Options: `Active / Renewed`, `Non-Renewed by Carrier`, `Cancelled by Carrier`, `Cancelled — Non-Payment`, `Cancelled by Insured`.
+  - Registered in `js/fields.js` so values persist via `App.save()` and cloud-sync.
+  - Added to the Coverage Gap AI prompt (`js/app-export-coverage-gap.js`) with explicit guidance that non-renewal / carrier-initiated cancellation is a high-severity placement risk that narrows the carrier pool.
+  - Added to the Policy & Prior Insurance table in the PDF export (`js/app-export-pdf.js`) as `Home Status` / `Auto Status` rows.
+  - Not wired to EZLynx or HawkSoft FSC — those schemas don't have a prior-cancellation field; this is PDF + AI-analysis only.
+
 ### Changed
 - **style(intake): align HTML display labels with fields.js canonical labels** (April 22, 2026):
   - 19 display labels in `plugins/quoting.html` normalized to match the `label` strings in `js/fields.js` (the canonical source used by the PDF builder and HawkSoft FSC export). Agents typing into a field and then seeing the same string on the PDF/export was the goal — mixed wording was making them look like different fields.

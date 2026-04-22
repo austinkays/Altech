@@ -111,10 +111,16 @@ Object.assign(App, {
         }
 
         // ── Prior Insurance ──
-        if (d.priorCarrier) lines.push(`Prior Carrier: ${d.priorCarrier}`);
-        if (d.priorYears) lines.push(`Prior Insurance Years: ${d.priorYears}`);
-        if (d.priorLiabilityLimits) lines.push(`Prior Liability Limits: ${d.priorLiabilityLimits}`);
-        if (d.priorExp) lines.push(`Prior Policy Expiration: ${d.priorExp}`);
+        if (d.priorCarrier) lines.push(`Prior Auto Carrier: ${d.priorCarrier}`);
+        if (d.priorYears) lines.push(`Prior Auto Years: ${d.priorYears}`);
+        if (d.priorLiabilityLimits) lines.push(`Prior Auto Liability Limits: ${d.priorLiabilityLimits}`);
+        if (d.priorExp) lines.push(`Prior Auto Policy Expiration: ${d.priorExp}`);
+        if (d.priorPolicyStatus) lines.push(`Prior Auto Policy Status: ${d.priorPolicyStatus}`);
+        if (d.homePriorCarrier) lines.push(`Prior Home Carrier: ${d.homePriorCarrier}`);
+        if (d.homePriorYears) lines.push(`Prior Home Years: ${d.homePriorYears}`);
+        if (d.homePriorLiability) lines.push(`Prior Home Liability: ${d.homePriorLiability}`);
+        if (d.homePriorExp) lines.push(`Prior Home Policy Expiration: ${d.homePriorExp}`);
+        if (d.homePriorPolicyStatus) lines.push(`Prior Home Policy Status: ${d.homePriorPolicyStatus}`);
         if (d.continuousCoverage) lines.push(`Continuous Coverage: ${d.continuousCoverage}`);
         if (d.effectiveDate) lines.push(`Effective Date: ${d.effectiveDate}`);
         if (d.policyTerm) lines.push(`Policy Term: ${d.policyTerm}`);
@@ -148,7 +154,8 @@ Focus on:
 - Liability exposures (pool, trampoline, dog breed, wood stove)
 - Auto coverage gaps (low BI limits, missing UM/UIM, rental gap)
 - State-specific requirements (${d.addrState || d.state || 'unknown state'})
-- Discount opportunities (security systems, bundling, etc.)`;
+- Discount opportunities (security systems, bundling, etc.)
+- Underwriting flags (prior carrier non-renewal or carrier-initiated cancellation — flag as a high-severity placement risk that narrows the carrier pool; non-payment cancellations affect payment-plan eligibility)`;
 
         const userMessage = `Analyze this client's insurance coverage for gaps and risks:\n\n${clientSummary}`;
 
