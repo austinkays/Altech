@@ -908,47 +908,50 @@
                 </div> <!-- end .accordion-body -->
             </details>
 
-            <div id="updatesCard" class="card qtype-home-only">
-                <h2>System Updates</h2>
-                <p class="section-subtitle">When were these systems last updated?</p>
-                
-                <div class="grid-2">
-                    <div><label class="label">Heating Updated</label>
-                        <select id="heatYr">
-                            <option value="">Select...</option>
-                            <option value="Complete Update">Complete Update</option>
-                            <option value="Partial Update">Partial Update</option>
-                            <option value="Not Updated">Not Updated</option>
-                        </select>
+            <details id="updatesCard" class="card section-accordion qtype-home-only">
+                <summary>
+                    <div><h2 style="margin:0">System Updates</h2>
+                    <p class="section-subtitle" style="margin:4px 0 0">Heating, plumbing, electrical, and roof update status</p></div>
+                </summary>
+                <div class="accordion-body">
+                    <div class="grid-2">
+                        <div><label class="label">Heating Updated</label>
+                            <select id="heatYr">
+                                <option value="">Select...</option>
+                                <option value="Complete Update">Complete Update</option>
+                                <option value="Partial Update">Partial Update</option>
+                                <option value="Not Updated">Not Updated</option>
+                            </select>
+                        </div>
+                        <div><label class="label">Plumbing Updated</label>
+                            <select id="plumbYr">
+                                <option value="">Select...</option>
+                                <option value="Complete Update">Complete Update</option>
+                                <option value="Partial Update">Partial Update</option>
+                                <option value="Not Updated">Not Updated</option>
+                            </select>
+                        </div>
                     </div>
-                    <div><label class="label">Plumbing Updated</label>
-                        <select id="plumbYr">
-                            <option value="">Select...</option>
-                            <option value="Complete Update">Complete Update</option>
-                            <option value="Partial Update">Partial Update</option>
-                            <option value="Not Updated">Not Updated</option>
-                        </select>
+                    <div class="grid-2">
+                        <div><label class="label">Electrical Updated</label>
+                            <select id="elecYr">
+                                <option value="">Select...</option>
+                                <option value="Complete Update">Complete Update</option>
+                                <option value="Partial Update">Partial Update</option>
+                                <option value="Not Updated">Not Updated</option>
+                            </select>
+                        </div>
+                        <div><label class="label">Roofing Update</label>
+                            <select id="roofUpdate">
+                                <option value="">Select...</option>
+                                <option value="Complete Update">Complete Update</option>
+                                <option value="Partial Update">Partial Update</option>
+                                <option value="Not Updated">Not Updated</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-                <div class="grid-2">
-                    <div><label class="label">Electrical Updated</label>
-                        <select id="elecYr">
-                            <option value="">Select...</option>
-                            <option value="Complete Update">Complete Update</option>
-                            <option value="Partial Update">Partial Update</option>
-                            <option value="Not Updated">Not Updated</option>
-                        </select>
-                    </div>
-                    <div><label class="label">Roofing Update</label>
-                        <select id="roofUpdate">
-                            <option value="">Select...</option>
-                            <option value="Complete Update">Complete Update</option>
-                            <option value="Partial Update">Partial Update</option>
-                            <option value="Not Updated">Not Updated</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
+            </details>
 
             <details class="card section-accordion qtype-home-only">
                 <summary>
@@ -958,7 +961,7 @@
                 <div class="accordion-body">
                     <div class="grid-12">
                         <div class="span-6">
-                            <label class="label">Heating Type</label>
+                            <div class="label-with-hint"><label class="label">Heating Type</label><button type="button" class="info-modal-btn" onclick="showHeatingTypeInfo()" aria-label="Heating type reference">ⓘ</button></div>
                             <select id="heatingType">
                                 <option value="">Select...</option>
                                 <option value="Gas - Forced Air">Gas - Forced Air</option>

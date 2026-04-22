@@ -326,6 +326,54 @@
         });
     };
 
+    /* ── Heating Type reference ──────────────────────────────────────────
+       Definitions adapted from Liberty Mutual's underwriting quick-help.
+       SVG icons are stylized abstractions:
+         - flame        → fuel-based (gas / oil / propane / solid)
+         - flow lines   → forced-air distribution
+         - wave + fins  → hot-water / baseboard / radiator
+         - zigzag bolt  → electric
+    */
+    window.showHeatingTypeInfo = function () {
+        var FLAME = '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M30 8 q-7 6 -7 14 q0 8 7 12 q7 -4 7 -12 q0 -7 -3 -11 q-1 3 -4 1 q0 -4 0 -4 z" fill="rgba(255,140,40,0.18)"/></svg>';
+        var FORCED_AIR = '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><rect x="6" y="14" width="14" height="12" fill="rgba(255,140,40,0.15)"/><path d="M22 16 q8 -4 14 0 M22 20 q8 -4 16 0 M22 24 q8 -4 14 0" /><path d="M44 16 l6 0 M44 20 l8 0 M44 24 l6 0"/></svg>';
+        var HOT_WATER = '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="10" width="30" height="20" fill="rgba(80,160,220,0.15)"/><line x1="14" y1="10" x2="14" y2="30"/><line x1="20" y1="10" x2="20" y2="30"/><line x1="26" y1="10" x2="26" y2="30"/><line x1="32" y1="10" x2="32" y2="30"/><path d="M42 18 q3 -3 6 0 q3 3 6 0"/><path d="M42 24 q3 -3 6 0 q3 3 6 0"/></svg>';
+        var RADIANT = '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="30" x2="56" y2="30"/><path d="M6 26 q3 -3 6 0 q3 3 6 0 q3 -3 6 0 q3 3 6 0 q3 -3 6 0 q3 3 6 0 q3 -3 6 0"/><path d="M6 22 q3 -3 6 0 q3 3 6 0 q3 -3 6 0 q3 3 6 0 q3 -3 6 0 q3 3 6 0 q3 -3 6 0" opacity="0.6"/><path d="M6 18 q3 -3 6 0 q3 3 6 0 q3 -3 6 0 q3 3 6 0 q3 -3 6 0 q3 3 6 0 q3 -3 6 0" opacity="0.35"/></svg>';
+        var ELECTRIC = '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M32 6 L22 22 L30 22 L26 34 L38 18 L30 18 Z" fill="rgba(255,220,0,0.2)"/></svg>';
+        var STOVE = '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="16" y="14" width="22" height="20" fill="rgba(120,80,60,0.2)"/><rect x="20" y="18" width="14" height="10" fill="rgba(255,140,40,0.3)"/><line x1="38" y1="14" x2="46" y2="10"/><line x1="46" y1="10" x2="46" y2="4"/></svg>';
+
+        _createPickerModal({
+            id: 'fieldInfoModalHeatingType',
+            targetFieldId: 'heatingType',
+            title: 'Heating Type',
+            subtitle: 'Select the heating system found in the dwelling. Definitions adapted from carrier underwriting guides.',
+            options: [
+                { value: 'Gas - Forced Air', name: 'Gas — Forced Air', svg: FORCED_AIR,
+                  desc: 'A forced-air system using natural gas, designed to distribute heat throughout the dwelling via ducts.' },
+                { value: 'Gas - Hot Water', name: 'Gas — Hot Water', svg: HOT_WATER,
+                  desc: 'A hot-water (boiler) system using natural gas, distributing heat through radiators or baseboards.' },
+                { value: 'Gas', name: 'Gas (Other)', svg: FLAME,
+                  desc: 'A non-forced-air gas system — e.g. wall-mounted gas heater or space heater. Rate may vary by room count.' },
+                { value: 'Electric', name: 'Electric', svg: ELECTRIC,
+                  desc: 'Forced-air or baseboard electric heat. No combustion, no flue. Often pairs with heat pump for cooling.' },
+                { value: 'Oil - Forced Air', name: 'Oil — Forced Air', svg: FORCED_AIR,
+                  desc: 'A forced-air system using fuel oil. Distributed through ducts. Check for oil tank location + age.' },
+                { value: 'Oil - Hot Water', name: 'Oil — Hot Water', svg: HOT_WATER,
+                  desc: 'A hot-water system using fuel oil. Distributed through radiators. Often seen in older Northeast homes.' },
+                { value: 'Oil', name: 'Oil (Other)', svg: FLAME,
+                  desc: 'A non-forced-air oil system — space heaters or wall-mounted oil units.' },
+                { value: 'Other - Forced Air', name: 'Propane / Other — Forced Air', svg: FORCED_AIR,
+                  desc: 'A forced-air system using propane or a non-standard fuel. Common in rural areas without natural-gas lines.' },
+                { value: 'Other - Hot Water', name: 'Propane / Other — Hot Water', svg: HOT_WATER,
+                  desc: 'A hot-water/boiler system using propane or another non-standard fuel. Includes hot-water baseboard variants.' },
+                { value: 'Solid Fuel', name: 'Solid Fuel / Wood Stove', svg: STOVE,
+                  desc: 'Wood, pellet, or coal stove / wood furnace as the primary heat source. Carriers often require secondary heat + inspection (creosote, chimney, clearances).' },
+                { value: 'Other', name: 'Other', svg: FLAME,
+                  desc: 'In-wall furnaces, radiant floor, space heaters used as sole source, or anything not listed. Note specifics in the additional-info field.' },
+            ]
+        });
+    };
+
     /* ── Exterior Walls visual reference ────────────────────────────────── */
     window.showExteriorWallsInfo = function () {
         _createPickerModal({
