@@ -63,6 +63,8 @@ window.STORAGE_KEYS = Object.freeze({
     VAULT_LOCAL_META:       'altech_vault_meta_local', // v2 vault metadata cache (passphrase salt + wrapped MK). Stub until Phase 2 swaps in Supabase.
     SYNC_META:              'altech_sync_meta',
     SYNC_BACKEND:           'altech_sync_backend',    // Path B Phase 2 feature flag: 'firebase' (default) | 'supabase'. Flipped by Phase 4 migration.
+    MIGRATION_ENABLED:      'altech_migration_enabled', // Phase 4a feature flag: '1' = show the Firebase→Supabase migration modal. Dev/admin-only during rollout.
+    MIGRATION_STATE:        'altech_migration_state', // Phase 4a per-user migration progress: 'not-started' | 'in-progress' | 'complete' | 'error:<msg>'. Survives reload so a crashed migration can resume.
     SYNC_META_SUPABASE:     'altech_sync_meta_supabase', // last-pushed-at per doc_key, Supabase backend only
     CLOUD_SYNC_DISABLED:    'altech_cloud_sync_disabled', // user opt-out flag — local-only, never sync (would be circular)
     GEMINI_KEY:             'gemini_api_key',

@@ -1004,6 +1004,153 @@
         </div>
     </div>
 
+    <!-- Phase 4a: Firebase → Supabase migration modal. Gated behind
+         STORAGE_KEYS.MIGRATION_ENABLED (='1' in localStorage). Invisible to
+         anyone who doesn't set the flag. Session 1 = navigation + re-auth
+         step only; the actual migration pipeline ships in Session 2. -->
+    <div id="migrationModal" class="auth-modal-overlay" style="display:none">
+        <div class="auth-modal">
+            <button class="auth-close" onclick="MigrationUI.close()">&times;</button>
+
+            <!-- Step 1: Welcome -->
+            <div data-step="1">
+                <div class="auth-modal-header">
+                    <h3>🔒 Upgrade to encrypted sync</h3>
+                    <p class="auth-subtitle">Move your client data to end-to-end encrypted cloud storage.</p>
+                </div>
+                <div class="vault-warning" style="margin-bottom:0.75rem">
+                    <strong>What changes:</strong> Your client data will be encrypted in this browser with a passphrase only you know, before it's uploaded. Even we can't read it. Cross-device sync keeps working, but your clients' information is invisible to the server.
+                </div>
+                <div style="font-size:13px;color:var(--text-secondary);margin-bottom:1rem;line-height:1.5">
+                    This takes about 2 minutes and runs once per account. You'll need:
+                    <ul style="margin:0.4rem 0 0 1.2rem;padding:0">
+                        <li>Your current login password</li>
+                        <li>A new passphrase (different from your login — 8+ characters)</li>
+                        <li>Somewhere to save a recovery key (password manager recommended)</li>
+                    </ul>
+                </div>
+                <div class="migration-error vault-error"></div>
+                <div class="vault-actions">
+                    <button type="button" class="btn-auth btn-auth-secondary" onclick="MigrationUI.close()">Not now</button>
+                    <button type="button" class="btn-auth btn-auth-primary" onclick="MigrationUI.handleWelcomeContinue()">Continue</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Re-authenticate -->
+            <div data-step="2" style="display:none">
+                <div class="auth-modal-header">
+                    <h3>Confirm your current password</h3>
+                    <p class="auth-subtitle">Quick identity check before we migrate anything.</p>
+                </div>
+                <form class="auth-form" onsubmit="MigrationUI.handleReauthSubmit(event)">
+                    <div class="auth-field">
+                        <label for="migrationReauthPass">Current login password</label>
+                        <input type="password" id="migrationReauthPass" autocomplete="current-password" required>
+                    </div>
+                    <div class="migration-error vault-error"></div>
+                    <div class="vault-actions">
+                        <button type="button" class="btn-auth btn-auth-secondary" onclick="MigrationUI.close()">Cancel</button>
+                        <button type="submit" class="btn-auth btn-auth-primary">Continue</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 3: Set encryption passphrase -->
+            <div data-step="3" style="display:none">
+                <div class="auth-modal-header">
+                    <h3>🔑 Create an encryption passphrase</h3>
+                    <p class="auth-subtitle">This is separate from your login. It encrypts your client data.</p>
+                </div>
+                <div class="vault-warning" style="margin-bottom:0.75rem">
+                    <strong>You're in control of the keys.</strong> We can never read your data — not even to help you recover it. If you forget your passphrase AND lose the recovery key, the data is gone. Save both somewhere safe.
+                </div>
+                <form class="auth-form" onsubmit="MigrationUI.handlePassphraseSubmit(event)">
+                    <div class="auth-field">
+                        <label for="migrationPass1">New passphrase (8+ characters)</label>
+                        <input type="password" id="migrationPass1" autocomplete="new-password" required minlength="8">
+                    </div>
+                    <div class="auth-field">
+                        <label for="migrationPass2">Confirm passphrase</label>
+                        <input type="password" id="migrationPass2" autocomplete="new-password" required minlength="8">
+                    </div>
+                    <div class="migration-error vault-error"></div>
+                    <div class="vault-actions">
+                        <button type="button" class="btn-auth btn-auth-secondary" onclick="MigrationUI.close()">Cancel</button>
+                        <button type="submit" class="btn-auth btn-auth-primary">Continue</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 4: Save recovery key -->
+            <div data-step="4" style="display:none">
+                <div class="auth-modal-header">
+                    <h3>🔑 Save your recovery key</h3>
+                    <p class="auth-subtitle">This is the ONLY way to recover data if you forget your passphrase.</p>
+                </div>
+                <div class="vault-recovery-box" id="migrationRecoveryKey">—</div>
+                <div class="vault-actions" style="margin-bottom:0.25rem">
+                    <button type="button" class="btn-auth btn-auth-secondary" onclick="MigrationUI.downloadRecoveryKey()">📥 Download .txt</button>
+                    <button type="button" class="btn-auth btn-auth-secondary" onclick="MigrationUI.copyRecoveryKey()">📋 Copy</button>
+                </div>
+                <form class="auth-form" onsubmit="MigrationUI.handleRecoveryContinue(event)">
+                    <label class="vault-saved-checkbox">
+                        <input type="checkbox" id="migrationRecoverySaved">
+                        <span>
+                            I've saved my recovery key somewhere safe.
+                            <small>We won't remind you again. Without it and the passphrase, your data cannot be recovered.</small>
+                        </span>
+                    </label>
+                    <div class="migration-error vault-error"></div>
+                    <div class="vault-actions">
+                        <button type="button" class="btn-auth btn-auth-secondary" onclick="MigrationUI.close()">Cancel</button>
+                        <button type="submit" class="btn-auth btn-auth-primary">Start migration</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 5: Running migration -->
+            <div data-step="5" style="display:none">
+                <div class="auth-modal-header">
+                    <h3>Migrating your data…</h3>
+                    <p class="auth-subtitle">Don't close this window. Should take under a minute.</p>
+                </div>
+                <div style="padding:12px 0">
+                    <div style="background:var(--bg-input);border-radius:8px;height:8px;overflow:hidden;margin-bottom:10px">
+                        <div id="migrationProgressBar" style="background:var(--apple-blue);height:100%;width:0%;transition:width 0.3s ease"></div>
+                    </div>
+                    <div id="migrationProgressLabel" style="font-size:13px;color:var(--text-secondary);text-align:center">Starting…</div>
+                </div>
+            </div>
+
+            <!-- Step 6: Done -->
+            <div data-step="6" style="display:none">
+                <div class="auth-modal-header">
+                    <h3>✅ You're all set</h3>
+                    <p class="auth-subtitle">Your client data is now encrypted end-to-end.</p>
+                </div>
+                <div style="font-size:13px;color:var(--text-secondary);margin-bottom:1rem;line-height:1.5">
+                    Cross-device sync is active again. Sign in on another device and you'll be asked for your passphrase to unlock.
+                </div>
+                <div class="vault-actions">
+                    <button type="button" class="btn-auth btn-auth-primary" onclick="MigrationUI.handleDoneClose()">Close</button>
+                </div>
+            </div>
+
+            <!-- Step 7: Error -->
+            <div data-step="7" style="display:none">
+                <div class="auth-modal-header">
+                    <h3>⚠️ Migration stopped</h3>
+                    <p class="auth-subtitle">Nothing has been changed. Your data is still safe in its current location.</p>
+                </div>
+                <div class="migration-error vault-error" style="display:block;margin-bottom:1rem"></div>
+                <div class="vault-actions">
+                    <button type="button" class="btn-auth btn-auth-secondary" onclick="MigrationUI.close()">Close</button>
+                    <button type="button" class="btn-auth btn-auth-primary" onclick="MigrationUI.handleErrorRetry()">Try again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- PDF libraries (~600 KB) are lazy-loaded on demand via PDFLibs.ensure() -->
     <script src="js/pdf-lib-loader.js"></script>
     <script src="js/crypto-helper.js"></script>
@@ -1092,6 +1239,7 @@
 <script src="js/sync-facade.js"></script>
 <script src="js/vault-meta.js"></script>
 <script src="js/vault-ui.js"></script>
+<script src="js/migration-ui.js"></script>
 <script src="js/paywall.js"></script>
 <script src="js/onboarding.js"></script>
 

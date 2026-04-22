@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(migration): Phase 4a scaffolding — Firebase → Supabase E2E migration modal (feature-flagged off)** (April 22, 2026):
+  - New `js/migration-ui.js` (~260 lines): 7-step wizard (welcome → reauth → passphrase → recovery-key → running → done | error) with full step navigation, error surfacing, and busy-state handling. Matches the existing `VaultUI` modal pattern.
+  - New modal HTML `#migrationModal` in `index.html` (~120 lines) with the 7 step panels, styled to match the existing auth/vault modals.
+  - New flags: `STORAGE_KEYS.MIGRATION_ENABLED` ('1' = show the modal) and `STORAGE_KEYS.MIGRATION_STATE` (not-started | in-progress | complete | error — survives reload so a crashed migration can resume in Session 2).
+  - **Session 1 scope (this push):** scaffolding only. Re-auth step actually verifies the Firebase password via `Auth.user.reauthenticateWithCredential` — proving the Firebase integration layer works. Passphrase step wires `CryptoHelper.createVault` + `generateRecoveryKey` + `wrapWithRecoveryKey` into a proper `cryptoMaterial` bundle with both passphrase-derived and recovery-key-derived wraps of the master key. Step 5 (running) is stubbed with a clear "Session 1 scaffold only — pipeline ships in Session 2" error; no Firebase, Supabase, or localStorage data is touched.
+  - **Session 2 scope (next):** the actual data pipeline — pull Firebase plaintext, decrypt legacy v1 payloads, re-encrypt under the new passphrase-derived MK, create Supabase account, push ciphertext, flip `SYNC_BACKEND=supabase` + `E2E_CRYPTO_V2=1`, mark Firebase user `migrated=true`. Resume-on-crash via `MIGRATION_STATE`.
+  - **Session 3 scope:** admin "Migrate Team" panel, automated tests against mock Firebase + mock Supabase, lift the admin-only sync policy.
+  - **Zero production impact:** the modal is invisible unless `MIGRATION_ENABLED='1'` is set in localStorage (admin-only testing). `MigrationUI.open()` in the console is the only current trigger. All 1820 tests still pass.
+  - **No URL hash trigger** — would conflict with the existing hash router (`App.navigateTo` routes on hash change). Admin button + hash trigger are future sessions.
+
 ### Security
 - **security(sync): restrict cloud sync to admin accounts by agency policy** (April 22, 2026):
   - Until Path B Phase 4 ships end-to-end encryption (Supabase ciphertext-only backend + MFA-enforced writes), plaintext client NPI still lands in Firestore on push. Non-admin accounts are now gated from every write path so client data stays local-only on their devices — eliminating the E&O / FTC Safeguards Rule / NAIC Insurance Data Security Model Law exposure for everyone who isn't the agency admin.
