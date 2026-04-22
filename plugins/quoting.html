@@ -39,24 +39,30 @@
                 <h2>Begin Intake</h2>
                 <p class="section-subtitle">Choose what you'd like to insure to start a new client</p>
 
-                <!-- Coverage-type selection — clicking a card starts a fresh intake -->
+                <!-- Coverage-type selection — clicking a card starts a fresh intake.
+                     The Non-Owners toggle pre-sets autoPolicyType so Step 4 renders
+                     the no-vehicles variant from the start. -->
                 <div class="coverage-type-cards">
                     <button class="coverage-card" onclick="App.selectTypeAndStart('home')" type="button" aria-label="Start Home insurance intake">
                         <span class="coverage-card-icon">🏠</span>
                         <span class="coverage-card-label">HOME</span>
                         <span class="coverage-card-sub">Property insurance</span>
                     </button>
-                    <button class="coverage-card" onclick="App.selectTypeAndStart('auto')" type="button" aria-label="Start Auto insurance intake">
+                    <button class="coverage-card" onclick="App.selectTypeAndStart('auto', document.getElementById('step0NonOwnerToggle')?.checked)" type="button" aria-label="Start Auto insurance intake">
                         <span class="coverage-card-icon">🚗</span>
                         <span class="coverage-card-label">AUTO</span>
                         <span class="coverage-card-sub">Vehicle insurance</span>
                     </button>
-                    <button class="coverage-card" onclick="App.selectTypeAndStart('both')" type="button" aria-label="Start Home &amp; Auto insurance intake">
+                    <button class="coverage-card" onclick="App.selectTypeAndStart('both', document.getElementById('step0NonOwnerToggle')?.checked)" type="button" aria-label="Start Home &amp; Auto insurance intake">
                         <span class="coverage-card-icon">🎯</span>
                         <span class="coverage-card-label">HOME &amp; AUTO</span>
                         <span class="coverage-card-sub">Bundle — best value</span>
                     </button>
                 </div>
+                <label class="coverage-nonowner-toggle">
+                    <input type="checkbox" id="step0NonOwnerToggle">
+                    <span>No vehicles on this policy <em>(Non-Owners / Broadform — applies to Auto &amp; Home + Auto)</em></span>
+                </label>
 
                 <div id="step0ClientHistoryList"></div>
             </div>

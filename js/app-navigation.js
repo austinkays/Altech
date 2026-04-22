@@ -230,13 +230,18 @@ Object.assign(App, {
     // Select a coverage type and start a fresh intake from Step 1.
     // Called by the coverage-type cards on Step 0 (replaces the old "New Client" button +
     // the separate Step 2 coverage-selection screen).
-    selectTypeAndStart(type) {
-        // startFresh() clears all radios then calls handleType() which defaults to 'both'.
-        // After it returns we re-apply the user's actual selection.
-        this.startFresh();
+    // isNonOwner: if true for auto/both, pre-sets autoPolicyType='NonOwners' so Step 4
+    // renders the no-vehicles variant from the start (Non-Owners / Broadform workflow).
+    async selectTypeAndStart(type, isNonOwner = false) {
+        await this.startFresh();
         const radio = document.querySelector(`input[name="qType"][value="${CSS.escape(type)}"]`);
         if (radio) radio.checked = true;
         this.handleType(); // re-run with the correct radio now checked
+
+        if (isNonOwner && (type === 'auto' || type === 'both')) {
+            this.data.autoPolicyType = 'NonOwners';
+            try { safeSave(this.storageKey, JSON.stringify(this.data)); } catch (e) { /* ok */ }
+        }
     },
 
     // Jump directly to a step by its step ID string (e.g. 'step-1') or 0-based flow index.
@@ -678,14 +683,14 @@ Object.assign(App, {
         window.scrollTo(0, 0);
     },
 
-    /** Show/hide Vehicles & Drivers section based on auto policy type.
+    /** Show/hide Vehicles section based on auto policy type.
+     *  Non-Owners / Broadform policies cover the named insured as a driver
+     *  (no owned vehicles), so drivers remain visible — only vehicles are hidden.
      *  Called from #autoPolicyType onchange and on step-4 entry. */
     handleAutoType(val) {
         const isBroadform = val === 'NonOwners' || val === 'BroadForm';
-        const driversCard  = document.getElementById('step4DriversCard');
         const vehiclesCard = document.getElementById('step4VehiclesCard');
         const notice       = document.getElementById('step4NonOwnersNotice');
-        if (driversCard)  driversCard.classList.toggle('hidden', isBroadform);
         if (vehiclesCard) vehiclesCard.classList.toggle('hidden', isBroadform);
         if (notice)       notice.classList.toggle('hidden', !isBroadform);
     },

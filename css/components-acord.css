@@ -316,6 +316,38 @@ body.dark-mode .coverage-card:hover {
     border-color: var(--apple-blue);
 }
 
+/* Non-Owners / Broadform toggle — sits under the coverage-type cards.
+   Clicking Auto or Home+Auto with this checked routes through the
+   no-vehicles workflow (autoPolicyType='NonOwners'). */
+.coverage-nonowner-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    margin: -8px 0 20px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+.coverage-nonowner-toggle:hover {
+    border-color: var(--apple-blue);
+    color: var(--text);
+}
+.coverage-nonowner-toggle input[type="checkbox"] {
+    margin: 0;
+    accent-color: var(--apple-blue);
+    cursor: pointer;
+}
+.coverage-nonowner-toggle em {
+    font-style: normal;
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
 @media (max-width: 520px) {
     .coverage-type-cards {
         gap: 8px;

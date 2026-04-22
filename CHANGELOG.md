@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(intake): Non-Owners / Broadform toggle on Step 0** (April 22, 2026):
+  - Added a "No vehicles on this policy (Non-Owners / Broadform)" checkbox below the three coverage-type cards in `plugins/quoting.html`. When checked, clicking **Auto** or **Home + Auto** pre-sets `autoPolicyType='NonOwners'` before Step 4 renders — so the user no longer has to navigate to Step 4, scroll past the Vehicles card, and then hide it via a dropdown. Home card ignores the toggle (home-only quotes already skip step 4).
+  - `App.selectTypeAndStart(type, isNonOwner)` is now async and awaits `startFresh()` so the pre-set write to `data.autoPolicyType` is never raced by the async client-switch that clears data. Persists immediately via `safeSave` so the value survives any subsequent `App.load()` on Step 4 entry.
+  - `handleAutoType()` simplified: non-owner/broadform now **keeps the Drivers card visible** (driver info is the entire point of a Broadform / named-non-owner policy) and only hides the Vehicles card. The Step 4 notice already stated "Only liability limits and driver info are needed" — the prior hide-drivers behavior contradicted it.
+  - New `.coverage-nonowner-toggle` style in `css/components-acord.css` — neutral pill under the coverage cards, apple-blue accent on hover/check.
+  - No change to EZLynx / HawkSoft / PDF exports — `autoPolicyType` was already in `fields.js` and round-tripping through all three.
+
 ### Changed
 - **style(intake): fold Save button into the active-client badge row** (April 22, 2026):
   - In the app-shell viewport, the plugin's `.tool-header-brand` is hidden so the dashboard breadcrumb can own the tool title. That left `.header-right` (the Save button + "✓ Saved" indicator) stranded on its own empty row above the `EDITING:` badge.
