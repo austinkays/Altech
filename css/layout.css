@@ -192,7 +192,7 @@ body.dark-mode .btn-save-client:hover {
     font-weight: 500;
 }
 .active-client-badge .acb-status-clean { color: var(--success); }
-.active-client-badge .acb-status-dirty { color: #FF9500; /* no var */ }
+.active-client-badge .acb-status-dirty { color: var(--apple-blue); }
 .active-client-badge .acb-history-btn {
     padding: 3px 10px;
     border: 1px solid var(--border);
