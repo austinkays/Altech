@@ -947,6 +947,15 @@ window.DashboardWidgets = (() => {
             if (!groups[cat]) { groups[cat] = []; seen.push(cat); }
             groups[cat].push(t);
         });
+        // "In Development" (beta) always renders last regardless of where its
+        // tools appear in toolConfig. Reclassified tools (Quote Compare, PDF
+        // to HawkSoft, etc.) would otherwise push beta up into the middle of
+        // the sidebar because their first-appearance position is early.
+        const betaIdx = seen.indexOf('beta');
+        if (betaIdx !== -1 && betaIdx !== seen.length - 1) {
+            seen.splice(betaIdx, 1);
+            seen.push('beta');
+        }
 
         const navHtml = seen.map(cat => {
             const label = categoryLabels[cat] || cat;
