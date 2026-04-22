@@ -209,6 +209,27 @@ body.dark-mode .btn-save-client:hover {
     color: var(--apple-blue);
     border-color: var(--apple-blue);
 }
+/* Right-side action group (Save + History) inside the badge */
+.active-client-badge .acb-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+/* Compact Save button sizing to match the badge's History button */
+.active-client-badge .btn-save-client {
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    gap: 5px;
+}
+.active-client-badge .btn-save-client svg {
+    width: 12px;
+    height: 12px;
+}
+.active-client-badge .save-indicator {
+    font-size: 12px;
+}
 
 /* History modal — list of snapshot rows */
 .history-list {

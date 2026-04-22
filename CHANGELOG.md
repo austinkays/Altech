@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **style(intake): fold Save button into the active-client badge row** (April 22, 2026):
+  - In the app-shell viewport, the plugin's `.tool-header-brand` is hidden so the dashboard breadcrumb can own the tool title. That left `.header-right` (the Save button + "✓ Saved" indicator) stranded on its own empty row above the `EDITING:` badge.
+  - Moved `#btnSaveClient` and `#saveIndicator` into a new `.acb-actions` group inside `#activeClientBadge`, right-aligned next to the existing History button. The empty `.header-top` row is auto-collapsed by the existing `:has(> :only-child)` rule.
+  - Added compact sizing for `.btn-save-client` inside the badge (3px 10px padding, 12px font, 12×12 icon) so Save pairs visually with the History button instead of towering over it.
+
 ### Fixed
 - **fix(reminders): one-time tasks no longer revert to overdue after completion** (April 22, 2026):
   - `_getStatus()` in `js/reminders.js` only treated a task as "completed" if the last completion was on or after today's PST date. For `frequency: 'once'` tasks, that meant the badge flipped back to **Overdue** the day after you checked it off — they looked like daily-repeating tasks from the user's perspective.
