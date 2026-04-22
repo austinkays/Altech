@@ -10,6 +10,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **style(intake): align HTML display labels with fields.js canonical labels** (April 22, 2026):
+  - 19 display labels in `plugins/quoting.html` normalized to match the `label` strings in `js/fields.js` (the canonical source used by the PDF builder and HawkSoft FSC export). Agents typing into a field and then seeing the same string on the PDF/export was the goal — mixed wording was making them look like different fields.
+  - **Changes** (all in `plugins/quoting.html`, HTML display only — no impact on export paths):
+    - "Email Address" → "Email", "Phone Number" → "Phone" (primary applicant row)
+    - "Education Level" → "Education" (primary + co-applicant)
+    - "Number of Stories" / "Number of Occupants" / "Number of Fireplaces" → "Stories" / "Occupants" / "Fireplaces"
+    - "Full Bathrooms" / "Half Bathrooms" → "Full Baths" / "Half Baths"
+    - "Construction Style" / "Foundation Type" / "Cooling System" → "Construction" / "Foundation" / "Cooling"
+    - "Heating Update" / "Plumbing Update" / "Electrical Update" → "Heating Updated" / "Plumbing Updated" / "Electrical Updated"
+    - "Year Roof Updated" → "Roof Year"
+    - "Home Purchase Date" → "Purchase Date"
+    - "Additional Insured Parties" → "Additional Insureds"
+    - "Increased Mold Damage" / "Increased Credit Card Coverage" → "Mold Damage" / "Credit Card Coverage"
+    - "Dogs / Pets" → "Dogs"
+  - **Not changed** (where HTML has extra context users need and fields.js is terser):
+    - "Bodily Injury Limits (BI)" (fields.js: "BI Limits") — agents benefit from the full term
+    - "Dwelling Coverage (Coverage A)", "Personal Property (Cov C)", "Loss of Use (Cov D)" — coverage-letter context matters
+    - "Distance to Fire Station (Miles)" (fields.js: "Fire Station (mi)") — full unit helps
+    - "Jewelry / Watches / Furs Limit" (fields.js: "Jewelry Limit") — broader coverage explanation
+    - Co-applicant section labels use bare "First Name" / "Last Name" / etc. while fields.js prefixes them "Co-App First Name" — HTML context (section header "Co-Applicant Information") makes the prefix redundant, while fields.js prefix disambiguates on the PDF where the section header is smaller.
+  - **Export paths verified unaffected:**
+    - EZLynx: `python_backend/ezlynx_filler.py` matches against EZLynx's form labels (their text), not ours.
+    - HawkSoft FSC: uses `FIELD_BY_ID[id].label` from fields.js (untouched) for note lines; structured tags key by id.
+    - PDF: uses fields.js labels (untouched).
+  - Tests: 31 suites / 1806 tests pass. Pure display text change, no behavior change.
+
 - **fix(intake-ui): badge + dropdown + accordion consistency pass** (April 22, 2026):
   - **Active client badge** — removed `margin-left: auto` on the History button. The button was floating at the far right of the badge with a big empty gap between "unsaved changes" and itself, making the two look unrelated. Now it sits naturally right after the status text with the standard 8px flex gap.
   - **Empty-option placeholders normalized** to `"Select..."` where they were just visual placeholders:

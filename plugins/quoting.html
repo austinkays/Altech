@@ -176,8 +176,8 @@
                         </select>
                     </div>
 
-                    <div><label class="label">Email Address</label><input type="email" id="email" placeholder="john@example.com" autocomplete="email"></div>
-                    <div><label class="label">Phone Number</label><input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="tel"></div>
+                    <div><label class="label">Email</label><input type="email" id="email" placeholder="john@example.com" autocomplete="email"></div>
+                    <div><label class="label">Phone</label><input type="tel" id="phone" placeholder="(555) 123-4567" autocomplete="tel"></div>
 
                     <div>
                         <label class="label">Marital Status</label>
@@ -206,7 +206,7 @@
                     </div>
                     <div class="grid-2">
                     <div>
-                        <label class="label">Education Level</label>
+                        <label class="label">Education</label>
                         <select id="education">
                             <option value="">Select...</option>
                             <option value="No High School Diploma">No High School Diploma</option>
@@ -333,7 +333,7 @@
                     </div>
                     <div class="grid-2">
                         <div>
-                            <label class="label">Education Level</label>
+                            <label class="label">Education</label>
                             <select id="coEducation">
                             <option value="">Select...</option>
                             <option value="No High School Diploma">No High School Diploma</option>
@@ -592,7 +592,7 @@
                 </select>
                 
                 <div class="grid-2">
-                    <div><label class="label">Number of Stories</label>
+                    <div><label class="label">Stories</label>
                         <select id="numStories">
                             <option value="">Select...</option>
                             <option value="1">1</option>
@@ -610,11 +610,11 @@
                 </div>
 
                 <div class="grid-2">
-                    <div><label class="label">Full Bathrooms</label>
+                    <div><label class="label">Full Baths</label>
                     <select id="fullBaths">
                         <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8+</option>
                     </select></div>
-                    <div><label class="label">Half Bathrooms</label>
+                    <div><label class="label">Half Baths</label>
                     <select id="halfBaths">
                         <option value="0" selected>0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5+</option>
                     </select></div>
@@ -627,7 +627,7 @@
 
                 <div class="grid-2">
                     <div><label class="label">Lot Size (acres)</label><input type="text" id="lotSize" placeholder="0.25"></div>
-                    <div><label class="label">Number of Occupants</label>
+                    <div><label class="label">Occupants</label>
                     <select id="numOccupants">
                         <option value="">Select...</option>
                         <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
@@ -637,7 +637,7 @@
                 </div>
                 
                 <div class="grid-2">
-                    <div><label class="label">Home Purchase Date</label>
+                    <div><label class="label">Purchase Date</label>
                     <input type="date" id="purchaseDate" onchange="App.calculateResidenceTime()">
                     <span id="residenceTimeDisplay" style="font-size: 12px; color: var(--text-secondary); margin-top: 2px; display: block;"></span></div>
                     <div><label class="label">Years at Address</label>
@@ -686,7 +686,7 @@
                 <div class="accordion-body">
 
                 <div class="grid-2">
-                    <div><div class="label-with-hint"><label class="label">Construction Style</label><button type="button" class="info-modal-btn" onclick="showConstructionStyleInfo()" aria-label="Construction style reference">ⓘ</button></div>
+                    <div><div class="label-with-hint"><label class="label">Construction</label><button type="button" class="info-modal-btn" onclick="showConstructionStyleInfo()" aria-label="Construction style reference">ⓘ</button></div>
                     <select id="constructionStyle">
                         <option value="">Select...</option>
                         <option value="Ranch">Ranch</option>
@@ -768,7 +768,7 @@
                 </div>
 
                 <div class="grid-2">
-                    <div><div class="label-with-hint"><label class="label">Foundation Type</label><span data-tooltip="How the home is supported. Slab = poured concrete, no space below. Crawl Space = small clearance under floor. Basement = full livable/storage level underground.">ⓘ</span></div>
+                    <div><div class="label-with-hint"><label class="label">Foundation</label><span data-tooltip="How the home is supported. Slab = poured concrete, no space below. Crawl Space = small clearance under floor. Basement = full livable/storage level underground.">ⓘ</span></div>
                     <select id="foundation">
                         <option value="">Select...</option>
                         <option value="Slab">Slab</option>
@@ -873,7 +873,7 @@
                     </div>
                 </div>
                 <div class="grid-12">
-                    <div class="span-4"><label class="label">Year Roof Updated</label>
+                    <div class="span-4"><label class="label">Roof Year</label>
                     <input type="tel" id="roofYr" placeholder="2015"></div>
                 </div>
 
@@ -885,7 +885,7 @@
                 <p class="section-subtitle">When were these systems last updated? (Home built before 2000)</p>
                 
                 <div class="grid-2">
-                    <div><label class="label">Heating Update</label>
+                    <div><label class="label">Heating Updated</label>
                         <select id="heatYr">
                             <option value="">Select...</option>
                             <option value="Complete Update">Complete Update</option>
@@ -893,7 +893,7 @@
                             <option value="Not Updated">Not Updated</option>
                         </select>
                     </div>
-                    <div><label class="label">Plumbing Update</label>
+                    <div><label class="label">Plumbing Updated</label>
                         <select id="plumbYr">
                             <option value="">Select...</option>
                             <option value="Complete Update">Complete Update</option>
@@ -903,7 +903,7 @@
                     </div>
                 </div>
                 <div class="grid-2">
-                    <div><label class="label">Electrical Update</label>
+                    <div><label class="label">Electrical Updated</label>
                         <select id="elecYr">
                             <option value="">Select...</option>
                             <option value="Complete Update">Complete Update</option>
@@ -947,7 +947,7 @@
                             </select>
                         </div>
                         <div class="span-6">
-                            <label class="label">Cooling System</label>
+                            <label class="label">Cooling</label>
                             <select id="cooling">
                                 <option value="">Select...</option>
                                 <option value="Central Air">Central Air</option>
@@ -1071,7 +1071,7 @@
                                 <option value="Mixed">Mixed</option>
                             </select>
                         </div>
-                        <div><label class="label">Number of Fireplaces</label>
+                        <div><label class="label">Fireplaces</label>
                             <select id="numFireplaces">
                                 <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5+</option>
                             </select>
@@ -1190,7 +1190,7 @@
                     <option value="more than 5">More than 5</option>
                 </select>
 
-                <label class="label">Dogs / Pets</label>
+                <label class="label">Dogs</label>
                 <textarea id="dogInfo" placeholder="Breed, age, behavior history (if applicable)" rows="2"></textarea>
 
                 <label class="label">Business on Property</label>
@@ -1403,7 +1403,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="label">Increased Credit Card Coverage</label>
+                        <label class="label">Credit Card Coverage</label>
                         <select id="creditCardCoverage">
                             <option value="">Default</option>
                             <option value="1000">$1,000</option>
@@ -1414,7 +1414,7 @@
                         </select>
                     </div>
                     <div class="full-span">
-                        <label class="label">Increased Mold Damage</label>
+                        <label class="label">Mold Damage</label>
                         <select id="moldDamage">
                             <option value="">Default</option>
                             <option value="25000">$25,000</option>
@@ -1924,7 +1924,7 @@
                 <h2>Additional Information</h2>
                 <p class="section-subtitle">Help us serve you better</p>
 
-                <label class="label">Additional Insured Parties</label>
+                <label class="label">Additional Insureds</label>
                 <textarea id="additionalInsureds" placeholder="Names and relationships" rows="2"></textarea>
 
                 <label class="label">Best Time to Contact</label>
