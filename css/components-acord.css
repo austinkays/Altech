@@ -338,9 +338,16 @@ body.dark-mode .coverage-card:hover {
     color: var(--text);
 }
 .coverage-nonowner-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
     margin: 0;
+    padding: 0;
+    flex-shrink: 0;
     accent-color: var(--apple-blue);
     cursor: pointer;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
 }
 .coverage-nonowner-toggle em {
     font-style: normal;
