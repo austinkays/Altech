@@ -31,6 +31,7 @@ body.dark-mode .toast { background: rgba(50, 50, 55, 0.8); border-color: rgba(25
 }
 .pronunciation-btn:hover { border-color: var(--apple-blue); color: var(--apple-blue); }
 .pronunciation-btn.has-value { color: var(--apple-blue); border-color: var(--apple-blue); background: rgba(0,122,255,0.06); }
+.name-field-wrap { position: relative; }
 .pronunciation-popup {
     position: absolute;
     top: calc(100% + 4px);
@@ -67,27 +68,4 @@ body.dark-mode .toast { background: rgba(50, 50, 55, 0.8); border-color: rgba(25
     margin-bottom: 6px;
 }
 .intake-name-header .label { margin-bottom: 0; }
-
-/* Input with inline action button */
-.input-with-action {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-.input-with-action > input {
-    flex: 1;
-    padding-right: 36px;
-}
-.input-action-btn {
-    position: absolute;
-    right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 2;
-}
-.input-with-action .pronunciation-popup {
-    top: calc(100% + 4px);
-    right: 0;
-    left: auto;
-}
 

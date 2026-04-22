@@ -120,31 +120,31 @@
                 <p class="section-subtitle">Let's start with your basic information</p>
                 
                 <div class="grid-2-full">
-                    <div>
-                        <label class="label">First Name</label>
-                        <div class="input-with-action">
-                            <input type="text" id="firstName" placeholder="John" autocomplete="given-name">
-                            <button type="button" class="input-action-btn pronunciation-btn" id="pronBtnFirst" onclick="App.togglePronunciation('first')" title="Name pronunciation">🔊</button>
-                            <div class="pronunciation-popup" id="pronPopupFirst">
-                                <input type="text" id="firstNamePhonetic" placeholder="e.g. AW-stin" readonly>
-                                <div class="popup-actions">
-                                    <button type="button" class="popup-btn-gen" onclick="App.generateNamePronunciation()">Generate</button>
-                                    <button type="button" class="popup-btn-close" onclick="App.togglePronunciation('first')">Close</button>
-                                </div>
+                    <div class="name-field-wrap">
+                        <div class="label-with-hint">
+                            <label class="label" for="firstName">First Name</label>
+                            <button type="button" class="pronunciation-btn" id="pronBtnFirst" tabindex="-1" onclick="App.togglePronunciation('first')" title="Name pronunciation">🔊</button>
+                        </div>
+                        <input type="text" id="firstName" placeholder="John" autocomplete="given-name">
+                        <div class="pronunciation-popup" id="pronPopupFirst">
+                            <input type="text" id="firstNamePhonetic" placeholder="e.g. AW-stin" readonly>
+                            <div class="popup-actions">
+                                <button type="button" class="popup-btn-gen" tabindex="-1" onclick="App.generateNamePronunciation()">Generate</button>
+                                <button type="button" class="popup-btn-close" tabindex="-1" onclick="App.togglePronunciation('first')">Close</button>
                             </div>
                         </div>
                     </div>
-                    <div>
-                        <label class="label">Last Name</label>
-                        <div class="input-with-action">
-                            <input type="text" id="lastName" placeholder="Smith" autocomplete="family-name">
-                            <button type="button" class="input-action-btn pronunciation-btn" id="pronBtnLast" onclick="App.togglePronunciation('last')" title="Name pronunciation">🔊</button>
-                            <div class="pronunciation-popup" id="pronPopupLast">
-                                <input type="text" id="lastNamePhonetic" placeholder="e.g. SMITH" readonly>
-                                <div class="popup-actions">
-                                    <button type="button" class="popup-btn-gen" onclick="App.generateNamePronunciation()">Generate</button>
-                                    <button type="button" class="popup-btn-close" onclick="App.togglePronunciation('last')">Close</button>
-                                </div>
+                    <div class="name-field-wrap">
+                        <div class="label-with-hint">
+                            <label class="label" for="lastName">Last Name</label>
+                            <button type="button" class="pronunciation-btn" id="pronBtnLast" tabindex="-1" onclick="App.togglePronunciation('last')" title="Name pronunciation">🔊</button>
+                        </div>
+                        <input type="text" id="lastName" placeholder="Smith" autocomplete="family-name">
+                        <div class="pronunciation-popup" id="pronPopupLast">
+                            <input type="text" id="lastNamePhonetic" placeholder="e.g. SMITH" readonly>
+                            <div class="popup-actions">
+                                <button type="button" class="popup-btn-gen" tabindex="-1" onclick="App.generateNamePronunciation()">Generate</button>
+                                <button type="button" class="popup-btn-close" tabindex="-1" onclick="App.togglePronunciation('last')">Close</button>
                             </div>
                         </div>
                     </div>
