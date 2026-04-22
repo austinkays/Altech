@@ -21,6 +21,21 @@ const CloudSync = (() => {
     const SYNC_DEBOUNCE_MS = 3000; // Debounce cloud writes
     const SYNC_META_KEY = STORAGE_KEYS.SYNC_META; // localStorage key for sync metadata
 
+    // ── Policy gate ──────────────────────────────────────────────────────────
+    // Agency policy: cloud sync is restricted to admin accounts until the
+    // Path B Phase 4 migration ships (end-to-end encrypted Supabase backend).
+    // Non-admin accounts stay local-only so plaintext client NPI never leaves
+    // the browser via Firestore. This gate cannot be overridden from the UI —
+    // `isAdmin` is a server-managed claim set in the user's Firestore profile.
+    //
+    // When Auth isn't loaded yet (during initial page boot), we conservatively
+    // return true (blocked) — the admin's own first sync will fire on the next
+    // debounce tick after their profile loads.
+    function _policyBlocksSync() {
+        if (typeof Auth === 'undefined') return true;
+        return Auth.isAdmin !== true;
+    }
+
     // Single source of truth for all synced Firestore documents (excludes quotes, which use a subcollection).
     // Each string is both the Firestore doc name under users/{uid}/sync/ AND the key in _getLocalData().
     // Add new sync types here; push & delete automatically pick them up.
@@ -77,6 +92,11 @@ const CloudSync = (() => {
         const tsEl = document.getElementById('authSyncTimestamp');
         if (!statusEl) return;
 
+        if (_policyBlocksSync()) {
+            statusEl.textContent = 'Local-only (admin-restricted)';
+            if (tsEl) tsEl.textContent = '';
+            return;
+        }
         if (localStorage.getItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED) === 'true') {
             statusEl.textContent = 'Disabled — local-only';
             if (tsEl) tsEl.textContent = '';
@@ -454,10 +474,20 @@ const CloudSync = (() => {
         get deviceId() { return DEVICE_ID; },
         get isAvailable() { return FirebaseConfig.isReady && Auth.isSignedIn; },
 
-        // User opt-out — when true, schedulePush/pushToCloud/pullFromCloud/fullSync are no-ops.
-        // Intentionally does NOT gate deleteCloudData: a user disabling sync should still be able
-        // to scrub existing cloud residue.
-        get disabledByUser() { return localStorage.getItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED) === 'true'; },
+        // Sync gate — trips for EITHER the user-facing opt-out checkbox OR the
+        // admin-only agency policy. When true, schedulePush/pushToCloud/
+        // pullFromCloud/fullSync are no-ops. Intentionally does NOT gate
+        // deleteCloudData: a user whose sync is off should still be able to
+        // scrub residue (policy-blocked users don't have residue to scrub
+        // unless they were previously admin and got demoted).
+        get disabledByUser() {
+            return _policyBlocksSync() || localStorage.getItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED) === 'true';
+        },
+        // Raw user opt-out flag — admin panel / settings UI reads this to know
+        // whether to show the toggle as checked. Separate from the policy gate
+        // so we can render "Disabled by policy" vs "You disabled this" distinctly.
+        get disabledByUserOptOut() { return localStorage.getItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED) === 'true'; },
+        get disabledByPolicy() { return _policyBlocksSync(); },
 
         refreshUI() { _refreshSyncUI(); },
 

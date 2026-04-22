@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **security(sync): restrict cloud sync to admin accounts by agency policy** (April 22, 2026):
+  - Until Path B Phase 4 ships end-to-end encryption (Supabase ciphertext-only backend + MFA-enforced writes), plaintext client NPI still lands in Firestore on push. Non-admin accounts are now gated from every write path so client data stays local-only on their devices — eliminating the E&O / FTC Safeguards Rule / NAIC Insurance Data Security Model Law exposure for everyone who isn't the agency admin.
+  - **Gate layer 1** — `js/cloud-sync.js`: new `_policyBlocksSync()` helper, `Auth.isAdmin !== true` means the four sync entry points (`schedulePush`, `pushToCloud`, `fullSync`, `pullFromCloud`) no-op. Implemented by chaining the check into the existing `disabledByUser` getter so every historical gate site picks it up automatically. Fails closed when `Auth` isn't loaded yet (boot window).
+  - **Gate layer 2** — `js/sync-facade.js`: new `policyBlocksSync()` + `writeBlocked()` helpers parallel the existing `mfaBlocksSync()`. Every Supabase and Firebase write method on `window.Sync` returns `{ ok: false, skipped: 'policy-blocked' }` for non-admins. Reads (`pullFromCloud`, `pullBlob`, `pullQuote`, `listQuotes`) stay open so a demoted admin can still inspect their own data.
+  - **UI** — `js/auth.js` force-checks and disables the "Keep data on this device only" toggle for non-admins, swaps the label to "Cloud sync disabled by admin policy", and rewrites the description. `CloudSync._refreshSyncUI` now shows "Local-only (admin-restricted)" instead of the generic "Disabled — local-only".
+  - **Admin bypass** — admins retain full sync for cross-device continuity. `isAdmin` is a server-managed claim on the Firestore user profile — clients cannot elevate themselves.
+  - **Regression guard** — `tests/admin-only-sync.test.js` (11 new tests, source-level assertions): verifies the gate functions exist, fail closed on missing Auth, require `isAdmin !== true` (not just `== false`, so undefined also blocks), chain into `disabledByUser`, and gate every write method on the facade. If any layer is refactored away, CI fails loudly.
+  - **Test migration**: `tests/mfa-enforcement.test.js` loadStack now injects `window.Auth = { isAdmin: true }` so MFA-focused tests don't double-gate. `tests/auth-cloudsync.test.js` debounce test overrides `Auth.isAdmin` via `Object.defineProperty` since its Firestore profile mock returns `{exists:false}`.
+  - **Admin enrollment**: no UI path yet — admin status is set by manually writing `isAdmin: true` to `users/{uid}` in the Firestore console (per the existing bootstrap note in `js/auth.js:80`). Future admin panel can CRUD this.
+
 ### Fixed
 - **fix(sync): carrier rule overrides are now cloud-synced** (April 22, 2026):
   - `STORAGE_KEYS.CARRIER_OVERRIDES` (used by the Broadform / Carrier Match tool for user-edited underwriting rules) was never registered in `SYNC_DOCS` or `_getLocalData()` in `js/cloud-sync.js`. The Broadform tool called `CloudSync.schedulePush()` after every rule save, but the push was a silent no-op — overrides lived only in browser localStorage.

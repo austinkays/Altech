@@ -54,49 +54,70 @@
         return sa.mfaRequired();
     }
 
+    // Agency policy gate: cloud sync is admin-only until Path B Phase 4 ships
+    // E2E encryption. Enforced at the facade layer so both Firebase and
+    // Supabase backends are covered. Defaults to "blocked" if Auth isn't
+    // loaded yet (fail-closed on boot).
+    function policyBlocksSync() {
+        if (typeof window === 'undefined') return true;
+        const a = window.Auth;
+        if (!a) return true;
+        return a.isAdmin !== true;
+    }
+
+    // Combined gate: either MFA missing or non-admin policy. Writes are
+    // blocked; reads stay open so a demoted admin can still inspect their
+    // local data, and so admins during the brief pre-profile-load boot
+    // window aren't fully cut off.
+    function writeBlocked() {
+        return mfaBlocksSync() || policyBlocksSync();
+    }
+
     const Sync = {
         get backend() { return backend(); },
         get isSupabase() { return backend() === 'supabase'; },
         get mfaBlocked() { return mfaBlocksSync(); },
+        get policyBlocked() { return policyBlocksSync(); },
 
         // ── Methods shared by both backends ──
         schedulePush(...args)   {
-            if (mfaBlocksSync()) return undefined;
+            if (writeBlocked()) return undefined;
             return call('schedulePush', args);
         },
         pushToCloud(...args)    {
-            if (mfaBlocksSync()) return Promise.resolve({ ok: false, skipped: 'mfa-required' });
+            if (writeBlocked()) return Promise.resolve({ ok: false, skipped: mfaBlocksSync() ? 'mfa-required' : 'policy-blocked' });
             return call('pushToCloud', args, Promise.resolve());
         },
         pullFromCloud(...args)  { return call('pullFromCloud', args, Promise.resolve()); },
         fullSync(...args)       {
-            if (mfaBlocksSync()) return Promise.resolve({ ok: false, skipped: 'mfa-required' });
+            if (writeBlocked()) return Promise.resolve({ ok: false, skipped: mfaBlocksSync() ? 'mfa-required' : 'policy-blocked' });
             return call('fullSync', args, Promise.resolve());
         },
         refreshUI(...args)      { return call('refreshUI', args); },
         deleteCloudData(...args){ return call('deleteCloudData', args, Promise.resolve()); },
 
         // ── Supabase-only methods (no-op on Firebase) ──
-        // Writes are MFA-gated; reads are not (a signed-in user without TOTP
-        // still needs to be able to pull their data to migrate or inspect it).
+        // Writes are MFA + policy gated; reads are not (a signed-in user
+        // without TOTP, or a demoted admin, still needs to be able to pull
+        // their data to migrate or inspect it).
         init(...args)        { return callSupabase('init', args, Promise.resolve(false)); },
         pushBlob(...args)    {
-            if (mfaBlocksSync()) return Promise.resolve({ ok: false, skipped: 'mfa-required' });
+            if (writeBlocked()) return Promise.resolve({ ok: false, skipped: mfaBlocksSync() ? 'mfa-required' : 'policy-blocked' });
             return callSupabase('pushBlob', args, Promise.resolve({ ok: false, skipped: true }));
         },
         pullBlob(...args)    { return callSupabase('pullBlob', args, Promise.resolve(null)); },
         deleteBlob(...args)  {
-            if (mfaBlocksSync()) return Promise.resolve({ ok: false, skipped: 'mfa-required' });
+            if (writeBlocked()) return Promise.resolve({ ok: false, skipped: mfaBlocksSync() ? 'mfa-required' : 'policy-blocked' });
             return callSupabase('deleteBlob', args, Promise.resolve({ ok: false, skipped: true }));
         },
         pushQuote(...args)   {
-            if (mfaBlocksSync()) return Promise.resolve({ ok: false, skipped: 'mfa-required' });
+            if (writeBlocked()) return Promise.resolve({ ok: false, skipped: mfaBlocksSync() ? 'mfa-required' : 'policy-blocked' });
             return callSupabase('pushQuote', args, Promise.resolve({ ok: false, skipped: true }));
         },
         pullQuote(...args)   { return callSupabase('pullQuote', args, Promise.resolve(null)); },
         listQuotes(...args)  { return callSupabase('listQuotes', args, Promise.resolve([])); },
         deleteQuote(...args) {
-            if (mfaBlocksSync()) return Promise.resolve({ ok: false, skipped: 'mfa-required' });
+            if (writeBlocked()) return Promise.resolve({ ok: false, skipped: mfaBlocksSync() ? 'mfa-required' : 'policy-blocked' });
             return callSupabase('deleteQuote', args, Promise.resolve({ ok: false, skipped: true }));
         },
     };

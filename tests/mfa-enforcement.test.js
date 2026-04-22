@@ -190,7 +190,7 @@ function installLocalStorage() {
     global.localStorage.data = lsStore;
 }
 
-async function loadStack({ backend = 'supabase', cloudSyncDisabled = false } = {}) {
+async function loadStack({ backend = 'supabase', cloudSyncDisabled = false, isAdmin = true } = {}) {
     installLocalStorage();
     if (backend) localStorage.setItem('altech_sync_backend', backend);
     if (cloudSyncDisabled) localStorage.setItem('altech_cloud_sync_disabled', 'true');
@@ -198,6 +198,11 @@ async function loadStack({ backend = 'supabase', cloudSyncDisabled = false } = {
     global.window = {};
     global.window.localStorage = global.localStorage;
     global.fetch = jest.fn(async () => ({ ok: true, status: 200, async json() { return {}; } }));
+
+    // Mock Auth for the sync-facade policy gate. Default: admin=true so these
+    // MFA-focused tests verify the MFA gate in isolation. Tests that need to
+    // exercise the policy gate specifically pass isAdmin:false.
+    global.window.Auth = { isAdmin, uid: 'u_admin', isSignedIn: true };
 
     eval(storageKeysSrc);
     eval(utilsSrc);

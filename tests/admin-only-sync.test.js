@@ -1,0 +1,112 @@
+'use strict';
+
+/**
+ * tests/admin-only-sync.test.js
+ *
+ * Agency policy: cloud sync is restricted to admin accounts until Path B
+ * Phase 4 (end-to-end encrypted Supabase backend) ships. Non-admins stay
+ * local-only so plaintext client NPI never leaves the browser.
+ *
+ * This file is a source-level regression guard: it asserts that the gates
+ * exist in both js/cloud-sync.js and js/sync-facade.js and that every write
+ * method routes through them. If a future refactor removes a gate, this
+ * test fails loudly instead of silently re-opening the sync door for
+ * non-admins.
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.resolve(__dirname, '..');
+const cloudSyncSrc  = fs.readFileSync(path.join(ROOT, 'js', 'cloud-sync.js'), 'utf8');
+const syncFacadeSrc = fs.readFileSync(path.join(ROOT, 'js', 'sync-facade.js'), 'utf8');
+const authSrc       = fs.readFileSync(path.join(ROOT, 'js', 'auth.js'), 'utf8');
+
+describe('Admin-only cloud sync policy', () => {
+    describe('js/cloud-sync.js', () => {
+        test('defines _policyBlocksSync', () => {
+            expect(cloudSyncSrc).toMatch(/function _policyBlocksSync\(\)/);
+        });
+
+        test('_policyBlocksSync fails closed when Auth is undefined', () => {
+            // Guard: if Auth module isn't loaded, we must assume non-admin and block.
+            // Losing this check means the policy could silently disengage during
+            // the boot window before Auth becomes available.
+            const block = cloudSyncSrc.match(/function _policyBlocksSync\(\)\s*\{([\s\S]*?)\n\s*\}/);
+            expect(block).not.toBeNull();
+            expect(block[1]).toMatch(/typeof Auth === 'undefined'/);
+            expect(block[1]).toMatch(/return true/);
+        });
+
+        test('_policyBlocksSync returns true for non-admin', () => {
+            // Must check Auth.isAdmin !== true (not just == false) so that
+            // a missing or undefined field also blocks, fail-closed.
+            const block = cloudSyncSrc.match(/function _policyBlocksSync\(\)\s*\{([\s\S]*?)\n\s*\}/);
+            expect(block[1]).toMatch(/Auth\.isAdmin !== true/);
+        });
+
+        test('disabledByUser getter chains through _policyBlocksSync', () => {
+            // Every existing `if (this.disabledByUser) return;` site now also
+            // gates non-admins. If the chain is broken, every write method
+            // would need its own explicit policy check — which it doesn't have.
+            const getter = cloudSyncSrc.match(/get disabledByUser\(\)\s*\{([\s\S]*?)\n\s*\},/);
+            expect(getter).not.toBeNull();
+            expect(getter[1]).toMatch(/_policyBlocksSync\(\)/);
+        });
+
+        test('_refreshSyncUI shows "admin-restricted" status for policy-blocked users', () => {
+            // User-visible status must distinguish policy block from user opt-out.
+            expect(cloudSyncSrc).toMatch(/admin-restricted/i);
+        });
+    });
+
+    describe('js/sync-facade.js', () => {
+        test('defines policyBlocksSync helper', () => {
+            expect(syncFacadeSrc).toMatch(/function policyBlocksSync\(\)/);
+        });
+
+        test('policyBlocksSync fails closed when Auth is undefined', () => {
+            const block = syncFacadeSrc.match(/function policyBlocksSync\(\)\s*\{([\s\S]*?)\n\s*\}/);
+            expect(block).not.toBeNull();
+            expect(block[1]).toMatch(/if \(!a\) return true/);
+            expect(block[1]).toMatch(/isAdmin !== true/);
+        });
+
+        test('writeBlocked combines MFA and policy gates', () => {
+            // Defense in depth for the Supabase backend (Phase 4+).
+            expect(syncFacadeSrc).toMatch(/function writeBlocked\(\)/);
+            const block = syncFacadeSrc.match(/function writeBlocked\(\)\s*\{([\s\S]*?)\n\s*\}/);
+            expect(block[1]).toMatch(/mfaBlocksSync\(\)/);
+            expect(block[1]).toMatch(/policyBlocksSync\(\)/);
+        });
+
+        test('every write method gates through writeBlocked', () => {
+            // Walk the Sync object and confirm writes (not reads) check the gate.
+            const writeMethods = ['schedulePush', 'pushToCloud', 'fullSync', 'pushBlob', 'deleteBlob', 'pushQuote', 'deleteQuote'];
+            for (const m of writeMethods) {
+                const methodRe = new RegExp(`${m}\\s*\\(\\.\\.\\.args\\)[\\s\\S]{0,200}?if \\(writeBlocked\\(\\)\\)`);
+                expect(syncFacadeSrc).toMatch(methodRe);
+            }
+        });
+
+        test('pullFromCloud and read methods stay open (not gated)', () => {
+            // A demoted admin must still be able to pull their data to inspect
+            // or export it. Reads are safe — the user already has access to
+            // their own uid-scoped data by Firestore Security Rules.
+            const pullFromCloud = syncFacadeSrc.match(/pullFromCloud\(\.\.\.args\)\s*\{\s*return call[^}]*\}/);
+            expect(pullFromCloud).not.toBeNull();
+            expect(pullFromCloud[0]).not.toMatch(/writeBlocked/);
+        });
+    });
+
+    describe('js/auth.js settings modal', () => {
+        test('force-disables the sync opt-out toggle for non-admins', () => {
+            // A non-admin can't toggle sync on — the checkbox is checked and
+            // disabled, with explanatory text swapped in.
+            expect(authSrc).toMatch(/if \(!_isAdmin\)/);
+            expect(authSrc).toMatch(/syncDisabledEl\.checked = true/);
+            expect(authSrc).toMatch(/syncDisabledEl\.disabled = true/);
+            expect(authSrc).toMatch(/admin policy/i);
+        });
+    });
+});

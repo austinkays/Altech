@@ -363,9 +363,25 @@ const Auth = (() => {
                 const themeEl = modal.querySelector('#themeSelect');
                 if (themeEl) themeEl.value = localStorage.getItem(STORAGE_KEYS.THEME) || 'default';
 
-                // Reflect cloud-sync opt-out state
+                // Reflect cloud-sync opt-out state. For non-admin accounts the
+                // checkbox is force-checked, disabled, and the explanatory text
+                // is rewritten — cloud sync is restricted to admins by agency
+                // policy until Path B Phase 4 (E2E encryption) ships.
                 const syncDisabledEl = modal.querySelector('#authSyncDisabled');
-                if (syncDisabledEl) syncDisabledEl.checked = localStorage.getItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED) === 'true';
+                if (syncDisabledEl) {
+                    if (!_isAdmin) {
+                        syncDisabledEl.checked = true;
+                        syncDisabledEl.disabled = true;
+                        const label = syncDisabledEl.closest('label');
+                        const desc = label ? label.querySelector('span > span') : null;
+                        if (desc) desc.textContent = 'Cloud sync is restricted to admin accounts by agency policy. Client data stays encrypted in this browser and is not uploaded.';
+                        const strong = label ? label.querySelector('strong') : null;
+                        if (strong) strong.textContent = 'Cloud sync disabled by admin policy';
+                    } else {
+                        syncDisabledEl.disabled = false;
+                        syncDisabledEl.checked = localStorage.getItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED) === 'true';
+                    }
+                }
                 if (typeof CloudSync !== 'undefined' && CloudSync.refreshUI) CloudSync.refreshUI();
 
                 // Render E2E encryption row based on current state

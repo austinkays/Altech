@@ -215,6 +215,13 @@ describe('Auth + CloudSync Reliability', () => {
       getIdToken: jest.fn().mockResolvedValue('tok')
     });
 
+    // Agency policy gate in cloud-sync.js blocks non-admins. The Firestore
+    // profile mock returns {exists:false}, so Auth._isAdmin stays false after
+    // auth state fires. Override the getter for this test — we're testing the
+    // debounce behavior, not the admin gate (which has its own tests in
+    // tests/admin-only-sync.test.js).
+    Object.defineProperty(Auth, 'isAdmin', { get: () => true, configurable: true });
+
     const pushSpy = jest.spyOn(CloudSync, 'pushToCloud').mockResolvedValue(undefined);
 
     CloudSync.schedulePush();
