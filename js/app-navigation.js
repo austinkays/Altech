@@ -107,6 +107,8 @@ Object.assign(App, {
             // Property step always present in current workflows — but guard anyway
             const hasProperty = this.flow.includes('step-3');
             if (jp) jp.style.display = hasProperty ? '' : 'none';
+            // Carrier eligibility surface — reads App.data + drivers + vehicles
+            if (typeof this.renderCarrierFit === 'function') this.renderCarrierFit();
         }
         
         // Update step title
@@ -683,16 +685,22 @@ Object.assign(App, {
         window.scrollTo(0, 0);
     },
 
-    /** Show/hide Vehicles section based on auto policy type.
+    /** Show/hide Vehicles and physical-damage coverage based on auto policy type.
      *  Non-Owners / Broadform policies cover the named insured as a driver
-     *  (no owned vehicles), so drivers remain visible — only vehicles are hidden.
+     *  (no owned vehicles), so drivers remain visible — vehicles are hidden,
+     *  and comp/coll/rental/towing are hidden too (no vehicle = no phys-dam).
+     *  Liability, UM/UIM, UMPD, and Medical Payments stay visible.
      *  Called from #autoPolicyType onchange and on step-4 entry. */
     handleAutoType(val) {
         const isBroadform = val === 'NonOwners' || val === 'BroadForm';
         const vehiclesCard = document.getElementById('step4VehiclesCard');
         const notice       = document.getElementById('step4NonOwnersNotice');
+        const physGroup1   = document.getElementById('autoPhysicalDamageGroup');
+        const physGroup2   = document.getElementById('autoPhysicalDamageGroup2');
         if (vehiclesCard) vehiclesCard.classList.toggle('hidden', isBroadform);
         if (notice)       notice.classList.toggle('hidden', !isBroadform);
+        if (physGroup1)   physGroup1.classList.toggle('hidden', isBroadform);
+        if (physGroup2)   physGroup2.classList.toggle('hidden', isBroadform);
     },
 
 });

@@ -29,6 +29,7 @@ const CloudSync = (() => {
         'quickRefCards', 'quickRefNumbers', 'quickRefEmojis', 'reminders', 'glossary',
         'vaultData', 'vaultMeta',
         'commercialDraft', 'commercialQuotes',
+        'carrierOverrides',
     ];
 
     // ── State ──
@@ -233,6 +234,7 @@ const CloudSync = (() => {
             vaultMeta: tryParse(STORAGE_KEYS.ACCT_VAULT_META),
             commercialDraft,
             commercialQuotes,
+            carrierOverrides: tryParse(STORAGE_KEYS.CARRIER_OVERRIDES),
             settings: {
                 darkMode: localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true',
                 theme: localStorage.getItem(STORAGE_KEYS.THEME) || 'default',
@@ -719,6 +721,12 @@ const CloudSync = (() => {
                 const vaultMetaResult = await _pullDoc('vaultMeta', null, 'vaultMeta');
                 if (vaultMetaResult?.data != null) {
                     _setLocalData(STORAGE_KEYS.ACCT_VAULT_META, vaultMetaResult.data);
+                }
+
+                // Pull Carrier Rule Overrides (user-edited carrier rules from Broadform / Carrier Fit)
+                const carrierOverridesResult = await _pullDoc('carrierOverrides', STORAGE_KEYS.CARRIER_OVERRIDES, 'carrierOverrides');
+                if (carrierOverridesResult?.data != null && typeof window.BroadformData !== 'undefined') {
+                    try { window.BroadformData.applyOverrides(carrierOverridesResult.data); } catch (e) { /* ok */ }
                 }
 
                 // Pull quotes (merge strategy — quotes stored encrypted locally)

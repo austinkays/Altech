@@ -337,3 +337,33 @@ describe('BroadformData runtime overrides', () => {
         expect(safeco.lines.home.states).not.toEqual(['XX']);
     });
 });
+
+// Regression guard: the broadform tool saves rule edits to localStorage.
+// STORAGE_KEYS.CARRIER_OVERRIDES and calls CloudSync.schedulePush(), but that
+// push is a no-op unless 'carrierOverrides' is registered in SYNC_DOCS and in
+// _getLocalData()'s return object. If this test fails, user rule edits are
+// silently falling out of cloud sync — they will be lost on device switch.
+describe('CARRIER_OVERRIDES cloud-sync wiring', () => {
+    const cloudSyncSrc = fs.readFileSync(
+        path.resolve(__dirname, '../js/cloud-sync.js'),
+        'utf8'
+    );
+
+    test('carrierOverrides is registered in SYNC_DOCS', () => {
+        const syncDocsMatch = cloudSyncSrc.match(/const SYNC_DOCS = \[([\s\S]*?)\];/);
+        expect(syncDocsMatch).not.toBeNull();
+        expect(syncDocsMatch[1]).toMatch(/'carrierOverrides'/);
+    });
+
+    test('carrierOverrides is emitted by _getLocalData()', () => {
+        const getLocalDataMatch = cloudSyncSrc.match(/async function _getLocalData\(\)[\s\S]*?return \{([\s\S]*?)\};\s*\}/);
+        expect(getLocalDataMatch).not.toBeNull();
+        expect(getLocalDataMatch[1]).toMatch(/carrierOverrides:/);
+    });
+
+    test('pull handler writes carrierOverrides back to localStorage', () => {
+        // _pullDoc(docName, localStorageKey, docType) — the middle arg must
+        // be STORAGE_KEYS.CARRIER_OVERRIDES so the pull persists locally.
+        expect(cloudSyncSrc).toMatch(/_pullDoc\(\s*'carrierOverrides'\s*,\s*STORAGE_KEYS\.CARRIER_OVERRIDES/);
+    });
+});

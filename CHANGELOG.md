@@ -9,7 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(sync): carrier rule overrides are now cloud-synced** (April 22, 2026):
+  - `STORAGE_KEYS.CARRIER_OVERRIDES` (used by the Broadform / Carrier Match tool for user-edited underwriting rules) was never registered in `SYNC_DOCS` or `_getLocalData()` in `js/cloud-sync.js`. The Broadform tool called `CloudSync.schedulePush()` after every rule save, but the push was a silent no-op — overrides lived only in browser localStorage.
+  - Added `'carrierOverrides'` to `SYNC_DOCS`, emitted from `_getLocalData()`, and pulled via `_pullDoc('carrierOverrides', STORAGE_KEYS.CARRIER_OVERRIDES, 'carrierOverrides')`. On pull, `BroadformData.applyOverrides()` is re-called so the in-memory carrier definitions reflect synced state immediately — no reload required.
+  - Added 3 regression-guard tests in `tests/broadform.test.js` that read `js/cloud-sync.js` source and assert the wiring stays intact. If future refactors drop the SYNC_DOCS entry or the `_getLocalData` field, tests fail loudly.
+  - Storage durability is now layered: seed rules in git (`js/tools/broadform-data.js`) + user overrides in Firestore (`users/{uid}/sync/carrierOverrides`) + localStorage cache + Firebase-managed backups. Losing data requires multiple failures at once.
+
 ### Added
+- **feat(intake): Carrier Fit card on Step 6** (April 22, 2026):
+  - New card in `plugins/quoting.html` surfaces `BroadformEngine.evaluate()` output live on the Review & Export step. Reads the current quote's `qType` and `autoPolicyType` to pick which LOBs to evaluate (home / auto / broadform / nonowners).
+  - Renderer in `js/app-export-carrier-fit.js` (new sibling to `app-export-coverage-gap.js`) groups carriers by verdict — eligible (green), pending with missing fields (blue), ineligible with reasons (red), refer-out (gray). Notes, missing-field hints, and disqualification reasons are inlined per row.
+  - Hooked into `updateUI` on step-6 entry in `js/app-navigation.js`. "Edit rules →" button jumps to the existing Carrier Match tool (`plugins/tools/broadform.html`) where rules can be authored via natural language + AI.
+  - Renders a "rules currently cover WA/OR/ID" hint when the client's state is outside the supported set instead of showing an empty card.
 - **feat(intake): Non-Owners / Broadform toggle on Step 0** (April 22, 2026):
   - Added a "No vehicles on this policy (Non-Owners / Broadform)" checkbox below the three coverage-type cards in `plugins/quoting.html`. When checked, clicking **Auto** or **Home + Auto** pre-sets `autoPolicyType='NonOwners'` before Step 4 renders — so the user no longer has to navigate to Step 4, scroll past the Vehicles card, and then hide it via a dropdown. Home card ignores the toggle (home-only quotes already skip step 4).
   - `App.selectTypeAndStart(type, isNonOwner)` is now async and awaits `startFresh()` so the pre-set write to `data.autoPolicyType` is never raced by the async client-switch that clears data. Persists immediately via `safeSave` so the value survives any subsequent `App.load()` on Step 4 entry.

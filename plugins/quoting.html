@@ -1634,6 +1634,9 @@
                     </div>
                 </div>
 
+                <!-- Physical-damage coverage — hidden for Non-Owners / Broadform
+                     policies (no owned vehicle to damage). Toggled by handleAutoType. -->
+                <div id="autoPhysicalDamageGroup">
                 <div class="grid-2">
                     <div>
                         <label class="label">Comprehensive Deductible</label>
@@ -1668,6 +1671,7 @@
                         </select>
                     </div>
                 </div>
+                </div>
 
                 <div class="grid-2">
                     <div>
@@ -1700,7 +1704,7 @@
                     </div>
                 </div>
 
-                <div class="grid-2">
+                <div class="grid-2" id="autoPhysicalDamageGroup2">
                     <div>
                         <label class="label">Rental Reimbursement</label>
                         <select id="rentalDeductible">
@@ -2327,6 +2331,16 @@
                     <button class="btn-edit-jump" onclick="App.jumpToStep('step-4')" type="button" id="editJumpVehicles">🚗 Vehicles &amp; Drivers</button>
                     <button class="btn-edit-jump" onclick="App.jumpToStep('step-5')" type="button">📋 Prior Insurance</button>
                 </div>
+            </div>
+
+            <!-- Carrier Fit — live eligibility from the carrier rule engine -->
+            <div class="card export-card" id="carrierFitCard">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+                    <h3 style="margin:0; font-size:15px;">🎯 Carrier Fit</h3>
+                    <button class="btn-edit-jump" type="button" onclick="App.navigateTo('broadform')" title="Open the Carrier Match tool to edit rules">Edit rules →</button>
+                </div>
+                <p class="section-subtitle" style="margin-bottom:12px;">Carriers filtered by your current client data and underwriting rules. Add rules in the Carrier Rule Editor — they sync across your devices.</p>
+                <div id="carrierFitResults"></div>
             </div>
 
             <!-- Coverage Gap Analysis -->

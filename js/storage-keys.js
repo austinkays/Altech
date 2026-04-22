@@ -13,7 +13,7 @@ window.STORAGE_KEYS = Object.freeze({
     // ── Plugin data (cloud-synced) ───────────────────────────────────────────
     COMMERCIAL_DRAFT:       'altech_commercial_v1',      // commercial intake draft (encrypted, cloud-synced)
     COMMERCIAL_QUOTES:      'altech_commercial_quotes',  // saved commercial quotes (encrypted, cloud-synced)
-    CARRIER_OVERRIDES:      'altech_carrier_overrides',   // user-edited carrier rule overrides (local-only)
+    CARRIER_OVERRIDES:      'altech_carrier_overrides',   // user-edited carrier rule overrides (cloud-synced via SYNC_DOCS.carrierOverrides)
     CGL_STATE:              'altech_cgl_state',
     QUICKREF_CARDS:         'altech_quickref_cards',
     QUICKREF_NUMBERS:       'altech_quickref_numbers',
