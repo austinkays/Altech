@@ -970,7 +970,7 @@ window.DashboardWidgets = (() => {
 
         sidebar.innerHTML = `
             <div class="sidebar-brand">
-                <svg class="sidebar-brand-logo" viewBox="10 2 40 36" xmlns="http://www.w3.org/2000/svg" aria-label="Altech"><path d="M30,5 L15,35 L22.5,35 L30,20 L37.5,35 L45,35 L30,5 Z M30,15 L20,35 L40,35 L30,15 Z" fill="currentColor" fill-opacity="0.2"/><path d="M30,5 L15,35 L22.5,35 L30,20 L37.5,35 L45,35 L30,5 Z" fill="currentColor"/><path d="M30,15 L25,25 L35,25 L30,15 Z" fill="currentColor" fill-opacity="0.6"/></svg>
+                <img class="sidebar-brand-logo" src="/icons/icon-192.png" alt="Altech" decoding="async">
                 <div class="sidebar-brand-text">
                     <div class="sidebar-brand-name">Altech</div>
                     <div class="sidebar-brand-sub">Insurance Toolkit</div>
