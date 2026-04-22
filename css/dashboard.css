@@ -119,8 +119,11 @@ body.dark-mode .dashboard-view::after {
     opacity: 0.5;
     transition: opacity 0.3s ease;
 }
+/* Hover feedback is border + shadow + accent-line only — no transform.
+   Card sizes on the bento grid vary (4x1, 4x2, 8x1), which made the same
+   translateY lift read very differently across cards. Removing it makes
+   hover behavior visually consistent on every card. */
 .widget-card:hover {
-    transform: translateY(-2px);
     border-color: rgba(255, 180, 80, 0.30);
     box-shadow: 0 8px 32px rgba(245, 150, 70, 0.10), 0 2px 8px var(--shadow);
 }
