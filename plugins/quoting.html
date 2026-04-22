@@ -751,7 +751,7 @@
                         <option value="Backsplit">Backsplit</option>
                         <option value="Substandard">Substandard</option>
                     </select></div>
-                    <div><div class="label-with-hint"><label class="label">Exterior Walls</label><span data-tooltip="Primary material covering the outside of the home. Brick and masonry rate better. Wood/T-111 siding may flag as higher fire/wind risk.">ⓘ</span></div>
+                    <div><div class="label-with-hint"><label class="label">Exterior Walls</label><button type="button" class="info-modal-btn" onclick="showExteriorWallsInfo()" aria-label="Exterior walls visual reference">ⓘ</button></div>
                     <select id="exteriorWalls">
                         <option value="">Select...</option>
                         <option value="Aluminum/Vinyl">Aluminum / Vinyl</option>
@@ -844,7 +844,7 @@
                 <h3 style="font-size:15px; font-weight:600; margin-bottom:8px;">Roof</h3>
 
                 <div class="grid-12">
-                    <div class="span-8"><label class="label">Roof Type</label>
+                    <div class="span-8"><div class="label-with-hint"><label class="label">Roof Type</label><button type="button" class="info-modal-btn" onclick="showRoofTypeInfo()" aria-label="Roof material visual reference">ⓘ</button></div>
                         <select id="roofType">
                             <option value="">Select...</option>
                             <option value="Architectural Shingles">Architectural Shingles</option>
