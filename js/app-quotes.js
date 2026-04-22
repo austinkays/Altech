@@ -267,12 +267,13 @@ Object.assign(App, {
             const listClass = (showAll || searchTerm) ? 'ch-list-expanded' : '';
             html += `<div class="${listClass}">`;
             html += displayed.map(c => {
-                const date = new Date(c.savedAt).toLocaleDateString();
+                const when = new Date(c.savedAt);
+                const dateTime = when.toLocaleDateString() + ' · ' + when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
                 const addr = [c.data.addrCity, c.data.addrState].filter(Boolean).join(', ');
                 return `<div class="ch-row">
                     <div class="ch-info">
                         <span class="ch-name">${this.escapeHTML(c.name)}</span>
-                        <span class="ch-meta">${this.escapeHTML(c.summary)}${addr ? ' • ' + this.escapeHTML(addr) : ''} • ${date}</span>
+                        <span class="ch-meta">${this.escapeHTML(c.summary)}${addr ? ' • ' + this.escapeHTML(addr) : ''} • ${dateTime}</span>
                     </div>
                     <div class="ch-actions" style="display:flex;align-items:center;gap:6px;">
                         <button class="btn btn-primary btn-sm" onclick="App.loadClientFromHistory('${c.id}'); App.next();">Restore</button>
@@ -333,12 +334,13 @@ Object.assign(App, {
         } else {
             html += '<div class="ch-list-expanded">';
             html += filtered.map(c => {
-                const date = new Date(c.savedAt).toLocaleDateString();
+                const when = new Date(c.savedAt);
+                const dateTime = when.toLocaleDateString() + ' · ' + when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
                 const addr = [c.data.addrCity, c.data.addrState].filter(Boolean).join(', ');
                 return `<div class="ch-row">
                     <div class="ch-info">
                         <span class="ch-name">${this.escapeHTML(c.name)}</span>
-                        <span class="ch-meta">${this.escapeHTML(c.summary)}${addr ? ' • ' + this.escapeHTML(addr) : ''} • ${date}</span>
+                        <span class="ch-meta">${this.escapeHTML(c.summary)}${addr ? ' • ' + this.escapeHTML(addr) : ''} • ${dateTime}</span>
                     </div>
                     <div class="ch-actions">
                         <button class="btn btn-primary btn-sm" onclick="App.loadClientFromHistory('${c.id}')">Restore</button>
