@@ -607,7 +607,7 @@
                     <option value="Vacant">Vacant</option>
                 </select>
                 
-                <div class="label-with-hint"><label class="label">Dwelling Type</label><span data-tooltip="The physical structure type — e.g. single-family home, condo, or townhouse. This affects the rating tier and which carriers will quote.">ⓘ</span></div>
+                <div class="label-with-hint"><label class="label">Dwelling Type</label><button type="button" class="info-modal-btn" onclick="showDwellingTypeInfo()" aria-label="Dwelling type reference">ⓘ</button></div>
                 <select id="dwellingType">
                     <option value="">Select...</option>
                     <option value="One Family">One Family</option>
@@ -796,7 +796,7 @@
                 </div>
 
                 <div class="grid-2">
-                    <div><div class="label-with-hint"><label class="label">Foundation</label><span data-tooltip="How the home is supported. Slab = poured concrete, no space below. Crawl Space = small clearance under floor. Basement = full livable/storage level underground.">ⓘ</span></div>
+                    <div><div class="label-with-hint"><label class="label">Foundation</label><button type="button" class="info-modal-btn" onclick="showFoundationInfo()" aria-label="Foundation reference">ⓘ</button></div>
                     <select id="foundation">
                         <option value="">Select...</option>
                         <option value="Slab">Slab</option>
@@ -824,7 +824,7 @@
                 </div>
 
                 <div class="grid-2">
-                    <div><label class="label">Garage Type</label>
+                    <div><div class="label-with-hint"><label class="label">Garage Type</label><button type="button" class="info-modal-btn" onclick="showGarageTypeInfo()" aria-label="Garage type reference">ⓘ</button></div>
                     <select id="garageType">
                         <option value="">Select...</option>
                         <option value="Attached">Attached</option>
@@ -978,7 +978,7 @@
                             </select>
                         </div>
                         <div class="span-6">
-                            <label class="label">Cooling</label>
+                            <div class="label-with-hint"><label class="label">Cooling</label><button type="button" class="info-modal-btn" onclick="showCoolingInfo()" aria-label="Cooling system reference">ⓘ</button></div>
                             <select id="cooling">
                                 <option value="">Select...</option>
                                 <option value="Central Air">Central Air</option>
@@ -993,7 +993,7 @@
                         <span>Has Secondary Heating?</span>
                     </label>
                     <div id="secondaryHeatingWrapper" class="disclosure-hidden">
-                        <label class="label">Secondary Heating Source</label>
+                        <div class="label-with-hint"><label class="label">Secondary Heating Source</label><button type="button" class="info-modal-btn" onclick="showSecondaryHeatingInfo()" aria-label="Secondary heating reference">ⓘ</button></div>
                         <select id="secondaryHeating">
                             <option value="">None</option>
                             <option value="Wood Professionally Installed">Wood (Professionally Installed)</option>
@@ -1015,14 +1015,14 @@
                     </div>
 
                     <div class="grid-2">
-                        <div><label class="label">Sewer</label>
+                        <div><div class="label-with-hint"><label class="label">Sewer</label><button type="button" class="info-modal-btn" onclick="showSewerInfo()" aria-label="Sewer reference">ⓘ</button></div>
                             <select id="sewer">
                                 <option value="">Select...</option>
                                 <option value="Public">Public</option>
                                 <option value="Septic">Septic</option>
                             </select>
                         </div>
-                        <div><label class="label">Water Source</label>
+                        <div><div class="label-with-hint"><label class="label">Water Source</label><button type="button" class="info-modal-btn" onclick="showWaterSourceInfo()" aria-label="Water source reference">ⓘ</button></div>
                             <select id="waterSource">
                                 <option value="">Select...</option>
                                 <option value="Public">Public</option>
@@ -1032,7 +1032,7 @@
                     </div>
 
                     <div class="grid-2">
-                        <div><label class="label">Plumbing Material</label>
+                        <div><div class="label-with-hint"><label class="label">Plumbing Material</label><button type="button" class="info-modal-btn" onclick="showPlumbingMaterialInfo()" aria-label="Plumbing material reference">ⓘ</button></div>
                             <select id="plumbingMaterial">
                                 <option value="">Select...</option>
                                 <option value="Copper">Copper</option>
@@ -1046,7 +1046,7 @@
                                 <option value="Unknown">Unknown</option>
                             </select>
                         </div>
-                        <div><label class="label">Electrical Panel</label>
+                        <div><div class="label-with-hint"><label class="label">Electrical Panel</label><button type="button" class="info-modal-btn" onclick="showElectricalPanelInfo()" aria-label="Electrical panel reference">ⓘ</button></div>
                             <select id="electricalPanel">
                                 <option value="">Select...</option>
                                 <option value="Standard Breaker">Standard Breaker</option>
@@ -1060,7 +1060,7 @@
                     </div>
 
                     <div class="grid-2">
-                        <div><label class="label">Electrical Amperage</label>
+                        <div><div class="label-with-hint"><label class="label">Electrical Amperage</label><button type="button" class="info-modal-btn" onclick="showElectricalAmpsInfo()" aria-label="Electrical amperage reference">ⓘ</button></div>
                             <select id="electricalAmps">
                                 <option value="">Select...</option>
                                 <option value="60 Amp">60 Amp</option>
@@ -1077,7 +1077,7 @@
                     </div>
 
                     <div class="grid-12">
-                        <div class="span-6"><label class="label">Water Heater Location</label>
+                        <div class="span-6"><div class="label-with-hint"><label class="label">Water Heater Location</label><button type="button" class="info-modal-btn" onclick="showWaterHeaterLocationInfo()" aria-label="Water heater location reference">ⓘ</button></div>
                             <select id="waterHeaterLocation">
                                 <option value="">Select...</option>
                                 <option value="Basement">Basement</option>

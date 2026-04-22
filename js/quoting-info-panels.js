@@ -437,4 +437,324 @@
         });
     };
 
+    /* ── Shared icon vocabulary for the remaining reference modals ─────── */
+    var ICON = {
+        pipe: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="4" y="16" width="52" height="8" rx="4" fill="rgba(120,140,180,0.2)"/><line x1="14" y1="16" x2="14" y2="24"/><line x1="30" y1="16" x2="30" y2="24"/><line x1="46" y1="16" x2="46" y2="24"/></svg>',
+        pipeFlex: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M4 20 q6 -8 12 0 q6 8 12 0 q6 -8 12 0 q6 8 12 0" fill="none"/><path d="M4 24 q6 -8 12 0 q6 8 12 0 q6 -8 12 0 q6 8 12 0" fill="none" opacity="0.5"/></svg>',
+        pipeAged: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="4" y="16" width="52" height="8" rx="4" fill="rgba(120,80,40,0.25)" stroke-dasharray="2 2"/><circle cx="18" cy="20" r="1" fill="currentColor"/><circle cx="34" cy="20" r="1" fill="currentColor"/><circle cx="46" cy="20" r="1" fill="currentColor"/></svg>',
+        panel: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" aria-hidden="true"><rect x="14" y="6" width="32" height="28" rx="2" fill="rgba(80,80,100,0.15)"/><line x1="18" y1="12" x2="28" y2="12"/><line x1="32" y1="12" x2="42" y2="12"/><line x1="18" y1="18" x2="28" y2="18"/><line x1="32" y1="18" x2="42" y2="18"/><line x1="18" y1="24" x2="28" y2="24"/><line x1="32" y1="24" x2="42" y2="24"/><line x1="18" y1="30" x2="28" y2="30"/><line x1="32" y1="30" x2="42" y2="30"/></svg>',
+        panelDanger: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" aria-hidden="true"><rect x="14" y="6" width="32" height="28" rx="2" fill="rgba(230,80,60,0.18)"/><line x1="18" y1="12" x2="28" y2="12"/><line x1="32" y1="12" x2="42" y2="12"/><line x1="18" y1="18" x2="28" y2="18"/><line x1="32" y1="18" x2="42" y2="18"/><path d="M30 22 l-4 6 l8 0 z" fill="rgba(230,80,60,0.5)" stroke="none"/><line x1="30" y1="24" x2="30" y2="26"/><circle cx="30" cy="28" r="0.6" fill="currentColor"/></svg>',
+        fuseBox: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" aria-hidden="true"><rect x="14" y="6" width="32" height="28" rx="2" fill="rgba(140,110,80,0.18)"/><circle cx="22" cy="14" r="3"/><circle cx="38" cy="14" r="3"/><circle cx="22" cy="26" r="3"/><circle cx="38" cy="26" r="3"/></svg>',
+        gauge: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><path d="M10 32 a20 20 0 0 1 40 0" fill="rgba(80,80,100,0.1)"/><line x1="14" y1="32" x2="17" y2="28"/><line x1="30" y1="14" x2="30" y2="18"/><line x1="46" y1="32" x2="43" y2="28"/><line x1="30" y1="32" x2="38" y2="22"/><circle cx="30" cy="32" r="1.5" fill="currentColor"/></svg>',
+        tank: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><rect x="22" y="8" width="16" height="26" rx="3" fill="rgba(180,180,200,0.2)"/><line x1="22" y1="14" x2="38" y2="14"/><circle cx="30" cy="22" r="2" fill="rgba(255,140,40,0.3)" stroke="none"/><line x1="26" y1="34" x2="26" y2="36"/><line x1="34" y1="34" x2="34" y2="36"/></svg>',
+        tankWarn: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><rect x="22" y="8" width="16" height="26" rx="3" fill="rgba(230,80,60,0.18)"/><line x1="22" y1="14" x2="38" y2="14"/><circle cx="30" cy="22" r="2" fill="rgba(255,140,40,0.3)" stroke="none"/><line x1="4" y1="36" x2="56" y2="36"/><path d="M8 36 l3 -2 l3 2 M16 36 l3 -2 l3 2 M24 36 l3 -2 l3 2" opacity="0.5"/></svg>',
+        slab: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><rect x="4" y="26" width="52" height="8" fill="rgba(140,140,140,0.25)"/><polyline points="4,26 10,18 50,18 56,26"/><line x1="4" y1="34" x2="56" y2="34"/></svg>',
+        crawl: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><rect x="4" y="24" width="52" height="6" fill="rgba(140,140,140,0.2)"/><rect x="4" y="30" width="52" height="6" fill="rgba(100,100,100,0.3)"/><polyline points="4,24 10,16 50,16 56,24"/></svg>',
+        basement: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><rect x="4" y="22" width="52" height="4" fill="rgba(140,140,140,0.2)"/><rect x="4" y="26" width="52" height="12" fill="rgba(80,80,100,0.3)"/><polyline points="4,22 10,14 50,14 56,22"/><line x1="20" y1="30" x2="24" y2="30"/><line x1="36" y1="30" x2="40" y2="30"/></svg>',
+        piers: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><rect x="4" y="18" width="52" height="6" fill="rgba(140,140,140,0.2)"/><polyline points="4,18 10,10 50,10 56,18"/><rect x="10" y="24" width="4" height="12" fill="rgba(100,100,100,0.3)"/><rect x="28" y="24" width="4" height="12" fill="rgba(100,100,100,0.3)"/><rect x="46" y="24" width="4" height="12" fill="rgba(100,100,100,0.3)"/><line x1="4" y1="36" x2="56" y2="36"/></svg>',
+        fan: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><circle cx="30" cy="20" r="12" fill="rgba(80,160,220,0.15)"/><path d="M30 20 q -6 -8 -10 -6 q -4 2 -2 8" /><path d="M30 20 q 10 -2 12 2 q 2 4 -4 6" /><path d="M30 20 q -4 10 -8 10 q -4 0 -4 -8" /><circle cx="30" cy="20" r="2" fill="currentColor" stroke="none"/></svg>',
+        windowAC: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><rect x="16" y="10" width="28" height="20" rx="2" fill="rgba(80,160,220,0.2)"/><line x1="20" y1="14" x2="40" y2="14"/><line x1="20" y1="18" x2="40" y2="18"/><line x1="20" y1="22" x2="40" y2="22"/><line x1="20" y1="26" x2="40" y2="26"/></svg>',
+        noAC: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><circle cx="30" cy="20" r="12" opacity="0.3"/><line x1="20" y1="12" x2="40" y2="28"/></svg>',
+        house: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="30,6 8,22 8,36 52,36 52,22" fill="rgba(100,160,100,0.15)"/><rect x="25" y="26" width="10" height="10"/><line x1="16" y1="24" x2="20" y2="24"/><line x1="40" y1="24" x2="44" y2="24"/></svg>',
+        twoHouse: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="30,6 4,22 4,36 56,36 56,22" fill="rgba(100,160,100,0.15)"/><line x1="30" y1="6" x2="30" y2="36"/><rect x="16" y="28" width="6" height="8"/><rect x="38" y="28" width="6" height="8"/></svg>',
+        condo: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" aria-hidden="true"><rect x="14" y="6" width="32" height="30" fill="rgba(100,140,200,0.15)"/><line x1="20" y1="12" x2="24" y2="12"/><line x1="28" y1="12" x2="32" y2="12"/><line x1="36" y1="12" x2="40" y2="12"/><line x1="20" y1="18" x2="24" y2="18"/><line x1="28" y1="18" x2="32" y2="18"/><line x1="36" y1="18" x2="40" y2="18"/><line x1="20" y1="24" x2="24" y2="24"/><line x1="28" y1="24" x2="32" y2="24"/><line x1="36" y1="24" x2="40" y2="24"/><line x1="20" y1="30" x2="24" y2="30"/><line x1="28" y1="30" x2="32" y2="30"/><line x1="36" y1="30" x2="40" y2="30"/></svg>',
+        townhouse: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="10,16 18,10 26,16 26,36 10,36" fill="rgba(130,100,80,0.15)"/><polygon points="26,16 34,10 42,16 42,36 26,36" fill="rgba(130,100,80,0.2)"/><polygon points="42,16 50,10 58,16 58,36 42,36" fill="rgba(130,100,80,0.15)"/><rect x="15" y="28" width="5" height="8"/><rect x="31" y="28" width="5" height="8"/><rect x="47" y="28" width="5" height="8"/></svg>',
+        sewer: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><rect x="4" y="18" width="52" height="8" rx="4" fill="rgba(120,140,180,0.2)"/><circle cx="14" cy="22" r="2" fill="currentColor" stroke="none"/><path d="M4 30 l52 0 M4 34 l52 0" opacity="0.4"/></svg>',
+        septic: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><ellipse cx="30" cy="14" rx="16" ry="4" fill="rgba(120,140,100,0.2)"/><path d="M14 14 l0 18 a16 4 0 0 0 32 0 l0 -18" fill="rgba(120,140,100,0.2)"/><line x1="4" y1="8" x2="14" y2="14"/></svg>',
+        well: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><circle cx="30" cy="28" r="10" fill="rgba(80,160,220,0.2)"/><rect x="22" y="6" width="16" height="6" fill="rgba(140,100,60,0.2)"/><line x1="22" y1="12" x2="18" y2="18"/><line x1="38" y1="12" x2="42" y2="18"/><line x1="18" y1="18" x2="42" y2="18"/></svg>',
+        faucet: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="20" y="10" width="20" height="4" fill="rgba(80,160,220,0.2)"/><rect x="28" y="14" width="4" height="8"/><path d="M22 22 l16 0 l-2 8 l-12 0 z" fill="rgba(80,160,220,0.2)"/></svg>',
+        garageAttached: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="18,10 32,6 46,10 46,36 18,36" fill="rgba(100,160,100,0.1)"/><rect x="22" y="20" width="20" height="16" fill="rgba(140,140,140,0.2)"/><line x1="22" y1="25" x2="42" y2="25"/><line x1="22" y1="30" x2="42" y2="30"/></svg>',
+        garageDetached: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6,18 14,12 22,18 22,36 6,36" fill="rgba(100,160,100,0.1)"/><polygon points="32,14 44,8 56,14 56,36 32,36" fill="rgba(140,140,140,0.2)"/><line x1="35" y1="22" x2="53" y2="22"/><line x1="35" y1="28" x2="53" y2="28"/></svg>',
+        carport: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6,16 30,8 54,16" fill="rgba(140,140,140,0.15)"/><line x1="10" y1="16" x2="10" y2="36"/><line x1="50" y1="16" x2="50" y2="36"/><rect x="20" y="24" width="20" height="10" fill="rgba(80,100,140,0.2)" stroke="none"/></svg>',
+        stove: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="18" y="14" width="22" height="20" fill="rgba(120,80,60,0.2)"/><rect x="22" y="18" width="14" height="10" fill="rgba(255,140,40,0.3)"/><line x1="40" y1="14" x2="48" y2="10"/><line x1="48" y1="10" x2="48" y2="4"/></svg>',
+        solar: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><rect x="12" y="14" width="36" height="18" fill="rgba(30,80,180,0.2)" transform="skewX(-10)"/><line x1="14" y1="20" x2="50" y2="20"/><line x1="14" y1="26" x2="50" y2="26"/></svg>',
+        none: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><circle cx="30" cy="20" r="12" opacity="0.3"/><line x1="22" y1="12" x2="38" y2="28"/></svg>',
+        other: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true"><circle cx="30" cy="20" r="11"/><path d="M25,16 Q25,11 30,11 Q36,11 36,17 Q36,21 30,22"/><circle cx="30" cy="28" r="1.5" fill="currentColor" stroke="none"/></svg>',
+    };
+
+    /* ── Plumbing Material reference ─────────────────────────────────────
+       Polybutylene (1978–1995) is the big decline flag — gray flexible
+       plastic that fails catastrophically with chlorine exposure. */
+    window.showPlumbingMaterialInfo = function () {
+        _createPickerModal({
+            id: 'fieldInfoModalPlumbingMaterial',
+            targetFieldId: 'plumbingMaterial',
+            title: 'Plumbing Material',
+            subtitle: 'Supply-line material. Polybutylene is the big decline flag.',
+            options: [
+                { value: 'Copper', name: 'Copper', svg: ICON.pipe,
+                  desc: 'Rigid copper supply lines. Durable, premium tier. 50+ year life. Green patina is normal.' },
+                { value: 'PEX', name: 'PEX', svg: ICON.pipeFlex,
+                  desc: 'Cross-linked polyethylene — flexible plastic (red/blue/white). Dominant on new builds since ~2005. Preferred at most carriers.' },
+                { value: 'CPVC', name: 'CPVC', svg: ICON.pipe,
+                  desc: 'Chlorinated PVC — rigid off-white/cream plastic. Common in Southern states. No decline concern.' },
+                { value: 'PVC', name: 'PVC', svg: ICON.pipe,
+                  desc: 'Polyvinyl chloride — rigid white plastic. Typically drain lines, not supply. If reported as supply, verify.' },
+                { value: 'Galvanized Steel', name: 'Galvanized Steel', svg: ICON.pipeAged,
+                  desc: 'Pre-1960s. Corrodes from the inside, reduces flow and leeches iron into water. Some carriers require replacement quote.' },
+                { value: 'Polybutylene', name: 'Polybutylene ⚠️', svg: ICON.pipeAged,
+                  desc: 'DECLINE FLAG. Gray flexible plastic installed 1978–1995. Reacts with chlorine and fails catastrophically. Most carriers decline; some require full replacement before binding.' },
+                { value: 'Cast Iron', name: 'Cast Iron', svg: ICON.pipeAged,
+                  desc: 'Typically drain/waste/vent, not supply. Older homes. Heavy, eventually cracks.' },
+                { value: 'Mixed', name: 'Mixed', svg: ICON.pipe,
+                  desc: 'Combination of materials (e.g. copper supply + PEX remodel). Note the mix in additional info.' },
+                { value: 'Unknown', name: 'Unknown', svg: ICON.other,
+                  desc: 'Client doesn\'t know, inspection pending. Flag for follow-up.' },
+            ]
+        });
+    };
+
+    /* ── Electrical Panel reference ──────────────────────────────────────
+       The FPE / Zinsco recall is the #1 decline flag in this category. */
+    window.showElectricalPanelInfo = function () {
+        _createPickerModal({
+            id: 'fieldInfoModalElectricalPanel',
+            targetFieldId: 'electricalPanel',
+            title: 'Electrical Panel',
+            subtitle: 'Federal Pacific and Zinsco panels are recalled — most carriers decline.',
+            options: [
+                { value: 'Standard Breaker', name: 'Standard Breaker', svg: ICON.panel,
+                  desc: 'Modern circuit-breaker panel (Square D, Siemens, Eaton, GE). Preferred. No concern.' },
+                { value: 'Federal Pacific (FPE)', name: 'Federal Pacific / FPE ⚠️', svg: ICON.panelDanger,
+                  desc: 'DECLINE FLAG. "Stab-Lok" breakers fail to trip. Recalled decades ago, still in homes 1950–80s. Almost every carrier declines until replaced.' },
+                { value: 'Zinsco', name: 'Zinsco ⚠️', svg: ICON.panelDanger,
+                  desc: 'DECLINE FLAG. Aluminum bus bars corrode and arc. Also sold as Sylvania-Zinsco. Same treatment as FPE — most carriers decline.' },
+                { value: 'Pushmatic', name: 'Pushmatic', svg: ICON.fuseBox,
+                  desc: 'Push-button breakers (Bulldog). Obsolete but not banned — some carriers accept, others want inspection. Verify before binding.' },
+                { value: 'Fuse Box', name: 'Fuse Box', svg: ICON.fuseBox,
+                  desc: 'Pre-breaker screw-in fuse panel. Almost always 60-amp service. Carriers typically require upgrade to breakers + 100+ amp.' },
+                { value: 'Other', name: 'Other', svg: ICON.other,
+                  desc: 'Not listed. Note manufacturer/model in additional info; underwriter may request photo.' },
+            ]
+        });
+    };
+
+    /* ── Electrical Amperage reference ───────────────────────────────── */
+    window.showElectricalAmpsInfo = function () {
+        _createPickerModal({
+            id: 'fieldInfoModalElectricalAmps',
+            targetFieldId: 'electricalAmps',
+            title: 'Electrical Amperage',
+            subtitle: 'Main service capacity. 60-amp is often declined; 100+ is modern standard.',
+            options: [
+                { value: '60 Amp', name: '60 Amp ⚠️', svg: ICON.gauge,
+                  desc: 'Pre-1960 service. Not enough capacity for modern appliances. Often paired with a fuse box. Most carriers decline or require upgrade.' },
+                { value: '100 Amp', name: '100 Amp', svg: ICON.gauge,
+                  desc: 'Minimum modern service. Fine for small homes without central AC, EV chargers, or electric heat. Acceptable to most carriers.' },
+                { value: '150 Amp', name: '150 Amp', svg: ICON.gauge,
+                  desc: 'Common on mid-size homes built 1970s–90s. No concerns.' },
+                { value: '200 Amp', name: '200 Amp', svg: ICON.gauge,
+                  desc: 'Standard on new construction. Handles central AC, electric range, EV charger. Preferred tier.' },
+                { value: '400 Amp', name: '400 Amp', svg: ICON.gauge,
+                  desc: 'Large or high-end homes. Multiple subpanels. Often paired with detached structures or heated pools.' },
+                { value: 'Unknown', name: 'Unknown', svg: ICON.other,
+                  desc: 'Client doesn\'t know. Check the main breaker on the panel — the number stamped on it is the amperage.' },
+            ]
+        });
+    };
+
+    /* ── Water Heater Location reference ─────────────────────────────── */
+    window.showWaterHeaterLocationInfo = function () {
+        _createPickerModal({
+            id: 'fieldInfoModalWaterHeaterLocation',
+            targetFieldId: 'waterHeaterLocation',
+            title: 'Water Heater Location',
+            subtitle: 'Attic placement is the underwriting concern — leaks destroy ceilings below.',
+            options: [
+                { value: 'Basement', name: 'Basement', svg: ICON.tank,
+                  desc: 'Ideal location. Any leak drains down, floor drain or sump catches it. No concern.' },
+                { value: 'Garage', name: 'Garage', svg: ICON.tank,
+                  desc: 'Common in newer homes. Fine — concrete floor handles any leak. Gas heaters must be 18" off the ground (code).' },
+                { value: 'Closet', name: 'Closet', svg: ICON.tank,
+                  desc: 'Typical in smaller homes and condos. Verify drip pan + drain line present if leak occurs.' },
+                { value: 'Attic', name: 'Attic ⚠️', svg: ICON.tankWarn,
+                  desc: 'CARRIER CONCERN. Leaks drop through ceiling into living space — frequent total-loss interior damage. Some carriers rate up, some decline unless pan + drain are verified.' },
+                { value: 'Crawl Space', name: 'Crawl Space', svg: ICON.tank,
+                  desc: 'Access can be tight. Leaks stay contained but service is harder. Verify pan + drain.' },
+                { value: 'Utility Room', name: 'Utility Room', svg: ICON.tank,
+                  desc: 'Dedicated mechanical room. Ideal — plumbing built for it, drain typically present.' },
+                { value: 'Other', name: 'Other', svg: ICON.other,
+                  desc: 'Anywhere else (tankless wall-mount, outdoor enclosure). Note specifics in additional info.' },
+            ]
+        });
+    };
+
+    /* ── Foundation reference ─────────────────────────────────────────── */
+    window.showFoundationInfo = function () {
+        _createPickerModal({
+            id: 'fieldInfoModalFoundation',
+            targetFieldId: 'foundation',
+            title: 'Foundation',
+            subtitle: 'How the home is supported. Affects earthquake, flood, and water-damage rating.',
+            options: [
+                { value: 'Slab', name: 'Slab', svg: ICON.slab,
+                  desc: 'Poured concrete directly on the ground. No space beneath. Common in warm climates. No basement coverage needed.' },
+                { value: 'Crawl Space - Enclosed', name: 'Crawl Space — Enclosed', svg: ICON.crawl,
+                  desc: 'Sealed crawl space, typically vented. Small clearance under the floor. Protects plumbing from freezing.' },
+                { value: 'Crawl Space - Open', name: 'Crawl Space — Open', svg: ICON.crawl,
+                  desc: 'Open-sided crawl (piers + skirt). Exposed to wind/weather. More freeze-risk for plumbing.' },
+                { value: 'Basement - Finished', name: 'Basement — Finished', svg: ICON.basement,
+                  desc: 'Full livable basement. Adds to total square footage for insurance purposes (clarify with carrier). Check sump pump + water-backup coverage.' },
+                { value: 'Basement - Partially Finished', name: 'Basement — Partially Finished', svg: ICON.basement,
+                  desc: 'Partly livable, partly mechanical. Standard treatment. Note finished % in additional info.' },
+                { value: 'Basement - Unfinished', name: 'Basement — Unfinished', svg: ICON.basement,
+                  desc: 'Concrete floors/walls, mechanical only. Still flood/water-backup risk — recommend the endorsement.' },
+                { value: 'Basement - Walkout', name: 'Basement — Walkout', svg: ICON.basement,
+                  desc: 'Basement with exterior door at grade (hillside construction). Flood risk varies — check elevation.' },
+                { value: 'Daylight Basement - Finished', name: 'Daylight Basement — Finished', svg: ICON.basement,
+                  desc: 'Basement with windows above grade because of sloped lot. Treated as finished basement.' },
+                { value: 'Daylight Basement - Unfinished', name: 'Daylight Basement — Unfinished', svg: ICON.basement,
+                  desc: 'Same geometry, no interior finish.' },
+                { value: 'Hillside Foundation', name: 'Hillside Foundation', svg: ICON.piers,
+                  desc: 'Mixed stepped foundation following a slope. Often part slab, part walkout. Verify drainage + earthquake retrofit on older construction.' },
+                { value: 'Piers', name: 'Piers', svg: ICON.piers,
+                  desc: 'Concrete columns supporting the floor system. Common in coastal/flood zones or where soil heaves.' },
+                { value: 'Pilings/stilts', name: 'Pilings / Stilts', svg: ICON.piers,
+                  desc: 'Deep driven piles — coastal/flood construction. Flood zone + wind exposure both elevated; check elevation certificate.' },
+                { value: 'Other', name: 'Other', svg: ICON.other,
+                  desc: 'Not listed. Note type in additional info.' },
+            ]
+        });
+    };
+
+    /* ── Cooling reference ─────────────────────────────────────────────── */
+    window.showCoolingInfo = function () {
+        _createPickerModal({
+            id: 'fieldInfoModalCooling',
+            targetFieldId: 'cooling',
+            title: 'Cooling System',
+            subtitle: 'Central vs. window vs. none — affects replacement-cost calc.',
+            options: [
+                { value: 'Central Air', name: 'Central Air', svg: ICON.fan,
+                  desc: 'Whole-house AC using ductwork — typically shares air handler with heat. Increases replacement cost vs. no AC.' },
+                { value: 'Window Units', name: 'Window Units', svg: ICON.windowAC,
+                  desc: 'Individual room AC units. Contents, not structure — not part of dwelling replacement cost.' },
+                { value: 'None', name: 'None', svg: ICON.noAC,
+                  desc: 'No AC. Common in the Pacific Northwest and mild coastal climates. Perfectly acceptable.' },
+            ]
+        });
+    };
+
+    /* ── Dwelling Type reference ──────────────────────────────────────── */
+    window.showDwellingTypeInfo = function () {
+        _createPickerModal({
+            id: 'fieldInfoModalDwellingType',
+            targetFieldId: 'dwellingType',
+            title: 'Dwelling Type',
+            subtitle: 'The structure form. Drives the rating tier and which carriers will quote.',
+            options: [
+                { value: 'One Family', name: 'One Family', svg: ICON.house,
+                  desc: 'Single-family detached home. Standard residential rating. Most carriers quote.' },
+                { value: 'Two Family', name: 'Two Family (Duplex)', svg: ICON.twoHouse,
+                  desc: 'Duplex — two dwelling units in one structure. Owner-occupied vs. full rental affects rating significantly.' },
+                { value: 'Three Family', name: 'Three Family (Triplex)', svg: ICON.twoHouse,
+                  desc: 'Triplex. Many personal carriers decline — may need a DP-3 (rental dwelling) or commercial product.' },
+                { value: 'Four Family', name: 'Four Family (Fourplex)', svg: ICON.twoHouse,
+                  desc: 'Fourplex. Usually written as commercial/multi-family, not personal lines.' },
+                { value: 'Condo', name: 'Condo', svg: ICON.condo,
+                  desc: 'Owner of an individual unit in a building; HOA covers exterior/common. Needs HO-6 policy — different coverage structure than HO-3.' },
+                { value: 'Townhome', name: 'Townhome', svg: ICON.townhouse,
+                  desc: 'Attached unit with shared walls, individually deeded lot. Usually HO-3 with walls-in adjustments. Check HOA master policy.' },
+                { value: 'Row House', name: 'Row House', svg: ICON.townhouse,
+                  desc: 'Older urban attached housing, typically brick. Similar underwriting to townhome — verify party-wall responsibility.' },
+            ]
+        });
+    };
+
+    /* ── Sewer reference ───────────────────────────────────────────────── */
+    window.showSewerInfo = function () {
+        _createPickerModal({
+            id: 'fieldInfoModalSewer',
+            targetFieldId: 'sewer',
+            title: 'Sewer',
+            subtitle: 'Where waste water goes. Septic drives a different coverage conversation (service line, backup).',
+            options: [
+                { value: 'Public', name: 'Public Sewer', svg: ICON.sewer,
+                  desc: 'Municipal sewer line. Service Line endorsement still valuable — protects the pipe from the house to the street.' },
+                { value: 'Septic', name: 'Septic System', svg: ICON.septic,
+                  desc: 'On-site septic tank + drain field. No municipal service line, but the tank/field itself can fail. Note age + last pumping in additional info.' },
+            ]
+        });
+    };
+
+    /* ── Water Source reference ────────────────────────────────────────── */
+    window.showWaterSourceInfo = function () {
+        _createPickerModal({
+            id: 'fieldInfoModalWaterSource',
+            targetFieldId: 'waterSource',
+            title: 'Water Source',
+            subtitle: 'Where the house gets its water. Well homes need the pump/lines covered.',
+            options: [
+                { value: 'Public', name: 'Public Water', svg: ICON.faucet,
+                  desc: 'Municipal water supply. Service Line endorsement covers the pipe between the main and the house.' },
+                { value: 'Well', name: 'Well', svg: ICON.well,
+                  desc: 'Private well — pump, pressure tank, lines. Well-pump failure can be expensive; Equipment Breakdown endorsement is highly recommended.' },
+            ]
+        });
+    };
+
+    /* ── Garage Type reference ─────────────────────────────────────────── */
+    window.showGarageTypeInfo = function () {
+        _createPickerModal({
+            id: 'fieldInfoModalGarageType',
+            targetFieldId: 'garageType',
+            title: 'Garage Type',
+            subtitle: 'Attached vs. detached changes how damage gets paid (Coverage A vs. B).',
+            options: [
+                { value: 'Attached', name: 'Attached Garage', svg: ICON.garageAttached,
+                  desc: 'Shares a wall with the dwelling. Covered under Coverage A (dwelling) — same replacement cost basis.' },
+                { value: 'Detached', name: 'Detached Garage', svg: ICON.garageDetached,
+                  desc: 'Separate structure. Covered under Coverage B (other structures) — typically 10% of Cov A by default. Increase if the garage is high-value.' },
+                { value: 'Built-in', name: 'Built-in Garage', svg: ICON.garageAttached,
+                  desc: 'Integrated into the main structure (often under living space). Treated like attached — Coverage A.' },
+                { value: 'Carport', name: 'Carport', svg: ICON.carport,
+                  desc: 'Open roof, no walls. May be Coverage A if attached, Coverage B if freestanding.' },
+                { value: 'None', name: 'None', svg: ICON.none,
+                  desc: 'No garage. Vehicles park outside or on street.' },
+            ]
+        });
+    };
+
+    /* ── Secondary Heating reference ──────────────────────────────────── */
+    window.showSecondaryHeatingInfo = function () {
+        _createPickerModal({
+            id: 'fieldInfoModalSecondaryHeating',
+            targetFieldId: 'secondaryHeating',
+            title: 'Secondary Heating Source',
+            subtitle: 'Non-primary heat. Non-professional installs + portable heaters are the concerns.',
+            options: [
+                { value: 'Wood Professionally Installed', name: 'Wood — Pro Installed', svg: ICON.stove,
+                  desc: 'Permitted install with proper clearances, flue, hearth. Usually acceptable to carriers; may require photo + inspection certificate.' },
+                { value: 'Wood Non-Professionally Installed', name: 'Wood — DIY / Non-Pro ⚠️', svg: ICON.stove,
+                  desc: 'CONCERN. No permit or unknown install quality. Many carriers decline or require a WETT/professional inspection before binding.' },
+                { value: 'Coal Professionally Installed', name: 'Coal — Pro Installed', svg: ICON.stove,
+                  desc: 'Permitted coal stove. Same underwriting lens as pro-installed wood. Less common outside Appalachia.' },
+                { value: 'Coal Non-Professionally Installed', name: 'Coal — DIY / Non-Pro ⚠️', svg: ICON.stove,
+                  desc: 'Same concern as non-pro wood. Inspection typically required.' },
+                { value: 'Electric', name: 'Electric Permanent', svg: ICON.fan,
+                  desc: 'Permanently wired electric baseboard, radiant panel, or heat pump supplement. No fire risk.' },
+                { value: 'Electric Portable Heater', name: 'Electric Portable ⚠️', svg: ICON.windowAC,
+                  desc: 'CONCERN if used as sole source of heat in a room. Many residential fires start here. Note in additional info.' },
+                { value: 'Kerosene', name: 'Kerosene', svg: ICON.stove,
+                  desc: 'Vented kerosene heater. Acceptable if vented properly. Document tank location.' },
+                { value: 'Kerosene Portable Heater', name: 'Kerosene Portable ⚠️', svg: ICON.stove,
+                  desc: 'CONCERN. Unvented portable kerosene — carbon monoxide + fire risk. Often declined.' },
+                { value: 'Liquid Propane', name: 'Liquid Propane', svg: ICON.other,
+                  desc: 'Permanent LP-fueled supplemental heat. Note tank location (above-ground vs. buried).' },
+                { value: 'Liquid Propane Portable Heater', name: 'LP Portable ⚠️', svg: ICON.other,
+                  desc: 'CONCERN. Portable propane — fuel storage + carbon monoxide risk. Often declined.' },
+                { value: 'Natural Gas', name: 'Natural Gas', svg: ICON.other,
+                  desc: 'Permanent natural-gas supplemental unit. Acceptable.' },
+                { value: 'Oil', name: 'Oil', svg: ICON.other,
+                  desc: 'Permanent oil-fired supplemental unit. Check tank age + location.' },
+                { value: 'Solar Professionally Installed', name: 'Solar — Pro Installed', svg: ICON.solar,
+                  desc: 'Solar thermal / radiant backup. No fire risk. Often a credit.' },
+                { value: 'Solar Non-Professionally Installed', name: 'Solar — DIY ⚠️', svg: ICON.solar,
+                  desc: 'CONCERN. Non-permitted install — carrier may require an electrical inspection before binding.' },
+                { value: 'Other', name: 'Other', svg: ICON.other,
+                  desc: 'Not listed (pellet stove without primary heat, pellet insert, etc.). Note specifics in additional info.' },
+            ]
+        });
+    };
+
 })();
