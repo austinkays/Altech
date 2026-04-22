@@ -80,7 +80,10 @@ Object.assign(App, {
         if (data.suffix) misc.push(`Suffix: ${data.suffix}`);
         // Co-applicant info in misc if present
         if (data.hasCoApplicant === 'yes' && (data.coFirstName || data.coLastName)) {
-            misc.push(`Co-Applicant: ${_v(data.coFirstName)} ${_v(data.coLastName)}`.trim());
+            const _coNameParts = [data.coPrefix, data.coFirstName, data.coLastName, data.coSuffix].map(_v).filter(Boolean);
+            misc.push(`Co-Applicant: ${_coNameParts.join(' ')}`);
+            if (data.coPrefix) misc.push(`Co-App Prefix: ${data.coPrefix}`);
+            if (data.coSuffix) misc.push(`Co-App Suffix: ${data.coSuffix}`);
             if (data.coDob) misc.push(`Co-App DOB: ${_dateHS(data.coDob)}`);
             if (data.coGender) misc.push(`Co-App Gender: ${_genderHS(data.coGender)}`);
             if (data.coRelationship) misc.push(`Co-App Relationship: ${data.coRelationship}`);

@@ -36,8 +36,10 @@ window.FIELDS = [
     { id: 'occupation',     label: 'Occupation',        type: 'text',    section: 'applicant', ezlynxRequired: true },
 
     // ── Co-Applicant ───────────────────────────────────────────────────────
+    { id: 'coPrefix',       label: 'Co-App Prefix',     type: 'select',  section: 'coapplicant' },
     { id: 'coFirstName',    label: 'Co-App First Name', type: 'text',    section: 'coapplicant', ezlynxRequired: true },
     { id: 'coLastName',     label: 'Co-App Last Name',  type: 'text',    section: 'coapplicant', ezlynxRequired: true },
+    { id: 'coSuffix',       label: 'Co-App Suffix',     type: 'select',  section: 'coapplicant' },
     { id: 'coDob',          label: 'Co-App DOB',        type: 'date',    section: 'coapplicant', ezlynxRequired: true },
     { id: 'coGender',       label: 'Co-App Gender',     type: 'select',  section: 'coapplicant', ezlynxRequired: true },
     { id: 'coEmail',        label: 'Co-App Email',      type: 'email',   section: 'coapplicant' },

@@ -380,8 +380,9 @@ Object.assign(App, {
             doc.line(mg + coLabelW + 3, y+3, pageW-mg, y+3);
             doc.setFont(undefined,'normal'); doc.setTextColor(...INK);
             y += 5;
+            const coNameParts = [v('coPrefix'), data.coFirstName||'', data.coLastName||'', v('coSuffix')].filter(Boolean);
             kvRow([
-                ['Full Name',       `${data.coFirstName||''} ${data.coLastName||''}`.trim()],
+                ['Full Name',       coNameParts.join(' ')],
                 ['Date of Birth',   fmtDate(v('coDob'))],
                 ['Gender',          v('coGender')==='M'?'Male': v('coGender')==='F'?'Female': v('coGender')],
                 ['Marital Status',  v('coMaritalStatus')],
