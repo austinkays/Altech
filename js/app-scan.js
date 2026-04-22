@@ -383,7 +383,6 @@ Object.assign(App, {
             const gisStatus = document.getElementById('gisUploadStatus');
             if (gisStatus) gisStatus.textContent = `✅ ${count} property field(s) applied!`;
             this.toast(`✅ ${count} property fields applied from GIS`);
-            this.checkUpdates(); // Trigger progressive disclosure (e.g., updates card for older homes)
         };
 
         const cancelBtn = document.createElement('button');

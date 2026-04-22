@@ -900,7 +900,6 @@ Object.assign(App, {
                 if(r) r.checked = true;
             }
         });
-        this.checkUpdates();
         this.handleType();
         this.updateNamePronunciationUI();
         this.computeOtherStructures();
@@ -1002,20 +1001,6 @@ Object.assign(App, {
                 if (inp) inp.value = this.data[sel.id + '_other'] || '';
             }
         });
-    },
-
-    // === PROGRESSIVE DISCLOSURE ===
-    checkUpdates() {
-        const yrBuiltEl = document.getElementById('yrBuilt');
-        const updatesCard = document.getElementById('updatesCard');
-        if (!yrBuiltEl || !updatesCard) return;
-        const yrBuilt = yrBuiltEl.value;
-        
-        if(yrBuilt && parseInt(yrBuilt) < 2000) {
-            updatesCard.classList.remove('hidden');
-        } else {
-            updatesCard.classList.add('hidden');
-        }
     },
 
     // === FEATURES ===

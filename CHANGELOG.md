@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **fix(quoter): always show System Updates card** (April 22, 2026):
+  - Removed the `yrBuilt < 2000` gate that hid the heating/plumbing/electrical/roofing update selects in `plugins/quoting.html`. Carriers ask about these on newer homes too, and a silent miss on a post-2000 home meant blank values flowed through to the quote.
+  - Deleted the `App.checkUpdates()` progressive-disclosure helper in `js/app-core.js` and its call sites in `js/app-core.js` (load) and `js/app-scan.js` (post-GIS autofill). The `oninput="App.checkUpdates()"` on `#yrBuilt` was also removed.
+  - Section subtitle changed from "When were these systems last updated? (Home built before 2000)" to "When were these systems last updated?".
+
 ### Added
 - **feat(quoter): prior-carrier policy status as underwriting risk flag** (April 22, 2026):
   - New `priorPolicyStatus` and `homePriorPolicyStatus` selects added to Auto Insurance History and Home Insurance History cards in `plugins/quoting.html`. Options: `Active / Renewed`, `Non-Renewed by Carrier`, `Cancelled by Carrier`, `Cancelled — Non-Payment`, `Cancelled by Insured`.
