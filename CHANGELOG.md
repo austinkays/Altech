@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **fix(intake-ui): badge + dropdown + accordion consistency pass** (April 22, 2026):
+  - **Active client badge** — removed `margin-left: auto` on the History button. The button was floating at the far right of the badge with a big empty gap between "unsaved changes" and itself, making the two look unrelated. Now it sits naturally right after the status text with the standard 8px flex gap.
+  - **Empty-option placeholders normalized** to `"Select..."` where they were just visual placeholders:
+    - `"--"` × 2 (prefix, suffix) → `"Select..."`
+    - `"—"` × 4 (addrState, primaryHomeState, previousAddrState, garageSpaces) → `"Select..."`
+    - **Preserved** `"None"` × 10 (semantic: "Pool: None" means no pool), `"Default"` × 3 (semantic: blank = carrier default), `"Same as All Perils"` × 2 (semantic), `"Select carrier..."` × 2 (meaningful prompt).
+    - Now only `"Select..."` appears as a generic placeholder across the form — five UX conventions collapsed into one.
+  - **Systems & Utilities accordion** — upgraded from plain `<summary>Systems & Utilities</summary>` to the rich `<h2>` + `.section-subtitle` pattern used by its five sibling accordions (Construction & Roof, Safety & Location, Home Risk Factors, Home Coverage, Home Endorsements). One-of-six outlier resolved. Subtitle: "Heating, cooling, plumbing, electrical, water heater."
+  - Also merged the now-redundant outer `<div class="card">` into the `<details>` element (Safety & Location and other accordions already do this — Systems & Utilities was the inconsistent one).
+  - Tests: 31 suites / 1806 tests pass (no new tests — pure HTML/CSS polish, no behavior change).
+
 ### Added
 - **feat(security): decryption-recovery bucket (Phase 5, session 3b)** (April 21, 2026):
   - When `CryptoHelper.decrypt` returns null (key mismatch / corrupted ciphertext / device-bound-key drift), the app now **parks the ciphertext** in a new `altech_decryption_recovery` bucket instead of silently proceeding with an empty data object — which would let the next save overwrite the un-decryptable blob permanently. Ciphertext preserved = the user's path back if they ever recover the key.

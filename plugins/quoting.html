@@ -146,7 +146,7 @@
                     <div>
                         <label class="label">Prefix</label>
                         <select id="prefix">
-                            <option value="">--</option>
+                            <option value="">Select...</option>
                             <option value="MR">Mr.</option>
                             <option value="MRS">Mrs.</option>
                             <option value="MS">Ms.</option>
@@ -156,7 +156,7 @@
                     <div>
                         <label class="label">Suffix</label>
                         <select id="suffix">
-                            <option value="">--</option>
+                            <option value="">Select...</option>
                             <option value="JR">Jr.</option>
                             <option value="SR">Sr.</option>
                             <option value="I">I</option>
@@ -444,7 +444,7 @@
                     <div><label class="label">City</label><input type="text" id="addrCity" placeholder="Vancouver" autocomplete="off"></div>
                     <div><label class="label">State</label>
                     <select id="addrState">
-                        <option value="">—</option>
+                        <option value="">Select...</option>
                         <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option>
                         <option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option>
                         <option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option>
@@ -547,7 +547,7 @@
                         <div>
                             <label class="label">State</label>
                             <select id="primaryHomeState">
-                                <option value="">—</option>
+                                <option value="">Select...</option>
                                 <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option>
                                 <option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option>
                                 <option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option>
@@ -658,7 +658,7 @@
                         <div><label class="label">City</label><input type="text" id="previousAddrCity" placeholder="Portland" autocomplete="off"></div>
                         <div><label class="label">State</label>
                         <select id="previousAddrState">
-                            <option value="">—</option>
+                            <option value="">Select...</option>
                             <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option><option value="AR">AR</option>
                             <option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="DE">DE</option>
                             <option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option><option value="ID">ID</option>
@@ -807,7 +807,7 @@
                     </select></div>
                     <div><label class="label">Garage Spaces</label>
                     <select id="garageSpaces">
-                        <option value="">—</option>
+                        <option value="">Select...</option>
                         <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5+</option>
                     </select></div>
                 </div>
@@ -922,9 +922,11 @@
                 </div>
             </div>
 
-            <div class="card qtype-home-only">
-            <details class="section-accordion">
-                <summary>Systems &amp; Utilities</summary>
+            <details class="card section-accordion qtype-home-only">
+                <summary>
+                    <div><h2 style="margin:0">Systems &amp; Utilities</h2>
+                    <p class="section-subtitle" style="margin:4px 0 0">Heating, cooling, plumbing, electrical, water heater</p></div>
+                </summary>
                 <div class="accordion-body">
                     <div class="grid-12">
                         <div class="span-6">
@@ -1077,7 +1079,6 @@
                     </div>
                 </div>
             </details>
-            </div>
 
             <details class="card section-accordion qtype-home-only">
                 <summary>

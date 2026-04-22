@@ -194,7 +194,6 @@ body.dark-mode .btn-save-client:hover {
 .active-client-badge .acb-status-clean { color: var(--success); }
 .active-client-badge .acb-status-dirty { color: #FF9500; /* no var */ }
 .active-client-badge .acb-history-btn {
-    margin-left: auto;
     padding: 3px 10px;
     border: 1px solid var(--border);
     border-radius: 6px;
