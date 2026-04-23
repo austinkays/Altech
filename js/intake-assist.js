@@ -41,7 +41,8 @@ window.IntakeAssist = (() => {
     // BASE_SYSTEM_PROMPT + dynamic prompt builder live in intake-assist-prompts.js.
     // This shim keeps the old name so internal call sites don't need to change.
     function _buildSystemPrompt() {
-        return window.IntakeAssistPrompts.build(extractedData, riskFlags);
+        const appData = (typeof App !== 'undefined' && App && App.data) ? App.data : {};
+        return window.IntakeAssistPrompts.build(extractedData, riskFlags, appData);
     }
 
 
@@ -192,8 +193,10 @@ window.IntakeAssist = (() => {
             'addrStreet', 'addrCity', 'addrZip', 'county',
             'yearBuilt', 'sqFt', 'stories', 'constructionType', 'constructionStyle',
             'roofYear', 'mortgagee', 'coFirstName', 'coLastName', 'coDob',
+            'coOccupation',
             'effectiveDate', 'dwellingCoverage', 'homePriorExp',
             'lotSize', 'bedrooms',
+            'purchaseDate', 'heatYr', 'plumbYr', 'elecYr',
         ];
         for (const key of simpleFields) {
             if (extractedData[key]) {
@@ -226,15 +229,15 @@ window.IntakeAssist = (() => {
             'policyTerm', 'priorPolicyTerm',
             'priorLiabilityLimits', 'continuousCoverage',
             'homePriorCarrier', 'homePriorYears', 'homePriorPolicyTerm',
-            'coGender', 'coRelationship',
+            'coGender', 'coRelationship', 'coIndustry', 'coMaritalStatus',
         ];
         for (const key of selectFields) {
             if (extractedData[key]) {
                 const el = document.getElementById(key);
                 if (el) {
-                    // Normalize gender from AI (Male/Female) to form values (M/F)
+                    // Normalize gender from AI (Male/Female) to form values (M/F) — applies to both applicant and co-applicant
                     let setValue = extractedData[key];
-                    if (key === 'gender') {
+                    if (key === 'gender' || key === 'coGender') {
                         const g = String(setValue).trim().toLowerCase();
                         if (g === 'male' || g === 'm') setValue = 'M';
                         else if (g === 'female' || g === 'f') setValue = 'F';
@@ -895,6 +898,7 @@ window.IntakeAssist = (() => {
             'burglarAlarm', 'smokeDetector',
             'bedrooms', 'fullBaths', 'halfBaths', 'lotSize',
             'numOccupants', 'numFireplaces', 'fireHydrantFeet',
+            'purchaseDate', 'heatYr', 'plumbYr', 'elecYr',
             // Home Coverage (AI key = form field ID)
             'homePolicyType', 'dwellingCoverage', 'personalLiability',
             'homeDeductible', 'windDeductible', 'theftDeductible',
@@ -909,6 +913,7 @@ window.IntakeAssist = (() => {
             'yearsAtAddress',
             // Co-applicant (AI key = form field ID)
             'coFirstName', 'coLastName', 'coDob', 'coGender', 'coRelationship',
+            'coOccupation', 'coIndustry', 'coMaritalStatus',
             // History
             'accidents', 'violations',
         ];
@@ -920,8 +925,8 @@ window.IntakeAssist = (() => {
             const formKey = AI_TO_APP[aiKey] || (DIRECT.includes(aiKey) ? aiKey : null);
             if (!formKey) continue;
             let normalizedVal = String(val);
-            // Normalize gender values: Male→M, Female→F
-            if (formKey === 'gender') normalizedVal = _normalizeGender(val);
+            // Normalize gender values: Male→M, Female→F — applies to applicant AND co-applicant
+            if (formKey === 'gender' || formKey === 'coGender') normalizedVal = _normalizeGender(val);
             if (App.data[formKey] !== normalizedVal) {
                 App.data[formKey] = normalizedVal;
                 changed = true;
@@ -1374,41 +1379,64 @@ window.IntakeAssist = (() => {
         }
     }
 
-    function _countTotalExpected() {
-        // Dynamic based on qType
+    // Ring count is backed by the same ezlynxRequired list the AI sees, so prompt
+    // guidance and visible progress never drift. Extras (policy meta, vehicles, drivers,
+    // prior-history) are layered on top because they're not in window.FIELDS.
+    function _countRequiredFieldsStatus() {
+        const fields = (typeof window !== 'undefined' && Array.isArray(window.FIELDS)) ? window.FIELDS : [];
+        const appData = (typeof App !== 'undefined' && App && App.data) ? App.data : {};
         const qType = extractedData.qType || '';
-        let total = 5 + 2 + 4 + 2 + 4; // client(5) + contact(2) + address(4) + policy(2) + history(4)
-        if (qType === 'home' || qType === 'both') total += 5 + 6; // home coverage(5) + home details(6)
-        if (qType === 'auto' || qType === 'both') total += 3 + 1 + 1; // auto coverage(3) + vehicles(1) + drivers(1)
-        if (!qType) total += 5; // estimate before type known
-        return total;
+        const isHome = qType === 'home' || qType === 'both' || !qType;
+        const isAuto = qType === 'auto' || qType === 'both';
+
+        const AI_KEY_TO_FIELD = { yearBuilt: 'yrBuilt', stories: 'numStories', constructionType: 'constructionStyle', roofYear: 'roofYr' };
+        const FIELD_TO_AI = {};
+        for (const [ai, field] of Object.entries(AI_KEY_TO_FIELD)) (FIELD_TO_AI[field] = FIELD_TO_AI[field] || []).push(ai);
+        const hasCoSignal = !!(extractedData.coFirstName || extractedData.coLastName || extractedData.coDob ||
+            appData.coFirstName || appData.coLastName || appData.coDob);
+
+        let total = 0, filled = 0;
+        for (const f of fields) {
+            if (!f.ezlynxRequired) continue;
+            if (f.section === 'hazards') continue; // auto-filled by Smart Fill
+            if (!isHome && (f.section === 'property' || f.section === 'roof' || f.section === 'systems')) continue;
+            if (f.section === 'coapplicant' && !hasCoSignal) continue;
+            total++;
+            const appVal = appData[f.id];
+            if (appVal != null && appVal !== '' && appVal !== 0) { filled++; continue; }
+            const aiKeys = FIELD_TO_AI[f.id] || [f.id];
+            if (aiKeys.some(k => extractedData[k] != null && extractedData[k] !== '')) filled++;
+        }
+
+        // Extras not represented in fields.js
+        const policyMeta = ['qType', 'effectiveDate'];
+        for (const k of policyMeta) { total++; if (extractedData[k]) filled++; }
+
+        if (isAuto) {
+            const autoCov = ['liabilityLimits', 'compDeductible', 'autoDeductible'];
+            total += autoCov.length;
+            for (const k of autoCov) if (extractedData[k] || appData[k]) filled++;
+            total += 2; // one vehicle + one driver
+            if (Array.isArray(extractedData.vehicles) && extractedData.vehicles.length && (extractedData.vehicles[0].vin || extractedData.vehicles[0].year || extractedData.vehicles[0].make)) filled++;
+            if (Array.isArray(extractedData.drivers) && extractedData.drivers.length && (extractedData.drivers[0].firstName || extractedData.drivers[0].dob || extractedData.drivers[0].dlNum)) filled++;
+        }
+
+        if (isHome) {
+            const homeCov = ['homePolicyType', 'dwellingCoverage', 'personalLiability', 'homeDeductible'];
+            total += homeCov.length;
+            for (const k of homeCov) if (extractedData[k] || appData[k]) filled++;
+        }
+
+        // Prior insurance history (ezlynxRequired in the broader sense; not in fields.js)
+        const history = ['priorCarrier', 'priorYears'];
+        total += history.length;
+        for (const k of history) if (extractedData[k] || appData[k]) filled++;
+
+        return { total, filled };
     }
 
-    function _countFilled() {
-        let count = 0;
-        const simple = ['firstName', 'lastName', 'dob', 'gender', 'maritalStatus',
-            'phone', 'email',
-            'addrStreet', 'addrCity', 'addrState', 'addrZip',
-            'qType', 'effectiveDate',
-            'homePolicyType', 'dwellingCoverage', 'personalLiability', 'homeDeductible', 'occupancyType',
-            'yearBuilt', 'sqFt', 'stories', 'roofType', 'roofYear', 'foundation',
-            'liabilityLimits', 'compDeductible', 'autoDeductible',
-            'priorCarrier', 'priorYears', 'accidents', 'violations'];
-        for (const k of simple) {
-            if (extractedData[k]) count++;
-        }
-        // constructionStyle and constructionType are aliases — count as one field
-        if (extractedData.constructionStyle || extractedData.constructionType) count++;
-        if (Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0) {
-            const v = extractedData.vehicles[0];
-            if (v.vin || v.year || v.make) count++;
-        }
-        if (Array.isArray(extractedData.drivers) && extractedData.drivers.length > 0) {
-            const d = extractedData.drivers[0];
-            if (d.firstName || d.dob || d.dlNum) count++;
-        }
-        return count;
-    }
+    function _countTotalExpected() { return _countRequiredFieldsStatus().total; }
+    function _countFilled() { return _countRequiredFieldsStatus().filled; }
 
     /** Render the field group checklist */
     function _updateFieldChecklist() {

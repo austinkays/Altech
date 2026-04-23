@@ -311,6 +311,16 @@ Object.assign(App, {
             });
         }
 
+        // Flood coverage progressive disclosure (mirrors earthquake pattern)
+        const floodWrap = document.getElementById('floodDetailsWrapper');
+        if (floodWrap) {
+            document.body.addEventListener('change', (e) => {
+                const toggle = e.target.closest('[data-toggle-field="floodCoverage"]');
+                if (!toggle) return;
+                floodWrap.classList.toggle('disclosure-hidden', !toggle.checked);
+            });
+        }
+
         // Dwelling Usage → primary home address progressive disclosure
         document.body.addEventListener('change', (e) => {
             if (e.target.id === 'dwellingUsage') {

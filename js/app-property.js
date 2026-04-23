@@ -52,16 +52,19 @@ Object.assign(App, {
             btn.disabled = true;
             btn.innerHTML = '🔄 Gathering property data from all sources...';
 
-            // Fire ALL enrichment sources in parallel
-            const [arcgisResult, zillowResult, fireStationResult] = await Promise.allSettled([
+            // Fire ALL enrichment sources in parallel, including satellite/Street View vision.
+            // Vision fills gaps that Rentcast/ArcGIS miss (notably exteriorWalls + roofShape).
+            const [arcgisResult, zillowResult, fireStationResult, visualResult] = await Promise.allSettled([
                 this.fetchArcgisAndRag(address, city, state, county),
                 _skipRentcast ? Promise.resolve(null) : this.fetchZillowData(address, city, state, zip),
-                this.fetchFireStationData(address, city, state, zip)
+                this.fetchFireStationData(address, city, state, zip),
+                this.fetchVisualData(address, city, state, zip)
             ]);
 
             let arcgisData = arcgisResult.status === 'fulfilled' ? arcgisResult.value : null;
             let zillowData = zillowResult.status === 'fulfilled' ? zillowResult.value : null;
             const fireData = fireStationResult.status === 'fulfilled' ? fireStationResult.value : null;
+            const visualData = visualResult.status === 'fulfilled' ? visualResult.value : null;
 
             // Increment counter and update display on confirmed Rentcast hit
             if (zillowData?.source?.includes('Rentcast')) {
@@ -76,7 +79,8 @@ Object.assign(App, {
                 arcgis: arcgisData ? arcgisData.source : 'none',
                 zillow: zillowData ? zillowData.source : 'none',
                 fire: fireData ? 'ok' : 'none',
-                flood: floodData ? floodData.floodZone : 'none'
+                flood: floodData ? floodData.floodZone : 'none',
+                vision: visualData ? (visualData.data ? 'ok' : 'empty') : 'none'
             });
 
             // If no property details (only fire data), try direct Gemini property search
@@ -93,38 +97,16 @@ Object.assign(App, {
                 }
             }
 
-            // If we have any structured data, show unified popup
-            if (arcgisData || zillowData || fireData) {
+            // If we have any structured data OR vision data, show unified popup
+            if (arcgisData || zillowData || fireData || visualData) {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                this.showUnifiedDataPopup(arcgisData, zillowData, fireData, address, city, state, floodData);
+                this.showUnifiedDataPopup(arcgisData, zillowData, fireData, address, city, state, floodData, visualData);
                 return;
             }
 
-            // FALLBACK: No structured data — try satellite imagery
-            btn.innerHTML = '🔄 Analyzing satellite imagery...';
-
-            const hazardResponse = await fetch('/api/property-intelligence?mode=satellite', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ address, city, state, zip, aiSettings: window.AIProvider?.getSettings() })
-            });
-
-            if (!hazardResponse.ok) {
-                throw new Error('Failed to analyze property');
-            }
-
-            const result = await hazardResponse.json();
-
-            if (!result.success) {
-                throw new Error(result.error || 'Analysis failed');
-            }
-
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-
-            const fullAddress = `${address}, ${city}, ${state} ${zip || ''}`.trim();
-            this.showHazardDetectionPopup(result.data, result.satelliteImage, fullAddress, result.streetViewImage);
+            // No data from ANY source — give the user an actionable error
+            throw new Error('No property data found across parcel, listings, and visual sources.');
 
         } catch (error) {
             console.error('Smart auto-fill error:', error);
@@ -232,6 +214,31 @@ Object.assign(App, {
             };
         } catch (e) {
             console.warn('[FireStation] Error:', e.message);
+            return null;
+        }
+    },
+
+    // Satellite + Street View vision — extracts structural fields Rentcast misses
+    // (exteriorWalls, roofShape) plus hazards (pool, trampoline, tree overhang).
+    // Returns null on failure so Promise.allSettled doesn't poison the other sources.
+    async fetchVisualData(address, city, state, zip) {
+        try {
+            const resp = await fetch('/api/property-intelligence?mode=satellite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ address, city, state, zip, aiSettings: window.AIProvider?.getSettings() })
+            });
+            if (!resp.ok) return null;
+            const result = await resp.json();
+            if (!result.success || !result.data) return null;
+            return {
+                data: result.data,
+                satelliteImage: result.satelliteImage || null,
+                streetViewImage: result.streetViewImage || null,
+                provider: result.aiProvider || 'Gemini'
+            };
+        } catch (e) {
+            console.warn('[Vision] Error:', e.message);
             return null;
         }
     },

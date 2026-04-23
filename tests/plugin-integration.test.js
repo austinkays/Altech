@@ -939,12 +939,20 @@ describe('Home Coverage Grid', () => {
     expect(parent.parentElement.classList.contains('grid-2-full')).toBe(true);
   });
 
-  test('mortgagee is inside a full-span wrapper within grid-2-full', () => {
+  test('mortgagee input lives under its own subheader in Home Coverage', () => {
+    // After the 2026-04 reorg mortgagee is a standalone input at the bottom of the
+    // Home Coverage accordion body, directly preceded by a "Mortgagee" subheader h3.
     const el = document.getElementById('mortgagee');
     expect(el).not.toBeNull();
-    const parent = el.parentElement;
-    expect(parent.classList.contains('full-span')).toBe(true);
-    expect(parent.parentElement.classList.contains('grid-2-full')).toBe(true);
+    // Walk up to accordion-body
+    let body = el;
+    while (body && !body.classList?.contains('accordion-body')) body = body.parentElement;
+    expect(body).not.toBeNull();
+    // The immediately-preceding h3 should say "Mortgagee"
+    let prev = el.previousElementSibling;
+    while (prev && prev.tagName !== 'H3') prev = prev.previousElementSibling;
+    expect(prev).not.toBeNull();
+    expect(prev.textContent.trim()).toBe('Mortgagee');
   });
 
   test('personalLiability and medicalPayments are siblings without full-span', () => {
@@ -979,20 +987,39 @@ describe('Home Coverage Grid', () => {
     expect(deductibleParent.parentElement).toBe(windParent.parentElement);
   });
 
-  test('all Home Coverage fields live in a single grid-2-full container', () => {
-    const ids = ['homePolicyType', 'dwellingCoverage', 'personalLiability', 'medicalPayments', 'homeDeductible', 'windDeductible', 'mortgagee'];
-    const containers = ids.map(id => {
+  test('all Home Coverage fields live inside the Home Coverage accordion body', () => {
+    // Post-reorg (2026-04) the Home Coverage accordion has multiple grid-2-full
+    // subsections (Coverages / Deductibles / EQ / Flood / Scheduled Items). The
+    // invariant is now "they all share the same accordion body," not the same grid.
+    // Includes fields moved in from Endorsements (earthquakeCoverage, jewelryLimit)
+    // plus new flood + scheduled-items fields.
+    const ids = [
+      'homePolicyType', 'dwellingCoverage', 'personalLiability', 'medicalPayments',
+      'homeDeductible', 'windDeductible',
+      'earthquakeCoverage', 'earthquakeZone', 'earthquakeDeductible',
+      'floodCoverage', 'floodBuildingLimit', 'floodContentsLimit', 'floodDeductible',
+      'jewelryLimit', 'scheduledItems',
+      'mortgagee',
+    ];
+    const bodies = ids.map(id => {
       const el = document.getElementById(id);
       expect(el).not.toBeNull();
-      // Walk up to grid-2-full
       let node = el;
-      while (node && !node.classList?.contains('grid-2-full')) node = node.parentElement;
+      while (node && !node.classList?.contains('accordion-body')) node = node.parentElement;
       return node;
     });
-    // All should resolve to the same grid-2-full container
-    const unique = new Set(containers);
+    const unique = new Set(bodies);
     expect(unique.size).toBe(1);
-    expect(containers[0]).not.toBeNull();
+    expect(bodies[0]).not.toBeNull();
+  });
+
+  test('Home Coverage contains Coverages/Deductibles/Earthquake/Flood/Scheduled Items/Mortgagee subheaders in order', () => {
+    // Walk the Home Coverage accordion and assert the h3 subheaders are in the
+    // order the boss requested: Coverages, Deductibles, Earthquake, Flood, Scheduled Items, Mortgagee.
+    const body = document.getElementById('dwellingCoverage').closest('.accordion-body');
+    expect(body).not.toBeNull();
+    const headings = Array.from(body.querySelectorAll('h3')).map(h => h.textContent.trim());
+    expect(headings).toEqual(['Coverages', 'Deductibles', 'Earthquake', 'Flood', 'Scheduled Items', 'Mortgagee']);
   });
 });
 
@@ -1006,10 +1033,11 @@ describe('Home Endorsements Layout', () => {
     document = window.document;
   });
 
-  // Group 1: All dropdown selectors should live in a single grid-2-full
+  // Group 1: All dropdown selectors should live in a single grid-2-full.
+  // jewelryLimit moved to Home Coverage → Scheduled Items (2026-04).
   const dropdownIds = [
     'increasedReplacementCost', 'ordinanceOrLaw', 'waterBackup', 'lossAssessment',
-    'animalLiability', 'theftDeductible', 'jewelryLimit', 'creditCardCoverage', 'moldDamage'
+    'animalLiability', 'theftDeductible', 'creditCardCoverage', 'moldDamage'
   ];
 
   test('all endorsement dropdowns live in one grid-2-full container', () => {
@@ -1042,9 +1070,10 @@ describe('Home Endorsements Layout', () => {
     expect(source).toMatch(/\.toggle-card\s*\{[^}]*display:\s*flex/);
   });
 
-  const toggleIds = ['equipmentBreakdown', 'serviceLine', 'earthquakeCoverage'];
+  // earthquakeCoverage moved to Home Coverage (2026-04) so Endorsements now has 2 toggles.
+  const toggleIds = ['equipmentBreakdown', 'serviceLine'];
 
-  test('all 3 toggles are inside toggle-card elements within toggle-grid-3', () => {
+  test('remaining endorsement toggles are inside toggle-card elements within toggle-grid-3', () => {
     toggleIds.forEach(id => {
       const hidden = document.getElementById(id);
       expect(hidden).not.toBeNull();
@@ -1054,12 +1083,44 @@ describe('Home Endorsements Layout', () => {
     });
   });
 
-  test('all 3 toggle-cards share the same toggle-grid-3 parent', () => {
+  test('remaining endorsement toggle-cards share the same toggle-grid-3 parent', () => {
     const parents = toggleIds.map(id => {
       return document.getElementById(id).closest('.toggle-grid-3');
     });
     const unique = new Set(parents);
     expect(unique.size).toBe(1);
+  });
+
+  test('earthquakeCoverage toggle now lives inside the Home Coverage accordion (not Endorsements)', () => {
+    const hidden = document.getElementById('earthquakeCoverage');
+    expect(hidden).not.toBeNull();
+    const body = hidden.closest('.accordion-body');
+    expect(body).not.toBeNull();
+    // The Home Coverage body is the same one holding dwellingCoverage.
+    const dwellBody = document.getElementById('dwellingCoverage').closest('.accordion-body');
+    expect(body).toBe(dwellBody);
+  });
+
+  test('floodCoverage toggle exists in Home Coverage with conditional disclosure wrapper', () => {
+    const flood = document.getElementById('floodCoverage');
+    expect(flood).not.toBeNull();
+    const body = flood.closest('.accordion-body');
+    const dwellBody = document.getElementById('dwellingCoverage').closest('.accordion-body');
+    expect(body).toBe(dwellBody);
+    expect(document.getElementById('floodDetailsWrapper')).not.toBeNull();
+    expect(document.getElementById('floodBuildingLimit')).not.toBeNull();
+    expect(document.getElementById('floodContentsLimit')).not.toBeNull();
+    expect(document.getElementById('floodDeductible')).not.toBeNull();
+  });
+
+  test('scheduled items section contains jewelryLimit + scheduledItems textarea', () => {
+    const jewelry = document.getElementById('jewelryLimit');
+    const scheduled = document.getElementById('scheduledItems');
+    expect(jewelry).not.toBeNull();
+    expect(scheduled).not.toBeNull();
+    const dwellBody = document.getElementById('dwellingCoverage').closest('.accordion-body');
+    expect(jewelry.closest('.accordion-body')).toBe(dwellBody);
+    expect(scheduled.closest('.accordion-body')).toBe(dwellBody);
   });
 
   test('no toggle-row elements remain in endorsements', () => {

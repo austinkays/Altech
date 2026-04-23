@@ -84,20 +84,29 @@ Object.assign(App, {
         // Normalize new Gemini Vision response format (roof_material, has_pool, etc.)
         // to the internal field names used by the popup and apply logic
         const d = detections || {};
+        const conf = d.confidence || {};
+        const unk = v => !v || v === 'unknown';
         const hazards = {
             pool: d.has_pool === true || d.pool === 'yes',
             poolFenced: d.pool_fenced === true || null,
             trampoline: d.has_trampoline === true || d.trampoline === 'yes',
             deck: d.deck_or_patio === true || d.deck === 'yes',
-            roofType: d.roof_material && d.roof_material !== 'unknown' ? d.roof_material : (d.roofType && d.roofType !== 'unknown' ? d.roofType : null),
-            roofShape: d.roof_shape && d.roof_shape !== 'unknown' ? d.roof_shape : (d.roofShape && d.roofShape !== 'unknown' ? d.roofShape : null),
+            roofType: !unk(d.roof_material) ? d.roof_material : (!unk(d.roofType) ? d.roofType : null),
+            roofShape: !unk(d.roof_shape) ? d.roof_shape : (!unk(d.roofShape) ? d.roofShape : null),
+            exteriorWalls: !unk(d.exterior_walls) ? d.exterior_walls : null,
             roofConditionScore: d.roof_condition_score || null,
-            numStories: d.stories || (d.numStories && d.numStories !== 'unknown' ? d.numStories : null),
-            garageSpaces: d.garage_doors || (d.garageSpaces && d.garageSpaces !== 'unknown' ? d.garageSpaces : null),
+            numStories: !unk(d.stories) ? d.stories : (!unk(d.numStories) ? d.numStories : null),
+            garageSpaces: d.garage_doors || (!unk(d.garageSpaces) ? d.garageSpaces : null),
             visibleHazards: d.visible_hazards || [],
             treeOverhang: d.tree_overhang_roof,
             brushClearance: d.brush_clearance_adequate,
             notes: d.notes || '',
+            confidence: {
+                roofType: conf.roof_material || null,
+                roofShape: conf.roof_shape || null,
+                exteriorWalls: conf.exterior_walls || null,
+                numStories: conf.stories || null,
+            },
         };
         
         // Count detected hazards
@@ -176,25 +185,31 @@ Object.assign(App, {
                         </div>
                         
                         <div style="background: var(--bg-secondary); border-radius: 12px; padding: 16px;">
-                            <p style="font-size: 12px; font-weight: 600; margin: 0 0 12px 0; color: var(--text);">Property Details</p>
-                            
+                            <p style="font-size: 12px; font-weight: 600; margin: 0 0 12px 0; color: var(--text);">Property Details <span style="font-weight: 400; color: var(--text-secondary);">— only medium/high confidence will auto-apply</span></p>
+
                             <div style="display: grid; gap: 8px;">
                                 ${hazards.numStories ? `
-                                    <div style="display: flex; justify-content: space-between;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
                                         <span style="font-size: 14px;">📊 Stories:</span>
-                                        <span style="font-size: 14px; font-weight: 600;">${hazards.numStories}</span>
+                                        <span style="font-size: 14px; font-weight: 600;">${Utils.escapeHTML(String(hazards.numStories))} ${this._confBadge(hazards.confidence.numStories)}</span>
                                     </div>
                                 ` : ''}
                                 ${hazards.roofType ? `
-                                    <div style="display: flex; justify-content: space-between;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
                                         <span style="font-size: 14px;">🏠 Roof Material:</span>
-                                        <span style="font-size: 14px; font-weight: 600;">${Utils.escapeHTML(String(hazards.roofType).replace(/_/g, ' '))}</span>
+                                        <span style="font-size: 14px; font-weight: 600;">${Utils.escapeHTML(String(hazards.roofType).replace(/_/g, ' '))} ${this._confBadge(hazards.confidence.roofType)}</span>
                                     </div>
                                 ` : ''}
                                 ${hazards.roofShape ? `
-                                    <div style="display: flex; justify-content: space-between;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
                                         <span style="font-size: 14px;">🏗️ Roof Shape:</span>
-                                        <span style="font-size: 14px; font-weight: 600;">${Utils.escapeHTML(hazards.roofShape)}</span>
+                                        <span style="font-size: 14px; font-weight: 600;">${Utils.escapeHTML(hazards.roofShape)} ${this._confBadge(hazards.confidence.roofShape)}</span>
+                                    </div>
+                                ` : ''}
+                                ${hazards.exteriorWalls ? `
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-size: 14px;">🧱 Exterior Walls:</span>
+                                        <span style="font-size: 14px; font-weight: 600;">${Utils.escapeHTML(hazards.exteriorWalls)} ${this._confBadge(hazards.confidence.exteriorWalls)}</span>
                                     </div>
                                 ` : ''}
                                 ${hazards.roofConditionScore ? `
@@ -215,7 +230,7 @@ Object.assign(App, {
                                         <p style="font-size: 12px; margin: 0; color: var(--text);">${Utils.escapeHTML(hazards.notes)}</p>
                                     </div>
                                 ` : ''}
-                                ${!hazards.numStories && !hazards.roofType && !hazards.roofShape && !hazards.garageSpaces ? `
+                                ${!hazards.numStories && !hazards.roofType && !hazards.roofShape && !hazards.exteriorWalls && !hazards.garageSpaces ? `
                                     <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">No additional details detected in satellite image.</p>
                                 ` : ''}
                             </div>
@@ -254,6 +269,33 @@ Object.assign(App, {
         }
     },
 
+    _confBadge(conf) {
+        if (!conf) return '';
+        const styles = {
+            high:   'background:#d4edda; color:#155724;',
+            medium: 'background:#fff3cd; color:#856404;',
+            low:    'background:#f8d7da; color:#721c24;',
+        };
+        const style = styles[conf] || styles.low;
+        const label = conf === 'low' ? 'low — review' : conf;
+        return `<span style="${style} padding:2px 6px; border-radius:4px; font-size:10px; font-weight:600; text-transform:uppercase; margin-left:6px;">${label}</span>`;
+    },
+
+    // Apply a single visual-field value to the form only if (a) the option exists
+    // and (b) confidence is medium or high. Returns the applied value or null.
+    _applySelectField(fieldId, value, conf) {
+        if (!value || value === 'unknown') return null;
+        if (conf === 'low') return null; // user can override manually
+        const el = document.getElementById(fieldId);
+        if (!el) return null;
+        const options = Array.from(el.options).map(o => o.value);
+        if (!options.includes(String(value))) return null;
+        el.value = String(value);
+        this.data[fieldId] = String(value);
+        this.markAutoFilled(el, 'hazard');
+        return String(value);
+    },
+
     applyHazardDetections() {
         // Get user-confirmed hazards from checkboxes
         const pool = document.getElementById('hazard_pool')?.checked || false;
@@ -286,65 +328,22 @@ Object.assign(App, {
             applied.push('Deck/Patio (noted)');
         }
 
-        // Apply property details from detectedHazards
+        // Apply property details from detectedHazards — AI returns form-native enum values,
+        // so no mapping table is needed. Low-confidence values are skipped.
         const h = this.detectedHazards || {};
+        const c = h.confidence || {};
 
-        if (h.roofShape) {
-            const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-            const val = capitalize(h.roofShape);
-            const el = document.getElementById('roofShape');
-            if (el) {
-                const options = Array.from(el.options).map(o => o.value);
-                if (options.includes(val)) {
-                    el.value = val;
-                    this.data.roofShape = val;
-                    this.markAutoFilled(el, 'hazard');
-                    applied.push('Roof Shape: ' + val);
-                }
-            }
-        }
+        const roofShape = this._applySelectField('roofShape', h.roofShape, c.roofShape);
+        if (roofShape) applied.push('Roof Shape: ' + roofShape);
 
-        if (h.roofType) {
-            const roofMap = {
-                'asphalt': 'Asphalt/Composite Shingle',
-                'composition_shingle': 'Asphalt/Composite Shingle',
-                'architectural_shingle': 'Asphalt/Composite Shingle',
-                'metal': 'Metal',
-                'tile': 'Clay Tile',
-                'clay_tile': 'Clay Tile',
-                'concrete_tile': 'Concrete Tile',
-                'flat': 'Tar & Gravel',
-                'flat_membrane': 'Tar & Gravel',
-                'wood_shake': 'Wood Shake/Shingle',
-                'slate': 'Slate',
-            };
-            const mapped = roofMap[h.roofType.toLowerCase()] || roofMap[h.roofType.toLowerCase().replace(/_/g, ' ')] || null;
-            if (mapped) {
-                const el = document.getElementById('roofType');
-                if (el) {
-                    const options = Array.from(el.options).map(o => o.value);
-                    if (options.includes(mapped)) {
-                        el.value = mapped;
-                        this.data.roofType = mapped;
-                        this.markAutoFilled(el, 'hazard');
-                        applied.push('Roof Type: ' + mapped);
-                    }
-                }
-            }
-        }
+        const roofType = this._applySelectField('roofType', h.roofType, c.roofType);
+        if (roofType) applied.push('Roof Type: ' + roofType);
 
-        if (h.numStories) {
-            const val = parseInt(String(h.numStories).replace('+', ''));
-            if (val > 0 && val <= 5) {
-                const el = document.getElementById('numStories');
-                if (el) {
-                    el.value = val;
-                    this.data.numStories = val;
-                    this.markAutoFilled(el, 'hazard');
-                    applied.push('Stories: ' + val);
-                }
-            }
-        }
+        const exteriorWalls = this._applySelectField('exteriorWalls', h.exteriorWalls, c.exteriorWalls);
+        if (exteriorWalls) applied.push('Exterior Walls: ' + exteriorWalls);
+
+        const numStories = this._applySelectField('numStories', h.numStories, c.numStories);
+        if (numStories) applied.push('Stories: ' + numStories);
 
         // Save to localStorage
         this.save({ target: { id: 'pool', value: this.data.pool || '' } });

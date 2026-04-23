@@ -79,7 +79,7 @@ Object.assign(App, {
             fullBaths: { type: 'string' }, halfBaths: { type: 'string' },
             kitchenQuality: { type: 'string' }, flooring: { type: 'string' },
             numFireplaces: { type: 'string' }, purchaseDate: { type: 'string' },
-            pool: { type: 'string' }, trampoline: { type: 'string' }, dogInfo: { type: 'string' },
+            pool: { type: 'string' }, trampoline: { type: 'string' }, farmingLivestock: { type: 'string' }, dogInfo: { type: 'string' },
             businessOnProperty: { type: 'string' }, woodStove: { type: 'string' },
             // Safety & Protection
             burglarAlarm: { type: 'string' }, fireAlarm: { type: 'string' },
@@ -89,6 +89,9 @@ Object.assign(App, {
             homePolicyType: { type: 'string' }, dwellingCoverage: { type: 'string' },
             personalLiability: { type: 'string' }, medicalPayments: { type: 'string' },
             homeDeductible: { type: 'string' }, windDeductible: { type: 'string' }, mortgagee: { type: 'string' },
+            earthquakeCoverage: { type: 'string' }, earthquakeZone: { type: 'string' }, earthquakeDeductible: { type: 'string' },
+            floodCoverage: { type: 'string' }, floodBuildingLimit: { type: 'string' }, floodContentsLimit: { type: 'string' }, floodDeductible: { type: 'string' },
+            jewelryLimit: { type: 'string' }, scheduledItems: { type: 'string' },
             // Auto / Vehicles
             vin: { type: 'string' }, vehDesc: { type: 'string' },
             autoPolicyType: { type: 'string' },

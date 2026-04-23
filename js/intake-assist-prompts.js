@@ -54,61 +54,197 @@ Keep replies SHORT — 1-3 sentences max, plus your JSON block. No paragraphs. N
 
 IMPORTANT — AFTER EVERY REPLY, append a JSON code block containing ALL fields collected SO FAR (not just what was gathered in this turn). This allows real-time progress tracking. Use EXACTLY these keys:
 \`\`\`json
-{"firstName":"","middleName":"","lastName":"","prefix":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","email":"","phone":"","addrStreet":"","addrCity":"","addrState":"XX","addrZip":"","county":"","education":"No High School|High School|Some College|Associates|Bachelors|Masters|Doctorate","occupation":"","industry":"","yearsAtAddress":"","qType":"home|auto|both","effectiveDate":"YYYY-MM-DD","policyTerm":"6 Month|12 Month","occupancyType":"Owner Occupied|Tenant","dwellingUsage":"Primary|Secondary|Seasonal","dwellingType":"One Family|Condo|Townhome|Mobile Home","homePolicyType":"HO3|HO5|HO4|HO6","dwellingCoverage":"","personalLiability":"","medicalPayments":"","homeDeductible":"","theftDeductible":"","windDeductible":"","yearBuilt":"","sqFt":"","stories":"","constructionStyle":"","exteriorWalls":"","foundation":"","roofType":"","roofShape":"Gable|Hip|Flat|Gambrel|Mansard","roofYear":"","heatingType":"","cooling":"Central Air|Window Unit|None","bedrooms":"","fullBaths":"","halfBaths":"","lotSize":"","garageType":"Attached|Detached|Carport|None","garageSpaces":"","numFireplaces":"","numOccupants":"","pool":"Yes|No","trampoline":"Yes|No","burglarAlarm":"Yes|No|Local|Central","smokeDetector":"Yes|No","fireHydrantFeet":"","mortgagee":"","liabilityLimits":"","pdLimit":"","compDeductible":"","autoDeductible":"","medPayments":"","umLimits":"","umpdLimit":"","residenceIs":"","vehicles":[{"year":"","make":"","model":"","vin":"","use":"Commute|Pleasure|Business","annualMiles":"","ownershipType":"Owned|Leased|Lien"}],"drivers":[{"firstName":"","lastName":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","occupation":"","industry":"","education":"No High School|High School|Some College|Associates|Bachelors|Masters|Doctorate","dlStatus":"Valid|Permit|Expired|Suspended|Not Licensed","relationship":"Self|Spouse|Child|Other","dlState":"","dlNum":"","ageLicensed":"16|17|18|19|20|21+"}],"coFirstName":"","coLastName":"","coDob":"","coGender":"M|F","coRelationship":"Spouse|Domestic Partner|Other","priorCarrier":"","priorYears":"","priorPolicyTerm":"6 Month|12 Month","priorLiabilityLimits":"","continuousCoverage":"","homePriorCarrier":"","homePriorYears":"","homePriorPolicyTerm":"6 Month|12 Month","homePriorExp":"YYYY-MM-DD","accidents":"0","violations":"0"}
+{"firstName":"","middleName":"","lastName":"","prefix":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","email":"","phone":"","addrStreet":"","addrCity":"","addrState":"XX","addrZip":"","county":"","education":"No High School|High School|Some College|Associates|Bachelors|Masters|Doctorate","occupation":"","industry":"","yearsAtAddress":"","qType":"home|auto|both","effectiveDate":"YYYY-MM-DD","policyTerm":"6 Month|12 Month","occupancyType":"Owner Occupied|Tenant","dwellingUsage":"Primary|Secondary|Seasonal","dwellingType":"One Family|Condo|Townhome|Mobile Home","homePolicyType":"HO3|HO5|HO4|HO6","dwellingCoverage":"","personalLiability":"","medicalPayments":"","homeDeductible":"","theftDeductible":"","windDeductible":"","yearBuilt":"","sqFt":"","stories":"","constructionStyle":"","exteriorWalls":"","foundation":"","roofType":"","roofShape":"Gable|Hip|Flat|Gambrel|Mansard","roofYear":"","heatingType":"","heatYr":"","plumbYr":"","elecYr":"","cooling":"Central Air|Window Unit|None","bedrooms":"","fullBaths":"","halfBaths":"","lotSize":"","garageType":"Attached|Detached|Carport|None","garageSpaces":"","numFireplaces":"","numOccupants":"","purchaseDate":"YYYY-MM-DD","pool":"Yes|No","trampoline":"Yes|No","burglarAlarm":"Yes|No|Local|Central","smokeDetector":"Yes|No","fireHydrantFeet":"","mortgagee":"","liabilityLimits":"","pdLimit":"","compDeductible":"","autoDeductible":"","medPayments":"","umLimits":"","umpdLimit":"","residenceIs":"","vehicles":[{"year":"","make":"","model":"","vin":"","use":"Commute|Pleasure|Business","annualMiles":"","ownershipType":"Owned|Leased|Lien"}],"drivers":[{"firstName":"","lastName":"","dob":"","gender":"M|F","maritalStatus":"Single|Married|Divorced|Widowed","occupation":"","industry":"","education":"No High School|High School|Some College|Associates|Bachelors|Masters|Doctorate","dlStatus":"Valid|Permit|Expired|Suspended|Not Licensed","relationship":"Self|Spouse|Child|Other","dlState":"","dlNum":"","ageLicensed":"16|17|18|19|20|21+"}],"coFirstName":"","coLastName":"","coDob":"","coGender":"M|F","coMaritalStatus":"Single|Married|Divorced|Widowed","coRelationship":"Spouse|Domestic Partner|Other","coOccupation":"","coIndustry":"","priorCarrier":"","priorYears":"","priorPolicyTerm":"6 Month|12 Month","priorLiabilityLimits":"","continuousCoverage":"","homePriorCarrier":"","homePriorYears":"","homePriorPolicyTerm":"6 Month|12 Month","homePriorExp":"YYYY-MM-DD","accidents":"0","violations":"0"}
 \`\`\`
 
 Only include keys for which you have data. Omit empty fields. Use 2-letter state codes. Format dates as YYYY-MM-DD. Include this JSON block in EVERY response, even partial ones — this is how the form tracks progress in real time.`;
 
-    function build(extractedData, riskFlags) {
+    // AI-JSON-key → form-field-id translation for a handful of legacy mismatches
+    // (the same map lives in populateForm() in intake-assist.js; kept here so we can
+    // tell whether an AI-extracted value satisfies a form field).
+    const AI_KEY_TO_FIELD_ID = {
+        yearBuilt: 'yrBuilt',
+        stories: 'numStories',
+        constructionType: 'constructionStyle',
+        roofYear: 'roofYr',
+    };
+
+    // Defaults that are safe to pre-fill on nearly any residential home quote.
+    // Values are form-native enum strings so the AI's JSON flows straight into the form.
+    const COMMON_DEFAULTS = {
+        dwellingType: 'One Family',
+        dwellingUsage: 'Primary',
+        occupancyType: 'Owner Occupied',
+        pool: 'None',
+        trampoline: 'None',
+        homePolicyType: 'HO3',
+        smokeDetector: 'Local',
+        garageType: 'Attached',
+        numFireplaces: '0',
+    };
+
+    // Regional construction profiles — the typical-but-not-universal defaults that
+    // save 4-5 confirmation questions per quote. The AI is instructed to prefill these
+    // *and* confirm in one passing sentence, so the agent can override without a re-ask.
+    // Agency writes in WA/OR/AZ only; other states fall through to COMMON_DEFAULTS.
+    const _PNW       = { roofType: 'Architectural Shingles', exteriorWalls: 'Siding, Wood',    foundation: 'Crawl Space - Enclosed', heatingType: 'Gas - Forced Air', cooling: 'None',        roofShape: 'Gable' };
+    const _SW_DESERT = { roofType: 'Tile(concrete)',         exteriorWalls: 'Stucco on Frame', foundation: 'Slab',                   heatingType: 'Gas - Forced Air', cooling: 'Central Air', roofShape: 'Hip'   };
+
+    const REGIONAL_DEFAULTS = {
+        OR: _PNW,
+        WA: _PNW,
+        AZ: _SW_DESERT,
+    };
+
+    const REGION_LABELS = {
+        OR: 'Pacific Northwest',
+        WA: 'Pacific Northwest',
+        AZ: 'Arizona',
+    };
+
+    // Render the smart-defaults block from a precomputed applicable list.
+    function renderDefaultsBlock(applicable, regionLabel, state) {
+        if (!applicable.length) return '';
+        let block = '\nSMART DEFAULTS — prefill these in your JSON NOW';
+        if (regionLabel) block += ` (tailored for the ${regionLabel} region, state=${state})`;
+        block += ':\n';
+        for (const { fieldId, value } of applicable) {
+            block += `  • ${fieldId}: "${value}"\n`;
+        }
+        block += 'Apply these immediately (they cover 70-80% of homes in this region). Mention them in ONE casual confirmation — e.g. "I\'ve noted typical PNW specs (wood siding, composition roof, gable, crawl space, gas furnace, no AC). Anything unusual about this one?" — rather than asking each field separately. If the agent corrects any, update your JSON; otherwise move on to the next genuinely missing required field.\n';
+        return block;
+    }
+    // Reverse lookup: form-field-id → one or more AI keys that may satisfy it.
+    const FIELD_ID_TO_AI_KEYS = {};
+    for (const [aiKey, fieldId] of Object.entries(AI_KEY_TO_FIELD_ID)) {
+        if (!FIELD_ID_TO_AI_KEYS[fieldId]) FIELD_ID_TO_AI_KEYS[fieldId] = [];
+        FIELD_ID_TO_AI_KEYS[fieldId].push(aiKey);
+    }
+
+    // Compute still-needed ezlynxRequired fields by cross-referencing window.FIELDS
+    // against both the AI's extracted JSON and the form's actual App.data state.
+    // Sections are workflow-scoped so an auto-only quote doesn't ask about roof type.
+    // `hazards` section is auto-filled by Smart Fill (fire station API) — never ask.
+    // Fields listed in `defaultedFieldIds` are considered handled by smart defaults
+    // and excluded from the MISSING list to avoid contradictory instructions.
+    function computeMissingRequiredFields(extractedData, appData, workflow, defaultedFieldIds) {
+        const fields = (typeof window !== 'undefined' && Array.isArray(window.FIELDS)) ? window.FIELDS : [];
+        if (!fields.length) return { collected: [], missing: [] };
+
+        const wf = workflow || extractedData.qType || '';
+        const homeSections = ['property', 'roof', 'systems'];
+        const allowedSections = new Set(['applicant', 'coapplicant', 'address']);
+        if (wf === 'home' || wf === 'both' || wf === '') {
+            homeSections.forEach(s => allowedSections.add(s));
+        }
+        // hazards section is always excluded from the conversation list — auto-fill territory.
+
+        // Co-applicant fields only matter once the user has signalled a co-applicant exists.
+        const hasCoSignal = !!(
+            extractedData.coFirstName || extractedData.coLastName || extractedData.coDob ||
+            appData.coFirstName || appData.coLastName || appData.coDob
+        );
+
+        const defaulted = new Set(defaultedFieldIds || []);
+        const isFilled = (fieldId) => {
+            const fromApp = appData[fieldId];
+            if (fromApp != null && fromApp !== '' && fromApp !== 0) return true;
+            const aiKeys = FIELD_ID_TO_AI_KEYS[fieldId] || [fieldId];
+            return aiKeys.some(k => extractedData[k] != null && extractedData[k] !== '');
+        };
+
+        const collected = [];
+        const missing = [];
+        for (const f of fields) {
+            if (!f.ezlynxRequired) continue;
+            if (!allowedSections.has(f.section)) continue;
+            if (f.section === 'coapplicant' && !hasCoSignal) continue;
+            const entry = { id: f.id, label: f.label, type: f.type, section: f.section };
+            if (isFilled(f.id)) { collected.push(entry); continue; }
+            if (defaulted.has(f.id)) continue; // handled by smart-defaults block
+            missing.push(entry);
+        }
+        return { collected, missing };
+    }
+
+    // Returns the set of field IDs a smart default will fill for this state/data combo,
+    // plus the rendered prompt block (so the caller can avoid recomputing).
+    function computeSmartDefaults(extractedData, appData) {
+        const state = String(extractedData.addrState || appData.addrState || '').toUpperCase().trim();
+        const regional = REGIONAL_DEFAULTS[state] || null;
+        const regionLabel = REGION_LABELS[state] || null;
+
+        const combined = Object.assign({}, COMMON_DEFAULTS, regional || {});
+        const isEmpty = (fieldId) => {
+            const v = appData[fieldId];
+            if (v != null && v !== '' && v !== 0) return false;
+            const ex = extractedData[fieldId];
+            return ex == null || ex === '';
+        };
+
+        const applicable = [];
+        for (const [fieldId, value] of Object.entries(combined)) {
+            if (isEmpty(fieldId)) applicable.push({ fieldId, value });
+        }
+        return { applicable, regionLabel, state };
+    }
+
+    // Render a structured "still needed" block grouped by section.
+    function renderMissingFieldsBlock(missing) {
+        if (!missing.length) return '';
+        const groups = {};
+        for (const m of missing) {
+            (groups[m.section] = groups[m.section] || []).push(m);
+        }
+        const sectionLabels = {
+            applicant: 'APPLICANT',
+            coapplicant: 'CO-APPLICANT',
+            address: 'ADDRESS',
+            property: 'PROPERTY',
+            roof: 'ROOF',
+            systems: 'SYSTEMS (heating/plumbing/electrical — user may not know; accept "don\'t know")'
+        };
+        const order = ['applicant', 'address', 'property', 'roof', 'systems', 'coapplicant'];
+        let out = 'REQUIRED FIELDS STILL NEEDED (drive the conversation to fill these — ask ONE at a time, in the order shown):\n';
+        for (const section of order) {
+            if (!groups[section]) continue;
+            const items = groups[section].map(f => `${f.label} (${f.id})`).join(', ');
+            out += `• ${sectionLabels[section] || section.toUpperCase()}: ${items}\n`;
+        }
+        return out;
+    }
+
+    function build(extractedData, riskFlags, appData) {
         extractedData = extractedData || {};
         riskFlags = Array.isArray(riskFlags) ? riskFlags : [];
+        appData = appData || {};
 
         let prompt = BASE_SYSTEM_PROMPT;
 
         prompt += '\n\nADDITIONAL INTELLIGENCE INSTRUCTIONS:\n';
 
-    // Field state tracking — guide AI on what to ask next
-    const _collected = [];
-    const _missing = [];
-    const _fieldState = {
-        'full name': !!(extractedData.firstName && extractedData.lastName),
-        'date of birth': !!extractedData.dob,
-        'gender': !!extractedData.gender,
-        'marital status': !!extractedData.maritalStatus,
-        'email': !!extractedData.email,
-        'phone': !!extractedData.phone,
-        'full address': !!(extractedData.addrStreet && extractedData.addrCity && extractedData.addrState),
-        'quote type': !!extractedData.qType,
-        'effective date': !!extractedData.effectiveDate,
-    };
-    if (extractedData.qType === 'home' || extractedData.qType === 'both') {
-        Object.assign(_fieldState, {
-            'dwelling type': !!extractedData.dwellingType,
-            'dwelling coverage amount': !!extractedData.dwellingCoverage,
-            'home deductible': !!extractedData.homeDeductible,
-            'year built': !!extractedData.yearBuilt,
-            'square footage': !!extractedData.sqFt,
-            'roof type': !!extractedData.roofType,
-            'construction style': !!(extractedData.constructionStyle || extractedData.constructionType),
-        });
+    // Smart defaults come first — they shrink the MISSING list so the AI doesn't
+    // simultaneously see "ask about exteriorWalls" and "prefill exteriorWalls to Siding, Wood".
+    const defaults = computeSmartDefaults(extractedData, appData);
+    const defaultedIds = defaults.applicable.map(d => d.fieldId);
+
+    // Field state tracking — dynamically computed from window.FIELDS + App.data
+    // so the AI always sees the authoritative list of required fields and never
+    // loses track of one we added to fields.js.
+    const { collected, missing } = computeMissingRequiredFields(extractedData, appData, extractedData.qType, defaultedIds);
+    if (collected.length > 0) {
+        prompt += 'ALREADY COLLECTED (do NOT re-ask — either the user told us or Smart Fill populated): '
+                + collected.map(c => c.label).join(', ') + '.\n';
     }
-    if (extractedData.qType === 'auto' || extractedData.qType === 'both') {
-        Object.assign(_fieldState, {
-            'liability limits': !!extractedData.liabilityLimits,
-            'comp/collision deductibles': !!(extractedData.compDeductible && extractedData.autoDeductible),
-            'at least one vehicle': !!(Array.isArray(extractedData.vehicles) && extractedData.vehicles.length > 0 && (extractedData.vehicles[0].year || extractedData.vehicles[0].vin)),
-            'at least one driver': !!(Array.isArray(extractedData.drivers) && extractedData.drivers.length > 0 && extractedData.drivers[0].firstName),
-        });
-    }
-    for (const [field, has] of Object.entries(_fieldState)) {
-        if (has) _collected.push(field);
-        else _missing.push(field);
-    }
-    if (_collected.length > 0) {
-        prompt += 'FIELDS ALREADY COLLECTED (do NOT re-ask): ' + _collected.join(', ') + '.\n';
-    }
-    if (_missing.length > 0) {
-        prompt += 'FIELDS STILL NEEDED (ask about the first one): ' + _missing.join(', ') + '.\n';
+    prompt += renderMissingFieldsBlock(missing);
+    prompt += renderDefaultsBlock(defaults.applicable, defaults.regionLabel, defaults.state);
+
+    // Guidance for auto-filled fields we never ask about
+    prompt += '\nAUTO-FILLED BY TOOLS (never ask the user about these): fire station distance, fire hydrant distance, protection class, and county are filled automatically when the address runs through Smart Fill. If the agent hasn\'t run Smart Fill yet, suggest it rather than asking the user.\n';
+
+    // Workflow-aware gating
+    if (!extractedData.qType) {
+        prompt += '\nNEXT PRIORITY: quote type is not set. Ask whether this is "home", "auto", or "both" before diving into property or vehicle details.\n';
     }
     if (extractedData.dob) {
         const _age = Math.floor((Date.now() - new Date(extractedData.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
@@ -125,8 +261,9 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
 
     // 5.3 Risk-aware follow-up
     prompt += 'RISK-AWARE FOLLOW-UP: ';
-    if (extractedData.yearBuilt && parseInt(extractedData.yearBuilt) < 1970) {
-        prompt += 'The property was built in ' + extractedData.yearBuilt + ' (before 1970). Ask specifically: "Has the electrical been updated from the original knob-and-tube wiring?" ';
+    const _builtYear = parseInt(extractedData.yearBuilt || appData.yrBuilt || '') || null;
+    if (_builtYear && _builtYear < 1970) {
+        prompt += 'The property was built in ' + _builtYear + ' (before 1970). Ask specifically: "Has the electrical been updated from the original knob-and-tube wiring?" ';
     }
     if (extractedData.roofYear) {
         const roofAge = new Date().getFullYear() - parseInt(extractedData.roofYear);
@@ -138,6 +275,26 @@ Only include keys for which you have data. Omit empty fields. Use 2-letter state
         prompt += 'WUI wildfire flag is present in risk data. Ask: "Is there defensible space around the home?" ';
     }
     prompt += '\n';
+
+    // 5.3b System-year smart defaults — clients rarely know the exact heating/plumbing/
+    // electrical update year. Default to yrBuilt when the home is newish; only ask when
+    // the home is old enough that updates are likely.
+    if (_builtYear) {
+        const _age = new Date().getFullYear() - _builtYear;
+        if (_age <= 20) {
+            prompt += `SYSTEM-YEAR SHORTCUT: The home was built in ${_builtYear} (${_age} years old). For heatYr / plumbYr / elecYr, default to the year built (${_builtYear}) and briefly confirm rather than asking "when was the heating updated?" — updates are unlikely on a home this new. Fill heatYr=${_builtYear}, plumbYr=${_builtYear}, elecYr=${_builtYear} unless the user mentions an update.\n`;
+        } else if (_age > 40) {
+            prompt += `SYSTEM-YEAR FOLLOW-UP: The home is ${_age} years old (built ${_builtYear}). Heating / plumbing / electrical are likely updated. Ask once: "Any idea when the heating, plumbing, or electrical was last updated?" — accept "don't know" and leave those fields blank if the client genuinely doesn't know.\n`;
+        } else {
+            prompt += `SYSTEM-YEAR NOTE: Home is ${_age} years old. Ask heatYr / plumbYr / elecYr only if the client volunteers the information or if they're clearly older systems. Don't press.\n`;
+        }
+    }
+
+    // 5.3c Occupation → industry inference — clients often give occupation but not industry.
+    // The AI should use common sense rather than ask a second question.
+    if ((extractedData.occupation || appData.occupation) && !(extractedData.industry || appData.industry)) {
+        prompt += 'INDUSTRY INFERENCE: Occupation is filled but industry is not. Infer industry from occupation (e.g. "RN" → Healthcare, "Software Engineer" → Technology, "Teacher" → Education, "Electrician" → Construction). Fill industry in your JSON — do NOT ask the user.\n';
+    }
 
     // 5.4 Completion recap
     prompt += 'COMPLETION RECAP: When all required fields are collected (name, DOB, address, qType, and relevant property/vehicle data), provide a human-readable summary before offering to populate: "Here\'s what I collected: [name], DOB [date], [type] quote at [address]... Shall I populate the form?"\n';

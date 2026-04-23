@@ -466,6 +466,7 @@ Object.assign(App, {
             };
             const poolVal  = v('pool');
             const trampVal = v('trampoline');
+            const livestockVal = v('farmingLivestock');
             const woodVal  = v('woodStove');
             const dogVal   = v('dogInfo');
             const bizVal   = v('businessOnProperty');
@@ -473,12 +474,15 @@ Object.assign(App, {
             kvRow([
                 ['Swimming Pool',        _riskDisplay(poolVal)],
                 ['Trampoline',           _riskDisplay(trampVal)],
+                ['Farm/Livestock',       _riskDisplay(livestockVal)],
                 ['Wood Stove',           _riskDisplay(woodVal)],
                 ['Dogs',                 _riskDisplay(dogVal)],
                 ['Business on Property', _riskDisplay(bizVal)],
             ], 3);
 
-            subHeader('Home Coverage');
+            // Home Coverage — organized: Policy + Coverages A/B/C/D + Deductibles + EQ + Flood + Scheduled Items + Mortgagee
+            // Match the on-screen section order so agent and client see the same flow.
+            subHeader('Home Coverage — Coverages');
             kvRow([
                 ['Policy Type',       v('homePolicyType')],
                 ['Dwelling (Cov A)',  fmtMoney(v('dwellingCoverage'))],
@@ -487,8 +491,25 @@ Object.assign(App, {
                 ['Loss of Use (D)',   fmtMoney(v('homeLossOfUse'))],
                 ['Personal Liab.',    fmtMoney(v('personalLiability'))],
                 ['Med Payments',      fmtMoney(v('medicalPayments'))],
-                ['Deductible (AOP)',  fmtMoney(v('homeDeductible'))],
-                ['Wind/Hail Ded.',    fmtMoney(v('windDeductible'))],
+            ], 3);
+
+            subHeader('Home Coverage — Deductibles');
+            kvRow([
+                ['All Perils (AOP)',  fmtMoney(v('homeDeductible'))],
+                ['Wind / Hail',       fmtMoney(v('windDeductible'))],
+            ], 3);
+
+            subHeader('Home Coverage — Earthquake / Flood / Scheduled Items');
+            kvRow([
+                ['Earthquake',        v('earthquakeCoverage')],
+                ['Earthquake Zone',   v('earthquakeZone')],
+                ['Earthquake Ded.',   v('earthquakeDeductible')],
+                ['Flood',             v('floodCoverage')],
+                ['Flood Building',    fmtMoney(v('floodBuildingLimit'))],
+                ['Flood Contents',    fmtMoney(v('floodContentsLimit'))],
+                ['Flood Ded.',        fmtMoney(v('floodDeductible'))],
+                ['Jewelry/Valuables', fmtMoney(v('jewelryLimit'))],
+                ['Other Scheduled',   v('scheduledItems')],
                 ['Mortgagee',         v('mortgagee')],
             ], 3);
 
@@ -501,14 +522,10 @@ Object.assign(App, {
                 ['Loss Assessment',   fmtMoney(v('lossAssessment'))],
                 ['Animal Liability',  fmtMoney(v('animalLiability'))],
                 ['Theft Deductible',  fmtMoney(v('theftDeductible'))],
-                ['Jewelry/Valuables', fmtMoney(v('jewelryLimit'))],
                 ['Credit Card Cov.',  fmtMoney(v('creditCardCoverage'))],
                 ['Mold Damage',       fmtMoney(v('moldDamage'))],
                 ['Equip. Breakdown',  v('equipmentBreakdown')],
                 ['Service Line',      v('serviceLine')],
-                ['Earthquake',        v('earthquakeCoverage')],
-                ['Earthquake Zone',   v('earthquakeZone')],
-                ['Earthquake Ded.',   fmtMoney(v('earthquakeDeductible'))],
             ], 3);
 
             // Risk flags callout
@@ -519,6 +536,7 @@ Object.assign(App, {
             if (!isNaN(yrB) && yrB>1800 && yrB<1970) flags.push(`[!] Year built: ${yrB}`);
             if (poolVal && poolVal.toLowerCase()!=='no' && poolVal.toLowerCase()!=='none') flags.push('[!] Pool on property');
             if (trampVal && trampVal.toLowerCase()!=='no' && trampVal.toLowerCase()!=='none') flags.push('[!] Trampoline');
+            if (livestockVal && livestockVal.toLowerCase() === 'yes') flags.push('[!] Farm animals / livestock on property');
             if (woodVal && woodVal.toLowerCase()!=='none' && woodVal.toLowerCase()!=='no') flags.push(`[!] Wood stove: ${woodVal}`);
             if (!isNaN(parseFloat(v('fireStationDist'))) && parseFloat(v('fireStationDist'))>5) flags.push(`[!] Fire station ${v('fireStationDist')} mi`);
             if (flags.length) {

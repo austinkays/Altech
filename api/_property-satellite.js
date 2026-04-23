@@ -67,24 +67,36 @@ export async function handleSatellite(req, res) {
   const userPrompt = `Analyze ${svBase64 ? 'these two images' : 'this satellite image'} of the property at: ${fullAddress}
 ${svBase64 ? 'Image 1: Satellite/aerial view. Image 2: Street-level view.' : ''}
 
-Evaluate for insurance risk underwriting. Return JSON:
+Evaluate for insurance risk underwriting. Pick values from the exact enums below — these map 1:1 to the intake form's dropdowns. Return JSON:
 {
-  "roof_material": "composition_shingle|architectural_shingle|metal|clay_tile|concrete_tile|wood_shake|slate|flat_membrane|unknown",
+  "roof_material": "Architectural Shingles|Asphalt Shingles|Composition|Metal(pitched)|Metal(flat)|Tile(clay)|Tile(concrete)|Tile(spanish)|Wood Shake|Wood Shingles|Slate|Tar And Gravel|Rubber Flat|unknown",
+  "roof_shape": "Gable|Hip|Flat|Gambrel|Mansard|Shed|Dormer|Pyramid|Turret|unknown",
   "roof_condition_score": 1-10 integer or null,
-  "roof_shape": "gable|hip|flat|gambrel|mansard|unknown",
+  "exterior_walls": "Siding, Vinyl|Siding, Wood|Siding, Aluminum|Siding, Hardboard|Brick|Brick Veneer|Stucco|Stucco on Frame|Stone Veneer|Cement Fiber Shingles|Clapboard|Ext Insul and Finish Sys (EIFS)|Logs|unknown",
+  "stories": "1|1.5|2|2.5|3|3.5|4|unknown",
   "has_pool": true/false/null,
   "pool_fenced": true/false/null,
   "has_trampoline": true/false/null,
-  "stories": integer or null,
   "garage_doors": integer or null,
   "visible_hazards": ["list of observed risks"],
   "deck_or_patio": true/false/null,
   "tree_overhang_roof": true/false/null,
   "brush_clearance_adequate": true/false/null,
+  "confidence": {
+    "roof_material": "high|medium|low",
+    "roof_shape": "high|medium|low",
+    "exterior_walls": "high|medium|low",
+    "stories": "high|medium|low"
+  },
   "notes": "2-3 sentence underwriter observations"
 }
 
-Scoring guide for roof_condition_score: 10=new/excellent, 7-9=good/minor wear, 4-6=aging/moss/staining, 1-3=visible damage/sagging/missing shingles. Use null if roof not clearly visible.`;
+Rules:
+- Use "unknown" for enum fields (not null) when the image is too unclear to pick a specific option.
+- Rate confidence honestly: "high" = feature is clearly and fully visible; "medium" = visible but partially obscured or ambiguous between 2 similar options; "low" = you are guessing from weak cues. Downstream code will NOT auto-apply "low" confidence values.
+- For exterior_walls from Street View: look at the dominant wall surface. "Siding, Vinyl" and "Siding, Wood" can look similar — pick "Siding, Vinyl" if the panels have uniform seams with no wood grain, "Siding, Wood" if grain/knots are visible. Mark confidence "medium" if unsure.
+- For stories: count visible floor levels from Street View. Half-stories (1.5, 2.5, 3.5) are for homes with a partial upper floor under a sloped roof.
+- roof_condition_score guide: 10=new/excellent, 7-9=good/minor wear, 4-6=aging/moss/staining, 1-3=visible damage/sagging/missing shingles. Use null if roof not clearly visible.`;
 
   const images = [{ base64: satBase64, mimeType: 'image/png' }];
   if (svBase64) {

@@ -3,8 +3,8 @@
 'use strict';
 
 Object.assign(App, {
-    showUnifiedDataPopup(arcgisData, zillowData, fireData, address, city, state, floodData) {
-        // Merge data from all sources: ArcGIS (primary) → Zillow (fill gaps) → FireStation
+    showUnifiedDataPopup(arcgisData, zillowData, fireData, address, city, state, floodData, visualData) {
+        // Merge data from all sources: ArcGIS (primary) → Zillow (fill gaps) → FireStation → Vision (fill remaining visual-only gaps)
         const merged = {};
         const sources = [];
         // fieldSources tracks the specific citation for each merged field (for tooltip display)
@@ -77,6 +77,47 @@ Object.assign(App, {
             sources.push('FEMA Flood');
         }
 
+        // ── Vision merge ──────────────────────────────────────────────────────
+        // Gap-fill structural fields from AI vision. Only apply medium/high confidence values
+        // to fields that other sources left blank or marked Unknown. Low-confidence vision
+        // values stay visible on the Visual tab for manual review but do not enter `merged`.
+        let visionMerged = [];
+        if (visualData && visualData.data) {
+            sources.push('AI Vision');
+            const vd = visualData.data;
+            const vc = vd.confidence || {};
+            const unk = v => !v || v === 'unknown';
+            const isEmpty = (fieldKey, sentinel) => {
+                const v = merged[fieldKey];
+                return v == null || v === '' || v === sentinel;
+            };
+            const canMerge = conf => conf === 'high' || conf === 'medium';
+
+            if (!unk(vd.exterior_walls) && canMerge(vc.exterior_walls) && isEmpty('exteriorWalls', 'Unknown')) {
+                merged.exteriorWalls = vd.exterior_walls;
+                fieldSources.exteriorWalls = `AI Vision (${vc.exterior_walls})`;
+                visionMerged.push('Exterior Walls');
+            }
+            if (!unk(vd.roof_shape) && canMerge(vc.roof_shape) && isEmpty('roofShape', null)) {
+                merged.roofShape = vd.roof_shape;
+                fieldSources.roofShape = `AI Vision (${vc.roof_shape})`;
+                visionMerged.push('Roof Shape');
+            }
+            if (!unk(vd.roof_material) && canMerge(vc.roof_material) && isEmpty('roofType', 'Unknown')) {
+                merged.roofType = vd.roof_material;
+                fieldSources.roofType = `AI Vision (${vc.roof_material})`;
+                visionMerged.push('Roof Type');
+            }
+            if (!unk(vd.stories) && canMerge(vc.stories) && (!merged.stories || merged.stories === 0)) {
+                merged.stories = vd.stories;
+                fieldSources.stories = `AI Vision (${vc.stories})`;
+                visionMerged.push('Stories');
+            }
+            if (visionMerged.length) {
+                console.log('[Vision] Gap-filled from vision:', visionMerged.join(', '));
+            }
+        }
+
         // Determine the property listings source name for this data set
         const zdSourceName = (zillowData && zillowData.source?.includes('Rentcast')) ? 'Rentcast' : 'AI Search';
 
@@ -115,7 +156,8 @@ Object.assign(App, {
             'Fire Protection': '#dc3545',
             'FEMA Flood': '#1a6496',
             'Redfin Scrape': '#c73333',
-            'Zillow Scrape': '#006aff'
+            'Zillow Scrape': '#006aff',
+            'AI Vision': '#8e44ad'
         };
         const badgeIcons = {
             'County Records': '🏛',
@@ -124,7 +166,8 @@ Object.assign(App, {
             'Fire Protection': '🚒',
             'FEMA Flood': '🌊',
             'Redfin Scrape': '🔍',
-            'Zillow Scrape': '🔍'
+            'Zillow Scrape': '🔍',
+            'AI Vision': '🛰️'
         };
         sources.forEach(src => {
             const badge = document.createElement('span');
@@ -156,6 +199,7 @@ Object.assign(App, {
             tabDefs.push({ id: 'listings', label: tabIcon });
         }
         if (fireData) tabDefs.push({ id: 'fire', label: '🚒 Fire / PC' });
+        if (visualData && visualData.data) tabDefs.push({ id: 'visual', label: '🛰️ Visual' });
 
         const tabBar = document.createElement('div');
         tabBar.style.cssText = 'display: flex; gap: 4px; border-bottom: 2px solid #e9ecef; margin-bottom: 14px;';
@@ -375,6 +419,160 @@ Object.assign(App, {
             panels.fire.appendChild(fGrid);
         }
 
+        // ── Visual tab ─────────────────────────────────────────────────────────
+        // Images + AI-inferred structural fields with per-field confidence. Hazard
+        // checkboxes write into `merged` so the shared "Use This Data" button applies them.
+        if (panels.visual && visualData && visualData.data) {
+            const vd = visualData.data;
+            const vc = vd.confidence || {};
+
+            const desc = document.createElement('p');
+            desc.style.cssText = 'font-size: 12px; color: #666; margin: 0 0 10px 0;';
+            desc.textContent = `Gemini vision analysis of satellite + Street View imagery. ${visionMerged.length ? 'Bold items were merged into Summary.' : 'No visual gap-fills — all structural fields already had data from other sources.'}`;
+            panels.visual.appendChild(desc);
+
+            // Images row
+            if (visualData.satelliteImage || visualData.streetViewImage) {
+                const imgRow = document.createElement('div');
+                imgRow.style.cssText = 'display: flex; gap: 8px; margin-bottom: 14px;';
+                const mk = (src, mime, label) => {
+                    const wrap = document.createElement('div');
+                    wrap.style.cssText = 'flex: 1;';
+                    const h = document.createElement('p');
+                    h.style.cssText = 'font-size: 11px; font-weight: 600; margin: 0 0 4px 0; color: #666;';
+                    h.textContent = label;
+                    const img = document.createElement('img');
+                    img.src = `data:${mime};base64,${src}`;
+                    img.style.cssText = 'width: 100%; height: auto; border-radius: 6px; border: 1px solid #e0e0e0; cursor: pointer;';
+                    img.title = 'Click for fullscreen';
+                    img.onclick = () => { if (this.viewSatelliteFullscreen) this.viewSatelliteFullscreen(img.src); };
+                    wrap.appendChild(h);
+                    wrap.appendChild(img);
+                    return wrap;
+                };
+                if (visualData.satelliteImage) imgRow.appendChild(mk(visualData.satelliteImage, 'image/png', 'Satellite'));
+                if (visualData.streetViewImage) imgRow.appendChild(mk(visualData.streetViewImage, 'image/jpeg', 'Street View'));
+                panels.visual.appendChild(imgRow);
+            }
+
+            // Per-field confidence badges
+            const confBadgeHtml = (conf, text) => {
+                if (!conf) return text;
+                const c = { high: '#d4edda/#155724', medium: '#fff3cd/#856404', low: '#f8d7da/#721c24' };
+                const [bg, fg] = (c[conf] || c.low).split('/');
+                return `${text} <span style="background:${bg}; color:${fg}; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:600; text-transform:uppercase; margin-left:6px;">${conf}</span>`;
+            };
+
+            const fieldBox = document.createElement('div');
+            fieldBox.style.cssText = 'background: #f5f5f5; border-radius: 8px; padding: 12px; margin-bottom: 12px;';
+            const fHeader = document.createElement('p');
+            fHeader.style.cssText = 'font-size: 12px; font-weight: 600; margin: 0 0 8px 0; color: #333;';
+            fHeader.textContent = 'Inferred Structural Fields';
+            fieldBox.appendChild(fHeader);
+
+            const visualFields = [
+                { id: 'exteriorWalls', label: '🧱 Exterior Walls', value: vd.exterior_walls, conf: vc.exterior_walls, merged: visionMerged.includes('Exterior Walls') },
+                { id: 'roofType',      label: '🏠 Roof Type',     value: vd.roof_material, conf: vc.roof_material, merged: visionMerged.includes('Roof Type') },
+                { id: 'roofShape',     label: '🏗️ Roof Shape',    value: vd.roof_shape,    conf: vc.roof_shape,    merged: visionMerged.includes('Roof Shape') },
+                { id: 'numStories',    label: '📊 Stories',       value: vd.stories,       conf: vc.stories,       merged: visionMerged.includes('Stories') },
+            ].filter(f => f.value && f.value !== 'unknown');
+
+            if (visualFields.length === 0) {
+                const empty = document.createElement('p');
+                empty.style.cssText = 'font-size: 13px; color: #999; margin: 4px 0;';
+                empty.textContent = 'No structural fields recognized in imagery.';
+                fieldBox.appendChild(empty);
+            } else {
+                visualFields.forEach(f => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #e9ecef; font-size: 13px;';
+                    const left = document.createElement('span');
+                    left.style.fontWeight = f.merged ? '700' : '400';
+                    left.innerHTML = `${f.label}${f.merged ? ' <span style="color:#28a745; font-size:11px;">• applied</span>' : ''}`;
+                    const right = document.createElement('span');
+                    right.style.fontWeight = '600';
+                    right.innerHTML = confBadgeHtml(f.conf, Utils.escapeHTML(String(f.value)));
+                    row.appendChild(left);
+                    row.appendChild(right);
+                    fieldBox.appendChild(row);
+                });
+            }
+
+            if (vd.roof_condition_score != null) {
+                const score = vd.roof_condition_score;
+                const scoreColor = score >= 7 ? '#28a745' : score >= 4 ? '#f39c12' : '#dc3545';
+                const scoreLabel = score >= 7 ? 'Good' : score >= 4 ? 'Fair' : 'Poor';
+                const row = document.createElement('div');
+                row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px;';
+                row.innerHTML = `<span>🔍 Roof Condition</span><span style="font-weight:600; color:${scoreColor};">${score}/10 (${scoreLabel})</span>`;
+                fieldBox.appendChild(row);
+            }
+
+            panels.visual.appendChild(fieldBox);
+
+            // Hazard checkboxes — these flow into `merged` so the Use button applies them.
+            // Initial checked state reflects what the AI detected; user can correct.
+            const hazardBox = document.createElement('div');
+            hazardBox.style.cssText = 'background: #fef6e4; border-radius: 8px; padding: 12px; margin-bottom: 12px;';
+            const hHeader = document.createElement('p');
+            hHeader.style.cssText = 'font-size: 12px; font-weight: 600; margin: 0 0 8px 0; color: #333;';
+            hHeader.textContent = 'Hazard Findings (uncheck any that are wrong)';
+            hazardBox.appendChild(hHeader);
+
+            // onApply runs after applyParcelData and writes directly to form fields.
+            // `applyParcelData` handles `pool` on its own, so merged.pool suffices; trampoline isn't covered there.
+            const setField = (id, value) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (el.tagName === 'SELECT') {
+                    const opts = Array.from(el.options).map(o => o.value);
+                    if (!opts.includes(String(value))) return;
+                }
+                el.value = value;
+                this.data[id] = value;
+                this.markAutoFilled(el, 'vision');
+            };
+            const hazardDefs = [
+                { id: 'vis_hz_pool',   label: '🏊 Pool',                          detected: vd.has_pool === true,                   onApply: (m) => { m.pool = 'In Ground'; } },
+                { id: 'vis_hz_tramp',  label: '🎪 Trampoline',                     detected: vd.has_trampoline === true,             onApply: ()  => { setField('trampoline', 'Yes'); } },
+                { id: 'vis_hz_tree',   label: '🌲 Tree overhanging roof',         detected: vd.tree_overhang_roof === true,         onApply: ()  => { /* noted — appears in Underwriter Notes */ } },
+                { id: 'vis_hz_brush',  label: '🔥 Inadequate brush clearance',    detected: vd.brush_clearance_adequate === false,  onApply: ()  => { /* noted — appears in Underwriter Notes */ } },
+            ];
+            this._visionHazardApply = []; // collected by Use button
+            hazardDefs.forEach(h => {
+                const label = document.createElement('label');
+                label.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; cursor: pointer;';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.id = h.id;
+                cb.checked = h.detected;
+                label.appendChild(cb);
+                const text = document.createElement('span');
+                text.textContent = `${h.label}${h.detected ? ' — detected' : ''}`;
+                label.appendChild(text);
+                hazardBox.appendChild(label);
+                this._visionHazardApply.push({ cb, onApply: h.onApply });
+            });
+            panels.visual.appendChild(hazardBox);
+
+            // Other hazards (freeform list)
+            if (Array.isArray(vd.visible_hazards) && vd.visible_hazards.length) {
+                const vh = document.createElement('div');
+                vh.style.cssText = 'background: #fff; border-radius: 8px; padding: 10px; border: 1px solid #e0e0e0; margin-bottom: 12px;';
+                vh.innerHTML = `<p style="font-size:11px; font-weight:600; color:#666; margin:0 0 4px 0;">OTHER OBSERVATIONS</p>
+                    <ul style="margin:0; padding-left:18px; font-size:12px; color:#555;">${vd.visible_hazards.map(h => `<li>${Utils.escapeHTML(String(h))}</li>`).join('')}</ul>`;
+                panels.visual.appendChild(vh);
+            }
+
+            // Underwriter notes
+            if (vd.notes) {
+                const nb = document.createElement('div');
+                nb.style.cssText = 'background: #fff; border-radius: 8px; padding: 10px; border: 1px solid #e0e0e0; font-size: 12px; color: #555;';
+                nb.innerHTML = `<p style="font-size:11px; font-weight:600; color:#666; margin:0 0 4px 0;">📝 UNDERWRITER NOTES</p><p style="margin:0;">${Utils.escapeHTML(vd.notes)}</p>`;
+                panels.visual.appendChild(nb);
+            }
+        }
+
         // Add all panels to content
         Object.values(panels).forEach(p => content.appendChild(p));
 
@@ -396,6 +594,14 @@ Object.assign(App, {
             cursor: pointer; font-size: 14px;
         `;
         useBtn.onclick = () => {
+            // Fold confirmed hazard checkboxes into `merged` before applying.
+            // Checked = user confirmed AI detection; unchecked = user rejected it.
+            if (this._visionHazardApply) {
+                this._visionHazardApply.forEach(({ cb, onApply }) => {
+                    if (cb && cb.checked) onApply(merged);
+                });
+                this._visionHazardApply = null;
+            }
             this.applyParcelData(merged);
             if (zillowData && zillowData.data) {
                 this.applyZillowSelects(zillowData.data);

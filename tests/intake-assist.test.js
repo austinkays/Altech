@@ -762,7 +762,7 @@ describe('IntakeAssist JS', () => {
     test('has _buildSystemPrompt function (Phase 5)', () => {
         // Shim in intake-assist.js delegates to IntakeAssistPrompts.build
         expect(jsContent).toContain('function _buildSystemPrompt');
-        expect(promptsContent).toContain('function build(extractedData, riskFlags)');
+        expect(promptsContent).toContain('function build(extractedData, riskFlags, appData)');
     });
 
     test('system prompt contains address auto-detect instruction', () => {

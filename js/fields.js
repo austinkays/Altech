@@ -118,6 +118,7 @@ window.FIELDS = [
     { id: 'fireExtinguisher',   label: 'Fire Extinguisher',    type: 'select',   section: 'hazards', inForm: false }, // ghost — AI scan only; used by HawkSoft HS home.fireExtinguisher
     { id: 'pool',               label: 'Swimming Pool',        type: 'select',   section: 'hazards' },
     { id: 'trampoline',         label: 'Trampoline',           type: 'select',   section: 'hazards' }, // ⚠️ HawkSoft FSC: skipped if value === 'No' — see _buildFscNotes
+    { id: 'farmingLivestock',   label: 'Farm Animals / Livestock', type: 'select', section: 'hazards' },
     { id: 'woodStove',          label: 'Wood Stove',           type: 'select',   section: 'hazards' }, // ⚠️ HawkSoft FSC: skipped if value === 'None' — see _buildFscNotes
     { id: 'secondaryHeating',   label: 'Secondary Heating',    type: 'select',   section: 'hazards' }, // PDF only — not in HawkSoft FSC
     { id: 'dogInfo',            label: 'Dogs',                 type: 'text',     section: 'hazards' }, // NOTE: QUICKREF.md incorrectly calls this dogBreed
@@ -137,6 +138,15 @@ window.FIELDS = [
     { id: 'medicalPayments',      label: 'Medical Payments',            type: 'text',     section: 'home-coverage', ezlynxRequired: true },
     { id: 'homeDeductible',       label: 'Deductible (AOP)',            type: 'text',     section: 'home-coverage', ezlynxRequired: true },
     { id: 'windDeductible',       label: 'Wind/Hail Deductible',        type: 'text',     section: 'home-coverage' },
+    { id: 'earthquakeCoverage',   label: 'Earthquake Coverage',         type: 'select',   section: 'home-coverage' },
+    { id: 'earthquakeZone',       label: 'Earthquake Zone',             type: 'text',     section: 'home-coverage' },
+    { id: 'earthquakeDeductible', label: 'Earthquake Deductible',       type: 'text',     section: 'home-coverage' },
+    { id: 'floodCoverage',        label: 'Flood Coverage',              type: 'select',   section: 'home-coverage' },
+    { id: 'floodBuildingLimit',   label: 'Flood Building Limit',        type: 'text',     section: 'home-coverage' },
+    { id: 'floodContentsLimit',   label: 'Flood Contents Limit',        type: 'text',     section: 'home-coverage' },
+    { id: 'floodDeductible',      label: 'Flood Deductible',            type: 'text',     section: 'home-coverage' },
+    { id: 'jewelryLimit',         label: 'Jewelry/Valuables Limit',     type: 'text',     section: 'home-coverage' },
+    { id: 'scheduledItems',       label: 'Other Scheduled Valuables',   type: 'textarea', section: 'home-coverage' },
     { id: 'mortgagee',            label: 'Mortgagee / Lienholder',      type: 'text',     section: 'home-coverage' },
 
     // ── Home Endorsements ──────────────────────────────────────────────────
@@ -146,15 +156,11 @@ window.FIELDS = [
     { id: 'lossAssessment',           label: 'Loss Assessment',            type: 'text',   section: 'home-endorsements' },
     { id: 'animalLiability',          label: 'Animal Liability',           type: 'text',   section: 'home-endorsements' }, // ⚠️ HawkSoft FSC: skipped if value === 'No' — see _buildFscNotes
     { id: 'theftDeductible',          label: 'Theft Deductible',           type: 'text',   section: 'home-endorsements' },
-    { id: 'jewelryLimit',             label: 'Jewelry/Valuables Limit',    type: 'text',   section: 'home-endorsements' },
     { id: 'creditCardCoverage',       label: 'Credit Card Coverage',       type: 'text',   section: 'home-endorsements' },
     { id: 'moldDamage',               label: 'Mold Damage',                type: 'text',   section: 'home-endorsements' },
     { id: 'equipmentBreakdown',       label: 'Equipment Breakdown',        type: 'select', section: 'home-endorsements' }, // ⚠️ HawkSoft FSC: skipped if value === 'No' — see _buildFscNotes
     { id: 'serviceLine',              label: 'Service Line',               type: 'select', section: 'home-endorsements' }, // ⚠️ HawkSoft FSC: skipped if value === 'No' — see _buildFscNotes
     { id: 'additionalInsureds',       label: 'Additional Insureds',        type: 'textarea', section: 'home-endorsements' },
-    { id: 'earthquakeCoverage',       label: 'Earthquake Coverage',        type: 'select', section: 'home-endorsements' },
-    { id: 'earthquakeZone',           label: 'Earthquake Zone',            type: 'text',   section: 'home-endorsements' },
-    { id: 'earthquakeDeductible',     label: 'Earthquake Deductible',      type: 'text',   section: 'home-endorsements' },
 
     // ── Auto Coverage ──────────────────────────────────────────────────────
     { id: 'autoPolicyType',    label: 'Auto Policy Type',       type: 'select', section: 'auto-coverage' },
