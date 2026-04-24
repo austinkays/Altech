@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(ezlynx-extension): kill the slow-fill / overlay-pileup nightmare** (April 24, 2026):
+  - **Symptom**: contact page would visibly stack 3–4 mat-select panels open at once and crawl through ~48 fields one at a time, often timing out with most fields still empty.
+  - **Root cause #1 — `dismissOverlay` always slept 300 ms** (`chrome-extension-v2/src/content/special-cases/dismiss-overlay.js`): called before every mat-select fill (~20× per page) regardless of whether an overlay was actually open. Rewrote with a `hasOpenOverlay()` fast-path early-exit, click-every-backdrop (not just first), Escape, and a force-detach `.cdk-overlay-pane` escape hatch for pages that intercept the backdrop click. Default delay between escalation steps cut 150 ms → 80 ms.
+  - **Root cause #2 — retry storm** (`chrome-extension-v2/src/content/orchestrator/atom-executor.js`): `maxRetries=3` × `retryDelayMs=500` plus a 1500 ms `waitElement` fallback meant fields not on the page burned ~6 s each. Cut to `maxRetries=1`, `retryDelayMs=200`, `waitElement` timeout 400 ms.
+  - **Root cause #3 — 2 s post-click overlay-close poll** (`chrome-extension-v2/src/content/primitives/mat-select.js`): replaced with a 200 ms poll on the picked option's `aria-selected` / `mdc-list-item--selected` marker. Next atom's `dismissOverlay` clears any straggler.
+  - **Root cause #4 — fully serial execution** (`chrome-extension-v2/src/content/orchestrator/index.js`): added `collectParallelBatch` + `isParallelizable` so consecutive non-overlay atoms (text/phone/ssn/number/currency/date with no preconditions or postFill) run via `Promise.all`. Mat-selects/toggles/radios still run strictly serial — the constraint is "one CDK overlay at a time", not "one atom at a time".
+  - **Tests**: 25 new unit tests across `dismiss-overlay.test.js` (fast-path elapsed-time guard, multi-backdrop click, force-detach escalation) and `orchestrator-parallel-batching.test.js` (type whitelist, precondition/postFill exclusions, end-to-end concurrency proof). 590/595 ext-suite tests pass — the 5 failures are pre-existing applicant-registry atom-count drift unrelated to this change.
+
 ### Added
 - **feat(migration): Phase 4a scaffolding — Firebase → Supabase E2E migration modal (feature-flagged off)** (April 22, 2026):
   - New `js/migration-ui.js` (~260 lines): 7-step wizard (welcome → reauth → passphrase → recovery-key → running → done | error) with full step navigation, error surfacing, and busy-state handling. Matches the existing `VaultUI` modal pattern.

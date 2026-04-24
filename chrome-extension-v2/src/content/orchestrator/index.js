@@ -5,7 +5,13 @@
  *
  *   1. Load atoms for the route from the registry
  *   2. Topologically sort by preconditions
- *   3. Execute atoms sequentially — one at a time, never parallel
+ *   3. Execute atoms in batches:
+ *        - Pure-DOM types with no preconditions run in parallel waves
+ *          (text/phone/ssn/number/currency/date). They touch independent
+ *          inputs and never open a CDK overlay, so racing them is safe.
+ *        - Anything else (mat-select/toggle/radio, anything with deps,
+ *          anything with postFill) runs strictly serial — one overlay
+ *          at a time.
  *   4. Mark blocked atoms whose precondition atom FAILED
  *   5. Stream every transition to a FillTrace
  *   6. Return { report, counts }
@@ -114,19 +120,18 @@
 
         const total = sorted.length;
         let i = 0;
-        for (const atom of sorted) {
+
+        const runOne = async (atom) => {
             i++;
             if (opts && typeof opts.onProgress === 'function') {
                 try { opts.onProgress(i, total, atom); } catch (_) { /* ignore */ }
             }
 
-            // BLOCKED check: if any precondition terminated in FAILED/BLOCKED,
-            // this atom never runs.
             const blockedBy = findBlockedBy(atom, terminalState);
             if (blockedBy) {
                 trace.finalize(atom.key, 'BLOCKED', { blockedBy });
                 terminalState.set(atom.key, 'BLOCKED');
-                continue;
+                return;
             }
 
             const ctx = {
@@ -140,9 +145,47 @@
                 trace.finalize(atom.key, 'FAILED', { reason: 'executor-exception', error: e && e.message });
                 terminalState.set(atom.key, 'FAILED');
             }
+        };
+
+        // Group atoms into runs of parallelizable batches and serial atoms.
+        let cursor = 0;
+        while (cursor < sorted.length) {
+            const batch = collectParallelBatch(sorted, cursor);
+            if (batch.length > 1) {
+                // Parallel wave — execute all together. terminalState is only
+                // mutated after each runOne resolves, so atoms in the batch
+                // can't see one another's results (safe — collectParallelBatch
+                // guarantees no intra-batch preconditions).
+                await Promise.all(batch.map(runOne));
+                cursor += batch.length;
+            } else {
+                // Serial — overlay-heavy or precondition-bearing atom.
+                await runOne(sorted[cursor]);
+                cursor += 1;
+            }
         }
 
         return trace.toReport();
+    }
+
+    // Types that are safe to fill concurrently — they touch independent
+    // <input> elements and never open a CDK overlay panel.
+    const PARALLEL_TYPES = new Set(['text', 'phone', 'ssn', 'number', 'currency', 'date']);
+
+    function isParallelizable(atom) {
+        if (!PARALLEL_TYPES.has(atom.type)) return false;
+        if (Array.isArray(atom.preconditions) && atom.preconditions.length > 0) return false;
+        if (Array.isArray(atom.postFill) && atom.postFill.length > 0) return false;
+        return true;
+    }
+
+    function collectParallelBatch(sorted, start) {
+        const batch = [];
+        for (let j = start; j < sorted.length; j++) {
+            if (!isParallelizable(sorted[j])) break;
+            batch.push(sorted[j]);
+        }
+        return batch;
     }
 
     function findBlockedBy(atom, terminalState) {
@@ -155,10 +198,12 @@
         return null;
     }
 
-    const api = { run, findBlockedBy };
+    const api = { run, findBlockedBy, isParallelizable, collectParallelBatch };
 
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     else {
         global.AltechV2.orchestrator.run = run;
+        global.AltechV2.orchestrator.isParallelizable = isParallelizable;
+        global.AltechV2.orchestrator.collectParallelBatch = collectParallelBatch;
     }
 })(typeof window !== 'undefined' ? window : globalThis);

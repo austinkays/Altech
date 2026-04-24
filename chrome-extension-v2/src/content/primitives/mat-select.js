@@ -102,10 +102,23 @@
 
         options[idx].click();
 
-        // Wait for overlay to close as a signal Angular committed the change.
+        // Brief wait for Angular to commit the value selection. We DON'T
+        // poll for the overlay to close here — on EZLynx pages CDK can
+        // leave the panel mounted for several hundred ms even after a
+        // successful click, and the next atom's dismissOverlay() will
+        // clear any straggler. The previous 2-second poll was the largest
+        // single contributor to per-dropdown latency.
         await pollPredicate(
-            () => document.querySelector('.cdk-overlay-container .mat-mdc-option, .cdk-overlay-container .mat-option') == null,
-            { timeoutMs: 2000 }
+            () => {
+                // Look for selected-option marker on the picked node.
+                const opt = options[idx];
+                return opt && (
+                    opt.classList.contains('mdc-list-item--selected') ||
+                    opt.classList.contains('mat-mdc-option-active') ||
+                    opt.getAttribute('aria-selected') === 'true'
+                );
+            },
+            { timeoutMs: 200, intervalMs: 25 }
         );
         return { ok: true, pickedText: optionTexts[idx] };
     }

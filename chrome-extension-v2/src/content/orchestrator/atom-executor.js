@@ -211,10 +211,14 @@
         try {
             el = deps.findScoped(atom, ctx);
             if (!el) {
-                // Short poll — Angular may still be rendering.
+                // Short poll — Angular may still be rendering. The vast
+                // majority of "not found" cases are fields that don't
+                // exist on this page, so a long timeout just stalls the
+                // whole run for nothing. 400 ms is enough for any field
+                // that is in fact about to render.
                 el = await deps.waitElement(
                     '#' + (atom.idTemplate || ''),
-                    { timeoutMs: 1500 }
+                    { timeoutMs: 400 }
                 );
             }
         } catch (e) {
@@ -269,8 +273,12 @@
         }
 
         // ── FILL (with retries) ─────────────────────────────────────
-        const maxRetries = atom.maxRetries != null ? atom.maxRetries : 3;
-        const retryDelayMs = atom.retryDelayMs != null ? atom.retryDelayMs : 500;
+        // Defaults tuned down from 3×500ms — the vast majority of
+        // failures here are "field really isn't on this page" or "value
+        // doesn't match any option", neither of which gets better with
+        // retries. One retry covers transient Angular re-renders.
+        const maxRetries = atom.maxRetries != null ? atom.maxRetries : 1;
+        const retryDelayMs = atom.retryDelayMs != null ? atom.retryDelayMs : 200;
         let attempt = 0;
         let lastResult = null;
         let lastVerify = null;
