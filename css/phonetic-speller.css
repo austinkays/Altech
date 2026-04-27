@@ -1,0 +1,184 @@
+/* ═══════════════════════════════════════════════════════
+   Phonetic Speller Popup — Altech
+   ═══════════════════════════════════════════════════════ */
+
+.phonetic-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+.phonetic-overlay.active {
+    display: flex;
+    animation: fadeIn 0.18s ease;
+}
+.phonetic-overlay.active .phonetic-modal {
+    animation: slideUp 0.22s ease;
+}
+
+.phonetic-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 460px;
+    max-height: 85vh;
+    overflow: hidden;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+}
+
+.phonetic-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+}
+.phonetic-icon { font-size: 22px; }
+.phonetic-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+}
+.phonetic-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+}
+.phonetic-close:hover { background: var(--danger); color: #fff; }
+
+.phonetic-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+}
+.phonetic-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.phonetic-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-input);
+    color: var(--text);
+    font-size: 16px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.phonetic-input:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.18);
+}
+
+.phonetic-readout {
+    min-height: 64px;
+    padding: 12px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    background: var(--bg-input);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-content: flex-start;
+    font-size: 14px;
+    color: var(--text);
+}
+.phonetic-empty {
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 13px;
+}
+.phonetic-pair {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 4px 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    line-height: 1.2;
+}
+.phonetic-pair-other {
+    background: transparent;
+    border-style: dashed;
+    color: var(--text-secondary);
+}
+.phonetic-char {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-weight: 700;
+    color: var(--apple-blue);
+}
+.phonetic-word {
+    font-size: 13px;
+    color: var(--text);
+}
+.phonetic-space {
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.phonetic-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.phonetic-actions .btn { flex: 1; min-width: 120px; }
+
+.phonetic-hint {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Header trigger button */
+.phonetic-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-input);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.phonetic-trigger:hover {
+    background: var(--bg-card);
+    border-color: var(--apple-blue);
+}
+.phonetic-trigger-icon { font-size: 14px; }
