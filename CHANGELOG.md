@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(intake): phonetic speller popup** (April 27, 2026):
+  - New `js/phonetic-speller.js` IIFE plugin exposing `PhoneticSpeller.open(seed?)` — small popup that converts any typed text (name, email, address, VIN, etc.) into the APCO phonetic alphabet (Adam, Boy, Charles…) so the agent can read it back over the phone. Live update on input, copy-to-clipboard, ESC to close.
+  - New `css/phonetic-speller.css` — modal + header trigger button styles.
+  - `plugins/quoting.html` — added a small "📞 Phonetic" trigger button next to the dark-mode toggle in the intake header (always available across all steps).
+  - `js/app-vehicles.js` — added a "📞 Read phonetically" link beneath each VIN input that pre-fills the popup with the current VIN value.
+  - Reuses the same APCO alphabet as the standalone VIN decoder for consistency.
+
 ### Fixed
 - **fix(ezlynx-extension): kill the slow-fill / overlay-pileup nightmare** (April 24, 2026):
   - **Symptom**: contact page would visibly stack 3–4 mat-select panels open at once and crawl through ~48 fields one at a time, often timing out with most fields still empty.

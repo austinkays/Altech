@@ -421,11 +421,15 @@ Object.assign(App, {
                 </div>
                 
                 <label class="label">VIN (optional) - Auto-fills year/make/model <span class="ez-req" title="Required for EZLynx rating" style="color:#f5c842;margin-left:3px;font-size:0.85em;">✦</span></label>
-                <input type="text" maxlength="17" value="${Utils.escapeAttr(vehicle.vin || '')}" 
-                    onchange="App.decodeVehicleVin('${vehicle.id}', this.value)" 
-                    style="text-transform:uppercase;font-family:monospace" 
+                <input type="text" maxlength="17" value="${Utils.escapeAttr(vehicle.vin || '')}"
+                    onchange="App.decodeVehicleVin('${vehicle.id}', this.value)"
+                    id="vin-input-${vehicle.id}"
+                    style="text-transform:uppercase;font-family:monospace"
                     placeholder="1HG...">
-                <div class="hint" style="margin-top:6px;">No VIN? Leave blank and fill Year/Make/Model below.</div>
+                <div class="hint" style="margin-top:6px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <span>No VIN? Leave blank and fill Year/Make/Model below.</span>
+                    <a href="#" onclick="event.preventDefault(); var el=document.getElementById('vin-input-${vehicle.id}'); PhoneticSpeller.open(el ? el.value : '');" style="color:var(--apple-blue); text-decoration:none; font-weight:500;">📞 Read phonetically</a>
+                </div>
                 
                 <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                     <div>
