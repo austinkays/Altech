@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(branding): replace Tauri default icons with new Altech mountain logo** (April 28, 2026):
+  - Regenerated every file in `src-tauri/icons/` from `icons/icon-512.png` so the Windows/macOS/Linux desktop builds no longer ship the default yellow-and-teal Tauri logo.
+  - Replaced PNG sizes 30/32/44/50/71/89/107/128/142/150/256/284/310/512, plus `icon.ico` (multi-size 16-256) and `icon.icns` (multi-size 16-512).
 - **feat(intake): phonetic speller popup** (April 27, 2026):
   - New `js/phonetic-speller.js` IIFE plugin exposing `PhoneticSpeller.open(seed?)` — small popup that converts any typed text (name, email, address, VIN, etc.) into the APCO phonetic alphabet (Adam, Boy, Charles…) so the agent can read it back over the phone. Live update on input, copy-to-clipboard, ESC to close.
   - New `css/phonetic-speller.css` — modal + header trigger button styles.
