@@ -1247,6 +1247,18 @@ def run(client_file: str, schema_file: str):
     # doesn't have to re-MFA every time.
     user_data_dir = os.path.join(os.path.expanduser("~"), ".altech-ezlynx-filler-profile")
 
+    # Defensive sweep: previous Ctrl+C exits leave Chromium lockfiles that
+    # make launch_persistent_context die with TargetClosedError on next run.
+    # Sweep these BEFORE launch — Playwright is not running yet, so it's safe.
+    if os.path.isdir(user_data_dir):
+        for stale_lock in ("SingletonLock", "SingletonCookie", "SingletonSocket", "lockfile"):
+            lock_path = os.path.join(user_data_dir, stale_lock)
+            try:
+                if os.path.exists(lock_path) or os.path.islink(lock_path):
+                    os.remove(lock_path)
+            except Exception:
+                pass
+
     with sync_playwright() as p:
         # launch_persistent_context replaces launch + new_context.
         # no_viewport=True lets the page use the full window size, which is what
@@ -1259,6 +1271,20 @@ def run(client_file: str, schema_file: str):
             no_viewport=True,
         )
         page = context.pages[0] if context.pages else context.new_page()
+
+        # Event-based close detection: page.is_closed() and len(context.pages)
+        # cache state in Playwright's sync API and don't always reflect a
+        # user-driven window close. Register handlers that flip a flag, then
+        # poll the flag (cheap) instead of polling Playwright state (cached).
+        # We use a list as a mutable flag so closure-captures see updates.
+        close_state = {'closed': False}
+        def _on_close(*_args):
+            close_state['closed'] = True
+        try:
+            context.on("close", _on_close)
+            page.on("close", _on_close)
+        except Exception:
+            pass
 
         try:
             # Step 1: Navigate
@@ -1325,17 +1351,21 @@ def run(client_file: str, schema_file: str):
                         """)
                     except Exception:
                         pass
-                    # Sit and wait until the user closes the browser themselves.
-                    # On Windows, os._exit kills the Chromium subprocess, so the only
-                    # reliable way to keep the browser alive is to keep Python alive.
-                    # Detect close via page.is_closed() and the fact that the persistent
-                    # context will have zero pages once the user closes the last window.
-                    # page.url polling alone is unreliable because Playwright caches it.
+                    # Wait until the user closes the browser themselves. Three
+                    # signals — any one is sufficient:
+                    #   (a) the on("close") handler set close_state['closed']
+                    #   (b) page.evaluate("1") raises (real round-trip — Playwright's
+                    #       cached state can lie, an evaluate() can't)
+                    #   (c) the persistent context has no live pages
                     while True:
                         time.sleep(0.5)
+                        if close_state['closed']:
+                            break
                         try:
-                            if page.is_closed():
-                                break
+                            page.evaluate("1")
+                        except Exception:
+                            break
+                        try:
                             if not context.pages:
                                 break
                         except Exception:
@@ -1442,8 +1472,14 @@ def run(client_file: str, schema_file: str):
                             time.sleep(0.3)
                         # Fallback to native <select> selectors
                         elif key in DROPDOWN_SELECT_MAP:
-                            success, diag = smart_select_native(page, DROPDOWN_SELECT_MAP[key], value, schema_options)
+                            # Preserve custom's diag — it carries the on-page debug
+                            # payload (mat_labels_on_page, dropdowns_on_page) which
+                            # smart_select_native does NOT regenerate. We only swap
+                            # to native's diag if native actually succeeded.
+                            custom_diag = diag
+                            success, native_diag = smart_select_native(page, DROPDOWN_SELECT_MAP[key], value, schema_options)
                             if success:
+                                diag = native_diag
                                 method = diag.get('match_method', 'native')
                                 matched = diag.get('matched_text', '')
                                 print(f"  [v] {key}: '{value}' -> '{matched}' ({method}, native)")
@@ -1451,6 +1487,13 @@ def run(client_file: str, schema_file: str):
                                                     'status': 'OK', 'diag': diag})
                                 dd_filled += 1
                                 time.sleep(0.15)
+                            else:
+                                # Native fallback also failed. Keep custom's diag
+                                # (which has the debug payload) but record that
+                                # native was attempted too.
+                                diag = custom_diag or {}
+                                diag['native_attempted'] = True
+                                diag['native_error'] = native_diag.get('error') if native_diag else None
 
                         if not success:
                             err = diag.get('error', 'UNKNOWN') if diag else 'NO_DIAG'
