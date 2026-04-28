@@ -895,6 +895,48 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
 
     diag['overlay_opened'] = True
 
+    # Helper: read the mat-select's displayed value to verify a fill actually
+    # committed. Cowork Round 4 caught the false-positive: with force=True
+    # bypassing actionability + focus, keyboard-typeahead can type into nothing,
+    # the overlay closes on click-out, and the script declared success without
+    # the value sticking. Verifying via DOM closes that hole.
+    # Returns: True (verified stuck), False (definitely empty), None (unknown).
+    def _verify_value_committed(expected_pool):
+        if not dd_id:
+            return None
+        try:
+            data = page.evaluate("""
+                (id) => {
+                    const el = document.getElementById(id);
+                    if (!el) return null;
+                    const cls = el.className || '';
+                    const valEl = el.querySelector('.mat-mdc-select-min-line')
+                               || el.querySelector('.mat-mdc-select-value-text')
+                               || el.querySelector('.mat-select-value-text');
+                    return {
+                        empty: cls.includes('mat-mdc-select-empty'),
+                        ariaInvalid: el.getAttribute('aria-invalid'),
+                        text: valEl ? (valEl.textContent || '').trim() : '',
+                    };
+                }
+            """, dd_id)
+        except Exception:
+            return None
+        if not data:
+            return None
+        if data.get('empty') or data.get('ariaInvalid') == 'true':
+            return False
+        text = (data.get('text') or '').lower()
+        if not text:
+            return False
+        for needle in expected_pool:
+            if not needle:
+                continue
+            n = needle.lower()
+            if n == text or n in text or text in n:
+                return True
+        return False  # has some text but not what we expected
+
     # Step 3b: Try keyboard shortcut first (faster for long lists like States)
     # Angular Material mat-selects support typing to jump to matching options
     try:
@@ -920,11 +962,45 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
             pass
 
         if not overlay_still_open:
-            diag['match_method'] = 'keyboard'
-            diag['matched_text'] = type_value
-            return True, diag
+            # Verify the value actually persisted before declaring success.
+            # When verification is impossible (no dd_id), trust the overlay
+            # close and continue — preserves prior behavior for legacy paths.
+            verified = _verify_value_committed([type_value, expanded, target])
+            if verified is True:
+                diag['match_method'] = 'keyboard'
+                diag['matched_text'] = type_value
+                diag['verified'] = True
+                return True, diag
+            elif verified is None:
+                diag['match_method'] = 'keyboard'
+                diag['matched_text'] = type_value
+                diag['verified'] = 'unknown'
+                return True, diag
+            # verified is False — overlay closed but value did NOT stick.
+            # Don't return success; fall through to direct option-click below.
+            diag['keyboard_attempted_but_not_persisted'] = True
     except Exception:
         pass
+
+    # Step 3c: If keyboard typing didn't persist (Cowork Round 4 finding —
+    # force=True can leave focus off the listbox, so typed chars go nowhere),
+    # the overlay is now closed and we have no options to scan. Re-open the
+    # dropdown so Step 4 can find options and click one directly.
+    if diag.get('keyboard_attempted_but_not_persisted'):
+        try:
+            dropdown_el.click(force=True, timeout=5000)
+            try:
+                page.wait_for_selector(
+                    '.cdk-overlay-container mat-option, .cdk-overlay-container [role="option"]',
+                    state='visible', timeout=5000
+                )
+            except PWTimeout:
+                pass
+        except Exception:
+            try:
+                dropdown_el.evaluate("el => el.click()")
+            except Exception:
+                pass
 
     # Step 4: Find options in the overlay panel
     # Angular Material renders options in a CDK overlay at document body level
@@ -1012,14 +1088,21 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
 
     if best_match:
         diag['matched_text'] = best_match
-        # Click the matching option
+        # Click the matching option. Same force-click strategy as the
+        # mat-select trigger — the cdk-overlay panel can have its own
+        # hit-test quirks, and force=True with a JS fallback is reliable
+        # without the 30s default timeout.
         try:
             for osel in overlay_selectors:
                 try:
                     loc = page.locator(osel)
                     for i in range(loc.count()):
                         if loc.nth(i).inner_text().strip() == best_match:
-                            loc.nth(i).click()
+                            opt_el = loc.nth(i)
+                            try:
+                                opt_el.click(force=True, timeout=5000)
+                            except Exception:
+                                opt_el.evaluate("el => el.click()")
                             # Wait for overlay to dismiss after clicking option
                             try:
                                 page.wait_for_selector(
@@ -1028,8 +1111,18 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
                                 )
                             except PWTimeout:
                                 pass
+                            # Verify the value actually persisted on the
+                            # mat-select trigger. With direct-click on the
+                            # option this almost always works, but if it
+                            # didn't we want to know — not a silent success.
+                            verified = _verify_value_committed([best_match, expanded, target])
+                            if verified is False:
+                                diag['error'] = 'ERR_OPTION_CLICK_NOT_PERSISTED'
+                                diag['option_clicked'] = best_match
+                                return False, diag
                             diag['match_method'] = 'exact' if best_match.lower() in [target.lower(), expanded.lower()] else \
                                                    'fuzzy' if diag.get('fuzzy_candidates') else 'substring'
+                            diag['verified'] = True if verified is True else 'unknown'
                             return True, diag
                 except Exception:
                     continue
