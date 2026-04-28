@@ -68,6 +68,11 @@
             <div class="cgl-stat-value" id="statUpdated">0</div>
             <div class="cgl-stat-label">Updated</div>
         </div>
+        <div class="cgl-stat-card needs-li-ccb" onclick="document.getElementById('cglFilterSelect').value='needs-li-ccb';ComplianceDashboard.filterPolicies();" style="cursor: pointer;" title="Show only contractor CGLs that need to be reported to lni.wa.gov / ccb.state.or.us">
+            <span class="cgl-stat-icon">🛠️</span>
+            <div class="cgl-stat-value" id="statNeedsLICCB">0</div>
+            <div class="cgl-stat-label">Needs L&amp;I/CCB</div>
+        </div>
     </div>
 
     <!-- Type Visibility Toggles -->
@@ -129,6 +134,7 @@
                 <option value="has-notes">Has Notes</option>
                 <option value="state-updated">State Updated</option>
                 <option value="needs-state-update">Needs State Update</option>
+                <option value="needs-li-ccb">Needs L&amp;I/CCB Update</option>
             </select>
             <button class="cgl-show-hidden-btn" id="cglShowHiddenBtn" onclick="ComplianceDashboard.toggleShowHidden()">
                 Show Hidden <span class="cgl-hidden-count" id="cglHiddenCount">0</span>
@@ -213,6 +219,11 @@
                 <span class="cgl-legend-label">Dismissed</span>
                 <span class="cgl-legend-desc">Hidden from tracking</span>
             </div>
+            <div class="cgl-legend-item">
+                <div class="cgl-legend-dot" style="background: #cc6600; color: #cc6600;"></div>
+                <span class="cgl-legend-label">🛠️ Needs L&amp;I/CCB</span>
+                <span class="cgl-legend-desc">Contractor — update lni.wa.gov / ccb.state.or.us</span>
+            </div>
         </div>
     </div>
 
@@ -274,6 +285,18 @@
                     <tr><td><strong>Dismiss</strong></td><td>Hides the policy. It resurfaces if HawkSoft detects a renewal (&gt;30 day expiration change).</td></tr>
                 </table>
                 <p><strong>Tip:</strong> A soft warning appears if you Updated without marking State/HawkSoft Updated first — you can override it.</p>
+            </section>
+
+            <section class="cgl-info-section">
+                <h4>🛠️ WA L&amp;I / OR CCB Reporting</h4>
+                <p>Each commercial-policy client is auto-classified as a contractor (WA, OR, both) or exempt by querying the WA L&amp;I and OR CCB registries on first sight. Only contractors show the orange <span class="cgl-li-badge needs-report" style="display:inline-block">🛠️ WA L&amp;I</span> / <span class="cgl-ccb-badge needs-report" style="display:inline-block">🛠️ OR CCB</span> badges; churches, cleaning companies, and other non-contractors stay quiet.</p>
+                <table class="cgl-info-table">
+                    <tr><td><span class="cgl-li-badge needs-report" style="display:inline-block">🛠️ WA L&amp;I</span></td><td>Click to mark as reported to <strong>lni.wa.gov</strong> for the current expiration.</td></tr>
+                    <tr><td><span class="cgl-li-badge reported" style="display:inline-block">✅ WA L&amp;I</span></td><td>Reported. Auto-flips back to orange when HawkSoft shows a renewed expiration date.</td></tr>
+                    <tr><td><span class="cgl-ccb-badge needs-report" style="display:inline-block">🛠️ OR CCB</span></td><td>Click to mark as reported to <strong>ccb.state.or.us</strong> for the current expiration.</td></tr>
+                    <tr><td><span class="cgl-li-badge unverified" style="display:inline-block">❓ Verify</span></td><td>Auto-verification couldn't reach the registry yet. Click to retry.</td></tr>
+                </table>
+                <p>To override a misclassified client (e.g., the auto-detect found a name match but the business actually doesn't report), open the 📝 note editor — the <strong>🏷️ L&amp;I/CCB</strong> row at the top lets you set <strong>WA</strong>, <strong>OR</strong>, <strong>Both</strong>, or <strong>Exempt</strong>. Manual overrides are sticky and won't be overwritten by future auto-verifies.</p>
             </section>
 
             <section class="cgl-info-section">

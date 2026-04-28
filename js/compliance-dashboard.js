@@ -22,6 +22,7 @@ const ComplianceDashboard = {
     dismissedPolicies: {},
     snoozedPolicies: {},
     policyNotes: {},
+    clientCompliance: {},  // keyed by clientNumber — WA L&I / OR CCB classification + reporting status
     showHidden: false,
     sortField: 'daysUntilExpiration',
     sortDirection: 'asc',
@@ -110,6 +111,7 @@ const ComplianceDashboard = {
                 this.dismissedPolicies = parsed.dismissedPolicies || {};
                 this.snoozedPolicies = parsed.snoozedPolicies || {};
                 this.policyNotes = parsed.policyNotes || {};
+                this.clientCompliance = parsed.clientCompliance || {};
                 this.sortField = parsed.sortField || 'daysUntilExpiration';
                 this.sortDirection = parsed.sortDirection || 'asc';
                 this.savedSearch = parsed.savedSearch || '';
@@ -189,7 +191,8 @@ const ComplianceDashboard = {
         if (!force) {
             const hasAnyData = Object.keys(stateObj.verifiedPolicies || {}).length > 0
                 || Object.keys(stateObj.dismissedPolicies || {}).length > 0
-                || Object.keys(stateObj.policyNotes || {}).length > 0;
+                || Object.keys(stateObj.policyNotes || {}).length > 0
+                || Object.keys(stateObj.clientCompliance || {}).length > 0;
             if (!hasAnyData) {
                 console.warn('[CGL] Skipping disk sync — state is empty (use clearAll to explicitly wipe)');
                 return;
@@ -213,7 +216,7 @@ const ComplianceDashboard = {
             const res = await fetch('/local/cgl-state');
             if (!res.ok) return false;
             const data = await res.json();
-            if (data.verifiedPolicies || data.dismissedPolicies) {
+            if (data.verifiedPolicies || data.dismissedPolicies || data.clientCompliance) {
                 // Smart Merge — local wins, but NEVER delete annotation keys
                 const localV = this.verifiedPolicies;
                 const localD = this.dismissedPolicies;
@@ -224,6 +227,9 @@ const ComplianceDashboard = {
                 // Merge notes — local wins, but NEVER delete disk-only notes
                 const diskN = data.policyNotes || {};
                 this.policyNotes = this._smartMergeDict(this.policyNotes, diskN);
+                // Merge client compliance annotations — local wins, but NEVER delete disk-only entries
+                const diskCC = data.clientCompliance || {};
+                this.clientCompliance = this._smartMergeDict(this.clientCompliance, diskCC);
                 // Restore preferences from disk if not set locally
                 if (data.sortField && !localStorage.getItem(STORAGE_KEY)) {
                     this.sortField = data.sortField;
@@ -238,6 +244,7 @@ const ComplianceDashboard = {
                     verifiedPolicies: this.verifiedPolicies,
                     dismissedPolicies: this.dismissedPolicies,
                     policyNotes: this.policyNotes,
+                    clientCompliance: this.clientCompliance,
                     sortField: this.sortField,
                     sortDirection: this.sortDirection,
                     savedSearch: this.savedSearch,
@@ -260,13 +267,15 @@ const ComplianceDashboard = {
         if (!obj) return false;
         return (Object.keys(obj.verifiedPolicies || {}).length > 0)
             || (Object.keys(obj.dismissedPolicies || {}).length > 0)
-            || (Object.keys(obj.policyNotes || {}).length > 0);
+            || (Object.keys(obj.policyNotes || {}).length > 0)
+            || (Object.keys(obj.clientCompliance || {}).length > 0);
     },
 
     _applyAnnotations(ann) {
         this.verifiedPolicies = ann.verifiedPolicies || {};
         this.dismissedPolicies = ann.dismissedPolicies || {};
         this.policyNotes = ann.policyNotes || {};
+        this.clientCompliance = ann.clientCompliance || {};
         if (ann.sortField) this.sortField = ann.sortField;
         if (ann.sortDirection) this.sortDirection = ann.sortDirection;
         if (ann.savedSearch !== undefined) this.savedSearch = ann.savedSearch;
@@ -281,6 +290,7 @@ const ComplianceDashboard = {
             dismissedPolicies: this.dismissedPolicies,
             snoozedPolicies: this.snoozedPolicies,
             policyNotes: this.policyNotes,
+            clientCompliance: this.clientCompliance,
             sortField: this.sortField,
             sortDirection: this.sortDirection,
             savedSearch: this.savedSearch,
@@ -918,6 +928,7 @@ const ComplianceDashboard = {
         if (error) error.style.display = 'none';
         this.deduplicateRenewals();
         this.checkForRenewals();
+        this.verifyAllClients();
         this.renderTypeToggles();
         this.renderPolicies();
         this.updateStats();
@@ -1026,6 +1037,7 @@ const ComplianceDashboard = {
             // Deduplicate renewed policies, then auto-clear stale markers
             this.deduplicateRenewals();
             this.checkForRenewals();
+            this.verifyAllClients();
 
             this.renderTypeToggles();
             this.renderPolicies();
@@ -1322,6 +1334,7 @@ const ComplianceDashboard = {
             tableContainer.style.display = 'block';
             this.deduplicateRenewals();
             this.checkForRenewals();
+            this.verifyAllClients();
             this.renderTypeToggles();
             this.renderPolicies();
             this.updateStats();
@@ -2247,7 +2260,8 @@ const ComplianceDashboard = {
                 (filterStatus === 'renewed' && this.getNoteData(policy.policyNumber)?.renewedTo) ||
                 (filterStatus === 'has-notes' && this.getNoteData(policy.policyNumber)?.log?.length > 0) ||
                 (filterStatus === 'state-updated' && this.getNoteData(policy.policyNumber)?.stateUpdated) ||
-                (filterStatus === 'needs-state-update' && !this.getNoteData(policy.policyNumber)?.stateUpdated && !this.isHidden(policy.policyNumber));
+                (filterStatus === 'needs-state-update' && !this.getNoteData(policy.policyNumber)?.stateUpdated && !this.isHidden(policy.policyNumber)) ||
+                (filterStatus === 'needs-li-ccb' && (this.needsLIReport(policy) || this.needsCCBReport(policy)) && !this.isHidden(policy.policyNumber));
 
             return matchesSearch && matchesStatus;
         });
@@ -2402,6 +2416,7 @@ const ComplianceDashboard = {
                     <td>
                         <div style="font-weight: 600;">${this.clientLink(policy)}</div>
                         ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${Utils.escapeHTML(policy.email)}</div>` : ''}
+                        ${this._isLICCBApplicableType(policy) ? `<div class="cgl-li-ccb-badges">${this.renderLICCBBadges(policy)}</div>` : ''}
                         ${isAnyUpdateDone ? `<span class="cgl-state-badge" id="state-badge-${pn}">✅ ${isHawksoftUpdated ? 'HawkSoft Updated' : 'State Updated'}</span>` : `<span class="cgl-state-badge" id="state-badge-${pn}" style="display:none"></span>`}
                         ${hasNote && !isAnyUpdateDone ? `<div class="cgl-note-preview" id="note-preview-${pn}">${renewedTo ? 'Renewed → ' + Utils.escapeHTML(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pn}" style="display:none"></div>`}
                         ${noteIcons && !isAnyUpdateDone ? `<div class="cgl-note-icons">${noteIcons}</div>` : ''}
@@ -2435,6 +2450,7 @@ const ComplianceDashboard = {
                 </tr>
                 <tr class="cgl-note-row" id="note-row-${pn}" style="display:none;">
                     <td colspan="${colSpan}">
+                        ${this.renderClassificationOverride(policy)}
                         <div class="cgl-quick-notes">
                             <div class="cgl-quick-notes-row">
                                 <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Notified insured')">📞 Notified Insured</button>
@@ -2494,6 +2510,15 @@ const ComplianceDashboard = {
         _el('statManual', visiblePolicies.filter(p => p.requiresManualVerification).length);
         _el('statUpdated', Object.keys(this.verifiedPolicies).length);
 
+        // Count unique clients with at least one policy needing L&I/CCB report
+        const needyClients = new Set();
+        for (const p of visiblePolicies) {
+            if (this.needsLIReport(p) || this.needsCCBReport(p)) {
+                if (p.clientNumber) needyClients.add(p.clientNumber);
+            }
+        }
+        _el('statNeedsLICCB', needyClients.size);
+
         _el('cglHiddenCount', this.getHiddenCount());
 
         // Show the counter row once we have data (hidden during initial loading)
@@ -2516,6 +2541,276 @@ const ComplianceDashboard = {
                 annSummary.textContent = '';
             }
         }
+    },
+
+    // --- WA L&I / OR CCB Reporting ---
+
+    // Policy types that may require state contractor licensing reports
+    _isLICCBApplicableType(policy) {
+        const t = policy.policyType || 'cgl';
+        return t === 'cgl' || t === 'pkg' || t === 'bop' || t === 'commercial';
+    },
+
+    getClientCompliance(clientNumber) {
+        if (!clientNumber) return null;
+        return this.clientCompliance[clientNumber] || null;
+    },
+
+    needsLIReport(policy) {
+        if (!this._isLICCBApplicableType(policy)) return false;
+        const c = this.getClientCompliance(policy.clientNumber);
+        if (!c || !c.classification) return false;
+        if (c.classification !== 'wa-contractor' && c.classification !== 'wa-or-contractor') return false;
+        return c.waReportedForExp !== policy.expirationDate;
+    },
+
+    needsCCBReport(policy) {
+        if (!this._isLICCBApplicableType(policy)) return false;
+        const c = this.getClientCompliance(policy.clientNumber);
+        if (!c || !c.classification) return false;
+        if (c.classification !== 'or-contractor' && c.classification !== 'wa-or-contractor') return false;
+        return c.orReportedForExp !== policy.expirationDate;
+    },
+
+    _summarizeLILookup(result) {
+        if (!result) return null;
+        if (result.contractor) {
+            const c = result.contractor;
+            return { license: c.licenseNumber || '', status: c.status || '', businessName: c.businessName || '' };
+        }
+        if (result.multipleResults && Array.isArray(result.results) && result.results.length) {
+            const r = result.results[0];
+            return { license: r.licenseNumber || '', status: r.status || '', businessName: r.businessName || '', multiple: true, count: result.count };
+        }
+        return null;
+    },
+
+    _summarizeCCBLookup(result) {
+        if (!result) return null;
+        if (result.contractor) {
+            const c = result.contractor;
+            return { number: c.ccbNumber || c.licenseNumber || '', status: c.status || '', businessName: c.businessName || '' };
+        }
+        if (result.multipleResults && Array.isArray(result.results) && result.results.length) {
+            const r = result.results[0];
+            return { number: r.licenseNumber || '', status: r.status || '', businessName: r.businessName || '', multiple: true, count: result.count };
+        }
+        return null;
+    },
+
+    // Auto-verify a single client against WA L&I and OR CCB.
+    // Skips if already manually classified (sticky) or auto-verified within 24h.
+    async verifyClient(clientNumber, businessName) {
+        if (!clientNumber || !businessName) return;
+        const existing = this.clientCompliance[clientNumber];
+        if (existing && existing.classificationSource === 'manual') return;
+        const VERIFY_RETRY_AFTER_MS = 24 * 60 * 60 * 1000;
+        if (existing && existing.classification && existing.classification !== 'unverified'
+            && existing.verifiedAt
+            && (Date.now() - new Date(existing.verifiedAt).getTime() < VERIFY_RETRY_AFTER_MS)) return;
+
+        const encName = encodeURIComponent(businessName);
+        let waResult = null, orResult = null;
+        try {
+            const [waRes, orRes] = await Promise.all([
+                Auth.apiFetch(`/api/prospect-lookup?type=li&name=${encName}`, { signal: AbortSignal.timeout(8000) }).catch(() => null),
+                Auth.apiFetch(`/api/prospect-lookup?type=or-ccb&name=${encName}`, { signal: AbortSignal.timeout(8000) }).catch(() => null)
+            ]);
+            if (waRes && waRes.ok) waResult = await waRes.json().catch(() => null);
+            if (orRes && orRes.ok) orResult = await orRes.json().catch(() => null);
+        } catch (e) {
+            console.warn('[CGL] verifyClient lookup error', e?.message || e);
+            return;
+        }
+
+        // Treat available:false as transient — leave for later retry
+        const waUsable = waResult && waResult.available !== false;
+        const orUsable = orResult && orResult.available !== false;
+        if (!waUsable || !orUsable) return;
+
+        const waFound = !!waResult.success;
+        const orFound = !!orResult.success;
+        let classification = 'exempt';
+        if (waFound && orFound) classification = 'wa-or-contractor';
+        else if (waFound) classification = 'wa-contractor';
+        else if (orFound) classification = 'or-contractor';
+
+        this.clientCompliance[clientNumber] = {
+            ...(existing || {}),
+            classification,
+            classificationSource: 'auto',
+            verifiedAt: new Date().toISOString(),
+            waLicense: waFound ? this._summarizeLILookup(waResult) : null,
+            orLicense: orFound ? this._summarizeCCBLookup(orResult) : null
+        };
+        this.saveState();
+        // Re-render so badges appear (filterPolicies re-runs with current search/filter)
+        this.filterPolicies();
+        this.updateStats();
+    },
+
+    // Throttled batch verification — kicks off after policies load.
+    _verifyQueue: null,
+    _verifyRunning: 0,
+    _verifyConcurrency: 3,
+    verifyAllClients() {
+        if (!Array.isArray(this.policies) || this.policies.length === 0) return;
+        const seen = new Map();
+        const RETRY_AFTER_MS = 24 * 60 * 60 * 1000;
+        for (const p of this.policies) {
+            if (!this._isLICCBApplicableType(p)) continue;
+            const cn = p.clientNumber;
+            if (!cn || seen.has(cn)) continue;
+            const existing = this.clientCompliance[cn];
+            if (existing && existing.classificationSource === 'manual') continue;
+            if (existing && existing.classification && existing.classification !== 'unverified'
+                && existing.verifiedAt
+                && (Date.now() - new Date(existing.verifiedAt).getTime() < RETRY_AFTER_MS)) continue;
+            const name = p.businessName || p.clientName || '';
+            if (!name) continue;
+            seen.set(cn, name);
+        }
+        if (seen.size === 0) return;
+        console.log('[CGL] Verifying', seen.size, 'client(s) against WA L&I + OR CCB');
+        this._verifyQueue = Array.from(seen.entries());
+        this._drainVerifyQueue();
+    },
+
+    _drainVerifyQueue() {
+        if (!this._verifyQueue) return;
+        while (this._verifyRunning < this._verifyConcurrency && this._verifyQueue.length > 0) {
+            const [cn, name] = this._verifyQueue.shift();
+            this._verifyRunning++;
+            this.verifyClient(cn, name).finally(() => {
+                this._verifyRunning--;
+                this._drainVerifyQueue();
+            });
+        }
+    },
+
+    markReportedToWA(clientNumber, expirationDate) {
+        if (!clientNumber || !expirationDate) return;
+        const c = this.clientCompliance[clientNumber] || {};
+        c.waReportedAt = new Date().toISOString();
+        c.waReportedForExp = expirationDate;
+        this.clientCompliance[clientNumber] = c;
+        this.saveState();
+        this.filterPolicies();
+        this.updateStats();
+        if (typeof App !== 'undefined' && App.toast) App.toast('Marked as reported to WA L&I', 'success');
+    },
+
+    markReportedToOR(clientNumber, expirationDate) {
+        if (!clientNumber || !expirationDate) return;
+        const c = this.clientCompliance[clientNumber] || {};
+        c.orReportedAt = new Date().toISOString();
+        c.orReportedForExp = expirationDate;
+        this.clientCompliance[clientNumber] = c;
+        this.saveState();
+        this.filterPolicies();
+        this.updateStats();
+        if (typeof App !== 'undefined' && App.toast) App.toast('Marked as reported to OR CCB', 'success');
+    },
+
+    clearReportedWA(clientNumber) {
+        const c = this.clientCompliance[clientNumber];
+        if (!c) return;
+        c.waReportedAt = null;
+        c.waReportedForExp = null;
+        this.saveState();
+        this.filterPolicies();
+        this.updateStats();
+    },
+
+    clearReportedOR(clientNumber) {
+        const c = this.clientCompliance[clientNumber];
+        if (!c) return;
+        c.orReportedAt = null;
+        c.orReportedForExp = null;
+        this.saveState();
+        this.filterPolicies();
+        this.updateStats();
+    },
+
+    // Manual override — sticky against future auto-verify runs
+    setClientClassification(clientNumber, classification) {
+        const valid = ['wa-contractor', 'or-contractor', 'wa-or-contractor', 'exempt'];
+        if (!valid.includes(classification)) return;
+        const c = this.clientCompliance[clientNumber] || {};
+        c.classification = classification;
+        c.classificationSource = 'manual';
+        c.verifiedAt = new Date().toISOString();
+        this.clientCompliance[clientNumber] = c;
+        this.saveState();
+        this.filterPolicies();
+        this.updateStats();
+    },
+
+    // Re-verify a client (allow auto to overwrite manual)
+    reverifyClient(clientNumber) {
+        const policy = this.policies.find(p => p.clientNumber === clientNumber);
+        if (!policy) return;
+        const name = policy.businessName || policy.clientName || '';
+        if (!name) return;
+        if (this.clientCompliance[clientNumber]) {
+            this.clientCompliance[clientNumber].classificationSource = 'auto';
+            this.clientCompliance[clientNumber].verifiedAt = null;
+        }
+        this.verifyClient(clientNumber, name);
+    },
+
+    // Render WA L&I / OR CCB badges for the Client cell
+    renderLICCBBadges(policy) {
+        if (!this._isLICCBApplicableType(policy)) return '';
+        const c = this.getClientCompliance(policy.clientNumber);
+        const cn = String(policy.clientNumber || '').replace(/'/g, "\\'");
+        const exp = policy.expirationDate || '';
+        if (!c || !c.classification || c.classification === 'unverified') {
+            return `<span class="cgl-li-badge unverified" onclick="ComplianceDashboard.reverifyClient('${cn}')" title="Verify against WA L&amp;I and OR CCB">❓ Verify</span>`;
+        }
+        if (c.classification === 'exempt') return '';
+        const html = [];
+        if (c.classification === 'wa-contractor' || c.classification === 'wa-or-contractor') {
+            const reported = c.waReportedForExp && c.waReportedForExp === exp;
+            if (reported) {
+                const date = c.waReportedAt ? new Date(c.waReportedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+                html.push(`<span class="cgl-li-badge reported" onclick="ComplianceDashboard.clearReportedWA('${cn}')" title="Reported to WA L&amp;I${date ? ' on ' + date : ''}. Click to clear.">✅ WA L&amp;I${date ? ' · ' + date : ''}</span>`);
+            } else {
+                html.push(`<span class="cgl-li-badge needs-report" onclick="ComplianceDashboard.markReportedToWA('${cn}', '${Utils.escapeAttr(exp)}')" title="Mark as reported to lni.wa.gov for current expiration">🛠️ WA L&amp;I</span>`);
+            }
+        }
+        if (c.classification === 'or-contractor' || c.classification === 'wa-or-contractor') {
+            const reported = c.orReportedForExp && c.orReportedForExp === exp;
+            if (reported) {
+                const date = c.orReportedAt ? new Date(c.orReportedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+                html.push(`<span class="cgl-ccb-badge reported" onclick="ComplianceDashboard.clearReportedOR('${cn}')" title="Reported to OR CCB${date ? ' on ' + date : ''}. Click to clear.">✅ OR CCB${date ? ' · ' + date : ''}</span>`);
+            } else {
+                html.push(`<span class="cgl-ccb-badge needs-report" onclick="ComplianceDashboard.markReportedToOR('${cn}', '${Utils.escapeAttr(exp)}')" title="Mark as reported to ccb.state.or.us for current expiration">🛠️ OR CCB</span>`);
+            }
+        }
+        return html.join(' ');
+    },
+
+    // Render the classification override controls (used inside the note editor row)
+    renderClassificationOverride(policy) {
+        if (!this._isLICCBApplicableType(policy)) return '';
+        const c = this.getClientCompliance(policy.clientNumber) || {};
+        const cn = String(policy.clientNumber || '').replace(/'/g, "\\'");
+        const cls = c.classification || 'unverified';
+        const src = c.classificationSource || 'auto';
+        const opt = (val, label) => `<button class="cgl-class-btn ${cls === val ? 'active' : ''}" onclick="ComplianceDashboard.setClientClassification('${cn}', '${val}')">${label}</button>`;
+        const sourceLabel = src === 'manual' ? 'manual override' : (cls === 'unverified' ? 'unverified' : 'auto-detected');
+        return `
+            <div class="cgl-classification-row">
+                <span class="cgl-classification-label" title="Determines whether this client appears in the WA L&amp;I / OR CCB reporting queue">🏷️ L&amp;I/CCB:</span>
+                ${opt('wa-contractor', 'WA L&amp;I')}
+                ${opt('or-contractor', 'OR CCB')}
+                ${opt('wa-or-contractor', 'Both')}
+                ${opt('exempt', 'Exempt')}
+                <button class="cgl-class-reverify" onclick="ComplianceDashboard.reverifyClient('${cn}')" title="Re-run automatic verification against L&amp;I and CCB registries">🔄 Re-verify</button>
+                <span class="cgl-classification-source">${sourceLabel}</span>
+            </div>
+        `;
     },
 
     // --- Helpers ---

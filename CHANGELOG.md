@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(compliance): WA L&I / OR CCB reporting tracker** (April 28, 2026):
+  - Adds a `clientCompliance` annotation dictionary keyed by HawkSoft `clientNumber` to `altech_cgl_state` — tracks classification (`wa-contractor` / `or-contractor` / `wa-or-contractor` / `exempt` / `unverified`), classification source (auto vs. manual), and per-state reported timestamps tied to the policy's current expiration date.
+  - On policy load, the dashboard auto-verifies each unique client against the existing `/api/prospect-lookup?type=li` (WA L&I Socrata) and `?type=or-ccb` (OR CCB Socrata) endpoints in parallel, throttled to 3 concurrent. Found in either registry → contractor in that state; not found in either → exempt; transient error → left unverified for retry.
+  - New inline badges in the Client cell of CGL/Pkg/BOP/Commercial rows: 🛠️ WA L&I (orange — needs report), ✅ WA L&I + date (green — reported for current expiration), and likewise for OR CCB. Click a badge to toggle reported/needs-report. Exempt clients show no badge.
+  - Auto-reflag on renewal: marking "reported" stores the current `expirationDate` in `waReportedForExp` / `orReportedForExp`. When HawkSoft pulls a renewed policy with a new expiration, the badge automatically flips back to orange — mirrors the existing `stateUpdatedForExp` pattern.
+  - New "🛠️ Needs L&I/CCB" stat card and matching filter option ("Needs L&I/CCB Update") for the daily reporting queue.
+  - New 🏷️ L&I/CCB row inside the note editor — manual classification override (WA / OR / Both / Exempt) and 🔄 Re-verify button. Manual overrides are sticky; auto-verify won't overwrite them.
+  - All annotations sync via the existing `cglState` cloud-sync doc and merge through the existing `_smartMergeDict` so multi-device usage is safe.
+  - Files touched: `js/compliance-dashboard.js` (state model, helpers, rendering, filter/stat wiring), `plugins/compliance.html` (stat card, filter option, legend, info-modal section), `css/compliance-main.css` (badge + classification-row styles, dark-mode variants).
+
 - **feat(branding): replace Tauri default icons with new Altech mountain logo** (April 28, 2026):
   - Regenerated every file in `src-tauri/icons/` from `icons/icon-512.png` so the Windows/macOS/Linux desktop builds no longer ship the default yellow-and-teal Tauri logo.
   - Replaced PNG sizes 30/32/44/50/71/89/107/128/142/150/256/284/310/512, plus `icon.ico` (multi-size 16-256) and `icon.icns` (multi-size 16-512).
