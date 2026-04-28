@@ -512,6 +512,7 @@ FIND_DROPDOWN_BY_LABEL_JS = """
     // Normalize text for comparison
     function norm(s) { return (s || '').replace(/[\\*\\:]/g, '').trim().toLowerCase(); }
 
+    // Strategy A — scan all label-like elements, then walk to nearby dropdown.
     // Gather all visible label-like elements.
     // Angular Material 15+ uses <mat-label> (a custom element, not <label>),
     // which is why we must list it explicitly — generic 'label' selectors miss it.
@@ -520,9 +521,65 @@ FIND_DROPDOWN_BY_LABEL_JS = """
         '[class*="form-field"] > span, [class*="form-field"] > div'
     );
 
+    // Strategy B — scan all dropdowns, then look up their aria-labelledby
+    // label and check if its text matches. More robust because it follows
+    // the accessibility linkage Angular Material always sets up.
+    function checkAriaLinkage(pat) {
+        const dropdowns = document.querySelectorAll(
+            'mat-select, select, [role="listbox"], [role="combobox"]'
+        );
+        for (const dd of dropdowns) {
+            const lblId = dd.getAttribute('aria-labelledby');
+            if (!lblId) continue;
+            const lblEl = document.getElementById(lblId);
+            if (!lblEl) continue;
+            const lblText = norm(lblEl.textContent);
+            if (!lblText || lblText.length > 60) continue;
+            if (lblText !== pat && !lblText.includes(pat)) continue;
+            const id = dd.id || '';
+            return {
+                found: true,
+                type: dd.tagName.toLowerCase(),
+                id: id,
+                selector: id ? '#' + id : null,
+                via: 'aria-labelledby',
+            };
+        }
+        return null;
+    }
+
+    // Strategy C — fallback: match dropdowns by id or name attribute.
+    // EZLynx uses patterns like id="applicant-state" / name="state".
+    function checkIdOrName(pat) {
+        const sluggedPat = pat.replace(/\\s+/g, ''); // "address state" -> "addressstate"
+        const dropdowns = document.querySelectorAll(
+            'mat-select, select, [role="listbox"], [role="combobox"]'
+        );
+        for (const dd of dropdowns) {
+            const id = (dd.id || '').toLowerCase();
+            const nm = (dd.getAttribute('name') || '').toLowerCase();
+            const fc = (dd.getAttribute('formcontrolname') || '').toLowerCase();
+            const haystack = id + '|' + nm + '|' + fc;
+            // Match against the slugged pattern (no spaces) and also each token
+            const tokens = pat.split(/\\s+/).filter(t => t.length >= 3);
+            const allTokensHit = tokens.length > 0 && tokens.every(t => haystack.includes(t));
+            if (haystack.includes(sluggedPat) || allTokensHit) {
+                return {
+                    found: true,
+                    type: dd.tagName.toLowerCase(),
+                    id: dd.id,
+                    selector: dd.id ? '#' + dd.id : null,
+                    via: 'id-or-name',
+                };
+            }
+        }
+        return null;
+    }
+
     for (const pattern of labelPatterns) {
         const pat = pattern.toLowerCase();
 
+        // Strategy A — label-text walk
         for (const lbl of labels) {
             const text = norm(lbl.textContent);
             if (!text || text.length > 60) continue;
@@ -584,9 +641,29 @@ FIND_DROPDOWN_BY_LABEL_JS = """
                 next = next.nextElementSibling;
             }
         }
+
+        // Strategy B — aria-labelledby reverse lookup
+        const ariaHit = checkAriaLinkage(pat);
+        if (ariaHit) return ariaHit;
+
+        // Strategy C — id/name pattern fallback
+        const idHit = checkIdOrName(pat);
+        if (idHit) return idHit;
     }
 
-    return { found: false };
+    // No match — return diagnostic info so the next dev round can see what's
+    // actually on the page (label texts + dropdown ids/names).
+    const matLabelTexts = Array.from(document.querySelectorAll('mat-label'))
+        .map(el => (el.textContent || '').trim()).filter(t => t).slice(0, 30);
+    const dropdownAttrs = Array.from(document.querySelectorAll(
+        'mat-select, [role="combobox"], [role="listbox"]'
+    )).map(dd => ({
+        id: dd.id || null,
+        name: dd.getAttribute('name') || null,
+        formcontrolname: dd.getAttribute('formcontrolname') || null,
+        ariaLabelledby: dd.getAttribute('aria-labelledby') || null,
+    })).slice(0, 30);
+    return { found: false, debug: { matLabelTexts, dropdownAttrs } };
 }
 """
 
@@ -735,9 +812,15 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
 
     if not result.get("found"):
         diag['error'] = 'ERR_LABEL_NOT_FOUND'
+        # Surface the page debug info so we can see what mat-labels
+        # and dropdowns ARE on the page when matching fails.
+        debug = result.get('debug') or {}
+        diag['mat_labels_on_page'] = debug.get('matLabelTexts', [])
+        diag['dropdowns_on_page'] = debug.get('dropdownAttrs', [])
         return False, diag
 
     diag['label_found'] = True
+    diag['match_via'] = result.get('via', 'label-walk')
     dd_type = result.get("type", "")
     dd_selector = result.get("selector")
     dd_id = result.get("id", "")
@@ -1245,10 +1328,16 @@ def run(client_file: str, schema_file: str):
                     # Sit and wait until the user closes the browser themselves.
                     # On Windows, os._exit kills the Chromium subprocess, so the only
                     # reliable way to keep the browser alive is to keep Python alive.
+                    # Detect close via page.is_closed() and the fact that the persistent
+                    # context will have zero pages once the user closes the last window.
+                    # page.url polling alone is unreliable because Playwright caches it.
                     while True:
-                        time.sleep(1)
+                        time.sleep(0.5)
                         try:
-                            _ = page.url
+                            if page.is_closed():
+                                break
+                            if not context.pages:
+                                break
                         except Exception:
                             break
                     print("[*] Chromium closed by user. Exiting.")
@@ -1464,6 +1553,7 @@ def run(client_file: str, schema_file: str):
                         if r['type'] == 'dropdown':
                             print(f"    Label found: {d.get('label_found', '?')}")
                             if d.get('label_found'):
+                                print(f"    Match via: {d.get('match_via', '?')}")
                                 print(f"    Dropdown type: {d.get('dropdown_type', '?')}")
                                 print(f"    Dropdown ID: {d.get('dropdown_id', 'none')}")
                                 print(f"    Overlay opened: {d.get('overlay_opened', '?')}")
@@ -1472,6 +1562,14 @@ def run(client_file: str, schema_file: str):
                                 print(f"    Options sample: {d['options_sample']}")
                             if d.get('fuzzy_candidates'):
                                 print(f"    Fuzzy near-matches: {d['fuzzy_candidates']}")
+                            # When label search fails, dump what IS on the page
+                            # so the next fix can target the actual selectors.
+                            if not d.get('label_found') and d.get('mat_labels_on_page'):
+                                print(f"    mat-label texts on page: {d['mat_labels_on_page']}")
+                            if not d.get('label_found') and d.get('dropdowns_on_page'):
+                                print(f"    Dropdown attrs on page (first 10):")
+                                for dd_info in d['dropdowns_on_page'][:10]:
+                                    print(f"      - {dd_info}")
                     print(f"\n{'=' * 50}")
 
                 update_filler_status(page,
