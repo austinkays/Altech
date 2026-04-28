@@ -1157,10 +1157,23 @@ def run(client_file: str, schema_file: str):
         except Exception:
             pass
 
+    # Persist login between runs via a real Chromium user data dir.
+    # Cookies/session live at ~/.altech-ezlynx-filler-profile so the user
+    # doesn't have to re-MFA every time.
+    user_data_dir = os.path.join(os.path.expanduser("~"), ".altech-ezlynx-filler-profile")
+
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context(viewport={"width": 1400, "height": 900})
-        page = context.new_page()
+        # launch_persistent_context replaces launch + new_context.
+        # no_viewport=True lets the page use the full window size, which is what
+        # the user expects when they maximize Chromium. --start-maximized opens
+        # the window maximized on launch.
+        context = p.chromium.launch_persistent_context(
+            user_data_dir,
+            headless=False,
+            args=["--start-maximized"],
+            no_viewport=True,
+        )
+        page = context.pages[0] if context.pages else context.new_page()
 
         try:
             # Step 1: Navigate
@@ -1218,7 +1231,7 @@ def run(client_file: str, schema_file: str):
                     action = ''
 
                 if action == 'close':
-                    print("[*] Close requested — removing toolbar (browser stays open).")
+                    print("[*] Close clicked — toolbar removed. Close the Chromium window when you're done; the script will exit then.")
                     try:
                         page.evaluate("""
                             var tb = document.getElementById('_altech_filler_toolbar');
@@ -1227,6 +1240,16 @@ def run(client_file: str, schema_file: str):
                         """)
                     except Exception:
                         pass
+                    # Sit and wait until the user closes the browser themselves.
+                    # On Windows, os._exit kills the Chromium subprocess, so the only
+                    # reliable way to keep the browser alive is to keep Python alive.
+                    while True:
+                        time.sleep(1)
+                        try:
+                            _ = page.url
+                        except Exception:
+                            break
+                    print("[*] Chromium closed by user. Exiting.")
                     break
 
                 if action != 'fill':
@@ -1457,18 +1480,20 @@ def run(client_file: str, schema_file: str):
 
         except KeyboardInterrupt:
             print("\n[!] Interrupted by user.")
-            browser.close()
+            try:
+                context.close()
+            except Exception:
+                pass
             print("[*] Browser closed.")
         except Exception as e:
             print(f"\n[!] Unexpected error: {e}")
-            browser.close()
+            try:
+                context.close()
+            except Exception:
+                pass
             print("[*] Browser closed.")
-        else:
-            # Normal exit (user clicked Close) — leave browser open.
-            # We must os._exit(0) to skip Playwright's cleanup handlers,
-            # which would kill the browser process it launched.
-            print("[*] Filler toolbar removed. Browser left open for you to continue quoting.")
-            os._exit(0)
+        # Normal exit: the user already closed Chromium (the action='close'
+        # handler waited for that). Just let the with-block clean up.
 
 
 def main():
