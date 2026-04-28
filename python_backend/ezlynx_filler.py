@@ -864,7 +864,22 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
         return False, diag
 
     try:
-        dropdown_el.click()
+        # Angular Material 17+ has a z-order trap: the <mat-label> inside
+        # the .mdc-notched-outline sits in the click hit-test path of its
+        # sibling <mat-select>, so a normal click() retries for 30s and
+        # times out. force=True skips actionability/hit-testing and clicks
+        # the element directly. Short timeout because force-click should
+        # be near-instant — no point waiting 30s.
+        try:
+            dropdown_el.click(force=True, timeout=5000)
+        except Exception as click_err:
+            # Last-resort fallback: pure JS click, bypasses Playwright's
+            # event synthesis entirely. Some custom Material widgets only
+            # respond to native dispatchEvent(MouseEvent) sequences.
+            try:
+                dropdown_el.evaluate("el => el.click()")
+            except Exception:
+                raise click_err
         # Wait for Angular Material overlay to appear instead of blind sleep
         try:
             page.wait_for_selector(
