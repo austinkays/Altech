@@ -11,7 +11,9 @@
 // components.css / compliance.css / intake-assist.css were split into shards,
 // and several app-*.js + plugin helpers were extracted. Old precache paths
 // would 404 and break the atomic cache.addAll() install.
-const CACHE_VERSION = 'altech-v15';
+// Bumped to v16 (2026-04-28) to invalidate cached PWA icons after the
+// mountain-logo swap — old installs were still serving the yellow Tauri icon.
+const CACHE_VERSION = 'altech-v16';
 const APP_SHELL = [
     '/',
     '/index.html',
