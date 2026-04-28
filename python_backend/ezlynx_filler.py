@@ -512,9 +512,11 @@ FIND_DROPDOWN_BY_LABEL_JS = """
     // Normalize text for comparison
     function norm(s) { return (s || '').replace(/[\\*\\:]/g, '').trim().toLowerCase(); }
 
-    // Gather all visible label-like elements
+    // Gather all visible label-like elements.
+    // Angular Material 15+ uses <mat-label> (a custom element, not <label>),
+    // which is why we must list it explicitly — generic 'label' selectors miss it.
     const labels = document.querySelectorAll(
-        'label, legend, .mat-form-field-label, [class*="label"], ' +
+        'label, legend, mat-label, .mat-form-field-label, [class*="label"], ' +
         '[class*="form-field"] > span, [class*="form-field"] > div'
     );
 
@@ -984,7 +986,7 @@ def fill_text_by_label(page, label_text: str, value: str) -> bool:
     try:
         result = page.evaluate("""(labelText) => {
             function norm(s) { return (s || '').replace(/[\\*\\:]/g, '').trim().toLowerCase(); }
-            const labels = document.querySelectorAll('label, legend, [class*="label"]');
+            const labels = document.querySelectorAll('label, legend, mat-label, [class*="label"]');
             const pat = labelText.toLowerCase();
 
             for (const lbl of labels) {
