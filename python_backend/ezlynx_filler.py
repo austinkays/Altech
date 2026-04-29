@@ -64,6 +64,20 @@ TEXT_FIELD_MAP = {
         "input[placeholder*='Middle' i]",
         "input[formcontrolname*='middleName' i]",
     ],
+    # Zip lives in the same visual row as Address State on the EZLynx
+    # Personal Lines Applicant page, well above DOB. Filling it here
+    # rather than alongside the address group makes the visual fill
+    # animation track the form's top-to-bottom layout.
+    "Zip": [
+        "input[name*='Zip' i]",
+        "input[name*='ZipCode' i]",
+        "input[name*='PostalCode' i]",
+        "input[id*='Zip' i]",
+        "input[id*='PostalCode' i]",
+        "input[placeholder*='Zip' i]",
+        "input[formcontrolname*='zip' i]",
+        "input[formcontrolname*='postalCode' i]",
+    ],
     "DOB": [
         "input[name*='DateOfBirth' i]",
         "input[name*='DOB' i]",
@@ -115,16 +129,6 @@ TEXT_FIELD_MAP = {
         "input[id*='City' i]",
         "input[placeholder*='City' i]",
         "input[formcontrolname*='city' i]",
-    ],
-    "Zip": [
-        "input[name*='Zip' i]",
-        "input[name*='ZipCode' i]",
-        "input[name*='PostalCode' i]",
-        "input[id*='Zip' i]",
-        "input[id*='PostalCode' i]",
-        "input[placeholder*='Zip' i]",
-        "input[formcontrolname*='zip' i]",
-        "input[formcontrolname*='postalCode' i]",
     ],
     "LicenseNumber": [
         "input[name*='License' i]",
