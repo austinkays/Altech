@@ -381,6 +381,28 @@ body.tauri-desktop .ezlynx-auto-fill-btn { display: flex !important; }
 }
 .ezlynx-desktop-modal__footer .ezlynx-desktop-modal__close:hover { filter: brightness(1.08); }
 .ezlynx-desktop-modal__footer .ezlynx-desktop-modal__close:active { transform: translateY(1px); }
+.ezlynx-desktop-modal__footer .ezlynx-desktop-modal__copy {
+    /* Secondary pill — same shape as Close, neutral color. */
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+.ezlynx-desktop-modal__footer .ezlynx-desktop-modal__copy:hover {
+    background: var(--bg-input);
+    border-color: var(--apple-blue);
+}
+.ezlynx-desktop-modal__footer .ezlynx-desktop-modal__copy:active { transform: translateY(1px); }
+.ezlynx-desktop-modal__footer .ezlynx-desktop-modal__copy.is-copied {
+    background: rgba(52, 199, 89, 0.15);
+    border-color: #34c759;
+    color: #34c759;
+}
 .ezlynx-desktop-modal__hint {
     font-size: 11px;
     color: var(--text-secondary);
