@@ -11,6 +11,7 @@
     "Address": "123 Main St",
     "City": "Vancouver",
     "State": "WA",
+    "County": "Clark",
     "Zip": "98686",
     "Education": "BA",
     "Occupation": "Agent/Broker",

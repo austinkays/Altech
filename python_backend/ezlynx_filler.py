@@ -1654,6 +1654,7 @@ def run(client_file: str, schema_file: str):
                 # Primary Address State without duplication.
                 CLIENT_FALLBACKS = {
                     "PrimaryAddressState": "State",
+                    "PrimaryAddressCounty": "County",
                 }
                 for key, label_patterns in active_dropdowns.items():
                     value = client.get(key, "")
