@@ -49,18 +49,31 @@ window.EzlynxDesktop = (() => {
                 </header>
                 <pre class="ezlynx-desktop-modal__log" id="ezlynxDesktopLog"></pre>
                 <footer class="ezlynx-desktop-modal__footer">
-                    <button class="btn-secondary" id="ezlynxDesktopClose" disabled>Close</button>
+                    <span class="ezlynx-desktop-modal__hint" id="ezlynxDesktopHint" style="font-size:11px;color:var(--text-secondary);margin-right:auto;"></span>
+                    <button class="btn-secondary" id="ezlynxDesktopClose">Close</button>
                 </footer>
             </div>
         `;
         document.body.appendChild(m);
+        // Close is ALWAYS enabled. Closing the modal while a fill is in
+        // progress just hides the UI — Python keeps running in the
+        // background until it exits naturally (Chromium close, completion,
+        // or Task Manager kill). This avoids the frozen-modal trap if
+        // Python hangs or never emits.
         m.querySelector('#ezlynxDesktopClose').addEventListener('click', () => {
             m.classList.add('hidden');
         });
-        // Allow backdrop-click close ONLY when run is finished — don't
-        // dismiss accidentally mid-fill.
         m.querySelector('.ezlynx-desktop-modal__backdrop').addEventListener('click', () => {
+            // Backdrop click only when not running — protects against
+            // accidental dismissal mid-fill.
             if (!isRunning) m.classList.add('hidden');
+        });
+        // Escape key dismisses regardless of state — the user explicitly
+        // pressed it, that's intent enough.
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !m.classList.contains('hidden')) {
+                m.classList.add('hidden');
+            }
         });
         return m;
     }
@@ -79,9 +92,13 @@ window.EzlynxDesktop = (() => {
         el.scrollTop = el.scrollHeight;
     }
 
-    function setCloseEnabled(enabled) {
+    function setCloseLabel(text) {
         const btn = document.getElementById('ezlynxDesktopClose');
-        if (btn) btn.disabled = !enabled;
+        if (btn) btn.textContent = text;
+    }
+    function setHint(text) {
+        const el = document.getElementById('ezlynxDesktopHint');
+        if (el) el.textContent = text || '';
     }
 
     function recordRun(outcome, summary) {
@@ -118,7 +135,7 @@ window.EzlynxDesktop = (() => {
         modal.classList.remove('hidden');
         document.getElementById('ezlynxDesktopLog').textContent = '';
         setStatus('Starting Chromium…', 'running');
-        setCloseEnabled(false);
+        setCloseLabel('Hide'); setHint('Python keeps running if you hide the modal.');
         isRunning = true;
 
         // Subscribe to progress events BEFORE invoking, so we don't miss the
@@ -147,7 +164,7 @@ window.EzlynxDesktop = (() => {
         } finally {
             try { if (unlisten) unlisten(); } catch (_) {}
             isRunning = false;
-            setCloseEnabled(true);
+            setCloseLabel('Close'); setHint('');
         }
     }
 

@@ -67,6 +67,11 @@ async fn run_ezlynx_filler(
     let schema_path = "../ezlynx_schema.json";
 
     let mut child = Command::new("python")
+        // -u forces unbuffered stdout. Without this, Python block-buffers
+        // when stdout is piped (4KB+ before flush), so the startup lines
+        // ("Loaded client data", "Toolbar injected") don't reach the frontend
+        // until the script writes a lot more. Result: modal looks frozen.
+        .arg("-u")
         .arg(script_path)
         .arg("--client")
         .arg(&temp_path)
