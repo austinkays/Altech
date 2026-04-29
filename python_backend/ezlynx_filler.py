@@ -137,6 +137,31 @@ TEXT_FIELD_MAP = {
         "input[id*='DL' i]",
         "input[formcontrolname*='license' i]",
     ],
+    # Previous Address — selectors deliberately ID-anchored to
+    # 'applicant-previous-address-' so they don't collide with the
+    # broad 'Address' / 'Street' patterns above (which target the
+    # primary address). The script's is_visible() gate skips these
+    # cleanly when EZLynx hasn't expanded the previous-address section
+    # (it's conditional on tenure).
+    "PreviousAddress": [
+        "#applicant-previous-address-addressStreet",
+        "input[id^='applicant-previous-address-'][id*='Street' i]",
+        "input[id*='previousAddress' i][id*='Street' i]",
+        "input[formcontrolname*='previousAddress' i][formcontrolname*='street' i]",
+    ],
+    "PreviousCity": [
+        "#applicant-previous-address-addressCity",
+        "input[id^='applicant-previous-address-'][id*='City' i]",
+        "input[id*='previousAddress' i][id*='City' i]",
+        "input[formcontrolname*='previousAddress' i][formcontrolname*='city' i]",
+    ],
+    "PreviousZip": [
+        "#applicant-previous-address-addressZip",
+        "#applicant-previous-address-addressZipCode",
+        "input[id^='applicant-previous-address-'][id*='Zip' i]",
+        "input[id^='applicant-previous-address-'][id*='Postal' i]",
+        "input[formcontrolname*='previousAddress' i][formcontrolname*='zip' i]",
+    ],
     "AccountName": [
         "input[name*='AccountName' i]",
         "input[id*='AccountName' i]",
@@ -239,6 +264,11 @@ BASE_DROPDOWN_LABELS = {
     # (would be a redundant fill). County is its own selection driven by
     # the synced state's options, so we fill it explicitly.
     "PrimaryAddressCounty": ["county"],
+    # Previous Address subsection — pattern deliberately specific so the
+    # label-walk doesn't grab the applicant-level "Address State". JS's
+    # Strategy C (id/name pattern) catches the actual field via the
+    # 'applicant-previous-address-' id prefix.
+    "PreviousState": ["previous address state"],
     "Relationship":    ["relationship", "relation"],
     "ApplicantType":   ["applicant type"],
     "LeadSource":      ["lead source"],
