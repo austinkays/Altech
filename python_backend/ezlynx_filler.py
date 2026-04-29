@@ -316,13 +316,16 @@ AUTO_DROPDOWN_LABELS = {
     "CarNew":               ["was the car new"],
     "CarPool":              ["car pool"],
     # ── Coverage ──
-    "BodilyInjury":    ["bodily injury"],
-    "PropertyDamage":  ["property damage"],
-    "MedPaymentsAuto": ["medical payments"],
-    "Comprehensive":   ["comprehensive"],
-    "Collision":       ["collision"],
-    "UMPD":            ["uninsured motorist property damage"],
-    "ResidenceIs":     ["residence is"],
+    "BodilyInjury":    ["bodily injury", "bi limit", "liability limits"],
+    "PropertyDamage":  ["property damage", "pd limit"],
+    "MedPaymentsAuto": ["medical payments", "med pay"],
+    "Comprehensive":   ["comprehensive", "comp deductible", "comprehensive deductible"],
+    "Collision":       ["collision", "collision deductible"],
+    "UMPD":            ["uninsured motorist property damage", "umpd"],
+    "UMBI":            ["uninsured motorist bodily injury", "um bodily injury", "um/uim bodily injury"],
+    "TowingLabor":     ["towing and labor", "towing labor", "towing"],
+    "RentalReimbursement": ["rental reimbursement", "rental"],
+    "ResidenceIs":     ["residence is", "residence owned"],
     # ── Previously unmapped (scraped from schema) ──
     "PaperlessAuto":        ["paperless"],
     "DriverTelematics":     ["telematics"],
@@ -407,6 +410,113 @@ def get_active_dropdowns(url):
         active.update(LEAD_DROPDOWN_LABELS)
 
     return active
+
+
+# ── EZLynx subpage detection + per-subpage field allowlist ────────────────
+#
+# The script's flat AUTO_DROPDOWN_LABELS contains fields from FOUR distinct
+# EZLynx pages (Policy Info, Drivers, Vehicles, Coverage). On any single
+# page only a fraction of those fields actually exist — the rest fail with
+# "label NOT found" and clutter the FAIL REPORT.
+#
+# Each subpage gets:
+#   1. An allowlist of field keys that should be attempted (kills noise)
+#   2. Optional priority element-ID selectors that bypass label search
+#
+# IDs were captured from the MAT-SELECT INVENTORY diagnostic in actual
+# fill runs against EZLynx — same data V1 had via its CONTACT_PAGE_*_FIELDS
+# / PRIORITY_SELECTORS pattern, just per-subpage instead of one flat list.
+#
+# Field key None means "include this key in the allowlist but no priority
+# ID known yet — fall back to label search". Capture during the next fill
+# round and replace with the real selector.
+
+SUBPAGE_FIELD_IDS = {
+    # Auto Policy Info — IDs from Cowork Round 1 fill log inventory.
+    'auto-policy-info': {
+        'PriorCarrier':            '#priorCarrier',
+        'PriorPolicyTerm':         '#priorPolicyTerm',
+        'PriorLiabilityLimits':    '#priorLiabilityLimits',
+        'PriorYearsWithCarrier':   '#yearsWithPriorCarrier',
+        'YearsContinuousCoverage': '#yearsWithContinuousCoverage',
+        'CreditCheckAuth':         '#creditCheckAuthorized',
+        'PolicyTerm':              '#newPolicyTerm',
+        'PackageAuto':             '#package',
+        'AutoPolicyType':          '#policytypepa',
+        'PaperlessAuto':           '#coverage_paperlessauto_common',
+        'NumResidents':            '#numberofresidents_common',
+        # EffectiveDate is a text input not in the mat-select inventory;
+        # the existing TEXT_FIELD_MAP selectors handle it.
+        'EffectiveDate':           None,
+    },
+    # Auto Coverage — TBD. Capture IDs from a real fill run on the
+    # Coverage page (BI/PD/MedPay/Comp/Coll/UMPD/ResidenceIs).
+    'auto-coverage': {
+        'BodilyInjury':    None,
+        'PropertyDamage':  None,
+        'MedPaymentsAuto': None,
+        'Comprehensive':   None,
+        'Collision':       None,
+        'UMPD':            None,
+        'ResidenceIs':     None,
+    },
+    # Auto Drivers — V1's ROUTE_TABLE shows the field set; IDs TBD.
+    'auto-drivers': {
+        'DLState':          None,
+        'DLStatus':         None,
+        'AgeLicensed':      None,
+        'GoodDriver':       None,
+        'MatureDriver':     None,
+        'LicenseSuspended': None,
+        'SR22Required':     None,
+        'FR44Required':     None,
+        'DriverEducation':  None,
+        'Relationship':     None,
+        # Per-driver demographics that EZLynx may re-collect on the page
+        'Gender':           None,
+        'MaritalStatus':    None,
+        'Industry':         None,
+        'Occupation':       None,
+        'Education':        None,
+    },
+    # Auto Vehicles — TBD. Capture from a Vehicles-page fill run.
+    'auto-vehicles': {
+        'VehicleYear':          None,
+        'VehicleUse':           None,
+        'PassiveRestraints':    None,
+        'AntiLockBrakes':       None,
+        'DaytimeRunningLights': None,
+        'AntiTheft':            None,
+        'VehiclePerformance':   None,
+        'OwnershipType':        None,
+        'CarNew':               None,
+        'CarPool':              None,
+        'VehicleSalvaged':      None,
+        'VehicleTelematics':    None,
+    },
+}
+
+
+def detect_subpage(url):
+    """Return a subpage label so the fill loop can scope its field set."""
+    if not url:
+        return None
+    u = url.lower()
+    if '/rating/auto/' in u:
+        if 'coverage' in u:    return 'auto-coverage'
+        if 'driver' in u:      return 'auto-drivers'
+        if 'vehicle' in u:     return 'auto-vehicles'
+        # Default landing within auto rating is Policy Info on the
+        # carrier rating screen.
+        return 'auto-policy-info'
+    if '/rating/home/' in u:
+        if 'coverage' in u:    return 'home-coverage'
+        if 'dwelling' in u:    return 'home-dwelling-info'
+        if 'policy' in u:      return 'home-policy-info'
+        return 'home'
+    if '/account/create/personal' in u or '/details' in u:
+        return 'applicant'
+    return None
 
 
 # Also try native <select> selectors as fallback
@@ -830,10 +940,14 @@ def smart_select_native(page, selectors, target_value, schema_options=None):
     return False, diag
 
 
-def smart_select_custom(page, label_patterns, target_value, schema_options=None):
+def smart_select_custom(page, label_patterns, target_value, schema_options=None, priority_selector=None):
     """
     Select a value in an Angular Material / custom dropdown.
     Returns (success: bool, diag: dict) with diagnostic details.
+
+    priority_selector: optional CSS selector tried BEFORE label search.
+    When the EZLynx element ID is known per-subpage (see SUBPAGE_FIELD_IDS),
+    this skips the fuzzy label walk entirely — way faster and more reliable.
     """
     diag = {'method': 'custom', 'target': target_value, 'expanded': None,
             'label_patterns': label_patterns, 'label_found': False,
@@ -849,12 +963,44 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
     expanded = ABBREVIATIONS.get(target.upper(), target)
     diag['expanded'] = expanded if expanded != target else None
 
-    # Step 1: Find the dropdown element by label
-    try:
-        result = page.evaluate(FIND_DROPDOWN_BY_LABEL_JS, label_patterns)
-    except Exception as e:
-        diag['error'] = f'ERR_LABEL_SEARCH: {e}'
-        return False, diag
+    # Step 0: Priority selector — skip label search when we know the
+    # element ID for this field on this subpage (SUBPAGE_FIELD_IDS).
+    # Synthesize a "found" result mirroring the JS path so the rest of
+    # the function works unchanged.
+    result = None
+    if priority_selector:
+        try:
+            loc = page.locator(priority_selector).first
+            if loc.count() > 0 and loc.is_visible():
+                el_id = ''
+                try:
+                    el_id = loc.get_attribute('id') or ''
+                except Exception:
+                    pass
+                # Determine type; default to mat-select for our cases.
+                el_tag = ''
+                try:
+                    el_tag = (loc.evaluate('el => el.tagName') or '').lower()
+                except Exception:
+                    el_tag = 'mat-select'
+                result = {
+                    'found': True,
+                    'type': el_tag or 'mat-select',
+                    'id': el_id,
+                    'selector': priority_selector,
+                    'via': 'priority-id',
+                }
+                diag['priority_selector_used'] = priority_selector
+        except Exception as e:
+            diag['priority_selector_error'] = str(e)
+
+    # Step 1: Find the dropdown element by label (skipped if priority hit)
+    if result is None:
+        try:
+            result = page.evaluate(FIND_DROPDOWN_BY_LABEL_JS, label_patterns)
+        except Exception as e:
+            diag['error'] = f'ERR_LABEL_SEARCH: {e}'
+            return False, diag
 
     if not result.get("found"):
         diag['error'] = 'ERR_LABEL_NOT_FOUND'
@@ -1686,8 +1832,24 @@ def run(client_file: str, schema_file: str):
                 page_context = 'auto' if '/rating/auto/' in current_url.lower() else \
                                'home' if '/rating/home/' in current_url.lower() else \
                                'lead' if '/lead-info' in current_url.lower() else 'applicant'
-                update_filler_status(page, f"Matching dropdowns ({page_context} page, {len(active_dropdowns)} mappings)...")
-                print(f"\n[*] Filling dropdowns -- page context: {page_context} ({len(active_dropdowns)} mappings)")
+
+                # Subpage scoping: when we know the precise EZLynx subpage
+                # (e.g. auto-policy-info), restrict the field set to ones
+                # actually on that page. Eliminates noise from trying
+                # Coverage fields on the Policy Info page, etc.
+                # When subpage is unknown, fall back to the full active map.
+                subpage = detect_subpage(current_url)
+                subpage_ids = SUBPAGE_FIELD_IDS.get(subpage)
+                if subpage_ids is not None:
+                    # Allowlist mode — only try fields the subpage owns.
+                    keys_to_try = [k for k in subpage_ids.keys() if k in active_dropdowns]
+                    print(f"[*] Subpage detected: {subpage} ({len(keys_to_try)} known fields, {sum(1 for v in subpage_ids.values() if v)} with priority IDs)")
+                else:
+                    # Unknown subpage — try everything (legacy behavior).
+                    keys_to_try = list(active_dropdowns.keys())
+
+                update_filler_status(page, f"Matching dropdowns ({page_context} page, {len(keys_to_try)} mappings)...")
+                print(f"\n[*] Filling dropdowns -- page context: {page_context} ({len(keys_to_try)} mappings)")
                 dd_filled = 0
                 dd_skipped = 0
                 dd_retried = []  # Track fields that failed and need retry
@@ -1700,7 +1862,9 @@ def run(client_file: str, schema_file: str):
                     "PrimaryAddressState": "State",
                     "PrimaryAddressCounty": "County",
                 }
-                for key, label_patterns in active_dropdowns.items():
+                for key in keys_to_try:
+                    label_patterns = active_dropdowns[key]
+                    priority_selector = subpage_ids.get(key) if subpage_ids else None
                     value = client.get(key, "")
                     if not value and key in CLIENT_FALLBACKS:
                         value = client.get(CLIENT_FALLBACKS[key], "")
@@ -1729,7 +1893,7 @@ def run(client_file: str, schema_file: str):
 
                     try:
                         # Try custom dropdown (Angular Material) by label first
-                        success, diag = smart_select_custom(page, label_patterns, value, schema_options)
+                        success, diag = smart_select_custom(page, label_patterns, value, schema_options, priority_selector=priority_selector)
                         if success:
                             method = diag.get('match_method', 'custom')
                             matched = diag.get('matched_text', '')
@@ -1786,14 +1950,14 @@ def run(client_file: str, schema_file: str):
 
                             fill_report.append({'field': key, 'type': 'dropdown', 'value': value,
                                                 'status': 'FAIL', 'diag': diag})
-                            dd_retried.append((key, label_patterns, value, schema_options))
+                            dd_retried.append((key, label_patterns, value, schema_options, priority_selector))
                             dd_skipped += 1
 
                     except Exception as e:
                         print(f"  [!] {key}: '{value}' -> EXCEPTION: {e}")
                         fill_report.append({'field': key, 'type': 'dropdown', 'value': value,
                                             'status': 'ERROR', 'error': str(e)})
-                        dd_retried.append((key, label_patterns, value, schema_options))
+                        dd_retried.append((key, label_patterns, value, schema_options, priority_selector))
                         dd_skipped += 1
 
                 # ── Retry failed dropdowns (up to 1 retry with extra wait) ──
@@ -1806,10 +1970,10 @@ def run(client_file: str, schema_file: str):
                     except PWTimeout:
                         pass
 
-                    for key, label_patterns, value, schema_options in dd_retried:
+                    for key, label_patterns, value, schema_options, priority_selector in dd_retried:
                         update_filler_status(page, f"Retry: {key} = '{value}'...")
                         try:
-                            success, diag = smart_select_custom(page, label_patterns, value, schema_options)
+                            success, diag = smart_select_custom(page, label_patterns, value, schema_options, priority_selector=priority_selector)
                             if not success and key in DROPDOWN_SELECT_MAP:
                                 success, diag = smart_select_native(page, DROPDOWN_SELECT_MAP[key], value, schema_options)
 
