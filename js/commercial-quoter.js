@@ -158,9 +158,19 @@ window.CommercialQuoter = (() => {
         const doc   = new jsPDF({ unit: 'mm' }); // Letter format (jsPDF default)
         const pageW = doc.internal.pageSize.getWidth();
         const pageH = doc.internal.pageSize.getHeight();
-        const FOOTER_RESERVE = 16;
+        const FOOTER_RESERVE = 13;
 
         let y = 0;
+
+        // ── Yes/No formatter for background questions ────────────────────
+        // Always returns a value (never empty) so the question shows in PDF
+        // even when un-answered — proves the question was asked.
+        const _fmtYN = (val) => {
+            const s = String(val || '').trim().toUpperCase();
+            if (s === 'Y' || s === 'YES') return 'Yes';
+            if (s === 'N' || s === 'NO')  return 'No';
+            return '—';
+        };
 
         // ── Palette (matches personal lines C object) ─────────────────────
         const C = {
@@ -184,7 +194,7 @@ window.CommercialQuoter = (() => {
         const isEmptyish = (val) => {
             if (!val && val !== 0) return true;
             const s = String(val).trim();
-            return /^(none|not updated|n\/a|no coverage|unknown)$/i.test(s);
+            return s === '—' || /^(none|not updated|n\/a|no coverage|unknown)$/i.test(s);
         };
 
         // ── Page-break guard ──────────────────────────────────────────────
@@ -215,37 +225,37 @@ window.CommercialQuoter = (() => {
 
         // ── Section header — text + rule (personal lines pattern) ─────────
         const sectionHeader = (title) => {
-            checkPage(16);
+            checkPage(12);
             const labelText = title.toUpperCase();
             doc.setFontSize(7);
             doc.setFont(undefined, 'bold');
             doc.setTextColor(...C.navy);
-            doc.text(labelText, margin, y + 5.5);
+            doc.text(labelText, margin, y + 4.2);
             const labelW = doc.getTextWidth(labelText);
             doc.setDrawColor(...C.light);
             doc.setLineWidth(0.4);
-            doc.line(margin + labelW + 2.8, y + 4, pageW - margin, y + 4);
+            doc.line(margin + labelW + 2.8, y + 3, pageW - margin, y + 3);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(...C.dark);
-            y += 7;
+            y += 5.5;
         };
 
         // ── Coverage sub-header (lighter treatment, visually distinct) ────
         const covRow = (name) => {
-            checkPage(10);
+            checkPage(8);
             doc.setFillColor(...C.border);
-            doc.rect(margin, y, contentW, 7.5, 'F');
+            doc.rect(margin, y, contentW, 6, 'F');
             doc.setFillColor(...C.navy);
-            doc.rect(margin, y, 2, 7.5, 'F');
+            doc.rect(margin, y, 2, 6, 'F');
             doc.setFont(undefined, 'bold');
-            doc.setFontSize(9);
+            doc.setFontSize(8.5);
             doc.setTextColor(...C.navy);
-            doc.text(name, margin + 5, y + 5.2);
-            y += 8.5;
+            doc.text(name, margin + 5, y + 4.3);
+            y += 6.5;
         };
 
         // ── Key-value grid — 2-col, matches personal lines kvTable ────────
-        const kvTable = (fields, cols = 2, cellH = 13) => {
+        const kvTable = (fields, cols = 2, cellH = 9.5) => {
             const filtered = fields.filter(([, val]) => val !== undefined && val !== null && String(val).trim() !== '');
             if (!filtered.length) return;
             const colW = contentW / cols;
@@ -264,36 +274,54 @@ window.CommercialQuoter = (() => {
                 const cellY = y;
 
                 // Label — 6.5pt uppercase #444
-                doc.setFontSize(6.5);
+                doc.setFontSize(6.2);
                 doc.setFont(undefined, 'normal');
                 doc.setTextColor(...C.label);
-                doc.text(label.toUpperCase(), cellX, cellY + 3);
+                doc.text(label.toUpperCase(), cellX, cellY + 2.6);
 
                 // Value — null-ish → #444 normal; else → #111 normal
                 const deEmphasize = isEmptyish(value);
-                doc.setFontSize(9.5);
+                doc.setFontSize(9);
                 doc.setFont(undefined, 'normal');
                 doc.setTextColor(...(deEmphasize ? C.muted : C.body));
                 const isLastItem = (i === filtered.length - 1);
                 const effectiveMaxW = (spanLast && isLastItem) ? usableColW * 2 + colGap : usableColW;
                 const valLines = doc.splitTextToSize(String(value), effectiveMaxW);
-                doc.text(valLines[0] || '', cellX, cellY + 8.5);
+                doc.text(valLines[0] || '', cellX, cellY + 7);
                 if (valLines[1]) {
-                    doc.text(valLines[1], cellX, cellY + 12.5);
+                    doc.text(valLines[1], cellX, cellY + 10.5);
                     rowWrapped = true;
                 }
 
                 col++;
                 if (col >= cols) {
                     col = 0;
-                    y += cellH + (rowWrapped && cols !== 2 ? 4 : 0);
+                    y += cellH + (rowWrapped ? 3 : 0);
                 }
             });
             if (col > 0) {
-                y += spanLast ? cellH - 3 : cellH;
+                y += spanLast ? cellH - 2 : cellH;
             }
             doc.setFont(undefined, 'normal');
-            y += 1; // minimal trailing gap
+            y += 0.5;
+        };
+
+        // ── Full-width long-form block (for descriptions that wrap) ───────
+        const longBlock = (label, value) => {
+            if (value === undefined || value === null || String(value).trim() === '') return;
+            doc.setFontSize(9);
+            const lines = doc.splitTextToSize(String(value), contentW);
+            const lineH = 3.6;
+            const blockH = 2.6 + lines.length * lineH + 1.5;
+            checkPage(blockH);
+            doc.setFontSize(6.2);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(...C.label);
+            doc.text(label.toUpperCase(), margin, y + 2.6);
+            doc.setFontSize(9);
+            doc.setTextColor(...C.body);
+            lines.forEach((ln, i) => doc.text(ln, margin, y + 6.6 + i * lineH));
+            y += blockH;
         };
 
         // ── Logo fetch (async, defensive) ────────────────────────────────
@@ -314,69 +342,68 @@ window.CommercialQuoter = (() => {
         const tsStr = `${tsDate} ${hrs}:${pad2(now.getMinutes())} ${ampm}`;
 
         // ── Page 1 header ─────────────────────────────────────────────────
-        y = 11;
-        const logoH = 18;
-        const logoW = 18;
+        y = 9;
+        const logoH = 13;
+        const logoW = 13;
         let headerTextX = margin;
         if (logoImg?.dataUrl) {
             doc.addImage(logoImg.dataUrl, logoImg.format, margin, y - 1, logoW, logoH);
-            headerTextX = margin + logoW + 3.5;
+            headerTextX = margin + logoW + 3;
         }
-        // Agency name — 11pt bold navy
-        doc.setFontSize(11);
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(...C.navy);
-        doc.text('Altech Insurance', headerTextX, y + 5);
-        // Subtitle — 8pt uppercase #555
-        doc.setFontSize(8);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(...C.mid);
-        doc.text('COMMERCIAL INSURANCE INTAKE', headerTextX, y + 11);
-
-        // Doc ref — 10pt bold navy | Timestamp — 9pt #555
-        const docRef = `CQ-${now.getFullYear()}-${pad2(now.getMonth() + 1)}${pad2(now.getDate())}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+        // Agency name — 10pt bold navy
         doc.setFontSize(10);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(...C.navy);
-        doc.text(docRef, pageW - margin, y + 5, { align: 'right' });
-        doc.setFontSize(9);
+        doc.text('Altech Insurance', headerTextX, y + 4);
+        // Subtitle — 7.5pt uppercase #555
+        doc.setFontSize(7.5);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(...C.mid);
-        doc.text(tsStr, pageW - margin, y + 11, { align: 'right' });
+        doc.text('COMMERCIAL INSURANCE INTAKE', headerTextX, y + 9);
 
-        y += Math.max(logoH + 1, 14);
+        // Doc ref — 9pt bold navy | Timestamp — 8pt #555
+        const docRef = `CQ-${now.getFullYear()}-${pad2(now.getMonth() + 1)}${pad2(now.getDate())}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...C.navy);
+        doc.text(docRef, pageW - margin, y + 4, { align: 'right' });
+        doc.setFontSize(8);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...C.mid);
+        doc.text(tsStr, pageW - margin, y + 9, { align: 'right' });
 
-        // 0.7px navy separator under header
+        y += Math.max(logoH + 0.5, 11);
+
+        // 0.6px navy separator under header
         doc.setDrawColor(...C.navy);
-        doc.setLineWidth(0.7);
+        doc.setLineWidth(0.6);
         doc.line(margin, y, pageW - margin, y);
-        y += 5;
+        y += 3.5;
 
         // ── Business card (applicant-card analog) ─────────────────────────
-        const cardPadX    = 5;
-        const cardPadY    = 4.2;
+        const cardPadX    = 4.5;
         const bizName     = _data.bizName || 'Unnamed Business';
         const contactLine = [_data.contactName, _data.contactEmail].filter(Boolean).join('  ·  ');
-        const cardH       = contactLine ? 28 : 22;
+        const cardH       = contactLine ? 17 : 12;
         doc.setDrawColor(...C.border);
         doc.setLineWidth(0.4);
-        doc.roundedRect(margin, y, contentW, cardH, 1.4, 1.4, 'S');
+        doc.roundedRect(margin, y, contentW, cardH, 1.2, 1.2, 'S');
         // Left navy accent bar
         doc.setFillColor(...C.navy);
         doc.roundedRect(margin, y, 1, cardH, 0.5, 0.5, 'F');
-        // Business name — 14pt bold navy
-        doc.setFontSize(14);
+        // Business name — 12pt bold navy
+        doc.setFontSize(12);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(...C.navy);
-        doc.text(bizName, margin + cardPadX, y + cardPadY + 8);
-        // Contact row — 9pt #555
+        doc.text(bizName, margin + cardPadX, y + 6.5);
+        // Contact row — 8.5pt #555
         if (contactLine) {
-            doc.setFontSize(9);
+            doc.setFontSize(8.5);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(...C.mid);
-            doc.text(contactLine, margin + cardPadX, y + cardPadY + 17);
+            doc.text(contactLine, margin + cardPadX, y + 13);
         }
-        y += cardH + 6;
+        y += cardH + 3;
 
         // ── Business Information ──────────────────────────────────────────
         sectionHeader('Business Information');
@@ -423,7 +450,8 @@ window.CommercialQuoter = (() => {
             const details = (detailMap[k] || []).map(([fKey, fLabel]) => [
                 fLabel, DOLLAR_KEYS.has(fKey) ? _fmtDollar(_data[fKey]) : _data[fKey],
             ]);
-            kvTable(details);
+            // Coverage details are short ($, integers) — tighter row height
+            kvTable(details, 3, 8.5);
         });
         if (!anyCov) kvTable([['Coverages', 'None selected']]);
 
@@ -436,28 +464,30 @@ window.CommercialQuoter = (() => {
             ['Own / Lease Building', _data.ownLeaseBuild],
             ['Building Value',       _fmtDollar(_data.buildingValue)],
             ['Location Address(es)', _data.locAddress],
-            ['Business Operations',  _data.workDescription],
         ]);
+        longBlock('Business Operations', _data.workDescription);
 
         // ── Owner & Background ────────────────────────────────────────────
+        // Background Y/N questions are always shown — even when un-answered —
+        // so the agent can demonstrate the questions were asked.
         sectionHeader('Owner & Background');
         const subFields = _data.hasSubcontractors === 'Y' ? [
             ['Subcontracting Costs', _fmtDollar(_data.subcontractingCosts)],
             ['Obtain Certs',         _data.obtainCerts],
         ] : [];
         kvTable([
-            ['# Owners',           _data.numOwners],
+            ['# Owners',            _data.numOwners],
             ['Owner Name(s)',       _data.ownerNames],
             ['Owner Home Address',  _data.ownerHomeAddress],
             ['Owner DOB',           _data.ownerDOB],
             ['Owner SSN',           _data.ownerSSN ? '***-**-' + String(_data.ownerSSN).replace(/\D/g, '').slice(-4) : ''],
-            ['Prior Conviction',    _data.convicted],
-            ['Bankruptcy',          _data.bankruptcy],
-            ['Lawsuits',            _data.lawsuits],
             ['FT Employees',        _data.ftEmployees],
             ['PT Employees',        _data.ptEmployees],
             ['Payroll',             _fmtDollar(_data.payroll)],
-            ['Subcontractors',      _data.hasSubcontractors],
+            ['Prior Felony',        _fmtYN(_data.convicted)],
+            ['Bankruptcy (5 yr)',   _fmtYN(_data.bankruptcy)],
+            ['Pending Lawsuits',    _fmtYN(_data.lawsuits)],
+            ['Subcontractors',      _fmtYN(_data.hasSubcontractors)],
             ...subFields,
         ]);
 

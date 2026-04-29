@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **refactor(commercial-quoter): tighten PDF export to 1 page** (April 29, 2026):
+  - The commercial intake PDF was wasting space and spilling into a second page even for compact quotes. Reworked `exportPDF` in `js/commercial-quoter.js` so a typical intake (3–4 coverages, single owner, ~3-line description) renders on a single page.
+  - Header: logo 18→13mm, title 11pt→10pt, subtitle 8pt→7.5pt, doc-ref 10pt→9pt, separator gap trimmed.
+  - Business card: contact-line variant 28→17mm, name 14pt→12pt, post-card gap 6→3mm.
+  - Section headers: vertical advance 7→5.5mm.
+  - `kvTable` rows: default `cellH` 13→9.5mm; label 6.5pt→6.2pt; value 9.5pt→9pt; trailing gap 1→0.5mm.
+  - Coverage details: switched from 2-col@13mm to 3-col@8.5mm — three short money/integer fields fit one row instead of two.
+  - Coverage sub-header (`covRow`): 8.5→6.5mm height.
+  - New `longBlock(label, value)` helper renders Business Operations as a full-width wrapped paragraph instead of cramming it into a 2-col cell where it would force two pages.
+
+### Added
+- **feat(commercial-quoter): always show background Y/N questions in PDF** (April 29, 2026):
+  - Prior felony, bankruptcy, pending lawsuits, and subcontractor questions now always render in the Owner & Background section of the exported PDF — even when un-answered — so the agent can demonstrate the questions were asked during intake.
+  - New `_fmtYN` helper maps stored `Y`/`N` → `Yes`/`No`, with `—` (em-dash) for un-answered. Un-answered values render in the muted color via the existing `isEmptyish` path so explicit Yes/No answers stand out.
+  - Question labels updated for clarity in the PDF: "Prior Conviction" → "Prior Felony", "Bankruptcy" → "Bankruptcy (5 yr)", "Lawsuits" → "Pending Lawsuits".
+
 ### Added
 - **feat(compliance): WA L&I / OR CCB reporting tracker** (April 28, 2026):
   - Adds a `clientCompliance` annotation dictionary keyed by HawkSoft `clientNumber` to `altech_cgl_state` — tracks classification (`wa-contractor` / `or-contractor` / `wa-or-contractor` / `exempt` / `unverified`), classification source (auto vs. manual), and per-state reported timestamps tied to the policy's current expiration date.
