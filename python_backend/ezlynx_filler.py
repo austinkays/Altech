@@ -874,22 +874,66 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
         return False, diag
 
     try:
-        # Angular Material 17+ has a z-order trap: the <mat-label> inside
-        # the .mdc-notched-outline sits in the click hit-test path of its
-        # sibling <mat-select>, so a normal click() retries for 30s and
-        # times out. force=True skips actionability/hit-testing and clicks
-        # the element directly. Short timeout because force-click should
-        # be near-instant — no point waiting 30s.
+        # Round 6 finding (Cowork): force=True bypasses the actionability check
+        # but the click is still hit-tested at the element's center, which the
+        # mdc-notched-outline label covers. Angular Material's global form-field
+        # listener opens the overlay visually, but the mat-select trigger's OWN
+        # click handler — which kicks off the async option-load API call — never
+        # fires. Result: overlay opens, options never appear, keyboard typeahead
+        # has nothing to match. Manual user clicks land on the chevron arrow at
+        # the right edge (not covered by the label), so they work instantly.
+        #
+        # Strategy ladder, real-mouse-equivalents first, force/JS as fallback:
+        click_method = 'failed'
+        # 1. Click the .mat-mdc-select-arrow chevron child — child of the
+        #    trigger, NOT covered by the notched-outline label. Bubbles
+        #    through the trigger's click handler the way a real click does.
         try:
-            dropdown_el.click(force=True, timeout=5000)
-        except Exception as click_err:
-            # Last-resort fallback: pure JS click, bypasses Playwright's
-            # event synthesis entirely. Some custom Material widgets only
-            # respond to native dispatchEvent(MouseEvent) sequences.
+            arrow = dropdown_el.locator('.mat-mdc-select-arrow').first
+            if arrow.count() > 0:
+                arrow.click(timeout=3000)
+                click_method = 'arrow'
+        except Exception:
+            pass
+        # 2. Click the .mat-mdc-select-trigger inner div directly.
+        if click_method == 'failed':
+            try:
+                trigger = dropdown_el.locator('.mat-mdc-select-trigger').first
+                if trigger.count() > 0:
+                    trigger.click(timeout=3000)
+                    click_method = 'trigger'
+            except Exception:
+                pass
+        # 3. CDP-level mouse click at the right edge of the bbox (chevron
+        #    position) — proper hit-test with no notched-outline interference.
+        if click_method == 'failed':
+            try:
+                box = dropdown_el.bounding_box()
+                if box:
+                    x = box['x'] + box['width'] - 12
+                    y = box['y'] + box['height'] / 2
+                    page.mouse.click(x, y)
+                    click_method = 'bbox-edge'
+            except Exception:
+                pass
+        # 4. force=True click — legacy path. May not trigger option load.
+        if click_method == 'failed':
+            try:
+                dropdown_el.click(force=True, timeout=5000)
+                click_method = 'force'
+            except Exception:
+                pass
+        # 5. Pure JS click — synthetic, last resort.
+        if click_method == 'failed':
             try:
                 dropdown_el.evaluate("el => el.click()")
+                click_method = 'js'
             except Exception:
-                raise click_err
+                pass
+        diag['click_method'] = click_method
+        if click_method == 'failed':
+            diag['error'] = 'ERR_CLICK_FAILED'
+            return False, diag
         # Wait for Angular Material overlay to appear instead of blind sleep
         try:
             page.wait_for_selector(
@@ -1028,25 +1072,41 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
     except Exception:
         pass
 
-    # Step 3c: If keyboard typing didn't persist (Cowork Round 4 finding —
-    # force=True can leave focus off the listbox, so typed chars go nowhere),
-    # the overlay is now closed and we have no options to scan. Re-open the
-    # dropdown so Step 4 can find options and click one directly. Wait for
-    # options to render after reopening — same async-load reason as 3b.
+    # Step 3c: If keyboard typing didn't persist, re-open the dropdown so
+    # Step 4 can find options and click one directly. Use the same chevron-
+    # first click ladder as the initial open — force-click on the wrapper
+    # would re-trigger the same hit-test problem the chevron click solves.
     if diag.get('keyboard_attempted_but_not_persisted'):
+        reopened = False
         try:
-            dropdown_el.click(force=True, timeout=5000)
-            try:
-                dropdown_el.evaluate("el => el.focus && el.focus()")
-            except Exception:
-                pass
-            _wait_for_options(max_ms=3000)
+            arrow = dropdown_el.locator('.mat-mdc-select-arrow').first
+            if arrow.count() > 0:
+                arrow.click(timeout=3000)
+                reopened = True
         except Exception:
+            pass
+        if not reopened:
             try:
-                dropdown_el.evaluate("el => el.click()")
-                _wait_for_options(max_ms=3000)
+                box = dropdown_el.bounding_box()
+                if box:
+                    page.mouse.click(box['x'] + box['width'] - 12,
+                                     box['y'] + box['height'] / 2)
+                    reopened = True
             except Exception:
                 pass
+        if not reopened:
+            try:
+                dropdown_el.click(force=True, timeout=5000)
+            except Exception:
+                try:
+                    dropdown_el.evaluate("el => el.click()")
+                except Exception:
+                    pass
+        try:
+            dropdown_el.evaluate("el => el.focus && el.focus()")
+        except Exception:
+            pass
+        _wait_for_options(max_ms=3000)
 
     # Step 4: Find options in the overlay panel
     # Angular Material renders options in a CDK overlay at document body level
@@ -1781,6 +1841,8 @@ def run(client_file: str, schema_file: str):
                                 print(f"    Note: keyboard typeahead opened overlay but value didn't persist; option-click also tried")
                             if d.get('options_loaded_count') is not None:
                                 print(f"    Options visible after open (waited up to 3s): {d['options_loaded_count']}")
+                            if d.get('click_method'):
+                                print(f"    Click method that opened overlay: {d['click_method']}")
                     print(f"\n{'=' * 50}")
 
                     # Mat-select inventory: at the end of any FAIL report,
