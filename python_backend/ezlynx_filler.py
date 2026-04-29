@@ -1792,10 +1792,13 @@ def run(client_file: str, schema_file: str):
 
                 print(f"\n     Dropdowns: {dd_filled} filled, {dd_skipped} not matched")
 
-                # Extra fields — combine all dropdown label sets for the check
+                # Extra fields — combine all dropdown label sets for the check.
+                # CLIENT_FALLBACKS source keys count as consumed too (e.g. when
+                # PrimaryAddressCounty pulls from "County", don't then warn
+                # that "County" is unmapped — it was used).
                 all_dropdown_keys = set(BASE_DROPDOWN_LABELS.keys()) | set(AUTO_DROPDOWN_LABELS.keys()) | \
                                     set(HOME_DROPDOWN_LABELS.keys()) | set(LEAD_DROPDOWN_LABELS.keys())
-                handled_keys = set(TEXT_FIELD_MAP.keys()) | all_dropdown_keys
+                handled_keys = set(TEXT_FIELD_MAP.keys()) | all_dropdown_keys | set(CLIENT_FALLBACKS.values())
                 extra_keys = [k for k in client.keys() if k not in handled_keys and client[k]]
                 if extra_keys:
                     print(f"\n[*] {len(extra_keys)} unmapped fields: {', '.join(extra_keys)}")

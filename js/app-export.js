@@ -67,6 +67,12 @@ Object.assign(App, {
             LicenseNumber:  driver0.dlNum || '',
             DLState:        driver0.dlState || '',
             DLStatus:       driver0.dlStatus || '',
+
+            // ── Tenure ───────────────────────────────────────────
+            // Altech's intake doesn't collect this yet; once it does,
+            // App.data.yearsAtAddress flows straight through.
+            YearsAtAddress: d.yearsAtAddress || '',
+            MonthsAtAddress: d.monthsAtAddress || '',
         };
 
         return out;
