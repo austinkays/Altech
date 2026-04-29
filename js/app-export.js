@@ -36,14 +36,24 @@ Object.assign(App, {
         // the applicant smoke test, can be added later.
         const driver0 = drivers[0] || {};
 
-        // Date format: Altech stores YYYY-MM-DD. The filler accepts either
-        // and converts to MM/DD/YYYY internally for date inputs. Pass raw.
+        // Date conversion: Altech stores DOB as YYYY-MM-DD (HTML date input
+        // native format). EZLynx's date inputs validate against MM/DD/YYYY
+        // and silently reject mismatched formats — Playwright .fill() puts
+        // the raw string in but Angular Material reverts on blur, leaving
+        // any prior value stuck in the field. Convert here so the wire
+        // format is what EZLynx actually accepts.
+        const toMDY = (iso) => {
+            if (!iso) return '';
+            const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            return m ? `${m[2]}/${m[3]}/${m[1]}` : iso;
+        };
+
         const out = {
             // ── Identity ─────────────────────────────────────────
             FirstName:      d.firstName || '',
             LastName:       d.lastName || '',
             MiddleName:     d.middleName || '',
-            DOB:            d.dob || '',
+            DOB:            toMDY(d.dob),
             Email:          d.email || '',
             Phone:          d.phone || '',
 
