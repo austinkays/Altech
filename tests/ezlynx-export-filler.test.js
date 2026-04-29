@@ -194,6 +194,12 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
             county: 'King',
             yearsAtAddress: '3',
             monthsAtAddress: '6',
+            // previous address subsection (EZLynx surfaces this when
+            // tenure is short)
+            previousAddrStreet: '789 Pine Ln',
+            previousAddrCity:   'Portland',
+            previousAddrState:  'OR',
+            previousAddrZip:    '97201',
         };
         App.drivers = [{
             dlNum: 'DOEJA456XY',
@@ -205,29 +211,33 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
         // the export shows up here as a failure that demands a contract
         // update + a test entry for the new field.
         expect(App.exportClientJsonForFiller()).toEqual({
-            FirstName:      'Jane',
-            LastName:       'Doe',
-            MiddleName:     'Q',
-            DOB:            '07/04/1985',  // converted YYYY-MM-DD → MM/DD/YYYY
-            Email:          'jane@example.com',
-            Phone:          '5551234567',
-            Address:        '456 Oak Ave',
-            City:           'Seattle',
-            State:          'WA',
-            County:         'King',
-            Zip:            '98101',
-            Gender:         'F',
-            MaritalStatus:  'Married',
-            Education:      'MA',
-            Occupation:     'Software Engineer',
-            Industry:       'Technology',
-            Prefix:         'Mr.',
-            Suffix:         'Jr.',
-            LicenseNumber:  'DOEJA456XY',
-            DLState:        'WA',
-            DLStatus:       'Valid',
-            YearsAtAddress: '3',
+            FirstName:       'Jane',
+            LastName:        'Doe',
+            MiddleName:      'Q',
+            DOB:             '07/04/1985',  // converted YYYY-MM-DD → MM/DD/YYYY
+            Email:           'jane@example.com',
+            Phone:           '5551234567',
+            Address:         '456 Oak Ave',
+            City:            'Seattle',
+            State:           'WA',
+            County:          'King',
+            Zip:             '98101',
+            Gender:          'F',
+            MaritalStatus:   'Married',
+            Education:       'MA',
+            Occupation:      'Software Engineer',
+            Industry:        'Technology',
+            Prefix:          'Mr.',
+            Suffix:          'Jr.',
+            LicenseNumber:   'DOEJA456XY',
+            DLState:         'WA',
+            DLStatus:        'Valid',
+            YearsAtAddress:  '3',
             MonthsAtAddress: '6',
+            PreviousAddress: '789 Pine Ln',
+            PreviousCity:    'Portland',
+            PreviousState:   'OR',
+            PreviousZip:     '97201',
         });
     });
 
@@ -248,6 +258,7 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
             'Education', 'Email', 'FirstName', 'Gender', 'Industry',
             'LastName', 'LicenseNumber', 'MaritalStatus', 'MiddleName',
             'MonthsAtAddress', 'Occupation', 'Phone', 'Prefix',
+            'PreviousAddress', 'PreviousCity', 'PreviousState', 'PreviousZip',
             'State', 'Suffix', 'YearsAtAddress', 'Zip',
         ]);
     });
@@ -274,8 +285,12 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
         ['industry',        'Insurance',      'Industry',       'Insurance'],
         ['prefix',          'Mr.',            'Prefix',         'Mr.'],
         ['suffix',          'Sr.',            'Suffix',         'Sr.'],
-        ['yearsAtAddress',  '5',              'YearsAtAddress', '5'],
-        ['monthsAtAddress', '6',              'MonthsAtAddress', '6'],
+        ['yearsAtAddress',     '5',          'YearsAtAddress',  '5'],
+        ['monthsAtAddress',    '6',          'MonthsAtAddress', '6'],
+        ['previousAddrStreet', '789 Pine',   'PreviousAddress', '789 Pine'],
+        ['previousAddrCity',   'Portland',   'PreviousCity',    'Portland'],
+        ['previousAddrState',  'OR',         'PreviousState',   'OR'],
+        ['previousAddrZip',    '97201',      'PreviousZip',     '97201'],
     ])('Altech.%s = %j → filler.%s = %j', (altechKey, value, fillerKey, expected) => {
         App.data = { [altechKey]: value };
         App.drivers = [];
@@ -308,18 +323,26 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
     // This test never fails; it's a TODO marker that any contributor
     // checking "is X wired?" finds in one place.
     test('documented gaps (Altech collects, filler does NOT yet receive)', () => {
+        // Deliberately not wired:
+        //
+        //   primaryHomeAddr / primaryHomeCity / primaryHomeState
+        //     EZLynx's applicant page handles mailing-vs-residence via a
+        //     single Address Type selector on one address (Home / Mailing
+        //     / Office / Billing / Seasonal). Filling a SECOND address
+        //     block requires clicking "Add address" + setting the type
+        //     before filling — out of scope for applicant-page automation.
+        //     The primary address fields above already cover the common case.
+        //
+        // Adding any of these to the export requires:
+        //   1. New line in exportClientJsonForFiller
+        //   2. TEXT_FIELD_MAP / dropdown entry in ezlynx_filler.py with
+        //      ID-anchored selectors that don't collide with primary
+        //   3. Helper to click "Add address" + select the type
+        //   4. Happy-path assertion above
+        //   5. Remove from this list
         const NOT_YET_WIRED = [
-            // address section — Previous Address subsection on EZLynx
-            'previousAddrStreet', 'previousAddrCity',
-            'previousAddrState', 'previousAddrZip',
-            // address section — non-resident primary home (rare)
             'primaryHomeAddr', 'primaryHomeCity', 'primaryHomeState',
         ];
-        // No assertion — the list itself is the contract. Adding any of
-        // these to the export requires (1) a new line in
-        // exportClientJsonForFiller, (2) a TEXT_FIELD_MAP/dropdown entry
-        // in ezlynx_filler.py, (3) a happy-path assertion above, (4)
-        // remove from this list.
         expect(NOT_YET_WIRED.length).toBeGreaterThan(0);
     });
 });
