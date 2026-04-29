@@ -219,8 +219,18 @@ BASE_DROPDOWN_LABELS = {
     "Suffix":          ["suffix"],
     "Prefix":          ["prefix"],
     "Education":       ["education"],
-    "Occupation":      ["occupation title", "occupation"],
+    # Industry must precede Occupation — Occupation's option list is
+    # data-dependent on Industry. With dict insertion order preserved
+    # (Python 3.7+), iteration fills Industry first.
     "Industry":        ["occupation industry", "industry"],
+    "Occupation":      ["occupation title", "occupation"],
+    # Primary Address subsection — separate mat-selects from the applicant-
+    # level State/Address State. Patterns are deliberately specific so the
+    # label-walk doesn't grab the applicant-level "Address State"; the JS's
+    # Strategy C (id/name pattern) catches the actual fields via the
+    # 'applicant-primary-address-' id prefix (per Cowork Round 5 inventory).
+    "PrimaryAddressState":  ["primary address state"],
+    "PrimaryAddressCounty": ["county"],
     "Relationship":    ["relationship", "relation"],
     "ApplicantType":   ["applicant type"],
     "DLStatus":        ["dl status", "license status", "driver license status"],
@@ -512,15 +522,74 @@ FIND_DROPDOWN_BY_LABEL_JS = """
     // Normalize text for comparison
     function norm(s) { return (s || '').replace(/[\\*\\:]/g, '').trim().toLowerCase(); }
 
-    // Gather all visible label-like elements
+    // Strategy A — scan all label-like elements, then walk to nearby dropdown.
+    // Gather all visible label-like elements.
+    // Angular Material 15+ uses <mat-label> (a custom element, not <label>),
+    // which is why we must list it explicitly — generic 'label' selectors miss it.
     const labels = document.querySelectorAll(
-        'label, legend, .mat-form-field-label, [class*="label"], ' +
+        'label, legend, mat-label, .mat-form-field-label, [class*="label"], ' +
         '[class*="form-field"] > span, [class*="form-field"] > div'
     );
+
+    // Strategy B — scan all dropdowns, then look up their aria-labelledby
+    // label and check if its text matches. More robust because it follows
+    // the accessibility linkage Angular Material always sets up.
+    function checkAriaLinkage(pat) {
+        const dropdowns = document.querySelectorAll(
+            'mat-select, select, [role="listbox"], [role="combobox"]'
+        );
+        for (const dd of dropdowns) {
+            const lblId = dd.getAttribute('aria-labelledby');
+            if (!lblId) continue;
+            const lblEl = document.getElementById(lblId);
+            if (!lblEl) continue;
+            const lblText = norm(lblEl.textContent);
+            if (!lblText || lblText.length > 60) continue;
+            if (lblText !== pat && !lblText.includes(pat)) continue;
+            const id = dd.id || '';
+            return {
+                found: true,
+                type: dd.tagName.toLowerCase(),
+                id: id,
+                selector: id ? '#' + id : null,
+                via: 'aria-labelledby',
+            };
+        }
+        return null;
+    }
+
+    // Strategy C — fallback: match dropdowns by id or name attribute.
+    // EZLynx uses patterns like id="applicant-state" / name="state".
+    function checkIdOrName(pat) {
+        const sluggedPat = pat.replace(/\\s+/g, ''); // "address state" -> "addressstate"
+        const dropdowns = document.querySelectorAll(
+            'mat-select, select, [role="listbox"], [role="combobox"]'
+        );
+        for (const dd of dropdowns) {
+            const id = (dd.id || '').toLowerCase();
+            const nm = (dd.getAttribute('name') || '').toLowerCase();
+            const fc = (dd.getAttribute('formcontrolname') || '').toLowerCase();
+            const haystack = id + '|' + nm + '|' + fc;
+            // Match against the slugged pattern (no spaces) and also each token
+            const tokens = pat.split(/\\s+/).filter(t => t.length >= 3);
+            const allTokensHit = tokens.length > 0 && tokens.every(t => haystack.includes(t));
+            if (haystack.includes(sluggedPat) || allTokensHit) {
+                return {
+                    found: true,
+                    type: dd.tagName.toLowerCase(),
+                    id: dd.id,
+                    selector: dd.id ? '#' + dd.id : null,
+                    via: 'id-or-name',
+                };
+            }
+        }
+        return null;
+    }
 
     for (const pattern of labelPatterns) {
         const pat = pattern.toLowerCase();
 
+        // Strategy A — label-text walk
         for (const lbl of labels) {
             const text = norm(lbl.textContent);
             if (!text || text.length > 60) continue;
@@ -582,9 +651,29 @@ FIND_DROPDOWN_BY_LABEL_JS = """
                 next = next.nextElementSibling;
             }
         }
+
+        // Strategy B — aria-labelledby reverse lookup
+        const ariaHit = checkAriaLinkage(pat);
+        if (ariaHit) return ariaHit;
+
+        // Strategy C — id/name pattern fallback
+        const idHit = checkIdOrName(pat);
+        if (idHit) return idHit;
     }
 
-    return { found: false };
+    // No match — return diagnostic info so the next dev round can see what's
+    // actually on the page (label texts + dropdown ids/names).
+    const matLabelTexts = Array.from(document.querySelectorAll('mat-label'))
+        .map(el => (el.textContent || '').trim()).filter(t => t).slice(0, 30);
+    const dropdownAttrs = Array.from(document.querySelectorAll(
+        'mat-select, [role="combobox"], [role="listbox"]'
+    )).map(dd => ({
+        id: dd.id || null,
+        name: dd.getAttribute('name') || null,
+        formcontrolname: dd.getAttribute('formcontrolname') || null,
+        ariaLabelledby: dd.getAttribute('aria-labelledby') || null,
+    })).slice(0, 30);
+    return { found: false, debug: { matLabelTexts, dropdownAttrs } };
 }
 """
 
@@ -733,9 +822,15 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
 
     if not result.get("found"):
         diag['error'] = 'ERR_LABEL_NOT_FOUND'
+        # Surface the page debug info so we can see what mat-labels
+        # and dropdowns ARE on the page when matching fails.
+        debug = result.get('debug') or {}
+        diag['mat_labels_on_page'] = debug.get('matLabelTexts', [])
+        diag['dropdowns_on_page'] = debug.get('dropdownAttrs', [])
         return False, diag
 
     diag['label_found'] = True
+    diag['match_via'] = result.get('via', 'label-walk')
     dd_type = result.get("type", "")
     dd_selector = result.get("selector")
     dd_id = result.get("id", "")
@@ -779,7 +874,66 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
         return False, diag
 
     try:
-        dropdown_el.click()
+        # Round 6 finding (Cowork): force=True bypasses the actionability check
+        # but the click is still hit-tested at the element's center, which the
+        # mdc-notched-outline label covers. Angular Material's global form-field
+        # listener opens the overlay visually, but the mat-select trigger's OWN
+        # click handler — which kicks off the async option-load API call — never
+        # fires. Result: overlay opens, options never appear, keyboard typeahead
+        # has nothing to match. Manual user clicks land on the chevron arrow at
+        # the right edge (not covered by the label), so they work instantly.
+        #
+        # Strategy ladder, real-mouse-equivalents first, force/JS as fallback:
+        click_method = 'failed'
+        # 1. Click the .mat-mdc-select-arrow chevron child — child of the
+        #    trigger, NOT covered by the notched-outline label. Bubbles
+        #    through the trigger's click handler the way a real click does.
+        try:
+            arrow = dropdown_el.locator('.mat-mdc-select-arrow').first
+            if arrow.count() > 0:
+                arrow.click(timeout=3000)
+                click_method = 'arrow'
+        except Exception:
+            pass
+        # 2. Click the .mat-mdc-select-trigger inner div directly.
+        if click_method == 'failed':
+            try:
+                trigger = dropdown_el.locator('.mat-mdc-select-trigger').first
+                if trigger.count() > 0:
+                    trigger.click(timeout=3000)
+                    click_method = 'trigger'
+            except Exception:
+                pass
+        # 3. CDP-level mouse click at the right edge of the bbox (chevron
+        #    position) — proper hit-test with no notched-outline interference.
+        if click_method == 'failed':
+            try:
+                box = dropdown_el.bounding_box()
+                if box:
+                    x = box['x'] + box['width'] - 12
+                    y = box['y'] + box['height'] / 2
+                    page.mouse.click(x, y)
+                    click_method = 'bbox-edge'
+            except Exception:
+                pass
+        # 4. force=True click — legacy path. May not trigger option load.
+        if click_method == 'failed':
+            try:
+                dropdown_el.click(force=True, timeout=5000)
+                click_method = 'force'
+            except Exception:
+                pass
+        # 5. Pure JS click — synthetic, last resort.
+        if click_method == 'failed':
+            try:
+                dropdown_el.evaluate("el => el.click()")
+                click_method = 'js'
+            except Exception:
+                pass
+        diag['click_method'] = click_method
+        if click_method == 'failed':
+            diag['error'] = 'ERR_CLICK_FAILED'
+            return False, diag
         # Wait for Angular Material overlay to appear instead of blind sleep
         try:
             page.wait_for_selector(
@@ -795,8 +949,86 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
 
     diag['overlay_opened'] = True
 
+    # Helper: poll cdk-overlay for at least one option to render.
+    # Round 5 finding: Angular Material can open the overlay BEFORE
+    # streaming options in. wait_for_selector(state='visible') returns as
+    # soon as the panel exists, even if options=0. Poll the count until
+    # we have something to type/click against.
+    OPTION_SEL = (
+        '.cdk-overlay-container mat-option, '
+        '.cdk-overlay-container [role="option"], '
+        '.mat-select-panel mat-option'
+    )
+    def _wait_for_options(max_ms=3000, poll_ms=100):
+        deadline = time.time() + (max_ms / 1000.0)
+        last = 0
+        while time.time() < deadline:
+            try:
+                last = page.locator(OPTION_SEL).count()
+                if last > 0:
+                    return last
+            except Exception:
+                pass
+            time.sleep(poll_ms / 1000.0)
+        return last
+
+    # Force focus onto the mat-select trigger. force=True bypasses
+    # actionability AND focus management, so keyboard typing was going
+    # nowhere on State/Occupation. Explicit focus puts the listbox at
+    # the keyboard target.
+    try:
+        dropdown_el.evaluate("el => el.focus && el.focus()")
+    except Exception:
+        pass
+
+    # Helper: read the mat-select's displayed value to verify a fill actually
+    # committed. Cowork Round 4 caught the false-positive: with force=True
+    # bypassing actionability + focus, keyboard-typeahead can type into nothing,
+    # the overlay closes on click-out, and the script declared success without
+    # the value sticking. Verifying via DOM closes that hole.
+    # Returns: True (verified stuck), False (definitely empty), None (unknown).
+    def _verify_value_committed(expected_pool):
+        if not dd_id:
+            return None
+        try:
+            data = page.evaluate("""
+                (id) => {
+                    const el = document.getElementById(id);
+                    if (!el) return null;
+                    const cls = el.className || '';
+                    const valEl = el.querySelector('.mat-mdc-select-min-line')
+                               || el.querySelector('.mat-mdc-select-value-text')
+                               || el.querySelector('.mat-select-value-text');
+                    return {
+                        empty: cls.includes('mat-mdc-select-empty'),
+                        ariaInvalid: el.getAttribute('aria-invalid'),
+                        text: valEl ? (valEl.textContent || '').trim() : '',
+                    };
+                }
+            """, dd_id)
+        except Exception:
+            return None
+        if not data:
+            return None
+        if data.get('empty') or data.get('ariaInvalid') == 'true':
+            return False
+        text = (data.get('text') or '').lower()
+        if not text:
+            return False
+        for needle in expected_pool:
+            if not needle:
+                continue
+            n = needle.lower()
+            if n == text or n in text or text in n:
+                return True
+        return False  # has some text but not what we expected
+
     # Step 3b: Try keyboard shortcut first (faster for long lists like States)
-    # Angular Material mat-selects support typing to jump to matching options
+    # Angular Material mat-selects support typing to jump to matching options.
+    # Wait for at least one option to render before typing — typing into an
+    # empty overlay does nothing and the overlay closes on Enter, false-success.
+    options_visible = _wait_for_options(max_ms=3000)
+    diag['options_loaded_count'] = options_visible
     try:
         # Type the expanded name to filter/jump, then press Enter
         type_value = expanded if expanded != target else target
@@ -820,11 +1052,61 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
             pass
 
         if not overlay_still_open:
-            diag['match_method'] = 'keyboard'
-            diag['matched_text'] = type_value
-            return True, diag
+            # Verify the value actually persisted before declaring success.
+            # When verification is impossible (no dd_id), trust the overlay
+            # close and continue — preserves prior behavior for legacy paths.
+            verified = _verify_value_committed([type_value, expanded, target])
+            if verified is True:
+                diag['match_method'] = 'keyboard'
+                diag['matched_text'] = type_value
+                diag['verified'] = True
+                return True, diag
+            elif verified is None:
+                diag['match_method'] = 'keyboard'
+                diag['matched_text'] = type_value
+                diag['verified'] = 'unknown'
+                return True, diag
+            # verified is False — overlay closed but value did NOT stick.
+            # Don't return success; fall through to direct option-click below.
+            diag['keyboard_attempted_but_not_persisted'] = True
     except Exception:
         pass
+
+    # Step 3c: If keyboard typing didn't persist, re-open the dropdown so
+    # Step 4 can find options and click one directly. Use the same chevron-
+    # first click ladder as the initial open — force-click on the wrapper
+    # would re-trigger the same hit-test problem the chevron click solves.
+    if diag.get('keyboard_attempted_but_not_persisted'):
+        reopened = False
+        try:
+            arrow = dropdown_el.locator('.mat-mdc-select-arrow').first
+            if arrow.count() > 0:
+                arrow.click(timeout=3000)
+                reopened = True
+        except Exception:
+            pass
+        if not reopened:
+            try:
+                box = dropdown_el.bounding_box()
+                if box:
+                    page.mouse.click(box['x'] + box['width'] - 12,
+                                     box['y'] + box['height'] / 2)
+                    reopened = True
+            except Exception:
+                pass
+        if not reopened:
+            try:
+                dropdown_el.click(force=True, timeout=5000)
+            except Exception:
+                try:
+                    dropdown_el.evaluate("el => el.click()")
+                except Exception:
+                    pass
+        try:
+            dropdown_el.evaluate("el => el.focus && el.focus()")
+        except Exception:
+            pass
+        _wait_for_options(max_ms=3000)
 
     # Step 4: Find options in the overlay panel
     # Angular Material renders options in a CDK overlay at document body level
@@ -912,14 +1194,21 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
 
     if best_match:
         diag['matched_text'] = best_match
-        # Click the matching option
+        # Click the matching option. Same force-click strategy as the
+        # mat-select trigger — the cdk-overlay panel can have its own
+        # hit-test quirks, and force=True with a JS fallback is reliable
+        # without the 30s default timeout.
         try:
             for osel in overlay_selectors:
                 try:
                     loc = page.locator(osel)
                     for i in range(loc.count()):
                         if loc.nth(i).inner_text().strip() == best_match:
-                            loc.nth(i).click()
+                            opt_el = loc.nth(i)
+                            try:
+                                opt_el.click(force=True, timeout=5000)
+                            except Exception:
+                                opt_el.evaluate("el => el.click()")
                             # Wait for overlay to dismiss after clicking option
                             try:
                                 page.wait_for_selector(
@@ -928,8 +1217,18 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
                                 )
                             except PWTimeout:
                                 pass
+                            # Verify the value actually persisted on the
+                            # mat-select trigger. With direct-click on the
+                            # option this almost always works, but if it
+                            # didn't we want to know — not a silent success.
+                            verified = _verify_value_committed([best_match, expanded, target])
+                            if verified is False:
+                                diag['error'] = 'ERR_OPTION_CLICK_NOT_PERSISTED'
+                                diag['option_clicked'] = best_match
+                                return False, diag
                             diag['match_method'] = 'exact' if best_match.lower() in [target.lower(), expanded.lower()] else \
                                                    'fuzzy' if diag.get('fuzzy_candidates') else 'substring'
+                            diag['verified'] = True if verified is True else 'unknown'
                             return True, diag
                 except Exception:
                     continue
@@ -984,7 +1283,7 @@ def fill_text_by_label(page, label_text: str, value: str) -> bool:
     try:
         result = page.evaluate("""(labelText) => {
             function norm(s) { return (s || '').replace(/[\\*\\:]/g, '').trim().toLowerCase(); }
-            const labels = document.querySelectorAll('label, legend, [class*="label"]');
+            const labels = document.querySelectorAll('label, legend, mat-label, [class*="label"]');
             const pat = labelText.toLowerCase();
 
             for (const lbl of labels) {
@@ -1157,10 +1456,49 @@ def run(client_file: str, schema_file: str):
         except Exception:
             pass
 
+    # Persist login between runs via a real Chromium user data dir.
+    # Cookies/session live at ~/.altech-ezlynx-filler-profile so the user
+    # doesn't have to re-MFA every time.
+    user_data_dir = os.path.join(os.path.expanduser("~"), ".altech-ezlynx-filler-profile")
+
+    # Defensive sweep: previous Ctrl+C exits leave Chromium lockfiles that
+    # make launch_persistent_context die with TargetClosedError on next run.
+    # Sweep these BEFORE launch — Playwright is not running yet, so it's safe.
+    if os.path.isdir(user_data_dir):
+        for stale_lock in ("SingletonLock", "SingletonCookie", "SingletonSocket", "lockfile"):
+            lock_path = os.path.join(user_data_dir, stale_lock)
+            try:
+                if os.path.exists(lock_path) or os.path.islink(lock_path):
+                    os.remove(lock_path)
+            except Exception:
+                pass
+
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context(viewport={"width": 1400, "height": 900})
-        page = context.new_page()
+        # launch_persistent_context replaces launch + new_context.
+        # no_viewport=True lets the page use the full window size, which is what
+        # the user expects when they maximize Chromium. --start-maximized opens
+        # the window maximized on launch.
+        context = p.chromium.launch_persistent_context(
+            user_data_dir,
+            headless=False,
+            args=["--start-maximized"],
+            no_viewport=True,
+        )
+        page = context.pages[0] if context.pages else context.new_page()
+
+        # Event-based close detection: page.is_closed() and len(context.pages)
+        # cache state in Playwright's sync API and don't always reflect a
+        # user-driven window close. Register handlers that flip a flag, then
+        # poll the flag (cheap) instead of polling Playwright state (cached).
+        # We use a list as a mutable flag so closure-captures see updates.
+        close_state = {'closed': False}
+        def _on_close(*_args):
+            close_state['closed'] = True
+        try:
+            context.on("close", _on_close)
+            page.on("close", _on_close)
+        except Exception:
+            pass
 
         try:
             # Step 1: Navigate
@@ -1218,7 +1556,7 @@ def run(client_file: str, schema_file: str):
                     action = ''
 
                 if action == 'close':
-                    print("[*] Close requested — removing toolbar (browser stays open).")
+                    print("[*] Close clicked — toolbar removed. Close the Chromium window when you're done; the script will exit then.")
                     try:
                         page.evaluate("""
                             var tb = document.getElementById('_altech_filler_toolbar');
@@ -1227,6 +1565,26 @@ def run(client_file: str, schema_file: str):
                         """)
                     except Exception:
                         pass
+                    # Wait until the user closes the browser themselves. Three
+                    # signals — any one is sufficient:
+                    #   (a) the on("close") handler set close_state['closed']
+                    #   (b) page.evaluate("1") raises (real round-trip — Playwright's
+                    #       cached state can lie, an evaluate() can't)
+                    #   (c) the persistent context has no live pages
+                    while True:
+                        time.sleep(0.5)
+                        if close_state['closed']:
+                            break
+                        try:
+                            page.evaluate("1")
+                        except Exception:
+                            break
+                        try:
+                            if not context.pages:
+                                break
+                        except Exception:
+                            break
+                    print("[*] Chromium closed by user. Exiting.")
                     break
 
                 if action != 'fill':
@@ -1290,8 +1648,18 @@ def run(client_file: str, schema_file: str):
                 dd_skipped = 0
                 dd_retried = []  # Track fields that failed and need retry
 
+                # Data fallback map: when a logical field isn't in client data,
+                # synthesize it from a related field. Lets one State value in
+                # the client JSON cover both applicant-level State AND the
+                # Primary Address State without duplication.
+                CLIENT_FALLBACKS = {
+                    "PrimaryAddressState": "State",
+                    "PrimaryAddressCounty": "County",
+                }
                 for key, label_patterns in active_dropdowns.items():
                     value = client.get(key, "")
+                    if not value and key in CLIENT_FALLBACKS:
+                        value = client.get(CLIENT_FALLBACKS[key], "")
                     if not value:
                         continue
 
@@ -1328,8 +1696,14 @@ def run(client_file: str, schema_file: str):
                             time.sleep(0.3)
                         # Fallback to native <select> selectors
                         elif key in DROPDOWN_SELECT_MAP:
-                            success, diag = smart_select_native(page, DROPDOWN_SELECT_MAP[key], value, schema_options)
+                            # Preserve custom's diag — it carries the on-page debug
+                            # payload (mat_labels_on_page, dropdowns_on_page) which
+                            # smart_select_native does NOT regenerate. We only swap
+                            # to native's diag if native actually succeeded.
+                            custom_diag = diag
+                            success, native_diag = smart_select_native(page, DROPDOWN_SELECT_MAP[key], value, schema_options)
                             if success:
+                                diag = native_diag
                                 method = diag.get('match_method', 'native')
                                 matched = diag.get('matched_text', '')
                                 print(f"  [v] {key}: '{value}' -> '{matched}' ({method}, native)")
@@ -1337,6 +1711,13 @@ def run(client_file: str, schema_file: str):
                                                     'status': 'OK', 'diag': diag})
                                 dd_filled += 1
                                 time.sleep(0.15)
+                            else:
+                                # Native fallback also failed. Keep custom's diag
+                                # (which has the debug payload) but record that
+                                # native was attempted too.
+                                diag = custom_diag or {}
+                                diag['native_attempted'] = True
+                                diag['native_error'] = native_diag.get('error') if native_diag else None
 
                         if not success:
                             err = diag.get('error', 'UNKNOWN') if diag else 'NO_DIAG'
@@ -1439,6 +1820,7 @@ def run(client_file: str, schema_file: str):
                         if r['type'] == 'dropdown':
                             print(f"    Label found: {d.get('label_found', '?')}")
                             if d.get('label_found'):
+                                print(f"    Match via: {d.get('match_via', '?')}")
                                 print(f"    Dropdown type: {d.get('dropdown_type', '?')}")
                                 print(f"    Dropdown ID: {d.get('dropdown_id', 'none')}")
                                 print(f"    Overlay opened: {d.get('overlay_opened', '?')}")
@@ -1447,7 +1829,54 @@ def run(client_file: str, schema_file: str):
                                 print(f"    Options sample: {d['options_sample']}")
                             if d.get('fuzzy_candidates'):
                                 print(f"    Fuzzy near-matches: {d['fuzzy_candidates']}")
+                            # When label search fails, dump what IS on the page
+                            # so the next fix can target the actual selectors.
+                            if not d.get('label_found') and d.get('mat_labels_on_page'):
+                                print(f"    mat-label texts on page: {d['mat_labels_on_page']}")
+                            if not d.get('label_found') and d.get('dropdowns_on_page'):
+                                print(f"    Dropdown attrs on page (first 10):")
+                                for dd_info in d['dropdowns_on_page'][:10]:
+                                    print(f"      - {dd_info}")
+                            # Surface the click-was-fired-but-value-didn't-stick path
+                            if d.get('keyboard_attempted_but_not_persisted'):
+                                print(f"    Note: keyboard typeahead opened overlay but value didn't persist; option-click also tried")
+                            if d.get('options_loaded_count') is not None:
+                                print(f"    Options visible after open (waited up to 3s): {d['options_loaded_count']}")
+                            if d.get('click_method'):
+                                print(f"    Click method that opened overlay: {d['click_method']}")
                     print(f"\n{'=' * 50}")
+
+                    # Mat-select inventory: at the end of any FAIL report,
+                    # dump every mat-select on the page with its id, name,
+                    # and current displayed value. Lets the next round see
+                    # which fields are actually filled vs which the script
+                    # claims to have filled. Cowork-driven debugging stays
+                    # quick without ad-hoc patches.
+                    try:
+                        inventory = page.evaluate("""
+                            () => Array.from(document.querySelectorAll('mat-select')).map(el => {
+                                const valEl = el.querySelector('.mat-mdc-select-min-line')
+                                           || el.querySelector('.mat-mdc-select-value-text');
+                                const lblId = el.getAttribute('aria-labelledby');
+                                const lblEl = lblId ? document.getElementById(lblId) : null;
+                                return {
+                                    id: el.id || null,
+                                    name: el.getAttribute('name') || null,
+                                    label: lblEl ? (lblEl.textContent || '').trim() : null,
+                                    value: valEl ? (valEl.textContent || '').trim() : '',
+                                    empty: (el.className || '').includes('mat-mdc-select-empty'),
+                                };
+                            }).slice(0, 40)
+                        """)
+                        if inventory:
+                            print(f"\n--- MAT-SELECT INVENTORY (first 40, post-fill state) ---")
+                            for i, dd_info in enumerate(inventory):
+                                print(f"  [#{i:2}] {dd_info.get('label') or '?':<30} "
+                                      f"id={dd_info.get('id') or '-':<40} "
+                                      f"value={'(empty)' if dd_info.get('empty') else repr(dd_info.get('value'))}")
+                            print(f"{'=' * 50}")
+                    except Exception:
+                        pass
 
                 update_filler_status(page,
                     f"Done! {total} filled, {len(failures)} failed. "
@@ -1457,18 +1886,20 @@ def run(client_file: str, schema_file: str):
 
         except KeyboardInterrupt:
             print("\n[!] Interrupted by user.")
-            browser.close()
+            try:
+                context.close()
+            except Exception:
+                pass
             print("[*] Browser closed.")
         except Exception as e:
             print(f"\n[!] Unexpected error: {e}")
-            browser.close()
+            try:
+                context.close()
+            except Exception:
+                pass
             print("[*] Browser closed.")
-        else:
-            # Normal exit (user clicked Close) — leave browser open.
-            # We must os._exit(0) to skip Playwright's cleanup handlers,
-            # which would kill the browser process it launched.
-            print("[*] Filler toolbar removed. Browser left open for you to continue quoting.")
-            os._exit(0)
+        # Normal exit: the user already closed Chromium (the action='close'
+        # handler waited for that). Just let the with-block clean up.
 
 
 def main():
