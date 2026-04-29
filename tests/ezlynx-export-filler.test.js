@@ -49,9 +49,31 @@ describe('App.exportClientJsonForFiller', () => {
         expect(out.FirstName).toBe('Jane');
         expect(out.LastName).toBe('Doe');
         expect(out.MiddleName).toBe('Q');
-        expect(out.DOB).toBe('1990-05-12');
+        // DOB converted from YYYY-MM-DD (Altech storage) to MM/DD/YYYY
+        // (the format EZLynx's date inputs accept). See export function.
+        expect(out.DOB).toBe('05/12/1990');
         expect(out.Email).toBe('jane@example.com');
         expect(out.Phone).toBe('5555551234');
+    });
+
+    test('converts DOB from YYYY-MM-DD to MM/DD/YYYY', () => {
+        App.data = { dob: '2002-09-28' };
+        App.drivers = [];
+        expect(App.exportClientJsonForFiller().DOB).toBe('09/28/2002');
+    });
+
+    test('passes DOB through unchanged when not in YYYY-MM-DD form', () => {
+        // Belt-and-suspenders for legacy data that's already MM/DD/YYYY,
+        // or partial values. Don't break what's already correct.
+        App.data = { dob: '09/28/2002' };
+        App.drivers = [];
+        expect(App.exportClientJsonForFiller().DOB).toBe('09/28/2002');
+    });
+
+    test('returns empty DOB string when missing', () => {
+        App.data = {};
+        App.drivers = [];
+        expect(App.exportClientJsonForFiller().DOB).toBe('');
     });
 
     test('maps address fields including County', () => {
