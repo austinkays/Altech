@@ -242,13 +242,13 @@ Mirrors `CloudSync`'s API. Backed by Postgres tables under `public.user_sync` ke
 
 ### Critical Rules
 
-- **Never edit `css/main.css`** — dead `@import` aggregator, not linked in `index.html`, has zero effect
+- **`css/main.css` is gone** — the old aggregator was deleted. If something references it (a stale doc, a test, an `@import`), update the reference to the actual split file.
 - **Dark mode selector:** `body.dark-mode .class` (not `[data-theme="dark"]`)
 - **Default is dark:** `loadDarkMode()` defaults to dark when no preference is stored
 - **Valid variables:** `--bg-card`, `--text`, `--apple-blue`, `--text-secondary`, `--bg-input`, `--border`
 - **Invalid (don't exist):** `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - **Prefer solid colors** (`#1C1C1E`) over low-opacity rgba for dark mode backgrounds
-- **`/* no var */` comments** mark hardcoded colors still needing a design token — leave them intact, do not remove. Currently in the split compliance files (3× `#FF9500` warning/saving states) and the split components files (1× low-opacity rgba background). Search `/* no var */` to find all instances.
+- **`/* no var */` comments** mark hardcoded colors still needing a design token — if you see one, leave it intact (it's a TODO marker for a follow-up tokenization pass). As of April 2026 there are zero remaining in `css/`; if any reappear, search `/* no var */` to find them.
 
 ### `[data-tooltip]` Bleed — Full Property Matrix (CRITICAL)
 
@@ -371,7 +371,7 @@ The `?mode=zillow` (Rentcast/Gemini) and `?mode=arcgis` (ArcGIS + FEMA) flows us
 | 3 | **ArcGIS / Clark County** | `handleArcgis()` | Parcel geometry, PC, fire stations. Runs parallel with FEMA. |
 | 4 | **FEMA NFHL** | `fetchFloodZone()` | Public flood zone API (no key). 5-second timeout. Attached to ArcGIS response as `floodData`. |
 
-**`js/app-property.js` Rentcast usage counter:** tracks per-user call count in Firestore (`users/{uid}/rentcastUsage`). Overage modal fires when count exceeds limit. All Rentcast calls write `{ ts, address, source: 'rentcast' }` to audit log.
+**`js/app-property-rentcast.js` Rentcast usage counter:** tracks per-user call count in Firestore at `users/{uid}/sync/rentcastUsage`. Overage modal fires when count exceeds limit; approved overages write a permanent record to `users/{uid}/rentcast_overage_log/{ts}`. The counter UI binding (`#rentcastUsageDisplay`) lives in `js/app-property.js`.
 
 **Authoritative ref:** `docs/RENTCAST_API.md` — read this first before touching any Rentcast or FEMA code. Covers full field schema, enum values, and fields that do NOT exist in Rentcast (use Gemini fallback).
 
@@ -449,7 +449,7 @@ The `phonetic-speller` is a popup helper (no plugin HTML) — invoked from heade
 | Cloud-sync a key without adding it to `SYNC_DOCS` | Add the doc name once — push/delete pick it up |
 | Sync `ENCRYPTION_SALT` / `PASSPHRASE_SALT` / `*_RECOVERY` | Local-only, never |
 | Use `var(--accent)` or `var(--muted)` | Use `var(--apple-blue)` or `var(--text-secondary)` |
-| Edit `css/main.css` | Edit the split file where the selector lives |
+| Recreate `css/main.css` | It was removed — edit the split file where the selector lives |
 | Load `app-boot.js` before plugins | It must always be the last `<script>` tag |
-| Remove a `/* no var */` comment | Leave it — it marks work still to be done |
+| Remove a `/* no var */` comment if you encounter one | Leave it — it marks tokenization work still to be done |
 | Reference step-2 in workflows | It was removed — flows go 0 → 1 → 3 → … |
