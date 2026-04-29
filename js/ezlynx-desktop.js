@@ -50,6 +50,7 @@ window.EzlynxDesktop = (() => {
                 <pre class="ezlynx-desktop-modal__log" id="ezlynxDesktopLog"></pre>
                 <footer class="ezlynx-desktop-modal__footer">
                     <span class="ezlynx-desktop-modal__hint" id="ezlynxDesktopHint"></span>
+                    <button class="ezlynx-desktop-modal__copy" id="ezlynxDesktopCopy" title="Copy log to clipboard">📋 Copy log</button>
                     <button class="ezlynx-desktop-modal__close" id="ezlynxDesktopClose">Close</button>
                 </footer>
             </div>
@@ -62,6 +63,39 @@ window.EzlynxDesktop = (() => {
         // Python hangs or never emits.
         m.querySelector('#ezlynxDesktopClose').addEventListener('click', () => {
             m.classList.add('hidden');
+        });
+        // Copy log to clipboard. navigator.clipboard.writeText is the
+        // modern API; fall back to the legacy execCommand path for any
+        // edge case where it's blocked.
+        m.querySelector('#ezlynxDesktopCopy').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const log = document.getElementById('ezlynxDesktopLog');
+            const text = log ? log.textContent : '';
+            if (!text) return;
+            const original = btn.textContent;
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                btn.textContent = '✓ Copied';
+                btn.classList.add('is-copied');
+                setTimeout(() => {
+                    btn.textContent = original;
+                    btn.classList.remove('is-copied');
+                }, 1500);
+            } catch (err) {
+                btn.textContent = '✗ Failed';
+                setTimeout(() => { btn.textContent = original; }, 1500);
+            }
         });
         m.querySelector('.ezlynx-desktop-modal__backdrop').addEventListener('click', () => {
             // Backdrop click only when not running — protects against
