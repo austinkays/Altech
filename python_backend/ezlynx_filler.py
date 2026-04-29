@@ -219,8 +219,18 @@ BASE_DROPDOWN_LABELS = {
     "Suffix":          ["suffix"],
     "Prefix":          ["prefix"],
     "Education":       ["education"],
-    "Occupation":      ["occupation title", "occupation"],
+    # Industry must precede Occupation — Occupation's option list is
+    # data-dependent on Industry. With dict insertion order preserved
+    # (Python 3.7+), iteration fills Industry first.
     "Industry":        ["occupation industry", "industry"],
+    "Occupation":      ["occupation title", "occupation"],
+    # Primary Address subsection — separate mat-selects from the applicant-
+    # level State/Address State. Patterns are deliberately specific so the
+    # label-walk doesn't grab the applicant-level "Address State"; the JS's
+    # Strategy C (id/name pattern) catches the actual fields via the
+    # 'applicant-primary-address-' id prefix (per Cowork Round 5 inventory).
+    "PrimaryAddressState":  ["primary address state"],
+    "PrimaryAddressCounty": ["county"],
     "Relationship":    ["relationship", "relation"],
     "ApplicantType":   ["applicant type"],
     "DLStatus":        ["dl status", "license status", "driver license status"],
@@ -895,6 +905,38 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
 
     diag['overlay_opened'] = True
 
+    # Helper: poll cdk-overlay for at least one option to render.
+    # Round 5 finding: Angular Material can open the overlay BEFORE
+    # streaming options in. wait_for_selector(state='visible') returns as
+    # soon as the panel exists, even if options=0. Poll the count until
+    # we have something to type/click against.
+    OPTION_SEL = (
+        '.cdk-overlay-container mat-option, '
+        '.cdk-overlay-container [role="option"], '
+        '.mat-select-panel mat-option'
+    )
+    def _wait_for_options(max_ms=3000, poll_ms=100):
+        deadline = time.time() + (max_ms / 1000.0)
+        last = 0
+        while time.time() < deadline:
+            try:
+                last = page.locator(OPTION_SEL).count()
+                if last > 0:
+                    return last
+            except Exception:
+                pass
+            time.sleep(poll_ms / 1000.0)
+        return last
+
+    # Force focus onto the mat-select trigger. force=True bypasses
+    # actionability AND focus management, so keyboard typing was going
+    # nowhere on State/Occupation. Explicit focus puts the listbox at
+    # the keyboard target.
+    try:
+        dropdown_el.evaluate("el => el.focus && el.focus()")
+    except Exception:
+        pass
+
     # Helper: read the mat-select's displayed value to verify a fill actually
     # committed. Cowork Round 4 caught the false-positive: with force=True
     # bypassing actionability + focus, keyboard-typeahead can type into nothing,
@@ -938,7 +980,11 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
         return False  # has some text but not what we expected
 
     # Step 3b: Try keyboard shortcut first (faster for long lists like States)
-    # Angular Material mat-selects support typing to jump to matching options
+    # Angular Material mat-selects support typing to jump to matching options.
+    # Wait for at least one option to render before typing — typing into an
+    # empty overlay does nothing and the overlay closes on Enter, false-success.
+    options_visible = _wait_for_options(max_ms=3000)
+    diag['options_loaded_count'] = options_visible
     try:
         # Type the expanded name to filter/jump, then press Enter
         type_value = expanded if expanded != target else target
@@ -985,20 +1031,20 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
     # Step 3c: If keyboard typing didn't persist (Cowork Round 4 finding —
     # force=True can leave focus off the listbox, so typed chars go nowhere),
     # the overlay is now closed and we have no options to scan. Re-open the
-    # dropdown so Step 4 can find options and click one directly.
+    # dropdown so Step 4 can find options and click one directly. Wait for
+    # options to render after reopening — same async-load reason as 3b.
     if diag.get('keyboard_attempted_but_not_persisted'):
         try:
             dropdown_el.click(force=True, timeout=5000)
             try:
-                page.wait_for_selector(
-                    '.cdk-overlay-container mat-option, .cdk-overlay-container [role="option"]',
-                    state='visible', timeout=5000
-                )
-            except PWTimeout:
+                dropdown_el.evaluate("el => el.focus && el.focus()")
+            except Exception:
                 pass
+            _wait_for_options(max_ms=3000)
         except Exception:
             try:
                 dropdown_el.evaluate("el => el.click()")
+                _wait_for_options(max_ms=3000)
             except Exception:
                 pass
 
@@ -1542,8 +1588,17 @@ def run(client_file: str, schema_file: str):
                 dd_skipped = 0
                 dd_retried = []  # Track fields that failed and need retry
 
+                # Data fallback map: when a logical field isn't in client data,
+                # synthesize it from a related field. Lets one State value in
+                # the client JSON cover both applicant-level State AND the
+                # Primary Address State without duplication.
+                CLIENT_FALLBACKS = {
+                    "PrimaryAddressState": "State",
+                }
                 for key, label_patterns in active_dropdowns.items():
                     value = client.get(key, "")
+                    if not value and key in CLIENT_FALLBACKS:
+                        value = client.get(CLIENT_FALLBACKS[key], "")
                     if not value:
                         continue
 
@@ -1721,7 +1776,44 @@ def run(client_file: str, schema_file: str):
                                 print(f"    Dropdown attrs on page (first 10):")
                                 for dd_info in d['dropdowns_on_page'][:10]:
                                     print(f"      - {dd_info}")
+                            # Surface the click-was-fired-but-value-didn't-stick path
+                            if d.get('keyboard_attempted_but_not_persisted'):
+                                print(f"    Note: keyboard typeahead opened overlay but value didn't persist; option-click also tried")
+                            if d.get('options_loaded_count') is not None:
+                                print(f"    Options visible after open (waited up to 3s): {d['options_loaded_count']}")
                     print(f"\n{'=' * 50}")
+
+                    # Mat-select inventory: at the end of any FAIL report,
+                    # dump every mat-select on the page with its id, name,
+                    # and current displayed value. Lets the next round see
+                    # which fields are actually filled vs which the script
+                    # claims to have filled. Cowork-driven debugging stays
+                    # quick without ad-hoc patches.
+                    try:
+                        inventory = page.evaluate("""
+                            () => Array.from(document.querySelectorAll('mat-select')).map(el => {
+                                const valEl = el.querySelector('.mat-mdc-select-min-line')
+                                           || el.querySelector('.mat-mdc-select-value-text');
+                                const lblId = el.getAttribute('aria-labelledby');
+                                const lblEl = lblId ? document.getElementById(lblId) : null;
+                                return {
+                                    id: el.id || null,
+                                    name: el.getAttribute('name') || null,
+                                    label: lblEl ? (lblEl.textContent || '').trim() : null,
+                                    value: valEl ? (valEl.textContent || '').trim() : '',
+                                    empty: (el.className || '').includes('mat-mdc-select-empty'),
+                                };
+                            }).slice(0, 40)
+                        """)
+                        if inventory:
+                            print(f"\n--- MAT-SELECT INVENTORY (first 40, post-fill state) ---")
+                            for i, dd_info in enumerate(inventory):
+                                print(f"  [#{i:2}] {dd_info.get('label') or '?':<30} "
+                                      f"id={dd_info.get('id') or '-':<40} "
+                                      f"value={'(empty)' if dd_info.get('empty') else repr(dd_info.get('value'))}")
+                            print(f"{'=' * 50}")
+                    except Exception:
+                        pass
 
                 update_filler_status(page,
                     f"Done! {total} filled, {len(failures)} failed. "
