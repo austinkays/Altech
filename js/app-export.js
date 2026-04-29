@@ -94,6 +94,36 @@ Object.assign(App, {
             PreviousCity:    d.previousAddrCity || '',
             PreviousState:   d.previousAddrState || '',
             PreviousZip:     d.previousAddrZip || '',
+
+            // ── Auto Policy Info (only relevant on /rating/auto/ pages) ──
+            // Filler skips empty values gracefully, so it's safe to
+            // include these even when a client isn't being quoted on
+            // auto. The Python filler's get_active_dropdowns() loads
+            // AUTO_DROPDOWN_LABELS only when the URL path matches.
+            EffectiveDate:           toMDY(d.effectiveDate),
+            PolicyTerm:              d.policyTerm || '',
+            AutoPolicyType:          d.autoPolicyType || '',
+            ResidenceIs:             d.residenceIs || '',
+            PriorCarrier:            d.priorCarrier || '',
+            PriorPolicyTerm:         d.priorPolicyTerm || '',
+            PriorYearsWithCarrier:   d.priorYears || '',
+            YearsContinuousCoverage: d.continuousCoverage || '',
+            // Altech stores creditCheckAuth as a checkbox (boolean).
+            // EZLynx expects a Yes/No selection. Convert here so the
+            // wire format is what EZLynx accepts.
+            CreditCheckAuth:         d.creditCheckAuth === true || d.creditCheckAuth === 'Yes' ? 'Yes'
+                                     : d.creditCheckAuth === false || d.creditCheckAuth === 'No' ? 'No'
+                                     : (d.creditCheckAuth || ''),
+            // Coverage limits — Altech stores BI as a "100/300" combined
+            // string in liabilityLimits, PD separately in pdLimit. EZLynx
+            // splits them into Bodily Injury and Property Damage dropdowns.
+            BodilyInjury:            d.liabilityLimits || '',
+            PropertyDamage:          d.pdLimit || '',
+            MedPaymentsAuto:         d.medPayments || '',
+            UMPD:                    d.umpdLimit || '',
+            Comprehensive:           d.compDeductible || '',
+            Collision:               d.autoDeductible || '',
+            StudentGPA:              d.studentGPA || '',
         };
 
         return out;

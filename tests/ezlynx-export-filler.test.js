@@ -200,6 +200,23 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
             previousAddrCity:   'Portland',
             previousAddrState:  'OR',
             previousAddrZip:    '97201',
+            // auto policy info — only filled on /rating/auto/ pages
+            effectiveDate:      '2026-06-01',
+            policyTerm:         '12 Month',
+            autoPolicyType:     'Standard',
+            residenceIs:        'Home (owned)',
+            priorCarrier:       'Progressive',
+            priorPolicyTerm:    '6 Month',
+            priorYears:         '5',
+            continuousCoverage: '5+',
+            creditCheckAuth:    true,
+            liabilityLimits:    '100/300',
+            pdLimit:            '100000',
+            medPayments:        '5000',
+            umpdLimit:          '50000',
+            compDeductible:     '500',
+            autoDeductible:     '500',
+            studentGPA:         '3.7',
         };
         App.drivers = [{
             dlNum: 'DOEJA456XY',
@@ -238,6 +255,22 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
             PreviousCity:    'Portland',
             PreviousState:   'OR',
             PreviousZip:     '97201',
+            EffectiveDate:           '06/01/2026',  // converted from YYYY-MM-DD
+            PolicyTerm:              '12 Month',
+            AutoPolicyType:          'Standard',
+            ResidenceIs:             'Home (owned)',
+            PriorCarrier:            'Progressive',
+            PriorPolicyTerm:         '6 Month',
+            PriorYearsWithCarrier:   '5',
+            YearsContinuousCoverage: '5+',
+            CreditCheckAuth:         'Yes',  // boolean true → 'Yes'
+            BodilyInjury:            '100/300',
+            PropertyDamage:          '100000',
+            MedPaymentsAuto:         '5000',
+            UMPD:                    '50000',
+            Comprehensive:           '500',
+            Collision:               '500',
+            StudentGPA:              '3.7',
         });
     });
 
@@ -254,12 +287,17 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
         App.data = {};
         App.drivers = [];
         expect(Object.keys(App.exportClientJsonForFiller()).sort()).toEqual([
-            'Address', 'City', 'County', 'DLState', 'DLStatus', 'DOB',
-            'Education', 'Email', 'FirstName', 'Gender', 'Industry',
-            'LastName', 'LicenseNumber', 'MaritalStatus', 'MiddleName',
-            'MonthsAtAddress', 'Occupation', 'Phone', 'Prefix',
-            'PreviousAddress', 'PreviousCity', 'PreviousState', 'PreviousZip',
-            'State', 'Suffix', 'YearsAtAddress', 'Zip',
+            'Address', 'AutoPolicyType', 'BodilyInjury', 'City', 'Collision',
+            'Comprehensive', 'County', 'CreditCheckAuth', 'DLState',
+            'DLStatus', 'DOB', 'Education', 'EffectiveDate', 'Email',
+            'FirstName', 'Gender', 'Industry', 'LastName', 'LicenseNumber',
+            'MaritalStatus', 'MedPaymentsAuto', 'MiddleName',
+            'MonthsAtAddress', 'Occupation', 'Phone', 'PolicyTerm',
+            'Prefix', 'PreviousAddress', 'PreviousCity', 'PreviousState',
+            'PreviousZip', 'PriorCarrier', 'PriorPolicyTerm',
+            'PriorYearsWithCarrier', 'PropertyDamage', 'ResidenceIs',
+            'State', 'StudentGPA', 'Suffix', 'UMPD', 'YearsAtAddress',
+            'YearsContinuousCoverage', 'Zip',
         ]);
     });
 
@@ -287,10 +325,26 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
         ['suffix',          'Sr.',            'Suffix',         'Sr.'],
         ['yearsAtAddress',     '5',          'YearsAtAddress',  '5'],
         ['monthsAtAddress',    '6',          'MonthsAtAddress', '6'],
-        ['previousAddrStreet', '789 Pine',   'PreviousAddress', '789 Pine'],
-        ['previousAddrCity',   'Portland',   'PreviousCity',    'Portland'],
-        ['previousAddrState',  'OR',         'PreviousState',   'OR'],
-        ['previousAddrZip',    '97201',      'PreviousZip',     '97201'],
+        ['previousAddrStreet', '789 Pine',     'PreviousAddress',         '789 Pine'],
+        ['previousAddrCity',   'Portland',     'PreviousCity',            'Portland'],
+        ['previousAddrState',  'OR',           'PreviousState',           'OR'],
+        ['previousAddrZip',    '97201',        'PreviousZip',             '97201'],
+        // auto policy info
+        ['effectiveDate',      '2026-06-01',   'EffectiveDate',           '06/01/2026'],
+        ['policyTerm',         '12 Month',     'PolicyTerm',              '12 Month'],
+        ['autoPolicyType',     'Standard',     'AutoPolicyType',          'Standard'],
+        ['residenceIs',        'Home (owned)', 'ResidenceIs',             'Home (owned)'],
+        ['priorCarrier',       'Progressive',  'PriorCarrier',            'Progressive'],
+        ['priorPolicyTerm',    '6 Month',      'PriorPolicyTerm',         '6 Month'],
+        ['priorYears',         '5',            'PriorYearsWithCarrier',   '5'],
+        ['continuousCoverage', '5+',           'YearsContinuousCoverage', '5+'],
+        ['liabilityLimits',    '100/300',      'BodilyInjury',            '100/300'],
+        ['pdLimit',            '100000',       'PropertyDamage',          '100000'],
+        ['medPayments',        '5000',         'MedPaymentsAuto',         '5000'],
+        ['umpdLimit',          '50000',        'UMPD',                    '50000'],
+        ['compDeductible',     '500',          'Comprehensive',           '500'],
+        ['autoDeductible',     '500',          'Collision',               '500'],
+        ['studentGPA',         '3.7',          'StudentGPA',              '3.7'],
     ])('Altech.%s = %j → filler.%s = %j', (altechKey, value, fillerKey, expected) => {
         App.data = { [altechKey]: value };
         App.drivers = [];
@@ -305,6 +359,30 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
         App.data = {};
         App.drivers = [{ [driverKey]: value }];
         expect(App.exportClientJsonForFiller()[fillerKey]).toBe(expected);
+    });
+
+    test('creditCheckAuth boolean coerces to Yes/No string for EZLynx', () => {
+        // Altech stores the credit-check authorization as a checkbox
+        // (boolean). EZLynx's dropdown/radio expects a Yes/No string.
+        App.data = { creditCheckAuth: true };
+        App.drivers = [];
+        expect(App.exportClientJsonForFiller().CreditCheckAuth).toBe('Yes');
+
+        App.data = { creditCheckAuth: false };
+        expect(App.exportClientJsonForFiller().CreditCheckAuth).toBe('No');
+
+        // Already a string passes through unchanged (legacy data)
+        App.data = { creditCheckAuth: 'Yes' };
+        expect(App.exportClientJsonForFiller().CreditCheckAuth).toBe('Yes');
+
+        App.data = {};  // missing
+        expect(App.exportClientJsonForFiller().CreditCheckAuth).toBe('');
+    });
+
+    test('effectiveDate converts YYYY-MM-DD to MM/DD/YYYY (same as DOB)', () => {
+        App.data = { effectiveDate: '2026-06-01' };
+        App.drivers = [];
+        expect(App.exportClientJsonForFiller().EffectiveDate).toBe('06/01/2026');
     });
 
     test('drivers[1+] are ignored on the applicant page (only drivers[0] flows)', () => {
@@ -344,5 +422,34 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
             'primaryHomeAddr', 'primaryHomeCity', 'primaryHomeState',
         ];
         expect(NOT_YET_WIRED.length).toBeGreaterThan(0);
+    });
+
+    test('auto-policy fields without EZLynx counterparts (out of scope)', () => {
+        // These Altech fields exist but EZLynx's standard rating page
+        // does not expose them on the Auto Policy Info screen:
+        //
+        //   priorExp           — Prior policy expiration date. EZLynx may
+        //                        track this internally via API integration
+        //                        but isn't surfaced as a public field on
+        //                        the rating form.
+        //   umLimits           — UM is bundled into the BI/UM hierarchy
+        //                        on EZLynx, no standalone limit field.
+        //   uimLimits          — Same as umLimits.
+        //   rentalDeductible   — Rental Reimbursement is per-vehicle
+        //                        coverage, lives on the vehicles page.
+        //   towingDeductible   — Towing is per-vehicle coverage, vehicles page.
+        //   accidents          — Multi-year history is per-driver on EZLynx,
+        //                        belongs on drivers page incident scoping.
+        //   violations         — Same as accidents — drivers page.
+        //
+        // None of these are blockers for the Auto Policy Info smoke test.
+        // If a future EZLynx rating-page change exposes any of them, add
+        // a filler key + happy-path assertion in this test.
+        const NO_EZLYNX_AUTO_POLICY_FIELD = [
+            'priorExp', 'umLimits', 'uimLimits',
+            'rentalDeductible', 'towingDeductible',
+            'accidents', 'violations',
+        ];
+        expect(NO_EZLYNX_AUTO_POLICY_FIELD.length).toBeGreaterThan(0);
     });
 });
