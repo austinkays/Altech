@@ -497,6 +497,42 @@ SUBPAGE_FIELD_IDS = {
 }
 
 
+# Per-subpage TEXT field allowlist — mirror of SUBPAGE_FIELD_IDS but
+# for inputs (TEXT_FIELD_MAP). Without this the script tries to fill
+# FirstName/LastName/DOB on every page and floods the FAIL REPORT with
+# false ERR_FIELD_NOT_FOUND noise. Subpage = None falls back to "try
+# all" (legacy behavior). Set to [] (empty list) when a subpage has
+# zero text fields — that's still a known-empty state, not unknown.
+SUBPAGE_TEXT_FIELDS = {
+    'applicant': [
+        'FirstName', 'LastName', 'MiddleName', 'DOB', 'SSN',
+        'Email', 'Phone',
+        'Address', 'City', 'Zip', 'LicenseNumber',
+        'PreviousAddress', 'PreviousCity', 'PreviousZip',
+        'AccountName', 'Nickname',
+    ],
+    'auto-policy-info': [
+        'EffectiveDate',
+        # Policy Info has no other free-text fields — Prior Carrier and
+        # all the rest are mat-selects. The PriorPolicyExpirationDate is
+        # likely a date input, but we don't have an Altech source field
+        # for it yet (priorExp exists but isn't in TEXT_FIELD_MAP).
+    ],
+    'auto-drivers': [
+        'FirstName', 'LastName', 'MiddleName', 'DOB', 'SSN',
+        'LicenseNumber', 'StudentGPA',
+    ],
+    'auto-vehicles': [
+        # VIN, Year, Make, Model, etc. — none of these are in
+        # TEXT_FIELD_MAP yet because we haven't tackled the Vehicles
+        # subpage. Empty list = "scope is known, no text fields here."
+    ],
+    'auto-coverage': [
+        # Coverage page is all dropdowns. Empty = known.
+    ],
+}
+
+
 def detect_subpage(url):
     """Return a subpage label so the fill loop can scope its field set."""
     if not url:
@@ -1792,12 +1828,31 @@ def run(client_file: str, schema_file: str):
 
                 fill_report = []  # Collect diagnostic report for all fields
 
+                # Subpage scoping for text fields too — same pattern as
+                # the dropdown loop below. Eliminates the "FirstName not
+                # found on Auto Policy Info" noise that flooded the FAIL
+                # REPORT with 8 false failures per fill.
+                _text_url = ''
+                try:
+                    _text_url = page.url
+                except Exception:
+                    pass
+                _text_subpage = detect_subpage(_text_url)
+                _text_allowlist = SUBPAGE_TEXT_FIELDS.get(_text_subpage)
+
                 # Fill text fields
                 print("\n[*] Filling text fields...")
                 filled = 0
                 skipped = 0
 
-                for key, selectors in TEXT_FIELD_MAP.items():
+                if _text_allowlist is not None:
+                    text_keys_to_try = [k for k in _text_allowlist if k in TEXT_FIELD_MAP]
+                    print(f"[*] Text fields scoped to {_text_subpage} ({len(text_keys_to_try)} known fields)")
+                else:
+                    text_keys_to_try = list(TEXT_FIELD_MAP.keys())
+
+                for key in text_keys_to_try:
+                    selectors = TEXT_FIELD_MAP[key]
                     value = client.get(key, "")
                     if not value:
                         continue
