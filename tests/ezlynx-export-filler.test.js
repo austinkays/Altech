@@ -147,3 +147,179 @@ describe('App.exportClientJsonForFiller', () => {
         expect(out.LicenseNumber).toBe('');
     });
 });
+
+// ─── Wire-format contract ─────────────────────────────────────────────
+//
+// Lock down EVERY Altech field that's wired to flow through to the
+// Python filler. The point: a future change to fields.js or the export
+// function won't silently drop or rename a field. If anyone adds a new
+// Altech field that should flow to EZLynx, this is where the contract
+// gets updated, in the same commit.
+
+describe('App.exportClientJsonForFiller — wire-format contract', () => {
+    let App;
+
+    beforeAll(() => {
+        const win = (() => {
+            const html = loadHTML(path.join(__dirname, '../index.html'));
+            const dom = new JSDOM(html, {
+                url: 'http://localhost:8000', runScripts: 'dangerously', pretendToBeVisual: true,
+            });
+            return dom.window;
+        })();
+        App = win.App;
+    });
+
+    test('every wired field flows when present (canonical happy path)', () => {
+        App.data = {
+            // applicant section (fields.js section: 'applicant')
+            prefix: 'Mr.',
+            firstName: 'Jane',
+            middleName: 'Q',
+            lastName: 'Doe',
+            suffix: 'Jr.',
+            dob: '1985-07-04',
+            gender: 'F',
+            maritalStatus: 'Married',
+            phone: '5551234567',
+            email: 'jane@example.com',
+            education: 'MA',
+            industry: 'Technology',
+            occupation: 'Software Engineer',
+            // address section
+            addrStreet: '456 Oak Ave',
+            addrCity: 'Seattle',
+            addrState: 'WA',
+            addrZip: '98101',
+            county: 'King',
+            yearsAtAddress: '3',
+            monthsAtAddress: '6',
+        };
+        App.drivers = [{
+            dlNum: 'DOEJA456XY',
+            dlState: 'WA',
+            dlStatus: 'Valid',
+        }];
+
+        // toEqual with a literal object — deliberate, so any new key in
+        // the export shows up here as a failure that demands a contract
+        // update + a test entry for the new field.
+        expect(App.exportClientJsonForFiller()).toEqual({
+            FirstName:      'Jane',
+            LastName:       'Doe',
+            MiddleName:     'Q',
+            DOB:            '07/04/1985',  // converted YYYY-MM-DD → MM/DD/YYYY
+            Email:          'jane@example.com',
+            Phone:          '5551234567',
+            Address:        '456 Oak Ave',
+            City:           'Seattle',
+            State:          'WA',
+            County:         'King',
+            Zip:            '98101',
+            Gender:         'F',
+            MaritalStatus:  'Married',
+            Education:      'MA',
+            Occupation:     'Software Engineer',
+            Industry:       'Technology',
+            Prefix:         'Mr.',
+            Suffix:         'Jr.',
+            LicenseNumber:  'DOEJA456XY',
+            DLState:        'WA',
+            DLStatus:       'Valid',
+            YearsAtAddress: '3',
+            MonthsAtAddress: '6',
+        });
+    });
+
+    test('every wired field defaults to empty string when source is missing', () => {
+        App.data = {};
+        App.drivers = [];
+        // No undefined values — keeps the wire format predictable for the
+        // Python `if not value: continue` gate.
+        const out = App.exportClientJsonForFiller();
+        Object.values(out).forEach(v => expect(v).toBe(''));
+    });
+
+    test('exact key set — no extra, no missing', () => {
+        App.data = {};
+        App.drivers = [];
+        expect(Object.keys(App.exportClientJsonForFiller()).sort()).toEqual([
+            'Address', 'City', 'County', 'DLState', 'DLStatus', 'DOB',
+            'Education', 'Email', 'FirstName', 'Gender', 'Industry',
+            'LastName', 'LicenseNumber', 'MaritalStatus', 'MiddleName',
+            'MonthsAtAddress', 'Occupation', 'Phone', 'Prefix',
+            'State', 'Suffix', 'YearsAtAddress', 'Zip',
+        ]);
+    });
+
+    // Field-by-field test: gives a clear failure point when one mapping
+    // breaks. The happy-path test above checks them all at once; this
+    // one isolates each field so a regression shows the exact name.
+    test.each([
+        ['firstName',       'Jane',           'FirstName',      'Jane'],
+        ['lastName',        'Doe',            'LastName',       'Doe'],
+        ['middleName',      'Q',              'MiddleName',     'Q'],
+        ['dob',             '1985-07-04',     'DOB',            '07/04/1985'],
+        ['email',           'a@b.com',        'Email',          'a@b.com'],
+        ['phone',           '5551234567',     'Phone',          '5551234567'],
+        ['addrStreet',      '1 Main',         'Address',        '1 Main'],
+        ['addrCity',        'Vancouver',      'City',           'Vancouver'],
+        ['addrState',       'WA',             'State',          'WA'],
+        ['county',          'Clark',          'County',         'Clark'],
+        ['addrZip',         '98686',          'Zip',            '98686'],
+        ['gender',          'M',              'Gender',         'M'],
+        ['maritalStatus',   'Single',         'MaritalStatus',  'Single'],
+        ['education',       'BA',             'Education',      'BA'],
+        ['occupation',      'Agent/Broker',   'Occupation',     'Agent/Broker'],
+        ['industry',        'Insurance',      'Industry',       'Insurance'],
+        ['prefix',          'Mr.',            'Prefix',         'Mr.'],
+        ['suffix',          'Sr.',            'Suffix',         'Sr.'],
+        ['yearsAtAddress',  '5',              'YearsAtAddress', '5'],
+        ['monthsAtAddress', '6',              'MonthsAtAddress', '6'],
+    ])('Altech.%s = %j → filler.%s = %j', (altechKey, value, fillerKey, expected) => {
+        App.data = { [altechKey]: value };
+        App.drivers = [];
+        expect(App.exportClientJsonForFiller()[fillerKey]).toBe(expected);
+    });
+
+    test.each([
+        ['dlNum',    'PRIMARY1', 'LicenseNumber', 'PRIMARY1'],
+        ['dlState',  'WA',       'DLState',       'WA'],
+        ['dlStatus', 'Valid',    'DLStatus',      'Valid'],
+    ])('drivers[0].%s = %j → filler.%s = %j', (driverKey, value, fillerKey, expected) => {
+        App.data = {};
+        App.drivers = [{ [driverKey]: value }];
+        expect(App.exportClientJsonForFiller()[fillerKey]).toBe(expected);
+    });
+
+    test('drivers[1+] are ignored on the applicant page (only drivers[0] flows)', () => {
+        App.data = {};
+        App.drivers = [
+            { dlNum: 'PRIMARY1', dlState: 'WA', dlStatus: 'Valid' },
+            { dlNum: 'IGNORED2', dlState: 'OR', dlStatus: 'Suspended' },
+        ];
+        const out = App.exportClientJsonForFiller();
+        expect(out.LicenseNumber).toBe('PRIMARY1');
+        expect(out.DLState).toBe('WA');
+        expect(out.DLStatus).toBe('Valid');
+    });
+
+    // Documented gaps — Altech fields that exist but are NOT yet wired.
+    // This test never fails; it's a TODO marker that any contributor
+    // checking "is X wired?" finds in one place.
+    test('documented gaps (Altech collects, filler does NOT yet receive)', () => {
+        const NOT_YET_WIRED = [
+            // address section — Previous Address subsection on EZLynx
+            'previousAddrStreet', 'previousAddrCity',
+            'previousAddrState', 'previousAddrZip',
+            // address section — non-resident primary home (rare)
+            'primaryHomeAddr', 'primaryHomeCity', 'primaryHomeState',
+        ];
+        // No assertion — the list itself is the contract. Adding any of
+        // these to the export requires (1) a new line in
+        // exportClientJsonForFiller, (2) a TEXT_FIELD_MAP/dropdown entry
+        // in ezlynx_filler.py, (3) a happy-path assertion above, (4)
+        // remove from this list.
+        expect(NOT_YET_WIRED.length).toBeGreaterThan(0);
+    });
+});
