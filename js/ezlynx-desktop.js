@@ -1,0 +1,159 @@
+// js/ezlynx-desktop.js — Desktop-only "Auto-fill EZLYNX" runner.
+//
+// Loaded on every page but only ACTIVE when window.__TAURI__ is defined.
+// The button is also hidden by CSS when App.isDesktop is false (set in
+// app-core.js), so this module is a no-op on web/Vercel deployments.
+//
+// Flow on click:
+//   1. Build client JSON via App.exportClientJsonForFiller()
+//   2. Open the progress modal
+//   3. Subscribe to "ezlynx-progress" Tauri events
+//   4. Invoke the run_ezlynx_filler Rust command (passes JSON, gets summary)
+//   5. Stream stdout lines into the modal as they arrive
+//   6. On completion: show success/error, save audit entry to STORAGE_KEYS.EZLYNX_FILLER_LAST_RUN
+//
+// Modal markup is created on demand and lives in <body> as a singleton.
+'use strict';
+
+window.EzlynxDesktop = (() => {
+    'use strict';
+
+    const MODAL_ID = 'ezlynxDesktopModal';
+    let isRunning = false;
+
+    function tauri() {
+        // Tauri 2.x exposes core APIs at window.__TAURI__.core (invoke) and
+        // window.__TAURI__.event (listen). withGlobalTauri:true in tauri.conf.json
+        // ensures these are present without an import.
+        const t = window.__TAURI__;
+        if (!t || !t.core || !t.event) return null;
+        return { invoke: t.core.invoke, listen: t.event.listen };
+    }
+
+    function isDesktop() {
+        return !!(window.App && window.App.isDesktop) || !!(window.__TAURI__ || window.__TAURI_IPC__);
+    }
+
+    function ensureModal() {
+        let m = document.getElementById(MODAL_ID);
+        if (m) return m;
+        m = document.createElement('div');
+        m.id = MODAL_ID;
+        m.className = 'ezlynx-desktop-modal hidden';
+        m.innerHTML = `
+            <div class="ezlynx-desktop-modal__backdrop"></div>
+            <div class="ezlynx-desktop-modal__panel" role="dialog" aria-labelledby="ezlynxDesktopTitle" aria-modal="true">
+                <header class="ezlynx-desktop-modal__header">
+                    <h3 id="ezlynxDesktopTitle">Auto-fill EZLYNX</h3>
+                    <span class="ezlynx-desktop-modal__status" id="ezlynxDesktopStatus">Starting…</span>
+                </header>
+                <pre class="ezlynx-desktop-modal__log" id="ezlynxDesktopLog"></pre>
+                <footer class="ezlynx-desktop-modal__footer">
+                    <button class="btn-secondary" id="ezlynxDesktopClose" disabled>Close</button>
+                </footer>
+            </div>
+        `;
+        document.body.appendChild(m);
+        m.querySelector('#ezlynxDesktopClose').addEventListener('click', () => {
+            m.classList.add('hidden');
+        });
+        // Allow backdrop-click close ONLY when run is finished — don't
+        // dismiss accidentally mid-fill.
+        m.querySelector('.ezlynx-desktop-modal__backdrop').addEventListener('click', () => {
+            if (!isRunning) m.classList.add('hidden');
+        });
+        return m;
+    }
+
+    function setStatus(text, kind) {
+        const el = document.getElementById('ezlynxDesktopStatus');
+        if (!el) return;
+        el.textContent = text;
+        el.dataset.kind = kind || '';
+    }
+
+    function appendLog(line) {
+        const el = document.getElementById('ezlynxDesktopLog');
+        if (!el) return;
+        el.textContent += (el.textContent ? '\n' : '') + line;
+        el.scrollTop = el.scrollHeight;
+    }
+
+    function setCloseEnabled(enabled) {
+        const btn = document.getElementById('ezlynxDesktopClose');
+        if (btn) btn.disabled = !enabled;
+    }
+
+    function recordRun(outcome, summary) {
+        try {
+            const key = window.STORAGE_KEYS && window.STORAGE_KEYS.EZLYNX_FILLER_LAST_RUN;
+            if (!key) return;
+            localStorage.setItem(key, JSON.stringify({
+                ts: new Date().toISOString(),
+                outcome: outcome,           // 'success' | 'error' | 'cancelled'
+                summary: (summary || '').slice(0, 500),
+            }));
+        } catch (_) { /* best-effort audit */ }
+    }
+
+    async function run() {
+        if (isRunning) {
+            (window.App && App.toast && App.toast('Filler is already running')) || alert('Filler is already running');
+            return;
+        }
+        const t = tauri();
+        if (!isDesktop() || !t) {
+            const msg = 'Auto-fill EZLYNX is only available in the desktop app. Open Altech via the PolicyPilot app.';
+            (window.App && App.toast && App.toast(msg)) || alert(msg);
+            return;
+        }
+        if (!window.App || typeof App.exportClientJsonForFiller !== 'function') {
+            alert('exportClientJsonForFiller is missing — App may not be fully loaded yet.');
+            return;
+        }
+
+        const clientJson = JSON.stringify(App.exportClientJsonForFiller(), null, 2);
+
+        const modal = ensureModal();
+        modal.classList.remove('hidden');
+        document.getElementById('ezlynxDesktopLog').textContent = '';
+        setStatus('Starting Chromium…', 'running');
+        setCloseEnabled(false);
+        isRunning = true;
+
+        // Subscribe to progress events BEFORE invoking, so we don't miss the
+        // first line. Tauri's listen returns an unlisten() function.
+        let unlisten = null;
+        try {
+            unlisten = await t.listen('ezlynx-progress', (e) => {
+                if (e && typeof e.payload === 'string') appendLog(e.payload);
+            });
+        } catch (err) {
+            appendLog(`[!] Failed to subscribe to progress events: ${err}`);
+        }
+
+        try {
+            const summary = await t.invoke('run_ezlynx_filler', { clientJson });
+            setStatus('Done', 'success');
+            appendLog('');
+            appendLog(`✅ ${summary}`);
+            recordRun('success', summary);
+        } catch (err) {
+            const text = (err && err.toString) ? err.toString() : String(err);
+            setStatus('Failed', 'error');
+            appendLog('');
+            appendLog(`❌ ${text}`);
+            recordRun('error', text);
+        } finally {
+            try { if (unlisten) unlisten(); } catch (_) {}
+            isRunning = false;
+            setCloseEnabled(true);
+        }
+    }
+
+    // Button visibility is pure CSS: .ezlynx-auto-fill-btn { display: none }
+    // and body.tauri-desktop .ezlynx-auto-fill-btn { display: flex }. No JS
+    // hookup needed — the button reveals itself in the desktop app.
+
+    return { run };
+})();
