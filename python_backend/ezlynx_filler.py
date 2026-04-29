@@ -1036,8 +1036,16 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None)
     options_visible = _wait_for_options(max_ms=3000)
     diag['options_loaded_count'] = options_visible
     try:
-        # Type the expanded name to filter/jump, then press Enter
-        type_value = expanded if expanded != target else target
+        # Type the RAW target to filter/jump, then press Enter.
+        # Material typeahead matches either way — typing "WA" narrows
+        # to "WA" (code-style options) AND to "Washington" (name-style
+        # options, by first-letter jumping). Typing the expanded form
+        # ("Washington") only works for name-style dropdowns and breaks
+        # silently on code dropdowns like State, where it fails verify
+        # and forces a slow re-open/option-click fallback (~5s).
+        # The expanded form is still used by the option-click fuzzy
+        # matcher in the fallback path, so we don't lose that capability.
+        type_value = target
         page.keyboard.type(type_value, delay=50)
         time.sleep(0.15)  # Brief pause for typeahead filter
         page.keyboard.press("Enter")
