@@ -460,24 +460,37 @@ SUBPAGE_FIELD_IDS = {
         'UMPD':            None,
         'ResidenceIs':     None,
     },
-    # Auto Drivers — V1's ROUTE_TABLE shows the field set; IDs TBD.
+    # Auto Drivers — IDs from Cowork Round 2 fill log inventory.
+    # NOTE: 'Education' (Bachelors/Masters) is deliberately NOT included.
+    # The Drivers page has "Driver Education" (a Yes/No question about
+    # whether the driver took a driver's-ed course) which the label-walk
+    # incorrectly matched against the applicant 'Education' field. With
+    # the allowlist excluding Education here, that collision can't fire.
     'auto-drivers': {
-        'DLState':          None,
-        'DLStatus':         None,
-        'AgeLicensed':      None,
-        'GoodDriver':       None,
-        'MatureDriver':     None,
-        'LicenseSuspended': None,
-        'SR22Required':     None,
-        'FR44Required':     None,
-        'DriverEducation':  None,
-        'Relationship':     None,
-        # Per-driver demographics that EZLynx may re-collect on the page
-        'Gender':           None,
-        'MaritalStatus':    None,
-        'Industry':         None,
-        'Occupation':       None,
-        'Education':        None,
+        # Per-driver demographics (EZLynx auto-populates from applicant
+        # but we re-fill to ensure they stick on this page too)
+        'Gender':           '#driver-0-gender',
+        'MaritalStatus':    '#driver-0-maritalStatus',
+        'Industry':         '#driver-0-occupationIndustry',
+        'Occupation':       '#driver-0-occupationTitle',
+        'Relationship':     '#driver-0-relationship',
+        # License
+        'DLStatus':         '#driver-0-driversLicenseStatus',
+        'DLState':          '#drpD1DLState',  # non-standard ID prefix
+        'AgeLicensed':      '#driver-0-ageLicensed',
+        # Driving history (Yes/No fields)
+        'LicenseSuspended': '#driver-0-hasLicenseBeenSuspendedRecently',
+        'SR22Required':     '#driver-0-isSR22Required',
+        'FR44Required':     '#driver-0-isFR44Required',
+        'DriverEducation':  '#driver-0-hasTakenDriversEducation',
+        'MatureDriver':     '#driver-0-isMatureDriver',
+        'GoodDriver':       '#driver-0-isGoodDriver',
+        # Carrier-specific (won't always be present — script's
+        # is_visible() gate skips when not on the page)
+        'GoodStudent':      '#driver-0-isGoodStudent',
+        'StudentFarAway':   '#driver-0-isStudentFarAway',
+        'RatedDriver':      '#driver-0-ratedDriver',
+        'DriverTelematics': '#driver_d1telematics_common',
     },
     # Auto Vehicles — TBD. Capture from a Vehicles-page fill run.
     'auto-vehicles': {
