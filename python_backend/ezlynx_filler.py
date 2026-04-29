@@ -213,30 +213,32 @@ TEXT_FIELD_MAP = {
 
 # Base labels — safe on ANY page (applicant, drivers, lead info, etc.)
 BASE_DROPDOWN_LABELS = {
-    "Gender":          ["gender"],
-    "MaritalStatus":   ["marital status", "marital"],
+    # Order is intentional — dict iteration order matches visual top-to-bottom
+    # on the EZLynx Personal Lines Applicant page so the user sees a clean
+    # left-to-right, top-to-bottom fill animation instead of a scattered one.
+    # Insertion order is preserved in Python 3.7+.
     "State":           ["address state", "state"],
     "Suffix":          ["suffix"],
     "Prefix":          ["prefix"],
+    "Gender":          ["gender"],
+    "MaritalStatus":   ["marital status", "marital"],
+    "DLStatus":        ["dl status", "license status", "driver license status"],
     "Education":       ["education"],
     # Industry must precede Occupation — Occupation's option list is
-    # data-dependent on Industry. With dict insertion order preserved
-    # (Python 3.7+), iteration fills Industry first.
+    # data-dependent on Industry. With dict insertion order preserved,
+    # iteration fills Industry first.
     "Industry":        ["occupation industry", "industry"],
     "Occupation":      ["occupation title", "occupation"],
-    # Primary Address subsection — separate mat-selects from the applicant-
-    # level State/Address State. Patterns are deliberately specific so the
-    # label-walk doesn't grab the applicant-level "Address State"; the JS's
-    # Strategy C (id/name pattern) catches the actual fields via the
-    # 'applicant-primary-address-' id prefix (per Cowork Round 5 inventory).
-    "PrimaryAddressState":  ["primary address state"],
+    # Primary Address > County — separate from the rating-level State.
+    # EZLynx auto-syncs Primary Address > State from the rating Address State,
+    # so we deliberately do NOT define a PrimaryAddressState entry here
+    # (would be a redundant fill). County is its own selection driven by
+    # the synced state's options, so we fill it explicitly.
     "PrimaryAddressCounty": ["county"],
     "Relationship":    ["relationship", "relation"],
     "ApplicantType":   ["applicant type"],
-    "DLStatus":        ["dl status", "license status", "driver license status"],
     "LeadSource":      ["lead source"],
     "Language":        ["preferred language", "language"],
-    "County":          ["county"],
     "AddressType":     ["address type"],
     "YearsAtAddress":  ["years at address"],
     "MonthsAtAddress": ["months at address"],

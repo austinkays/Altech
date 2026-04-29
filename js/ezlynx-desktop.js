@@ -49,8 +49,8 @@ window.EzlynxDesktop = (() => {
                 </header>
                 <pre class="ezlynx-desktop-modal__log" id="ezlynxDesktopLog"></pre>
                 <footer class="ezlynx-desktop-modal__footer">
-                    <span class="ezlynx-desktop-modal__hint" id="ezlynxDesktopHint" style="font-size:11px;color:var(--text-secondary);margin-right:auto;"></span>
-                    <button class="btn-secondary" id="ezlynxDesktopClose">Close</button>
+                    <span class="ezlynx-desktop-modal__hint" id="ezlynxDesktopHint"></span>
+                    <button class="ezlynx-desktop-modal__close" id="ezlynxDesktopClose">Close</button>
                 </footer>
             </div>
         `;
@@ -155,6 +155,37 @@ window.EzlynxDesktop = (() => {
             appendLog('');
             appendLog(`✅ ${summary}`);
             recordRun('success', summary);
+            // Auto-close after a few seconds on success — the Chromium tab
+            // is the actual focus now, and the user shouldn't have to hunt
+            // for the close button. Countdown is visible on the close
+            // button; clicking it (or anywhere else dismissing) cancels.
+            const modalEl = document.getElementById(MODAL_ID);
+            const btn = document.getElementById('ezlynxDesktopClose');
+            let secondsLeft = 4;
+            const cancelTimer = () => {
+                clearInterval(timer);
+                if (btn) btn.textContent = 'Close';
+            };
+            const timer = setInterval(() => {
+                secondsLeft -= 1;
+                if (modalEl && modalEl.classList.contains('hidden')) {
+                    cancelTimer();
+                    return;
+                }
+                if (secondsLeft <= 0) {
+                    cancelTimer();
+                    if (modalEl) modalEl.classList.add('hidden');
+                } else if (btn) {
+                    btn.textContent = `Close (${secondsLeft})`;
+                }
+            }, 1000);
+            // Hovering the panel cancels auto-close so a user reading the
+            // log doesn't get yanked away. Click on Close still closes
+            // immediately.
+            const panelEl = modalEl ? modalEl.querySelector('.ezlynx-desktop-modal__panel') : null;
+            if (panelEl) {
+                panelEl.addEventListener('mouseenter', cancelTimer, { once: true });
+            }
         } catch (err) {
             const text = (err && err.toString) ? err.toString() : String(err);
             setStatus('Failed', 'error');
