@@ -78,6 +78,34 @@ Object.assign(App, {
             DLState:        driver0.dlState || '',
             DLStatus:       driver0.dlStatus || '',
 
+            // ── Drivers Page Phase 1: primary driver only ────────
+            // EZLynx's Drivers page populates driver-0 from the
+            // applicant info automatically (FirstName/DOB/Gender etc),
+            // but these driver-specific fields don't exist on the
+            // applicant page and need to flow through here.
+            //
+            // Multi-driver support (driver-1+) is Phase 2 — needs an
+            // "Add Driver" button-click loop in the Python filler that
+            // doesn't exist yet. For now the script will fill driver-0
+            // from these flat keys and emit a warning if more drivers
+            // exist in the array.
+            AgeLicensed:      driver0.ageLicensed || '',
+            GoodDriver:       driver0.goodDriver || '',
+            MatureDriver:     driver0.matureDriver || '',
+            // licenseSusRev → LicenseSuspended is a deliberate rename:
+            // EZLynx's label is "License Suspended/Revoked" and the
+            // Python filler's existing AUTO_DROPDOWN_LABELS uses the
+            // shorter "LicenseSuspended" key.
+            LicenseSuspended: driver0.licenseSusRev || '',
+            // sr22/fr44 store as "Yes"/"No"; filler key uses the
+            // ${form}Required suffix matching the EZLynx label.
+            SR22Required:     driver0.sr22 || '',
+            FR44Required:     driver0.fr44 || '',
+            DriverEducation:  driver0.driverEducation || '',
+            // Relationship: "Self" for primary, "Spouse"/"Child"/etc.
+            // for additional drivers when Phase 2 lands.
+            Relationship:     driver0.relationship || '',
+
             // ── Tenure ───────────────────────────────────────────
             // Altech's intake doesn't collect this yet; once it does,
             // App.data.yearsAtAddress flows straight through.

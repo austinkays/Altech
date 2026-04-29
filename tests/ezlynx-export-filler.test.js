@@ -222,6 +222,15 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
             dlNum: 'DOEJA456XY',
             dlState: 'WA',
             dlStatus: 'Valid',
+            // Drivers-page-specific fields (Phase 1: single driver from [0])
+            ageLicensed:      '18',
+            goodDriver:       'Yes',
+            matureDriver:     'Yes',
+            licenseSusRev:    'No',
+            sr22:             'No',
+            fr44:             'No',
+            driverEducation:  'Yes',
+            relationship:     'Self',
         }];
 
         // toEqual with a literal object — deliberate, so any new key in
@@ -249,6 +258,14 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
             LicenseNumber:   'DOEJA456XY',
             DLState:         'WA',
             DLStatus:        'Valid',
+            AgeLicensed:      '18',
+            GoodDriver:       'Yes',
+            MatureDriver:     'Yes',
+            LicenseSuspended: 'No',
+            SR22Required:     'No',
+            FR44Required:     'No',
+            DriverEducation:  'Yes',
+            Relationship:     'Self',
             YearsAtAddress:  '3',
             MonthsAtAddress: '6',
             PreviousAddress: '789 Pine Ln',
@@ -287,16 +304,19 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
         App.data = {};
         App.drivers = [];
         expect(Object.keys(App.exportClientJsonForFiller()).sort()).toEqual([
-            'Address', 'AutoPolicyType', 'BodilyInjury', 'City', 'Collision',
-            'Comprehensive', 'County', 'CreditCheckAuth', 'DLState',
-            'DLStatus', 'DOB', 'Education', 'EffectiveDate', 'Email',
-            'FirstName', 'Gender', 'Industry', 'LastName', 'LicenseNumber',
-            'MaritalStatus', 'MedPaymentsAuto', 'MiddleName',
-            'MonthsAtAddress', 'Occupation', 'Phone', 'PolicyTerm',
-            'Prefix', 'PreviousAddress', 'PreviousCity', 'PreviousState',
-            'PreviousZip', 'PriorCarrier', 'PriorPolicyTerm',
-            'PriorYearsWithCarrier', 'PropertyDamage', 'ResidenceIs',
-            'State', 'StudentGPA', 'Suffix', 'UMPD', 'YearsAtAddress',
+            'Address', 'AgeLicensed', 'AutoPolicyType', 'BodilyInjury',
+            'City', 'Collision', 'Comprehensive', 'County',
+            'CreditCheckAuth', 'DLState', 'DLStatus', 'DOB',
+            'DriverEducation', 'Education', 'EffectiveDate', 'Email',
+            'FR44Required', 'FirstName', 'Gender', 'GoodDriver',
+            'Industry', 'LastName', 'LicenseNumber', 'LicenseSuspended',
+            'MaritalStatus', 'MatureDriver', 'MedPaymentsAuto',
+            'MiddleName', 'MonthsAtAddress', 'Occupation', 'Phone',
+            'PolicyTerm', 'Prefix', 'PreviousAddress', 'PreviousCity',
+            'PreviousState', 'PreviousZip', 'PriorCarrier',
+            'PriorPolicyTerm', 'PriorYearsWithCarrier', 'PropertyDamage',
+            'Relationship', 'ResidenceIs', 'SR22Required', 'State',
+            'StudentGPA', 'Suffix', 'UMPD', 'YearsAtAddress',
             'YearsContinuousCoverage', 'Zip',
         ]);
     });
@@ -352,9 +372,18 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
     });
 
     test.each([
-        ['dlNum',    'PRIMARY1', 'LicenseNumber', 'PRIMARY1'],
-        ['dlState',  'WA',       'DLState',       'WA'],
-        ['dlStatus', 'Valid',    'DLStatus',      'Valid'],
+        ['dlNum',           'PRIMARY1', 'LicenseNumber',    'PRIMARY1'],
+        ['dlState',         'WA',       'DLState',          'WA'],
+        ['dlStatus',        'Valid',    'DLStatus',         'Valid'],
+        // Phase 1 driver fields (single driver from drivers[0])
+        ['ageLicensed',     '18',       'AgeLicensed',      '18'],
+        ['goodDriver',      'Yes',      'GoodDriver',       'Yes'],
+        ['matureDriver',    'Yes',      'MatureDriver',     'Yes'],
+        ['licenseSusRev',   'No',       'LicenseSuspended', 'No'],
+        ['sr22',            'No',       'SR22Required',     'No'],
+        ['fr44',            'No',       'FR44Required',     'No'],
+        ['driverEducation', 'Yes',      'DriverEducation',  'Yes'],
+        ['relationship',    'Self',     'Relationship',     'Self'],
     ])('drivers[0].%s = %j → filler.%s = %j', (driverKey, value, fillerKey, expected) => {
         App.data = {};
         App.drivers = [{ [driverKey]: value }];
@@ -383,6 +412,25 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
         App.data = { effectiveDate: '2026-06-01' };
         App.drivers = [];
         expect(App.exportClientJsonForFiller().EffectiveDate).toBe('06/01/2026');
+    });
+
+    test('Phase 1: drivers[1+] are NOT yet wired (multi-driver = Phase 2)', () => {
+        // Multi-driver support requires "Add Driver" button click + per-
+        // driver field scoping in the Python filler. Out of scope for
+        // Phase 1 — this PR ships single-driver fill from drivers[0]
+        // only. Phase 2 will add a Drivers[] array to the wire format
+        // and a multi-driver iteration loop in ezlynx_filler.py.
+        App.data = {};
+        App.drivers = [
+            { dlNum: 'PRIMARY1', goodDriver: 'Yes', sr22: 'No' },
+            { dlNum: 'IGNORED2', goodDriver: 'No',  sr22: 'Yes' },
+        ];
+        const out = App.exportClientJsonForFiller();
+        expect(out.LicenseNumber).toBe('PRIMARY1');
+        expect(out.GoodDriver).toBe('Yes');
+        expect(out.SR22Required).toBe('No');
+        // No Drivers[] key yet — that arrives in Phase 2.
+        expect(out.Drivers).toBeUndefined();
     });
 
     test('drivers[1+] are ignored on the applicant page (only drivers[0] flows)', () => {
