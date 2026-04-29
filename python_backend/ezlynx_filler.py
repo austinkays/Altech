@@ -64,6 +64,20 @@ TEXT_FIELD_MAP = {
         "input[placeholder*='Middle' i]",
         "input[formcontrolname*='middleName' i]",
     ],
+    # Zip lives in the same visual row as Address State on the EZLynx
+    # Personal Lines Applicant page, well above DOB. Filling it here
+    # rather than alongside the address group makes the visual fill
+    # animation track the form's top-to-bottom layout.
+    "Zip": [
+        "input[name*='Zip' i]",
+        "input[name*='ZipCode' i]",
+        "input[name*='PostalCode' i]",
+        "input[id*='Zip' i]",
+        "input[id*='PostalCode' i]",
+        "input[placeholder*='Zip' i]",
+        "input[formcontrolname*='zip' i]",
+        "input[formcontrolname*='postalCode' i]",
+    ],
     "DOB": [
         "input[name*='DateOfBirth' i]",
         "input[name*='DOB' i]",
@@ -115,16 +129,6 @@ TEXT_FIELD_MAP = {
         "input[id*='City' i]",
         "input[placeholder*='City' i]",
         "input[formcontrolname*='city' i]",
-    ],
-    "Zip": [
-        "input[name*='Zip' i]",
-        "input[name*='ZipCode' i]",
-        "input[name*='PostalCode' i]",
-        "input[id*='Zip' i]",
-        "input[id*='PostalCode' i]",
-        "input[placeholder*='Zip' i]",
-        "input[formcontrolname*='zip' i]",
-        "input[formcontrolname*='postalCode' i]",
     ],
     "LicenseNumber": [
         "input[name*='License' i]",
@@ -213,30 +217,32 @@ TEXT_FIELD_MAP = {
 
 # Base labels — safe on ANY page (applicant, drivers, lead info, etc.)
 BASE_DROPDOWN_LABELS = {
-    "Gender":          ["gender"],
-    "MaritalStatus":   ["marital status", "marital"],
+    # Order is intentional — dict iteration order matches visual top-to-bottom
+    # on the EZLynx Personal Lines Applicant page so the user sees a clean
+    # left-to-right, top-to-bottom fill animation instead of a scattered one.
+    # Insertion order is preserved in Python 3.7+.
     "State":           ["address state", "state"],
     "Suffix":          ["suffix"],
     "Prefix":          ["prefix"],
+    "Gender":          ["gender"],
+    "MaritalStatus":   ["marital status", "marital"],
+    "DLStatus":        ["dl status", "license status", "driver license status"],
     "Education":       ["education"],
     # Industry must precede Occupation — Occupation's option list is
-    # data-dependent on Industry. With dict insertion order preserved
-    # (Python 3.7+), iteration fills Industry first.
+    # data-dependent on Industry. With dict insertion order preserved,
+    # iteration fills Industry first.
     "Industry":        ["occupation industry", "industry"],
     "Occupation":      ["occupation title", "occupation"],
-    # Primary Address subsection — separate mat-selects from the applicant-
-    # level State/Address State. Patterns are deliberately specific so the
-    # label-walk doesn't grab the applicant-level "Address State"; the JS's
-    # Strategy C (id/name pattern) catches the actual fields via the
-    # 'applicant-primary-address-' id prefix (per Cowork Round 5 inventory).
-    "PrimaryAddressState":  ["primary address state"],
+    # Primary Address > County — separate from the rating-level State.
+    # EZLynx auto-syncs Primary Address > State from the rating Address State,
+    # so we deliberately do NOT define a PrimaryAddressState entry here
+    # (would be a redundant fill). County is its own selection driven by
+    # the synced state's options, so we fill it explicitly.
     "PrimaryAddressCounty": ["county"],
     "Relationship":    ["relationship", "relation"],
     "ApplicantType":   ["applicant type"],
-    "DLStatus":        ["dl status", "license status", "driver license status"],
     "LeadSource":      ["lead source"],
     "Language":        ["preferred language", "language"],
-    "County":          ["county"],
     "AddressType":     ["address type"],
     "YearsAtAddress":  ["years at address"],
     "MonthsAtAddress": ["months at address"],
@@ -1790,10 +1796,13 @@ def run(client_file: str, schema_file: str):
 
                 print(f"\n     Dropdowns: {dd_filled} filled, {dd_skipped} not matched")
 
-                # Extra fields — combine all dropdown label sets for the check
+                # Extra fields — combine all dropdown label sets for the check.
+                # CLIENT_FALLBACKS source keys count as consumed too (e.g. when
+                # PrimaryAddressCounty pulls from "County", don't then warn
+                # that "County" is unmapped — it was used).
                 all_dropdown_keys = set(BASE_DROPDOWN_LABELS.keys()) | set(AUTO_DROPDOWN_LABELS.keys()) | \
                                     set(HOME_DROPDOWN_LABELS.keys()) | set(LEAD_DROPDOWN_LABELS.keys())
-                handled_keys = set(TEXT_FIELD_MAP.keys()) | all_dropdown_keys
+                handled_keys = set(TEXT_FIELD_MAP.keys()) | all_dropdown_keys | set(CLIENT_FALLBACKS.values())
                 extra_keys = [k for k in client.keys() if k not in handled_keys and client[k]]
                 if extra_keys:
                     print(f"\n[*] {len(extra_keys)} unmapped fields: {', '.join(extra_keys)}")

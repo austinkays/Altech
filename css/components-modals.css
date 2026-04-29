@@ -289,3 +289,101 @@ body.dark-mode [style*="background: #f3e5f5"] { background: rgba(124,58,237,0.1)
     font-weight: 600;
 }
 
+/* ── Auto-fill EZLYNX button (desktop-only visibility) ─────────────────── */
+.ezlynx-auto-fill-btn { display: none !important; }
+body.tauri-desktop .ezlynx-auto-fill-btn { display: flex !important; }
+
+/* ── Auto-fill EZLYNX progress modal (desktop only) ────────────────────── */
+.ezlynx-desktop-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.ezlynx-desktop-modal.hidden { display: none; }
+.ezlynx-desktop-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+.ezlynx-desktop-modal__panel {
+    position: relative;
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    width: min(720px, 100%);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+.ezlynx-desktop-modal__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+.ezlynx-desktop-modal__header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+.ezlynx-desktop-modal__status {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+.ezlynx-desktop-modal__status[data-kind="success"] { color: #34c759; }
+.ezlynx-desktop-modal__status[data-kind="error"]   { color: var(--danger); }
+.ezlynx-desktop-modal__status[data-kind="running"] { color: var(--apple-blue); }
+.ezlynx-desktop-modal__log {
+    flex: 1 1 auto;
+    overflow: auto;
+    margin: 0;
+    padding: 14px 20px;
+    background: var(--bg-input);
+    color: var(--text);
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 240px;
+}
+.ezlynx-desktop-modal__footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+}
+.ezlynx-desktop-modal__footer .ezlynx-desktop-modal__close {
+    /* Real button. Pill, blue, padded — not a tiny text link. */
+    background: var(--apple-blue);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 28px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    min-width: 120px;
+    transition: filter 0.15s ease, transform 0.05s ease;
+}
+.ezlynx-desktop-modal__footer .ezlynx-desktop-modal__close:hover { filter: brightness(1.08); }
+.ezlynx-desktop-modal__footer .ezlynx-desktop-modal__close:active { transform: translateY(1px); }
+.ezlynx-desktop-modal__hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-right: auto;
+}
+

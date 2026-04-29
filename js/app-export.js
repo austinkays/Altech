@@ -18,6 +18,66 @@ Object.assign(App, {
         return { content, filename: fileName, mime: 'text/plain;charset=utf-8' };
     },
 
+    // Build the client JSON the desktop EZLynx filler (python_backend/
+    // ezlynx_filler.py) expects. Maps Altech field IDs to the filler's
+    // TEXT_FIELD_MAP / dropdown-label keys. The filler handles abbreviation
+    // expansion (M→Male, WA→Washington, etc.) so we send raw form values
+    // — don't pre-expand them here.
+    //
+    // Returns a plain object suitable for JSON.stringify. Empty values are
+    // included so the filler can skip them via its own `if (!value) continue`
+    // gate; that keeps the wire format predictable.
+    exportClientJsonForFiller() {
+        const d = this.data || {};
+        const drivers = Array.isArray(this.drivers) ? this.drivers : [];
+
+        // First driver supplies LicenseNumber + DLState for the applicant page.
+        // Per-driver fills happen on EZLynx's drivers page — out of scope for
+        // the applicant smoke test, can be added later.
+        const driver0 = drivers[0] || {};
+
+        // Date format: Altech stores YYYY-MM-DD. The filler accepts either
+        // and converts to MM/DD/YYYY internally for date inputs. Pass raw.
+        const out = {
+            // ── Identity ─────────────────────────────────────────
+            FirstName:      d.firstName || '',
+            LastName:       d.lastName || '',
+            MiddleName:     d.middleName || '',
+            DOB:            d.dob || '',
+            Email:          d.email || '',
+            Phone:          d.phone || '',
+
+            // ── Address ──────────────────────────────────────────
+            Address:        d.addrStreet || '',
+            City:           d.addrCity || '',
+            State:          d.addrState || '',
+            County:         d.county || '',
+            Zip:            d.addrZip || '',
+
+            // ── Demographics ─────────────────────────────────────
+            Gender:         d.gender || '',
+            MaritalStatus:  d.maritalStatus || '',
+            Education:      d.education || '',
+            Occupation:     d.occupation || '',
+            Industry:       d.industry || '',
+            Prefix:         d.prefix || '',
+            Suffix:         d.suffix || '',
+
+            // ── License (from primary driver) ────────────────────
+            LicenseNumber:  driver0.dlNum || '',
+            DLState:        driver0.dlState || '',
+            DLStatus:       driver0.dlStatus || '',
+
+            // ── Tenure ───────────────────────────────────────────
+            // Altech's intake doesn't collect this yet; once it does,
+            // App.data.yearsAtAddress flows straight through.
+            YearsAtAddress: d.yearsAtAddress || '',
+            MonthsAtAddress: d.monthsAtAddress || '',
+        };
+
+        return out;
+    },
+
     // Shared system prompt for policy scan extraction (used by processScan + processScanFromText)
     _getScanSystemPrompt() {
         return 'You are a senior insurance underwriter and document analyst with 20+ years experience reading policies from every major US carrier ' +
