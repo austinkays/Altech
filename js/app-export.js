@@ -83,6 +83,17 @@ Object.assign(App, {
             // App.data.yearsAtAddress flows straight through.
             YearsAtAddress: d.yearsAtAddress || '',
             MonthsAtAddress: d.monthsAtAddress || '',
+
+            // ── Previous Address ─────────────────────────────────
+            // EZLynx renders this section conditionally (often hidden
+            // until tenure is short). The Python filler's is_visible
+            // check skips fields when the section isn't expanded, so
+            // sending values is always safe. If a user's tenure makes
+            // EZLynx surface the section, these flow through.
+            PreviousAddress: d.previousAddrStreet || '',
+            PreviousCity:    d.previousAddrCity || '',
+            PreviousState:   d.previousAddrState || '',
+            PreviousZip:     d.previousAddrZip || '',
         };
 
         return out;
