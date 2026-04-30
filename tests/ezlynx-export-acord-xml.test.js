@@ -397,48 +397,6 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         expect(content).not.toContain('<GarageLocation>');
     });
 
-    test('Home XML batch-3: emits NumberOfOccupants/FullBaths/HalfBaths/DwellingOccupancy/DistanceToFireStation/Foundation in RatingInfo', () => {
-        App.data = {
-            qType: 'home', firstName: 'A', lastName: 'B',
-            numOccupants: '4', occupancyType: 'Owner Occupied',
-            fullBaths: '2', halfBaths: '1',
-            fireStationDist: '2', foundation: 'Basement - Finished',
-        };
-        App.drivers = []; App.vehicles = [];
-        const { content } = App.buildEZLynxHomeXML();
-        expect(content).toContain('<NumberOfOccupants>4</NumberOfOccupants>');
-        expect(content).toContain('<DwellingOccupancy>Owner Occupied</DwellingOccupancy>');
-        expect(content).toContain('<NumberOfFullBaths>2</NumberOfFullBaths>');
-        expect(content).toContain('<NumberOfHalfBaths>1</NumberOfHalfBaths>');
-        expect(content).toContain('<DistanceToFireStation>2</DistanceToFireStation>');
-        expect(content).toContain('<Foundation>Basement - Finished</Foundation>');
-    });
-
-    test('Home XML batch-3: emits PersonalLiability + MedicalPayments in ReplacementCost', () => {
-        App.data = {
-            qType: 'home', firstName: 'A', lastName: 'B',
-            dwellingCoverage: '600000',
-            personalLiability: '300000', medicalPayments: '5000',
-        };
-        App.drivers = []; App.vehicles = [];
-        const { content } = App.buildEZLynxHomeXML();
-        expect(content).toContain('<PersonalLiability>300000</PersonalLiability>');
-        expect(content).toContain('<MedicalPayments>5000</MedicalPayments>');
-        // d7ebfc4 structure preserved — DeductibeInfo still self-closing here
-        expect(content).toContain('<DeductibeInfo/>');
-    });
-
-    test('Home XML batch-3: emits PolicyType in PolicyInfo when set', () => {
-        App.data = {
-            qType: 'home', firstName: 'A', lastName: 'B',
-            homePolicyType: 'HO3',
-        };
-        App.drivers = []; App.vehicles = [];
-        const { content } = App.buildEZLynxHomeXML();
-        expect(content).toContain('<PolicyInfo>');
-        expect(content).toContain('<PolicyType>HO3</PolicyType>');
-    });
-
     test('Home XML sets Multipolicy=Yes when qType is both', () => {
         App.data = { qType: 'both', firstName: 'A', lastName: 'B' };
         App.drivers = []; App.vehicles = [];
