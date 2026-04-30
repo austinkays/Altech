@@ -189,9 +189,18 @@ Object.assign(App, {
             out.push(tag('Email', data.email));
             return out.join('');
         })();
-        const fullAddress = `<Address>${addrInner}${phoneEmailInsideAddress}</Address>`;
+        // <YearsAtAddress>: V200 EZHOME-confirmed; cross-porting to V200
+        // EZAUTO since both schemas share most Address shape. If EZAUTO
+        // rejects this, revert this single tag — see PR #58 batch 2 plan.
+        const yearsAtAddressTag = tagIf('YearsAtAddress', data.yearsAtAddress);
+        const fullAddress = `<Address>${addrInner}${phoneEmailInsideAddress}${yearsAtAddressTag}</Address>`;
 
         // ── <Applicant> primary ────────────────────────────────
+        // Industry/Occupation: V200 EZHOME-confirmed at PersonalInfo level.
+        // Cross-porting to V200 EZAUTO at the Applicant level ONLY (not
+        // per-driver — that's what likely broke the prior batch in PR #58
+        // commit f92247e). If this still breaks deserialization, the next
+        // suspect is the Applicant-level pair too — revert as a unit.
         const primaryApplicant = [
             '<Applicant>',
             tag('ApplicantType', 'Applicant'),
@@ -205,6 +214,8 @@ Object.assign(App, {
             tag('Gender', expandGender(data.gender)),
             tag('MaritalStatus', passThrough(data.maritalStatus)),
             tag('Relation', 'Insured'),
+            tagIf('Industry', data.industry),
+            tagIf('Occupation', data.occupation),
             '</PersonalInfo>',
             fullAddress,
             '</Applicant>',
@@ -239,13 +250,16 @@ Object.assign(App, {
         // ── Prior policy info ──────────────────────────────────
         // Optional — only emit when there's a prior carrier on file.
         // V200 EZHOME's John_Smith sample shows YearsWithPriorCarrier can
-        // hold both <Years> and <Months>. Mirror that here for EZAUTO too —
-        // Altech only stores priorYears (a number), so Months stays empty
-        // unless the producer fills it in post-import.
+        // hold both <Years> and <Months>. Cross-porting <YearsWithContinuousCoverage>
+        // (also EZHOME-confirmed) here for EZAUTO too — user reported the
+        // continuous coverage field as missing post-import.
         const priorPolicy = (() => {
-            if (!data.priorCarrier && !data.priorYears && !data.priorExp) return '';
+            if (!data.priorCarrier && !data.priorYears && !data.priorExp && !data.continuousCoverage) return '';
             const yrs = data.priorYears
                 ? `<YearsWithPriorCarrier><Years>${xesc(data.priorYears)}</Years></YearsWithPriorCarrier>`
+                : '';
+            const cont = data.continuousCoverage
+                ? `<YearsWithContinuousCoverage><Years>${xesc(data.continuousCoverage)}</Years></YearsWithContinuousCoverage>`
                 : '';
             return [
                 '<PriorPolicyInfo>',
@@ -253,17 +267,31 @@ Object.assign(App, {
                 tagIf('PriorPolicyTerm', data.priorPolicyTerm),
                 tagIf('Expiration', isoDate(data.priorExp)),
                 yrs,
+                cont,
                 '</PriorPolicyInfo>',
             ].join('');
         })();
 
         // ── Policy info (effective date + term for new policy) ─
+        // CreditCheckAuth + Package: V200 EZHOME-confirmed in PolicyInfo.
+        // Cross-porting to V200 EZAUTO here. Package=Yes when qType=both
+        // (signals "quote auto and home together" — a multi-policy discount
+        // hint to the rating engine).
         const policyInfo = (() => {
-            if (!data.policyTerm && !data.effectiveDate) return '';
+            const credit = (() => {
+                const v = data.creditCheckAuth;
+                if (v === true || v === 'true' || v === 'yes' || v === 'Yes' || v === '1') return 'Yes';
+                if (v === false || v === 'false' || v === 'no' || v === 'No' || v === '0') return 'No';
+                return '';
+            })();
+            const isPackage = data.qType === 'both';
+            if (!data.policyTerm && !data.effectiveDate && !credit && !isPackage) return '';
             return [
                 '<PolicyInfo>',
                 tagIf('PolicyTerm', data.policyTerm),
+                tag('Package', isPackage ? 'Yes' : 'No'),
                 tagIf('Effective', isoDate(data.effectiveDate)),
+                tagIf('CreditCheckAuth', credit),
                 '</PolicyInfo>',
             ].join('');
         })();

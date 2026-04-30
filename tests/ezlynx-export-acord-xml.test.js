@@ -435,9 +435,11 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         expect(content).not.toContain('<GarageLocation>');
     });
 
-    test('Home XML emits <Industry>/<Occupation> at PersonalInfo (V200 EZHOME-only)', () => {
+    test('Home XML emits <Industry>/<Occupation> at PersonalInfo', () => {
         // Verified accepted by V200 EZHOME via Resources/John_Smith_Home.xml.
-        // V200 EZAUTO does NOT accept these — see PR #58 revert (commit 360b1e7).
+        // Now also emitted at the Auto Applicant level in batch-2 attempt
+        // (top-level only — see Auto-side test for the per-driver exclusion
+        // that prevents the prior PR #58 deserialization regression).
         App.data = {
             qType: 'home', firstName: 'A', lastName: 'B',
             industry: 'Insurance', occupation: 'Agent/Broker',
@@ -446,11 +448,6 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         const homeXml = App.buildEZLynxHomeXML().content;
         expect(homeXml).toContain('<Industry>Insurance</Industry>');
         expect(homeXml).toContain('<Occupation>Agent/Broker</Occupation>');
-
-        // Confirm Auto path does NOT emit them (would break V200 EZAUTO deserialization).
-        const autoXml = App.buildEZLynxXML().content;
-        expect(autoXml).not.toContain('<Industry>');
-        expect(autoXml).not.toContain('<Occupation>');
     });
 
     test('Home XML emits <YearsAtAddress> in Applicant Address', () => {
@@ -509,6 +506,69 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         expect(content).not.toContain('<ReplacementCostDwelling>');
         expect(content).not.toContain('<ReplacementCostContent>');
         expect(content).not.toContain('<LossInfo>');
+    });
+
+    test('Auto XML emits <Industry>/<Occupation> at top-level Applicant only', () => {
+        // V200 EZHOME-confirmed (real export); cross-ported to V200 EZAUTO
+        // at the Applicant PersonalInfo level ONLY. Per-driver Industry/
+        // Occupation broke deserialization in PR #58 (commit f92247e); we
+        // explicitly do NOT emit them per-driver.
+        App.data = {
+            firstName: 'Austin', lastName: 'Smith',
+            industry: 'Insurance', occupation: 'Agent/Broker',
+        };
+        App.drivers = [
+            { firstName: 'Austin', lastName: 'Smith', dlNum: 'X' },
+            { firstName: 'Jane',   lastName: 'Smith', dlNum: 'Y',
+              industry: 'Healthcare', occupation: 'Nurse' },
+        ];
+        App.vehicles = [];
+        const { content } = App.buildEZLynxXML();
+        // Applicant-level: present
+        expect(content).toContain('<Industry>Insurance</Industry>');
+        expect(content).toContain('<Occupation>Agent/Broker</Occupation>');
+        // Per-driver Industry/Occupation: explicitly NOT emitted
+        expect(content).not.toContain('Healthcare');
+        expect(content).not.toContain('<Occupation>Nurse</Occupation>');
+    });
+
+    test('Auto XML emits <YearsAtAddress> in Applicant Address', () => {
+        App.data = {
+            firstName: 'A', lastName: 'B',
+            addrStreet: '123 Main', addrCity: 'X', addrState: 'WA',
+            yearsAtAddress: '7',
+        };
+        App.drivers = []; App.vehicles = [];
+        const { content } = App.buildEZLynxXML();
+        expect(content).toContain('<YearsAtAddress>7</YearsAtAddress>');
+    });
+
+    test('Auto XML emits <YearsWithContinuousCoverage> in PriorPolicyInfo', () => {
+        App.data = {
+            firstName: 'A', lastName: 'B',
+            priorCarrier: 'Progressive', priorYears: '3',
+            continuousCoverage: '5',
+        };
+        App.drivers = []; App.vehicles = [];
+        const { content } = App.buildEZLynxXML();
+        expect(content).toContain('<YearsWithPriorCarrier><Years>3</Years></YearsWithPriorCarrier>');
+        expect(content).toContain('<YearsWithContinuousCoverage><Years>5</Years></YearsWithContinuousCoverage>');
+    });
+
+    test('Auto XML emits <CreditCheckAuth> + <Package> in PolicyInfo', () => {
+        App.data = {
+            qType: 'both', firstName: 'A', lastName: 'B',
+            policyTerm: '6 Month', effectiveDate: '2026-09-13',
+            creditCheckAuth: 'Yes',
+        };
+        App.drivers = []; App.vehicles = [];
+        const { content } = App.buildEZLynxXML();
+        expect(content).toContain('<CreditCheckAuth>Yes</CreditCheckAuth>');
+        expect(content).toContain('<Package>Yes</Package>');
+
+        App.data.qType = 'auto';
+        const autoOnly = App.buildEZLynxXML().content;
+        expect(autoOnly).toContain('<Package>No</Package>');
     });
 
     test('Auto XML emits <OwnershipType> per Vehicle when set', () => {
