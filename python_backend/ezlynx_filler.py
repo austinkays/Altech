@@ -2008,7 +2008,13 @@ def run(client_file: str, schema_file: str):
                             fill_report.append({'field': key, 'type': 'dropdown', 'value': value,
                                                 'status': 'OK', 'diag': diag})
                             dd_filled += 1
-                            time.sleep(0.1)
+                            # Cascade-dependent dropdowns (Occupation depends on
+                            # Industry, County depends on State, etc.) need
+                            # Angular change detection to commit between fills.
+                            # 300ms is the minimum that empirically holds —
+                            # 100ms triggered ERR_NO_OPTIONS_IN_OVERLAY on the
+                            # next dependent dropdown.
+                            time.sleep(0.3)
                         # Fallback to native <select> selectors
                         elif key in DROPDOWN_SELECT_MAP:
                             # Preserve custom's diag — it carries the on-page debug
@@ -2096,7 +2102,7 @@ def run(client_file: str, schema_file: str):
                                         r['status'] = 'OK_RETRY'
                                         r['diag'] = diag
                                         break
-                                time.sleep(0.1)
+                                time.sleep(0.3)
                             else:
                                 err = diag.get('error', '?') if diag else '?'
                                 print(f"  [x] RETRY {key}: still failed -> {err}")
