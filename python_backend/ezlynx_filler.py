@@ -1298,24 +1298,20 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None,
     options_visible = _wait_for_options(max_ms=3000)
     diag['options_loaded_count'] = options_visible
 
-    # Bail-fast if the cascade hasn't loaded options. User report: with a
-    # half-rendered overlay, typing into nothing + the re-open path created
-    # a visible "1/3 page goes white" thrash because Material's overlay
-    # was opening/closing rapidly. If options never streamed in within 3s,
-    # the field's data isn't ready — hammering doesn't help. Bail with the
-    # diagnostic and dismiss any stuck overlay so the next field starts clean.
+    # Bail-fast if the cascade hasn't loaded options. Skip the
+    # type-into-nothing + re-open path that thrashed the overlay
+    # animation visibly. Dismiss the empty overlay by clicking the
+    # CDK backdrop (Material's intended "click outside" behavior) —
+    # NOT by pressing Escape, which the user's last log showed
+    # cascading focus issues onto subsequent dropdowns (regressed
+    # all 8 fields when 4 had been working).
     if options_visible == 0:
         diag['error'] = 'ERR_NO_OPTIONS_IN_OVERLAY'
         try:
-            page.keyboard.press('Escape')
+            backdrop = page.locator('.cdk-overlay-backdrop').first
+            if backdrop.count() > 0 and backdrop.is_visible():
+                backdrop.click(force=True, timeout=1000)
         except Exception:
-            pass
-        try:
-            page.wait_for_selector(
-                '.cdk-overlay-container mat-option, .mat-select-panel',
-                state='hidden', timeout=1000
-            )
-        except PWTimeout:
             pass
         return False, diag
 
