@@ -611,20 +611,33 @@ Object.assign(App, {
         })();
 
         // ── <RatingInfo> — main property/dwelling characteristics ─
+        // Batch-4 additions inside the existing d7ebfc4 RatingInfo block.
+        // Six rating-only tags. Explicitly EXCLUDED from this batch:
+        //   - <PolicyType>          (prior EZLynx warning: rejects value "30")
+        //   - <PersonalLiability>   (prior EZLynx warning: not supported here)
+        //   - <MedicalPayments>     (prior EZLynx warning: not supported here)
+        // Those three were the highest-risk additions in batch-3 — keeping
+        // them out shrinks the blast radius for this attempt.
         const ratingInfo = [
             '<RatingInfo>',
             tagIf('YearBuilt', data.yrBuilt),
             tagIf('Dwelling', data.dwellingType),
+            tagIf('NumberOfOccupants', data.numOccupants),
             tagIf('DwellingUse', data.dwellingUsage),
+            tagIf('DwellingOccupancy', data.occupancyType),
             tagIf('DistanceToFireHydrant', fireHydrantRange(data.fireHydrantFeet)),
+            tagIf('DistanceToFireStation', data.fireStationDist),
             tagIf('ProtectionClassType', data.protectionClass),
             tagIf('NumberOfStories', data.numStories),
+            tagIf('NumberOfFullBaths', data.fullBaths),
+            tagIf('NumberOfHalfBaths', data.halfBaths),
             tagIf('Construction', data.constructionStyle),
             tagIf('Structure', 'Dwelling'),
             tagIf('Roof', data.roofType),
             tagIf('HeatingType', data.heatingType),
             tag('PurchasePrice', data.purchasePrice || '0'),
             tagIf('SquareFootage', data.sqFt),
+            tagIf('Foundation', data.foundation),
             '</RatingInfo>',
         ].filter(s => s !== '').join('');
 
