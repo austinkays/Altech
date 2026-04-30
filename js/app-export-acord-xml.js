@@ -527,6 +527,32 @@ Object.assign(App, {
             return '1001+';
         };
 
+        // ── Construction enum normalization ────────────────────
+        // V200 EZHOME's deserializer crashes (HTTP 500 from
+        // /EzLynxRatingAPI/api/import/process) when given Altech's verbose
+        // values like "Siding, Vinyl" or "Stone Veneer". HawkSoft's known-good
+        // Home XML used the canonical short names ("Frame", "Masonry"). Map
+        // Altech values to the small known-safe set; omit (return '') for
+        // anything we're not confident about — producer fills it manually.
+        const safeConstruction = (raw) => {
+            if (!raw) return '';
+            const s = String(raw).trim();
+            if (!s) return '';
+            const lower = s.toLowerCase();
+            // Already a known-safe canonical → pass through
+            if (s === 'Frame' || s === 'Masonry' || s === 'Stucco' || s === 'Log') return s;
+            // Anything frame-ish (siding, wood, vinyl over frame) → "Frame"
+            if (/(^|\b)(frame|wood|vinyl|aluminum|cedar|plank|fiber|hardiplank|hardie|t-?111)/i.test(lower)) return 'Frame';
+            if (lower.startsWith('siding')) return 'Frame';
+            // Brick/stone/block/concrete → "Masonry"
+            if (/(brick|stone|masonry|block|concrete|cinder|cmu)/i.test(lower)) return 'Masonry';
+            // Stucco — separate enum in many carriers; keep
+            if (lower.includes('stucco')) return 'Stucco';
+            if (lower.includes('log')) return 'Log';
+            // Unknown → omit, don't risk a server 500
+            return '';
+        };
+
         // ── Address blocks (reused for Applicant + AltDwelling) ─
         const street = splitStreet(data.addrStreet);
         const zip = splitZip(data.addrZip);
@@ -619,7 +645,9 @@ Object.assign(App, {
             tagIf('DistanceToFireHydrant', fireHydrantRange(data.fireHydrantFeet)),
             tagIf('ProtectionClassType', data.protectionClass),
             tagIf('NumberOfStories', data.numStories),
-            tagIf('Construction', data.constructionStyle),
+            // Normalize Construction to canonical enum — Altech's verbose values
+            // (e.g. "Siding, Vinyl") crash V200 EZHOME's deserializer with HTTP 500.
+            tagIf('Construction', safeConstruction(data.constructionStyle)),
             tagIf('Structure', 'Dwelling'),
             tagIf('Roof', data.roofType),
             tagIf('HeatingType', data.heatingType),

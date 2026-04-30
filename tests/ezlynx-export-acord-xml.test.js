@@ -397,6 +397,45 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         expect(content).not.toContain('<GarageLocation>');
     });
 
+    test('Home XML normalizes Construction enum — Altech verbose → known-safe canonical', () => {
+        // V200 EZHOME's deserializer crashes (HTTP 500) on Altech's verbose
+        // values like "Siding, Vinyl". Map to canonical safe enum: Frame /
+        // Masonry / Stucco / Log. Omit when value is unrecognized.
+        App.drivers = []; App.vehicles = [];
+
+        const cases = [
+            // input → expected emitted
+            ['Frame',           '<Construction>Frame</Construction>'],
+            ['Masonry',         '<Construction>Masonry</Construction>'],
+            ['Stucco',          '<Construction>Stucco</Construction>'],
+            ['Log',             '<Construction>Log</Construction>'],
+            // Siding family → Frame
+            ['Siding, Vinyl',   '<Construction>Frame</Construction>'],
+            ['Siding, Wood',    '<Construction>Frame</Construction>'],
+            ['Siding, Aluminum','<Construction>Frame</Construction>'],
+            ['Vinyl',           '<Construction>Frame</Construction>'],
+            // Brick/stone family → Masonry
+            ['Brick',           '<Construction>Masonry</Construction>'],
+            ['Brick Veneer',    '<Construction>Masonry</Construction>'],
+            ['Stone',           '<Construction>Masonry</Construction>'],
+            ['Stone Veneer',    '<Construction>Masonry</Construction>'],
+            ['Concrete Block',  '<Construction>Masonry</Construction>'],
+        ];
+
+        for (const [input, expected] of cases) {
+            App.data = { qType: 'home', firstName: 'A', lastName: 'B', constructionStyle: input };
+            const xml = App.buildEZLynxHomeXML().content;
+            expect(xml).toContain(expected);
+        }
+
+        // Unknown value → tag omitted entirely (don't risk server 500)
+        App.data = { qType: 'home', firstName: 'A', lastName: 'B',
+                     constructionStyle: 'Some Weird Future Material' };
+        const xmlUnknown = App.buildEZLynxHomeXML().content;
+        expect(xmlUnknown).not.toContain('Some Weird Future Material');
+        expect(xmlUnknown).not.toContain('<Construction>');
+    });
+
     test('Home XML sets Multipolicy=Yes when qType is both', () => {
         App.data = { qType: 'both', firstName: 'A', lastName: 'B' };
         App.drivers = []; App.vehicles = [];
