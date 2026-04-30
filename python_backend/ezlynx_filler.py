@@ -1141,7 +1141,7 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None,
         '.cdk-overlay-container [role="option"], '
         '.mat-select-panel mat-option'
     )
-    def _wait_for_options(max_ms=3000, poll_ms=100):
+    def _wait_for_options(max_ms=3000, poll_ms=50):
         deadline = time.time() + (max_ms / 1000.0)
         last = 0
         while time.time() < deadline:
@@ -1222,8 +1222,10 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None,
         # The expanded form is still used by the option-click fuzzy
         # matcher in the fallback path, so we don't lose that capability.
         type_value = target
-        page.keyboard.type(type_value, delay=50)
-        time.sleep(0.15)  # Brief pause for typeahead filter
+        # 30ms per char (was 50). Material typeahead's debounce is ~10ms;
+        # 30ms is comfortably above that and shaves ~100ms off a 5-char value.
+        page.keyboard.type(type_value, delay=30)
+        time.sleep(0.08)  # Brief pause for typeahead filter (was 0.15)
         page.keyboard.press("Enter")
         # Wait for overlay to close (indicates successful selection)
         try:
@@ -1808,7 +1810,7 @@ def run(client_file: str, schema_file: str):
                             fill_report.append({'field': key, 'type': 'text', 'value': value,
                                                 'status': 'OK', 'error': None})
                             filled += 1
-                            time.sleep(0.15)
+                            time.sleep(0.05)
                         else:
                             print(f"  [x] {key}: '{value}' -> FIELD NOT FOUND on page")
                             fill_report.append({'field': key, 'type': 'text', 'value': value,
@@ -1901,7 +1903,7 @@ def run(client_file: str, schema_file: str):
                             fill_report.append({'field': key, 'type': 'dropdown', 'value': value,
                                                 'status': 'OK', 'diag': diag})
                             dd_filled += 1
-                            time.sleep(0.3)
+                            time.sleep(0.1)
                         # Fallback to native <select> selectors
                         elif key in DROPDOWN_SELECT_MAP:
                             # Preserve custom's diag — it carries the on-page debug
@@ -1918,7 +1920,7 @@ def run(client_file: str, schema_file: str):
                                 fill_report.append({'field': key, 'type': 'dropdown', 'value': value,
                                                     'status': 'OK', 'diag': diag})
                                 dd_filled += 1
-                                time.sleep(0.15)
+                                time.sleep(0.05)
                             else:
                                 # Native fallback also failed. Keep custom's diag
                                 # (which has the debug payload) but record that
@@ -1989,7 +1991,7 @@ def run(client_file: str, schema_file: str):
                                         r['status'] = 'OK_RETRY'
                                         r['diag'] = diag
                                         break
-                                time.sleep(0.3)
+                                time.sleep(0.1)
                             else:
                                 err = diag.get('error', '?') if diag else '?'
                                 print(f"  [x] RETRY {key}: still failed -> {err}")
