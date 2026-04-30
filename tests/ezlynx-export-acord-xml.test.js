@@ -305,6 +305,133 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         expect(content).toContain('<StatedAmount>30000</StatedAmount>');
     });
 
+    // ── EZHOME (V200 EZHOME) — separate schema, separate output ────
+    test('Home XML uses <EZHOME> root with correct namespace', () => {
+        App.data = { qType: 'home', firstName: 'Jason', lastName: 'Johnston' };
+        App.drivers = [];
+        App.vehicles = [];
+        const { content, filename } = App.buildEZLynxHomeXML();
+        expect(content.startsWith('<EZHOME xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">')).toBe(true);
+        expect(content.endsWith('</EZHOME>')).toBe(true);
+        expect(filename).toMatch(/^EZLynx_Home_Import_Johnston_\d{4}-\d{2}-\d{2}\.xml$/);
+    });
+
+    test('Home XML emits <RatingInfo> with all schema-confirmed fields', () => {
+        App.data = {
+            qType: 'home', firstName: 'A', lastName: 'B',
+            yrBuilt: '2006', dwellingType: 'One Family', dwellingUsage: 'Primary',
+            fireHydrantFeet: '750', protectionClass: '5',
+            numStories: '2', constructionStyle: 'Frame',
+            roofType: 'COMPOSITION', heatingType: 'Gas',
+            purchasePrice: '750000', sqFt: '2314',
+        };
+        App.drivers = [];
+        App.vehicles = [];
+        const { content } = App.buildEZLynxHomeXML();
+        expect(content).toContain('<YearBuilt>2006</YearBuilt>');
+        expect(content).toContain('<Dwelling>One Family</Dwelling>');
+        expect(content).toContain('<DwellingUse>Primary</DwellingUse>');
+        // 750 ft → "601-1000" range per V200 schema convention
+        expect(content).toContain('<DistanceToFireHydrant>601-1000</DistanceToFireHydrant>');
+        expect(content).toContain('<ProtectionClassType>5</ProtectionClassType>');
+        expect(content).toContain('<NumberOfStories>2</NumberOfStories>');
+        expect(content).toContain('<Construction>Frame</Construction>');
+        expect(content).toContain('<Structure>Dwelling</Structure>');
+        expect(content).toContain('<Roof>COMPOSITION</Roof>');
+        expect(content).toContain('<HeatingType>Gas</HeatingType>');
+        expect(content).toContain('<PurchasePrice>750000</PurchasePrice>');
+        expect(content).toContain('<SquareFootage>2314</SquareFootage>');
+    });
+
+    test('Home XML emits <ReplacementCost> with the typo <DeductibeInfo/> preserved', () => {
+        // V200 EZHOME schema has a typo — <DeductibeInfo/> not <DeductibleInfo/>.
+        // Confirmed via HawkSoft sample. DO NOT correct.
+        App.data = {
+            qType: 'home', firstName: 'A', lastName: 'B',
+            dwellingCoverage: '658,300', otherStructures: '65,830',
+            homeLossOfUse: '131,660', homePersonalProperty: '329,150',
+        };
+        App.drivers = [];
+        App.vehicles = [];
+        const { content } = App.buildEZLynxHomeXML();
+        expect(content).toContain('<ReplacementCost>');
+        expect(content).toContain('<Dwelling>658,300</Dwelling>');
+        expect(content).toContain('<OtherStructures>65,830</OtherStructures>');
+        expect(content).toContain('<LossOfUse>131,660</LossOfUse>');
+        expect(content).toContain('<PersonalProperty>329,150</PersonalProperty>');
+        expect(content).toContain('<NumberOfFamilies>1</NumberOfFamilies>');
+        expect(content).toContain('<DeductibeInfo/>');  // typo preserved
+        expect(content).not.toContain('<DeductibleInfo>');  // no corrected spelling
+    });
+
+    test('Home XML maps fireHydrantFeet to range buckets', () => {
+        App.data = { qType: 'home', firstName: 'A', lastName: 'B' };
+        App.drivers = []; App.vehicles = [];
+        // 0-500 → "0-500"
+        App.data.fireHydrantFeet = '300';
+        expect(App.buildEZLynxHomeXML().content).toContain('<DistanceToFireHydrant>0-500</DistanceToFireHydrant>');
+        // 501-600 → "501-600"
+        App.data.fireHydrantFeet = '550';
+        expect(App.buildEZLynxHomeXML().content).toContain('<DistanceToFireHydrant>501-600</DistanceToFireHydrant>');
+        // 601-1000 → "601-1000"
+        App.data.fireHydrantFeet = '750';
+        expect(App.buildEZLynxHomeXML().content).toContain('<DistanceToFireHydrant>601-1000</DistanceToFireHydrant>');
+        // 1001+ → "1001+"
+        App.data.fireHydrantFeet = '1500';
+        expect(App.buildEZLynxHomeXML().content).toContain('<DistanceToFireHydrant>1001+</DistanceToFireHydrant>');
+    });
+
+    test('Home XML uses <AltDwelling> not <ResidenceInfo><GarageLocation>', () => {
+        // V200 EZHOME has AltDwelling for the insured property location;
+        // V200 EZAUTO uses ResidenceInfo>GarageLocation. Different schemas.
+        App.data = {
+            qType: 'home', firstName: 'A', lastName: 'B',
+            addrStreet: '3652 P St', addrCity: 'Washougal',
+            addrState: 'WA', addrZip: '98671',
+        };
+        App.drivers = []; App.vehicles = [];
+        const { content } = App.buildEZLynxHomeXML();
+        expect(content).toContain('<AltDwelling>');
+        expect(content).toContain('</AltDwelling>');
+        expect(content).not.toContain('<ResidenceInfo>');
+        expect(content).not.toContain('<GarageLocation>');
+    });
+
+    test('Home XML sets Multipolicy=Yes when qType is both', () => {
+        App.data = { qType: 'both', firstName: 'A', lastName: 'B' };
+        App.drivers = []; App.vehicles = [];
+        const { content } = App.buildEZLynxHomeXML();
+        expect(content).toContain('<Multipolicy>Yes</Multipolicy>');
+
+        App.data.qType = 'home';
+        expect(App.buildEZLynxHomeXML().content).toContain('<Multipolicy>No</Multipolicy>');
+    });
+
+    test('exportEZLynxXML downloads BOTH files when qType=both', () => {
+        // Stub the side-effect methods so jsdom doesn't try to hit the
+        // network (logExport in production calls fetch to record an audit
+        // entry; toast just renders a notification).
+        const downloaded = [];
+        const orig = {
+            downloadFile: App.downloadFile,
+            logExport:    App.logExport,
+            toast:        App.toast,
+        };
+        App.downloadFile = (content, filename) => { downloaded.push(filename); };
+        App.logExport = () => {};
+        App.toast = () => {};
+        try {
+            App.data = { qType: 'both', firstName: 'A', lastName: 'B' };
+            App.drivers = []; App.vehicles = [];
+            App.exportEZLynxXML();
+            expect(downloaded.length).toBe(2);
+            expect(downloaded.some(f => f.startsWith('EZLynx_Import_'))).toBe(true);
+            expect(downloaded.some(f => f.startsWith('EZLynx_Home_Import_'))).toBe(true);
+        } finally {
+            Object.assign(App, orig);
+        }
+    });
+
     test('round-trips through DOMParser without errors', () => {
         // Parse the emitted XML to confirm it's actually well-formed.
         // jsdom provides DOMParser globally.

@@ -13,21 +13,44 @@
 
 Object.assign(App, {
     /**
-     * Top-level export entry: build XML, download, audit-log.
-     * Wired to the "Export ACORD XML for EZLynx" button in Step 6.
+     * Top-level export entry: build Auto and/or Home XML based on
+     * the client's qType, download all relevant files, audit-log.
+     * Wired to the "EZLynx XML" button in Step 6.
+     *
+     * V200 schemas are SEPARATE: <EZAUTO> for auto rating quotes,
+     * <EZHOME> for home/dwelling. EZLynx Import Applicant accepts
+     * either; producer drops the Auto file at Auto Quote import,
+     * the Home file at Home Quote import.
      */
     exportEZLynxXML() {
-        const result = this.buildEZLynxXML();
-        this.downloadFile(result.content, result.filename, result.mime);
-        this.logExport('EZLynx XML', result.filename);
-        this.toast('\u{1F4C4} EZLynx XML downloaded — drop it in Import Applicant');
+        const data = this.data || {};
+        const qType = data.qType || 'both';
+        const includeAuto = qType === 'auto' || qType === 'both';
+        const includeHome = qType === 'home' || qType === 'both';
+
+        const downloads = [];
+        if (includeAuto) {
+            const auto = this.buildEZLynxXML();  // Auto path — back-compat name
+            this.downloadFile(auto.content, auto.filename, auto.mime);
+            downloads.push(auto.filename);
+        }
+        if (includeHome) {
+            const home = this.buildEZLynxHomeXML();
+            this.downloadFile(home.content, home.filename, home.mime);
+            downloads.push(home.filename);
+        }
+
+        const label = downloads.length > 1 ? 'EZLynx XML (Auto + Home)' : 'EZLynx XML';
+        this.logExport(label, downloads.join(', '));
+        this.toast(`\u{1F4C4} ${downloads.length} file${downloads.length > 1 ? 's' : ''} downloaded — drop in EZLynx Import Applicant`);
+
         try {
             const key = window.STORAGE_KEYS && window.STORAGE_KEYS.EZLYNX_XML_LAST_EXPORT;
             if (key) {
                 localStorage.setItem(key, JSON.stringify({
                     ts: new Date().toISOString(),
-                    client: result.filename,
-                    bytes: result.content.length,
+                    qType,
+                    files: downloads,
                 }));
             }
         } catch (_) { /* best-effort audit */ }
@@ -432,6 +455,261 @@ Object.assign(App, {
             + '</EZAUTO>';
 
         const fileName = `EZLynx_Import_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.xml`;
+        return { content: xml, filename: fileName, mime: 'application/xml;charset=utf-8' };
+    },
+
+    /**
+     * Pure data → V200 EZHOME XML transform. Returns {content, filename, mime}.
+     *
+     * Schema reverse-engineered from a HawkSoft Home export. Different root
+     * (<EZHOME>), different structure than Auto: AltDwelling instead of
+     * GarageLocation, RatingInfo + ReplacementCost + Endorsements + LossInfo.
+     *
+     * Critical schema gotchas preserved:
+     *   - <DeductibeInfo/> (typo — DO NOT correct to "Deductible")
+     *   - Coverage values may use comma formatting ("658,300")
+     *   - DistanceToFireHydrant uses range text ("601-1000"), not raw feet
+     *   - Most carrier-specific deductible/coverage fields are NOT in this
+     *     schema — producer fills them manually after import
+     */
+    buildEZLynxHomeXML() {
+        const data = this.data || {};
+
+        // Reuse the same XML helpers
+        const xesc = (v) => {
+            if (v === null || v === undefined) return '';
+            return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        };
+        const tag = (name, value) => {
+            const v = xesc(value);
+            return v ? `<${name}>${v}</${name}>` : `<${name}></${name}>`;
+        };
+        const tagIf = (name, value) => {
+            const v = xesc(value);
+            return v ? `<${name}>${v}</${name}>` : '';
+        };
+        const isoDate = (val) => {
+            if (!val) return '';
+            const s = String(val);
+            if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+            const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (m) return `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+            return s;
+        };
+        const splitStreet = (raw) => {
+            if (!raw) return { number: '', name: '' };
+            const m = String(raw).trim().match(/^(\d+\S*)\s+(.+)$/);
+            return m ? { number: m[1], name: m[2] } : { number: '', name: String(raw).trim() };
+        };
+        const splitZip = (raw) => {
+            if (!raw) return { zip5: '', zip4: '' };
+            const m = String(raw).trim().match(/^(\d{5})(?:-?(\d{4}))?$/);
+            return m ? { zip5: m[1], zip4: m[2] || '' } : { zip5: String(raw).trim(), zip4: '' };
+        };
+        const expandGender = (g) => {
+            const x = (g || '').toString().trim().toUpperCase();
+            if (x === 'M' || x === 'MALE')   return 'Male';
+            if (x === 'F' || x === 'FEMALE') return 'Female';
+            if (x === 'X' || x === 'NB')     return 'Not Specified';
+            return g || '';
+        };
+
+        // ── DistanceToFireHydrant range mapping ────────────────
+        // V200 EZHOME wants range text per HawkSoft sample. Altech stores
+        // raw feet (number). Standard ISO/HO ranges.
+        const fireHydrantRange = (feet) => {
+            if (feet === undefined || feet === null || feet === '') return '';
+            const f = parseInt(String(feet).replace(/\D/g, ''), 10);
+            if (!Number.isFinite(f)) return '';
+            if (f <= 500)  return '0-500';
+            if (f <= 600)  return '501-600';
+            if (f <= 1000) return '601-1000';
+            return '1001+';
+        };
+
+        // ── Address blocks (reused for Applicant + AltDwelling) ─
+        const street = splitStreet(data.addrStreet);
+        const zip = splitZip(data.addrZip);
+        const addrInner = [
+            '<AddressCode>StreetAddress</AddressCode>',
+            '<Addr1>',
+            tag('StreetName', street.name),
+            tag('StreetNumber', street.number),
+            '</Addr1>',
+            tag('City', data.addrCity),
+            tag('StateCode', data.addrState),
+            tag('County', data.county),
+            tag('Zip5', zip.zip5),
+            tag('Zip4', zip.zip4),
+        ].join('');
+
+        const phoneEmailInside = (() => {
+            const phone = (data.phone || '').replace(/\D/g, '');
+            const out = [];
+            if (phone) {
+                out.push('<Phone id="0">');
+                out.push(tag('PhoneType', 'Mobile'));
+                out.push(tag('PhoneNumber', phone));
+                out.push('<Extension></Extension>');
+                out.push('</Phone>');
+            }
+            out.push(tag('Email', data.email));
+            return out.join('');
+        })();
+        const fullAddress = `<Address>${addrInner}${phoneEmailInside}</Address>`;
+        const dwellingAddress = `<Address>${addrInner}</Address>`;  // no phone/email
+
+        // ── <Applicant> ────────────────────────────────────────
+        const applicant = [
+            '<Applicant>',
+            tag('ApplicantType', 'Applicant'),
+            '<PersonalInfo>',
+            '<Name>',
+            tag('FirstName', data.firstName),
+            tag('MiddleName', data.middleName),
+            tag('LastName', data.lastName),
+            '</Name>',
+            tag('DOB', isoDate(data.dob)),
+            tag('Gender', expandGender(data.gender)),
+            tag('MaritalStatus', data.maritalStatus || ''),
+            tag('Relation', 'Insured'),
+            '</PersonalInfo>',
+            fullAddress,
+            '</Applicant>',
+        ].join('');
+
+        // ── <AltDwelling> — the insured property location ──────
+        const altDwelling = `<AltDwelling>${dwellingAddress}</AltDwelling>`;
+
+        // ── <PriorPolicyInfo> (same structure as Auto) ────────
+        const priorPolicy = (() => {
+            if (!data.homePriorCarrier && !data.priorCarrier && !data.homePriorYears && !data.homePriorExp) return '';
+            const yrs = (data.homePriorYears || data.priorYears)
+                ? `<YearsWithPriorCarrier><Years>${xesc(data.homePriorYears || data.priorYears)}</Years></YearsWithPriorCarrier>`
+                : '';
+            return [
+                '<PriorPolicyInfo>',
+                tagIf('PriorCarrier', data.homePriorCarrier || data.priorCarrier),
+                tagIf('PriorPolicyTerm', data.homePriorPolicyTerm || data.priorPolicyTerm),
+                tagIf('Expiration', isoDate(data.homePriorExp || data.priorExp)),
+                yrs,
+                '</PriorPolicyInfo>',
+            ].join('');
+        })();
+
+        // ── <PolicyInfo> ────────────────────────────────────────
+        const policyInfo = (() => {
+            const term = data.homePolicyTerm || data.policyTerm;
+            const eff = data.homeEffectiveDate || data.effectiveDate;
+            if (!term && !eff) return '';
+            return [
+                '<PolicyInfo>',
+                tagIf('PolicyTerm', term),
+                tagIf('Effective', isoDate(eff)),
+                '</PolicyInfo>',
+            ].join('');
+        })();
+
+        // ── <RatingInfo> — main property/dwelling characteristics ─
+        const ratingInfo = [
+            '<RatingInfo>',
+            tagIf('YearBuilt', data.yrBuilt),
+            tagIf('Dwelling', data.dwellingType),
+            tagIf('DwellingUse', data.dwellingUsage),
+            tagIf('DistanceToFireHydrant', fireHydrantRange(data.fireHydrantFeet)),
+            tagIf('ProtectionClassType', data.protectionClass),
+            tagIf('NumberOfStories', data.numStories),
+            tagIf('Construction', data.constructionStyle),
+            tagIf('Structure', 'Dwelling'),
+            tagIf('Roof', data.roofType),
+            tagIf('HeatingType', data.heatingType),
+            tag('PurchasePrice', data.purchasePrice || '0'),
+            tagIf('SquareFootage', data.sqFt),
+            '</RatingInfo>',
+        ].filter(s => s !== '').join('');
+
+        // ── <ReplacementCost> + <RatingCredits> ────────────────
+        // Coverage values: comma-formatted is acceptable per HawkSoft sample.
+        // We pass through raw — Altech stores either format.
+        const ratingCredits = [
+            '<RatingCredits>',
+            // None of these are in Altech's data model yet; emit defaults
+            // so EZLynx has the structure. Producer can edit post-import.
+            tag('RetireesCredit', 'No'),
+            tag('MatureDiscount', 'No'),
+            tag('RetirementCommunity', 'No'),
+            tag('LimitedAccessCommunity', 'No'),
+            tag('GatedCommunity', 'No'),
+            // Multipolicy = Yes when client has both auto AND home quotes
+            tag('Multipolicy', (data.qType === 'both') ? 'Yes' : 'No'),
+            '</RatingCredits>',
+        ].join('');
+
+        const replacementCost = [
+            '<ReplacementCost>',
+            tagIf('Dwelling', data.dwellingCoverage),
+            tagIf('OtherStructures', data.otherStructures),
+            tagIf('LossOfUse', data.homeLossOfUse),
+            tagIf('PersonalProperty', data.homePersonalProperty),
+            tag('NumberOfFamilies', '1'),
+            // PRESERVE THE TYPO — schema confirmed
+            '<DeductibeInfo/>',
+            ratingCredits,
+            '</ReplacementCost>',
+        ].join('');
+
+        // ── <Endorsements> — sparse, mostly Yes/No ─────────────
+        // Many Altech endorsement fields don't have V200 EZHOME counterparts.
+        // Stick to the schema-confirmed set from HawkSoft sample.
+        const isYes = (v) => {
+            if (!v) return 'No';
+            const s = String(v).trim().toLowerCase();
+            return (s === 'yes' || s === 'true' || s === '1' || s === 'y') ? 'Yes' : 'No';
+        };
+        const endorsements = [
+            '<Endorsements>',
+            '<Earthquake>',
+            tag('Earthquake', isYes(data.earthquakeCoverage)),
+            '</Earthquake>',
+            '<ProtectiveDevices>',
+            '<SmokeDetector>',
+            tag('FireExtinguisher', 'No'),
+            '</SmokeDetector>',
+            '<BurglarAlarm>',
+            tag('DeadBolt', 'No'),
+            tag('VisibleToNeighbor', 'No'),
+            tag('MannedSecurity', 'No'),
+            '</BurglarAlarm>',
+            '</ProtectiveDevices>',
+            '<ScheduledPersonalProperty>',
+            tag('ScheduledPersonalProperty', isYes(data.scheduledItems)),
+            '</ScheduledPersonalProperty>',
+            '<ReplacementCostDwelling>',
+            tag('ReplacementCostDwelling', isYes(data.increasedReplacementCost)),
+            '</ReplacementCostDwelling>',
+            '<ReplacementCostContent>',
+            tag('ReplacementCostContent', 'No'),
+            '</ReplacementCostContent>',
+            '</Endorsements>',
+        ].join('');
+
+        // ── <LossInfo> — only dates per HawkSoft sample ────────
+        // Altech doesn't store structured loss history yet, so emit empty.
+        const lossInfo = '<LossInfo></LossInfo>';
+
+        // ── Assemble document ──────────────────────────────────
+        const xml = '<EZHOME xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">'
+            + applicant
+            + altDwelling
+            + priorPolicy
+            + policyInfo
+            + ratingInfo
+            + replacementCost
+            + endorsements
+            + lossInfo
+            + '</EZHOME>';
+
+        const fileName = `EZLynx_Home_Import_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.xml`;
         return { content: xml, filename: fileName, mime: 'application/xml;charset=utf-8' };
     },
 });
