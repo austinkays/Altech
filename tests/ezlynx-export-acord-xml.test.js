@@ -320,48 +320,82 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         App.data = {
             qType: 'home', firstName: 'A', lastName: 'B',
             yrBuilt: '2006', dwellingType: 'One Family', dwellingUsage: 'Primary',
-            fireHydrantFeet: '750', protectionClass: '5',
-            numStories: '2', constructionStyle: 'Frame',
-            roofType: 'COMPOSITION', heatingType: 'Gas',
-            purchasePrice: '750000', sqFt: '2314',
+            occupancyType: 'Owner Occupied', numOccupants: '4',
+            fireHydrantFeet: '750', fireStationDist: '2', protectionClass: '5',
+            numStories: '2', fullBaths: '2', halfBaths: '1',
+            constructionStyle: 'Frame',
+            roofType: 'COMPOSITION', roofShape: 'Gable', heatingType: 'Gas',
+            roofYr: '2021', heatYr: '2023', plumbYr: '2021', elecYr: '2005',
+            sqFt: '2314', purchaseDate: '2022-01-01',
+            foundation: 'Basement - Finished',
         };
         App.drivers = [];
         App.vehicles = [];
         const { content } = App.buildEZLynxHomeXML();
         expect(content).toContain('<YearBuilt>2006</YearBuilt>');
         expect(content).toContain('<Dwelling>One Family</Dwelling>');
+        expect(content).toContain('<NumberOfOccupants>4</NumberOfOccupants>');
         expect(content).toContain('<DwellingUse>Primary</DwellingUse>');
+        expect(content).toContain('<DwellingOccupancy>Owner Occupied</DwellingOccupancy>');
         // 750 ft → "601-1000" range per V200 schema convention
         expect(content).toContain('<DistanceToFireHydrant>601-1000</DistanceToFireHydrant>');
-        expect(content).toContain('<ProtectionClassType>5</ProtectionClassType>');
+        expect(content).toContain('<DistanceToFireStation>2</DistanceToFireStation>');
+        // V200 EZHOME uses <ProtectionClass> NOT <ProtectionClassType> — verified
+        // against real EZLynx export (Resources/John_Smith_Home.xml).
+        expect(content).toContain('<ProtectionClass>5</ProtectionClass>');
+        expect(content).not.toContain('<ProtectionClassType>');
         expect(content).toContain('<NumberOfStories>2</NumberOfStories>');
+        expect(content).toContain('<NumberOfFullBaths>2</NumberOfFullBaths>');
+        expect(content).toContain('<NumberOfHalfBaths>1</NumberOfHalfBaths>');
         expect(content).toContain('<Construction>Frame</Construction>');
         expect(content).toContain('<Structure>Dwelling</Structure>');
         expect(content).toContain('<Roof>COMPOSITION</Roof>');
+        expect(content).toContain('<RoofDesign>Gable</RoofDesign>');
         expect(content).toContain('<HeatingType>Gas</HeatingType>');
-        expect(content).toContain('<PurchasePrice>750000</PurchasePrice>');
+        expect(content).toContain('<RoofingUpdateYear>2021</RoofingUpdateYear>');
+        expect(content).toContain('<HeatingUpdateYear>2023</HeatingUpdateYear>');
+        expect(content).toContain('<PlumbingUpdateYear>2021</PlumbingUpdateYear>');
+        expect(content).toContain('<ElectricalUpdateYear>2005</ElectricalUpdateYear>');
         expect(content).toContain('<SquareFootage>2314</SquareFootage>');
+        expect(content).toContain('<PurchaseDate>2022-01-01</PurchaseDate>');
+        expect(content).toContain('<Foundation>Basement - Finished</Foundation>');
+        // PurchasePrice was a guess in v1 — not in V200 EZHOME schema.
+        expect(content).not.toContain('<PurchasePrice>');
     });
 
-    test('Home XML emits <ReplacementCost> with the typo <DeductibeInfo/> preserved', () => {
-        // V200 EZHOME schema has a typo — <DeductibeInfo/> not <DeductibleInfo/>.
-        // Confirmed via HawkSoft sample. DO NOT correct.
+    test('Home XML emits <ReplacementCost> with PersonalLiability/MedicalPayments + <DeductibeInfo> typo preserved', () => {
+        // V200 EZHOME schema has a typo — <DeductibeInfo> not <DeductibleInfo>.
+        // Verified via real EZLynx export (Resources/John_Smith_Home.xml).
+        // DO NOT correct.
         App.data = {
             qType: 'home', firstName: 'A', lastName: 'B',
-            dwellingCoverage: '658,300', otherStructures: '65,830',
-            homeLossOfUse: '131,660', homePersonalProperty: '329,150',
+            dwellingCoverage: '658300', otherStructures: '65830',
+            homeLossOfUse: '131660', homePersonalProperty: '329150',
+            personalLiability: '300000', medicalPayments: '5000',
+            homeDeductible: '1000',
         };
         App.drivers = [];
         App.vehicles = [];
         const { content } = App.buildEZLynxHomeXML();
         expect(content).toContain('<ReplacementCost>');
-        expect(content).toContain('<Dwelling>658,300</Dwelling>');
-        expect(content).toContain('<OtherStructures>65,830</OtherStructures>');
-        expect(content).toContain('<LossOfUse>131,660</LossOfUse>');
-        expect(content).toContain('<PersonalProperty>329,150</PersonalProperty>');
-        expect(content).toContain('<NumberOfFamilies>1</NumberOfFamilies>');
-        expect(content).toContain('<DeductibeInfo/>');  // typo preserved
-        expect(content).not.toContain('<DeductibleInfo>');  // no corrected spelling
+        expect(content).toContain('<Dwelling>658300</Dwelling>');
+        expect(content).toContain('<OtherStructures>65830</OtherStructures>');
+        expect(content).toContain('<LossOfUse>131660</LossOfUse>');
+        expect(content).toContain('<PersonalProperty>329150</PersonalProperty>');
+        expect(content).toContain('<PersonalLiability>300000</PersonalLiability>');
+        expect(content).toContain('<MedicalPayments>5000</MedicalPayments>');
+        // DeductibeInfo nests <Deductible> when value present
+        expect(content).toContain('<DeductibeInfo><Deductible>1000</Deductible></DeductibeInfo>');
+        expect(content).not.toContain('<DeductibleInfo>');
+    });
+
+    test('Home XML emits self-closing <DeductibeInfo/> when no deductible set', () => {
+        App.data = { qType: 'home', firstName: 'A', lastName: 'B',
+                     dwellingCoverage: '500000' };
+        App.drivers = [];
+        App.vehicles = [];
+        const { content } = App.buildEZLynxHomeXML();
+        expect(content).toContain('<DeductibeInfo/>');
     });
 
     test('Home XML maps fireHydrantFeet to range buckets', () => {
@@ -381,9 +415,11 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         expect(App.buildEZLynxHomeXML().content).toContain('<DistanceToFireHydrant>1001+</DistanceToFireHydrant>');
     });
 
-    test('Home XML uses <AltDwelling> not <ResidenceInfo><GarageLocation>', () => {
-        // V200 EZHOME has AltDwelling for the insured property location;
-        // V200 EZAUTO uses ResidenceInfo>GarageLocation. Different schemas.
+    test('Home XML uses single Address inside Applicant, no AltDwelling/ResidenceInfo wrapper', () => {
+        // Real V200 EZHOME export has only <Applicant><Address>...</Address>
+        // — applicant address IS the dwelling location. No AltDwelling
+        // (that was a guess) and no ResidenceInfo/GarageLocation
+        // (those are the EZAUTO Auto schema).
         App.data = {
             qType: 'home', firstName: 'A', lastName: 'B',
             addrStreet: '3652 P St', addrCity: 'Washougal',
@@ -391,10 +427,105 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         };
         App.drivers = []; App.vehicles = [];
         const { content } = App.buildEZLynxHomeXML();
-        expect(content).toContain('<AltDwelling>');
-        expect(content).toContain('</AltDwelling>');
+        expect(content).toContain('<Applicant>');
+        expect(content).toContain('<StreetName>P St</StreetName>');
+        expect(content).toContain('<StreetNumber>3652</StreetNumber>');
+        expect(content).not.toContain('<AltDwelling>');
         expect(content).not.toContain('<ResidenceInfo>');
         expect(content).not.toContain('<GarageLocation>');
+    });
+
+    test('Home XML emits <Industry>/<Occupation> at PersonalInfo (V200 EZHOME-only)', () => {
+        // Verified accepted by V200 EZHOME via Resources/John_Smith_Home.xml.
+        // V200 EZAUTO does NOT accept these — see PR #58 revert (commit 360b1e7).
+        App.data = {
+            qType: 'home', firstName: 'A', lastName: 'B',
+            industry: 'Insurance', occupation: 'Agent/Broker',
+        };
+        App.drivers = []; App.vehicles = [];
+        const homeXml = App.buildEZLynxHomeXML().content;
+        expect(homeXml).toContain('<Industry>Insurance</Industry>');
+        expect(homeXml).toContain('<Occupation>Agent/Broker</Occupation>');
+
+        // Confirm Auto path does NOT emit them (would break V200 EZAUTO deserialization).
+        const autoXml = App.buildEZLynxXML().content;
+        expect(autoXml).not.toContain('<Industry>');
+        expect(autoXml).not.toContain('<Occupation>');
+    });
+
+    test('Home XML emits <YearsAtAddress> in Applicant Address', () => {
+        App.data = { qType: 'home', firstName: 'A', lastName: 'B', yearsAtAddress: '10' };
+        App.drivers = []; App.vehicles = [];
+        const { content } = App.buildEZLynxHomeXML();
+        expect(content).toContain('<YearsAtAddress>10</YearsAtAddress>');
+    });
+
+    test('Home XML emits PolicyInfo with PolicyType/Package/CreditCheckAuth', () => {
+        App.data = {
+            qType: 'both', firstName: 'A', lastName: 'B',
+            homePolicyType: 'HO3', policyTerm: '12 Month',
+            effectiveDate: '2026-02-09', creditCheckAuth: 'Yes',
+        };
+        App.drivers = []; App.vehicles = [];
+        const { content } = App.buildEZLynxHomeXML();
+        expect(content).toContain('<PolicyType>HO3</PolicyType>');
+        expect(content).toContain('<Package>Yes</Package>');
+        expect(content).toContain('<CreditCheckAuth>Yes</CreditCheckAuth>');
+        expect(content).toContain('<Effective>2026-02-09</Effective>');
+    });
+
+    test('Home XML emits YearsWithContinuousCoverage when set', () => {
+        App.data = {
+            qType: 'home', firstName: 'A', lastName: 'B',
+            priorCarrier: 'Nationwide', priorYears: '3',
+            continuousCoverage: '5',
+        };
+        App.drivers = []; App.vehicles = [];
+        const { content } = App.buildEZLynxHomeXML();
+        expect(content).toContain('<YearsWithPriorCarrier><Years>3</Years></YearsWithPriorCarrier>');
+        expect(content).toContain('<YearsWithContinuousCoverage><Years>5</Years></YearsWithContinuousCoverage>');
+    });
+
+    test('Home XML emits <GeneralInfo><RatingStateCode> from addrState', () => {
+        App.data = { qType: 'home', firstName: 'A', lastName: 'B', addrState: 'WA' };
+        App.drivers = []; App.vehicles = [];
+        const { content } = App.buildEZLynxHomeXML();
+        expect(content).toContain('<GeneralInfo><RatingStateCode>WA</RatingStateCode></GeneralInfo>');
+    });
+
+    test('Home XML Endorsements uses BurglarAlarm-only ProtectiveDevices + Sinkhole', () => {
+        App.data = { qType: 'home', firstName: 'A', lastName: 'B' };
+        App.drivers = []; App.vehicles = [];
+        const { content } = App.buildEZLynxHomeXML();
+        expect(content).toContain('<ProtectiveDevices><BurglarAlarm>');
+        expect(content).toContain('<DeadBolt>No</DeadBolt>');
+        expect(content).toContain('<VisibleToNeighbor>No</VisibleToNeighbor>');
+        expect(content).toContain('<MannedSecurity>No</MannedSecurity>');
+        expect(content).toContain('<Sinkhole><SinkholeCollapse>No</SinkholeCollapse></Sinkhole>');
+        // These wrappers from the prior guess are NOT in the real V200 EZHOME schema.
+        expect(content).not.toContain('<SmokeDetector>');
+        expect(content).not.toContain('<FireExtinguisher>');
+        expect(content).not.toContain('<ScheduledPersonalProperty>');
+        expect(content).not.toContain('<ReplacementCostDwelling>');
+        expect(content).not.toContain('<ReplacementCostContent>');
+        expect(content).not.toContain('<LossInfo>');
+    });
+
+    test('Auto XML emits <OwnershipType> per Vehicle when set', () => {
+        App.data = { firstName: 'A', lastName: 'B' };
+        App.drivers = [];
+        App.vehicles = [
+            { vin: 'V1', year: '2020', ownershipType: 'Owned' },
+            { vin: 'V2', year: '2018', ownershipType: 'Leased' },
+            { vin: 'V3', year: '2015' },  // no ownershipType — tag omitted
+        ];
+        const { content } = App.buildEZLynxXML();
+        expect(content).toContain('<OwnershipType>Owned</OwnershipType>');
+        expect(content).toContain('<OwnershipType>Leased</OwnershipType>');
+        // Third vehicle should not have an OwnershipType tag at all
+        // (we only emit when set — tagIf semantics)
+        const ownershipMatches = content.match(/<OwnershipType>/g) || [];
+        expect(ownershipMatches.length).toBe(2);
     });
 
     test('Home XML sets Multipolicy=Yes when qType is both', () => {

@@ -238,6 +238,10 @@ Object.assign(App, {
 
         // ── Prior policy info ──────────────────────────────────
         // Optional — only emit when there's a prior carrier on file.
+        // V200 EZHOME's John_Smith sample shows YearsWithPriorCarrier can
+        // hold both <Years> and <Months>. Mirror that here for EZAUTO too —
+        // Altech only stores priorYears (a number), so Months stays empty
+        // unless the producer fills it in post-import.
         const priorPolicy = (() => {
             if (!data.priorCarrier && !data.priorYears && !data.priorExp) return '';
             const yrs = data.priorYears
@@ -339,6 +343,10 @@ Object.assign(App, {
                     tagIf('Anti-Theft', v.antiTheft || 'None'),
                     tagIf('PassiveRestraints', v.passiveRestraints || 'None'),
                     tagIf('StatedAmount', v.statedAmount),
+                    // OwnershipType: Owned / Leased / Lien — common ACORD field,
+                    // user reported as missing post-import. Altech stores this
+                    // per-vehicle as vehicle.ownershipType.
+                    tagIf('OwnershipType', v.ownershipType),
                     '</Vehicle>',
                 ].join('');
             }),
@@ -461,16 +469,21 @@ Object.assign(App, {
     /**
      * Pure data → V200 EZHOME XML transform. Returns {content, filename, mime}.
      *
-     * Schema reverse-engineered from a HawkSoft Home export. Different root
-     * (<EZHOME>), different structure than Auto: AltDwelling instead of
-     * GarageLocation, RatingInfo + ReplacementCost + Endorsements + LossInfo.
+     * Schema reverse-engineered from a real EZLynx export
+     * (Resources/John_Smith_Home.xml). Different root (<EZHOME>), different
+     * structure than Auto: top-level Applicant/PriorPolicyInfo/PolicyInfo/
+     * RatingInfo/ReplacementCost/Endorsements/GeneralInfo with no
+     * AltDwelling/ResidenceInfo wrapper — the property is the single
+     * subject so applicant address IS the dwelling location.
      *
-     * Critical schema gotchas preserved:
-     *   - <DeductibeInfo/> (typo — DO NOT correct to "Deductible")
-     *   - Coverage values may use comma formatting ("658,300")
+     * Critical schema gotchas preserved (verified against the real export):
+     *   - <DeductibeInfo> (typo — DO NOT correct to "Deductible")
+     *   - <ProtectionClass> not <ProtectionClassType>
      *   - DistanceToFireHydrant uses range text ("601-1000"), not raw feet
-     *   - Most carrier-specific deductible/coverage fields are NOT in this
-     *     schema — producer fills them manually after import
+     *   - V200 EZHOME accepts <Industry>/<Occupation> at PersonalInfo level;
+     *     V200 EZAUTO does NOT (caused deserialization error in PR #58).
+     *   - Endorsements: ProtectiveDevices wraps BurglarAlarm only — no
+     *     SmokeDetector/FireExtinguisher wrappers (sample doesn't have them).
      */
     buildEZLynxHomeXML() {
         const data = this.data || {};
@@ -543,23 +556,30 @@ Object.assign(App, {
             tag('Zip4', zip.zip4),
         ].join('');
 
+        // V200 EZHOME's Phone block is NOT id-keyed (unlike EZAUTO's
+        // Phone id="0"). Sample shows bare <Phone><PhoneType>... with
+        // no id attribute. Match exactly.
         const phoneEmailInside = (() => {
             const phone = (data.phone || '').replace(/\D/g, '');
             const out = [];
             if (phone) {
-                out.push('<Phone id="0">');
+                out.push('<Phone>');
                 out.push(tag('PhoneType', 'Mobile'));
                 out.push(tag('PhoneNumber', phone));
-                out.push('<Extension></Extension>');
                 out.push('</Phone>');
             }
             out.push(tag('Email', data.email));
             return out.join('');
         })();
-        const fullAddress = `<Address>${addrInner}${phoneEmailInside}</Address>`;
-        const dwellingAddress = `<Address>${addrInner}</Address>`;  // no phone/email
+        // V200 EZHOME accepts <YearsAtAddress> inside <Address>. User
+        // reported this as missing on the Personal Lines Applicant page.
+        const yearsAtAddressTag = tagIf('YearsAtAddress', data.yearsAtAddress);
+        const fullAddress = `<Address>${addrInner}${phoneEmailInside}${yearsAtAddressTag}</Address>`;
 
         // ── <Applicant> ────────────────────────────────────────
+        // V200 EZHOME PersonalInfo includes Industry & Occupation
+        // (verified via real EZLynx export — John_Smith_Home.xml).
+        // EZAUTO PersonalInfo does NOT — see PR #58 revert.
         const applicant = [
             '<Applicant>',
             tag('ApplicantType', 'Applicant'),
@@ -573,140 +593,193 @@ Object.assign(App, {
             tag('Gender', expandGender(data.gender)),
             tag('MaritalStatus', data.maritalStatus || ''),
             tag('Relation', 'Insured'),
+            tagIf('Industry', data.industry),
+            tagIf('Occupation', data.occupation),
             '</PersonalInfo>',
             fullAddress,
             '</Applicant>',
         ].join('');
 
-        // ── <AltDwelling> — the insured property location ──────
-        const altDwelling = `<AltDwelling>${dwellingAddress}</AltDwelling>`;
-
-        // ── <PriorPolicyInfo> (same structure as Auto) ────────
+        // ── <PriorPolicyInfo> ──────────────────────────────────
+        // V200 EZHOME nests Years and Months separately under both
+        // YearsWithPriorCarrier and YearsWithContinuousCoverage.
         const priorPolicy = (() => {
-            if (!data.homePriorCarrier && !data.priorCarrier && !data.homePriorYears && !data.homePriorExp) return '';
-            const yrs = (data.homePriorYears || data.priorYears)
-                ? `<YearsWithPriorCarrier><Years>${xesc(data.homePriorYears || data.priorYears)}</Years></YearsWithPriorCarrier>`
-                : '';
-            return [
-                '<PriorPolicyInfo>',
-                tagIf('PriorCarrier', data.homePriorCarrier || data.priorCarrier),
-                tagIf('PriorPolicyTerm', data.homePriorPolicyTerm || data.priorPolicyTerm),
-                tagIf('Expiration', isoDate(data.homePriorExp || data.priorExp)),
-                yrs,
-                '</PriorPolicyInfo>',
-            ].join('');
+            const carrier = data.homePriorCarrier || data.priorCarrier;
+            const exp = data.homePriorExp || data.priorExp;
+            const yearsCarrier = data.homePriorYears || data.priorYears;
+            const yearsCont = data.continuousCoverage;
+            if (!carrier && !exp && !yearsCarrier && !yearsCont) return '';
+            const parts = ['<PriorPolicyInfo>'];
+            if (carrier) parts.push(tag('PriorCarrier', carrier));
+            if (exp) parts.push(tag('Expiration', isoDate(exp)));
+            if (yearsCarrier) {
+                parts.push('<YearsWithPriorCarrier>');
+                parts.push(tag('Years', yearsCarrier));
+                parts.push('</YearsWithPriorCarrier>');
+            }
+            if (yearsCont) {
+                parts.push('<YearsWithContinuousCoverage>');
+                parts.push(tag('Years', yearsCont));
+                parts.push('</YearsWithContinuousCoverage>');
+            }
+            parts.push('</PriorPolicyInfo>');
+            return parts.join('');
         })();
 
         // ── <PolicyInfo> ────────────────────────────────────────
+        // V200 EZHOME PolicyInfo per real export: PolicyTerm, PolicyType,
+        // Package, Effective, CreditCheckAuth.
         const policyInfo = (() => {
             const term = data.homePolicyTerm || data.policyTerm;
             const eff = data.homeEffectiveDate || data.effectiveDate;
-            if (!term && !eff) return '';
+            const policyType = data.homePolicyType;  // HO3/HO5/HO6
+            const isPackage = data.qType === 'both';
+            const credit = (() => {
+                const v = data.creditCheckAuth;
+                if (v === true || v === 'true' || v === 'yes' || v === 'Yes' || v === '1') return 'Yes';
+                if (v === false || v === 'false' || v === 'no' || v === 'No' || v === '0') return 'No';
+                return '';
+            })();
+            if (!term && !eff && !policyType && !credit) return '';
             return [
                 '<PolicyInfo>',
                 tagIf('PolicyTerm', term),
+                tagIf('PolicyType', policyType),
+                tag('Package', isPackage ? 'Yes' : 'No'),
                 tagIf('Effective', isoDate(eff)),
+                tagIf('CreditCheckAuth', credit),
                 '</PolicyInfo>',
             ].join('');
         })();
 
-        // ── <RatingInfo> — main property/dwelling characteristics ─
+        // ── Yes/No coercion for select fields ──────────────────
+        const yesNo = (v) => {
+            if (v === true) return 'Yes';
+            if (v === false) return 'No';
+            if (v == null || v === '') return '';
+            const s = String(v).trim().toLowerCase();
+            if (s === 'yes' || s === 'true' || s === '1' || s === 'y') return 'Yes';
+            if (s === 'no'  || s === 'false'|| s === '0' || s === 'n' || s === 'none') return 'No';
+            return String(v);  // pass-through for non-boolean values like "Owner Occupied"
+        };
+
+        // ── <RatingInfo> — full property characteristics ───────
+        // Field names verified against John_Smith_Home.xml. Critical
+        // corrections from prior version:
+        //   - ProtectionClassType → ProtectionClass
+        //   - PurchasePrice removed (not in schema; PurchaseDate is)
         const ratingInfo = [
             '<RatingInfo>',
             tagIf('YearBuilt', data.yrBuilt),
             tagIf('Dwelling', data.dwellingType),
+            tagIf('NumberOfOccupants', data.numOccupants),
             tagIf('DwellingUse', data.dwellingUsage),
+            tagIf('DwellingOccupancy', data.occupancyType),
             tagIf('DistanceToFireHydrant', fireHydrantRange(data.fireHydrantFeet)),
-            tagIf('ProtectionClassType', data.protectionClass),
+            tagIf('DistanceToFireStation', data.fireStationDist),
+            tagIf('ProtectionClass', data.protectionClass),
             tagIf('NumberOfStories', data.numStories),
+            tagIf('NumberOfFullBaths', data.fullBaths),
+            tagIf('NumberOfHalfBaths', data.halfBaths),
             tagIf('Construction', data.constructionStyle),
-            tagIf('Structure', 'Dwelling'),
+            tag('Structure', 'Dwelling'),
             tagIf('Roof', data.roofType),
+            tagIf('SwimmingPool', yesNo(data.pool)),
+            tagIf('DogOnPremises', data.dogInfo ? 'Yes' : ''),
             tagIf('HeatingType', data.heatingType),
-            tag('PurchasePrice', data.purchasePrice || '0'),
+            tagIf('RoofingUpdateYear', data.roofYr),
+            tagIf('ElectricalUpdateYear', data.elecYr),
+            tagIf('PlumbingUpdateYear', data.plumbYr),
+            tagIf('HeatingUpdateYear', data.heatYr),
             tagIf('SquareFootage', data.sqFt),
+            tagIf('PurchaseDate', isoDate(data.purchaseDate)),
+            tagIf('Trampoline', yesNo(data.trampoline)),
+            tagIf('BusinessOnPremises', yesNo(data.businessOnProperty)),
+            tagIf('Foundation', data.foundation),
+            tagIf('RoofDesign', data.roofShape),
             '</RatingInfo>',
         ].filter(s => s !== '').join('');
 
         // ── <ReplacementCost> + <RatingCredits> ────────────────
-        // Coverage values: comma-formatted is acceptable per HawkSoft sample.
-        // We pass through raw — Altech stores either format.
+        // Real V200 EZHOME export structure:
+        //   <ReplacementCost>
+        //     <ReplacementCost>{total}</ReplacementCost>  (nested!)
+        //     <Dwelling>...</Dwelling>
+        //     <LossOfUse>...</LossOfUse>
+        //     <PersonalLiability>...</PersonalLiability>
+        //     <MedicalPayments>...</MedicalPayments>
+        //     <DeductibeInfo>            ← typo preserved
+        //       <Deductible>500</Deductible>
+        //     </DeductibeInfo>
+        //     <RatingCredits>...</RatingCredits>
+        //   </ReplacementCost>
         const ratingCredits = [
             '<RatingCredits>',
-            // None of these are in Altech's data model yet; emit defaults
-            // so EZLynx has the structure. Producer can edit post-import.
             tag('RetireesCredit', 'No'),
             tag('MatureDiscount', 'No'),
             tag('RetirementCommunity', 'No'),
             tag('LimitedAccessCommunity', 'No'),
             tag('GatedCommunity', 'No'),
-            // Multipolicy = Yes when client has both auto AND home quotes
             tag('Multipolicy', (data.qType === 'both') ? 'Yes' : 'No'),
             '</RatingCredits>',
         ].join('');
 
+        // DeductibeInfo: nested when value present, self-closing when not.
+        const deductibleBlock = data.homeDeductible
+            ? `<DeductibeInfo>${tag('Deductible', data.homeDeductible)}</DeductibeInfo>`
+            : '<DeductibeInfo/>';
+
         const replacementCost = [
             '<ReplacementCost>',
+            tagIf('ReplacementCost', data.dwellingCoverage),  // total = Dwelling cov A
             tagIf('Dwelling', data.dwellingCoverage),
             tagIf('OtherStructures', data.otherStructures),
             tagIf('LossOfUse', data.homeLossOfUse),
             tagIf('PersonalProperty', data.homePersonalProperty),
-            tag('NumberOfFamilies', '1'),
-            // PRESERVE THE TYPO — schema confirmed
-            '<DeductibeInfo/>',
+            tagIf('PersonalLiability', data.personalLiability),
+            tagIf('MedicalPayments', data.medicalPayments),
+            deductibleBlock,
             ratingCredits,
             '</ReplacementCost>',
-        ].join('');
+        ].filter(s => s !== '').join('');
 
-        // ── <Endorsements> — sparse, mostly Yes/No ─────────────
-        // Many Altech endorsement fields don't have V200 EZHOME counterparts.
-        // Stick to the schema-confirmed set from HawkSoft sample.
-        const isYes = (v) => {
-            if (!v) return 'No';
-            const s = String(v).trim().toLowerCase();
-            return (s === 'yes' || s === 'true' || s === '1' || s === 'y') ? 'Yes' : 'No';
-        };
+        // ── <Endorsements> — match real export structure ───────
+        // Real export shows: SpecialPersonalProperty, ProtectiveDevices
+        // (BurglarAlarm only — no SmokeDetector wrapper), Sinkhole.
+        // Earthquake/SPP/RC nested doubles in prior version were guesses
+        // and did not match the real schema.
         const endorsements = [
             '<Endorsements>',
-            '<Earthquake>',
-            tag('Earthquake', isYes(data.earthquakeCoverage)),
-            '</Earthquake>',
+            tag('SpecialPersonalProperty', data.scheduledItems ? 'Yes' : 'No'),
             '<ProtectiveDevices>',
-            '<SmokeDetector>',
-            tag('FireExtinguisher', 'No'),
-            '</SmokeDetector>',
             '<BurglarAlarm>',
             tag('DeadBolt', 'No'),
             tag('VisibleToNeighbor', 'No'),
             tag('MannedSecurity', 'No'),
             '</BurglarAlarm>',
             '</ProtectiveDevices>',
-            '<ScheduledPersonalProperty>',
-            tag('ScheduledPersonalProperty', isYes(data.scheduledItems)),
-            '</ScheduledPersonalProperty>',
-            '<ReplacementCostDwelling>',
-            tag('ReplacementCostDwelling', isYes(data.increasedReplacementCost)),
-            '</ReplacementCostDwelling>',
-            '<ReplacementCostContent>',
-            tag('ReplacementCostContent', 'No'),
-            '</ReplacementCostContent>',
+            '<Sinkhole>',
+            tag('SinkholeCollapse', 'No'),
+            '</Sinkhole>',
             '</Endorsements>',
         ].join('');
 
-        // ── <LossInfo> — only dates per HawkSoft sample ────────
-        // Altech doesn't store structured loss history yet, so emit empty.
-        const lossInfo = '<LossInfo></LossInfo>';
+        // ── <GeneralInfo> — required by V200 EZHOME ────────────
+        // Real export has <RatingStateCode> here. Use addrState since
+        // home state = applicant address state.
+        const generalInfo = `<GeneralInfo>${tagIf('RatingStateCode', data.addrState)}</GeneralInfo>`;
 
         // ── Assemble document ──────────────────────────────────
+        // Note: real export has no <AltDwelling> and no <LossInfo>;
+        // applicant address IS the dwelling location.
         const xml = '<EZHOME xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">'
             + applicant
-            + altDwelling
             + priorPolicy
             + policyInfo
             + ratingInfo
             + replacementCost
             + endorsements
-            + lossInfo
+            + generalInfo
             + '</EZHOME>';
 
         const fileName = `EZLynx_Home_Import_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.xml`;
