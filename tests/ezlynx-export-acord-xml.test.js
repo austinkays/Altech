@@ -76,6 +76,7 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         expect(content).toContain('<County>Clark</County>');
         expect(content).toContain('<Zip5>98685</Zip5>');
         expect(content).toContain('<Zip4>2003</Zip4>');
+        expect(content).toContain('<Phone id="0">');  // V200 schema is 0-indexed
         expect(content).toContain('<PhoneNumber>5551234567</PhoneNumber>');
         expect(content).toContain('<Email>jane@example.com</Email>');
     });
@@ -218,6 +219,90 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         const { content } = App.buildEZLynxXML();
         expect(content).toContain('<FirstName>O\'Reilly &amp; Sons &lt;test&gt;</FirstName>');
         expect(content).toContain('<Email>a&amp;b@example.com</Email>');
+    });
+
+    test('emits <Useage> typo + PrincipalOperator + miles per VehicleUse', () => {
+        // V200 EZAUTO uses the typo <Useage> — schema confirmed via
+        // HawkSoft's AJK.xml export. Do NOT correct to <Usage>.
+        App.data = { firstName: 'A', lastName: 'B' };
+        App.drivers = [{ firstName: 'A', lastName: 'B', dlNum: 'X' }];
+        App.vehicles = [
+            { vin: 'VIN1', year: '2020', use: 'Commute', oneWayMiles: '14', annualMiles: '7000' },
+            { vin: 'VIN2', year: '2018', annualMiles: '10000' },  // no use → defaults to Pleasure
+        ];
+        const { content } = App.buildEZLynxXML();
+        expect(content).toContain('<VehiclesUse>');
+        expect(content).toContain('<VehicleUse id="1">');
+        expect(content).toContain('<Useage>Commute</Useage>');
+        expect(content).toContain('<OneWayMiles>14</OneWayMiles>');
+        expect(content).toContain('<AnnualMiles>7000</AnnualMiles>');
+        expect(content).toContain('<PrincipalOperator>1</PrincipalOperator>');
+        expect(content).toContain('<VehicleUse id="2">');
+        expect(content).toContain('<Useage>Pleasure</Useage>');  // default
+        expect(content).not.toContain('<Usage>');  // no corrected spelling
+    });
+
+    test('emits self-closing <DriverAssignment id="N"/> in VehicleAssignments', () => {
+        // V200 EZAUTO requires the cross-reference — empty <DriverAssignment/>
+        // is useless (rating engine doesn't know which driver primarily
+        // operates the vehicle). Schema confirmed via HawkSoft AJK.xml.
+        App.data = { firstName: 'A', lastName: 'B' };
+        App.drivers = [{ firstName: 'A', lastName: 'B', dlNum: 'X' }];
+        App.vehicles = [
+            { vin: 'VIN1' },
+            { vin: 'VIN2', principalOperator: '2' },
+        ];
+        const { content } = App.buildEZLynxXML();
+        expect(content).toContain('<VehicleAssignment id="1"><DriverAssignment id="1"/></VehicleAssignment>');
+        expect(content).toContain('<VehicleAssignment id="2"><DriverAssignment id="2"/></VehicleAssignment>');
+        expect(content).not.toContain('<DriverAssignment/>');  // no empty assignments
+    });
+
+    test('emits PrincipalVehicle on driver 0 when vehicles exist', () => {
+        App.data = { firstName: 'A', lastName: 'B' };
+        App.drivers = [{ firstName: 'A', lastName: 'B', dlNum: 'X' }];
+        App.vehicles = [{ vin: 'VIN1' }];
+        const { content } = App.buildEZLynxXML();
+        expect(content).toContain('<PrincipalVehicle>1</PrincipalVehicle>');
+    });
+
+    test('omits PrincipalVehicle when no vehicles', () => {
+        App.data = { firstName: 'A', lastName: 'B' };
+        App.drivers = [{ firstName: 'A', lastName: 'B', dlNum: 'X' }];
+        App.vehicles = [];
+        const { content } = App.buildEZLynxXML();
+        expect(content).not.toContain('<PrincipalVehicle>');
+    });
+
+    test('computes DateLicensed from DOB + ageLicensed when not stored directly', () => {
+        App.data = { firstName: 'A', lastName: 'B' };
+        App.drivers = [{
+            firstName: 'A', lastName: 'B', dob: '1990-05-12',
+            ageLicensed: '16', dlNum: 'X',
+        }];
+        App.vehicles = [];
+        const { content } = App.buildEZLynxXML();
+        // 1990-05-12 + 16 years = 2006-05-12
+        expect(content).toContain('<DateLicensed>2006-05-12</DateLicensed>');
+    });
+
+    test('uses dateLicensed directly when stored', () => {
+        App.data = { firstName: 'A', lastName: 'B' };
+        App.drivers = [{
+            firstName: 'A', lastName: 'B', dob: '1990-05-12',
+            dateLicensed: '2008-01-04', dlNum: 'X',
+        }];
+        App.vehicles = [];
+        const { content } = App.buildEZLynxXML();
+        expect(content).toContain('<DateLicensed>2008-01-04</DateLicensed>');
+    });
+
+    test('emits <StatedAmount> per vehicle when set', () => {
+        App.data = { firstName: 'A', lastName: 'B' };
+        App.drivers = [];
+        App.vehicles = [{ vin: 'V1', year: '2020', statedAmount: '30000' }];
+        const { content } = App.buildEZLynxXML();
+        expect(content).toContain('<StatedAmount>30000</StatedAmount>');
     });
 
     test('round-trips through DOMParser without errors', () => {

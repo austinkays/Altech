@@ -154,8 +154,10 @@ Object.assign(App, {
         const phoneEmailInsideAddress = (() => {
             const phone = (data.phone || '').replace(/\D/g, '');
             const out = [];
+            // V200 EZAUTO uses 0-indexed Phone ids per HawkSoft sample.
+            // Multiple phones would be id="0", id="1", ...
             if (phone) {
-                out.push('<Phone id="1">');
+                out.push('<Phone id="0">');
                 out.push(tag('PhoneType', 'Mobile'));
                 out.push(tag('PhoneNumber', phone));
                 out.push('<Extension></Extension>');
@@ -256,6 +258,24 @@ Object.assign(App, {
                 const violations = (Array.isArray(d.violationList) ? d.violationList : [])
                     .map(v => `<Violation>${tagIf('Date', isoDate(v.date))}${tagIf('Description', v.description)}</Violation>`)
                     .join('');
+                // DateLicensed: V200 EZAUTO supports a date — try the
+                // driver's stored dateLicensed, else compute DOB + ageLicensed
+                // years (fallback from Altech's data shape). YYYY-MM-DD only.
+                let dateLicensed = isoDate(d.dateLicensed);
+                if (!dateLicensed && d.dob && d.ageLicensed) {
+                    const dobIso = isoDate(d.dob);
+                    const m = dobIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    const ageNum = parseInt(String(d.ageLicensed).replace(/\D/g, ''), 10);
+                    if (m && Number.isFinite(ageNum) && ageNum > 0 && ageNum < 100) {
+                        dateLicensed = `${parseInt(m[1], 10) + ageNum}-${m[2]}-${m[3]}`;
+                    }
+                }
+                // PrincipalVehicle: which vehicle this driver primarily
+                // drives. For driver 0 (insured), default to vehicle 1
+                // when at least one vehicle exists. Schema confirmed via
+                // HawkSoft sample.
+                const principalVehicle = d.principalVehicle
+                    || (i === 0 && vehicles.length ? '1' : '');
                 return [
                     `<Driver id="${id}">`,
                     '<Name>',
@@ -267,11 +287,13 @@ Object.assign(App, {
                     tag('DOB', isoDate(d.dob)),
                     tagIf('DLNumber', d.dlNum),
                     tagIf('DLState', d.dlState),
+                    tagIf('DateLicensed', dateLicensed),
                     tagIf('MaritalStatus', d.maritalStatus),
                     i === 0 ? tag('Relation', 'Insured') : tagIf('Relation', d.relationship),
                     tagIf('GoodStudent', d.goodStudent || 'No'),
                     tagIf('MATDriver', d.matureDriver || 'No'),
                     tagIf('Rated', d.ratedDriver || 'Rated'),
+                    tagIf('PrincipalVehicle', principalVehicle),
                     violations,
                     '</Driver>',
                 ].join('');
@@ -293,16 +315,39 @@ Object.assign(App, {
                     tagIf('Model', v.model),
                     tagIf('Anti-Theft', v.antiTheft || 'None'),
                     tagIf('PassiveRestraints', v.passiveRestraints || 'None'),
+                    tagIf('StatedAmount', v.statedAmount),
                     '</Vehicle>',
                 ].join('');
             }),
             '</Vehicles>',
         ].join('') : '';
 
-        // ── Vehicle annual miles ───────────────────────────────
+        // ── Vehicle use (usage + miles + principal driver) ─────
+        // Schema confirmed via HawkSoft AJK.xml sample. Important:
+        //   - <Useage> is spelled with the typo — DO NOT correct.
+        //   - <PrincipalOperator> cross-references Driver id.
+        //   - Either OneWayMiles or AnnualMiles depending on Use type.
         const vehicleUseXml = vehicles.length ? [
             '<VehiclesUse>',
-            ...vehicles.map((v, i) => `<VehicleUse id="${i + 1}">${tagIf('AnnualMiles', v.annualMiles)}</VehicleUse>`),
+            ...vehicles.map((v, i) => {
+                const id = i + 1;
+                // Default Useage = "Pleasure" when not specified, matches
+                // HawkSoft's behavior. Altech's vehicle.use field follows
+                // the same enum (Pleasure/Commute/Business/Farm/Artisan).
+                const useage = v.use || v.useage || 'Pleasure';
+                // PrincipalOperator: which driver primarily uses this
+                // vehicle. Defaults to driver 1 (insured) when not set.
+                const principalOperator = v.principalOperator
+                    || (drivers.length ? '1' : '');
+                return [
+                    `<VehicleUse id="${id}">`,
+                    tag('Useage', useage),
+                    tagIf('OneWayMiles', v.oneWayMiles),
+                    tagIf('AnnualMiles', v.annualMiles),
+                    tagIf('PrincipalOperator', principalOperator),
+                    '</VehicleUse>',
+                ].join('');
+            }),
             '</VehiclesUse>',
         ].join('') : '';
 
@@ -354,10 +399,21 @@ Object.assign(App, {
             return ['<Coverages>', general, perVehicle, stateBlock, '</Coverages>'].join('');
         })();
 
-        // ── VehicleAssignments (driver→vehicle, default empty) ─
+        // ── VehicleAssignments (driver→vehicle cross-reference) ─
+        // Schema confirmed via HawkSoft AJK.xml: each <VehicleAssignment>
+        // contains a self-closing <DriverAssignment id="N"/> with the
+        // driver id. Empty <DriverAssignment/> (what we used to emit) is
+        // useless — the cross-reference is what makes EZLynx's rating
+        // engine know which driver primarily uses which vehicle.
+        // Default: assign every vehicle to driver 1 (insured) unless
+        // the vehicle has its own principalOperator set.
         const assignmentsXml = vehicles.length ? [
             '<VehicleAssignments>',
-            ...vehicles.map((_v, i) => `<VehicleAssignment id="${i + 1}"><DriverAssignment/></VehicleAssignment>`),
+            ...vehicles.map((v, i) => {
+                const driverId = v.principalOperator
+                    || (drivers.length ? '1' : '1');
+                return `<VehicleAssignment id="${i + 1}"><DriverAssignment id="${driverId}"/></VehicleAssignment>`;
+            }),
             '</VehicleAssignments>',
         ].join('') : '';
 
