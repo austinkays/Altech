@@ -322,10 +322,17 @@ AUTO_DROPDOWN_LABELS = {
     "Comprehensive":   ["comprehensive", "comp deductible", "comprehensive deductible"],
     "Collision":       ["collision", "collision deductible"],
     "UMPD":            ["uninsured motorist property damage", "umpd"],
-    "UMBI":            ["uninsured motorist bodily injury", "um bodily injury", "um/uim bodily injury"],
-    "TowingLabor":     ["towing and labor", "towing labor", "towing"],
-    "RentalReimbursement": ["rental reimbursement", "rental"],
+    "UMBI":            ["uninsured motorist bodily injury", "uninsured motorist", "um bodily injury"],
+    "UnderinsuredMotorist": ["underinsured motorist", "uim"],
+    "PIP":             ["personal injury protection", "pip"],
+    "TowingLabor":     ["towing and labor", "towing labor", "towing", "towing & labor"],
+    "RentalReimbursement": ["rental reimbursement", "rental", "rental expense"],
     "ResidenceIs":     ["residence is", "residence owned"],
+    # Vehicle make/model are text-like dropdowns on EZLynx but enter via
+    # mat-select with autocomplete; the existing VehicleYear pattern
+    # handles year. Add make/model labels.
+    "VehicleMake":     ["make"],
+    "VehicleModel":    ["model"],
     # ── Previously unmapped (scraped from schema) ──
     "PaperlessAuto":        ["paperless"],
     "DriverTelematics":     ["telematics"],
@@ -449,16 +456,46 @@ SUBPAGE_FIELD_IDS = {
         # the existing TEXT_FIELD_MAP selectors handle it.
         'EffectiveDate':           None,
     },
-    # Auto Coverage — TBD. Capture IDs from a real fill run on the
-    # Coverage page (BI/PD/MedPay/Comp/Coll/UMPD/ResidenceIs).
+    # Auto Coverage — IDs from Cowork Round 3 fill log inventory.
+    # Notes:
+    #   - Comprehensive/Collision are PER-VEHICLE (vehicle-0-comprehensive,
+    #     vehicle-0-collision). Multi-vehicle handling is Phase 2 — iteration
+    #     over Vehicles[]. For single-vehicle quotes (most common), the
+    #     vehicle-0 ID works directly.
+    #   - State-specific IDs (WAPIP, WAUMPD) are deliberately NOT pinned —
+    #     they vary by state (CAPIP, CAUMPD, ...) and the existing label-
+    #     walk handles them portably.
     'auto-coverage': {
-        'BodilyInjury':    None,
-        'PropertyDamage':  None,
-        'MedPaymentsAuto': None,
-        'Comprehensive':   None,
-        'Collision':       None,
-        'UMPD':            None,
-        'ResidenceIs':     None,
+        'BodilyInjury':       '#bodily-injury',
+        'PropertyDamage':     '#property-damage',
+        'MedPaymentsAuto':    '#medical-payments',
+        'UMBI':               '#uninsured-motorist',
+        'UnderinsuredMotorist': '#underinsured-motorist',
+        'UMPD':               None,        # state-specific (WAUMPD/CAUMPD/...)
+        'PIP':                None,        # state-specific (WAPIP/CAPIP/...)
+        'Comprehensive':      '#vehicle-0-comprehensive',
+        'Collision':          '#vehicle-0-collision',
+        'TowingLabor':        '#vehicle-0-towingAndLabor',
+        'RentalReimbursement': '#vehicle-0-extTransExpense',
+        'ResidenceIs':        '#residence',
+    },
+    # Auto Vehicles — IDs from Cowork Round 3 inventory. All single-vehicle
+    # (vehicle index 0). Multi-vehicle iteration is Phase 2.
+    'auto-vehicles': {
+        'VehicleYear':          '#selected-year-0',
+        'VehicleMake':          '#selected-make-0',
+        'VehicleModel':         '#selected-model-0',
+        'PassiveRestraints':    '#selected-restraint-0',
+        'AntiLockBrakes':       '#antilock-brakes-0',
+        'DaytimeRunningLights': '#daytime-runningLights-0',
+        'AntiTheft':            '#selected-antiTheft-0',
+        'VehicleUse':           '#selected-use-0',
+        'VehiclePerformance':   '#selected-performance-0',
+        'CarNew':               '#new-vehicle-0',
+        'OwnershipType':        '#selected-ownershipType-0',
+        'CarPool':              '#carpool-0',
+        'VehicleTelematics':    '#telematics-0',
+        'TransNetworkCompany':  '#transportation-network-coverage-0',
     },
     # Auto Drivers — IDs from Cowork Round 2 fill log inventory.
     # NOTE: 'Education' (Bachelors/Masters) is deliberately NOT included.
