@@ -145,10 +145,20 @@ const EZLynxTool = {
                 data[keyMap[id] || id] = el.value.trim();
             }
         });
-        // Auto-derive County from City + State if available
-        if (data.City && data.State && typeof App !== 'undefined' && App.getCountyFromCity) {
-            const county = App.getCountyFromCity(data.City, data.State.toUpperCase());
+        // Auto-derive County from City + State if available. Fallback to
+        // App.data.addrCity / addrState when the EZ plugin's own form fields
+        // weren't filled (e.g. user pushed data via console snippet straight
+        // into App.data and clicked Send to Extension without opening the
+        // EZ plugin first).
+        const cityForCounty = data.City || (typeof App !== 'undefined' && App.data && App.data.addrCity);
+        const stateForCounty = data.State || (typeof App !== 'undefined' && App.data && App.data.addrState);
+        if (cityForCounty && stateForCounty && typeof App !== 'undefined' && App.getCountyFromCity) {
+            const county = App.getCountyFromCity(cityForCounty, String(stateForCounty).toUpperCase());
             if (county) data.County = county;
+        }
+        // Last resort: if App.data.county is set explicitly, use it.
+        if (!data.County && typeof App !== 'undefined' && App.data && App.data.county) {
+            data.County = App.data.county;
         }
 
         // Truncate ZIP to 5 digits for Chrome extension
@@ -157,11 +167,27 @@ const EZLynxTool = {
         // ── Pass-through fields from App.data not in the EZ form ──
         const appData = (typeof App !== 'undefined' && App.data) ? App.data : {};
 
-        // Personal extras
+        // Personal extras — these all fall back to App.data when the EZ
+        // plugin's own form wasn't filled (console-snippet workflow).
         if (appData.prefix) data.Prefix = appData.prefix;
         if (appData.suffix) data.Suffix = appData.suffix;
         if (!data.Occupation && appData.occupation) data.Occupation = appData.occupation;
+        if (!data.Industry && appData.industry) data.Industry = appData.industry;
         if (!data.Education && appData.education) data.Education = appData.education;
+        // Address fields — pass through from App.data when EZ form is empty
+        if (!data.FirstName && appData.firstName) data.FirstName = appData.firstName;
+        if (!data.MiddleName && appData.middleName) data.MiddleName = appData.middleName;
+        if (!data.LastName && appData.lastName) data.LastName = appData.lastName;
+        if (!data.DOB && appData.dob) data.DOB = this._fmtDateForEZ(appData.dob);
+        if (!data.Gender && appData.gender) data.Gender = appData.gender === 'M' ? 'Male' : appData.gender === 'F' ? 'Female' : appData.gender;
+        if (!data.MaritalStatus && appData.maritalStatus) data.MaritalStatus = appData.maritalStatus;
+        if (!data.Email && appData.email) data.Email = appData.email;
+        if (!data.Phone && appData.phone) data.Phone = appData.phone;
+        if (!data.Address && appData.addrStreet) data.Address = appData.addrStreet;
+        if (!data.City && appData.addrCity) data.City = appData.addrCity;
+        if (!data.State && appData.addrState) data.State = appData.addrState;
+        if (!data.Zip && appData.addrZip) data.Zip = appData.addrZip;
+        if (!data.YearsAtAddress && appData.yearsAtAddress) data.YearsAtAddress = appData.yearsAtAddress;
 
         // Auto policy extras
         if (appData.autoPolicyType) data.AutoPolicyType = appData.autoPolicyType;
