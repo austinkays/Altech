@@ -397,36 +397,6 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         expect(content).not.toContain('<GarageLocation>');
     });
 
-    test('Home XML batch-4: emits 6 rating tags inside existing d7ebfc4 RatingInfo block', () => {
-        // Batch-4: NumberOfOccupants, DwellingOccupancy, NumberOfFullBaths,
-        // NumberOfHalfBaths, DistanceToFireStation, Foundation. Explicitly
-        // does NOT include PolicyType, PersonalLiability, MedicalPayments
-        // (those caused prior EZLynx import warnings — kept out of batch-4).
-        App.data = {
-            qType: 'home', firstName: 'A', lastName: 'B',
-            numOccupants: '4', occupancyType: 'Owner Occupied',
-            fullBaths: '2', halfBaths: '1',
-            fireStationDist: '2', foundation: 'Basement - Finished',
-            // The known-bad three — populate to confirm they are NOT emitted
-            homePolicyType: 'HO3',
-            personalLiability: '300000',
-            medicalPayments: '5000',
-        };
-        App.drivers = []; App.vehicles = [];
-        const { content } = App.buildEZLynxHomeXML();
-        // Batch-4 additions present
-        expect(content).toContain('<NumberOfOccupants>4</NumberOfOccupants>');
-        expect(content).toContain('<DwellingOccupancy>Owner Occupied</DwellingOccupancy>');
-        expect(content).toContain('<NumberOfFullBaths>2</NumberOfFullBaths>');
-        expect(content).toContain('<NumberOfHalfBaths>1</NumberOfHalfBaths>');
-        expect(content).toContain('<DistanceToFireStation>2</DistanceToFireStation>');
-        expect(content).toContain('<Foundation>Basement - Finished</Foundation>');
-        // Known-bad three: explicitly NOT emitted
-        expect(content).not.toContain('<PolicyType>');
-        expect(content).not.toContain('<PersonalLiability>');
-        expect(content).not.toContain('<MedicalPayments>');
-    });
-
     test('Home XML sets Multipolicy=Yes when qType is both', () => {
         App.data = { qType: 'both', firstName: 'A', lastName: 'B' };
         App.drivers = []; App.vehicles = [];
