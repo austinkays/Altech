@@ -169,7 +169,15 @@
             LicenseNumber:  ["input[name*='License' i]", "input[id*='License' i]", "input[id*='DL']"],
         },
         'auto-policy-info': {
-            EffectiveDate:  ["input[name*='Effective' i]", "input[id*='Effective' i]", "input[formcontrolname*='effective' i]"],
+            EffectiveDate:    ["input[name*='Effective' i]", "input[id*='Effective' i]", "input[formcontrolname*='effective' i]"],
+            // Prior policy expiration is a separate text date input on the
+            // policy-info page. Altech sends it as PriorExpiration via
+            // ezlynx-tool.js:199 (data.PriorExpiration = _fmtDateForEZ).
+            PriorExpiration:  ["input[id*='priorPolicyExp' i]", "input[name*='priorPolicyExp' i]", "input[formcontrolname*='priorPolicyExp' i]", "input[id*='priorExpiration' i]", "input[name*='priorExpiration' i]"],
+            // Prior policy premium isn't in App.data yet — extension will skip
+            // when value is missing. Leaving the entry here so producer can
+            // see what's expected if/when this field is added later.
+            PriorPolicyPremium: ["input[id*='priorPolicyPremium' i]", "input[name*='priorPolicyPremium' i]"],
         },
         'auto-drivers': {
             FirstName:      ["input[id*='driver-0-firstName' i]", "input[name*='FirstName' i]"],

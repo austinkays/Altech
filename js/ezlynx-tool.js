@@ -247,9 +247,22 @@ const EZLynxTool = {
 
         // Package / multi-policy discount (auto-set when quoting both auto + home)
         if (appData.multiPolicy === 'yes') data.MultiPolicy = 'yes';
+        // PackageAuto: EZLynx auto-policy-info has a "Quote as Package"
+        // dropdown. Yes when this is part of an auto+home bundle, No otherwise.
+        // Send as Yes/No (capitalized) — EZLynx's dropdown options use that.
+        if (appData.qType === 'both') {
+            data.PackageAuto = 'Yes';
+        } else if (appData.qType === 'auto' || appData.qType === 'home') {
+            data.PackageAuto = 'No';
+        }
 
         // Credit check and underwriting reports authorization (consent checkbox)
-        if (appData.creditCheckAuth) data.CreditCheckAuth = 'yes';
+        // Send as 'Yes' (capitalized) so the v3 dropdown matcher hits EZLynx's
+        // Yes/No option text directly.
+        if (appData.creditCheckAuth) {
+            const v = String(appData.creditCheckAuth).toLowerCase();
+            data.CreditCheckAuth = (v === 'yes' || v === 'true' || v === '1' || v === 'y') ? 'Yes' : 'No';
+        }
 
         // Append multi-driver array from App.drivers
         if (typeof App !== 'undefined' && Array.isArray(App.drivers) && App.drivers.length > 0) {
