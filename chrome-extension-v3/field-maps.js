@@ -56,8 +56,13 @@
             LeadSource:             '#applicant-lead-channel',
             PreferredLanguage:      '#preferred-language',
             AddressType:            '#applicant-primary-address-applicantAddressType',
-            PrimaryAddressState:    '#applicant-primary-address-addressState',
-            PrimaryAddressCounty:   '#applicant-primary-address-addressCounty',
+            // County matches the client-data key sent by Altech's EZLynx tool
+            // (ezlynx-tool.js keyMap: ezCounty -> 'County'). Field-map key
+            // MUST match clientData[key] for the extension's lookup loop —
+            // PrimaryAddressCounty was a no-op because clientData has no
+            // such key. State already maps via the rating-state ID above;
+            // EZLynx auto-syncs the primary-address-state from it.
+            County:                 '#applicant-primary-address-addressCounty',
             YearsAtAddress:         '#applicant-primary-address-yearsAtAddress',
             MonthsAtAddress:        '#applicant-primary-address-monthsAtAddress',
             ContactMethod:          '#applicant-preferred-contact-method',
