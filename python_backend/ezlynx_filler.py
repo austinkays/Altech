@@ -1297,6 +1297,28 @@ def smart_select_custom(page, label_patterns, target_value, schema_options=None,
     # empty overlay does nothing and the overlay closes on Enter, false-success.
     options_visible = _wait_for_options(max_ms=3000)
     diag['options_loaded_count'] = options_visible
+
+    # Bail-fast if the cascade hasn't loaded options. User report: with a
+    # half-rendered overlay, typing into nothing + the re-open path created
+    # a visible "1/3 page goes white" thrash because Material's overlay
+    # was opening/closing rapidly. If options never streamed in within 3s,
+    # the field's data isn't ready — hammering doesn't help. Bail with the
+    # diagnostic and dismiss any stuck overlay so the next field starts clean.
+    if options_visible == 0:
+        diag['error'] = 'ERR_NO_OPTIONS_IN_OVERLAY'
+        try:
+            page.keyboard.press('Escape')
+        except Exception:
+            pass
+        try:
+            page.wait_for_selector(
+                '.cdk-overlay-container mat-option, .mat-select-panel',
+                state='hidden', timeout=1000
+            )
+        except PWTimeout:
+            pass
+        return False, diag
+
     try:
         # Type the RAW target to filter/jump, then press Enter.
         # Material typeahead matches either way — typing "WA" narrows
