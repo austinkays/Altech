@@ -2567,8 +2567,7 @@ const ComplianceDashboard = {
 
     // Policy types that may require state contractor licensing reports
     _isLICCBApplicableType(policy) {
-        const t = policy.policyType || 'cgl';
-        return t === 'cgl' || t === 'pkg' || t === 'bop' || t === 'commercial';
+        return (policy.policyType || 'cgl') === 'cgl';
     },
 
     getClientCompliance(clientNumber) {

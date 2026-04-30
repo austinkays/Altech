@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **fix(compliance): scope L&I/CCB verification to CGL only** (April 30, 2026):
+  - `_isLICCBApplicableType()` in `js/compliance-dashboard.js` previously included `cgl`, `pkg`, `bop`, and `commercial` — surfacing the WA L&I / OR CCB verify badges, classification dropdown, and bulk-verify pipeline on package, BOP, and commercial rows that don't need contractor reporting.
+  - Narrowed to `cgl` only, since CGL is the policy type the user actually tracks for contractor compliance. Effect: cleaner client cells on PKG/BOP/Commercial rows; the bulk verify-against-state-API loop also stops calling those clients.
+  - Existing test `needsLIReport / needsCCBReport are FALSE for non-applicable types` still passes (only asserted bond/auto/wc exclusion + cgl inclusion).
+
 - **fix(compliance): silently auto-acknowledge bond renewals** (April 30, 2026):
   - When a bond's expiration date moved forward (i.e. renewed in HawkSoft), `checkForRenewals()` in `js/compliance-dashboard.js` was setting `needsStateUpdate = true` and wiping any prior `hawksoftUpdated` ack — pinning the bond to the top of the list with a "⚠️ Renewed" badge until the user clicked "🦅 HawkSoft Updated" again.
   - Bonds have no separate state-website step (unlike CGLs), and the renewal was detected only because HawkSoft was updated in the first place — so the loud follow-up was redundant.
