@@ -6,7 +6,10 @@
   "permissions": ["storage"],
   "host_permissions": [
     "https://app.ezlynx.com/*",
-    "https://altech-app.vercel.app/*"
+    "https://altech-app.vercel.app/*",
+    "https://altech.agency/*",
+    "https://www.altech.agency/*",
+    "http://localhost/*"
   ],
   "content_scripts": [
     {
@@ -15,7 +18,12 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://altech-app.vercel.app/*"],
+      "matches": [
+        "https://altech-app.vercel.app/*",
+        "https://altech.agency/*",
+        "https://www.altech.agency/*",
+        "http://localhost/*"
+      ],
       "js": ["altech-bridge.js"],
       "run_at": "document_idle"
     }
