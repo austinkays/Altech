@@ -61,6 +61,7 @@ const EZLynxTool = {
         'ezZip','ezCounty','ezYearsAtAddress','ezEducation','ezOccupation','ezIndustry','ezLicenseNumber',
         // Auto Policy & Coverage
         'ezPolicyTerm','ezPriorCarrier','ezPriorPolicyTerm','ezPriorYearsWithCarrier',
+        'ezPriorMonthsWithCarrier','ezContinuousMonths',
         'ezEffectiveDate','ezBodilyInjury','ezPropertyDamage','ezComprehensive',
         'ezCollision','ezMedPaymentsAuto','ezUMPD','ezUMBI','ezPriorLiabilityLimits',
         'ezYearsContinuousCoverage','ezNumResidents','ezResidenceIs',
@@ -97,6 +98,8 @@ const EZLynxTool = {
             // Auto Policy
             ezPolicyTerm: 'PolicyTerm', ezPriorCarrier: 'PriorCarrier',
             ezPriorPolicyTerm: 'PriorPolicyTerm', ezPriorYearsWithCarrier: 'PriorYearsWithCarrier',
+            ezPriorMonthsWithCarrier: 'PriorMonthsWithCarrier',
+            ezContinuousMonths: 'ContinuousMonths',
             ezEffectiveDate: 'EffectiveDate', ezBodilyInjury: 'BodilyInjury',
             ezPropertyDamage: 'PropertyDamage', ezComprehensive: 'Comprehensive',
             ezCollision: 'Collision', ezMedPaymentsAuto: 'MedPaymentsAuto',
@@ -197,6 +200,15 @@ const EZLynxTool = {
         if (appData.towingDeductible) data.TowingLabor = appData.towingDeductible;
         if (appData.studentGPA) data.StudentGPA = appData.studentGPA;
         if (appData.priorExp) data.PriorExpiration = this._fmtDateForEZ(appData.priorExp);
+        // Months sub-fields paired with Years dropdowns (EZLynx requires both
+        // halves of the duration). Altech stores priorMonths / continuousMonths
+        // as their own fields (see fields.js).
+        if (!data.PriorMonthsWithCarrier && appData.priorMonths != null && appData.priorMonths !== '') {
+            data.PriorMonthsWithCarrier = String(appData.priorMonths);
+        }
+        if (!data.ContinuousMonths && appData.continuousMonths != null && appData.continuousMonths !== '') {
+            data.ContinuousMonths = String(appData.continuousMonths);
+        }
 
         // Home property extras
         if (appData.purchaseDate) data.PurchaseDate = this._fmtDateForEZ(appData.purchaseDate);

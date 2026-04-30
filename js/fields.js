@@ -186,10 +186,12 @@ window.FIELDS = [
     { id: 'priorCarrier',         label: 'Prior Auto Carrier',  type: 'text',   section: 'prior-insurance', ezlynxRequired: true },
     { id: 'priorPolicyTerm',      label: 'Prior Auto Term',     type: 'select', section: 'prior-insurance', ezlynxRequired: true },
     { id: 'priorYears',           label: 'Prior Auto Years',    type: 'number', section: 'prior-insurance', ezlynxRequired: true },
+    { id: 'priorMonths',          label: 'Prior Auto Months',   type: 'select', section: 'prior-insurance', ezlynxRequired: true }, // EZLynx requires Years AND Months pair
     { id: 'priorExp',             label: 'Prior Auto Exp.',     type: 'date',   section: 'prior-insurance', ezlynxRequired: true },
     { id: 'priorLiabilityLimits', label: 'Prior Auto Limits',   type: 'text',   section: 'prior-insurance', ezlynxRequired: true },
     { id: 'priorPolicyStatus',    label: 'Prior Auto Policy Status', type: 'select', section: 'prior-insurance' }, // PDF only — underwriting risk flag (non-renewal/cancellation)
     { id: 'continuousCoverage',   label: 'Continuous Coverage', type: 'select', section: 'prior-insurance', ezlynxRequired: true },
+    { id: 'continuousMonths',     label: 'Continuous Months',   type: 'select', section: 'prior-insurance', ezlynxRequired: true }, // EZLynx requires Years AND Months pair
     { id: 'homePriorCarrier',     label: 'Home Prior Carrier',  type: 'text',   section: 'prior-insurance', ezlynxRequired: true },
     { id: 'homePriorYears',       label: 'Home Prior Years',    type: 'number', section: 'prior-insurance', ezlynxRequired: true },
     { id: 'homePriorPolicyTerm',  label: 'Home Prior Term',     type: 'select', section: 'prior-insurance' }, // PDF only — not in HawkSoft FSC
