@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **fix(compliance): silently auto-acknowledge bond renewals** (April 30, 2026):
+  - When a bond's expiration date moved forward (i.e. renewed in HawkSoft), `checkForRenewals()` in `js/compliance-dashboard.js` was setting `needsStateUpdate = true` and wiping any prior `hawksoftUpdated` ack — pinning the bond to the top of the list with a "⚠️ Renewed" badge until the user clicked "🦅 HawkSoft Updated" again.
+  - Bonds have no separate state-website step (unlike CGLs), and the renewal was detected only because HawkSoft was updated in the first place — so the loud follow-up was redundant.
+  - Extracted helper `_applyRenewalMarkers(nd, policy)` inside `checkForRenewals()` that branches on `policy.policyType`. For bonds: sets `hawksoftUpdated = now`, `hawksoftUpdatedForExp = newExp`, `needsStateUpdate = false`. For all other types: existing CGL behavior (clears acks, sets `needsStateUpdate = true`).
+  - Effect: bonds drop back into normal date-sorted position after a renewal and won't re-surface at the top until the new term is itself near expiration. The "Auto-cleared: policy renewed (exp X → Y)" log entry and the small "🔄 Renewed" date-column badge still render so there's a visible record.
+
 - **refactor(commercial-quoter): tighten PDF export to 1 page** (April 29, 2026):
   - The commercial intake PDF was wasting space and spilling into a second page even for compact quotes. Reworked `exportPDF` in `js/commercial-quoter.js` so a typical intake (3–4 coverages, single owner, ~3-line description) renders on a single page.
   - Header: logo 18→13mm, title 11pt→10pt, subtitle 8pt→7.5pt, doc-ref 10pt→9pt, separator gap trimmed.

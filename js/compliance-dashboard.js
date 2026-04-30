@@ -1491,6 +1491,26 @@ const ComplianceDashboard = {
             return !isNaN(a) && !isNaN(b) && Math.abs(a - b) < 86400000; // within 1 day
         };
 
+        // For bonds, the entire renewal workflow is "update HawkSoft" — there's no
+        // separate state-website step. Since the renewal was detected because HawkSoft
+        // was updated, auto-acknowledge instead of nagging with a "Renewed" badge.
+        const _applyRenewalMarkers = (nd, policy) => {
+            const isBond = (policy.policyType || '').toLowerCase() === 'bond';
+            if (isBond) {
+                nd.stateUpdated = null;
+                nd.hawksoftUpdated = new Date().toISOString();
+                nd.hawksoftUpdatedForExp = policy.expirationDate;
+                nd.renewedTo = null;
+                nd.needsStateUpdate = false;
+            } else {
+                nd.stateUpdated = null;
+                nd.hawksoftUpdated = null;
+                nd.hawksoftUpdatedForExp = null;
+                nd.renewedTo = null;
+                nd.needsStateUpdate = true;
+            }
+        };
+
         this.policies.forEach(policy => {
             const pn = policy.policyNumber;
             const existingNote = this.getNoteData(pn);
@@ -1521,7 +1541,7 @@ const ComplianceDashboard = {
                         }
                         delete this.verifiedPolicies[pn];
                         const nd = this.getNoteData(pn) || { log: [] };
-                        nd.stateUpdated = null; nd.hawksoftUpdated = null; nd.hawksoftUpdatedForExp = null; nd.renewedTo = null; nd.needsStateUpdate = true;
+                        _applyRenewalMarkers(nd, policy);
                         this.policyNotes[pn] = nd;
                         cleared++;
                     }
@@ -1543,7 +1563,7 @@ const ComplianceDashboard = {
                         }
                         delete this.verifiedPolicies[pn];
                         const nd = this.getNoteData(pn) || { log: [] };
-                        nd.stateUpdated = null; nd.hawksoftUpdated = null; nd.hawksoftUpdatedForExp = null; nd.renewedTo = null; nd.needsStateUpdate = true;
+                        _applyRenewalMarkers(nd, policy);
                         this.policyNotes[pn] = nd;
                         cleared++;
                     }
@@ -1571,7 +1591,7 @@ const ComplianceDashboard = {
                         }
                         delete this.dismissedPolicies[pn];
                         const nd = this.getNoteData(pn) || { log: [] };
-                        nd.stateUpdated = null; nd.hawksoftUpdated = null; nd.hawksoftUpdatedForExp = null; nd.renewedTo = null; nd.needsStateUpdate = true;
+                        _applyRenewalMarkers(nd, policy);
                         this.policyNotes[pn] = nd;
                         cleared++;
                     }
@@ -1593,7 +1613,7 @@ const ComplianceDashboard = {
                         }
                         delete this.dismissedPolicies[pn];
                         const nd = this.getNoteData(pn) || { log: [] };
-                        nd.stateUpdated = null; nd.hawksoftUpdated = null; nd.hawksoftUpdatedForExp = null; nd.renewedTo = null; nd.needsStateUpdate = true;
+                        _applyRenewalMarkers(nd, policy);
                         this.policyNotes[pn] = nd;
                         cleared++;
                     }
