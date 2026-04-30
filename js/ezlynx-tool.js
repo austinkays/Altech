@@ -193,7 +193,16 @@ const EZLynxTool = {
         if (!data.YearsAtAddress && appData.yearsAtAddress) data.YearsAtAddress = appData.yearsAtAddress;
 
         // Auto policy extras
-        if (appData.autoPolicyType) data.AutoPolicyType = appData.autoPolicyType;
+        // AutoPolicyType: Altech stores rater-friendly names ("Standard",
+        // "Preferred", "Non-Standard"). EZLynx's auto-policy-info dropdown
+        // accepts "Base" / "Named Operator Policy" only — map common values
+        // before send so the v3 dropdown matcher hits a real option.
+        if (appData.autoPolicyType) {
+            const t = String(appData.autoPolicyType).toLowerCase();
+            data.AutoPolicyType = (t === 'named operator' || t === 'named operator policy' || t.includes('named'))
+                ? 'Named Operator Policy'
+                : 'Base';
+        }
         if (appData.umpdLimit) data.UMPD_PD = appData.umpdLimit;
         if (appData.uimLimits) data.UIM = appData.uimLimits;
         if (appData.rentalDeductible) data.RentalReimbursement = appData.rentalDeductible;
@@ -223,6 +232,45 @@ const EZLynxTool = {
         if (appData.plumbYr) data.PlumbingUpdateYear = appData.plumbYr;
         if (appData.elecYr) data.ElectricalUpdateYear = appData.elecYr;
         if (appData.roofYr) data.RoofUpdateYear = appData.roofYr;
+
+        // Home subpage fallbacks — these flow through to the v3 extension's
+        // home-policy-info / home-dwelling-info / home-coverage subpage maps.
+        // Mirror the keys exactly (case-sensitive — the extension does
+        // clientData[key] lookup against SUBPAGE_FIELD_IDS keys).
+        if (!data.DwellingUsage    && appData.dwellingUsage)    data.DwellingUsage    = appData.dwellingUsage;
+        if (!data.OccupancyType    && appData.occupancyType)    data.OccupancyType    = appData.occupancyType;
+        if (!data.DwellingType     && appData.dwellingType)     data.DwellingType     = appData.dwellingType;
+        if (!data.NumStories       && appData.numStories)       data.NumStories       = appData.numStories;
+        if (!data.ConstructionStyle && appData.constructionStyle) data.ConstructionStyle = appData.constructionStyle;
+        if (!data.ExteriorWalls    && appData.exteriorWalls)    data.ExteriorWalls    = appData.exteriorWalls;
+        if (!data.FoundationType   && appData.foundation)       data.FoundationType   = appData.foundation;
+        if (!data.RoofType         && appData.roofType)         data.RoofType         = appData.roofType;
+        if (!data.RoofDesign       && appData.roofShape)        data.RoofDesign       = appData.roofShape;
+        if (!data.HeatingType      && appData.heatingType)      data.HeatingType      = appData.heatingType;
+        if (!data.BurglarAlarm     && appData.burglarAlarm)     data.BurglarAlarm     = appData.burglarAlarm;
+        if (!data.FireDetection    && appData.fireAlarm)        data.FireDetection    = appData.fireAlarm;
+        if (!data.SprinklerSystem  && appData.sprinklers)       data.SprinklerSystem  = appData.sprinklers;
+        if (!data.SmokeDetector    && appData.smokeDetector)    data.SmokeDetector    = appData.smokeDetector;
+        if (!data.ProtectionClass  && appData.protectionClass)  data.ProtectionClass  = appData.protectionClass;
+        if (!data.FeetFromHydrant  && appData.fireHydrantFeet)  data.FeetFromHydrant  = appData.fireHydrantFeet;
+        if (!data.NumFullBaths     && appData.fullBaths)        data.NumFullBaths     = appData.fullBaths;
+        if (!data.NumHalfBaths     && appData.halfBaths)        data.NumHalfBaths     = appData.halfBaths;
+        if (!data.NumOccupants     && appData.numOccupants)     data.NumOccupants     = appData.numOccupants;
+        if (!data.HomePolicyType   && appData.homePolicyType)   data.HomePolicyType   = appData.homePolicyType;
+        if (!data.HomePriorCarrier && appData.homePriorCarrier) data.HomePriorCarrier = appData.homePriorCarrier;
+        // Home coverage values
+        if (!data.HomePersonalLiability && appData.personalLiability) data.HomePersonalLiability = appData.personalLiability;
+        if (!data.HomeMedicalPayments   && appData.medicalPayments)   data.HomeMedicalPayments   = appData.medicalPayments;
+        if (!data.AllPerilsDeductible   && appData.homeDeductible)    data.AllPerilsDeductible   = appData.homeDeductible;
+        if (!data.WindDeductible        && appData.windDeductible)    data.WindDeductible        = appData.windDeductible;
+        if (!data.TheftDeductible       && appData.theftDeductible)   data.TheftDeductible       = appData.theftDeductible;
+        // Home endorsements
+        if (!data.IncreasedReplacementCost && appData.increasedReplacementCost) data.IncreasedReplacementCost = appData.increasedReplacementCost;
+        if (!data.LossAssessment        && appData.lossAssessment)    data.LossAssessment        = appData.lossAssessment;
+        if (!data.OrdinanceOrLaw        && appData.ordinanceOrLaw)    data.OrdinanceOrLaw        = appData.ordinanceOrLaw;
+        if (!data.WaterBackup           && appData.waterBackup)       data.WaterBackup           = appData.waterBackup;
+        // QuoteAsPackage on Home page — same Yes/No as auto's PackageAuto
+        if (!data.QuoteAsPackage) data.QuoteAsPackage = (appData.qType === 'both') ? 'Yes' : 'No';
 
         // Home hazards / toggles (extension uses Yes/No toggles for these)
         if (appData.woodStove && appData.woodStove !== 'No') data.WoodStove = appData.woodStove;
@@ -379,7 +427,7 @@ const EZLynxTool = {
                 Make: v.make || '',
                 Model: v.model || '',
                 Use: v.use || '',
-                AnnualMiles: v.miles || '',
+                AnnualMiles: v.miles || v.annualMiles || '',
                 Ownership: v.ownershipType || '',
                 Performance: v.performance || '',
                 AntiTheft: v.antiTheft || '',
@@ -396,6 +444,32 @@ const EZLynxTool = {
                 GaragingState: v.garagingState || '',
                 GaragingZip: v.garagingZip ? String(v.garagingZip).replace(/[^0-9]/g, '').slice(0, 5) : ''
             }));
+
+            // Vehicle-0 flattening: v3 extension (Phase 1, single-vehicle)
+            // looks up clientData[key] for each SUBPAGE_FIELD_IDS entry on
+            // the auto-vehicles subpage. Without flattening these to top
+            // level, VehicleUse / VehicleYear / OwnershipType / etc. all
+            // skip silently because clientData.Vehicles[0].use isn't
+            // findable by `clientData['VehicleUse']`. Mirror the keys the
+            // field map uses (chrome-extension-v3/field-maps.js auto-vehicles).
+            const v0 = App.vehicles[0];
+            if (v0) {
+                if (!data.VehicleYear  && v0.year)  data.VehicleYear  = v0.year;
+                if (!data.VehicleMake  && v0.make)  data.VehicleMake  = v0.make;
+                if (!data.VehicleModel && v0.model) data.VehicleModel = v0.model;
+                if (!data.VehicleUse   && v0.use)   data.VehicleUse   = v0.use;
+                if (!data.AnnualMiles  && (v0.miles || v0.annualMiles)) data.AnnualMiles = v0.miles || v0.annualMiles;
+                if (!data.OwnershipType && v0.ownershipType) data.OwnershipType = v0.ownershipType;
+                if (!data.VehiclePerformance && v0.performance) data.VehiclePerformance = v0.performance;
+                if (!data.AntiTheft && v0.antiTheft) data.AntiTheft = v0.antiTheft;
+                if (!data.PassiveRestraints && v0.passiveRestraints) data.PassiveRestraints = v0.passiveRestraints;
+                if (!data.AntiLockBrakes && v0.antiLockBrakes) data.AntiLockBrakes = v0.antiLockBrakes;
+                if (!data.DaytimeRunningLights && v0.daytimeRunningLights) data.DaytimeRunningLights = v0.daytimeRunningLights;
+                if (!data.CarNew && v0.carNew) data.CarNew = v0.carNew;
+                if (!data.CarPool && v0.carPool) data.CarPool = v0.carPool;
+                if (!data.VehicleTelematics && v0.telematics) data.VehicleTelematics = v0.telematics;
+                if (!data.TransNetworkCompany && v0.tnc) data.TransNetworkCompany = v0.tnc;
+            }
         }
 
         // Append incidents (violations, accidents, claims) — smart skip: omit if empty

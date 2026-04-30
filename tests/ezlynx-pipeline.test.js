@@ -533,7 +533,10 @@ describe('EZLynx Pipeline — §3 pass-through fields from App.data', () => {
 
     test('auto policy extras', () => {
         const out = EZLynxTool.getFormData();
-        expect(out.AutoPolicyType).toBe('Standard');
+        // AutoPolicyType is normalized to EZLynx's accepted enum
+        // (Base / Named Operator Policy). Altech's "Standard" → "Base".
+        // See ezlynx-tool.js getFormData "Auto policy extras" block.
+        expect(out.AutoPolicyType).toBe('Base');
         expect(out.UMPD_PD).toBe('25000');
         expect(out.UIM).toBe('100/300');
         expect(out.RentalReimbursement).toBe('30/900');
@@ -1341,7 +1344,7 @@ describe('EZLynx Pipeline — §13 full end-to-end', () => {
 
         // Pass-throughs
         expect(out.Prefix).toBe('Mrs');
-        expect(out.AutoPolicyType).toBe('Standard');
+        expect(out.AutoPolicyType).toBe('Base');  // 'Standard' -> 'Base' via enum normalization
         expect(out.PurchaseDate).toBe('06/15/2020');
         expect(out.WoodStove).toBe('Yes');
         expect(out.DogOnPremises).toBe('Yes');
