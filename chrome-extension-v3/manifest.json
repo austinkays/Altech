@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Altech EZLynx Filler v3",
+  "version": "3.0.0",
+  "description": "In-page EZLynx auto-filler. Built from V1's proven JS-injection strategy + every priority element ID we captured across 7 Cowork rounds. No Playwright, no chevron tricks — just sets values directly inside Angular's own zone.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://app.ezlynx.com/*",
+    "https://altech-app.vercel.app/*",
+    "https://altech.agency/*",
+    "https://www.altech.agency/*",
+    "http://localhost/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://app.ezlynx.com/*"],
+      "js": ["field-maps.js", "content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://altech-app.vercel.app/*",
+        "https://altech.agency/*",
+        "https://www.altech.agency/*",
+        "http://localhost/*"
+      ],
+      "js": ["altech-bridge.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Altech EZLynx Filler v3"
+  }
+}
