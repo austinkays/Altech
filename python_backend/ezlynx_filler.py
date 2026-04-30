@@ -322,10 +322,17 @@ AUTO_DROPDOWN_LABELS = {
     "Comprehensive":   ["comprehensive", "comp deductible", "comprehensive deductible"],
     "Collision":       ["collision", "collision deductible"],
     "UMPD":            ["uninsured motorist property damage", "umpd"],
-    "UMBI":            ["uninsured motorist bodily injury", "um bodily injury", "um/uim bodily injury"],
-    "TowingLabor":     ["towing and labor", "towing labor", "towing"],
-    "RentalReimbursement": ["rental reimbursement", "rental"],
+    "UMBI":            ["uninsured motorist bodily injury", "uninsured motorist", "um bodily injury"],
+    "UnderinsuredMotorist": ["underinsured motorist", "uim"],
+    "PIP":             ["personal injury protection", "pip"],
+    "TowingLabor":     ["towing and labor", "towing labor", "towing", "towing & labor"],
+    "RentalReimbursement": ["rental reimbursement", "rental", "rental expense"],
     "ResidenceIs":     ["residence is", "residence owned"],
+    # Vehicle make/model are text-like dropdowns on EZLynx but enter via
+    # mat-select with autocomplete; the existing VehicleYear pattern
+    # handles year. Add make/model labels.
+    "VehicleMake":     ["make"],
+    "VehicleModel":    ["model"],
     # ── Previously unmapped (scraped from schema) ──
     "PaperlessAuto":        ["paperless"],
     "DriverTelematics":     ["telematics"],
@@ -449,35 +456,78 @@ SUBPAGE_FIELD_IDS = {
         # the existing TEXT_FIELD_MAP selectors handle it.
         'EffectiveDate':           None,
     },
-    # Auto Coverage — TBD. Capture IDs from a real fill run on the
-    # Coverage page (BI/PD/MedPay/Comp/Coll/UMPD/ResidenceIs).
+    # Auto Coverage — IDs from Cowork Round 3 fill log inventory.
+    # Notes:
+    #   - Comprehensive/Collision are PER-VEHICLE (vehicle-0-comprehensive,
+    #     vehicle-0-collision). Multi-vehicle handling is Phase 2 — iteration
+    #     over Vehicles[]. For single-vehicle quotes (most common), the
+    #     vehicle-0 ID works directly.
+    #   - State-specific IDs (WAPIP, WAUMPD) are deliberately NOT pinned —
+    #     they vary by state (CAPIP, CAUMPD, ...) and the existing label-
+    #     walk handles them portably.
     'auto-coverage': {
-        'BodilyInjury':    None,
-        'PropertyDamage':  None,
-        'MedPaymentsAuto': None,
-        'Comprehensive':   None,
-        'Collision':       None,
-        'UMPD':            None,
-        'ResidenceIs':     None,
+        'BodilyInjury':       '#bodily-injury',
+        'PropertyDamage':     '#property-damage',
+        'MedPaymentsAuto':    '#medical-payments',
+        'UMBI':               '#uninsured-motorist',
+        'UnderinsuredMotorist': '#underinsured-motorist',
+        'UMPD':               None,        # state-specific (WAUMPD/CAUMPD/...)
+        'PIP':                None,        # state-specific (WAPIP/CAPIP/...)
+        'Comprehensive':      '#vehicle-0-comprehensive',
+        'Collision':          '#vehicle-0-collision',
+        'TowingLabor':        '#vehicle-0-towingAndLabor',
+        'RentalReimbursement': '#vehicle-0-extTransExpense',
+        'ResidenceIs':        '#residence',
     },
-    # Auto Drivers — V1's ROUTE_TABLE shows the field set; IDs TBD.
+    # Auto Vehicles — IDs from Cowork Round 3 inventory. All single-vehicle
+    # (vehicle index 0). Multi-vehicle iteration is Phase 2.
+    'auto-vehicles': {
+        'VehicleYear':          '#selected-year-0',
+        'VehicleMake':          '#selected-make-0',
+        'VehicleModel':         '#selected-model-0',
+        'PassiveRestraints':    '#selected-restraint-0',
+        'AntiLockBrakes':       '#antilock-brakes-0',
+        'DaytimeRunningLights': '#daytime-runningLights-0',
+        'AntiTheft':            '#selected-antiTheft-0',
+        'VehicleUse':           '#selected-use-0',
+        'VehiclePerformance':   '#selected-performance-0',
+        'CarNew':               '#new-vehicle-0',
+        'OwnershipType':        '#selected-ownershipType-0',
+        'CarPool':              '#carpool-0',
+        'VehicleTelematics':    '#telematics-0',
+        'TransNetworkCompany':  '#transportation-network-coverage-0',
+    },
+    # Auto Drivers — IDs from Cowork Round 2 fill log inventory.
+    # NOTE: 'Education' (Bachelors/Masters) is deliberately NOT included.
+    # The Drivers page has "Driver Education" (a Yes/No question about
+    # whether the driver took a driver's-ed course) which the label-walk
+    # incorrectly matched against the applicant 'Education' field. With
+    # the allowlist excluding Education here, that collision can't fire.
     'auto-drivers': {
-        'DLState':          None,
-        'DLStatus':         None,
-        'AgeLicensed':      None,
-        'GoodDriver':       None,
-        'MatureDriver':     None,
-        'LicenseSuspended': None,
-        'SR22Required':     None,
-        'FR44Required':     None,
-        'DriverEducation':  None,
-        'Relationship':     None,
-        # Per-driver demographics that EZLynx may re-collect on the page
-        'Gender':           None,
-        'MaritalStatus':    None,
-        'Industry':         None,
-        'Occupation':       None,
-        'Education':        None,
+        # Per-driver demographics (EZLynx auto-populates from applicant
+        # but we re-fill to ensure they stick on this page too)
+        'Gender':           '#driver-0-gender',
+        'MaritalStatus':    '#driver-0-maritalStatus',
+        'Industry':         '#driver-0-occupationIndustry',
+        'Occupation':       '#driver-0-occupationTitle',
+        'Relationship':     '#driver-0-relationship',
+        # License
+        'DLStatus':         '#driver-0-driversLicenseStatus',
+        'DLState':          '#drpD1DLState',  # non-standard ID prefix
+        'AgeLicensed':      '#driver-0-ageLicensed',
+        # Driving history (Yes/No fields)
+        'LicenseSuspended': '#driver-0-hasLicenseBeenSuspendedRecently',
+        'SR22Required':     '#driver-0-isSR22Required',
+        'FR44Required':     '#driver-0-isFR44Required',
+        'DriverEducation':  '#driver-0-hasTakenDriversEducation',
+        'MatureDriver':     '#driver-0-isMatureDriver',
+        'GoodDriver':       '#driver-0-isGoodDriver',
+        # Carrier-specific (won't always be present — script's
+        # is_visible() gate skips when not on the page)
+        'GoodStudent':      '#driver-0-isGoodStudent',
+        'StudentFarAway':   '#driver-0-isStudentFarAway',
+        'RatedDriver':      '#driver-0-ratedDriver',
+        'DriverTelematics': '#driver_d1telematics_common',
     },
     # Auto Vehicles — TBD. Capture from a Vehicles-page fill run.
     'auto-vehicles': {
@@ -494,6 +544,42 @@ SUBPAGE_FIELD_IDS = {
         'VehicleSalvaged':      None,
         'VehicleTelematics':    None,
     },
+}
+
+
+# Per-subpage TEXT field allowlist — mirror of SUBPAGE_FIELD_IDS but
+# for inputs (TEXT_FIELD_MAP). Without this the script tries to fill
+# FirstName/LastName/DOB on every page and floods the FAIL REPORT with
+# false ERR_FIELD_NOT_FOUND noise. Subpage = None falls back to "try
+# all" (legacy behavior). Set to [] (empty list) when a subpage has
+# zero text fields — that's still a known-empty state, not unknown.
+SUBPAGE_TEXT_FIELDS = {
+    'applicant': [
+        'FirstName', 'LastName', 'MiddleName', 'DOB', 'SSN',
+        'Email', 'Phone',
+        'Address', 'City', 'Zip', 'LicenseNumber',
+        'PreviousAddress', 'PreviousCity', 'PreviousZip',
+        'AccountName', 'Nickname',
+    ],
+    'auto-policy-info': [
+        'EffectiveDate',
+        # Policy Info has no other free-text fields — Prior Carrier and
+        # all the rest are mat-selects. The PriorPolicyExpirationDate is
+        # likely a date input, but we don't have an Altech source field
+        # for it yet (priorExp exists but isn't in TEXT_FIELD_MAP).
+    ],
+    'auto-drivers': [
+        'FirstName', 'LastName', 'MiddleName', 'DOB', 'SSN',
+        'LicenseNumber', 'StudentGPA',
+    ],
+    'auto-vehicles': [
+        # VIN, Year, Make, Model, etc. — none of these are in
+        # TEXT_FIELD_MAP yet because we haven't tackled the Vehicles
+        # subpage. Empty list = "scope is known, no text fields here."
+    ],
+    'auto-coverage': [
+        # Coverage page is all dropdowns. Empty = known.
+    ],
 }
 
 
@@ -1794,12 +1880,31 @@ def run(client_file: str, schema_file: str):
 
                 fill_report = []  # Collect diagnostic report for all fields
 
+                # Subpage scoping for text fields too — same pattern as
+                # the dropdown loop below. Eliminates the "FirstName not
+                # found on Auto Policy Info" noise that flooded the FAIL
+                # REPORT with 8 false failures per fill.
+                _text_url = ''
+                try:
+                    _text_url = page.url
+                except Exception:
+                    pass
+                _text_subpage = detect_subpage(_text_url)
+                _text_allowlist = SUBPAGE_TEXT_FIELDS.get(_text_subpage)
+
                 # Fill text fields
                 print("\n[*] Filling text fields...")
                 filled = 0
                 skipped = 0
 
-                for key, selectors in TEXT_FIELD_MAP.items():
+                if _text_allowlist is not None:
+                    text_keys_to_try = [k for k in _text_allowlist if k in TEXT_FIELD_MAP]
+                    print(f"[*] Text fields scoped to {_text_subpage} ({len(text_keys_to_try)} known fields)")
+                else:
+                    text_keys_to_try = list(TEXT_FIELD_MAP.keys())
+
+                for key in text_keys_to_try:
+                    selectors = TEXT_FIELD_MAP[key]
                     value = client.get(key, "")
                     if not value:
                         continue
