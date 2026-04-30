@@ -144,7 +144,21 @@
             SSN:            ["input[name*='SSN' i]", "input[id*='SSN' i]"],
             Email:          ["input[type='email']", "input[name*='Email' i]", "input[formcontrolname*='email' i]"],
             Phone:          ["input[name*='Phone' i]", "input[id*='Phone' i]", "input[formcontrolname*='phone' i]"],
-            Address:        ["input[name*='Address' i][name*='Street' i]", "input[id*='addr' i][id*='street' i]", "input[id*='applicant-primary-address-addressStreet']"],
+            // Address: EZLynx primary address line 1. Older builds used
+            // #applicant-primary-address-addressStreet; current builds appear
+            // to use #applicant-primary-address-addressLine1. Try the
+            // specific IDs first, then formcontrolname, then loose matches.
+            // Excludes "Line 2" / City / State / County / Zip / etc. so we
+            // don't fill an adjacent input by accident.
+            Address: [
+                "#applicant-primary-address-addressLine1",
+                "#applicant-primary-address-addressStreet",
+                "input[id^='applicant-primary-address-address']:not([id*='Line2']):not([id*='line2']):not([id*='City']):not([id*='State']):not([id*='County']):not([id*='Zip']):not([id*='Postal']):not([id*='Months']):not([id*='Years']):not([id*='Type'])",
+                "input[formcontrolname='addressLine1']",
+                "input[formcontrolname='addressStreet']",
+                "input[name*='Address' i][name*='Street' i]",
+                "input[id*='addr' i][id*='street' i]",
+            ],
             City:           ["input[name*='City' i]", "input[id*='City' i]", "input[id*='applicant-primary-address-addressCity']"],
             Zip:            ["input[name*='Zip' i]", "input[name*='PostalCode' i]", "input[id*='Zip' i]", "input[id*='PostalCode' i]"],
             LicenseNumber:  ["input[name*='License' i]", "input[id*='License' i]", "input[id*='DL']"],
